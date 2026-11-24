@@ -63013,5 +63013,7 @@
   "This app's requests in each interval, with those answered with a 5xx status as a line of their own, as {{service}} counts them. A dashed line marks each deploy.": "Die Anfragen an diese App je Intervall, die mit einem 5xx-Status beantworteten als eigene Linie, wie {{service}} sie zählt. Eine gestrichelte Linie markiert jedes Deployment.",
   "What {{service}} measures for this app, whatever the app sends.": "Was {{service}} für diese App misst, unabhängig davon, was die App sendet.",
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime liest noch keinen ECS-Service im Cluster {{cluster}}, der die Task-Definition {{name}} ausführt.",
-  "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Das 95. Perzentil der Antwortzeit dieser App je Minute, gemittelt über den ausgewählten Zeitraum, wie {{service}} es misst."
+  "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Das 95. Perzentil der Antwortzeit dieser App je Minute, gemittelt über den ausgewählten Zeitraum, wie {{service}} es misst.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Das Produkt Sicherheitsereignisse ist auf diesem Server ausgeschaltet, deshalb hat OneUptime AI aufgehört, den Fall zu bearbeiten.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Das Produkt Sicherheitsereignisse ist auf diesem Server ausgeschaltet. Ein Server-Administrator kann es unter Admin-Dashboard > Einstellungen > Produkte einschalten."
 }

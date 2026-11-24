@@ -40,6 +40,14 @@ import useLlmSetupCheck, {
 } from "./SetupCheck/useLlmSetupCheck";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import {
+  isLlmCallNameHidden,
+  readLlmCallPerson,
+  readLlmCallTeam,
+} from "Common/Utils/Telemetry/LlmCallIdentity";
+import LlmHiddenByScrubRule, {
+  getLlmHiddenByScrubRuleText,
+} from "../LlmConversations/LlmHiddenByScrubRule";
 
 export interface ComponentProps {
   // Extra query (merged with isLlmSpan + projectId).
@@ -134,13 +142,47 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
    * identity (gen_ai.user and friends, see LlmEndUserAttributeKeys) is never
    * denormalized into these columns, precisely so it can never be read as the
    * person to charge.
+   *
+   * Both are read past what a scrub rule left, as the Usage tab and
+   * Conversations read them (LlmCallIdentity, #10631): an email a rule hid
+   * falls back to the id, and a call whose every name was hidden is the
+   * hidden key - drawn "Hidden by a scrub rule", never as "[REDACTED]", a
+   * mask or a token. A call that names nobody stays the quiet dash.
    */
   const getUserLabel: (span: Span) => string = (span: Span): string => {
-    return (
-      span.llmUserEmail?.toString().trim() ||
-      span.llmUserId?.toString().trim() ||
-      ""
-    );
+    return readLlmCallPerson({ email: span.llmUserEmail, id: span.llmUserId });
+  };
+
+  // The team the call is charged to, read past what a scrub rule left too.
+  const getTeamLabel: (span: Span) => string = (span: Span): string => {
+    return readLlmCallTeam(span.llmTeam);
+  };
+
+  /*
+   * A person or a team as the cell draws it: the quiet dash for none, the
+   * muted "Hidden by a scrub rule" for one a rule hid, else the name.
+   */
+  const renderNameElement: (label: string) => ReactElement = (
+    label: string,
+  ): ReactElement => {
+    if (!label) {
+      return <TableEmptyValue />;
+    }
+
+    if (isLlmCallNameHidden(label)) {
+      return <LlmHiddenByScrubRule />;
+    }
+
+    return <span className="text-xs text-gray-700">{label}</span>;
+  };
+
+  // What an export says for the cell: what the reader sees, never the placeholder.
+  const getNameExportValue: (label: string) => string = (
+    label: string,
+  ): string => {
+    return isLlmCallNameHidden(label)
+      ? getLlmHiddenByScrubRuleText(translator)
+      : label;
   };
 
   const emptyView: LlmEmptyViewState = getLlmEmptyViewState({
@@ -202,13 +244,13 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
   const renderUserElement: (span: Span) => ReactElement = (
     span: Span,
   ): ReactElement => {
-    const label: string = getUserLabel(span);
+    return renderNameElement(getUserLabel(span));
+  };
 
-    if (!label) {
-      return <TableEmptyValue />;
-    }
-
-    return <span className="text-xs text-gray-700">{label}</span>;
+  const renderTeamElement: (span: Span) => ReactElement = (
+    span: Span,
+  ): ReactElement => {
+    return renderNameElement(getTeamLabel(span));
   };
 
   return (
@@ -466,15 +508,24 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
           title: "User",
           type: FieldType.Element,
           getElement: renderUserElement,
-          // The cell renders a fallback the declared field does not carry.
-          getExportValue: getUserLabel,
+          /*
+           * The cell renders a fallback the declared field does not carry,
+           * and words for a person a scrub rule hid.
+           */
+          getExportValue: (span: Span): string => {
+            return getNameExportValue(getUserLabel(span));
+          },
         },
         {
           field: {
             llmTeam: true,
           },
           title: "Team",
-          type: FieldType.Text,
+          type: FieldType.Element,
+          getElement: renderTeamElement,
+          getExportValue: (span: Span): string => {
+            return getNameExportValue(getTeamLabel(span));
+          },
         },
         {
           field: {

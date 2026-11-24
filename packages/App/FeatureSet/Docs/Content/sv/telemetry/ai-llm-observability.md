@@ -317,6 +317,8 @@ GenAI-mätvärden som `gen_ai.client.token.usage` och `gen_ai.client.operation.d
 
 AI-anrop lagras som trace-spans, så tracens **Scrub-regler** och **Drop-filter** gäller för dem: maskera ett attribut, eller släpp ett span, innan det lagras. Du hittar båda under **Spår → Inställningar**. Den anställdes e-postkolumn maskeras tillsammans med attributet som den lästes från, så en regel som maskerar e-postadresser täcker den också.
 
+En person som en rensningsregel dolde visas aldrig som en person. **Konversationer** och **Anrop** visar ett anrops id när en regel dolde dess e-postadress men lämnade id:t orört, och **Dold av en rensningsregel** när en regel dolde alla namn anropet har, oavsett om regeln dolde, maskerade eller hashade dem. **Anrop** visar på samma sätt ett team som en regel dolde.
+
 Promptar och svar som skickas som logghändelser lagras som loggar, så det är loggarnas **Scrub-regler** och **Drop-filter** som gäller för dem, under **Loggar → Inställningar**: en regel som maskerar e-postadresser i traces maskerar dem inte i logghändelser. En konversation visar dem bara för den som också kan läsa appens loggar, och den kan också hitta dem på sidan **Loggar**.
 
 Oavsett vilket läser en regel varje text i en lista eller ett strukturerat värde, till exempel meddelanden som en instrumentering skickar som en lista i stället för som JSON-text, och behåller värdets form: en e-postadress i en prompt maskeras var den än står. Se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data).

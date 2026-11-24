@@ -63013,5 +63013,7 @@
   "This app's requests in each interval, with those answered with a 5xx status as a line of their own, as {{service}} counts them. A dashed line marks each deploy.": "हर अंतराल में इस ऐप के अनुरोध, और जिनका उत्तर 5xx स्थिति के साथ दिया गया वे अलग रेखा में, जैसा {{service}} उन्हें गिनता है। हर डिप्लॉय पर एक डैश वाली रेखा होती है।",
   "What {{service}} measures for this app, whatever the app sends.": "ऐप जो भी भेजे, {{service}} इस ऐप के लिए जो मापता है।",
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime अभी क्लस्टर {{cluster}} की ऐसी कोई ECS सेवा नहीं पढ़ता है जो task definition {{name}} चलाती हो।",
-  "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "हर मिनट इस ऐप के प्रतिक्रिया समय का 95वाँ पर्सेंटाइल, चुनी गई सीमा पर औसत, जैसा {{service}} उसे मापता है।"
+  "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "हर मिनट इस ऐप के प्रतिक्रिया समय का 95वाँ पर्सेंटाइल, चुनी गई सीमा पर औसत, जैसा {{service}} उसे मापता है।",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।"
 }
