@@ -85,6 +85,15 @@ If a monitor references a secret it cannot use, the reference is left as it is a
 
 When an API, Website or External Status Page check fails, its error names the URL by its scheme, host and port alone, such as `https://api.example.com`, so a secret in the URL is never shown.
 
+A check can also say a secret's value back: a browser quotes the URL a page failed to load, a script logs what it holds, and a server can echo the query, headers or body it was sent. OneUptime hides the value wherever it appears in what the check reports: a script's error, log messages and result, a response's body and headers, and the failure cause of the check and of each attempt. So the value is in none of the monitor's logs, its summary, a Test Monitor run's result, or the root cause of an incident or an alert. OneUptime writes `[REDACTED]` in its place and keeps the rest, so a page at `https://app.example.com/login?token={{monitorSecrets.Token}}` that fails to load is reported as `https://app.example.com/login?token=[REDACTED]`. The value is found in any case and however the check wrote it: percent-encoded, escaped in JSON or HTML, or in base64.
+
+OneUptime does not hide:
+
+- A value shorter than 4 characters, not counting spaces around it. A value that short is part of ordinary text, such as numbers and words.
+- What a screenshot shows. A screenshot is an image, so a secret the page shows on screen is in it.
+
+Criteria read a check as it is reported. Write a criteria against the text around a secret, such as `ERR_NAME_NOT_RESOLVED` or `token=`, rather than against the secret's value: a criteria is shown to everyone who can read the monitor.
+
 When you test a monitor before saving it, only secrets available to **All monitors** are filled in, because a new monitor is not on any list and has no labels yet. After you save the monitor, tests use every secret the monitor can use.
 
 ## Signing in with a one-time code
@@ -144,6 +153,10 @@ Before a monitor is saved, only secrets available to **All monitors** are filled
 
 :::details A field ignores the secret
 Only the fields in the table above take secrets. In any other field, `{{monitorSecrets.NAME}}` is sent as written.
+:::
+
+:::details A check shows `[REDACTED]` where a value was
+A secret's value was in what the check reported, and OneUptime hid it. The text around it, such as `token=[REDACTED]`, says where the script or the request used the secret.
 :::
 
 :::details The site refuses the one-time code

@@ -184,7 +184,7 @@ pipeline:
 
 ## HTTP 出力で送る
 
-Fluent Bit の [HTTP 出力](https://docs.fluentbit.io/manual/pipeline/outputs/http) は、OneUptime の Fluentd エンドポイントに送ることもできます。各レコードは [Fluentd のページ](/docs/telemetry/fluentd) の説明どおりに読み取られます。`format` を、下の例のように `json_lines` に、または `json` に設定してください。OneUptime はどちらも読み取り、`compress: gzip` で圧縮していてもいなくても構いません。Fluent Bit の既定の形式である `msgpack` は拒否されます。
+Fluent Bit の [HTTP 出力](https://docs.fluentbit.io/manual/pipeline/outputs/http) は、OneUptime の Fluentd エンドポイントに送ることもできます。各レコードは [Fluentd のページ](/docs/telemetry/fluentd) の説明どおりに読み取られます。`format` を、下の例のように `json_lines` に、または `json` か `json_stream` に設定してください。OneUptime はいずれも読み取り、`compress: gzip` で圧縮していてもいなくても構いません。Fluent Bit の既定の形式である `msgpack` は拒否されます。
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

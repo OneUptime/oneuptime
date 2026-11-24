@@ -136,7 +136,7 @@ En dessous, chaque étape qu'il a effectuée, demandée ou laissée, la plus ré
 
 ### Un dossier qu'il juge bénin ou faux positif
 
-**Répondre avec l'IA** sur un dossier que la qualification a lu comme Probablement bénin ou Probablement un faux positif le ferme en Positif bénin ou en Faux positif, dans la mesure où **Fermer le dossier** le permet. Une fois le dossier fermé, OneUptime AI lève les blocages qu'il a créés, là encore dans la mesure où **Fermer le dossier** le permet, et propose à la règle du dossier une exception pour la valeur qui l'a déclenché. L'exception attend toujours une personne : **Approuver** l'ajoute, en votre nom.
+**Répondre avec l'IA** sur un dossier que la qualification a lu comme Probablement bénin ou Probablement un faux positif le ferme en Positif bénin ou en Faux positif, dans la mesure où **Fermer le dossier** le permet. Une fois le dossier fermé, OneUptime AI lève les blocages qu'il a créés, là encore dans la mesure où **Fermer le dossier** le permet, et propose à la règle du dossier une exception pour la valeur qui l'a déclenché. L'exception attend toujours une personne : **Approuver** l'ajoute, en votre nom. Une personne qui rouvre le dossier ou en reprend la main avant empêche les deux, et tant que le produit Événements de sécurité est désactivé, OneUptime AI laisse les deux à une personne.
 
 ## Ce que OneUptime AI peut faire sur un dossier
 
