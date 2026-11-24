@@ -47,7 +47,11 @@ import MicrosoftTeamsChatsCard from "./MicrosoftTeamsChatsCard";
 import { getMicrosoftTeamsAppLink } from "./MicrosoftTeamsAppLink";
 import MicrosoftTeamsChannelsCard from "./MicrosoftTeamsChannelsCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ConnectCallbackNotice, {
   ConnectCallbackNoticeState,
@@ -69,6 +73,14 @@ import UninstallWorkspaceConfirm, {
 } from "../Workspace/UninstallWorkspaceConfirm";
 import AskToConnectCard from "../Workspace/AskToConnectCard";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ConnectAnotherTeamsOrganizationConfirm, {
+  CONNECT_ANOTHER_TEAMS_ORGANIZATION_MENU_ITEM,
+} from "./ConnectAnotherTeamsOrganizationConfirm";
+import {
+  getMicrosoftTeamsOrganizationName,
+  MicrosoftTeamsOrganizationShown,
+  readMicrosoftTeamsOrganization,
+} from "./MicrosoftTeamsOrganization";
 
 // The full setup guide, folded at the bottom of a self-hosted install's page.
 export const MICROSOFT_TEAMS_SETUP_GUIDE_TEST_ID: string =
@@ -91,6 +103,52 @@ export const MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION: string = translationKey(
 export const TEAMS_CONSENT_COMPLETED_DESCRIPTION: string = translationKey(
   "Consent is granted for your Microsoft 365 organization, so OneUptime can post to your teams' channels.",
 );
+
+/*
+ * The project's card and yours name the organization the project is
+ * connected to (MicrosoftTeamsOrganization): every Microsoft sign-in for
+ * the project goes there, and Microsoft stops anybody from another one on
+ * its own page - "Selected user account does not exist in tenant
+ * 'Contoso'" - without sending them back. By its name and domain when
+ * admin consent kept them, else by its tenant id.
+ */
+export const TEAMS_CONSENT_COMPLETED_FOR_ORGANIZATION_DESCRIPTION: string =
+  translationKey(
+    "Consent is granted for the Microsoft 365 organization {{organization}}, so OneUptime can post to its teams' channels.",
+  );
+
+export const TEAMS_CONSENT_COMPLETED_FOR_TENANT_DESCRIPTION: string =
+  translationKey(
+    "Consent is granted for the Microsoft 365 organization with tenant ID {{tenantId}}, so OneUptime can post to its teams' channels.",
+  );
+
+/*
+ * Consent asked for again (Reset Admin Consent) is pinned to the
+ * organization the project is connected to: the card says which.
+ */
+export const TEAMS_GRANT_CONSENT_AGAIN_FOR_ORGANIZATION_DESCRIPTION: string =
+  translationKey(
+    "A Microsoft 365 admin of the organization {{organization}} grants the OneUptime app consent again, so it can post to its teams' channels.",
+  );
+
+export const TEAMS_GRANT_CONSENT_AGAIN_FOR_TENANT_DESCRIPTION: string =
+  translationKey(
+    "A Microsoft 365 admin of the organization with tenant ID {{tenantId}} grants the OneUptime app consent again, so it can post to its teams' channels.",
+  );
+
+export const TEAMS_GRANT_CONSENT_DESCRIPTION: string = translationKey(
+  "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels.",
+);
+
+export const CONNECT_YOUR_TEAMS_ACCOUNT_IN_ORGANIZATION_DESCRIPTION: string =
+  translationKey(
+    "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  );
+
+export const CONNECT_YOUR_TEAMS_ACCOUNT_IN_TENANT_DESCRIPTION: string =
+  translationKey(
+    "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  );
 
 export const YOUR_TEAMS_ACCOUNT_CONNECTED_TITLE: string = translationKey(
   "Your Microsoft Teams account is connected",
@@ -180,6 +238,21 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isUninstalling, setIsUninstalling] = React.useState<boolean>(false);
   const [uninstallError, setUninstallError] = React.useState<string>("");
+
+  // The organization the project is connected to; null while it is not.
+  const [organization, setOrganization] =
+    React.useState<MicrosoftTeamsOrganizationShown | null>(null);
+
+  /*
+   * Moving the project to another organization, asked first
+   * (ConnectAnotherTeamsOrganizationConfirm).
+   */
+  const [isConnectAnotherConfirmOpen, setIsConnectAnotherConfirmOpen] =
+    React.useState<boolean>(false);
+  const [isDisconnectingForAnother, setIsDisconnectingForAnother] =
+    React.useState<boolean>(false);
+  const [connectAnotherError, setConnectAnotherError] =
+    React.useState<string>("");
 
   // Teams Modal state
   interface TeamItem {
@@ -274,6 +347,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
           .miscData! as MicrosoftTeamsMiscData;
 
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
+
+        setOrganization(
+          readMicrosoftTeamsOrganization({
+            miscData: projectAuth.data[0]!.miscData,
+            workspaceProjectId: projectAuth.data[0]!.workspaceProjectId,
+          }),
+        );
 
         // Check if admin consent is granted
         const adminConsentGranted: boolean =
@@ -725,10 +805,69 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     }
   };
 
-  // The project is connected, you are not: connect your own account.
+  /*
+   * The organization the project is connected to, by name - or null when
+   * only its tenant id is known (MicrosoftTeamsOrganization).
+   */
+  const organizationName: TemplateValue | null = organization
+    ? getMicrosoftTeamsOrganizationName(organization)
+    : null;
+  const organizationTenantId: string | null = organization?.tenantId || null;
+
+  /*
+   * The project's card, once consent is granted: which organization it is
+   * granted for, so whoever reads it can tell whether it is theirs.
+   */
+  const consentCompletedDescription: string = organizationName
+    ? translator.translateTemplate(
+        TEAMS_CONSENT_COMPLETED_FOR_ORGANIZATION_DESCRIPTION,
+        { organization: organizationName },
+      )
+    : organizationTenantId
+      ? translator.translateTemplate(
+          TEAMS_CONSENT_COMPLETED_FOR_TENANT_DESCRIPTION,
+          { tenantId: organizationTenantId },
+        )
+      : TEAMS_CONSENT_COMPLETED_DESCRIPTION;
+
+  /*
+   * The project's card while consent is asked for: for any organization
+   * when the project is not connected yet; for the one it is connected to
+   * when consent is asked for again (Reset Admin Consent), where Microsoft
+   * takes only an admin of that organization.
+   */
+  const grantConsentDescription: string = !isProjectAccountConnected
+    ? TEAMS_GRANT_CONSENT_DESCRIPTION
+    : organizationName
+      ? translator.translateTemplate(
+          TEAMS_GRANT_CONSENT_AGAIN_FOR_ORGANIZATION_DESCRIPTION,
+          { organization: organizationName },
+        )
+      : organizationTenantId
+        ? translator.translateTemplate(
+            TEAMS_GRANT_CONSENT_AGAIN_FOR_TENANT_DESCRIPTION,
+            { tenantId: organizationTenantId },
+          )
+        : TEAMS_GRANT_CONSENT_DESCRIPTION;
+
+  /*
+   * The project is connected, you are not: connect your own account, in
+   * the organization the project is connected to - the one Microsoft signs
+   * you in to, and stops you at if your account is not in it.
+   */
   if (!isUserAccountConnected && isProjectAccountConnected) {
     cardTitle = CONNECT_YOUR_TEAMS_ACCOUNT_TITLE;
-    cardDescription = CONNECT_YOUR_TEAMS_ACCOUNT_DESCRIPTION;
+    cardDescription = organizationName
+      ? translator.translateTemplate(
+          CONNECT_YOUR_TEAMS_ACCOUNT_IN_ORGANIZATION_DESCRIPTION,
+          { organization: organizationName },
+        )
+      : organizationTenantId
+        ? translator.translateTemplate(
+            CONNECT_YOUR_TEAMS_ACCOUNT_IN_TENANT_DESCRIPTION,
+            { tenantId: organizationTenantId },
+          )
+        : CONNECT_YOUR_TEAMS_ACCOUNT_DESCRIPTION;
     cardButtons = [
       // connect with Teams button.
       getConnectWithTeamsButton(
@@ -736,6 +875,52 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       ),
     ];
   }
+
+  // Why the project's connection cannot be removed: the page lost its id.
+  const getMissingConnectionMessage: () => string = (): string => {
+    return (
+      translator.translateText(
+        "Looks like the project auth token id is not set properly. Please try again.",
+      ) || ""
+    );
+  };
+
+  /*
+   * Deletes the project's Microsoft Teams connection, and draws the page as
+   * a project that is not connected. Throws when it was not deleted, for
+   * the dialog that asked to say so.
+   */
+  type RemoveProjectConnectionFunction = (
+    connectionId: ObjectID,
+  ) => Promise<void>;
+
+  const removeProjectConnection: RemoveProjectConnectionFunction = async (
+    connectionId: ObjectID,
+  ): Promise<void> => {
+    await ModelAPI.deleteItem({
+      modelType: WorkspaceProjectAuthToken,
+      id: connectionId,
+    });
+
+    setIsProjectAccountConnected(false);
+    setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
+    setWorkspaceProjectAuthTokenId(null);
+    setOrganization(null);
+    /*
+     * Disconnecting unlinks every member's Microsoft Teams account too
+     * (WorkspaceProjectAuthTokenService), yours included.
+     */
+    setIsUserAccountConnected(false);
+    setWorkspaceUserAuthTokenId(null);
+
+    /*
+     * Every Workspace menu in the project lists only connected
+     * workspaces: ask again, so they stop listing this one.
+     */
+    ConnectedWorkspaces.refresh().catch(() => {
+      // A failed request leaves the menus as they were.
+    });
+  };
 
   /*
    * Uninstalls the app from the project's Microsoft 365 organization, once
@@ -749,37 +934,13 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
       setUninstallError("");
 
       if (!projectAuthTokenId) {
-        setUninstallError(
-          translator.translateText(
-            "Looks like the project auth token id is not set properly. Please try again.",
-          ) || "",
-        );
+        setUninstallError(getMissingConnectionMessage());
         return;
       }
 
-      await ModelAPI.deleteItem({
-        modelType: WorkspaceProjectAuthToken,
-        id: projectAuthTokenId,
-      });
+      await removeProjectConnection(projectAuthTokenId);
 
       setIsUninstallConfirmOpen(false);
-      setIsProjectAccountConnected(false);
-      setIsAdminConsentCompleted(false); // Reset admin consent when project is disconnected
-      setWorkspaceProjectAuthTokenId(null);
-      /*
-       * Uninstalling unlinks every member's Microsoft Teams account too
-       * (WorkspaceProjectAuthTokenService), yours included.
-       */
-      setIsUserAccountConnected(false);
-      setWorkspaceUserAuthTokenId(null);
-
-      /*
-       * Every Workspace menu in the project lists only connected
-       * workspaces: ask again, so they stop listing this one.
-       */
-      ConnectedWorkspaces.refresh().catch(() => {
-        // A failed request leaves the menus as they were.
-      });
     } catch (error) {
       setUninstallError(API.getFriendlyErrorMessage(error as Exception));
     } finally {
@@ -788,12 +949,44 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * Moves the project to another Microsoft 365 organization, once asked
+   * (ConnectAnotherTeamsOrganizationConfirm). A project is connected to one
+   * organization and consent for it is pinned there, so the connection goes
+   * first; then consent starts again, for any organization, and Microsoft
+   * asks an admin of the other one. A failure to disconnect is said in the
+   * dialog, which stays open to try again; one to start consent is said on
+   * the page, where Grant Admin Consent is then the button to try again.
+   */
+  const connectAnotherOrganization: PromiseVoidFunction =
+    async (): Promise<void> => {
+      if (!projectAuthTokenId) {
+        setConnectAnotherError(getMissingConnectionMessage());
+        return;
+      }
+
+      try {
+        setIsDisconnectingForAnother(true);
+        setConnectAnotherError("");
+
+        await removeProjectConnection(projectAuthTokenId);
+      } catch (error) {
+        setConnectAnotherError(API.getFriendlyErrorMessage(error as Exception));
+        setIsDisconnectingForAnother(false);
+        return;
+      }
+
+      setIsDisconnectingForAnother(false);
+      setIsConnectAnotherConfirmOpen(false);
+      startAdminConsent();
+    };
+
+  /*
    * The ⋯ of the project's card once consent is granted: its teams,
-   * granting consent again (after the app asks for a new permission) and
-   * uninstalling. None is a step anybody comes to the page for - as three
-   * buttons, they pressed the card's title into a column a word wide - so
-   * the card asks nothing of you, and the Connect button under it stays
-   * the page's one main action.
+   * granting consent again (after the app asks for a new permission),
+   * moving the project to another organization and uninstalling. None is a
+   * step anybody comes to the page for - as buttons, they pressed the
+   * card's title into a column a word wide - so the card asks nothing of
+   * you, and the Connect button under it stays the page's one main action.
    */
   const projectCardActions: Array<ReactElement> = [
     <CardMoreMenu
@@ -814,17 +1007,31 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             openTeamsModal();
           }}
         />,
-        <MoreMenuItem
-          key="reset-admin-consent"
-          text="Reset Admin Consent"
-          icon={IconProp.Refresh}
-          dataTestId="microsoft-teams-reset-admin-consent"
-          onClick={() => {
-            setIsAdminConsentCompleted(false);
-          }}
-        />,
+        ...(isAdminConsentCompleted
+          ? [
+              <MoreMenuItem
+                key="reset-admin-consent"
+                text="Reset Admin Consent"
+                icon={IconProp.Refresh}
+                dataTestId="microsoft-teams-reset-admin-consent"
+                onClick={() => {
+                  setIsAdminConsentCompleted(false);
+                }}
+              />,
+            ]
+          : []),
         ...(isProjectAccountConnected
           ? [
+              <MoreMenuItem
+                key="connect-another-organization"
+                text={CONNECT_ANOTHER_TEAMS_ORGANIZATION_MENU_ITEM}
+                icon={IconProp.BuildingOffice}
+                dataTestId="microsoft-teams-connect-another-organization"
+                onClick={() => {
+                  setConnectAnotherError("");
+                  setIsConnectAnotherConfirmOpen(true);
+                }}
+              />,
               <MoreMenuItem
                 key="uninstall"
                 text="Uninstall OneUptime from Microsoft Teams"
@@ -895,8 +1102,8 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             }
             description={
               isAdminConsentCompleted
-                ? TEAMS_CONSENT_COMPLETED_DESCRIPTION
-                : "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels."
+                ? consentCompletedDescription
+                : grantConsentDescription
             }
             buttons={
               isAdminConsentCompleted
@@ -910,6 +1117,12 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                         return startAdminConsent();
                       },
                     },
+                    /*
+                     * Consent asked for again for a connected project: its
+                     * ⋯ stays, so it can still be moved to another
+                     * organization or uninstalled.
+                     */
+                    ...(isProjectAccountConnected ? projectCardActions : []),
                   ]
             }
           />
@@ -1129,6 +1342,22 @@ If you prefer to manually sideload the app:
           </FoldedSection>
         </div>
       )}
+
+      {isConnectAnotherConfirmOpen && isProjectAccountConnected ? (
+        <ConnectAnotherTeamsOrganizationConfirm
+          isDisconnecting={isDisconnectingForAnother}
+          error={connectAnotherError}
+          onClose={() => {
+            setIsConnectAnotherConfirmOpen(false);
+            setConnectAnotherError("");
+          }}
+          onConfirm={() => {
+            connectAnotherOrganization().catch((error: Exception) => {
+              setConnectAnotherError(API.getFriendlyErrorMessage(error));
+            });
+          }}
+        />
+      ) : null}
 
       {isUninstallConfirmOpen && isProjectAccountConnected ? (
         <UninstallWorkspaceConfirm

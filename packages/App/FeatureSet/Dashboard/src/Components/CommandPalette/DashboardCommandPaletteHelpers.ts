@@ -178,6 +178,11 @@ export interface PageSearchAvailability {
    * turn it off are on the page. Absent is off.
    */
   isDashboardRecordingOn?: boolean | undefined;
+  /*
+   * The server offers the mobile app (Admin Dashboard > Settings > Help and
+   * Support, #10866). Absent is offered, as it always was.
+   */
+  isMobileAppOffered?: boolean | undefined;
   // May delete the project (Project Owner, or Delete Project).
   canDeleteProject: boolean;
 }
@@ -273,6 +278,10 @@ const isGateOpen: (
 
   if (gate === PageSearchGate.DashboardRecording) {
     return availability.isDashboardRecordingOn === true;
+  }
+
+  if (gate === PageSearchGate.MobileApp) {
+    return availability.isMobileAppOffered !== false;
   }
 
   return true;

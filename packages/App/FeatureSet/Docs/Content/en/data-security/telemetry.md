@@ -9,6 +9,7 @@ There is nothing to set up: each service's telemetry is scanned every hour, unle
 - [How a scan samples](#how-a-scan-samples): The newest records of each service, every hour.
 - [Scrub It](#scrub-it): Hide a finding at ingest, in the service it was found in.
 - [Contained on its own](#contained-on-its-own): A secret hidden with nobody pressing anything, where that is proven safe.
+- [Fix it in the code](#fix-it-in-the-code): One pull request that stops a service writing all of its leaks.
 - [Drop This Metric](#drop-this-metric): Stop storing the metrics whose names hold sensitive data.
 - [What counts as scrubbed](#what-counts-as-scrubbed): When a scrub rule already covers a finding.
 :::
@@ -99,7 +100,7 @@ Click **Scrub It**. A dialog says what the rule would do before anything is made
 
 ### Fix the code too
 
-The rule hides new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
+The rule hides new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)). **Fix with AI** on the issue opens one pull request for every leak of the service: see [Fix it in the code](#fix-it-in-the-code).
 :::
 
 The rule is named for what it hides, such as "Data Security: Email address in log attributes of checkout", or "Data Security: Password or secret in db.password of checkout" for a rule that names its attribute, and is listed with your other scrub rules (see [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). It is the narrowest rule that hides the finding's data, the first of these that fits:
@@ -112,7 +113,7 @@ The rule is named for what it hides, such as "Data Security: Email address in lo
 | A data type told apart by the words around it, such as a routing number | Its shape, only in the attribute it was found in |
 | A data type found from the field's name, such as a person's name under `customer_name`, or a value under a key that names a secret | A **Named Attributes** rule, which hides the whole value of that attribute |
 | A value under a key that looks sensitive, where nothing narrower hides it | A **Sensitive Attribute Keys** rule, which redacts the whole value of every such attribute |
-| Any data type in a metric's attribute | A **Redact Attribute** metric pipeline rule for the service, which replaces the attribute's values of the data type's shape with `[REDACTED]`, or every value of the attribute where no pattern finds the data type |
+| Any data type in a metric's attribute | A **Redact Attribute** metric pipeline rule for the service, which replaces the attribute's values that hold the data type with `[REDACTED]`. For an IP address, an email address or a card number, its filter is **Matches Pattern Type** of that type, which finds what a log or trace rule of that **Pattern Type** finds, IPv6 addresses and values percent-encoded or in another script among them. For another data type, it is the type's own pattern, and where no pattern finds the data type, the rule replaces every value of the attribute |
 
 ### Proven on the records it was seen in
 
@@ -158,11 +159,53 @@ A change OneUptime AI made on its own:
 
 New findings in a service whose issue is open already are contained the same way, once the hourly scan finds them.
 
+## Fix it in the code
+
+A scrub rule hides new data at ingest, but the code still writes it. **Fix with AI** on a telemetry issue asks OneUptime AI for one pull request that stops the service writing every leak OneUptime still sees in its telemetry: this issue's and the service's others, those contained at ingest included. A dialog shows what the pull request will do before anything starts, and **Open Pull Request** asks for exactly that.
+
+:::steps
+### Find where each leak is written
+
+Before OneUptime AI starts, Data Security reads the records each leak was seen in again, inside OneUptime, and keeps only where the code wrote them:
+
+- **A span or an AI call**: the file, line and function its `code.*` attributes name, and the span's name.
+- **An exception**: its own top frames, those in the service's code.
+- **A log line**: the file, line and function its attributes name, when it has them, its logger, and the line as a template, each value replaced by its type's name, such as `User <Email address> signed up`.
+- **A metric**: the metric's name.
+- **Any leak**: its attribute key, such as `user.email`, which code usually writes as it is.
+
+### Choose the repository
+
+The pull request goes to the repository that holds the files the records name, matched as a stack trace's files are. A leak whose records name no file goes where the service's other leaks are, else to the repository named like the service, or to the project's only one. In a repository that holds several services, OneUptime AI works in the service's folder: the one those files share, else the one the service's production reviews use. When nothing decides, you pick, from the repositories you may ask OneUptime AI to work in.
+
+### Open the pull request
+
+The dialog says how the code will change, lists each leak with where it is written, and names the repository, why it is the one, and the files OneUptime AI starts from. **Open Pull Request** asks for that plan: when a leak was found or fixed since you opened it, nothing starts, and the plan is shown again.
+:::
+
+How the code changes depends on how many places write the data:
+
+| Where the data is written | What the pull request does |
+| --- | --- |
+| In three places or fewer | Changes the code at each place: leaves the value out, or masks or hashes it before it is sent |
+| In more than three places | Adds one redaction step where the service sets up its telemetry, with a test, instead of an edit at every place |
+| Where your scrub rules already hide it at ingest | Adds that redaction step for those keys too, so the code does what ingest does |
+
+One pull request fixes one service in one repository: a service whose leaks are written in two repositories gets one in each. While it is being written, **Fix with AI** on any of the service's issues points to it, and no second one is started.
+
+OneUptime AI is sent the places, keys, data types and templates, never a value of your data, a masked sample or a record, and the coding agent reads none of your telemetry while it works. The pull request's description lists the leaks and links the issues it fixes, and never quotes a record.
+
+Each issue the pull request fixes keeps it: its **How to Fix** card says whether it is being written, open, merged or closed, with links to the pull request and the task, and once it merged, what production showed. The issue's timeline says when it opened. The issue resolves as **Fixed in code** once the service's new version no longer writes the data (see [What happens to an issue](/docs/data-security/checks-and-issues#what-happens-to-an-issue)).
+
+A secret needs more than a code fix: the code stops new copies only, and the secret still works. The pull request, the issue's timeline and its **How to Fix** card say to rotate it, and the card lists where it was seen.
+
+With **Work on new issues** on, OneUptime AI also proposes each service's fix on its own, the riskiest service first, on **Data Security → AI** and on the service's riskiest issue. Out of the box it waits for you. A Data Security AI rule that sets **Fix** to **Automatically** for the service's riskiest issue opens the pull request without asking, in a repository something decided. The repository's **Max Open Fix Pull Requests** caps both: at the cap, a pull request a rule would open waits for you, and no new fix pull request opens until one is merged or closed.
+
 ## Drop This Metric
 
 No rule takes the data out of a metric's name, so until the code that names the metric is fixed, the data keeps arriving. **Drop This Metric** on a finding in a metric's name stops storing the metrics whose names hold it, at the cost of their data, so it only happens when you ask for it:
 
-- **One service's metrics.** It makes a **Drop** metric pipeline rule for the finding's service: every new data point of a metric whose name holds that data type is dropped before it is stored. Its filter is the pattern **Scrub It** uses for the type, so a type no pattern can find, such as a person's name, cannot be dropped, and the dialog says why.
+- **One service's metrics.** It makes a **Drop** metric pipeline rule for the finding's service: every new data point of a metric whose name holds that data type is dropped before it is stored. Its filter is the data type's own pattern on the metric's name, so a type no pattern can find, such as a person's name, cannot be dropped, and the dialog says why.
 - **Said before it is done.** The dialog says that those data points are lost for good, how many of the service's metrics written in the last day have such a name, what reads them and so gets no new data, that what is stored already stays until its retention ends, and how to undo it. Nothing is dropped until you tick that you understand.
 - **What reads them, and what happens to it.** The dialog names, each as a link, every monitor, every dashboard with its widgets that read those metrics, every Metric SLO of the service and every metric recording rule that reads them. Monitors can no longer alert on their values, widgets show no new data, SLOs count no new events from them, and recording rules' output metrics no longer include them. Under each recording rule, it also names what reads the rule's output metric, and what reads theirs in turn, up to three output metrics down the chain. A widget's link opens its dashboard at that widget. What you cannot see is counted, never named.
 - **As you, on the record.** The rule is made under your own permission to create metric pipeline rules: Project Owners and Project Admins can make it, and so can a team that may create metric pipeline rules. The audit log records who made it.
@@ -181,7 +224,7 @@ A finding is marked scrubbed only when ingest would run an enabled rule over it 
 - **A rule proven on the finding's records.** A rule OneUptime made and proved on the records a finding was seen in covers that finding, whatever its pattern, for as long as it is the rule that was proven: change its pattern, its attributes, its action, its fields or its service, and it no longer does.
 - **A Named Attributes rule** covers a finding in an attribute it names, or one nested under it.
 - **Your own custom patterns otherwise never count.** A **Custom Regex** you wrote covers a finding only when it is exactly the pattern **Scrub It** makes for its type. A finding keeps only masked samples, which no pattern can be tried on, so OneUptime could not prove that your pattern hides the data, and a finding wrongly called scrubbed is a leak nobody looks at.
-- **A metric's attribute.** A **Redact Attribute** or **Remove Attribute** metric pipeline rule of that attribute's key, for the finding's service or the whole project, covers it when it has no filter, or exactly the filter **Scrub It** makes. A filter you wrote never counts, for the same reason.
+- **A metric's attribute.** A **Redact Attribute** or **Remove Attribute** metric pipeline rule of that attribute's key, for the finding's service or the whole project, covers it when it has no filter, or exactly the filter **Scrub It** makes. A filter you wrote never counts, for the same reason. A rule **Scrub It** made for an IP address, an email address or a card number before its filter was **Matches Pattern Type** is moved to that filter when you upgrade, so it hides IPv6 addresses too and covers its finding.
 - **A metric's name.** A **Drop** metric pipeline rule for the finding's service or the whole project covers it when it has exactly the filter **Drop This Metric** makes, or no filter at all, which stores none of the service's metrics. Such a rule with no filter covers every finding in those metrics.
 
 A rule that is turned off, or that scrubs nothing, never counts. Coverage is worked out again after every scan, so a rule you add or remove by hand changes what is marked scrubbed within the hour.

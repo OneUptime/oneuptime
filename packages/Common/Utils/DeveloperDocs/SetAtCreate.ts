@@ -26,10 +26,21 @@
  * nobody can write it after the record is made.
  */
 
-// In every table that has them.
+/*
+ * In every table that has them. What created a record - a person, an API
+ * key, a workflow, an MCP client, a server admin or OneUptime itself - and
+ * which key, workflow or client it was (createdByActorType,
+ * createdByActorId, #10290) are stamped by its create alone
+ * (DatabaseService.stampCreatedByActor), and no request may write them.
+ * Who last modified it (lastModified*) changes with every write a person, a
+ * key, a workflow or a client makes, and stays "(known after apply)", as
+ * updatedAt does.
+ */
 export const SET_AT_CREATE_IN_EVERY_TABLE: ReadonlyArray<string> = [
   "createdAt",
   "createdByUserId",
+  "createdByActorType",
+  "createdByActorId",
   "projectId",
   "slug",
 ];

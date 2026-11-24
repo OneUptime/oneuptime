@@ -186,6 +186,26 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataTypeFromSentence.ts`,
   },
+  // A service's telemetry leaks fixed in its code (#10367): a task in Code too.
+  [DataSecurityAiFeature.FixTelemetryLeaks]: {
+    kind: "codeTask",
+    file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
+    agentFile:
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
+  },
+  /*
+   * An exposure's write-up (#10377): on its own, from the run a Critical
+   * exposure's case starts, and when a person asks - one file, one call
+   * for each.
+   */
+  [DataSecurityAiFeature.DraftExposureAssessment]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ExposureAssessmentDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ExposureAssessmentDrafter.ts`,
+  },
 };
 
 /*
@@ -755,6 +775,20 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       "infrastructureFix: { ...data.fix, request: request.text },",
     );
     expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
+    // A service's telemetry fix (#10367): queued from the same file, with the builder's request.
+    expect(
+      (
+        FEATURE_CALLS[DataSecurityAiFeature.FixTelemetryLeaks] as {
+          file: string;
+        }
+      ).file,
+    ).toBe(queuing[0]);
+    expect(task.text).toContain(
+      "taskType: CodeFixTaskType.FixSensitiveDataInTelemetry,",
+    );
+    expect(task.text).toContain(
+      "telemetryLeakFix: { ...data.fix, request: request.text },",
+    );
   });
 
   test("Ask AI's tools make every row they hand the model with the builder", () => {

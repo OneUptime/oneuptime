@@ -130,7 +130,10 @@ function previewStores(
     });
   const more: number = stores.length - named.length;
 
-  return [...named, ...(more > 0 ? [`- …and ${more} more`] : [])].join("\n");
+  return [
+    ...named,
+    ...(more > 0 ? [mdText`- …and ${more} more`.toString()] : []),
+  ].join("\n");
 }
 
 /*
@@ -372,7 +375,7 @@ export default class DataSecurityIssueGroupProposals {
         changeMarkdown: [
           mdText`One pull request to the ${pullRequest.codeKind || "infrastructure"} code in **${pullRequest.location.repositoryName}**${
             pullRequest.location.paths.length > 0
-              ? mdText` (${pullRequest.location.paths.join(", ")})`
+              ? mdText` (${FeedMarkdown.join(pullRequest.location.paths)})`
               : FeedMarkdown.empty()
           }, changing the setting every store below takes, rather than each store's resource:`.toString(),
           "",

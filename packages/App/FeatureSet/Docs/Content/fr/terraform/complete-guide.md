@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+En revanche, un réglage que quelqu'un ajoute dans OneUptime aux étapes d'un moniteur, et que votre configuration n'écrit pas, est une différence : le plan suivant montre que `monitor_steps` change, et l'apply qui suit retire le réglage, comme le dit le plan. Pour le garder, écrivez-le aussi dans votre configuration.
+
 ## Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi
 
 OneUptime ajoute de lui-même à certaines listes d'un enregistrement : une règle d'étiquettes ajoute ses étiquettes aux enregistrements qu'elle cible, une règle d'astreinte ajoute ses politiques aux incidents et aux alertes qu'elle cible, et les règles de moniteurs d'un SLO rattachent les moniteurs qu'elles ciblent. La référence le dit de chacun de ces attributs : "OneUptime adds to it too, on its own". Une configuration qui en définit un tient les entrées qu'elle liste, et laisse le reste :

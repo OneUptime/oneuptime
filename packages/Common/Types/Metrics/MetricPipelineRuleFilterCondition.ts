@@ -1,3 +1,5 @@
+import LogScrubPatternType from "../Log/LogScrubPatternType";
+
 export enum MetricPipelineRuleFilterCheckOn {
   MetricName = "Metric Name",
   Attribute = "Attribute",
@@ -12,10 +14,38 @@ export enum MetricPipelineRuleFilterConditionType {
   EndsWith = "Ends With",
   MatchesRegex = "Matches Regex",
   DoesNotMatchRegex = "Does Not Match Regex",
+  /*
+   * The value holds what a log or trace scrub rule's built-in Pattern Type
+   * finds - an IP address, an email address, a card number - matched by
+   * the very pattern those rules run (Utils/Telemetry/ScrubBuiltInPatterns):
+   * the filter Scrub It gives a metric rule for those types (#10934). Its
+   * value is the pattern type (METRIC_FILTER_PATTERN_TYPES).
+   */
+  MatchesPatternType = "Matches Pattern Type",
   IsPresent = "Is Present",
   IsNotPresent = "Is Not Present",
   IsEmpty = "Is Empty",
   IsNotEmpty = "Is Not Empty",
+}
+
+/*
+ * The pattern types a Matches Pattern Type filter can name: the built-in
+ * patterns of log and trace scrub rules that find a value's own shape. Not
+ * Sensitive Attribute Keys or Named Attributes, which read keys, nor Custom
+ * Regex, which Matches Regex is.
+ */
+export const METRIC_FILTER_PATTERN_TYPES: ReadonlyArray<string> = [
+  LogScrubPatternType.Email,
+  LogScrubPatternType.CreditCard,
+  LogScrubPatternType.SSN,
+  LogScrubPatternType.PhoneNumber,
+  LogScrubPatternType.IPAddress,
+];
+
+export function isMetricFilterPatternType(value: unknown): boolean {
+  return (
+    typeof value === "string" && METRIC_FILTER_PATTERN_TYPES.includes(value)
+  );
 }
 
 export default interface MetricPipelineRuleFilterCondition {
@@ -49,6 +79,7 @@ export class MetricPipelineRuleFilterConditionUtil {
           MetricPipelineRuleFilterConditionType.EndsWith,
           MetricPipelineRuleFilterConditionType.MatchesRegex,
           MetricPipelineRuleFilterConditionType.DoesNotMatchRegex,
+          MetricPipelineRuleFilterConditionType.MatchesPatternType,
         ];
       case MetricPipelineRuleFilterCheckOn.Attribute:
         return [
@@ -64,6 +95,7 @@ export class MetricPipelineRuleFilterConditionUtil {
           MetricPipelineRuleFilterConditionType.EndsWith,
           MetricPipelineRuleFilterConditionType.MatchesRegex,
           MetricPipelineRuleFilterConditionType.DoesNotMatchRegex,
+          MetricPipelineRuleFilterConditionType.MatchesPatternType,
         ];
       default:
         return [];
@@ -128,6 +160,14 @@ export class MetricPipelineRuleFilterConditionUtil {
         !filter.value?.toString().trim()
       ) {
         return `${prefix}Value is required.`;
+      }
+
+      if (
+        filter.conditionType ===
+          MetricPipelineRuleFilterConditionType.MatchesPatternType &&
+        !isMetricFilterPatternType(filter.value)
+      ) {
+        return `${prefix}Pick a pattern type.`;
       }
     }
 

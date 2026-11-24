@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} Gruppen",
     "noResourcesTitle": "Noch nichts zu sehen",
     "noResourcesDescription": "Diese Seite zeigt noch keine Dienste.",
-    "noResourcesPreviewDescription": "Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen. Fügen Sie dieser Statusseite im Dashboard unter Ressourcen Monitore oder Gruppen hinzu."
+    "noResourcesPreviewDescription": "Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen.",
+    "noResourcesPreviewLink": "Ressourcen im Dashboard hinzufügen"
   },
   "eventItem": {
     "affectedResources": "Betroffene Ressourcen",
@@ -485,6 +486,9 @@
   "No options available": "Keine Optionen verfügbar",
   "No matches found": "Keine Treffer gefunden",
   "{{eventType}} state changed to {{state}}": "{{eventType}}: Status geändert auf {{state}}",
+  "{{count}} related incidents": "{{count}} zugehörige Vorfälle",
+  "{{count}} related incidents_one": "{{count}} zugehöriger Vorfall",
+  "Part of {{incident}}": "Teil von {{incident}}",
   "Use at least {{minimum}} characters.": "Verwenden Sie mindestens {{minimum}} Zeichen.",
   "Try a few unrelated words.": "Versuchen Sie es mit einigen nicht zusammenhängenden Wörtern.",
   "Password meets requirements": "Das Passwort erfüllt die Anforderungen",

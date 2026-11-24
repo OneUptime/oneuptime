@@ -28,6 +28,7 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { buildMonitorMetricQueryConfig } from "./MonitorMetricQueryConfig";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
@@ -57,6 +58,13 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
   const [databaseType, setDatabaseType] = useState<SqlDatabaseType | undefined>(
     undefined,
   );
+  /*
+   * The monitor's steps: on a monitor with several, each step's checks are a
+   * line of their own (#10906).
+   */
+  const [monitorSteps, setMonitorSteps] = useState<MonitorSteps | undefined>(
+    undefined,
+  );
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_HOUR,
   });
@@ -77,6 +85,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
       const monitorType: MonitorType = item?.monitorType || MonitorType.Manual;
 
       setMonitorType(monitorType);
+      setMonitorSteps(item?.monitorSteps || undefined);
 
       if (monitorType === MonitorType.Database) {
         const steps: Array<MonitorStep> =
@@ -136,6 +145,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
              * once, there.
              */
             translator: translator,
+            monitorSteps: monitorSteps,
           });
         },
       );
@@ -144,7 +154,7 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
      * The translator is built afresh each render: its language is what
      * changes what it says, and new configs make every chart fetch again.
      */
-    [props.monitorId, monitorType, probes, translator.language],
+    [props.monitorId, monitorType, probes, monitorSteps, translator.language],
   );
 
   const categories: Array<MonitorMetricCategory> = useMemo(() => {

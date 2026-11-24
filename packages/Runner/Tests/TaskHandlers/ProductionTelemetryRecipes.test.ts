@@ -24,6 +24,7 @@
 import FixExceptionTaskHandler from "../../TaskHandlers/FixExceptionTaskHandler";
 import FixFromIncidentTaskHandler from "../../TaskHandlers/FixFromIncidentTaskHandler";
 import FixPerformanceTaskHandler from "../../TaskHandlers/FixPerformanceTaskHandler";
+import FixSensitiveDataInTelemetryTaskHandler from "../../TaskHandlers/FixSensitiveDataInTelemetryTaskHandler";
 import GitHubPullRequestReviewTaskHandler from "../../TaskHandlers/GitHubPullRequestReviewTaskHandler";
 import ImproveExceptionHandlingTaskHandler from "../../TaskHandlers/ImproveExceptionHandlingTaskHandler";
 import ImproveInstrumentationTaskHandler from "../../TaskHandlers/ImproveInstrumentationTaskHandler";
@@ -310,6 +311,14 @@ describe("the recipes that ask for production telemetry", () => {
     ["ImproveExceptionHandling", new ImproveExceptionHandlingTaskHandler()],
     ["ImproveLogging", new ImproveLoggingTaskHandler()],
     ["ImproveTracing", new ImproveTracingTaskHandler()],
+    /*
+     * A service's telemetry leaks (#10367): what a record held never reaches
+     * the agent, so it reads none of production while it works.
+     */
+    [
+      "FixSensitiveDataInTelemetry",
+      new FixSensitiveDataInTelemetryTaskHandler(),
+    ],
   ])("%s does not ask", (_name: string, handler: BaseTaskHandler) => {
     expect(
       (handler as unknown as { usesProductionTelemetry: boolean })

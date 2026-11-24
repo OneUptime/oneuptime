@@ -9,6 +9,7 @@ Não há nada a configurar: a telemetria de cada serviço é varrida a cada hora
 - [Como uma varredura coleta amostras](#como-uma-varredura-coleta-amostras): Os registros mais recentes de cada serviço, a cada hora.
 - [Limpar](#limpar): Oculte uma descoberta na ingestão, no serviço em que foi encontrada.
 - [Contido por conta própria](#contido-por-conta-própria): Um segredo oculto sem que ninguém pressione nada, quando isso está comprovadamente seguro.
+- [Corrigir no código](#corrigir-no-código): Um só pull request que impede um serviço de escrever todos os seus vazamentos.
 - [Descartar esta métrica](#descartar-esta-métrica): Pare de armazenar as métricas cujos nomes contêm dados sensíveis.
 - [O que conta como limpo](#o-que-conta-como-limpo): Quando uma regra de limpeza já cobre uma descoberta.
 :::
@@ -99,7 +100,7 @@ Clique em **Limpar**. Uma caixa de diálogo diz o que a regra faria antes de qua
 
 ### Corrija o código também
 
-A regra oculta os dados novos antes que sejam armazenados. Os dados já armazenados ficam até o fim da retenção, então corrija o código que os grava: a descoberta nomeia o serviço e o atributo.
+A regra oculta os dados novos antes que sejam armazenados. Os dados já armazenados ficam até o fim da retenção, então corrija o código que os grava: a descoberta nomeia o serviço e o atributo. **Corrigir com IA** no problema abre um só pull request para todos os vazamentos do serviço: veja [Corrigir no código](#corrigir-no-código).
 :::
 
 A regra recebe o nome do que oculta, como "Data Security: Email address in log attributes of checkout", ou "Data Security: Password or secret in db.password of checkout" para uma regra que nomeia o seu atributo, e aparece junto com as suas outras regras de limpeza (veja [Filtros de descarte e regras de limpeza](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). É a regra mais estreita que oculta os dados da descoberta, a primeira destas que serve:
@@ -112,7 +113,7 @@ A regra recebe o nome do que oculta, como "Data Security: Email address in log a
 | Um tipo de dados que se distingue pelas palavras ao redor, como um número de roteamento bancário | O formato dele, só no atributo em que foi encontrado |
 | Um tipo de dados encontrado pelo nome do campo, como o nome de uma pessoa sob `customer_name`, ou um valor sob uma chave que nomeia um segredo | Uma regra **Atributos nomeados**, que oculta o valor inteiro desse atributo |
 | Um valor sob uma chave que parece sensível, quando nada mais estreito o oculta | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
-| Qualquer tipo de dados no atributo de uma métrica | Uma regra de pipeline de métricas **Ocultar Atributo** para o serviço, que substitui por `[REDACTED]` os valores do atributo com o formato do tipo de dados, ou todo valor do atributo quando nenhum padrão encontra o tipo de dados |
+| Qualquer tipo de dados no atributo de uma métrica | Uma regra de pipeline de métricas **Ocultar Atributo** para o serviço, que substitui por `[REDACTED]` os valores do atributo que contêm o tipo de dados. Para um endereço IP, um endereço de e-mail ou um número de cartão, o filtro dela é **Corresponde ao tipo de padrão** com esse tipo, que encontra o que uma regra de logs ou de traces desse **Tipo de padrão** encontra, incluindo endereços IPv6 e valores com codificação percentual ou noutra escrita. Para outro tipo de dados, é o próprio padrão do tipo, e quando nenhum padrão encontra o tipo de dados, a regra substitui todo valor do atributo |
 
 ### Comprovada nos registros em que foi vista
 
@@ -158,11 +159,53 @@ Uma mudança que o OneUptime AI fez por conta própria:
 
 Novas descobertas em um serviço cujo problema já está aberto são contidas da mesma forma, assim que a varredura de hora em hora as encontra.
 
+## Corrigir no código
+
+Uma regra de mascaramento oculta os dados novos na ingestão, mas o código continua a gravá-los. **Corrigir com IA** em um problema de telemetria pede ao OneUptime AI um só pull request que impede o serviço de gravar todos os vazamentos que o OneUptime ainda vê na sua telemetria: o deste problema e os outros do serviço, inclusive os contidos na ingestão. Uma caixa de diálogo mostra o que o pull request vai fazer antes que qualquer coisa comece, e **Abrir pull request** pede exatamente isso.
+
+:::steps
+### Encontrar onde cada vazamento é escrito
+
+Antes que o OneUptime AI comece, a Segurança de dados lê de novo, dentro do OneUptime, os registros em que cada vazamento foi visto, e guarda apenas onde o código os escreveu:
+
+- **Um span ou uma chamada de IA**: o arquivo, a linha e a função que seus atributos `code.*` nomeiam, e o nome do span.
+- **Uma exceção**: seus próprios frames do topo, os do código do serviço.
+- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`.
+- **Uma métrica**: o nome da métrica.
+- **Qualquer vazamento**: sua chave de atributo, como `user.email`, que o código costuma escrever como está.
+
+### Escolher o repositório
+
+O pull request vai para o repositório que contém os arquivos que os registros nomeiam, encontrados como os arquivos de um stack trace. Um vazamento cujos registros não nomeiam nenhum arquivo vai para onde estão os outros vazamentos do serviço, senão para o repositório com o nome do serviço, ou para o único do projeto. Em um repositório com vários serviços, o OneUptime AI trabalha na pasta do serviço: a que esses arquivos compartilham, senão a que as revisões de produção do serviço usam. Quando nada decide, você escolhe, entre os repositórios em que pode pedir ao OneUptime AI que trabalhe.
+
+### Abrir o pull request
+
+A caixa de diálogo diz como o código vai mudar, lista cada vazamento com onde é escrito e nomeia o repositório, por que é esse, e os arquivos pelos quais o OneUptime AI começa. **Abrir pull request** pede exatamente esse plano: se um vazamento foi encontrado ou corrigido desde que você o abriu, nada começa, e o plano é mostrado de novo.
+:::
+
+Como o código muda depende de quantos lugares escrevem os dados:
+
+| Onde os dados são escritos | O que o pull request faz |
+| --- | --- |
+| Em três lugares ou menos | Altera o código em cada lugar: omite o valor, ou o mascara ou gera um hash dele antes que seja enviado |
+| Em mais de três lugares | Adiciona uma etapa de ocultação, com um teste, onde o serviço configura sua telemetria, em vez de alterar cada lugar |
+| Onde suas regras de mascaramento já os ocultam na ingestão | Adiciona essa etapa de ocultação também para essas chaves, para que o código faça o que a ingestão faz |
+
+Um pull request corrige um serviço em um repositório: um serviço cujos vazamentos são escritos em dois repositórios recebe um em cada. Enquanto ele é escrito, **Corrigir com IA** em qualquer problema do serviço aponta para ele, e nenhum segundo é iniciado.
+
+O OneUptime AI recebe os lugares, as chaves, os tipos de dados e os modelos, nunca um valor dos seus dados, uma amostra mascarada ou um registro, e o agente de código não lê nada da sua telemetria enquanto trabalha. A descrição do pull request lista os vazamentos e vincula os problemas que corrige, e nunca cita um registro.
+
+Cada problema que o pull request corrige o mantém: seu cartão **Como corrigir** diz se ele está sendo escrito, aberto, mesclado ou fechado, com links para o pull request e a tarefa, e, depois de mesclado, o que a produção mostrou. A linha do tempo do problema diz quando ele foi aberto. O problema é resolvido como **Corrigido no código** assim que a nova versão do serviço deixa de gravar os dados (veja [O que acontece com um problema](/docs/data-security/checks-and-issues#o-que-acontece-com-um-problema)).
+
+Um segredo precisa de mais que uma correção no código: o código só impede novas cópias, e o segredo continua funcionando. O pull request, a linha do tempo do problema e seu cartão **Como corrigir** dizem para fazer a rotação dele, e o cartão lista onde ele foi visto.
+
+Com **Trabalhar em problemas novos** ativado, o OneUptime AI também propõe por conta própria a correção de cada serviço, o serviço mais arriscado primeiro, em **Segurança de dados → IA** e no problema mais arriscado do serviço. Por padrão, ela espera por você. Uma regra de IA da Segurança de dados que define **Correção** como **Automaticamente** para o problema mais arriscado do serviço abre o pull request sem perguntar, em um repositório que algo decidiu. **Máximo de pull requests de correção abertas** do repositório limita os dois: no limite, um pull request que uma regra abriria espera por você, e nenhum pull request de correção novo é aberto até que um seja mesclado ou fechado.
+
 ## Descartar esta métrica
 
 Nenhuma regra tira os dados do nome de uma métrica, então, até que o código que dá nome à métrica seja corrigido, os dados continuam chegando. **Descartar esta métrica** em uma descoberta no nome de uma métrica para de armazenar as métricas cujos nomes os contêm, ao custo dos dados delas, por isso só acontece quando você pede:
 
-- **As métricas de um serviço.** Cria uma regra de pipeline de métricas **Descartar** para o serviço da descoberta: cada ponto de dados novo de uma métrica cujo nome contém esse tipo de dado é descartado antes de ser armazenado. O filtro dela é o padrão que **Limpar** usa para o tipo, então um tipo que nenhum padrão consegue encontrar, como o nome de uma pessoa, não pode ser descartado, e a caixa de diálogo diz por quê.
+- **As métricas de um serviço.** Cria uma regra de pipeline de métricas **Descartar** para o serviço da descoberta: cada ponto de dados novo de uma métrica cujo nome contém esse tipo de dado é descartado antes de ser armazenado. O filtro dela é o próprio padrão do tipo de dado, aplicado ao nome da métrica, então um tipo que nenhum padrão consegue encontrar, como o nome de uma pessoa, não pode ser descartado, e a caixa de diálogo diz por quê.
 - **Dito antes de ser feito.** A caixa de diálogo diz que esses pontos de dados se perdem para sempre, quantas das métricas do serviço gravadas no último dia têm um nome assim, o que as lê e por isso deixa de receber dados novos, que o que já está armazenado permanece até o fim da sua retenção, e como desfazer. Nada é descartado até você marcar que entende.
 - **O que as lê, e o que acontece com isso.** A caixa de diálogo nomeia, cada um como um link, cada monitor, cada painel com os widgets dele que leem essas métricas, cada SLO de métrica do serviço e cada regra de gravação de métricas que as lê. Os monitores não podem mais alertar sobre os valores delas, os widgets deixam de mostrar dados novos, os SLOs deixam de contar eventos novos delas, e as métricas de saída das regras de gravação não as incluem mais. Sob cada regra de gravação, ela também nomeia o que lê a métrica de saída da regra, e o que lê as deles por sua vez, até três métricas de saída adiante na cadeia. O link de um widget abre o painel dele nesse widget. O que você não pode ver é contado, nunca nomeado.
 - **Em seu nome, e registrado.** A regra é criada com a sua própria permissão de criar regras de pipeline de métricas: Proprietários do projeto e Administradores do projeto podem criá-la, assim como uma equipe que pode criar regras de pipeline de métricas. Os registros de auditoria guardam quem a criou.
@@ -181,7 +224,7 @@ Uma descoberta só é marcada como limpa quando a ingestão executaria sobre ela
 - **Uma regra comprovada nos registros da descoberta.** Uma regra que o OneUptime criou e comprovou nos registros em que uma descoberta foi vista cobre essa descoberta, qualquer que seja o padrão dela, enquanto for a regra que foi comprovada: altere o padrão, os atributos, a ação, os campos ou o serviço dela, e ela deixa de cobrir.
 - **Uma regra Atributos nomeados** cobre uma descoberta em um atributo que ela nomeia, ou em um aninhado sob ele.
 - **Fora isso, os seus próprios padrões personalizados nunca contam.** Um **Regex personalizado** que você escreveu só cobre uma descoberta quando é exatamente o padrão que **Limpar** cria para o tipo dela. Uma descoberta guarda só amostras mascaradas, nas quais nenhum padrão pode ser testado, então o OneUptime não conseguiria provar que o seu padrão oculta os dados, e uma descoberta dada como limpa por engano é um vazamento que ninguém olha.
-- **O atributo de uma métrica.** Uma regra de pipeline de métricas **Ocultar Atributo** ou **Remover Atributo** da chave desse atributo, para o serviço da descoberta ou para o projeto inteiro, cobre a descoberta quando não tem filtro, ou quando tem exatamente o filtro que **Limpar** cria. Um filtro escrito por você nunca conta, pelo mesmo motivo.
+- **O atributo de uma métrica.** Uma regra de pipeline de métricas **Ocultar Atributo** ou **Remover Atributo** da chave desse atributo, para o serviço da descoberta ou para o projeto inteiro, cobre a descoberta quando não tem filtro, ou quando tem exatamente o filtro que **Limpar** cria. Um filtro escrito por você nunca conta, pelo mesmo motivo. Uma regra que **Limpar** criou para um endereço IP, um endereço de e-mail ou um número de cartão antes de o filtro dela ser **Corresponde ao tipo de padrão** passa para esse filtro quando você atualiza, então também oculta endereços IPv6 e cobre a sua descoberta.
 - **O nome de uma métrica.** Uma regra de pipeline de métricas **Descartar** para o serviço da descoberta ou para o projeto inteiro cobre a descoberta quando tem exatamente o filtro que **Descartar esta métrica** cria, ou nenhum filtro, caso em que não armazena nenhuma métrica do serviço. Uma regra assim sem filtro cobre todas as descobertas nessas métricas.
 
 Uma regra desativada, ou que não limpa nada, nunca conta. A cobertura é calculada de novo depois de cada varredura, então uma regra que você adiciona ou remove manualmente muda o que está marcado como limpo em até uma hora.

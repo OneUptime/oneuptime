@@ -19,12 +19,12 @@ import {
   packFormSettingsValues,
 } from "./FormSettingsEditor";
 import Form from "Common/Models/DatabaseModels/Form";
+import { getFormTargetSetUpGate } from "./FormTargetChoices";
 import { readFormFields } from "Common/Types/Form/FormField";
 import { FormCustomFieldDefinition } from "Common/Types/Form/FormPublic";
 import {
-  IncidentFormTargetSettings,
+  FormTargetSettings,
   readFormTargetSettings,
-  ScheduledMaintenanceFormTargetSettings,
 } from "Common/Types/Form/FormTargetSettings";
 import FormTargetType from "Common/Types/Form/FormTargetType";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -156,20 +156,33 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
     [props.formId.toString(), props.targetType, settingsKey],
   );
 
-  const updateGate: PermissionGateResult = PermissionGate.check(
+  /*
+   * Edit Form, then what setting a form up for its target takes: changing
+   * how an alert form makes its alerts takes permission to create alerts,
+   * as the server asks (FormService.assertMaySetUpTarget).
+   */
+  const formUpdateGate: PermissionGateResult = PermissionGate.check(
     new Form(),
     ModelAction.Update,
   );
 
-  const isIncident: boolean = props.targetType === FormTargetType.Incident;
+  const updateGate: PermissionGateResult = formUpdateGate.isAllowed
+    ? getFormTargetSetUpGate(props.targetType)
+    : formUpdateGate;
 
-  const title: string = isIncident
-    ? FormsCopy.mappingIncidentTitle
-    : FormsCopy.mappingScheduledMaintenanceTitle;
+  const title: string =
+    props.targetType === FormTargetType.Incident
+      ? FormsCopy.mappingIncidentTitle
+      : props.targetType === FormTargetType.Alert
+        ? FormsCopy.mappingAlertTitle
+        : FormsCopy.mappingScheduledMaintenanceTitle;
 
-  const description: string = isIncident
-    ? FormsCopy.mappingIncidentDescription
-    : FormsCopy.mappingScheduledMaintenanceDescription;
+  const description: string =
+    props.targetType === FormTargetType.Incident
+      ? FormsCopy.mappingIncidentDescription
+      : props.targetType === FormTargetType.Alert
+        ? FormsCopy.mappingAlertDescription
+        : FormsCopy.mappingScheduledMaintenanceDescription;
 
   const buttons: Array<CardButtonSchema> =
     reference && (updateGate.isAllowed || updateGate.disabledReason)
@@ -364,9 +377,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
       return <ErrorMessage message={loadError || FormsCopy.formNotFound} />;
     }
 
-    const settings:
-      | IncidentFormTargetSettings
-      | ScheduledMaintenanceFormTargetSettings = readFormTargetSettings({
+    const settings: FormTargetSettings = readFormTargetSettings({
       targetType: props.targetType,
       value: props.targetSettings,
     });

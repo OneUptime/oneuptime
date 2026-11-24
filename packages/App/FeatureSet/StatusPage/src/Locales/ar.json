@@ -61,7 +61,8 @@
     "subGroupCount": "المجموعات: {{total}}",
     "noResourcesTitle": "لا شيء لعرضه بعد",
     "noResourcesDescription": "لا تعرض هذه الصفحة أي خدمات بعد.",
-    "noResourcesPreviewDescription": "يرى الزوار هذا إلى أن تضيف موارد. أضف مراقبات أو مجموعات إلى صفحة الحالة هذه من قسم الموارد في لوحة المعلومات."
+    "noResourcesPreviewDescription": "يرى الزوار هذا إلى أن تضيف موارد.",
+    "noResourcesPreviewLink": "أضف موارد في لوحة المعلومات"
   },
   "eventItem": {
     "affectedResources": "الموارد المتأثرة",
@@ -485,6 +486,9 @@
   "No options available": "لا توجد خيارات متاحة",
   "No matches found": "لم يُعثر على نتائج مطابقة",
   "{{eventType}} state changed to {{state}}": "تغيّرت حالة {{eventType}} إلى {{state}}",
+  "{{count}} related incidents": "الحوادث ذات الصلة: {{count}}",
+  "{{count}} related incidents_one": "{{count}} حادثة ذات صلة",
+  "Part of {{incident}}": "جزء من {{incident}}",
   "Use at least {{minimum}} characters.": "استخدم {{minimum}} من الأحرف على الأقل.",
   "Try a few unrelated words.": "جرّب بضع كلمات لا رابط بينها.",
   "Password meets requirements": "كلمة المرور تستوفي المتطلبات",

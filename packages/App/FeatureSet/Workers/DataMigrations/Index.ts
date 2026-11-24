@@ -162,6 +162,7 @@ import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCr
 import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
+import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -218,6 +219,7 @@ import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabili
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
 import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
+import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1649,6 +1651,24 @@ const DataMigrations: Array<DataMigrationBase> = [
    * last.
    */
   new AddSensitiveFileRuleToScannersPolicies(),
+  /*
+   * A status page resource shows a monitor or a monitor group, never
+   * neither (#6558): the rows the API took that named neither - shown to
+   * nobody, reached by no incident or subscriber - are deleted, and the
+   * worker's log says how many and on which status pages. Postgres only,
+   * one statement, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new DeleteStatusPageResourcesThatShowNothing(),
+  /*
+   * The metric rules Scrub It made for an IP address, an email address or
+   * a card number match the data type's pattern type instead of its
+   * frozen pattern (#10934): an IP address rule hides IPv6 addresses too,
+   * and each what it read encoded or in another script. Postgres only,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MetricScrubRulesMatchTheirPatternType(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

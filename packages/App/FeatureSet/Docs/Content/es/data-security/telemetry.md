@@ -9,6 +9,7 @@ No hay nada que configurar: la telemetría de cada servicio se escanea cada hora
 - [Cómo muestrea un escaneo](#cómo-muestrea-un-escaneo): Las entradas más recientes de cada servicio, cada hora.
 - [Depurar](#depurar): Oculta un hallazgo en la ingesta, en el servicio donde se encontró.
 - [Contenido por su cuenta](#contenido-por-su-cuenta): Un secreto oculto sin que nadie pulse nada, donde está demostrado que es seguro.
+- [Corregirlo en el código](#corregirlo-en-el-código): Una sola pull request que evita que un servicio escriba todas sus fugas.
 - [Descartar esta métrica](#descartar-esta-métrica): Deja de almacenar las métricas cuyos nombres contienen datos sensibles.
 - [Qué cuenta como depurado](#qué-cuenta-como-depurado): Cuándo una regla de depuración ya cubre un hallazgo.
 :::
@@ -99,7 +100,7 @@ Haz clic en **Depurar**. Un diálogo dice qué haría la regla antes de crear na
 
 ### Corrige también el código
 
-La regla oculta los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo.
+La regla oculta los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo. **Corregir con IA** en el problema abre una sola pull request para todas las fugas del servicio: consulta [Corregirlo en el código](#corregirlo-en-el-código).
 :::
 
 La regla se nombra por lo que oculta, como «Data Security: Email address in log attributes of checkout», o «Data Security: Password or secret in db.password of checkout» para una regla que nombra su atributo, y aparece junto a tus demás reglas de depuración (consulta [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Es la regla más estrecha que oculta los datos del hallazgo, la primera de estas que encaja:
@@ -112,7 +113,7 @@ La regla se nombra por lo que oculta, como «Data Security: Email address in log
 | Un tipo de datos que se distingue por las palabras que lo rodean, como un número de ruta bancaria | Su forma, solo en el atributo en el que se encontró |
 | Un tipo de datos encontrado por el nombre del campo, como el nombre de una persona bajo `customer_name`, o un valor bajo una clave que nombra un secreto | Una regla de **Atributos indicados**, que oculta el valor completo de ese atributo |
 | Un valor bajo una clave que parece sensible, donde nada más estrecho lo oculta | Una regla de **Claves de atributos sensibles**, que oculta el valor completo de cada atributo de ese tipo |
-| Cualquier tipo de datos en el atributo de una métrica | Una regla de canalización de métricas **Ocultar atributo** para el servicio, que sustituye por `[REDACTED]` los valores del atributo con la forma del tipo de datos, o cada valor del atributo cuando ningún patrón encuentra el tipo de datos |
+| Cualquier tipo de datos en el atributo de una métrica | Una regla de canalización de métricas **Ocultar atributo** para el servicio, que sustituye por `[REDACTED]` los valores del atributo que contienen el tipo de datos. Para una dirección IP, una dirección de correo electrónico o un número de tarjeta, su filtro es **Coincide con el tipo de patrón** con ese tipo, que encuentra lo que encuentra una regla de registros o de trazas de ese **Tipo de patrón**, incluidas las direcciones IPv6 y los valores codificados con porcentajes o en otra escritura. Para otro tipo de datos, es el propio patrón del tipo, y cuando ningún patrón encuentra el tipo de datos, la regla sustituye cada valor del atributo |
 
 ### Demostrada en las entradas del hallazgo
 
@@ -158,11 +159,53 @@ Un cambio que la IA de OneUptime hizo por su cuenta:
 
 Los hallazgos nuevos en un servicio cuyo problema ya está abierto se contienen de la misma forma, en cuanto el escaneo de cada hora los encuentra.
 
+## Corregirlo en el código
+
+Una regla de depuración oculta los datos nuevos en la ingesta, pero el código los sigue escribiendo. **Corregir con IA** en un problema de telemetría pide a OneUptime AI una sola pull request que evita que el servicio escriba todas las fugas que OneUptime aún ve en su telemetría: la de este problema y las demás del servicio, incluidas las contenidas en la ingesta. Un diálogo muestra lo que hará la pull request antes de que empiece nada, y **Abrir pull request** pide exactamente eso.
+
+:::steps
+### Encontrar dónde se escribe cada fuga
+
+Antes de que OneUptime AI empiece, Seguridad de datos vuelve a leer, dentro de OneUptime, los registros en los que se vio cada fuga, y conserva solo dónde los escribió el código:
+
+- **Un span o una llamada de IA**: el archivo, la línea y la función que nombran sus atributos `code.*`, y el nombre del span.
+- **Una excepción**: sus propios frames superiores, los del código del servicio.
+- **Una línea de registro**: el archivo, la línea y la función que nombran sus atributos, si los tiene, su logger, y la línea como plantilla, con cada valor sustituido por el nombre de su tipo, como `User <Email address> signed up`.
+- **Una métrica**: el nombre de la métrica.
+- **Cualquier fuga**: su clave de atributo, como `user.email`, que el código suele escribir tal cual.
+
+### Elegir el repositorio
+
+La pull request va al repositorio que contiene los archivos que nombran los registros, buscados como los archivos de un stack trace. Una fuga cuyos registros no nombran ningún archivo va adonde están las demás fugas del servicio, si no al repositorio que se llama como el servicio, o al único del proyecto. En un repositorio con varios servicios, OneUptime AI trabaja en la carpeta del servicio: la que comparten esos archivos, si no la que usan las revisiones de producción del servicio. Cuando nada lo decide, eliges tú, entre los repositorios en los que puedes pedir a OneUptime AI que trabaje.
+
+### Abrir la pull request
+
+El diálogo dice cómo cambiará el código, enumera cada fuga con dónde se escribe y nombra el repositorio, por qué es ese, y los archivos por los que empieza OneUptime AI. **Abrir pull request** pide exactamente ese plan: si se encontró o corrigió una fuga desde que lo abriste, no empieza nada y el plan se vuelve a mostrar.
+:::
+
+Cómo cambia el código depende de cuántos lugares escriben los datos:
+
+| Dónde se escriben los datos | Qué hace la pull request |
+| --- | --- |
+| En tres lugares o menos | Cambia el código en cada lugar: omite el valor, o lo enmascara o lo resume con hash antes de enviarlo |
+| En más de tres lugares | Añade un paso de redacción, con una prueba, donde el servicio configura su telemetría, en lugar de cambiar cada lugar |
+| Donde tus reglas de depuración ya los ocultan en la ingesta | Añade también ese paso de redacción para esas claves, para que el código haga lo que hace la ingesta |
+
+Una pull request corrige un servicio en un repositorio: un servicio cuyas fugas se escriben en dos repositorios recibe una en cada uno. Mientras se escribe, **Corregir con IA** en cualquier problema del servicio lleva a ella, y no se inicia una segunda.
+
+OneUptime AI recibe los lugares, las claves, los tipos de datos y las plantillas, nunca un valor de tus datos, una muestra enmascarada ni un registro, y el agente de código no lee nada de tu telemetría mientras trabaja. La descripción de la pull request enumera las fugas y enlaza los problemas que corrige, y nunca cita un registro.
+
+Cada problema que corrige la pull request la conserva: su tarjeta **Cómo corregirlo** dice si se está escribiendo, si está abierta, fusionada o cerrada, con enlaces a la pull request y a la tarea, y, una vez fusionada, lo que mostró producción. La línea de tiempo del problema dice cuándo se abrió. El problema se resuelve como **Corregido en el código** en cuanto la nueva versión del servicio deja de escribir los datos (consulta [Qué le pasa a un problema](/docs/data-security/checks-and-issues#qué-le-pasa-a-un-problema)).
+
+Un secreto necesita más que una corrección en el código: el código solo detiene las copias nuevas, y el secreto sigue funcionando. La pull request, la línea de tiempo del problema y su tarjeta **Cómo corregirlo** dicen que hay que rotarlo, y la tarjeta enumera dónde se vio.
+
+Con **Trabajar en los problemas nuevos** activado, OneUptime AI también propone por su cuenta la corrección de cada servicio, primero el servicio más arriesgado, en **Seguridad de datos → IA** y en el problema más arriesgado del servicio. De forma predeterminada, te espera. Una regla de IA de Seguridad de datos que pone **Corrección** en **Automáticamente** para el problema más arriesgado del servicio abre la pull request sin preguntar, en un repositorio que algo decidió. **Máximo de pull requests de corrección abiertas** del repositorio limita ambas cosas: en el límite, una pull request que abriría una regla te espera, y no se abre ninguna pull request de corrección nueva hasta que una se fusione o se cierre.
+
 ## Descartar esta métrica
 
 Ninguna regla saca los datos del nombre de una métrica, así que hasta que se corrija el código que nombra la métrica, los datos siguen llegando. **Descartar esta métrica** en un hallazgo en el nombre de una métrica deja de almacenar las métricas cuyos nombres los contienen, a costa de sus datos, así que solo ocurre cuando lo pides:
 
-- **Las métricas de un servicio.** Crea una regla de canalización de métricas **Descartar** para el servicio del hallazgo: cada punto de datos nuevo de una métrica cuyo nombre contiene ese tipo de datos se descarta antes de almacenarse. Su filtro es el patrón que **Depurar** usa para el tipo, así que un tipo que ningún patrón puede encontrar, como el nombre de una persona, no se puede descartar, y el diálogo dice por qué.
+- **Las métricas de un servicio.** Crea una regla de canalización de métricas **Descartar** para el servicio del hallazgo: cada punto de datos nuevo de una métrica cuyo nombre contiene ese tipo de datos se descarta antes de almacenarse. Su filtro es el propio patrón del tipo de datos, aplicado al nombre de la métrica, así que un tipo que ningún patrón puede encontrar, como el nombre de una persona, no se puede descartar, y el diálogo dice por qué.
 - **Dicho antes de hacerse.** El diálogo dice que esos puntos de datos se pierden para siempre, cuántas de las métricas del servicio escritas en el último día tienen un nombre así, qué las lee y por tanto deja de recibir datos nuevos, que lo ya almacenado se conserva hasta que termine su retención, y cómo deshacerlo. No se descarta nada hasta que marcas que lo entiendes.
 - **Qué las lee, y qué le pasa.** El diálogo nombra, cada uno como un enlace, cada monitor, cada panel con sus widgets que leen esas métricas, cada SLO de métrica del servicio y cada regla de grabación de métricas que las lee. Los monitores ya no pueden alertar sobre sus valores, los widgets dejan de mostrar datos nuevos, los SLO dejan de contar eventos nuevos de ellas y las métricas de salida de las reglas de grabación ya no las incluyen. Bajo cada regla de grabación, también nombra lo que lee su métrica de salida, y lo que lee las de esos a su vez, hasta tres métricas de salida más adelante en la cadena. El enlace de un widget abre su panel en ese widget. Lo que no puedes ver se cuenta, pero nunca se nombra.
 - **En tu nombre, y registrado.** La regla se crea con tu propio permiso para crear reglas de canalización de métricas: pueden crearla los roles Propietario del proyecto y Administrador del proyecto, y también un equipo que pueda crear reglas de canalización de métricas. Los registros de auditoría guardan quién la creó.
@@ -181,7 +224,7 @@ Un hallazgo se marca como depurado solo cuando la ingesta le aplicaría una regl
 - **Una regla demostrada en las entradas del hallazgo.** Una regla que OneUptime creó y demostró en las entradas en las que se vio un hallazgo cubre ese hallazgo, sea cual sea su patrón, mientras siga siendo la regla que se demostró: cambia su patrón, sus atributos, su acción, sus campos o su servicio, y deja de cubrirlo.
 - **Una regla de atributos indicados** cubre un hallazgo en un atributo que nombra, o en uno anidado bajo él.
 - **Por lo demás, tus propios patrones personalizados nunca cuentan.** Una **Expresión regular personalizada** que escribiste tú cubre un hallazgo solo cuando es exactamente el patrón que crea **Depurar** para su tipo. Un hallazgo solo conserva muestras enmascaradas, sobre las que no se puede probar ningún patrón, así que OneUptime no podría demostrar que tu patrón oculta los datos, y un hallazgo marcado como depurado por error es una fuga que nadie mira.
-- **El atributo de una métrica.** Una regla de canalización de métricas **Ocultar atributo** o **Eliminar atributo** sobre la clave de ese atributo, para el servicio del hallazgo o para todo el proyecto, lo cubre cuando no tiene ningún filtro, o tiene exactamente el filtro que crea **Depurar**. Un filtro que escribiste tú nunca cuenta, por la misma razón.
+- **El atributo de una métrica.** Una regla de canalización de métricas **Ocultar atributo** o **Eliminar atributo** sobre la clave de ese atributo, para el servicio del hallazgo o para todo el proyecto, lo cubre cuando no tiene ningún filtro, o tiene exactamente el filtro que crea **Depurar**. Un filtro que escribiste tú nunca cuenta, por la misma razón. Una regla que **Depurar** creó para una dirección IP, una dirección de correo electrónico o un número de tarjeta antes de que su filtro fuera **Coincide con el tipo de patrón** pasa a ese filtro al actualizar, así que también oculta las direcciones IPv6 y cubre su hallazgo.
 - **El nombre de una métrica.** Una regla de canalización de métricas **Descartar** para el servicio del hallazgo o para todo el proyecto lo cubre cuando tiene exactamente el filtro que crea **Descartar esta métrica**, o ningún filtro, con lo que no almacena ninguna métrica del servicio. Una regla así sin filtro cubre todos los hallazgos en esas métricas.
 
 Una regla desactivada, o que no depura nada, nunca cuenta. La cobertura se vuelve a calcular después de cada escaneo, así que una regla que añadas o quites a mano cambia lo que está marcado como depurado en menos de una hora.

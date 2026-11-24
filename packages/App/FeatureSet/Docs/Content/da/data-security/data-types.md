@@ -42,6 +42,8 @@ Kun fund med Høj og Middel tæller: de gør et datalager følsomt og kan åbne 
 
 Når to datatyper gør krav på de samme tegn, vinder det sikreste fund: den højeste konfidens, derefter den detektor, hvis egne regler beviser mest, og derefter det længste match.
 
+En værdi læses også, som folk skriver den. En URL's procent-escapes læses, så en IP-adresse eller en e-mailadresse i en forespørgselsstreng, såsom `jane%40example.com`, findes. Et kortnummers cifre læses i enhver skrift, såsom cifre i fuld bredde (`４１１１ １１１１ １１１１ １１１１`) eller arabisk-indiske cifre, først hver skrift for sig og derefter sammen. En e-mailadresse findes i enhver skrift, såsom `张伟@example.com` eller `почта@пример.рф`, og en IPv6-adresse lige efter en nøgles kolon, såsom `ip:2001:db8::1`. Hvert fund er værdien, som den er skrevet, så en rensningsregel skjuler den dér.
+
 En lang værdi læses i vinduer på 64 KB, der overlapper med 4 KB, så en værdi findes hel, uanset hvor den står, og der læses højst 4 MB af én værdi.
 
 ## Felter og kolonner

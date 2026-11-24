@@ -37,7 +37,9 @@ import {
  *     it. Done when nothing essential is left - and not while only email
  *     reaches somebody who is on call (#1809), or while the server cannot
  *     send the only kind of message that reaches them.
- *   - "Get the mobile app": done once a push device is registered.
+ *   - "Get the mobile app": done once a push device is registered. Left out
+ *     where the server's admins took the app away (Help and Support,
+ *     #10866); it counts towards nothing either way.
  *   - "Send yourself a test page": the step every flow ends on - see a page
  *     arrive and acknowledge it (#6811). Done when this person acknowledged
  *     a test page in the project, as the server noted it.
@@ -89,6 +91,8 @@ export const MEMBER_FIRST_STEPS_COPY: {
   reachedWithoutEmail: string;
   mobileAppTitle: string;
   mobileAppDescription: string;
+  emailCannotReachWithoutAppDescription: string;
+  onlyEmailWithoutAppDescription: string;
   testPageTitle: string;
   testPageDescription: string;
 } = {
@@ -133,6 +137,17 @@ export const MEMBER_FIRST_STEPS_COPY: {
   mobileAppTitle: translationKey("Get the mobile app"),
   mobileAppDescription: translationKey(
     "Pages arrive as push notifications, and critical alerts ring even on Do Not Disturb.",
+  ),
+  /*
+   * The same two sentences on a server whose admins took the mobile app
+   * away (Admin Dashboard > Settings > Help and Support, #10866): they
+   * suggest a phone number only.
+   */
+  emailCannotReachWithoutAppDescription: translationKey(
+    "This server cannot send email yet, and email is the only way you can be reached. Add a phone number.",
+  ),
+  onlyEmailWithoutAppDescription: translationKey(
+    "You are on call, and only email can reach you. Email is easy to miss at night: add a phone number.",
   ),
   testPageTitle: translationKey("Send yourself a test page"),
   testPageDescription: translationKey(
@@ -323,6 +338,13 @@ export interface MemberFirstStepsInput {
   // The server noted a test page this person acknowledged, or one was seen here.
   hasAcknowledgedTestPage: boolean;
   clock: FeedClock;
+  /*
+   * Whether the server offers the mobile app (Admin Dashboard > Settings >
+   * Help and Support, #10866). Off, there is no "Get the mobile app" step,
+   * and no sentence suggests the app. Left out, it is offered, as it always
+   * was.
+   */
+  isMobileAppOffered?: boolean | undefined;
 }
 
 export interface MemberFirstSteps {
@@ -442,10 +464,12 @@ const getReachTile: (data: {
   state: ReachState;
   checklist: SetupChecklist | null;
   canSendEmail: boolean;
+  isMobileAppOffered: boolean;
 }) => MemberStepTile = (data: {
   state: ReachState;
   checklist: SetupChecklist | null;
   canSendEmail: boolean;
+  isMobileAppOffered: boolean;
 }): MemberStepTile => {
   const base: Omit<MemberStepTile, "title" | "description"> = {
     step: MemberStep.Reach,
@@ -477,7 +501,9 @@ const getReachTile: (data: {
         ...base,
         iconBackgroundClassName: "bg-red-500",
         title: MEMBER_FIRST_STEPS_COPY.emailCannotReachTitle,
-        description: MEMBER_FIRST_STEPS_COPY.emailCannotReachDescription,
+        description: data.isMobileAppOffered
+          ? MEMBER_FIRST_STEPS_COPY.emailCannotReachDescription
+          : MEMBER_FIRST_STEPS_COPY.emailCannotReachWithoutAppDescription,
         pageMap: PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
       };
     case ReachState.OnlyEmail:
@@ -485,7 +511,9 @@ const getReachTile: (data: {
         ...base,
         iconBackgroundClassName: "bg-amber-500",
         title: MEMBER_FIRST_STEPS_COPY.onlyEmailTitle,
-        description: MEMBER_FIRST_STEPS_COPY.onlyEmailDescription,
+        description: data.isMobileAppOffered
+          ? MEMBER_FIRST_STEPS_COPY.onlyEmailDescription
+          : MEMBER_FIRST_STEPS_COPY.onlyEmailWithoutAppDescription,
         pageMap: PageMap.USER_SETTINGS_NOTIFICATION_METHODS,
       };
     case ReachState.Ready: {
@@ -541,10 +569,13 @@ export const buildMemberFirstSteps: (
       : null,
   });
 
+  const isMobileAppOffered: boolean = input.isMobileAppOffered !== false;
+
   const reachTile: MemberStepTile = getReachTile({
     state: reachState,
     checklist: input.checklist,
     canSendEmail: input.canSendEmail,
+    isMobileAppOffered: isMobileAppOffered,
   });
 
   const hasPush: boolean = Boolean(
@@ -592,7 +623,17 @@ export const buildMemberFirstSteps: (
     tiles.push(onCallTile);
   }
 
-  tiles.push(reachTile, mobileAppTile, testPageTile);
+  /*
+   * The mobile app's step only where the server offers the app (#10866).
+   * It never counts towards what is left either way: it is an offer, never
+   * the one thing to do, so the card finishes on the same two outcomes with
+   * or without it.
+   */
+  tiles.push(
+    reachTile,
+    ...(isMobileAppOffered ? [mobileAppTile] : []),
+    testPageTile,
+  );
 
   const openCount: number =
     (reachTile.isDone ? 0 : 1) + (testPageTile.isDone ? 0 : 1);

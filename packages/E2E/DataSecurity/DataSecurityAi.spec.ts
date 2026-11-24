@@ -232,10 +232,10 @@ test.describe("Data Security → AI", () => {
       "Production stores",
     );
     await expect(card(page, "Done by AI")).toContainText(MADE_TITLE);
-    // The AI rules, each with what every kind of work may do.
+    // The AI rules, each with what every kind of work may do (#10675's words).
     await expect(card(page, "AI Rules")).toContainText("Production stores");
     await expect(card(page, "AI Rules")).toContainText(
-      "Analyze: Without asking",
+      "Analyze: Automatically",
     );
     await expect(card(page, "Why AI did not act")).toContainText(
       "No Data Security AI rule matches this issue.",

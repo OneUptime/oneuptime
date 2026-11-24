@@ -82,6 +82,8 @@ In un gruppo a griglia, la finestra di dialogo chiede anche la riga e la colonna
 > [!TIP]
 > Per mostrare più controlli come un'unica riga, aggiungete un [gruppo di monitor](/docs/monitor/monitor-groups). Con l'interruttore **Gruppi di monitor** attivo (**Impostazioni del progetto** > **Base** > **Prodotti**, che si salva non appena lo spostate), un link sotto l'elenco a discesa dice **Aggiungi invece un gruppo di monitor.** Fateci clic e **Monitor** diventa **Gruppo di monitor** (**Seleziona gruppo di monitor**); **Aggiungi invece un monitor.** torna indietro.
 
+**Modifica risorsa**, la matita di una riga, si apre su ciò che la riga mostra: la riga di un gruppo di monitor su **Gruppo di monitor**, con il gruppo scelto, e quella di un monitor su **Monitor**. Con l'interruttore **Gruppi di monitor** attivo, il link sotto l'elenco a discesa dice **Mostra invece un monitor.** sulla riga di un gruppo e **Mostra invece un gruppo di monitor.** su quella di un monitor. Scambia l'elenco a discesa solo in quella finestra di dialogo, e salvando la riga mostra invece ciò che avete scelto. **Nome visualizzato** segue la nuova scelta finché è ancora il nome di ciò che la riga mostrava, e resta com'è se avete rinominato la riga. Nell'elenco, la riga di un gruppo il cui nome visualizzato è quello del gruppo stesso dice **Uguale al nome del gruppo di monitor**.
+
 ### Aggiungerne diversi insieme
 
 **Aggiungi più elementi** (anche **Aggiungi più monitor** nel menu **Altre azioni**) apre **Aggiungi più monitor**. Anche questa è una sola pagina: una selezione multipla **Monitor**, poi gli stessi **Altri campi** chiusi, le cui opzioni di visualizzazione si applicano a ogni monitor che scegliete. Ogni risorsa prende nome visualizzato e descrizione dal proprio monitor, e **Aggiungi monitor** li aggiunge tutti. È il modo più veloce per popolare una nuova pagina.
@@ -97,6 +99,8 @@ Una pagina di stato elenca un monitor una sola volta. L'aggiunta è idempotente,
 Il riepilogo alla fine dell'aggiunta multipla lo dice: i monitor aggiunti sono elencati sotto **Aggiunto**, e quelli che c'erano già sotto **Già aggiunti**. Niente viene segnalato come errore, e niente viene scritto per loro.
 
 La stessa regola vale ovunque venga creata una risorsa. Aggiungere un monitor che è già sulla pagina dal modulo di aggiunta singola, o far puntare una risorsa esistente verso di esso dal modulo di modifica, viene rifiutato con *«This monitor is already added to this status page»*, anche quando la risorsa esistente si trova in un altro gruppo, perché un visitatore vedrebbe comunque il monitor due volte. Per mostrare un monitor in un altro gruppo, eliminate la risorsa che ha già e aggiungetelo dove volete.
+
+Una risorsa mostra un monitor o un gruppo di monitor, mai entrambi e mai nessuno dei due. Puntare una risorsa su uno svuota l'altro, quindi passare una riga da un monitor a un gruppo di monitor è un'unica modifica. Tramite l'API, una risorsa che li nomina entrambi viene rifiutata con *«A status page resource shows a monitor or a monitor group, not both. Send one of them.»*, e una che non ne nomina nessuno, o una modifica che la lascerebbe senza nessuno dei due, con *«A status page resource needs a monitor or a monitor group to show»*.
 
 ## Opzioni di visualizzazione di una risorsa
 
@@ -122,7 +126,7 @@ I gruppi hanno le proprie copie di questi interruttori (vedete sotto), quindi un
 
 I colori delle barre del grafico della cronologia si impostano in **Altre impostazioni** nella pagina **Branding**, e quali stati dei monitor contano come «inattivo» in **Conta come inattività**, nella scheda **Cosa mostra la tua pagina di stato** delle **Impostazioni**; entrambi sono descritti in [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
 
-Ogni barra è un giorno. Passa il puntatore su una barra o fai clic su di essa (toccala sul telefono, o premi Invio dalla tastiera) per leggere la giornata: il suo tempo di attività, quanto è durato ogni stato, gli incidenti dichiarati quel giorno e la manutenzione programmata che vi si è svolta, ciascuno con un link alla propria pagina. Un giorno con manutenzione programmata ha una fascia blu in cima alla sua barra e, finché un evento è in corso, ogni risorsa dei suoi monitor mostra «In manutenzione» accanto al nome. La manutenzione non cambia né il colore di una barra né il tempo di attività, che vengono dagli stati del monitor: per tenere il lavoro pianificato fuori dal tempo di attività, scegli per l'evento in **Cambia lo stato del monitor in** uno stato che non sia tra quelli di **Conta come inattività** della pagina. Vedi [Cosa influenza un evento](/docs/scheduled-maintenance/index#cosa-influenza-un-evento).
+Ogni barra è un giorno. Passa il puntatore su una barra o fai clic su di essa (toccala sul telefono, o premi Invio dalla tastiera) per leggere la giornata: il suo tempo di attività, quanto è durato ogni stato, gli incidenti dichiarati quel giorno e la manutenzione programmata che vi si è svolta, ciascuno con un link alla propria pagina. Su una pagina che mostra gli episodi ma non gli incidenti, la giornata elenca invece l'episodio a cui appartiene ciascuno dei suoi incidenti, una sola volta, con un link alla pagina dell'episodio. Un giorno con manutenzione programmata ha una fascia blu in cima alla sua barra e, finché un evento è in corso, ogni risorsa dei suoi monitor mostra «In manutenzione» accanto al nome. La manutenzione non cambia né il colore di una barra né il tempo di attività, che vengono dagli stati del monitor: per tenere il lavoro pianificato fuori dal tempo di attività, scegli per l'evento in **Cambia lo stato del monitor in** uno stato che non sia tra quelli di **Conta come inattività** della pagina. Vedi [Cosa influenza un evento](/docs/scheduled-maintenance/index#cosa-influenza-un-evento).
 
 Ogni barra è un giorno nel fuso orario del lettore, lo stesso in cui la pagina mostra tutti gli altri orari, quindi l'ultima barra è il suo oggi. La barra di un gruppo di monitor mostra per quanto tempo il gruppo stesso è rimasto in ciascuno stato quel giorno: in ogni momento il gruppo ha lo stato peggiore tra i suoi monitor, quindi gli stati di un giorno sommano il tempo in cui almeno uno dei suoi monitor veniva controllato, e mai più del giorno.
 
@@ -280,6 +284,10 @@ L'importazione crea gruppi, non risorse: aggiungete poi i monitor con **Aggiungi
 
 :::details «This monitor is already added to this status page»
 Una pagina elenca ogni monitor una sola volta, anche tra gruppi diversi. Il monitor ha già una risorsa, magari in un altro gruppo o aggiunta da una regola dei monitor. Cercatelo nel navigatore, eliminate quella risorsa e aggiungete il monitor dove volete.
+:::
+
+:::details «A status page resource needs a monitor or a monitor group to show»
+L'API, Terraform o uno script ha inviato una risorsa senza monitor né gruppo di monitor, o una modifica che svuota ciò che mostra. Inviate `monitorId` o `monitorGroupId`, uno dei due. Per puntare una risorsa sull'altro tipo, inviate il nuovo nella stessa modifica: il vecchio viene svuotato. Le risorse che prima di questa regola non mostravano nessuno dei due non sono mai state mostrate ai visitatori, e un aggiornamento le elimina.
 :::
 
 :::details Un monitor che ho aggiunto non compare sulla pagina di stato

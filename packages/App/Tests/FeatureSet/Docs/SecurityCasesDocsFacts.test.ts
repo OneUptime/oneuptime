@@ -128,6 +128,7 @@ import {
   WHY_OPENED_TITLE,
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseMatchesCopy";
 import { RESPONSE_STEPS_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/ResponseSteps/DetectionRuleResponseStepsCopy";
+import { WAS_IT_A_BREACH } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
 import {
   SECURITY_DETECTION_MATCHED_EVENTS_FIRING_MAX,
   SECURITY_DETECTION_MATCHED_EVENTS_MAX,
@@ -731,6 +732,7 @@ describe("Security Cases and Playbooks docs", () => {
           title !== "Impact" &&
           title !== "MITRE ATT&CK" &&
           title !== WHY_OPENED_TITLE &&
+          title !== WAS_IT_A_BREACH &&
           title !== RESPONSE_TITLE
         );
       });

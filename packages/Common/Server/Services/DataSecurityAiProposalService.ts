@@ -463,6 +463,47 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
 
     return result.affected || 0;
   }
+
+  /*
+   * A service's telemetry fix in one repository that no longer waits for
+   * a person (#10367) - a person asked for it with Fix with AI: what still
+   * waits in its lane (the text of its plan keys before the ":") expires.
+   * A lane is "tleak-", then ids and dashes, so it holds nothing LIKE reads.
+   */
+  // A lane as getTelemetryLeakFixLane writes it: lower-case letters, digits and dashes.
+  private static readonly LANE_PATTERN: RegExp = /^[a-z0-9-]+$/;
+
+  @CaptureSpan()
+  public async expireWaitingInLane(data: {
+    projectId: ObjectID;
+    kind: DataSecurityAiProposalKind;
+    lane: string;
+    at: Date;
+  }): Promise<number> {
+    if (!Service.LANE_PATTERN.test(data.lane)) {
+      return 0;
+    }
+
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        status: DataSecurityAiProposalStatus.Expired,
+        expiredAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"projectId" = :projectId', {
+        projectId: data.projectId.toString(),
+      })
+      .andWhere('"kind" = :kind', { kind: data.kind })
+      .andWhere('"planKey" LIKE :prefix', { prefix: `${data.lane}:%` })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proposed,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
 }
 
 export default new Service();

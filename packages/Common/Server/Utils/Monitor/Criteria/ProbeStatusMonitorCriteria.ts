@@ -1,6 +1,7 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import {
   CheckOn,
   CriteriaFilter,
@@ -74,6 +75,11 @@ export default class ProbeStatusMonitorCriteria {
      * by (a status flip adds an evaluation, never removes one).
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     const response: ProbeStatusMonitorResponse | null =
       ProbeStatusMonitorCriteria.getResponse(input.dataToProcess);
@@ -105,6 +111,7 @@ export default class ProbeStatusMonitorCriteria {
         monitorId: response.monitorId,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval || EVERY_MINUTE,
+        stepScope: input.stepScope,
       });
 
     if (overTime.earlyReturn) {

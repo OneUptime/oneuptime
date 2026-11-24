@@ -10,6 +10,7 @@
  */
 
 import CodeAgentBenchmark from "../../Benchmark/CodeAgentBenchmark";
+import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   CODE_AGENT_BENCHMARK_TASKS,
   CodeAgentBenchmarkCheck,
@@ -17,9 +18,15 @@ import {
   CodeAgentBenchmarkTask,
   SLOW_SUITE_TESTS,
   SLOW_SUITE_WAIT_MS,
+  TELEMETRY_LEAK_BENCHMARK_CASE_IDS,
   runNode,
   slowSuiteWith,
 } from "../../Benchmark/CodeAgentBenchmarkTasks";
+import {
+  RecordedTelemetryLeakFinding,
+  TELEMETRY_LEAK_EVAL_SET,
+  TelemetryLeakEvalCase,
+} from "Common/Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet";
 import { DEFAULT_AGENT_COMMAND_TIMEOUT_SECONDS } from "../../Utils/AgentCommandLimits";
 import { execFileSync } from "child_process";
 import fs from "fs";
@@ -50,12 +57,24 @@ afterAll(() => {
 });
 
 describe("the tasks", () => {
-  test("are the four shapes the issue names, each once, each with its own id", () => {
+  test("are the four shapes the issue names, each once, and the telemetry leaks of Data Security's eval set, each with its own id", () => {
     expect(
       CODE_AGENT_BENCHMARK_TASKS.map((task: CodeAgentBenchmarkTask) => {
         return task.shape;
       }).sort(),
-    ).toEqual(Object.values(CodeAgentBenchmarkShape).sort());
+    ).toEqual(
+      [
+        CodeAgentBenchmarkShape.LongFile,
+        CodeAgentBenchmarkShape.FailingTest,
+        CodeAgentBenchmarkShape.ManyFiles,
+        CodeAgentBenchmarkShape.SlowTests,
+        ...TELEMETRY_LEAK_BENCHMARK_CASE_IDS.map(
+          (): CodeAgentBenchmarkShape => {
+            return CodeAgentBenchmarkShape.TelemetryLeak;
+          },
+        ),
+      ].sort(),
+    );
     expect(
       new Set(
         CODE_AGENT_BENCHMARK_TASKS.map((task: CodeAgentBenchmarkTask) => {
@@ -261,5 +280,156 @@ describe("a slow test suite", () => {
 
     expect(check.passed).toBe(false);
     expect(check.detail).toContain("the suite was changed");
+  });
+});
+
+/*
+ * A service writes sensitive data to its telemetry (#10367): the issue's two
+ * scenarios, from Data Security's eval set of recorded findings, each handed
+ * the request the product builds from the records.
+ */
+describe("a service's telemetry leaks", () => {
+  const evalCaseOf: (id: string) => TelemetryLeakEvalCase = (
+    id: string,
+  ): TelemetryLeakEvalCase => {
+    return TELEMETRY_LEAK_EVAL_SET.find(
+      (evalCase: TelemetryLeakEvalCase): boolean => {
+        return evalCase.id === id;
+      },
+    )!;
+  };
+  const taskFor: (id: string) => CodeAgentBenchmarkTask = (
+    id: string,
+  ): CodeAgentBenchmarkTask => {
+    return CODE_AGENT_BENCHMARK_TASKS.find(
+      (task: CodeAgentBenchmarkTask): boolean => {
+        return task.id === `fix-leaks-${id}`;
+      },
+    )!;
+  };
+
+  test("are the span's and log line's user.email in one pull request, and a key written in twenty places", () => {
+    expect(TELEMETRY_LEAK_BENCHMARK_CASE_IDS).toEqual([
+      "user-email-on-a-span-and-in-a-log-line",
+      "customer-email-in-twenty-places",
+    ]);
+
+    for (const id of TELEMETRY_LEAK_BENCHMARK_CASE_IDS) {
+      expect(evalCaseOf(id)).toBeDefined();
+      expect(taskFor(id).shape).toBe(CodeAgentBenchmarkShape.TelemetryLeak);
+    }
+  });
+
+  test.each(
+    TELEMETRY_LEAK_BENCHMARK_CASE_IDS.map((id: string) => {
+      return [id];
+    }),
+  )(
+    "%s hands the agent the file each leak is written in, and none of the values its records hold",
+    (id: string) => {
+      const evalCase: TelemetryLeakEvalCase = evalCaseOf(id);
+      const prompt: string = taskFor(id).prompt;
+
+      for (const finding of evalCase.findings) {
+        expect(prompt).toContain(finding.leadsTo[0]!.file);
+
+        for (const value of finding.values) {
+          expect(prompt).not.toContain(value);
+        }
+
+        for (const row of finding.rows) {
+          for (const cell of Object.values(row)) {
+            if (typeof cell === "string" && cell.includes("@")) {
+              expect(prompt).not.toContain(cell);
+            }
+          }
+        }
+      }
+    },
+  );
+
+  test("one pull request: the span's and the log line's user.email are both fixed, or the check fails", async () => {
+    const id: string = "user-email-on-a-span-and-in-a-log-line";
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(id);
+    const task: CodeAgentBenchmarkTask = taskFor(id);
+    const original: string = evalCase.files["src/signup.js"]!;
+
+    expect(
+      evalCase.findings.map((finding: RecordedTelemetryLeakFinding) => {
+        return finding.storeKind;
+      }),
+    ).toEqual([DataStoreKind.TelemetryTraces, DataStoreKind.TelemetryLogs]);
+
+    // Half a fix: the span's leak only, or the log line's only.
+    const halves: Array<string> = [
+      original.replace('  span.setAttribute("user.email", user.email);\n', ""),
+      original.replace(
+        "logger.info(`User ${user.email} signed up`);",
+        "logger.info(`User ${user.id} signed up`);",
+      ),
+    ];
+
+    for (const half of halves) {
+      const repositoryPath: string = prepare(task);
+
+      expect(half).not.toBe(original);
+      fs.writeFileSync(path.join(repositoryPath, "src/signup.js"), half);
+      expect((await task.check(repositoryPath)).passed).toBe(false);
+    }
+  });
+
+  test("twenty places: an edit at every call site fails, one redaction step and a test pass", async () => {
+    const id: string = "customer-email-in-twenty-places";
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(id);
+    const task: CodeAgentBenchmarkTask = taskFor(id);
+
+    // Twenty edits: the key left out where each handler writes it.
+    const edited: string = prepare(task);
+
+    for (const relative of evalCase.untouchedFiles || []) {
+      const full: string = path.join(edited, relative);
+
+      fs.writeFileSync(
+        full,
+        fs
+          .readFileSync(full, "utf8")
+          .split("\n")
+          .filter((line: string): boolean => {
+            return !line.includes('"customer.email"');
+          })
+          .join("\n"),
+      );
+    }
+
+    fs.writeFileSync(
+      path.join(edited, "test/redaction.test.js"),
+      evalCase.solution["test/redaction.test.js"]!,
+    );
+
+    const twentyEdits: CodeAgentBenchmarkCheck = await task.check(edited);
+
+    expect(evalCase.untouchedFiles).toHaveLength(20);
+    expect(twentyEdits.passed).toBe(false);
+    expect(twentyEdits.detail).toContain("not one redaction step");
+
+    // One redaction step with no test.
+    const untested: string = prepare(task);
+
+    fs.writeFileSync(
+      path.join(untested, "src/telemetry.js"),
+      evalCase.solution["src/telemetry.js"]!,
+    );
+
+    const noTest: CodeAgentBenchmarkCheck = await task.check(untested);
+
+    expect(noTest.passed).toBe(false);
+    expect(noTest.detail).toContain("no new or changed test names");
+
+    // One redaction step and its test.
+    const fixed: string = prepare(task);
+
+    task.solve(fixed);
+
+    expect(await task.check(fixed)).toEqual({ passed: true, detail: "" });
   });
 });

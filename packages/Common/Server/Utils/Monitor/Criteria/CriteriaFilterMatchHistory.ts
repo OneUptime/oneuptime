@@ -264,6 +264,8 @@ export default class CriteriaFilterMatchHistory {
     projectId: ObjectID;
     monitorId: ObjectID;
     probeId?: ObjectID | undefined;
+    // The step the check was judged as: its rows name it, as every row does.
+    monitorStepId?: ObjectID | string | undefined;
     checks: Array<CriteriaFilterCheck>;
   }): Promise<void> {
     if (data.checks.length === 0) {
@@ -275,6 +277,7 @@ export default class CriteriaFilterMatchHistory {
         projectId: data.projectId,
         monitorId: data.monitorId,
         probeId: data.probeId,
+        monitorStepId: data.monitorStepId,
         matches: data.checks.map((check: CriteriaFilterCheck) => {
           return { filterKey: check.filterKey, matched: check.matched };
         }),

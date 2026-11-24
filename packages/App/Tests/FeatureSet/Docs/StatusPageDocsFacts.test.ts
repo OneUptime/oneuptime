@@ -536,6 +536,39 @@ describe("the Status Pages Overview: previewing before you go live", () => {
       "Visitors enter the password to see this status page.",
     );
   });
+
+  /*
+   * A page with nothing on it, in the preview: the note under its empty
+   * state links its owner to the page's Resources (#9180), by the page's id
+   * alone, and the Dashboard opens it in whichever project the page is in.
+   */
+  it("says the preview's note for a page with nothing on it links to the page's Resources", () => {
+    const visitorLocale: Record<string, Record<string, string>> = JSON.parse(
+      readSource(VISITOR_LOCALE),
+    ) as Record<string, Record<string, string>>;
+    const overview: string = readSource(
+      `${STATUS_PAGE_APP}/Pages/Overview/Overview.tsx`,
+    );
+    const routeMap: string = readSource(`${DASHBOARD}/Utils/RouteMap.ts`);
+
+    expect(visitorLocale["overview"]!["noResourcesTitle"]).toBe(
+      "Nothing to show yet",
+    );
+    expect(visitorLocale["overview"]!["noResourcesPreviewDescription"]).toBe(
+      "Visitors see this until you add resources.",
+    );
+    expect(visitorLocale["overview"]!["noResourcesPreviewLink"]).toBe(
+      "Add resources in the Dashboard",
+    );
+    expect(overview).toContain("getStatusPageResourcesByIdPath(statusPageId),");
+    expect(overview).toContain("StatusPageUtil.isPreviewPage() ? (");
+    expect(routeMap).toContain(
+      "`/dashboard/status-pages/${RouteParams.ModelID}/resources`,",
+    );
+    expect(page).toContain(
+      'While a page has nothing on it, its visitors read **Nothing to show yet**. In the preview, a note under it says "Visitors see this until you add resources." with **Add resources in the Dashboard**, which opens the page\'s **Resources** in the Dashboard, in whichever of your projects the page is in.',
+    );
+  });
 });
 
 describe("the Status Pages Overview: where everything lives", () => {
@@ -962,6 +995,8 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
       "overallUptimePercentPrecision",
       "downtimeMonitorStatuses",
       "onlyShowScopedIncidents",
+      // It only lays out what the page shows (#10767).
+      "groupIncidentsByEpisode",
     ];
 
     // Every setting of the card is in one of the three lists.
@@ -992,7 +1027,7 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
     }
 
     expect(card).toContain(
-      "The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent needs **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan",
+      "The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent needs **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime**, **Only Show Incidents Scoped to This Page** and **Show Incidents Grouped by Episode** can be changed on every plan",
     );
   });
 

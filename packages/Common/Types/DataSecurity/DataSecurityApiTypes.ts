@@ -17,6 +17,13 @@ import {
   DeclaredStoreReaders,
   DeclaredStoreRetentionBasis,
 } from "./DeclaredDataStore";
+import {
+  TelemetryLeakFixIssue,
+  TelemetryLeakFixLeak,
+  TelemetryLeakFixStrategy,
+  TelemetryLeakSignal,
+} from "./TelemetryLeakFix";
+import FixProductionReport from "../AI/FixProductionReport";
 import { AuditEvidenceParagraph } from "./AuditEvidence";
 import { ComplianceFact, TelemetryRetentionSignal } from "./ComplianceFacts";
 import {
@@ -24,6 +31,12 @@ import {
   ImpactAssessmentTriggerView,
   StoreImpactAssessment,
 } from "./ImpactAssessment";
+import {
+  ExposureAssessmentView,
+  ExposureDraftPart,
+  StoredExposureAssessment,
+} from "./ExposureAssessment";
+import { ExposureChecklistAnswer } from "./ExposureChecklist";
 import {
   RecordDraftSkip,
   RecordField,
@@ -73,6 +86,8 @@ export const DATA_SECURITY_API_ROUTES: {
   similarFindings: (findingId: string) => string;
   applyToSimilarFindings: (findingId: string) => string;
   issueContainment: (issueId: string) => string;
+  issueFixPlan: (issueId: string) => string;
+  issueCodeFix: (issueId: string) => string;
   recordField: (dataStoreId: string) => string;
   draftRecord: (dataStoreId: string) => string;
   impactAssessment: (dataStoreId: string) => string;
@@ -81,6 +96,11 @@ export const DATA_SECURITY_API_ROUTES: {
   auditEvidence: string;
   draftAuditEvidence: string;
   editAuditEvidence: string;
+  exposureAssessment: (securityCaseId: string) => string;
+  assessExposure: (securityCaseId: string) => string;
+  draftExposureAssessment: (securityCaseId: string) => string;
+  editExposureAssessment: (securityCaseId: string) => string;
+  exposurePeoplePlaces: (securityCaseId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -208,6 +228,24 @@ export const DATA_SECURITY_API_ROUTES: {
     return `/data-security-issue/${issueId}/containment`;
   },
   /*
+   * A telemetry issue's fix in its service's code (#10367): what Fix with
+   * AI would do now - the places each of the service's leaks is written,
+   * the files OneUptime AI starts from, the issues its one pull request
+   * fixes and the repository it goes to - before anything starts. Fix with
+   * AI then takes { codeRepositoryId?, expectedPlanFingerprint }.
+   */
+  issueFixPlan: (issueId: string): string => {
+    return `/data-security-issue/${issueId}/fix-plan`;
+  },
+  /*
+   * Where the issue's fix in code stands, for the reader: its task, its
+   * pull request's state (open, merged, closed) and what production showed
+   * once it shipped - and, for a secret, where it was seen, to rotate it.
+   */
+  issueCodeFix: (issueId: string): string => {
+    return `/data-security-issue/${issueId}/code-fix`;
+  },
+  /*
    * The paperwork (#10375). A field of a store's record, as a person
    * answers it: { field, action, value?, shownDraftedAt? } - confirm
    * OneUptime AI's draft, write their own, or take or leave a proposed
@@ -238,6 +276,29 @@ export const DATA_SECURITY_API_ROUTES: {
   draftAuditEvidence: "/data-security/audit-evidence/draft",
   // ...one requirement's paragraph written by a person: { framework, periodInDays, requirement, text }.
   editAuditEvidence: "/data-security/audit-evidence/edit",
+  /*
+   * A security case's exposure assessment (#10377), for the case's readers
+   * who may read the store's findings too: what plain code worked out and
+   * OneUptime AI's write-up. Assess starts one, { dataStoreId? } for a case
+   * about more than one store; Draft asks OneUptime AI for the parts no
+   * person edited; Edit saves a person's words for one part, { part,
+   * markdown }; People says where the people live, { places }.
+   */
+  exposureAssessment: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment`;
+  },
+  assessExposure: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/assess`;
+  },
+  draftExposureAssessment: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/draft`;
+  },
+  editExposureAssessment: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/edit`;
+  },
+  exposurePeoplePlaces: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/people`;
+  },
 };
 
 /*
@@ -633,6 +694,41 @@ export interface DataSecurityImpactAssessmentResponse {
   editors: Record<string, string>;
   isAiEnabled: boolean;
   canEdit: boolean;
+  canDraft: boolean;
+}
+
+// A store a security case is about, as the reader may read it.
+export interface DataSecurityExposureCaseStore {
+  dataStoreId: string;
+  name: string;
+  kind: string;
+  sensitivity: string;
+}
+
+/*
+ * A security case's exposure assessment (#10377): the stores the case is
+ * about; once it is assessed, what plain code works out now (view) and what
+ * the case keeps of OneUptime AI's write-up and a person's answers; the
+ * facts as they are now and the parts written over facts that changed
+ * since; the playbook's checklist matched to the case's tasks; and what the
+ * reader may do.
+ */
+export interface DataSecurityExposureAssessmentResponse {
+  securityCaseId: string;
+  stores: Array<DataSecurityExposureCaseStore>;
+  // The store it is about, once assessed.
+  dataStoreId?: string | undefined;
+  assessment: StoredExposureAssessment | null;
+  view: ExposureAssessmentView | null;
+  facts: Array<ComplianceFact>;
+  staleParts: Array<ExposureDraftPart>;
+  // Who edited a part, or said where the people live, by name as the project knows them.
+  editors: Record<string, string>;
+  checklist: Array<ExposureChecklistAnswer>;
+  isAiEnabled: boolean;
+  // Start an assessment, edit a part, say where the people live.
+  canChange: boolean;
+  // Ask OneUptime AI for the parts no person edited.
   canDraft: boolean;
 }
 
@@ -1057,6 +1153,115 @@ export interface DataSecurityFixResult {
    * they may ask OneUptime AI to work in, and only those.
    */
   repositories?: Array<DataSecurityFixRepository> | undefined;
+  /*
+   * A telemetry fix's plan that changed since it was shown (#10367):
+   * nothing started, and the plan as it is now is here to show again.
+   */
+  plan?: DataSecurityTelemetryFixPlanJSON | undefined;
+}
+
+/*
+ * How the repository a telemetry fix goes to was chosen (#10367): from the
+ * files its leaks' records name (StackTraceRepoResolver), by the name of
+ * the service, as the project's only repository, as the repository the
+ * service's other leaks are in - or by the person, when nothing decides.
+ */
+export enum DataSecurityTelemetryFixRepositoryChoice {
+  StackTrace = "stack-trace",
+  NameMatch = "name-match",
+  OnlyRepository = "only-repository",
+  ServiceLeaks = "service-leaks",
+  Picked = "picked",
+}
+
+export interface DataSecurityTelemetryFixRepository {
+  id: string;
+  name: string;
+  choice: DataSecurityTelemetryFixRepositoryChoice;
+}
+
+/*
+ * What a telemetry issue's Fix with AI would do now (#10367): one pull
+ * request, in one repository, for every open telemetry leak of the issue's
+ * service written there - each leak's places as its records name them,
+ * how each is fixed, the files OneUptime AI starts from and the issues it
+ * fixes. Places, keys, data types and masked templates only: never a value
+ * or a record.
+ */
+export interface DataSecurityTelemetryFixPlanJSON {
+  serviceId: string;
+  serviceName: string;
+  strategy: TelemetryLeakFixStrategy;
+  placeCount: number;
+  leaks: Array<TelemetryLeakFixLeak>;
+  issues: Array<TelemetryLeakFixIssue>;
+  redactionKeys: Array<string>;
+  redactionDataTypes: Array<string>;
+  startFiles: Array<string>;
+  // The service's folder in the repository, when it is one of several (a monorepo).
+  folder?: string | undefined;
+  hasSecrets: boolean;
+  // Where it goes; none when nothing decides and the person picks.
+  repository?: DataSecurityTelemetryFixRepository | undefined;
+  // What the person picks among, when nothing decides: those they may ask in.
+  repositories?: Array<DataSecurityFixRepository> | undefined;
+  // The plan the person was shown: Fix with AI sends it back.
+  fingerprint: string;
+  // A fix of these leaks already on its way: the plan is not asked twice.
+  existing?: DataSecurityIssueCodeFixJSON | undefined;
+}
+
+export interface DataSecurityTelemetryFixPlanResult {
+  plan: DataSecurityTelemetryFixPlanJSON | null;
+  // Why there is no plan, in words a person reads.
+  message?: string | undefined;
+}
+
+/*
+ * Where an issue's fix in code stands (#10367): its Code task - Fix with
+ * AI's, a service's telemetry fix, a group's cause - as the reader may read
+ * it: being written, open as a pull request, waiting for them, ended
+ * without one or failed (DeclaredCodeChangeState); the pull request's own
+ * state, open, merged or closed; and, once merged, what production showed
+ * (#10368, FixProductionReport). The pull request's link goes only to a
+ * reader of its repository.
+ */
+export interface DataSecurityIssueCodeFixPullRequestJSON {
+  number?: number | undefined;
+  url?: string | undefined;
+  title?: string | undefined;
+  // PullRequestState: "open", "closed" or "merged".
+  state: string;
+  production?: FixProductionReport | undefined;
+}
+
+export interface DataSecurityIssueCodeFixJSON {
+  taskId: string;
+  // The task's recipe (CodeFixTaskType).
+  recipe: string;
+  // DeclaredCodeChangeState's words: writing, opened, waiting, ended, failed, hidden.
+  state: string;
+  repositoryName?: string | undefined;
+  // How many issues its pull request fixes, this one among them.
+  issueCount: number;
+  serviceName?: string | undefined;
+  pullRequest?: DataSecurityIssueCodeFixPullRequestJSON | undefined;
+}
+
+// Where a secret was seen (#10367): what a person rotating it checks.
+export interface DataSecuritySecretSighting {
+  dataTypeName: string;
+  location: string;
+  storeName: string;
+  signal?: TelemetryLeakSignal | undefined;
+  firstSeenAt?: string | undefined;
+  lastSeenAt?: string | undefined;
+}
+
+export interface DataSecurityIssueCodeFixResult {
+  fix: DataSecurityIssueCodeFixJSON | null;
+  // For a secret's issue: where it was seen. A code fix stops new copies only.
+  secretSightings?: Array<DataSecuritySecretSighting> | undefined;
 }
 
 // Why a store cannot take a response action now.

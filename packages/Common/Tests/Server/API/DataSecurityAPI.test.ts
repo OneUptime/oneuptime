@@ -1,6 +1,8 @@
 import { mockRouter } from "./Helpers";
 import DataSecurityAPI, {
   EXPLAIN_ISSUE_PERMISSIONS,
+  EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+  EXPOSURE_ASSESSMENT_READ_PERMISSIONS,
 } from "../../../Server/API/DataSecurityAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
@@ -73,6 +75,10 @@ import RecordOfProcessingWriter from "../../../Server/Utils/DataSecurity/RecordO
 import StoreTelemetryRetention from "../../../Server/Utils/DataSecurity/StoreTelemetryRetention";
 import RecordOfProcessingDrafter from "../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import ImpactAssessmentDrafter from "../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import ExposureAssessmentDrafter from "../../../Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import { BreachPlace } from "../../../Types/DataSecurity/BreachLaws";
+import { ExposureDraftPart } from "../../../Types/DataSecurity/ExposureAssessment";
 import AuditEvidenceDrafter from "../../../Server/Utils/AI/DataSecurity/AuditEvidenceDrafter";
 import { DataSecurityAiFeature } from "../../../Types/DataSecurity/DataSecurityAiFeatures";
 import {
@@ -5893,4 +5899,323 @@ describe("Issues one mistake made, for a reader held to labels (#10739)", () => 
     );
     expect(runSpy).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * A security case's exposure assessment (#10377): read by the readers of
+ * the store's findings - the drafter holds them to the case and the store
+ * too (its own suite) - and changed by those who may edit the case. Each
+ * route reads its body strictly and answers as the caller.
+ */
+describe("the exposure assessment's routes", () => {
+  const EXPOSURE_READ: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
+    Permission.ReadDataStoreFinding,
+  ];
+  const EXPOSURE_CHANGE: Array<Permission> = [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+    Permission.SecurityMember,
+    Permission.EditSecurityCase,
+  ];
+  const EXPOSURE_CHANGE_REFUSED: Array<Permission> = [
+    Permission.SecurityViewer,
+    Permission.ReadSecurityCase,
+    Permission.ReadDataStoreFinding,
+    Permission.EditDataStore,
+    Permission.ProjectMember,
+  ];
+  const EXPOSURE_ROUTES: Array<RouteCase> = [
+    {
+      name: "a case's exposure assessment",
+      path: DATA_SECURITY_API_ROUTES.exposureAssessment(":id"),
+      allowed: EXPOSURE_READ,
+      // It names what the store holds: a case's reader alone does not read it.
+      refused: [
+        Permission.ReadSecurityCase,
+        Permission.ReadDataStore,
+        Permission.ProjectMember,
+        Permission.Viewer,
+      ],
+    },
+    {
+      name: "assessing a case's exposure",
+      path: DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+    },
+    {
+      name: "writing up a case's exposure assessment",
+      path: DATA_SECURITY_API_ROUTES.draftExposureAssessment(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+    },
+    {
+      name: "editing a part of a case's exposure assessment",
+      path: DATA_SECURITY_API_ROUTES.editExposureAssessment(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+      body: {
+        part: ExposureDraftPart.RegulatorNotice,
+        markdown: "Our own words to the regulator.",
+      },
+    },
+    {
+      name: "saying where the people live",
+      path: DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+      body: { places: [BreachPlace.Eea] },
+    },
+  ];
+
+  let exposureSpies: Array<jest.SpyInstance>;
+
+  beforeEach(() => {
+    exposureSpies = [
+      jest
+        .spyOn(ExposureAssessmentDrafter, "read")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "assess")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "draftForPerson")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "editPart")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "setPeoplePlaces")
+        .mockResolvedValue({} as never),
+    ];
+  });
+
+  function exposureHelpersCalled(): number {
+    return exposureSpies.reduce((sum: number, spy: jest.SpyInstance) => {
+      return sum + spy.mock.calls.length;
+    }, 0);
+  }
+
+  test("the routes are the shared paths the Dashboard calls", () => {
+    expect(DATA_SECURITY_API_ROUTES.exposureAssessment("x")).toBe(
+      "/security-case/x/exposure-assessment",
+    );
+    expect(DATA_SECURITY_API_ROUTES.assessExposure("x")).toBe(
+      "/security-case/x/exposure-assessment/assess",
+    );
+    expect(DATA_SECURITY_API_ROUTES.draftExposureAssessment("x")).toBe(
+      "/security-case/x/exposure-assessment/draft",
+    );
+    expect(DATA_SECURITY_API_ROUTES.editExposureAssessment("x")).toBe(
+      "/security-case/x/exposure-assessment/edit",
+    );
+    expect(DATA_SECURITY_API_ROUTES.exposurePeoplePlaces("x")).toBe(
+      "/security-case/x/exposure-assessment/people",
+    );
+  });
+
+  test("its read is for the store's findings' readers, its changes for the case's editors", () => {
+    expect([...EXPOSURE_ASSESSMENT_READ_PERMISSIONS].sort()).toEqual(
+      [...new DataStoreFinding().readRecordPermissions].sort(),
+    );
+    expect([...EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS].sort()).toEqual(
+      [...new SecurityCase().updateRecordPermissions].sort(),
+    );
+  });
+
+  test.each(EXPOSURE_ROUTES)(
+    "$name is a POST under its path, behind the user middleware and sign-in",
+    (route: RouteCase) => {
+      expect(
+        withoutRefusals(mockRouter.match("POST", route.path).middlewares),
+      ).toEqual([
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+      ]);
+    },
+  );
+
+  test.each(
+    EXPOSURE_ROUTES.flatMap(
+      (route: RouteCase): Array<[string, Permission, RouteCase]> => {
+        return route.allowed.map(
+          (permission: Permission): [string, Permission, RouteCase] => {
+            return [route.name, permission, route];
+          },
+        );
+      },
+    ),
+  )(
+    "%s answers a caller holding %s, as the caller, about the case named",
+    async (_name: string, permission: Permission, route: RouteCase) => {
+      asCaller([permission]);
+
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
+
+      expect(result.thrown).toBeUndefined();
+      expect(result.answer).toBeDefined();
+
+      const called: Array<jest.SpyInstance> = exposureSpies.filter(
+        (spy: jest.SpyInstance): boolean => {
+          return spy.mock.calls.length > 0;
+        },
+      );
+
+      expect(called).toHaveLength(1);
+
+      const argument: {
+        projectId: ObjectID;
+        securityCaseId: ObjectID;
+        props: { userId?: ObjectID };
+      } = called[0]!.mock.calls[0]![0] as {
+        projectId: ObjectID;
+        securityCaseId: ObjectID;
+        props: { userId?: ObjectID };
+      };
+
+      expect(argument.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(argument.securityCaseId.toString()).toBe(STORE_ID.toString());
+      expect(argument.props.userId?.toString()).toBe(USER_ID.toString());
+    },
+  );
+
+  test.each(
+    EXPOSURE_ROUTES.flatMap(
+      (route: RouteCase): Array<[string, Permission, RouteCase]> => {
+        return route.refused.map(
+          (permission: Permission): [string, Permission, RouteCase] => {
+            return [route.name, permission, route];
+          },
+        );
+      },
+    ),
+  )(
+    "%s refuses a caller holding only %s, before reading or asking anything",
+    async (_name: string, permission: Permission, route: RouteCase) => {
+      asCaller([permission]);
+
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
+
+      expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrown as Exception).message).toBe(PERMISSION_MESSAGE);
+      expect(exposureHelpersCalled()).toBe(0);
+      expect(aiSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(EXPOSURE_ROUTES)(
+    "$name refuses an anonymous caller",
+    async (route: RouteCase) => {
+      propsSpy.mockResolvedValue({});
+
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
+
+      expect(result.thrown).toBeInstanceOf(NotAuthenticatedException);
+      expect(exposureHelpersCalled()).toBe(0);
+    },
+  );
+
+  test("assessing names the store picked by its id, and none when the case has one", async () => {
+    const assess: jest.SpyInstance = exposureSpies[1]!;
+    const picked: ObjectID = ObjectID.generate();
+
+    await call(
+      DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      { id: STORE_ID.toString() },
+      { dataStoreId: picked.toString() },
+    );
+    await call(
+      DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      { id: STORE_ID.toString() },
+      {},
+    );
+
+    expect(
+      (
+        assess.mock.calls[0]![0] as { dataStoreId?: ObjectID }
+      ).dataStoreId!.toString(),
+    ).toBe(picked.toString());
+    expect(
+      (assess.mock.calls[1]![0] as { dataStoreId?: ObjectID }).dataStoreId,
+    ).toBeUndefined();
+  });
+
+  test("a part and its words, and the places as given, reach the drafter", async () => {
+    await call(
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(":id"),
+      { id: STORE_ID.toString() },
+      { part: ExposureDraftPart.PeopleNotice, markdown: "Our own words." },
+    );
+    await call(
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(":id"),
+      { id: STORE_ID.toString() },
+      { places: [BreachPlace.UnitedKingdom, BreachPlace.California] },
+    );
+
+    expect(exposureSpies[3]!.mock.calls[0]![0]).toMatchObject({
+      part: ExposureDraftPart.PeopleNotice,
+      markdown: "Our own words.",
+    });
+    expect(exposureSpies[4]!.mock.calls[0]![0]).toMatchObject({
+      places: [BreachPlace.UnitedKingdom, BreachPlace.California],
+    });
+  });
+
+  test.each([
+    [
+      "a store that is not an id",
+      DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      { dataStoreId: "the bucket" },
+    ],
+    [
+      "a store given as a number",
+      DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      { dataStoreId: 42 },
+    ],
+    [
+      "a part the assessment does not have",
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(":id"),
+      { part: "summary", markdown: "Words" },
+    ],
+    [
+      "a part's words that are not text",
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(":id"),
+      { part: ExposureDraftPart.PeopleNotice, markdown: { text: "Words" } },
+    ],
+    [
+      "places that are not a list",
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(":id"),
+      { places: BreachPlace.Eea },
+    ],
+  ])(
+    "refuses %s, changing nothing",
+    async (_name: string, path: string, body: JSONObject) => {
+      const result: RouteCall = await call(
+        path,
+        { id: STORE_ID.toString() },
+        body,
+      );
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect(exposureHelpersCalled()).toBe(0);
+    },
+  );
 });
