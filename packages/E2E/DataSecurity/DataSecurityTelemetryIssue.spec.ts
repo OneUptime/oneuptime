@@ -22,8 +22,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * found it in - each line shown with the data marked and anything else
  * sensitive masked, its service and time, leading to the logs explorer and
  * the trace - shows a folded finding's masked samples, says when records
- * are no longer kept, and scrubs it from there. A Security Viewer sees what
- * was found and where, never a sample or a record.
+ * are no longer kept, and scrubs it from there, its dialog first saying the
+ * rule it makes, whose records it changes and what reads the data (#10433).
+ * A Security Viewer sees what was found and where, never a sample or a
+ * record.
  *
  * Every test pins the clock, fences the network to the fixture server and
  * fails on an uncaught page error or a request the fixture does not model,
@@ -220,6 +222,24 @@ test.describe("a telemetry issue's page", () => {
     await expect(
       phone.getByTestId("data-security-issue-finding-scrub"),
     ).toHaveCount(0);
+    /*
+     * The page asks which IP Address rules hide addresses from Security
+     * Events (#10396). None does here, so no finding offers Hash Instead.
+     */
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return (await fixture(page)).apiRequests.some(
+          (request: { url: string }): boolean => {
+            return new URL(request.url).pathname.endsWith(
+              "/telemetry/scrub-rules-hiding-addresses",
+            );
+          },
+        );
+      })
+      .toBe(true);
+    await expect(
+      card(page).getByTestId("data-security-issue-finding-hash-instead"),
+    ).toHaveCount(0);
 
     // The service, at the store's signal.
     const owner: Locator = page.getByTestId(
@@ -367,7 +387,7 @@ test.describe("a telemetry issue's page", () => {
     await expect(records(phone)).toHaveCount(0);
   });
 
-  test("Scrub It asks first, makes the rule, says which, and the finding reads Scrubbed", async ({
+  test("Scrub It asks first, saying the rule it makes and what reads the data, makes it, says which, and the finding reads Scrubbed", async ({
     page,
   }: {
     page: Page;
@@ -379,12 +399,60 @@ test.describe("a telemetry issue's page", () => {
 
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog.getByText("Scrub This Data at Ingest")).toBeVisible();
+
+    /*
+     * Before the rule is made (#10433): whose records it changes - the
+     * checkout service's logs, no other service's - what it does with what it
+     * finds, where, what it was proven on (#10366), and what reads the
+     * addresses it would hide.
+     */
+    await expect(dialog.getByTestId("data-security-scrub-it-scope")).toHaveText(
+      "OneUptime adds a scrub rule to the logs checkout sends, before they are stored. Other services' logs stay as they are.",
+    );
+    const action: Locator = dialog.getByTestId(
+      "data-security-scrub-it-action-words",
+    );
+    await expect(action).toContainText("Scrub Action: Redact");
+    await expect(action).toContainText("Replaces each match with [REDACTED].");
+    await expect(
+      dialog.getByTestId("data-security-scrub-it-fields-words"),
+    ).toHaveText("Fields to Scrub: Attributes Only");
+    await expect(
+      dialog.getByTestId("data-security-scrub-it-stored"),
+    ).toHaveText(
+      "What is stored already is not deleted. It stays until its retention ends.",
+    );
+    const monitors: Locator = dialog.getByTestId(
+      "telemetry-field-readers-Monitor",
+    );
+    await expect(
+      monitors.getByRole("link", { name: "Checkout errors by client IP" }),
+    ).toBeVisible();
+    await expect(
+      monitors.getByTestId("telemetry-field-reader-reads"),
+    ).toHaveText("Groups by http.client_ip");
+    expect(
+      (await fixture(page)).apiRequests.some(
+        (request: { method: string; url: string }): boolean => {
+          return (
+            request.method === "POST" &&
+            new URL(request.url).pathname.endsWith(
+              `/data-store-finding/${IP_FINDING}/scrub-impact`,
+            )
+          );
+        },
+      ),
+    ).toBe(true);
+
+    await screenshot(page, "telemetry-issue-scrub-it-1280");
+
     await dialog.getByRole("button", { name: "Scrub It" }).click();
 
+    // The rule its dialog named.
     await expect(
       page.getByTestId("data-security-issue-findings-scrub-notice"),
     ).toContainText(
-      "The scrub rule Data Security: IP address in attributes.http.client_ip now masks this data in new logs.",
+      "The scrub rule Data Security: IP address in log attributes of checkout now hides this data in new logs.",
     );
     expect(
       (await fixture(page)).apiRequests.some(
