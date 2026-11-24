@@ -30,6 +30,7 @@ import { describe, expect, test } from "@jest/globals";
 const IS_ONLINE_FALSE: CriteriaFilter = {
   checkOn: CheckOn.IsOnline,
   filterType: FilterType.False,
+  value: undefined,
 };
 
 const SLOW: CriteriaFilter = {

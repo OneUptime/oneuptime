@@ -11,6 +11,7 @@ import {
 } from "../../../Utils/Monitor/StoredCheckEvidence";
 import JsonBudget, { JsonBudgetResult } from "../JsonBudget";
 import DataToProcess from "./DataToProcess";
+import EvaluationEventSeries from "./EvaluationEventSeries";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 
 /*
@@ -27,7 +28,10 @@ import MonitorRecordEvidence from "./MonitorRecordEvidence";
  *      what the series' aggregatedResults are. A series the evaluation no
  *      longer has (it stopped reporting) keeps none. The entry is found
  *      through an index built once for each evaluation's list, so the
- *      fifteenth alert of a fan-out costs what the first did.
+ *      fifteenth alert of a fan-out costs what the first did. Of the
+ *      evaluation summary's events, it keeps those about the whole monitor
+ *      and its own series, never the records other series opened before
+ *      it (EvaluationEventSeries, #10841).
  *   2. Bound, before redaction: containers cut to BOUND_BEFORE_REDACTION
  *      times the limit, strings kept whole - a secret cut in half may no
  *      longer look like one. So redaction never walks a fleet.
@@ -224,19 +228,34 @@ export default class MonitorStoredCheck {
     /*
      * The evaluation's list of every series it read, for the monitor's
      * Overview (MonitorSeriesTable): a record about one series keeps its own
-     * series above, not every other one's again.
+     * series above, not every other one's again. And of the evaluation's
+     * events, those about the whole monitor and its own series: never the
+     * alerts and incidents of the others, opened, resolved or skipped
+     * before it (EvaluationEventSeries, #10841).
      */
     const evaluationSummary: unknown = source["evaluationSummary"];
 
-    if (
-      MonitorStoredCheck.isPlainObject(evaluationSummary) &&
-      (evaluationSummary as JSONObject)["series"] !== undefined
-    ) {
-      const withoutSeries: JSONObject = {
-        ...(evaluationSummary as JSONObject),
-      };
-      delete withoutSeries["series"];
-      scoped["evaluationSummary"] = withoutSeries;
+    if (MonitorStoredCheck.isPlainObject(evaluationSummary)) {
+      const summary: JSONObject = evaluationSummary as JSONObject;
+      const events: unknown = summary["events"];
+      const ownEvents: unknown = Array.isArray(events)
+        ? EvaluationEventSeries.keptFor({
+            events: events,
+            fingerprint: fingerprint,
+          })
+        : events;
+
+      if (summary["series"] !== undefined || ownEvents !== events) {
+        const scopedSummary: JSONObject = { ...summary };
+
+        delete scopedSummary["series"];
+
+        if (ownEvents !== events) {
+          scopedSummary["events"] = ownEvents as Array<JSONObject>;
+        }
+
+        scoped["evaluationSummary"] = scopedSummary;
+      }
     }
 
     const scope: StoredCheckEvidenceScope = {
@@ -362,6 +381,32 @@ export default class MonitorStoredCheck {
     bounded[EVIDENCE_TRUNCATED_FIELD] = true;
 
     return bounded as unknown as DataToProcess;
+  }
+
+  /*
+   * How many series a grouped check judged: the length of its series list,
+   * as boundSeries counts the series a check had
+   * (LoggedSeries.seriesInEvaluation) - every one, those that read no data
+   * among them. Undefined for a check that is not split into series.
+   */
+  public static countSeries(
+    check: DataToProcess | null | undefined,
+  ): number | undefined {
+    if (!MonitorStoredCheck.isPlainObject(check)) {
+      return undefined;
+    }
+
+    const source: JSONObject = check as unknown as JSONObject;
+
+    for (const field of SERIES_LIST_FIELDS) {
+      const list: unknown = source[field];
+
+      if (Array.isArray(list)) {
+        return list.length;
+      }
+    }
+
+    return undefined;
   }
 
   // A series list in the order the log keeps it: the series acted on first.

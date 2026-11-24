@@ -49,6 +49,7 @@ import WorkspaceMessagePayload, {
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import {
+  FEED_MEMBER_CASES,
   FEED_PERSON_CASES,
   FeedPersonCase,
   expectNoAddressIn,
@@ -89,8 +90,13 @@ import {
  *
  * Now each person is named through FeedPersonName, as every feed entry and
  * channel line is, and a reason's addresses are left out. The steps' real
- * code runs; the database's reads, who is only invited, the mail service
- * and the workspaces' APIs are answered here.
+ * code runs; the database's reads, who is only invited, who has joined the
+ * project, the mail service and the workspaces' APIs are answered here.
+ *
+ * A data store's owner only invited to the project is told nothing about
+ * its data before they join (#10697): Notify data store owners emails its
+ * members alone, so it names a member it could not email, and an owner
+ * only invited nowhere.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -115,6 +121,11 @@ function refusedFor(address: string): Error {
 const REFUSAL_LEFT: string = `550 5.1.1 ${ADDRESS_LEFT_OUT} Recipient address rejected`;
 
 let person: FeedPersonCase;
+// Who is only invited, of the people FEED_PERSON_CASES holds.
+const ONLY_INVITED_CASES: ReadonlyArray<FeedPersonCase> =
+  FEED_PERSON_CASES.filter((who: FeedPersonCase): boolean => {
+    return Boolean(who.invitation);
+  });
 let accounts: Map<string, User>;
 let createdTasks: Array<SecurityCaseTask>;
 let notes: Array<SecurityCaseNote>;
@@ -247,6 +258,24 @@ beforeEach(() => {
   jest
     .spyOn(TeamMemberService, "getUsersInTeams")
     .mockResolvedValue([] as never);
+  // Everyone asked about has joined the project, but the person while only invited.
+  jest
+    .spyOn(TeamMemberService, "getProjectMemberUserIds")
+    .mockImplementation((async (args: {
+      userIds: Array<ObjectID | string>;
+    }): Promise<Array<ObjectID>> => {
+      return args.userIds
+        .filter((userId: ObjectID | string): boolean => {
+          return !(
+            person.invitation &&
+            userId.toString().toLowerCase() ===
+              PERSON_ID.toString().toLowerCase()
+          );
+        })
+        .map((userId: ObjectID | string): ObjectID => {
+          return new ObjectID(userId.toString());
+        });
+    }) as never);
 
   // The person's email is refused, in words that name their address; Tom's goes.
   jest.spyOn(MailService, "sendMail").mockImplementation((async (mail: {
@@ -492,7 +521,10 @@ describe.each(FEED_PERSON_CASES)("$label", (who: FeedPersonCase) => {
     );
     expectNoAddressInWhatTheStepSaid(outcome);
   });
+});
 
+// A data store's owners are emailed once they join the project (#10697).
+describe.each(FEED_MEMBER_CASES)("$label", (who: FeedPersonCase) => {
   test("Notify data store owners, when the owner's email is refused: the step's error names them so", async () => {
     setPerson(who);
 
@@ -505,6 +537,28 @@ describe.each(FEED_PERSON_CASES)("$label", (who: FeedPersonCase) => {
     expect(outcome.error).toBe(
       `No email was sent. ${who.named}: ${REFUSAL_LEFT}`,
     );
+    expectNoAddressInWhatTheStepSaid(outcome);
+  });
+});
+
+describe.each(ONLY_INVITED_CASES)("$label", (who: FeedPersonCase) => {
+  test("Notify data store owners emails an owner only invited nothing, and names them nowhere", async () => {
+    setPerson(who);
+
+    const outcome: PlaybookStepOutcome = await run(
+      SecurityPlaybookActionType.NotifyDataStoreOwners,
+      {},
+    );
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
+    expect(MailService.sendMail).not.toHaveBeenCalled();
+    expect(
+      [
+        outcome.summary.toString(),
+        outcome.detailsInMarkdown?.toString() || "",
+        outcome.error || "",
+      ].join("\n"),
+    ).not.toContain(who.named);
     expectNoAddressInWhatTheStepSaid(outcome);
   });
 });

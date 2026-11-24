@@ -288,16 +288,21 @@ function readObject(value: JSONValue | undefined): JSONObject {
  * What a save is told when a Send Webhook step's certificate settings are
  * not ones it can run with, after the step's label.
  */
+/*
+ * Each follows the step's name, and its last full stop is written where it
+ * is thrown - `${label}: ${message}.` - so the whole refusal reads as the
+ * sentence it is (ErrorMessagesGuard).
+ */
 export const SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES: Record<
   CaCertificatePemProblem,
   string
 > = {
   [CaCertificateProblem.NotACertificate]:
-    "the CA certificate is not a certificate in PEM. Paste the CA's certificate, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
+    "the CA certificate is not a certificate in PEM. Paste the CA's certificate, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----",
   [CaCertificateProblem.PrivateKey]:
-    "the CA certificate holds a private key, where everyone who may read this playbook could read it. Paste only the certificate, and keep the key on the server.",
+    "the CA certificate holds a private key, where everyone who may read this playbook could read it. Paste only the certificate, and keep the key on the server",
   [CaCertificateProblem.TooLong]:
-    "the CA certificate is longer than 64 KB. Paste only the certificate of the CA that signed the server's certificate.",
+    "the CA certificate is longer than 64 KB. Paste only the certificate of the CA that signed the server's certificate",
 };
 
 /*
@@ -350,7 +355,7 @@ function readWebhookCertificateConfig(
     (problem && allowSelfSigned !== true)
   ) {
     throw new BadDataException(
-      `${label}: ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}`,
+      `${label}: ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}.`,
     );
   }
 

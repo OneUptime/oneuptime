@@ -61,23 +61,25 @@ import ts from "typescript";
  *     DataSecurityIssueResolutions, #10368): it proves or expires proposals
  *     already written and asks no model, so with AI off it has nothing to do
  *     but that;
- *   - after each grouping of issues with one cause (#10370), the grouper
- *     names the groups and proposes for them
- *     (DataSecurityIssueGroupNaming.nameGroups and
- *     DataSecurityIssueGroupProposals.proposeForGroups), which read the
- *     same two switches first and ask nothing when either is off; what it
- *     reads of DeclaredCodeOwner and CloudAiTargets ranks a repository's
- *     code owners and reads a resource's tags, and asks no model. The
- *     groups' list shows OneUptime AI's name of a group only with Enable AI
- *     on (DataSecurityIssueGroups), and fixing a group's cause is a
- *     person's Fix with AI, through the Code task's gate
- *     (DataSecurityIssueGroupFix);
+ *   - the grouping of the issues one mistake made (#10370,
+ *     DataSecurityIssueGrouper), after each evaluation, has OneUptime AI
+ *     name each open group (DataSecurityIssueGroupNaming.nameGroups) and
+ *     propose its fix (DataSecurityIssueGroupProposals.proposeForGroups),
+ *     which read Enable AI and Work on new issues first and ask nothing,
+ *     and write nothing, with either off (DataSecurityIssueGroupNaming.test,
+ *     DataSecurityIssueGroupProposals.test); the rest it uses ranks the
+ *     repositories that declare the stores and reads their tags
+ *     (DeclaredCodeOwner, CloudAiTargets.getManagedAsCode), and asks no
+ *     model;
+ *   - the list of groups (DataSecurityIssueGroups) asks
+ *     AIService.isProjectAIEnabled, and with AI off shows no name OneUptime
+ *     AI gave a group: each goes by its cause's own words;
  *   - the daily drafts of the record of processing (#10375) run
- *     RecordOfProcessingDraftRun.run, which reads the same two switches
- *     first and asks nothing, and writes nothing, when either is off; the
- *     audit evidence's reader (AuditEvidenceReader) only shapes the facts
- *     the page shows and a draft is built from, with the input builder's
- *     types, and asks no model.
+ *     RecordOfProcessingDraftRun.run, which reads Enable AI and Work on new
+ *     issues first and asks nothing, and writes nothing, with either off;
+ *     the audit evidence's reader (AuditEvidenceReader) only shapes the
+ *     facts the page shows and a draft is built from, with the input
+ *     builder's types, and asks no model.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -85,7 +87,14 @@ import ts from "typescript";
  * AIService.executeWithLogging refuses a project with AI off before a model
  * is asked (below); Fix with AI through the Code task's gate, whose answer
  * with AI off is what to fix, with nothing started
- * (DataSecurityCodeTask.test); and Ask AI's chat, which the chat's own
+ * (DataSecurityCodeTask.test); a group's pull request, through the same
+ * gate (DataSecurityIssueGroupFix: DataSecurityCodeTask.requestGroupFix
+ * asks CodeTaskGate.getBlocker before it builds the task's request,
+ * DataSecurityIssueGroupPrompt, and the plan shows the gate's refusal -
+ * DataSecurityIssueGroupFix.test), whose other reads say where the task
+ * stands and in which repositories the person may ask (AIRunService,
+ * CodeTaskThread, CodeTaskListRows, CodeTaskAccess, DeclaredCodeOwner,
+ * CloudAiTargets) and ask no model; and Ask AI's chat, which the chat's own
  * switch refuses. On the Dashboard, the issue's page draws no analysis and
  * no AI action with Enable AI off, and is whole without them
  * (DataSecurityIssuePageThroughTheServer.test); the pages below draw no
@@ -177,6 +186,24 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       uses: ["AiEvidenceRequirement", "AiIssueRecord", "AiStoreRecord"],
     },
   ],
+  "Common/Server/Services/DataSecurityIssueService.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper.ts": [
     {
       module:
@@ -266,24 +293,6 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
       uses: ["CloudAiTargets.getManagedAsCode"],
-    },
-  ],
-  "Common/Server/Services/DataSecurityIssueService.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
-      uses: ["DataSecurityAiProposals.onIssuesClosed"],
-    },
-  ],
-  "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
-      uses: ["DataSecurityAiProposals.onIssuesClosed"],
-    },
-  ],
-  "Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": [
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
-      uses: ["DataSecurityAiProposals.onIssuesClosed"],
     },
   ],
 };

@@ -1,7 +1,9 @@
 {
   "note": "Written by GroupedMetricMonitorEquivalence.test.ts from the code before #10108. Compared with, never rewritten, unless an evaluation is meant to decide differently.",
   "changedOnPurpose": [
-    "#10108: a change of a grouped monitor's status keeps its series as the monitor log does - those the evaluation acted on first, at most STORED_CHECK_MAX_SIZE_IN_BYTES, and how many there were (MonitorStoredCheck.boundSeries) - so statusChangeLogHash of both cases was rewritten. Before: 1a066f523b96fac2b91ebaf3 and 419fd5aeeb97621b690b9d59. Nothing else changed."
+    "#10108: a change of a grouped monitor's status keeps its series as the monitor log does - those the evaluation acted on first, at most STORED_CHECK_MAX_SIZE_IN_BYTES, and how many there were (MonitorStoredCheck.boundSeries) - so statusChangeLogHash of both cases was rewritten. Before: 1a066f523b96fac2b91ebaf3 and 419fd5aeeb97621b690b9d59. Nothing else changed.",
+    "#10704 changed what the monitor summary of a grouped monitor's alert keeps and what a change of its status keeps, and did not rewrite this file: monitorSummaryHash of every created alert (before: fbf2102e7ea779d0d16842c1) and statusChangeLogHash of both cases have been what it made them since. Rewritten with #10841's change, below.",
+    "#10841: an event a grouped monitor's alert or incident adds about one series names it (seriesFingerprint), and a record about one series keeps the events about the whole monitor and its own series, never another series' (EvaluationEventSeries). So the events of both cases name their series, and the checks the records keep were rewritten: createdStateLogHash of every created alert, stateChangeLogHash of every resolved one, statusChangeLogHash of both cases. Nothing a check decides changed: its verdict, the alerts it opened and resolved - titles, descriptions, root causes, severities, states - its status, its criteria results, and its events' types, titles and messages are as before."
   ],
   "cases": {
     "a fleet where series breach every criteria, with alerts open": {
@@ -289,8 +291,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "4e0026f11fbfdc9481841afe",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "8c3d46ab3048d6c6a3cfa6ce",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -307,8 +309,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "dfd691fdcda9608d267d0746",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "941c0c2bb2b7c0127627b011",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -325,8 +327,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "e7984257f0b4879f3f4eec7b",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "46fbac349a73eb4a15b60fdb",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -343,8 +345,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "756e26eb967cfe9310644b17",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "f8c5152d7be52dad8d0a1ddb",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -361,8 +363,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "83df3100f1938b1ea5e00b63",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "1e21c86c13874a18a8875ccd",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -379,8 +381,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "5ee88ff1f862220cbc124837",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "308c13d4fe78bf7b34ae0165",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -397,8 +399,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "afdca5b19104b14bc0872b20",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "4ac2fb34e841b3bc191fe5a7",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -415,8 +417,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "f60dae3391a12da5422f0e41",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "48c169924d2fe9a557f266cd",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -433,8 +435,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "8423f7b8641453c8df9814d8",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "1245145b5f05651b03912130",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -451,8 +453,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "14fc34071c0abf7445322b17",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "2ddabd8fb755edf7355396a0",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -469,8 +471,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "41acdd72164599bbaab597c9",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "cf5d8dbf13097a3296e8ebc4",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -487,8 +489,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "2ed73f400308f20bfe6dc538",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "9ac40b540a28413c422fc839",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -505,8 +507,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "0242acc01f996292da547e7e",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "efd87a12cae8f802c2ba5d8e",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -523,8 +525,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "8c3398255d8f5e5e4d1dd37e",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "d8a932249c940729f5d50120",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -541,8 +543,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "166d421015e646c630e8f0c8",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "b09f48c7eee100fcdef5e7cf",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -559,8 +561,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "72efbdf37755bd4e91788cc1",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "777502fbd1374199cebec4d3",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -577,8 +579,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "bfd629c3b8ff0f7fc0755763",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "70fffda0749dd95453964c6e",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -595,8 +597,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "883c2f34095d4d19bff7e831",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "00d57f3afcdbf86ac2ec7d5e",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -613,8 +615,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "4822bd88999340c621ad3196",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "0d38890f70ee5ba39952e417",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -631,8 +633,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "321c3bf37c40787333004e61",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "998bfeec34c5faf9065c1c57",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -649,8 +651,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "1803bff4b5f9f1025d80e26f",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "3b5c95b25e0701400d31ef00",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -667,8 +669,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "ba7f44ed4f0678057bf20206",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "4f985ecc524f639bfcf131dc",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         },
@@ -685,8 +687,8 @@
           "alertSeverityId": "10108000-0000-4000-8000-000000000005",
           "currentAlertStateId": "10108000-0000-4000-8000-000000000006",
           "remediationNotes": null,
-          "createdStateLogHash": "c4bd401c7608555b370f756e",
-          "monitorSummaryHash": "fbf2102e7ea779d0d16842c1",
+          "createdStateLogHash": "9d91a6a6b551ee37bee9c6c7",
+          "monitorSummaryHash": "adc4952662341115896939eb",
           "evaluationDetailsHash": "none",
           "telemetryQueryHash": "54a373619e45291e9f9b0419"
         }
@@ -702,50 +704,50 @@
           "alertId": "10108000-0000-4000-9000-000000000006",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: checkout-api-0-0 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "a4e95c692431c2e1dbeda64d"
+          "stateChangeLogHash": "2e7dc63d5c3f38c433f43fa5"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000007",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: payments-worker-0-1 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "87aeeb29ef1f5dca8bf05da2"
+          "stateChangeLogHash": "dd42d0d8b20e95d82ddbbf51"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000008",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: catalog-search-0-2 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "f2cf9ff52993a3dbc46e9be3"
+          "stateChangeLogHash": "ac217ebc5805e52eb3b1a61c"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000009",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: inventory-sync-0-3 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
-          "stateChangeLogHash": "1c1e012a2307283278a1e138"
+          "stateChangeLogHash": "cb8329e18cfbed14018fde9d"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000010",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: web-frontend-0-4 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container restarted\".",
-          "stateChangeLogHash": "135c42cd8c853f5b801d96e1"
+          "stateChangeLogHash": "2af596f86b109a235426c71c"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000011",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: auth-gateway-0-5 | Host: docker-host-0000.prod.fleet.internal\" no longer satisfies criteria \"Container just started\".",
-          "stateChangeLogHash": "863ab0624d796fd7c4c10962"
+          "stateChangeLogHash": "7fd9c6566f8f8b2a25a18546"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000012",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. Series \"Container: decommissioned-batch-job | Host: docker-host-9999.prod.fleet.internal\" no longer satisfies criteria \"Container holds too many tasks\".",
-          "stateChangeLogHash": "dce6fb6ec704d5fb6c10f4f5"
+          "stateChangeLogHash": "8d63b88bd45e712bc06edf23"
         }
       ],
       "statusChanges": [
         {
           "monitorStatusId": "10108000-0000-4000-8000-000000000004",
           "rootCause": "\n**Created because the following criteria was met**:\n\n**Criteria Name**: Container holds too many tasks\n\n**Metric Details**\n- Metric: `container.pids.count`\n- Alias: `d`\n- Aggregation: Max\n- Grouped By: `resource.host.name`, `resource.container.name`\n\n\n**Breaching Samples**\n2 of 2 samples breached the threshold.\n\n1. `2026-11-17T10:00:00.000Z` \u2014 **2391**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n2. `2026-11-17T10:04:00.000Z` \u2014 **2412**\n   - `resource.host.name`: `docker-host-0004.prod.fleet.internal`\n   - `resource.container.name`: `inventory-sync-4-15`\n\n\n[Open metric in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/metrics/view?metricQueries=%5B%7B%22metricName%22%3A%22container.pids.count%22%2C%22attributes%22%3A%7B%7D%2C%22aggregationType%22%3A%22Max%22%7D%5D&startTime=2026-11-17T09%3A34%3A00.000Z&endTime=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open logs in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/logs?filters=%5B%5B%22attributes.resource.host.name%22%2C%5B%22docker-host-0004.prod.fleet.internal%22%5D%5D%2C%5B%22attributes.resource.container.name%22%2C%5B%22inventory-sync-4-15%22%5D%5D%5D&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n\n[Open traces in dashboard](http://localhost/dashboard/10108000-0000-4000-8000-000000000001/traces?search=%40resource.host.name%3Adocker-host-0004.prod.fleet.internal+%40resource.container.name%3Ainventory-sync-4-15&range=Custom&start=2026-11-17T09%3A34%3A00.000Z&end=2026-11-17T10%3A19%3A00.000Z)\n\n**Filter Conditions Met**: Tasks ranged from 2391 to 2412 across all 2 readings, above the 2000 threshold.\n",
-          "statusChangeLogHash": "54deafab2742503975bd64be"
+          "statusChangeLogHash": "2b3bf1233a46f0ba55566291"
         }
       ],
       "criteriaResults": [
@@ -925,6 +927,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "c9387816920d5a40",
           "title": "Alert resolved: Open alert 3 (criteria-container-restarted)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -943,6 +946,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "90c85545bc64cba9",
           "title": "Alert resolved: Open alert 6 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -961,6 +965,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "8d15afdf59e33aa3",
           "title": "Alert resolved: Open alert 7 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -979,6 +984,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "e159ac919cb1a0e3",
           "title": "Alert resolved: Open alert 8 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -997,6 +1003,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "9055b2b804e88d49",
           "title": "Alert resolved: Open alert 9 (criteria-container-restarted)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1015,6 +1022,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "b883594bdca7c9b3",
           "title": "Alert resolved: Open alert 10 (criteria-container-restarted)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1033,6 +1041,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "79ccafe6602d8aa8",
           "title": "Alert resolved: Open alert 11 (criteria-container-just-started)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1051,6 +1060,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "5e6be256cfa6a45f",
           "title": "Alert resolved: Open alert 12 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1069,6 +1079,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "aa5792ea1ae23f52",
           "title": "Alert created: docker-host-0004.prod.fleet.internal inventory-sync-4-15 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1090,6 +1101,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "0537696538e07fe9",
           "title": "Alert created: docker-host-0011.prod.fleet.internal metrics-collector-4-7 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1111,6 +1123,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "c9ab4821ef9063ef",
           "title": "Alert created: docker-host-0014.prod.fleet.internal catalog-search-0-26 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1132,6 +1145,7 @@
         },
         {
           "type": "alert-skipped",
+          "seriesFingerprint": "335826ac806e54cf",
           "title": "Alert already active: Open alert 2 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert already active: {{title}}",
@@ -1153,6 +1167,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "339d0456234ac259",
           "title": "Alert created: docker-host-0049.prod.fleet.internal redis-cache-0-32 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1174,6 +1189,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "8b668e3eeb389972",
           "title": "Alert created: docker-host-0053.prod.fleet.internal checkout-api-4-12 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1195,6 +1211,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "e1ae8111434d1871",
           "title": "Alert created: docker-host-0008.prod.fleet.internal nginx-edge-1-10 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1216,6 +1233,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "e2d37efbf554cf20",
           "title": "Alert created: docker-host-0015.prod.fleet.internal notification-dispatcher-1-30 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1237,6 +1255,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "8553222f3f08eb36",
           "title": "Alert created: docker-host-0019.prod.fleet.internal metrics-collector-5-31 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1258,6 +1277,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "80ba5886142b15a2",
           "title": "Alert created: docker-host-0029.prod.fleet.internal postgres-replica-1-21 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1279,6 +1299,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "9a0cfbcaf8bec1dc",
           "title": "Alert created: docker-host-0034.prod.fleet.internal payments-worker-6-1 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1300,6 +1321,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "4eae8e69ab9e5a78",
           "title": "Alert created: docker-host-0050.prod.fleet.internal payments-worker-1-1 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1321,6 +1343,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "104a0c8a3ec6f2ee",
           "title": "Alert created: docker-host-0055.prod.fleet.internal web-frontend-6-4 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1342,6 +1365,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "5ff54971613df335",
           "title": "Alert created: docker-host-0055.prod.fleet.internal notification-dispatcher-6-30 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1363,6 +1387,7 @@
         },
         {
           "type": "alert-skipped",
+          "seriesFingerprint": "2719ea2af491dd56",
           "title": "Alert already active: Open alert 1 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert already active: {{title}}",
@@ -1384,6 +1409,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "391098ad09b1956d",
           "title": "Alert created: docker-host-0052.prod.fleet.internal notification-dispatcher-3-18 holds too many tasks",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1405,6 +1431,7 @@
         },
         {
           "type": "alert-skipped",
+          "seriesFingerprint": "58bd7bd514932c6f",
           "title": "Alert already active: Open alert 5 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert already active: {{title}}",
@@ -1426,6 +1453,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "170f1be353af7ff0",
           "title": "Alert created: docker-host-0009.prod.fleet.internal payments-worker-2-1 restarted",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1447,6 +1475,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "a2509ea7ee57d5ea",
           "title": "Alert created: docker-host-0016.prod.fleet.internal catalog-search-2-2 restarted",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1468,6 +1497,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "08476ee3911a5f56",
           "title": "Alert created: docker-host-0019.prod.fleet.internal auth-gateway-5-5 restarted",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1489,6 +1519,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "2ebdffe152b2edac",
           "title": "Alert created: docker-host-0038.prod.fleet.internal payments-worker-3-25 restarted",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1510,6 +1541,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "01d701d49cad2223",
           "title": "Alert created: docker-host-0047.prod.fleet.internal auth-gateway-5-17 started less than 15 minutes ago",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1531,6 +1563,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "e2af5984ebac0232",
           "title": "Alert created: docker-host-0049.prod.fleet.internal catalog-search-0-14 started less than 15 minutes ago",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1552,6 +1585,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "6650833644b4b66b",
           "title": "Alert created: docker-host-0050.prod.fleet.internal checkout-api-1-0 started less than 15 minutes ago",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1573,6 +1607,7 @@
         },
         {
           "type": "alert-skipped",
+          "seriesFingerprint": "28fdbb19faae64a9",
           "title": "Alert already active: Open alert 4 (criteria-container-just-started)",
           "titleSentence": {
             "template": "Alert already active: {{title}}",
@@ -1594,6 +1629,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "8a269d0ababb9a38",
           "title": "Alert created: docker-host-0049.prod.fleet.internal payments-worker-0-1 started less than 15 minutes ago",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1615,6 +1651,7 @@
         },
         {
           "type": "alert-created",
+          "seriesFingerprint": "fba8c91b73ffc91f",
           "title": "Alert created: docker-host-0056.prod.fleet.internal postgres-replica-0-9 started less than 15 minutes ago",
           "titleSentence": {
             "template": "Alert created: {{title}}",
@@ -1657,44 +1694,44 @@
           "alertId": "10108000-0000-4000-9000-000000000002",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "d4ace9cb8cab39e3d22c0cf0"
+          "stateChangeLogHash": "ce5de32edf8b5d7f89a2c09b"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000003",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "d071e3d9deff08f88ae26305"
+          "stateChangeLogHash": "23d21510e5ee90eb94982cef"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000004",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "5aede08b6b3b2ca065844831"
+          "stateChangeLogHash": "19e9ac17ccc902fec8cf851f"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000005",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "b851f55563e11d704bbd791d"
+          "stateChangeLogHash": "3841d6404efbcb242465eba3"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000006",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "72f488d9a269e49e5caa7a56"
+          "stateChangeLogHash": "22c7732c83b71d762d59e949"
         },
         {
           "alertId": "10108000-0000-4000-9000-000000000007",
           "alertStateId": "10108000-0000-4000-8000-000000000008",
           "rootCause": "Alert autoresolved because autoresolve is set to true in monitor criteria. No monitoring criteria met. Change to default status.",
-          "stateChangeLogHash": "7d1852fcae0865e1e07c1431"
+          "stateChangeLogHash": "a408a3b72c26904cba36f8e7"
         }
       ],
       "statusChanges": [
         {
           "monitorStatusId": "10108000-0000-4000-8000-000000000003",
           "rootCause": "No monitoring criteria met. Change to default status. ",
-          "statusChangeLogHash": "0ab0f3946e98ef3d85ee5b21"
+          "statusChangeLogHash": "0ab9edd14dc5e81636fd6175"
         }
       ],
       "criteriaResults": [
@@ -1768,6 +1805,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "90c85545bc64cba9",
           "title": "Alert resolved: Open alert 1 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1785,6 +1823,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "8d15afdf59e33aa3",
           "title": "Alert resolved: Open alert 2 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1802,6 +1841,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "e159ac919cb1a0e3",
           "title": "Alert resolved: Open alert 3 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1819,6 +1859,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "9055b2b804e88d49",
           "title": "Alert resolved: Open alert 4 (criteria-container-restarted)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1836,6 +1877,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "b883594bdca7c9b3",
           "title": "Alert resolved: Open alert 5 (criteria-container-restarted)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1853,6 +1895,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "79ccafe6602d8aa8",
           "title": "Alert resolved: Open alert 6 (criteria-container-just-started)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",
@@ -1870,6 +1913,7 @@
         },
         {
           "type": "alert-resolved",
+          "seriesFingerprint": "5e6be256cfa6a45f",
           "title": "Alert resolved: Open alert 7 (criteria-container-too-many-tasks)",
           "titleSentence": {
             "template": "Alert resolved: {{title}}",

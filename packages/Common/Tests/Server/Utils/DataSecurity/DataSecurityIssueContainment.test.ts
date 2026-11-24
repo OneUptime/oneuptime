@@ -289,6 +289,8 @@ describe("AI Results: the fix pull requests, counted by kind", () => {
       dataSecurityChangesMade: 0,
       verdictsAgreed: 0,
       verdictsDecided: 0,
+      leaksCaught: 0,
+      leaksCounted: 0,
     };
     const createdAt: Date = new Date("2026-11-18T10:00:00.000Z");
 

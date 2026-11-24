@@ -383,6 +383,10 @@ const SHARED: ReadonlyArray<{ column: string; why: string }> = [
     column: "DataSecurityIssue.acceptedUntil",
     why: "Cleared by the reconciler when an acceptance expires and the issue reopens (DataSecurityIssueReconciler).",
   },
+  {
+    column: "DataSecurityIssue.notAnIssueReason",
+    why: "Kept only with the Not an issue status (#10369): the issue service clears it whenever a status change - a person's, or OneUptime's as it reopens or resolves an issue - moves the issue off Not an issue (DataSecurityIssueService).",
+  },
   ...[
     "KubernetesCluster",
     "Host",

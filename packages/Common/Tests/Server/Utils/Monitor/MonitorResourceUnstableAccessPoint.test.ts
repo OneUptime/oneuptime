@@ -514,9 +514,14 @@ describe("A flapping access point is unstable, and one that is down is an outage
     jest
       .spyOn(MonitorStatusTimelineService, "create")
       .mockImplementation(async (input: unknown) => {
-        monitor.currentMonitorStatusId = (
+        const statusId: ObjectID | undefined = (
           input as { data: MonitorStatusTimeline }
         ).data.monitorStatusId;
+
+        if (statusId) {
+          monitor.currentMonitorStatusId = statusId;
+        }
+
         return new MonitorStatusTimeline() as never;
       });
     jest
