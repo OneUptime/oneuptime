@@ -206,9 +206,11 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
           await TeamMemberService.getUserIdsInTeams([teamId], {
             acceptedOnly: true,
           })
-        ).map((userId: ObjectID): { userId: ObjectID; isNewToRule: boolean } => {
-          return { userId: userId, isNewToRule: true };
-        });
+        ).map(
+          (userId: ObjectID): { userId: ObjectID; isNewToRule: boolean } => {
+            return { userId: userId, isNewToRule: true };
+          },
+        );
 
     for (const { userId: sendEmailToUserId, isNewToRule } of usersInTeam) {
       // add start log

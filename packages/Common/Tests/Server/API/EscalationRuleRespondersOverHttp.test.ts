@@ -128,7 +128,9 @@ function answers(): Array<{ status: number; refusal: string }> {
   );
 }
 
-function allAnswered(count: number): Array<{ status: number; refusal: string }> {
+function allAnswered(
+  count: number,
+): Array<{ status: number; refusal: string }> {
   return Array.from({ length: count }, () => {
     return { status: 200, refusal: "" };
   });

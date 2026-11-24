@@ -344,8 +344,10 @@ export default class EscalationRuleRespondersWorld {
    * as rows saved one after another are.
    */
   private stampsCreatedAt(table: InMemoryTable): void {
-    const save: (entity: StoredRow) => Promise<unknown> = table.repository.save
-      .getMockImplementation() as (entity: StoredRow) => Promise<unknown>;
+    const save: (entity: StoredRow) => Promise<unknown> =
+      table.repository.save.getMockImplementation() as (
+        entity: StoredRow,
+      ) => Promise<unknown>;
 
     table.repository.save.mockImplementation((async (
       entity: StoredRow,
@@ -394,29 +396,29 @@ export default class EscalationRuleRespondersWorld {
    * with a statement of its own: here, from the memberships in memory.
    */
   private installMembershipReads(): void {
-    getJestSpyOn(ProjectMembership, "getMemberKeys").mockImplementation(
-      (async (pairs: Array<ProjectUserPair>): Promise<Set<string>> => {
-        const keys: Set<string> = new Set<string>();
+    getJestSpyOn(ProjectMembership, "getMemberKeys").mockImplementation((async (
+      pairs: Array<ProjectUserPair>,
+    ): Promise<Set<string>> => {
+      const keys: Set<string> = new Set<string>();
 
-        for (const pair of pairs) {
-          const isMember: boolean = this.memberships.rows.some(
-            (row: StoredRow): boolean => {
-              return (
-                row["hasAcceptedInvitation"] === true &&
-                id(row["userId"]) === id(pair.userId) &&
-                id(row["projectId"]) === id(pair.projectId)
-              );
-            },
-          );
+      for (const pair of pairs) {
+        const isMember: boolean = this.memberships.rows.some(
+          (row: StoredRow): boolean => {
+            return (
+              row["hasAcceptedInvitation"] === true &&
+              id(row["userId"]) === id(pair.userId) &&
+              id(row["projectId"]) === id(pair.projectId)
+            );
+          },
+        );
 
-          if (isMember) {
-            keys.add(ProjectMembership.getKey(pair.projectId, pair.userId));
-          }
+        if (isMember) {
+          keys.add(ProjectMembership.getKey(pair.projectId, pair.userId));
         }
+      }
 
-        return keys;
-      }) as never,
-    );
+      return keys;
+    }) as never);
   }
 
   // The time logs are written without the hooks waiting: each is kept to wait for.
@@ -429,13 +431,13 @@ export default class EscalationRuleRespondersWorld {
         >
       )[method]!.bind(OnCallDutyPolicyTimeLogService);
 
-      getJestSpyOn(OnCallDutyPolicyTimeLogService, method).mockImplementation(
-        ((data: unknown): Promise<unknown> => {
-          const written: Promise<unknown> = write(data);
-          this.background.push(written);
-          return written;
-        }) as never,
-      );
+      getJestSpyOn(OnCallDutyPolicyTimeLogService, method).mockImplementation(((
+        data: unknown,
+      ): Promise<unknown> => {
+        const written: Promise<unknown> = write(data);
+        this.background.push(written);
+        return written;
+      }) as never);
     }
   }
 

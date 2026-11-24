@@ -398,7 +398,12 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     const onCallDutyPolicyId: ObjectID | null = rule.policyId;
 
     // The message names the policy: a row without one tells nobody.
-    if (!sendEmailToUserId || !isNewToRule || !projectId || !onCallDutyPolicyId) {
+    if (
+      !sendEmailToUserId ||
+      !isNewToRule ||
+      !projectId ||
+      !onCallDutyPolicyId
+    ) {
       return createdItem;
     }
 
