@@ -402,6 +402,7 @@ const CloudConnectionFormModal: FunctionComponent<ComponentProps> = (
           dataSecurityResponse={settings.dataSecurityResponse}
           wafBlocklist={settings.wafBlocklist}
           securityCaseChecks={settings.securityCaseChecks}
+          savingsActions={settings.savingsActions}
           roleSetup={props.awsRoleSetup}
         />
       );
