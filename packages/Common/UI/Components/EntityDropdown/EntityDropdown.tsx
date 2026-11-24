@@ -682,6 +682,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<Array<DropdownOption>>([]);
+  /*
+   * The search the server answered searchResults for (trimmed, lower-cased):
+   * its answer to the search typed now is shown as it came - a record found
+   * by another of its searchFields (a repository by its organization) has
+   * no word of the search in its name (#10764). Only an answer to an earlier
+   * search, while the next one is on its way, is narrowed to what was typed.
+   */
+  const [searchResultsQuery, setSearchResultsQuery] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -1071,9 +1081,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             optionsCacheRef.current.set(valueKey(opt.value), opt);
           }
           setSearchResults(options);
+          setSearchResultsQuery(trimmed.toLowerCase());
         } catch {
           if (mySeq === searchSeqRef.current) {
             setSearchResults([]);
+            setSearchResultsQuery(trimmed.toLowerCase());
           }
         } finally {
           if (mySeq === searchSeqRef.current) {
@@ -1248,9 +1260,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       out.push(opt);
     }
     if (modelType) {
+      // The server's answer to this very search: as it came (searchFields).
+      const isAnswerToThisSearch: boolean = searchResultsQuery === q;
+
       for (const opt of searchResults) {
         const key: string = valueKey(opt.value);
-        if (!matches(opt)) {
+        if (!isAnswerToThisSearch && !matches(opt)) {
           continue;
         }
         const at: number | undefined = seen.get(key);
@@ -1269,7 +1284,14 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       }
     }
     return out;
-  }, [modelType, searchResults, searchQuery, initialFlat, getOptionText]);
+  }, [
+    modelType,
+    searchResults,
+    searchResultsQuery,
+    searchQuery,
+    initialFlat,
+    getOptionText,
+  ]);
 
   /*
    * Filter out the currently-selected key(s) ONLY in multi-select. For

@@ -9,6 +9,7 @@ import {
 } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -43,6 +44,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getBranchesMock: MockFunction = getJestMockFunction();
+const getRepositoriesMock: MockFunction = getJestMockFunction();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
@@ -53,6 +55,16 @@ jest.mock(
       default: {
         getBranches: (...args: Array<unknown>) => {
           return getBranchesMock(...args);
+        },
+        /*
+         * The reader's repositories as a test gives them - whole - each read
+         * answered from them as the server answers it (#10764).
+         */
+        getRepositories: async (...args: Array<unknown>) => {
+          return asServerAnswer(
+            await getRepositoriesMock(...args),
+            args[0] as CodeRepositoriesQuery | undefined,
+          );
         },
       },
     };
@@ -71,7 +83,14 @@ import CodeBranchPicker, {
 import CodeRepositoryPicker, {
   getRepositoryOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryPicker";
-import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  CodeRepositoriesQuery,
+  CodeRepositoryListItem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  asServerAnswer,
+  repositoriesSortingFirst,
+} from "./CodeRepositoriesServer";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
 
 const REPOSITORY_ID: string = "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f";
@@ -102,6 +121,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   getBranchesMock.mockReset();
+  getRepositoriesMock.mockReset();
 });
 
 afterEach(() => {
@@ -584,12 +604,14 @@ describe("the repository picker", () => {
   });
 
   test("the GitHub mark and the name picked; Pick a repository before one is", async () => {
+    getRepositoriesMock.mockResolvedValue({ repositories: REPOSITORIES });
     const onChange: MockFunction = getJestMockFunction();
     draw(
       <CodeRepositoryPicker
-        repositories={REPOSITORIES}
         value={null}
-        onChange={onChange as unknown as (id: string) => void}
+        onChange={
+          onChange as unknown as (repository: CodeRepositoryListItem) => void
+        }
       />,
     );
 
@@ -601,22 +623,28 @@ describe("the repository picker", () => {
       "placeholder",
       "Find a repository",
     );
+    // Read from the server as it opens: those AI can work in first.
+    await waitFor(() => {
+      expect(labels("code-repository-picker")).toEqual([
+        REPOSITORY_ID,
+        OTHER_REPOSITORY_ID,
+      ]);
+    });
     await userEvent.type(
       screen.getByTestId("code-repository-picker-search"),
       "storefront",
     );
-    expect(labels("code-repository-picker")).toEqual([OTHER_REPOSITORY_ID]);
+    await waitFor(() => {
+      expect(labels("code-repository-picker")).toEqual([OTHER_REPOSITORY_ID]);
+    });
     await userEvent.click(options("code-repository-picker")[0]!);
-    expect(onChange).toHaveBeenCalledWith(OTHER_REPOSITORY_ID);
+    expect(onChange).toHaveBeenCalledWith(REPOSITORIES[1]);
   });
 
   test("in German, the picker speaks German", async () => {
+    getRepositoriesMock.mockResolvedValue({ repositories: REPOSITORIES });
     draw(
-      <CodeRepositoryPicker
-        repositories={REPOSITORIES}
-        value={REPOSITORY_ID}
-        onChange={() => {}}
-      />,
+      <CodeRepositoryPicker value={REPOSITORIES[0]!} onChange={() => {}} />,
       germanTranslation,
     );
 
@@ -625,8 +653,150 @@ describe("the repository picker", () => {
       `${germanLocale["Repository"]}: checkout-api`,
     );
     await userEvent.click(button("code-repository-picker"));
+    await waitFor(() => {
+      expect(options("code-repository-picker")).toHaveLength(2);
+    });
     expect(options("code-repository-picker")[1]).toHaveTextContent(
       germanLocale["Not connected"],
+    );
+  });
+
+  /*
+   * #10764: the picker filtered the project's first 500 repositories in the
+   * browser, so a repository past them could not be picked. It asks the
+   * server - over every repository the reader may read - as it opens and as
+   * the person types.
+   */
+  test("of 10,050 repositories, the first 50 by name, a line to type for more, and one past them found on the server", async () => {
+    const late: CodeRepositoryListItem = {
+      ...REPOSITORIES[1]!,
+      name: "wharf-legacy",
+      repositoryName: "wharf-legacy",
+    };
+
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [...repositoriesSortingFirst(10050), late],
+    });
+    const onChange: MockFunction = getJestMockFunction();
+
+    draw(
+      <CodeRepositoryPicker
+        value={null}
+        onChange={
+          onChange as unknown as (repository: CodeRepositoryListItem) => void
+        }
+      />,
+    );
+
+    await userEvent.click(button("code-repository-picker"));
+
+    await waitFor(() => {
+      expect(options("code-repository-picker")).toHaveLength(50);
+    });
+    expect(getRepositoriesMock).toHaveBeenCalledWith({
+      search: "",
+      order: "name",
+      limit: 50,
+    });
+    expect(screen.getByTestId("code-repository-picker-note")).toHaveTextContent(
+      "Type a repository's name to find one that is not listed.",
+    );
+
+    await userEvent.type(
+      screen.getByTestId("code-repository-picker-search"),
+      "wharf",
+    );
+
+    await waitFor(() => {
+      expect(labels("code-repository-picker")).toEqual([late.id]);
+    });
+    // One read for what was typed, once typing rested - not one a key.
+    expect(
+      getRepositoriesMock.mock.calls.filter((call: Array<unknown>) => {
+        return (call[0] as { search?: string }).search === "wharf";
+      }),
+    ).toHaveLength(1);
+    expect(
+      getRepositoriesMock.mock.calls.filter((call: Array<unknown>) => {
+        return ["w", "wh", "wha", "whar"].includes(
+          String((call[0] as { search?: string }).search),
+        );
+      }),
+    ).toHaveLength(0);
+    expect(screen.queryByTestId("code-repository-picker-note")).toBeNull();
+
+    await userEvent.click(options("code-repository-picker")[0]!);
+    expect(onChange).toHaveBeenCalledWith(late);
+  });
+
+  test("an answer to an older search never replaces a newer one", async () => {
+    const answers: Map<string, (value: unknown) => void> = new Map();
+
+    getRepositoriesMock.mockImplementation(
+      (query: unknown): Promise<unknown> => {
+        const search: string = (query as { search?: string }).search || "";
+
+        if (!search) {
+          return Promise.resolve({ repositories: REPOSITORIES });
+        }
+
+        return new Promise((resolve: (value: unknown) => void) => {
+          answers.set(search, resolve);
+        });
+      },
+    );
+
+    draw(<CodeRepositoryPicker value={null} onChange={() => {}} />);
+    await userEvent.click(button("code-repository-picker"));
+    await waitFor(() => {
+      expect(options("code-repository-picker")).toHaveLength(2);
+    });
+
+    const search: HTMLElement = screen.getByTestId(
+      "code-repository-picker-search",
+    );
+
+    await userEvent.type(search, "checkout");
+    await waitFor(() => {
+      expect(answers.has("checkout")).toBe(true);
+    });
+    await userEvent.clear(search);
+    await userEvent.type(search, "web");
+    await waitFor(() => {
+      expect(answers.has("web")).toBe(true);
+    });
+
+    // The newer search answers first; the older one late.
+    answers.get("web")!({ repositories: [REPOSITORIES[1]!] });
+    await waitFor(() => {
+      expect(labels("code-repository-picker")).toEqual([OTHER_REPOSITORY_ID]);
+    });
+    await act(async () => {
+      answers.get("checkout")!({ repositories: [REPOSITORIES[0]!] });
+      await Promise.resolve();
+    });
+    expect(labels("code-repository-picker")).toEqual([OTHER_REPOSITORY_ID]);
+  });
+
+  test("the repository picked is the one checked in the list", async () => {
+    getRepositoriesMock.mockResolvedValue({ repositories: REPOSITORIES });
+
+    draw(
+      <CodeRepositoryPicker value={REPOSITORIES[1]!} onChange={() => {}} />,
+    );
+
+    expect(button("code-repository-picker")).toHaveTextContent("web");
+    await userEvent.click(button("code-repository-picker"));
+    await waitFor(() => {
+      expect(options("code-repository-picker")).toHaveLength(2);
+    });
+    expect(options("code-repository-picker")[1]).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(options("code-repository-picker")[0]).toHaveAttribute(
+      "aria-selected",
+      "false",
     );
   });
 });

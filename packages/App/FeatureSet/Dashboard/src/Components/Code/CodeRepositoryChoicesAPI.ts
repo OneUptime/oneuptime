@@ -113,47 +113,72 @@ export const toCodeRepositoryRecord: (
   return record;
 };
 
-export default class CodeRepositoryChoicesAPI extends ModelAPI {
-  public static override async getList<TBaseModel extends BaseModel>(
-    data: Parameters<typeof ModelAPI.getList<TBaseModel>>[0],
-  ): Promise<ListResult<TBaseModel>> {
-    if ((data.modelType as unknown) !== CodeRepository) {
-      return await ModelAPI.getList<TBaseModel>(data);
-    }
+// The picker's read of code repositories, answered from Code's routes.
+export const readCodeRepositoryChoices: <TBaseModel extends BaseModel>(
+  data: Parameters<typeof ModelAPI.getList<TBaseModel>>[0],
+) => Promise<ListResult<TBaseModel>> = async <TBaseModel extends BaseModel>(
+  data: Parameters<typeof ModelAPI.getList<TBaseModel>>[0],
+): Promise<ListResult<TBaseModel>> => {
+  if ((data.modelType as unknown) !== CodeRepository) {
+    return await ModelAPI.getList<TBaseModel>(data);
+  }
 
-    const query: Record<string, unknown> = (data.query || {}) as Record<
-      string,
-      unknown
-    >;
-    const heldIds: Array<string> | null = readHeldIds(query);
+  const query: Record<string, unknown> = (data.query || {}) as Record<
+    string,
+    unknown
+  >;
+  const heldIds: Array<string> | null = readHeldIds(query);
 
-    if (heldIds) {
-      const held: Array<CodeRepositoryListItem> =
-        heldIds.length > 0 ? await CodeApi.getRepositoriesById(heldIds) : [];
-
-      return {
-        data: held.map(toCodeRepositoryRecord) as unknown as Array<TBaseModel>,
-        count: held.length,
-        skip: 0,
-        limit: data.limit,
-      };
-    }
-
-    const found: CodeRepositoriesResponse = await CodeApi.getRepositories({
-      search: readChoiceSearch(query),
-      group: readChoiceGroup(query),
-      order: CodeRepositoryListOrder.Name,
-      skip: data.skip,
-      limit: data.limit,
-    });
+  if (heldIds) {
+    const held: Array<CodeRepositoryListItem> =
+      heldIds.length > 0 ? await CodeApi.getRepositoriesById(heldIds) : [];
 
     return {
-      data: found.repositories.map(
-        toCodeRepositoryRecord,
-      ) as unknown as Array<TBaseModel>,
-      count: found.count,
-      skip: data.skip,
+      data: held.map(toCodeRepositoryRecord) as unknown as Array<TBaseModel>,
+      count: held.length,
+      skip: 0,
       limit: data.limit,
     };
   }
-}
+
+  const found: CodeRepositoriesResponse = await CodeApi.getRepositories({
+    search: readChoiceSearch(query),
+    group: readChoiceGroup(query),
+    order: CodeRepositoryListOrder.Name,
+    skip: data.skip,
+    limit: data.limit,
+  });
+
+  return {
+    data: found.repositories.map(
+      toCodeRepositoryRecord,
+    ) as unknown as Array<TBaseModel>,
+    count: found.count,
+    skip: data.skip,
+    limit: data.limit,
+  };
+};
+
+/*
+ * The API a picker hands EntityDropdown: its list reads answered from
+ * Code's routes (readCodeRepositoryChoices), anything else as ModelAPI
+ * answers it - looked up when it is asked for, never copied, so the shared
+ * ModelAPI stays the one in charge (and one a test stands in for is the one
+ * used).
+ */
+const CodeRepositoryChoicesAPI: typeof ModelAPI = new Proxy(
+  {} as typeof ModelAPI,
+  {
+    get: (_target: typeof ModelAPI, property: string | symbol): unknown => {
+      if (property === "getList") {
+        return readCodeRepositoryChoices;
+      }
+
+      return (ModelAPI as unknown as Record<string | symbol, unknown>)[
+        property
+      ];
+    },
+  },
+);
+
+export default CodeRepositoryChoicesAPI;
