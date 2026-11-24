@@ -105,13 +105,13 @@ Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Indgående anmodni
 
 ### Åbn én hændelse pr. advarsel
 
-Åbn **Indstillinger** i samme kriterium, og slå **Group incidents and alerts by a payload field** til. Udfyld den som nedenfor, så hver advarsel får sin egen hændelse, og dens genopretning løser den:
+Åbn **Indstillinger** i samme kriterium, og slå **Gruppér hændelser og advarsler efter et felt i payloaden** til. Udfyld den som nedenfor, så hver advarsel får sin egen hændelse, og dens genopretning løser den:
 
 | Felt | Værdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Åbn en separat hændelse for hver…** | `requestBody.alert_key` |
+| **Felt, der signalerer genopretning** | `requestBody.transition` |
+| **Værdi, der betyder genoprettet** | `Recovered` |
 
 ### Bring monitoren online igen
 
@@ -227,7 +227,7 @@ Test derefter fra Datadog: åbn en monitor, der nævner webhooken, klik på **Te
 - Datadog-monitoren skal også underrette webhooken om sine genopretninger. En besked, der kun nævner webhooken for advarsler, inde i en betingelse, sender ingen genopretning.
 - Med skabelonen: åbn genopretningens kørsel i **Kørsler**: dens sidste trin siger hvorfor. Genopretningens `alert_cycle_key` skal være advarslens, så behold `$ALERT_CYCLE_KEY`, som det står i payloaden.
 - Med monitoren skal kriteriets hændelse have **Løs hændelse automatisk**, under **Flere felter**.
-- **Value that means recovered** skal være præcis `Recovered`. Sammenligningen skelner mellem store og små bogstaver.
+- **Værdi, der betyder genoprettet** skal være præcis `Recovered`. Sammenligningen skelner mellem store og små bogstaver.
 - Genopretningens `alert_key` skal være advarslens: behold `$ALERT_ID $ALERT_SCOPE`, som det står i payloaden.
 :::
 

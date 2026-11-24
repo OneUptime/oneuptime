@@ -1,3 +1,4 @@
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
@@ -575,7 +576,7 @@ for (const route of RESULT_ROUTES) {
         }),
       );
 
-      expectRefused("Probe not found");
+      expectRefused(ProbeConnectionRefusals.unknownProbe);
       expect(route.answered()).not.toHaveBeenCalled();
       expect(queueService.addProbeIngestJob).not.toHaveBeenCalled();
     });
@@ -596,7 +597,7 @@ for (const route of RESULT_ROUTES) {
           }),
         );
 
-        expectRefused("ProbeMonitorResponse not found");
+        expectRefused(ProbeConnectionRefusals.missingMonitorResponse);
         expect(queueService.addProbeIngestJob).not.toHaveBeenCalled();
       }
     });
@@ -639,14 +640,14 @@ describe("POST /probe/snmp-trap: a trap is the receiving probe's", () => {
       makeRequest({ body: probeBody({ snmpTrap }), probe: null }),
     );
 
-    expectRefused("Probe not found");
+    expectRefused(ProbeConnectionRefusals.unknownProbe);
     expect(queueService.addSnmpTrapIngestJob).not.toHaveBeenCalled();
   });
 
   test("a request with no trap is still refused", async () => {
     await callEndpoint(path, makeRequest({ body: probeBody({}) }));
 
-    expectRefused("snmpTrap not found in request body");
+    expectRefused(ProbeConnectionRefusals.missingSnmpTrap);
     expect(queueService.addSnmpTrapIngestJob).not.toHaveBeenCalled();
   });
 });
@@ -701,7 +702,7 @@ describe("POST /probe/status-report/offline: the report is about the probe that 
       }),
     );
 
-    expectRefused("Probe not found");
+    expectRefused(ProbeConnectionRefusals.unknownProbe);
     expect(probeService.findOneBy).not.toHaveBeenCalled();
   });
 });
@@ -746,7 +747,7 @@ describe("POST /metrics/queue-size: the count is the sending probe's", () => {
   test("a request no probe authenticated is refused", async () => {
     await callEndpoint(path, makeRequest({ body: probeBody({}), probe: null }));
 
-    expectRefused("Probe ID not found");
+    expectRefused(ProbeConnectionRefusals.unknownProbe);
     expect(
       monitorProbeService.countMonitorProbesDueForProbing,
     ).not.toHaveBeenCalled();

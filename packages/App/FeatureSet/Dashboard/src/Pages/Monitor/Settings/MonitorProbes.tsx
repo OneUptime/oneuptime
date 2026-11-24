@@ -427,7 +427,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Element,
 
               getElement: (item: Probe): ReactElement => {
-                return <ProbeStatusElement probe={item} />;
+                return (
+                  <ProbeStatusElement probe={item} isProjectProbe={true} />
+                );
               },
             },
             {

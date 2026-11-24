@@ -4,10 +4,8 @@ import LogScrubPatternType from "../../Types/Log/LogScrubPatternType";
 import {
   compileScrubRuleCustomRegex,
   DATA_TYPE_OF_SCRUB_PATTERN_TYPE,
-  SCRUB_RULE_BUILT_IN_PATTERNS,
   SCRUB_RULE_SENSITIVE_KEY_REGEX,
   ScrubRegExp,
-  scrubRegExpFromBuiltIn,
 } from "../../Types/Telemetry/ScrubRule";
 import { doScrubScopesMeet } from "../../Types/Telemetry/ScrubRuleScope";
 import {
@@ -27,7 +25,7 @@ import { readOwnValue } from "../LookupTable";
 import { CLIENT_ADDRESS_ATTRIBUTES_READ } from "../SecurityEvent/ClientAddressTrust";
 import { TRACE_SCAN_ATTRIBUTE_KEYS } from "../SecurityEvent/TelemetryScan/TraceSignals";
 import { CORRELATION_ID_ATTRIBUTE_KEYS } from "./CorrelationIdAttributes";
-import ScrubIpAddress from "./ScrubIpAddress";
+import { compileBuiltInScrubPattern } from "./ScrubBuiltInPatterns";
 import { TelemetryFieldReference } from "./TelemetryFieldReferences";
 
 /*
@@ -149,16 +147,8 @@ export function compileScrubRuleValuePattern(data: {
     return compileScrubRuleCustomRegex(data.customRegex);
   }
 
-  if (patternType === LogScrubPatternType.IPAddress) {
-    return ScrubIpAddress.toScrubRegExp();
-  }
-
-  const builtIn: RegExp | undefined = readOwnValue(
-    SCRUB_RULE_BUILT_IN_PATTERNS,
-    patternType,
-  );
-
-  return builtIn ? scrubRegExpFromBuiltIn(builtIn) : null;
+  // As every place a rule runs compiles a built-in pattern (ScrubBuiltInPatterns).
+  return compileBuiltInScrubPattern(patternType);
 }
 
 // The parts of a record a rule scrubs, as ingest runs it.

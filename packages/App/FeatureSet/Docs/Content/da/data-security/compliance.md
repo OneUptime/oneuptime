@@ -227,6 +227,8 @@ Formålet med hvert af dem er "Net- og informationssikkerhed (GDPR betragtning 4
 
 Et datalager vises, så længe dit projekt opbevarer dets data: adresseboksen, så længe en aktiveret IP-adresseregel hasher logs eller traces, som Sikkerhedshændelser læser, og brugerboksen, så længe en aktiveret regel med et hvilket som helst andet mønster gør det, hver i 31 dage derefter (se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Når dets data er væk, arkiveres datalageret, og det vender tilbage med dit formål og din opbevaring, hvis dataene gør det.
 
+For at slette en person fra »Sikkerhedsbrugerboks« og fra de hændelser og sager, der nævner dem gennem den, skal du indsende en sletteanmodning: se [Slet en person](/docs/telemetry/security-events#slet-en-person).
+
 ## Konsekvensanalyser
 
 GDPR artikel 35 kræver en konsekvensanalyse vedrørende databeskyttelse før behandling, der sandsynligvis indebærer en høj risiko. Datasikkerhed angiver, hvilke datalagre der har brug for en: et datalager, der indeholder særlige kategorier af personoplysninger, f.eks. helbredsdata, data om mange personer (omkring 100.000 poster eller flere), eller data, der forlader de registreredes lande.

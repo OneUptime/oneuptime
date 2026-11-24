@@ -297,7 +297,13 @@ afterEach(() => {
 });
 
 describe("a page load reads the list and each sparkline once (#4709)", () => {
-  test("REGRESSION: the service list landing after the first reads does not read the list or the sparklines again", async () => {
+  /*
+   * The page read the project's first 10,000 services on every open, to
+   * resolve a `service:` token none was typed for; landing late, it read the
+   * list and the sparklines again (#4709). With no token, no services are
+   * read at all now: a typed name is searched for on the server (#10921).
+   */
+  test("REGRESSION: an open with no service token reads no services, and the list and sparklines once", async () => {
     serviceListGate = defer();
 
     await openAt("?range=Past%201%20Day");
@@ -311,7 +317,7 @@ describe("a page load reads the list and each sparkline once (#4709)", () => {
     });
     await settle();
 
-    expect(serviceListReads()).toBe(1);
+    expect(serviceListReads()).toBe(0);
     expect(readCounts()).toBe(before);
   });
 
@@ -550,7 +556,7 @@ describe("resolveMetricsServiceToken", () => {
     service(OTHER_SERVICE_ID, "billing-worker"),
   ];
 
-  test("no token, or no names yet: nothing to apply", () => {
+  test("no token, or no search answered yet: nothing to apply", () => {
     expect(
       resolveMetricsServiceToken(
         parseMetricsSearch("").serviceMatcher,
@@ -560,9 +566,22 @@ describe("resolveMetricsServiceToken", () => {
     expect(
       resolveMetricsServiceToken(
         parseMetricsSearch("service:checkout").serviceMatcher,
-        [],
+        null,
       ),
     ).toBeNull();
+  });
+
+  /*
+   * The services are the server search's answer for the token (#10921): one
+   * that found none is an answer, and the token matched nothing.
+   */
+  test("a search that found no service: the token matched nothing", () => {
+    expect(
+      resolveMetricsServiceToken(
+        parseMetricsSearch("service:checkout").serviceMatcher,
+        [],
+      ),
+    ).toEqual({ serviceIds: [], excludedServiceIds: [], matchedNothing: true });
   });
 
   test("a token resolves to the ids whose names it matches", () => {
@@ -571,7 +590,11 @@ describe("resolveMetricsServiceToken", () => {
         parseMetricsSearch("service:checkout").serviceMatcher,
         services,
       ),
-    ).toEqual({ serviceIds: [SERVICE_ID], matchedNothing: false });
+    ).toEqual({
+      serviceIds: [SERVICE_ID],
+      excludedServiceIds: [],
+      matchedNothing: false,
+    });
   });
 
   test("a token that matches no name says so", () => {
@@ -580,7 +603,42 @@ describe("resolveMetricsServiceToken", () => {
         parseMetricsSearch("service:nothing-like-it").serviceMatcher,
         services,
       ),
-    ).toEqual({ serviceIds: [], matchedNothing: true });
+    ).toEqual({ serviceIds: [], excludedServiceIds: [], matchedNothing: true });
+  });
+
+  /*
+   * The search finds the services the token it negates keeps - never every
+   * other service of the project - so a negation leaves those out: the
+   * metrics none of them reports, as a chip that leaves a service out reads.
+   */
+  test("a negated token leaves out the services it names, and keeps every other", () => {
+    const parsed: ReturnType<typeof parseMetricsSearch> =
+      parseMetricsSearch("-service:checkout");
+
+    expect(
+      resolveMetricsServiceToken(
+        parsed.serviceMatcher,
+        services,
+        parsed.serviceExclusionMatcher,
+      ),
+    ).toEqual({
+      serviceIds: [],
+      excludedServiceIds: [SERVICE_ID],
+      matchedNothing: false,
+    });
+
+    // Naming no service, it leaves nothing out, and filters by nothing.
+    expect(
+      resolveMetricsServiceToken(
+        parsed.serviceMatcher,
+        [],
+        parsed.serviceExclusionMatcher,
+      ),
+    ).toEqual({
+      serviceIds: [],
+      excludedServiceIds: [],
+      matchedNothing: false,
+    });
   });
 
   test("the same list of names resolves to an equal value every time", () => {

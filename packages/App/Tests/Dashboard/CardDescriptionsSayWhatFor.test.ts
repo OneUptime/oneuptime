@@ -219,24 +219,25 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   /*
    * The two balance pages' Current Balance cards: asking someone who may
-   * recharge to, and telling everyone else who can (both kept in the
-   * balance copy, which each page picks from by the reader's permissions).
+   * add to the balance to, and telling everyone else who can (both kept in
+   * the balance copy, which each page picks from by the reader's
+   * permissions).
    */
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
-    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
+    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
-    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+    "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
-    "AI features are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
+    "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ProjectBalance/ProjectBalanceCopy.ts",
-    "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+    "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.",
   ],
   [
     "Components/ApiKey/ApiKeyPermissionTable.tsx",

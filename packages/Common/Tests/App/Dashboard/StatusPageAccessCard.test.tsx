@@ -622,7 +622,7 @@ describe("moving to another choice", () => {
 
   test("a refused save keeps the dialog open with the server's reason, and saves nothing", async () => {
     refusal = new Error(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
 
     await renderCard();
@@ -631,7 +631,7 @@ describe("moving to another choice", () => {
 
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("modal")).toHaveTextContent(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
 

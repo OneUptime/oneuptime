@@ -42,6 +42,8 @@ Alleen bevindingen met Hoog en Gemiddeld tellen mee: ze maken een opslag gevoeli
 
 Als twee gegevenstypen dezelfde tekens claimen, wint de zekerste bevinding: eerst de hoogste betrouwbaarheid, dan de detector waarvan de eigen regels meer bewijzen, dan de langste match.
 
+Een waarde wordt ook gelezen zoals mensen haar schrijven. De procent-escapes van een URL worden gelezen, zodat een IP-adres of een e-mailadres in een querystring, zoals `jane%40example.com`, wordt gevonden. De cijfers van een kaartnummer worden in elk schrift gelezen, zoals cijfers op volle breedte (`４１１１ １１１１ １１１１ １１１１`) of Arabisch-Indische cijfers, eerst elk schrift apart en dan samen. Een e-mailadres wordt in elk schrift gevonden, zoals `张伟@example.com` of `почта@пример.рф`, en een IPv6-adres direct na de dubbele punt van een sleutel, zoals `ip:2001:db8::1`. Elke bevinding is de waarde zoals ze geschreven is, zodat een opschoonregel haar daar verbergt.
+
 Een lange waarde wordt gelezen in vensters van 64 KB die 4 KB overlappen, zodat een waarde in haar geheel wordt gevonden waar ze ook staat, en van één waarde wordt hoogstens 4 MB gelezen.
 
 ## Velden en kolommen
@@ -74,11 +76,12 @@ Elk type dat OneUptime AI noemt, is een bevinding met Laag, gemarkeerd als **Voo
 
 Geen patroon onderscheidt de naam van een persoon van elk ander woord. Daarom wordt vrije tekst - een supportnotitie, een logregel, een uitzonderingsbericht, een prompt - ook gelezen door een klein taalmodel dat de namen en straatadressen van personen vindt. Het model draait in de scanner, op de workers van OneUptime en op je sondes: de tekst verlaat de scanner nooit, er wordt niets gedownload terwijl het draait, en er wordt geen prompt geschreven. Het is niet OneUptime AI, en de schakelaars van OneUptime AI zetten het niet aan of uit: dat doet **Namen en straatadressen vinden**.
 
-- **Wat het leest.** Een veld waarvan de waarden gemiddeld meer dan 80 tekens lang zijn, en in telemetrie elke logbody, elk uitzonderingsbericht, elke stacktrace en elk AI-gesprek, hoe kort ook. Het leest tot 100 verschillende waarden van een veld, in totaal 32 KB tekst, en tot 16 KB van één waarde.
+- **Wat het leest.** Een veld waarvan de waarden gemiddeld meer dan 80 tekens lang zijn; een veld waarvan de naam zegt dat iemand er vrije tekst in schreef, hoe kort de waarden ook zijn, zoals `delivery_note`, `comentario`, `Lieferhinweis` of `opmerking` (zie [Korte waarden](#korte-waarden)); en in telemetrie elke logbody, elk uitzonderingsbericht, elke stacktrace en elk AI-gesprek, hoe kort ook. Het leest tot 100 verschillende waarden van een veld, in totaal 32 KB tekst, en tot 16 KB van één waarde.
 - **Wat het vindt.** De gegevenstypen **Naam van persoon** (`person-name`) en **Straatadres** (`postal-address`). Een straatadres is een plaatsaanduiding die het model naast een huisnummer leest, zoals `14 Calle Mayor`, met de postcode en de stad die erop volgen. Een stad of een land op zichzelf is geen straatadres.
 - **Hoe zeker het is.** Een naam of adres dat het model vindt, is op zichzelf Gemiddeld. Het is Hoog als de naam van het veld zegt dat het veld namen of adressen bevat, of als woorden ernaast dat zeggen, zoals "customer", "Kunde" of "dirección". Het is Laag als het model er niet zeker van is, met een score onder 0,6. Elke bevinding houdt de betrouwbaarheid die ze op zichzelf verdiende, dus één naam tussen duizend logregels is nog steeds Gemiddeld.
 - **Testwaarden.** Plaatshouders zoals `Jane Doe`, `John Smith`, `Max Mustermann` en `123 Main Street` worden apart geteld, zoals de testwaarden van elk type.
 - **Wat het bewaart.** De voorbeelden ervan worden gemaskeerd zoals bij een naam die op de veldnaam is gevonden: het eerste teken en vier sterretjes, `M****`. Er worden nooit vingerafdrukken van gemaakt. Op de pagina **Inhoud** van de opslag staat bij zo'n bevinding **Gevonden in vrije tekst door het model van de scanner**.
+- **Zijn records en zijn regels.** Een bevinding die het deed, somt de records op waarin ze werd gevonden, met elke tekstregel ingekort rond de naam of het adres en elke naam en elk adres erin gemaskeerd, en Opschonen bewijst een regel op die records, zoals bij elke bevinding: ze worden opnieuw gelezen met het model, met telkens tot 20 seconden van zijn tijd. Een record waarvoor het geen tijd had, staat niet in de lijst, en de lijst zegt voor hoeveel waarden het geen tijd had. Waar het model niet kan draaien, zegt de lijst dat, en wordt er geen regel voor de bevinding bewezen.
 
 | Model | Licentie | Grootte | Revisie | Gemeten talen |
 | --- | --- | --- | --- | --- |
@@ -121,11 +124,36 @@ De vier gemeten modellen, op de geschreven testset, na elkaar op dezelfde machin
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Korte waarden
+
+Een kort veld wordt alleen gelezen als de naam ervan zegt dat iemand er vrije tekst in schreef. De regel werd gemeten voordat hij werd gekozen, op 49 kolommen van een database in de zeven talen, in totaal 588 waarden: productnamen, titels, labels, functietitels en winkelnamen, waarin de naam van een merk, een personage of een straat geen bevinding is, en korte bezorgnotities, supportcommentaren en opmerkingen van klanten met daarin 91 namen en 28 straatadressen. De eerste overwogen regel, elk veld van vier of meer woorden lezen, las 108 waarden van de catalogus en maakte er 53 valse namen van, zoals `Ralph Lauren` in de naam van een poloshirt en `Tom Sawyer` in de titel van een boek:
+
+| Regel | Gelezen cataloguswaarden | Namen: precisie | Namen: recall | Adressen: precisie | Valse bevindingen per 1.000 |
+| --- | --- | --- | --- | --- | --- |
+| Velden van vier of meer woorden (niet gekozen) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Velden waarvan de naam op vrije tekst wijst (gekozen) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+De gekozen regel, per taal. Een test legt deze scores vast, en ook de lat waarmee het model werd gekozen:
+
+| Taal | Namen: precisie | Namen: recall | Adressen: precisie | Adressen: recall |
+| --- | --- | --- | --- | --- |
+| Engels | 1,00 | 1,00 | 1,00 | 1,00 |
+| Spaans | 1,00 | 1,00 | 1,00 | 1,00 |
+| Duits | 1,00 | 1,00 | 1,00 | 1,00 |
+| Frans | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italiaans | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portugees | 0,86 | 0,92 | 1,00 | 1,00 |
+| Nederlands | 1,00 | 1,00 | 1,00 | 1,00 |
+| Alle zeven | 0,98 | 0,99 | 1,00 | 1,00 |
+
+De naam van het veld zelf telt: `orders.delivery_note` wordt gelezen, `notes.author` niet, en evenmin een naam die eindigt op een id, een aantal, een type, een status of een tijd, zoals `message_id`. Een beschrijving wordt niet om haar naam gelezen: die van een product is catalogustekst.
+
 ### Waar het draait, en wat het kost
 
 - **In elk image.** Het app-image, dat de workers draait, en het sonde-image bevatten het model, het vocabulaire ervan en de runtime, de air-gapped en Iron Bank-images inbegrepen: ongeveer 114 MB op schijf. Ze worden opgehaald wanneer het image wordt gebouwd, vanaf een vastgezette revisie, en gecontroleerd aan de hand van hun SHA-256. Terwijl een scan draait, wordt er niets gedownload.
 - **Geheugen.** Het model wordt geladen zodra een scan het voor het eerst nodig heeft, één keer per proces: ongeveer 550 MB, dat na 10 minuten zonder scan weer wordt vrijgegeven.
 - **Tijd.** Op één kern tussen 30 seconden en een minuut per 1.000 waarden ter lengte van een logregel, en ongeveer 9 minuten per 1.000 waarden van 1.200 tekens. Een inhoudsscan van een opslag geeft het model tot 2 minuten. De telemetriescan van elk uur geeft het in totaal tot 1 minuut, met 6 seconden per opslag, en neemt elk uur een andere reeks opslagen.
+- **Om de beurt.** Het model van elke inhoudsscan begint waar dat van de vorige stopte: bij de eerste tabel of container waarvan het de vrije tekst niet las, en met de objecten van een bucket waarvoor het geen tijd had, die vóór alle andere opnieuw worden gelezen. Wat het begon en niet kon afmaken, wordt niet opnieuw als eerste genomen, zodat niets scan na scan de tijd van het model opeist en elke tabel en elk object aan de beurt komt, hoeveel vrije tekst de opslag ook bevat.
 - **Als de tijd op is**, rondt de scan af met wat het model heeft gelezen, en de waarschuwingen van de scan zeggen hoeveel van de waarden in vrije tekst het heeft gelezen, nooit wat erin stond. Een worker of sonde zonder model scant zoals voorheen en zegt waarom:
 
 ```text
@@ -133,7 +161,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Namen en straatadressen vinden** staat aan voor elk project: inhoudsscans van buckets, databases en BigQuery-datasets lezen vrije tekst met het model, op workers en op sondes. De instelling eronder, **Namen en straatadressen in telemetrie vinden**, staat uit: elke logbody, elke uitzondering en elk gesprek van een druk project met 200 services één keer lezen kost ongeveer 48 minuten van één kern, en in zijn minuut per uur leest de scan daar ongeveer 4% van. Zet die aan om de scan er elk uur een deel van te laten lezen. Beide staan op **Gegevensbeveiliging → Instellingen → Scaninstellingen**, onder **Wat Gegevensbeveiliging leest**. **Testen** draait in je browser, zonder het model: wat het model zou vinden, wordt daar niet getoond.
+De details van een scan tonen deze, en elke andere waarschuwing van een inhouds- of telemetriescan, in de taal van de lezer.
+
+**Namen en straatadressen vinden** staat aan voor elk project: inhoudsscans van buckets, databases en BigQuery-datasets lezen vrije tekst met het model, op workers en op sondes. De instelling eronder, **Namen en straatadressen in telemetrie vinden**, staat uit: elke logbody, elke uitzondering en elk gesprek van een druk project met 200 services één keer lezen kost ongeveer 48 minuten van één kern, en in zijn minuut per uur leest de scan daar ongeveer 4% van. Zet die aan om de scan er elk uur een deel van te laten lezen. Beide staan op **Gegevensbeveiliging → Instellingen → Scaninstellingen**, onder **Wat Gegevensbeveiliging leest**. **Testen** draait in je browser, zonder het model: wat het model zou vinden, wordt daar niet getoond. Het model zou ongeveer 113 MB aan de download toevoegen, gecomprimeerd 67 MB, en ongeveer 440 MB aan het geheugen van het tabblad, dus het draait alleen in de scanner.
 
 ## Gevoeligheid
 

@@ -24,7 +24,7 @@ flowchart TB
 - Se respetan las sustituciones. Cuando alguien te cubre, el evento pasa a esa persona (se añade `(covering for <Name>)`) y sigue siendo el mismo evento en tu aplicación de calendario, así que se actualiza en su sitio en lugar de duplicarse. Una sustitución parcial divide el turno en eventos contiguos.
 - Dos días de historial y 90 días hacia adelante por defecto. Puedes ampliarlo a 60 días hacia atrás y 180 hacia adelante; un feed que superaría 5000 eventos se acorta y lo indica en la descripción de su calendario.
 - Los eventos se marcan como disponibles (`TRANSP:TRANSPARENT`), así que un feed suscrito nunca bloquea tu disponibilidad, y nada se marca como privado, de modo que un calendario de equipo compartido muestra los títulos a todos los que pueden verlo.
-- Las horas se envían en UTC y tu aplicación de calendario las convierte; la descripción detalla la hora local en la zona de la programación y en la tuya. Configura tu propia zona horaria como **Zona horaria** en tu **Perfil** (tu foto, arriba a la derecha del panel), y la de la programación en la tarjeta **Zona horaria de la programación** de su página **Capas**. Una programación sin zona horaria se calcula en la zona del servidor, igual que los avisos, y el evento lo indica.
+- Las horas se envían en UTC y tu aplicación de calendario las convierte; la descripción detalla la hora local en la zona de la programación y en la tuya. Configura tu propia zona horaria como **Zona horaria** en tu **Perfil de usuario** (tu foto, arriba a la derecha del panel), y la de la programación en la tarjeta **Zona horaria de la programación** de su página **Capas**. Una programación sin zona horaria se calcula en la zona del servidor, igual que los avisos, y el evento lo indica.
 
 Las asignaciones fijas —un usuario o un equipo nombrado directamente en una regla de una política de escalado— no tienen inicio ni fin y no aparecen en ningún feed. En OneUptime Cloud, los feeds siguen el mismo plan que las programaciones de guardia (Growth); un proyecto por debajo de ese plan recibe un calendario vacío en lugar de un error.
 
@@ -327,7 +327,7 @@ Estas aplicaciones validan TLS en el dispositivo. Importa tu CA interna en el al
 :::
 
 :::details Las horas son incorrectas
-Todas las horas del archivo están en UTC; la aplicación de calendario las convierte a su propia zona. Si los turnos parecen desplazados por un desfase fijo, revisa la zona horaria de la programación (**Zona horaria de la programación** en su página **Capas**) y la tuya (**Zona horaria** en tu **Perfil**). Una programación sin zona horaria se calcula en la zona del servidor y el evento lo indica.
+Todas las horas del archivo están en UTC; la aplicación de calendario las convierte a su propia zona. Si los turnos parecen desplazados por un desfase fijo, revisa la zona horaria de la programación (**Zona horaria de la programación** en su página **Capas**) y la tuya (**Zona horaria** en tu **Perfil de usuario**). Una programación sin zona horaria se calcula en la zona del servidor y el evento lo indica.
 :::
 
 :::details El feed dice que se ha acortado

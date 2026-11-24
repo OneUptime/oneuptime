@@ -842,15 +842,59 @@ describe("TopInstancesByCpuTitle", () => {
     /*
      * Card translates a string title but passes an element through, so the
      * element has to translate itself or a localized dashboard loses it.
+     * The (i)'s spoken name is a sentence of its own, "About {{label}}",
+     * worded whole: the title in it reads as the title does.
      */
+    mockTranslations["Top instances by CPU"] = "Instancias con más CPU";
+    mockTranslations["About {{label}}"] = "Acerca de {{label}}";
+
+    render(<TopInstancesByCpuTitle />);
+
+    expect(screen.getByText("Instancias con más CPU")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Acerca de Instancias con más CPU" }),
+    ).toBeInTheDocument();
+  });
+
+  test("never says its (i)'s name half in English", () => {
+    // A language that words the title but not "About {{label}}" yet.
     mockTranslations["Top instances by CPU"] = "Instancias con más CPU";
 
     render(<TopInstancesByCpuTitle />);
 
     expect(screen.getByText("Instancias con más CPU")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "About Instancias con más CPU" }),
+      screen.getByRole("button", { name: "About Top instances by CPU" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "About Instancias con más CPU" }),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The (i) follows the title's last word, inside the title's own words
+   * (WordsWithInfoTooltip), so a title that wraps keeps it beside its last
+   * word: drawn as the words' flex sibling, it stood at the card's far edge
+   * once a German title or a phone's card wrapped it (#10922).
+   */
+  test("draws its (i) after its last word, inside the title's words", () => {
+    render(<TopInstancesByCpuTitle />);
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "About Top instances by CPU",
+    });
+    const words: HTMLElement = screen.getByText("Top instances by CPU");
+
+    // The (i) is inside the element that holds the words, after them.
+    expect(words.contains(button)).toBe(true);
+    expect(words.textContent).toBe("Top instances by CPU");
+    expect(button.closest("[data-info-glue]")).not.toBeNull();
+    expect(
+      words.compareDocumentPosition(button) &
+        Node.DOCUMENT_POSITION_CONTAINED_BY,
+    ).toBeTruthy();
+    // No flex row of its own around the words and the (i).
+    expect(words.closest(".inline-flex")).toBeNull();
   });
 });
 

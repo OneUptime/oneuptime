@@ -48,8 +48,9 @@ export const LIST_PERMISSION_USE: string = translationKey(
 export const WAF_PERMISSION_USE: string = translationKey(
   "On each zone to block in.",
 );
+// A network challenged by its ASN from Campaigns takes one on every plan (#10894).
 export const ACCESS_RULES_PERMISSION_USE: string = translationKey(
-  "Only on a plan without a list or a custom rule to spare.",
+  "To challenge a network by its ASN, and on a plan without a list or a custom rule to spare.",
 );
 
 export const ZONES_FIELD_TITLE: string = translationKey("Zones");

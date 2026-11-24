@@ -29,6 +29,7 @@ import IncidentFeedService from "../../Services/IncidentFeedService";
 import IncidentService from "../../Services/IncidentService";
 import RunbookService from "../../Services/RunbookService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import ServerSetColumns from "../Database/ServerSetColumns";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { findAccessibleSuggestion } from "./RemediationApproval";
@@ -138,7 +139,16 @@ export default class VerifiedFixRunbookSave {
       }),
     );
     runbook.description = draft.description;
-    runbook.steps = draft.steps as unknown as JSONArray;
+    /*
+     * The steps are OneUptime's - what its verified fix ran, written down -
+     * not the person's, and marked so: whoever may create a runbook may save
+     * the fix, though writing steps that run takes permission to change
+     * runbooks (RunbookService.assertMayWriteStepsThatRun), because the
+     * runbook starts turned off.
+     */
+    ServerSetColumns.set(runbook, {
+      steps: draft.steps as unknown as JSONArray,
+    });
     // A draft: nobody runs it, and OneUptime AI never picks it, until it is reviewed and turned on.
     runbook.isEnabled = false;
 

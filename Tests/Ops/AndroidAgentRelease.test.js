@@ -32,7 +32,11 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 
-const { needsOf, ancestorsOf } = require("./Utils/ReleaseWorkflow");
+const {
+  needsOf,
+  ancestorsOf,
+  afterEveryNeedSucceeded,
+} = require("./Utils/ReleaseWorkflow");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT = "agents/AndroidAgent";
@@ -211,8 +215,12 @@ describe(`release.yml: ${GOOGLE_PLAY_JOB}`, () => {
     for (const e2e of E2E_JOBS) {
       expect({ e2e, waited: waitsFor.has(e2e) }).toEqual({ e2e, waited: true });
     }
-    // No status function: Actions requires every job it needs to succeed.
-    expect(job.if).toBe("github.ref == 'refs/heads/release'");
+    /*
+     * Every job it needs succeeded, whatever became of the jobs before them:
+     * android-agent-build, which fails while the APK's signing key is not
+     * set, must not keep the bundle from going to Google Play.
+     */
+    expect(job.if).toBe(afterEveryNeedSucceeded(job));
   });
 
   test("may read the repository and nothing else, has a timeout, and runs one at a time without cancelling another", () => {

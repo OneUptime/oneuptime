@@ -7,14 +7,17 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   doesCloudConnectionWafBlocklistAddRule,
   isCloudConnectionDataSecurityResponseOn,
+  isCloudConnectionSecurityCaseChecksOn,
   isCloudConnectionWafBlocklistOn,
 } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   AWS_DATA_SECURITY_RESPONSE_ACTIONS,
   AWS_READ_ONLY_ACTIONS,
+  AWS_SECURITY_CASE_CHECKS_ACTIONS,
   AZURE_DATA_SECURITY_RESPONSE_ACTIONS,
   CloudConnectionCommandSettings,
   CloudConnectionSetupScope,
@@ -43,7 +46,11 @@ import { JSONObject, JSONValue } from "../../../../Types/JSON";
  *     those are exactly what Data security response grants: AWS's policy,
  *     Azure's and Google Cloud's custom roles. A call added to a responder
  *     without its permission in the grant fails here, before a playbook
- *     fails with a permission error in a customer's cloud.
+ *     fails with a permission error in a customer's cloud;
+ *   - the reads (#10900): the IAM calls a security case makes to read
+ *     back what an attack changed on a user are exactly what Security
+ *     case checks grants, and the step asks IAM through a connection
+ *     exactly when the command it was shown granted them.
  */
 
 // packages/Common/Tests/Server/Utils/CloudConnection -> packages/Common.
@@ -67,6 +74,12 @@ const RESPONDERS: {
 
 // A double-quoted string on one line, as written.
 const DOUBLE_QUOTED: RegExp = /"([^"\n]*)"/g;
+
+// An IAM call as AwsIamUsers makes one: `action: "ListAccessKeys"`.
+const IAM_CALL: RegExp = /\baction: "([A-Z][A-Za-z]+)"/g;
+
+// An IAM action that only reads.
+const IAM_READ: RegExp = /^iam:(Get|List)[A-Z]/;
 
 // Every double-quoted string a source holds, as written.
 function quotedStrings(code: string): Array<string> {
@@ -253,6 +266,34 @@ describe("the server reads a connection's settings as its command does", () => {
     }
   });
 
+  test("whether a security case may read IAM users back: on exactly when the step's AWS reader asks IAM (#10900)", () => {
+    for (const value of VALUES) {
+      const config: JSONObject =
+        value === undefined ? {} : { [SECURITY_CASE_CHECKS_FIELD_KEY]: value };
+
+      expect({
+        value,
+        on:
+          getCloudConnectionCommandSettings(config).securityCaseChecks === "on",
+      }).toEqual({
+        value,
+        on: isCloudConnectionSecurityCaseChecksOn(
+          config[SECURITY_CASE_CHECKS_FIELD_KEY],
+        ),
+      });
+    }
+
+    // The step reads the connection's own setting, with that check, and nothing else.
+    const code: string = source(
+      "Server/Utils/SecurityCase/StepChecks/Evidence/AwsAccountChanges.ts",
+    );
+
+    expect(
+      code.split("isCloudConnectionSecurityCaseChecksOn(").length - 1,
+    ).toBe(1);
+    expect(code).toContain("config[SECURITY_CASE_CHECKS_FIELD_KEY]");
+  });
+
   test("DataSecurityResponse decides it with that check, of the connection's own setting, wherever it decides", () => {
     const code: string = source(RESPONDERS.shared);
     const decisions: number =
@@ -329,6 +370,39 @@ describe("each responder's writes are what Data security response grants, no mor
       "wafv2:UpdateWebACL",
     );
     expect(getAwsWafBlocklistActions("off")).toEqual([]);
+  });
+
+  test("AWS IAM (#10900): the calls a security case makes to read a user back are the OneUptimeSecurityCaseChecks policy's, each a read", () => {
+    const code: string = source(
+      "Server/Utils/CloudConnection/Aws/AwsIamUsers.ts",
+    );
+    // Each call names its IAM action where it is made: `action: "GetUser"`.
+    const called: Array<string> = unique(
+      Array.from(code.matchAll(IAM_CALL)).map(
+        (match: RegExpMatchArray): string => {
+          return `iam:${match[1]}`;
+        },
+      ),
+    );
+
+    expect(called).toEqual(unique([...AWS_SECURITY_CASE_CHECKS_ACTIONS]));
+    expect(called).toHaveLength(7);
+
+    // Each reads: a Get or a List, nothing that writes, and nothing of the read-only policy's.
+    for (const action of called) {
+      expect({ action, reads: IAM_READ.test(action) }).toEqual({
+        action,
+        reads: true,
+      });
+      expect(AWS_READ_ONLY_ACTIONS).not.toContain(action);
+    }
+
+    // And nothing else in the module names an AWS action.
+    expect(
+      quotedStrings(code).filter((text: string): boolean => {
+        return isAwsAction(text) && !called.includes(text);
+      }),
+    ).toEqual([]);
   });
 
   test("the readers of names find them: a call's permission, and not an API's host name or a resource type", () => {

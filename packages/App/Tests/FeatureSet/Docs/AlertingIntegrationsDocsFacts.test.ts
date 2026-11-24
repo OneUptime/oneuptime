@@ -8,8 +8,8 @@ import {
 } from "./IntegrationsDocsPages";
 import { scanMarkdown } from "./DocsContentSupport";
 import {
-  MAX_PENDING_BYTES_PER_MONITOR,
-  MAX_PENDING_REQUESTS_PER_MONITOR,
+  DEFAULT_MAX_PENDING_BYTES_PER_MONITOR,
+  DEFAULT_MAX_PENDING_REQUESTS_PER_MONITOR,
 } from "../../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
 import {
   bold,
@@ -797,8 +797,9 @@ describe("what the monitor answers, and when it evaluates", () => {
    * keeps (#10582).
    */
   it("Alertmanager says a grouped monitor evaluates every notification in order, and how many may wait", () => {
-    expect(MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
-    expect(MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);
+    // The defaults: a self-hosted install sets its own (#10652).
+    expect(DEFAULT_MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
+    expect(DEFAULT_MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);
 
     const page: string = englishPage(ALERTMANAGER);
 

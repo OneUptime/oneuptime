@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "問題が発生しました",
-  "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください",
+  "This page stopped working": "このページは動作を停止しました",
+  "Part of this page ran into a problem. Reload the page to continue.": "このページの一部で問題が発生しました。続行するにはページを再読み込みしてください。",
   "Error details": "エラーの詳細",
   "a11y": {
     "skipToMainContent": "メインコンテンツにスキップ",
@@ -486,6 +486,9 @@
   "No options available": "利用できるオプションはありません",
   "No matches found": "一致するものが見つかりません",
   "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました",
+  "{{count}} related incidents": "関連するインシデント {{count}} 件",
+  "{{count}} related incidents_one": "関連するインシデント {{count}} 件",
+  "Part of {{incident}}": "{{incident}} の一部",
   "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
   "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
   "Password meets requirements": "パスワードは要件を満たしています",
@@ -521,5 +524,27 @@
     "sessionExpired": "セッションの有効期限が切れました。もう一度サインインしてください。",
     "signedOut": "サインアウトしています。もう一度サインインしてください。",
     "magicLinkTurnedOff": "このステータスページではサインインリンクがオフになっています。メールアドレスとパスワードでサインインしてください。"
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "サーバーで原因を説明できない問題が発生したため、処理は完了しませんでした。もう一度お試しください。それでも失敗する場合は、管理者または OneUptime サポートにこの参照番号を伝えてください: {{reference}}。",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "サーバーで原因を説明できない問題が発生したため、処理は完了しませんでした。少し待ってから、もう一度お試しください。",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime に接続できなかったため、処理は完了しませんでした。インターネット接続を確認してから、もう一度お試しください。",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "このページで問題が発生したため、処理は完了しませんでした。ページを再読み込みしてから、もう一度お試しください。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が大きすぎてサーバーが受け付けなかったため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が、OneUptime が 1 回のリクエストで受け付ける 50 MB を超えているため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "This did not finish.": "処理は完了しませんでした。",
+  "The server ran into a problem it could not explain.": "サーバーで原因を説明できない問題が発生しました。",
+  "The OneUptime server did not answer.": "OneUptime サーバーが応答しませんでした。",
+  "OneUptime could not be reached.": "OneUptime に接続できませんでした。",
+  "This page ran into a problem.": "このページで問題が発生しました。",
+  "What was sent was too large for the server to accept.": "送信した内容が大きすぎて、サーバーが受け付けませんでした。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "送信した内容が、OneUptime が 1 回のリクエストで受け付ける 50 MB を超えています。",
+  "Try again in a moment.": "少し待ってから、もう一度お試しください。",
+  "It may be starting or restarting. Try again in a few minutes.": "起動中か再起動中の可能性があります。数分後にもう一度お試しください。",
+  "Check your internet connection, then try again.": "インターネット接続を確認してから、もう一度お試しください。",
+  "Reload the page, then try again.": "ページを再読み込みしてから、もう一度お試しください。",
+  "Try again with less at once, such as a smaller file.": "小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
+  "The {{itemName}} was not created.": "{{itemName}}は作成されませんでした。",
+  "The {{itemName}} was not saved.": "{{itemName}}は保存されませんでした。",
+  "The {{itemName}} could not be loaded.": "{{itemName}}を読み込めませんでした。",
+  "Page Did Not Load": "ページを読み込めませんでした"
 }

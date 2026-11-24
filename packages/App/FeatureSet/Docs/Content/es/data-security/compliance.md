@@ -227,6 +227,8 @@ La finalidad de cada uno es «Seguridad de la red y de la información (consider
 
 Un almacén aparece mientras tu proyecto conserva sus datos: la bóveda de direcciones, mientras una regla de dirección IP activada aplica hash a los registros o las trazas que lee Eventos de seguridad, la bóveda de usuarios, mientras lo hace una regla activada de cualquier otro patrón, y cada una 31 días más (consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Cuando sus datos desaparecen, el almacén se archiva, y vuelve con tu finalidad y tu retención si vuelven los datos.
 
+Para borrar a una persona de «Bóveda de usuarios de seguridad», y de los eventos y casos que la nombran a través de ella, presente una solicitud de borrado: consulte [Borrar a una persona](/docs/telemetry/security-events#borrar-a-una-persona).
+
 ## Evaluaciones de impacto
 
 El artículo 35 del RGPD pide una evaluación de impacto relativa a la protección de datos antes de un tratamiento que probablemente entrañe un alto riesgo. Seguridad de datos dice qué almacenes la necesitan: un almacén que contiene categorías especiales de datos, como datos de salud, datos sobre muchas personas (unos 100.000 registros o más) o datos que salen de los países de los interesados.

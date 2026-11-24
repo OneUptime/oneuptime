@@ -70,9 +70,11 @@ flowchart LR
 | Fortinet FortiGate | 來自 FortiGate 本身 syslog 的 IPS 和防毒發現、被拒絕的流量、VPN 和管理員登入以及設定變更 |
 | Cisco ASA | 來自 Cisco ASA 和 Firepower Threat Defense 的被拒絕連線、威脅偵測和 IPS 發現、VPN 和管理員登入以及命令 |
 | Kubernetes 稽核日誌 | 對叢集的變更、在 Pod 中開啟的 shell、被讀取的 secret 和被拒絕的要求 |
-| Web 攻擊 | Web 伺服器存取日誌中嘗試 SQL 注入、路徑周遊或 Log4Shell 的要求，以及要求 `/.env` 或 `/.git/config` 等敏感檔案、但被你的網站拒絕或網站上並不存在的要求 |
+| Web 攻擊 | Web 伺服器存取日誌中嘗試 SQL 注入、路徑周遊或 Log4Shell 的要求，以及要求 `/.env` 或 `/.git/config` 等敏感檔案、但被你的網站拒絕或網站上並不存在的要求，以及你的網站提供出去的含有機密資訊的檔案 |
 
 您的日誌會保持原樣。只有對安全性重要的行才會變成事件：絕不會是 Web 伺服器回傳的每個頁面，也不會是對 API 的每次讀取。
+
+你的網站提供出去的含有機密資訊的檔案（例如 `/.env`）是外洩，規則庫中的 **Sensitive file served** 會為它開啟一個 Critical 案件。單頁應用程式為它沒有的路徑回傳的自己的頁面則永遠不是。請參閱[你的網站提供出去的敏感檔案](/docs/telemetry/security-events#你的網站提供出去的敏感檔案)。
 
 安全性產品寫入日誌的威脅，例如 CEF 或 LEEF 的發現，或 FortiGate 的 IPS 發現，會像已連線產品的警示一樣開啟案件。**你的日誌** 上的 **從以下等級開啟案例** 決定從哪個嚴重程度開始：預設為 **高及以上**，你也可以選擇其他等級或 **從未**。
 

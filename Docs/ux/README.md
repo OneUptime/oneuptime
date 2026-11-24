@@ -894,6 +894,17 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **A menu entry says the name of the page it opens.** A person learns a name from the menu and
+  looks for it on the page: the products menu's Chat opened the Ask AI panel over Home, its Insights
+  a page titled AI Insights, the profile menu's Admin Settings the Admin Dashboard, whose own
+  Settings pages were titled Admin Settings, and Inventory's Topology Map the page the products menu
+  calls Topology (#7474). A product's entry is its step in the trail of the page it opens and the
+  title its layout gives that page; Ask AI, which opens a panel, is the panel's name; the profile
+  menu says User Profile and the Admin Dashboard as those pages call themselves, and the Admin
+  Dashboard's menu its pages' titles and trails, in every language. A layout that titles each page
+  by the page within it (On-Call's policies and schedules) is listed in the guard with why. Enforced
+  by
+  [MenuEntriesNameTheirPagesGuard](../../packages/Common/Tests/App/Dashboard/MenuEntriesNameTheirPagesGuard.test.tsx).
 - **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
   One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
   and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and
@@ -1398,10 +1409,14 @@ then `npm run i18n:validate` from the root.
   own startup probe keeps its name, in
   [`ProbeWords`](../../packages/App/Tests/Dashboard/ProbeWords.ts). And Persian names a port پورت:
   درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
-  Enforced by
+  The authenticator app has one word in each language too, the Dashboard's Authenticator apps
+  card's, on the sign-in page, in the setup key both draw, in the server's messages and the
+  docs: setting up two-factor authentication in Hindi offered "प्रमाणीकरण ऐप", asked for the
+  code from the "प्रमाणक ऐप" and listed it under "ऑथेंटिकेटर ऐप" (#10915). Enforced by
   [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
   [OneWordInSentencesPerThing](../../packages/App/Tests/Dashboard/OneWordInSentencesPerThing.test.ts),
-  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
+  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts),
+  [AuthenticatorAppWordPerLanguage](../../packages/App/Tests/Dashboard/AuthenticatorAppWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
 - **Two things never share one name in a language.** Arabic called the collector an agent runs

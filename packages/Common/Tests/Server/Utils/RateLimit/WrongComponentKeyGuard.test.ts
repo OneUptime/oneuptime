@@ -96,7 +96,7 @@ const KEY_CHECKS: Array<KeyCheck> = [
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Probe, componentId: probeId.toString(), presentedKey: probeKey, isKeyRight: isValidProbe,",
       "return await ProbeService.hasProbeWithId(probeId);",
       "if (refusal) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Probe, refusal); }",
-      'if (!isValidProbe) { return Response.sendErrorResponse(req, res, new BadDataException("Invalid Probe ID or Probe Key")); }',
+      "if (!isValidProbe) { return Response.sendErrorResponse(req, res, new BadDataException(ProbeConnectionRefusals.wrongIdOrKey)); }",
       "return next();",
     ],
   },

@@ -39,7 +39,7 @@ An answer to a "how do I" ends with a button that opens the page of your project
 | Any page | Click **Ask AI** in the header, or press `Ctrl` + `I` (`Cmd` + `I` on a Mac). While you type in a text box or an editor, the keys stay the editor's italics shortcut. |
 | The command palette | Press `Ctrl` + `K` (`Cmd` + `K` on a Mac) and choose **Ask AI**. |
 | A log error pattern, or a chart's findings | Click **Explain with AI**: Ask AI opens with the evidence as a question you can edit before you send it. |
-| The products menu | Open **Products → AI → Chat**. Ask AI opens beside the page you were on. Each conversation has its own address, so you can bookmark it and come back to it. |
+| The products menu | Open **Products → AI → Ask AI**. Ask AI opens beside the page you were on. Each conversation has its own address, so you can bookmark it and come back to it. |
 
 Ask AI opens at the side of the window, and the page makes room for it: nothing is hidden behind it, so you can keep working on the page, move to other pages and ask again. Drag its edge to make it wider or narrower. Press `Esc` in it, or click **Ask AI** again, to give the page the whole window back. With it open, `Ctrl` + `I` (`Cmd` + `I` on a Mac) goes from the page to the box you type in, and from there closes it. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it. On a tablet or a phone, where there is no room for both, it opens over the page, and on a phone it fills the screen.
 
@@ -75,6 +75,14 @@ Opened on the page of a resource whose AI agent is connected (a host, a Docker o
 - It runs only the read-only commands an AI investigation may run on that kind of resource (see [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents)), as many as the answer needs, checked by OneUptime and again by the agent, in every permission mode. A change through the agent, such as restarting a service, never runs from Ask AI: it gives you the exact command instead, and the agent makes changes only when OneUptime AI remediates an incident or alert, under the resource's own fix settings. Ask AI's own actions, such as running a runbook, follow the conversation's permission mode, as below.
 - It reaches only the resources you may view, and only while AI investigation is on for the resource. The commands it runs, with what they printed, are yours, as the conversation is: the resource's AI Logs list them for you and no one else.
 - When it cannot run a command there (no agent is connected, the agent is offline, or AI investigation is off for the resource), it says so, with what to change, and answers from your project's data instead.
+
+## Your MCP servers
+
+Ask AI can use the tools of the [external MCP servers](/docs/ai/external-mcp-servers) your project connected, such as AWS's, GitHub's or your team's own, on every page. Ask "What tools does AWS have?" and it lists them; name a server and one of its tools, and it calls the tool and answers from what came back, cited like any other evidence. The conversation under an incident's or an alert's **OneUptime AI** card can use them too.
+
+- A tool the server marks read-only runs at once, in every permission mode. Any other tool, one the server marks as a change or does not mark at all, waits on an approval card that names the server and the tool and shows exactly what is sent, in **Auto-run** too: nothing reaches the server until you choose **Allow**. A **Read-only** conversation never offers one.
+- It uses the servers that are on, for anyone who may read the project's External MCP Servers. Approving a change through one takes the permission to start runbook executions.
+- What a server answers is data from outside OneUptime, never instructions. A tool is sent only the arguments it takes, and with **Enable AI** off nothing is sent to any server.
 
 ## Actions and permission modes
 
@@ -177,6 +185,10 @@ Ask AI says which permission the action needs, or which team blocks it. Ask some
 
 :::details Answers are vague or never use any data
 Check the model behind the provider. Ask AI needs a model that calls tools reliably; small local models often answer without running a single query. See [LLM Providers](/docs/ai/llm-provider).
+:::
+
+:::details Ask AI says it cannot see an MCP server's tools
+Open the server under **Project Settings → AI → External MCP Servers**: it should say **Connected**, its **Tools** card should list its tools, and **Let OneUptime AI use this server** should be on. Then ask Ask AI "What tools does AWS have?", with your server's name: it lists them, or says why it cannot, such as a server it cannot reach or a role that may not use the project's MCP servers. See [External MCP Servers](/docs/ai/external-mcp-servers).
 :::
 
 ## Next steps

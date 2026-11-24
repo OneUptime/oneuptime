@@ -43,7 +43,7 @@ En Microsoft 365-organisation kan vara ansluten till mer än ett projekt, till e
 :::steps
 ### Ge administratörsmedgivande
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** och klicka på **Bevilja administratörssamtycke**. En Microsoft 365-administratör loggar in och tillåter OneUptime-appen för organisationen. Kortet säger sedan **Admin Consent Completed**. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jour **Anslut en arbetsyta**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** och klicka på **Bevilja administratörssamtycke**. En Microsoft 365-administratör loggar in och tillåter OneUptime-appen för organisationen. Kortet säger sedan **Admin Consent Completed** och namnger organisationen, till exempel Contoso (contoso.onmicrosoft.com). Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jour **Anslut en arbetsyta**, som också leder hit.
 
 ### Anslut ditt konto
 
@@ -305,7 +305,7 @@ När projektets offentliga anteckningar behöver godkännas och du slår på Mic
 - **Uninstall OneUptime from Microsoft Teams**, på **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**, kopplar från projektet. OneUptime slutar publicera i Microsoft Teams, och menyerna **Arbetsyta** slutar visa det. Aviseringsreglerna och sammanfattningarna sparas tills du ansluter igen.
 
 > [!WARNING]
-> Att avinstallera kopplar också från varje medlems eget Microsoft Teams-konto i projektet, och tar bort aviseringsmetoderna för Microsoft Teams och de jourregler som använde dem. Ett projekt är anslutet till en enda Microsoft 365-organisation: för att flytta det till en annan avinstallerar du först.
+> Att avinstallera kopplar också från varje medlems eget Microsoft Teams-konto i projektet, och tar bort aviseringsmetoderna för Microsoft Teams och de jourregler som använde dem. Ett projekt är anslutet till en enda Microsoft 365-organisation: för att flytta det till en annan väljer du i stället **Connect a Different Organization** i samma meny. Det avinstallerar OneUptime på samma sätt och ber sedan en Microsoft 365-administratör i den andra organisationen om samtycke.
 
 ## Felsökning
 
@@ -319,6 +319,10 @@ När Microsoft skickar tillbaka dig utan en anslutning säger sidan du började 
 
 :::details Boten säger att mitt konto inte är anslutet
 Tryck på **Connect Microsoft Teams account** i botens svar för att ansluta det i ett steg, eller länka det under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**. I båda fallen loggar du in i den organisation som projektet är anslutet till, som gäst om du är gäst där. Är du gäst och har tidigare anslutit din egen organisations konto, anslut det igen.
+:::
+
+:::details Microsoft säger att det valda kontot inte finns i klientorganisationen
+Varje Microsoft-inloggning för ett projekt går till den Microsoft 365-organisation som projektet är anslutet till och som kortet **Admin Consent Completed** namnger. Ett konto som inte finns i den organisationen stoppar Microsoft på sin egen sida (`AADSTS50020`), och du skickas inte tillbaka. Logga in med ditt konto i den organisationen. För att i stället ansluta projektet till din organisation väljer du **Connect a Different Organization** i kortets meny och låter en Microsoft 365-administratör i din organisation ge samtycke.
 :::
 
 :::details Alla aviseringar misslyckas på en egenvärdad server

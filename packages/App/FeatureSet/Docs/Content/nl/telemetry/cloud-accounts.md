@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 De opdracht van een lager niveau vervangt het AWS-beleid door het lagere. **Uit** voegt niets toe, dus het laat staan wat een eerdere opdracht gaf, tot je dat verwijdert: het beleid `OneUptimeDataSecurity` op AWS, met `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, en de rollen van het inhoudsniveau op Azure en Google Cloud. Gegevensbeveiliging stopt hoe dan ook meteen met lezen: het leest alleen wat het niveau van de koppeling zegt. [Gegevensbeveiliging instellen](/docs/data-security/setup) somt elke actie van het beleid op, en wat Gegevensbeveiliging bewaart van wat het leest.
 
+## Controles voor beveiligingszaken
+
+Op AWS kan dezelfde koppeling een [beveiligingszaak](/docs/telemetry/security-cases#hoe-oneuptime-een-stap-controleert) laten controleren of is teruggedraaid wat een aanval aan een IAM-gebruiker heeft gewijzigd: de toegangssleutel die hij maakte, het consolewachtwoord dat hij instelde, de beleidsdocumenten die hij koppelde of schreef, de groepen waaraan hij de gebruiker toevoegde, het MFA-apparaat dat hij inschakelde en de gebruiker die hij maakte. Onder **Meer velden** staat **Controles voor beveiligingszaken** op **Uit** tot je ze aanzet, en de opdracht die het formulier toont, verandert mee. Elke actie leest alleen, en geen enkele leest een geheim: van een toegangssleutel de ID en of hij actief is, nooit de sleutel, en dat er een consolewachtwoord is ingesteld, nooit het wachtwoord.
+
+| Wat de zaak leest van elke gebruiker die in haar CloudTrail-gebeurtenissen voorkomt | Acties |
+| --- | --- |
+| De gebruiker, of dat hij niet meer bestaat | `iam:GetUser` |
+| Zijn toegangssleutels, en of elke sleutel actief is | `iam:ListAccessKeys` |
+| Of hij een consolewachtwoord heeft, en sinds wanneer | `iam:GetLoginProfile` |
+| Zijn beheerde beleidsdocumenten, en de namen van zijn inline-beleidsdocumenten | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| De groepen waarin hij zit | `iam:ListGroupsForUser` |
+| Zijn MFA-apparaten | `iam:ListMFADevices` |
+
+De opdracht van de rol voegt een eigen inline-beleid toe, `OneUptimeSecurityCaseChecks`, met één regel extra, en het StackSet van een organisatie zet het in de rol van elk account:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+Met een **Toegangssleutel** gaat het beleid op een groep met dezelfde naam, `OneUptimeSecurityCaseChecks`, waaraan de gebruiker wordt toegevoegd:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Een zaak leest een wijziging alleen via een koppeling die het account bereikt waarin de wijziging is gemaakt, en vraagt IAM niets via een koppeling waarvan **Controles voor beveiligingszaken** op **Uit** staat: ze noemt die wijzigingen zodat je ze zelf bevestigt, en zegt dat je de instelling moet aanzetten. **Uit** voegt niets toe, dus het laat staan wat een eerdere opdracht gaf, tot je dat verwijdert, met `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+
 ## Wat OneUptime leest
 
 | | AWS | Azure | Google Cloud |

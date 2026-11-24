@@ -701,10 +701,20 @@ export default class InvestigationThreadService {
       ...data.turn,
       isSharedThread: true,
       feature: INVESTIGATION_THREAD_FEATURE,
+      /*
+       * The project's external MCP servers, for whoever asked (or decided
+       * on a paused answer), as Ask AI has them (issue #10879): asked in
+       * the box to use one, OneUptime AI said it could not see it. Offered
+       * even when the context could not be built: they need none of it.
+       */
+      offersExternalMcpServers: true,
       ...(context
         ? {
             additionalSystemInstructions: context.additionalSystemInstructions,
             extraTools: context.extraTools,
+            ...(context.outputPager
+              ? { outputPager: context.outputPager }
+              : {}),
             pageContext: context.pageContext,
             ...(context.aiContextRules && context.aiContextRules.length > 0
               ? { aiContextRules: context.aiContextRules }

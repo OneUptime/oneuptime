@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### 授予管理員同意
 
-前往 **專案設定** > **工作區** > **Microsoft Teams**，按一下 **授予管理員同意**。Microsoft 365 管理員登入，並為組織允許 OneUptime 應用程式。之後卡片會顯示 **Admin Consent Completed**。在連接工作區之前，事件、警示、排定維護、監測器和待命選單的 **工作區** 區段中有 **連線工作區**，它同樣會帶您來到這裡。
+前往 **專案設定** > **工作區** > **Microsoft Teams**，按一下 **授予管理員同意**。Microsoft 365 管理員登入，並為組織允許 OneUptime 應用程式。之後卡片會顯示 **Admin Consent Completed**，並寫出組織，例如 Contoso (contoso.onmicrosoft.com)。在連接工作區之前，事件、警示、排定維護、監測器和待命選單的 **工作區** 區段中有 **連線工作區**，它同樣會帶您來到這裡。
 
 ### 連接您的帳戶
 
@@ -305,7 +305,7 @@ OneUptime AI 提出待核准的修正時，會以一張包含其變更和三個�
 - **專案設定** > **工作區** > **Microsoft Teams** 上的 **Uninstall OneUptime from Microsoft Teams** 會中斷專案的連接。OneUptime 停止向 Microsoft Teams 發布，並且 **工作區** 選單不再列出它。通知規則和摘要會被保留，以便您再次連接時使用。
 
 > [!WARNING]
-> 解除安裝也會解除專案中每位成員自己的 Microsoft Teams 帳戶的連結，並移除 Microsoft Teams 通知方式以及使用它們的待命規則。一個專案只連接到一個 Microsoft 365 組織：要將其移到另一個組織，請先解除安裝。
+> 解除安裝也會解除專案中每位成員自己的 Microsoft Teams 帳戶的連結，並移除 Microsoft Teams 通知方式以及使用它們的待命規則。一個專案只連接到一個 Microsoft 365 組織：要將其移到另一個組織，請改為在同一選單中選擇 **Connect a Different Organization**。它以同樣的方式解除安裝 OneUptime，然後請另一個組織的 Microsoft 365 管理員授予同意。
 
 ## 疑難排解
 
@@ -319,6 +319,10 @@ Microsoft 拒絕了發布，因為機器人不在該團隊中。將應用程式�
 
 :::details 機器人提示我的帳戶未連接
 在機器人的回覆中按 **Connect Microsoft Teams account** 即可一步連接，或在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結它。無論哪種方式，您都會登入專案所連接的組織；如果您是該組織的來賓，則以來賓身分登入。如果您是來賓，而且之前連結的是您自己組織的帳戶，請重新連接。
+:::
+
+:::details Microsoft 提示所選帳戶在租用戶中不存在
+專案的每次 Microsoft 登入都會前往專案所連接的 Microsoft 365 組織，也就是 **Admin Consent Completed** 卡片上寫出的組織。不在該組織中的帳戶會被 Microsoft 在其自己的頁面上擋下 (`AADSTS50020`)，且不會把您送回。請使用您在該組織中的帳戶登入。若要改為將專案連接到您的組織，請在該卡片的選單中選擇 **Connect a Different Organization**，並請您組織的 Microsoft 365 管理員授予同意。
 :::
 
 :::details 在自行託管的伺服器上所有通知都失敗

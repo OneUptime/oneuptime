@@ -45,6 +45,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 1. [Google 관리 콘솔](https://admin.google.com)에서 최고 관리자로 **Security → Access and data control → API controls → Manage domain-wide delegation**을 열고 **Add new**를 선택합니다.
 2. 서비스 계정의 **Unique ID**를 **Client ID**로, `https://www.googleapis.com/auth/admin.reports.audit.readonly`를 **OAuth scope**로 입력합니다. **Authorize**를 선택합니다. Google이 적용하는 데 몇 분 걸릴 수 있습니다.
 3. 플레이북이 사용자를 정지, 정지 해제, 로그아웃할 수 있게 하려면( [봉쇄](/docs/telemetry/security-cases#봉쇄) 참고), 같은 클라이언트의 범위에 `https://www.googleapis.com/auth/admin.directory.user` 와 `https://www.googleapis.com/auth/admin.directory.user.security` 를 쉼표로 구분해 추가합니다. 그러면 연결이 대신 동작하는 관리자는 그 사용자들을 관리하는 관리자여야 합니다.
+4. 공격이 그룹에 추가한 계정이 그 그룹에서 빠졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인할 수 있게 하려면, 같은 방법으로 `https://www.googleapis.com/auth/admin.directory.group.member.readonly` 를 추가합니다. 이 범위는 그룹의 구성원만 읽고 그 밖에는 아무것도 읽지 않으며, 그룹을 읽을 수 있는 관리자가 필요합니다. 이 범위가 없으면 케이스는 그런 변경을 하나씩 나열해 직접 확인하게 하고, 추가할 범위를 알려 줍니다.
 
 ### OneUptime에서 연결 추가
 

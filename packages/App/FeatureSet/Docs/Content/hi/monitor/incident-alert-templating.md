@@ -196,7 +196,7 @@ Alerts for payments:
 | `requestMethod` | HTTP मेथड, जैसे `POST`। | `string` |
 | `incomingRequestReceivedAt` | अनुरोध कब मिला, ISO 8601 टाइमस्टैम्प के रूप में। | `string` |
 
-जब मानदंड में **Group incidents and alerts by a payload field** चालू हो, तो ग्रुपिंग कुंजी भी एक वेरिएबल होती है, जिसका नाम ग्रुपिंग पथ के **आखिरी हिस्से** पर होता है: `requestBody.alerts[*].labels.alertname` से समूहित करने पर `{{alertname}}` मिलता है, और `requestBody.alerts[*].fingerprint` से समूहित करने पर `{{fingerprint}}`। पूरा `requestBody` भी उसके साथ मौजूद रहता है।
+जब मानदंड में **पेलोड फ़ील्ड के आधार पर घटनाओं और अलर्ट को समूहित करें** चालू हो, तो ग्रुपिंग कुंजी भी एक वेरिएबल होती है, जिसका नाम ग्रुपिंग पथ के **आखिरी हिस्से** पर होता है: `requestBody.alerts[*].labels.alertname` से समूहित करने पर `{{alertname}}` मिलता है, और `requestBody.alerts[*].fingerprint` से समूहित करने पर `{{fingerprint}}`। पूरा `requestBody` भी उसके साथ मौजूद रहता है।
 
 > [!NOTE]
 > `[*]` केवल ग्रुपिंग पथ फ़ील्ड में काम करता है। टेम्पलेट में यह कुछ नहीं पढ़ता, इसलिए प्लेसहोल्डर जैसा लिखा था वैसा रह जाता है। `{{requestBody.alerts[0].annotations.summary}}` हमेशा पेलोड का पहला अलर्ट पढ़ता है, न कि वह जिसके लिए घटना खोली गई: ग्रुपिंग वेरिएबल और पेलोड के साझा फ़ील्ड, जैसे `commonLabels` और `commonAnnotations`, का उपयोग करें। देखें [आने वाले अनुरोध मॉनिटर](/docs/monitor/incoming-request-monitor)।

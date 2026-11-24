@@ -796,6 +796,126 @@ describe("SecurityLogScanner.scanSource", () => {
   });
 });
 
+/*
+ * A SENSITIVE FILE A SITE SERVED (#10912), as the scan stores a page: a
+ * 200 the page's other requests decide is stored as what it was - the
+ * file, Critical, or the site's own page, a probe that found nothing - and
+ * one nothing decides is not stored at all.
+ */
+describe("SecurityLogScanner.scanSource - a sensitive file a site served", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function request(data: {
+    index: number;
+    target: string;
+    status: number;
+    size: number;
+    site: string;
+  }): StoredLog {
+    return {
+      id: `0192f1a0-0000-7000-8000-10912${String(data.index).padStart(7, "0")}`,
+      arrivedAt: new Date(
+        OneUptimeDate.addRemoveMinutes(NOW, -3).getTime() + data.index * 1000,
+      ),
+      body: `198.51.100.23 - - [19/Oct/2026:11:57:00 +0000] "GET ${data.target} HTTP/1.1" ${data.status} ${data.size} "-" "Mozilla/5.0 zgrab/0.x"`,
+      primaryEntityId: data.site,
+      primaryEntityType: ServiceType.OpenTelemetry,
+    };
+  }
+
+  const LEAKING_SITE: string = "0192f1a0-0000-7000-8000-0000000a1001";
+  const APP_SITE: string = "0192f1a0-0000-7000-8000-0000000a1002";
+  const QUIET_SITE: string = "0192f1a0-0000-7000-8000-0000000a1003";
+
+  test("stores the leaked .env as served, a single-page app's probes as its own page, and nothing for a 200 nothing decides", async () => {
+    const installed: Installed = install([
+      // A site that leaks its .env, and answers 404 for what it doesn't have.
+      request({
+        index: 1,
+        target: "/.env",
+        status: 200,
+        size: 412,
+        site: LEAKING_SITE,
+      }),
+      request({
+        index: 2,
+        target: "/.git/config",
+        status: 404,
+        size: 153,
+        site: LEAKING_SITE,
+      }),
+      // A single-page app: its page, 1,789 bytes, for every path.
+      request({
+        index: 3,
+        target: "/.env",
+        status: 200,
+        size: 1789,
+        site: APP_SITE,
+      }),
+      request({
+        index: 4,
+        target: "/.git/config",
+        status: 200,
+        size: 1789,
+        site: APP_SITE,
+      }),
+      // A site whose one 200 nothing else of the page decides.
+      request({
+        index: 5,
+        target: "/.aws/credentials",
+        status: 200,
+        size: 1789,
+        site: QUIET_SITE,
+      }),
+    ]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -4).toISOString()),
+    );
+
+    expect(result.logsRead).toBe(5);
+    // The lone 200 is no event.
+    expect(result.eventsFound).toBe(4);
+    expect(installed.inserted).toHaveLength(4);
+
+    const stored: Array<string> = installed.inserted.map(
+      (row: JSONObject): string => {
+        return `${String(row["message"])} | ${String(row["severityName"])} | ${String(row["requestOutcome"])}`;
+      },
+    );
+
+    expect(stored).toEqual([
+      "Sensitive file served: GET /.env → 200 | Critical | Reached App",
+      "Request for a sensitive file: GET /.git/config → 404 | Low | Rejected",
+      "Request for a sensitive file: GET /.env → 200 | Low | Rejected",
+      "Request for a sensitive file: GET /.git/config → 200 | Low | Rejected",
+    ]);
+  });
+
+  test("a page of nothing but 200s nothing decides stores nothing, and still moves on", async () => {
+    const installed: Installed = install([
+      request({
+        index: 1,
+        target: "/.env",
+        status: 200,
+        size: 1789,
+        site: QUIET_SITE,
+      }),
+    ]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -4).toISOString()),
+    );
+
+    expect(result.logsRead).toBe(1);
+    expect(result.eventsFound).toBe(0);
+    expect(installed.inserted).toEqual([]);
+    expect(installed.updates[0]!["cursor"]).toBe(UNTIL.toISOString());
+  });
+});
+
 describe("SecurityLogScanner.scanProject", () => {
   afterEach(() => {
     jest.restoreAllMocks();

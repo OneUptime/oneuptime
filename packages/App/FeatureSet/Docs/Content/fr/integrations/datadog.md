@@ -111,7 +111,7 @@ Dans le même critère, ouvrez **Paramètres** et activez **Regrouper les incide
 | --- | --- |
 | **Ouvrir un incident distinct pour chaque…** | `requestBody.alert_key` |
 | **Champ qui signale le rétablissement** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Valeur qui signifie rétabli** | `Recovered` |
 
 ### Remettre le moniteur en ligne
 
@@ -227,7 +227,7 @@ Ouvrez l'exécution dans **Exécutions**. L'entrée `read-event-1` de ses **Éta
 - Le moniteur Datadog doit aussi prévenir le webhook de ses rétablissements. Un message qui ne cite le webhook que pour les alertes, dans une condition, n'envoie aucun rétablissement.
 - Avec le modèle, ouvrez l'exécution du rétablissement dans **Exécutions** : sa dernière étape dit pourquoi. L'`alert_cycle_key` du rétablissement doit être celui de l'alerte, laissez donc `$ALERT_CYCLE_KEY` tel quel dans la charge utile.
 - Avec le moniteur, l'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
-- **Value that means recovered** doit valoir exactement `Recovered`. La comparaison respecte la casse.
+- **Valeur qui signifie rétabli** doit valoir exactement `Recovered`. La comparaison respecte la casse.
 - L'`alert_key` du rétablissement doit être celui de l'alerte : laissez `$ALERT_ID $ALERT_SCOPE` tel quel dans la charge utile.
 :::
 

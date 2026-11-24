@@ -29,8 +29,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * (AIBillingService) exactly as its SMS and call balance
  * (NotificationService), on the same webhook, in the same words:
  *
- * - a recharge by hand, an Auto Recharge, and the charge Auto Recharge makes
- *   the moment somebody turns it on, each say which they were;
+ * - a recharge by hand and an Auto Recharge each say which they were; the
+ *   charge made the moment somebody turns Auto Recharge on is theirs, as a
+ *   recharge by hand is (#11090), and says so;
  * - the message names the project, what was added, the balance now, and who
  *   created the project - the creator is read with the project for it (the
  *   message named them, and the read left them out, so it never did);
@@ -281,7 +282,7 @@ describe.each(BALANCES)("a refill of $name", (balance: BalanceUnderTest) => {
     expect(lines).toContain("*Recharge Type:* Auto Recharge");
   });
 
-  test("turning Auto Recharge on charges at once, and the channel hears of it as Auto Recharge", async () => {
+  test("turning Auto Recharge on charges at once, and the channel hears of it as the charge of the person who saved it", async () => {
     const world: WorldUnderTest = setUp(balance.autoRechargeOff);
 
     expect(await balance.turnAutoRechargeOn()).toBe(2650);
@@ -294,7 +295,13 @@ describe.each(BALANCES)("a refill of $name", (balance: BalanceUnderTest) => {
 
     expect(lines).toContain("*Refill Amount:* $25\u00A0USD");
     expect(lines).toContain("*Current Balance:* $26.50\u00A0USD");
-    expect(lines).toContain("*Recharge Type:* Auto Recharge");
+    /*
+     * Somebody pressed Save, and was charged for it there and then - not
+     * Auto Recharge on its own, which is what "Auto Recharge" tells the
+     * channel (#11090).
+     */
+    expect(lines).toContain("*Recharge Type:* Manual");
+    expect(lines).not.toContain("*Recharge Type:* Auto Recharge");
   });
 
   test("a balance that needs no recharge charges nothing and tells nobody", async () => {

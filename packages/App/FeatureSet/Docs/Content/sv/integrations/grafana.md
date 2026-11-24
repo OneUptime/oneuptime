@@ -59,13 +59,13 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande beg�
 
 ### Öppna en incident per larm
 
-Öppna **Inställningar** i samma kriterium och slå på **Group incidents and alerts by a payload field**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
+Öppna **Inställningar** i samma kriterium och slå på **Gruppera incidenter och larm efter ett fält i nyttolasten**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
 
 | Fält | Värde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Öppna en separat incident för varje…** | `requestBody.alerts[*].fingerprint` |
+| **Fält som signalerar återhämtning** | `requestBody.alerts[*].status` |
+| **Värde som betyder återhämtad** | `resolved` |
 
 ### Få monitorn online igen
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 En egenvärdad installation har sin egen värd i stället för `oneuptime.com`.
 :::
 
-Varje larm i en avisering öppnar sin egen incident, upp till **Max incidents per request** (`100` om du inte ändrar det), och varje larms egen `status` avgör när dess incident löses. Grafanas `fingerprint` identifierar ett larm utifrån dess etiketter, så det är värdet att gruppera efter. Se [Ta emot larm från ett annat system](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system) för vad varje inställning gör.
+Varje larm i en avisering öppnar sin egen incident, upp till **Max antal incidenter per förfrågan** (`100` om du inte ändrar det), och varje larms egen `status` avgör när dess incident löses. Grafanas `fingerprint` identifierar ett larm utifrån dess etiketter, så det är värdet att gruppera efter. Se [Ta emot larm från ett annat system](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system) för vad varje inställning gör.
 
 > [!WARNING]
 > Gruppera inte efter en etikett som alla larm i en avisering delar. Grafanas standardpolicy för aviseringar grupperar larm efter `grafana_folder` och `alertname`, så alla larm i en avisering har samma `alertname`: att gruppera efter `requestBody.alerts[*].labels.alertname` slår ihop hela aviseringen till en incident.
@@ -103,7 +103,7 @@ Ge kontaktpunkten namnet `OneUptime`, välj **Webhook** under **Integration** oc
 Gå till **Alerting → Notification policies**. Ställ in standardpolicyns kontaktpunkt på `OneUptime`, eller lägg till en underordnad policy som matchar de larm som OneUptime ska få, med `OneUptime` som kontaktpunkt.
 :::
 
-Grafana skickar `Content-Type: application/json`, som monitorn behöver för att läsa fälten i en avisering. Kontaktpunktens inställning **Max Alerts** begränsar larmen i en avisering: håll den på `0`, ingen gräns, eller högst på monitorns **Max incidents per request**.
+Grafana skickar `Content-Type: application/json`, som monitorn behöver för att läsa fälten i en avisering. Kontaktpunktens inställning **Max Alerts** begränsar larmen i en avisering: håll den på `0`, ingen gräns, eller högst på monitorns **Max antal incidenter per förfrågan**.
 
 ## Testa det
 
@@ -157,7 +157,7 @@ En körning hanterar en avisering, så den deklarerar en incident oavsett hur m�
 
 :::details Incidenter skapas men löses aldrig
 - Kriteriets incident behöver **Lös incident automatiskt**, under **Fler fält**.
-- **Field that signals recovery** måste vara `requestBody.alerts[*].status`, och **Value that means recovered** exakt `resolved`. Jämförelsen är skiftlägeskänslig.
+- **Fält som signalerar återhämtning** måste vara `requestBody.alerts[*].status`, och **Värde som betyder återhämtad** exakt `resolved`. Jämförelsen är skiftlägeskänslig.
 - Grupperingssökvägarna måste börja med `requestBody.`, och bara den första `[*]` i en sökväg läser en lista. En sökväg som bryter mot någon av reglerna matchar ingenting, utan något fel.
 :::
 

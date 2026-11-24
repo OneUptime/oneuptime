@@ -5,6 +5,7 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
 import Phone from "../Phone";
 import { refusedValue } from "../../Utils/RefusedValue";
+import { toCallVoiceValue } from "../Call/CallVoice";
 
 /*
  * A Twilio config as it travels from the server's senders (Common's
@@ -55,6 +56,16 @@ export default class TwilioConfigJSON {
     // Left out when there are none, as an older receiver expects.
     if (smsPhoneNumbers.length > 0) {
       json["smsPhoneNumbers"] = smsPhoneNumbers;
+    }
+
+    /*
+     * The voice its calls speak with (#10948), left out for none - the
+     * account's default voice - as an older receiver expects.
+     */
+    const callVoice: string | undefined = toCallVoiceValue(config.callVoice);
+
+    if (callVoice) {
+      json["callVoice"] = callVoice;
     }
 
     return json;
@@ -127,6 +138,17 @@ export default class TwilioConfigJSON {
       throw new BadDataException(
         "The Twilio config sent is used for SMS only and has no SMS phone numbers.",
       );
+    }
+
+    /*
+     * The voice its calls speak with: one from OneUptime's list. Any other
+     * - a later release's, a typo - is none, the account's default voice,
+     * never a reason to refuse the config: a voice never stops a call.
+     */
+    const callVoice: string | undefined = toCallVoiceValue(json["callVoice"]);
+
+    if (callVoice) {
+      config.callVoice = callVoice;
     }
 
     return config;

@@ -23,13 +23,20 @@ import {
   readDataSecurityIssueGroupFacts,
 } from "../../../../Types/DataSecurity/DataSecurityIssueGroup";
 import {
+  DataSecurityIssueGroupCloudActionJSON,
   DataSecurityIssueGroupFixPart,
   DataSecurityIssueGroupFixPlanJSON,
   DataSecurityIssueGroupFixStoreJSON,
   DataSecurityIssueGroupLeftOutJSON,
   DataSecurityIssueGroupLeftOutReason,
+  getIssueGroupCloudActionList,
 } from "../../../../Types/DataSecurity/DataSecurityIssueGroupFix";
-import { EXPOSURE_RESPONSE_ACTIONS } from "../../../../Types/DataSecurity/DataSecurityResponseAction";
+import {
+  DataSecurityResponseAction,
+  EXPOSURE_RESPONSE_ACTIONS,
+  describeDataSecurityResponseAction,
+} from "../../../../Types/DataSecurity/DataSecurityResponseAction";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { DeclaredCodeChangeState } from "../../../../Utils/AiRemediation/DeclaredCodeChange";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -48,6 +55,11 @@ import {
 import { DataSecurityAiPlannedChange } from "./DataSecurityAiAction";
 import DataSecurityAiEngine from "./DataSecurityAiEngine";
 import DataSecurityAiProposals from "./DataSecurityAiProposals";
+import DataSecurityIssueGroupTimelines from "./DataSecurityIssueGroupTimelines";
+import {
+  DataSecurityAiDecisionEntry,
+  DataSecurityAiDecisionReason,
+} from "../../../../Types/DataSecurity/DataSecurityAiDecision";
 
 /*
  * ONEUPTIME AI PROPOSES THE FIX OF EACH GROUP OF ISSUES ONE MISTAKE MADE
@@ -64,7 +76,9 @@ import DataSecurityAiProposals from "./DataSecurityAiProposals";
  *     repository the grouping found for their code - never without one. A
  *     rule that sets Fix to Without asking opens it on its own;
  *   - the one approval is proposed for the stores made in the console that
- *     the response action can change, leaving out what the plan leaves out
+ *     a response action can change - each store the action its own kind
+ *     takes, listed kind by kind with what each does, what stops working
+ *     and what it costs (#10742) - leaving out what the plan leaves out
  *     and saying so. It always asks;
  *   - a group's fix is proposed once for the same stores: a group that
  *     takes in or loses a store gets a new proposal, which replaces the one
@@ -120,6 +134,44 @@ function previewStores(
     ...named,
     ...(more > 0 ? [mdText`- …and ${more} more`.toString()] : []),
   ].join("\n");
+}
+
+/*
+ * What the one approval does, kind by kind (#10742): each kind of store's
+ * own action, in the words Fix it from here confirms it with - what it
+ * changes, what stops working and what it costs - and the stores it runs
+ * on. One kind reads as one sentence over its stores.
+ */
+export function describeCloudActions(
+  actions: ReadonlyArray<DataSecurityIssueGroupCloudActionJSON>,
+): Array<string> {
+  if (actions.length === 1) {
+    const only: DataSecurityIssueGroupCloudActionJSON = actions[0]!;
+
+    return [
+      mdText`**${only.action}** on each of these stores, through its cloud connection. ${describeDataSecurityResponseAction(only.action, only.kind)}`.toString(),
+      "",
+      previewStores(only.stores),
+    ];
+  }
+
+  const lines: Array<string> = [
+    "One approval makes each kind of store's own change, through its cloud connection:",
+  ];
+
+  for (const entry of actions) {
+    lines.push(
+      "",
+      (entry.stores.length === 1
+        ? mdText`**${entry.action}** on the ${entry.kind || "store"} below. ${describeDataSecurityResponseAction(entry.action, entry.kind)}`
+        : mdText`**${entry.action}** on each of the ${String(entry.stores.length)} ${entry.kind || "stores"} below. ${describeDataSecurityResponseAction(entry.action, entry.kind)}`
+      ).toString(),
+      "",
+      previewStores(entry.stores),
+    );
+  }
+
+  return lines;
 }
 
 const LEFT_OUT_WORDS: Readonly<
@@ -364,24 +416,32 @@ export default class DataSecurityIssueGroupProposals {
         isNamedByRule: false,
       };
 
-      await DataSecurityAiProposals.propose({
+      await DataSecurityIssueGroupProposals.proposeAndTell({
         projectId: data.projectId,
-        issue: null,
-        store: null,
         group: data.group,
-        action: FixIssueGroupInCodeAction,
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCode,
         change,
-        work,
-        verdict: getDataSecurityAiWithoutAskingVerdict({
-          work,
-          safety: DataSecurityAiChangeSafety.OpensPullRequest,
-          meetsDefaultConditions: false,
-          isNamedByRule: false,
-          requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
-          changesWithoutAskingThisHour,
-        }),
-        riskScore,
-        now: data.now,
+        propose: (): Promise<DataSecurityAiDecisionEntry> => {
+          return DataSecurityAiProposals.propose({
+            projectId: data.projectId,
+            issue: null,
+            store: null,
+            group: data.group,
+            action: FixIssueGroupInCodeAction,
+            change,
+            work,
+            verdict: getDataSecurityAiWithoutAskingVerdict({
+              work,
+              safety: DataSecurityAiChangeSafety.OpensPullRequest,
+              meetsDefaultConditions: false,
+              isNamedByRule: false,
+              requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
+              changesWithoutAskingThisHour,
+            }),
+            riskScore,
+            now: data.now,
+          });
+        },
       });
       proposed++;
     }
@@ -390,24 +450,28 @@ export default class DataSecurityIssueGroupProposals {
     const cloud: DataSecurityIssueGroupFixPlanJSON["cloud"] = plan.cloud;
 
     if (cloud && cloud.stores.length > 0) {
-      const safety: DataSecurityAiChangeSafety =
-        EXPOSURE_RESPONSE_ACTIONS.includes(cloud.action)
-          ? DataSecurityAiChangeSafety.ChangesAccess
-          : DataSecurityAiChangeSafety.ChangesCloudSettings;
+      // Each kind of store's own action (#10742): access closed by any is a change of access.
+      const actions: Array<DataSecurityResponseAction> =
+        getIssueGroupCloudActionList(cloud);
+      const safety: DataSecurityAiChangeSafety = actions.some(
+        (action: DataSecurityResponseAction): boolean => {
+          return EXPOSURE_RESPONSE_ACTIONS.includes(action);
+        },
+      )
+        ? DataSecurityAiChangeSafety.ChangesAccess
+        : DataSecurityAiChangeSafety.ChangesCloudSettings;
       const leftOut: Array<DataSecurityIssueGroupLeftOutJSON> =
         plan.leftOut.filter((store: DataSecurityIssueGroupLeftOutJSON) => {
           return store.part === DataSecurityIssueGroupFixPart.Cloud;
         });
       const change: DataSecurityAiPlannedChange = {
         title:
-          `${cloud.action} on ${cloud.stores.length} stores made in the console, one cause: ${cause}`.slice(
+          `${actions.join(" and ")} on ${cloud.stores.length} stores made in the console, one cause: ${cause}`.slice(
             0,
             500,
           ),
         changeMarkdown: [
-          mdText`**${cloud.action}** on each of these stores, through its cloud connection:`.toString(),
-          "",
-          previewStores(cloud.stores),
+          ...describeCloudActions(cloud.actions),
           ...(leftOut.length > 0
             ? [
                 "",
@@ -420,8 +484,10 @@ export default class DataSecurityIssueGroupProposals {
               ]
             : []),
         ].join("\n"),
-        reasonMarkdown:
-          mdText`These ${String(cloud.stores.length)} stores fail the same check, **${check?.title || facts.checkId}**, and share one cause: ${cause}. They were made in the console, so one approval changes each of them.`.toString(),
+        reasonMarkdown: (actions.length > 1
+          ? mdText`These ${String(cloud.stores.length)} stores fail the same check, **${check?.title || facts.checkId}**, and share one cause: ${cause}. They were made in the console, so one approval changes each of them, each kind of store with its own change.`
+          : mdText`These ${String(cloud.stores.length)} stores fail the same check, **${check?.title || facts.checkId}**, and share one cause: ${cause}. They were made in the console, so one approval changes each of them.`
+        ).toString(),
         proofMarkdown:
           "Each store is checked again right after, and its issue resolves on its own once its check passes.",
         undoMarkdown:
@@ -429,9 +495,33 @@ export default class DataSecurityIssueGroupProposals {
         plan: {
           groupId: idOf(data.group),
           action: cloud.action,
+          // What each kind of store takes, and which stores and issues (#10742).
+          actions: cloud.actions.map(
+            (entry: DataSecurityIssueGroupCloudActionJSON): JSONObject => {
+              return {
+                action: entry.action,
+                kind: entry.kind,
+                storeIds: entry.stores.map(
+                  (store: DataSecurityIssueGroupFixStoreJSON): string => {
+                    return store.dataStoreId;
+                  },
+                ),
+                issueIds: entry.stores.map(
+                  (store: DataSecurityIssueGroupFixStoreJSON): string => {
+                    return store.issueId;
+                  },
+                ),
+              };
+            },
+          ),
           storeIds: cloud.stores.map(
             (store: DataSecurityIssueGroupFixStoreJSON): string => {
               return store.dataStoreId;
+            },
+          ),
+          issueIds: cloud.stores.map(
+            (store: DataSecurityIssueGroupFixStoreJSON): string => {
+              return store.issueId;
             },
           ),
           leftOutStoreIds: leftOut.map(
@@ -448,36 +538,83 @@ export default class DataSecurityIssueGroupProposals {
               return store.dataStoreId;
             },
           ),
-          extra: cloud.action,
+          // One action reads as it always did; several name each (#10742).
+          extra:
+            actions.length > 1 ? [...actions].sort().join(",") : actions[0],
         }),
         safety,
         meetsDefaultConditions: false,
         isNamedByRule: false,
       };
 
-      await DataSecurityAiProposals.propose({
+      await DataSecurityIssueGroupProposals.proposeAndTell({
         projectId: data.projectId,
-        issue: null,
-        store: null,
         group: data.group,
-        action: FixIssueGroupInCloudAction,
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
         change,
-        work,
-        verdict: getDataSecurityAiWithoutAskingVerdict({
-          work,
-          safety,
-          meetsDefaultConditions: false,
-          isNamedByRule: false,
-          requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
-          changesWithoutAskingThisHour,
-        }),
-        riskScore,
-        now: data.now,
+        propose: (): Promise<DataSecurityAiDecisionEntry> => {
+          return DataSecurityAiProposals.propose({
+            projectId: data.projectId,
+            issue: null,
+            store: null,
+            group: data.group,
+            action: FixIssueGroupInCloudAction,
+            change,
+            work,
+            verdict: getDataSecurityAiWithoutAskingVerdict({
+              work,
+              safety,
+              meetsDefaultConditions: false,
+              isNamedByRule: false,
+              requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
+              changesWithoutAskingThisHour,
+            }),
+            riskScore,
+            now: data.now,
+          });
+        },
       });
       proposed++;
     }
 
     return proposed;
+  }
+
+  /*
+   * A part proposed - and, when it waits for a person, each open issue it
+   * is for told so on its timeline (#10741): all but those the waiting
+   * proposal it replaced (same kind) was for, which were told already.
+   */
+  private static async proposeAndTell(data: {
+    projectId: ObjectID;
+    group: DataSecurityIssueGroup;
+    kind: DataSecurityAiProposalKind;
+    change: DataSecurityAiPlannedChange;
+    propose: () => Promise<DataSecurityAiDecisionEntry>;
+  }): Promise<DataSecurityAiDecisionEntry> {
+    const toldAlready: Set<string> =
+      await DataSecurityIssueGroupTimelines.readWaitingIssueIds({
+        projectId: data.projectId,
+        groupId: data.group.id!,
+        kind: data.kind,
+      });
+    const entry: DataSecurityAiDecisionEntry = await data.propose();
+
+    if (
+      entry.reason === DataSecurityAiDecisionReason.Proposed &&
+      entry.proposalId
+    ) {
+      await DataSecurityIssueGroupTimelines.onProposed({
+        projectId: data.projectId,
+        proposalId: entry.proposalId,
+        kind: data.kind,
+        plan: data.change.plan,
+        groupId: data.group.id!,
+        toldAlready,
+      });
+    }
+
+    return entry;
   }
 
   /*

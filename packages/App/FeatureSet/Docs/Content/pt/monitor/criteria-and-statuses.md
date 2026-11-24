@@ -44,7 +44,7 @@ Abra um critério: ele tem um nome e três seções, cada uma das quais se recol
 | **Nome dos Critérios** | O nome na lista de critérios e na causa raiz de cada incidente e alerta que o critério abre. **Adicionar critérios** dá a um novo critério o nome dos seus filtros, e o nome os acompanha até você digitar um próprio. |
 | **Filtros** | O que a verificação precisa mostrar, como um ou mais filtros. Os monitores de Kubernetes e de métricas os chamam de **Regras de alertas**. |
 | **Ações** | O que acontece quando os filtros correspondem: alterar o status, criar um alerta, declarar um incidente ou qualquer combinação. |
-| **Configurações** | **Habilitar este critério**, uma **Descrição** opcional, quando ele se recupera e quando é julgado e, em monitores de requisições recebidas, **Group incidents and alerts by a payload field**. |
+| **Configurações** | **Habilitar este critério**, uma **Descrição** opcional, quando ele se recupera e quando é julgado e, em monitores de requisições recebidas, **Agrupar incidentes e alertas por um campo da carga útil**. |
 
 ### Filtros
 
@@ -70,7 +70,7 @@ Um incidente ou alerta pede um título, uma **Gravidade** e, recolhidos, uma des
 
 **Habilitar este critério** vem ligado em todo novo critério. Desligue-o para manter um critério sem usá-lo: ele é ignorado em toda verificação, não altera nenhum status, não abre nada e seu cabeçalho mostra **Desabilitado**.
 
-**Group incidents and alerts by a payload field** abre um incidente para cada valor encontrado em uma requisição recebida, de modo que um único endereço de webhook pode manter vários incidentes abertos. Veja [Ativar o agrupamento de incidentes](/docs/monitor/incoming-request-monitor#ligar-o-agrupamento-de-incidentes).
+**Agrupar incidentes e alertas por um campo da carga útil** abre um incidente para cada valor encontrado em uma requisição recebida, de modo que um único endereço de webhook pode manter vários incidentes abertos. Veja [Ativar o agrupamento de incidentes](/docs/monitor/incoming-request-monitor#ligar-o-agrupamento-de-incidentes).
 
 **Recuperar apenas quando uma condição própria for atendida** e **Avaliar este critério apenas em certos dias e horários** vêm desativados em um critério novo. Veja [Quando um critério se recupera](#quando-um-critério-se-recupera) e [Apenas em certos dias e horários](#apenas-em-certos-dias-e-horários).
 
@@ -218,6 +218,8 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 ## Quanto tempo leva cada verificação
 
 O resumo de avaliação de cada verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor e, para a última verificação, na sua **Visão geral**, diz quando a verificação foi avaliada, quanto tempo levou a sua avaliação e, num monitor que julga cada host, contêiner ou grupo separadamente, quantas séries avaliou. O tempo vai de quando o OneUptime começou a ler os dados que a verificação julga até escrever o seu registro: a leitura dos dados, a avaliação dos critérios e a abertura de incidentes e alertas.
+
+Nos **Registros de monitoramento**, a coluna **Duração da verificação** mostra quanto tempo levou cada verificação e marca as verificações lentas. Um traço indica que a duração da verificação não foi registrada.
 
 Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa você. Demais é mais de um décimo do tempo entre as verificações do monitor, nunca menos de 5 segundos e nunca mais de um minuto:
 

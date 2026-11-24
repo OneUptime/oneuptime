@@ -227,6 +227,8 @@ Der Zweck jedes dieser Datenspeicher ist „Netz- und Informationssicherheit (Er
 
 Ein Datenspeicher wird aufgeführt, solange Ihr Projekt seine Daten aufbewahrt: der Adresstresor, solange eine aktivierte IP-Adressen-Regel Protokolle oder Traces hasht, die Sicherheitsereignisse liest, der Benutzertresor, solange eine aktivierte Regel mit einem anderen Muster das tut, und jeder noch 31 Tage danach (siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Sind seine Daten weg, wird der Datenspeicher archiviert, und er kehrt mit Ihrem Zweck und Ihrer Aufbewahrung zurück, wenn die Daten zurückkehren.
 
+Um eine Person aus dem Sicherheits-Benutzertresor und aus den Ereignissen und Fällen zu löschen, die sie darüber nennen, stellen Sie eine Löschanfrage: siehe [Eine Person löschen](/docs/telemetry/security-events#eine-person-löschen).
+
 ## Datenschutz-Folgenabschätzungen
 
 GDPR Artikel 35 verlangt eine Datenschutz-Folgenabschätzung vor einer Verarbeitung, die voraussichtlich ein hohes Risiko mit sich bringt. Datensicherheit sagt, welche Datenspeicher eine brauchen: jeder Datenspeicher, der Daten besonderer Kategorien enthält, etwa Gesundheitsdaten, Daten über viele Personen (etwa 100.000 Datensätze oder mehr) oder Daten, die die Länder der betroffenen Personen verlassen.

@@ -156,13 +156,15 @@ return {
 
 Una ejecución conserva hasta 20 capturas de pantalla, cada una de hasta 10 MB y 50 MB en total. Una captura también puede mostrarse en el incidente o la alerta que abre una ejecución fallida (en su página y en los correos sobre ella) si la coloca en la descripción de incidente o de alerta del monitor. Consulte [Mostrar una captura de pantalla](/docs/monitor/incident-alert-templating#mostrar-una-captura-de-pantalla).
 
+Cuando una ejecución agota su tiempo, la sonda también toma una captura de pantalla de cada página que el script sigue teniendo abierta, para que vea dónde se detuvo. La captura de la primera página se llama `timed-out-page`, y las de las demás `timed-out-page-2`, `timed-out-page-3` y así sucesivamente, en el orden en que se abrieron las páginas. El resumen del monitor las muestra como «Página cuando se agotó el tiempo del script» y «Página 2 cuando se agotó el tiempo del script», y la descripción de un incidente o una alerta puede mostrarlas como cualquier otra captura. Cuentan para los límites de arriba, después de las capturas del propio script.
+
 Las capturas de pantalla de una comprobación se conservan en los registros del propio monitor, no en los registros de un incidente o de una alerta ni en los cambios de estado de un monitor: estos conservan el resto de la comprobación, y cada ejecución cuyas capturas se omitieron lo indica (`areScreenshotsOmitted`). Después de la actualización, una tarea que se ejecuta cada hora borra poco a poco las capturas que ya estaban guardadas allí, hasta que no queda ninguna.
 
 > [!NOTE]
 > En una instalación autoalojada, PostgreSQL reutiliza el espacio que dejan las capturas borradas, pero no lo devuelve al disco. Para reducir la base de datos una vez borradas, ejecute `VACUUM FULL` en las tablas más grandes durante una ventana de mantenimiento, ya que bloquea cada tabla mientras la reescribe, o use `pg_repack`, que no la bloquea.
 
 :::details Devolver capturas de pantalla (método heredado)
-Por compatibilidad con versiones anteriores, también puede devolver capturas de pantalla desde el script como parte del valor de retorno. Las capturas devueltas así **solo** se conservan cuando el script termina con normalidad: se pierden si el script lanza un error. Prefiera el canal lateral descrito arriba cuando quiera pruebas de los fallos.
+Por compatibilidad con versiones anteriores, también puede devolver capturas de pantalla desde el script como parte del valor de retorno. Las capturas devueltas así **solo** se conservan cuando el script termina con normalidad: se pierden si el script lanza un error o agota su tiempo. Prefiera el canal lateral descrito arriba cuando quiera pruebas de los fallos.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Los escuchadores de eventos no pueden cruzar la frontera de aislamiento. Use `pa
 :::
 
 :::details La ejecución agota el tiempo
-Espere elementos concretos con `page.waitForSelector(...)` y un `timeout` más corto que el límite del propio script, para que la ejecución falle en el paso lento con un error claro.
+**Mostrar más detalles** en el resumen del monitor muestra «Página cuando se agotó el tiempo del script»: la página en la que estaba el script cuando se le acabó el tiempo. Para que la ejecución falle en el propio paso lento, con un error claro, espere elementos concretos con `page.waitForSelector(...)` y un `timeout` más corto que el límite del propio script.
 :::
 
 :::details Una sonda autoalojada dice que no encuentra el ejecutable del navegador

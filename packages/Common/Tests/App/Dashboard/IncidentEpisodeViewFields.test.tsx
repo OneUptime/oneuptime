@@ -444,8 +444,8 @@ type ExpectNoCrashFunction = () => void;
  *    rather than being rescued by the framework guard.
  */
 const expectNoCrash: ExpectNoCrashFunction = (): void => {
-  expect(screen.queryByText("Something went wrong")).toBeNull();
-  expect(screen.queryByText(/An unexpected error has occurred/)).toBeNull();
+  expect(screen.queryByText("This page stopped working")).toBeNull();
+  expect(screen.queryByText(/Part of this page ran into a problem/)).toBeNull();
 
   const swallowed: Array<unknown> = loggerErrorMock.mock.calls.filter(
     (call: Array<unknown>): boolean => {

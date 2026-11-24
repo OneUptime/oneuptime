@@ -1,4 +1,6 @@
 import MetricPipelineRuleFilterCondition, {
+  isMetricFilterPatternType,
+  METRIC_FILTER_PATTERN_TYPES,
   MetricPipelineRuleFilterCheckOn,
   MetricPipelineRuleFilterConditionType,
   MetricPipelineRuleFilterConditionUtil,
@@ -204,5 +206,95 @@ describe("MetricPipelineRuleFilterConditionUtil", () => {
 
       expect(error).toBeNull();
     });
+  });
+});
+
+/*
+ * #10934: Matches Pattern Type - the value holds what a built-in Pattern
+ * Type of a log or trace scrub rule finds - is offered on a metric's name
+ * and on an attribute, and its value is one of the five pattern types.
+ */
+describe("Matches Pattern Type", () => {
+  test("is offered on a metric's name and on an attribute, and takes a value", () => {
+    for (const checkOn of [
+      MetricPipelineRuleFilterCheckOn.MetricName,
+      MetricPipelineRuleFilterCheckOn.Attribute,
+    ]) {
+      expect(
+        MetricPipelineRuleFilterConditionUtil.getConditionTypesByCheckOn(
+          checkOn,
+        ),
+      ).toContain(MetricPipelineRuleFilterConditionType.MatchesPatternType);
+    }
+
+    expect(
+      MetricPipelineRuleFilterConditionUtil.hasValueField(
+        MetricPipelineRuleFilterConditionType.MatchesPatternType,
+      ),
+    ).toBe(true);
+  });
+
+  test("names the five pattern types that find a value's own shape", () => {
+    expect(METRIC_FILTER_PATTERN_TYPES).toEqual([
+      "email",
+      "creditCard",
+      "ssn",
+      "phoneNumber",
+      "ipAddress",
+    ]);
+
+    for (const patternType of METRIC_FILTER_PATTERN_TYPES) {
+      expect(isMetricFilterPatternType(patternType)).toBe(true);
+    }
+
+    for (const value of [
+      "custom",
+      "sensitiveKeys",
+      "namedKeys",
+      "",
+      "IPADDRESS",
+      undefined,
+      7,
+    ]) {
+      expect([value, isMetricFilterPatternType(value)]).toEqual([value, false]);
+    }
+  });
+
+  test("is valid with each pattern type, and asks for one otherwise", () => {
+    for (const patternType of METRIC_FILTER_PATTERN_TYPES) {
+      expect(
+        MetricPipelineRuleFilterConditionUtil.getValidationError([
+          {
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: "peer",
+            conditionType:
+              MetricPipelineRuleFilterConditionType.MatchesPatternType,
+            value: patternType,
+          },
+        ]),
+      ).toBeNull();
+    }
+
+    expect(
+      MetricPipelineRuleFilterConditionUtil.getValidationError([
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+          attributeKey: "peer",
+          conditionType:
+            MetricPipelineRuleFilterConditionType.MatchesPatternType,
+          value: undefined,
+        },
+      ]),
+    ).toBe("Filter #1: Value is required.");
+    expect(
+      MetricPipelineRuleFilterConditionUtil.getValidationError([
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.MetricName,
+          conditionType:
+            MetricPipelineRuleFilterConditionType.MatchesPatternType,
+          value: "custom",
+        },
+      ]),
+    ).toBe("Filter #1: Pick a pattern type.");
   });
 });

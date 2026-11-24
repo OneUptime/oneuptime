@@ -162,6 +162,7 @@ import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCr
 import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
+import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -219,6 +220,7 @@ import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevic
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
 import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
 import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
+import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1659,6 +1661,25 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the two slots kept last.
    */
   new DeleteStatusPageResourcesThatShowNothing(),
+  /*
+   * The metric rules Scrub It made for an IP address, an email address or
+   * a card number match the data type's pattern type instead of its
+   * frozen pattern (#10934): an IP address rule hides IPv6 addresses too,
+   * and each what it read encoded or in another script. Postgres only,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MetricScrubRulesMatchTheirPatternType(),
+  /*
+   * Ends the on-call time logs that on-call policies deleted before #10983
+   * left open, which User On-Call Time counted as on call around the clock
+   * ever since (#11023): each when the audit log says its policy was
+   * deleted, else at the last time an on-call stint started on the policy,
+   * else at its own start. Postgres, and a read of the audit log; paged,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new EndOnCallTimeLogsOfDeletedPolicies(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

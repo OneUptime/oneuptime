@@ -6,8 +6,10 @@ import BUILT_IN_DETECTORS, {
   getBuiltInDetectorsOf,
 } from "../../../Utils/DataSecurity/Detectors/Index";
 import {
+  DIGIT_OF_EVERY_SCRIPT_PREFILTER,
   expandBackReferences,
   getDataTypePrefilter,
+  getDetectorPrefilter,
   MAX_PREFILTER_LENGTH,
   PERCENT_ESCAPE_PREFILTER,
   RE2_MAX_REPEAT,
@@ -67,10 +69,8 @@ describe("every built-in detector", () => {
     const refused: Array<string> = [];
 
     for (const detector of BUILT_IN_DETECTORS) {
-      const expression: string | null = toRe2Prefilter(
-        detector.pattern.source,
-        detector.pattern.flags,
-      );
+      // Its own expression, for a pattern of Unicode classes (the u flag).
+      const expression: string | null = getDetectorPrefilter(detector);
 
       if (!expression) {
         refused.push(`${detector.dataTypeId}: /${detector.pattern.source}/`);
@@ -93,9 +93,7 @@ describe("every built-in detector", () => {
     let checked: number = 0;
 
     for (const detector of BUILT_IN_DETECTORS) {
-      const expression: RegExp = asJavaScript(
-        toRe2Prefilter(detector.pattern.source, detector.pattern.flags)!,
-      );
+      const expression: RegExp = asJavaScript(getDetectorPrefilter(detector)!);
       const positives: Array<string> = positivesOf(detector, 40, random);
 
       // Each detector's pattern is drawn from often enough to say something.
@@ -344,8 +342,103 @@ describe("a data type's expression", () => {
     );
   });
 
+  /*
+   * #10935: the email detectors read percent-encoded text too, so the type
+   * takes a text holding an escape, as the IP address type does. #10960:
+   * one of them reads an address in any script, which the database cannot
+   * read with JavaScript's Unicode classes, so it narrows by its own
+   * expression: an "@" beside a character beyond ASCII.
+   */
+  test("the email address type takes an encoded address and one in any script (#10935, #10960)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "email-address",
+    })!;
+
+    expect(isRe2Syntax(expression)).toBe(true);
+    expect(expression).toContain(PERCENT_ESCAPE_PREFILTER);
+    expect(expression.length).toBeLessThanOrEqual(MAX_PREFILTER_LENGTH);
+
+    for (const text of [
+      "GET /signup?email=jane.doe%40acmecorp.io HTTP/1.1",
+      "u=Jane.Doe%2Bnews%40AcmeCorp.io",
+      "next=%2Fsignup%3Femail%3Djane%2540acmecorp.io",
+      "email 张伟@acmecorp.io",
+      "email josé.garcía@acmecorp.io",
+      "email user@例え.jp",
+      "email почта@пример.рф",
+      "email user@пример.xn--p1ai",
+      "邮箱jane@acmecorp.io已发送",
+    ]) {
+      expect([
+        text,
+        findSensitiveValues(text, {
+          detectors: getBuiltInDetectorsOf("email-address"),
+        }).length > 0,
+        asJavaScript(expression).test(text),
+      ]).toEqual([text, true, true]);
+    }
+
+    // Still narrows: no address, no escape, no "@" beside another script.
+    expect(
+      asJavaScript(expression).test(
+        "GET /health returned 200 in 12ms for the checkout service",
+      ),
+    ).toBe(false);
+    expect(asJavaScript(expression).test("用户 已登录 @ 12:00")).toBe(false);
+  });
+
+  /*
+   * #10960: the card detectors read every script's digits by their values,
+   * so a card in fullwidth, Arabic-Indic or Persian digits holds no ASCII
+   * digit the patterns' expressions read: the type takes a text holding a
+   * digit of another script too.
+   */
+  test("the card number type takes a card in any script's digits (#10960)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "credit-card-number",
+    })!;
+
+    expect(isRe2Syntax(expression)).toBe(true);
+    expect(expression).toContain(DIGIT_OF_EVERY_SCRIPT_PREFILTER);
+    expect(expression).not.toContain(PERCENT_ESCAPE_PREFILTER);
+
+    for (const text of [
+      "カード番号：４１１１ １１１１ １１１１ １１１１",
+      "رقم البطاقة ٤١١١١١١١١١١١١١١١",
+      "شماره کارت ۴۱۱۱-۱۱۱۱-۱۱۱۱-۱۱۱۱",
+      "card ４１１１ 1111 1111 1111",
+      "कार्ड ४१११ ११११ ११११ ११११",
+    ]) {
+      expect([
+        text,
+        findSensitiveValues(text, {
+          detectors: getBuiltInDetectorsOf("credit-card-number"),
+        }).length > 0,
+        asJavaScript(expression).test(text),
+      ]).toEqual([text, true, true]);
+    }
+
+    // Every digit of the 36 scripts beyond ASCII, and no ASCII one.
+    const digit: RegExp = asJavaScript(DIGIT_OF_EVERY_SCRIPT_PREFILTER);
+
+    expect(digit.test("0123456789")).toBe(false);
+    expect(digit.test("x")).toBe(false);
+
+    for (const zero of [0x0660, 0x06f0, 0x0966, 0x0e50, 0xff10]) {
+      for (let value: number = 0; value < 10; value++) {
+        expect(digit.test(String.fromCharCode(zero + value))).toBe(true);
+      }
+    }
+
+    expect(
+      asJavaScript(expression).test(
+        "GET /health returned 200 in 12ms for the checkout service",
+      ),
+    ).toBe(false);
+  });
+
   test("a type whose detectors read only what is written takes no escape alone", () => {
-    for (const dataTypeId of ["email-address", "credit-card-number"]) {
+    for (const dataTypeId of ["credit-card-number", "github-token"]) {
       const expression: string = getDataTypePrefilter({ dataTypeId })!;
 
       expect([

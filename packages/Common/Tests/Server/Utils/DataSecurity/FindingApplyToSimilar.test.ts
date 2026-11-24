@@ -67,7 +67,9 @@ function finding(
 ): DataStoreFinding {
   counter++;
   const row: DataStoreFinding = new DataStoreFinding(
-    new ObjectID(`33333333-3333-4333-8333-${String(counter).padStart(12, "0")}`),
+    new ObjectID(
+      `33333333-3333-4333-8333-${String(counter).padStart(12, "0")}`,
+    ),
   );
   row.projectId = PROJECT_ID;
   row.dataStoreId = new ObjectID(storeId(storeIndex));
@@ -106,7 +108,10 @@ beforeEach(() => {
     }) as never);
   jest
     .spyOn(DataStoreFindingService, "findBy")
-    .mockImplementation((async (findBy: { query: JSONObject; props: unknown }) => {
+    .mockImplementation((async (findBy: {
+      query: JSONObject;
+      props: unknown;
+    }) => {
       readProps.push(findBy.props);
       return [...findings.values()].filter((row: DataStoreFinding): boolean => {
         return (
@@ -116,14 +121,14 @@ beforeEach(() => {
         );
       });
     }) as never);
-  jest
-    .spyOn(DataStoreService, "findBy")
-    .mockImplementation((async (findBy: { props: unknown }) => {
-      readProps.push(findBy.props);
-      return [...stores.values()].filter((row: DataStore): boolean => {
-        return !unreadableStores.has(row.id!.toString());
-      });
-    }) as never);
+  jest.spyOn(DataStoreService, "findBy").mockImplementation((async (findBy: {
+    props: unknown;
+  }) => {
+    readProps.push(findBy.props);
+    return [...stores.values()].filter((row: DataStore): boolean => {
+      return !unreadableStores.has(row.id!.toString());
+    });
+  }) as never);
   jest
     .spyOn(DataStoreFindingService, "updateOneById")
     .mockImplementation((async (updateOneBy: {
@@ -168,7 +173,9 @@ describe("one Not Sensitive with Apply to similar", () => {
       nine.push(
         finding(
           index,
-          index % 2 === 0 ? "sales.orders.orderNumber" : "public.orders.order_number",
+          index % 2 === 0
+            ? "sales.orders.orderNumber"
+            : "public.orders.order_number",
         ),
       );
     }
@@ -199,7 +206,11 @@ describe("one Not Sensitive with Apply to similar", () => {
         ),
       });
 
-    expect(result).toEqual({ decision: "NotSensitive", applied: 9, skipped: 0 });
+    expect(result).toEqual({
+      decision: "NotSensitive",
+      applied: 9,
+      skipped: 0,
+    });
     expect(updates).toHaveLength(9);
 
     for (const row of nine) {
@@ -210,7 +221,10 @@ describe("one Not Sensitive with Apply to similar", () => {
     // Each is the person's own update, read with their own permissions.
     for (const update of updates) {
       expect(update.props).toBe(PERSON);
-      expect(update.data).toEqual({ isSuppressed: true, suppressedReason: REASON });
+      expect(update.data).toEqual({
+        isSuppressed: true,
+        suppressedReason: REASON,
+      });
     }
 
     for (const props of readProps) {
@@ -278,7 +292,10 @@ describe("what is listed as similar", () => {
 
     store(1);
     finding(1, "public.orders.order_number");
-    const sameStore: DataStoreFinding = finding(0, "archive.orders.order_number");
+    const sameStore: DataStoreFinding = finding(
+      0,
+      "archive.orders.order_number",
+    );
 
     const listed: DataSecuritySimilarFindings =
       await FindingApplyToSimilar.listSimilar({
@@ -364,7 +381,10 @@ describe("what is applied, and to what", () => {
   test("nothing is applied from a finding nobody decided", async () => {
     store(0);
     store(1);
-    const undecided: DataStoreFinding = finding(0, "public.orders.order_number");
+    const undecided: DataStoreFinding = finding(
+      0,
+      "public.orders.order_number",
+    );
     const alike: DataStoreFinding = finding(1, "public.orders.order_number");
 
     await expect(
@@ -384,9 +404,13 @@ describe("what is applied, and to what", () => {
     store(1);
     store(2);
     store(3);
-    const decidedSince: DataStoreFinding = finding(1, "public.orders.order_number", {
-      isConfirmed: true,
-    });
+    const decidedSince: DataStoreFinding = finding(
+      1,
+      "public.orders.order_number",
+      {
+        isConfirmed: true,
+      },
+    );
     const otherName: DataStoreFinding = finding(2, "public.orders.order_no");
     const hidden: DataStoreFinding = finding(3, "public.orders.order_number");
 
@@ -400,7 +424,11 @@ describe("what is applied, and to what", () => {
         findingIds: [idOf(decidedSince), idOf(otherName), idOf(hidden)],
       });
 
-    expect(result).toEqual({ decision: "NotSensitive", applied: 0, skipped: 3 });
+    expect(result).toEqual({
+      decision: "NotSensitive",
+      applied: 0,
+      skipped: 3,
+    });
     expect(updates).toEqual([]);
   });
 
@@ -422,7 +450,11 @@ describe("what is applied, and to what", () => {
         findingIds: [idOf(refused), idOf(allowed)],
       });
 
-    expect(result).toEqual({ decision: "NotSensitive", applied: 1, skipped: 1 });
+    expect(result).toEqual({
+      decision: "NotSensitive",
+      applied: 1,
+      skipped: 1,
+    });
     expect(allowed.isSuppressed).toBe(true);
     expect(refused.isSuppressed).toBe(false);
   });

@@ -227,8 +227,10 @@ export interface TracePerformanceFixRepository {
 }
 
 /*
- * The most repositories the page is offered to pick from: far more than a
- * project connects, and a bound on what one answer carries.
+ * The most repositories one suggestion lists: a bound on what one answer
+ * carries. The list says a pick is asked for (more than one); the page's
+ * picker searches every connected repository the person may read on the
+ * server, and the server takes a pick past these too (#10921).
  */
 export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number = 200;
 
@@ -264,9 +266,11 @@ export interface TracePerformanceFixSuggestion
   aiRunId: string | null;
   /*
    * Act, when several repositories are connected and none was found to
-   * hold the trace's code for certain: the ones the person picks the fix's
-   * repository from, by name (the click names the pick). Empty otherwise -
-   * the fix then works in the repository the trace's facts resolve to.
+   * hold the trace's code for certain: the first of them by name
+   * (MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES) - more than one says the
+   * person picks the fix's repository, from a search of every connected
+   * one on the server (the click names the pick). Empty otherwise - the fix
+   * then works in the repository the trace's facts resolve to.
    */
   repositories: Array<TracePerformanceFixRepository>;
 }

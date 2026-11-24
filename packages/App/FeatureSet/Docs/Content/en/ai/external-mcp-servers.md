@@ -1,10 +1,11 @@
 # External MCP Servers
 
-OneUptime AI can use the tools of MCP servers outside OneUptime — the ones your cloud, your code host or your own team run, such as AWS, Azure or GitHub — while it investigates and fixes incidents and alerts. Add a server once under **Project Settings → AI → External MCP Servers**, and OneUptime AI uses it from the next incident on.
+OneUptime AI can use the tools of MCP servers outside OneUptime — the ones your cloud, your code host or your own team run, such as AWS, Azure or GitHub — in Ask AI, and while it investigates and fixes incidents and alerts. Add a server once under **Project Settings → AI → External MCP Servers**, and OneUptime AI uses it from your next question and the next incident on.
 
 :::cards
 - [Add a server](#add-a-server): Its address, and how OneUptime signs in.
 - [What OneUptime AI does with a server](#what-oneuptime-ai-does-with-a-server): Tools that read in investigations, the others in fixes.
+- [In Ask AI](#in-ask-ai): Ask it to list a server's tools or use one; a change waits for your approval.
 - [Choose the servers a rule may use](#choose-the-servers-a-rule-may-use): All of them, unless a rule picks some.
 - [Safety](#safety): What a server can and cannot make OneUptime AI do.
 :::
@@ -51,9 +52,9 @@ Never put a token or a password in the **URL**: everyone who can read the server
 
 ## What OneUptime AI does with a server
 
-Each tool a server offers either only reads, or may change something. OneUptime goes by what the server says about the tool (its `readOnlyHint`): a tool the server does not mark as read-only counts as one that may change something.
+Each tool a server offers either only reads, or may change something. OneUptime goes by what the server says about the tool (its `readOnlyHint`): a tool the server does not mark as read-only counts as one that may change something. Some servers mark none of their tools: an investigation then has no tool of theirs to use, and in Ask AI each call of one waits for your approval.
 
-```mermaid title="Which tools OneUptime AI uses, and when"
+```mermaid title="Which tools OneUptime AI uses on its own, and when"
 flowchart TB
     T["A tool of<br/>your MCP server"] --> Q{"Does it<br/>only read?"}
     Q -->|"yes"| R["Used in<br/>investigations<br/>and fixes"]
@@ -67,6 +68,7 @@ flowchart TB
 | --- | --- | --- |
 | **Investigations** | Used, alongside OneUptime's own data | Never used: OneUptime refuses the call |
 | **Fixes** | Used to work out the fix | Proposed for approval, or used right away, as the AI rule's **Fix** says |
+| **Ask AI** | Used when you ask | Used once you approve each call |
 
 **In an investigation**, OneUptime AI lists the tools of the servers it may use and calls the ones that read, to look at what OneUptime cannot see itself: your cloud account, a deployment, an issue tracker. It uses what they answer in its root cause analysis. See [AI SRE](/docs/ai/ai-sre).
 
@@ -79,6 +81,16 @@ A fix makes at most 5 changes. OneUptime then watches the incident's monitors, a
 
 To stop OneUptime AI using a server, turn off **Let OneUptime AI use this server** on its page. It asks first: the server is no longer used in any investigation or fix, and a proposed fix through it can no longer be approved.
 
+## In Ask AI
+
+Ask AI, and the conversation under an incident's or an alert's **OneUptime AI** card, can use every server that is on, for the person asking. Ask "What tools does AWS have?" and OneUptime AI lists them, each marked by what it may do; ask it to use one, by its server and its name, and it calls it and answers from what came back.
+
+- **Tools that only read** run at once, in every permission mode.
+- **Any other tool** waits for you, in **Auto-run** too: the approval card names the server and the tool and shows exactly what is sent, and nothing reaches the server until you allow it. A **Read-only** conversation never offers one.
+- **Your permissions decide.** Using a server takes what reading the project's External MCP Servers takes; approving a change through one takes the permission to start runbook executions, as approving a fix through MCP servers does. A refused call says why, and sends nothing.
+
+The servers an AI rule names are the ones OneUptime AI uses on its own, for what the rule matches; in Ask AI, you pick the server.
+
 ## Choose the servers a rule may use
 
 Each AI rule can name the MCP servers OneUptime AI may use for what it matches. The field is **MCP Servers**, under **More fields**. Until you pick some, OneUptime AI may use all of them, and the folded section says so.
@@ -86,14 +98,16 @@ Each AI rule can name the MCP servers OneUptime AI may use for what it matches. 
 - **None picked** — all of the project's servers that are on.
 - **Some picked** — only those. On an AI rule that fixes without asking, naming its servers is also what lets OneUptime AI make their changes without asking.
 
-When several rules that investigate match, OneUptime AI may use every server any of them allows; if the rules cannot be read, the investigation uses no MCP server at all. Each matching rule that fixes works out its own fix through its servers, and the rules that name none share one fix through all of them.
+When several rules that investigate match, OneUptime AI may use every server any of them allows; if the rules cannot be read, the investigation uses no MCP server at all. An investigation someone starts on an incident or alert that no rule matches may use all of them. Each matching rule that fixes works out its own fix through its servers, and the rules that name none share one fix through all of them.
 
 ## Safety
 
 - **What a server sends back is data, never instructions.** OneUptime AI reads its tools' descriptions and answers as text from outside OneUptime: they never change a rule, an approval or what OneUptime AI may do.
+- **A tool gets only what it takes.** OneUptime sends a tool only the arguments its schema names; anything else OneUptime AI wrote stays in OneUptime.
+- **Enable AI stops every call.** With **Enable AI** off, OneUptime sends nothing to a server: no call of an investigation, a fix or Ask AI, not even one a person already approved.
 - **The address is checked on every connection.** OneUptime never connects to its own or a link-local address. On OneUptime Cloud it also refuses private network addresses: use the server's public address. A self-hosted OneUptime reaches private addresses unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is set. Redirects are not followed.
 - **Limits.** A project has at most 20 servers, and OneUptime reads at most 200 tools of each. Connecting times out after 20 seconds, listing the tools after 30 and a tool call after 60. An answer larger than 2 MB is refused. A run's calls to MCP servers count toward the project's limits per run, when it sets them.
-- **Every call is recorded.** Each call is a step of the run, shown in its activity, and each change a fix makes is in the **Remediation** step with what the server answered. The model calls behind them are in **Project Settings → AI → AI Logs**.
+- **Every call is recorded.** Each call is a step of the run, shown in its activity (in Ask AI, among the answer's steps), and each change a fix makes is in the **Remediation** step with what the server answered. The model calls behind them are in **Project Settings → AI → AI Logs**.
 
 ## Troubleshooting
 
@@ -102,7 +116,7 @@ The **Test connection** dialog says what went wrong and what to check: the addre
 :::
 
 :::details OneUptime AI does not use a server
-Check that **Let OneUptime AI use this server** is on, that the rule that matched the incident does not name other servers under **More fields**, and that the server's tools were read: its **Tools** card lists them. An investigation uses only the tools marked **Reads only**.
+Check that **Let OneUptime AI use this server** is on, and that the server's tools were read: its **Tools** card lists them, each marked **Reads only** or **May change things**, and **Test connection** reads them again. Then ask Ask AI "What tools does AWS have?", with your server's name: it lists them, or says why it cannot reach the server or may not use it. For an investigation, also check that the rule that matched the incident does not name other servers under **More fields**: an investigation uses only the tools marked **Reads only**, so a server that marks none of its tools gives it none to use.
 :::
 
 ## Next steps

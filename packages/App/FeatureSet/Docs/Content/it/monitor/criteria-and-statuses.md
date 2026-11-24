@@ -44,7 +44,7 @@ Aprite un criterio: ha un nome e tre sezioni, ognuna delle quali si chiude in un
 | **Nome dei criteri** | Il nome nell'elenco dei criteri e nella causa principale di ogni incidente e avviso che il criterio apre. **Aggiungi criteri** dà a un nuovo criterio il nome dei suoi filtri, e il nome li segue finché non ne digitate uno vostro. |
 | **Filtri** | Ciò che il controllo deve mostrare, come uno o più filtri. I monitor Kubernetes e di metriche li chiamano **Regole degli avvisi**. |
 | **Azioni** | Cosa succede quando i filtri corrispondono: cambiare lo stato, creare un avviso, dichiarare un incidente o qualsiasi combinazione. |
-| **Impostazioni** | **Abilita questi criteri**, una **Descrizione** facoltativa, quando si ripristina e quando viene giudicato e, sui monitor delle richieste in arrivo, **Group incidents and alerts by a payload field**. |
+| **Impostazioni** | **Abilita questi criteri**, una **Descrizione** facoltativa, quando si ripristina e quando viene giudicato e, sui monitor delle richieste in arrivo, **Raggruppa incidenti e avvisi per un campo del payload**. |
 
 ### Filtri
 
@@ -70,7 +70,7 @@ Un incidente o un avviso chiede un titolo, una **Gravità** e, nelle sezioni chi
 
 **Abilita questi criteri** è attivo per ogni nuovo criterio. Disattivatelo per tenere un criterio senza usarlo: viene saltato a ogni controllo, non cambia alcuno stato, non apre nulla e la sua intestazione mostra **Disabilitato**.
 
-**Group incidents and alerts by a payload field** apre un incidente per ogni valore trovato in una richiesta in ingresso, così un unico indirizzo di webhook può tenere aperti più incidenti. Vedere [Attivare il raggruppamento degli incidenti](/docs/monitor/incoming-request-monitor#attivare-il-raggruppamento-degli-incidenti).
+**Raggruppa incidenti e avvisi per un campo del payload** apre un incidente per ogni valore trovato in una richiesta in ingresso, così un unico indirizzo di webhook può tenere aperti più incidenti. Vedere [Attivare il raggruppamento degli incidenti](/docs/monitor/incoming-request-monitor#attivare-il-raggruppamento-degli-incidenti).
 
 **Ripristina solo quando è soddisfatta una condizione propria** e **Valuta questi criteri solo in determinati giorni e orari** sono disattivati per un nuovo criterio. Vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina) e [Solo in certi giorni e orari](#solo-in-certi-giorni-e-orari).
 
@@ -218,6 +218,8 @@ Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: 
 ## Quanto dura ogni controllo
 
 Il riepilogo di valutazione di ogni controllo, in **Visualizza riepilogo** nei **Log di monitoraggio** del monitor e, per l'ultimo controllo, nella sua **Panoramica**, dice quando il controllo è stato valutato, quanto è durata la sua valutazione e, per un monitor che giudica ogni host, container o gruppo separatamente, quante serie ha valutato. Il tempo va da quando OneUptime ha iniziato a leggere i dati che il controllo giudica fino a quando ne ha scritto il log: la lettura dei dati, la valutazione dei criteri e l'apertura di incidenti e avvisi.
+
+Nei **Log di monitoraggio**, la colonna **Durata del controllo** mostra quanto è durato ogni controllo e segnala quelli lenti. Un trattino indica che la durata del controllo non è stata registrata.
 
 Quando una valutazione dura troppo per il suo monitor, il suo riepilogo ti avvisa. Troppo è più di un decimo del tempo tra due controlli del monitor, mai meno di 5 secondi e mai più di un minuto:
 

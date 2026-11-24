@@ -70,6 +70,25 @@ const WORST_CASES: Array<[string, string]> = [
     "an encoded IPv4 tail that never ends",
     "%3A%3Affff%3A" + repeat("1%2E", LENGTH),
   ],
+  // #10936: what a key's colon before an address can be.
+  ["keys and colons without end", repeat("ip:", LENGTH)],
+  ["one-letter keys and colons", repeat("g:", LENGTH)],
+  ["underscores and colons", repeat("_:", LENGTH)],
+  [
+    "a key as long as the look-behind reads, again",
+    repeat("g".repeat(63) + ":", LENGTH),
+  ],
+  [
+    "a key longer than the look-behind reads, again",
+    repeat("g".repeat(200) + ":1", LENGTH),
+  ],
+  ["letters without end, then a colon", repeat("g", LENGTH) + ":2a00::1"],
+  ["keys and groups glued together", repeat("ip:2a00:", LENGTH)],
+  ["keyed addresses back to back", repeat("ip:2a00:1450::1 ", LENGTH)],
+  ["keyed private addresses back to back", repeat("ip:fe80::1 ", LENGTH)],
+  ["keyed clocks back to back", repeat("time:12:30:45 ", LENGTH)],
+  ["keys ending in hex letters before groups", repeat("remote:a:", LENGTH)],
+  ["encoded keys and colons", repeat("ip%3A", LENGTH)],
 ];
 
 describe("the IP Address scrub pattern", () => {
@@ -147,6 +166,55 @@ describe("Data Security's scanner, reading an encoded text", () => {
           text.slice(match.start, match.end) === "2606%3A%3A1" &&
           match.normalized === "2606::1"
         );
+      }),
+    ).toBe(true);
+  });
+});
+
+/*
+ * #10936: a candidate may start right after a key's colon, so the
+ * scanner reads a key's characters before each colon - at most 63 of them
+ * - and texts of keys and colons without end are read in time in line with
+ * their length there too; every keyed address of a long text of them is
+ * found once, whole.
+ */
+describe("Data Security's scanner, reading keys and colons", () => {
+  test.each(
+    WORST_CASES.filter(([label]: [string, string]): boolean => {
+      return ["key", "colon", "underscore", "letters"].some(
+        (word: string): boolean => {
+          return label.includes(word);
+        },
+      );
+    }),
+  )(
+    "reads %s in time in line with its length",
+    (_label: string, text: string) => {
+      const timed: FastestRun<number> = fastestRun({
+        run: (): number => {
+          return findSensitiveValues(text, {
+            detectors: IP_ADDRESS_DETECTORS,
+          }).length;
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
+
+  test("finds every keyed address of a long text of them, across its windows", () => {
+    // Fewer to a window than the scanner keeps of one detector there (512).
+    const unit: string = `remote:2a00:1450::1 ${"x".repeat(300)} ip:fe80::1 `;
+    const text: string = repeat(unit, unit.length * 1000);
+    const found: Array<TextMatch> = findSensitiveValues(text, {
+      detectors: IP_ADDRESS_DETECTORS,
+    });
+
+    expect(found).toHaveLength(1000);
+    expect(
+      found.every((match: TextMatch): boolean => {
+        return text.slice(match.start, match.end) === "2a00:1450::1";
       }),
     ).toBe(true);
   });

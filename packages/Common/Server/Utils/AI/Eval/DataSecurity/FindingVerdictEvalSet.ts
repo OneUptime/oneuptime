@@ -295,7 +295,10 @@ export const FINDING_VERDICT_EVAL_CASES: Array<FindingVerdictEvalCase> = [
         }),
         signs: [FindingWrongMatchSign.MostlyTestValues],
         precedent: [],
-        expect: [DataStoreFindingVerdict.Confirm, DataStoreFindingVerdict.CannotTell],
+        expect: [
+          DataStoreFindingVerdict.Confirm,
+          DataStoreFindingVerdict.CannotTell,
+        ],
       },
     ],
   },
@@ -320,7 +323,10 @@ export const FINDING_VERDICT_EVAL_CASES: Array<FindingVerdictEvalCase> = [
         }),
         signs: [],
         precedent: [],
-        expect: [DataStoreFindingVerdict.Confirm, DataStoreFindingVerdict.CannotTell],
+        expect: [
+          DataStoreFindingVerdict.Confirm,
+          DataStoreFindingVerdict.CannotTell,
+        ],
       },
     ],
   },
@@ -383,7 +389,11 @@ export const FINDING_VERDICT_EVAL_CASES: Array<FindingVerdictEvalCase> = [
         }),
         signs: [],
         precedent: [
-          precedent(DataStoreFindingDecision.Confirmed, "public.users.email", ""),
+          precedent(
+            DataStoreFindingDecision.Confirmed,
+            "public.users.email",
+            "",
+          ),
           precedent(DataStoreFindingDecision.Confirmed, "auth.users.email", ""),
         ],
         expect: [DataStoreFindingVerdict.Confirm],
@@ -485,7 +495,11 @@ export const FINDING_VERDICT_EVAL_CASES: Array<FindingVerdictEvalCase> = [
         }),
         signs: [],
         precedent: [
-          precedent(DataStoreFindingDecision.Confirmed, "crm.customers.email", ""),
+          precedent(
+            DataStoreFindingDecision.Confirmed,
+            "crm.customers.email",
+            "",
+          ),
         ],
         expect: [DataStoreFindingVerdict.Confirm],
         cites: ["P1"],

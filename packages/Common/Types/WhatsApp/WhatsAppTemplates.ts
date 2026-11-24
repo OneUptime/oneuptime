@@ -46,6 +46,7 @@ type TemplateIdsMap = {
   readonly StatusPageOwnerAddedNotification: "oneuptime_status_page_owner_added_notification";
   readonly ProbeStatusChangedOwnerNotification: "oneuptime_probe_status_changed_owner_notification";
   readonly ProbeOwnerAddedNotification: "oneuptime_probe_owner_added_notification";
+  readonly ProbeMajorReleaseBehindOwnerNotification: "oneuptime_probe_major_release_behind_owner_notification";
   readonly OnCallUserIsOnRosterNotification: "oneuptime_oncall_user_is_on_roster_notification";
   readonly OnCallUserIsNextNotification: "oneuptime_oncall_user_is_next_notification";
   readonly OnCallUserAddedToPolicyNotification: "oneuptime_oncall_user_added_to_policy_notification";
@@ -128,6 +129,8 @@ const templateIds: TemplateIdsMap = {
   ProbeStatusChangedOwnerNotification:
     "oneuptime_probe_status_changed_owner_notification",
   ProbeOwnerAddedNotification: "oneuptime_probe_owner_added_notification",
+  ProbeMajorReleaseBehindOwnerNotification:
+    "oneuptime_probe_major_release_behind_owner_notification",
   OnCallUserIsOnRosterNotification:
     "oneuptime_oncall_user_is_on_roster_notification",
   OnCallUserIsNextNotification: "oneuptime_oncall_user_is_next_notification",
@@ -198,6 +201,13 @@ export const WhatsAppTemplateMessages: WhatsAppTemplateMessagesDefinition = {
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: `You have been added as an owner of status page {{status_page_name}}. Manage the status page using {{status_page_link}} on the OneUptime dashboard to stay engaged.`,
   [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]: `Probe {{probe_name}} status is {{probe_status}}. Review the probe using {{probe_link}} on the OneUptime dashboard for specifics.`,
   [WhatsAppTemplateIds.ProbeOwnerAddedNotification]: `You have been added as an owner of probe {{probe_name}}. Manage the probe using {{probe_link}} on the OneUptime dashboard to take action.`,
+  /*
+   * A custom probe a major release behind the OneUptime it reports to
+   * (#9977, #10913): which probe, its version and OneUptime's, how far
+   * behind - "2 major releases" - and its page, which says what it misses
+   * until it is updated and links Update a probe.
+   */
+  [WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification]: `Probe {{probe_name}} runs {{probe_version}}, {{major_releases_behind}} behind OneUptime {{server_version}}, which it reports to. See what it misses and how to update it using {{probe_link}} on the OneUptime dashboard.`,
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: `You are now on-call for policy {{on_call_policy_name}} on schedule {{schedule_name}}. View the on-call schedule using {{schedule_link}} on the OneUptime dashboard to plan ahead.`,
   [WhatsAppTemplateIds.OnCallUserIsNextNotification]: `You are next on-call for policy {{on_call_policy_name}} on schedule {{schedule_name}}. Prepare for your shift using {{schedule_link}} on the OneUptime dashboard for the latest details.`,
   [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]: `You have been added to on-call policy {{on_call_policy_name}} for {{on_call_context}}. Review the on-call policy using {{policy_link}} on the OneUptime dashboard for full guidelines.`,
@@ -250,6 +260,7 @@ export const WhatsAppTemplateLanguage: Record<WhatsAppTemplateId, string> = {
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "en",
   [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]: "en",
   [WhatsAppTemplateIds.ProbeOwnerAddedNotification]: "en",
+  [WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification]: "en",
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "en",
   [WhatsAppTemplateIds.OnCallUserIsNextNotification]: "en",
   [WhatsAppTemplateIds.OnCallUserAddedToPolicyNotification]: "en",

@@ -23,8 +23,8 @@ Haz clic en tu foto, arriba a la derecha del panel.
 
 | Elemento | Qué hace |
 | --- | --- |
-| **Perfil** | Abre **Perfil de usuario**: tu nombre, tu correo, tu zona horaria, tu idioma, tu foto y la seguridad de tu inicio de sesión. |
-| **Ajustes de admin** | Abre el Admin Dashboard. Solo lo ven los administradores principales de una instalación autoalojada. |
+| **Perfil de usuario** | Abre **Perfil de usuario**: tu nombre, tu correo, tu zona horaria, tu idioma, tu foto y la seguridad de tu inicio de sesión. |
+| **Panel de administración** | Abre el Admin Dashboard. Solo lo ven los administradores principales de una instalación autoalojada. |
 | **Tema** | Define el tema del panel: **Claro**, **Oscuro** o **Sistema**, que es claro u oscuro según cómo esté configurado tu dispositivo. |
 | **Cerrar sesión** | Cierra tu sesión, al instante en cada servidor de OneUptime. Donde tu administrador lo ha configurado, también cierra tu sesión en tu proveedor de identidad. |
 
@@ -35,7 +35,7 @@ Haz clic en tu foto, arriba a la derecha del panel.
 :::steps
 ### Abrir tu perfil
 
-Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista general** se abre en la tarjeta **Información básica**: tu nombre, tu correo, tu zona horaria y tu idioma.
+Haz clic en tu foto, arriba a la derecha, y elige **Perfil de usuario**. La página **Vista general** se abre en la tarjeta **Información básica**: tu nombre, tu correo, tu zona horaria y tu idioma.
 
 ### Editar tus datos
 

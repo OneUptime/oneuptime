@@ -65,6 +65,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Notitie-sjablonen** | Instellingen | Kant-en-klare tekst voor de notities die je team bij zijn zaken schrijft |
 | **Nummering** | Instellingen | De tekst voor de zaaknummers, en het nummer dat de volgende zaak krijgt |
 | **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
+| **Wisverzoeken** | Instellingen | Personen die op verzoek zijn gewist, en wat elke wissing veranderde |
 
 **Detecties**, **AI**, **Verbindingen** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
@@ -187,7 +188,7 @@ De pagina **Installatiegids**, onder **Verbindingen**, bevat deze snippets, met 
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel, webaanval en geweigerd verzoek om een gevoelig bestand daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel, webaanval en verzoek om een gevoelig bestand daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 Elke soort bereikt OneUptime als gewone logs:
 
@@ -246,7 +247,7 @@ Zet **Netwerkflows** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, e
 - het bereik van elke detectie van de sonde, zolang de scan loopt;
 - de hosts en poorten die haar monitoren controleren.
 
-Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt.
+Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt. Een aangepaste sonde zonder hostnetwerk, zoals een Kubernetes-pod of een container op een Docker-bridgenetwerk, wordt ook herkend aan de adressen van haar host, die `PROBE_HOST_IP_ADDRESSES` haar doorgeeft: zolang ze die niet heeft, vertrekken haar polls vanaf een adres waaraan ze niet wordt herkend en worden ze als sweeps gemeld. Zie [Wat een sonde stuurt wanneer ze zich meldt](/docs/probe/custom-probe#wat-een-sonde-stuurt-wanneer-ze-zich-meldt).
 
 ### Een beveiligingsproduct koppelen
 
@@ -288,6 +289,55 @@ Elke gebeurtenis wordt opgeslagen met getypeerde velden en de payload van de bro
 
 Gebeurtenissen die vóór OneUptime 14.0.84 zijn opgeslagen, laten de procesvelden leeg en noemen hun proces alleen als `principalProcess`, het proces dat handelde. Ze worden achteraf niet aangevuld: ze houden waarmee ze zijn opgeslagen tot hun bewaartermijn afloopt.
 
+### Welk adres een gebeurtenis noemt
+
+Een gebeurtenis noemt het adres waar een aanvraag vandaan kwam alleen als de afzender van de aanvraag het niet zelf kan hebben geschreven. Dat adres is geverifieerd en wordt het **Bron-IP** van de gebeurtenis: detectieregels tellen het, threat intelligence vergelijkt het, en het **Responsplan** van een zaak biedt aan het te blokkeren. Elk ander adres dat een aanvraag noemt, is alleen opgegeven: de gebeurtenis bewaart het als **Opgegeven IP**, en niets telt of blokkeert het.
+
+- Het eigen adres van de verbinding is geverifieerd: de `network.peer.address` van een serverspan, of het eerste veld van een regel in het toegangslog van een webserver. Niemand kan het in een aanvraag schrijven.
+- Achter een proxy die je vertrouwt, is het adres van de verbinding dat van de proxy, en is de client het adres dat de proxy in `X-Forwarded-For` doorgaf. Elke proxy voegt het adres toe waarvan hij de verbinding aannam, dus leest OneUptime de header van rechts en neemt het eerste adres dat geen proxy is die je vertrouwt. Wat een afzender in de header schrijft, komt links daarvan terecht en blijft een bewering.
+- Een adres dat een aanvraag over zichzelf noemt, is opgegeven: `client.address`, dat instrumentatie vult vanaf de linkerkant van de header, de rest van `X-Forwarded-For`, en `Forwarded`.
+
+Een opgegeven adres wordt nooit vanuit een zaak geblokkeerd: iedereen kan `X-Forwarded-For: 192.0.2.44` sturen, en een blokkade zou afsnijden wie 192.0.2.44 ook is. Een gebeurtenis met alleen een opgegeven adres heeft een **Responsplan** dat je zegt het echte adres te zoeken in de logs van je load balancer of firewall.
+
+Leg twee dingen vast op de serverspans van je app, zodat de adressen geverifieerd zijn: het eigen adres van de verbinding, `network.peer.address`, dat de HTTP-instrumentaties van OpenTelemetry instellen, en, achter een proxy, de header `X-Forwarded-For`, die ze vastleggen als `http.request.header.x-forwarded-for` zodra je hem opneemt in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Een JSON-toegangslog wordt op dezelfde manier gelezen: het clientveld, zoals `remote_addr`, is het adres van de verbinding, en het veld `http_x_forwarded_for` is de header.
+
+#### Vertrouwde proxy's
+
+Beveiligingsgebeurtenissen gelooft een proxy over wie zijn client was, als zijn adres een van de volgende is:
+
+| Vertrouwd | Waarom |
+| --- | --- |
+| Privé, loopback of link-local, zoals `10.0.0.5` | Altijd: niemand heeft het op internet, dus het is een load balancer of een ingress binnen je netwerk |
+| Opgenomen in **Vertrouwde proxy's** | Je hebt het opgenomen |
+| In de gepubliceerde bereiken van een edge die je hebt verbonden, zoals [Cloudflare](/docs/integrations/cloudflare) | Zolang de verbinding bestaat |
+| Een van je eigen application load balancers | Tenzij je het uitzet |
+
+**Beveiligingsgebeurtenissen → Verbindingen → Meer instellingen** bevat **Vertrouwde proxy's**, de lijst die je zelf schrijft, en **Automatisch vertrouwd**, dat de rest laat zien en waarom. Neem een proxy op in **Vertrouwde proxy's**, één adres of bereik per regel, als zijn adres openbaar is en niets anders hem vertrouwt: een CDN dat je niet hebt verbonden, een load balancer die je app via internet bereikt, of een reverse proxy zoals nginx op een server met een openbaar adres voor je app. Tot je dat doet, wordt elke aanval via hem aan de proxy toegeschreven. Achter een globale externe Application Load Balancer van Google Cloud komen de verbindingen van je app van de front-ends van Google: neem `35.191.0.0/16` en `130.211.0.0/22` op.
+
+Je eigen application load balancers zijn de load balancers die je [verbonden cloudaccounts](/docs/telemetry/cloud-accounts) opsommen: AWS Application Load Balancers, AWS Classic Load Balancers waarvan elke listener HTTP of HTTPS is, Google Cloud Application Load Balancers en Azure Application Gateways, met hun openbare adressen. Elk voegt de client die hij doorstuurt toe aan `X-Forwarded-For`. Een load balancer van Google Cloud voegt zijn eigen adres toe na dat van de client, en een Application Gateway bereikt een openbare backend vanaf zijn eigen adres, dus zonder hen zou elke aanval via een ervan aan de load balancer worden toegeschreven. **Uw loadbalancers**, op **Automatisch vertrouwd**, somt ze op, en een Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder kan het uitzetten.
+
+Niets anders van jou wordt automatisch vertrouwd: niet je hosts, Kubernetes-nodes, sondes of virtuele machines, geen NAT-gateway, en geen Network, Gateway of Azure load balancer. Ze sturen niemand door, of geven een aanvraag door zoals die binnenkwam, dus wat erop draait, kan elke willekeurige client noemen: een aanvraag die een monitor met eigen headers stuurt, een pod, een laptop achter de gateway. Is een ervan je proxy, voeg hem dan toe aan **Vertrouwde proxy's**. Een Kubernetes-ingress wordt vertrouwd als de load balancer die hij is: een GKE-ingress is een Google Cloud Application Load Balancer, een AKS-ingress voor Application Gateway een Application Gateway, en een EKS-ingress van klasse `alb` een AWS Application Load Balancer. Een ingresscontroller binnen je cluster stuurt door vanaf een privéadres, dat altijd vertrouwd wordt.
+
+Een wijziging aan een van deze werkt binnen een minuut, en een nieuwe load balancer wordt binnen vijf minuten vertrouwd.
+
+#### Toegangslogs die eindigen op X-Forwarded-For
+
+Achter een load balancer loggen veel webservers het doorgestuurde adres als laatste, zoals het eigen formaat `main` van nginx doet:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Een logregel zegt nooit wat zijn velden zijn, dus het laatste veld wordt pas als `X-Forwarded-For` gelezen zodra je **Logboeken eindigen op X-Forwarded-For** aanzet, op **Toegangslogboeken** onder **Meer instellingen**, en dan alleen:
+
+- als het eerste veld van de logregel een proxy is die je vertrouwt: een logregel van een client die je webserver rechtstreeks bereikte, is van die client;
+- in het combined-formaat, met precies één veld tussen aanhalingstekens na de user agent en niets daarna;
+- als dat veld `-` is of een lijst adressen waarvan het laatste geen poort heeft.
+
+Laat het uit als je formaat eindigt op een andere header die een adres bevat, zoals `X-Real-IP`, of als je webserver headers schrijft zonder hun aanhalingstekens te escapen, zoals `morgan` van Express doet: de eigen user agent van een aanvraag zou dan een veld kunnen toevoegen. Een JSON-toegangslog heeft geen schakelaar nodig, omdat de velden een naam hebben.
+
 ### Verborgen door een opschoonregel
 
 Een IP-adresregel die je logs of traces wist of maskeert, verbergt het adres waar een aanval vandaan kwam voordat Beveiligingsgebeurtenissen ze leest. De gebeurtenis wordt toch opgeslagen, zonder adres, en overal waar ze het adres zou noemen, zegt ze dat een scrub-regel het verborg:
@@ -303,6 +353,8 @@ Een regel die hasht, bewaart het adres voor Beveiligingsgebeurtenissen, zodat de
 Een detectieregel die per adres telt, kan het beste per `principalIp` of `targetIp` tellen, zoals de regels van de regelbibliotheek doen: die velden noemen het adres achter het token van een regel die hasht. Het eigen adresveld van een formaat, zoals `openstack.audit.initiator_address` of `asa.src_ip`, bevat alleen een adres dat in het log stond, dus het blijft leeg overal waar een scrub-regel er een verborg.
 
 Een regel die een gebruiker wist of maskeert, verbergt die op dezelfde manier: waar de gebeurtenis de gebruiker zou noemen, zegt **Brongebruiker** of **Doelgebruiker** dat een scrub-regel die verborg. Waar Beveiligingsgebeurtenissen een gebruiker leest, bewaart een regel die hasht de gebruiker ervoor: de `enduser.id` of `user.id` van een verzoek, de gebruiker van een AI-aanroep en een gebruiker die een logregel noemt, zoals de principal van een cloud-auditlog. Zo noemt de gebeurtenis de gebruiker achter het token, noemt een zaak over die gebruiker het account, en kan een playbook erop handelen zoals op elke andere gebruiker. Wat de regel achterliet, staat in `oneuptime.principal_user_hashed_as` of `oneuptime.target_user_hashed_as`, zodat je de gebruiker kunt vinden in je logs en traces, die alleen het token bevatten. Een token waarvoor geen gebruiker bewaard is, zoals een token dat gemaakt is voordat tokens een sleutel hadden, blijft de gebruiker van de gebeurtenis: regels tellen het als één account, en geen playbook handelt erop.
+
+Het paneel van het event zegt dat onder de gebruiker die het noemt in **Brongebruiker** en **Doelgebruiker**: “Gehasht in uw logboeken als …”, of “Gehasht in uw traces als …” bij een event uit uw traces, waarbij … het token is. Het token is een link die uw logs of traces erop doorzoekt, van een dag vóór het event tot een dag erna. Bij een gebruiker die op verzoek is gewist, staat in plaats daarvan **Op verzoek gewist**, en het event toont het token: zie [Een persoon wissen](#een-persoon-wissen).
 
 ## Beveiligingsgebeurtenissen verkennen
 
@@ -335,13 +387,24 @@ De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Resu
 
 Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, wordt in dat verzoek gevolgd. Het paneel zegt hoe ver het verzoek kwam (**Afgewezen**, **App bereikt**, **Fout** of **Database bereikt**), wie het stuurde, en linkt naar de trace, de uitzondering, de sessieherhaling en de logregel zelf. Een logregel, een trace en een uitzondering die deel zijn van een aanval zeggen dat ook op hun eigen pagina's.
 
+### Een gevoelig bestand dat je site leverde
+
+Een verzoek om een bestand met geheimen, zoals `/.env`, `/.git/config`, `/.aws/credentials` of een kopie van `wp-config.php`, is een lek als je site het met het bestand zelf beantwoordde: wie erom vroeg, heeft nu de wachtwoorden, sleutels en tokens die erin staan. Een single-page-app beantwoordt elk pad dat hij niet heeft met zijn eigen pagina en status 200, dus status 200 alleen zegt dat nooit. OneUptime leest wat het antwoord bevatte:
+
+- Een type dat geen webpagina is, zoals `text/plain` of `application/octet-stream`: het bestand zelf.
+- Een webpagina, of JSON voor een bestand dat geen JSON is: de eigen pagina van je site.
+- Niets erin: er is niets meegenomen.
+- Een grootte en geen type, zoals het toegangslog van een webserver het vastlegt: het bestand zelf als geen ander pad die grootte kreeg en je site 404 antwoordt voor de paden die hij niet heeft, en de eigen pagina van je site als dezelfde grootte twee verschillende paden beantwoordde. Als niets het uitwijst, is het verzoek geen gebeurtenis.
+
+Een geleverd bestand heeft de ernst Kritiek, en de regel **Sensitive file served** uit de regelbibliotheek opent er een zaak over, met stappen om het bestand offline te halen en te roteren wat erin staat. Elk van deze verzoeken telt ook mee voor **Scanning for sensitive files**, die van een single-page-app inbegrepen. Een beheerpagina die je site levert, zoals die van WordPress, is er nooit een, en een `wp-config.php` die WordPress uitvoerde, is de eigen pagina van je site. De firewallgebeurtenissen van Cloudflare zeggen niet wat je oorsprong stuurde, dus een verzoek dat Cloudflare doorliet, telt alleen mee voor het scannen. Het paneel van een gebeurtenis zegt onder **Wat er daarna gebeurde** wat je site stuurde.
+
 ### Campaigns
 
 **Campagnes** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan. Een rij die je blokkeerlijst al bevat, zegt tot wanneer het adres geblokkeerd is of een challenge heeft, en noemt het bereik of netwerk dat het bevat.
 
 Om meerdere aanvallers tegelijk te blokkeren, selecteer je hun rijen en druk je op **Adressen blokkeren**. Eén dialoogvenster toont elk adres dat het blokkeert en elk adres dat het weglaat, met de reden: al geblokkeerd, een van je eigen adressen of een beschermd adres, een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of een adres dat OneUptime niet kon controleren. Het blokkeert voor 24 uur, tenzij je een andere duur kiest, of geeft een challenge met **In plaats daarvan challenge**, en elke blokkering komt als de jouwe op je [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst).
 
-**Groeperen op netwerk** zet de adressen van één netwerk op één rij: op zijn ASN waar de gebeurtenissen van je [Cloudflare](/docs/integrations/cloudflare)-verbinding er een noemen, en anders op zijn /24 bij IPv4 of zijn /48 bij IPv6. De rij van een ASN toont de bereiken van waaruit zijn adressen stuurden. **Dit netwerk een challenge geven** zegt wat het gaat doen, waar en hoe lang, voordat het dat doet: 24 uur, tenzij je een andere duur kiest, en de volgende trede van de ladder voor een netwerk dat al eerder een challenge kreeg. Cloudflare houdt een bereik in zijn challengelijst, en een ASN als IP Access Rule, die elk abonnement heeft.
+**Groeperen op netwerk** zet de adressen van één netwerk op één rij: op zijn ASN waar de gebeurtenissen van je [Cloudflare](/docs/integrations/cloudflare)-verbinding er een noemen, en anders op zijn /24 bij IPv4 of zijn /48 bij IPv6. De rij van een ASN toont de bereiken van waaruit zijn adressen stuurden. **Dit netwerk een challenge geven** zegt wat het gaat doen, waar en hoe lang, voordat het dat doet: 24 uur, tenzij je een andere duur kiest, en de volgende trede van de ladder voor een netwerk dat al eerder een challenge kreeg. Cloudflare houdt een bereik in zijn challengelijst, en een ASN als IP Access Rule, die elk abonnement heeft. **Aanvragen bekijken** bij een netwerk opent in **Gebeurtenissen** wat het stuurde: bij een ASN op de ASN die de Cloudflare-gebeurtenissen ervan noemen, en bij een bereik als zoekopdracht naar de adressen ervan, zoals `ip:203.0.113.*`, die je kunt aanpassen.
 
 - Een netwerk met een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of met een van je eigen adressen, krijgt nooit een challenge, en het dialoogvenster noemt wie of wat.
 - Een bereik dat breder is dan een /24 (een /48 bij IPv6), en een hele ASN, vragen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar. De rij van een ASN biedt ook elk van zijn bereiken aan, die iedereen die mag blokkeren een challenge kan geven.
@@ -537,6 +600,8 @@ Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt d
 | Password spraying: één IP dat faalt tegen 5 verschillende accounts | `principalIp` | `principalUser` | 5 |
 | Poortscan: één IP dat 20 verschillende poorten bereikt | `principalIp` | `targetPort` | 20 |
 
+Een regel met een **Groeperingsveld** die meer dan één gebeurtenis in een groep nodig heeft, via een drempel boven 1 of een **Veld voor unieke telling**, laat de gebeurtenissen weg die geen waarde voor zijn veld hebben: geteld zouden ze allemaal optellen als één waarde, elke mislukte aanmelding zonder adres als één IP-adres. Een regel die bij elke gebeurtenis afgaat, blijft voor hen afgaan. **Detectieregels** zegt onder de naam van een regel hoeveel van de overeenkomende gebeurtenissen van de afgelopen dag hij niet kon tellen, en die tekst opent waarom: hoeveel er geen waarde hadden, en hoeveel daarvan een scrub-regel verborg, met **Scrub-regels openen**. Een regel die niets kon tellen van wat met hem overeenkwam, kan niet afgaan, en zijn **Status** zegt **Vraagt aandacht**. **Uitvoeren op eerdere gebeurtenissen** zegt hetzelfde voor de periode die het leest.
+
 ### Wanneer een regel draait
 
 OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen die tussen de vorige uitvoering en twee minuten geleden bij OneUptime zijn binnengekomen, ongeacht wanneer ze gebeurden, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog worden geschreven ruimte:
@@ -685,6 +750,30 @@ Alles in Beveiligingsgebeurtenissen dat eerdere gebeurtenissen leest, leest alle
 - Een hunt waarvan het **Tijdsbereik** langer is dan gebeurtenissen worden bewaard, vindt niets ouder, en het formulier zegt dat.
 
 **Projectinstellingen → Telemetrie & APM → Gegevensbewaring** toont de ingeschakelde regels die verder terugkijken dan de **Standaardbewaring (dagen)**. Om ze te dekken, bewaar je gebeurtenissen langer, met **Bewaartermijn wijzigen** onder een regel, of maak je de tijdspanne van een regel korter tot wat bewaard wordt. OneUptime bewaart 15 dagen tenzij je dat wijzigt, omdat de bewaartermijn bepaalt wat je telemetrie kost en hoe lang persoonsgegevens in gebeurtenissen, zoals adressen en gebruikersnamen, worden bewaard. Een nieuwe bewaartermijn geldt voor gebeurtenissen die vanaf dan binnenkomen, dus regels kijken verder terug naarmate die gebeurtenissen ouder worden.
+
+## Een persoon wissen
+
+Als iemand u vraagt zijn gegevens te wissen, bijvoorbeeld op grond van artikel 17 AVG, wist u hem in **Beveiligingsgebeurtenissen → Instellingen → Wisverzoeken**. Kies **Persoon wissen** en voer zijn gebruikers-ID of e-mailadres in zoals uw logs het bevatten voordat uw Hash-opschoonregel het verborg, of het token dat een event op die plaats toont. Een e-mailadres wordt ook in kleine letters gewist. Vul bij **Referentie** uw eigen referentie in, zoals het ticketnummer van het verzoek, nooit de naam van de persoon.
+
+Wat het verzoek doet:
+
+- Binnen een minuut wordt de persoon niet meer genoemd. De gebruikerskluis weigert vanaf dan de tokens, zodat geen event, case of playbook de persoon nog noemt, ook niet als een later event hetzelfde token bevat: dat event houdt het token als gebruiker, zoals bij elk token zonder bewaarde gebruiker. Een token dat terugkomt bewaren zou de persoon opnieuw noemen, en dat is precies wat u op hun verzoek moet stoppen.
+- Binnen een paar minuten verwijdert het de items van de kluis over de persoon en zet het token terug op hun plaats in de events die hen via de kluis noemden: **Brongebruiker**, **Doelgebruiker**, de observables en de attributen. Het haalt de persoon uit de titels, entiteiten en bewaarde events van cases en detecties, en uit het entiteitsrisico.
+- Een playbookrun of een actie van OneUptime AI die op goedkeuring wacht om op de persoon te handelen, wordt ingetrokken en zegt waarom.
+
+Elk verzoek toont zijn status, **In de wachtrij**, **Wordt gewist**, **Gewist** of **Mislukt**, en wat het veranderde: de verwijderde kluisitems, de events en cases die de persoon niet meer noemen en de ingetrokken voorstellen. Het wissen begint twee minuten nadat het verzoek is ingediend, zodra geen enkele OneUptime-server de persoon nog noemt, en een verzoek toont pas **Gewist** als elke wijziging is toegepast. Een verzoek dat mislukt, wordt opnieuw geprobeerd; na vijf pogingen toont het **Mislukt** met de reden, en de eigenaren van het project krijgen een e-mail. De persoon wordt nog steeds niet genoemd, en het verzoek opnieuw indienen probeert het nogmaals.
+
+Wat het laat staan:
+
+- Wat mensen schreven: notities, afsluitnotities, taken, bewijs, aangepaste velden en wat OneUptime AI over een case schreef.
+- Events die de persoon noemden omdat uw logs hen leesbaar bevatten, en uw logs en traces zelf, die alleen het token bevatten.
+- De Detection Finding-events die een regel over de persoon schreef, waarvan het bericht en de observables hen kunnen noemen, totdat uw telemetriebewaring ze verwijdert.
+- Al verzonden meldingen, incidenten en waarschuwingen die een detectie opende, de activiteit van een case, exports, back-ups en het auditlog.
+- Bij een zelf gehoste OneUptime waarvan de `ENCRYPTION_SECRET` veranderde, tokens van vóór de wijziging: wis elk ervan via het token dat een event toont.
+
+Het verzoek bewaart wie het indiende en wanneer, uw referentie en de tokens van de persoon, waarmee de kluis hen blijft weigeren. Het gebruikers-ID of e-mailadres wordt versleuteld opgeslagen, waar geen pagina, export of API het kan lezen, en gewist zodra het wissen klaar is; ClickHouse krijgt alleen ooit de tokens. Verzoeken kunnen niet worden bewerkt of verwijderd: ze zijn uw vastlegging van het wissen.
+
+Projecteigenaren, Projectbeheerders, Beveiligingsbeheerders en iedereen met Create Security Erasure Request, zoals uw functionaris voor gegevensbescherming, kunnen een verzoek indienen, op de pagina of via `/security-user-erasure-request` van de API. Elke beveiligingsrol kan ze lezen.
 
 ## Probleemoplossing
 

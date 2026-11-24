@@ -14,6 +14,7 @@ import {
   TRACE_SCAN_ATTRIBUTES_READ,
   TRACE_SCAN_ATTRIBUTE_KEYS,
   TRACE_SCAN_URL_ATTRIBUTES,
+  getTraceScanSecretFileWords,
   getTraceScanSensitiveFileWords,
   getTraceScanUrlMarkers,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
@@ -76,8 +77,11 @@ function spanUrlText(statement: Statement): void {
   statement.append(")");
 }
 
-// Whether a span's answer was a 4xx: refused or not found, by any of its status attributes.
-function spanRefusedStatus(statement: Statement): void {
+/*
+ * Whether a span's answer's status starts with a digit, by any of its
+ * status attributes: '4' a refusal or not found, '2' an answer (#10912).
+ */
+function spanStatusStartsWith(statement: Statement, digit: "2" | "4"): void {
   statement.append("(");
 
   TRACE_SCAN_ATTRIBUTE_KEYS.statusCode.forEach(
@@ -86,21 +90,34 @@ function spanRefusedStatus(statement: Statement): void {
         statement.append(" OR ");
       }
 
+      // The digit is this file's own, so it is appended as text.
       statement.append(
-        SQL`startsWith(attributes[${{ type: TableColumnType.Text, value: key }}], '4')`,
+        SQL`startsWith(attributes[${{ type: TableColumnType.Text, value: key }}], `,
       );
+      statement.append(`'${digit}')`);
     },
   );
 
   statement.append(")");
 }
 
+// Whether a span's answer was a 4xx: refused or not found, by any of its status attributes.
+function spanRefusedStatus(statement: Statement): void {
+  spanStatusStartsWith(statement, "4");
+}
+
+// Whether a span's answer was a 2xx: what the app sent is read for a file that holds secrets (#10912).
+function spanServedStatus(statement: Statement): void {
+  spanStatusStartsWith(statement, "2");
+}
+
 /*
  * The spans the trace scan reads for an attack, as a condition: a server
  * span whose URL holds an attack string or a cloud metadata address, one
  * whose URL holds a sensitive path's words and that was answered with a
- * 4xx (#10745), or an LLM span whose prompt holds a prompt-injection
- * phrase. The scan's page reads by it, and so does the count of what a drop
+ * 4xx (#10745), one whose URL holds the words of a file that holds secrets
+ * and that was answered with a 2xx (#10912), or an LLM span whose prompt
+ * holds a prompt-injection phrase. The scan's page reads by it, and so does the count of what a drop
  * filter would take from Security Events (Telemetry/DropFilterRecordCount,
  * #10436).
  */
@@ -134,6 +151,26 @@ export function appendTraceScanCandidateCondition(statement: Statement): void {
     }}) AND `,
   );
   spanRefusedStatus(statement);
+  /*
+   * A file that holds secrets the app answered with a 2xx (#10912): read
+   * for what it sent - a WordPress site's own admin pages are none of
+   * these words, so they still never leave ClickHouse.
+   */
+  statement.append(
+    SQL`) OR (kind = ${{
+      type: TableColumnType.Text,
+      value: SpanKind.Server,
+    }} AND multiSearchAnyCaseInsensitive(`,
+  );
+  spanUrlText(statement);
+  statement.append(
+    SQL`, ${{
+      type: TableColumnType.ArrayText,
+      value: getTraceScanSecretFileWords(),
+      sendAsHex: true,
+    }}) AND `,
+  );
+  spanServedStatus(statement);
   statement.append(
     SQL`) OR (isLlmSpan = 1 AND multiSearchAnyCaseInsensitive(llmUserMessagePreview, ${{
       type: TableColumnType.ArrayText,

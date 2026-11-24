@@ -132,8 +132,8 @@ Verwijderen haalt iemand uit elk team van het project. Die persoon verliest mete
 
 ## Problemen oplossen
 
-:::details "This user has already been invited to this team"
-Die persoon zit al in dat team, als lid of met een uitnodiging die nog niet is geaccepteerd. Open die persoon bij **Gebruikers** om de teams te zien, of nodig die uit voor een ander team.
+:::details "This person has already been invited to this team, or is a member of it"
+Die persoon zit al in dat team, als lid of met een uitnodiging die nog niet is geaccepteerd. Open die persoon bij **Gebruikers** om de teams te zien, of nodig die uit voor een ander team. Is die persoon nog niet lid geworden, dan verstuurt **Uitnodiging opnieuw verzenden** in het rijmenu de uitnodigingsmail nog een keer.
 :::
 
 :::details "You have reached the user limit for the free plan"

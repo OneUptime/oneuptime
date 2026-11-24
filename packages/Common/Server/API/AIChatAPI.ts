@@ -491,6 +491,12 @@ router.post(
          * through its AI agents, for the person asking (issue #5259).
          */
         offersPageInfrastructure: true,
+        /*
+         * The project's external MCP servers, on every page, for the
+         * person asking: their tools that only read at once, any other
+         * once the person approves the call (issue #10879).
+         */
+        offersExternalMcpServers: true,
         // The language the asker reads the Dashboard in (#7247).
         language: readRequestedReaderLanguage(req.body["language"]),
         /*
@@ -770,6 +776,11 @@ router.post(
           props: props,
           // The paused turn's command tools, built again for its subject.
           offersPageInfrastructure: true,
+          /*
+           * And its MCP servers' tools, built again for whoever approves:
+           * an approved call of one is sent with their permissions.
+           */
+          offersExternalMcpServers: true,
           /*
            * The language the approver reads the Dashboard in: what an
            * approved setup action writes into the records it makes (#7247).

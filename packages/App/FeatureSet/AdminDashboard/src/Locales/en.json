@@ -2,8 +2,8 @@
   "Company name associated with this license.": "Company name associated with this license.",
   "Annual contract value (in USD) for this license.": "Annual contract value (in USD) for this license.",
   "Expiration date of this license.": "Expiration date of this license.",
-  "Something went wrong": "Something went wrong",
-  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
+  "This page stopped working": "This page stopped working",
+  "Part of this page ran into a problem. Reload the page to continue.": "Part of this page ran into a problem. Reload the page to continue.",
   "Error details": "Error details",
   "Still stuck?": "Still stuck?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
@@ -497,7 +497,7 @@
       "title": "Sign Out"
     },
     "sendEmail": {
-      "title": "Send Announcement Email",
+      "title": "Send Email",
       "testCardTitle": "Send Test Email",
       "testCardDescription": "Send a test announcement email to a single email address to preview how it looks before sending to all users.",
       "allCardTitle": "Send Email to All Users",
@@ -514,7 +514,7 @@
       "confirmButton": "Yes, Send to All Users"
     },
     "moreEmail": {
-      "title": "Send Announcement Email",
+      "title": "Send Email",
       "cardTitle": "Send Announcement Email",
       "cardDescription": "Compose an announcement email to send to all registered users. You can send a test email first to preview how it looks.",
       "sendTestButton": "Send Test Email",
@@ -536,7 +536,7 @@
       "confirmButton": "Yes, Send to All Users"
     },
     "settings": {
-      "title": "Admin Settings",
+      "title": "Settings",
       "authentication": {
         "signUpCardTitle": "Sign Up",
         "signUpCardDescription": "Who can create an account on this server.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "Sending a test request to the channel.",
   "Custom Channel": "Custom Channel",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.",
   "Push Notifications": "Push Notifications",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} skipped",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "Are you sure you want to {{action}} {{count}} {{itemName}}?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "This server runs OneUptime {{current}}. {{latest}} is out.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.",
-  "Finish it on the Server setup page.": "Finish it on the Server setup page.",
+  "Finish it on the Server Setup page.": "Finish it on the Server Setup page.",
   "Products on this server": "Products on this server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.",
   "Start from": "Start from",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Switch to visual editor",
   "Visual": "Visual",
   "Drop image to upload": "Drop image to upload",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" was not uploaded. {{error}}",
+  "Uploading {{fileName}}…": "Uploading {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Type directly in the visual editor — use the toolbar to format.",
   "Switch to {{markdown}} to view or edit the raw source.": "Switch to {{markdown}} to view or edit the raw source.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.",
@@ -4573,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "The server did not answer with its help and support settings.",
   "Keyboard shortcuts": "Keyboard shortcuts",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.",
-  "Chat on Slack": "Chat on Slack"
+  "Chat on Slack": "Chat on Slack",
+  "Your Twilio account's default voice": "Your Twilio account's default voice",
+  "US English, female voice": "US English, female voice",
+  "US English, male voice": "US English, male voice",
+  "British English, female voice": "British English, female voice",
+  "British English, male voice": "British English, male voice",
+  "A page's call starts like this, always in English:": "A page's call starts like this, always in English:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio charges extra for this voice: under 2 US cents for each page's call.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Free. Twilio says its Basic voices are not meant for production.",
+  "Save, then send a test call to hear it.": "Save, then send a test call to hear it.",
+  "Call Voice": "Call Voice",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.",
+  "Choose Voice": "Choose Voice",
+  "Voice": "Voice"
 }

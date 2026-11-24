@@ -118,6 +118,18 @@ import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import FrozenMonitorResources, {
   NOT_MONITORED_STATUS_COLOR,
 } from "Common/Utils/StatusPage/FrozenMonitorResources";
+import StatusPageIncidentGrouping, {
+  StatusPageIncidentListCards,
+  StatusPageIncidentListMode,
+} from "Common/Utils/StatusPage/IncidentGrouping";
+import StatusPageTimelineEpisodes, {
+  TIMELINE_EPISODES_RESPONSE_KEY,
+} from "Common/Utils/StatusPage/TimelineEpisodes";
+import {
+  getEpisodeIncidents,
+  readEpisodeIncidents,
+  readIncidentListMode,
+} from "../../Utils/IncidentGrouping";
 
 // No resource is drawn as Not monitored until the overview says so.
 const NO_RESOURCE_IDS: ReadonlySet<string> = new Set<string>();
@@ -222,6 +234,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [episodeStateTimelines, setEpisodeStateTimelines] = useState<
     Array<IncidentEpisodeStateTimeline>
   >([]);
+  /*
+   * How the page lists its incidents and episodes, and - grouped by
+   * episode - the incidents each active episode's card lists
+   * (Common/Utils/StatusPage/IncidentGrouping).
+   */
+  const [incidentListMode, setIncidentListMode] =
+    useState<StatusPageIncidentListMode>(StatusPageIncidentListMode.Separate);
+  const [activeEpisodeIncidents, setActiveEpisodeIncidents] = useState<
+    Dictionary<Array<Incident>>
+  >({});
   // The project's incident states: which timeline rows show the resolved check.
   const [incidentStates, setIncidentStates] = useState<Array<IncidentState>>(
     [],
@@ -657,6 +679,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
         });
 
       /*
+       * A page that shows episodes but not incidents names no incident: its
+       * days list, for each incident of the day, the episode it belongs to
+       * (#10767). It said "No incidents" on a day that had them. The server
+       * sends these only for such a page.
+       */
+      const parsedTimelineEpisodes: Array<UptimeBarTooltipIncident> =
+        StatusPageTimelineEpisodes.toTooltipIncidents({
+          timelineEpisodes: data[TIMELINE_EPISODES_RESPONSE_KEY],
+          translateSeverityName: (incidentSeverityName: string): string => {
+            return translateStatusName(
+              StateListType.IncidentSeverity,
+              incidentSeverityName,
+            );
+          },
+          translateStateName: (incidentStateName: string): string => {
+            return translateStatusName(
+              StateListType.IncidentState,
+              incidentStateName,
+            );
+          },
+        });
+
+      /*
        * Named in the page's language, and placed in their lives by the
        * project's states: one in progress is on every day up to now.
        */
@@ -675,7 +720,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
         });
 
-      setTimelineIncidents(parsedTimelineIncidents);
+      setTimelineIncidents([
+        ...parsedTimelineIncidents,
+        ...parsedTimelineEpisodes,
+      ]);
       setTimelineMaintenance(parsedTimelineMaintenance);
       setMonitorsInGroup(monitorsInGroup);
       setMonitorGroupCurrentStatuses(monitorGroupCurrentStatuses);
@@ -699,6 +747,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setIncidentPublicNotes(incidentPublicNotes);
       setActiveIncidents(activeIncidents);
       setActiveEpisodes(activeEpisodes);
+      setIncidentListMode(readIncidentListMode(data));
+      setActiveEpisodeIncidents(readEpisodeIncidents(rawEpisodesArray));
       setEpisodePublicNotes(episodePublicNotes);
       setEpisodeStateTimelines(episodeStateTimelines);
       setIncidentStates(incidentStates);
@@ -2092,13 +2142,40 @@ const Overview: FunctionComponent<PageComponentProps> = (
     );
   };
 
+  /*
+   * The active incidents and episodes the page draws, in its mode: grouped
+   * by episode, an active episode's card lists its incidents, which then
+   * have no card of their own, and an episode that lists none is not drawn
+   * (Common/Utils/StatusPage/IncidentGrouping).
+   */
+  const isGroupedByEpisode: boolean =
+    StatusPageIncidentGrouping.isGroupedByEpisode(incidentListMode);
+
+  const activeCards: StatusPageIncidentListCards<Incident, IncidentEpisode> =
+    StatusPageIncidentGrouping.getCards<Incident, IncidentEpisode>({
+      mode: incidentListMode,
+      incidents: activeIncidents,
+      episodes: activeEpisodes,
+      getIncidentId: (incident: Incident): string | undefined => {
+        return incident.id?.toString() || incident._id;
+      },
+      getEpisodeIncidentIds: (episode: IncidentEpisode): Array<string> => {
+        return getEpisodeIncidents(
+          activeEpisodeIncidents,
+          episode.id?.toString() || episode._id,
+        ).map((incident: Incident): string => {
+          return (incident.id?.toString() || incident._id || "").toString();
+        });
+      },
+    });
+
   type GetActiveIncidentsFunction = () => Array<IncidentGroup>;
 
   const getActiveIncidents: GetActiveIncidentsFunction =
     (): Array<IncidentGroup> => {
       const groups: Array<IncidentGroup> = [];
 
-      for (const activeIncident of activeIncidents) {
+      for (const activeIncident of activeCards.incidents) {
         if (!activeIncident.currentIncidentState) {
           //should not happen.
           continue;
@@ -2135,7 +2212,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     (): Array<EpisodeGroup> => {
       const groups: Array<EpisodeGroup> = [];
 
-      for (const activeEpisode of activeEpisodes) {
+      for (const activeEpisode of activeCards.episodes) {
         if (!activeEpisode.currentIncidentState) {
           // should not happen.
           continue;
@@ -2164,6 +2241,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
           incidentSeverity: activeEpisode.incidentSeverity!,
           episodeStateTimelines: timeline ? [timeline] : [],
           monitorsInGroup: monitorsInGroup,
+          incidents: isGroupedByEpisode
+            ? getEpisodeIncidents(
+                activeEpisodeIncidents,
+                activeEpisode.id?.toString() || activeEpisode._id,
+              )
+            : undefined,
         };
 
         groups.push(group);
@@ -2221,6 +2304,80 @@ const Overview: FunctionComponent<PageComponentProps> = (
     getActiveIncidents();
   const activeEpisodesInEpisodeGroup: Array<EpisodeGroup> =
     getActiveEpisodesGroups();
+
+  /*
+   * The active section's cards. Grouped by episode, newest first, an
+   * episode beside the incidents of no episode, as the Incidents tab lists
+   * them; otherwise the incidents and then the episodes, as before.
+   */
+  const activeIncidentCards: Array<{
+    key: string;
+    date: Date;
+    element: ReactElement;
+  }> = [
+    ...activeIncidentsInIncidentGroup.map(
+      (incidentGroup: IncidentGroup, i: number) => {
+        return {
+          key: `incident-${i}`,
+          date:
+            incidentGroup.incident.declaredAt ||
+            (incidentGroup.incident.createdAt as Date | undefined) ||
+            OneUptimeDate.getCurrentDate(),
+          element: (
+            <EventItem
+              {...getIncidentEventItem({
+                incident: incidentGroup.incident,
+                incidentPublicNotes: incidentGroup.publicNotes || [],
+                incidentStateTimelines: incidentGroup.incidentStateTimelines,
+                incidentStates: incidentStates,
+                statusPageResources: incidentGroup.incidentResources,
+                monitorsInGroup: incidentGroup.monitorsInGroup,
+                isPreviewPage: StatusPageUtil.isPreviewPage(),
+                isSummary: true,
+              })}
+              isDetailItem={false}
+              key={`incident-${i}`}
+            />
+          ),
+        };
+      },
+    ),
+    ...activeEpisodesInEpisodeGroup.map(
+      (episodeGroup: EpisodeGroup, i: number) => {
+        return {
+          key: `episode-${i}`,
+          date:
+            episodeGroup.episode.declaredAt ||
+            (episodeGroup.episode.createdAt as Date | undefined) ||
+            OneUptimeDate.getCurrentDate(),
+          element: (
+            <EventItem
+              {...getEpisodeEventItem({
+                episode: episodeGroup.episode,
+                episodePublicNotes: episodeGroup.publicNotes || [],
+                episodeStateTimelines: episodeGroup.episodeStateTimelines,
+                incidentStates: incidentStates,
+                statusPageResources: episodeGroup.episodeResources,
+                monitorsInGroup: episodeGroup.monitorsInGroup,
+                isPreviewPage: StatusPageUtil.isPreviewPage(),
+                isSummary: true,
+                statusPageId: statusPageId || undefined,
+                incidents: episodeGroup.incidents,
+              })}
+              isDetailItem={false}
+              key={`episode-${i}`}
+            />
+          ),
+        };
+      },
+    ),
+  ];
+
+  if (isGroupedByEpisode) {
+    activeIncidentCards.sort((a: { date: Date }, b: { date: Date }): number => {
+      return OneUptimeDate.isAfter(a.date, b.date) ? -1 : 1;
+    });
+  }
   const activeScheduledMaintenanceEventsInScheduledMaintenanceGroup: Array<ScheduledMaintenanceGroup> =
     getOngoingScheduledEvents();
 
@@ -2463,47 +2620,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             activeEpisodesInEpisodeGroup.length > 0) && (
             <div id="incidents-list">
               <Section title={t("overview.activeIncidents")} />
-              {activeIncidentsInIncidentGroup.map(
-                (incidentGroup: IncidentGroup, i: number) => {
-                  return (
-                    <EventItem
-                      {...getIncidentEventItem({
-                        incident: incidentGroup.incident,
-                        incidentPublicNotes: incidentGroup.publicNotes || [],
-                        incidentStateTimelines:
-                          incidentGroup.incidentStateTimelines,
-                        incidentStates: incidentStates,
-                        statusPageResources: incidentGroup.incidentResources,
-                        monitorsInGroup: incidentGroup.monitorsInGroup,
-                        isPreviewPage: StatusPageUtil.isPreviewPage(),
-                        isSummary: true,
-                      })}
-                      isDetailItem={false}
-                      key={`incident-${i}`}
-                    />
-                  );
-                },
-              )}
-              {activeEpisodesInEpisodeGroup.map(
-                (episodeGroup: EpisodeGroup, i: number) => {
-                  return (
-                    <EventItem
-                      {...getEpisodeEventItem({
-                        episode: episodeGroup.episode,
-                        episodePublicNotes: episodeGroup.publicNotes || [],
-                        episodeStateTimelines:
-                          episodeGroup.episodeStateTimelines,
-                        incidentStates: incidentStates,
-                        statusPageResources: episodeGroup.episodeResources,
-                        monitorsInGroup: episodeGroup.monitorsInGroup,
-                        isPreviewPage: StatusPageUtil.isPreviewPage(),
-                        isSummary: true,
-                        statusPageId: statusPageId || undefined,
-                      })}
-                      isDetailItem={false}
-                      key={`episode-${i}`}
-                    />
-                  );
+              {activeIncidentCards.map(
+                (card: { element: ReactElement }): ReactElement => {
+                  return card.element;
                 },
               )}
             </div>

@@ -43,6 +43,7 @@ import { Green500 } from "../../Types/BrandColors";
 import OnCallDutyPolicyLabelRuleEngineService from "./OnCallDutyPolicyLabelRuleEngineService";
 import OnCallDutyPolicyOwnerRuleEngineService from "./OnCallDutyPolicyOwnerRuleEngineService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import TeamMemberService from "./TeamMemberService";
 import CreateBy from "../Types/Database/CreateBy";
 import CreatePermission from "../Types/Database/Permissions/CreatePermission";
@@ -1143,16 +1144,39 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
   /*
    * A policy deleted takes its escalation rules with it, by the database's
    * own cascade: nobody is on duty for it any more (OnDutyPoliciesCache).
+   * The rows that named its people, teams and schedules go the same way,
+   * so none of their hooks ends the on-call time logs they kept: every log
+   * still open on the policy ends now, or its people would be counted on
+   * call from then on (#10970). Never in the way of the delete, which is
+   * done: a failure is logged.
    */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<OnCallDutyPolicy>,
-    _itemIdsBeforeDelete: Array<ObjectID>,
+    itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<OnCallDutyPolicy>> {
     await OnDutyPoliciesCache.forgetProjects([
       (onDelete.carryForward as { projectId?: ObjectID } | null)?.projectId,
       onDelete.deleteBy.props.tenantId,
     ]);
+
+    try {
+      await OnCallDutyPolicyTimeLogService.endTimeForPolicies({
+        onCallDutyPolicyIds: itemIdsBeforeDelete,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (error) {
+      logger.error(
+        `Error ending the on-call time logs of deleted on-call policies ${itemIdsBeforeDelete
+          .map((policyId: ObjectID): string => {
+            return policyId.toString();
+          })
+          .join(", ")}: ${error}`,
+        {
+          projectId: onDelete.deleteBy.props.tenantId?.toString(),
+        } as LogAttributes,
+      );
+    }
 
     return onDelete;
   }

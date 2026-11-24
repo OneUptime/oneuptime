@@ -10,7 +10,7 @@ import {
   normalizeRecognizedValue,
   RecognizedEntity,
 } from "./Model/RecognizedEntity";
-import PercentDecodedText from "./PercentDecodedText";
+import { TextReading, TextReadings } from "./TextReadings";
 
 /*
  * FINDING SENSITIVE VALUES IN TEXT.
@@ -29,11 +29,13 @@ import PercentDecodedText from "./PercentDecodedText";
  * MAX_SCANNED_TEXT_LENGTH bounds the work one value can ask for.
  *
  * A detector that reads percent-encoded text (readsPercentEncoded - the IP
- * address ones, #10467) also reads each window with its escapes read
- * (PercentDecodedText): a candidate found there is validated as it reads
- * and placed on the characters it is written with, so it is judged by the
- * words around it as written, and kept by the window it starts in like any
- * other.
+ * address and email ones, #10467, #10935) also reads each window with its
+ * escapes read, and one that reads every script's digits
+ * (readsDigitsOfEveryScript - the card ones, #10960) with each script's
+ * digits read by their values (TextReadings): a candidate found there is
+ * validated as it reads and placed on the characters it is written with, so
+ * it is judged by the words around it as written, and kept by the window it
+ * starts in like any other.
  */
 
 export const WINDOW_SIZE: number = 65_536;
@@ -337,48 +339,47 @@ function passesQuickCheck(
 }
 
 /*
- * A detector's candidates in a window: as it is written and - for a
- * detector that reads percent-encoded text - as its escapes read, placed
- * on the characters they are written with. `decodedWindow` reads the
- * window once for every detector that asks.
+ * A detector's candidates in a window: as it is written and in each
+ * reading it asks for - with its percent-escapes read, with every script's
+ * digits read by their values - placed on the characters they are written
+ * with. `readings` reads the window once for every detector that asks.
  */
 function windowCandidates(
   detector: ScanDetector,
-  window: string,
+  readings: TextReadings,
   lowerWindow: string,
-  decodedWindow: () => PercentDecodedText | null,
 ): Array<{ start: number; end: number; value: string }> {
-  const found: Array<{ start: number; end: number; value: string }> =
-    passesQuickCheck(detector, window, (): string => {
-      return lowerWindow;
-    })
-      ? rawCandidates(detector, window)
-      : [];
+  const found: Array<{ start: number; end: number; value: string }> = [];
 
-  if (!detector.readsPercentEncoded) {
-    return found;
-  }
+  for (const reading of readings.readingsFor(detector)) {
+    const isWritten: boolean = reading === readings.written;
 
-  const decoded: PercentDecodedText | null = decodedWindow();
+    if (
+      !passesQuickCheck(detector, reading.text, (): string => {
+        return isWritten ? lowerWindow : reading.text.toLowerCase();
+      })
+    ) {
+      continue;
+    }
 
-  if (
-    decoded === null ||
-    !passesQuickCheck(detector, decoded.readable, (): string => {
-      return decoded.readable.toLowerCase();
-    })
-  ) {
-    return found;
-  }
-
-  for (const raw of rawCandidates(detector, decoded.readable)) {
-    found.push({
-      start: decoded.toWritten(raw.start),
-      end: decoded.toWritten(raw.end),
-      value: raw.value,
-    });
+    for (const raw of rawCandidates(detector, reading.text)) {
+      found.push(isWritten ? raw : placedOnWritten(raw, reading));
+    }
   }
 
   return found;
+}
+
+// A candidate of a reading, on the characters the window writes it with.
+function placedOnWritten(
+  raw: { start: number; end: number; value: string },
+  reading: TextReading,
+): { start: number; end: number; value: string } {
+  return {
+    start: reading.toWritten(raw.start),
+    end: reading.toWritten(raw.end),
+    value: raw.value,
+  };
 }
 
 function scanWindow(
@@ -391,16 +392,8 @@ function scanWindow(
 ): Array<Candidate> {
   const lowerWindow: string = window.toLowerCase();
   const candidates: Array<Candidate> = [];
-  // The window as its percent-escapes read, read the first time a detector asks.
-  let decoded: PercentDecodedText | null | undefined = undefined;
-  const decodedWindow: () => PercentDecodedText | null =
-    (): PercentDecodedText | null => {
-      if (decoded === undefined) {
-        decoded = PercentDecodedText.read(window);
-      }
-
-      return decoded;
-    };
+  // The window's readings, each read the first time a detector asks for it.
+  const readings: TextReadings = new TextReadings(window);
 
   for (const detector of detectors) {
     if (options.disabledDataTypeIds?.has(detector.dataTypeId)) {
@@ -420,12 +413,7 @@ function scanWindow(
       continue;
     }
 
-    for (const raw of windowCandidates(
-      detector,
-      window,
-      lowerWindow,
-      decodedWindow,
-    )) {
+    for (const raw of windowCandidates(detector, readings, lowerWindow)) {
       if (raw.start < acceptFrom || raw.start >= acceptBefore) {
         continue;
       }

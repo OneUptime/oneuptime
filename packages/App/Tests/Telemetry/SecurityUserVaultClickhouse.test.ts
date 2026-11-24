@@ -114,6 +114,8 @@ import CommonTraceScrubRuleService from "Common/Server/Services/TraceScrubRuleSe
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import SecurityUserVaultWriter from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
+import SecurityUserErasedTokens from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
+import SecurityUserErasureRequestService from "Common/Server/Services/SecurityUserErasureRequestService";
 import OpenStackAuditJoin from "Common/Server/Utils/SecurityEvent/LogScan/OpenStackAuditJoin";
 import SecurityLogScanner from "Common/Server/Utils/SecurityEvent/LogScan/SecurityLogScanner";
 import RealTimeDetections from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
@@ -419,6 +421,11 @@ integration("Security Events' user vault against ClickHouse", () => {
     SecurityEventsReadTelemetry.clearCache();
     SecurityUserVaultWriter.forgetWrites();
     ScrubbedClientAddresses.clearCache();
+    // Nobody erased from the vault on request (#10908): SecurityUserErasureClickhouse's.
+    SecurityUserErasedTokens.clearCache();
+    jest
+      .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+      .mockResolvedValue(new Set<string>());
 
     for (const table of [
       vaultTable,

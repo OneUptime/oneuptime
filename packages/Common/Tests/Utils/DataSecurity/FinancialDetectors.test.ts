@@ -303,6 +303,223 @@ describe("credit-card-number", () => {
   });
 });
 
+/*
+ * #10960: a card written in fullwidth digits, as Japanese text writes one,
+ * in Arabic-Indic or Persian digits, or in any of the 37 scripts whose
+ * digits the Basic Multilingual Plane holds, was never found: the patterns
+ * say [0-9]. Each script's digits are now read alone, then all of them
+ * together, each by its value, as the Android agent's redactor reads them
+ * (#10937): a card is found on the characters it is written with, judged
+ * as the ASCII card its digits' values make.
+ */
+describe("credit-card-number: in any script's digits (#10960)", () => {
+  interface CardFinding {
+    written: string;
+    normalized: string;
+    confidence: DataConfidence;
+  }
+
+  function cardFindings(text: string): Array<CardFinding> {
+    return findSensitiveValues(text, { detectors: FINANCIAL_DETECTORS })
+      .filter((match: TextMatch) => {
+        return match.dataTypeId === "credit-card-number";
+      })
+      .map((match: TextMatch) => {
+        return {
+          written: text.slice(match.start, match.end),
+          normalized: match.normalized,
+          confidence: match.confidence,
+        };
+      });
+  }
+
+  // A digit string written in the digits of the script whose zero is given.
+  function inScript(digits: string, zero: number): string {
+    return digits.replace(/[0-9]/g, (digit: string): string => {
+      return String.fromCharCode(zero + Number(digit));
+    });
+  }
+
+  const FULLWIDTH: number = 0xff10;
+  const ARABIC_INDIC: number = 0x0660;
+  const PERSIAN: number = 0x06f0;
+
+  test.each([
+    [
+      "fullwidth digits, as Japanese text writes a card",
+      `カード番号：${inScript(grouped(VISA, [4, 4, 4, 4], " "), FULLWIDTH)}`,
+      H,
+    ],
+    [
+      "Arabic-Indic digits in one run",
+      `رقم البطاقة ${inScript(VISA, ARABIC_INDIC)}`,
+      M,
+    ],
+    [
+      "Persian digits with dashes",
+      `شماره کارت ${inScript(grouped(VISA, [4, 4, 4, 4], "-"), PERSIAN)}`,
+      H,
+    ],
+    [
+      "two scripts at once",
+      `card ${inScript(VISA.slice(0, 4), FULLWIDTH)} ${grouped(VISA.slice(4), [4, 4, 4], " ")}`,
+      H,
+    ],
+    [
+      "right against a letter of another script",
+      `卡号${inScript(VISA, FULLWIDTH)}已拒绝`,
+      M,
+    ],
+    [
+      "an American Express card in fullwidth digits",
+      `card ${inScript(grouped(AMEX, [4, 6, 5], " "), FULLWIDTH)}`,
+      H,
+    ],
+  ])(
+    "finds a card in %s",
+    (_label: string, text: string, confidence: DataConfidence) => {
+      const findings: Array<CardFinding> = cardFindings(text);
+
+      expect(findings).toHaveLength(1);
+      expect(findings[0]!.normalized).toMatch(/^[0-9]{14,19}$/);
+      expect(isValidCardNumber(findings[0]!.normalized)).toBe(true);
+      expect(
+        text.endsWith(findings[0]!.written) ||
+          text.includes(findings[0]!.written),
+      ).toBe(true);
+      expect(findings[0]!.confidence).toBe(confidence);
+    },
+  );
+
+  test("in the digits of each of the 37 scripts, grouped, dashed or in one run", () => {
+    const decimalDigit: RegExp = /^\p{Nd}$/u;
+
+    for (let zero: number = 0; zero < 0xffff; zero++) {
+      const startsRun: boolean =
+        decimalDigit.test(String.fromCharCode(zero)) &&
+        !decimalDigit.test(String.fromCharCode(zero - 1));
+
+      if (!startsRun) {
+        continue;
+      }
+
+      for (const written of [
+        inScript(grouped(VISA, [4, 4, 4, 4], " "), zero),
+        inScript(grouped(MASTERCARD, [4, 4, 4, 4], "-"), zero),
+        inScript(VISA, zero),
+      ]) {
+        expect([
+          written,
+          cardFindings(`card ${written} declined`).map(
+            (finding: CardFinding) => {
+              return [finding.written, finding.normalized];
+            },
+          ),
+        ]).toEqual([
+          written,
+          [
+            [
+              written,
+              written
+                .replace(/[^\p{Nd}]/gu, "")
+                .replace(/\p{Nd}/gu, (digit: string): string => {
+                  return String(digit.charCodeAt(0) - zero);
+                }),
+            ],
+          ],
+        ]);
+      }
+    }
+  });
+
+  test("one script's digits first: a digit of another script beside a card is no part of it", () => {
+    const persian: string = inScript(VISA, PERSIAN);
+
+    expect(
+      cardFindings(`${persian}${inScript("1", ARABIC_INDIC)} end`),
+    ).toEqual([{ written: persian, normalized: VISA, confidence: M }]);
+    expect(cardFindings(`${inScript(VISA, ARABIC_INDIC)}7 end`)).toEqual([
+      {
+        written: inScript(VISA, ARABIC_INDIC),
+        normalized: VISA,
+        confidence: M,
+      },
+    ]);
+  });
+
+  test("then all scripts together: a card typed with digits of two scripts is read whole", () => {
+    const written: string =
+      inScript(VISA.slice(0, 10), PERSIAN) +
+      inScript(VISA.slice(10), ARABIC_INDIC);
+
+    expect(cardFindings(`شماره کارت ${written}`)).toEqual([
+      { written, normalized: VISA, confidence: M },
+    ]);
+  });
+
+  test("refuses what no card is, in any script's digits", () => {
+    expectNothingOf("credit-card-number", [
+      `card ${inScript(grouped(offByOne(VISA), [4, 4, 4, 4], " "), FULLWIDTH)}`,
+      `card ${inScript(offByOne(VISA), ARABIC_INDIC)}`,
+      `card ${inScript(VISA.slice(0, 10), PERSIAN)}`,
+      `card ${inScript("0000000000000000", FULLWIDTH)}`,
+      `card ${inScript("1234567890123456", ARABIC_INDIC)}`,
+      // A mixed number that fails the check, though each script's part is no card either.
+      `${inScript(VISA.slice(0, 10), PERSIAN)}${inScript(offByOne(VISA).slice(10), ARABIC_INDIC)}`,
+    ]);
+  });
+
+  test("counts a published test card in another script's digits as a test value", () => {
+    const test: Array<TextMatch> = findSensitiveValues(
+      `card ${inScript("4111111111111111", FULLWIDTH)}`,
+      { detectors: FINANCIAL_DETECTORS },
+    );
+
+    expect(test).toHaveLength(1);
+    expect(test[0]!.isTestValue).toBe(true);
+    expect(test[0]!.normalized).toBe("4111111111111111");
+  });
+
+  test("is judged by the words around it as written", () => {
+    expect(
+      cardFindings(`order ${inScript(VISA, FULLWIDTH)}`)[0]!.confidence,
+    ).toBe(L);
+    expect(
+      cardFindings(`card ${inScript(VISA, FULLWIDTH)}`)[0]!.confidence,
+    ).toBe(H);
+  });
+
+  test("finds a card in another script's digits wherever a window of a long text cuts it", () => {
+    const written: string = inScript(
+      grouped(VISA, [4, 4, 4, 4], " "),
+      FULLWIDTH,
+    );
+
+    for (const at of [61_430, 61_436, 61_440, 61_450, 65_520, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " card " + written + " " + "b".repeat(8_000);
+      const findings: Array<CardFinding> = cardFindings(text);
+
+      expect([at, findings.length]).toEqual([at, 1]);
+      expect(findings[0]!.written).toBe(written);
+    }
+  });
+
+  test("is found in a column named for it, every value in another script's digits", () => {
+    expect(
+      classified(
+        "card_number",
+        [
+          inScript(VISA, FULLWIDTH),
+          inScript(grouped(MASTERCARD, [4, 4, 4, 4], "-"), PERSIAN),
+          inScript(grouped(AMEX, [4, 6, 5], " "), ARABIC_INDIC),
+        ],
+        "credit-card-number",
+      ),
+    ).toMatchObject({ matchCount: 3, valuesWithMatch: 3, nameHinted: true });
+  });
+});
+
 describe("card-verification-code", () => {
   test("is three or four digits right after the words that label it", () => {
     expectFound("cvv: 123", [found("card-verification-code", "123", H)]);

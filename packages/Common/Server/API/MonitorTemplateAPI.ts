@@ -18,6 +18,13 @@ import ObjectID from "../../Types/ObjectID";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
 
+/*
+ * A sync's `fields` that is not a list of setting names (#7711): an API
+ * client's mistake, said with what to send.
+ */
+const SYNC_FIELDS_NOT_A_LIST_REFUSAL: string =
+  'The sync did not run: "fields" must be a list of setting names, such as ["monitorDestination"]. Send it as a list, or leave it out to sync every setting.';
+
 /**
  * Pull a `fields` whitelist out of the request body for a sync endpoint.
  * Returns undefined when the caller didn't ask to scope the sync — the
@@ -31,11 +38,11 @@ function readSyncFields(req: ExpressRequest): Array<string> | undefined {
     return undefined;
   }
   if (!Array.isArray(raw)) {
-    throw new BadDataException("`fields` must be an array of strings");
+    throw new BadDataException(SYNC_FIELDS_NOT_A_LIST_REFUSAL);
   }
   for (const entry of raw) {
     if (typeof entry !== "string") {
-      throw new BadDataException("`fields` must be an array of strings");
+      throw new BadDataException(SYNC_FIELDS_NOT_A_LIST_REFUSAL);
     }
   }
   return raw as Array<string>;

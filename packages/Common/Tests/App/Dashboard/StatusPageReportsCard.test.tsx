@@ -600,7 +600,9 @@ describe("switching reports on", () => {
 
   test("a switch the server refuses moves back, says why, and shows no schedule", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -608,7 +610,7 @@ describe("switching reports on", () => {
 
     await waitFor(() => {
       expect(within(switchRow()).getByRole("alert")).toHaveTextContent(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(reportsSwitch()).toHaveAttribute("aria-checked", "false");

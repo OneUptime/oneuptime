@@ -3,7 +3,9 @@ import {
   VOICEMAIL_MACHINE_DETECTION,
   VOICEMAIL_MESSAGE_CALL_DATA_KEY,
   VOICEMAIL_MESSAGE_CLOSING,
+  VOICEMAIL_VOICE_CALL_DATA_KEY,
 } from "../../FeatureSet/Notification/Utils/AnsweredBy";
+import { getVoicemailVoiceOfCall } from "../../FeatureSet/Notification/Utils/VoicemailCallback";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import CallLogService from "Common/Server/Services/CallLogService";
@@ -384,6 +386,119 @@ describe("an on-call call of a project that detects voicemail", () => {
         userOnCallLogTimelineId: NOTIFICATION_ID,
       }),
     );
+  });
+});
+
+/*
+ * THE VOICE A CALL IS PLACED WITH (#10948): the one chosen for the Twilio
+ * account it goes out on. The TwiML names it on every <Say>, and the call's
+ * log keeps it beside the voicemail message, so the message left on
+ * voicemail is said in it too (Utils/VoicemailCallback). A call with no
+ * voice keeps none: its log and TwiML are as every call's were.
+ */
+describe("the voice a page is placed with", () => {
+  test("a project's own account's voice: named on every <Say>, and kept for the voicemail message", async () => {
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      customTwilioConfig: { ...TWILIO_CONFIG, callVoice: "Polly.Brian-Neural" },
+    });
+
+    const twiml: string = String(twilioRequest()["twiml"]);
+    const says: Array<string> = twiml.match(/<Say[^>]*>/g) || [];
+
+    expect(says.length).toBeGreaterThan(0);
+
+    for (const say of says) {
+      expect(say).toBe('<Say voice="Polly.Brian-Neural" language="en-GB">');
+    }
+
+    expect(callDataOf(callLogs[0]!)[VOICEMAIL_VOICE_CALL_DATA_KEY]).toBe(
+      "Polly.Brian-Neural",
+    );
+    expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBe(
+      "Polly.Brian-Neural",
+    );
+  });
+
+  test("the server's own account's voice, through the server's account", async () => {
+    (getTwilioConfig as unknown as jest.Mock).mockResolvedValue({
+      ...TWILIO_CONFIG,
+      callVoice: "Google.en-US-Neural2-F",
+    });
+
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(String(twilioRequest()["twiml"])).toContain(
+      '<Say voice="Google.en-US-Neural2-F" language="en-US">',
+    );
+    expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBe(
+      "Google.en-US-Neural2-F",
+    );
+  });
+
+  test("a call whose words are not logged still keeps its voice, which is no word of it", async () => {
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      isSensitive: true,
+      customTwilioConfig: {
+        ...TWILIO_CONFIG,
+        callVoice: "Polly.Joanna-Neural",
+      },
+    });
+
+    const callData: JSONObject = callDataOf(callLogs[0]!);
+
+    expect(callData).not.toHaveProperty(VOICEMAIL_MESSAGE_CALL_DATA_KEY);
+    expect(callData[VOICEMAIL_VOICE_CALL_DATA_KEY]).toBe("Polly.Joanna-Neural");
+    expect(callData["message"]).toBe(
+      "This call is sensitive and is not logged",
+    );
+  });
+
+  test("no voice chosen: nothing named, nothing kept - as every call was", async () => {
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(String(twilioRequest()["twiml"])).not.toContain("voice=");
+    expect(callDataOf(callLogs[0]!)).not.toHaveProperty(
+      VOICEMAIL_VOICE_CALL_DATA_KEY,
+    );
+    expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBeUndefined();
+  });
+
+  test("a voice the list does not hold, from a config sent by another release: nothing named, and the call is placed", async () => {
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      customTwilioConfig: { ...TWILIO_CONFIG, callVoice: "man" },
+    });
+
+    expect(createCall).toHaveBeenCalledTimes(1);
+    expect(String(twilioRequest()["twiml"])).not.toContain("voice=");
+    expect(callDataOf(callLogs[0]!)).not.toHaveProperty(
+      VOICEMAIL_VOICE_CALL_DATA_KEY,
+    );
+  });
+
+  test("a log kept before voices could be chosen, or one with a voice the list no longer holds, leaves its message in the account's default voice", () => {
+    for (const callData of [
+      undefined,
+      null,
+      {},
+      { [VOICEMAIL_MESSAGE_CALL_DATA_KEY]: "Hello." },
+      { [VOICEMAIL_VOICE_CALL_DATA_KEY]: "Polly.Kevin-Neural" },
+      { [VOICEMAIL_VOICE_CALL_DATA_KEY]: 42 },
+      "voice",
+    ]) {
+      expect(getVoicemailVoiceOfCall(callData)).toBeUndefined();
+    }
   });
 });
 

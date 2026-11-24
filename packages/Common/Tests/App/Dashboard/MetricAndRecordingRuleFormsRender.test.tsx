@@ -223,6 +223,9 @@ import {
   getRecordingRuleAdvancedSummary,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/RecordingRule/RecordingRuleForm";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import MetricPipelineRuleFilterFormElement, {
+  METRIC_FILTER_PATTERN_TYPE_OPTIONS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/PipelineRuleFilter/MetricPipelineRuleFilter";
 import MetricPipelineRule from "../../../Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "../../../Models/DatabaseModels/MetricRecordingRule";
 import Service from "../../../Models/DatabaseModels/Service";
@@ -1402,5 +1405,116 @@ describe("what the folded More fields header says while left alone", () => {
     expect(RECORDING_RULE_DEFAULTS_SUMMARY).toContain("being saved");
     expect(PIPELINE_RULE_DEFAULTS_SUMMARY).not.toContain("created");
     expect(RECORDING_RULE_DEFAULTS_SUMMARY).not.toContain("created");
+  });
+});
+
+/*
+ * #10934: a filter that matches a built-in Pattern Type - what Scrub It's
+ * metric rule for an IP address, an email address or a card number
+ * matches - shows its pattern type, picked from the five the scrub rule
+ * forms name, never a value typed by hand; and a person can pick it.
+ */
+describe("a pipeline rule's Matches Pattern Type filter", () => {
+  function comboboxes(): Array<HTMLElement> {
+    return screen.getAllByRole("combobox");
+  }
+
+  function optionsOf(combobox: HTMLElement): Array<string> {
+    fireEvent.keyDown(combobox, { key: "ArrowDown", code: 40, keyCode: 40 });
+
+    return screen
+      .queryAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return option.textContent || "";
+      });
+  }
+
+  test("shows the pattern type Scrub It's rule matches, and no value box", async () => {
+    await act(async (): Promise<void> => {
+      render(
+        <MetricPipelineRuleFilterFormElement
+          initialValue={{
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: "peer",
+            conditionType:
+              MetricPipelineRuleFilterConditionType.MatchesPatternType,
+            value: "ipAddress",
+          }}
+        />,
+      );
+    });
+
+    expect(screen.getByText("Pattern Type")).toBeInTheDocument();
+    expect(screen.getByText("IP Address")).toBeInTheDocument();
+    expect(screen.getByText("Matches Pattern Type")).toBeInTheDocument();
+    expect(screen.queryByText("Value")).toBeNull();
+    expect(screen.queryByPlaceholderText("GET")).toBeNull();
+  });
+
+  test("offers the condition, then the five pattern types, and hands on the one picked", async () => {
+    const changes: Array<MetricPipelineRuleFilterCondition> = [];
+
+    await act(async (): Promise<void> => {
+      render(
+        <MetricPipelineRuleFilterFormElement
+          initialValue={{
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: "peer",
+            conditionType: undefined,
+          }}
+          onChange={(value: MetricPipelineRuleFilterCondition): void => {
+            changes.push(value);
+          }}
+        />,
+      );
+    });
+
+    const conditions: Array<string> = optionsOf(comboboxes()[1]!);
+
+    expect(conditions).toContain("Matches Pattern Type");
+    expect(conditions).toContain("Matches Regex");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("option", { name: "Matches Pattern Type" }),
+      );
+    });
+
+    expect(screen.getByText("Pattern Type")).toBeInTheDocument();
+    expect(optionsOf(comboboxes()[2]!)).toEqual(
+      METRIC_FILTER_PATTERN_TYPE_OPTIONS.map((option: { label: string }) => {
+        return option.label;
+      }),
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("option", { name: "Email Address" }));
+    });
+
+    expect(changes[changes.length - 1]).toEqual({
+      checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+      attributeKey: "peer",
+      conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+      value: "email",
+    });
+  });
+
+  test("a regex filter still takes a value typed by hand, and no pattern type", async () => {
+    await act(async (): Promise<void> => {
+      render(
+        <MetricPipelineRuleFilterFormElement
+          initialValue={{
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: "peer",
+            conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+            value: "^GET$",
+          }}
+        />,
+      );
+    });
+
+    expect(screen.getByText("Value")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("^GET$")).toBeInTheDocument();
+    expect(screen.queryByText("Pattern Type")).toBeNull();
   });
 });

@@ -219,6 +219,8 @@ Les secrets et les données personnelles sont masqués avant que quoi que ce soi
 
 Le résumé d'évaluation de chaque vérification, sous **Voir le résumé** dans les **Journaux de surveillance** du moniteur et pour la dernière vérification sur sa **Vue d'ensemble**, indique quand la vérification a été évaluée, combien de temps son évaluation a pris et, pour un moniteur qui juge chaque hôte, conteneur ou groupe séparément, combien de séries elle a évaluées. Ce temps court du moment où OneUptime a commencé à lire les données que la vérification juge jusqu'à l'écriture de son journal : la lecture des données, l'évaluation des critères et l'ouverture des incidents et des alertes.
 
+Dans les **Journaux de surveillance**, la colonne **Durée de la vérification** indique le temps pris par chaque vérification et signale les vérifications lentes. Un tiret indique que la durée n'a pas été enregistrée.
+
 Quand une évaluation prend trop de temps pour son moniteur, son résumé vous avertit. Trop long, c'est plus d'un dixième du temps entre deux vérifications du moniteur, jamais moins de 5 secondes et jamais plus d'une minute :
 
 | Moniteur vérifié | Avertit après |
