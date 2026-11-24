@@ -2633,6 +2633,11 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     why: "Two whole sentences: where no code is waiting, then what to do next, each a notification method's own sentence looked up whole.",
   },
   {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/TelemetryFixModal.tsx",
+    text: '{typeof strategy.sentence === "string" ? translator.translateText(strategy.sentence)',
+    why: "Two whole sentences of a telemetry fix's plan (#10367): how OneUptime AI fixes the leaks, then why, each a sentence of TelemetryFixCopy looked up whole.",
+  },
+  {
     file: "packages/App/FeatureSet/Dashboard/src/Components/Permission/RolePickerOptions.ts",
     text: "`${english} ${translated}`",
     why: "What a role search reads, never drawn: the English words and the reader's side by side, so either finds the role.",

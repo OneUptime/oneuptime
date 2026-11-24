@@ -719,6 +719,8 @@ export default class Project extends TenantModel {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
+      // Read by exactly who reads the project (PermissionCatalogueCoverage).
+      Permission.SecurityAdmin,
     ],
     update: [],
   })
