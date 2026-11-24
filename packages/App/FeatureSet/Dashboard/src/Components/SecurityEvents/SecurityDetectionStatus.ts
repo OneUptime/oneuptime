@@ -48,6 +48,15 @@ export interface DetectionRuleStatusFields {
   isRealTime?: boolean | undefined;
 }
 
+/*
+ * What the page read of a rule beside its record (#10547): whether it
+ * could count none of what it matched in the last day - every match had no
+ * value for its Group By Field (DetectionRuleUncounted) - so it cannot fire.
+ */
+export interface DetectionRuleStatusReading {
+  countsNothing?: boolean | undefined;
+}
+
 export const SECURITY_DETECTION_ENABLED: SecurityDetectionStatus = {
   text: translationKey("Enabled"),
   color: Green,
@@ -118,6 +127,18 @@ export const DETECTION_RULE_NEEDS_ATTENTION: SecurityDetectionStatus = {
   ),
 };
 
+/*
+ * A rule that could count none of what it matched in the last day (#10547):
+ * it works, but cannot fire. The line under its name says why.
+ */
+export const DETECTION_RULE_COUNTS_NOTHING: SecurityDetectionStatus = {
+  text: translationKey("Needs attention"),
+  color: Yellow,
+  tooltip: translationKey(
+    "It couldn't count any event it matched in the last day, so it can't fire. The line under its name says why.",
+  ),
+};
+
 export const DETECTION_RULE_WAITING: SecurityDetectionStatus = {
   text: translationKey("Waiting for first run"),
   color: LightGray,
@@ -179,10 +200,12 @@ export function getThreatIntelFeedStatus(
 
 /*
  * A rule: switched off, then its last run (one that failed, or one that left
- * a note about its work), then whether it has run at all.
+ * a note about its work), then whether it could count any of what it
+ * matched (#10547), then whether it has run at all.
  */
 export function getDetectionRuleStatus(
   rule: DetectionRuleStatusFields,
+  reading?: DetectionRuleStatusReading | undefined,
 ): SecurityDetectionStatus {
   if (!rule.isEnabled) {
     return SECURITY_DETECTION_DISABLED;
@@ -197,6 +220,10 @@ export function getDetectionRuleStatus(
     return rule.isRealTime
       ? DETECTION_RULE_RUN_FAILED
       : DETECTION_RULE_RUN_FAILED_TRIED_AGAIN;
+  }
+
+  if (reading?.countsNothing) {
+    return DETECTION_RULE_COUNTS_NOTHING;
   }
 
   if (rule.isRealTime) {

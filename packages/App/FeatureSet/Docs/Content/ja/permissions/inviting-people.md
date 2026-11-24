@@ -132,8 +132,8 @@ Owners チームには参加済みのメンバーが常に少なくとも一人�
 
 ## トラブルシューティング
 
-:::details "This user has already been invited to this team"
-その人はすでにそのチームに、メンバーとして、または未承諾の招待付きで所属しています。**ユーザー** でその人を開いてチームを確認するか、別のチームに招待してください。
+:::details "This person has already been invited to this team, or is a member of it"
+その人はすでにそのチームに、メンバーとして、または未承諾の招待付きで所属しています。**ユーザー** でその人を開いてチームを確認するか、別のチームに招待してください。まだ参加していない場合は、その人の行メニューの **招待を再送信** で招待メールをもう一度送れます。
 :::
 
 :::details "You have reached the user limit for the free plan"

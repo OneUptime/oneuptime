@@ -16,6 +16,7 @@ import path from "path";
 import React, { FunctionComponent, ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import ErrorBoundary, {
+  CRASH_SCREEN_WORDS,
   markChunkLoadErrorReload,
 } from "../../../UI/Components/ErrorBoundary";
 import NewVersion, {
@@ -158,20 +159,16 @@ describe("a public dashboard visitor's error screen", () => {
       const card: HTMLElement = drawn();
 
       expect(screen.getByTestId("error-boundary-title")).toHaveTextContent(
-        locale["Something went wrong"]!,
+        locale[CRASH_SCREEN_WORDS.title]!,
       );
-      expect(card).toHaveTextContent(
-        locale[
-          "An unexpected error has occurred. Please reload the page to continue"
-        ]!,
-      );
+      expect(card).toHaveTextContent(locale[CRASH_SCREEN_WORDS.message]!);
       expect(screen.getByTestId("error-boundary-reload")).toHaveTextContent(
         locale["Reload page"]!,
       );
       expect(screen.getByTestId("error-boundary-try-again")).toHaveTextContent(
         locale["Try again"]!,
       );
-      expect(card).not.toHaveTextContent("Something went wrong");
+      expect(card).not.toHaveTextContent(CRASH_SCREEN_WORDS.title);
       expect(card).toHaveAttribute("lang", language);
       expect(card).toHaveAttribute("dir", direction);
 
@@ -257,10 +254,19 @@ describe("the card in every frontend, in the reader's language", () => {
         const locale: Record<string, string> = readLocale(frontend, language);
 
         // The frontend's own words, as the Dashboard words them.
-        expect(locale["Something went wrong"]).toBe(
-          readLocale("Dashboard", language)["Something went wrong"],
+        expect(locale[CRASH_SCREEN_WORDS.title]).toBe(
+          readLocale("Dashboard", language)[CRASH_SCREEN_WORDS.title],
         );
-        expect(locale["Something went wrong"]).not.toBe("Something went wrong");
+        expect(locale[CRASH_SCREEN_WORDS.title]).not.toBe(
+          CRASH_SCREEN_WORDS.title,
+        );
+        // What to do next, too (#7270), worded as the Dashboard words it.
+        expect(locale[CRASH_SCREEN_WORDS.message]).toBe(
+          readLocale("Dashboard", language)[CRASH_SCREEN_WORDS.message],
+        );
+        expect(locale[CRASH_SCREEN_WORDS.message]).not.toBe(
+          CRASH_SCREEN_WORDS.message,
+        );
 
         render(
           <I18nextProvider i18n={await instanceFor(frontend, language)}>
@@ -273,13 +279,9 @@ describe("the card in every frontend, in the reader's language", () => {
         const card: HTMLElement = drawn();
 
         expect(screen.getByTestId("error-boundary-title")).toHaveTextContent(
-          locale["Something went wrong"]!,
+          locale[CRASH_SCREEN_WORDS.title]!,
         );
-        expect(card).toHaveTextContent(
-          locale[
-            "An unexpected error has occurred. Please reload the page to continue"
-          ]!,
-        );
+        expect(card).toHaveTextContent(locale[CRASH_SCREEN_WORDS.message]!);
         expect(screen.getByTestId("error-boundary-reload")).toHaveTextContent(
           locale["Reload page"]!,
         );
@@ -320,7 +322,7 @@ describe("a card whose words are still English", () => {
     );
 
     expect(screen.getByTestId("error-boundary-title")).toHaveTextContent(
-      "Something went wrong",
+      CRASH_SCREEN_WORDS.title,
     );
     expect(drawn()).toHaveAttribute("lang", "en");
     expect(drawn()).toHaveAttribute("dir", "ltr");

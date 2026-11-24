@@ -32,9 +32,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * Nobody reads or writes it through the API: a group's name and facts come
  * from many stores' tags and names, so Data Security's own routes answer it
- * only to a reader of Data Security issues across the whole project, with
- * each of its issues as that reader may read it
- * (Server/Utils/DataSecurity/DataSecurityIssueGroups). It goes with its
+ * whole only to a reader of Data Security issues across the whole project,
+ * and to a reader held to labels cut down to the stores they may read - its
+ * counts and facts worked out again from those stores alone (#10739,
+ * Server/Utils/DataSecurity/DataSecurityIssueGroups). It goes with its
  * project; a group nothing holds any more is deleted by the grouping.
  */
 @TenantColumn("projectId")

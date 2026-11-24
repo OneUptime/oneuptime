@@ -44,10 +44,7 @@ import DataStoreService from "../../../Services/DataStoreService";
 import ProjectService from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { MAX_FINDINGS_PER_STORE } from "../../DataSecurity/DataSecurityFindingWriter";
-import {
-  PrecedentCandidate,
-  selectFindingPrecedent,
-} from "./FindingPrecedent";
+import { PrecedentCandidate, selectFindingPrecedent } from "./FindingPrecedent";
 import logger from "../../Logger";
 import ProjectLanguage from "../../Notification/ProjectLanguage";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -385,7 +382,10 @@ export default class DataSecurityFindingVerdicts {
             (b.finding.matchCount || 0) - (a.finding.matchCount || 0)
           );
         })
-        .slice(0, MAX_FINDINGS_PER_VERDICT_REQUEST * MAX_VERDICT_REQUESTS_PER_RUN);
+        .slice(
+          0,
+          MAX_FINDINGS_PER_VERDICT_REQUEST * MAX_VERDICT_REQUESTS_PER_RUN,
+        );
       const written: Array<{
         entry: FindingToJudge;
         record: DataStoreFindingVerdictRecord;
@@ -531,17 +531,19 @@ export default class DataSecurityFindingVerdicts {
     namer: DataTypeNamer;
     language: string;
   }): Promise<Array<FindingToJudge>> {
-    const candidates: Map<string, Array<PrecedentCandidate>> =
-      await DataSecurityFindingVerdicts.readPrecedentCandidates({
-        projectId: data.projectId,
-        dataTypeIds: [
-          ...new Set(
-            data.findings.map((finding: DataStoreFinding): string => {
-              return finding.dataTypeId || "";
-            }),
-          ),
-        ],
-      });
+    const candidates: Map<
+      string,
+      Array<PrecedentCandidate>
+    > = await DataSecurityFindingVerdicts.readPrecedentCandidates({
+      projectId: data.projectId,
+      dataTypeIds: [
+        ...new Set(
+          data.findings.map((finding: DataStoreFinding): string => {
+            return finding.dataTypeId || "";
+          }),
+        ),
+      ],
+    });
     const chosen: Map<string, Array<DataStoreFindingPrecedent>> = new Map();
     const precedentStoreIds: Set<string> = new Set();
 
@@ -607,8 +609,7 @@ export default class DataSecurityFindingVerdicts {
               reason: entry.reason,
               storeKind: store?.kind,
               storeEnvironment: store?.environment,
-              isSameStore:
-                entry.dataStoreId.toLowerCase() === idOf(data.store),
+              isSameStore: entry.dataStoreId.toLowerCase() === idOf(data.store),
             };
           },
         ),

@@ -6,6 +6,8 @@ import ProbeBehindUtil, {
 } from "Common/Types/Probe/ProbeBehind";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
@@ -19,7 +21,24 @@ export interface ComponentProps {
    * keeps up in a field of its own (ProbeChecksElement).
    */
   isConnectionOnly?: boolean | undefined;
+  /*
+   * One of the project's own probes, which the person can fix: a
+   * disconnected one says what to check (#7273). A global probe - one of
+   * OneUptime's, or the server's - is not theirs to check.
+   */
+  isProjectProbe?: boolean | undefined;
 }
+
+/*
+ * What to check when a project's own probe stopped checking in (#7273):
+ * "Disconnected" and when it was last seen said that it was gone, and
+ * nothing about why. A probe that does not check in is a container that
+ * stopped, or one that runs with another probe's ID or a key that was
+ * reset.
+ */
+export const DISCONNECTED_PROBE_WHAT_TO_CHECK: string = translationKey(
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.",
+);
 
 /*
  * When a disconnected probe was last heard from (#9597): its lastAlive,
@@ -52,6 +71,8 @@ export function getProbeLastSeenAt(probe: Probe | JSONObject): Date | null {
 const ProbeStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   if (
     props.probe &&
     props.probe["connectionStatus"] === ProbeConnectionStatus.Connected
@@ -93,6 +114,16 @@ const ProbeStatusElement: FunctionComponent<ComponentProps> = (
             template="Last seen {{time}}"
             slots={{ time: <RelativeTime date={lastSeenAt} /> }}
           />
+        </span>
+      ) : (
+        <></>
+      )}
+      {props.isProjectProbe ? (
+        <span
+          data-testid="probe-status-what-to-check"
+          className="text-xs text-gray-500"
+        >
+          {translator.translateText(DISCONNECTED_PROBE_WHAT_TO_CHECK)}
         </span>
       ) : (
         <></>

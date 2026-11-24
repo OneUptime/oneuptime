@@ -545,7 +545,7 @@ describe("Embedded Status: the badge is one switch", () => {
     stored.embeddedOverallStatusToken = "badge-token";
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
 
@@ -561,7 +561,7 @@ describe("Embedded Status: the badge is one switch", () => {
       screen.queryByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
     ).toBeNull();
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
   });
 

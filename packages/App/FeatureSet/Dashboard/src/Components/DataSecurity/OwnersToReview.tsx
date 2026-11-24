@@ -52,6 +52,7 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -403,6 +404,8 @@ const OwnersToReview: FunctionComponent<ComponentProps> = (
             getExportValue: (item: DataSecurityAiProposal): string => {
               return item.title || "";
             },
+            // The title reads its own way (IsolatedText); the lines under it are the page's words.
+            getLineText: drawsItsOwnLines,
             getElement: proposalCell,
           },
           {

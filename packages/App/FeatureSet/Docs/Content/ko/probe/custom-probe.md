@@ -457,7 +457,7 @@ OneUptime 서버 쪽에서도 느리게 응답한 프로브 요청이나, 응답
 ### 그 밖의 문제
 
 :::details 프로브가 시작하자마자 멈춥니다
-로그에 무엇이 빠졌는지 나옵니다: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` 또는 `PROBE_ID or REGISTER_PROBE_KEY should be set`. 세 가지가 모두 설정되어 있는데 ID와 키가 어떤 프로브와도 맞지 않으면, 프로브는 30초 간격으로 10번 시도한 뒤 `Unable to register probe after 10 attempts`와 함께 멈춥니다. **ID 및 키 표시** 로 ID와 키를 다시 복사하세요.
+로그에 무엇이 빠졌는지 나옵니다: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` 또는 `PROBE_ID is not set`. 세 가지가 모두 설정되어 있는데 ID와 키가 어떤 프로브와도 맞지 않으면, 프로브는 30초 간격으로 10번 시도한 뒤 `Unable to register probe after 10 attempts`와 함께 멈춥니다. **ID 및 키 표시** 로 ID와 키를 다시 복사하세요.
 :::
 
 :::details 누군가 키를 재설정하기 전까지는 프로브가 작동했습니다

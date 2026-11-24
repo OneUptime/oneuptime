@@ -270,7 +270,11 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
               fieldType: FieldType.Element,
               getElement: (item: Probe): ReactElement => {
                 return (
-                  <ProbeStatusElement probe={item} isConnectionOnly={true} />
+                  <ProbeStatusElement
+                    probe={item}
+                    isConnectionOnly={true}
+                    isProjectProbe={true}
+                  />
                 );
               },
             },

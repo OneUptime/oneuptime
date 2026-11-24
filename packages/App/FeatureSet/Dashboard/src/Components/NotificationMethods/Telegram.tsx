@@ -6,7 +6,14 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  BOXED_BUTTON_CLASS_NAME,
+  BOXED_BUTTON_HOVER_CLASS_NAMES,
+  BOXED_BUTTON_LOOK_CLASS_NAMES,
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -15,6 +22,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import QRCodeElement from "Common/UI/Components/QR/QR";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import prefersTouch from "Common/UI/Utils/PrefersTouch";
 import User from "Common/UI/Utils/User";
 import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import React, { ReactElement, useEffect, useState } from "react";
@@ -48,6 +56,21 @@ interface VerificationInfo {
   startCommand: string;
 }
 
+/*
+ * Open in Telegram: a link - an address the phone hands to its Telegram app,
+ * and a person can long-press or copy - drawn as the shared plain button
+ * (Button's frame, NORMAL's colours, hover and size), 44px under a finger.
+ * It was a hand-drawn indigo button beside the dialog's one primary action,
+ * "I've sent the message — check" (#10916).
+ */
+export const OPEN_IN_TELEGRAM_CLASS_NAME: string = [
+  BOXED_BUTTON_CLASS_NAME,
+  BOXED_BUTTON_LOOK_CLASS_NAMES[ButtonStyleType.NORMAL],
+  BOXED_BUTTON_HOVER_CLASS_NAMES[ButtonStyleType.NORMAL],
+  ButtonSize.Normal,
+  "transition-colors duration-150 ease-out [@media(pointer:coarse)]:min-h-11",
+].join(" ");
+
 const Telegram: () => JSX.Element = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [showVerificationModal, setShowVerificationModal] =
@@ -62,6 +85,15 @@ const Telegram: () => JSX.Element = (): ReactElement => {
    * captioned again.
    */
   const [failedQrLink, setFailedQrLink] = useState<string | null>(null);
+  /*
+   * Whether the reader's main pointer is a finger: a phone or a tablet, as
+   * the authenticator app's setup asks (#6651). A phone cannot scan its own
+   * screen, so there the dialog leads with Open in Telegram, which opens the
+   * app on it, and draws no QR code to scan nor a caption saying to scan it
+   * (#10916). A screen worked with a mouse keeps the code, for the phone in
+   * the person's hand.
+   */
+  const [isOnATouchScreen] = useState<boolean>(prefersTouch);
   const [isLoadingVerification, setIsLoadingVerification] =
     useState<boolean>(false);
   const [isPolling, setIsPolling] = useState<boolean>(false);
@@ -356,46 +388,64 @@ const Telegram: () => JSX.Element = (): ReactElement => {
                     "To verify, message our bot in Telegram. Pick whichever option is easiest:",
                   )}
                 </p>
-                <div className="flex flex-col items-center space-y-2">
-                  <QRCodeElement
-                    text={verificationInfo.deepLinkUrl}
-                    onError={() => {
-                      setFailedQrLink(verificationInfo.deepLinkUrl);
-                    }}
-                  />
-                  {failedQrLink !== verificationInfo.deepLinkUrl ? (
-                    <p
-                      className="text-xs text-gray-500"
-                      data-testid="telegram-qr-caption"
-                    >
-                      {translator.translateText(
-                        "Scan on phone to open Telegram",
-                      )}
-                    </p>
-                  ) : null}
-                </div>
+                {/* The code a phone scans: not drawn on the phone itself. */}
+                {isOnATouchScreen ? null : (
+                  <div
+                    className="flex flex-col items-center space-y-2"
+                    data-testid="telegram-qr"
+                  >
+                    <QRCodeElement
+                      text={verificationInfo.deepLinkUrl}
+                      onError={() => {
+                        setFailedQrLink(verificationInfo.deepLinkUrl);
+                      }}
+                    />
+                    {failedQrLink !== verificationInfo.deepLinkUrl ? (
+                      <p
+                        className="text-xs text-gray-500"
+                        data-testid="telegram-qr-caption"
+                      >
+                        {translator.translateText(
+                          "Scan on phone to open Telegram",
+                        )}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
                 <div className="flex flex-col space-y-2">
                   <a
                     href={verificationInfo.deepLinkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-center inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+                    data-testid="telegram-open-link"
+                    className={OPEN_IN_TELEGRAM_CLASS_NAME}
                   >
+                    <Icon
+                      icon={IconProp.ExternalLink}
+                      className="me-1 h-5 w-5"
+                    />
                     {translator.translateText("Open in Telegram")}
                   </a>
-                  <p className="text-xs text-gray-500 text-center">
-                    {translator.translateText(
-                      "Works on desktop if you have Telegram Desktop installed, or via web.telegram.org.",
-                    )}
-                  </p>
+                  {/* Where Telegram opens from a laptop; a phone has the app. */}
+                  {isOnATouchScreen ? null : (
+                    <p className="text-xs text-gray-500 text-center">
+                      {translator.translateText(
+                        "Works on desktop if you have Telegram Desktop installed, or via web.telegram.org.",
+                      )}
+                    </p>
+                  )}
                 </div>
                 <div className="rounded border border-gray-200 bg-gray-50 p-3 text-sm">
                   <p className="font-medium text-gray-700">
+                    {/* "Either" is the code and the link: a phone has only the link. */}
                     {translator.translateText(
-                      "Can't use either? Open Telegram manually:",
+                      isOnATouchScreen
+                        ? "Can't use the link? Open Telegram manually:"
+                        : "Can't use either? Open Telegram manually:",
                     )}
                   </p>
-                  <ol className="mt-2 list-decimal pl-5 text-gray-600">
+                  {/* The numbers' room at the start: the right, read from the right. */}
+                  <ol className="mt-2 list-decimal ps-5 text-gray-600">
                     <li>
                       <TranslatedSentence
                         template="Search for {{botUsername}}"

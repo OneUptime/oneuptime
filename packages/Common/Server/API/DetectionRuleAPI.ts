@@ -19,6 +19,12 @@ import DetectionRuleDraft, {
 import DetectionRuleRetrohunt, {
   DetectionRetrohuntRule,
 } from "../Utils/SecurityEvent/DetectionRuleRetrohunt";
+import DetectionRuleUncountedReader from "../Utils/SecurityEvent/DetectionRuleUncounted";
+import {
+  DetectionRulesUncounted,
+  MAX_DETECTION_RULES_UNCOUNTED_PER_ASK,
+  detectionRulesUncountedToJSON,
+} from "../../Types/SecurityEvent/DetectionRuleUncounted";
 import SecurityEventLateArrivalService from "../Services/SecurityEventLateArrivalService";
 import SecurityEventRetention from "../Utils/SecurityEvent/SecurityEventRetention";
 import {
@@ -67,6 +73,44 @@ function readOptionalNumber(
   return number;
 }
 
+/*
+ * The rule ids a page sent (#10547): each a valid id, each once, at most a
+ * page of them. Anything else is a 400 that says what to send.
+ */
+export function readRuleIds(value: JSONValue | undefined): Array<ObjectID> {
+  if (!Array.isArray(value)) {
+    throw new BadDataException(
+      "Send the ids of the detection rules to read, as detectionRuleIds.",
+    );
+  }
+
+  if (value.length > MAX_DETECTION_RULES_UNCOUNTED_PER_ASK) {
+    throw new BadDataException(
+      `Ask about at most ${MAX_DETECTION_RULES_UNCOUNTED_PER_ASK} detection rules at a time.`,
+    );
+  }
+
+  const ids: Array<ObjectID> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const item of value) {
+    const text: string = typeof item === "string" ? item.trim() : "";
+
+    if (!text || !ObjectID.isValidUUID(text)) {
+      throw new BadDataException(
+        "Each detection rule id must be the id of a detection rule.",
+      );
+    }
+
+    if (!seen.has(text.toLowerCase())) {
+      seen.add(text.toLowerCase());
+      ids.push(new ObjectID(text));
+    }
+  }
+
+  return ids;
+}
+
 // A text field the form sent, or undefined when it sent none.
 function readOptionalText(body: JSONObject, key: string): string | undefined {
   const value: JSONValue | undefined = body[key];
@@ -91,6 +135,11 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  *   POST /detection-rule/retention       how long the project keeps its
  *                                        security events, and the enabled
  *                                        rules that read further back (#10432)
+ *   POST /detection-rule/uncounted       what the rules a page lists could not
+ *                                        count in the last day: matching
+ *                                        events with no value for their
+ *                                        field, and how many a scrub rule
+ *                                        hid (#10547)
  *
  * The draft is for the Detection Rules form, which fills its YAML with it
  * for the person to read and save; nothing is saved here. Asking takes the
@@ -107,6 +156,10 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  * The late arrivals (#10491) are counts of security events by source, for
  * the notice on Detection Rules: they take what a retrohunt takes, and
  * count only the sources the caller may read.
+ *
+ * What rules could not count (#10547) is read from past security events
+ * for each rule a page lists, so it takes what a retrohunt takes, and reads
+ * only the sources the caller may read and the rules they may read.
  *
  * The retention (#10432) is the project's, as its Settings show it to every
  * member, so any member may ask; the rules that read past it are read as
@@ -289,6 +342,74 @@ export default class DetectionRuleAPI extends BaseAPI<
     );
 
     this.registerRetentionRoute(basePath);
+    this.registerUncountedRoute(basePath);
+  }
+
+  /*
+   * What the rules a page of Detection Rules lists could not count in the
+   * last day (#10547): their ids in the body, at most a page of them.
+   */
+  private registerUncountedRoute(basePath: string): void {
+    this.router.post(
+      `${basePath}/uncounted`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: DetectionRule,
+            props,
+            errorMessage:
+              "Seeing what your rules could not count takes a role that can read detection rules.",
+          });
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityEvent().getReadPermissions(),
+            errorMessage:
+              "Seeing what your rules could not count takes a role that can read security events.",
+          });
+
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+
+          const detectionRuleIds: Array<ObjectID> = readRuleIds(
+            body["detectionRuleIds"],
+          );
+
+          // Only the sources the caller may read, as every read of the events themselves.
+          const serviceFilter: TelemetryServiceFilter =
+            await TelemetryReadAccess.getServiceFilter({
+              modelType: SecurityEvent,
+              props,
+            });
+
+          const answer: DetectionRulesUncounted =
+            await DetectionRuleUncountedReader.read({
+              projectId,
+              detectionRuleIds,
+              props,
+              serviceFilter,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            detectionRulesUncountedToJSON(answer),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
   }
 
   /*

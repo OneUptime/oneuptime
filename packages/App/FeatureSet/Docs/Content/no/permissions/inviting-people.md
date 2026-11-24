@@ -132,8 +132,8 @@ Hvis rollen din bare fjerner personer fra noen team, for eksempel dem du eier, e
 
 ## Feilsøking
 
-:::details "This user has already been invited to this team"
-Personen er allerede med i teamet, som medlem eller med en invitasjon som ikke er godtatt. Åpne personen under **Brukere** for å se teamene, eller inviter personen til et annet team.
+:::details "This person has already been invited to this team, or is a member of it"
+Personen er allerede med i teamet, som medlem eller med en invitasjon som ikke er godtatt. Åpne personen under **Brukere** for å se teamene, eller inviter personen til et annet team. Har personen ikke blitt med ennå, sender **Send invitasjon på nytt** i radmenyen til personen invitasjons-e-posten på nytt.
 :::
 
 :::details "You have reached the user limit for the free plan"

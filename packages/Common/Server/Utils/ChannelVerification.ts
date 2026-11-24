@@ -14,6 +14,7 @@ import VerificationCodeStatusJSON, {
   VerificationCodeStatus,
 } from "../../Types/UserNotification/VerificationCodeStatus";
 import ObjectID from "../../Types/ObjectID";
+import { ChannelVerificationMessages } from "../../Types/UserNotification/ChannelVerificationMessages";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
@@ -133,27 +134,11 @@ export const SEND_FAILURE_NOT_EXPLAINED: string =
  * checked or sent (#6836): what happened and what to do next, never "Item
  * not found" or "Invalid code". A row that is not the caller's is answered
  * exactly like one that does not exist, so the answer never says whether
- * somebody else has the address or number.
+ * somebody else has the address or number. Kept in
+ * Types/UserNotification/ChannelVerificationMessages, where the Dashboard
+ * reads them in the reader's language too.
  */
-export const ChannelVerificationMessages: {
-  noItem: string;
-  noCode: string;
-  notSignedIn: string;
-  notFound: string;
-  alreadyVerified: string;
-  incorrectCode: string;
-} = {
-  noItem:
-    "The request did not say which notification method to verify. Reload the page and try again.",
-  noCode: "Enter the code from the message we sent.",
-  notSignedIn: "Sign in again, then verify this notification method.",
-  notFound:
-    "This notification method is not in your list any more. Add it again, then verify it.",
-  alreadyVerified:
-    "This notification method is already verified. You can close this dialog.",
-  incorrectCode:
-    "That code is not right. Enter the code from the latest message we sent, or send a new code.",
-};
+export { ChannelVerificationMessages };
 
 /*
  * The verification-related columns every channel model carries. Structural
@@ -823,12 +808,10 @@ export default class ChannelVerification {
           ChannelVerificationMessages.alreadyVerified,
         );
       case ChannelVerificationOutcome.Expired:
-        return new BadDataException(
-          "This verification code has expired. Please request a new code.",
-        );
+        return new BadDataException(ChannelVerificationMessages.expired);
       case ChannelVerificationOutcome.TooManyAttempts:
         return new BadDataException(
-          "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.",
+          ChannelVerificationMessages.tooManyAttempts,
         );
       default:
         return new BadDataException(ChannelVerificationMessages.incorrectCode);

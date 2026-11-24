@@ -16,6 +16,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../../Types/Billing/SubscriptionPlan";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
+import { getPlanRequiredMessage } from "../../../../Types/Billing/PlanRequiredRefusal";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import CallerPlan from "../../../Utils/Billing/CallerPlan";
 import PlanGates from "./PlanGates";
@@ -145,9 +146,7 @@ export default class BillingPermissions {
       return;
     }
 
-    throw new PaymentRequiredException(
-      "Please upgrade your plan to " + requiredPlan + " to access this feature",
-    );
+    throw new PaymentRequiredException(getPlanRequiredMessage(requiredPlan));
   }
 
   /*

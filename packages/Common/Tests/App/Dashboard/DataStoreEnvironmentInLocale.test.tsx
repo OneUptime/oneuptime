@@ -66,6 +66,10 @@ jest.mock(
         checkNow: async (): Promise<void> => {
           return undefined;
         },
+        // Settings' record of processing (#10375): this store is not in it.
+        getRecordOfProcessing: async (): Promise<{ rows: Array<never> }> => {
+          return { rows: [] };
+        },
       },
     };
   },

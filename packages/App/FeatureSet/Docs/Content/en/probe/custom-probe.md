@@ -457,7 +457,7 @@ A probe polls up to `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` network devices at o
 ### Other problems
 
 :::details The probe stops right after it starts
-Its log names what is missing: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set`, or `PROBE_ID or REGISTER_PROBE_KEY should be set`. When all three are set but the ID and key do not match a probe, the probe tries 10 times, 30 seconds apart, then stops with `Unable to register probe after 10 attempts`. Copy the ID and key again with **Show ID and Key**.
+Its log names what is missing: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set`, or `PROBE_ID is not set`. When all three are set but the ID and key do not match a probe, the probe tries 10 times, 30 seconds apart, then stops with `Unable to register probe after 10 attempts`. Copy the ID and key again with **Show ID and Key**.
 :::
 
 :::details The probe was working until someone reset its key
