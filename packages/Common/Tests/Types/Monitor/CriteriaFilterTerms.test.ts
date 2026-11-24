@@ -2,11 +2,13 @@ import {
   CheckOn,
   EvaluateOverTimeType,
   FilterType,
+  PreviousCheckChangeType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import {
   CHECK_ON_TERMS,
   EVALUATE_OVER_TIME_TERMS,
   FILTER_TYPE_TERMS,
+  PREVIOUS_CHECK_CHANGE_TERMS,
 } from "../../../Types/Monitor/CriteriaFilterTerms";
 import { describe, expect, test } from "@jest/globals";
 
@@ -22,6 +24,11 @@ describe("CriteriaFilterTerms", () => {
       "evaluation over time",
       Object.values(EvaluateOverTimeType),
       EVALUATE_OVER_TIME_TERMS,
+    ],
+    [
+      "change from the previous check",
+      Object.values(PreviousCheckChangeType),
+      PREVIOUS_CHECK_CHANGE_TERMS,
     ],
   ])(
     "every %s is its own key",

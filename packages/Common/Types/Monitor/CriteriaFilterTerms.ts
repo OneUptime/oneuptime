@@ -1,4 +1,9 @@
-import { CheckOn, EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
+import {
+  CheckOn,
+  EvaluateOverTimeType,
+  FilterType,
+  PreviousCheckChangeType,
+} from "./CriteriaFilter";
 import { translationKey } from "../Translator";
 
 /*
@@ -220,4 +225,16 @@ export const EVALUATE_OVER_TIME_TERMS: Readonly<
   [EvaluateOverTimeType.Count]: translationKey("Count"),
   [EvaluateOverTimeType.Percentage]: translationKey("Percentage"),
   [EvaluateOverTimeType.StatusChanges]: translationKey("Status Changes"),
+  [EvaluateOverTimeType.PreviousCheck]: translationKey("Previous Check"),
+};
+
+/*
+ * How far a check must be from the previous one (#10821): an amount, or a
+ * percentage of the previous value.
+ */
+export const PREVIOUS_CHECK_CHANGE_TERMS: Readonly<
+  Record<PreviousCheckChangeType, string>
+> = {
+  [PreviousCheckChangeType.Amount]: translationKey("Amount"),
+  [PreviousCheckChangeType.Percentage]: translationKey("Percentage"),
 };

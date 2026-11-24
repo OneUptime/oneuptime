@@ -41,6 +41,9 @@ import CheckWindowCounts, {
   CheckWindowJudgement,
   CheckWindowSource,
 } from "./Criteria/CheckWindowCounts";
+import PreviousCheckComparison, {
+  PreviousCheckReads,
+} from "./Criteria/PreviousCheckComparison";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import CriteriaRecovery, {
@@ -268,6 +271,13 @@ interface AffectedResourceBreachPredicate {
 interface MatchHistoryContext {
   checks: Map<string, CriteriaFilterCheck>;
   checkAt: Date;
+  /*
+   * When the check's rows were written, or began to be: a comparison with
+   * the previous check reads the newest row before it (#10821). A check
+   * that just arrived has its series written before it is judged, so this
+   * is before checkAt; a stored check was stamped before its rows were.
+   */
+  checkWrittenAt: Date;
   isStoredCheck: boolean;
   reads: CriteriaFilterMatchHistoryReads;
 }
@@ -387,6 +397,13 @@ export default class MonitorCriteriaEvaluator {
      */
     recordMatchHistory?: boolean | undefined;
     /*
+     * For a check that has just arrived: when MonitorResource began writing
+     * its series, before it judges it. A filter that compares the check with
+     * the previous one reads the newest row before this (#10821), so the
+     * check's own rows are never its previous check. Now, when not passed.
+     */
+    checkWrittenAt?: Date | undefined;
+    /*
      * The match history reads of the probe result being handled, shared by
      * its own evaluation and the probe agreement pass so each filter's
      * history is read once (CriteriaFilterMatchHistoryReads). Made here when
@@ -439,20 +456,25 @@ export default class MonitorCriteriaEvaluator {
      * A stored check read back for probe agreement writes nothing, so it is
      * judged only for the filters the criteria below actually reach.
      */
+    const checkAt: Date = input.recordMatchHistory
+      ? OneUptimeDate.getCurrentDate()
+      : MonitorCriteriaEvaluator.getStoredCheckTime(input.dataToProcess);
+
     const matchHistory: MatchHistoryContext = input.recordMatchHistory
       ? await MonitorCriteriaEvaluator.judgeMatchHistoryFilters({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
           monitor: input.monitor,
           probeApiIngestResponse: input.probeApiIngestResponse,
-          checkAt: OneUptimeDate.getCurrentDate(),
+          checkAt: checkAt,
+          checkWrittenAt: input.checkWrittenAt || checkAt,
           reads: matchHistoryReads,
         })
       : {
           checks: new Map<string, CriteriaFilterCheck>(),
-          checkAt: MonitorCriteriaEvaluator.getStoredCheckTime(
-            input.dataToProcess,
-          ),
+          checkAt: checkAt,
+          // Stamped as it was stored, before its rows were written.
+          checkWrittenAt: checkAt,
           isStoredCheck: true,
           reads: matchHistoryReads,
         };
@@ -1090,11 +1112,13 @@ ${incomingRequestGrouping.rootCauseNote}
     monitor: Monitor;
     probeApiIngestResponse: ProbeApiIngestResponse;
     checkAt: Date;
+    checkWrittenAt: Date;
     reads: CriteriaFilterMatchHistoryReads;
   }): Promise<MatchHistoryContext> {
     const context: MatchHistoryContext = {
       checks: new Map<string, CriteriaFilterCheck>(),
       checkAt: input.checkAt,
+      checkWrittenAt: input.checkWrittenAt,
       isStoredCheck: false,
       reads: input.reads,
     };
@@ -1518,6 +1542,82 @@ ${incomingRequestGrouping.rootCauseNote}
       reads: input.matchHistory
         ? CheckWindowCountReads.forMatchHistoryReads(input.matchHistory.reads)
         : undefined,
+    });
+  }
+
+  /*
+   * A filter that compares this check with the previous one
+   * (PreviousCheckComparison, #10821): the previous check read with
+   * everything else judged for this probe result, a measured value judged
+   * on this check against a threshold made from it, and a yes or no check's
+   * result on this check - from the match history's context when the check
+   * just arrived and keeps one.
+   */
+  private static async judgeFilterAgainstPreviousCheck(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaFilter: CriteriaFilter;
+    matchHistory?: MatchHistoryContext | undefined;
+  }): Promise<CheckWindowJudgement> {
+    // A disk's usage is compared per disk: every disk the report has, for "*".
+    const diskPaths: Array<string> | undefined =
+      input.monitor.monitorType === MonitorType.Server &&
+      input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
+        ? ServerMonitorCriteria.getAgentDiskPaths({
+            serverResponse: input.dataToProcess as ServerMonitorResponse,
+            diskPath: input.criteriaFilter.serverMonitorOptions?.diskPath,
+          })
+        : undefined;
+
+    const filterKey: string = CriteriaFilterMatchHistory.getFilterKey({
+      monitorStepId: input.monitorStep.id,
+      criteriaFilter: input.criteriaFilter,
+    });
+
+    return PreviousCheckComparison.judgeFilter({
+      projectId:
+        input.monitor.projectId ||
+        (input.dataToProcess as ProbeMonitorResponse).projectId,
+      monitorId: input.monitor.id || input.dataToProcess.monitorId,
+      monitorStepId: input.monitorStep.id,
+      monitorType: input.monitor.monitorType,
+      probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+      criteriaFilter: input.criteriaFilter,
+      checkWrittenAt:
+        input.matchHistory?.checkWrittenAt || OneUptimeDate.getCurrentDate(),
+      diskPaths: diskPaths,
+      reads: input.matchHistory
+        ? PreviousCheckReads.forMatchHistoryReads(input.matchHistory.reads)
+        : undefined,
+      isMetOnThisCheck: async (): Promise<boolean> => {
+        const check: CriteriaFilterCheck | undefined =
+          input.matchHistory?.checks.get(filterKey);
+
+        if (check) {
+          return check.matched;
+        }
+
+        return await MonitorCriteriaEvaluator.isFilterMetOnThisCheck({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: input.criteriaFilter,
+        });
+      },
+      judgeThisCheck: (
+        thisCheckFilter: CriteriaFilter,
+      ): Promise<string | null> => {
+        return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: thisCheckFilter,
+        });
+      },
     });
   }
 
@@ -2402,12 +2502,35 @@ ${incomingRequestGrouping.rootCauseNote}
       let matchHistoryMessage: string | null = null;
 
       /*
-       * A filter that counts its window's checks (#10355) - how many
-       * matched, their share, how often it changed - is judged from them,
-       * whatever records them: a series or a match history. What the
-       * window came to is its message either way.
+       * A filter that compares this check with the previous one (#10821)
+       * reads the previous check from the same record a count reads, and
+       * says what it was compared with whether or not it is met.
        */
       if (
+        CriteriaFilterUtil.isComparedWithPreviousCheck(
+          criteriaFilter,
+          input.monitor.monitorType,
+        )
+      ) {
+        const judgement: CheckWindowJudgement =
+          await MonitorCriteriaEvaluator.judgeFilterAgainstPreviousCheck({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaFilter: criteriaFilter,
+            matchHistory: input.matchHistory,
+          });
+
+        rootCause = judgement.rootCause;
+        matchHistoryMessage = judgement.message;
+      } else if (
+        /*
+         * A filter that counts its window's checks (#10355) - how many
+         * matched, their share, how often it changed - is judged from them,
+         * whatever records them: a series or a match history. What the
+         * window came to is its message either way.
+         */
         CriteriaFilterUtil.isCountedOverChecks(
           criteriaFilter,
           input.monitor.monitorType,
