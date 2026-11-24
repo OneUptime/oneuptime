@@ -63684,5 +63684,7 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "इस प्रोब के नेटवर्क इंटरफ़ेस के पते, और बताए जाने पर इसके होस्ट के पते, जैसे प्रोब हर बार चेक-इन करते समय उन्हें सूचीबद्ध करता है। सुरक्षा इवेंट इन पतों से आने वाली प्रोब की अपनी पोलिंग, डिस्कवरी और मॉनिटर जाँचों को अलग रख देते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI के स्क्रब नियमों के इनपुट का हैश",
-  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम"
+  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम",
+  "View Alerts": "अलर्ट देखें",
+  "View Incidents": "घटनाएं देखें"
 }

@@ -192,6 +192,9 @@ const NO_EMAIL_MESSAGE: string =
 
 const PASSCODE: string = "482913";
 
+const SKIPPED_OVER_LIMIT: string =
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
+
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/logs"),
   currentProject: null,
@@ -396,6 +399,69 @@ function cellsOfColumn(title: string): Array<HTMLElement> {
         .querySelectorAll("td")
         .item(column) as HTMLElement;
     });
+}
+
+// Selects every row and exports them, as a person does: Bulk Actions > Export CSV.
+async function exportCsv(): Promise<void> {
+  await act(async () => {
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select all items" }));
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByText("Bulk Actions"));
+  });
+  await waitFor(() => {
+    expect(screen.queryByText("Export CSV")).not.toBeNull();
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByText("Export CSV"));
+  });
+}
+
+// An exported CSV's rows, each a list of its cells, quotes undone (RFC 4180).
+function parseCsv(csv: string): Array<Array<string>> {
+  return csv.split("\r\n").map((line: string): Array<string> => {
+    const cells: Array<string> = [];
+    let cell: string = "";
+    let isQuoted: boolean = false;
+
+    for (let index: number = 0; index < line.length; index++) {
+      const character: string = line[index]!;
+
+      if (isQuoted) {
+        if (character === '"' && line[index + 1] === '"') {
+          cell += '"';
+          index++;
+        } else if (character === '"') {
+          isQuoted = false;
+        } else {
+          cell += character;
+        }
+      } else if (character === '"') {
+        isQuoted = true;
+      } else if (character === ",") {
+        cells.push(cell);
+        cell = "";
+      } else {
+        cell += character;
+      }
+    }
+
+    cells.push(cell);
+
+    return cells;
+  });
+}
+
+// Each exported row's cell under `title`, in the table's order.
+function csvColumn(csv: string, title: string): Array<string> {
+  const [header, ...rows] = parseCsv(csv);
+  const column: number = header!.indexOf(title);
+
+  expect(column).toBeGreaterThanOrEqual(0);
+
+  return rows.map((row: Array<string>): string => {
+    return row[column] || "";
+  });
 }
 
 // The value an InfoCard in `container` shows under `title`.
@@ -753,6 +819,71 @@ describe("Monitoring Logs on a probe monitor", () => {
       within(modal).getByText("Email Body Has No Error"),
     ).toBeInTheDocument();
   });
+
+  /*
+   * The Probe, Attempts and Evaluation Outcome columns are backed by the
+   * whole logBody, and none said what to export, so each wrote the check
+   * result's JSON into its cell. Each now writes what its cell says.
+   */
+  test("exports the probe, the attempts, the check's time and its outcome as their words, not the log body", async () => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+
+    jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      });
+
+    await renderLogsPage({
+      monitorType: MonitorType.Website,
+      rows: [
+        logRow({
+          id: "b0000000-0000-4000-8000-000000000004",
+          time: "2026-09-30T09:15:00.000Z",
+          body: {
+            projectId: new ObjectID(PROJECT_ID),
+            monitorId: new ObjectID(MONITOR_ID),
+            monitorStepId: new ObjectID(MONITOR_STEP_ID),
+            probeId: new ObjectID(PROBE_VIRGINIA),
+            isOnline: false,
+            responseCode: 503,
+            responseTimeInMs: 240,
+            totalAttempts: 3,
+            monitoredAt: at("2026-09-30T09:15:00.000Z"),
+            evaluationSummary: {
+              ...EVALUATION_SUMMARY,
+              durationInMs: 7_000,
+              intervalInMs: 60_000,
+            },
+          },
+        }),
+        ...ROWS,
+      ],
+    });
+
+    await exportCsv();
+    await waitFor(() => {
+      expect(downloads).toHaveLength(1);
+    });
+
+    const csv: string = downloads[0]!.csv;
+
+    expect(csvColumn(csv, "Probe")).toEqual([
+      "N. Virginia",
+      "N. Virginia",
+      "Frankfurt",
+    ]);
+    expect(csvColumn(csv, "Attempts")).toEqual(["3 attempts", "", ""]);
+    expect(csvColumn(csv, "Check Duration")).toEqual(["7 s (slow)", "", ""]);
+    expect(csvColumn(csv, "Evaluation Outcome")).toEqual([
+      "Criteria met: Email Body Has No Error",
+      "Criteria met: Email Body Has No Error",
+      "Criteria met: Email Body Has No Error",
+    ]);
+    expect(csv).not.toContain("probeId");
+    expect(csv).not.toContain("responseCode");
+    expect(csv).not.toContain("evaluationSummary");
+  });
 });
 
 describe("Monitoring Logs on the other push monitors", () => {
@@ -782,6 +913,73 @@ describe("Monitoring Logs on the other push monitors", () => {
     const modal: HTMLElement = openSummary(0);
 
     expect(infoCardValue(modal, "Request Method")).toBe("POST");
+  });
+
+  /*
+   * A grouped monitor's evaluation that says requests before it were
+   * skipped (#10582) says it as a warning, with where to look (#10653).
+   */
+  test("View Summary says requests skipped before a check as a warning, with links to the monitor's incidents and alerts", async () => {
+    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+
+    await renderLogsPage({
+      monitorType: MonitorType.IncomingRequest,
+      rows: [
+        logRow({
+          id: "c0000000-0000-4000-8000-000000000002",
+          time: "2026-11-24T09:00:00.000Z",
+          body: {
+            projectId: new ObjectID(PROJECT_ID),
+            monitorId: new ObjectID(MONITOR_ID),
+            incomingRequestReceivedAt: at("2026-11-24T09:00:00.000Z"),
+            checkedAt: at("2026-11-24T09:00:00.000Z"),
+            requestMethod: "POST",
+            requestHeaders: { "content-type": "application/json" },
+            evaluationSummary: {
+              ...EVALUATION_SUMMARY,
+              events: [
+                {
+                  type: "requests-skipped",
+                  title: "Requests not evaluated: 250",
+                  titleSentence: {
+                    template: "Requests not evaluated: {{skipped}}",
+                    values: { skipped: 250 },
+                  },
+                  message: SKIPPED_OVER_LIMIT,
+                  messageSentence: { template: SKIPPED_OVER_LIMIT },
+                  at: at("2026-11-24T09:00:00.000Z"),
+                },
+              ],
+            },
+          },
+        }),
+      ],
+    });
+
+    const modal: HTMLElement = openSummary(0);
+    const warning: HTMLElement = within(modal).getByTestId("requests-skipped");
+
+    expect(warning).toHaveTextContent("Requests not evaluated: 250");
+    expect(warning).toHaveTextContent(SKIPPED_OVER_LIMIT);
+    expect(within(modal).queryByText("Actions")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(warning).getByRole("button", { name: "View Incidents" }),
+    );
+    fireEvent.click(
+      within(warning).getByRole("button", { name: "View Alerts" }),
+    );
+
+    expect(
+      navigate.mock.calls.map((call: Array<unknown>): string => {
+        return String(call[0]);
+      }),
+    ).toEqual([
+      expect.stringMatching(new RegExp(`/monitors/${MONITOR_ID}/incidents$`)),
+      expect.stringMatching(new RegExp(`/monitors/${MONITOR_ID}/alerts$`)),
+    ]);
   });
 
   test("shows a server report in View Summary", async () => {
@@ -988,14 +1186,131 @@ describe("Monitoring Logs on a telemetry monitor", () => {
     ]);
 
     const cells: Array<HTMLElement> = cellsOfColumn("Check Duration");
-    expect(within(cells[0]!).getByTestId("pill")).toHaveAttribute(
-      "data-tone",
-      "warning",
-    );
-    expect(within(cells[1]!).queryByTestId("pill")).not.toBeInTheDocument();
+    expect(
+      within(cells[0]!).getByTestId("monitor-log-slow-check"),
+    ).toHaveAttribute("data-tone", "warning");
+    expect(
+      within(cells[1]!).queryByTestId("monitor-log-slow-check"),
+    ).not.toBeInTheDocument();
     expect(
       within(openSummary(0)).getByTestId("slow-evaluation"),
     ).toBeInTheDocument();
+  });
+
+  test("an entry logged before evaluation summaries reads the quiet dash, as one logged before its time was kept", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: [
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000006",
+          time: "2026-11-10T09:15:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: { ...METRIC_EVALUATION, durationInMs: 1_200 },
+        }),
+        // Before #10809: a summary, without its time.
+        METRIC_ROWS[2]!,
+        // Before evaluation summaries at all.
+        logRow({
+          id: "e0000000-0000-4000-8000-000000000005",
+          time: "2026-11-10T09:05:00.000Z",
+          body: {
+            projectId: new ObjectID(PROJECT_ID),
+            monitorId: new ObjectID(MONITOR_ID),
+            metricResult: [{ data: points(2) } as unknown as JSONObject],
+            metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+          },
+        }),
+      ],
+    });
+
+    expect(textsOfColumn("Check Duration")).toEqual([
+      "1.2\u00A0s",
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+    ]);
+    expect(
+      screen.queryByTestId("monitor-log-slow-check"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a slow check's mark is the summary's: amber, with its clock", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: [
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000007",
+          time: "2026-11-10T09:16:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: {
+            ...METRIC_EVALUATION,
+            durationInMs: 48_000,
+            intervalInMs: 60_000,
+            seriesJudged: 16_250,
+          },
+        }),
+      ],
+    });
+
+    const mark: HTMLElement = screen.getByTestId("monitor-log-slow-check");
+
+    expect(mark).toHaveAttribute("data-tone", "warning");
+    expect(mark.textContent).toBe("48\u00A0s (slow)");
+    expect(within(mark).queryByTestId("pill-dot")).not.toBeInTheDocument();
+    expect(mark.querySelector("svg")).not.toBeNull();
+  });
+
+  test("exports each check's time as its cell says it", async () => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+
+    jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      });
+
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: [
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000009",
+          time: "2026-11-10T09:18:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: {
+            ...METRIC_EVALUATION,
+            durationInMs: 25_000,
+            intervalInMs: 60_000,
+          },
+        }),
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000008",
+          time: "2026-11-10T09:17:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: { ...METRIC_EVALUATION, durationInMs: 820 },
+        }),
+        METRIC_ROWS[2]!,
+      ],
+    });
+
+    await exportCsv();
+    await waitFor(() => {
+      expect(downloads).toHaveLength(1);
+    });
+
+    const csv: string = downloads[0]!.csv;
+
+    expect(csvColumn(csv, "Check Duration")).toEqual([
+      "25 s (slow)",
+      "820 ms",
+      "",
+    ]);
+    // The outcome as words, never the log body behind every column.
+    expect(csvColumn(csv, "Evaluation Outcome")).toEqual([
+      "Criteria met: High CPU",
+      "Criteria met: High CPU",
+      "Criteria met: High CPU",
+    ]);
+    expect(csv).not.toContain("evaluationSummary");
+    expect(csv).not.toContain("metricResult");
   });
 
   test("a check that read nothing stands out as No data", async () => {

@@ -37,7 +37,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
-import MonitorEvaluationTime from "Common/Utils/Monitor/MonitorEvaluationTime";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import MonitorLogSummaryUtil, {
   INCOMING_EMAIL_NO_SUBJECT_LABEL,
@@ -57,15 +56,27 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { getMonitorLogsEmptyState } from "./MonitorLogsEmptyState";
+import {
+  getEvaluationSummaryOfLogBody,
+  getMonitorLogCheckDuration,
+  getMonitorLogCheckDurationText,
+  MonitorLogCheckDuration,
+} from "./MonitorLogCheckDuration";
 
 function getEvaluationSummary(
   log: MonitorLog,
 ): MonitorEvaluationSummary | undefined {
-  return (
-    log.logBody as unknown as {
-      evaluationSummary?: MonitorEvaluationSummary | undefined;
-    }
-  )?.evaluationSummary;
+  return getEvaluationSummaryOfLogBody(log.logBody);
+}
+
+/*
+ * What a check's Evaluation Outcome says: the criteria it met, that it met
+ * none, or that it does not say. `isQuiet` is for the words that are not an
+ * outcome, drawn in a lighter grey.
+ */
+interface EvaluationOutcome {
+  text: string;
+  isQuiet: boolean;
 }
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -288,6 +299,108 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
+  type GetAttemptsTextFunction = (log: MonitorLog) => string;
+
+  // "1 attempt", "3 attempts", or nothing for a row logged before attempts were.
+  const getAttemptsText: GetAttemptsTextFunction = (
+    log: MonitorLog,
+  ): string => {
+    const maxAttempts: number = getMaxAttempts(log.logBody);
+
+    if (maxAttempts === 0) {
+      return "";
+    }
+
+    return translator.translatePlural(
+      {
+        one: "{{count}} attempt",
+        other: "{{count}} attempts",
+      },
+      maxAttempts,
+    );
+  };
+
+  type GetEvaluationOutcomeFunction = (log: MonitorLog) => EvaluationOutcome;
+
+  const getEvaluationOutcome: GetEvaluationOutcomeFunction = (
+    log: MonitorLog,
+  ): EvaluationOutcome => {
+    const evaluationSummary: MonitorEvaluationSummary | undefined =
+      getEvaluationSummary(log);
+
+    if (!evaluationSummary) {
+      return {
+        text: translator.translateText("Not recorded") || "Not recorded",
+        isQuiet: true,
+      };
+    }
+
+    const metCriteria: MonitorEvaluationCriteriaResult | undefined = (
+      evaluationSummary.criteriaResults || []
+    ).find((criteria: MonitorEvaluationCriteriaResult) => {
+      return criteria.met;
+    });
+
+    if (metCriteria) {
+      return {
+        text: translator.translateTemplate("Criteria met: {{criteria}}", {
+          criteria:
+            metCriteria.criteriaName || translatableTerm("Unnamed criteria"),
+        }),
+        isQuiet: false,
+      };
+    }
+
+    if ((evaluationSummary.criteriaResults || []).length > 0) {
+      return {
+        text: translator.translateText("No criteria met") || "No criteria met",
+        isQuiet: false,
+      };
+    }
+
+    return {
+      text:
+        translator.translateText("Evaluations not available") ||
+        "Evaluations not available",
+      isQuiet: true,
+    };
+  };
+
+  type GetCheckDurationCellFunction = (log: MonitorLog) => ReactElement;
+
+  /*
+   * How long the check took, and a slow one marked as its summary warns of
+   * it: the summary's clock, amber, and why when a person points at it.
+   */
+  const getCheckDurationCell: GetCheckDurationCellFunction = (
+    log: MonitorLog,
+  ): ReactElement => {
+    const check: MonitorLogCheckDuration | null = getMonitorLogCheckDuration(
+      translator,
+      log.logBody,
+    );
+
+    if (!check) {
+      return <TableEmptyValue />;
+    }
+
+    if (check.isSlow) {
+      return (
+        <Pill
+          text={getMonitorLogCheckDurationText(translator, check)}
+          isUserContent={true}
+          tone={PillTone.Warning}
+          icon={IconProp.Clock}
+          tooltip={check.slowReason}
+          isTooltipUserContent={true}
+          dataTestId="monitor-log-slow-check"
+        />
+      );
+    }
+
+    return <span className="text-sm text-gray-700">{check.duration}</span>;
+  };
+
   type GetSummaryInfoPropsFunction = (
     log: MonitorLog,
   ) => MonitorSummaryInfoProps;
@@ -469,6 +582,15 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       <span className="text-sm text-gray-700">{probeName}</span>
                     );
                   },
+                  /*
+                   * The probe's name, as the cell says it: backed by the
+                   * whole logBody, the CSV wrote the check result's JSON.
+                   */
+                  getExportValue: (item: MonitorLog): string => {
+                    return getProbeNameById(
+                      MonitorLogSummaryUtil.getProbeId(item.logBody),
+                    );
+                  },
                 },
               ]
             : []),
@@ -495,31 +617,23 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     if (maxAttempts === 1) {
                       return (
                         <span className="text-sm text-gray-700">
-                          {translator.translatePlural(
-                            {
-                              one: "{{count}} attempt",
-                              other: "{{count}} attempts",
-                            },
-                            1,
-                          )}
+                          {getAttemptsText(item)}
                         </span>
                       );
                     }
 
                     return (
                       <Pill
-                        text={translator.translatePlural(
-                          {
-                            one: "{{count}} attempt",
-                            other: "{{count}} attempts",
-                          },
-                          maxAttempts,
-                        )}
+                        text={getAttemptsText(item)}
                         isUserContent={true}
                         tone={PillTone.Warning}
                         isDotHidden={true}
                       />
                     );
+                  },
+                  // The count, as the cell says it, not the logBody's JSON.
+                  getExportValue: (item: MonitorLog): string => {
+                    return getAttemptsText(item);
                   },
                 },
               ]
@@ -533,42 +647,20 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Text,
             // The JSON log body does not provide a sortable duration.
             disableSort: true,
-            disableCsvExport: true,
             hideBelowLargeScreen: true,
             foldInto: "time",
             showTitleWhenFolded: true,
             getElement: (item: MonitorLog): ReactElement => {
-              const summary: MonitorEvaluationSummary | undefined =
-                getEvaluationSummary(item);
-              const durationInMs: number | undefined = summary?.durationInMs;
+              return getCheckDurationCell(item);
+            },
+            // "25 s (slow)", as the cell says it; nothing when it does not say.
+            getExportValue: (item: MonitorLog): string => {
+              const check: MonitorLogCheckDuration | null =
+                getMonitorLogCheckDuration(translator, item.logBody);
 
-              if (
-                typeof durationInMs !== "number" ||
-                !Number.isFinite(durationInMs) ||
-                durationInMs < 0
-              ) {
-                return <TableEmptyValue />;
-              }
-
-              const duration: string = MonitorEvaluationTime.formatDuration(
-                translator,
-                durationInMs,
-              );
-
-              if (MonitorEvaluationTime.isSlow(summary)) {
-                return (
-                  <Pill
-                    text={translator.translateTemplate("{{duration}} (slow)", {
-                      duration,
-                    })}
-                    isUserContent={true}
-                    tone={PillTone.Warning}
-                    icon={IconProp.Alert}
-                  />
-                );
-              }
-
-              return <span className="text-sm text-gray-700">{duration}</span>;
+              return check
+                ? getMonitorLogCheckDurationText(translator, check)
+                : "";
             },
           },
           {
@@ -584,52 +676,19 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
              */
             wrapContent: true,
             getElement: (item: MonitorLog): ReactElement => {
-              const evaluationSummary: MonitorEvaluationSummary | undefined =
-                getEvaluationSummary(item);
-
-              if (!evaluationSummary) {
-                return (
-                  <span className="text-sm text-gray-500">
-                    {translator.translateText("Not recorded")}
-                  </span>
-                );
-              }
-
-              const metCriteria: MonitorEvaluationCriteriaResult | undefined =
-                evaluationSummary.criteriaResults.find(
-                  (criteria: MonitorEvaluationCriteriaResult) => {
-                    return criteria.met;
-                  },
-                );
-
-              if (metCriteria) {
-                return (
-                  <span className="text-sm text-gray-700">
-                    {translator.translateTemplate(
-                      "Criteria met: {{criteria}}",
-                      {
-                        criteria:
-                          metCriteria.criteriaName ||
-                          translatableTerm("Unnamed criteria"),
-                      },
-                    )}
-                  </span>
-                );
-              }
-
-              if (evaluationSummary.criteriaResults.length > 0) {
-                return (
-                  <span className="text-sm text-gray-700">
-                    {translator.translateText("No criteria met")}
-                  </span>
-                );
-              }
+              const outcome: EvaluationOutcome = getEvaluationOutcome(item);
 
               return (
-                <span className="text-sm text-gray-500">
-                  {translator.translateText("Evaluations not available")}
+                <span
+                  className={`text-sm ${outcome.isQuiet ? "text-gray-500" : "text-gray-700"}`}
+                >
+                  {outcome.text}
                 </span>
               );
+            },
+            // The outcome, as the cell says it, not the logBody's JSON.
+            getExportValue: (item: MonitorLog): string => {
+              return getEvaluationOutcome(item).text;
             },
           },
         ]}
@@ -652,7 +711,10 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
           submitButtonText={"Close"}
           submitButtonStyleType={ButtonStyleType.NORMAL}
         >
-          <SummaryInfo {...getSummaryInfoProps(selectedLog)} />
+          <SummaryInfo
+            {...getSummaryInfoProps(selectedLog)}
+            monitorId={modelId}
+          />
         </Modal>
       )}
     </Fragment>

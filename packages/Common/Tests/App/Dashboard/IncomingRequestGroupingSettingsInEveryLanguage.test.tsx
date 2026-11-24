@@ -236,7 +236,7 @@ function placeholdersOf(text: string): Array<string> {
  */
 function asRead(text: string): string {
   return text
-    .replace(/[‎‏‪-‮⁦-⁩]/g, "")
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

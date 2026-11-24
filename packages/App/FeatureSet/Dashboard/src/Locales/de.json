@@ -63684,5 +63684,7 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie.",
   "OneUptime AI's Scrub Rule Input Hash": "Eingabe-Hash der Scrub-Regeln von OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI",
+  "View Alerts": "Warnungen anzeigen",
+  "View Incidents": "Vorfälle anzeigen"
 }
