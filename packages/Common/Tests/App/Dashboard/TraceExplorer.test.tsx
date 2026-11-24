@@ -695,10 +695,22 @@ describe("loading the trace", () => {
         "traceId",
       ].sort(),
     );
-    expect(serviceListMock.mock.calls[0]![0].modelType).toBe(Service);
-    expect(String(serviceListMock.mock.calls[0]![0].query["projectId"])).toBe(
-      PROJECT_ID,
-    );
+    /*
+     * The services the spans are attributed to, read by their ids once the
+     * spans are in: never the project's first 10,000 by name (#10921).
+     */
+    const serviceRead: ListArgs = serviceListMock.mock.calls[0]![0];
+
+    expect(serviceRead.modelType).toBe(Service);
+    expect(serviceRead.query["_id"]).toBeInstanceOf(Includes);
+    expect(
+      (serviceRead.query["_id"] as Includes).values
+        .map((value: unknown): string => {
+          return String(value).toLowerCase();
+        })
+        .sort(),
+    ).toEqual([GATEWAY, INVENTORY, CHECKOUT].sort());
+    expect(serviceRead.limit).toBe(3);
   });
 
   test("the header names the request and summarises the trace", async () => {
@@ -1147,6 +1159,70 @@ describe("batch loading a large trace", () => {
     });
     expect(spanReads()[1]).toMatchObject({ skip: 500, limit: 750 });
     expect(spanReads()).toHaveLength(2);
+  });
+
+  /*
+   * The services are read by the ids the spans name, as each page lands:
+   * never the project's first 10,000 by name, past which a span's service
+   * read as "Unknown Service" (#10921).
+   */
+  test("a later page's services are read by their ids as it lands, each once", async () => {
+    const large: Backend = largeBackend(1250);
+
+    // Past the first page, a service the first page never named.
+    for (const span of large.traceSpans.slice(600)) {
+      span.primaryEntityId = new ObjectID(INVENTORY);
+    }
+
+    setBackend(large);
+    await renderTrace();
+    await totalShown("1,250");
+
+    const serviceIdsRead: () => Array<Array<string>> = (): Array<
+      Array<string>
+    > => {
+      return serviceListMock.mock.calls
+        .map((call: [ListArgs]): ListArgs => {
+          return call[0];
+        })
+        .filter((args: ListArgs): boolean => {
+          return args.modelType === Service;
+        })
+        .map((args: ListArgs): Array<string> => {
+          return (args.query["_id"] as Includes).values
+            .map((value: unknown): string => {
+              return String(value).toLowerCase();
+            })
+            .sort();
+        });
+    };
+
+    expect(serviceIdsRead()).toEqual([[GATEWAY, CHECKOUT].sort()]);
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+        "Showing 1,000 of 1,250 spans",
+      );
+    });
+
+    // Only the service the new page adds.
+    expect(serviceIdsRead()).toEqual([[GATEWAY, CHECKOUT].sort(), [INVENTORY]]);
+    expect(
+      screen
+        .getAllByTestId("trace-service-chip")
+        .some((chip: HTMLElement): boolean => {
+          return (chip.textContent || "").includes("inventory-service");
+        }),
+    ).toBe(true);
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
+    });
+
+    // Nothing new to name: nothing read.
+    expect(serviceIdsRead()).toHaveLength(2);
   });
 
   test("a server that runs out early ends the batches instead of looping", async () => {
