@@ -63714,5 +63714,6 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
-  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙"
+  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙",
+  "Unknown source": "알 수 없는 소스"
 }
