@@ -36,9 +36,7 @@ import TelemetryServiceUtil, {
   UNKNOWN_RESOURCE_LABEL,
   UNKNOWN_SERVICE_NAME,
 } from "Common/UI/Utils/TelemetryService";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import RecordsById from "Common/UI/Utils/RecordsById";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -106,10 +104,12 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
   const [error, setError] = useState<string>("");
 
   /*
-   * An exception's primaryEntityId is polymorphic (no Service relation). Load the
-   * project's Services so a real OpenTelemetry primaryEntityId resolves to its
-   * name/colour; Host/Docker/K8s and unattributed resolve to a label /
-   * synthetic via resolveServiceDisplay below.
+   * An exception's primaryEntityId is polymorphic (no Service relation). The
+   * services the dashboard's rows name are read by their ids as it loads, so
+   * a real OpenTelemetry primaryEntityId resolves to its name/colour however
+   * far past the project's first 10,000 services it is (#10921);
+   * Host/Docker/K8s and unattributed resolve to a label / synthetic via
+   * resolveServiceDisplay below.
    */
   const [services, setServices] = useState<Array<Service>>([]);
 
@@ -188,6 +188,42 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
         },
       );
 
+      /*
+       * The services the top and recent exceptions and the service
+       * summaries name, read by their ids (RecordsById, in pages) before the
+       * rows are drawn. Non-fatal: a row falls back to its type's label or
+       * "Unknown".
+       */
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const namedIds: Array<string> = [...topExceptions, ...recentExceptions]
+        .map((exception: TelemetryException): string => {
+          return exception.primaryEntityId?.toString() || "";
+        })
+        .concat(
+          serviceSummaries.map((summary: ServiceExceptionSummary): string => {
+            return summary.primaryEntityId;
+          }),
+        )
+        .filter((id: string): boolean => {
+          return (
+            Boolean(id) &&
+            !TelemetryServiceUtil.isUnknownServiceId(id, projectId)
+          );
+        });
+
+      try {
+        setServices(
+          await RecordsById.read<Service>({
+            modelType: Service,
+            ids: namedIds,
+            select: { _id: true, name: true, serviceColor: true },
+          }),
+        );
+      } catch {
+        // Non-fatal: rows fall back to a primaryEntityType label / "Unknown".
+        setServices([]);
+      }
+
       setData({
         unresolvedCount: Number(body["unresolvedCount"] || 0),
         resolvedCount: Number(body["resolvedCount"] || 0),
@@ -205,25 +241,6 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
 
   useEffect(() => {
     void loadDashboard();
-  }, []);
-
-  useEffect(() => {
-    const loadServices: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<Service> = await ModelAPI.getList<Service>({
-          modelType: Service,
-          query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { _id: true, name: true, serviceColor: true },
-          sort: { name: SortOrder.Ascending },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-        });
-        setServices(result.data);
-      } catch {
-        // Non-fatal: rows fall back to a primaryEntityType label / "Unknown".
-      }
-    };
-    void loadServices();
   }, []);
 
   if (isLoading) {

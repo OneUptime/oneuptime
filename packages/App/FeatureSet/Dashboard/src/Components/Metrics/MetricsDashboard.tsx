@@ -24,7 +24,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import RecordsById from "Common/UI/Utils/RecordsById";
 import RangeStartAndEndDateTime, {
@@ -257,7 +256,13 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
    * services are counted against when the page is not scoped.
    */
   const [projectServiceCount, setProjectServiceCount] = useState<number>(0);
-  const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
+  /*
+   * How many metric types the project has catalogued, counted on the server:
+   * what the empty state says when none reported in the window. One row and
+   * the count, never the first 10,000 by name, which read "10,000" for a
+   * project that had more (#10921).
+   */
+  const [cataloguedTypes, setCataloguedTypes] = useState<number>(0);
   const [activeMetrics, setActiveMetrics] = useState<Array<Metric>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -287,7 +292,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       const dateRange: InBetween<Date> =
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-      const [servicesCountResult, metricTypesResult, metricsResult] =
+      const [servicesCountResult, metricTypesCountResult, metricsResult] =
         await Promise.all([
           /*
            * How many services the project has: one row and the count, never
@@ -301,13 +306,14 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
             skip: 0,
             sort: {},
           }),
+          // How many metric types the project has: one row and the count.
           ModelAPI.getList({
             modelType: MetricType,
             query: { projectId },
-            select: { name: true, unit: true, description: true },
-            limit: LIMIT_PER_PROJECT,
+            select: { _id: true },
+            limit: 1,
             skip: 0,
-            sort: { name: SortOrder.Ascending },
+            sort: {},
           }),
           AnalyticsModelAPI.getList<Metric>({
             modelType: Metric,
@@ -407,7 +413,12 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
         ) +
           (servicesInView.length - reportingServices.length),
       );
-      setMetricTypes(metricTypesResult.data || []);
+      setCataloguedTypes(
+        Math.max(
+          metricTypesCountResult.count ?? 0,
+          metricTypesCountResult.data?.length || 0,
+        ),
+      );
       setActiveMetrics(loadedMetrics);
     } catch (err) {
       if (loadGenerationRef.current !== generation) {
@@ -689,7 +700,6 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   const dormantServices: number = coverage.quietServices;
   const avgPerService: number =
     reportingServices > 0 ? Math.round(totalMetrics / reportingServices) : 0;
-  const cataloguedTypes: number = metricTypes.length;
   /*
    * The window, said inside whole sentences: "the past 1 hour", or "the
    * selected time range" for a custom one, each its own sentence.

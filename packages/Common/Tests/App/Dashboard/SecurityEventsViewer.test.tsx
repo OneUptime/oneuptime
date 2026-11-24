@@ -665,7 +665,13 @@ describe("the facet sidebar", () => {
     });
 
     expect(facetSection("Severity")).toHaveTextContent("Low");
-    expect(facetSection("Source")).toHaveTextContent("Google SecOps");
+    /*
+     * Named by the ids the facet lists, a moment after its values land: never
+     * from the project's first 10,000 services by name (#10921).
+     */
+    await waitFor(() => {
+      expect(facetSection("Source")).toHaveTextContent("Google SecOps");
+    });
     expect(facetSection("Source")).not.toHaveTextContent(SOURCE_ID.toString());
   });
 
@@ -2026,7 +2032,9 @@ describe("reads stopped at the query time limit", () => {
     }
 
     // Source was counted: it keeps its value, and says nothing.
-    expect(facetSection("Source")).toHaveTextContent("Google SecOps");
+    await waitFor(() => {
+      expect(facetSection("Source")).toHaveTextContent("Google SecOps");
+    });
     expect(
       within(facetSection("Source")).queryByTestId("facet-count-stopped"),
     ).not.toBeInTheDocument();

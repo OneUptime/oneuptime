@@ -109,6 +109,10 @@ import React, {
 } from "react";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
 
 export type TraceViewMode =
   | "waterfall"
@@ -121,6 +125,15 @@ export const SPAN_PAGE_SIZE: number = 500;
 const MAX_SPAN_FETCH_BATCH: number = LIMIT_PER_PROJECT;
 
 const EMPTY_ID_SET: Set<string> = new Set();
+
+// The ids of the services a page of spans is attributed to.
+const getSpanServiceIds: (spans: Array<Span>) => Array<string> = (
+  spans: Array<Span>,
+): Array<string> => {
+  return spans.map((span: Span): string => {
+    return span.primaryEntityId?.toString() || "";
+  });
+};
 
 const SPAN_SELECT: Select<Span> = {
   startTime: true,
@@ -190,6 +203,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const traceId: string = props.traceId;
   const translator: Translator = useTranslator();
 
+  /*
+   * The services the trace's spans are attributed to, read by their ids as
+   * each page of spans lands (TelemetryServicesOnPage): never the project's
+   * first 10,000 services by name, past which a span's service read as
+   * "Unknown Service" (#10921).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
+  const readServicesOf: TelemetryServicesOnPage["readServicesOf"] =
+    servicesOnPage.readServicesOf;
   const [services, setServices] = useState<Array<Service>>([]);
   const [spans, setSpans] = useState<Array<Span>>([]);
   /*
@@ -371,25 +393,20 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             );
 
       try {
-        const [servicesResult, spanResult] = await Promise.all([
-          ModelAPI.getList<Service>({
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            modelType: Service,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-            select: {
-              name: true,
-              _id: true,
-              serviceColor: true,
-            },
-          }),
-          fetchSpanPage(0, limit),
-        ]);
+        const spanResult: ListResult<Span> = await fetchSpanPage(0, limit);
+
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
+
+        /*
+         * The services these spans name, by their ids, before the spans are
+         * drawn: a span never shows a stand-in name a moment before its own.
+         * A read that fails leaves them unnamed; the spans still show.
+         */
+        const knownServices: Map<string, Service> = await readServicesOf(
+          getSpanServiceIds(spanResult.data),
+        );
 
         if (generation !== loadGenerationRef.current) {
           return;
@@ -403,7 +420,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           hasMore: spanResult.hasMore,
         });
 
-        setServices(servicesResult.data);
+        setServices(Array.from(knownServices.values()));
         setSpans(spanResult.data);
         setHasMoreSpans(page.hasMore);
 
@@ -424,7 +441,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         }
       }
     },
-    [fetchSpanPage, countTraceSpans, loadPerfFixSuggestion],
+    [fetchSpanPage, countTraceSpans, loadPerfFixSuggestion, readServicesOf],
   );
 
   // A new trace starts from a clean slate.
@@ -494,6 +511,17 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         }
 
         const fetched: Array<Span> = result.data;
+        // The services the batch adds, read before its spans are drawn.
+        const knownServices: Map<string, Service> = await readServicesOf(
+          getSpanServiceIds(fetched),
+        );
+
+        if (generation !== loadGenerationRef.current) {
+          return;
+        }
+
+        setServices(Array.from(knownServices.values()));
+
         const loaded: number = state.loadedSpanCount + fetched.length;
         const page: SpanPage = readSpanPage({
           loadedSpanCount: loaded,

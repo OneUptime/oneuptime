@@ -18,6 +18,11 @@ import TwilioConfigDefaults, {
 } from "../../Types/CallAndSMS/TwilioConfigDefaults";
 import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
 import Phone from "../../Types/Phone";
+import {
+  getCallVoiceError,
+  toCallVoiceValue,
+  toStoredCallVoice,
+} from "../../Types/Call/CallVoice";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -140,6 +145,9 @@ export class Service extends DatabaseService<Model> {
      */
     Service.assertUseIsValid(createBy.data.usedFor);
 
+    // A voice from OneUptime's list, or none (#10948).
+    Service.assertCallVoiceIsValid(createBy.data);
+
     const missingNumberError: string | null =
       TwilioConfigWrite.getMissingNumberError(useAndNumbersOf(createBy.data));
 
@@ -252,6 +260,9 @@ export class Service extends DatabaseService<Model> {
 
     Service.assertUseIsValid(updateBy.data.usedFor);
 
+    // A voice from OneUptime's list, or none (#10948).
+    Service.assertCallVoiceIsValid(updateBy.data);
+
     await this.assertUpdateKeepsNumbersForUse(updateBy);
 
     return { updateBy, carryForward: null };
@@ -263,6 +274,28 @@ export class Service extends DatabaseService<Model> {
 
     if (error) {
       throw new BadDataException(error);
+    }
+  }
+
+  /*
+   * The voice a config's calls speak with is one from OneUptime's list
+   * (Types/Call/CallVoice), or none - left out, null or empty - for the
+   * account's default voice: a voice the list does not hold is refused,
+   * so a typo through the API or Terraform says so. An empty one is stored
+   * as none.
+   */
+  private static assertCallVoiceIsValid(data: {
+    twilioCallVoice?: unknown;
+  }): void {
+    const value: unknown = data.twilioCallVoice;
+    const error: string | null = getCallVoiceError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    if (value !== undefined) {
+      data.twilioCallVoice = toStoredCallVoice(value);
     }
   }
 
@@ -889,6 +922,20 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(
         "Project Call and SMS Config is used for SMS only and has no SMS phone numbers",
       );
+    }
+
+    /*
+     * The voice its calls speak with (#10948), read with the rest
+     * (PROJECT_TWILIO_CONFIG_SELECT): one from OneUptime's list, or none -
+     * the account's default voice. A stored value the list no longer holds
+     * is none, never a reason not to call.
+     */
+    const callVoice: string | undefined = toCallVoiceValue(
+      projectCallSmsConfig.twilioCallVoice,
+    );
+
+    if (callVoice) {
+      twilioConfig.callVoice = callVoice;
     }
 
     if (kind && !TwilioPhoneNumbers.canSend(twilioConfig, kind)) {

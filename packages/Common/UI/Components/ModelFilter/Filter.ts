@@ -36,8 +36,11 @@ export default interface Filter<
    * Whether a record of filterEntityType that is archived is marked
    * Archived where the filter offers or holds it: a model whose records can
    * be archived though they are no values - a service, hidden from its list
-   * while the rows this list shows still name it (#10764). A value that can
-   * be archived always is (ArchivedValuePicker).
+   * while the rows this list shows still name it (#10764). Unset, every
+   * model whose records carry an archive switch the reader may read is
+   * (BaseModelTable's isMarkingArchivedRecords, #10921): a monitor, a host,
+   * a status page. A value that can be archived always is
+   * (ArchivedValuePicker). false leaves them unmarked.
    */
   marksArchivedRecords?: boolean | undefined;
   fetchFilterDropdownOptions?: () => Promise<Array<DropdownOption>> | undefined;

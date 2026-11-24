@@ -11,23 +11,16 @@ import React, {
 import ChartSkeleton from "Common/UI/Components/Skeleton/ChartSkeleton";
 import API from "Common/UI/Utils/API/API";
 import Dictionary from "Common/Types/Dictionary";
-import Dropdown, {
-  DropdownOption,
-  DropdownOptionGroup,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import Route from "Common/Types/API/Route";
 import Service from "Common/Models/DatabaseModels/Service";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getSeverityTheme } from "Common/UI/Components/LogsViewer/components/severityTheme";
@@ -40,13 +33,10 @@ import TopErrorsPanel from "./TopErrorsPanel";
 import {
   LogsResourceDisplay,
   LogsResourceRef,
-  LogsScopeSelection,
   buildLogsResourceTypeHints,
   collectLogsInsightsResourceRefs,
   collectLogsResourceIds,
-  decodeLogsScopeSelection,
   describeLogsResource,
-  labelLogsScopeOption,
 } from "./LogsResourceDisplay";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -62,7 +52,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import HintChip from "../Metrics/HintChip";
 import {
   INSIGHTS_SCOPE_FACET_KEYS,
-  INSIGHTS_SCOPE_FACET_LABELS,
   LOGS_TAB_DEFAULT_TIME_RANGE,
   LogVolumeSummary,
   LogsInsightsScope,
@@ -73,7 +62,6 @@ import {
   SeverityShare,
   TopErrorPatternRow,
   buildLogsInsightsUrlParams,
-  encodeScopeSelection,
   parseScopeSelections,
   readLogsInsightsUrlScope,
   summarizeSeverityBuckets,
@@ -95,6 +83,13 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { describeLogsTimeRange } from "./LogsInsightsCopy";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TelemetryResourceScopePicker from "../Telemetry/TelemetryResourceScopePicker";
+import { SERVICE_SCOPE_FACET_KEY } from "../Telemetry/TelemetryResourceScope";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
 
 /*
  * The Logs Insights page.
@@ -161,7 +156,23 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   );
   const [savedViewName, setSavedViewName] = useState<string>("");
 
-  const [services, setServices] = useState<Array<Service>>([]);
+  /*
+   * The services the page's sources and top errors name, read by their ids
+   * as each load lands (TelemetryServicesOnPage), by lower-cased id: never
+   * the project's first 10,000 by name, past which a service's card lost
+   * its name, its colour and its link, and the scope picker could not name
+   * it (#10921).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
+  const [serviceById, setServiceById] = useState<Map<string, Service>>(
+    new Map(),
+  );
+  /*
+   * How many services the project has, counted on the server: the
+   * population the quiet services are counted against when the page is not
+   * scoped.
+   */
+  const [projectServiceCount, setProjectServiceCount] = useState<number>(0);
   const [scopeFacets, setScopeFacets] = useState<
     Dictionary<Array<ScopeFacetValue>>
   >({});
@@ -304,7 +315,11 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     );
   }, [unappliedFilters, translator.language]);
 
-  const loadServices: () => Promise<void> =
+  /*
+   * How many services the project has: one row and the count, never the
+   * first 10,000 by name, which a project can pass (#10921).
+   */
+  const countProjectServices: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -312,16 +327,23 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
         return;
       }
 
-      const result: { data: Array<Service> } = await ModelAPI.getList({
-        modelType: Service,
-        query: { projectId },
-        select: { name: true, serviceColor: true },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        sort: { name: SortOrder.Ascending },
-      });
+      try {
+        const result: { data: Array<Service>; count?: number } =
+          await ModelAPI.getList({
+            modelType: Service,
+            query: { projectId },
+            select: { _id: true },
+            limit: 1,
+            skip: 0,
+            sort: {},
+          });
 
-      setServices(result.data || []);
+        setProjectServiceCount(
+          Math.max(result.count ?? 0, result.data?.length || 0),
+        );
+      } catch {
+        // Non-critical: the coverage card counts the reporting sources then.
+      }
     }, []);
 
   const loadInsights: () => Promise<void> =
@@ -371,6 +393,29 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           return;
         }
 
+        /*
+         * The services the sources and the top errors name, read by their
+         * ids before they are drawn: a card is a service's card, named and
+         * coloured, however far past the project's first 10,000 services
+         * it is. An id that is no service (a host, a RUM application, the
+         * project's own) is named by the resolver below, as before.
+         */
+        const known: Map<string, Service> = await servicesOnPage.readServicesOf(
+          [
+            ...breakdown.map((row: ResourceLogBreakdown): string => {
+              return row.resourceId;
+            }),
+            ...patterns.flatMap((row: TopErrorPatternRow): Array<string> => {
+              return row.resourceIds || [];
+            }),
+          ],
+        );
+
+        if (loadGenerationRef.current !== generation) {
+          return;
+        }
+
+        setServiceById(new Map(known));
         setVolume(summarizeSeverityBuckets(buckets as Array<JSONObject>));
         setErrorPatterns(patterns);
         setResourceBreakdown(breakdown);
@@ -389,8 +434,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     }, [scope]);
 
   useEffect(() => {
-    void loadServices();
-  }, [loadServices]);
+    void countProjectServices();
+  }, [countProjectServices]);
 
   useEffect(() => {
     void loadInsights();
@@ -452,21 +497,6 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     );
   }, [errorPatterns]);
 
-  const serviceById: Map<string, Service> = useMemo(() => {
-    const map: Map<string, Service> = new Map();
-
-    for (const service of services) {
-      const id: string | undefined =
-        service.id?.toString() || (service._id as string | undefined);
-
-      if (id) {
-        map.set(id, service);
-      }
-    }
-
-    return map;
-  }, [services]);
-
   /*
    * Resource ids the Service list cannot name. Logs are keyed on a
    * polymorphic primaryEntityId, so a RUM application, host or cluster
@@ -482,14 +512,12 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           return row.resourceId;
         }),
       errorPatterns,
-      scopeFacets,
-      selectedScopeValues,
     });
-  }, [resourceBreakdown, errorPatterns, scopeFacets, selectedScopeValues]);
+  }, [resourceBreakdown, errorPatterns]);
 
   const unnamedResourceIds: Array<string> = useMemo(() => {
     return collectLogsResourceIds(resourceRefsToName, (resourceId: string) => {
-      return Boolean(serviceById.get(resourceId)?.name);
+      return Boolean(serviceById.get(resourceId.toLowerCase())?.name);
     });
   }, [resourceRefsToName, serviceById]);
 
@@ -504,87 +532,35 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   );
 
   /*
-   * One option group per resource kind. Built from the facet response
-   * rather than from the project's Service list so the picker offers
-   * exactly what has telemetry in the window — including hosts and
-   * clusters, which have no Service row at all.
+   * The kinds of resource the scope picker searches beside the services:
+   * the kinds the logs facets list for the window (the project has some of
+   * them). The picker searches each on the server and names what the scope
+   * holds by its ids (TelemetryResourceScopePicker) - never the window's
+   * first 200 of each, named from the project's first 10,000 services
+   * (#10921).
    */
-  const scopeOptionGroups: Array<DropdownOptionGroup> = useMemo(() => {
-    const groups: Array<DropdownOptionGroup> = [];
-
-    for (const facetKey of INSIGHTS_SCOPE_FACET_KEYS) {
-      const values: Array<ScopeFacetValue> = scopeFacets[facetKey] || [];
-
-      if (values.length === 0) {
-        continue;
-      }
-
-      groups.push({
-        label: INSIGHTS_SCOPE_FACET_LABELS[facetKey] || facetKey,
-        options: values.map((value: ScopeFacetValue): DropdownOption => {
-          return {
-            value: encodeScopeSelection(facetKey, value.value),
-            label: labelLogsScopeOption({
-              id: value.value,
-              nameMap: resourceNames,
-              knownName: serviceById.get(value.value)?.name?.toString(),
-              facetDisplayName: value.displayName,
-            }),
-            // A resource's name, or its id: drawn as written.
-            isUserContent: true,
-          };
-        }),
-      });
-    }
-
-    return groups;
-  }, [scopeFacets, serviceById, resourceNames]);
-
-  const scopeOptionByValue: Map<string, DropdownOption> = useMemo(() => {
-    const map: Map<string, DropdownOption> = new Map();
-
-    for (const group of scopeOptionGroups) {
-      for (const option of group.options) {
-        map.set(option.value as string, option);
-      }
-    }
-
-    return map;
-  }, [scopeOptionGroups]);
-
-  const selectedScopeOptions: Array<DropdownOption> = useMemo(() => {
-    return selectedScopeValues
-      .map((value: string): DropdownOption | undefined => {
-        /*
-         * A selection whose option has left the facet list (the window
-         * moved and that host stopped logging) still has to render, or the
-         * user would have a filter they cannot see or remove.
-         */
-        const option: DropdownOption | undefined =
-          scopeOptionByValue.get(value);
-
-        if (option) {
-          return option;
-        }
-
-        const decoded: LogsScopeSelection = decodeLogsScopeSelection(value);
-
-        return {
-          value,
-          label: labelLogsScopeOption({
-            id: decoded.id,
-            nameMap: resourceNames,
-            knownName: serviceById.get(decoded.id)?.name?.toString(),
-          }),
-          isUserContent: true,
-        };
-      })
-      .filter(
-        (option: DropdownOption | undefined): option is DropdownOption => {
-          return option !== undefined;
-        },
+  const scopeResourceFacetKeys: Array<string> = useMemo(() => {
+    return INSIGHTS_SCOPE_FACET_KEYS.filter((facetKey: string): boolean => {
+      return (
+        facetKey !== SERVICE_SCOPE_FACET_KEY &&
+        (scopeFacets[facetKey] || []).length > 0
       );
-  }, [selectedScopeValues, scopeOptionByValue, resourceNames, serviceById]);
+    });
+  }, [scopeFacets]);
+
+  /*
+   * "Unknown Service" is offered in the scope picker while the window's
+   * logs name it: logs that named no service are tagged with the project's
+   * id.
+   */
+  const offersUnknownService: boolean = resourceBreakdown.some(
+    (row: ResourceLogBreakdown): boolean => {
+      return TelemetryServiceUtil.isUnknownServiceId(
+        row.resourceId,
+        ProjectUtil.getCurrentProjectId(),
+      );
+    },
+  );
 
   const rangeLabel: string = describeLogsTimeRange(timeRange, translator);
 
@@ -653,33 +629,15 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-[16rem]">
-          <Dropdown
-            options={scopeOptionGroups}
-            value={selectedScopeOptions}
-            isMultiSelect={true}
+          <TelemetryResourceScopePicker
+            values={selectedScopeValues}
+            resourceFacetKeys={scopeResourceFacetKeys}
+            offersUnknownService={offersUnknownService}
             placeholder="All services and hosts"
             ariaLabel="Scope insights to a service, host or cluster"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              if (!value) {
-                applyScopeSelection([]);
-                return;
-              }
-
-              const values: Array<DropdownValue> = Array.isArray(value)
-                ? value
-                : [value];
-
-              applyScopeSelection(
-                values
-                  .map((item: DropdownValue): string => {
-                    return String(item);
-                  })
-                  .filter((item: string): boolean => {
-                    return item.length > 0;
-                  }),
-              );
+            dataTestId="logs-insights-scope"
+            onChange={(values: Array<string>): void => {
+              applyScopeSelection(values);
             }}
           />
         </div>
@@ -816,7 +774,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
    */
   const reportingServices: number = resourceBreakdown.filter(
     (row: ResourceLogBreakdown): boolean => {
-      return serviceById.has(row.resourceId);
+      return serviceById.has(row.resourceId.toLowerCase());
     },
   ).length;
   /*
@@ -831,7 +789,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
     hasNonServiceResourceScope: hasResourceEntityFacetSelections(
       scope.resourceFilters,
     ),
-    projectServiceCount: services.length,
+    projectServiceCount,
     reportingServices,
   });
   const showQuietServices: boolean =
@@ -999,7 +957,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
           .slice(0, RESOURCE_CARD_LIMIT)
           .map((row: ResourceLogBreakdown): ReactElement => {
             const service: Service | undefined = serviceById.get(
-              row.resourceId,
+              row.resourceId.toLowerCase(),
             );
             const resourceDisplay: LogsResourceDisplay = describeLogsResource({
               resourceId: row.resourceId,
