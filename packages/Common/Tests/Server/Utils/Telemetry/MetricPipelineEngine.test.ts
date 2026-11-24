@@ -548,3 +548,144 @@ describe("the order rules run in", () => {
     ).toEqual({ region: "eu", user: "[REDACTED]" });
   });
 });
+
+/*
+ * #10934: a filter can match a built-in Pattern Type - the very pattern a
+ * log or trace scrub rule of that type runs - which is what Scrub It's
+ * metric rule for an IP address, an email address or a card number
+ * matches. It hides what Data Security's detectors find in every reading:
+ * an IPv6 address as well as an IPv4 one, right after a key's colon
+ * (#10936), in a percent-encoded URL (#10467, #10935), an email address in
+ * any script and a card in any script's digits (#10960) - and keeps what
+ * is no one's data.
+ */
+describe("a Matches Pattern Type filter", () => {
+  function redactWhere(key: string, patternType: string): MetricPipelineRule {
+    return ruleOf(MetricPipelineRuleType.RedactAttribute, {
+      addAttributeKey: key,
+      filterCondition: FilterCondition.All,
+      filters: [
+        attributeIs(
+          key,
+          MetricPipelineRuleFilterConditionType.MatchesPatternType,
+          patternType,
+        ),
+      ],
+    });
+  }
+
+  function leftOf(
+    rule: MetricPipelineRule,
+    key: string,
+    value: string,
+  ): unknown {
+    const left: MutableMetricRow | null = run(
+      rowOf({ [key]: value, region: "eu" }),
+      [rule],
+    );
+
+    return (left!.attributes as JSONObject)[key];
+  }
+
+  test.each([
+    ["an IPv4 address", "81.2.69.160"],
+    ["an IPv6 address", "2a00:1450:4001:82a::200e"],
+    ["one group each side of ::", "2001::1"],
+    ["an IPv4 address written as IPv6", "::ffff:81.2.69.142"],
+    ["an address right after a key's colon", "peer ip:2a00:1450::1"],
+    ["an address in an encoded URL", "/geo?client=2606%3A4700%3A%3A1111"],
+    ["a documentation address", "2001:db8::7"],
+  ])("ipAddress redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("peer", "ipAddress"), "peer", value)).toBe(
+      "[REDACTED]",
+    );
+  });
+
+  test.each([
+    ["a private address", "10.0.0.12"],
+    ["a link-local one", "fe80::1"],
+    ["loopback", "127.0.0.1"],
+    ["a clock", "12:30:45"],
+    ["a scope of hex letters", "Abc::Def"],
+    ["a MAC address", "00:1a:2b:3c:4d:5e"],
+    ["no address", "unknown"],
+  ])("ipAddress keeps %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("peer", "ipAddress"), "peer", value)).toBe(value);
+  });
+
+  test.each([
+    ["an address", "jane.doe@acmecorp.io"],
+    ["an address in an encoded URL", "/signup?email=jane.doe%40acmecorp.io"],
+    ["a name in Han letters", "张伟@acmecorp.io"],
+    ["a name and domain in Cyrillic", "почта@пример.рф"],
+  ])("email redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("user", "email"), "user", value)).toBe(
+      "[REDACTED]",
+    );
+  });
+
+  test.each([
+    ["an ASCII card in groups", "4532 0151 1283 0366"],
+    ["a card in fullwidth digits", "４５３２ ０１５１ １２８３ ０３６６"],
+    ["a card in Arabic-Indic digits", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
+    ["an American Express card", "3782 822463 10005"],
+  ])("creditCard redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("card", "creditCard"), "card", value)).toBe(
+      "[REDACTED]",
+    );
+  });
+
+  test("ssn and phoneNumber match what an SSN or Phone Number rule finds", () => {
+    expect(leftOf(redactWhere("ssn", "ssn"), "ssn", "123-45-6789")).toBe(
+      "[REDACTED]",
+    );
+    expect(
+      leftOf(redactWhere("caller", "phoneNumber"), "caller", "415-555-2671"),
+    ).toBe("[REDACTED]");
+    expect(leftOf(redactWhere("ssn", "ssn"), "ssn", "none")).toBe("none");
+  });
+
+  test("a value that names no pattern type matches nothing", () => {
+    for (const patternType of ["", "custom", "sensitiveKeys", "constructor"]) {
+      expect(
+        leftOf(redactWhere("peer", patternType), "peer", "81.2.69.160"),
+      ).toBe("81.2.69.160");
+    }
+  });
+
+  test("reads a metric's name too, and combines with other filters", () => {
+    const drop: MetricPipelineRule = ruleOf(MetricPipelineRuleType.Drop, {
+      filterCondition: FilterCondition.All,
+      filters: [
+        nameIs(
+          MetricPipelineRuleFilterConditionType.MatchesPatternType,
+          "ipAddress",
+        ),
+        attributeIs(
+          "region",
+          MetricPipelineRuleFilterConditionType.EqualTo,
+          "eu",
+        ),
+      ],
+    });
+
+    expect(
+      run(rowOf({ region: "eu" }, "ping_81.2.69.160_rtt"), [drop]),
+    ).toBeNull();
+    expect(
+      run(rowOf({ region: "us" }, "ping_81.2.69.160_rtt"), [drop]),
+    ).not.toBeNull();
+    expect(run(rowOf({ region: "eu" }, "ping.rtt"), [drop])).not.toBeNull();
+    // Glued after a dot it reads as a version's parts, as the scan reads it.
+    expect(
+      run(rowOf({ region: "eu" }, "ping.81.2.69.160.rtt"), [drop]),
+    ).not.toBeNull();
+  });
+
+  test("a row without the attribute never matches", () => {
+    expect(
+      run(rowOf({ region: "eu" }), [redactWhere("peer", "ipAddress")])!
+        .attributes,
+    ).toEqual({ region: "eu" });
+  });
+});

@@ -63684,5 +63684,6 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
   "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI",
+  "Matches Pattern Type": "يطابق نوع النمط"
 }

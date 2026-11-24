@@ -63684,5 +63684,6 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探测器网络接口上的地址，以及在告知它时其主机的地址，即探测器每次上报时列出的地址。安全事件会将探测器自身从这些地址发出的轮询、发现和监控检查单独搁置，封禁列表也从不封禁它们。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探测器上报时所用的地址。封禁列表从不封禁它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理规则输入哈希",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则",
+  "Matches Pattern Type": "匹配模式类型"
 }
