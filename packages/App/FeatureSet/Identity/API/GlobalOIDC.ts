@@ -12,6 +12,7 @@ import {
 } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
+import OidcEmailVerificationGate from "../Utils/OidcEmailVerificationGate";
 import {
   clearMobileSsoIntentCookie,
   isMobileSsoRequest,
@@ -600,6 +601,28 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
           "OIDC token exchange or validation failed. Please contact your administrator.",
         ),
       );
+    }
+
+    /*
+     * An address the provider says it has not verified signs nobody in -
+     * not the account that has it, a master admin's included, and not a new
+     * one - before any account is read, made, provisioned or emailed
+     * (GHSA-8gwc-w386-fh6w, ../Utils/OidcEmailVerification).
+     */
+    if (
+      await OidcEmailVerificationGate.refuseUnverifiedAddress({
+        req,
+        res,
+        isMobileRequest,
+        identity: result,
+        provider: `Global OIDC provider ${globalOidcId.toString()}`,
+        signIn: {
+          method: SignInMethod.OpenIdConnect,
+          ssoProviderName: globalOidc.name,
+        },
+      })
+    ) {
+      return;
     }
 
     // Resolve attached projects. No attachment => "default-all" mode.

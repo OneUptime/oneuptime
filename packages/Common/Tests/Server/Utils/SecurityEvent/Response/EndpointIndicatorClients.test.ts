@@ -540,6 +540,27 @@ describe("Microsoft Defender: the permissions an app registration was granted", 
     expect(readDefenderRetryAfter({ "retry-after": "soon" })).toBeNull();
     expect(readDefenderRetryAfter(undefined)).toBeNull();
   });
+
+  /*
+   * Read as every client reads Retry-After (Common's RetryAfter): the
+   * header's name in any case, an HTTP date as well as seconds, and a wait
+   * held to at least a second, so "0" never asks again at once.
+   */
+  test("a throttled answer's wait is read as every client reads Retry-After", () => {
+    expect(readDefenderRetryAfter({ "Retry-After": "30" })).toBe("30 seconds");
+    expect(readDefenderRetryAfter({ "retry-after": "0" })).toBe("1 second");
+    expect(readDefenderRetryAfter({ "retry-after": "1.5" })).toBeNull();
+
+    const inTwoMinutes: string = new Date(
+      Date.now() + 2 * 60 * 1000 + 30 * 1000,
+    ).toUTCString();
+    const wait: string | null = readDefenderRetryAfter({
+      "retry-after": inTwoMinutes,
+    });
+
+    expect(wait).not.toBeNull();
+    expect(wait).toMatch(/^\d+ minutes?$/);
+  });
 });
 
 // ---------- CrowdStrike Falcon ----------

@@ -6,7 +6,6 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
@@ -15,6 +14,7 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import RecordsById from "Common/UI/Utils/RecordsById";
 import {
   OPENSTACK_CLOUD_SPAN_ATTRIBUTE,
   OPENSTACK_REGION_SPAN_ATTRIBUTE,
@@ -107,7 +107,10 @@ export interface OpenStackControlPlaneSpans {
 
 /*
  * The spans a map of the control plane is drawn from: those of the newest few traces, whole,
- * because a call is only known by its two ends being in the same read.
+ * because a call is only known by its two ends being in the same read. The services the map
+ * names are those its spans are attributed to, read by their ids once the spans are in: never
+ * the project's first 10,000 services by name, past which a service read as its bare id
+ * (#10921).
  */
 export async function fetchOpenStackControlPlaneSpans(
   traceIds: ReadonlyArray<string>,
@@ -118,37 +121,36 @@ export async function fetchOpenStackControlPlaneSpans(
     return { spans: [], services: [] };
   }
 
-  const [spans, services]: [AnalyticsListResult<Span>, ListResult<Service>] =
-    await Promise.all([
-      AnalyticsModelAPI.getList<Span>({
-        modelType: Span,
-        query: { traceId: new Includes(ids) } as unknown as Query<Span>,
-        select: {
-          name: true,
-          traceId: true,
-          spanId: true,
-          parentSpanId: true,
-          primaryEntityId: true,
-          durationUnixNano: true,
-          startTimeUnixNano: true,
-          endTimeUnixNano: true,
-          statusCode: true,
-        },
-        sort: { startTime: SortOrder.Descending },
-        limit: SPANS_MAPPED,
-        skip: 0,
-      }),
-      ModelAPI.getList<Service>({
-        modelType: Service,
-        query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { _id: true, name: true, serviceColor: true },
-        sort: { name: SortOrder.Ascending },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      }),
-    ]);
+  const spans: AnalyticsListResult<Span> =
+    await AnalyticsModelAPI.getList<Span>({
+      modelType: Span,
+      query: { traceId: new Includes(ids) } as unknown as Query<Span>,
+      select: {
+        name: true,
+        traceId: true,
+        spanId: true,
+        parentSpanId: true,
+        primaryEntityId: true,
+        durationUnixNano: true,
+        startTimeUnixNano: true,
+        endTimeUnixNano: true,
+        statusCode: true,
+      },
+      sort: { startTime: SortOrder.Descending },
+      limit: SPANS_MAPPED,
+      skip: 0,
+    });
 
-  return { spans: spans.data, services: services.data };
+  const services: Array<Service> = await RecordsById.read<Service>({
+    modelType: Service,
+    ids: spans.data.map((span: Span): string => {
+      return span.primaryEntityId?.toString() || "";
+    }),
+    query: { projectId: ProjectUtil.getCurrentProjectId()! },
+    select: { _id: true, name: true, serviceColor: true },
+  });
+
+  return { spans: spans.data, services: services };
 }
 
 /*

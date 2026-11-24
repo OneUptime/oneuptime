@@ -56,7 +56,8 @@ describe("a probe request on its own proxy agents", () => {
     const environmentProxy: LocalHttpServer = await serve({
       name: "environment proxy",
     });
-    process.env["HTTPS_PROXY"] = `http://${PROXY_HOST_NAME}:${environmentProxy.port}`;
+    process.env["HTTPS_PROXY"] =
+      `http://${PROXY_HOST_NAME}:${environmentProxy.port}`;
     const httpsAgent: HttpsProxyAgent<string> = new HttpsProxyAgent(
       proxyUrlWithCredentials(probeProxy.port, RESERVED_CHARACTER_CREDENTIALS),
     );
@@ -82,7 +83,8 @@ describe("a probe request on its own proxy agents", () => {
     const environmentProxy: LocalHttpServer = await serve({
       name: "environment proxy",
     });
-    process.env["HTTP_PROXY"] = `http://${PROXY_HOST_NAME}:${environmentProxy.port}`;
+    process.env["HTTP_PROXY"] =
+      `http://${PROXY_HOST_NAME}:${environmentProxy.port}`;
     const httpAgent: HttpProxyAgent<string> = new HttpProxyAgent(
       proxyUrlWithCredentials(probeProxy.port, RESERVED_CHARACTER_CREDENTIALS),
     );

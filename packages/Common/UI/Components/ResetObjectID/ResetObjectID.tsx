@@ -22,6 +22,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -174,6 +175,13 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={error}
           title={`Reset Error`}
+          // What failed is the reset its button started (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText(props.buttonTitle || props.title) ||
+              props.buttonTitle ||
+              props.title,
+          )}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

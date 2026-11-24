@@ -71,9 +71,16 @@ import OnCallAcknowledgeLink, {
   OnCallAcknowledgeLinkProof,
 } from "../Utils/OnCall/OnCallAcknowledgeLink";
 import OnCallKeypadToken, {
+  ON_CALL_KEYPAD_TOKEN_PARAM,
+  ON_CALL_KEYPAD_WRONG_KEYS_PARAM,
   OnCallKeypadTokenReading,
   getOnCallKeypadTokenRefusalSentence,
 } from "../Utils/OnCall/OnCallKeypadToken";
+import {
+  getKeyAnswer,
+  readWrongKeyCount,
+  shouldAskAgainAfterWrongKey,
+} from "../../Utils/Call/CallKeypad";
 import {
   CANT_TAKE_IT,
   ESCALATE,
@@ -359,6 +366,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
           const answers: OnCallInputRequest = keypad.answers;
 
+          // Every answer is said in the voice the call speaks with (#10948).
+          const voice: string | undefined = keypad.voice;
+
           /*
            * The second key escalates the page. Every call bound to its page
            * offers it - this release's by its keypad token, one placed
@@ -374,6 +384,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 itemId: itemId,
                 timelineItem: timelineItem,
               }),
+              voice,
             );
           }
 
@@ -404,11 +415,59 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 res,
                 answers,
                 ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+                voice,
               );
             }
+
+            return NotificationMiddleware.sendResponse(
+              req,
+              res,
+              answers,
+              undefined,
+              voice,
+            );
           }
 
-          return NotificationMiddleware.sendResponse(req, res, answers);
+          /*
+           * Any other key - one the call did not offer, # and * among them -
+           * acknowledges nothing and escalates nothing (#10949). It used to
+           * end the call: "Invalid input. Good bye", and the person who
+           * pressed it by mistake lost the page. Now the call says so and
+           * asks again, as often as it asks when no key is pressed, posting
+           * the next key back here with how many it has asked again for
+           * (Utils/Call/CallKeypad). Once those are spent - or for a call
+           * placed before this release, which carried no prompt to say
+           * again - it says what the call said it would and ends.
+           */
+          const wrongKeysSoFar: number = readWrongKeyCount(
+            req.query?.[ON_CALL_KEYPAD_WRONG_KEYS_PARAM],
+          );
+          const keypadToken: unknown = req.query?.[ON_CALL_KEYPAD_TOKEN_PARAM];
+
+          if (
+            !getKeyAnswer(answers, req.body["Digits"]) &&
+            keypad.prompt &&
+            typeof keypadToken === "string" &&
+            shouldAskAgainAfterWrongKey(wrongKeysSoFar)
+          ) {
+            return NotificationMiddleware.sendAskAgain(req, res, {
+              prompt: keypad.prompt,
+              voice: voice,
+              action: await OnCallPageLinks.getCallAskAgainUrl({
+                userOnCallLogTimelineId: itemId,
+                keypadToken: keypadToken,
+                wrongKeys: wrongKeysSoFar + 1,
+              }),
+            });
+          }
+
+          return NotificationMiddleware.sendResponse(
+            req,
+            res,
+            answers,
+            undefined,
+            voice,
+          );
         } catch (error) {
           return next(error);
         }

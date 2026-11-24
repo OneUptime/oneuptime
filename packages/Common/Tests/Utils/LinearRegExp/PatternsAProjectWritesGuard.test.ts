@@ -303,9 +303,9 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
   },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules.ts",
-    count: 2,
+    count: 5,
     builtFrom:
-      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
+      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; the table a line opens a block for (#10779), read with the pattern literals of TABLE_HEADERS, DJANGO_MODEL_HEADERS and TABLE_NAMED_BELOW, each of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
   },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
@@ -318,6 +318,18 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
+  },
+  {
+    file: "packages/Common/Server/Utils/DataSecurity/ExposureAssessmentReader.ts",
+    count: 1,
+    builtFrom:
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change to the exposed store (#10377)",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    count: 1,
+    builtFrom:
+      "the law names a draft's text is read for (LAW_NAMES_IN_TEXT), each a pattern literal of words and section numbers (#10377)",
   },
   {
     file: "packages/Common/Types/NoBreakSpaces.ts",
@@ -348,6 +360,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
+  },
+  {
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
+    count: 1,
+    builtFrom:
+      "the redactor's own two email address patterns (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), pattern literals of bounded parts, as the Android agent's Kotlin writes them",
   },
   {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",

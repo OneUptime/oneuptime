@@ -5,6 +5,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
+import AnswerReader from "../../../Types/API/AnswerReader";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -14,7 +15,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import GroupBy from "../../../Types/BaseDatabase/GroupBy";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONArray, JSONObject } from "../../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -115,9 +116,17 @@ export default class UserProjectsModelAPI extends ModelAPI {
       throw result;
     }
 
-    const rows: Array<UserProjectRow> = (result.data as JSONArray).map(
-      (item: JSONObject) => {
-        return this.toRow(item);
+    /*
+     * Read as every list is (AnswerReader, #8413): an answer that holds no
+     * rows, or a row that will not read, is an answer the page could not
+     * read - never "result.data.map is not a function".
+     */
+    const rows: Array<UserProjectRow> = AnswerReader.read(
+      result,
+      (): Array<UserProjectRow> => {
+        return AnswerReader.getRows(result).map((item: JSONValue) => {
+          return this.toRow(item as JSONObject);
+        });
       },
     );
 

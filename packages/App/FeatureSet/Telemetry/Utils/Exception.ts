@@ -25,6 +25,7 @@ import TelemetryExceptionSplitHeal, {
   ExceptionSplitHealOutcome,
 } from "Common/Server/Utils/Telemetry/TelemetryExceptionSplitHeal";
 import { JSONObject } from "Common/Types/JSON";
+import { writeOwnValue } from "Common/Utils/LookupTable";
 import HeldExceptionOccurrences, {
   HELD_OCCURRENCE_RETRY_MS,
 } from "./HeldExceptionOccurrences";
@@ -421,7 +422,7 @@ function readRekeys(value: unknown): Record<string, string> | undefined {
 
   for (const [from, to] of Object.entries(value as Record<string, unknown>)) {
     if (from && typeof to === "string" && to.length > 0 && to !== from) {
-      rekeys[from] = to;
+      writeOwnValue(rekeys, from, to);
     }
   }
 
@@ -926,8 +927,8 @@ export default class ExceptionUtil {
 
       fingerprints.push(keyed);
 
-      if (!(fingerprint in data.rekeys)) {
-        data.rekeys[fingerprint] = keyed;
+      if (!Object.prototype.hasOwnProperty.call(data.rekeys, fingerprint)) {
+        writeOwnValue(data.rekeys, fingerprint, keyed);
       }
     }
 

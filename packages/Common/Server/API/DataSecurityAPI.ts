@@ -37,6 +37,9 @@ import RecordOfProcessingDrafter, {
 } from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import RecordOfProcessingReader from "../Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../Utils/DataSecurity/RecordOfProcessingWriter";
+import StoreChangeAccess, {
+  STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+} from "../Utils/DataSecurity/StoreChangeAccess";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
 } from "../../Types/DataSecurity/DataCategory";
@@ -567,6 +570,17 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           props,
           dataStoreId,
+        });
+
+        /*
+         * The drafts are written into the store's record as OneUptime: only
+         * for who may change this store, by its own row - not whoever may
+         * edit some store in the project (TableHalfWriteGuard).
+         */
+        await StoreChangeAccess.assertMayChange({
+          dataStoreId,
+          props,
+          message: STORE_RECORD_CHANGE_REFUSED_MESSAGE,
         });
 
         const outcome: RecordDraftOutcome =
@@ -1337,8 +1351,9 @@ export default class DataSecurityAPI extends BaseAPI<
          * open telemetry leak of the service, from the places its records
          * name - the plan the person was shown, held to it.
          */
+        // A RUM application's front-end leaks are planned the same way (#10933).
         if (
-          await TelemetryLeakFix.serviceOfIssue({
+          await TelemetryLeakFix.ownerOfIssue({
             projectId,
             issue,
           })
@@ -1870,6 +1885,7 @@ export default class DataSecurityAPI extends BaseAPI<
           dataStoreId: true,
           sampleRecords: true,
           lastSeenAt: true,
+          isFoundByModel: true,
           dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
@@ -1942,6 +1958,8 @@ export default class DataSecurityAPI extends BaseAPI<
         ? OneUptimeDate.fromString(finding.lastSeenAt)
         : null,
       now,
+      // Only the model tells what it found: it reads the records again (#10926).
+      isFoundByModel: finding.isFoundByModel === true,
     });
   }
 

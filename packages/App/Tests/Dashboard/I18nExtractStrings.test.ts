@@ -1659,6 +1659,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
       // OneUptime AI's verdict on a finding that waits for a person, and the signs of a wrong match (#10372).
       "keys packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+      // Why a pull request a person links to a Data Security issue is refused (#10831).
+      "keys packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
       // What the compliance page says is wrong with a rule, and why a member fails one (#8632).
       "keys packages/Common/Types/Team/TeamComplianceFindings.ts",
       // Why a team or a label may not take a name: another one of the project has it (#9674).

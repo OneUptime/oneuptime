@@ -11,8 +11,14 @@ import {
 import {
   CrossSignalQueryParams,
   toLogsExplorerQueryParams,
+  toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import { SECURITY_LOG_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
+import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  HashedUserSignal,
+  getSecurityEventSignal,
+} from "./SecurityEventSignal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { buildTraceViewRoute } from "../../Utils/LogsCrossSignalPivot";
@@ -154,6 +160,98 @@ export interface SecurityEventLogsLink {
   route: Route;
   // Every line the request wrote.
   scope: "request";
+}
+
+/*
+ * WHERE A USER THE LOGS KNOW ONLY BY A TOKEN IS FOUND (#10909).
+ *
+ * When Security Events named an event's user behind a Hash rule's token
+ * (the user vault, #10632), the logs or traces it read hold only the token,
+ * and the event keeps what the rule left (oneuptime.<role>_user_hashed_as).
+ * Beside the user, the event's panel says so, with a link that searches
+ * the records for it, in the day either side of the event:
+ *
+ *   - an event read from a log line: the logs explorer, the lines whose
+ *     body holds the token;
+ *   - an event read from a trace: the traces explorer, the spans whose
+ *     request user (enduser.id) is what the rule left.
+ */
+
+// How far either side of the event the user's records are searched for.
+export const HASHED_USER_SEARCH_WINDOW_IN_HOURS: number = 24;
+
+// A Hash rule's token of today's form, anywhere in a text.
+const TOKEN_IN_TEXT: RegExp = /\[HASHED:[0-9a-f]{16}\]/;
+
+// The span attribute a trace's search names: the request's user.
+export const TRACE_USER_ATTRIBUTE: string = SECURITY_REQUEST_ATTRIBUTES.userId;
+
+export { HashedUserSignal, getSecurityEventSignal };
+
+export interface HashedUserSearch {
+  // What the rule left in the user's place: the token, or a user with it inside.
+  hashed: string;
+  // The token alone, as the panel shows it.
+  token: string;
+  signal: HashedUserSignal;
+  route: Route;
+}
+
+/*
+ * The search for a user the logs or traces know only by what a Hash rule
+ * left (`hashed`), or null when that holds no token of today's form.
+ */
+export function getHashedUserSearch(data: {
+  hashed: string;
+  signal: HashedUserSignal;
+  time?: Date | undefined;
+}): HashedUserSearch | null {
+  const hashed: string = (data.hashed || "").trim();
+  const token: string = hashed.match(TOKEN_IN_TEXT)?.[0] || "";
+
+  if (!token) {
+    return null;
+  }
+
+  const time: Date | undefined =
+    data.time && !Number.isNaN(new Date(data.time).getTime())
+      ? new Date(data.time)
+      : undefined;
+  const window: { startTime?: Date; endTime?: Date } = time
+    ? {
+        startTime: new Date(
+          time.getTime() - HASHED_USER_SEARCH_WINDOW_IN_HOURS * 60 * 60 * 1000,
+        ),
+        endTime: new Date(
+          time.getTime() + HASHED_USER_SEARCH_WINDOW_IN_HOURS * 60 * 60 * 1000,
+        ),
+      }
+    : {};
+
+  if (data.signal === HashedUserSignal.Trace) {
+    return {
+      hashed,
+      token,
+      signal: data.signal,
+      route: withQuery(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES]!),
+        toTracesExplorerQueryParams({
+          attributes: { [TRACE_USER_ATTRIBUTE]: hashed },
+          ...window,
+        }).params,
+      ),
+    };
+  }
+
+  return {
+    hashed,
+    token,
+    signal: data.signal,
+    route: withQuery(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS]!),
+      toLogsExplorerQueryParams({ bodyContains: token, ...window }).params,
+    ),
+  };
 }
 
 /*

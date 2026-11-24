@@ -3402,9 +3402,20 @@ describe("User On-Call Time", () => {
   });
 
   it("counts time on call through two policies once, and time still going on up to now", () => {
-    expect(report).toContain("// Merge overlapping time periods");
+    const timeInRange: string = readCommonSource(
+      "Types/OnCallDutyPolicy/OnCallTimeInRange.ts",
+    );
+
+    expect(report).toContain("getMinutesOnCallInRange({");
+    expect(report).toContain("now: now,");
     expect(report).toContain(
-      "let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();",
+      "const now: Date = OneUptimeDate.getCurrentDate();",
+    );
+    expect(timeInRange).toContain(
+      "// Merge overlapping time periods: time on call through two policies at once counts once.",
+    );
+    expect(timeInRange).toContain(
+      "const stintEnd: Date = stint.endsAt || data.now;",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "Time on call through two policies at once counts once, and time still going on counts up to now.",

@@ -1,3 +1,4 @@
+import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -282,6 +283,12 @@ describe("SecurityTrustedProxies: what the scans read", () => {
     jest
       .spyOn(SecurityEventConnectionService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+
+    /*
+     * The project's own load balancers are trusted too (#10546): a test
+     * that does not say which it has has none, and reads no database.
+     */
+    jest.spyOn(CloudResourceService, "findBy").mockResolvedValue([]);
   });
 
   it("reads the project's list, as OneUptime, and keeps it a minute", async () => {
@@ -300,7 +307,11 @@ describe("SecurityTrustedProxies: what the scans read", () => {
     expect(isTrustedProxy("203.0.113.51", proxies)).toBe(false);
     expect(findOne).toHaveBeenCalledWith({
       id: PROJECT_ID,
-      select: { securityTrustedProxies: true },
+      select: {
+        securityTrustedProxies: true,
+        securityTrustOwnLoadBalancers: true,
+        securityReadAccessLogForwardedFor: true,
+      },
       props: { isRoot: true },
     });
 

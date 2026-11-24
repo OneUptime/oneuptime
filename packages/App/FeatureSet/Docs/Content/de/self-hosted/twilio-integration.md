@@ -147,6 +147,21 @@ Was kein Standard sendet, geht so hinaus wie ohne Konfiguration: Solange der ein
 
 Statusseiten bieten nur die Konfigurationen an, die SMS senden, und **Test-SMS senden** und **Testanruf senden** erscheinen nur für das, was eine Konfiguration sendet. Jede bestehende Konfiguration ist wie bisher auf **Anrufe und SMS** gestellt. Über die API und Terraform ist die Auswahl das Feld `usedFor`, und eine Konfiguration ohne die Nummern, die ihre Auswahl braucht, wird abgelehnt.
 
+### Die Stimme, mit der Anrufe sprechen
+
+Anrufe sprechen mit der Stimme, die Ihr Twilio-Konto standardmäßig verwendet: der kostenlosen Basic-Stimme von Twilio, sofern Sie in der Twilio Console keine andere gewählt haben. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht, daher kann jedes Konto stattdessen mit einer dieser neuronalen Stimmen sprechen. Die Stimme des installationsweiten Kontos wählen Sie in der Karte **Stimme für Anrufe** unter **Admin Dashboard > Einstellungen > Anrufe und SMS**, die einer Projektkonfiguration in **Stimme für Anrufe** unter **Weitere Felder**.
+
+| Stimme | Anbieter | Wie sie klingt |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikanisches Englisch, weibliche Stimme |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikanisches Englisch, männliche Stimme |
+| `Polly.Amy-Neural` | Amazon Polly | Britisches Englisch, weibliche Stimme |
+| `Polly.Brian-Neural` | Amazon Polly | Britisches Englisch, männliche Stimme |
+| `Google.en-US-Neural2-F` | Google | Amerikanisches Englisch, weibliche Stimme |
+| `Google.en-US-Neural2-J` | Google | Amerikanisches Englisch, männliche Stimme |
+
+Jeder Anruf über das Konto spricht mit dieser Stimme: Bereitschaftsanrufe und die Antwort auf die gedrückte Taste, die auf der Mailbox hinterlassene Nachricht, Verifizierungscodes, **Testanruf senden** und die Begrüßungen einer Richtlinie für eingehende Anrufe. Mit diesen Stimmen wird eine Nummer wie `INC-42` per SSML buchstabiert, was natürlicher klingt als die durch Leerzeichen getrennten Buchstaben, die andere Stimmen erhalten. Twilio berechnet diese Stimmen dem Konto, das den Anruf tätigt: $0.0032 pro 100 Zeichen im November 2026, weniger als 2 US-Cent für den Anruf einer Alarmierung. Siehe [Twilios Preise für Sprachanrufe](https://www.twilio.com/en-us/voice/pricing/us). Lassen Sie **Stimme für Anrufe** leer, um die Standardstimme des Kontos zu behalten. Über die API und Terraform ist die Stimme das Feld `twilioCallVoice`, und eine Stimme, die nicht in der Tabelle steht, wird abgelehnt.
+
 ### Mailbox bei Bereitschaftsanrufen
 
 Für Twilio ist ein Anruf, den die Mailbox annimmt, angenommen, wie einer, den eine Person annimmt. Deshalb fragt jeder Bereitschaftsanruf Twilio im Hintergrund, ob eine Person oder die Mailbox ihn angenommen hat, mit der [Anrufbeantworter-Erkennung](https://www.twilio.com/docs/voice/answering-machine-detection): Wer abnimmt, hört die Alarmierung sofort. Ein Anruf, den die Mailbox annimmt, gilt als nicht angenommen, wie einer, der ins Leere läuft, und die Alarmierung geht weiter wie bei einem verpassten Anruf. Sobald die Ansage endet, hinterlässt OneUptime eine kurze Nachricht mit dem, was der Anruf sagte. Das Log des Anrufs sagt, ob eine Nachricht hinterlassen wurde, ebenso der Feed des Vorfalls: „Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left.“

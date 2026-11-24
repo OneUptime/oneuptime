@@ -54,6 +54,10 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { JSONObject } from "Common/Types/JSON";
 import { useAsyncEffect } from "use-async-effect";
+import {
+  getDialogWhatFailed,
+  getLoadWhatFailed,
+} from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -329,6 +333,11 @@ const ExecutionView: FunctionComponent<
   const [execution, setExecution] = useState<RunbookExecution | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in the reader's words, said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [actionInFlight, setActionInFlight] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
@@ -433,6 +442,7 @@ const ExecutionView: FunctionComponent<
         }
         return exec;
       } catch (err) {
+        setErrorWhatFailed(getLoadWhatFailed(translator, "Runbook Execution"));
         setError(API.getFriendlyMessage(err));
         return null;
       } finally {
@@ -468,8 +478,24 @@ const ExecutionView: FunctionComponent<
     };
   }, [execution?.status]);
 
-  const completeStep: (stepId: string) => Promise<void> = async (
+  // What failed, as the button the person pressed names it (#7680).
+  const failedAs: (actionTitle: string) => string = (
+    actionTitle: string,
+  ): string => {
+    return (
+      getDialogWhatFailed(
+        translator,
+        translator.translateText(actionTitle) || actionTitle,
+      ) || ""
+    );
+  };
+
+  const completeStep: (
     stepId: string,
+    actionTitle: string,
+  ) => Promise<void> = async (
+    stepId: string,
+    actionTitle: string,
   ): Promise<void> => {
     setActionInFlight(true);
     try {
@@ -486,6 +512,7 @@ const ExecutionView: FunctionComponent<
       }
       await load();
     } catch (err) {
+      setErrorWhatFailed(failedAs(actionTitle));
       setError(API.getFriendlyMessage(err));
     } finally {
       setActionInFlight(false);
@@ -510,6 +537,7 @@ const ExecutionView: FunctionComponent<
       }
       await load();
     } catch (err) {
+      setErrorWhatFailed(failedAs("Skip"));
       setError(API.getFriendlyMessage(err));
     } finally {
       setActionInFlight(false);
@@ -532,6 +560,7 @@ const ExecutionView: FunctionComponent<
       }
       await load();
     } catch (err) {
+      setErrorWhatFailed(failedAs("Cancel Execution"));
       setError(API.getFriendlyMessage(err));
     } finally {
       setActionInFlight(false);
@@ -572,6 +601,7 @@ const ExecutionView: FunctionComponent<
         await load();
       }
     } catch (err) {
+      setErrorWhatFailed(failedAs("Run Again"));
       setError(API.getFriendlyMessage(err));
     } finally {
       setActionInFlight(false);
@@ -1146,7 +1176,10 @@ const ExecutionView: FunctionComponent<
                                   // Full width on a phone, its own beside the step.
                                   className="max-sm:w-full"
                                   onClick={() => {
-                                    void completeStep(stepExec.step.id);
+                                    void completeStep(
+                                      stepExec.step.id,
+                                      waitingStepButtonTitle,
+                                    );
                                   }}
                                   disabled={actionInFlight}
                                 />
@@ -1260,6 +1293,7 @@ const ExecutionView: FunctionComponent<
         <ConfirmModal
           title="Error"
           description={error}
+          errorWhatFailed={errorWhatFailed || undefined}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={() => {

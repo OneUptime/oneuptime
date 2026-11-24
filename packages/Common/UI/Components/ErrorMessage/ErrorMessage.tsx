@@ -36,15 +36,12 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
    * drawn as they always were.
    */
   /*
-   * Its lines are centred, so the reference's row of an error nobody
-   * explained is centred under them too, not left at their start.
+   * Its lines are centred, and so is the reference's line of an error
+   * nobody explained under them: it takes the lines' own alignment
+   * (ErrorReference).
    */
   const words: ReactElement = (
-    <ErrorMessageText
-      message={props.message}
-      whatFailed={props.whatFailed}
-      isCentered={true}
-    />
+    <ErrorMessageText message={props.message} whatFailed={props.whatFailed} />
   );
   return (
     <div className="text-center my-10 text-gray-500 text-sm">

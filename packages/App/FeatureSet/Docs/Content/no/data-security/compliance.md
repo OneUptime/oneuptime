@@ -227,6 +227,8 @@ Formålet med hvert av dem er «Nettverks- og informasjonssikkerhet (GDPR fortal
 
 Et datalager vises så lenge prosjektet ditt oppbevarer dataene: adressehvelvet så lenge en aktivert IP-adresseregel hasher logger eller traser Sikkerhetshendelser leser, brukerhvelvet så lenge en aktivert regel med et hvilket som helst annet mønster gjør det, hvert i 31 dager etter (se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Når dataene er borte, arkiveres datalageret, og det kommer tilbake med formålet og oppbevaringen din hvis dataene gjør det.
 
+For å slette én person fra «Sikkerhetsbrukerhvelv», og fra hendelsene og sakene som nevner dem gjennom det, send inn en sletteforespørsel: se [Slett en person](/docs/telemetry/security-events#slett-en-person).
+
 ## Konsekvensvurderinger
 
 GDPR artikkel 35 krever en vurdering av personvernkonsekvenser før behandling som sannsynligvis innebærer høy risiko. Datasikkerhet sier hvilke datalagre som trenger en: et datalager som inneholder særlige kategorier av personopplysninger, for eksempel helseopplysninger, data om mange personer (omtrent 100 000 poster eller flere), eller data som forlater landene til de registrerte.

@@ -68,6 +68,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -263,16 +264,47 @@ export default class ExposureAssessmentReader {
     );
   }
 
-  // ...and change it: start it, draft it, edit a draft, say where the people live.
-  public static mayChange(props: DatabaseCommonInteractionProps): boolean {
-    return (
-      props.isRoot === true ||
-      (ExposureAssessmentReader.mayRead(props) &&
-        CallerPermission.holdsModelPermission(props, {
-          model: new SecurityCase(),
-          operation: "update",
-        }))
-    );
+  /*
+   * ...and change it: start it, draft it, edit a draft, say where the
+   * people live. One of its readers who may update THIS case, by its own
+   * row, as an update of it through the API would decide
+   * (SecurityCaseService.findOneUpdatableById): the assessment is a column
+   * of the case, written as OneUptime, and holding a case-editing permission
+   * somewhere in the project does not decide a change of one case - a
+   * credential issued for reading only changes none, whatever its roles
+   * (TableHalfWriteGuard).
+   */
+  public static async mayChange(data: {
+    securityCaseId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    if (data.props.isRoot === true) {
+      return true;
+    }
+
+    if (!ExposureAssessmentReader.mayRead(data.props)) {
+      return false;
+    }
+
+    try {
+      return Boolean(
+        await SecurityCaseService.findOneUpdatableById({
+          id: data.securityCaseId,
+          select: { _id: true },
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      // A caller who may not update security cases at all, or not on their plan.
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   /*

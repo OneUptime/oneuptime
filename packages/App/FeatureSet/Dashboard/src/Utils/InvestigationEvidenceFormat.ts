@@ -18,6 +18,7 @@ import {
 } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import {
   CALL_MCP_TOOL_TOOL_NAME,
+  CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import {
@@ -618,6 +619,18 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     CALL_MCP_TOOL_TOOL_NAME,
     {
       description: "Used a tool of an MCP server",
+      icon: IconProp.PuzzlePiece,
+      category: "MCP servers",
+    },
+  ],
+  /*
+   * Ask AI and an incident's or alert's conversation: a tool that may
+   * change something, called once a person approved it (#10879).
+   */
+  [
+    CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
+    {
+      description: "Used a tool of an MCP server that may change something",
       icon: IconProp.PuzzlePiece,
       category: "MCP servers",
     },

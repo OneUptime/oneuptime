@@ -278,6 +278,19 @@ function matchesRaw(
     });
   }
 
+  /*
+   * A text anywhere in it, case not counted: QueryHelper.search's ILIKE
+   * (a migration's table in a finding's location, #10779).
+   */
+  match = sql.match(/^\(\(CAST\(c AS TEXT\) ILIKE :(\w+)\)\)$/);
+  if (match) {
+    if (stored === null || stored === undefined) {
+      return false;
+    }
+
+    return matchesLikePattern(String(parameters[match[1]!]), String(stored));
+  }
+
   // LOWER(c) too: a text the way QueryHelper.findWithSameTextAnyOf asks.
   match = sql.match(/^\((?:c|LOWER\(c\)) IN \(:\.\.\.(\w+)\)\)$/);
   if (match) {

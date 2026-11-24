@@ -22,6 +22,8 @@ import {
   SecurityEventsSources,
 } from "../../SecurityEvent/SecurityEventsFieldReaders";
 import { ContentScanOptions } from "../DataSecurityScanTypes";
+import { ModelRereads } from "../Model/ModelRereads";
+import { RecognizerAvailability } from "../Model/NameAddressRecognizer";
 import {
   proveScrubRule,
   readEachStatementOnce,
@@ -61,6 +63,11 @@ import { ScrubTarget } from "../../../../Types/DataSecurity/TelemetryScrubTarget
  *    candidate is the rule, unproven: Scrub It makes it as it always did,
  *    and OneUptime AI only proposes it.
  *
+ * A finding the names-and-addresses model made is proven with the model
+ * (#10926): one read of it a plan, every candidate's proof sharing it, so
+ * each value is read once. Where the model cannot run, nothing is proven,
+ * as where the records are gone.
+ *
  * Reads the finding's records as the server (it is a check, not a page);
  * nothing it reads leaves it but counts.
  */
@@ -97,6 +104,8 @@ export interface ScrubPlanFindingRecord {
    */
   aiScrubRuleInputHash?: string | undefined;
   aiScrubRules?: unknown;
+  // The names-and-addresses model made it (DataStoreFinding.isFoundByModel).
+  isFoundByModel?: boolean | undefined;
 }
 
 /*
@@ -109,7 +118,8 @@ function isUnprovable(failure: ScrubProofFailure | undefined): boolean {
   return (
     failure === ScrubProofFailure.NotProvable ||
     failure === ScrubProofFailure.CouldNotRead ||
-    failure === ScrubProofFailure.NothingToProveOn
+    failure === ScrubProofFailure.NothingToProveOn ||
+    failure === ScrubProofFailure.ModelUnavailable
   );
 }
 
@@ -139,6 +149,7 @@ export async function readScrubPlanFindingRecord(data: {
         lastSeenAt: true,
         aiScrubRuleInputHash: true,
         aiScrubRules: true,
+        isFoundByModel: true,
       },
       props: { isRoot: true },
     });
@@ -156,6 +167,7 @@ export async function readScrubPlanFindingRecord(data: {
     target: data.target,
     sampleRecords: readFindingSampleRecords(finding.sampleRecords),
     lastSeenAt: finding.lastSeenAt || null,
+    isFoundByModel: finding.isFoundByModel === true,
     projectType: await readProjectDataTypePattern({
       projectId: data.projectId,
       dataTypeId: finding.dataTypeId,
@@ -192,6 +204,7 @@ export async function readScrubProofFinding(data: {
         location: true,
         sampleRecords: true,
         lastSeenAt: true,
+        isFoundByModel: true,
       },
       props: { isRoot: true },
     });
@@ -207,6 +220,7 @@ export async function readScrubProofFinding(data: {
     location: finding.location,
     sampleRecords: readFindingSampleRecords(finding.sampleRecords),
     lastSeenAt: finding.lastSeenAt || null,
+    isFoundByModel: finding.isFoundByModel === true,
   };
 }
 
@@ -280,6 +294,8 @@ export async function planProvenScrubRule(data: {
   onlyCandidates?: ReadonlyArray<ScrubRuleCandidate> | undefined;
   now?: Date | undefined;
   readRows?: ScrubProofRowReader | undefined;
+  // Stands in for the process's model in a test.
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
 }): Promise<ScrubRulePlanOfFinding> {
   const now: Date = data.now || OneUptimeDate.getCurrentDate();
   const planFinding: ScrubPlanFinding = {
@@ -308,6 +324,14 @@ export async function planProvenScrubRule(data: {
   const readRows: ScrubProofRowReader = readEachStatementOnce(
     data.readRows || readRowsWithRunner,
   );
+  // And, for a finding the model made, each value read by the model once.
+  const model: ModelRereads | null =
+    candidates.length > 0
+      ? await ModelRereads.forFinding({
+          isFoundByModel: data.finding.isFoundByModel,
+          getRecognizer: data.getRecognizer,
+        })
+      : null;
 
   for (const candidate of candidates) {
     const outcome: ScrubProofOutcome = await proveScrubRule({
@@ -328,10 +352,12 @@ export async function planProvenScrubRule(data: {
         location: data.finding.location,
         sampleRecords: data.finding.sampleRecords,
         lastSeenAt: data.finding.lastSeenAt,
+        isFoundByModel: data.finding.isFoundByModel,
       },
       options: data.options,
       now,
       readRows,
+      model,
     });
     const proven: ProvenScrubCandidate = {
       candidate,

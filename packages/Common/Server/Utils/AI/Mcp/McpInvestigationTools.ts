@@ -18,11 +18,14 @@ import McpRunToolkit from "./McpRunToolkit";
 /*
  * THE EXTERNAL MCP SERVERS AN INVESTIGATION MAY USE, as a toolkit for its
  * run: the project's servers that are on and that the investigation rules
- * matching the incident (or alert) allow - all of them with no rule, or
- * with a matching rule that names none (InvestigationRules,
- * ExternalMcpServerAllowance). Only their tools that read: an
- * investigation never changes anything (McpRunToolkit, purpose
- * "investigation").
+ * matching the incident (or alert) allow - all of them with no rule, with
+ * a matching rule that names none, or with no matching rule at all (only a
+ * person starts that investigation) (InvestigationRules,
+ * ExternalMcpServerAllowance). Only their tools that read - the ones their
+ * server marks read-only: an investigation never changes anything, and has
+ * nobody to ask (McpRunToolkit, purpose "investigation"). A responder who
+ * wants another tool asks in the incident's conversation, which asks them
+ * before it runs it (ChatMcpAccess).
  *
  * Enrichment only, like every other tool an investigation is handed: a
  * failure to read the rules, the subject or the servers leaves the run

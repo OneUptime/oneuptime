@@ -158,6 +158,32 @@ export interface CodeHostPullRequestDetails {
   changedLineCount: number;
   // When it last changed, as the server says: an ISO time, or "".
   updatedAt: string;
+  /*
+   * GitLab: the version of the diff this read is of - where it starts on
+   * the target branch, its merge base and its head - which places a
+   * comment on one of its lines (#10777). Unset on other hosts, and when
+   * GitLab does not say.
+   */
+  diffRefs?: CodeHostDiffRefs | undefined;
+}
+
+// A GitLab merge request diff's three commits: what a position on its lines names.
+export interface CodeHostDiffRefs {
+  baseSha: string;
+  startSha: string;
+  headSha: string;
+}
+
+/*
+ * A comment on one line a pull request adds (#10777): the file as it is
+ * after the change, its name before a rename, and the line in it.
+ */
+export interface CodeHostLineComment {
+  path: string;
+  // The file's name before the change renamed it; the same path when it did not.
+  oldPath: string;
+  line: number;
+  body: string;
 }
 
 /*

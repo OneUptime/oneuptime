@@ -43,6 +43,15 @@ import ProjectService from "../../Services/ProjectService";
  * AI agent page, Test access on a cluster's. A person runs it to check an
  * agent before turning AI on, it is a read, and no AI composed it.
  *
+ * The project's external MCP servers are reached the same way, from
+ * OneUptime itself rather than through an agent: before every connection
+ * and every tool call OneUptime AI makes - in an investigation, a fix, Ask
+ * AI or an incident's or alert's conversation - the switch is read again
+ * (McpRunToolkit), so a call a person approved before the switch went off,
+ * or the next call of a run, is never sent. Test connection on a server's
+ * page is exempt, as an access test is: a person runs it, and it calls no
+ * tool (issue #10879).
+ *
  * Read with === false, as everywhere: the column is NOT NULL DEFAULT true,
  * so a value that was not read is never taken for "off". A project that is
  * gone is off: there is nobody left to act for.
@@ -64,6 +73,14 @@ export const AI_COMMANDS_OFF_STOP_MESSAGE: string =
  */
 export const AI_COMMANDS_UNCONFIRMED_STOP_MESSAGE: string =
   "OneUptime could not confirm that OneUptime AI is on for this project (Enable AI) while its agent held this command, so it told the agent to stop.";
+
+// Why nothing was sent to an external MCP server (McpRunToolkit).
+export const AI_MCP_CALLS_OFF_MESSAGE: string =
+  "OneUptime AI is turned off for this project (Enable AI, under Project Settings → AI → AI Features), so nothing was sent to the MCP server. Turn Enable AI on to let OneUptime AI use its MCP servers again.";
+
+// The same, when Enable AI could not be read: the switch fails closed.
+export const AI_MCP_CALLS_UNCONFIRMED_MESSAGE: string =
+  "OneUptime could not confirm that OneUptime AI is on for this project (Enable AI), so nothing was sent to the MCP server.";
 
 export default class AiCommandKillSwitch {
   /*

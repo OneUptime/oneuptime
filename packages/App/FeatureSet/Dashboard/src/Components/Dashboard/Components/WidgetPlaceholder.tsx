@@ -47,11 +47,7 @@ const WidgetPlaceholder: FunctionComponent<ComponentProps> = (
         className={DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME}
         data-testid={props.messageTestId}
       >
-        <ErrorMessageText
-          message={props.message}
-          hideWhatFailed={true}
-          isCentered={true}
-        />
+        <ErrorMessageText message={props.message} hideWhatFailed={true} />
       </p>
     </div>
   );

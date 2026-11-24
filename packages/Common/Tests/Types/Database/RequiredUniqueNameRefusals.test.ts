@@ -156,9 +156,9 @@ describe("the refusal of a name another record of its kind has", () => {
         "Another monitor in this project is already called , and the project requires unique names. Pick another name.",
       ),
     ).toBe(false);
-    expect(isNameTakenRefusal("Monitor with the same name already exists.")).toBe(
-      false,
-    );
+    expect(
+      isNameTakenRefusal("Monitor with the same name already exists."),
+    ).toBe(false);
   });
 });
 
@@ -187,12 +187,12 @@ describe("the refusal, read back by the Dashboard", () => {
       isArchived: false,
     });
 
-    expect(readRefusalValues(REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL, message)).toEqual(
-      {
-        kind: translatableTerm("API Key", { inSentence: true }),
-        name: "Terraform",
-      },
-    );
+    expect(
+      readRefusalValues(REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL, message),
+    ).toEqual({
+      kind: translatableTerm("API Key", { inSentence: true }),
+      name: "Terraform",
+    });
   });
 
   test("reads a name that holds the sentence's own words whole", () => {
@@ -204,12 +204,12 @@ describe("the refusal, read back by the Dashboard", () => {
       isArchived: false,
     });
 
-    expect(readRefusalValues(REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL, message)).toEqual(
-      {
-        kind: translatableTerm("Monitor", { inSentence: true }),
-        name: name,
-      },
-    );
+    expect(
+      readRefusalValues(REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL, message),
+    ).toEqual({
+      kind: translatableTerm("Monitor", { inSentence: true }),
+      name: name,
+    });
   });
 
   test("never reads one refusal as another's", () => {

@@ -1,4 +1,5 @@
 import logger from "Common/Server/Utils/Logger";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import type { TelemetryExceptionPayload } from "./Exception";
 
 /*
@@ -43,7 +44,10 @@ interface HeldGroup {
   nextTryAt: number;
 }
 
-const held: Map<string, HeldGroup> = new Map();
+const held: OldestKeyMap<string, HeldGroup> = new OldestKeyMap<
+  string,
+  HeldGroup
+>();
 
 function timeOf(payload: TelemetryExceptionPayload): number {
   return payload.occurredAt instanceof Date ? payload.occurredAt.getTime() : 0;
@@ -195,7 +199,7 @@ export default class HeldExceptionOccurrences {
       return;
     }
 
-    const oldest: string | undefined = held.keys().next().value;
+    const oldest: string | undefined = held.oldestKey();
 
     if (oldest === undefined) {
       return;
