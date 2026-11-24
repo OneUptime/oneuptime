@@ -633,7 +633,7 @@ func TestSMTPConfig_AppliesSendsThePasswordAndPlansNoChange(t *testing.T) {
 	if got := stringAttribute(t, imported.state, "password"); got != "" {
 		t.Fatalf("after the import, the state's password is %q, which nothing reads back", got)
 	}
-	if changed := withoutServerTimes(tf.changes(smtpConfigType, imported, rotated)); len(changed) != 1 || changed[0] != "password" {
+	if changed := withoutWriteStamps(tf.changes(smtpConfigType, imported, rotated)); len(changed) != 1 || changed[0] != "password" {
 		t.Fatalf("the plan after the import changes %v, not the password alone", changed)
 	}
 	reapplied := tf.apply(smtpConfigType, imported, rotated)

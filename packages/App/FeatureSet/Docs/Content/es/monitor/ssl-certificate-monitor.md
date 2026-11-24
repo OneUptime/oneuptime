@@ -87,6 +87,8 @@ Los criterios deciden cuándo el certificado cuenta como correcto, degradado o r
 
 **Días hasta la caducidad** cuenta días completos: a un certificado que caduca dentro de 14 días y 20 horas le quedan 14 días. **Horas hasta la caducidad** cuenta horas completas del mismo modo.
 
+**Días hasta la caducidad** también ofrece **Evaluar estos criterios durante un periodo de tiempo**, y con **Comprobación anterior** compara cada comprobación con la anterior de la misma sonda. **Menor que** con un **Valor en la unidad de la comprobación** de `1` coincide cuando los días restantes bajaron más de uno desde la comprobación anterior, como cuando el certificado se sustituyó por otro que caduca antes. **Mayor que** coincide cuando subieron, como cuando se renovó el certificado. Consulta [Comparar una comprobación con la anterior](/docs/monitor/criteria-and-statuses#comparar-una-comprobación-con-la-anterior).
+
 Con dos o más filtros, **Condición de coincidencia** decide si deben coincidir **Todos** o basta con **Cualquiera**. Las **Acciones** de un criterio deciden qué hace: cambiar el estado del monitor, crear una alerta, declarar un incidente, o varias de estas cosas.
 
 ### Criterios predeterminados

@@ -126,6 +126,10 @@ export const DATA_SECURITY_AI_ASK_REASON_SENTENCES: Readonly<
   [DataSecurityAiAskReason.CircuitBreaker]: translationKey(
     "OneUptime AI already made as many changes without asking as it may in an hour.",
   ),
+  // The repository's Max Open Fix Pull Requests is reached (#10367).
+  [DataSecurityAiAskReason.AtPullRequestCap]: translationKey(
+    "The repository has as many open fix pull requests as it allows, so this one waits for a person.",
+  ),
 };
 
 export const DataSecurityAiPageCopy: {

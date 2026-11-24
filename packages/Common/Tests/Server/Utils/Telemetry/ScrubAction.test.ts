@@ -169,6 +169,87 @@ describe("Hash", () => {
   });
 });
 
+/*
+ * #10935 and #10960: an email address written in a percent-encoded URL,
+ * and a card written in another script's digits, are masked and hashed as
+ * the value they read as - so each has the token of the value written
+ * plainly, and a value written plainly keeps the token it always had.
+ */
+describe("a match as the value it reads as", () => {
+  test.each([
+    ["jane.doe%40acmecorp.io", "jane.doe@acmecorp.io"],
+    ["Jane.Doe%2Bnews%40AcmeCorp.io", "Jane.Doe+news@AcmeCorp.io"],
+    ["jane%2540acmecorp.io", "jane@acmecorp.io"],
+    ["jane.doe@acmecorp.io", "jane.doe@acmecorp.io"],
+  ])(
+    "an Email Address match %s reads as %s, and has its token",
+    (match: string, address: string) => {
+      expect(ScrubAction.asItReads(match, LogScrubPatternType.Email)).toBe(
+        address,
+      );
+      expect(apply(match, LogScrubAction.Hash, LogScrubPatternType.Email)).toBe(
+        ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: address }),
+      );
+    },
+  );
+
+  test.each([
+    ["４１１１ １１１１ １１１１ １２３４", "4111 1111 1111 1234"],
+    ["٤١١١-١١١١-١١١١-١٢٣٤", "4111-1111-1111-1234"],
+    ["۴۱۱۱۱۱۱۱۱۱۱۱۱۲۳۴", "4111111111111234"],
+    ["４１１１ 1111 1111 1234", "4111 1111 1111 1234"],
+    ["4111 1111 1111 1234", "4111 1111 1111 1234"],
+  ])(
+    "a Credit Card match %s reads as %s, and has its token",
+    (match: string, card: string) => {
+      expect(ScrubAction.asItReads(match, LogScrubPatternType.CreditCard)).toBe(
+        card,
+      );
+      expect(
+        apply(match, LogScrubAction.Hash, LogScrubPatternType.CreditCard),
+      ).toBe(ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: card }));
+    },
+  );
+
+  test("any other pattern's match reads as it is written, escapes and digits and all", () => {
+    for (const patternType of [
+      LogScrubPatternType.Custom,
+      LogScrubPatternType.SensitiveKeys,
+      LogScrubPatternType.SSN,
+      LogScrubPatternType.PhoneNumber,
+    ]) {
+      expect(ScrubAction.asItReads("a%40b ４", patternType)).toBe("a%40b ４");
+    }
+  });
+
+  test.each([
+    [LogScrubPatternType.Email, "jane.doe%40acmecorp.io", "j***@***.io"],
+    [LogScrubPatternType.Email, "张伟@acmecorp.io", "张***@***.io"],
+    [LogScrubPatternType.Email, "почта@пример.рф", "п***@***.рф"],
+    [LogScrubPatternType.Email, "𠀀伟@acmecorp.io", "𠀀***@***.io"],
+    [
+      LogScrubPatternType.CreditCard,
+      "４１１１ １１１１ １１１１ １２３４",
+      "****-****-****-1234",
+    ],
+    [
+      LogScrubPatternType.CreditCard,
+      "٤١١١-١١١١-١١١١-١٢٣٤",
+      "****-****-****-1234",
+    ],
+    [
+      LogScrubPatternType.CreditCard,
+      "３７８２ ８２２４６３ １０００５",
+      "****-****-****-0005",
+    ],
+  ])(
+    "a %s match %s masks as %s",
+    (patternType: string, match: string, masked: string) => {
+      expect(apply(match, LogScrubAction.Mask, patternType)).toBe(masked);
+    },
+  );
+});
+
 describe("a trace rule's words", () => {
   test("are a log rule's, so one comparison serves both", () => {
     expect({ ...TraceScrubAction }).toEqual({ ...LogScrubAction });

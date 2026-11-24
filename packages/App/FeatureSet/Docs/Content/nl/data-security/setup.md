@@ -222,6 +222,8 @@ De instellingen van Gegevensbeveiliging zijn één set per project, in de sectie
 | **Configuratie controleren** | Aan | Voert de controles uit op elke opslag. Staat het uit, dan opent, wijzigt of sluit er geen probleem. |
 | **Inhoud scannen** | Aan | Bemonstert de inhoud van opslagen waar de inhoudsmachtiging is gegeven. |
 | **Telemetrie scannen** | Aan | Bemonstert de logs, traces, metrieken, uitzonderingen, herhalingen en AI-gesprekken van het project. |
+| **Namen en straatadressen vinden** | Aan | Doorzoekt vrije tekst op namen en straatadressen van personen, met een klein model in de scanner. Het model is niet OneUptime AI, en de tekst verlaat de scanner nooit. Zie [Namen en straatadressen in vrije tekst](/docs/data-security/data-types#namen-en-straatadressen-in-vrije-tekst). |
+| **Namen en straatadressen in telemetrie vinden** | Uit | De telemetriescan van elk uur leest logbody's, uitzonderingsberichten en AI-gesprekken ook met het model, tot een minuut per uur. Alleen zolang de instelling hierboven aan staat. |
 | **Gemaskeerde voorbeelden bewaren** | Aan | Bewaart tot drie gemaskeerde voorbeelden bij elke bevinding. Uit bewaart alleen tellingen. |
 | **Beveiligingszaken openen** | Aan | Opent een beveiligingszaak, gegroepeerd per opslag, wanneer een kritiek probleem opent. |
 | **Waarschuwingen aanmaken** | Uit | Maakt een waarschuwing aan, die de dienstdoende oproept, wanneer een kritiek probleem opent. |

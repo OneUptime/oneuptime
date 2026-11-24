@@ -87,7 +87,24 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import IncidentCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Create";
+import {
+  ALERT_OWNERS_ADDED_SEVERAL_ALERTS,
+  ALERT_OWNERS_IN_FIELD_ONE_ALERT,
+  ALERT_OWNERS_IN_FIELD_SEVERAL_ALERTS,
+  AlertOwnersOnDeclareMode,
+  PRIVATE_INCIDENT_FROM_ALERTS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/AlertOwnersOnDeclare";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
+import IncidentTemplateOwnerTeam from "../../../Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import Permission from "../../../Types/Permission";
+import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import UserUtil from "../../../UI/Utils/User";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -103,6 +120,7 @@ import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import {
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "../../../Types/Incident/IncidentAlertLink";
@@ -205,6 +223,15 @@ interface ApiFixture {
   alerts: Array<Alert>;
   failAlerts?: boolean;
   failSeverities?: boolean;
+  // The alerts' owner rows, and who of their people is still a member.
+  ownerUsers?: Array<{ alertId: string; userId: string }>;
+  ownerTeams?: Array<{ alertId: string; teamId: string }>;
+  memberUserIds?: Array<string>;
+  failOwners?: boolean;
+  failMembers?: boolean;
+  // A template's owners.
+  templateOwnerUserIds?: Array<string>;
+  templateOwnerTeamIds?: Array<string>;
 }
 
 let fixture: ApiFixture = { alerts: [] };
@@ -279,8 +306,117 @@ const answerList: AnswerListFunction = async (
     return listResult([major, critical]);
   }
 
-  // The template owner lists.
+  // The alerts' owners (#10867), as the declarer reads them.
+  if (request.modelType === AlertOwnerUser) {
+    if (fixture.failOwners) {
+      throw new Error("Forbidden");
+    }
+
+    const ids: Array<string> = (request.query.alertId as Includes).values.map(
+      String,
+    );
+
+    return listResult(
+      (fixture.ownerUsers || [])
+        .filter((row: { alertId: string }): boolean => {
+          return ids.includes(row.alertId);
+        })
+        .map((row: { alertId: string; userId: string }): AlertOwnerUser => {
+          const owner: AlertOwnerUser = new AlertOwnerUser();
+          owner.alertId = new ObjectID(row.alertId);
+          owner.userId = new ObjectID(row.userId);
+          return owner;
+        }),
+    );
+  }
+
+  if (request.modelType === AlertOwnerTeam) {
+    if (fixture.failOwners) {
+      throw new Error("Forbidden");
+    }
+
+    const ids: Array<string> = (request.query.alertId as Includes).values.map(
+      String,
+    );
+
+    return listResult(
+      (fixture.ownerTeams || [])
+        .filter((row: { alertId: string }): boolean => {
+          return ids.includes(row.alertId);
+        })
+        .map((row: { alertId: string; teamId: string }): AlertOwnerTeam => {
+          const owner: AlertOwnerTeam = new AlertOwnerTeam();
+          owner.alertId = new ObjectID(row.alertId);
+          owner.teamId = new ObjectID(row.teamId);
+          return owner;
+        }),
+    );
+  }
+
+  // Who of the alerts' people is a member: accepted members only.
+  if (request.modelType === TeamMember && request.query.hasAcceptedInvitation) {
+    if (fixture.failMembers) {
+      throw new Error("Forbidden");
+    }
+
+    const ids: Array<string> = (request.query.userId as Includes).values.map(
+      String,
+    );
+
+    return listResult(
+      (fixture.memberUserIds || [])
+        .filter((userId: string): boolean => {
+          return ids.includes(userId);
+        })
+        .map((userId: string): TeamMember => {
+          const member: TeamMember = new TeamMember();
+          member.userId = new ObjectID(userId);
+          return member;
+        }),
+    );
+  }
+
+  if (request.modelType === IncidentTemplateOwnerUser) {
+    return listResult(
+      (fixture.templateOwnerUserIds || []).map(
+        (userId: string): IncidentTemplateOwnerUser => {
+          const owner: IncidentTemplateOwnerUser =
+            new IncidentTemplateOwnerUser();
+          owner.userId = new ObjectID(userId);
+          return owner;
+        },
+      ),
+    );
+  }
+
+  if (request.modelType === IncidentTemplateOwnerTeam) {
+    return listResult(
+      (fixture.templateOwnerTeamIds || []).map(
+        (teamId: string): IncidentTemplateOwnerTeam => {
+          const owner: IncidentTemplateOwnerTeam =
+            new IncidentTemplateOwnerTeam();
+          owner.teamId = new ObjectID(teamId);
+          return owner;
+        },
+      ),
+    );
+  }
+
+  // Anything else the page or a people chip looks up.
   return listResult([]);
+};
+
+type RequestsForFunction = (modelType: unknown) => Array<any>;
+
+// Every list read of one model, in the order the page made them.
+const requestsFor: RequestsForFunction = (modelType: unknown): Array<any> => {
+  return getListMock.mock.calls
+    .map((call: Array<any>): any => {
+      return call[0];
+    })
+    .filter((request: any): boolean => {
+      return request.modelType === modelType;
+    });
 };
 
 type IncidentStateRequestsFunction = () => Array<any>;
@@ -664,10 +800,9 @@ describe("declaring an incident from alerts", () => {
 
     /*
      * Alert two is private, so the incident is prefilled private - visible
-     * only to its owners and admins. The banner says so, and that the alerts'
-     * owners become the incident's owners, before the user declares it. The
-     * user can still switch Private Incident off, so it says both only hold
-     * while the switch stays on.
+     * only to its owners and admins. The banner says so before the user
+     * declares it, and that it only holds while the switch stays on; who
+     * owns it is the owners' line (#10867), below.
      */
     test("says the incident starts private, and who will own it, when an alert is private", async () => {
       await openPage();
@@ -680,8 +815,9 @@ describe("declaring an incident from alerts", () => {
       );
 
       expect(banner).toContainElement(note);
+      expect(note).toHaveTextContent(PRIVATE_INCIDENT_FROM_ALERTS);
       expect(note).toHaveTextContent(
-        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, Project Owners and Project Admins can see it, and the owners of these alerts are added as its owners once it is declared.",
+        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, Project Owners and Project Admins can see it.",
       );
     });
 
@@ -865,5 +1001,355 @@ describe("declaring an incident from alerts", () => {
         [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
       });
     });
+  });
+});
+
+/*
+ * #10867: declaring an incident from alerts starts with the alerts' owners.
+ * The Owners field (under More fields) holds them when the declarer may add
+ * owners, the banner names them, and the declaration tells the server not
+ * to add them again (carryOverAlertOwners false) - so an owner taken out
+ * stays out. A declarer who may not add owners gets them added by the
+ * server instead, and the banner says so; so does one who could not read
+ * them. An owner who left the project is never carried over.
+ */
+describe("the alerts' owners", () => {
+  const ALICE: string = "a1111111-1111-4111-8111-000000000001";
+  const BOB: string = "a1111111-1111-4111-8111-000000000002";
+  const CAROL_WHO_LEFT: string = "a1111111-1111-4111-8111-000000000003";
+  const PLATFORM: string = "b1111111-1111-4111-8111-000000000001";
+  const DATABASE: string = "b1111111-1111-4111-8111-000000000002";
+  const UNREAD_ALERT_ID: string = "22222222-2222-4222-8222-0000000000ff";
+
+  let permissionsForTest: Array<Permission> = [];
+
+  beforeEach(() => {
+    capturedForms = [];
+    fixture = {
+      alerts: makeAlerts(),
+      ownerUsers: [
+        { alertId: ALERT_ONE_ID, userId: ALICE },
+        { alertId: ALERT_TWO_ID, userId: BOB },
+        { alertId: ALERT_TWO_ID, userId: ALICE },
+        { alertId: ALERT_TWO_ID, userId: CAROL_WHO_LEFT },
+      ],
+      ownerTeams: [{ alertId: ALERT_TWO_ID, teamId: PLATFORM }],
+      memberUserIds: [ALICE, BOB],
+    };
+    queryParams = {
+      [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: `${ALERT_ONE_ID},${ALERT_TWO_ID}`,
+    };
+    getListMock.mockReset();
+    getItemMock.mockReset();
+    getListMock.mockImplementation(answerList);
+
+    permissionsForTest = [Permission.ProjectMember];
+    PermissionGate.clearPermissionPropsCache();
+
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+    jest
+      .spyOn(Navigation, "getQueryStringByName")
+      .mockImplementation((name: string): string | null => {
+        return queryParams[name] ?? null;
+      });
+    jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
+      return permissionsForTest;
+    });
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(false);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  type OwnersBannerFunction = () => HTMLElement;
+
+  const ownersBanner: OwnersBannerFunction = (): HTMLElement => {
+    return screen.getByTestId("incident-create-alert-owners");
+  };
+
+  test("reads the owners of exactly the alerts asked for, as the declarer", async () => {
+    await openPage();
+
+    for (const modelType of [AlertOwnerUser, AlertOwnerTeam]) {
+      const requests: Array<any> = requestsFor(modelType);
+
+      expect(requests).toHaveLength(1);
+      expect((requests[0].query.alertId as Includes).values).toEqual([
+        ALERT_ONE_ID,
+        ALERT_TWO_ID,
+      ]);
+    }
+
+    /*
+     * Who is still a member, of the people who own the alerts (the chips
+     * look the people up by name apart from this).
+     */
+    const members: Array<any> = requestsFor(TeamMember).filter(
+      (request: any): boolean => {
+        return request.query.hasAcceptedInvitation === true;
+      },
+    );
+
+    expect(members).toHaveLength(1);
+    expect(members[0].query.hasAcceptedInvitation).toBe(true);
+    expect(
+      (members[0].query.userId as Includes).values.map(String).sort(),
+    ).toEqual([ALICE, BOB, CAROL_WHO_LEFT].sort());
+  });
+
+  test("the Owners field starts with every owner of the alerts, each once, from the first render", async () => {
+    const form: CapturedFormProps = await openPage();
+
+    // Every render: the form latches its initial values on the first one.
+    for (const captured of capturedForms) {
+      expect(captured.initialValues["ownerUsers"]).toEqual([ALICE, BOB]);
+      expect(captured.initialValues["ownerTeams"]).toEqual([PLATFORM]);
+    }
+
+    expect(form.initialValues["ownerUsers"]).not.toContain(CAROL_WHO_LEFT);
+  });
+
+  test("the banner names them plainly and says where to change them", async () => {
+    await openPage();
+
+    const banner: HTMLElement = ownersBanner();
+
+    expect(screen.getByTestId("incident-create-alerts-to-link")).toContainElement(
+      banner,
+    );
+    expect(banner).toHaveAttribute(
+      "data-mode",
+      AlertOwnersOnDeclareMode.InOwnersField,
+    );
+    expect(banner).toHaveTextContent(ALERT_OWNERS_IN_FIELD_SEVERAL_ALERTS);
+
+    const chips: Array<HTMLElement> = Array.from(
+      screen
+        .getByTestId("incident-create-alert-owners-list")
+        .querySelectorAll('[data-testid="people-chip"]'),
+    );
+
+    expect(
+      chips.map((chip: HTMLElement): string => {
+        return `${chip.getAttribute("data-kind")}:${chip.getAttribute("data-id")}`;
+      }),
+    ).toEqual([
+      `${PeoplePickerKind.User}:${ALICE}`,
+      `${PeoplePickerKind.User}:${BOB}`,
+      `${PeoplePickerKind.Team}:${PLATFORM}`,
+    ]);
+  });
+
+  test("one alert's banner speaks of that alert", async () => {
+    queryParams = { [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: ALERT_ONE_ID };
+
+    await openPage();
+
+    expect(ownersBanner()).toHaveTextContent(ALERT_OWNERS_IN_FIELD_ONE_ALERT);
+  });
+
+  test("the declaration tells the server the Owners field holds them, so one taken out stays out", async () => {
+    const form: CapturedFormProps = await openPage();
+
+    expect(await miscDataSentBy(form)).toEqual({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+      [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: false,
+    });
+  });
+
+  test("a team owner alone is carried over", async () => {
+    fixture.ownerUsers = [];
+    fixture.ownerTeams = [
+      { alertId: ALERT_ONE_ID, teamId: DATABASE },
+      { alertId: ALERT_TWO_ID, teamId: PLATFORM },
+    ];
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues["ownerTeams"]).toEqual([DATABASE, PLATFORM]);
+    expect(form.initialValues).not.toHaveProperty("ownerUsers");
+    // Nobody to check membership of.
+    expect(
+      requestsFor(TeamMember).filter((request: any): boolean => {
+        return request.query.hasAcceptedInvitation === true;
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("an owner who left the project is not carried over, nor named", async () => {
+    fixture.ownerUsers = [{ alertId: ALERT_ONE_ID, userId: CAROL_WHO_LEFT }];
+    fixture.ownerTeams = [];
+
+    const form: CapturedFormProps = await openPage();
+
+    // Nobody left to carry over: nothing is said, nothing is sent.
+    expect(form.initialValues).not.toHaveProperty("ownerUsers");
+    expect(
+      screen.queryByTestId("incident-create-alert-owners"),
+    ).not.toBeInTheDocument();
+    expect(await miscDataSentBy(form)).toEqual({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+    });
+  });
+
+  test("alerts with no owners: the Owners field starts empty and nothing is said", async () => {
+    fixture.ownerUsers = [];
+    fixture.ownerTeams = [];
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues).not.toHaveProperty("ownerUsers");
+    expect(form.initialValues).not.toHaveProperty("ownerTeams");
+    expect(
+      screen.queryByTestId("incident-create-alert-owners"),
+    ).not.toBeInTheDocument();
+    expect(await miscDataSentBy(form)).toEqual({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+    });
+  });
+
+  test("an alert that could not be read lends the incident none of its owners", async () => {
+    queryParams = {
+      [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: `${ALERT_ONE_ID},${UNREAD_ALERT_ID}`,
+    };
+    fixture.ownerUsers = [
+      { alertId: ALERT_ONE_ID, userId: ALICE },
+      { alertId: UNREAD_ALERT_ID, userId: BOB },
+    ];
+    fixture.ownerTeams = [{ alertId: UNREAD_ALERT_ID, teamId: PLATFORM }];
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues["ownerUsers"]).toEqual([ALICE]);
+    expect(form.initialValues).not.toHaveProperty("ownerTeams");
+  });
+
+  test("composes with a template: its owners keep their place, the alerts' are added after", async () => {
+    const template: IncidentTemplate = new IncidentTemplate();
+    template._id = TEMPLATE_ID;
+    template.title = "Template title";
+    getItemMock.mockResolvedValue(template);
+    fixture.templateOwnerUserIds = [BOB];
+    fixture.templateOwnerTeamIds = [DATABASE];
+    queryParams = {
+      incidentTemplateId: TEMPLATE_ID,
+      [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: `${ALERT_ONE_ID},${ALERT_TWO_ID}`,
+    };
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues["ownerUsers"]).toEqual([BOB, ALICE]);
+    expect(form.initialValues["ownerTeams"]).toEqual([DATABASE, PLATFORM]);
+  });
+
+  test("a declarer who may not add owners gets them added by the server, said on the banner, not put in the field", async () => {
+    // Declares incidents and links alerts, but adds no incident owners.
+    permissionsForTest = [
+      Permission.CreateProjectIncident,
+      Permission.CreateIncidentAlert,
+      Permission.ReadAlert,
+    ];
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues).not.toHaveProperty("ownerUsers");
+    expect(form.initialValues).not.toHaveProperty("ownerTeams");
+
+    const banner: HTMLElement = ownersBanner();
+
+    expect(banner).toHaveAttribute(
+      "data-mode",
+      AlertOwnersOnDeclareMode.AddedOnDeclare,
+    );
+    expect(banner).toHaveTextContent(ALERT_OWNERS_ADDED_SEVERAL_ALERTS);
+    // Still named: the declarer reads who will own it.
+    expect(
+      screen.getByTestId("incident-create-alert-owners-list"),
+    ).toBeInTheDocument();
+
+    // The server's default carries them over: nothing is sent to stop it.
+    expect(await miscDataSentBy(form)).toEqual({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+    });
+  });
+
+  test("a declarer who may add people but not teams gets the server to add them all", async () => {
+    permissionsForTest = [
+      Permission.CreateProjectIncident,
+      Permission.CreateIncidentAlert,
+      Permission.CreateIncidentOwnerUser,
+    ];
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues).not.toHaveProperty("ownerUsers");
+    expect(ownersBanner()).toHaveAttribute(
+      "data-mode",
+      AlertOwnersOnDeclareMode.AddedOnDeclare,
+    );
+    expect(await miscDataSentBy(form)).not.toHaveProperty(
+      INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
+    );
+  });
+
+  test("who owns the alerts could not be read: the server adds them all the same, and the banner says so without names", async () => {
+    fixture.failOwners = true;
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues).not.toHaveProperty("ownerUsers");
+
+    const banner: HTMLElement = ownersBanner();
+
+    expect(banner).toHaveAttribute(
+      "data-mode",
+      AlertOwnersOnDeclareMode.AddedOnDeclare,
+    );
+    expect(banner).toHaveTextContent(ALERT_OWNERS_ADDED_SEVERAL_ALERTS);
+    expect(
+      screen.queryByTestId("incident-create-alert-owners-list"),
+    ).not.toBeInTheDocument();
+    expect(await miscDataSentBy(form)).toEqual({
+      [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ONE_ID, ALERT_TWO_ID],
+    });
+  });
+
+  test("who is a member could not be read: the owners are carried over as read, for the server to judge", async () => {
+    fixture.failMembers = true;
+
+    const form: CapturedFormProps = await openPage();
+
+    expect(form.initialValues["ownerUsers"]).toEqual([
+      ALICE,
+      BOB,
+      CAROL_WHO_LEFT,
+    ]);
+  });
+
+  test("a private alert's banner no longer says the owners are added once declared: the owners line says who", async () => {
+    await openPage();
+
+    expect(
+      screen.getByTestId("incident-create-private-from-alerts"),
+    ).toHaveTextContent(PRIVATE_INCIDENT_FROM_ALERTS);
+    expect(
+      screen.getByTestId("incident-create-private-from-alerts"),
+    ).not.toHaveTextContent("added as its owners");
+  });
+
+  test("declaring from no alerts reads no alert owners", async () => {
+    queryParams = {};
+
+    await openPage();
+
+    expect(requestsFor(AlertOwnerUser)).toHaveLength(0);
+    expect(requestsFor(AlertOwnerTeam)).toHaveLength(0);
+    expect(
+      screen.queryByTestId("incident-create-alert-owners"),
+    ).not.toBeInTheDocument();
   });
 });

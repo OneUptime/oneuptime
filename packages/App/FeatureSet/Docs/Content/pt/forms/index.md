@@ -1,6 +1,6 @@
 # Visão geral dos formulários
 
-Um formulário é uma página que qualquer pessoa com o link pode preencher, sem uma conta do OneUptime. Cada envio cria algo no seu projeto: um **incidente**, para relatos de problemas, ou um **evento de manutenção**, para pedidos de mudança e de manutenção. Você monta as perguntas do formulário num editor de arrastar e soltar, decide como as respostas viram o registro e compartilha o link com as pessoas que devem usá-lo.
+Um formulário é uma página que qualquer pessoa com o link pode preencher, sem uma conta do OneUptime. Cada envio cria algo no seu projeto: um **incidente**, para relatos de problemas, um **alerta**, para avisos e coisas a verificar, ou um **evento de manutenção**, para pedidos de mudança e de manutenção. Você monta as perguntas do formulário num editor de arrastar e soltar, decide como as respostas viram o registro e compartilha o link com as pessoas que devem usá-lo.
 
 Use um formulário quando quem percebe um problema, ou precisa de uma mudança, não é quem cuida dos seus incidentes e manutenções: agentes de suporte, colegas de outro departamento, o gerente de uma loja, a equipe de operações de um cliente. Eles abrem o link, respondem às suas perguntas e clicam em **Enviar**. Sua equipe recebe um incidente ou evento comum, com as respostas nos campos e uma nota privada que registra quem o enviou.
 
@@ -13,16 +13,19 @@ Use um formulário quando quem percebe um problema, ou precisa de uma mudança, 
 
 ## Como um formulário funciona
 
-```mermaid title="De um formulário preenchido a um incidente ou evento de manutenção"
+```mermaid title="De um formulário preenchido a um incidente, alerta ou evento de manutenção"
 flowchart TB
     submitter["Alguém com o link,<br/>sem conta"] --> page["A página do formulário"]
     page -->|Enviar| checks["Proteções e<br/>verificação das respostas"]
     checks --> submission["Envio, guardado<br/>com o formulário"]
     submission --> target{"Cada envio cria"}
     target -->|Incidente| incident["Incidente, oculto<br/>nas páginas de status"]
+    target -->|Alerta| alert["Alerta, para os<br/>proprietários verificarem"]
     target -->|Manutenção programada| event["Evento de manutenção,<br/>oculto salvo indicação"]
     incident --> response["Políticas de plantão<br/>e regras são executadas"]
+    alert --> response
     incident --> note["Nota privada: quem enviou,<br/>outras respostas"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Ao criar um formulário, você escolhe o que **Cada envio cria**. Dá para mudar
 | Cada envio cria | Use para | O que acontece |
 | --- | --- | --- |
 | **Incidente** | Relatos de problemas | Um incidente é declarado na hora, então suas políticas de plantão e suas regras são executadas e as pessoas de plantão são avisadas. Ele fica fora das páginas de status até alguém da resposta publicá-lo. |
+| **Alerta** | Avisos e coisas a verificar | Um alerta é criado, então os proprietários dele são avisados e as políticas de plantão e as regras dele são executadas, sem declarar um incidente. Um que começa em um estado posterior, como **Confirmado**, não aciona ninguém. |
 | **Manutenção programada** | Pedidos de mudança e de manutenção | Um evento de manutenção é programado para a janela que quem envia pede. Salvo indicação contrária do formulário, ele fica fora das páginas de status e não avisa nenhum assinante. |
 
-Os formulários começam com esses dois, e mais tipos de registro virão.
+Configurar um formulário que cria alertas também exige permissão para criar alertas: veja [Permissões](#permissões).
 
 ## Antes de começar
 
 - **Um plano que inclua formulários.** No OneUptime Cloud, os formulários exigem o plano **Growth** ou superior. Veja [Plano](#plano).
 - **Permissão para criar formulários.** **Create Form** pertence aos Proprietários do projeto e Administradores do projeto, e às funções a que você a der. Veja [Permissões](#permissões).
 - **Num formulário de incidentes, uma severidade.** Todo incidente precisa de uma: de uma pergunta, das configurações do formulário ou do modelo de incidente dele. Sem ela, todo envio é recusado. Veja [O que um envio cria](/docs/forms/on-submit#como-um-envio-se-torna-um-incidente).
+- **Num formulário de alertas, uma severidade.** Todo alerta também precisa de uma: de uma pergunta ou das configurações do formulário. Veja [Como um envio se torna um alerta](/docs/forms/on-submit#como-um-envio-se-torna-um-alerta).
 
 ## Criar seu primeiro formulário
 
@@ -144,6 +149,8 @@ Os formulários deixam pessoas de fora da sua equipe criar incidentes e eventos 
 | **Delete Form Domain** | Remover os domínios personalizados de um formulário. | Proprietário do projeto, Administrador do projeto e **Edit Form** |
 | **Read Form Domain** | Ver os domínios personalizados de um formulário, os seus registros DNS e em que ponto cada um está no caminho até o HTTPS. | Qualquer pessoa com **Read Form** |
 
+**Um formulário que cria alertas exige permissão para criar alertas.** Qualquer pessoa com o link dele pode criar alertas, avisar os proprietários deles e acionar o plantão, por isso criar um formulário que cria alertas, transformar um formulário em um deles e mudar as perguntas, os modelos ou as configurações de **Ao enviar** de um formulário de alertas também exigem, cada um, uma permissão que possa criar alertas: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de alertas, Membro de alertas ou **Create Alert**. O nome, o link, **Aceita envios**, a marca e a **Lista de IPs permitidos** dele exigem só as permissões **Form**. Sem essa permissão, **Alerta** não é oferecido quando você cria um formulário, e fica bloqueado na página **Ao enviar** dele, com uma dica que nomeia a permissão; uma requisição que tente mesmo assim é recusada com "Only people who may create alerts can set up a form that creates them." Formulários de incidentes e de manutenção exigem só as permissões **Form**, como sempre.
+
 Os envios contêm o que desconhecidos digitaram (nomes, endereços de e-mail e respostas que talvez nunca cheguem ao registro), então só os Proprietários do projeto e Administradores do projeto os veem, a menos que você conceda **Read Form Submission**. Quem pode ler um formulário pode ver e compartilhar o link dele. Enviar um formulário não exige permissão nenhuma. Para saber como funções e permissões granulares se combinam, veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Plano
@@ -156,7 +163,7 @@ Os formulários são um recurso comum da API em `/api/form`, e os envios em `/ap
 
 ### Perguntas e configurações
 
-As perguntas de um formulário são a coluna `fields` dele, uma lista JSON na ordem em que o formulário as faz, e as configurações de Ao enviar são os `targetSettings`:
+O `targetType` de um formulário é o que cada envio cria: `Incident`, `Alert` ou `ScheduledMaintenance`. As perguntas dele são a coluna `fields`, uma lista JSON na ordem em que o formulário as faz, e as configurações de Ao enviar são os `targetSettings` — para um formulário de alertas, `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` e `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Cada pergunta tem um `id` próprio (letras, dígitos, `-` e `_`), uma `source`, 
 | `source` | O que pergunta |
 | --- | --- |
 | `Question` | Uma pergunta própria do formulário, respondida conforme o `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` ou `MultipleFiles`. Uma lista suspensa lista as `dropdownOptions` dela, uma por linha. |
-| `TargetField` | Um campo do que o formulário cria, indicado por `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` para um incidente; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` e `labels` para um evento de manutenção. Um campo respondido por escolha lista os registros que oferece em `allowedOptionIds`. |
-| `TargetCustomField` | Um dos campos personalizados do incidente ou do evento, indicado por `customFieldId`. |
+| `TargetField` | Um campo do que o formulário cria, indicado por `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` para um incidente; `title`, `description`, `alertSeverityId`, `monitor`, `labels` e `impactStartedAt` para um alerta; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` e `labels` para um evento de manutenção. Um campo respondido por escolha lista os registros que oferece em `allowedOptionIds`. |
+| `TargetCustomField` | Um dos campos personalizados do incidente, do alerta ou do evento, indicado por `customFieldId`. |
 | `Submitter` | O `Name` ou o `Email` de quem envia, indicado por `submitterField`. |
 
 Uma pergunta com `isHidden` como `true` não aparece na página pública, nunca é obrigatória e só é respondida a partir do modelo que um envio indica, a menos que esse modelo a faça. `isRequired` e `isHidden` são o padrão do formulário; cada modelo pode fazer uma pergunta do seu jeito.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ A resposta a uma pergunta de arquivos são os arquivos como foram guardados, cad
 
 ### Workflows
 
-Os formulários têm os componentes de workflow gerados: **Ao criar: Formulário**, **Ao atualizar: Formulário** e assim por diante. Para agir sobre o que um formulário criou, use **Ao criar: Incidente** ou **Ao criar: Evento de manutenção**.
+Os formulários têm os componentes de workflow gerados: **Ao criar: Formulário**, **Ao atualizar: Formulário** e assim por diante. Para agir sobre o que um formulário criou, use **Ao criar: Incidente**, **Ao criar: Alerta** ou **Ao criar: Evento de manutenção**.
 
 ### Os endpoints próprios da página pública
 

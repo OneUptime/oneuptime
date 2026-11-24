@@ -2,7 +2,7 @@
 
 An outage rarely raises one alert. When the primary database falls over, the replication lag monitor fires, the API error rate monitor fires, and the checkout latency SLO starts burning — three alerts, one problem. Linking those alerts to the incident says so: the incident is where the response happens, and every alert shows which incident explains it.
 
-A link is only a link. The alert keeps its own state, owners, on-call policies, notes and feed; the incident keeps its own. Linking merges and copies nothing, and on its own it never acknowledges, resolves or silences an alert. (Declaring a new incident from alerts is different: the new incident is prefilled from them, as [described below](#declaring-an-incident-from-alerts), and unless you untick the box on the form, the alerts are acknowledged as you declare it, which stops their escalation — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).) Two project switches, on for new projects, move the linked alerts along with the incident as it is acknowledged and resolved — see [further down](#keeping-alert-states-in-step-with-the-incident).
+A link is only a link. The alert keeps its own state, owners, on-call policies, notes and feed; the incident keeps its own. Linking merges and copies nothing, and on its own it never acknowledges, resolves or silences an alert. (Declaring a new incident from alerts is different: the new incident is prefilled from them and starts with their owners, as [described below](#declaring-an-incident-from-alerts), and unless you untick the box on the form, the alerts are acknowledged as you declare it, which stops their escalation — see [Acknowledging the alerts as you declare](#acknowledging-the-alerts-as-you-declare).) Two project switches, on for new projects, move the linked alerts along with the incident as it is acknowledged and resolved — see [further down](#keeping-alert-states-in-step-with-the-incident).
 
 :::cards
 - [Link alerts to an incident](#linking-alerts-from-an-incident): From the incident, from an alert, or many at once.
@@ -119,11 +119,12 @@ Whichever you use, you land on the usual **Declare New Incident** form, with the
 | **Incident Severity**  | The most severe alert's severity, translated to an incident severity. An incident severity with the same name, ignoring case, wins. Otherwise OneUptime takes the incident severity at the same position in the severity order, or the last one if you have fewer incident severities. |
 | **Resources Affected** | Every monitor, host, Kubernetes cluster, Docker host, Podman host and service of the selected alerts, combined. The monitors go under **Monitors**, the rest under **Other Affected Resources**. Other resources, such as SLOs or VMware, Proxmox and Ceph clusters, are not copied — add them yourself if the incident affects them. |
 | **Labels**             | Every label of every selected alert.                                                                                                                                                                                                                                                   |
-| **Private Incident**   | On if any of the alerts is private. The form says so, and the alerts' owners become owners of the incident — see below.                                                                                                                                                                |
+| **Owners**             | Every person and team that owns one of the alerts, each once — but not a person who has left the project. The banner names them. See [The alerts' owners own the incident](#the-alerts-owners-own-the-incident). |
+| **Private Incident**   | On if any of the alerts is private. The form says so — see below.                                                                                                                                                                |
 
 "Most severe" follows your alert severity order: the first alert severity in the list is the most severe. With the severities every project starts with, a **High** alert becomes a **Critical Incident** and a **Low** alert a **Major Incident**.
 
-Everything is editable before you submit. **Labels** and **Private Incident** are under **More fields** on the form's first step, whose folded header shows either one while it is set.
+Everything is editable before you submit. **Labels**, **Private Incident** and **Owners** are under **More fields** on the form's first step, whose folded header shows each one while it is set.
 
 **An alert that already has an incident is flagged.** With **Declare Incident** on every alert's page, two responders paged by the same outage can each declare it. So the banner listing the alerts marks each alert that is already linked to an incident — "(already linked to Incident INC-42)", linking to that incident — and adds a note, worded by how many of the alerts are linked:
 
@@ -137,7 +138,7 @@ The incident links open in a new tab, so you can check the existing incident wit
 
 **The alerts' monitors are prefilled as affected monitors.** As with any incident declared by hand, active monitoring on the incident's monitors pauses until the incident is resolved. Remove a monitor from **Monitors** on the **Resources Affected** step before you submit if it should keep being checked.
 
-**A private alert makes a private incident.** If any of the alerts is private, **Private Incident** starts switched on, and the banner listing the alerts says so. A private incident is visible only to its owners, Project Owners and Project Admins, so OneUptime makes sure the people who could see the alerts can see the incident: once it is declared, the owners of every declared alert — users and teams alike — are added as owners of the incident, without being notified. They are added just after the incident's Slack and Microsoft Teams channels are created, so they are invited to those channels like any other owner. You are an owner as well, as with any incident you declare. The same happens when an incident privacy rule makes the new incident private. If you switch **Private Incident** off before submitting and no privacy rule applies, the incident is not private and no owners are copied.
+**A private alert makes a private incident.** If any of the alerts is private, **Private Incident** starts switched on, and the banner listing the alerts says so. A private incident is visible only to its owners, Project Owners and Project Admins — and the alerts' owners start as its owners, so the people who could see the alerts can see the incident, unless you take them out. You are an owner as well, as with any incident you declare.
 
 ```mermaid title="What happens when you declare from alerts"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 When you submit, the server checks the alerts before it creates anything: at most 50 of them, each an alert in this project that you are allowed to see, and you must be allowed to link alerts to incidents. If any check fails, the request is rejected and no incident is created — so a bad alert id never uses up an incident number. Once the incident exists — and once its privacy rules have run, so the links know whether it is private — every alert is linked before the request returns, so the incident's **Linked Alerts** page already lists them. If a single link fails — say, because the alert was deleted a moment earlier — the incident is still declared and the other alerts are still linked.
 
 The incident's feed gets one **Alert Linked** entry listing the alerts, written after **Incident Created**, rather than one per alert — see [The feed, Slack and Microsoft Teams](#the-feed-slack-and-microsoft-teams).
+
+### The alerts' owners own the incident
+
+The people working the alerts are the people working the incident, so it starts with them. The **Owners** field, under **More fields**, starts with every person and team that owns one of the alerts — each once, after an incident template's owners if you declare from a template — and the banner listing the alerts names them: "The alert's owners own the incident too. Change them under More fields before you declare." Take any of them out, or add others, before you submit; the incident's owners are exactly what the field holds then, private incident or not. The review step lists them with the owner rules that will add more.
+
+- **A person who has left the project is not carried over**, nor is one whose invitation was never accepted. A team that was deleted no longer owns the alert, so it is not either.
+- **They are told once.** The alerts' owners are added as every owner an incident starts with is — just after its Slack and Microsoft Teams channels are created, so they are invited to those channels, and before its **Incident Created** notification goes out — so they hear of the incident from that notification, under their own notification rules, and get no "added as an owner" notice on top of it. An owner who is also added by an owner rule, or picked twice, is added once.
+- **If you may not add incident owners**, you can still declare the incident: the field is left as it was, OneUptime adds the alerts' owners itself as it declares it, and the banner says "The alert's owners own the incident too, once it is declared." It says the same, without naming them, when you may not read who owns the alerts.
+- **Alerts with no owners** add nobody, and the banner says nothing about owners.
+
+An incident declared from alerts in any other way gets the alerts' owners too: through the API (see [Declaring through the API](#declaring-through-the-api)), by an [incident rule](/docs/alerts/settings#incident-rules), and with `/oneuptime incident` in an alert's [Slack](/docs/workspace-connections/slack) or [Microsoft Teams](/docs/workspace-connections/microsoft-teams) channel. Linking an alert to an incident that already exists copies no owners.
 
 ### Acknowledging the alerts as you declare
 
@@ -180,7 +192,7 @@ The alerts are acknowledged in the background, just after they are linked, a few
 
 ### Declaring through the API
 
-`POST /api/incident` accepts the alert ids to link in `miscDataProps`, under `alertIdsToLink`, and whether to acknowledge those alerts under `acknowledgeAlertsToLink`:
+`POST /api/incident` accepts the alert ids to link in `miscDataProps`, under `alertIdsToLink`, whether to acknowledge those alerts under `acknowledgeAlertsToLink`, and whether their owners become the incident's under `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - the API key may not acknowledge every alert that is not acknowledged yet — that takes **Create Alert State Timeline**, with labels and owner scope that reach each of those alerts, as acknowledging each of them does.
 
 An API key is not a user, so alerts acknowledged with one are credited to nobody, just as its links have no **Linked By**.
+
+`carryOverAlertOwners` is optional, and on unless you send `false`: every person and team that owns one of the alerts becomes an owner of the incident once it exists, as on the form — a person who has left the project is skipped — and is told of it once, by its **Incident Created** notification. They are added by OneUptime, so the API key needs no permission to add owners for them. Send `false` to choose the owners yourself, in `ownerUsers` and `ownerTeams`. It is refused with a 400 when it is anything other than `true` or `false`, and when it is `true` without `alertIdsToLink`.
 
 ## Linking and unlinking through the API
 

@@ -70,7 +70,17 @@ export const NAME_TAKEN_REFUSAL_CODES: ReadonlyArray<string> = [
 export interface NameHolder {
   // It is archived (Utils/ArchivableValues, or a resource's own archive).
   isArchived?: boolean | undefined;
+  /*
+   * Its id, where the caller may read it: sent beside the code as
+   * TAKEN_BY_ID_FIELD, so a program can open the record that has the name -
+   * or import it into Terraform - rather than search for it (#10761). Never
+   * for a record the caller may not read.
+   */
+  id?: string | undefined;
 }
+
+// The field of the answer that carries the id of the record that has the name.
+export const TAKEN_BY_ID_FIELD: string = "takenById";
 
 // The code of a refusal of a name the given record has.
 export const getNameTakenRefusalCode: (holder?: NameHolder) => string = (
@@ -86,7 +96,10 @@ export default class NameTakenException extends BadDataExceptionWithDetails {
   public readonly isTakenByArchived: boolean;
 
   public constructor(message: string, holder?: NameHolder) {
-    super(message, { [REFUSAL_CODE_FIELD]: getNameTakenRefusalCode(holder) });
+    super(message, {
+      [REFUSAL_CODE_FIELD]: getNameTakenRefusalCode(holder),
+      ...(holder?.id ? { [TAKEN_BY_ID_FIELD]: holder.id } : {}),
+    });
     this.isTakenByArchived = Boolean(holder?.isArchived);
   }
 }

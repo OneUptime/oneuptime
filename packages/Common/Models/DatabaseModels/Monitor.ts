@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Host from "./Host";
 import KubernetesCluster from "./KubernetesCluster";
 import DockerHost from "./DockerHost";
@@ -194,6 +196,18 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   where:
     '"disableActiveMonitoring" = true AND "isArchived" = false AND "deletedAt" IS NULL',
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_MONITOR_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "Monitor",
 })
@@ -333,6 +347,7 @@ export default class Monitor extends BaseModel {
     ],
   })
   @Index()
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

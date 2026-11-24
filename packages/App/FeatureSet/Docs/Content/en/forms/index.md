@@ -1,6 +1,6 @@
 # Forms Overview
 
-A form is a page that anyone with its link can fill in, without a OneUptime account. Each submission creates something in your project: an **incident**, for problem reports, or a **maintenance event**, for change and maintenance requests. You build the form's questions in a drag-and-drop builder, decide how the answers become the record, and share the link with the people who should use it.
+A form is a page that anyone with its link can fill in, without a OneUptime account. Each submission creates something in your project: an **incident**, for problem reports, an **alert**, for warnings and things to check, or a **maintenance event**, for change and maintenance requests. You build the form's questions in a drag-and-drop builder, decide how the answers become the record, and share the link with the people who should use it.
 
 Use a form when the people who notice a problem — or who need a change — are not the people who run your incidents and maintenance: support agents, colleagues in another department, a store manager, a customer's operations team. They open the link, answer your questions and press **Submit**. Your team gets an ordinary incident or event, with the answers in its fields and a private note that records who sent it.
 
@@ -13,16 +13,19 @@ Use a form when the people who notice a problem — or who need a change — are
 
 ## How a form works
 
-```mermaid title="From a filled-in form to an incident or a maintenance event"
+```mermaid title="From a filled-in form to an incident, an alert or a maintenance event"
 flowchart TB
     submitter["Someone with the<br/>link, no account"] --> page["The form's page"]
     page -->|Submit| checks["Protections and<br/>answer checks"]
     checks --> submission["Submission, kept<br/>with the form"]
     submission --> target{"Each Submission Creates"}
     target -->|Incident| incident["Incident, hidden<br/>from status pages"]
+    target -->|Alert| alert["Alert, for its<br/>owners to check"]
     target -->|Scheduled Maintenance| event["Maintenance event,<br/>hidden unless set"]
     incident --> response["On-call policies<br/>and rules run"]
+    alert --> response
     incident --> note["Private note: who<br/>sent it, other answers"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ When you create a form you choose what **Each Submission Creates**. You can chan
 | Each submission creates | Use it for | What happens |
 | --- | --- | --- |
 | **Incident** | Problem reports | An incident is declared at once, so your on-call policies and rules run and the people on call are told. It stays off status pages until a responder publishes it. |
+| **Alert** | Warnings and things to check | An alert is created, so its owners are told and its on-call policies and rules run, without declaring an incident. One that starts in a later state, such as **Acknowledged**, pages nobody. |
 | **Scheduled Maintenance** | Change and maintenance requests | A maintenance event is scheduled for the window the submitter asks for. Unless the form says otherwise, it stays off its status pages and tells no subscriber. |
 
-Forms start with these two, and more kinds of record will follow.
+Setting up a form that creates alerts takes permission to create alerts as well: see [Permissions](#permissions).
 
 ## Before you begin
 
 - **A plan that includes forms.** On OneUptime Cloud, forms need the **Growth** plan or above. See [Plan](#plan).
 - **Permission to create forms.** **Create Form** belongs to Project Owners and Project Admins, and to the roles you give it. See [Permissions](#permissions).
 - **For an incident form, a severity.** Every incident needs one: from a question, from the form's settings or from its incident template. Without one, every submission is refused. See [What a Submission Creates](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
+- **For an alert form, a severity.** Every alert needs one too: from a question or from the form's settings. See [How a submission becomes an alert](/docs/forms/on-submit#how-a-submission-becomes-an-alert).
 
 ## Create your first form
 
@@ -144,6 +149,8 @@ Forms let people outside your team create incidents and maintenance events in yo
 | **Delete Form Domain** | Removing a form's custom domains. | Project Owner, Project Admin, and **Edit Form** |
 | **Read Form Domain** | Seeing a form's custom domains, their DNS records and how far each is on its way to HTTPS. | Everyone with **Read Form** |
 
+**A form that creates alerts takes permission to create alerts.** Anyone with its link can create alerts, and notify their owners and page their on-call, so creating a form that creates alerts, turning a form into one, and changing an alert form's questions, templates or **On Submit** settings each also take a permission that may create alerts: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member or **Create Alert**. Its name, link, **Accepting Submissions**, branding and **IP Allowlist** take the **Form** permissions alone. Without that permission, **Alert** is not offered when you create a form, and is locked on its **On Submit** page, with a tooltip that names the permission; a request that tries anyway is refused with "Only people who may create alerts can set up a form that creates them." Incident and maintenance forms take the **Form** permissions alone, as they always have.
+
 Submissions hold what strangers typed — names, email addresses, and answers that may never reach the record — so only Project Owners and Project Admins see them unless you grant **Read Form Submission**. Anyone who can read a form can see and share its link. Submitting a form needs no permission at all. For how roles and granular permissions combine, see [Users, Teams & Permissions](/docs/permissions/index).
 
 ## Plan
@@ -156,7 +163,7 @@ Forms are an ordinary API resource at `/api/form`, and their submissions at `/ap
 
 ### Questions and settings
 
-A form's questions are its `fields` column, a JSON list in the order the form asks them, and its On Submit settings its `targetSettings`:
+A form's `targetType` is what each submission creates: `Incident`, `Alert` or `ScheduledMaintenance`. Its questions are its `fields` column, a JSON list in the order the form asks them, and its On Submit settings its `targetSettings` — for an alert form, `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` and `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Each question has an `id` of its own — letters, digits, `-` and `_` — a `sou
 | `source` | What it asks |
 | --- | --- |
 | `Question` | A question of the form's own, answered by `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` or `MultipleFiles`. A dropdown lists its `dropdownOptions`, one per line. |
-| `TargetField` | A field of what the form creates, named by `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` and `impactStartedAt` for an incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` and `labels` for a maintenance event. A field answered by choosing lists the records it offers in `allowedOptionIds`. |
-| `TargetCustomField` | One of the incident's or event's custom fields, named by `customFieldId`. |
+| `TargetField` | A field of what the form creates, named by `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` and `impactStartedAt` for an incident; `title`, `description`, `alertSeverityId`, `monitor`, `labels` and `impactStartedAt` for an alert; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` and `labels` for a maintenance event. A field answered by choosing lists the records it offers in `allowedOptionIds`. |
+| `TargetCustomField` | One of the incident's, alert's or event's custom fields, named by `customFieldId`. |
 | `Submitter` | The submitter's `Name` or `Email`, named by `submitterField`. |
 
 A question with `isHidden` set to `true` is not shown on the public page, is never required, and is answered only from the template a submission names — unless that template asks it. `isRequired` and `isHidden` are the form's default; each template can ask a question its own way.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ A file question's answer is the files as they were stored, each with its `fileId
 
 ### Workflows
 
-Forms have the generated workflow components — **On Create Form**, **On Update Form** and so on. To act on what a form created, use **On Create Incident** or **On Create Maintenance Event**.
+Forms have the generated workflow components — **On Create Form**, **On Update Form** and so on. To act on what a form created, use **On Create Incident**, **On Create Alert** or **On Create Maintenance Event**.
 
 ### The public page's own endpoints
 

@@ -1,6 +1,6 @@
 # Visión general de los formularios
 
-Un formulario es una página que cualquiera con su enlace puede rellenar, sin una cuenta de OneUptime. Cada envío crea algo en tu proyecto: un **incidente**, para avisos de problemas, o un **evento de mantenimiento**, para solicitudes de cambio y de mantenimiento. Construyes las preguntas del formulario en un editor de arrastrar y soltar, decides cómo las respuestas se convierten en el registro y compartes el enlace con las personas que deben usarlo.
+Un formulario es una página que cualquiera con su enlace puede rellenar, sin una cuenta de OneUptime. Cada envío crea algo en tu proyecto: un **incidente**, para avisos de problemas, una **alerta**, para advertencias y cosas que revisar, o un **evento de mantenimiento**, para solicitudes de cambio y de mantenimiento. Construyes las preguntas del formulario en un editor de arrastrar y soltar, decides cómo las respuestas se convierten en el registro y compartes el enlace con las personas que deben usarlo.
 
 Usa un formulario cuando quienes detectan un problema, o necesitan un cambio, no son quienes gestionan tus incidentes y mantenimientos: agentes de soporte, compañeros de otro departamento, el responsable de una tienda, el equipo de operaciones de un cliente. Abren el enlace, responden a tus preguntas y pulsan **Enviar**. Tu equipo recibe un incidente o un evento normal, con las respuestas en sus campos y una nota privada que registra quién lo envió.
 
@@ -13,16 +13,19 @@ Usa un formulario cuando quienes detectan un problema, o necesitan un cambio, no
 
 ## Cómo funciona un formulario
 
-```mermaid title="De un formulario rellenado a un incidente o un evento de mantenimiento"
+```mermaid title="De un formulario rellenado a un incidente, una alerta o un evento de mantenimiento"
 flowchart TB
     submitter["Alguien con el enlace,<br/>sin cuenta"] --> page["La página del formulario"]
     page -->|Enviar| checks["Protecciones y<br/>comprobación de respuestas"]
     checks --> submission["Envío, guardado<br/>con el formulario"]
     submission --> target{"Cada envío crea"}
     target -->|Incidente| incident["Incidente, oculto<br/>en las páginas de estado"]
+    target -->|Alerta| alert["Alerta, para que la revisen<br/>sus propietarios"]
     target -->|Mantenimiento programado| event["Evento de mantenimiento,<br/>oculto salvo que se indique"]
     incident --> response["Se ejecutan las políticas<br/>de guardia y las reglas"]
+    alert --> response
     incident --> note["Nota privada: quién lo envió,<br/>otras respuestas"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Al crear un formulario eliges qué **Cada envío crea**. Puedes cambiarlo despu�
 | Cada envío crea | Úsalo para | Qué ocurre |
 | --- | --- | --- |
 | **Incidente** | Avisos de problemas | Se declara un incidente al momento, así que tus políticas de guardia y tus reglas se ejecutan y se avisa a las personas de guardia. No aparece en las páginas de estado hasta que alguien que responde lo publica. |
+| **Alerta** | Advertencias y cosas que revisar | Se crea una alerta, así que se avisa a sus propietarios y se ejecutan sus políticas de guardia y sus reglas, sin declarar un incidente. Una que empieza en un estado posterior, como **Reconocido**, no avisa a nadie. |
 | **Mantenimiento programado** | Solicitudes de cambio y de mantenimiento | Se programa un evento de mantenimiento para la ventana que pide quien envía. Salvo que el formulario diga lo contrario, no aparece en sus páginas de estado ni avisa a ningún suscriptor. |
 
-Los formularios empiezan con estos dos, y llegarán más tipos de registro.
+Configurar un formulario que crea alertas requiere además permiso para crear alertas: consulta [Permisos](#permisos).
 
 ## Antes de empezar
 
 - **Un plan que incluya formularios.** En OneUptime Cloud, los formularios necesitan el plan **Growth** o superior. Consulta [Plan](#plan).
 - **Permiso para crear formularios.** **Create Form** corresponde a los Propietarios del proyecto y Administradores del proyecto, y a los roles a los que se lo des. Consulta [Permisos](#permisos).
 - **Para un formulario de incidentes, una severidad.** Cada incidente necesita una: de una pregunta, de los ajustes del formulario o de su plantilla de incidente. Sin ella, se rechaza cada envío. Consulta [Lo que crea un envío](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-un-incidente).
+- **Para un formulario de alertas, una severidad.** Cada alerta también necesita una: de una pregunta o de los ajustes del formulario. Consulta [Cómo un envío se convierte en una alerta](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-una-alerta).
 
 ## Crear tu primer formulario
 
@@ -144,6 +149,8 @@ Los formularios permiten que personas ajenas a tu equipo creen incidentes y even
 | **Delete Form Domain** | Quitar los dominios personalizados de un formulario. | Propietario del proyecto, Administrador del proyecto y **Edit Form** |
 | **Read Form Domain** | Ver los dominios personalizados de un formulario, sus registros DNS y en qué punto está cada uno camino de HTTPS. | Cualquiera con **Read Form** |
 
+**Un formulario que crea alertas requiere permiso para crear alertas.** Cualquiera con su enlace puede crear alertas, y avisar a sus propietarios y a las personas de guardia, así que crear un formulario que crea alertas, convertir un formulario en uno de ellos y cambiar las preguntas, las plantillas o los ajustes de **Al enviar** de un formulario de alertas requieren también, cada uno, un permiso que pueda crear alertas: Propietario del proyecto, Administrador del proyecto, Miembro del proyecto, Administrador de alertas, Miembro de alertas o **Create Alert**. Su nombre, su enlace, **Acepta envíos**, su marca y su **Lista de IP permitidas** requieren solo los permisos **Form**. Sin ese permiso, **Alerta** no se ofrece al crear un formulario, y está bloqueada en su página **Al enviar**, con una descripción emergente que nombra el permiso; una solicitud que lo intenta de todos modos se rechaza con "Only people who may create alerts can set up a form that creates them." Los formularios de incidentes y de mantenimiento requieren solo los permisos **Form**, como siempre.
+
 Los envíos contienen lo que escribieron desconocidos (nombres, direcciones de correo y respuestas que quizá nunca lleguen al registro), así que solo los ven los Propietarios del proyecto y Administradores del proyecto, salvo que concedas **Read Form Submission**. Quien puede leer un formulario puede ver y compartir su enlace. Enviar un formulario no necesita ningún permiso. Para ver cómo se combinan los roles y los permisos granulares, consulta [Usuarios, equipos y permisos](/docs/permissions/index).
 
 ## Plan
@@ -156,7 +163,7 @@ Los formularios son un recurso normal de la API en `/api/form`, y sus envíos en
 
 ### Preguntas y ajustes
 
-Las preguntas de un formulario son su columna `fields`, una lista JSON en el orden en que el formulario las hace, y sus ajustes de Al enviar son sus `targetSettings`:
+El `targetType` de un formulario es lo que crea cada envío: `Incident`, `Alert` o `ScheduledMaintenance`. Sus preguntas son su columna `fields`, una lista JSON en el orden en que el formulario las hace, y sus ajustes de Al enviar son sus `targetSettings` — para un formulario de alertas, `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` y `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Cada pregunta tiene su propio `id` (letras, dígitos, `-` y `_`), una `source`, 
 | `source` | Qué pregunta |
 | --- | --- |
 | `Question` | Una pregunta propia del formulario, que se responde según su `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` o `MultipleFiles`. Un desplegable enumera sus `dropdownOptions`, una por línea. |
-| `TargetField` | Un campo de lo que crea el formulario, nombrado por `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` para un incidente; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` y `labels` para un evento de mantenimiento. Un campo que se responde eligiendo enumera los registros que ofrece en `allowedOptionIds`. |
-| `TargetCustomField` | Uno de los campos personalizados del incidente o del evento, nombrado por `customFieldId`. |
+| `TargetField` | Un campo de lo que crea el formulario, nombrado por `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` para un incidente; `title`, `description`, `alertSeverityId`, `monitor`, `labels` e `impactStartedAt` para una alerta; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` y `labels` para un evento de mantenimiento. Un campo que se responde eligiendo enumera los registros que ofrece en `allowedOptionIds`. |
+| `TargetCustomField` | Uno de los campos personalizados del incidente, de la alerta o del evento, nombrado por `customFieldId`. |
 | `Submitter` | El `Name` o el `Email` de quien envía, nombrado por `submitterField`. |
 
 Una pregunta con `isHidden` en `true` no se muestra en la página pública, nunca es obligatoria y solo se responde desde la plantilla que nombra un envío, salvo que esa plantilla la haga. `isRequired` e `isHidden` son el valor predeterminado del formulario; cada plantilla puede hacer una pregunta a su manera.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ La respuesta a una pregunta de archivos son los archivos tal como se guardaron, 
 
 ### Workflows
 
-Los formularios tienen los componentes de workflow generados: **Al crear Formulario**, **Al actualizar Formulario**, etc. Para actuar sobre lo que creó un formulario, usa **Al crear Incidente** u **Al crear Evento de mantenimiento**.
+Los formularios tienen los componentes de workflow generados: **Al crear Formulario**, **Al actualizar Formulario**, etc. Para actuar sobre lo que creó un formulario, usa **Al crear Incidente**, **Al crear Alerta** o **Al crear Evento de mantenimiento**.
 
 ### Los endpoints propios de la página pública
 

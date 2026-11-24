@@ -139,19 +139,20 @@ export function getMachineAnsweredCallOutcome(data: {
 
 /*
  * The last sentence of the message left on voicemail, after what the call
- * said: what to do, for whoever listens to it later. "One Uptime", as every
- * call says it, so text to speech says the name right; an installation
- * that goes by its own name says that instead (ProductBrandingText).
+ * said: what to do, for whoever listens to it later. "OneUptime", which an
+ * installation that goes by its own name says instead (ProductBrandingText):
+ * written "One Uptime", it was left out of that, and said "One Uptime" on
+ * every installation. The call says it as two words (CallSpeech).
  */
 export const VOICEMAIL_MESSAGE_CLOSING: string =
-  "Open One Uptime to respond. Good bye.";
+  "Open OneUptime to respond. Good bye.";
 
 /*
  * What is left on voicemail when the call's own words were not kept - a
  * call whose words are not logged - or are gone: who called, and what to
  * do.
  */
-export const VOICEMAIL_MESSAGE_WITHOUT_WORDS: string = `This is a call from One Uptime about an on-call page. ${VOICEMAIL_MESSAGE_CLOSING}`;
+export const VOICEMAIL_MESSAGE_WITHOUT_WORDS: string = `This is a call from OneUptime about an on-call page. ${VOICEMAIL_MESSAGE_CLOSING}`;
 
 /*
  * The message left on voicemail: what the call said - its sentences, never

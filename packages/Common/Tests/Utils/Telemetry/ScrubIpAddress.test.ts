@@ -343,7 +343,8 @@ describe("an address in a percent-encoded URL (#10467)", () => {
       "cpu 100% from [REDACTED]",
     ],
     ["two percent signs", "50%% 2001::1", "50%% [REDACTED]"],
-    ["a percent sign and no hex digits", "%zz2001:db8::1", "%zz[REDACTED]"],
+    // Glued to the letters (%zz2001:db8::1), it would start inside a word (#10936).
+    ["a percent sign and no hex digits", "%zz 2001:db8::1", "%zz [REDACTED]"],
     ["a percent sign at the very end", "8.8.8.8 100%", "[REDACTED] 100%"],
     [
       "an escape of a byte beyond ASCII",
@@ -415,6 +416,77 @@ describe("an address in a percent-encoded URL (#10467)", () => {
   });
 });
 
+/*
+ * #10936: an IPv6 address right after a key's colon (ip:2a00:..., the
+ * logfmt and syslog way) was left as it was, and after a key that ends in
+ * hex letters or digits (remote:, src:, ip6:) it was hidden with the key's
+ * end - "remote:" lost its "e" to the mask - and its token was not the
+ * address's. Now the address is hidden, alone, as after "ip=" or "ip: ".
+ */
+describe("an address right after a key's colon (#10936)", () => {
+  test.each([
+    [
+      "peer ip:2a00:1450:4001:82a::200e connected",
+      "peer ip:[REDACTED] connected",
+    ],
+    ["remote:2a00:1450:4001:82a::200e", "remote:[REDACTED]"],
+    ["addr:2001:db8::7", "addr:[REDACTED]"],
+    ["client_ip:2a02:6b8::feed:0ff", "client_ip:[REDACTED]"],
+    ["src:2001:db8::7 dst:2606:4700::1111", "src:[REDACTED] dst:[REDACTED]"],
+    ["node:2a00:1450:4001:82a::200e", "node:[REDACTED]"],
+    ["id:2606:4700::1111", "id:[REDACTED]"],
+    ["ip6:2a00:1450::1", "ip6:[REDACTED]"],
+    ["IP:2A00:1450::1", "IP:[REDACTED]"],
+    ["net.peer.ip:2001::1", "net.peer.ip:[REDACTED]"],
+    ["client:::ffff:81.2.69.142", "client:[REDACTED]"],
+    ["upstream:64:ff9b::81.2.69.142", "upstream:[REDACTED]"],
+    [
+      'level=info remote:2a00:1450:4001:82a::200e user=svc msg="ok"',
+      'level=info remote:[REDACTED] user=svc msg="ok"',
+    ],
+    ["q=ip%3A2a00%3A1450%3A4001%3A82a%3A%3A200e&n=1", "q=ip%3A[REDACTED]&n=1"],
+  ])("%s becomes %s", (text: string, scrubbed: string) => {
+    expect(redacted(text)).toBe(scrubbed);
+  });
+
+  test("the address hidden is the address alone: its one spelling, mask and token", () => {
+    for (const [text, address] of [
+      ["remote:2a00:1450:4001:82a::200e", "2a00:1450:4001:82a::200e"],
+      ["src:2001:db8::7", "2001:db8::7"],
+      ["ip6:2a00:1450::1", "2a00:1450::1"],
+      ["node:2A00:1450::1", "2A00:1450::1"],
+    ] as Array<[string, string]>) {
+      const ranges: Array<string> = hidden(text);
+
+      expect(ranges).toEqual([address]);
+      expect(ScrubIpAddress.canonicalize(ranges[0]!)).toBe(
+        ScrubIpAddress.canonicalize(address),
+      );
+      expect(ScrubIpAddress.mask(ranges[0]!)).toBe(IPV6_ADDRESS_MASK);
+    }
+  });
+
+  test.each([
+    "time:12:30:45",
+    "mac:00:1a:2b:3c:4d:5e",
+    "ratio:3:1",
+    "aspect:16:9",
+    "type:std::vector<int>",
+    "user:1234:profile",
+    "session:abcd:ef01:2345",
+    "host:8080",
+    "db:5432",
+    "ip:fe80::1",
+    "ip:10.0.0.1",
+    "client:::ffff:10.0.0.1",
+    "k:1:2:3:4:5:6:7:8:9",
+    "ip2001:db8::1",
+  ])("keeps %s as it is", (text: string) => {
+    expect(hidden(text)).toEqual([]);
+    expect(redacted(text)).toBe(text);
+  });
+});
+
 describe("what the scanner finds, the rule hides, and nothing else", () => {
   const TEXTS: Array<string> = [
     "client 8.8.8.8 and 10.0.0.12 talked to 2001:4860:4860::8888",
@@ -433,6 +505,11 @@ describe("what the scanner finds, the rule hides, and nothing else", () => {
     "u=http%3A%2F%2F%5Bfe80%3A%3A1%5D q=Abc%3A%3ADef at=12%3A30%3A45 x=10%2E0%2E0%2E1",
     "next=https%3A%2F%2Fa.example%2Fcb%3Fto%3Dhttp%253A%252F%252F%255B2606%253A%253A1%255D",
     "cpu 100% from 8.8.8.8 and caf%C3%A9 at 2001::1 load 99%2001::1",
+    // #10936: right after a key's colon, and what is still no address there.
+    "peer ip:2a00:1450:4001:82a::200e remote:2606:4700::1111 src:2001:db8::7",
+    "id:2a00::1 ip6:2a00:1450::1 time:12:30:45 mac:00:1a:2b:3c:4d:5e ratio:3:1",
+    "client:::ffff:81.2.69.142 client:::ffff:10.0.0.1 ip:fe80::1 db:5432",
+    "q=ip%3A2a00%3A1450%3A4001%3A82a%3A%3A200e&r=remote%3A2001%3A%3A1",
   ];
 
   // The scanner's IP address findings, documentation addresses included.

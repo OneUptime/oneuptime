@@ -172,13 +172,14 @@ const LIST_SWITCH_COLUMNS: Array<string> = [
 
 describe("the card's settings", () => {
   /*
-   * Sixteen: the seventeenth, the Powered by OneUptime switch, has a card of
-   * its own under this one, because hiding the line is an Enterprise
-   * feature (StatusPagePoweredBySettings).
+   * Seventeen, Show Incidents Grouped by Episode the latest (#10767): the
+   * Powered by OneUptime switch has a card of its own under this one,
+   * because hiding the line is an Enterprise feature
+   * (StatusPagePoweredBySettings).
    */
-  test("are sixteen columns of the status page, each once", () => {
-    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(16);
-    expect(new Set(DISPLAY_SETTING_COLUMNS).size).toBe(16);
+  test("are seventeen columns of the status page, each once", () => {
+    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(17);
+    expect(new Set(DISPLAY_SETTING_COLUMNS).size).toBe(17);
     expect(DISPLAY_SETTING_COLUMNS as ReadonlyArray<string>).not.toContain(
       "hidePoweredByOneUptimeBranding",
     );
@@ -218,6 +219,8 @@ describe("the card's settings", () => {
       onlyShowScopedIncidents: false,
       showEpisodesOnStatusPage: true,
       showEpisodeHistoryInDays: 14,
+      // On for a new page; a page made before it existed has it off.
+      groupIncidentsByEpisode: true,
       showEpisodeLabelsOnStatusPage: false,
       showAnnouncementsOnStatusPage: true,
       showAnnouncementHistoryInDays: 14,
@@ -320,7 +323,7 @@ describe("the card's settings", () => {
         "episodes",
         "showEpisodesOnStatusPage",
         "showEpisodeHistoryInDays",
-        ["showEpisodeLabelsOnStatusPage"],
+        ["groupIncidentsByEpisode", "showEpisodeLabelsOnStatusPage"],
       ],
       [
         "announcements",
@@ -405,6 +408,74 @@ describe("the card's settings", () => {
     expect(StatusPageDisplaySettingsCopy.hiddenListDescription).toContain(
       "subscribers aren't notified",
     );
+  });
+
+  /*
+   * Grouping lays out the two lists together, so it does something only
+   * while the page shows both (#10767): it sits under Show Episodes and is
+   * offered only while Show Incidents is on too. Its line says, in one
+   * sentence, what visitors see, whichever way it is set.
+   */
+  test("grouping by episode is offered only while both lists are shown, and says what visitors see either way", () => {
+    const episodes: DisplaySectionDefinition = DISPLAY_SECTIONS.find(
+      (section: DisplaySectionDefinition) => {
+        return section.id === "episodes";
+      },
+    )!;
+
+    const grouping: DisplayOptionDefinition = episodes.options.find(
+      (option: DisplayOptionDefinition) => {
+        return option.column === "groupIncidentsByEpisode";
+      },
+    )!;
+
+    expect(grouping.title).toBe("Show Incidents Grouped by Episode");
+    expect(grouping.isOnlyWhileShown).toBe(true);
+    expect(grouping.isOnlyWhileShownWith).toEqual(["incidents"]);
+
+    // The most important option of its row, so first under it.
+    expect(episodes.options[0]).toBe(grouping);
+
+    expect(getDisplaySwitchDescription(grouping, true)).toBe(
+      StatusPageDisplaySettingsCopy.groupedByEpisodeDescription,
+    );
+    expect(getDisplaySwitchDescription(grouping, false)).toBe(
+      StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
+    );
+
+    for (const sentence of [
+      StatusPageDisplaySettingsCopy.groupedByEpisodeDescription,
+      StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
+    ]) {
+      // One short sentence that says what visitors see.
+      expect(sentence).toMatch(/^Visitors see /);
+      expect(sentence.length).toBeLessThanOrEqual(150);
+      expect(sentence.match(/\./g)).toHaveLength(1);
+    }
+
+    // No other option needs another list shown.
+    for (const section of DISPLAY_SECTIONS) {
+      for (const option of section.options) {
+        if (option !== grouping) {
+          expect([option.column, option.isOnlyWhileShownWith]).toEqual([
+            option.column,
+            undefined,
+          ]);
+        }
+      }
+    }
+
+    // It only lays out what is shown, so no plan is needed to change it.
+    expect(
+      new StatusPage().getColumnBillingAccessControl("groupIncidentsByEpisode"),
+    ).toBeUndefined();
+
+    // Unlike the lists it lays out, which need Growth.
+    expect(
+      new StatusPage().getColumnBillingAccessControl(
+        "showEpisodesOnStatusPage",
+      ),
+    ).toBeDefined();
   });
 
   test("the scope switch keeps its own name and its sentence, whichever way it is set", () => {
@@ -1051,6 +1122,8 @@ describe("translations", () => {
     StatusPageDisplaySettingsCopy.cardTitle,
     StatusPageDisplaySettingsCopy.cardDescription,
     StatusPageDisplaySettingsCopy.hiddenListDescription,
+    StatusPageDisplaySettingsCopy.groupedByEpisodeDescription,
+    StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
     StatusPageDisplaySettingsCopy.uptimeDescription,
     StatusPageDisplaySettingsCopy.overallUptimeDescription,
     StatusPageDisplaySettingsCopy.downtimeDescription,

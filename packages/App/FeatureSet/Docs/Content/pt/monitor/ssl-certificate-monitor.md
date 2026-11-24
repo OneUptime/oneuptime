@@ -87,6 +87,8 @@ Os critérios decidem quando o certificado conta como bom, degradado ou quebrado
 
 **Dias até a expiração** conta dias inteiros: um certificado que vence em 14 dias e 20 horas tem 14 dias restantes. **Horas até a expiração** conta horas inteiras do mesmo jeito.
 
+**Dias até a expiração** também oferece **Avaliar este critério durante um período de tempo**, e com **Verificação anterior** compara cada verificação com a anterior da mesma sonda. **Menor que** com um **Valor na unidade da verificação** de `1` corresponde quando os dias restantes caíram mais de um desde a verificação anterior, como quando o certificado foi substituído por um que expira antes. **Maior que** corresponde quando subiram, como quando o certificado foi renovado. Veja [Comparar uma verificação com a anterior](/docs/monitor/criteria-and-statuses#comparar-uma-verificação-com-a-anterior).
+
 Com dois ou mais filtros, **Condição de correspondência** decide se **Todos** precisam corresponder ou se basta **Qualquer** um. As **Ações** de um critério decidem o que ele faz: mudar o status do monitor, criar um alerta, declarar um incidente, ou várias dessas coisas.
 
 ### Critérios padrão

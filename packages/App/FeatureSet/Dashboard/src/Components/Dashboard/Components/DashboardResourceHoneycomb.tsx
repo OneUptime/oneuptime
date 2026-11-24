@@ -388,9 +388,11 @@ const TOOLTIP_OFFSET: number = 8;
  * off - nobody saw it, so a gray tile never said it was a monitor whose
  * monitoring is off (issue #6966).
  *
- * Not on the body while the board is in full screen (DashboardView puts its
- * canvas there with requestFullscreen): the browser then draws only the
- * full-screen element's subtree, and a tooltip on the body is not drawn.
+ * Not on the body while the board alone is in the browser's full screen (a
+ * public dashboard puts its canvas there with requestFullscreen): the
+ * browser then draws only the full-screen element's subtree, and a tooltip
+ * on the body is not drawn. A dashboard inside OneUptime asks for the whole
+ * page instead (Utils/PageFullScreen), which holds the body.
  * The theme class and the reading direction are set on <html>, so the
  * tooltip keeps both wherever it is drawn.
  */
@@ -654,7 +656,9 @@ const DashboardResourceHoneycomb: FunctionComponent<
    * Escape closes the tooltip, opened by the pointer or by the keyboard,
    * and leaves the focus where it is: a tooltip over the next row of tiles
    * is put away without moving off the tile (WCAG 1.4.13). The next hover
-   * or focus opens it again.
+   * or focus opens it again. The Escape is spent there (preventDefault):
+   * one Escape never does two things, so a dashboard shown full screen
+   * stays full screen until the next one (#10409).
    */
   const isTooltipOpen: boolean = tooltipState !== null;
 
@@ -667,6 +671,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
       event: KeyboardEvent,
     ): void => {
       if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
         setTooltipState(null);
       }
     };

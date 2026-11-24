@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+Eine Einstellung, die jemand in OneUptime in den Schritten eines Monitors ergänzt und die Ihre Konfiguration nicht schreibt, ist dagegen eine Abweichung: Der nächste Plan zeigt, dass sich `monitor_steps` ändert, und das folgende Apply entfernt die Einstellung, wie der Plan es sagt. Um sie zu behalten, schreiben Sie sie auch in Ihre Konfiguration.
+
 ## Beschriftungen und andere Listen, die OneUptime selbst ergänzt
 
 OneUptime ergänzt einige Listen eines Datensatzes selbst: Eine Beschriftungsregel fügt ihre Beschriftungen den Datensätzen hinzu, auf die sie passt, eine Bereitschaftsregel fügt ihre Richtlinien den Vorfällen und Warnungen hinzu, auf die sie passt, und die Monitorregeln eines SLO verknüpfen die Monitore, auf die sie passen. Die Referenz sagt es bei jedem solchen Attribut: "OneUptime adds to it too, on its own". Eine Konfiguration, die eine solche Liste setzt, hält die Einträge, die sie aufführt, und lässt den Rest:

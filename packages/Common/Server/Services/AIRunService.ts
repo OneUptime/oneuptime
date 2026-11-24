@@ -14,6 +14,7 @@ import CodeFixTaskContext, {
   getCodeTaskRequest,
   getGitHubTaskContext,
   getInfrastructureFixTaskContext,
+  getTelemetryLeakFixTaskContext,
   getInvestigationCodeFixTaskSnapshot,
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
@@ -508,6 +509,23 @@ export class Service extends DatabaseService<Model> {
         } else if (!run.codeRepositoryId) {
           missingContextMessage =
             "The repository this infrastructure fix was asked in is no longer connected to the project.";
+        }
+      } else if (
+        run.codeFixTaskType === CodeFixTaskType.FixSensitiveDataInTelemetry
+      ) {
+        /*
+         * A service's telemetry leaks, fixed in its code (#10367): its
+         * request and its leaks, and the repository they are written in -
+         * without either, nothing to do or nowhere to.
+         */
+        if (
+          !getTelemetryLeakFixTaskContext(run.taskContext?.telemetryLeakFix)
+        ) {
+          missingContextMessage =
+            "Queued telemetry fix has no request in its task context.";
+        } else if (!run.codeRepositoryId) {
+          missingContextMessage =
+            "The repository this telemetry fix was asked in is no longer connected to the project.";
         }
       } else if (
         run.codeFixTaskType === CodeFixTaskType.ImproveLogging ||

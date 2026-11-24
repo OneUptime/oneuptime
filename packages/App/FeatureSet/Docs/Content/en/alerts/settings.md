@@ -99,7 +99,7 @@ A rule can belong to teams. **Owning Teams**, under **More fields**, keeps it to
 
 ## Incident rules
 
-**Alerts → Rules → Incident Rules** turns alerts into incidents on their own. The first rule that matches a new alert, from the top of the list down, declares an incident from it, as **Declare Incident** on the alert's page would, and links the alert to it.
+**Alerts → Rules → Incident Rules** turns alerts into incidents on their own. The first rule that matches a new alert, from the top of the list down, declares an incident from it, as **Declare Incident** on the alert's page would, and links the alert to it. The incident starts with the alert's owners as its owners, who are told of it once, by its **Incident Created** notification.
 
 :::steps
 ### Pick the alerts

@@ -2625,7 +2625,7 @@ describe("a block whose address became protected after it was made (#10640)", ()
       // As an earlier version left it: the English, and no reason.
       const row: SecurityBlockEnforcement = rowOf(1, edge)!;
       const english: string = row.error!;
-      row.errorReason = undefined;
+      delete row.errorReason;
       const lines: number = timelineLines().length;
 
       // Unreadable: kept as it is, English only.

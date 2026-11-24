@@ -134,7 +134,13 @@ Zooming works in View mode only; in Edit mode dragging moves and resizes widgets
 
 ## Full screen
 
-**⋯ → Full Screen** shows the dashboard's widgets on the whole screen, for a wall display or a meeting. Press Esc to leave it.
+Full screen shows the dashboard alone, on the whole screen: its toolbar and its widgets, with no top bar, side menu or breadcrumbs around them. Everything works as it does on the dashboard's page, and for the same people: editing, adding and removing widgets, the time range, auto-refresh and variables.
+
+- **Full Screen**, the square button at the end of the dashboard's toolbar, or **⋯ → Full Screen**, shows the dashboard full screen. Your browser goes full screen too, where it allows it.
+- **Open in New Tab**, in the dashboard's **⋯** menu or in a row's **⋯** menu on the **Dashboards** list, opens the dashboard full screen in a tab of its own. In that tab, **Fill the Screen** puts your browser in full screen too.
+- **Exit Full Screen**, or Esc, goes back to the dashboard's page, and out of your browser's full screen too. After **Fill the Screen**, the first Esc leaves only your browser's full screen.
+
+A dashboard shown full screen has its own address, which ends in `?view=full-screen`: bookmark it, or open it on a wall screen, and the dashboard opens full screen. To show several dashboards one after another on a screen, use a [playlist](/docs/dashboards/playlists).
 
 ## Tips for dashboards that age well
 

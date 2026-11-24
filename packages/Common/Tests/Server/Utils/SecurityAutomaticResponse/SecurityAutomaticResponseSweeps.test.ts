@@ -527,6 +527,51 @@ describe("undo on doubt", () => {
     ]);
   });
 
+  /*
+   * The owners' message is Markdown, and a policy's name and a person's
+   * are theirs to write: each is placed as text, so a name written as a
+   * link or as emphasis reads as it was typed and links nowhere.
+   */
+  test("the owners' message names the policy and who signed in as text, never as Markdown", async () => {
+    manyCheck = {
+      state: SecuritySignedInAddressState.SignedIn,
+      usersByAddress: new Map([
+        [
+          ADDRESS,
+          [
+            {
+              name: "**Jane** <jane@example.com>",
+              source: SecuritySignedInSource.Requests,
+              lastSeenAt: new Date(Date.now() - 60 * 1000),
+            },
+          ],
+        ],
+      ]),
+    };
+    actions = [
+      makeAction({
+        policyName: "[Scanners](https://example.com/phish)",
+        createdAt: new Date(Date.now() - 10 * 60 * 1000),
+        blockedAt: new Date(Date.now() - 10 * 60 * 1000),
+      }),
+    ];
+
+    expect(await SecurityAutomaticResponseDoubt.liftOnDoubt()).toBe(1);
+
+    const message: string = told[0]!.messageInMarkdown;
+
+    expect(message).toContain(
+      "The \\[Scanners\\](https://example.com/phish) policy blocked `35.205.11.131`, and a signed-in user was seen from it since: \\*\\*Jane\\*\\* \\<jane@example.com>.",
+    );
+    expect(message).not.toContain("[Scanners](");
+    expect(message).not.toContain("**Jane**");
+    // The two paragraphs, as before.
+    expect(message.split("\n\n")).toHaveLength(2);
+    expect(message).toContain(
+      "\n\nIt lifted the block at once. An address someone signed in uses",
+    );
+  });
+
   test("a trial's would-have block is marked as one it would have lifted: nothing is lifted, nobody told", async () => {
     actions = [
       makeAction({

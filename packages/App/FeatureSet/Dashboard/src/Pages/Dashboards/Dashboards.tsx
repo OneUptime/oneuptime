@@ -36,6 +36,40 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import IconProp from "Common/Types/Icon/IconProp";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { VoidFunction } from "Common/Types/FunctionTypes";
+import {
+  getDashboardFullScreenRoute,
+  openAddressInNewTab,
+} from "../../Components/Dashboard/Utils/DashboardFullScreenAddress";
+
+/*
+ * Open in New Tab (issue #10409), in each row's ⋯ menu: the dashboard alone,
+ * full screen, in a tab of its own - for a second screen, or to keep it
+ * beside the rest of OneUptime. Whoever can see the row can open it: the
+ * dashboard's page reads it as it reads it here.
+ */
+export const DASHBOARD_OPEN_IN_NEW_TAB_ROW_ACTION: ActionButtonSchema<Dashboard> =
+  {
+    title: "Open in New Tab",
+    icon: IconProp.ExternalLink,
+    buttonStyleType: ButtonStyleType.OUTLINE,
+    // The row's one button stays View; this is first in its ⋯ menu.
+    placement: ActionButtonPlacement.MoreMenu,
+    onClick: (item: Dashboard, onCompleteAction: VoidFunction): void => {
+      if (item._id) {
+        openAddressInNewTab(
+          getDashboardFullScreenRoute(
+            new ObjectID(item._id.toString()),
+          ).toString(),
+        );
+      }
+
+      onCompleteAction();
+    },
+  };
 
 /*
  * Create Dashboard opens Create a dashboard (Components/Dashboard/
@@ -159,8 +193,14 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ModelTable<Dashboard>
         modelType={Dashboard}
         refreshToggle={firstRun.refreshToken}
-        // Archive in each row's ⋯ menu, as in Bulk Actions.
-        actionButtons={[...archiveRowActions]}
+        /*
+         * In each row's ⋯ menu: Open in New Tab, full screen, then Archive,
+         * as in Bulk Actions.
+         */
+        actionButtons={[
+          DASHBOARD_OPEN_IN_NEW_TAB_ROW_ACTION,
+          ...archiveRowActions,
+        ]}
         enableJsonImportExport={true}
         id="dashboard-table"
         userPreferencesKey="dashboards-table"

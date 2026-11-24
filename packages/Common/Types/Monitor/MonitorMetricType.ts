@@ -194,6 +194,13 @@ enum MonitorMetricType {
   ConnectedProbes = "oneuptime.monitor.probes.connected",
   DisconnectedProbes = "oneuptime.monitor.probes.disconnected",
   ProbesBehind = "oneuptime.monitor.probes.behind",
+
+  /*
+   * SSL Certificate monitors: the whole days the certificate the probe was
+   * served has left, once per check (#10905) - what Expires In Days judges,
+   * so it can be judged over a window and compared with the previous check.
+   */
+  SslCertificateExpiresInDays = "oneuptime.monitor.ssl.certificate.expires.in.days",
 }
 
 export default MonitorMetricType;

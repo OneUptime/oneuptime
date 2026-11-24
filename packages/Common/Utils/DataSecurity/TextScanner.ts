@@ -3,7 +3,14 @@ import DataConfidence, {
 } from "../../Types/DataSecurity/DataConfidence";
 import { CONTEXT_AFTER, CONTEXT_BEFORE, DataTypeDetector } from "./Detector";
 import BUILT_IN_DETECTORS from "./Detectors/Index";
-import PercentDecodedText from "./PercentDecodedText";
+import {
+  confidenceOfScore,
+  isRecognizedTestValue,
+  keywordsOf,
+  normalizeRecognizedValue,
+  RecognizedEntity,
+} from "./Model/RecognizedEntity";
+import { TextReading, TextReadings } from "./TextReadings";
 
 /*
  * FINDING SENSITIVE VALUES IN TEXT.
@@ -22,11 +29,13 @@ import PercentDecodedText from "./PercentDecodedText";
  * MAX_SCANNED_TEXT_LENGTH bounds the work one value can ask for.
  *
  * A detector that reads percent-encoded text (readsPercentEncoded - the IP
- * address ones, #10467) also reads each window with its escapes read
- * (PercentDecodedText): a candidate found there is validated as it reads
- * and placed on the characters it is written with, so it is judged by the
- * words around it as written, and kept by the window it starts in like any
- * other.
+ * address and email ones, #10467, #10935) also reads each window with its
+ * escapes read, and one that reads every script's digits
+ * (readsDigitsOfEveryScript - the card ones, #10960) with each script's
+ * digits read by their values (TextReadings): a candidate found there is
+ * validated as it reads and placed on the characters it is written with, so
+ * it is judged by the words around it as written, and kept by the window it
+ * starts in like any other.
  */
 
 export const WINDOW_SIZE: number = 65_536;
@@ -89,6 +98,96 @@ export interface TextMatch {
   normalized: string;
   confidence: DataConfidence;
   isTestValue: boolean;
+  /*
+   * Found by the names-and-addresses model (Model/RecognizedEntity.ts), not
+   * a detector's pattern: masked as a name-found value is, and never
+   * fingerprinted - a name is too common to say two stores hold the same
+   * data.
+   */
+  fromModel?: boolean | undefined;
+}
+
+// How far around a model's finding its context words are looked for.
+const MODEL_CONTEXT_BEFORE: number = CONTEXT_BEFORE;
+const MODEL_CONTEXT_AFTER: number = CONTEXT_AFTER;
+
+/*
+ * A model's findings in a text as candidates, judged by the same rules as a
+ * detector's (RecognizedEntity.ts): a type the project turned off is
+ * skipped, a value it allows is no finding, the field's name or the words
+ * around a value raise its confidence a level, and a placeholder is a test
+ * value. They then compete with the detectors' candidates for the same
+ * characters like any other (resolveOverlaps), as the least specific kind.
+ */
+function modelCandidates(
+  text: string,
+  recognized: ReadonlyArray<RecognizedEntity>,
+  options: TextScanOptions,
+): Array<Candidate> {
+  const candidates: Array<Candidate> = [];
+
+  for (const entity of recognized) {
+    if (
+      !Number.isInteger(entity.start) ||
+      !Number.isInteger(entity.end) ||
+      entity.start < 0 ||
+      entity.end > text.length ||
+      entity.start >= entity.end ||
+      options.disabledDataTypeIds?.has(entity.dataTypeId)
+    ) {
+      continue;
+    }
+
+    const normalized: string = normalizeRecognizedValue(
+      text.slice(entity.start, entity.end),
+    );
+
+    if (
+      normalized.length === 0 ||
+      options.allowedValues?.has(normalized.toLowerCase())
+    ) {
+      continue;
+    }
+
+    const contextStart: number = Math.max(
+      0,
+      entity.start - MODEL_CONTEXT_BEFORE,
+    );
+    const around: string = text
+      .slice(
+        contextStart,
+        Math.min(text.length, entity.end + MODEL_CONTEXT_AFTER),
+      )
+      .toLowerCase();
+    const hasContext: boolean =
+      Boolean(options.hintedDataTypeIds?.has(entity.dataTypeId)) ||
+      anyWordNear(
+        around,
+        entity.start - contextStart,
+        entity.end - contextStart,
+        keywordsOf(entity.dataTypeId),
+        MODEL_CONTEXT_BEFORE,
+        MODEL_CONTEXT_AFTER,
+      );
+    let confidence: DataConfidence = confidenceOfScore(entity.score);
+
+    if (hasContext) {
+      confidence = raise(confidence);
+    }
+
+    candidates.push({
+      dataTypeId: entity.dataTypeId,
+      start: entity.start,
+      end: entity.end,
+      normalized,
+      confidence,
+      isTestValue: isRecognizedTestValue(entity.dataTypeId, normalized),
+      fromModel: true,
+      score: DATA_CONFIDENCE_RANK[confidence] * 100 + (hasContext ? 10 : 0) + 1,
+    });
+  }
+
+  return candidates;
 }
 
 interface Candidate extends TextMatch {
@@ -240,48 +339,47 @@ function passesQuickCheck(
 }
 
 /*
- * A detector's candidates in a window: as it is written and - for a
- * detector that reads percent-encoded text - as its escapes read, placed
- * on the characters they are written with. `decodedWindow` reads the
- * window once for every detector that asks.
+ * A detector's candidates in a window: as it is written and in each
+ * reading it asks for - with its percent-escapes read, with every script's
+ * digits read by their values - placed on the characters they are written
+ * with. `readings` reads the window once for every detector that asks.
  */
 function windowCandidates(
   detector: ScanDetector,
-  window: string,
+  readings: TextReadings,
   lowerWindow: string,
-  decodedWindow: () => PercentDecodedText | null,
 ): Array<{ start: number; end: number; value: string }> {
-  const found: Array<{ start: number; end: number; value: string }> =
-    passesQuickCheck(detector, window, (): string => {
-      return lowerWindow;
-    })
-      ? rawCandidates(detector, window)
-      : [];
+  const found: Array<{ start: number; end: number; value: string }> = [];
 
-  if (!detector.readsPercentEncoded) {
-    return found;
-  }
+  for (const reading of readings.readingsFor(detector)) {
+    const isWritten: boolean = reading === readings.written;
 
-  const decoded: PercentDecodedText | null = decodedWindow();
+    if (
+      !passesQuickCheck(detector, reading.text, (): string => {
+        return isWritten ? lowerWindow : reading.text.toLowerCase();
+      })
+    ) {
+      continue;
+    }
 
-  if (
-    decoded === null ||
-    !passesQuickCheck(detector, decoded.readable, (): string => {
-      return decoded.readable.toLowerCase();
-    })
-  ) {
-    return found;
-  }
-
-  for (const raw of rawCandidates(detector, decoded.readable)) {
-    found.push({
-      start: decoded.toWritten(raw.start),
-      end: decoded.toWritten(raw.end),
-      value: raw.value,
-    });
+    for (const raw of rawCandidates(detector, reading.text)) {
+      found.push(isWritten ? raw : placedOnWritten(raw, reading));
+    }
   }
 
   return found;
+}
+
+// A candidate of a reading, on the characters the window writes it with.
+function placedOnWritten(
+  raw: { start: number; end: number; value: string },
+  reading: TextReading,
+): { start: number; end: number; value: string } {
+  return {
+    start: reading.toWritten(raw.start),
+    end: reading.toWritten(raw.end),
+    value: raw.value,
+  };
 }
 
 function scanWindow(
@@ -294,16 +392,8 @@ function scanWindow(
 ): Array<Candidate> {
   const lowerWindow: string = window.toLowerCase();
   const candidates: Array<Candidate> = [];
-  // The window as its percent-escapes read, read the first time a detector asks.
-  let decoded: PercentDecodedText | null | undefined = undefined;
-  const decodedWindow: () => PercentDecodedText | null =
-    (): PercentDecodedText | null => {
-      if (decoded === undefined) {
-        decoded = PercentDecodedText.read(window);
-      }
-
-      return decoded;
-    };
+  // The window's readings, each read the first time a detector asks for it.
+  const readings: TextReadings = new TextReadings(window);
 
   for (const detector of detectors) {
     if (options.disabledDataTypeIds?.has(detector.dataTypeId)) {
@@ -323,12 +413,7 @@ function scanWindow(
       continue;
     }
 
-    for (const raw of windowCandidates(
-      detector,
-      window,
-      lowerWindow,
-      decodedWindow,
-    )) {
+    for (const raw of windowCandidates(detector, readings, lowerWindow)) {
       if (raw.start < acceptFrom || raw.start >= acceptBefore) {
         continue;
       }
@@ -439,14 +524,20 @@ export function resolveOverlaps(
     }
 
     for (const candidate of accepted) {
-      kept.push({
+      const match: TextMatch = {
         dataTypeId: candidate.dataTypeId,
         start: candidate.start,
         end: candidate.end,
         normalized: candidate.normalized,
         confidence: candidate.confidence,
         isTestValue: candidate.isTestValue,
-      });
+      };
+
+      if (candidate.fromModel) {
+        match.fromModel = true;
+      }
+
+      kept.push(match);
     }
 
     cluster = [];
@@ -474,9 +565,15 @@ export function resolveOverlaps(
   });
 }
 
+/*
+ * `recognized` is what the names-and-addresses model found in this same
+ * text, for a value it read (Model/RecognizedEntity.ts): its findings join
+ * the detectors' before overlaps are settled.
+ */
 export function findSensitiveValues(
   text: string,
   options: TextScanOptions = {},
+  recognized?: ReadonlyArray<RecognizedEntity> | undefined,
 ): Array<TextMatch> {
   if (!text) {
     return [];
@@ -511,6 +608,12 @@ export function findSensitiveValues(
 
     if (isLast) {
       break;
+    }
+  }
+
+  if (recognized && recognized.length > 0) {
+    for (const candidate of modelCandidates(bounded, recognized, options)) {
+      candidates.push(candidate);
     }
   }
 
