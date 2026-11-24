@@ -1,4 +1,6 @@
 import AIService, {
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
@@ -285,6 +287,12 @@ describe("what every Data Security call keeps", () => {
       // Its read of a pull request's sensitive data (#10376): autonomous, so budgeted.
       [DataSecurityAiFeature.ReviewPullRequests]:
         AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+      // A data type drafted from fields scans could not place (#10371): autonomous, so budgeted.
+      [DataSecurityAiFeature.DraftDataTypes]:
+        AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+      // ...and from a person's sentence, while they wait: not autonomous.
+      [DataSecurityAiFeature.DescribeDataType]:
+        AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
     });
   });
 
@@ -471,6 +479,9 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       // A pull request's sensitive data: the repository's pick for its reviews.
       DataSecurityAiModelSource.ProductionReview,
+      // The company's own data types (#10371), drafted and described: the one call.
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
     ]);
   });
 });
