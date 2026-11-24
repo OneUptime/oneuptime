@@ -13,6 +13,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   TracePerformanceFixRepository,
   TracePerformanceFixSuggestion,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
@@ -20,6 +21,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useEffect,
   useState,
 } from "react";
 import { formatDurationNano } from "../../../Utils/TraceDetailPresentation";
@@ -124,6 +126,18 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const { suggestion } = props;
   const [pickedRepositoryId, setPickedRepositoryId] = useState<string>("");
+
+  /*
+   * A pick the server refused as no longer one of the connected
+   * repositories - disconnected since it was offered - is no pick: the fix
+   * waits for another, and the search no longer offers it. Any other
+   * refusal keeps the pick, to try again.
+   */
+  useEffect(() => {
+    if (props.error?.includes(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE)) {
+      setPickedRepositoryId("");
+    }
+  }, [props.error]);
 
   if (!suggestion.finding || suggestion.offer === SuggestionOffer.None) {
     return null;

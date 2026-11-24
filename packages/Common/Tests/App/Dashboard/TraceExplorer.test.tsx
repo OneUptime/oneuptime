@@ -2542,6 +2542,73 @@ async function suggestionStrip(): Promise<HTMLElement> {
   return screen.findByTestId("trace-performance-suggestion");
 }
 
+/*
+ * The connected repositories Code's routes answer the strip's repository
+ * search with (#10921): the pick is searched on the server, not taken from
+ * the suggestion's list. Those whose name has what is typed, by name; the
+ * rest of the page's reads are answered as before.
+ */
+function answerCodeRepositories(
+  connectedRepositories: () => Array<JSONObject>,
+): void {
+  const answerTheRest: ((args: PostArgs) => Promise<unknown>) | undefined =
+    postMock.getMockImplementation();
+
+  postMock.mockImplementation(async (args: PostArgs) => {
+    if (!args.url.toString().includes("/code-task/repositories")) {
+      return answerTheRest ? answerTheRest(args) : undefined;
+    }
+
+    const search: string = String(args.data?.["search"] || "").toLowerCase();
+    const found: Array<JSONObject> = connectedRepositories()
+      .filter((repository: JSONObject): boolean => {
+        return String(repository["name"]).toLowerCase().includes(search);
+      })
+      .map((repository: JSONObject): JSONObject => {
+        return {
+          ...repository,
+          isConnected: true,
+          provider: "GitHub",
+          stats: {
+            working: 0,
+            waitingForYou: 0,
+            openPullRequests: 0,
+            taskCount: 0,
+          },
+        };
+      });
+
+    return new HTTPResponse(
+      200,
+      { repositories: found, count: found.length },
+      {},
+    );
+  });
+}
+
+// The strip's repository field, opened: the server's first page of picks.
+async function openRepositoryPicker(strip: HTMLElement): Promise<void> {
+  await act(async () => {
+    fireEvent.focus(
+      within(
+        within(strip).getByTestId("trace-fix-performance-repository"),
+      ).getByRole("combobox"),
+    );
+  });
+}
+
+async function pickRepository(strip: HTMLElement, name: string): Promise<void> {
+  await openRepositoryPicker(strip);
+
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: new RegExp(name),
+  });
+
+  await act(async () => {
+    fireEvent.click(option);
+  });
+}
+
 describe("performance fix with AI", () => {
   afterEach(() => {
     mockCurrentProject = null;
@@ -2674,13 +2741,17 @@ describe("performance fix with AI", () => {
    * the strip asks which one, and the click names the pick.
    */
   test("a repository to pick: the click names the pick, and only then is the fix asked", async () => {
+    const REPOSITORIES: Array<JSONObject> = [
+      { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+    ];
     answerSuggestion({
       offer: "Act",
       finding: nPlusOneFinding(),
-      repositories: [
-        { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
-        { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
-      ],
+      repositories: REPOSITORIES,
+    });
+    answerCodeRepositories(() => {
+      return REPOSITORIES;
     });
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();
@@ -2692,13 +2763,7 @@ describe("performance fix with AI", () => {
     fireEvent.click(button);
     expect(postsTo(CREATE_PATH)).toHaveLength(0);
 
-    fireEvent.keyDown(
-      within(
-        within(strip).getByTestId("trace-fix-performance-repository"),
-      ).getByRole("combobox"),
-      { key: "ArrowDown", code: "ArrowDown" },
-    );
-    fireEvent.click(screen.getByText("checkout-api"));
+    await pickRepository(strip, "checkout-api");
     fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
 
     expect(
@@ -2714,8 +2779,9 @@ describe("performance fix with AI", () => {
   /*
    * The pick was disconnected between the page's read and the click: the
    * reason shows beside the finding, and the list to pick from is the
-   * server's again - the gone repository is no longer offered, and the
-   * fix waits for a new pick.
+   * server's again - the gone repository is no longer offered (the search
+   * is of the connected repositories, #10921), and the fix waits for a new
+   * pick.
    */
   test("a pick refused because it was disconnected meanwhile: the reason shows, and the list is the server's again", async () => {
     const REPOSITORIES: Array<JSONObject> = [
@@ -2745,19 +2811,16 @@ describe("performance fix with AI", () => {
         repositories: [REPOSITORIES[0]!, REPOSITORIES[2]!],
       },
     );
+    // Code's routes: checkout-api is disconnected once the click is refused.
+    answerCodeRepositories(() => {
+      return postsTo(CREATE_PATH).length > 0
+        ? [REPOSITORIES[0]!, REPOSITORIES[2]!]
+        : REPOSITORIES;
+    });
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();
-    const openPicker: () => void = (): void => {
-      fireEvent.keyDown(
-        within(
-          within(strip).getByTestId("trace-fix-performance-repository"),
-        ).getByRole("combobox"),
-        { key: "ArrowDown", code: "ArrowDown" },
-      );
-    };
 
-    openPicker();
-    fireEvent.click(screen.getByText("checkout-api"));
+    await pickRepository(strip, "checkout-api");
     fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
 
     expect(
@@ -2774,10 +2837,12 @@ describe("performance fix with AI", () => {
         within(strip).getByTestId("trace-fix-performance-repository"),
       ).queryByText("checkout-api"),
     ).toBeNull();
-    openPicker();
-    expect(screen.queryByText("checkout-api")).toBeNull();
-    expect(screen.getByText("billing")).toBeInTheDocument();
-    expect(screen.getByText("storefront")).toBeInTheDocument();
+    await openRepositoryPicker(strip);
+    expect(
+      await screen.findByRole("option", { name: /storefront/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /billing/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /checkout-api/ })).toBeNull();
     expect(postsTo(CREATE_PATH)).toHaveLength(1);
   });
 
