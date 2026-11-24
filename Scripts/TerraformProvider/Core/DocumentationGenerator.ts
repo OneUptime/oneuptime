@@ -363,7 +363,7 @@ export class DocumentationGenerator {
     { pattern: /^cloud_/, name: "Cloud" },
     {
       pattern:
-        /^host|^docker_|^podman_|^kubernetes_|^proxmox_|^openstack_|^ceph_|^storage_array|^vcenter|^database|^queue|^serverless_function|^collector_config|^inventory_item/,
+        /^host|^docker_|^podman_|^kubernetes_|^proxmox_|^xcp_ng_|^openstack_|^ceph_|^storage_array|^vcenter|^database|^queue|^serverless_function|^collector_config|^inventory_item/,
       name: "Infrastructure",
     },
     { pattern: /^iot_/, name: "IoT" },

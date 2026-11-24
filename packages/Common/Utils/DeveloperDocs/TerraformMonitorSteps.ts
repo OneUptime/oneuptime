@@ -66,6 +66,7 @@ export const MONITOR_STEP_SUB_CONFIGS: ReadonlyArray<{
   { attributeName: "proxmox_monitor", apiKey: "proxmoxMonitor" },
   { attributeName: "openstack_monitor", apiKey: "openstackMonitor" },
   { attributeName: "vmware_monitor", apiKey: "vmwareMonitor" },
+  { attributeName: "xcp_ng_monitor", apiKey: "xcpNgMonitor" },
   { attributeName: "docker_swarm_monitor", apiKey: "dockerSwarmMonitor" },
   { attributeName: "ceph_monitor", apiKey: "cephMonitor" },
   { attributeName: "storage_array_monitor", apiKey: "storageArrayMonitor" },
