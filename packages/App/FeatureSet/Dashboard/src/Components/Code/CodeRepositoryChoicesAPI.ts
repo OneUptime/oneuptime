@@ -1,5 +1,6 @@
 import CodeApi, {
   CodeRepositoriesResponse,
+  CodeRepositoriesScope,
   CodeRepositoryListItem,
 } from "./CodeApi";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
@@ -31,11 +32,44 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
  *     POST /code-task/repositories-by-id: a repository the reader may no
  *     longer read is not answered, and the picker says it is not found.
  *
+ * A Fix with AI picker holds both reads to the repositories its fix accepts
+ * (#10921): those the reader may ask OneUptime AI to work in, under
+ * CODE_REPOSITORY_CHOICE_ASKABLE_KEY, and those whose code OneUptime reads,
+ * under CODE_REPOSITORY_CHOICE_CODE_READABLE_KEY - so it never offers one
+ * the fix then refuses, however many repositories the project has.
+ *
  * Any other model is read as ModelAPI reads it.
  */
 
 // The key of a picker's query that names one of Code's two lists.
 export const CODE_REPOSITORY_CHOICE_GROUP_KEY: string = "codeRepositoryGroup";
+
+/*
+ * The keys of a picker's query that hold its reads to the repositories the
+ * reader may ask OneUptime AI to work in, and to those whose code OneUptime
+ * reads: true for each a picker is held to.
+ */
+export const CODE_REPOSITORY_CHOICE_ASKABLE_KEY: string =
+  "codeRepositoryAskableOnly";
+
+export const CODE_REPOSITORY_CHOICE_CODE_READABLE_KEY: string =
+  "codeRepositoryCodeReadableOnly";
+
+// What a picker's query holds its reads to: each only when its key says true.
+export const readChoiceScope: (
+  query: Record<string, unknown>,
+) => CodeRepositoriesScope = (
+  query: Record<string, unknown>,
+): CodeRepositoriesScope => {
+  return {
+    ...(query[CODE_REPOSITORY_CHOICE_ASKABLE_KEY] === true
+      ? { askableOnly: true }
+      : {}),
+    ...(query[CODE_REPOSITORY_CHOICE_CODE_READABLE_KEY] === true
+      ? { codeReadableOnly: true }
+      : {}),
+  };
+};
 
 // The text a picker's query searches for, as typed: "" for none.
 export const readChoiceSearch: (query: Record<string, unknown>) => string = (
@@ -128,10 +162,13 @@ export const readCodeRepositoryChoices: <TBaseModel extends BaseModel>(
     unknown
   >;
   const heldIds: Array<string> | null = readHeldIds(query);
+  const scope: CodeRepositoriesScope = readChoiceScope(query);
 
   if (heldIds) {
     const held: Array<CodeRepositoryListItem> =
-      heldIds.length > 0 ? await CodeApi.getRepositoriesById(heldIds) : [];
+      heldIds.length > 0
+        ? await CodeApi.getRepositoriesById(heldIds, scope)
+        : [];
 
     return {
       data: held.map(toCodeRepositoryRecord) as unknown as Array<TBaseModel>,
@@ -147,6 +184,7 @@ export const readCodeRepositoryChoices: <TBaseModel extends BaseModel>(
     order: CodeRepositoryListOrder.Name,
     skip: data.skip,
     limit: data.limit,
+    ...scope,
   });
 
   return {

@@ -1,13 +1,10 @@
 import Route from "Common/Types/API/Route";
+import { CodeRepositoryListGroup } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -27,6 +24,7 @@ import React, {
 } from "react";
 import { formatDurationNano } from "../../../Utils/TraceDetailPresentation";
 import CodeBlockerNotice from "../../Code/CodeBlockerNotice";
+import CodeRepositorySearchField from "../../Code/CodeRepositorySearchField";
 import { TELEMETRY_AI_FIX_COPY } from "../../TelemetryAi/TelemetryAiFixCopy";
 import {
   AI_IS_WORKING_ON_A_FIX,
@@ -92,6 +90,10 @@ export const TRACE_FIX_PERFORMANCE_PICK_CLASS_NAME: string =
 export const TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID: string =
   "trace-fix-performance-repository";
 
+// The repository field itself: its search box, or its value once picked.
+export const TRACE_FIX_PERFORMANCE_REPOSITORY_PICKER_TEST_ID: string =
+  "trace-fix-performance-repository-picker";
+
 /*
  * The fix button spans the strip on a phone, its label on one line: beside
  * the clock it would break in two. A Button has no width of its own
@@ -131,16 +133,15 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
    * No connected repository was found to hold this trace's code for
    * certain, and several could: the person picks one before the fix starts
    * (as a telemetry finding's Fix with AI asks), or the run would find none
-   * when it starts. A pick stands only while the list still holds it.
+   * when it starts. The suggestion's list says only that a pick is asked
+   * for; the pick is searched on the server among every connected
+   * repository the person may read (#10921) - the list held the first 200
+   * by name, so one past them could not be picked.
    */
   const repositories: Array<TracePerformanceFixRepository> =
     suggestion.repositories || [];
   const needsRepositoryPick: boolean =
     suggestion.offer === SuggestionOffer.Act && repositories.length > 1;
-  const pickedRepository: TracePerformanceFixRepository | undefined =
-    repositories.find((repository: TracePerformanceFixRepository): boolean => {
-      return repository.id === pickedRepositoryId;
-    });
 
   const words: PerformanceFindingWords = getPerformanceFindingWords(
     suggestion.finding,
@@ -307,16 +308,6 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
     }
 
     if (needsRepositoryPick) {
-      const repositoryOptions: Array<DropdownOption> = repositories.map(
-        (repository: TracePerformanceFixRepository): DropdownOption => {
-          return {
-            value: repository.id,
-            label: repository.name,
-            isUserContent: true,
-          };
-        },
-      );
-
       return (
         <div className={TRACE_FIX_PERFORMANCE_PICK_CLASS_NAME}>
           <div
@@ -329,20 +320,16 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
             >
               {translator.translateText(TELEMETRY_AI_FIX_COPY.pickRepository)}
             </p>
-            <Dropdown
-              options={repositoryOptions}
-              value={repositoryOptions.find(
-                (option: DropdownOption): boolean => {
-                  return option.value === pickedRepository?.id;
-                },
-              )}
-              placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
-              ariaLabelledby={REPOSITORY_LABEL_ID}
+            <CodeRepositorySearchField
+              value={pickedRepositoryId || null}
+              group={CodeRepositoryListGroup.Connected}
               isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                setPickedRepositoryId(value ? value.toString() : "");
+              placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
+              emptyListText={TELEMETRY_AI_FIX_COPY.noReadableRepository}
+              ariaLabelledby={REPOSITORY_LABEL_ID}
+              dataTestId={TRACE_FIX_PERFORMANCE_REPOSITORY_PICKER_TEST_ID}
+              onChange={(repositoryId: string | null) => {
+                setPickedRepositoryId(repositoryId || "");
               }}
             />
           </div>
@@ -353,13 +340,13 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
             buttonSize={ButtonSize.Small}
             isLoading={props.isCreating}
             tooltip={FIX_PERFORMANCE_BUTTON_TOOLTIP}
-            disabled={!pickedRepository}
+            disabled={!pickedRepositoryId}
             dataTestId="trace-fix-performance"
             // Under the pick, where the eye goes next.
             className="self-start whitespace-nowrap"
             onClick={() => {
-              if (pickedRepository) {
-                props.onFix(pickedRepository.id);
+              if (pickedRepositoryId) {
+                props.onFix(pickedRepositoryId);
               }
             }}
           />
