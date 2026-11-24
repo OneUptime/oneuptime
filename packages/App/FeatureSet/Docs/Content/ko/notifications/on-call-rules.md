@@ -27,6 +27,25 @@ flowchart TB
 
 대부분의 메시지에서 호출을 인지할 수 있습니다. 이메일, 문자, 그리고 WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost 메시지에는 인지 링크가 있고, 전화는 1번을 누르라고 안내합니다. 호출을 받을 수 없을 때는 같은 메시지에서 에스컬레이션할 수 있고, 전화는 2번을 누르라고 안내합니다. 그러면 정책이 바로 다음 단계를 호출하고, 이 건으로 다시 호출되지 않습니다. [호출 에스컬레이션](/docs/on-call/escalation-rules#호출-에스컬레이션)을 참고하세요. 받은 호출은 모두 **사용자 설정 → 온콜 로그**에 나열되며, 여기서 **타임라인 보기**가 보낸 모든 메시지와 전달 여부를 보여 줍니다.
 
+### 전화가 말하는 내용
+
+전화는 누가 거는 전화인지, 무슨 일이 일어났는지, 얼마나 심각한지와 그 번호를 먼저 말하고, 이어서 어떤 키가 무엇을 하는지, 마지막으로 제목을 말합니다. 전화가 아직 말하는 중에도 언제든지 키를 누를 수 있습니다. 아무 키도 누르지 않으면 전화는 모든 내용을 한 번 더 말하고, 10초를 기다린 뒤 끊으며, 호출은 인지되지 않은 채로 남습니다. 예를 들면 다음과 같습니다.
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+전화는 프로젝트 이름을 말합니다. 인증 코드처럼 프로젝트를 위한 것이 아닌 전화는 OneUptime이나, 셀프 호스팅 설치에서 쓰는 이름을 말합니다. 약 100자보다 긴 제목은 온전한 단어 뒤에서 잘리며, 전체 제목은 OneUptime에 남습니다. `INC-42` 같은 번호의 글자는 한 글자씩 읽히므로, 음성이 이를 단어로 읽지 않습니다. 전화는 항상 영어로 진행됩니다.
+
 ## 모두 하나의 연락 순서로
 
 **사용자 설정 → 나에게 연락하는 방법**을(를) 열면 내 연락 순서가 나옵니다. 모든 심각도의 인시던트, 경고, 에피소드에서 호출될 때마다 차례로 시도하는 번호 붙은 단계입니다. 각 단계는 즉시나 5분 후 같은 시점과, 그때 함께 보내는 인증된 경고 방법입니다. 뒤의 단계는 그때까지 아무도 호출을 확인하지 않았을 때만 보내집니다.

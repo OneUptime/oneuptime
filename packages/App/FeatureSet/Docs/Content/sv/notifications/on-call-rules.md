@@ -27,6 +27,25 @@ flowchart TB
 
 De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsApp, Telegram, Slack, Microsoft Teams och Mattermost har en bekräftelselänk, och ett samtal ber dig trycka 1. Kan du inte ta ett larm kan du eskalera det från samma meddelanden, och ett samtal ber dig trycka 2: policyn larmar nästa nivå direkt, och du larmas inte om det igen. Se [Eskalera ett larm](/docs/on-call/escalation-rules#eskalera-ett-larm). Varje larm du får finns under **Användarinställningar → Jourloggar**, där **Visa tidslinje** visar varje skickat meddelande och om det levererades.
 
+### Vad ett samtal säger
+
+Ett samtal säger vem det kommer från, vad som har hänt, hur allvarligt det är och vilket nummer det har, sedan vilken knapp som gör vad och till sist titeln. Du kan trycka på en knapp när som helst, även medan samtalet fortfarande talar. Trycker du inte på någon säger samtalet allt en gång till, väntar i 10 sekunder och lägger på, och larmet förblir obekräftat:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+Samtalet nämner ditt projekt. Ett samtal som inte hör till ett projekt, till exempel en verifieringskod, nämner OneUptime eller det namn som din självhostade installation använder. En titel på mer än ungefär 100 tecken kortas efter ett helt ord, och OneUptime sparar hela titeln. Bokstäverna i ett nummer som `INC-42` sägs en i taget, så att rösten aldrig läser dem som ett ord. Samtal är alltid på engelska.
+
 ## En ordning för allt
 
 **Användarinställningar → Så når man mig** öppnas med din ordning: numrerade steg som varje larm provar i tur och ordning, för incidenter, larm och episoder av alla allvarlighetsgrader. Varje steg är en tidpunkt, till exempel direkt eller efter 5 minuter, med de verifierade metoder som går ut tillsammans då. Ett senare steg går bara ut om ingen har bekräftat larmet innan dess.

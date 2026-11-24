@@ -27,6 +27,25 @@ flowchart TB
 
 La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SMS et les messages WhatsApp, Telegram, Slack, Microsoft Teams et Mattermost contiennent un lien de prise en compte, et un appel vous demande d'appuyer sur 1. Si vous ne pouvez pas prendre une alerte, les mêmes messages vous permettent de l'escalader, et un appel vous demande d'appuyer sur 2 : la politique alerte tout de suite son niveau suivant, et vous n'êtes plus alerté à ce sujet. Voir [Escalader une alerte](/docs/on-call/escalation-rules#escalader-une-alerte). Chaque alerte reçue figure dans **Paramètres utilisateur → Journaux d'astreinte**, où **Voir la chronologie** montre chaque message envoyé et s'il a été livré.
 
+### Ce que dit un appel
+
+Un appel dit de qui il vient, ce qui s'est passé, sa gravité et son numéro, puis ce que fait chaque touche, et enfin le titre. Vous pouvez appuyer sur une touche à tout moment, même pendant que l'appel parle encore. Si vous n'appuyez sur aucune, l'appel répète tout une fois, attend 10 secondes et raccroche, et l'alerte reste non prise en compte :
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+L'appel nomme votre projet. Un appel qui ne concerne aucun projet, comme un code de vérification, nomme OneUptime, ou le nom que porte votre installation auto-hébergée. Un titre de plus d'environ 100 caractères est coupé après un mot entier, et OneUptime conserve le titre complet. Les lettres d'un numéro comme `INC-42` sont prononcées une à une, pour que la voix ne les lise jamais comme un mot. Les appels sont toujours en anglais.
+
 ## Une seule séquence pour tout
 
 **Paramètres utilisateur → Comment me joindre** s'ouvre sur votre séquence : des étapes numérotées que chaque appel essaie tour à tour, pour les incidents, les alertes et les épisodes de toute gravité. Chaque étape est un moment, par exemple tout de suite ou après 5 minutes, avec les méthodes vérifiées qui partent ensemble à ce moment-là. Une étape suivante ne part que si personne n'a encore pris l'appel en compte.

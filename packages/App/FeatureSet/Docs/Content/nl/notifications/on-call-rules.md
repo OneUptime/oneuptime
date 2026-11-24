@@ -27,6 +27,25 @@ flowchart TB
 
 De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten via WhatsApp, Telegram, Slack, Microsoft Teams en Mattermost bevatten een bevestigingslink, en een telefoongesprek vraagt je op 1 te drukken. Kun je een oproep niet aannemen, dan kun je hem via dezelfde berichten escaleren, en een telefoongesprek vraagt je op 2 te drukken: het beleid roept meteen het volgende niveau op, en je wordt er niet meer over opgeroepen. Zie [Een oproep escaleren](/docs/on-call/escalation-rules#een-oproep-escaleren). Elke oproep die je krijgt, staat onder **Gebruikersinstellingen → Bereikbaarheidslogboeken**, waar **Tijdlijn bekijken** elk verzonden bericht toont en of het is afgeleverd.
 
+### Wat een telefoongesprek zegt
+
+Een telefoongesprek zegt van wie het komt, wat er is gebeurd, hoe ernstig het is en welk nummer het heeft, daarna welke toets wat doet en ten slotte de titel. Je kunt op elk moment een toets indrukken, ook terwijl het gesprek nog praat. Druk je niets in, dan zegt het gesprek alles nog één keer, wacht het 10 seconden en hangt het op, en blijft de oproep onbevestigd:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+Het gesprek noemt je project. Een gesprek dat niet bij een project hoort, zoals een verificatiecode, noemt OneUptime of de naam waaronder je zelf gehoste installatie bekendstaat. Een titel van meer dan ongeveer 100 tekens wordt na een heel woord afgekapt, en OneUptime bewaart de volledige titel. De letters van een nummer als `INC-42` worden één voor één uitgesproken, zodat de stem ze nooit als een woord leest. Gesprekken zijn altijd in het Engels.
+
 ## Eén reeks voor alles
 
 **Gebruikersinstellingen → Hoe ik bereikbaar ben** opent met uw reeks: genummerde stappen die elke oproep op volgorde probeert, voor incidenten, waarschuwingen en episodes van elk ernstniveau. Elke stap is een moment, zoals meteen of na 5 minuten, met de geverifieerde methoden die dan samen uitgaan. Een latere stap gaat alleen uit als niemand de oproep tegen die tijd heeft bevestigd.

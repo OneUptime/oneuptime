@@ -27,6 +27,25 @@ flowchart TB
 
 A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens do WhatsApp, do Telegram, do Slack, do Microsoft Teams e do Mattermost trazem um link de confirmação, e uma chamada pede que você pressione 1. Se você não puder atender um acionamento, as mesmas mensagens permitem escaloná-lo, e uma chamada pede que você pressione 2: a política aciona o próximo nível na hora, e você não é mais acionado sobre isso. Veja [Escalonar um acionamento](/docs/on-call/escalation-rules#escalonar-um-acionamento). Cada acionamento que você recebe aparece em **Configurações do usuário → Registros de plantão**, onde **Ver linha do tempo** mostra cada mensagem enviada e se ela foi entregue.
 
+### O que uma chamada diz
+
+Uma chamada diz de quem ela vem, o que aconteceu, qual a gravidade e o número, depois o que cada tecla faz e, por fim, o título. Você pode pressionar uma tecla a qualquer momento, mesmo enquanto a chamada ainda está falando. Se você não pressionar nenhuma, a chamada repete tudo mais uma vez, espera 10 segundos e desliga, e o acionamento continua sem confirmação:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+A chamada diz o nome do seu projeto. Uma chamada que não é de um projeto, como um código de verificação, diz OneUptime ou o nome que a sua instalação auto-hospedada usa. Um título com mais de cerca de 100 caracteres é cortado depois de uma palavra inteira, e o OneUptime guarda o título completo. As letras de um número como `INC-42` são ditas uma a uma, para que a voz nunca as leia como uma palavra. As chamadas são sempre em inglês.
+
 ## Uma só sequência para tudo
 
 **Configurações do usuário → Como me contatar** abre na sua sequência: etapas numeradas que cada chamada tenta, uma após a outra, para incidentes, alertas e episódios de qualquer gravidade. Cada etapa é um momento, por exemplo na hora ou após 5 minutos, com os métodos verificados que saem juntos nesse momento. Uma etapa seguinte só sai se ninguém tiver confirmado a chamada até lá.

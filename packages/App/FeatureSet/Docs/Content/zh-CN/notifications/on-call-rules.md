@@ -27,6 +27,25 @@ flowchart TB
 
 大多数消息都可以确认呼叫：邮件、短信，以及 WhatsApp、Telegram、Slack、Microsoft Teams 和 Mattermost 消息都带有确认链接，电话会让你按 1。如果你无法处理某次呼叫，可以通过同样的消息升级它，电话会让你按 2：策略会立即呼叫下一级，你也不会再因此被呼叫。参见 [升级呼叫](/docs/on-call/escalation-rules#升级呼叫) 。你收到的每次呼叫都列在 **用户设置 → 值班日志** 下，其中 **查看时间线** 会显示它发送的每条消息以及是否已送达。
 
+### 电话会说什么
+
+电话会先说明来自谁、发生了什么、严重程度和编号，接着说明每个按键的作用，最后说出标题。即使电话还在播报，你也可以随时按键。如果你一个键也不按，电话会把全部内容再说一遍，等待 10 秒后挂断，这次呼叫将保持未确认状态，例如：
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+电话会说出你的项目名称。不属于某个项目的电话（例如验证码电话）会说出 OneUptime，或你的自托管安装所使用的名称。超过大约 100 个字符的标题会在一个完整的单词之后截断，完整标题保留在 OneUptime 中。像 `INC-42` 这样的编号中的字母会逐个读出，这样语音就不会把它们读成一个单词。电话始终使用英语。
+
 ## 所有呼叫用一个联系顺序
 
 **用户设置 → 如何联系我** 打开时显示您的联系顺序：在任何严重程度的事件、警报和事件组中，每次呼叫都会依次尝试的编号步骤。每一步是一个时间（例如立即或 5 分钟后），以及届时一起发出的已验证通知方式。只有到那时仍无人确认呼叫，后面的步骤才会发出。

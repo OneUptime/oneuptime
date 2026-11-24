@@ -27,6 +27,25 @@ flowchart TB
 
 La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y los mensajes de WhatsApp, Telegram, Slack, Microsoft Teams y Mattermost llevan un enlace para reconocerlo, y una llamada te pide que pulses 1. Si no puedes atender un aviso, los mismos mensajes te permiten escalarlo, y una llamada te pide que pulses 2: la política avisa de inmediato a su siguiente nivel, y no te vuelven a avisar de ello. Consulta [Escalar un aviso](/docs/on-call/escalation-rules#escalar-un-aviso). Cada aviso que recibes aparece en **Ajustes de usuario → Registros de guardia**, donde **Ver cronología** muestra cada mensaje enviado y si se entregó.
 
+### Qué dice una llamada
+
+Una llamada dice de quién es, qué ha pasado, qué gravedad tiene y su número, luego qué hace cada tecla y, por último, el título. Puedes pulsar una tecla en cualquier momento, incluso mientras la llamada sigue hablando. Si no pulsas ninguna, la llamada lo repite todo una vez más, espera 10 segundos y cuelga, y el aviso queda sin reconocer:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+La llamada nombra tu proyecto. Una llamada que no es de un proyecto, como un código de verificación, nombra OneUptime o el nombre que usa tu instalación autoalojada. Un título de más de unos 100 caracteres se corta tras una palabra completa, y OneUptime guarda el título entero. Las letras de un número como `INC-42` se dicen una a una, para que la voz nunca las lea como una palabra. Las llamadas siempre son en inglés.
+
 ## Una sola secuencia para todo
 
 **Ajustes de usuario → Cómo contactarme** se abre con tu secuencia: pasos numerados que cada aviso prueba uno tras otro, para incidentes, alertas y episodios de cualquier gravedad. Cada paso es un momento, por ejemplo de inmediato o después de 5 minutos, con los métodos verificados que salen juntos en ese momento. Un paso posterior solo sale si nadie ha reconocido el aviso para entonces.

@@ -27,6 +27,25 @@ flowchart TB
 
 ほとんどのメッセージから呼び出しを確認できます。メール、SMS、そして WhatsApp、Telegram、Slack、Microsoft Teams、Mattermost のメッセージには確認用のリンクがあり、電話では 1 を押すよう求められます。呼び出しに対応できない場合は、同じメッセージからエスカレーションでき、電話では 2 を押すよう求められます。ポリシーはすぐ次のレベルを呼び出し、あなたがこの件で再び呼び出されることはありません。詳しくは [呼び出しをエスカレーションする](/docs/on-call/escalation-rules#呼び出しをエスカレーションする) を参照してください。受けた呼び出しはそれぞれ **ユーザー設定 → オンコールログ** に記録され、 **タイムラインを表示** で、送信されたすべてのメッセージと、それが配信されたかどうかを確認できます。
 
+### 電話で話される内容
+
+電話はまず、誰からの電話か、何が起きたか、どれほど深刻か、その番号を伝え、次にどのキーで何ができるか、最後にタイトルを伝えます。キーは、電話がまだ話している途中でも、いつでも押せます。どのキーも押さなければ、電話はすべてをもう一度伝え、10 秒待ってから切れ、呼び出しは確認されないまま残ります。たとえば次のように話します。
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+電話はあなたのプロジェクト名を伝えます。確認コードのようにプロジェクトのためではない電話では、OneUptime、またはセルフホストのインストールで使っている名前を伝えます。約 100 文字を超えるタイトルは単語の切れ目で短くされ、完全なタイトルは OneUptime に残ります。`INC-42` のような番号の文字は 1 文字ずつ読み上げられるので、音声がそれを単語として読むことはありません。電話は常に英語です。
+
 ## すべてに 1 つの連絡手順
 
 **ユーザー設定 → 私への連絡方法** を開くと、あなたの連絡手順が表示されます。すべての重大度のインシデント、アラート、エピソードで、呼び出しのたびに順に試す番号付きのステップです。各ステップは「すぐに」や「5 分後」といった時点と、その時点で一緒に送られる確認済みの通知方法です。後のステップは、それまでに誰も呼び出しを確認していない場合にだけ送られます。
