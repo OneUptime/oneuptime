@@ -37,10 +37,12 @@ import {
 import {
   DataSecurityIssueGroupFacts,
   DataSecurityIssueGroupFixStateJSON,
+  MIN_ISSUES_PER_GROUP,
   describeIssueGroupCause,
   getIssueGroupOriginName,
   readDataSecurityIssueGroupFacts,
 } from "../../../Types/DataSecurity/DataSecurityIssueGroup";
+import { JSONObject } from "../../../Types/JSON";
 import {
   DataSecurityIssueGroupCloudOutcomeJSON,
   DataSecurityIssueGroupFixPart,
@@ -72,7 +74,7 @@ import {
   DeclaredCodeOwnerCandidateJSON,
   readDeclaredCode,
 } from "../../../Utils/AiRemediation/DeclaredCodeChange";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { DashboardClientUrl } from "../../EnvironmentConfig";
 import AIRunService from "../../Services/AIRunService";
 import CloudConnectionService from "../../Services/CloudConnectionService";
@@ -107,6 +109,10 @@ import CloudAiTargets from "../AI/ResourceAccess/CloudAiTargets";
 import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import DataSecurityIssueGroups, {
+  IssueGroupReadScope,
+  ReadableGroupMember,
+} from "./DataSecurityIssueGroups";
 import DataSecurityResponse from "./DataSecurityResponse";
 import ServerProducts from "../ServerProducts/ServerProducts";
 import ProductKey from "../../../Types/Product/ProductKey";
@@ -184,6 +190,15 @@ export const GROUP_FIX_CHANGED_MESSAGE: string =
 
 export const GROUP_FIX_NOTHING_TO_DO_MESSAGE: string =
   "Nothing in this group can be fixed from here: every store is left out of its fix.";
+
+/*
+ * A reader held to labels reads a group as the stores they may read make
+ * it (#10739), but a group's fix changes the module or stores the cause
+ * made, whichever they are: it is asked for by a reader of the whole
+ * project. Said the same way of every group, so it tells nothing of one.
+ */
+export const GROUP_FIX_HELD_READER_MESSAGE: string =
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.";
 
 // The most of a group's open issues one fix covers.
 export const MAX_GROUP_FIX_ISSUES: number = 500;
@@ -430,6 +445,13 @@ export default class DataSecurityIssueGroupFix {
    * What the group's fix would do now, for this reader: the pull request
    * for the stores declared as code, the one approval for the stores made
    * in the console, and every store each leaves out, with why.
+   *
+   * A reader held to labels (#10739) reads the group as the issues they
+   * may read make it, as the groups' list answers it: only their stores,
+   * the facts those stores alone make, and its pull request only when it
+   * fixes one of their issues - and each part says it is asked for by a
+   * reader of the whole project. A group of which they may read fewer than
+   * two issues is not found, as one that does not exist.
    */
   @CaptureSpan()
   public static async plan(data: {
@@ -444,13 +466,121 @@ export default class DataSecurityIssueGroupFix {
         projectId: data.projectId,
         groupId: group.id!,
       });
+    const scope: IssueGroupReadScope = DataSecurityIssueGroups.getReadScope(
+      data.props,
+    );
+
+    if (scope === IssueGroupReadScope.None) {
+      throw new NotFoundException(GROUP_NOT_FOUND_MESSAGE);
+    }
+
+    if (scope === IssueGroupReadScope.Whole) {
+      return await DataSecurityIssueGroupFix.planOf({
+        projectId: data.projectId,
+        group,
+        members,
+        props: data.props,
+      });
+    }
+
+    const readable: Array<ReadableGroupMember> =
+      (
+        await DataSecurityIssueGroups.readReadableMembers({
+          projectId: data.projectId,
+          groupIds: [idOf(group)],
+          props: data.props,
+        })
+      ).get(idOf(group)) || [];
+
+    if (readable.length < MIN_ISSUES_PER_GROUP) {
+      throw new NotFoundException(GROUP_NOT_FOUND_MESSAGE);
+    }
+
+    const readableIssueIds: Set<string> = new Set(
+      readable.map((member: ReadableGroupMember): string => {
+        return member.issueId;
+      }),
+    );
+    const allCount: number = (
+      await DataSecurityIssueService.countBy({
+        query: {
+          projectId: data.projectId,
+          dataSecurityIssueGroupId: group.id!,
+        },
+        props: ROOT,
+      })
+    ).toNumber();
 
     return await DataSecurityIssueGroupFix.planOf({
       projectId: data.projectId,
-      group,
-      members,
+      group:
+        readable.length < allCount
+          ? await DataSecurityIssueGroupFix.toCutDownGroup({
+              projectId: data.projectId,
+              group,
+              readable,
+            })
+          : group,
+      members: members.filter((member: GroupFixMember): boolean => {
+        return readableIssueIds.has(idOf(member.issue));
+      }),
       props: data.props,
+      isHeldReader: true,
     });
+  }
+
+  /*
+   * The group as a reader held to labels reads it, cut down to the issues
+   * they may read (#10739): the facts their stores alone make - no code
+   * the grouping found - and its pull request only when it fixes one of
+   * their issues.
+   */
+  private static async toCutDownGroup(data: {
+    projectId: ObjectID;
+    group: DataSecurityIssueGroup;
+    readable: Array<ReadableGroupMember>;
+  }): Promise<DataSecurityIssueGroup> {
+    const view: DataSecurityIssueGroup = new DataSecurityIssueGroup();
+    const facts: DataSecurityIssueGroupFacts | null =
+      readDataSecurityIssueGroupFacts(data.group.facts);
+
+    view._id = idOf(data.group);
+    view.id = data.group.id;
+
+    if (data.group.groupKey) {
+      view.groupKey = data.group.groupKey;
+    }
+
+    if (data.group.checkId) {
+      view.checkId = data.group.checkId;
+    }
+
+    if (facts) {
+      const ofTheirs: DataSecurityIssueGroupFacts =
+        await DataSecurityIssueGroups.getFactsOfMembers({
+          projectId: data.projectId,
+          group: data.group,
+          facts,
+          members: data.readable,
+        });
+
+      view.cause = ofTheirs.cause;
+      view.facts = JSON.parse(JSON.stringify(ofTheirs)) as JSONObject;
+    }
+
+    if (
+      data.group.codeTaskId &&
+      (await DataSecurityIssueGroups.isFixOfAnyOf({
+        taskId: data.group.codeTaskId,
+        issueIds: data.readable.map((member: ReadableGroupMember): string => {
+          return member.issueId;
+        }),
+      }))
+    ) {
+      view.codeTaskId = data.group.codeTaskId;
+    }
+
+    return view;
   }
 
   public static async planOf(data: {
@@ -458,6 +588,11 @@ export default class DataSecurityIssueGroupFix {
     group: DataSecurityIssueGroup;
     members: Array<GroupFixMember>;
     props: DatabaseCommonInteractionProps;
+    /*
+     * A reader held to labels (#10739): every part they could otherwise
+     * ask for says it takes a reader of the whole project.
+     */
+    isHeldReader?: boolean | undefined;
   }): Promise<DataSecurityIssueGroupFixPlanJSON> {
     const facts: DataSecurityIssueGroupFacts | null =
       readDataSecurityIssueGroupFacts(data.group.facts);
@@ -486,6 +621,7 @@ export default class DataSecurityIssueGroupFix {
         facts,
         members: declared,
         props: data.props,
+        isHeldReader: data.isHeldReader,
       });
     }
 
@@ -501,13 +637,20 @@ export default class DataSecurityIssueGroupFix {
       });
 
       if (cloud.action) {
+        const refusal: string | null = !holds(
+          data.props,
+          CLOUD_FIX_PERMISSIONS,
+        )
+          ? CLOUD_FIX_REFUSED_MESSAGE
+          : data.isHeldReader
+            ? GROUP_FIX_HELD_READER_MESSAGE
+            : null;
+
         plan.cloud = {
           action: cloud.action,
           actions: getIssueGroupCloudActions(cloud.included),
           stores: cloud.included,
-          ...(holds(data.props, CLOUD_FIX_PERMISSIONS)
-            ? {}
-            : { refusal: CLOUD_FIX_REFUSED_MESSAGE }),
+          ...(refusal ? { refusal } : {}),
         };
       }
     }
@@ -529,6 +672,7 @@ export default class DataSecurityIssueGroupFix {
     facts: DataSecurityIssueGroupFacts | null;
     members: Array<GroupFixMember>;
     props: DatabaseCommonInteractionProps;
+    isHeldReader?: boolean | undefined;
   }): Promise<NonNullable<DataSecurityIssueGroupFixPlanJSON["pullRequest"]>> {
     const declaredCode: DeclaredCode = data.members[0]!.declaredCode!;
     const existing: DataSecurityIssueGroupFixStateJSON | undefined = data.group
@@ -562,6 +706,11 @@ export default class DataSecurityIssueGroupFix {
 
     if (!holds(data.props, GROUP_PULL_REQUEST_PERMISSIONS)) {
       return { ...part, refusal: GROUP_PULL_REQUEST_REFUSED_MESSAGE };
+    }
+
+    // A reader held to labels asks for no group's fix (#10739).
+    if (data.isHeldReader) {
+      return { ...part, refusal: GROUP_FIX_HELD_READER_MESSAGE };
     }
 
     // A task in Code, so refused while the server has Code switched off (#9489).
@@ -884,7 +1033,10 @@ export default class DataSecurityIssueGroupFix {
    * the plan runs on - with the stores the person ticked in among those it
    * left out. Each part is made as the actor, held to its own permission;
    * a part the actor may not make is not made, and says why. A press made
-   * on a plan that changed since it was shown does nothing.
+   * on a plan that changed since it was shown does nothing. Made only by a
+   * reader of the whole project (or OneUptime): a reader held to labels
+   * reads a group cut down to their stores, and its fix is the whole
+   * group's (#10739).
    */
   @CaptureSpan()
   public static async run(data: {
@@ -908,6 +1060,10 @@ export default class DataSecurityIssueGroupFix {
     onlyStoreActions?: Readonly<Record<string, string>> | undefined;
     triggeredBySecurityCaseId?: ObjectID | undefined;
   }): Promise<DataSecurityIssueGroupFixResultJSON> {
+    if (!DataSecurityIssueGroups.canRead(data.props)) {
+      throw new NotAuthorizedException(GROUP_FIX_HELD_READER_MESSAGE);
+    }
+
     const group: DataSecurityIssueGroup =
       await DataSecurityIssueGroupFix.readGroup(data);
     const members: Array<GroupFixMember> =
@@ -1540,10 +1696,16 @@ export default class DataSecurityIssueGroupFix {
       const isWebAddress: boolean =
         data.pullRequestUrl.startsWith("https://") ||
         data.pullRequestUrl.startsWith("http://");
+      /*
+       * Read by everyone who reads the issue - a reader held to labels too
+       * (#10739) - so it names nothing of the group's other stores: not the
+       * pull request's title, which names the group's cause as all its
+       * stores make it.
+       */
       const markdown: string = (
         isWebAddress
-          ? mdText`OneUptime AI opened one pull request that fixes this issue's cause, for every issue of its group: [${data.title}](${data.pullRequestUrl}). This issue resolves on its own once its check passes after the change is applied.`
-          : mdText`OneUptime AI opened one pull request that fixes this issue's cause, for every issue of its group: ${data.title}. This issue resolves on its own once its check passes after the change is applied.`
+          ? mdText`OneUptime AI opened one pull request that fixes this issue's cause, in the code that declares its store: ${FeedMarkdown.link("view the pull request", data.pullRequestUrl)}. This issue resolves on its own once its check passes after the change is applied.`
+          : mdText`OneUptime AI opened one pull request that fixes this issue's cause, in the code that declares its store. This issue resolves on its own once its check passes after the change is applied.`
       ).toString();
 
       for (const issue of issues) {

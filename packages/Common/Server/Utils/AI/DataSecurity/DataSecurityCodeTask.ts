@@ -74,9 +74,13 @@ export const DATA_SECURITY_FIX_STARTED_MESSAGE: string =
 export const DATA_SECURITY_FIX_FEED_MESSAGE: string =
   "OneUptime AI was asked to open a fix as a pull request.";
 
-// What each issue of a group says when its cause's fix is asked for (#10370).
+/*
+ * What each issue of a group says when its cause's fix is asked for
+ * (#10370) - read by everyone who reads the issue, one held to labels too,
+ * so it says nothing of the group's other issues (#10739).
+ */
 export const DATA_SECURITY_GROUP_FIX_FEED_MESSAGE: string =
-  "OneUptime AI was asked to fix this issue's cause once, in one pull request for every issue of its group.";
+  "OneUptime AI was asked to fix this issue's cause once, in one pull request to the code that declares its store.";
 
 export const DATA_SECURITY_GROUP_FIX_STARTED_MESSAGE: string =
   "OneUptime AI is working on one pull request for the cause. It will appear under Code, and on each of the group's issues.";
