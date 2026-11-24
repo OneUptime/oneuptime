@@ -19,6 +19,7 @@ import {
   visibleText,
 } from "Common/Tests/Helpers/HtmlText";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { withBrandedSubject } from "../../FeatureSet/Notification/Utils/EmailBranding";
 
 /*
  * Registers the product's real `ifCond` / `ifNotCond` / `concat` helpers on
@@ -323,14 +324,62 @@ describe("ProbeMajorReleaseBehind.hbs", () => {
     ).not.toHaveProperty("Probe Description:");
   });
 
-  test("the subject is literal text: a probe named with braces sends, as written without them", () => {
+  test("the subject, compiled as MailService compiles it: a probe named with braces sends, without them", () => {
     const content: ProbeMajorReleaseNotificationContent = build({
       probeName: "probe {{ .Values.tag }}",
     });
 
-    expect(content.emailEnvelope.isSubjectLiteral).toBe(true);
-    expect(content.emailEnvelope.subject).toBe(
+    expect(content.emailEnvelope.isSubjectLiteral).toBeUndefined();
+    expect(
+      Handlebars.compile(withBrandedSubject(content.emailEnvelope.subject, {}))(
+        content.emailEnvelope.vars,
+      ),
+    ).toBe(
       "[Probe Update Available] probe  .Values.tag  is 2 major releases behind OneUptime",
+    );
+  });
+});
+
+/*
+ * An installation that goes by another name (Utils/EmailBranding): the email
+ * names that product everywhere it names one - its title, its sentences,
+ * its version row and its subject - and never OneUptime.
+ */
+describe("ProbeMajorReleaseBehind.hbs, on an installation that goes by another name", () => {
+  const BRAND: Dictionary<string> = {
+    brandProductName: "Acme Monitor",
+    isBrandRenamed: "true",
+  };
+
+  test("names the installation's product, never OneUptime", () => {
+    const html: string = render(build(), BRAND);
+    const text: string = visibleText(html);
+
+    expect(heading(html)).toBe(
+      "office-probe is 2 major releases behind Acme Monitor",
+    );
+    expect(text).toContain(
+      "Probe office-probe runs 16.4.0, 2 major releases behind Acme Monitor 18.1.0, which it reports to.",
+    );
+    expect(detailFields(html)["Acme Monitor Version:"]).toBe("18.1.0");
+    expect(text).toContain(
+      "Update the probe to the latest Acme Monitor release:",
+    );
+    expect(text).toContain(
+      "You are told once for each major release of Acme Monitor this probe falls behind.",
+    );
+    expect(text).not.toContain("OneUptime");
+  });
+
+  test("and in its subject", () => {
+    const content: ProbeMajorReleaseNotificationContent = build();
+
+    expect(
+      Handlebars.compile(
+        withBrandedSubject(content.emailEnvelope.subject, BRAND),
+      )({ ...content.emailEnvelope.vars, ...BRAND }),
+    ).toBe(
+      "[Probe Update Available] office-probe is 2 major releases behind Acme Monitor",
     );
   });
 });

@@ -160,13 +160,14 @@ describe("what it misses", () => {
 });
 
 describe("the email", () => {
-  test("its own template and setting, with a literal subject", () => {
+  test("its own template and setting, with a subject the mailer names the product in", () => {
     const content: ProbeMajorReleaseNotificationContent = build();
 
     expect(content.emailEnvelope.templateType).toBe(
       EmailTemplateType.ProbeMajorReleaseBehind,
     );
-    expect(content.emailEnvelope.isSubjectLiteral).toBe(true);
+    // A template subject: MailService writes the installation's own name for OneUptime.
+    expect(content.emailEnvelope.isSubjectLiteral).toBeUndefined();
     expect(content.emailEnvelope.subject).toBe(
       "[Probe Update Available] office-probe is 2 major releases behind OneUptime",
     );
@@ -175,14 +176,13 @@ describe("the email", () => {
     );
   });
 
-  test("what the template reads", () => {
+  test("what the template reads: the pieces, never a sentence that names the product", () => {
     expect(build().emailEnvelope.vars).toEqual({
-      title: "office-probe is 2 major releases behind OneUptime",
-      lagSentence:
-        "Probe office-probe runs 16.4.0, 2 major releases behind OneUptime 18.1.0, which it reports to. Update it to get the latest checks and fixes.",
       probeName: "office-probe",
       probeDescription: "The office network",
       probeRelease: "16.4.0",
+      probeVersionPhrase: "16.4.0",
+      majorReleasesLabel: "2 major releases",
       serverRelease: "18.1.0",
       majorReleasesBehind: "2",
       projectName: "Acme Production",
@@ -221,12 +221,40 @@ describe("the email", () => {
     ).toEqual(["viewProbeLink"]);
   });
 
-  test("a probe named with braces never makes an expression of the subject", () => {
+  test("a probe named with braces never makes an expression of the subject, nor joins two into one", () => {
     expect(
       build({ probeName: "{{#each x}}probe{{/each}}" }).emailEnvelope.subject,
     ).toBe(
       "[Probe Update Available] #each xprobe/each is 2 major releases behind OneUptime",
     );
+    expect(build({ probeName: "a{}}{b" }).emailEnvelope.subject).toBe(
+      "[Probe Update Available] ab is 2 major releases behind OneUptime",
+    );
+    expect(build({ probeName: "a{}}{b" }).emailEnvelope.subject).not.toMatch(
+      /[{}]/,
+    );
+  });
+
+  test("a probe that says no release: what is known of its version, in a sentence and on its own", () => {
+    const vars: Record<string, unknown> = build({ lag: SAYS_NONE })
+      .emailEnvelope.vars;
+
+    expect(vars["probeRelease"]).toBe(
+      `older than ${FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE}`,
+    );
+    expect(vars["probeVersionPhrase"]).toBe(
+      `a version older than ${FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE}`,
+    );
+    expect(vars["majorReleasesLabel"]).toBe("at least 1 major release");
+  });
+
+  test("no value the template reads names the product: the template names it as the installation goes by", () => {
+    for (const [key, value] of Object.entries(build().emailEnvelope.vars)) {
+      expect({
+        key,
+        names: JSON.stringify(value).includes("OneUptime"),
+      }).toEqual({ key, names: false });
+    }
   });
 });
 

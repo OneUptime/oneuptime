@@ -126,6 +126,12 @@ export default class ProbeMajorReleaseNotification {
     )} behind OneUptime`;
   }
 
+  /*
+   * The subject: a template MailService compiles, so it names the product
+   * the way the installation goes by (withBrandedSubject). Every brace of
+   * the probe's name goes, so it never makes an expression of it: removing
+   * only "{{" and "}}" from "a{}}{b" would join two single braces into one.
+   */
   public static getEmailSubject(data: {
     probeName: string;
     lag: ProbeMajorReleaseLag;
@@ -136,19 +142,25 @@ export default class ProbeMajorReleaseNotification {
     })}`;
   }
 
+  // The probe's version in a sentence: "16.4.0", or "a version older than 17.1.0".
+  public static getProbeVersionPhrase(lag: ProbeMajorReleaseLag): string {
+    return lag.probeRelease
+      ? lag.probeRelease
+      : `a version ${ProbeMajorReleaseNotification.getProbeVersionLabel(lag)}`;
+  }
+
   /*
    * "Probe probe-1 runs 16.4.0, 2 major releases behind OneUptime 18.1.0,
-   * which it reports to." - the line every short channel opens with.
+   * which it reports to." - the line every short channel opens with. The
+   * email writes it in its template, with the installation's own name.
    */
   public static getLagSentence(data: {
     probeName: string;
     lag: ProbeMajorReleaseLag;
   }): string {
-    const version: string = data.lag.probeRelease
-      ? data.lag.probeRelease
-      : `a version ${ProbeMajorReleaseNotification.getProbeVersionLabel(data.lag)}`;
-
-    return `Probe ${data.probeName} runs ${version}, ${ProbeMajorReleaseNotification.getMajorReleasesLabel(
+    return `Probe ${data.probeName} runs ${ProbeMajorReleaseNotification.getProbeVersionPhrase(
+      data.lag,
+    )}, ${ProbeMajorReleaseNotification.getMajorReleasesLabel(
       data.lag,
     )} behind OneUptime ${data.lag.serverRelease}, which it reports to.`;
   }
@@ -189,12 +201,21 @@ export default class ProbeMajorReleaseNotification {
       .filter(Boolean)
       .join(" ");
 
+    /*
+     * The pieces the template writes its sentences from: every sentence
+     * that names the product names it as the installation goes by
+     * ((brandName) in the template), so none is written here.
+     */
     const vars: Dictionary<string | JSONObject> = {
-      title,
-      lagSentence: `${lagSentence} Update it to get the latest checks and fixes.`,
       probeName: data.probeName,
       probeDescription: data.probeDescription || "",
       probeRelease: ProbeMajorReleaseNotification.getProbeVersionLabel(
+        data.lag,
+      ),
+      probeVersionPhrase: ProbeMajorReleaseNotification.getProbeVersionPhrase(
+        data.lag,
+      ),
+      majorReleasesLabel: ProbeMajorReleaseNotification.getMajorReleasesLabel(
         data.lag,
       ),
       serverRelease: data.lag.serverRelease,
@@ -218,7 +239,6 @@ export default class ProbeMajorReleaseNotification {
       templateType: EmailTemplateType.ProbeMajorReleaseBehind,
       vars,
       subject: ProbeMajorReleaseNotification.getEmailSubject(data),
-      isSubjectLiteral: true,
     };
 
     const smsMessage: SMSMessage = {
