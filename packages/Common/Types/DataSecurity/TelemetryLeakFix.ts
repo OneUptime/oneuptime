@@ -34,18 +34,35 @@ import { toStableJsonText } from "./DataSecurityAi";
  * the project's scrub rules already mask, so the code does what ingest
  * does.
  *
+ * A RUM application's leaks are fixed the same way, in its front-end code
+ * (#10933): one pull request per application and repository, from where
+ * its browser logs, its browser spans and its sessions' details say
+ * the data was written - the page, a JavaScript stack resolved through
+ * the application's source maps, the session recorder call that gave it -
+ * and fixed at the call site, or in one redaction step where the browser
+ * sets up its telemetry or its session recorder. A fix's owner says which
+ * (TelemetryLeakFixOwnerKind); its serviceId and serviceName carry the
+ * owner's id and name either way.
+ *
  * Pure: the server, the Runner and the Dashboard read these shapes alike,
  * and they are a wire contract (AIRun.taskContext.telemetryLeakFix, the
  * fix plan the Dashboard shows): never rename a field or a value.
  */
 
-// The signals a service's telemetry leaks are found in.
+/*
+ * The signals telemetry leaks are found in: a service's, and a RUM
+ * application's (#10933) - its browser logs and spans, and its sessions'
+ * details (the user identify() gave it, and the page's attributes).
+ */
 export enum TelemetryLeakSignal {
   Logs = "Logs",
   Spans = "Spans",
   Exceptions = "Exceptions",
   AiCalls = "AiCalls",
   Metrics = "Metrics",
+  RumLogs = "RumLogs",
+  RumSpans = "RumSpans",
+  RumSessions = "RumSessions",
 }
 
 export const TELEMETRY_LEAK_SIGNALS: ReadonlyArray<TelemetryLeakSignal> = [
@@ -54,7 +71,41 @@ export const TELEMETRY_LEAK_SIGNALS: ReadonlyArray<TelemetryLeakSignal> = [
   TelemetryLeakSignal.Exceptions,
   TelemetryLeakSignal.AiCalls,
   TelemetryLeakSignal.Metrics,
+  TelemetryLeakSignal.RumLogs,
+  TelemetryLeakSignal.RumSpans,
+  TelemetryLeakSignal.RumSessions,
 ];
+
+// A RUM application's signals: what its front-end code sends.
+export const RUM_TELEMETRY_LEAK_SIGNALS: ReadonlyArray<TelemetryLeakSignal> = [
+  TelemetryLeakSignal.RumLogs,
+  TelemetryLeakSignal.RumSpans,
+  TelemetryLeakSignal.RumSessions,
+];
+
+// Whose code a fix changes: a service's, or a RUM application's front end (#10933).
+export enum TelemetryLeakFixOwnerKind {
+  Service = "Service",
+  RumApplication = "RumApplication",
+}
+
+export function isTelemetryLeakFixOwnerKind(
+  value: unknown,
+): value is TelemetryLeakFixOwnerKind {
+  return (
+    value === TelemetryLeakFixOwnerKind.Service ||
+    value === TelemetryLeakFixOwnerKind.RumApplication
+  );
+}
+
+// A fix's owner, as its plan or context says it: a service unless it says otherwise.
+export function getTelemetryLeakFixOwnerKind(
+  value: unknown,
+): TelemetryLeakFixOwnerKind {
+  return isTelemetryLeakFixOwnerKind(value)
+    ? value
+    : TelemetryLeakFixOwnerKind.Service;
+}
 
 /*
  * The telemetry stores of a service whose leaks its code is fixed for. A
@@ -77,11 +128,87 @@ export const SERVICE_TELEMETRY_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.TelemetryMetrics,
 ];
 
+// A RUM application's telemetry stores whose leaks its front-end code is fixed for (#10933).
+export const RUM_TELEMETRY_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.TelemetrySessionReplays,
+];
+
+/*
+ * A session replay store's finding, by where it sits: its browser logs'
+ * attributes, its browser spans', or the details a session carries
+ * (sessions.*). Never a recording: the scan reads none.
+ */
+const RUM_SIGNAL_OF_PREFIX: ReadonlyArray<[string, TelemetryLeakSignal]> = [
+  ["logs.attributes.", TelemetryLeakSignal.RumLogs],
+  ["spans.attributes.", TelemetryLeakSignal.RumSpans],
+  ["sessions.", TelemetryLeakSignal.RumSessions],
+];
+
 // The signal a telemetry store's records are, or null for one this fix leaves out.
 export function getTelemetryLeakSignal(
   kind: DataStoreKind | string | null | undefined,
 ): TelemetryLeakSignal | null {
   return (kind && SIGNAL_OF_STORE_KIND[kind]) || null;
+}
+
+/*
+ * The signal a RUM application's finding is, by its store and location -
+ * or null for one no front-end fix is for (#10933).
+ */
+export function getRumTelemetryLeakSignal(
+  kind: DataStoreKind | string | null | undefined,
+  location: string | null | undefined,
+): TelemetryLeakSignal | null {
+  if (kind !== DataStoreKind.TelemetrySessionReplays) {
+    return null;
+  }
+
+  const at: string = (location || "").trim();
+
+  for (const [prefix, signal] of RUM_SIGNAL_OF_PREFIX) {
+    if (at.startsWith(prefix) && at.length > prefix.length) {
+      return signal;
+    }
+  }
+
+  return null;
+}
+
+// Any finding's signal: a service's store's by its kind, a RUM application's by its location.
+export function getTelemetryLeakSignalOf(
+  kind: DataStoreKind | string | null | undefined,
+  location: string | null | undefined,
+): TelemetryLeakSignal | null {
+  return (
+    getTelemetryLeakSignal(kind) || getRumTelemetryLeakSignal(kind, location)
+  );
+}
+
+/*
+ * The key a session holds the data under (#10933): a trait of its user
+ * details, as the session recorder's identify() call names it, or an
+ * attribute the host page attached to it. None for any other place - its
+ * user's label has no key.
+ */
+const RUM_SESSION_KEY_PREFIXES: ReadonlyArray<string> = [
+  "sessions.identifiedUserTraits.",
+  "sessions.attributes.",
+];
+
+export function getRumSessionKey(location: string): string | undefined {
+  for (const prefix of RUM_SESSION_KEY_PREFIXES) {
+    if (location.startsWith(prefix) && location.length > prefix.length) {
+      return location
+        .slice(prefix.length)
+        .slice(0, MAX_TELEMETRY_LEAK_PATH_LENGTH);
+    }
+  }
+
+  return undefined;
+}
+
+export function isRumTelemetryLeakSignal(signal: TelemetryLeakSignal): boolean {
+  return RUM_TELEMETRY_LEAK_SIGNALS.includes(signal);
 }
 
 export function isTelemetryLeakSignal(
@@ -183,6 +310,17 @@ export interface TelemetryLeakPlace {
   metricName?: string | undefined;
   // A log line, an exception's message or a metric's name, its values replaced by their types' names.
   template?: string | undefined;
+  /*
+   * A RUM application's (#10933): the path of the page - or of the request
+   * - the record was written on, its values masked ("/orders/<UUID>"):
+   * never its host, its query or its fragment.
+   */
+  page?: string | undefined;
+  /*
+   * A RUM application's session: the session recorder call that gave it the
+   * data - "identify", for a session's user and traits.
+   */
+  recorderCall?: string | undefined;
   // How many of the records the leak was seen in named this place.
   recordCount: number;
 }
@@ -250,6 +388,14 @@ export function getTelemetryLeakPlaceKey(
 
   if (place.exceptionType) {
     return `exception:${place.exceptionType}`;
+  }
+
+  if (place.recorderCall) {
+    return `recorder:${place.recorderCall}:${place.page || ""}`;
+  }
+
+  if (place.page) {
+    return `page:${place.page}`;
   }
 
   return null;
@@ -540,6 +686,8 @@ export function readTelemetryLeakPlace(
     ["exceptionType", MAX_TELEMETRY_LEAK_NAME_LENGTH],
     ["metricName", MAX_TELEMETRY_LEAK_NAME_LENGTH],
     ["template", MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH],
+    ["page", MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH],
+    ["recorderCall", MAX_TELEMETRY_LEAK_NAME_LENGTH],
   ];
 
   for (const [key, max] of texts) {

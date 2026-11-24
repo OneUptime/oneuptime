@@ -266,7 +266,9 @@ export function getDataTypesToTurnOff(data: {
       a: { dataTypeId: string; findings: number },
       b: { dataTypeId: string; findings: number },
     ): number => {
-      return b.findings - a.findings || a.dataTypeId.localeCompare(b.dataTypeId);
+      return (
+        b.findings - a.findings || a.dataTypeId.localeCompare(b.dataTypeId)
+      );
     },
   );
 }

@@ -47,6 +47,11 @@ import {
   CRITERIA_FILTER_NOT_MATCHED_VALUE,
 } from "../../../Types/Monitor/CriteriaFilterMatchHistory";
 import { MONITOR_STEP_ID_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepSeries";
+import {
+  DNS_ANSWER_METRIC_NAME,
+  DNS_ANSWER_TEXT_ATTRIBUTE,
+} from "../../../Types/Monitor/DnsMonitor/DnsAnswer";
+import DnsAnswerFingerprint, { DnsAnswerReading } from "./DnsAnswerFingerprint";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -1628,6 +1633,44 @@ export default class MonitorMetricUtil {
         metricRows: metricRows,
         metricNameServiceNameMap: metricNameServiceNameMap,
       });
+    }
+
+    /*
+     * The DNS answer this check got (#10905): its fingerprint, the answer in
+     * words beside it, so "DNS Record Value is different from the previous
+     * check" can compare it with the probe's previous answer of the step
+     * (PreviousCheckComparison). The evaluator's record, like a match
+     * history's, never a chart anyone picks: it is not indexed as a metric
+     * type. A check that got no answer writes none (DnsAnswer).
+     */
+    const dnsAnswer: DnsAnswerReading | null = DnsAnswerFingerprint.read(
+      (data.dataToProcess as ProbeMonitorResponse).dnsResponse,
+    );
+
+    if (dnsAnswer) {
+      const probeId: ObjectID | undefined = (
+        data.dataToProcess as ProbeMonitorResponse
+      ).probeId;
+
+      metricRows.push(
+        await this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: DNS_ANSWER_METRIC_NAME,
+          value: dnsAnswer.fingerprint,
+          attributes: this.buildMonitorMetricAttributes({
+            monitorId: data.monitorId,
+            projectId: data.projectId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            extraAttributes: {
+              ...(probeId ? { probeId: probeId.toString() } : {}),
+              [DNS_ANSWER_TEXT_ATTRIBUTE]: dnsAnswer.text,
+            },
+          }),
+          metricPointType: MetricPointType.Gauge,
+        }),
+      );
     }
 
     /*

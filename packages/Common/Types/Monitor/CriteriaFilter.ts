@@ -1020,6 +1020,16 @@ export class CriteriaFilterUtil {
       (CriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType) ||
         evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck)
     ) {
+      // A DNS answer is compared with the previous one (#10905).
+      if (
+        evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck &&
+        CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+          criteriaFilter?.checkOn,
+        )
+      ) {
+        return evaluateOverTimeType;
+      }
+
       return CriteriaFilterUtil.canCountChecks(
         criteriaFilter?.checkOn,
         monitorType,
@@ -1089,6 +1099,11 @@ export class CriteriaFilterUtil {
     monitorType?: MonitorType | undefined,
   ): boolean {
     if (!checkOn) {
+      return false;
+    }
+
+    // A DNS answer is compared with the previous one, never counted.
+    if (CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(checkOn)) {
       return false;
     }
 
@@ -1356,6 +1371,17 @@ export class CriteriaFilterUtil {
     }
 
     /*
+     * A DNS answer is a set of records (#10905): no average, count or share
+     * of one means anything, and what it can be asked is whether it is the
+     * same as the previous check's.
+     */
+    if (
+      CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(criteriaFilter.checkOn)
+    ) {
+      return [EvaluateOverTimeType.PreviousCheck];
+    }
+
+    /*
      * Counting the window's checks, where they can be counted (#10355), and
      * comparing a check with the one before it, read from the same record
      * of the checks (#10821).
@@ -1533,7 +1559,36 @@ export class CriteriaFilterUtil {
        * compared with the previous check: down by more than one is a
        * certificate replaced by one that expires sooner, up is a renewal.
        */
-      checkOn === CheckOn.ExpiresInDays
+      checkOn === CheckOn.ExpiresInDays ||
+      // Its answer's fingerprint, compared with the previous check alone.
+      CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(checkOn)
     );
+  }
+
+  /*
+   * Whether a check's window can only compare it with the previous check: a
+   * DNS answer (#10905), which each check that gets one writes as a
+   * fingerprint of its records (DnsAnswer). It is the same as the previous
+   * answer or not, so Equal To and Not Equal To are its comparisons
+   * (getPreviousCheckFilterTypes), and nothing else of a window applies.
+   */
+  public static isComparedOnlyWithPreviousCheck(
+    checkOn: CheckOn | undefined,
+  ): boolean {
+    return checkOn === CheckOn.DnsRecordValue;
+  }
+
+  /*
+   * The conditions a filter compared with the previous check can take, when
+   * fewer than its own: Equal To and Not Equal To for a DNS answer, the same
+   * as the previous one or different from it. Null when every condition the
+   * check takes applies.
+   */
+  public static getPreviousCheckFilterTypes(
+    checkOn: CheckOn | undefined,
+  ): Array<FilterType> | null {
+    return CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(checkOn)
+      ? [FilterType.NotEqualTo, FilterType.EqualTo]
+      : null;
   }
 }

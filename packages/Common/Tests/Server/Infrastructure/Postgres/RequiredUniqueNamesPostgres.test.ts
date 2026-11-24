@@ -336,9 +336,7 @@ describePostgres("Require Unique Names, on Postgres", () => {
         [SCHEMA],
       );
 
-      expect(columns).toEqual([
-        { column_default: "false", is_nullable: "NO" },
-      ]);
+      expect(columns).toEqual([{ column_default: "false", is_nullable: "NO" }]);
     });
 
     test("builds every index of the kinds the setting holds, valid", async () => {

@@ -19,7 +19,9 @@ import {
   MAX_TELEMETRY_LEAKS_PER_FIX,
   TelemetryLeakFixIssue,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
+  isTelemetryLeakFixOwnerKind,
   isTelemetryLeakFixStrategy,
   readTelemetryLeakFixIssue,
   readTelemetryLeakFixLeak,
@@ -489,6 +491,12 @@ export function getInfrastructureFixFolder(
  * masked templates only - never a value, a sample, a record or an excerpt.
  */
 export interface TelemetryLeakFixTaskContext {
+  /*
+   * Whose code it changes: a service's, or a RUM application's front end
+   * (#10933) - left out, a service's. serviceId and serviceName carry the
+   * owner's id and name either way.
+   */
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceId: string;
   serviceName: string;
   // What the pull request is called: "Stop checkout writing sensitive data to its telemetry".
@@ -554,6 +562,10 @@ export function getTelemetryLeakFixTaskContext(
   );
 
   return {
+    ...(isTelemetryLeakFixOwnerKind(raw["ownerKind"]) &&
+    raw["ownerKind"] !== TelemetryLeakFixOwnerKind.Service
+      ? { ownerKind: raw["ownerKind"] }
+      : {}),
     serviceId,
     serviceName,
     title:

@@ -509,15 +509,12 @@ describe("a list's entity filter that searches the server", () => {
   });
 
   test("a held value it was handed the name of is drawn at once, without reading it again", async () => {
-    renderFilter(
-      holding([LATE_LABEL_ID]),
-      {
-        ...LABELS_FILTER,
-        filterDropdownOptions: [
-          { value: LATE_LABEL_ID, label: "WB1500KSK kiosks" },
-        ],
-      },
-    );
+    renderFilter(holding([LATE_LABEL_ID]), {
+      ...LABELS_FILTER,
+      filterDropdownOptions: [
+        { value: LATE_LABEL_ID, label: "WB1500KSK kiosks" },
+      ],
+    });
 
     expect(chips()).toEqual(["WB1500KSK kiosks"]);
     expect(labelReads()).toHaveLength(0);

@@ -134,6 +134,56 @@ describe("a reader who may not read Data Security", () => {
     expect(kept.points[0]!.severity).toBe(SecuritySeverity.Medium);
   });
 
+  test("a migration's point loses its table and store, and keeps its severity: its store never decided it (#10779)", () => {
+    const column: ProductionReviewLeakJSON = point({
+      kind: SensitiveDataLeakKind.Migration,
+      checkId: "new-personal-data-column",
+      subject: "customer_ssn",
+      where: "customers",
+      sensitivity: DataSensitivity.Restricted,
+      severity: SecuritySeverity.Medium,
+      isBlocking: false,
+      failsCheck: false,
+      production: {
+        store: {
+          dataStoreId: "5d1c2b3a-0000-4000-8000-0000000000c1",
+          name: "orders-db",
+          sensitivity: DataSensitivity.Public,
+          dataTypeNames: [],
+          isNotEncryptedAtRest: true,
+        },
+        table: {
+          name: "public.customers",
+          dataTypeNames: ["US Social Security number"],
+          sameData: [
+            {
+              location: "public.customers.ssn_last4",
+              dataTypeName: "US Social Security number",
+              lastSeenAt: "2026-11-20T10:00:00.000Z",
+            },
+          ],
+          otherStoreCount: 1,
+        },
+      },
+    });
+    const report: ProductionReviewReport = emptyReport({
+      sensitiveData: section([column]),
+    });
+    const kept: ProductionReviewReport =
+      ProductionReviewUtil.keepReadableSensitiveData(report, false);
+
+    expect(kept.sensitiveData!.points[0]!.production).toBeUndefined();
+    expect(kept.sensitiveData!.points[0]!.severity).toBe(
+      SecuritySeverity.Medium,
+    );
+    expect(JSON.stringify(kept)).not.toContain("orders-db");
+    expect(JSON.stringify(kept)).not.toContain("ssn_last4");
+    // A reader of Data Security reads all of it.
+    expect(ProductionReviewUtil.keepReadableSensitiveData(report, true)).toBe(
+      report,
+    );
+  });
+
   test("a reader of Data Security, or a review with nothing of production, reads it as it is", () => {
     const report: ProductionReviewReport = emptyReport({
       sensitiveData: section([point()]),

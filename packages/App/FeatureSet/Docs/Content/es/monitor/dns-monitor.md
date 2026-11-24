@@ -118,7 +118,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla bajo un filtro, disponible para **DNS en línea** y **Tiempo de respuesta de DNS (en ms)**. Actívela para juzgar una ventana de comprobaciones pasadas en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 minutos a 24 horas, en **En el último período de**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla bajo un filtro, disponible para **DNS en línea**, **Tiempo de respuesta de DNS (en ms)** y **Valor del registro DNS**. Actívela para juzgar una ventana de comprobaciones pasadas en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 minutos a 24 horas, en **En el último período de**. Para **Valor del registro DNS** la única opción es **Comprobación anterior**: consulte [Cuando cambia la respuesta DNS](#cuando-cambia-la-respuesta-dns).
 
 | Agregación | Coincide cuando |
 | --- | --- |
@@ -126,7 +126,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 | **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
 | **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 | **Recuento**, **Porcentaje**, **Cambios de estado** | Cuántas comprobaciones cumplieron la condición, su proporción o cuántas veces pasaron de cumplirla a no cumplirla se compara con el número definido debajo. |
-| **Comprobación anterior** | Esta comprobación, comparada con la comprobación anterior de la sonda según **Cambio respecto a la comprobación anterior**: un tiempo de respuesta más de un 50 % por encima, por ejemplo. Un filtro verdadero o falso coincide en la comprobación que empezó a cumplir la condición. |
+| **Comprobación anterior** | Esta comprobación, comparada con la comprobación anterior de la sonda según **Cambio respecto a la comprobación anterior**: un tiempo de respuesta más de un 50 % por encima, por ejemplo. Un filtro verdadero o falso coincide en la comprobación que empezó a cumplir la condición. **Valor del registro DNS** compara la respuesta entera: vea más abajo. |
 
 La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta de datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
@@ -138,11 +138,26 @@ La opción **Todos los valores** solo coincide cuando la ventana está realmente
 | **Disparador** | La falta de datos cuenta como el problema. | Comprobaciones en las que el silencio es en sí un fallo. |
 | **Treat As Zero** | La ventana se compara como un único cero. | Contadores en los que no tener eventos significa realmente cero. |
 
+### Cuando cambia la respuesta DNS
+
+Para saber cuándo cambia la respuesta de un nombre, como una dirección que se ha movido, un servidor de correo sustituido o un registro añadido o desaparecido, compare **Valor del registro DNS** con la comprobación anterior:
+
+1. Añada un filtro con **Valor del registro DNS** y **Distinto de**.
+2. Marque **Evaluar estos criterios durante un periodo de tiempo**. **Comprobación anterior** es la única opción en **Evaluar** para este filtro, y no necesita ningún valor.
+3. En **En el último período de**, elija cuánto tiempo atrás puede estar la comprobación anterior: más que el intervalo de monitorización.
+
+La respuesta se compara entera: todos los registros del tipo, sin su TTL. Los mismos registros en otro orden son la misma respuesta, y también lo es un nombre con otras mayúsculas y minúsculas, ya que los nombres DNS no distinguen entre ellas. Un registro añadido, eliminado o cambiado da una respuesta distinta. **Igual a** coincide en el caso contrario, con una respuesta igual a la de la comprobación anterior, para un criterio que debe cumplirse mientras la respuesta se mantenga estable.
+
+La respuesta de cada sonda se compara con la respuesta anterior de esa sonda, y la de cada paso con la suya, así que un nombre que responde distinto en distintas regiones no es un cambio. Una comprobación que no recibe respuesta, porque el nombre no se resuelve o la consulta agota el tiempo de espera, no se compara: para eso está el filtro **DNS en línea**. La siguiente comprobación que recibe respuesta se compara con la última respuesta anterior, si está dentro de **En el último período de**. Sin una respuesta anterior en la ventana, como en la primera comprobación del monitor, decide **Si no hay datos**, como en cualquier comparación con la comprobación anterior.
+
+El incidente o la alerta dice cuál era la respuesta y cuál es ahora: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Criterios de ejemplo
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
 | Sin conexión cuando el nombre deja de resolverse | **DNS en línea** | **Falso** | — |
+| Alertar cuando cambia la respuesta de un nombre | **Valor del registro DNS**, evaluado con **Comprobación anterior** | **Distinto de** | — |
 | Alertar cuando cambia el único registro `A` de un nombre | **Valor del registro DNS** | **Distinto de** | `93.184.216.34` |
 | Alertar cuando un registro `MX` apunta fuera de su dominio | **Valor del registro DNS** | **No contiene** | `example.com` |
 | Marcar el DNS como degradado cuando es lento | **Tiempo de respuesta de DNS (en ms)** | **Mayor que** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Mantenga arriba el criterio sin conexión predeterminado: **DNS en línea** / **Falso**.
 2. Debajo, añada un criterio con **Valor del registro DNS** / **Igual a** / el valor que espera, que marque el monitor como **Operativo**.
 3. Debajo de ese, añada un criterio con **DNS en línea** / **Verdadero**, que marque el monitor como **Sin conexión** y declare un incidente. Solo coincide con respuestas que no tienen el valor.
+:::
+
+:::details Un criterio que compara la respuesta con la comprobación anterior salta en cada comprobación
+El servidor devuelve una parte distinta de un gran grupo de registros en cada consulta, como hacen algunos nombres con balanceo de carga. Cada una de esas respuestas es un conjunto distinto de registros. Pregunte en **Servidor DNS (opcional)** a un servidor que devuelva el grupo entero, o compruebe en su lugar el valor que espera con **Valor del registro DNS** / **Igual a**.
 :::
 
 :::details DNSSEC válido nunca coincide

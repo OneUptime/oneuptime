@@ -104,7 +104,7 @@ const PLAN_IDS: ReadonlyArray<[string, PlanType]> = [
 ];
 
 const ENTERPRISE_REFUSAL: string =
-  "Please upgrade your plan to Enterprise to access this feature";
+  "This feature needs the Enterprise plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const REACHED_SAVE: string = "REACHED_SAVE";
 

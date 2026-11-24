@@ -83,47 +83,48 @@ function serve<T extends { id?: ObjectID | null }>(
     visible?: ((record: T) => boolean) | Error;
   },
 ): void {
-  jest
-    .spyOn(service as never, "findBy" as never)
-    .mockImplementation((async (findBy: AnyFindBy): Promise<Array<T>> => {
-      if (findBy.props.isRoot) {
-        if (data.all instanceof Error) {
-          throw data.all;
-        }
-
-        return data.all;
+  jest.spyOn(service as never, "findBy" as never).mockImplementation((async (
+    findBy: AnyFindBy,
+  ): Promise<Array<T>> => {
+    if (findBy.props.isRoot) {
+      if (data.all instanceof Error) {
+        throw data.all;
       }
 
-      if (data.visible instanceof Error) {
-        throw data.visible;
-      }
+      return data.all;
+    }
 
-      // QueryHelper.any: a Raw operator holding the ids as its parameter.
-      const operator: {
-        objectLiteralParameters?: Record<string, Array<string>>;
-      } = (findBy.query as Record<string, unknown>)["_id"] as {
-        objectLiteralParameters?: Record<string, Array<string>>;
-      };
-      const asked: Array<string> = Object.values(
-        operator.objectLiteralParameters || {},
-      )
-        .flat()
-        .map((id: string): string => {
-          return id.toString().toLowerCase();
-        });
+    if (data.visible instanceof Error) {
+      throw data.visible;
+    }
 
-      return (data.all as Array<T>).filter((record: T): boolean => {
-        return (
-          asked.includes(record.id!.toString().toLowerCase()) &&
-          (data.visible
-            ? (data.visible as (record: T) => boolean)(record)
-            : true)
-        );
+    // QueryHelper.any: a Raw operator holding the ids as its parameter.
+    const operator: {
+      objectLiteralParameters?: Record<string, Array<string>>;
+    } = (findBy.query as Record<string, unknown>)["_id"] as {
+      objectLiteralParameters?: Record<string, Array<string>>;
+    };
+    const asked: Array<string> = Object.values(
+      operator.objectLiteralParameters || {},
+    )
+      .flat()
+      .map((id: string): string => {
+        return id.toString().toLowerCase();
       });
-    }) as never);
+
+    return (data.all as Array<T>).filter((record: T): boolean => {
+      return (
+        asked.includes(record.id!.toString().toLowerCase()) &&
+        (data.visible ? (data.visible as (record: T) => boolean)(record) : true)
+      );
+    });
+  }) as never);
 }
 
-function logMonitor(name: string, attributes: Record<string, unknown>): Monitor {
+function logMonitor(
+  name: string,
+  attributes: Record<string, unknown>,
+): Monitor {
   const monitor: Monitor = new Monitor(ObjectID.generate());
 
   monitor.name = name;
@@ -337,15 +338,15 @@ describe("every kind of record that reads a field", () => {
   test("a dashboard names the widgets that read it, not the others", async () => {
     const answer: TelemetryFieldReadersByKind = await readers();
 
-    expect(answer[TelemetryFieldReaderKind.Dashboard].readers[0]!.widgets).toEqual(
-      [
-        {
-          id: "0192f1a0-0000-7000-8000-0000001043d1",
-          title: "Sign-ins by user",
-          type: DashboardComponentType.LogChart,
-        },
-      ],
-    );
+    expect(
+      answer[TelemetryFieldReaderKind.Dashboard].readers[0]!.widgets,
+    ).toEqual([
+      {
+        id: "0192f1a0-0000-7000-8000-0000001043d1",
+        title: "Sign-ins by user",
+        type: DashboardComponentType.LogChart,
+      },
+    ]);
   });
 
   test("a reader says the first few of what it reads, each once", async () => {
@@ -387,7 +388,12 @@ describe("named only where the person may read them", () => {
         return monitor.name === "Mine";
       },
     });
-    serve(DashboardService, { all: [boardOf("Sign-ins")], visible: () => false });
+    serve(DashboardService, {
+      all: [boardOf("Sign-ins")],
+      visible: () => {
+        return false;
+      },
+    });
     serve(LogSavedViewService, { all: [] });
     serve(TraceSavedViewService, { all: [] });
     serve(ExceptionSavedViewService, { all: [] });

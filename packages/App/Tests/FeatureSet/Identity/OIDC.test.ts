@@ -22,6 +22,7 @@
 import OIDCUtil, {
   OidcCallbackResult,
 } from "../../../FeatureSet/Identity/Utils/OIDC";
+import { ProviderEmailVerification } from "../../../FeatureSet/Identity/Utils/OidcEmailVerification";
 import {
   IdpKeyPair,
   IdpOptions,
@@ -426,6 +427,11 @@ describe("OIDCUtil - real provider payloads", () => {
     nameClaimName?: string | undefined;
     expectedEmail: string;
     expectedName: string | null;
+    /*
+     * What the provider says of the address (GHSA-8gwc-w386-fh6w): the
+     * callbacks that find an account by it refuse one it has not verified.
+     */
+    expectedEmailVerification: ProviderEmailVerification;
   }
 
   const providers: Array<ProviderCase> = [
@@ -447,6 +453,7 @@ describe("OIDCUtil - real provider payloads", () => {
       },
       expectedEmail: "isaac.brock@example.com",
       expectedName: "Isaac Brock",
+      expectedEmailVerification: ProviderEmailVerification.Verified,
     },
     {
       vendor: "Microsoft Entra ID (v2.0)",
@@ -466,6 +473,8 @@ describe("OIDCUtil - real provider payloads", () => {
       },
       expectedEmail: "abe.lincoln@contoso.com",
       expectedName: "Abe Lincoln",
+      // Entra ID sends no email_verified: it leaves an unverified address out instead.
+      expectedEmailVerification: ProviderEmailVerification.NotStated,
     },
     {
       /*
@@ -488,6 +497,7 @@ describe("OIDCUtil - real provider payloads", () => {
       emailClaimName: "preferred_username",
       expectedEmail: "abe.lincoln@contoso.onmicrosoft.com",
       expectedName: "Abe Lincoln",
+      expectedEmailVerification: ProviderEmailVerification.NotStated,
     },
     {
       /*
@@ -512,6 +522,7 @@ describe("OIDCUtil - real provider payloads", () => {
       },
       expectedEmail: "jane.smith@example.com",
       expectedName: "Jane Smith",
+      expectedEmailVerification: ProviderEmailVerification.Verified,
     },
     {
       vendor: "Auth0",
@@ -528,6 +539,8 @@ describe("OIDCUtil - real provider payloads", () => {
       },
       expectedEmail: "jane@example.com",
       expectedName: "Jane Smith",
+      // A database user who has not clicked Auth0's verification link yet.
+      expectedEmailVerification: ProviderEmailVerification.Unverified,
     },
     {
       vendor: "Keycloak",
@@ -549,6 +562,7 @@ describe("OIDCUtil - real provider payloads", () => {
       },
       expectedEmail: "jdoe@example.com",
       expectedName: "John Doe",
+      expectedEmailVerification: ProviderEmailVerification.Verified,
     },
     {
       /*
@@ -570,11 +584,12 @@ describe("OIDCUtil - real provider payloads", () => {
       emailClaimName: "upn",
       expectedEmail: "sam.carter@example.com",
       expectedName: null,
+      expectedEmailVerification: ProviderEmailVerification.NotStated,
     },
   ];
 
   test.each(providers)(
-    "signs a user in from a $vendor ID token",
+    "reads the identity in a $vendor ID token",
     async (providerCase: ProviderCase) => {
       const idp: TestIdp = await startIdp({
         issuerOverride: providerCase.issuer,
@@ -591,6 +606,9 @@ describe("OIDCUtil - real provider payloads", () => {
 
       expect(result.email.toString()).toBe(providerCase.expectedEmail);
       expect(result.issuer).toBe(providerCase.issuer);
+      expect(result.emailVerification).toBe(
+        providerCase.expectedEmailVerification,
+      );
 
       if (providerCase.expectedName === null) {
         expect(result.name).toBeNull();
@@ -624,6 +642,150 @@ describe("OIDCUtil - real provider payloads", () => {
     expect(result.rawClaims["hd"]).toBe("example.com");
     expect(result.rawClaims["given_name"]).toBe("Jane");
     expect(result.rawClaims["family_name"]).toBe("Smith");
+  });
+});
+
+/*
+ * What the provider says of the address it sent (email_verified, OpenID
+ * Connect Core 5.1), read by the exchange from the claims the address came
+ * from (GHSA-8gwc-w386-fh6w). The callbacks that find an account by the
+ * address refuse one the provider has not verified
+ * (Utils/OidcEmailVerification, OidcUnverifiedEmailSignIn.test.ts).
+ */
+describe("OIDCUtil - what the provider says of the address", () => {
+  test.each([
+    ["true", ProviderEmailVerification.Verified, true],
+    ['"true"', ProviderEmailVerification.Verified, "true"],
+    ["false", ProviderEmailVerification.Unverified, false],
+    ['"false"', ProviderEmailVerification.Unverified, "false"],
+    ['"yes"', ProviderEmailVerification.Unreadable, "yes"],
+    ["left out", ProviderEmailVerification.NotStated, undefined],
+  ] as Array<[string, ProviderEmailVerification, unknown]>)(
+    "an ID token with email_verified %s reads as %s",
+    async (
+      _label: string,
+      expected: ProviderEmailVerification,
+      emailVerified: unknown,
+    ) => {
+      const idp: TestIdp = await startIdp({
+        idTokenClaims: {
+          nonce: NONCE,
+          email: "alice@example.com",
+          name: "Alice Anderson",
+          email_verified: emailVerified as never,
+        },
+        omitUserInfoEndpoint: true,
+      });
+
+      const result: OidcCallbackResult = await runCallback(idp);
+
+      expect(result.emailVerification).toBe(expected);
+    },
+  );
+
+  /*
+   * An address from userinfo is judged by what userinfo says of it, not by
+   * an ID token that did not carry the address.
+   */
+  test("an address from userinfo is read with userinfo's email_verified", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: {
+        nonce: NONCE,
+        name: "Alice Anderson",
+        email_verified: true,
+      },
+      userInfo: {
+        sub: "00u1a2b3c4D5E6F7g8h9",
+        email: "alice@example.com",
+        email_verified: false,
+      },
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp);
+
+    expect(result.email.toString()).toBe("alice@example.com");
+    expect(result.emailVerification).toBe(ProviderEmailVerification.Unverified);
+  });
+
+  test("an address from userinfo that says nothing of it reads as not stated", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: { nonce: NONCE, name: "Alice Anderson" },
+      userInfo: {
+        sub: "00u1a2b3c4D5E6F7g8h9",
+        email: "alice@example.com",
+      },
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp);
+
+    expect(result.emailVerification).toBe(ProviderEmailVerification.NotStated);
+  });
+
+  /*
+   * An address from the ID token keeps the ID token's word, even when
+   * userinfo, asked only for the name, says otherwise.
+   */
+  test("an address from the ID token is read with the ID token's email_verified", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: {
+        nonce: NONCE,
+        email: "alice@example.com",
+        email_verified: false,
+      },
+      userInfo: {
+        sub: "00u1a2b3c4D5E6F7g8h9",
+        name: "Alice From Userinfo",
+        email: "alice@example.com",
+        email_verified: true,
+      },
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp);
+
+    expect(result.name?.toString()).toBe("Alice From Userinfo");
+    expect(result.emailVerification).toBe(ProviderEmailVerification.Unverified);
+  });
+
+  // email_verified speaks of `email`: an address from another claim says nothing.
+  test.each(["upn", "preferred_username"])(
+    "an address from %s reads as not stated, whatever email_verified says",
+    async (emailClaimName: string) => {
+      const idp: TestIdp = await startIdp({
+        idTokenClaims: {
+          nonce: NONCE,
+          [emailClaimName]: "sam.carter@example.com",
+          email: "someone.else@example.com",
+          email_verified: false,
+          name: "Sam Carter",
+        },
+        omitUserInfoEndpoint: true,
+      });
+
+      const result: OidcCallbackResult = await runCallback(idp, {
+        emailClaimName,
+      });
+
+      expect(result.email.toString()).toBe("sam.carter@example.com");
+      expect(result.emailVerification).toBe(
+        ProviderEmailVerification.NotStated,
+      );
+    },
+  );
+
+  // The claim set itself is handed on untouched.
+  test("leaves email_verified in rawClaims as the provider sent it", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: {
+        nonce: NONCE,
+        email: "alice@example.com",
+        email_verified: "false",
+      },
+      omitUserInfoEndpoint: true,
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp);
+
+    expect(result.rawClaims["email_verified"]).toBe("false");
   });
 });
 

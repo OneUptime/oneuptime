@@ -7,6 +7,7 @@ import ErrorExplanation, {
 } from "../ErrorMessage/ErrorExplanation";
 import Modal, { ModalSecondaryButton } from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
+import { sayRefusalWithValues } from "../../Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
 export interface ComponentProps {
@@ -33,8 +34,19 @@ export interface ComponentProps {
   closeButtonText?: undefined | string;
   isLoading?: boolean;
   error?: string | undefined;
-  // What the dialog was doing, said first for an error nobody explained (Modal).
+  /*
+   * What the dialog was doing, said first for an error nobody explained:
+   * the error's (Modal, which names the dialog by its title without it),
+   * or the description's, when the description is the error - an Error
+   * dialog's.
+   */
   errorWhatFailed?: string | undefined;
+  /*
+   * The title says what failed already - "Could not start runbook" - so an
+   * error nobody explained in the description says why and what to do next
+   * under it, and not what failed a second time (#7680).
+   */
+  titleSaysWhatFailed?: boolean | undefined;
   disableSubmitButton?: boolean | undefined;
   // Rendered under the description - for confirmations that also ask something.
   children?: ReactElement | undefined;
@@ -94,9 +106,29 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
    * their message here: one nobody explained says what to do next, with
    * its reference (ErrorExplanation, #6836).
    */
+  /*
+   * A refusal with values in it - a monitor's type beside a template's - in
+   * the reader's language around its values (#7711): looked up whole, it is
+   * no key once its values are in, and read English in every Error dialog.
+   */
+  const refusal: string | null = sayRefusalWithValues(
+    props.description,
+    translator,
+  );
+  /*
+   * An Error dialog's failure says what failed first, as the page words it
+   * (errorWhatFailed): its title - "Error", "Test Failed" - names no
+   * action, so it is never named by it (#7680).
+   */
   const translatedDescription: string | ReactElement | undefined =
     isUnexplainedErrorMessage(props.description) ? (
-      <ErrorExplanation message={props.description as string} />
+      <ErrorExplanation
+        message={props.description as string}
+        whatFailed={props.errorWhatFailed}
+        hideWhatFailed={props.titleSaysWhatFailed}
+      />
+    ) : refusal !== null ? (
+      refusal
     ) : (
       translateValue(props.description)
     );

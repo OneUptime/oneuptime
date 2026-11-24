@@ -15,6 +15,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { AUTHENTICATOR_APP_WORDS } from "Common/Tests/Helpers/AuthenticatorAppWords";
 
 /*
  * ISSUE #8796: USER PROFILE > SECURITY IN EVERY LANGUAGE.
@@ -243,6 +244,11 @@ const THINGS: ReadonlyArray<Thing> = [
       "zh-TW": /安全金鑰/,
     },
   },
+  /*
+   * The authenticator app's word is every language's, the one the sign-in
+   * page, the setup key both draw and the docs say too (#10915): this suite
+   * and the setup key's (AuthenticatorSetupKeyLocales) read one table.
+   */
   {
     name: "authenticator app",
     keys: [
@@ -251,21 +257,17 @@ const THINGS: ReadonlyArray<Thing> = [
       "My authenticator app",
       "No authenticator apps added yet.",
       "Enter the 6-digit code from your authenticator app.",
+      // The setup component's, which the sign-in page draws too.
+      "Enter this setup key in your authenticator app instead.",
+      "Add to Authenticator App",
     ],
-    words: {
-      da: /godkendelsesapp/i,
-      fr: /applications? d'authentification/i,
-      hi: /ऑथेंटिकेटर ऐप/,
-      it: /app di autenticazione/i,
-      ko: /인증 앱/,
-      nl: /authenticator-app/i,
-      no: /autentiseringsapp/i,
-      pt: /apps? autenticador/i,
-      ru: /приложени[еяи]-аутентификатор/i,
-      sv: /autentiseringsapp/i,
-      "zh-CN": /身份验证器应用/,
-      "zh-TW": /驗證器應用程式/,
-    },
+    words: Object.fromEntries(
+      Object.entries(AUTHENTICATOR_APP_WORDS).map(
+        ([language, word]: [string, { word: RegExp }]): [string, RegExp] => {
+          return [language, word.word];
+        },
+      ),
+    ),
   },
   {
     name: "backup code",

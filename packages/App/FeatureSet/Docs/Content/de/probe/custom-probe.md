@@ -457,7 +457,7 @@ Eine Sonde fragt bis zu `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` Netzwerkgeräte 
 ### Andere Probleme
 
 :::details Die Sonde hält gleich nach dem Start an
-Ihr Log nennt, was fehlt: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` oder `PROBE_ID or REGISTER_PROBE_KEY should be set`. Sind alle drei gesetzt, passen ID und Schlüssel aber zu keiner Sonde, versucht es die Sonde 10-mal im Abstand von 30 Sekunden und hält dann mit `Unable to register probe after 10 attempts` an. Kopieren Sie ID und Schlüssel erneut mit **ID und Schlüssel anzeigen**.
+Ihr Log nennt, was fehlt: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` oder `PROBE_ID is not set`. Sind alle drei gesetzt, passen ID und Schlüssel aber zu keiner Sonde, versucht es die Sonde 10-mal im Abstand von 30 Sekunden und hält dann mit `Unable to register probe after 10 attempts` an. Kopieren Sie ID und Schlüssel erneut mit **ID und Schlüssel anzeigen**.
 :::
 
 :::details Die Sonde lief, bis jemand ihren Schlüssel zurückgesetzt hat

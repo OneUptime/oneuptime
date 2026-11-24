@@ -4,11 +4,21 @@ import { JSONObject } from "Common/Types/JSON";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import { SECURITY_EVENT_FACET_KEYS } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsFacets";
+import { SECURITY_LOG_SOURCE_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
+import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
+import {
+  ERASED_USER_ATTRIBUTES,
+  HASHED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_ERASED_ON_REQUEST,
+} from "Common/Utils/SecurityEvent/ScrubbedUser";
 import {
   SecurityEventDetailField,
+  buildEventUserField,
   buildSecurityEventJson,
   buildSecurityEventOverviewFields,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailFields";
+import { HashedUserSignal } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventSignal";
 
 /*
  * What one security event says, as data — the field list the detail drawer's
@@ -483,5 +493,148 @@ describe("buildSecurityEventJson", () => {
       return JSON.stringify(json);
     }).not.toThrow();
     expect(JSON.parse(JSON.stringify(json))["message"]).toBe("Failed logon");
+  });
+});
+
+/*
+ * Principal User and Target User say how the records know a user Security
+ * Events named behind a Hash rule's token (#10909), and say so of a user
+ * an erasure request took out again (#10908).
+ */
+describe("a user Security Events named behind a token", () => {
+  const TOKEN: string = "[HASHED:0123456789abcdef]";
+  const TIME: Date = new Date("2026-10-27T06:45:12.000Z");
+
+  function fieldOf(
+    fields: Array<SecurityEventDetailField>,
+    label: string,
+  ): SecurityEventDetailField | undefined {
+    return fields.find((field: SecurityEventDetailField): boolean => {
+      return field.label === label;
+    });
+  }
+
+  test("the named user says what the logs hold, with the event's time", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        time: TIME,
+        principalUser: "alice@example.com",
+        attributes: {
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+        },
+      }),
+      ScrubbedUserRole.Principal,
+    );
+
+    expect(field).toEqual({
+      label: "Principal User",
+      value: "alice@example.com",
+      facetKey: "principalUser",
+      hashedUser: {
+        hashed: TOKEN,
+        signal: HashedUserSignal.Log,
+        time: TIME,
+      },
+    });
+  });
+
+  test("a user read from a trace says the traces hold the token", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        time: TIME,
+        targetUser: "bob",
+        attributes: {
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Target]]: TOKEN,
+          [SECURITY_LOG_SOURCE_ATTRIBUTE]: SecurityTelemetrySourceKind.Traces,
+        },
+      }),
+      ScrubbedUserRole.Target,
+    );
+
+    expect(field?.label).toBe("Target User");
+    expect(field?.hashedUser?.signal).toBe(HashedUserSignal.Trace);
+  });
+
+  test("a user the logs hold in clear, or a token no one was kept for, says nothing more", () => {
+    expect(
+      buildEventUserField(
+        event({ principalUser: "alice@example.com" }),
+        ScrubbedUserRole.Principal,
+      )?.hashedUser,
+    ).toBeUndefined();
+
+    // The vault kept no user for the token: the event's user is the token.
+    expect(
+      buildEventUserField(
+        event({
+          principalUser: TOKEN,
+          attributes: {
+            [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+          },
+        }),
+        ScrubbedUserRole.Principal,
+      )?.hashedUser,
+    ).toBeUndefined();
+  });
+
+  test("a user erased on request shows the token, and says it was erased", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        principalUser: TOKEN,
+        attributes: {
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+          [ERASED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]:
+            USER_ERASED_ON_REQUEST,
+        },
+      }),
+      ScrubbedUserRole.Principal,
+    );
+
+    expect(field?.value).toBe(TOKEN);
+    expect(field?.isErasedUser).toBe(true);
+    expect(field?.hashedUser).toBeUndefined();
+
+    // Only the role the request erased says so.
+    expect(
+      buildEventUserField(
+        event({
+          principalUser: TOKEN,
+          targetUser: "bob",
+          attributes: {
+            [ERASED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]:
+              USER_ERASED_ON_REQUEST,
+          },
+        }),
+        ScrubbedUserRole.Target,
+      )?.isErasedUser,
+    ).toBeUndefined();
+  });
+
+  test("an event that names no user of a role has no field for it", () => {
+    expect(buildEventUserField(event(), ScrubbedUserRole.Principal)).toBeNull();
+    expect(
+      buildEventUserField(event({ targetUser: "  " }), ScrubbedUserRole.Target),
+    ).toBeNull();
+  });
+
+  test("the overview carries both users' fields as built", () => {
+    const fields: Array<SecurityEventDetailField> =
+      buildSecurityEventOverviewFields(
+        event({
+          time: TIME,
+          principalUser: "alice@example.com",
+          targetUser: "bob",
+          attributes: {
+            [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+            [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Target]]:
+              "[HASHED:fedcba9876543210]",
+          },
+        }),
+      );
+
+    expect(fieldOf(fields, "Principal User")?.hashedUser?.hashed).toBe(TOKEN);
+    expect(fieldOf(fields, "Target User")?.hashedUser?.hashed).toBe(
+      "[HASHED:fedcba9876543210]",
+    );
   });
 });

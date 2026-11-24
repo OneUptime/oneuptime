@@ -24,6 +24,7 @@ import BalanceRechargeGuard, {
   AutoRechargeSettings,
   getAutoRechargeSettings,
 } from "../Utils/Billing/BalanceRechargeGuard";
+import { toPaymentRefusalForWhoAsked } from "../Utils/Billing/PaymentProviderRefusal";
 import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import { CloudMarketplaceUtil } from "../../Types/Marketplace/CloudMarketplace";
 import Exception from "../../Types/Exception/Exception";
@@ -74,7 +75,11 @@ const smsOrCallRechargeGuard: BalanceRechargeGuard = new BalanceRechargeGuard({
   failureNamespace: SMS_OR_CALL_AUTO_RECHARGE_FAILED_NAMESPACE,
 });
 
-// A change to Auto Recharge that is not written yet (ProjectService).
+/*
+ * A change to Auto Recharge that is not written yet: somebody saving it
+ * (ProjectService). The card it tries is tried for them, and what fails is
+ * theirs, read where they saved it, as for a recharge by hand (#11090).
+ */
 export interface SmsOrCallAutoRechargeChange {
   enableAutoRechargeSmsOrCallBalance: boolean;
   autoRechargeSmsOrCallByBalanceInUSD?: number | undefined;
@@ -149,9 +154,9 @@ export class NotificationService extends BaseService {
   }
 
   /*
-   * A recharge somebody asked for: the Recharge button on Project Settings
-   * > Notification Settings (POST /notification/recharge, which checks who
-   * may first).
+   * A recharge somebody asked for: Add to Balance on Project Settings >
+   * Notification Settings and in the on-call guided setup (POST
+   * /notification/recharge, which checks who may first).
    *
    * It takes the same lock as Auto Recharge, so an automatic recharge
    * waiting behind it finds the balance this one adds and does not charge
@@ -159,6 +164,11 @@ export class NotificationService extends BaseService {
    * the recharge goes ahead anyway: the person who asked for it is told
    * whether it worked, and the balance is added in one statement whatever
    * else is writing it.
+   *
+   * A charge that fails throws, and the person who asked reads why in the
+   * dialog they asked from. The owners are not emailed about it (#11052):
+   * nobody else did anything, and the email read as if OneUptime had tried
+   * to recharge on its own (chargeAndCredit).
    */
   @CaptureSpan()
   public async rechargeBalance(
@@ -221,8 +231,11 @@ export class NotificationService extends BaseService {
    * After a failed charge it waits SMS_OR_CALL_AUTO_RECHARGE_RETRY_AFTER_IN
    * _SECONDS before trying the card again.
    *
-   * A charge that fails throws, after telling the owners (once a day); the
-   * senders log it and go on with the balance that is there.
+   * A charge that fails throws. Auto Recharge's own, when a message found
+   * the balance low, tells the owners first (once a day), and the senders
+   * log it and go on with the balance that is there. One somebody saving
+   * Auto Recharge made tells nobody else: they read why where they saved,
+   * and the save is refused (#11090).
    */
   @CaptureSpan()
   public async rechargeIfBalanceIsLow(
@@ -289,7 +302,17 @@ export class NotificationService extends BaseService {
         projectId,
         amountInUSD: this.getAutoRechargeSettings(project, change)
           .rechargeByInUSD,
-        isAutomatic: true,
+        /*
+         * Only a message that found the balance low is Auto Recharge's own
+         * try. Somebody saving Auto Recharge (`change`) tries the card
+         * themselves, and reads what failed in the dialog they saved from,
+         * while the refusal leaves Auto Recharge as it was - so the try is
+         * theirs, as a recharge by hand is (#11090): no owner is emailed
+         * about an Auto Recharge that was never turned on, the day's notice
+         * window is left to Auto Recharge's own failures, and Auto Recharge
+         * does not wait an hour for it.
+         */
+        isAutomatic: change === undefined,
         /*
          * This runs inline on SMS, call, WhatsApp and Telegram attempts, so
          * a success email here is one message to every owner per recharge,
@@ -339,6 +362,24 @@ export class NotificationService extends BaseService {
   /*
    * Charge the project's card and add the balance. The caller holds the
    * recharge lock (or, for a recharge by hand, tried to).
+   *
+   * Who hears of a charge that fails depends on who asked for it (#11052):
+   *
+   * - Auto Recharge (isAutomatic), when a message found the balance low:
+   *   nobody pressed anything, so the owners are emailed ACTION REQUIRED -
+   *   once a day per project, failing open when the shared cache is down
+   *   (BillingFailureNoticeThrottle) - and Auto Recharge waits before it
+   *   tries the card again.
+   * - Somebody who asked - pressing Add to Balance, or saving Auto Recharge
+   *   while the balance is below its threshold (#11090): they are told in
+   *   the dialog they asked from, by what this throws - a declined card in
+   *   the payment provider's words, with where to put the payment method
+   *   right (PaymentProviderRefusal). The owners are not emailed: every one
+   *   of them was told "We have tried to recharge your SMS and Call balance
+   *   and failed", as if OneUptime had tried on its own - and, for a save,
+   *   about an Auto Recharge the refusal left off. Nor is the day's notice
+   *   window claimed, so a failure of Auto Recharge's own later that day
+   *   still reaches them, nor does Auto Recharge wait for it.
    */
   private async chargeAndCredit(data: {
     projectId: ObjectID;
@@ -373,9 +414,10 @@ export class NotificationService extends BaseService {
     /*
      * The no-payment-method and marketplace branches below throw, and that
      * throw lands in this method's own catch. Without this the FIRST such
-     * failure sends two "ACTION REQUIRED" emails about the same fact, one
-     * from each place. This is a local flag rather than a mutation of
-     * `project` so it is obvious it exists only to coordinate those blocks.
+     * failure of Auto Recharge sends two "ACTION REQUIRED" emails about the
+     * same fact, one from each place. This is a local flag rather than a
+     * mutation of `project` so it is obvious it exists only to coordinate
+     * those blocks.
      */
     let ownersAlreadyToldAboutThisFailure: boolean = false;
 
@@ -397,34 +439,17 @@ export class NotificationService extends BaseService {
           // The owners are told what to put right: the purchase, not a card.
           ownersAlreadyToldAboutThisFailure = true;
 
-          const shouldTellOwners: boolean =
-            await shouldSendBillingFailureNotice({
-              projectId: project.id!,
-              kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
-            });
-
-          if (shouldTellOwners) {
-            await ProjectService.updateOneById({
-              data: {
-                failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
-              },
-              id: project.id!,
-              props: {
-                isRoot: true,
-              },
-            });
-            await ProjectService.sendEmailToProjectOwners(
-              project.id!,
-              "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-                (project.name || ""),
-              `We have tried to recharge your SMS and Call balance for project - ${
+          if (data.isAutomatic) {
+            await this.tellOwnersAutoRechargeFailed({
+              project: project,
+              body: `We have tried to recharge your SMS and Call balance for project - ${
                 project.name || ""
               } and failed. ${
                 err instanceof BadDataException
                   ? err.message
                   : "Please try again later."
               }`,
-            );
+            });
           }
 
           throw err;
@@ -444,31 +469,15 @@ export class NotificationService extends BaseService {
            */
           ownersAlreadyToldAboutThisFailure = true;
 
-          const shouldTellOwners: boolean =
-            await shouldSendBillingFailureNotice({
-              projectId: project.id!,
-              kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
-            });
-
-          if (shouldTellOwners) {
-            await ProjectService.updateOneById({
-              data: {
-                failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
-              },
-              id: project.id!,
-              props: {
-                isRoot: true,
-              },
-            });
-            await ProjectService.sendEmailToProjectOwners(
-              project.id!,
-              "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-                (project.name || ""),
-              `We have tried to recharge your SMS and Call balance for project - ${
+          if (data.isAutomatic) {
+            await this.tellOwnersAutoRechargeFailed({
+              project: project,
+              body: `We have tried to recharge your SMS and Call balance for project - ${
                 project.name || ""
               } and failed. We could not find a payment method for the project. Please add a payment method in Project Settings.`,
-            );
+            });
           }
+
           throw new BadDataException(
             "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
           );
@@ -488,58 +497,34 @@ export class NotificationService extends BaseService {
         );
       }
     } catch (err) {
-      /*
-       * Auto Recharge waits before it tries the card again, so the messages
-       * sent while the balance is low do not each try it once more.
-       */
       if (data.isAutomatic) {
+        /*
+         * Auto Recharge waits before it tries the card again, so the
+         * messages sent while the balance is low do not each try it once
+         * more.
+         */
         await smsOrCallRechargeGuard.rememberFailure(project.id!);
-      }
 
-      /*
-       * This block used to write failedCallAndSMSBalanceChargeNotificationSent
-       * ToOwners and then send WITHOUT ever reading it, so a project with a
-       * declined card mailed every owner once per paging attempt - inline on
-       * every SMS and call, during the outage the pages were about.
-       *
-       * The guard is a 24h window rather than that boolean deliberately. The
-       * boolean is only cleared by a successful recharge, so latching on it
-       * would mean: no card -> mail once and latch -> owner adds a card -> the
-       * card is declined -> the recharge can never succeed -> the latch never
-       * clears -> nobody is ever told the new card failed, and paging quietly
-       * stops. A window collapses the storm to one email a day and still
-       * reports a new failure within a day. See BillingFailureNoticeThrottle.
-       */
-      if (!ownersAlreadyToldAboutThisFailure) {
-        const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
-          projectId: project.id!,
-          kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
-        });
-
-        if (shouldTellOwners) {
-          await ProjectService.updateOneById({
-            data: {
-              failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
-            },
-            id: project.id!,
-            props: {
-              isRoot: true,
-            },
-          });
-          await ProjectService.sendEmailToProjectOwners(
-            project.id!,
-            "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-              (project.name || ""),
-            `We have tried recharged your SMS and Call balance for project - ${
+        if (!ownersAlreadyToldAboutThisFailure) {
+          await this.tellOwnersAutoRechargeFailed({
+            project: project,
+            body: `We have tried to recharge your SMS and Call balance for project - ${
               project.name || ""
-            } and failed. Please make sure your payment method is upto date and has sufficient balance. You can add new payment methods in Project Settings.`,
-          );
+            } and failed. Please make sure your payment method is up to date and has sufficient balance. You can add new payment methods in Project Settings.`,
+          });
         }
       }
+
       logger.error(err, {
         projectId: data.projectId.toString(),
       } as LogAttributes);
-      throw err;
+
+      /*
+       * By hand, or saving Auto Recharge, the dialog shows what this throws:
+       * a declined card in the payment provider's words, with where to put
+       * the payment method right, rather than a failure nobody explained.
+       */
+      throw data.isAutomatic ? err : toPaymentRefusalForWhoAsked(err);
     }
 
     /*
@@ -603,6 +588,58 @@ export class NotificationService extends BaseService {
     });
 
     return updatedAmount;
+  }
+
+  /*
+   * Tells the project's owners that Auto Recharge could not charge the
+   * balance, with what to put right (`body`) - at most once a day per
+   * project. Only Auto Recharge asks: a recharge by hand (#11052), or the
+   * one saving Auto Recharge makes (#11090), is told to the person who
+   * asked, in their dialog.
+   *
+   * This used to write failedCallAndSMSBalanceChargeNotificationSentToOwners
+   * and then send WITHOUT ever reading it, so a project with a declined card
+   * mailed every owner once per paging attempt - inline on every SMS and
+   * call, during the outage the pages were about.
+   *
+   * The guard is a 24h window rather than that boolean deliberately. The
+   * boolean is only cleared by a successful recharge, so latching on it would
+   * mean: no card -> mail once and latch -> owner adds a card -> the card is
+   * declined -> the recharge can never succeed -> the latch never clears ->
+   * nobody is ever told the new card failed, and paging quietly stops. A
+   * window collapses the storm to one email a day and still reports a new
+   * failure within a day, and it fails open: with the shared cache down, the
+   * email goes. See BillingFailureNoticeThrottle. The flag is written with
+   * the email, and only then.
+   */
+  private async tellOwnersAutoRechargeFailed(data: {
+    project: Project;
+    body: string;
+  }): Promise<void> {
+    const shouldTellOwners: boolean = await shouldSendBillingFailureNotice({
+      projectId: data.project.id!,
+      kind: BillingFailureNoticeKind.SmsAndCallRechargeFailed,
+    });
+
+    if (!shouldTellOwners) {
+      return;
+    }
+
+    await ProjectService.updateOneById({
+      data: {
+        failedCallAndSMSBalanceChargeNotificationSentToOwners: true,
+      },
+      id: data.project.id!,
+      props: {
+        isRoot: true,
+      },
+    });
+    await ProjectService.sendEmailToProjectOwners(
+      data.project.id!,
+      "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
+        (data.project.name || ""),
+      data.body,
+    );
   }
 
   /*

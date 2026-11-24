@@ -198,7 +198,10 @@ describe("which locations to leave out", () => {
     expect(
       getLocationsToExclude({
         findings: [
-          tuning({ location: "public.users.notes", dataTypeId: "email-address" }),
+          tuning({
+            location: "public.users.notes",
+            dataTypeId: "email-address",
+          }),
           tuning({
             location: "public.users.notes",
             dataTypeId: "phone-number",
@@ -291,7 +294,11 @@ describe("which locations to leave out", () => {
 describe("the plans, read back", () => {
   test("a type to turn off is only a built-in one", () => {
     expect(
-      readTurnOffDataTypePlan({ dataTypeId: "uk-nino", findings: 3, stores: 2 }),
+      readTurnOffDataTypePlan({
+        dataTypeId: "uk-nino",
+        findings: 3,
+        stores: 2,
+      }),
     ).toMatchObject({ dataTypeId: "uk-nino", findings: 3, stores: 2 });
     expect(readTurnOffDataTypePlan({ dataTypeId: "custom:x" })).toBeNull();
     expect(readTurnOffDataTypePlan("uk-nino")).toBeNull();
@@ -305,7 +312,10 @@ describe("the plans, read back", () => {
         exclusion: "attributes.debug",
         dataTypeIds: ["email-address", 3],
       }),
-    ).toMatchObject({ exclusion: "attributes.debug", dataTypeIds: ["email-address"] });
+    ).toMatchObject({
+      exclusion: "attributes.debug",
+      dataTypeIds: ["email-address"],
+    });
   });
 });
 

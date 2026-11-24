@@ -867,7 +867,7 @@ ModelAPI.getList = async (options) => {
   // A plan without Code: the repositories are refused (402).
   if (name === "CodeRepository" && repositorySet === "denied") {
     throw new Error(
-      "Please upgrade your plan to Growth to access this feature.",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
   }
 

@@ -2449,6 +2449,104 @@ describe("a page of the repositories, as the body asks for it", () => {
 
     expect(refusal(next)).toBeInstanceOf(BadDataException);
   });
+
+  /*
+   * A Fix with AI picker holds its search to the repositories its fix then
+   * accepts (#10921): those the caller may ask OneUptime AI to work in, and
+   * those whose code OneUptime reads.
+   */
+  test("a picker's flags hold the page to what its fix accepts - each only when it says true", async () => {
+    await call("/code-task/repositories", {
+      body: { search: "users", askableOnly: true, codeReadableOnly: true },
+    });
+
+    expect(listRequest()).toEqual({
+      search: "users",
+      group: null,
+      order: CodeRepositoryListOrder.Name,
+      skip: 0,
+      limit: MAX_CODE_REPOSITORIES_PER_PAGE,
+      askableOnly: true,
+      codeReadableOnly: true,
+    });
+
+    (CodeTaskRepositoryList.read as unknown as jest.Mock).mockClear();
+
+    await call("/code-task/repositories", {
+      body: { askableOnly: "true", codeReadableOnly: 1 },
+    });
+
+    expect(listRequest()).not.toHaveProperty("askableOnly");
+    expect(listRequest()).not.toHaveProperty("codeReadableOnly");
+  });
+
+  test("repositories by id, held to those the caller may ask AI to work in: a member's is answered, a read-only member's is not", async () => {
+    const asked: { result: JSONObject | null } = await call(
+      "/code-task/repositories-by-id",
+      {
+        body: { repositoryIds: [REPOSITORY_ID.toString()], askableOnly: true },
+      },
+    );
+
+    expect(
+      ((asked.result as JSONObject)["repositories"] as Array<JSONObject>).map(
+        (repository: JSONObject): string => {
+          return String(repository["id"]);
+        },
+      ),
+    ).toEqual([REPOSITORY_ID.toString()]);
+
+    world.props = VIEWER;
+
+    // A read-only member reads it as ever...
+    expect(
+      (
+        (
+          await call("/code-task/repositories-by-id", {
+            body: { repositoryIds: [REPOSITORY_ID.toString()] },
+          })
+        ).result as JSONObject
+      )["repositories"],
+    ).toHaveLength(1);
+
+    // ...and a picker of what they may ask AI to work in names none.
+    expect(
+      (
+        await call("/code-task/repositories-by-id", {
+          body: {
+            repositoryIds: [REPOSITORY_ID.toString()],
+            askableOnly: true,
+          },
+        })
+      ).result,
+    ).toEqual({ repositories: [] });
+  });
+
+  test("repositories by id, held to those whose code OneUptime reads: one the GitHub App no longer reaches is not answered", async () => {
+    jest
+      .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+      .mockResolvedValue("another-installation");
+
+    expect(
+      (
+        (
+          await call("/code-task/repositories-by-id", {
+            body: { repositoryIds: [REPOSITORY_ID.toString()] },
+          })
+        ).result as JSONObject
+      )["repositories"],
+    ).toHaveLength(1);
+    expect(
+      (
+        await call("/code-task/repositories-by-id", {
+          body: {
+            repositoryIds: [REPOSITORY_ID.toString()],
+            codeReadableOnly: true,
+          },
+        })
+      ).result,
+    ).toEqual({ repositories: [] });
+  });
 });
 
 describe("the repositories, at a glance", () => {

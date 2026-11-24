@@ -193,4 +193,5 @@ L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, 
 - [SSO](/docs/identity/sso): Configurare il provider SAML o OIDC proprio di un progetto.
 - [SCIM](/docs/identity/scim): Lascia che il tuo provider di identità aggiunga e rimuova persone automaticamente.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Che cosa permettono di fare i team in cui entrano i nuovi arrivati.
+- [Aiuto e supporto](/docs/self-hosted/help-and-support): Dire a chi ha bisogno di un invito a chi chiederlo.
 :::

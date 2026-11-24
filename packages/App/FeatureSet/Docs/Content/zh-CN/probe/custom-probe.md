@@ -457,7 +457,7 @@ Syslog 接收器每分钟最多转发 `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE` 条�
 ### 其他问题
 
 :::details 探测器启动后立即停止
-它的日志会说明缺少什么：`PROBE_KEY is not set`、`PROBE_INGEST_URL or ONEUPTIME_URL is not set` 或 `PROBE_ID or REGISTER_PROBE_KEY should be set`。如果三者都已设置，但 ID 和密钥与任何探测器都不匹配，探测器会每隔 30 秒尝试一次，共 10 次，然后以 `Unable to register probe after 10 attempts` 停止。请用 **显示 ID 和密钥** 重新复制 ID 和密钥。
+它的日志会说明缺少什么：`PROBE_KEY is not set`、`Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` 或 `PROBE_ID is not set`。如果三者都已设置，但 ID 和密钥与任何探测器都不匹配，探测器会每隔 30 秒尝试一次，共 10 次，然后以 `Unable to register probe after 10 attempts` 停止。请用 **显示 ID 和密钥** 重新复制 ID 和密钥。
 :::
 
 :::details 探测器一直正常，直到有人重置了它的密钥

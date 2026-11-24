@@ -193,4 +193,5 @@ Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, cl
 - [SSO](/docs/identity/sso): Configurar el proveedor SAML u OIDC propio de un proyecto.
 - [SCIM](/docs/identity/scim): Deja que tu proveedor de identidad añada y quite personas automáticamente.
 - [Usuarios, equipos y permisos](/docs/permissions/index): Lo que permiten hacer los equipos a los que se unen los recién llegados.
+- [Ayuda y soporte](/docs/self-hosted/help-and-support): Decir a las personas que necesitan una invitación a quién pedirla.
 :::

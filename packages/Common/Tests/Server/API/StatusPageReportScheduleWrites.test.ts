@@ -111,7 +111,7 @@ const PLANS: ReadonlyArray<PlanType> = [
 ];
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const NOW: Date = OneUptimeDate.fromString("2026-10-04T12:00:00.000Z");
 

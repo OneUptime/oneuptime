@@ -17,6 +17,7 @@ import {
   UNCOUNTED_NO_USER,
   UNCOUNTED_NO_VALUE,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import * as UncountedCopy from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/Uncounted/DetectionRuleUncountedCopy";
 
 /*
  * THE WORDS FOR WHERE A REQUEST CAME FROM (#10416) AND WHAT A RULE COULD
@@ -27,9 +28,11 @@ import {
  * wherever it stands: an event's Claimed IP, What happened next, a case's
  * Response Plan. Trusted Proxies, under More settings on Connections, say
  * which proxies may name a client - and what is wrong with a list typed
- * there. Run on Past Events says how many matching events a rule that
- * counts per value could not count. A German, Japanese or Arabic reader
- * meets none of it in English.
+ * there - and beside them, what is trusted automatically and whether access
+ * logs end with X-Forwarded-For (#10546, #10548). Run on Past Events says
+ * how many matching events a rule that counts per value could not count,
+ * and a rule's row on Detection Rules says it for the last day (#10547). A
+ * German, Japanese or Arabic reader meets none of it in English.
  */
 
 function sentencesOf(module: Record<string, unknown>): Array<string> {
@@ -44,11 +47,15 @@ const PLURALS: ReadonlyArray<PluralTemplate> = [
   UNCOUNTED_NO_HOST,
   UNCOUNTED_NO_VALUE,
   UNCOUNTED_HIDDEN_BY_SCRUB_RULE,
+  ProxiesCopy.EDGE_TRUSTED_DESCRIPTION,
+  UncountedCopy.UNCOUNTED_ROW_LINE,
+  UncountedCopy.UNCOUNTED_ROW_LINE_NOTHING,
 ];
 
 const SENTENCES: ReadonlyArray<string> = [
   ...sentencesOf(ClaimedCopy),
   ...sentencesOf(ProxiesCopy),
+  ...sentencesOf(UncountedCopy),
 ];
 
 // Every key: each sentence, and each plural's general form and its "one".
@@ -62,7 +69,8 @@ const KEYS: ReadonlyArray<string> = [
 describe("the words for where a request came from, and what a rule could not count", () => {
   test("are each a key the Dashboard's English holds", () => {
     expect(sentencesOf(ClaimedCopy)).toHaveLength(3);
-    expect(sentencesOf(ProxiesCopy)).toHaveLength(7);
+    expect(sentencesOf(ProxiesCopy)).toHaveLength(25);
+    expect(sentencesOf(UncountedCopy)).toHaveLength(3);
 
     const english: Record<string, string> = readDashboardLocale("en");
 

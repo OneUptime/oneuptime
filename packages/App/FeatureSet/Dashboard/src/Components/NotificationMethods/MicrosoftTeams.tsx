@@ -25,6 +25,7 @@ import {
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import { ChatTestAnswer, readChatTestAnswer } from "./ChatTestAnswer";
 
 /*
  * Same shape as the Slack method component: adding Microsoft Teams is
@@ -98,17 +99,23 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
       if (response.isFailure()) {
         setTestResult(API.getFriendlyMessage(response));
       } else {
-        const data: JSONObject = response.data as JSONObject;
         /*
          * Said in the corner: a dialog to click away said it worked
-         * (#9120). A failure stays in its dialog, to be read.
+         * (#9120). A failure stays in its dialog, to be read - also one
+         * the server answers with ok false (ChatTestAnswer).
          */
-        Toast.success(
-          (data["statusMessage"] as string) ||
-            translateTemplate(
-              "Test message sent. Check your Microsoft Teams chats.",
-            ),
+        const answer: ChatTestAnswer = readChatTestAnswer(
+          response.data as JSONObject,
+          translateTemplate(
+            "Test message sent. Check your Microsoft Teams chats.",
+          ),
         );
+
+        if (answer.isSent) {
+          Toast.success(answer.message);
+        } else {
+          setTestResult(answer.message);
+        }
       }
     } catch (err) {
       setTestResult(API.getFriendlyMessage(err));
@@ -202,6 +209,8 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Microsoft Teams`}
           description={addError}
+          // Its title says what failed: the explanation does not again (#7680).
+          titleSaysWhatFailed={true}
           submitButtonText={"Open Microsoft Teams Settings"}
           closeButtonText={"Close"}
           onClose={() => {

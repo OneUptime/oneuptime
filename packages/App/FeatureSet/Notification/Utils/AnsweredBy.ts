@@ -52,6 +52,13 @@ export const VOICEMAIL_MACHINE_DETECTION: string = "DetectMessageEnd";
  */
 export const VOICEMAIL_MESSAGE_CALL_DATA_KEY: string = "voicemailMessage";
 
+/*
+ * Where it keeps the voice the call was placed with, beside that message:
+ * the message is left in the call's own voice (#10948). Left out for a call
+ * in the account's default voice.
+ */
+export const VOICEMAIL_VOICE_CALL_DATA_KEY: string = "voicemailVoice";
+
 export enum TwilioAnsweredBy {
   Human = "human",
   Unknown = "unknown",

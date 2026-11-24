@@ -201,6 +201,15 @@ En hemmelighed kræver mere end en kodeændring: Koden stopper kun nye kopier, o
 
 Med **Arbejd med nye problemer** slået til foreslår OneUptime AI også af sig selv hver tjenestes rettelse, den mest risikable tjeneste først, under **Datasikkerhed → AI** og på tjenestens mest risikable problem. Som standard venter den på dig. En AI-regel i Datasikkerhed, der sætter **Rettelse** til **Automatisk** for tjenestens mest risikable problem, åbner pull requesten uden at spørge, i et repositorium, som noget har afgjort. Repositoriets **Maks. åbne pull requests med rettelser** begrænser begge: Ved grænsen venter en pull request, som en regel ville åbne, på dig, og ingen ny pull request med rettelser åbnes, før én er flettet eller lukket.
 
+### Frontenden i en RUM-applikation
+
+**Ret med AI** på et problem i sessionsafspilninger gør det samme for en RUM-applikation: én pull request, der får dens frontend-kode til at holde op med at sende hvert læk, OneUptime stadig ser i dens browserprotokoller, dens browserspans og dens sessioners detaljer. Hvor hvert læk skrives, kommer fra de poster, det blev set i, læst inde i OneUptime:
+
+- **En browserprotokol eller -span**: den fil, linje og funktion, som dens JavaScript-stak peger på via de source maps, dine builds har uploadet (se [Source Maps](/docs/telemetry/source-maps)), ellers dens `code.*`-attributter; protokollens linje eller spannets navn som skabelon; og den side, den blev skrevet på, kun ved sin sti, med hvert ID og hver værdi maskeret.
+- **En sessions brugerdetaljer**: sessionsoptagerens `identify()`-kald, der gav dem, og den side, sessionen startede på.
+
+Pull requesten går til det kodelager, der indeholder de filer, ellers til det, der indeholder flest af de filer, som den nyeste udgivelses source maps nævner, ellers til det kodelager, der hedder som applikationens **App-identifikator**, eller til projektets eneste; når intet afgør det, vælger du. Den ændrer browserkoden hvert sted, hvor en sessions bruger identificeres med et uigennemsigtigt ID og aldrig med en e-mail, eller tilføjer ét redigeringstrin dér, hvor applikationen sætter sin browsertelemetri op. En sessions optagelse læses aldrig, og kodeagenten læser intet af din telemetri. Hvert problem løses som **Rettet i koden**, så snart applikationens nye udgivelse ikke længere sender dataene. OneUptime AI foreslår endnu ikke en applikations rettelse af sig selv: bed om den med **Ret med AI**.
+
 ## Kassér denne metrik
 
 Ingen regel fjerner dataene fra en metriks navn, så indtil koden, der navngiver metrikken, er rettet, bliver dataene ved med at komme. **Kassér denne metrik** på et fund i en metriks navn stopper med at gemme de metrikker, hvis navne indeholder dem, på bekostning af deres data, så det sker kun, når du beder om det:

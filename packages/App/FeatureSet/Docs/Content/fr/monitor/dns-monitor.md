@@ -118,7 +118,7 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **DNS en ligne** et **Temps de réponse DNS (en ms)**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 minutes à 24 heures, sous **Pour les dernières**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **DNS en ligne**, **Temps de réponse DNS (en ms)** et **Valeur de l'enregistrement DNS**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 minutes à 24 heures, sous **Pour les dernières**. Pour **Valeur de l'enregistrement DNS**, le seul choix est **Vérification précédente** : voir [Quand la réponse DNS change](#quand-la-réponse-dns-change).
 
 | Agrégation | Correspond quand |
 | --- | --- |
@@ -126,7 +126,7 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 | **Comptage**, **Pourcentage**, **Changements d'état** | Le nombre de vérifications qui ont rempli la condition, leur part, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, est comparé au nombre défini en dessous. |
-| **Vérification précédente** | Cette vérification, comparée à la vérification précédente de la sonde comme réglé sous **Écart par rapport à la vérification précédente** : un temps de réponse supérieur de plus de 50 % à celle-ci, par exemple. Un filtre vrai ou faux correspond à la vérification qui a commencé à remplir la condition. |
+| **Vérification précédente** | Cette vérification, comparée à la vérification précédente de la sonde comme réglé sous **Écart par rapport à la vérification précédente** : un temps de réponse supérieur de plus de 50 % à celle-ci, par exemple. Un filtre vrai ou faux correspond à la vérification qui a commencé à remplir la condition. **Valeur de l'enregistrement DNS** compare la réponse entière : voir plus bas. |
 
 L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
@@ -138,11 +138,26 @@ L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellemen
 | **Déclencheur** | Les données manquantes comptent comme le problème. | Les vérifications où le silence est lui-même une panne. |
 | **Treat As Zero** | La fenêtre est comparée comme un seul zéro. | Les compteurs où l'absence d'événements signifie vraiment zéro. |
 
+### Quand la réponse DNS change
+
+Pour être prévenu quand la réponse d'un nom change, par exemple une adresse qui a bougé, un serveur de messagerie remplacé, ou un enregistrement ajouté ou disparu, comparez **Valeur de l'enregistrement DNS** à la vérification précédente :
+
+1. Ajoutez un filtre avec **Valeur de l'enregistrement DNS** et **Différent de**.
+2. Cochez **Évaluer ce critère sur une période donnée**. **Vérification précédente** est le seul choix sous **Évaluer** pour ce filtre, et il ne demande aucune valeur.
+3. Sous **Pour les dernières**, choisissez l'ancienneté maximale de la vérification précédente : plus longue que l'intervalle de surveillance.
+
+La réponse est comparée dans son ensemble : tous les enregistrements du type, sans leur TTL. Les mêmes enregistrements dans un autre ordre forment la même réponse, tout comme un nom écrit avec d'autres majuscules et minuscules, puisque les noms DNS n'y sont pas sensibles. Un enregistrement ajouté, supprimé ou modifié donne une réponse différente. **Égal à** correspond au contraire, à une réponse identique à celle de la vérification précédente, pour un critère qui doit tenir tant que la réponse est stable.
+
+La réponse de chaque sonde est comparée à la réponse précédente de cette sonde, et celle de chaque étape à la sienne, si bien qu'un nom qui répond différemment selon les régions n'est pas un changement. Une vérification qui n'obtient pas de réponse, parce que le nom ne se résout pas ou que la requête expire, n'est pas comparée : c'est le rôle du filtre **DNS en ligne**. La vérification suivante qui obtient une réponse est comparée à la dernière réponse avant elle, si celle-ci est dans **Pour les dernières**. Sans réponse précédente dans la fenêtre, comme à la première vérification du moniteur, **En l'absence de données** décide, comme pour toute comparaison avec la vérification précédente.
+
+L'incident ou l'alerte indique quelle était la réponse et quelle elle est maintenant : "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Exemples de critères
 
 | Objectif | Filtre | Condition | Valeur |
 | --- | --- | --- | --- |
 | Hors ligne quand le nom ne se résout plus | **DNS en ligne** | **Faux** | — |
+| Alerter quand la réponse d'un nom change | **Valeur de l'enregistrement DNS**, évalué sur **Vérification précédente** | **Différent de** | — |
 | Alerter quand l'unique enregistrement `A` d'un nom change | **Valeur de l'enregistrement DNS** | **Différent de** | `93.184.216.34` |
 | Alerter quand un enregistrement `MX` pointe hors de votre domaine | **Valeur de l'enregistrement DNS** | **Ne contient pas** | `example.com` |
 | Marquer le DNS dégradé quand il est lent | **Temps de réponse DNS (en ms)** | **Supérieur à** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Gardez en haut le critère hors ligne par défaut : **DNS en ligne** / **Faux**.
 2. En dessous, ajoutez un critère avec **Valeur de l'enregistrement DNS** / **Égal à** / la valeur attendue, qui marque le moniteur **Opérationnel**.
 3. En dessous encore, ajoutez un critère avec **DNS en ligne** / **Vrai**, qui marque le moniteur **Hors ligne** et déclare un incident. Il ne correspond qu'aux réponses qui n'ont pas la valeur.
+:::
+
+:::details Un critère qui compare la réponse à la vérification précédente se déclenche à chaque vérification
+Le serveur renvoie une autre partie d'un grand ensemble d'enregistrements à chaque requête, comme le font certains noms à répartition de charge. Chacune de ces réponses est un autre ensemble d'enregistrements. Interrogez dans **Serveur DNS (facultatif)** un serveur qui renvoie l'ensemble entier, ou vérifiez plutôt la valeur attendue avec **Valeur de l'enregistrement DNS** / **Égal à**.
 :::
 
 :::details DNSSEC valide ne correspond jamais

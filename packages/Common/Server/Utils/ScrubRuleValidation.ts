@@ -198,7 +198,9 @@ export function validateScrubRule(
  * text between commas. Each key once, trimmed, as ingest reads them. A raw
  * SQL expression is left as it is, for the update's own check.
  */
-export function normalizeScrubRuleKeys(data: { attributeKeys?: unknown }): void {
+export function normalizeScrubRuleKeys(data: {
+  attributeKeys?: unknown;
+}): void {
   if (
     data.attributeKeys === undefined ||
     data.attributeKeys === null ||

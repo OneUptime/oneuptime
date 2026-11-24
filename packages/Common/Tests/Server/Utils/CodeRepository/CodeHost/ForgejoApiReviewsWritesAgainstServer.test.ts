@@ -476,6 +476,60 @@ describeEachForge(
       );
     });
 
+    /*
+     * A production review's suggested changes on their lines (#10777): one
+     * review of the head it read, a comment only, each of its comments on
+     * the line it changes - and whether the server applies a suggestion
+     * block (Forgejo from 18) or draws it as code.
+     */
+    test("a production review's suggested changes: one review of the head, each comment on its line", async () => {
+      const head: string = await branchHead("oneuptime-ai/fix-charge");
+      const body: string =
+        "**Sensitive data** · Email address\n\nFix: leave it out.\n\n```diff\n- export const charge = 1;\n+ export const charge = 2;\n```";
+      const written: { reviewId: number } = await api.createPullRequestReview({
+        owner,
+        name: repositoryName,
+        number: pullRequestNumber,
+        commitId: head,
+        body: "**Sensitive data** · OneUptime's production review suggests 1 change on the lines below.",
+        comments: [{ path: "src/billing/charge.ts", line: 1, body }],
+      });
+
+      expect(written.reviewId).toBeGreaterThan(0);
+
+      const review: CodeHostHttpResponse = await admin.ok({
+        method: "GET",
+        path: `/repos/${owner}/${repositoryName}/pulls/${pullRequestNumber}/reviews/${written.reviewId}`,
+      });
+
+      expect(review.bodyJson as Record<string, unknown>).toMatchObject({
+        id: written.reviewId,
+        state: "COMMENT",
+        commit_id: head,
+        comments_count: 1,
+      });
+
+      const comments: CodeHostHttpResponse = await admin.ok({
+        method: "GET",
+        path: `/repos/${owner}/${repositoryName}/pulls/${pullRequestNumber}/reviews/${written.reviewId}/comments`,
+      });
+      const comment: Record<string, unknown> = (
+        comments.bodyJson as Array<Record<string, unknown>>
+      )[0]!;
+
+      expect(comment).toMatchObject({
+        path: "src/billing/charge.ts",
+        position: 1,
+        commit_id: head,
+        body,
+      });
+
+      // What the server is, and whether it applies a suggestion block.
+      expect(ForgejoApi.appliesSuggestions(await api.getServerInfo())).toBe(
+        false,
+      );
+    });
+
     test("a deploy's commits: the range from the last deploy, newest first, with the files they changed", async () => {
       const head: string = await branchHead("oneuptime-ai/fix-charge");
       const range: CodeHostCommitRange = await api.compareCommits({

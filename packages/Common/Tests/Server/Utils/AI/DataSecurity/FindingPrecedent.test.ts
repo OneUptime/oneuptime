@@ -90,9 +90,10 @@ describe("the findings alike it, first", () => {
       decided({ location: "sales.order_number" }),
     ];
 
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      { finding: SUBJECT, candidates: four },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: SUBJECT,
+      candidates: four,
+    });
 
     expect(precedent).toHaveLength(4);
     expect(
@@ -145,11 +146,14 @@ describe("the findings alike it, first", () => {
       },
     );
 
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      { finding: SUBJECT, candidates: many },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: SUBJECT,
+      candidates: many,
+    });
 
-    expect(precedent).toHaveLength(DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedent);
+    expect(precedent).toHaveLength(
+      DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedent,
+    );
     // The newest ten.
     expect(ids(precedent)).toEqual(
       [...many]
@@ -162,21 +166,19 @@ describe("the findings alike it, first", () => {
   });
 
   test("never another data type, an undecided finding, AI's own, or the finding itself", () => {
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      {
-        finding: SUBJECT,
-        candidates: [
-          decided({ dataTypeId: "phone-number" }),
-          decided({ isSuppressed: false, isConfirmed: false }),
-          decided({
-            isSuppressed: false,
-            isConfirmed: true,
-            isConfirmedByAi: true,
-          }),
-          decided({ id: SUBJECT.id }),
-        ],
-      },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: SUBJECT,
+      candidates: [
+        decided({ dataTypeId: "phone-number" }),
+        decided({ isSuppressed: false, isConfirmed: false }),
+        decided({
+          isSuppressed: false,
+          isConfirmed: true,
+          isConfirmedByAi: true,
+        }),
+        decided({ id: SUBJECT.id }),
+      ],
+    });
 
     expect(precedent).toEqual([]);
   });
@@ -207,9 +209,10 @@ describe("the findings alike it, first", () => {
     const long: PrecedentCandidate = decided({
       suppressedReason: `Order numbers.\n\n${"x".repeat(900)}`,
     });
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      { finding: SUBJECT, candidates: [long] },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: SUBJECT,
+      candidates: [long],
+    });
 
     expect(precedent[0]!.reason).toHaveLength(
       DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedentReasonLength,
@@ -230,9 +233,10 @@ describe("then the rest of the type's decisions, ranked by meaning", () => {
       suppressedReason: "Test cards from the sandbox.",
     });
 
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      { finding: SUBJECT, candidates: [unlike, likeIt, alike] },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: SUBJECT,
+      candidates: [unlike, likeIt, alike],
+    });
 
     expect(ids(precedent)).toEqual([alike.id, likeIt.id]);
     expect(precedent[0]!.isSameName).toBe(true);
@@ -250,9 +254,10 @@ describe("then the rest of the type's decisions, ranked by meaning", () => {
       location: "billing.purchase_order_number",
     });
 
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      { finding: SUBJECT, candidates: [...tenAlike, likeIt] },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: SUBJECT,
+      candidates: [...tenAlike, likeIt],
+    });
 
     expect(ids(precedent)).not.toContain(likeIt.id);
   });
@@ -301,9 +306,10 @@ describe("a finding in free text", () => {
       isFreeText: true,
     });
 
-    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent(
-      { finding: body, candidates: [otherService, attribute, sameStore] },
-    );
+    const precedent: Array<DataStoreFindingPrecedent> = selectFindingPrecedent({
+      finding: body,
+      candidates: [otherService, attribute, sameStore],
+    });
 
     expect(ids(precedent)).toEqual([otherService.id]);
   });

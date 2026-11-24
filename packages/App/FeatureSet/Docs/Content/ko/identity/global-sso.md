@@ -193,4 +193,5 @@ ID 공급자의 각 응답으로는 한 번만 로그인할 수 있으며, 그�
 - [SSO](/docs/identity/sso): 프로젝트 자체의 SAML 또는 OIDC 공급자를 설정합니다.
 - [SCIM](/docs/identity/scim): ID 공급자가 사람을 자동으로 추가하고 제거하게 합니다.
 - [사용자, 팀 및 권한](/docs/permissions/index): 새로 온 사람이 합류하는 팀으로 할 수 있는 일을 알아봅니다.
+- [도움말 및 지원](/docs/self-hosted/help-and-support): 초대가 필요한 사람에게 누구에게 요청할지 알려 줍니다.
 :::

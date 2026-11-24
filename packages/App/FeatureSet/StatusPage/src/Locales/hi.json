@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "कुछ गड़बड़ हो गई",
-  "An unexpected error has occurred. Please reload the page to continue": "एक अनपेक्षित त्रुटि हुई। जारी रखने के लिए पेज फिर से लोड करें",
+  "This page stopped working": "इस पेज ने काम करना बंद कर दिया",
+  "Part of this page ran into a problem. Reload the page to continue.": "इस पेज के एक हिस्से में समस्या आई। जारी रखने के लिए पेज फिर से लोड करें।",
   "Error details": "त्रुटि विवरण",
   "a11y": {
     "skipToMainContent": "मुख्य सामग्री पर जाएं",
@@ -524,5 +524,29 @@
     "sessionExpired": "सत्र समाप्त हो गया। कृपया फिर से साइन इन करें।",
     "signedOut": "आप साइन आउट हो चुके हैं। कृपया फिर से साइन इन करें।",
     "magicLinkTurnedOff": "इस स्थिति पृष्ठ के लिए साइन-इन लिंक बंद हैं। कृपया अपने ईमेल और पासवर्ड से साइन इन करें।"
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "सर्वर में ऐसी समस्या आई जिसकी वजह वह नहीं बता सका, इसलिए यह पूरा नहीं हुआ। दोबारा कोशिश करें, और अगर फिर भी न हो, तो यह संदर्भ अपने एडमिनिस्ट्रेटर या OneUptime सपोर्ट को दें: {{reference}}।",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "सर्वर में ऐसी समस्या आई जिसकी वजह वह नहीं बता सका, इसलिए यह पूरा नहीं हुआ। थोड़ी देर बाद फिर कोशिश करें।",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime तक पहुँचा नहीं जा सका, इसलिए यह पूरा नहीं हुआ। अपना इंटरनेट कनेक्शन जाँचें, फिर दोबारा कोशिश करें।",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "इस पेज में समस्या आई, इसलिए यह पूरा नहीं हुआ। पेज दोबारा लोड करें, फिर दोबारा कोशिश करें।",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था, इसलिए यह पूरा नहीं हुआ। एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "जो भेजा गया, वह उस 50 MB से बड़ा है जितना OneUptime एक अनुरोध में स्वीकार करता है, इसलिए यह पूरा नहीं हुआ। एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "This did not finish.": "यह पूरा नहीं हुआ।",
+  "The {{itemName}} was not deleted.": "{{itemName}} हटाया नहीं गया।",
+  "“{{action}}” did not finish.": "\"{{action}}\" पूरा नहीं हुआ।",
+  "The server ran into a problem it could not explain.": "सर्वर में ऐसी समस्या आई जिसकी वजह वह नहीं बता सका।",
+  "The OneUptime server did not answer.": "OneUptime सर्वर ने जवाब नहीं दिया।",
+  "OneUptime could not be reached.": "OneUptime तक पहुँचा नहीं जा सका।",
+  "This page ran into a problem.": "इस पेज में समस्या आई।",
+  "What was sent was too large for the server to accept.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था।",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "जो भेजा गया, वह उस 50 MB से बड़ा है जितना OneUptime एक अनुरोध में स्वीकार करता है।",
+  "Try again in a moment.": "थोड़ी देर बाद फिर कोशिश करें।",
+  "It may be starting or restarting. Try again in a few minutes.": "हो सकता है वह शुरू हो रहा हो या दोबारा शुरू हो रहा हो। कुछ मिनट बाद फिर कोशिश करें।",
+  "Check your internet connection, then try again.": "अपना इंटरनेट कनेक्शन जाँचें, फिर दोबारा कोशिश करें।",
+  "Reload the page, then try again.": "पेज दोबारा लोड करें, फिर दोबारा कोशिश करें।",
+  "Try again with less at once, such as a smaller file.": "एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
+  "The {{itemName}} was not created.": "{{itemName}} नहीं बना।",
+  "The {{itemName}} was not saved.": "{{itemName}} सहेजा नहीं गया।",
+  "The {{itemName}} could not be loaded.": "{{itemName}} लोड नहीं हो सके।",
+  "Page Did Not Load": "पेज लोड नहीं हुआ"
 }

@@ -62,6 +62,7 @@ import {
   MAX_PLACES_PER_TELEMETRY_LEAK,
   MAX_TELEMETRY_LEAKS_PER_FIX,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakFrame,
   TelemetryLeakPlace,
@@ -1083,7 +1084,47 @@ export function reachableStoreRow(
 }
 
 // One issue in a list, as query_data_security_issues lists it.
-export function issueListRow(issue: AiIssueRecord): JSONObject {
+/*
+ * The group of issues one mistake made that an issue is one of (#10370), as
+ * the asker may read it (#10739, DataSecurityIssueGroups): its cause in
+ * words - OneUptime AI's name while AI is on, else its fact's - and how many
+ * issues it holds, open and fixed. For a reader held to labels, a group cut
+ * down to the stores they may read: its counts and cause are of those
+ * stores alone.
+ */
+export interface AiIssueGroupRecord {
+  cause: string;
+  issueCount: number;
+  openIssueCount: number;
+  fixedIssueCount: number;
+}
+
+// An issue's group, as a row says it: none for an issue in no group the asker may read.
+function issueGroupFields(
+  group: AiIssueGroupRecord | null | undefined,
+  marks: AiInputMarks,
+): JSONObject {
+  if (!group) {
+    return {};
+  }
+
+  return {
+    issueGroup: customerTextForRow(
+      group.cause,
+      MAX_ISSUE_VALUE_LENGTH,
+      "issueGroup",
+      marks,
+    ),
+    issueGroupIssues: group.issueCount,
+    issueGroupOpen: group.openIssueCount,
+    issueGroupFixed: group.fixedIssueCount,
+  };
+}
+
+export function issueListRow(
+  issue: AiIssueRecord,
+  group?: AiIssueGroupRecord | null | undefined,
+): JSONObject {
   const marks: AiInputMarks = new AiInputMarks();
 
   return withMarks(
@@ -1108,6 +1149,7 @@ export function issueListRow(issue: AiIssueRecord): JSONObject {
       riskScore: issue.riskScore || 0,
       status: issue.status || "",
       firstDetectedAt: toIso(issue.firstDetectedAt),
+      ...issueGroupFields(group, marks),
     },
     marks,
   );
@@ -1141,6 +1183,7 @@ export function storeIssueRow(issue: AiIssueRecord): JSONObject {
 export function issueRow(
   issue: AiIssueRecord,
   dataTypeNamer: DataTypeNamer,
+  group?: AiIssueGroupRecord | null | undefined,
 ): JSONObject {
   const marks: AiInputMarks = new AiInputMarks();
   const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
@@ -1226,6 +1269,7 @@ export function issueRow(
       securityCaseId: issue.securityCaseId?.toString() || "",
       alertId: issue.alertId?.toString() || "",
       incidentId: issue.incidentId?.toString() || "",
+      ...issueGroupFields(group, marks),
     },
     marks,
   );
@@ -3365,6 +3409,19 @@ function telemetryLeakPlaceFacts(
       `${path}.template`,
       marks,
     ),
+    // A RUM application's (#10933): the page it was written on, the session recorder call that gave it.
+    page: customerText(
+      place.page,
+      MAX_FINDING_LOCATION_LENGTH,
+      `${path}.page`,
+      marks,
+    ),
+    recorderCall: customerText(
+      place.recorderCall,
+      MAX_WORD_LENGTH,
+      `${path}.recorderCall`,
+      marks,
+    ),
     frames: (place.frames || []).map(
       (frame: TelemetryLeakFrame, index: number): string => {
         const file: string = customerText(
@@ -3442,6 +3499,8 @@ function telemetryLeakFacts(
  */
 export function buildFixTelemetryLeaksRequest(data: {
   instruction: string;
+  // A service's, unless it is a RUM application's front end (#10933).
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceName: string;
   folder?: string | undefined;
   strategy: TelemetryLeakFixStrategy;
@@ -3467,13 +3526,19 @@ export function buildFixTelemetryLeaksRequest(data: {
     const marks: AiInputMarks = new AiInputMarks();
     const hasRedactionStep: boolean =
       data.strategy !== TelemetryLeakFixStrategy.CallSites;
+    const isApplication: boolean =
+      data.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
+    const owner: string = customerText(
+      data.serviceName,
+      MAX_ISSUE_VALUE_LENGTH,
+      isApplication ? "application" : "service",
+      marks,
+    );
     const facts: JSONObject = withoutEmpty({
-      service: customerText(
-        data.serviceName,
-        MAX_ISSUE_VALUE_LENGTH,
-        "service",
-        marks,
-      ),
+      // A web application's code runs in the browser: its front end is what changes.
+      ...(isApplication
+        ? { application: owner, runsIn: "browser" }
+        : { service: owner }),
       folder: customerText(
         data.folder,
         MAX_FINDING_LOCATION_LENGTH,

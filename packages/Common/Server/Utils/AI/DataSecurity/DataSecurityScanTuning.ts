@@ -239,15 +239,14 @@ export default class DataSecurityScanTuning {
         continue;
       }
 
-      const rows: Array<DataStoreFinding> = await DataStoreFindingService.findBy(
-        {
+      const rows: Array<DataStoreFinding> =
+        await DataStoreFindingService.findBy({
           query: { projectId: data.projectId, dataTypeId },
           select: TUNING_SELECT,
           skip: 0,
           limit: MAX_FINDINGS_READ_PER_CANDIDATE,
           props: { isRoot: true },
-        },
-      );
+        });
 
       // More than one read holds: whether every one was marked is not known.
       if (rows.length >= MAX_FINDINGS_READ_PER_CANDIDATE) {
@@ -265,22 +264,22 @@ export default class DataSecurityScanTuning {
     }).slice(0, SCAN_TUNING_LIMITS.maxTurnOffProposalsPerRun)) {
       const entry: DataSecurityAiDecisionEntry =
         await DataSecurityAiProposals.propose({
-        projectId: data.projectId,
-        issue: null,
-        store: null,
-        action: TurnOffDataTypeAction,
-        change: planTurnOffDataType({
-          dataTypeId: type.dataTypeId,
-          dataTypeName: getBuiltInDataType(type.dataTypeId)?.name || "",
-          findings: type.findings,
-          stores: type.stores,
-        }),
-        work: data.work,
-        verdict: data.verdict,
-        // A type of more findings waits ahead of one of fewer.
-        riskScore: Math.min(100, type.findings),
-        now: data.now,
-      });
+          projectId: data.projectId,
+          issue: null,
+          store: null,
+          action: TurnOffDataTypeAction,
+          change: planTurnOffDataType({
+            dataTypeId: type.dataTypeId,
+            dataTypeName: getBuiltInDataType(type.dataTypeId)?.name || "",
+            findings: type.findings,
+            stores: type.stores,
+          }),
+          work: data.work,
+          verdict: data.verdict,
+          // A type of more findings waits ahead of one of fewer.
+          riskScore: Math.min(100, type.findings),
+          now: data.now,
+        });
 
       // Proposed before, dismissed or undone: never again.
       if (entry.reason === DataSecurityAiDecisionReason.Proposed) {
@@ -401,7 +400,12 @@ export default class DataSecurityScanTuning {
       SCAN_TUNING_LIMITS.maxExclusionProposalsPerRun,
     )) {
       const store:
-        | { kind: string; scanExclusions?: unknown; name: string; row: DataStore }
+        | {
+            kind: string;
+            scanExclusions?: unknown;
+            name: string;
+            row: DataStore;
+          }
         | undefined = stores.get(place.dataStoreId);
 
       if (!store) {
@@ -410,23 +414,23 @@ export default class DataSecurityScanTuning {
 
       const entry: DataSecurityAiDecisionEntry =
         await DataSecurityAiProposals.propose({
-        projectId: data.projectId,
-        issue: null,
-        store: store.row,
-        action: AddScanExclusionAction,
-        change: planAddScanExclusion({
-          dataStoreId: place.dataStoreId,
-          storeName: store.name,
-          location: place.location,
-          exclusion: place.exclusion,
-          findings: place.findings,
-          dataTypeIds: place.dataTypeIds,
-        }),
-        work: data.work,
-        verdict: data.verdict,
-        riskScore: Math.min(100, place.findings),
-        now: data.now,
-      });
+          projectId: data.projectId,
+          issue: null,
+          store: store.row,
+          action: AddScanExclusionAction,
+          change: planAddScanExclusion({
+            dataStoreId: place.dataStoreId,
+            storeName: store.name,
+            location: place.location,
+            exclusion: place.exclusion,
+            findings: place.findings,
+            dataTypeIds: place.dataTypeIds,
+          }),
+          work: data.work,
+          verdict: data.verdict,
+          riskScore: Math.min(100, place.findings),
+          now: data.now,
+        });
 
       if (entry.reason === DataSecurityAiDecisionReason.Proposed) {
         proposed++;

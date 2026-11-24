@@ -220,6 +220,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
@@ -529,6 +530,14 @@ function matchesCondition(actual, condition) {
   }
   if (condition instanceof NotEqual) {
     return String(comparable(actual)) !== String(comparable(condition.value));
+  }
+  /*
+   * A column that holds a value: the exceptions list counts the project's
+   * exceptions a scrub rule split (splitFromTelemetryExceptionId), and no
+   * exception here was split, so it offers no Split by a scrub rule.
+   */
+  if (condition instanceof NotNull) {
+    return actual !== null && actual !== undefined;
   }
   // A value left out ("Service is not ..."): none of them, on a relation too.
   if (condition instanceof IncludesNone) {

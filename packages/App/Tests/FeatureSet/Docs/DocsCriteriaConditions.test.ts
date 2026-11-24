@@ -19,7 +19,11 @@ import {
 import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
 import { readCommonSource, readDashboardSource } from "./DocsDashboardMenus";
 import { prose } from "./DocsTranslationChecks";
-import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  EvaluateOverTimeType,
+  FilterType,
+} from "Common/Types/Monitor/CriteriaFilter";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -191,7 +195,7 @@ describe("the conditions this suite reads", () => {
      * interface's, a metric's in the reader's words, #8065), these not.
      */
     expect(criteriaFilter.replace(/\s+/g, " ")).toContain(
-      "setFilterTypeOptions( criteriaFilter?.checkOn ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn( criteriaFilter?.checkOn, ) : [], );",
+      "setFilterTypeOptions( CriteriaFilterUiUtil.getFilterTypeOptions({ criteriaFilter: criteriaFilter, monitorType: props.monitorType, }), );",
     );
     expect(
       readDashboardSource("Utils/Form/Monitor/CriteriaFilter.ts"),
@@ -203,6 +207,41 @@ describe("the conditions this suite reads", () => {
         return option.isUserContent === true;
       }),
     ).toBe(false);
+    /*
+     * The form asks for its options by the whole filter (#10905): a filter's
+     * check's own options, and for a DNS answer compared with the previous
+     * check a few of them, picked from those same options.
+     */
+    expect(
+      CriteriaFilterUiUtil.getFilterTypeOptions({
+        criteriaFilter: {
+          checkOn: CheckOn.ResponseTime,
+          filterType: undefined,
+          value: undefined,
+        },
+      }),
+    ).toEqual(responseTime);
+    const dnsAnswer: Array<{ value: unknown; label: string }> =
+      CriteriaFilterUiUtil.getFilterTypeOptions({
+        criteriaFilter: {
+          checkOn: CheckOn.DnsRecordValue,
+          filterType: FilterType.NotEqualTo,
+          value: undefined,
+          evaluateOverTime: true,
+          evaluateOverTimeOptions: {
+            timeValueInMinutes: 5,
+            evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
+          },
+        },
+      });
+    expect(dnsAnswer.length).toBeGreaterThan(0);
+    for (const option of dnsAnswer) {
+      expect(
+        CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn(
+          CheckOn.DnsRecordValue,
+        ),
+      ).toContainEqual(option);
+    }
     expect(dropdown).toContain(DRAWN_OPTION);
     expect(dropdown).toContain(DRAWN_THROUGH_TRANSLATOR);
     expect(dropdown).toContain(TRANSLATED_LABEL);

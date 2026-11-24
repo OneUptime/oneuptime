@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Något gick fel",
-  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
+  "This page stopped working": "Den här sidan slutade fungera",
+  "Part of this page ran into a problem. Reload the page to continue.": "En del av den här sidan stötte på ett problem. Läs in sidan igen för att fortsätta.",
   "Error details": "Felinformation",
   "Still stuck?": "Fortfarande fast?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den med OneUptime Support.",
@@ -642,6 +642,8 @@
   "The {{itemName}} was not created.": "{{itemName}} skapades inte.",
   "The {{itemName}} was not saved.": "{{itemName}} sparades inte.",
   "This did not finish.": "Åtgärden slutfördes inte.",
+  "The {{itemName}} was not deleted.": "{{itemName}} togs inte bort.",
+  "“{{action}}” did not finish.": "Åtgärden ”{{action}}” slutfördes inte.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Den här sidan stötte på ett problem, så åtgärden slutfördes inte. Läs in sidan igen och försök sedan igen.",
   "This page ran into a problem.": "Den här sidan stötte på ett problem.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Kör npm run doctor -- --logs i serverns oneuptime-mapp och sök efter den här referensen för att se vad som misslyckades.",

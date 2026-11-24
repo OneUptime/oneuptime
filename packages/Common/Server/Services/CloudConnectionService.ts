@@ -33,7 +33,6 @@ import {
   AzureCloudStreamState,
   readAzureCloudStreamState,
 } from "../../Types/CloudConnection/CloudStreamAzure";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -570,16 +569,20 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * The connections the delete removes - those its caller may delete, read
+   * in the delete's own window - with the delete held to exactly them
+   * (findRowsAndHoldDeleteToThem), so no connection that enforces the
+   * blocklist is removed unchecked: a read of the delete's query, cut at a
+   * limit of its own, let a bulk delete past it remove one.
+   */
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const connections: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { _id: true, projectId: true, provider: true },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: { isRoot: true },
-    });
+    const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true, provider: true },
+    );
 
     for (const connection of connections) {
       if (connection.id && connection.projectId) {

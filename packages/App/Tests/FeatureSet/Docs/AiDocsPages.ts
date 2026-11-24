@@ -486,6 +486,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "The address is checked on every connection.",
     "Limits.",
     "Every call is recorded.",
+    // In Ask AI and an incident's conversation (#10879).
+    "Tools that only read",
+    "Any other tool",
+    "Your permissions decide.",
+    "A tool gets only what it takes.",
+    "Enable AI stops every call.",
   ],
   [MCP_SERVER]: [
     "OneUptime Cloud",

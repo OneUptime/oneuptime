@@ -2532,6 +2532,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * columns need Manage Billing), for the projects the update is narrowed to
    * - and still before the write, so a charge that fails (no card, say)
    * refuses the change, as it always has for SMS and calls.
+   *
+   * The charge is the caller's own, as Add to Balance is: a failure is told
+   * to them by the refusal, which the Dashboard's dialog, the API and
+   * Terraform show. The owners are not emailed that Auto Recharge failed -
+   * it is still off, or as it was - and Auto Recharge does not wait an hour
+   * before its next try for it (#11090).
    */
   private async chargeAutoRechargeTurnedOn(
     updateBy: UpdateBy<Model>,
@@ -2560,7 +2566,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       /*
        * Saving Auto Recharge is somebody trying the card on purpose, so it
        * is tried at once, whatever failed before (ignoreRecentFailure), for
-       * both balances alike.
+       * both balances alike - and what fails is theirs (the change given).
        */
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
         await NotificationService.rechargeIfBalanceIsLow(project.id, {

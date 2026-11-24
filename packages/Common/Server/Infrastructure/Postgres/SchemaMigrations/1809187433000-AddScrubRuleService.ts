@@ -28,6 +28,8 @@ export class AddScrubRuleService1809187433000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "TraceScrubRule" DROP COLUMN "serviceId"`,
     );
-    await queryRunner.query(`ALTER TABLE "LogScrubRule" DROP COLUMN "serviceId"`);
+    await queryRunner.query(
+      `ALTER TABLE "LogScrubRule" DROP COLUMN "serviceId"`,
+    );
   }
 }

@@ -26,6 +26,8 @@ import {
 import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { fastestRun } from "../../../Helpers/FastestRun";
+// International phone numbers, as people write them in each country.
+import { INTERNATIONAL_PHONE_NUMBERS } from "../../../Helpers/InternationalPhoneNumbers";
 
 /*
  * ---------------------------------------------------------------------------
@@ -96,64 +98,6 @@ function v4MessageOf(message: string): string {
 function sha(text: string): string {
   return crypto.createHash("sha256").update(text, "utf8").digest("hex");
 }
-
-// International phone numbers, as people write them in each country.
-const INTERNATIONAL_PHONE_NUMBERS: ReadonlyArray<string> = [
-  "+44 20 7946 0958",
-  "+44 20 7946 0123",
-  "+44 (0)20 7946 0958",
-  "+44(0)20 7946 0958",
-  "+44 (0) 20 7946 0958",
-  "+44 207 946 0958",
-  "+44 7911 123456",
-  "+44 7911123456",
-  "(+44) 20 7946 0958",
-  "+49 30 123456",
-  "+49 30 12345678",
-  "+49-30-123456",
-  "+49 (0)30 123456",
-  "+33 1 23 45 67 89",
-  "+33 6 12 34 56 78",
-  "+91 98765 43210",
-  "+91-98765-43210",
-  "+91 9876543210",
-  "+81 3-1234-5678",
-  "+81 (3) 1234-5678",
-  "+61 2 9876 5432",
-  "+61 412 345 678",
-  "+86 138 0013 8000",
-  "+86 10 1234 5678",
-  "+7 495 123-45-67",
-  "+7 (495) 123-45-67",
-  "+7 495 123 4567",
-  "+55 11 91234-5678",
-  "+55 (11) 91234-5678",
-  "+353 1 234 5678",
-  "+352 26 12 34 56",
-  "+380 44 123 4567",
-  "+971 4 123 4567",
-  "+27 21 123 4567",
-  "+64 9 123 4567",
-  "+82 2-312-3456",
-  "+34 912 34 56 78",
-  "+39 06 1234 5678",
-  "+31 20 123 4567",
-  "+46 8 123 456 78",
-  "+47 22 12 34 56",
-  "+45 32 12 34 56",
-  "+358 9 1234 5678",
-  "+48 22 123 45 67",
-  "+90 212 123 45 67",
-  "+20 2 1234 5678",
-  "+254 20 1234567",
-  "+852 2123 4567",
-  "+65 6123 4567",
-  "+1 555 123 4567",
-  "+1-555-123-4567",
-  "+1 (555) 123-4567",
-  "+1 5551234567",
-  "+44\u00A020\u00A07946\u00A00958",
-];
 
 describe("grouping v4 takes the numbers v3 left out of a message", () => {
   test.each([

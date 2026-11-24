@@ -2,13 +2,22 @@ import {
   DECLARED_CODE_REASON_WORDS,
   getStartingRepositoryId,
 } from "../AutoRemediation/DeclaredCodeChangeWords";
+import CodeRepositorySearchField, {
+  toCodeRepositoryOption,
+} from "../Code/CodeRepositorySearchField";
 import DataSecurityApi from "./DataSecurityApi";
-import { RESPONSE_ACTION_TITLES } from "./IssueResponseAction";
+import { NO_ASKABLE_REPOSITORY } from "./IssueModals";
 import {
+  RESPONSE_ACTION_TITLES,
+  getResponseActionIcon,
+} from "./IssueResponseAction";
+import {
+  CLOUD_ACTION_STORES,
   CLOUD_PART_DONE,
   CLOUD_PART_FAILED,
+  CLOUD_PART_KINDS_SENTENCE,
   CLOUD_PART_NOTE,
-  CLOUD_PART_SENTENCE,
+  CLOUD_PART_ONE_KIND_SENTENCE,
   CLOUD_PART_TITLE,
   FIX_DIALOG_DESCRIPTION,
   FIX_IT_ANYWAY,
@@ -33,6 +42,8 @@ import {
 } from "./IssueGroupsCopy";
 import { DataSecurityIssueGroupJSON } from "Common/Types/DataSecurity/DataSecurityIssueGroup";
 import {
+  DataSecurityIssueGroupCloudActionJSON,
+  DataSecurityIssueGroupCloudOutcomeJSON,
   DataSecurityIssueGroupFixPart,
   DataSecurityIssueGroupFixPlanJSON,
   DataSecurityIssueGroupFixResultJSON,
@@ -41,17 +52,20 @@ import {
   DataSecurityIssueGroupLeftOutReason,
   countIssueGroupFixStores,
 } from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
-import { isDataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  describeDataSecurityResponseAction,
+  isDataSecurityResponseAction,
+} from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import { CodeRepositoryListGroup } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DeclaredCodeChangeState,
   DeclaredCodeOwnerCandidateJSON,
+  DeclaredCodeOwnerReason,
 } from "Common/Utils/AiRemediation/DeclaredCodeChange";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -76,8 +90,10 @@ import React, {
  *   - One Pull Request, for the stores declared as code: to the module or
  *     file that declares them, in the repository the reader confirms -
  *     the one the grouping found first;
- *   - One Approval, for the stores made in the console: the response action
- *     that fixes the check, on each of them through its cloud connection;
+ *   - One Approval, for the stores made in the console: on each, the
+ *     response action its own kind takes to fix the check, through its cloud
+ *     connection - listed kind by kind, each with what it does, what stops
+ *     working and what it costs, as Fix it from here says it (#10742);
  *   - Left Out: each store neither part changes, with why - Public By
  *     Design, or what OneUptime AI's analysis says the fix would break,
  *     which the reader may tick in.
@@ -85,9 +101,57 @@ import React, {
  * A part the reader may not make says why, and is not made. With both
  * parts offered, each can be left out. The press is refused when the group
  * changed since it was shown.
+ *
+ * The repository is picked with the repository search the rest of Fix with
+ * AI uses (CodeRepositorySearchField, #10921): the ranked repositories
+ * something points to come first - the one the grouping found picked
+ * already, with why under it - and the server searches every other
+ * connected repository the reader may ask OneUptime AI to work in. Every
+ * repository AI can work in is a candidate, so the dialog listed all of
+ * them, one very long list in a project of thousands.
  */
 
 export const ISSUE_GROUP_FIX_TEST_ID: string = "data-security-issue-group-fix";
+
+// The label the repository picker is named by.
+const REPOSITORY_LABEL_ID: string = `${ISSUE_GROUP_FIX_TEST_ID}-repository-label`;
+
+/*
+ * The ranked repositories the picker offers first: those the reader may ask
+ * in that something points to - a tag, a file named after the stores, code
+ * of their kind, being the only one - and the one the grouping found, in
+ * the server's order. One nothing points to is found by the search.
+ */
+export function getOfferedCandidates(data: {
+  candidates: ReadonlyArray<DeclaredCodeOwnerCandidateJSON>;
+  foundRepositoryId?: string | null | undefined;
+}): Array<DeclaredCodeOwnerCandidateJSON> {
+  const found: string = (data.foundRepositoryId || "").toLowerCase();
+
+  return data.candidates.filter(
+    (candidate: DeclaredCodeOwnerCandidateJSON): boolean => {
+      return (
+        candidate.canAsk &&
+        (candidate.reason !== DeclaredCodeOwnerReason.NoEvidence ||
+          (Boolean(found) && candidate.repositoryId.toLowerCase() === found))
+      );
+    },
+  );
+}
+
+// A ranked repository as the picker lists it: its name, its organization/name under it.
+function toCandidateOption(
+  candidate: DeclaredCodeOwnerCandidateJSON,
+): DropdownOption {
+  const [organizationName, ...rest] = (candidate.fullName || "").split("/");
+
+  return toCodeRepositoryOption({
+    id: candidate.repositoryId,
+    name: candidate.name || candidate.fullName || candidate.repositoryId,
+    organizationName: rest.length > 0 ? organizationName : undefined,
+    repositoryName: rest.length > 0 ? rest.join("/") : undefined,
+  });
+}
 
 // The action as the issue's page names it ("Block Public Access"), in the reader's language.
 function getActionTitle(action: string, translator: Translator): string {
@@ -154,6 +218,129 @@ const StoreNames: FunctionComponent<{
     </ul>
   );
 };
+
+/*
+ * The one approval, kind by kind (#10742): each kind of store's own action,
+ * what it does to that kind - what changes, what stops working, what it
+ * costs, in the very words Fix it from here confirms it with - and the
+ * stores it runs on. Rows between dividers inside the part: no card in a
+ * card.
+ */
+const CloudActionList: FunctionComponent<{
+  actions: ReadonlyArray<DataSecurityIssueGroupCloudActionJSON>;
+}> = (props: {
+  actions: ReadonlyArray<DataSecurityIssueGroupCloudActionJSON>;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <ul
+      className="mt-3 divide-y divide-gray-100 border-y border-gray-100"
+      data-testid={`${ISSUE_GROUP_FIX_TEST_ID}-cloud-actions`}
+    >
+      {props.actions.map(
+        (entry: DataSecurityIssueGroupCloudActionJSON): ReactElement => {
+          const description: string = isDataSecurityResponseAction(entry.action)
+            ? describeDataSecurityResponseAction(entry.action, entry.kind)
+            : "";
+
+          return (
+            <li
+              key={`${entry.action}-${entry.kind}`}
+              className="flex items-start gap-3 py-3"
+              data-testid={`${ISSUE_GROUP_FIX_TEST_ID}-cloud-action`}
+              data-action={entry.action}
+              data-kind={entry.kind}
+            >
+              <span
+                aria-hidden="true"
+                className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-md bg-indigo-50 text-indigo-600"
+              >
+                <Icon
+                  icon={
+                    isDataSecurityResponseAction(entry.action)
+                      ? getResponseActionIcon(entry.action)
+                      : IconProp.ShieldCheck
+                  }
+                  className="h-4 w-4"
+                />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <p className="text-sm font-medium text-gray-900">
+                    {getActionTitle(entry.action, translator)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {translator.translatePlural(
+                      CLOUD_ACTION_STORES,
+                      entry.stores.length,
+                    )}
+                  </p>
+                </div>
+                {entry.kind ? (
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText(entry.kind) || entry.kind}
+                  </p>
+                ) : (
+                  <></>
+                )}
+                {description ? (
+                  <p
+                    className="mt-1 text-xs leading-5 text-gray-600"
+                    data-testid={`${ISSUE_GROUP_FIX_TEST_ID}-cloud-action-effect`}
+                  >
+                    {translator.translateText(description) || description}
+                  </p>
+                ) : (
+                  <></>
+                )}
+                <StoreNames stores={entry.stores} />
+              </div>
+            </li>
+          );
+        },
+      )}
+    </ul>
+  );
+};
+
+/*
+ * The one approval's actions, kind by kind - or, from a server that named
+ * one action only, that action on every store.
+ */
+export function getCloudActions(
+  cloud: NonNullable<DataSecurityIssueGroupFixPlanJSON["cloud"]>,
+): Array<DataSecurityIssueGroupCloudActionJSON> {
+  if (cloud.actions && cloud.actions.length > 0) {
+    return cloud.actions;
+  }
+
+  return [
+    {
+      action: cloud.action,
+      kind: cloud.stores[0]?.kind || "",
+      stores: cloud.stores,
+    },
+  ];
+}
+
+// What each action of a press did - or, from a server that counted one, the one.
+export function getCloudOutcomes(
+  cloud: NonNullable<DataSecurityIssueGroupFixResultJSON["cloud"]>,
+): Array<DataSecurityIssueGroupCloudOutcomeJSON> {
+  if (cloud.actions && cloud.actions.length > 0) {
+    return cloud.actions;
+  }
+
+  return [
+    {
+      action: cloud.action,
+      changed: cloud.changed,
+      unchanged: cloud.unchanged,
+      failed: cloud.failed.length,
+    },
+  ];
+}
 
 // A part's heading, with its Include box when the fix has both parts.
 const PartHeading: FunctionComponent<{
@@ -287,9 +474,21 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
   ).filter((candidate: DeclaredCodeOwnerCandidateJSON): boolean => {
     return candidate.canAsk;
   });
+  // The ranked ones the picker offers first, beside its search.
+  const candidateOptions: Array<DropdownOption> = getOfferedCandidates({
+    candidates: askableCandidates,
+    foundRepositoryId: pullRequest?.location?.repositoryId,
+  }).map(toCandidateOption);
+  /*
+   * The pick, when it is one of the ranked repositories: why it is offered
+   * goes under it. A repository picked from the search says nothing.
+   */
   const chosen: DeclaredCodeOwnerCandidateJSON | undefined =
     askableCandidates.find((candidate: DeclaredCodeOwnerCandidateJSON) => {
-      return candidate.repositoryId === repositoryId;
+      return (
+        Boolean(repositoryId) &&
+        candidate.repositoryId.toLowerCase() === repositoryId.toLowerCase()
+      );
     });
   const isPullRequestIncluded: boolean = parts.includes(
     DataSecurityIssueGroupFixPart.PullRequest,
@@ -300,7 +499,9 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
   const canPress: boolean =
     Boolean(plan) &&
     parts.length > 0 &&
-    (!isPullRequestIncluded || isPullRequestOnItsWay || Boolean(chosen)) &&
+    (!isPullRequestIncluded ||
+      isPullRequestOnItsWay ||
+      Boolean(repositoryId)) &&
     (plan
       ? countIssueGroupFixStores(
           {
@@ -345,8 +546,8 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
           parts,
           planFingerprint: plan.planFingerprint,
           codeRepositoryId:
-            isPullRequestIncluded && !isPullRequestOnItsWay
-              ? chosen?.repositoryId
+            isPullRequestIncluded && !isPullRequestOnItsWay && repositoryId
+              ? repositoryId
               : undefined,
           includeDataStoreIds: isCloudIncluded ? ticked : [],
         });
@@ -378,15 +579,18 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
               result.cloud.refusal,
           );
         } else {
-          const done: number = result.cloud.changed + result.cloud.unchanged;
+          // What each kind's action did (#10742): one line each.
+          for (const outcome of getCloudOutcomes(result.cloud)) {
+            const done: number = outcome.changed + outcome.unchanged;
 
-          if (done > 0) {
-            didSomething = true;
-            Toast.success(
-              translator.translatePlural(CLOUD_PART_DONE, done, {
-                action: getActionTitle(result.cloud.action, translator),
-              }),
-            );
+            if (done > 0) {
+              didSomething = true;
+              Toast.success(
+                translator.translatePlural(CLOUD_PART_DONE, done, {
+                  action: getActionTitle(outcome.action, translator),
+                }),
+              );
+            }
           }
 
           if (result.cloud.failed.length > 0) {
@@ -440,7 +644,8 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
 
         {state.kind === "failed" ? (
           <p className="text-sm text-red-700">
-            {translator.translateText(FIX_PLAN_NOT_LOADED)} {state.error}
+            {translator.translateText(FIX_PLAN_NOT_LOADED)}{" "}
+            <ErrorInSentence message={state.error} showWhereToLook={true} />
           </p>
         ) : (
           <></>
@@ -504,43 +709,25 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
               </p>
             ) : isPullRequestIncluded ? (
               <div className="mt-3">
-                <label
+                <p
                   className="block text-xs font-medium text-gray-700"
-                  htmlFor={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
+                  id={REPOSITORY_LABEL_ID}
                 >
                   {translator.translateText(PULL_REQUEST_REPOSITORY)}
-                </label>
+                </p>
                 <div className="mt-1">
-                  <Dropdown
-                    inputId={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
-                    dataTestId={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
+                  <CodeRepositorySearchField
+                    value={repositoryId || null}
+                    options={candidateOptions}
+                    group={CodeRepositoryListGroup.Connected}
+                    isAskableOnly={true}
+                    isClearable={false}
                     placeholder={PULL_REQUEST_PICK_REPOSITORY}
-                    options={askableCandidates.map(
-                      (
-                        candidate: DeclaredCodeOwnerCandidateJSON,
-                      ): DropdownOption => {
-                        return {
-                          value: candidate.repositoryId,
-                          label: candidate.fullName || candidate.name,
-                          isUserContent: true,
-                        };
-                      },
-                    )}
-                    value={
-                      chosen
-                        ? {
-                            value: chosen.repositoryId,
-                            label: chosen.fullName || chosen.name,
-                            isUserContent: true,
-                          }
-                        : undefined
-                    }
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      setRepositoryId(
-                        typeof value === "string" ? value : String(value || ""),
-                      );
+                    emptyListText={NO_ASKABLE_REPOSITORY}
+                    ariaLabelledby={REPOSITORY_LABEL_ID}
+                    dataTestId={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
+                    onChange={(picked: string | null) => {
+                      setRepositoryId(picked || "");
                     }}
                   />
                 </div>
@@ -587,14 +774,13 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
             />
             <p className="mt-1 text-sm text-gray-700">
               {translator.translatePlural(
-                CLOUD_PART_SENTENCE,
+                getCloudActions(cloud).length > 1
+                  ? CLOUD_PART_KINDS_SENTENCE
+                  : CLOUD_PART_ONE_KIND_SENTENCE,
                 cloud.stores.length,
-                {
-                  action: getActionTitle(cloud.action, translator),
-                },
               )}
             </p>
-            <StoreNames stores={cloud.stores} />
+            <CloudActionList actions={getCloudActions(cloud)} />
             {cloud.refusal ? (
               <PartRefusal message={cloud.refusal} />
             ) : (

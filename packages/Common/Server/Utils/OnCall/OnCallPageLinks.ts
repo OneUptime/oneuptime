@@ -9,6 +9,10 @@ import ObjectID from "../../../Types/ObjectID";
 import OnCallPageLinkToken, {
   ON_CALL_PAGE_LINK_TOKEN_PARAM,
 } from "./OnCallPageLinkToken";
+import {
+  ON_CALL_KEYPAD_TOKEN_PARAM,
+  ON_CALL_KEYPAD_WRONG_KEYS_PARAM,
+} from "./OnCallKeypadToken";
 
 /*
  * THE LINKS IN A PERSON'S OWN PAGE.
@@ -144,5 +148,29 @@ export default class OnCallPageLinks {
       }),
       userOnCallLogTimelineId,
     );
+  }
+
+  /*
+   * Where a prompt said again after a wrong key sends the next key
+   * (Utils/Call/CallKeypad, #10949): the call's own keypad address - the
+   * action its <Gather> gave Twilio, with the same call token, so the next
+   * key is this call's as the first was - and how many wrong keys it has
+   * been asked again for, so it is asked again only so often. Absolute, as
+   * Twilio takes a <Gather> action of a call placed with its TwiML.
+   */
+  public static async getCallAskAgainUrl(data: {
+    userOnCallLogTimelineId: ObjectID;
+    // The call's own token, as the key's request carried it (OnCallKeypadToken).
+    keypadToken: string;
+    wrongKeys: number;
+  }): Promise<URL> {
+    return (
+      await this.getUrl({
+        path: "call/gather-input",
+        userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+      })
+    )
+      .addQueryParam(ON_CALL_KEYPAD_TOKEN_PARAM, data.keypadToken)
+      .addQueryParam(ON_CALL_KEYPAD_WRONG_KEYS_PARAM, String(data.wrongKeys));
   }
 }

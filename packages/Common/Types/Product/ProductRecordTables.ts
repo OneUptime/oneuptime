@@ -355,6 +355,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityPlaybookRun",
     "SecurityProtectedEntity",
     "SecurityTelemetrySource",
+    "SecurityUserErasureRequest",
     "SecurityWatchlist",
     "SecurityWatchlistItem",
     "ThreatIntelFeed",

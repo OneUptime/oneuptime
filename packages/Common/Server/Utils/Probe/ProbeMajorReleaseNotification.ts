@@ -12,7 +12,9 @@ import {
 } from "../../../Types/Probe/ProbeReportedVersion";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
+import { WhatsAppMessagePayload } from "../../../Types/WhatsApp/WhatsAppMessage";
 import PushNotificationUtil from "../PushNotificationUtil";
+import { createWhatsAppMessageFromTemplate } from "../WhatsAppTemplateUtil";
 
 /*
  * WHAT A CUSTOM PROBE'S OWNERS ARE TOLD WHEN IT FALLS A MAJOR RELEASE
@@ -29,9 +31,11 @@ import PushNotificationUtil from "../PushNotificationUtil";
  *   - Push, and the custom channels that send what push says: the line, a
  *     tap away from the probe's page.
  *   - A call: the line, spoken.
- *   - WhatsApp: none. It delivers only templates Meta has approved, and no
- *     approved template's words are true of this, so Notification Settings
- *     offers no WhatsApp switch for it (Types/WhatsApp/WhatsAppEventTemplates).
+ *   - WhatsApp: the line, through a template of its own (#10913) - WhatsApp
+ *     delivers only templates Meta has approved, and the probe status
+ *     template's words are not true of this - with the probe's page, which
+ *     says what it misses and how to update it
+ *     (Types/WhatsApp/WhatsAppTemplates, WhatsAppEventTemplates).
  *
  * No sentence names the release a feature first shipped in, as no "update
  * the probe" sentence does (#10798, Types/Probe/ProbeCapability): it says
@@ -87,6 +91,7 @@ export interface ProbeMajorReleaseNotificationContent {
   smsMessage: SMSMessage;
   callRequestMessage: CallRequestMessage;
   pushNotificationMessage: PushNotificationMessage;
+  whatsAppMessage: WhatsAppMessagePayload;
 }
 
 // Each brace, so a probe's name never makes a Handlebars expression of a subject.
@@ -264,11 +269,32 @@ export default class ProbeMajorReleaseNotification {
         requireInteraction: false,
       });
 
+    /*
+     * The line, through the event's own approved template (#10913), every
+     * variable filled: the probe's page says what it misses and links the
+     * docs that say how to update it.
+     */
+    const whatsAppMessage: WhatsAppMessagePayload =
+      createWhatsAppMessageFromTemplate({
+        eventType: ProbeMajorReleaseNotification.EVENT_TYPE,
+        templateVariables: {
+          probe_name: data.probeName,
+          probe_version: ProbeMajorReleaseNotification.getProbeVersionPhrase(
+            data.lag,
+          ),
+          major_releases_behind:
+            ProbeMajorReleaseNotification.getMajorReleasesLabel(data.lag),
+          server_version: data.lag.serverRelease,
+          probe_link: data.viewProbeLink,
+        },
+      });
+
     return {
       emailEnvelope,
       smsMessage,
       callRequestMessage,
       pushNotificationMessage,
+      whatsAppMessage,
     };
   }
 }
