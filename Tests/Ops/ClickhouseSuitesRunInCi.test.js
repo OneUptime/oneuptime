@@ -184,7 +184,9 @@ describe("the helpers this suite reads the tests and workflows with", () => {
   test("see a leading cd as where a step runs", () => {
     expect(
       STEPS.filter((step) => {
-        return step.directory === "packages/App" && step.env.TEST_CLICKHOUSE_URL;
+        return (
+          step.directory === "packages/App" && step.env.TEST_CLICKHOUSE_URL
+        );
       }).length,
     ).toBeGreaterThan(0);
   });
@@ -205,7 +207,9 @@ describe("the helpers this suite reads the tests and workflows with", () => {
 describe("Common's test-clickhouse script", () => {
   test("runs every Common suite named for a real ClickHouse, with the exported config.env the other scripts read", () => {
     expect(CLICKHOUSE_PATTERN).toBe("ClickhouseIntegration.test.ts");
-    expect(CLICKHOUSE_SCRIPT).toContain("export $(grep -v '^#' config.env | xargs)");
+    expect(CLICKHOUSE_SCRIPT).toContain(
+      "export $(grep -v '^#' config.env | xargs)",
+    );
     expect(CLICKHOUSE_SCRIPT).toContain("--maxWorkers=2");
     expect(CLICKHOUSE_SCRIPT).toContain("--passWithNoTests");
   });
@@ -214,7 +218,10 @@ describe("Common's test-clickhouse script", () => {
     for (const file of SUITES.filter((suite) => {
       return suite.startsWith(`${COMMON}/`);
     })) {
-      expect({ file, named: /ClickhouseIntegration\.test\.ts$/.test(file) }).toEqual({
+      expect({
+        file,
+        named: /ClickhouseIntegration\.test\.ts$/.test(file),
+      }).toEqual({
         file,
         named: true,
       });
@@ -230,13 +237,17 @@ describe("Common's test-clickhouse script", () => {
 
     for (const step of steps) {
       expect(step.directory).toBe(COMMON);
-      expect(step.env.TEST_CLICKHOUSE_URL).toMatch(/^http:\/\/[^@]+@localhost:\d+$/);
+      expect(step.env.TEST_CLICKHOUSE_URL).toMatch(
+        /^http:\/\/[^@]+@localhost:\d+$/,
+      );
       expect(
         Object.values(step.services).some((service) => {
           return /clickhouse-server/.test(String(service.image || ""));
         }),
       ).toBe(true);
-      expect(step.run).toContain("--shard=${{ matrix.shard }}/${{ strategy.job-total }}");
+      expect(step.run).toContain(
+        "--shard=${{ matrix.shard }}/${{ strategy.job-total }}",
+      );
     }
   });
 });
