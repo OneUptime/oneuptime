@@ -51,6 +51,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import * as Config from "../../../UI/Config";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import {
@@ -175,6 +176,22 @@ describe("what env.js carried", () => {
     expect(HelpAndSupport.getSettings()).toEqual(
       getDefaultHelpAndSupportSettings(),
     );
+  });
+
+  test("an environment that cannot be read at all reads every default, and never throws: the crash screen reads it while the page breaks", () => {
+    const envSpy: jest.SpiedFunction<typeof Config.env> = jest
+      .spyOn(Config, "env")
+      .mockImplementation((): string => {
+        throw new Error("env.js could not be read");
+      });
+
+    try {
+      expect(HelpAndSupport.getSettings()).toEqual(
+        getDefaultHelpAndSupportSettings(),
+      );
+    } finally {
+      envSpy.mockRestore();
+    }
   });
 
   test("is read when asked, so a page that set env.js late is read as it is now", () => {

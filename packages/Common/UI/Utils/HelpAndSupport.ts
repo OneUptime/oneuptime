@@ -36,6 +36,20 @@ import { useSyncExternalStore } from "react";
 
 type Listener = () => void;
 
+/*
+ * What env.js carried, or nothing when it cannot be read at all. The crash
+ * screen reads the settings while the page is breaking, so this never
+ * throws: a screen that cannot name the server's own address names
+ * OneUptime's, as it always did, rather than going blank.
+ */
+const readEnvironmentValue: () => string = (): string => {
+  try {
+    return env(HELP_AND_SUPPORT_ENVIRONMENT_KEY) || "";
+  } catch {
+    return "";
+  }
+};
+
 export default class HelpAndSupport {
   // What the server answered a signed-in person, or null until it has.
   private static loaded: HelpAndSupportSettings | null = null;
@@ -51,7 +65,7 @@ export default class HelpAndSupport {
    * the two changes, as a React store's snapshot must be.
    */
   public static getSettings(): HelpAndSupportSettings {
-    const rawValue: string = env(HELP_AND_SUPPORT_ENVIRONMENT_KEY);
+    const rawValue: string = readEnvironmentValue();
 
     if (
       HelpAndSupport.lastSettings &&
