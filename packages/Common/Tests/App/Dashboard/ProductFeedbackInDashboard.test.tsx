@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -1329,7 +1330,7 @@ describe("Give feedback, from any page", () => {
 
     test("a page of their own: opened from anywhere else (Search), it opens the page in a new tab, not the dialog", () => {
       toTheSupportPage();
-      const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+      const navigate: SpyInstance<typeof Navigation.navigate> = jest
         .spyOn(Navigation, "navigate")
         .mockImplementation(() => {
           // Where it goes is what is checked.

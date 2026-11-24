@@ -9,6 +9,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -71,7 +72,7 @@ const breakThePage: () => HTMLElement = (): HTMLElement => {
   return screen.getByTestId("error-boundary-fallback");
 };
 
-const consoleErrorSpy: jest.SpiedFunction<typeof console.error> = jest.spyOn(
+const consoleErrorSpy: SpyInstance<typeof console.error> = jest.spyOn(
   console,
   "error",
 );

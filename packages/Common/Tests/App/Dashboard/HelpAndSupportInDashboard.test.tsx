@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -518,7 +519,7 @@ describe("Page not found", () => {
   };
 
   test("Contact Support writes to OneUptime's support by default", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {
         // Where it goes is what is checked.
@@ -541,7 +542,7 @@ describe("Page not found", () => {
         },
       }),
     );
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {
         // Where it goes is what is checked.
@@ -631,7 +632,7 @@ describe("Project Settings > Mobile Apps", () => {
   });
 
   test("the page, by default: OneUptime's stores, as always", () => {
-    const open: jest.SpiedFunction<typeof window.open> = jest
+    const open: SpyInstance<typeof window.open> = jest
       .spyOn(window, "open")
       .mockImplementation(() => {
         return null;
@@ -659,7 +660,7 @@ describe("Project Settings > Mobile Apps", () => {
         },
       }),
     );
-    const open: jest.SpiedFunction<typeof window.open> = jest
+    const open: SpyInstance<typeof window.open> = jest
       .spyOn(window, "open")
       .mockImplementation(() => {
         return null;

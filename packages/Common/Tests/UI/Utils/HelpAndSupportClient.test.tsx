@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -179,7 +180,7 @@ describe("what env.js carried", () => {
   });
 
   test("an environment that cannot be read at all reads every default, and never throws: the crash screen reads it while the page breaks", () => {
-    const envSpy: jest.SpiedFunction<typeof Config.env> = jest
+    const envSpy: SpyInstance<typeof Config.env> = jest
       .spyOn(Config, "env")
       .mockImplementation((): string => {
         throw new Error("env.js could not be read");
