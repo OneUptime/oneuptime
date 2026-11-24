@@ -120,15 +120,15 @@ function attribute(key: string, value: string): JSONObject {
 export interface AgentOtlpOptions {
   // When the scrape happened: the time of a sample that carries none.
   scrapeSeconds: number;
-  xenOrchestraName?: string;
-  agentVersion?: string;
+  xenOrchestraName?: string | undefined;
+  agentVersion?: string | undefined;
   /*
    * Leave the eight rate series as cumulative sums, as a collector without
    * the agent's transform would send them.
    */
-  rateSeriesAsSums?: boolean;
+  rateSeriesAsSums?: boolean | undefined;
   // Mark these series' datapoints as staleness markers (flags = 1).
-  staleSeries?: Array<string>;
+  staleSeries?: Array<string> | undefined;
 }
 
 /*

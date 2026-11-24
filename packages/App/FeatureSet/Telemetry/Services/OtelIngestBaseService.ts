@@ -3174,11 +3174,31 @@ export default abstract class OtelIngestBaseService {
     return normalized || null;
   }
 
-  // Xen Orchestra's name for the pool: descriptive, never identity.
+  /*
+   * Xen Orchestra's name for the pool: descriptive, never identity. Until
+   * Xen Orchestra has loaded a pool's own object it labels the hosts' RRD
+   * series with the pool's UUID in its name's place (xo-server-openmetrics:
+   * poolLabel falls back to $poolId), so a name that is the pool's UUID is
+   * no name: the pool must not be named, or renamed, after it.
+   */
   protected static getXcpNgPoolNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
-    return this.getStringAttribute(attributes, XCP_NG_POOL_NAME_ATTRIBUTE);
+    const name: string = (
+      this.getStringAttribute(attributes, XCP_NG_POOL_NAME_ATTRIBUTE) || ""
+    ).trim();
+    if (!name) {
+      return null;
+    }
+    const poolIdentifier: string | null =
+      this.getXcpNgPoolIdentifierFromAttributes(attributes);
+    if (
+      poolIdentifier &&
+      XcpNgTelemetryUtil.normalizePoolIdentifier(name) === poolIdentifier
+    ) {
+      return null;
+    }
+    return name;
   }
 
   // The Xen Orchestra the pool is read from (the agent's XO_NAME).

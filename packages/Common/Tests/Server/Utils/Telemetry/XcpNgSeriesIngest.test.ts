@@ -15,14 +15,7 @@ import {
   readRecordedScrape,
   toAgentResourceMetrics,
 } from "./XcpNgScrapeFixture";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * XcpNgSeriesIngest: what the normalizer needs from outside a batch (which

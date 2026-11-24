@@ -8,7 +8,7 @@ import XcpNgResourceService, {
 import { ParsedXcpNgResource } from "../../../Server/Utils/Telemetry/XcpNgSnapshotScan";
 import ObjectID from "../../../Types/ObjectID";
 import XcpNgResourceKind from "../../../Types/XcpNg/XcpNgResourceKind";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * XcpNgResourceService's hand-written SQL, without a database: the upsert's

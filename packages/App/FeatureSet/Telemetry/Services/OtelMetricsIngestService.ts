@@ -1564,13 +1564,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 envelope: resourceMetric as JSONObject,
               });
             }
+            /*
+             * One pool can arrive as several blocks of a batch (the agent
+             * groups its series by pool_id and pool_name, and a series
+             * without a name makes a block of its own): a name any block
+             * carried is kept.
+             */
+            const earlierNames:
+              | { reportedName: string | null; xenOrchestraName: string | null }
+              | undefined = xcpNgReportedNames.get(xcpNgPoolId.toString());
             xcpNgReportedNames.set(xcpNgPoolId.toString(), {
-              reportedName: this.getXcpNgPoolNameFromAttributes(
-                resourceAttributes_raw,
-              ),
-              xenOrchestraName: this.getXenOrchestraNameFromAttributes(
-                resourceAttributes_raw,
-              ),
+              reportedName:
+                this.getXcpNgPoolNameFromAttributes(resourceAttributes_raw) ||
+                earlierNames?.reportedName ||
+                null,
+              xenOrchestraName:
+                this.getXenOrchestraNameFromAttributes(
+                  resourceAttributes_raw,
+                ) ||
+                earlierNames?.xenOrchestraName ||
+                null,
             });
           }
 
