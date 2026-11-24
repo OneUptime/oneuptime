@@ -3,6 +3,7 @@ import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCall
 import {
   ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED,
   ON_CALL_TEST_PAGE_CALL_GREETING,
+  ON_CALL_TEST_PAGE_CALL_NO_INPUT,
   ON_CALL_TEST_PAGE_CALL_PROMPT,
   getOnCallTestPageAcknowledgeLabel,
   getOnCallTestPageAskToAcknowledge,
@@ -259,8 +260,9 @@ describe("what the test is, in English", () => {
 
 describe("the call, in English as every call is", () => {
   test("says it is a test and nothing is wrong, then what it tests, then to press 1", () => {
+    // Who calls is said before it, as every page's call says it (OnCallPageCall).
     expect(ON_CALL_TEST_PAGE_CALL_GREETING).toBe(
-      "This is a test page from OneUptime. Nothing is wrong.",
+      "This is a test page. Nothing is wrong.",
     );
 
     expect(
@@ -279,5 +281,32 @@ describe("the call, in English as every call is", () => {
     expect(ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED).toContain(
       "You have acknowledged this test page.",
     );
+    expect(ON_CALL_TEST_PAGE_CALL_NO_INPUT).toBe(
+      "You did not press a key, so this test page is not acknowledged. Good bye.",
+    );
+  });
+
+  test("a test that stands in for no severity says none, rather than a dash", () => {
+    expect(
+      getOnCallTestPageCallWhatItTests({
+        recordKind: OnCallTestPageRecordKind.Incident,
+        projectName: "Acme",
+        severityName: "",
+      }),
+    ).toBe("This tests how Acme pages you for an incident.");
+    expect(
+      getOnCallTestPageCallWhatItTests({
+        recordKind: OnCallTestPageRecordKind.Alert,
+        projectName: "Acme",
+        severityName: undefined,
+      }),
+    ).toBe("This tests how Acme pages you for an alert.");
+    expect(
+      getOnCallTestPageCallWhatItTests({
+        recordKind: OnCallTestPageRecordKind.Alert,
+        projectName: "Acme",
+        severityName: "High",
+      }),
+    ).toBe("This tests how Acme pages you for an alert of severity High.");
   });
 });

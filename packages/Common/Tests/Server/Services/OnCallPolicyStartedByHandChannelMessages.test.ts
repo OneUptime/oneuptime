@@ -278,6 +278,8 @@ interface Kind {
   smsRecord: string;
   // What its first page's call, Telegram headline and push title say.
   firstCallSentence: string;
+  // The record as a call says it after who started what: severity, kind, number.
+  callRecord: string;
   firstHeadline: string;
   firstPushTitle: string;
   call: (notice: Notice) => Promise<CallRequest>;
@@ -299,7 +301,8 @@ const KINDS: Array<Kind> = [
     title: "Checkout is down",
     emoji: "🔥",
     smsRecord: "Critical incident INC-42",
-    firstCallSentence: "A new incident has been created",
+    firstCallSentence: "A new Critical incident has been created: INC-42.",
+    callRecord: "Critical incident INC-42",
     firstHeadline: "New incident assigned to you",
     firstPushTitle: "New Incident INC-42: Checkout is down",
     call: (notice: Notice) => {
@@ -366,7 +369,8 @@ const KINDS: Array<Kind> = [
     title: "CPU above 90%",
     emoji: "🚨",
     smsRecord: "High alert ALR-12",
-    firstCallSentence: "A new alert has been created",
+    firstCallSentence: "A new High alert has been created: ALR-12.",
+    callRecord: "High alert ALR-12",
     firstHeadline: "New alert assigned to you",
     firstPushTitle: "New Alert ALR-12: CPU above 90%",
     call: (notice: Notice) => {
@@ -433,7 +437,8 @@ const KINDS: Array<Kind> = [
     title: "Payments degraded",
     emoji: "🔥",
     smsRecord: "Critical incident episode EP-7",
-    firstCallSentence: "A new incident episode has been created",
+    firstCallSentence: "A new Critical incident episode has been created: EP-7.",
+    callRecord: "Critical incident episode EP-7",
     firstHeadline: "New incident episode assigned to you",
     firstPushTitle: "New Incident Episode EP-7: Payments degraded",
     call: (notice: Notice) => {
@@ -507,7 +512,8 @@ const KINDS: Array<Kind> = [
     title: "Disk filling up",
     emoji: "🔔",
     smsRecord: "High alert episode AEP-3",
-    firstCallSentence: "A new alert episode has been created",
+    firstCallSentence: "A new High alert episode has been created: AEP-3.",
+    callRecord: "High alert episode AEP-3",
     firstHeadline: "New alert episode assigned to you",
     firstPushTitle: "New Alert Episode AEP-3: Disk filling up",
     call: (notice: Notice) => {
@@ -599,7 +605,7 @@ describe.each(KINDS)("a policy started by hand about $name", (kind: Kind) => {
     const said: Array<string> = sayMessages(call);
 
     expect(said[1]).toBe(
-      `Alice Kim started the on-call policy Database escalation for an ${kind.noun}`,
+      `Alice Kim started the on-call policy Database escalation for an ${kind.noun}: ${kind.callRecord}.`,
     );
     expect(said[2]).toContain(kind.title);
     expect(said[3]).toBe(`Alice Kim says: ${MESSAGE}`);
@@ -611,8 +617,8 @@ describe.each(KINDS)("a policy started by hand about $name", (kind: Kind) => {
       },
     ) as { introMessage?: string };
 
-    expect(gather.introMessage).toContain(
-      `To acknowledge this ${kind.noun}, press 1.`,
+    expect(gather.introMessage).toBe(
+      "Press 1 to acknowledge, or 2 to escalate.",
     );
   });
 
@@ -620,7 +626,7 @@ describe.each(KINDS)("a policy started by hand about $name", (kind: Kind) => {
     const said: Array<string> = sayMessages(await kind.call(BY_LEVEL));
 
     expect(said[1]).toBe(
-      `Alice Kim started the on-call policy Database escalation for an ${kind.noun}`,
+      `Alice Kim started the on-call policy Database escalation for an ${kind.noun}: ${kind.callRecord}.`,
     );
     expect(
       said.some((text: string): boolean => {
@@ -1209,6 +1215,10 @@ describe("a delivery hands a policy started by hand to every channel's message",
     label: string;
     number: string;
     noun: string;
+    // The record as its call says it: severity, kind, number.
+    callRecord: string;
+    // What its call's headline says it is, severity first.
+    callKind: string;
   }
 
   const DELIVERED: Array<DeliveredKind> = [
@@ -1219,6 +1229,8 @@ describe("a delivery hands a policy started by hand to every channel's message",
       label: "Incident",
       number: "INC-42",
       noun: "incident",
+      callRecord: "Critical incident INC-42",
+      callKind: "Critical incident",
     },
     {
       name: "an alert",
@@ -1227,6 +1239,8 @@ describe("a delivery hands a policy started by hand to every channel's message",
       label: "Alert",
       number: "ALR-12",
       noun: "alert",
+      callRecord: "High alert ALR-12",
+      callKind: "High alert",
     },
     {
       name: "an incident episode",
@@ -1235,6 +1249,8 @@ describe("a delivery hands a policy started by hand to every channel's message",
       label: "Incident Episode",
       number: "EP-7",
       noun: "incident episode",
+      callRecord: "Critical incident episode EP-7",
+      callKind: "Critical incident episode",
     },
     {
       name: "an alert episode",
@@ -1243,6 +1259,8 @@ describe("a delivery hands a policy started by hand to every channel's message",
       label: "Alert Episode",
       number: "AEP-3",
       noun: "alert episode",
+      callRecord: "High alert episode AEP-3",
+      callKind: "High alert episode",
     },
   ];
 
@@ -1271,7 +1289,7 @@ describe("a delivery hands a policy started by hand to every channel's message",
 
       const call: CallRequest = spies.call.mock.calls[0]![0] as CallRequest;
       expect(sayMessages(call)[1]).toBe(
-        `Alice Kim started the on-call policy Database escalation for an ${kind.noun}`,
+        `Alice Kim started the on-call policy Database escalation for an ${kind.noun}: ${kind.callRecord}.`,
       );
       expect(sayMessages(call)).toContain(`Alice Kim says: ${MESSAGE}`);
 
@@ -1363,7 +1381,7 @@ describe("a delivery hands a policy started by hand to every channel's message",
       );
 
       expect(sayMessages(spies.call.mock.calls[0]![0] as CallRequest)[1]).toBe(
-        `A new ${kind.noun} has been created`,
+        `A new ${kind.callKind} has been created: ${kind.number}.`,
       );
       expect((spies.mail.mock.calls[0]![0] as EmailMessage).subject).toBe(
         `ACTION REQUIRED: ${kind.label} ${kind.number} created - ${
@@ -1393,7 +1411,7 @@ describe("a delivery hands a policy started by hand to every channel's message",
       );
 
       expect(sayMessages(spies.call.mock.calls[0]![0] as CallRequest)[1]).toBe(
-        `A new ${kind.noun} has been created`,
+        `A new ${kind.callKind} has been created: ${kind.number}.`,
       );
       expect(
         (spies.mail.mock.calls[0]![0] as EmailMessage).vars["personPageInfo"],
