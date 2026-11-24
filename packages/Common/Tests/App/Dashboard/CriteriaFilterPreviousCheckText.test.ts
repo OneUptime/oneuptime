@@ -160,6 +160,7 @@ describe("the editor's sentence, for a measured value against the previous check
           {
             checkOn: CheckOn.CPUUsagePercent,
             filterType: FilterType.GreaterThan,
+            value: undefined,
           },
           { changeType: PreviousCheckChangeType.Amount, changeValue: 10 },
         ),
@@ -174,6 +175,7 @@ describe("the editor's sentence, for a measured value against the previous check
           {
             checkOn: CheckOn.CPUUsagePercent,
             filterType: FilterType.GreaterThan,
+            value: undefined,
           },
           { changeType: PreviousCheckChangeType.Amount, changeValue: 1 },
         ),
@@ -188,6 +190,7 @@ describe("the editor's sentence, for a measured value against the previous check
           {
             checkOn: CheckOn.CPUUsagePercent,
             filterType: FilterType.GreaterThan,
+            value: undefined,
           },
           { changeType: PreviousCheckChangeType.Percentage, changeValue: 50 },
         ),
@@ -205,6 +208,7 @@ describe("the editor's sentence, for a measured value against the previous check
           {
             checkOn: CheckOn.DiskUsagePercent,
             filterType: FilterType.GreaterThan,
+            value: undefined,
             serverMonitorOptions: { diskPath: "/data" },
           },
           { changeType: PreviousCheckChangeType.Amount, changeValue: 5 },
@@ -219,6 +223,7 @@ describe("the editor's sentence, for a measured value against the previous check
         previousCheck({
           checkOn: CheckOn.ResponseStatusCode,
           filterType: FilterType.NotEqualTo,
+          value: undefined,
         }),
         MonitorType.API,
       ),
@@ -231,6 +236,7 @@ describe("the editor's sentence, for a measured value against the previous check
           {
             checkOn: CheckOn.DatabaseMetric,
             filterType: FilterType.GreaterThan,
+            value: undefined,
             databaseMonitorOptions: {
               metricType: MonitorMetricType.DatabaseConnectionsUsedPercent,
             },
@@ -266,7 +272,11 @@ describe("the editor's sentence, for a yes or no check against the previous chec
     expect(
       textOf(
         previousCheck(
-          { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
           { changeType: undefined, changeValue: undefined },
         ),
         MonitorType.Ping,
@@ -280,6 +290,7 @@ describe("the editor's sentence, for a yes or no check against the previous chec
         previousCheck({
           checkOn: CheckOn.IsOnline,
           filterType: FilterType.True,
+          value: undefined,
         }),
         MonitorType.Ping,
       ),
@@ -320,8 +331,14 @@ describe("what the form offers and sets", () => {
 
   test("the change is an amount or a percentage", () => {
     expect(CriteriaFilterUtil.getPreviousCheckChangeTypeOptions()).toEqual([
-      { value: PreviousCheckChangeType.Amount, label: "Amount in the check's own unit" },
-      { value: PreviousCheckChangeType.Percentage, label: "Percent of the previous check" },
+      {
+        value: PreviousCheckChangeType.Amount,
+        label: "Amount in the check's own unit",
+      },
+      {
+        value: PreviousCheckChangeType.Percentage,
+        label: "Percent of the previous check",
+      },
     ]);
   });
 

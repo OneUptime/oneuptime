@@ -300,6 +300,7 @@ describe("a yes or no check compared with the previous check", () => {
       {
         checkOn: CheckOn.IsOnline,
         filterType: FilterType.False,
+        value: undefined,
         evaluateOverTime: true,
         evaluateOverTimeOptions: {
           timeValueInMinutes: 5,
