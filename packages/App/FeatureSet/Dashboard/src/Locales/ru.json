@@ -446,6 +446,7 @@
   "Subscribers": "Подписчики",
   "Monitor Status": "Статус монитора",
   "Monitor Groups": "Группы мониторов",
+  "Check Duration": "Длительность проверки",
   "Monitoring Logs": "Журналы мониторинга",
   "Log Settings": "Настройки журналов",
   "Metric Settings": "Настройки метрик",

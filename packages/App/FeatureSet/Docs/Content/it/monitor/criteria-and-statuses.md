@@ -219,6 +219,8 @@ Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: 
 
 Il riepilogo di valutazione di ogni controllo, in **Visualizza riepilogo** nei **Log di monitoraggio** del monitor e, per l'ultimo controllo, nella sua **Panoramica**, dice quando il controllo è stato valutato, quanto è durata la sua valutazione e, per un monitor che giudica ogni host, container o gruppo separatamente, quante serie ha valutato. Il tempo va da quando OneUptime ha iniziato a leggere i dati che il controllo giudica fino a quando ne ha scritto il log: la lettura dei dati, la valutazione dei criteri e l'apertura di incidenti e avvisi.
 
+Nei **Log di monitoraggio**, la colonna **Durata del controllo** mostra quanto è durato ogni controllo e segnala quelli lenti. Un trattino indica che la durata del controllo non è stata registrata.
+
 Quando una valutazione dura troppo per il suo monitor, il suo riepilogo ti avvisa. Troppo è più di un decimo del tempo tra due controlli del monitor, mai meno di 5 secondi e mai più di un minuto:
 
 | Monitor controllato | Avvisa dopo |

@@ -946,6 +946,58 @@ describe("Monitoring Logs on a telemetry monitor", () => {
     ]);
   });
 
+  test("shows each check's recorded duration and marks slow checks by their recorded interval", async () => {
+    await renderLogsPage({
+      monitorType: MonitorType.Metrics,
+      rows: [
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000004",
+          time: "2026-11-10T09:13:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: {
+            ...METRIC_EVALUATION,
+            durationInMs: 25_000,
+            intervalInMs: 60_000,
+          },
+        }),
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000003",
+          time: "2026-11-10T09:12:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: {
+            ...METRIC_EVALUATION,
+            durationInMs: 25_000,
+            intervalInMs: 300_000,
+          },
+        }),
+        metricRow({
+          id: "e0000000-0000-4000-8000-000000000002",
+          time: "2026-11-10T09:11:00.000Z",
+          pointsPerQuery: [1],
+          evaluationSummary: { ...METRIC_EVALUATION, durationInMs: 0 },
+        }),
+        METRIC_ROWS[2]!,
+      ],
+    });
+
+    expect(textsOfColumn("Check Duration")).toEqual([
+      "25\u00A0s (slow)",
+      "25\u00A0s",
+      "0\u00A0ms",
+      QUIET_DASH_TEXT,
+    ]);
+
+    const cells: Array<HTMLElement> = cellsOfColumn("Check Duration");
+    expect(within(cells[0]!).getByTestId("pill")).toHaveAttribute(
+      "data-tone",
+      "warning",
+    );
+    expect(within(cells[1]!).queryByTestId("pill")).not.toBeInTheDocument();
+    expect(
+      within(openSummary(0)).getByTestId("slow-evaluation"),
+    ).toBeInTheDocument();
+  });
+
   test("a check that read nothing stands out as No data", async () => {
     await renderLogsPage({
       monitorType: MonitorType.Metrics,

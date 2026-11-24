@@ -219,6 +219,8 @@ Secrets and personal data are masked before anything is kept: headers such as `A
 
 Each check's evaluation summary, under **View Summary** in the monitor's **Monitoring Logs** and for the latest check on its **Overview**, says when the check was evaluated, how long its evaluation took and, on a monitor that judges each host, container or group on its own, how many series it judged. The time runs from when OneUptime began reading the data the check judges until it wrote the check's log: reading the data, judging the criteria, and opening incidents and alerts.
 
+In **Monitoring Logs**, the **Check Duration** column shows how long each check took and marks slow checks. A dash means the check's duration was not recorded.
+
 When an evaluation takes too long for its monitor, its summary warns you. Too long is more than a tenth of the time between the monitor's checks, never less than 5 seconds and never more than a minute:
 
 | Monitor checked | Warns after |

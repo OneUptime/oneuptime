@@ -219,6 +219,8 @@ Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Aut
 
 Evalueringsoversigten for hver kontrol, under **Vis oversigt** i monitorens **Overvågningslogs** og for den seneste kontrol på dens **Oversigt**, fortæller, hvornår kontrollen blev evalueret, hvor lang tid evalueringen tog og, for en monitor, der vurderer hver vært, container eller gruppe for sig, hvor mange serier den vurderede. Tiden løber fra det øjeblik, OneUptime begyndte at læse de data, kontrollen vurderer, til den skrev kontrollens log: læsningen af dataene, vurderingen af kriterierne og åbningen af hændelser og advarsler.
 
+I **Overvågningslogs** viser kolonnen **Kontrollens varighed**, hvor lang tid hver kontrol tog, og markerer langsomme kontroller. En tankestreg betyder, at kontrollens varighed ikke blev registreret.
+
 Når en evaluering tager for lang tid for sin monitor, advarer dens oversigt dig. For lang tid er mere end en tiendedel af tiden mellem monitorens kontroller, aldrig under 5 sekunder og aldrig over et minut:
 
 | Monitor kontrolleret | Advarer efter |

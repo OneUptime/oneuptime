@@ -446,6 +446,7 @@
   "Subscribers": "订阅者",
   "Monitor Status": "监视器状态",
   "Monitor Groups": "监视器组",
+  "Check Duration": "检查耗时",
   "Monitoring Logs": "监视日志",
   "Log Settings": "日志设置",
   "Metric Settings": "指标设置",

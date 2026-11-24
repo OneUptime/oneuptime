@@ -219,6 +219,8 @@ Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wir
 
 Die Auswertungszusammenfassung jeder Prüfung, unter **Zusammenfassung anzeigen** auf der Seite **Überwachungsprotokolle** des Monitors und für die letzte Prüfung auf seiner **Übersicht**, sagt, wann die Prüfung ausgewertet wurde, wie lange ihre Auswertung dauerte und, bei einem Monitor, der jeden Host, jeden Container oder jede Gruppe für sich beurteilt, wie viele Reihen sie beurteilt hat. Die Zeit läuft ab dem Moment, in dem OneUptime begann, die Daten der Prüfung zu lesen, bis es das Protokoll der Prüfung schrieb: das Lesen der Daten, das Beurteilen der Kriterien und das Öffnen von Vorfällen und Warnungen.
 
+In den **Überwachungsprotokolle** zeigt die Spalte **Prüfdauer**, wie lange jede Prüfung dauerte, und markiert langsame Prüfungen. Ein Strich bedeutet, dass die Prüfdauer nicht aufgezeichnet wurde.
+
 Wenn eine Auswertung für ihren Monitor zu lange dauert, warnt Sie ihre Zusammenfassung. Zu lange ist mehr als ein Zehntel der Zeit zwischen den Prüfungen des Monitors, nie weniger als 5 Sekunden und nie mehr als eine Minute:
 
 | Monitor geprüft | Warnt nach |

@@ -219,6 +219,8 @@ Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som 
 
 Evalueringssammendraget for hver sjekk, under **Vis sammendrag** i monitorens **Overvåkingslogger** og for den siste sjekken på dens **Oversikt**, forteller når sjekken ble evaluert, hvor lang tid evalueringen tok og, for en monitor som vurderer hver vert, container eller gruppe for seg, hvor mange serier den vurderte. Tiden løper fra OneUptime begynte å lese dataene sjekken vurderer, til den skrev sjekkens logg: lesingen av dataene, vurderingen av kriteriene og åpningen av hendelser og varsler.
 
+I **Overvåkingslogger** viser kolonnen **Sjekkens varighet** hvor lang tid hver sjekk tok, og markerer trege sjekker. En strek betyr at sjekkens varighet ikke ble registrert.
+
 Når en evaluering tar for lang tid for monitoren sin, varsler sammendraget deg. For lang tid er mer enn en tidel av tiden mellom monitorens sjekker, aldri under 5 sekunder og aldri over ett minutt:
 
 | Monitor sjekket | Varsler etter |
