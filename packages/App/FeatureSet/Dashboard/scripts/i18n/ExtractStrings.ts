@@ -877,6 +877,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why an invitation was refused - the person is in the team already, or
+   * the Free plan has no room (#7271): the invite dialog says them in the
+   * reader's language. Only the words the file marks are read: the rest of
+   * the server's errors stay as they are.
+   */
+  { directory: "packages/Common/Server/Utils/Errors.ts", kind: "keys" },
+  /*
    * Why a data check or a reconciliation was not written, added or set up
    * (#7530): the server's refusals, which Write a Check from a Sentence,
    * Suggested Checks and the Reconciliations page say in the reader's

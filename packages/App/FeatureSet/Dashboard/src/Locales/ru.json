@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "Этот способ уведомления уже подтверждён. Можно закрыть это окно.",
   "This notification method is not in your list any more. Add it again, then verify it.": "Этого способа уведомления больше нет в вашем списке. Добавьте его снова, затем подтвердите.",
   "This verification code has expired. Please request a new code.": "Срок действия этого кода подтверждения истёк. Запросите новый код.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Слишком много неверных попыток. Этот код подтверждения больше не действует. Запросите новый код."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Слишком много неверных попыток. Этот код подтверждения больше не действует. Запросите новый код.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "Этот человек уже приглашён в эту команду или уже в ней состоит. Если он ещё не присоединился, нажмите «Отправить приглашение повторно» в его строке, чтобы снова отправить письмо с приглашением.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "Вы достигли лимита пользователей бесплатного плана. Чтобы пригласить больше людей, перейдите на план Growth в Настройки проекта > Биллинг и счета > Биллинг."
 }

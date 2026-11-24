@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "此通知方式已驗證。您可以關閉此對話方塊。",
   "This notification method is not in your list any more. Add it again, then verify it.": "此通知方式已不在您的清單中。請重新新增，然後進行驗證。",
   "This verification code has expired. Please request a new code.": "此驗證碼已過期。請申請新的驗證碼。",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "錯誤嘗試次數過多。此驗證碼已失效。請申請新的驗證碼。"
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "錯誤嘗試次數過多。此驗證碼已失效。請申請新的驗證碼。",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "此人已受邀加入此團隊，或已是團隊成員。如果此人尚未加入，請在其所在列使用「重新傳送邀請」，再次寄出邀請郵件。",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "您已達到免費方案的使用者上限。若要邀請更多人，請在「專案設定」>「帳單與發票」>「帳單」中將方案變更為 Growth。"
 }

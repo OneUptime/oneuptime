@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "Denne varslingsmetoden er allerede verifisert. Du kan lukke denne dialogen.",
   "This notification method is not in your list any more. Add it again, then verify it.": "Denne varslingsmetoden er ikke lenger i listen din. Legg den til på nytt, og verifiser den deretter.",
   "This verification code has expired. Please request a new code.": "Denne verifiseringskoden er utløpt. Be om en ny kode.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "For mange feil forsøk. Denne verifiseringskoden er ikke lenger gyldig. Be om en ny kode."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "For mange feil forsøk. Denne verifiseringskoden er ikke lenger gyldig. Be om en ny kode.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "Denne personen er allerede invitert til dette teamet eller er medlem av det. Har personen ikke blitt med ennå, bruker du Send invitasjon på nytt i raden til personen for å sende invitasjons-e-posten på nytt.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "Du har nådd brukergrensen for gratisabonnementet. Bytt til Growth-abonnementet under Prosjektinnstillinger > Fakturering og fakturaer > Fakturering for å invitere flere."
 }

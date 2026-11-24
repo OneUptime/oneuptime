@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "تم التحقق من طريقة الإشعار هذه بالفعل. يمكنك إغلاق مربع الحوار هذا.",
   "This notification method is not in your list any more. Add it again, then verify it.": "لم تعد طريقة الإشعار هذه في قائمتك. أضفها مرة أخرى، ثم تحقّق منها.",
   "This verification code has expired. Please request a new code.": "انتهت صلاحية رمز التحقق هذا. اطلب رمزًا جديدًا.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "محاولات خاطئة كثيرة جدًا. لم يعد رمز التحقق هذا صالحًا. اطلب رمزًا جديدًا."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "محاولات خاطئة كثيرة جدًا. لم يعد رمز التحقق هذا صالحًا. اطلب رمزًا جديدًا.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "سبقت دعوة هذا الشخص إلى هذا الفريق، أو هو عضو فيه. إذا لم ينضم بعد، فاستخدم «إعادة إرسال الدعوة» في صفه لإرسال رسالة الدعوة إليه مرة أخرى.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "لقد بلغت حد المستخدمين في الخطة المجانية. لدعوة المزيد من الأشخاص، غيّر الخطة إلى Growth في إعدادات المشروع > الفوترة والفواتير > الفوترة."
 }

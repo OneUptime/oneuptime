@@ -3738,8 +3738,10 @@ describe("the people and teams page", () => {
       "Scripts/TerraformProvider/StaticFiles/people.go",
     );
 
+    // The provider knows the refusal by these words (#7271 kept them).
+    expect(errors).toContain("ALREADY_INVITED: translationKey(");
     expect(errors).toContain(
-      'ALREADY_INVITED: "This user has already been invited to this team"',
+      '"This person has already been invited to this team, or is a member of it.',
     );
     expect(goFunction(people, "func AlreadyInvitedHint(")).toContain(
       '"already been invited"',

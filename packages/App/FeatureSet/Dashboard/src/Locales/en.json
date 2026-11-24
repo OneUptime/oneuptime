@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "This notification method is already verified. You can close this dialog.",
   "This notification method is not in your list any more. Add it again, then verify it.": "This notification method is not in your list any more. Add it again, then verify it.",
   "This verification code has expired. Please request a new code.": "This verification code has expired. Please request a new code.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Too many incorrect attempts. This verification code is no longer valid. Please request a new code."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing."
 }

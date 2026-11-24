@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "این روش اعلان از قبل تأیید شده است. می‌توانید این پنجره را ببندید.",
   "This notification method is not in your list any more. Add it again, then verify it.": "این روش اعلان دیگر در فهرست شما نیست. آن را دوباره اضافه کنید و سپس تأییدش کنید.",
   "This verification code has expired. Please request a new code.": "این کد تأیید منقضی شده است. لطفاً کد جدیدی درخواست کنید.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "تلاش‌های نادرست بیش از حد بوده است. این کد تأیید دیگر معتبر نیست. لطفاً کد جدیدی درخواست کنید."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "تلاش‌های نادرست بیش از حد بوده است. این کد تأیید دیگر معتبر نیست. لطفاً کد جدیدی درخواست کنید.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "این فرد از قبل به این تیم دعوت شده یا عضو آن است. اگر هنوز نپیوسته است، با «ارسال دوبارهٔ دعوت» در ردیف او، ایمیل دعوتش را دوباره بفرستید.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "به سقف کاربران طرح Free رسیده‌اید. برای دعوت از افراد بیشتر، در تنظیمات پروژه > صورت‌حساب و فاکتورها > صورت‌حساب طرح را به Growth تغییر دهید."
 }

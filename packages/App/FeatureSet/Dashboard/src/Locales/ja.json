@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "この通知方法はすでに確認済みです。このダイアログは閉じてかまいません。",
   "This notification method is not in your list any more. Add it again, then verify it.": "この通知方法はリストにありません。もう一度追加してから確認してください。",
   "This verification code has expired. Please request a new code.": "この確認コードは有効期限が切れています。新しいコードをリクエストしてください。",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "誤った入力が多すぎます。この確認コードは無効になりました。新しいコードをリクエストしてください。"
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "誤った入力が多すぎます。この確認コードは無効になりました。新しいコードをリクエストしてください。",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "この人はすでにこのチームに招待されているか、メンバーです。まだ参加していない場合は、その人の行の「招待を再送信」で招待メールをもう一度送信してください。",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "無料プランのユーザー数の上限に達しました。さらに招待するには、「プロジェクト設定 > 請求と請求書 > 請求」でプランを Growth に変更してください。"
 }

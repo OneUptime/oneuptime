@@ -1032,9 +1032,23 @@ describe("Inviting People", () => {
   it("quotes the refusals as the server words them", () => {
     const refusals: string = section(page, "## Troubleshooting");
 
-    expect(refusals).toContain(
-      `:::details "${Errors.TeamMemberService.ALREADY_INVITED}"`,
+    // Someone in the team already, by its first sentence (#7271).
+    const alreadyInvited: string =
+      "This person has already been invited to this team, or is a member of it";
+
+    expect(
+      Errors.TeamMemberService.ALREADY_INVITED.startsWith(`${alreadyInvited}.`),
+    ).toBe(true);
+    expect(refusals).toContain(`:::details "${alreadyInvited}"`);
+    // What to do next, as the message says it: Resend Invitation.
+    expect(Errors.TeamMemberService.ALREADY_INVITED).toContain(
+      "Resend Invitation",
     );
+    const alreadyInvitedAnswer: string = refusals
+      .slice(refusals.indexOf(`:::details "${alreadyInvited}"`))
+      .split("\n:::")[0] as string;
+
+    expect(alreadyInvitedAnswer).toContain("**Resend Invitation**");
     expect(
       Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN.startsWith(
         "You have reached the user limit for the free plan",
@@ -3254,7 +3268,9 @@ describe("Audit Logs", () => {
     expect(lookup).toContain(").findOneById({");
     expect(
       readPackageFile("Common/Utils/AuditLog/AuditLogRelatedRecords.ts"),
-    ).toContain('Named = "Named",\n  Deleted = "Deleted",\n  Hidden = "Hidden",');
+    ).toContain(
+      'Named = "Named",\n  Deleted = "Deleted",\n  Hidden = "Hidden",',
+    );
     expect(section(page, "## Read the audit log")).toContain(
       "A field that points to another resource, such as a monitor's status, shows that resource's current name, with its ID under it. A resource you may not read shows **Name hidden**, and one deleted since shows **Deleted**.",
     );

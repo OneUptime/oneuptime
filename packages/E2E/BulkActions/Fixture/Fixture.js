@@ -133,7 +133,8 @@ const REFUSALS = {
  */
 const CREATE_REFUSALS = {
   StatusPageSubscriber: "You are already subscribed to this status page.",
-  TeamMember: "This user has already been invited to this team.",
+  TeamMember:
+    "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.",
 };
 const TWO_FACTOR_REFUSAL = "User not found.";
 

@@ -132,8 +132,8 @@ Remover alguém tira a pessoa de todas as equipes do projeto. Ela perde o acesso
 
 ## Solução de problemas
 
-:::details "This user has already been invited to this team"
-A pessoa já está nessa equipe, como membro ou com um convite que não aceitou. Abra-a em **Usuários** para ver as equipes dela, ou convide-a para outra equipe.
+:::details "This person has already been invited to this team, or is a member of it"
+A pessoa já está nessa equipe, como membro ou com um convite que não aceitou. Abra-a em **Usuários** para ver as equipes dela, ou convide-a para outra equipe. Se ela ainda não entrou, **Reenviar convite** no menu da linha dela envia o e-mail de convite de novo.
 :::
 
 :::details "You have reached the user limit for the free plan"

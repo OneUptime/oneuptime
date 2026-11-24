@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "Diese Benachrichtigungsmethode ist bereits verifiziert. Sie können diesen Dialog schließen.",
   "This notification method is not in your list any more. Add it again, then verify it.": "Diese Benachrichtigungsmethode ist nicht mehr in Ihrer Liste. Fügen Sie sie erneut hinzu und verifizieren Sie sie dann.",
   "This verification code has expired. Please request a new code.": "Dieser Verifizierungscode ist abgelaufen. Fordern Sie bitte einen neuen Code an.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Zu viele falsche Versuche. Dieser Verifizierungscode ist nicht mehr gültig. Fordern Sie bitte einen neuen Code an."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Zu viele falsche Versuche. Dieser Verifizierungscode ist nicht mehr gültig. Fordern Sie bitte einen neuen Code an.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "Diese Person wurde bereits in dieses Team eingeladen oder ist schon Mitglied. Ist sie noch nicht beigetreten, verwenden Sie „Einladung erneut senden“ in ihrer Zeile, um ihre Einladungs-E-Mail erneut zu senden.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "Sie haben das Benutzerlimit des kostenlosen Tarifs erreicht. Um weitere Personen einzuladen, wechseln Sie unter Projekteinstellungen > Abrechnung und Rechnungen > Abrechnung zum Growth-Tarif."
 }

@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "यह सूचना विधि पहले से सत्यापित है। आप यह डायलॉग बंद कर सकते हैं।",
   "This notification method is not in your list any more. Add it again, then verify it.": "यह सूचना विधि अब आपकी सूची में नहीं है। इसे फिर से जोड़ें, फिर सत्यापित करें।",
   "This verification code has expired. Please request a new code.": "इस सत्यापन कोड की अवधि समाप्त हो गई है। कृपया नया कोड मांगें।",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "बहुत अधिक गलत प्रयास हुए। यह सत्यापन कोड अब मान्य नहीं है। कृपया नया कोड मांगें।"
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "बहुत अधिक गलत प्रयास हुए। यह सत्यापन कोड अब मान्य नहीं है। कृपया नया कोड मांगें।",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "इस व्यक्ति को इस टीम में पहले ही आमंत्रित किया जा चुका है, या वे इसके सदस्य हैं। अगर वे अभी तक शामिल नहीं हुए हैं, तो उनका आमंत्रण ईमेल दोबारा भेजने के लिए उनकी पंक्ति पर निमंत्रण फिर से भेजें का उपयोग करें।",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "आप मुफ़्त योजना की उपयोगकर्ता सीमा तक पहुंच गए हैं। और लोगों को आमंत्रित करने के लिए, प्रोजेक्ट सेटिंग्स > बिलिंग और चालान > बिलिंग में योजना बदलकर Growth करें।"
 }

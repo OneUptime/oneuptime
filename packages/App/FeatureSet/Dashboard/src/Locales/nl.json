@@ -63693,5 +63693,7 @@
   "This notification method is already verified. You can close this dialog.": "Deze meldingsmethode is al geverifieerd. U kunt dit dialoogvenster sluiten.",
   "This notification method is not in your list any more. Add it again, then verify it.": "Deze meldingsmethode staat niet meer in uw lijst. Voeg hem opnieuw toe en verifieer hem daarna.",
   "This verification code has expired. Please request a new code.": "Deze verificatiecode is verlopen. Vraag een nieuwe code aan.",
-  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Te veel onjuiste pogingen. Deze verificatiecode is niet meer geldig. Vraag een nieuwe code aan."
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Te veel onjuiste pogingen. Deze verificatiecode is niet meer geldig. Vraag een nieuwe code aan.",
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.": "Deze persoon is al uitgenodigd voor dit team of is er al lid van. Is die persoon nog niet lid geworden, gebruik dan Uitnodiging opnieuw verzenden in de rij van die persoon om de uitnodigingsmail nog een keer te sturen.",
+  "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.": "U hebt de gebruikerslimiet van het gratis abonnement bereikt. Stap over op het Growth-abonnement in Projectinstellingen > Facturering en facturen > Facturering om meer mensen uit te nodigen."
 }
