@@ -804,15 +804,28 @@ export function isDocumentationIpv6(address: string): boolean {
 }
 
 /*
+ * An address with one group each side of "::" (2001::1, 2a00::1, 2606::1),
+ * as a server or a hand-assigned address is often written (#10466), or
+ * with an IPv4 address after the "::" (2001::8.8.8.8). Every address the
+ * internet routes is global unicast, 2000::/3, so written this way its
+ * first group is four characters from 2000 to 3fff. Nothing else of three
+ * parts is: a clock (12:30:45) has no "::", and a scope of a program
+ * (Abc::Def, a::b, dead::beef, std::vector) is named by an identifier,
+ * which never starts with a digit.
+ */
+const ONE_GROUP_EACH_SIDE: RegExp =
+  /^[23][0-9A-Fa-f]{3}::(?:[0-9A-Fa-f]{1,4}|[0-9]{1,3}(?:\.[0-9]{1,3}){3})$/;
+
+/*
  * Whether an IPv6 candidate is what the IP address type means: a public
  * address, or one of the documentation prefix (counted as a test value), so
  * a test with 2001:db8::1 shows a rule working. An IPv4 address written as
- * IPv6 (::ffff:203.0.113.7) is judged as that IPv4 address. A clock reads
- * 12:30:45, and C++ names a scope std::vector: an address has hex letters
- * or many groups.
+ * IPv6 (::ffff:203.0.113.7) is judged as that IPv4 address. An address has
+ * four parts or more, or one global group each side of "::": a clock reads
+ * 12:30:45, and C++ names a scope Abc::Def.
  */
 export function isIpv6AddressData(address: string): boolean {
-  if (address.split(":").length < 4) {
+  if (address.split(":").length < 4 && !ONE_GROUP_EACH_SIDE.test(address)) {
     return false;
   }
 
@@ -844,11 +857,20 @@ function isDocumentationIpv6Value(address: string): boolean {
  * for an IPv4 client - found whole, so it is hidden whole. In brackets with
  * a port ([2001:db8::1]:443) the brackets and the port are left out, and a
  * zone (fe80::1%eth0) too. A candidate followed by ".digit" is part of
- * something else. Bounded, so a long run of colons and digits is read in
- * time in line with its length.
+ * something else.
+ *
+ * One group each side of "::" (2001::1) is read apart: only a global
+ * group first (ONE_GROUP_EACH_SIDE), and only standing on its own - no
+ * letter, digit, "_" or "." right before it, no letter, digit, "_" or ":"
+ * right after - so v1::api, Api2023::face and Release_2024::Beta hold no
+ * address (#10466). The other forms never take that shape: it is refused
+ * at their start.
+ *
+ * Bounded, so a long run of colons and digits is read in time in line
+ * with its length.
  */
 const IPV6_PATTERN: RegExp =
-  /(?<![0-9A-Fa-f:])(?:(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3})(?![0-9]|\.[0-9])/g;
+  /(?<![0-9A-Fa-f:])(?:(?![0-9A-Fa-f]{1,4}::[0-9A-Fa-f]{1,4}(?![0-9A-Fa-f:]))(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|(?<![A-Za-z_.])[23][0-9A-Fa-f]{3}::[0-9A-Fa-f]{1,4}(?![A-Za-z_:]))(?![0-9]|\.[0-9])/g;
 
 const ipv6Detector: DataTypeDetector = {
   dataTypeId: "ip-address",

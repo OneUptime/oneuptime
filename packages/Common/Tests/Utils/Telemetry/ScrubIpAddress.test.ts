@@ -93,6 +93,17 @@ describe("an IP Address scrub rule hides what Data Security calls an IP address"
       "2001:db8::1.2.3.4",
       "2001:db8::1.2.3.4",
     ],
+    // #10466: one group each side of "::".
+    ["one group each side of ::", "client 2001::1 sent", "2001::1"],
+    ["another", "remote_addr=2a00::1", "2a00::1"],
+    ["a third", "via 2606::1;", "2606::1"],
+    ["one in capitals", "peer 2A00::BEEF up", "2A00::BEEF"],
+    ["the last global first group", "peer 3fff::ffff up", "3fff::ffff"],
+    [
+      "one group and an IPv4 address, whole",
+      "upstream 2001::8.8.8.8",
+      "2001::8.8.8.8",
+    ],
   ])("%s: %s", (_label: string, text: string, address: string) => {
     expect(hidden(text)).toEqual([address]);
     expect(redacted(text)).toBe(text.replace(address, "[REDACTED]"));
@@ -116,6 +127,22 @@ describe("an IP Address scrub rule hides what Data Security calls an IP address"
     expect(redacted("bound to 2001:db8::1%eth0")).toBe(
       "bound to [REDACTED]%eth0",
     );
+  });
+
+  test("one group each side of :: in brackets, with a zone, a prefix length and in JSON (#10466)", () => {
+    expect(redacted("dial [2001::1]:443 failed")).toBe(
+      "dial [[REDACTED]]:443 failed",
+    );
+    expect(redacted("bound to 2a00::1%eth0")).toBe("bound to [REDACTED]%eth0");
+    expect(redacted("route 2606::1/64 via 2001::1.")).toBe(
+      "route [REDACTED]/64 via [REDACTED].",
+    );
+    expect(
+      redacted(JSON.stringify({ client: "2001::1", peer: "fe80::1" })),
+    ).toBe(JSON.stringify({ client: "[REDACTED]", peer: "fe80::1" }));
+    expect(
+      redacted("x-forwarded-for: 2001::1, 10.0.0.1, 2606::1, fd00::1"),
+    ).toBe("x-forwarded-for: [REDACTED], 10.0.0.1, [REDACTED], fd00::1");
   });
 
   test("addresses inside URLs, headers and JSON", () => {
@@ -188,6 +215,23 @@ describe("it keeps what is no one's personal data", () => {
     ["a UUID", "0192f1a0-0000-7000-8000-0000000d5001"],
     ["nine groups", "1:2:3:4:5:6:7:8:9"],
     ["a hash", "sha 8c87b4891f2e7d3a"],
+    // #10466: what one group each side of "::" is not.
+    ["a scope of two hex letters", "a::b"],
+    ["a scope of hex words", "dead::beef"],
+    ["a nested scope", "Abc::Def::Fed"],
+    ["a version in a module path", "v1::api"],
+    ["a year inside an identifier", "Api2023::face"],
+    ["a year after an underscore", "Release_2024::Beta"],
+    ["a letter before the address", "x2001::1"],
+    ["a letter after it", "2001::1x"],
+    ["a dot before it", "a.2001::1"],
+    ["a version after it", "2001::1.5"],
+    ["a Rust type", "u32::MAX"],
+    ["a C++ type", "Vec3d::Zero"],
+    ["a first group outside the global range", "peer 4000::1"],
+    ["a short first group", "peer 200::1"],
+    ["one side alone", "peer 2001::"],
+    ["a group too long", "peer 2001::12345"],
   ])("%s is no address: %s", (_label: string, text: string) => {
     expect(hidden(text)).toEqual([]);
   });
@@ -210,6 +254,9 @@ describe("what the scanner finds, the rule hides, and nothing else", () => {
     "x-forwarded-for: 198.51.100.23, 192.168.0.1, 2a00:1450:4001:81b::200e",
     "at 12:30:45 std::vector 00:1a:2b:3c:4d:5e version 1.2.3.4.5",
     "upstream 64:ff9b::192.0.2.1 and ::ffff:808:808",
+    "client 2001::1 and 2a00::1 talked to 2606::1 via 2001::8.8.8.8",
+    "a::b dead::beef v1::api Api2023::face x2001::1 2001::1x 2001::1.5 4000::1",
+    '{"ip":"2001::1","peers":["2606::1","fd00::1","Abc::Def"]}',
   ];
 
   // The scanner's IP address findings, documentation addresses included.
@@ -309,6 +356,12 @@ describe("one spelling for every way an address is written", () => {
     ["2001:0db8::0001", "2001:db8::1"],
     ["2a00:1450:4001:081b:0000:0000:0000:200e", "2a00:1450:4001:81b::200e"],
     ["64:ff9b::192.0.2.1", "64:ff9b::c000:201"],
+    // #10466: one spelling however one group each side is written.
+    ["2001::1", "2001::1"],
+    ["2001:0:0:0:0:0:0:1", "2001::1"],
+    ["2001::0001", "2001::1"],
+    ["2A00::BEEF", "2a00::beef"],
+    ["2001::8.8.8.8", "2001::808:808"],
   ])("%s is %s", (address: string, canonical: string) => {
     expect(ScrubIpAddress.canonicalize(address)).toBe(canonical);
   });
@@ -329,6 +382,8 @@ describe("what Mask leaves of an address", () => {
     ["::ffff:8.8.8.8", IPV4_ADDRESS_MASK],
     ["2001:4860:4860::8888", IPV6_ADDRESS_MASK],
     ["2001:db8::1", IPV6_ADDRESS_MASK],
+    ["2001::1", IPV6_ADDRESS_MASK],
+    ["2001::8.8.8.8", IPV6_ADDRESS_MASK],
   ])("%s becomes %s", (address: string, mask: string) => {
     expect(ScrubIpAddress.mask(address)).toBe(mask);
   });

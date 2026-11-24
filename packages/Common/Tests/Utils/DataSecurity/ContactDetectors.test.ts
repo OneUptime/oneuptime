@@ -598,6 +598,195 @@ describe("ip-address", () => {
   });
 });
 
+/*
+ * #10466: an address with one group each side of "::" - 2001::1, 2a00::1,
+ * 2606::1, real public addresses a server or a person often writes - has
+ * three parts, and every candidate of fewer than four parts was refused so
+ * a clock and a scope of a program were not taken for addresses. So it was
+ * neither found nor hidden by an IP Address scrub rule, which finds with
+ * these very detectors. It is found now when its first group is a global
+ * one (2000 to 3fff, four characters: what the internet routes) and it
+ * stands on its own; a clock, a scope, a group inside an identifier, and
+ * an address of no host are not.
+ */
+describe('ip-address: one group each side of "::" (#10466)', () => {
+  test.each([
+    ["2001::1"],
+    ["2a00::1"],
+    ["2606::1"],
+    ["2620::1"],
+    ["2400::1"],
+    ["2c0f::1"],
+    ["3fff::1"],
+    ["2001::dead"],
+    ["2001::ffff"],
+    ["2001::0001"],
+    ["2A00::1"],
+    ["2a00::Beef"],
+  ])(
+    "finds %s, Medium on its own and High beside an address word",
+    (address: string) => {
+      expectFound(address, [found("ip-address", address, M)]);
+      expectFound(`client ${address} sent`, [found("ip-address", address, H)]);
+    },
+  );
+
+  test.each([
+    ["in brackets with a port", "dial [2001::1]:443 failed", "2001::1"],
+    ["with a zone", "bound to 2a00::1%eth0", "2a00::1"],
+    ["with a prefix length", "route 2606::1/64 up", "2606::1"],
+    ["in JSON", '{"ip":"2001::1","n":1}', "2001::1"],
+    ["after an equals sign", "remote_addr=2a00::1", "2a00::1"],
+    ["after a user name", "ssh root@2606::1", "2606::1"],
+    ["in a URL", "GET http://[2a00::1]/health", "2a00::1"],
+    ["at the end of a sentence", "the request came from 2001::1.", "2001::1"],
+    ["before a comma", "peers 2001::1, 10.0.0.1", "2001::1"],
+    ["in quotes", "ip='2606::1'", "2606::1"],
+    ["in parentheses", "client (2001::1) left", "2001::1"],
+    ["after a tab", "ip\t2a00::1", "2a00::1"],
+    [
+      "with an IPv4 address after the ::",
+      "upstream 2001::8.8.8.8",
+      "2001::8.8.8.8",
+    ],
+  ])("finds one %s: %s", (_label: string, text: string, address: string) => {
+    expect(
+      scan(text)
+        .filter((match: Found) => {
+          return match.dataTypeId === "ip-address";
+        })
+        .map((match: Found) => {
+          return match.value;
+        }),
+    ).toEqual([address]);
+  });
+
+  test("finds every one of a list, and a longer address beside it", () => {
+    expect(
+      scan("x-forwarded-for: 2001::1, 2a00:1450:4001:81b::200e, 2606::1").map(
+        (match: Found) => {
+          return match.value;
+        },
+      ),
+    ).toEqual(["2001::1", "2a00:1450:4001:81b::200e", "2606::1"]);
+  });
+
+  test("refuses scopes of a program written in hex letters", () => {
+    expectNothingOf("ip-address", [
+      "Abc::Def",
+      "a::b",
+      "dead::beef",
+      "Face::Bad",
+      "Cafe::Babe",
+      "Add::Fee",
+      "std::vector",
+      "Foo::Bar",
+      "Abc::Def::Fed",
+    ]);
+  });
+
+  test("refuses a group inside an identifier, however its first group reads", () => {
+    expectNothingOf("ip-address", [
+      "v1::api",
+      "Api2023::face",
+      "Release_2024::Beta",
+      "x2001::1",
+      "2001::1x",
+      "_2001::1",
+      "2001::1_",
+      "a.2001::1",
+      "edition2021::abc",
+      "u32::MAX",
+      "i32::from_str",
+      "f32::EPSILON",
+      "Vec3d::Zero",
+      "Point2D::new",
+      "Sha256::digest",
+      "Base64::encode",
+      "Ed25519::sign",
+    ]);
+  });
+
+  test("refuses an address of no host: a first group outside the global range, or a link-local, unique-local or multicast one", () => {
+    expectNothingOf("ip-address", [
+      "peer 200::1",
+      "peer 0200::1",
+      "peer 1fff::1",
+      "peer 4000::1",
+      "peer abcd::1",
+      "peer 64::1",
+      "peer fe80::1",
+      "peer fd00::1",
+      "peer fc00::1",
+      "peer ff02::1",
+    ]);
+  });
+
+  test("refuses one side alone, a version tail, and what no address is", () => {
+    expectNothingOf("ip-address", [
+      "peer 2001::",
+      "peer ::2001",
+      "build 2001::1.5",
+      "2001::1::2",
+      "2001:::1",
+      "2001::12345",
+      "20011::1",
+      "2001::1g",
+      "at 12:30:45",
+      "at 23:59:59",
+      "ratio 16:9",
+      "2001-01-01T00:00:00Z",
+    ]);
+  });
+
+  test("isIpv6AddressData takes one global group each side, and nothing else of three parts", () => {
+    for (const address of [
+      "2001::1",
+      "2a00::1",
+      "2606::1",
+      "3fff::ffff",
+      "2001::8.8.8.8",
+      "2A00::BEEF",
+    ]) {
+      expect([address, isIpv6AddressData(address)]).toEqual([address, true]);
+    }
+
+    for (const address of [
+      "1fff::1",
+      "4000::1",
+      "200::1",
+      "64::1",
+      "fe80::1",
+      "fd00::1",
+      "ff02::1",
+      "Abc::Def",
+      "dead::beef",
+      "a::b",
+      "2001::",
+      "::2001",
+      "12:30:45",
+      "2001:1",
+      "2001::1::2",
+      "2001::10000",
+    ]) {
+      expect([address, isIpv6AddressData(address)]).toEqual([address, false]);
+    }
+  });
+
+  test("judges a one-group address as public, never as documentation", () => {
+    expect(isPublicIpv6("2001::1")).toBe(true);
+    expect(isPublicIpv6("2a00::1")).toBe(true);
+    expect(isDocumentationIpv6("2001::1")).toBe(false);
+    expect(isDocumentationIpv6("2001::db8")).toBe(false);
+  });
+
+  test("is found in a column named for it, every value one group each side", () => {
+    expect(
+      classified("client_ip", ["2001::1", "2a00::1", "2606::1"], "ip-address"),
+    ).toMatchObject({ matchCount: 3, nameHinted: true });
+  });
+});
+
 describe("mac-address", () => {
   test("is six pairs with one separator throughout", () => {
     expectFound("mac 00:1A:2B:3C:4D:5E", [

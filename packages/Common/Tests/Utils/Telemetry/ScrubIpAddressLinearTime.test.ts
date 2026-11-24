@@ -42,6 +42,13 @@ const WORST_CASES: Array<[string, string]> = [
   ["public addresses back to back", repeat("2001:db8::1 8.8.8.8 ", LENGTH)],
   ["private addresses back to back", repeat("10.0.0.1 fe80::1 ", LENGTH)],
   ["a dotted run after a mapped prefix", "::ffff:" + repeat("1.", LENGTH)],
+  // #10466: one group each side of "::", and what nearly is.
+  ["one-group addresses back to back", repeat("2001::1 ", LENGTH)],
+  ["one-group addresses glued together", repeat("2001::", LENGTH)],
+  ["one-group addresses glued to letters", repeat("x2001::1x", LENGTH)],
+  ["a global group and hex without end", "2a00::" + repeat("a", LENGTH)],
+  ["global groups and double colons", repeat("2a00::2606::", LENGTH)],
+  ["scopes of hex letters back to back", repeat("Abc::Def ", LENGTH)],
 ];
 
 describe("the IP Address scrub pattern", () => {
