@@ -57,7 +57,7 @@ import {
   KubernetesCostEngineView,
   fetchKubernetesCostEngine,
 } from "../Utils/KubernetesCostEngine";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import {
   translateTemplate,
@@ -77,8 +77,13 @@ function getSectionTitle(
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
-      <span>{title}</span>
-      <InfoTooltip label={title} text={description} />
+      {/* The (i) after the title's last word (#7348, #8044). */}
+      <WordsWithInfoTooltip
+        className="min-w-0"
+        text={translateText(title) || title}
+        label={title}
+        description={description}
+      />
     </div>
   );
 }

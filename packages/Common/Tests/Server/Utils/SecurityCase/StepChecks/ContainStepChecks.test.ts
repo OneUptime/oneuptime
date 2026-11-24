@@ -267,7 +267,7 @@ describe("a Microsoft Entra ID account, which is disabled rather than suspended"
     expect(result.evidence.sentence).toEqual({
       template: CHECK_USER_DISABLED_SIGNED_OUT,
       values: { user: USER, provider: "Microsoft Entra ID" },
-      times: { since: at(10).toISOString() },
+      times: { time: at(10).toISOString() },
     });
   });
 

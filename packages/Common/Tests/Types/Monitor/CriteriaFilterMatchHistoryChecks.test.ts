@@ -349,6 +349,7 @@ describe("CriteriaFilterUtil.isJudgedCheckByCheck", () => {
         EvaluateOverTimeType.Count,
         EvaluateOverTimeType.Percentage,
         EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
       expect(
         CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
@@ -523,6 +524,7 @@ describe("the evaluation types a check judged check by check is offered", () => 
         EvaluateOverTimeType.Count,
         EvaluateOverTimeType.Percentage,
         EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
     },
   );
@@ -546,6 +548,7 @@ describe("the evaluation types a check judged check by check is offered", () => 
       EvaluateOverTimeType.Count,
       EvaluateOverTimeType.Percentage,
       EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
   });
 

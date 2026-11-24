@@ -222,6 +222,8 @@ Die Einstellungen der Datensicherheit gibt es einmal pro Projekt, im Abschnitt *
 | **Konfiguration prüfen** | An | Führt die Prüfungen an jedem Datenspeicher aus. Ist sie aus, öffnet, ändert oder schließt sich kein Problem. |
 | **Inhalt scannen** | An | Nimmt Stichproben vom Inhalt der Datenspeicher, wo die Inhaltsberechtigung gewährt wurde. |
 | **Telemetrie scannen** | An | Nimmt Stichproben von Logs, Traces, Metriken, Ausnahmen, Wiedergaben und KI-Unterhaltungen des Projekts. |
+| **Namen und Anschriften finden** | An | Durchsucht Freitext mit einem kleinen Modell im Scanner nach Namen und Anschriften von Personen. Das Modell ist nicht OneUptime AI, und der Text verlässt den Scanner nie. Siehe [Namen und Anschriften in Freitext](/docs/data-security/data-types#namen-und-anschriften-in-freitext). |
+| **Namen und Anschriften in der Telemetrie finden** | Aus | Der stündliche Telemetrie-Scan liest Log-Bodys, Ausnahmenachrichten und KI-Unterhaltungen ebenfalls mit dem Modell, bis zu einer Minute pro Stunde. Nur solange die Einstellung darüber eingeschaltet ist. |
 | **Maskierte Stichproben behalten** | An | Behält bis zu drei maskierte Stichproben bei jedem Fund. Aus behält nur Zählungen. |
 | **Sicherheitsfälle eröffnen** | An | Eröffnet einen Sicherheitsfall, gruppiert nach Datenspeicher, wenn sich ein kritisches Problem öffnet. |
 | **Warnungen auslösen** | Aus | Löst eine Warnung aus, die alarmiert, wer gerade Bereitschaft hat, wenn sich ein kritisches Problem öffnet. |

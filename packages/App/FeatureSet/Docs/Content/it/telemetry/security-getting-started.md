@@ -70,7 +70,7 @@ La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni.
 | Fortinet FortiGate | Rilevamenti IPS e antivirus, traffico negato, accessi VPN e degli amministratori e modifiche di configurazione dal syslog di FortiGate |
 | Cisco ASA | Connessioni negate, rilevamenti delle minacce e dell'IPS, accessi VPN e degli amministratori e comandi da Cisco ASA e Firepower Threat Defense |
 | Log di audit di Kubernetes | Modifiche al cluster, shell aperte nei pod, secret letti e richieste rifiutate |
-| Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell |
+| Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell, e richieste di file sensibili come `/.env` o `/.git/config` che il tuo sito ha rifiutato o non ha |
 
 I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventano eventi: mai ogni pagina servita da un server web, né ogni lettura di un'API.
 

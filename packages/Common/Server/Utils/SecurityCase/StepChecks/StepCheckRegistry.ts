@@ -5,6 +5,7 @@ import {
   ContainUserStepCheck,
 } from "./ContainStepChecks";
 import FalsePositiveStepCheck from "./FalsePositiveStepCheck";
+import FixAccountChangesStepCheck from "./FixAccountChangesStepCheck";
 import {
   FixCredentialsStepCheck,
   FixMfaStepCheck,
@@ -22,10 +23,10 @@ import { StepCheck } from "./StepCheck";
 /*
  * THE KINDS OF RESPONSE PLAN STEP ONEUPTIME CHECKS ITSELF (#10340), one
  * module a kind. A step of any other kind - a rule's own step, a Fix step
- * OneUptime cannot read back (persistence, the account changes an attack
- * made) - is a person's to tick. Blocking a domain, a file or a
- * command-and-control address on every machine is read back from the
- * blocklist (#10346).
+ * OneUptime cannot read back (persistence) - is a person's to tick.
+ * Blocking a domain, a file or a command-and-control address on every
+ * machine is read back from the blocklist (#10346), and the account
+ * changes an attack made from the identity products (#10603).
  *
  * A new kind of step plugs in here: a StepCheck whose `kind` is the start
  * of the step's key (Utils/SecurityCase/ResponsePlan/ResponsePlanKeys), and
@@ -45,6 +46,8 @@ export const STEP_CHECKS: ReadonlyArray<StepCheck> = [
   FixRouteStepCheck,
   FixCredentialsStepCheck,
   FixMfaStepCheck,
+  // What the attack changed on accounts, undone (#10603).
+  FixAccountChangesStepCheck,
 ];
 
 // The check of a step, by its key; null for a kind OneUptime does not check.

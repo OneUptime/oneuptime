@@ -35,11 +35,13 @@ Un criterio agisce su un rilevamento appena viene registrato sul suo caso, pochi
 
 | Criterio | Agisce su | Fa | Primo blocco |
 | --- | --- | --- | --- |
-| **Scanner** | Scansioni web e tentativi di exploit (ATT&CK T1595, T1190): tentativi di SQL injection, path traversal e Log4Shell, e molte corrispondenze di regole gestite di Cloudflare da un indirizzo, finché ogni richiesta dell'indirizzo è stata respinta | Verifica | 1 ora |
+| **Scanner** | Scansioni web e tentativi di exploit (ATT&CK T1595, T1190): tentativi di SQL injection, path traversal e Log4Shell, scansioni alla ricerca di file sensibili come `/.env`, `/.git/config` e `/wp-admin`, e molte corrispondenze di regole gestite di Cloudflare da un indirizzo, finché ogni richiesta dell'indirizzo è stata respinta | Verifica | 1 ora |
 | **Tentativi di indovinare le password** | Forza bruta e password spraying (ATT&CK T1110): accessi non riusciti da un indirizzo, e accessi non riusciti seguiti da uno riuscito dallo stesso indirizzo | Blocca | 1 ora |
 | **Indirizzi noti come dannosi** | Qualsiasi rilevamento su un indirizzo elencato dalla tua [Threat Intel](/docs/telemetry/threat-intelligence) | Blocca | 24 ore |
 
 Le persone superano una verifica, script e bot no. Scanner sottopone a verifica un indirizzo solo finché nessuna sua richiesta ha raggiunto la tua app: un indirizzo le cui richieste sono passate è un caso per una persona.
+
+La scansione alla ricerca di file sensibili conta solo le richieste che il tuo sito ha rifiutato o che riguardano qualcosa che non ha, e solo quando un indirizzo chiede tre o più file o pagine di amministrazione diversi entro cinque minuti. Una pagina che il tuo sito serve non conta mai, quindi gli amministratori di un sito WordPress possono caricare `/wp-admin` e `/wp-login.php` tutte le volte che vogliono.
 
 Attivare Scanner o Tentativi di indovinare le password, nel periodo di prova o del tutto, esegue in tempo reale le regole della **Libreria di regole** su cui agisce, aggiungendo quelle che il tuo progetto non ha: una regola in tempo reale scatta pochi secondi dopo l'arrivo degli eventi, mentre una pianificata legge con minuti di ritardo. Una regola che qualcuno ha disattivato resta disattivata. Un progetto esegue al massimo 50 regole in tempo reale: oltre, una regola resta sulla sua pianificazione, e la scheda del criterio mostra **In base a una pianificazione** accanto.
 
@@ -66,7 +68,7 @@ Per attivare un criterio senza la sua settimana di periodo di prova, apri **Altr
 - **Mai i tuoi indirizzi o quelli protetti.** Le voci di **Entità protette**, e tutto ciò che OneUptime protegge da solo: i tuoi host, le risorse cloud e le sonde, gli intervalli che non sono su internet, e l'edge davanti alla tua app. Vedi [Blocklist](/docs/telemetry/security-cases#blocklist).
 - **Mai un indirizzo che un utente con accesso effettuato ha usato negli ultimi 30 giorni.** La rete di un ufficio, il proxy di un cliente o la casa di una persona: OneUptime cerca l'indirizzo negli accessi del tuo provider di identità e nelle richieste che la tua app ha servito a un utente con accesso effettuato, quelle con un ID utente nelle loro tracce o nei loro log. Un indirizzo che non può verificare, perché quegli eventi non si sono potuti leggere o perché le tue regole di offuscamento nascondono gli indirizzi in un modo che non può confrontare, viene lasciato a una persona.
 - **Blocchi più lunghi per un indirizzo che torna.** Il primo blocco dura 1 ora, poi 24 ore, poi 7 giorni per un indirizzo bloccato di nuovo entro 30 giorni. Indirizzi noti come dannosi parte da 24 ore.
-- **Al massimo 50 blocchi automatici all'ora.** Oltre, i tuoi criteri smettono di bloccare e avvisano i tuoi responsabili della sicurezza: un attacco così grande ha bisogno di una persona. La pagina lo dice finché dura.
+- **Al massimo 50 blocchi automatici all'ora, o il limite che imposti.** Oltre, i tuoi criteri smettono di bloccare e avvisano i tuoi responsabili della sicurezza: un attacco così grande ha bisogno di una persona. La pagina lo dice finché dura. Un Amministratore della sicurezza, un Amministratore del progetto o un Proprietario del progetto può impostare il limite da 1 a 500, in **Altre impostazioni** in fondo alla pagina: **Limite orario**. Un nuovo limite vale dal rilevamento successivo.
 - **Annullamento in caso di dubbio.** Quando un utente con accesso effettuato viene visto da un indirizzo che un criterio ha bloccato, il criterio revoca il blocco e avvisa i tuoi responsabili della sicurezza.
 
 I tuoi responsabili della sicurezza sono gli Amministratori della sicurezza del tuo progetto oppure, se non ne ha, i Proprietari del progetto. Ogni indirizzo che una protezione ha lasciato stare compare sul suo caso, con il motivo.
@@ -101,7 +103,7 @@ Guarda la cronologia del caso: un criterio che ha lasciato stare un indirizzo di
 :::
 
 :::details La pagina dice che i blocchi automatici dell'ora sono esauriti
-I tuoi criteri hanno applicato 50 blocchi automatici nell'ultima ora e hanno avvisato i tuoi responsabili della sicurezza. Riprendono man mano che i blocchi di quell'ora invecchiano. Guarda i casi dell'attacco, e blocca un intervallo dalla **Blocklist** se viene da una sola rete.
+I tuoi criteri hanno raggiunto il tuo limite orario di blocchi automatici, 50 se nessuno l'ha cambiato, e hanno avvisato i tuoi responsabili della sicurezza. Riprendono man mano che i blocchi di quell'ora invecchiano. Guarda i casi dell'attacco, e blocca un intervallo dalla **Blocklist** se viene da una sola rete. Se il tuo progetto è spesso preso di mira da così tanti scanner, fai clic su **Modifica limite** accanto all'avviso e aumentalo.
 :::
 
 ## Passaggi successivi

@@ -37,6 +37,7 @@ import {
 } from "./SecurityCaseBlockStepModel";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import { SecurityBlockDuration } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockEnforcementView } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
 import { SECURITY_PROTECTED_RANGE_HOLDS } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
 import Button, {
@@ -81,6 +82,12 @@ export interface BlockStepActionsProps {
   // Whether the person may keep a block until someone lifts it.
   mayBlockUntilLifted: boolean;
   isWorking: boolean;
+  /*
+   * The ladder's next step for an address blocked before (#10354): 7 days
+   * puts Block for 7 Days on the button and Block for 24 Hours in the menu.
+   * Left out: 24 hours.
+   */
+  suggestedDuration?: SecurityBlockDuration | undefined;
   onBlock: (choice: BlockChoice) => void;
 }
 
@@ -89,18 +96,26 @@ export const BlockStepActions: FunctionComponent<BlockStepActionsProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const isLocked: boolean = props.lockReason !== undefined || props.isWorking;
+  const isWeek: boolean =
+    props.suggestedDuration === SecurityBlockDuration.SevenDays;
+  const main: BlockChoice = isWeek
+    ? BLOCK_SEVEN_DAYS_CHOICE
+    : BLOCK_DEFAULT_CHOICE;
+  const other: BlockChoice = isWeek
+    ? BLOCK_DEFAULT_CHOICE
+    : BLOCK_SEVEN_DAYS_CHOICE;
 
   return (
     <div className="flex items-center gap-1">
       <Button
-        title={ACTION_BLOCK_FOR_A_DAY}
+        title={isWeek ? BLOCK_FOR_SEVEN_DAYS : ACTION_BLOCK_FOR_A_DAY}
         buttonStyle={ButtonStyleType.NORMAL}
         buttonSize={ButtonSize.Small}
         disabled={isLocked}
         tooltip={props.lockReason || undefined}
         dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.block}
         onClick={() => {
-          props.onBlock(BLOCK_DEFAULT_CHOICE);
+          props.onBlock(main);
         }}
       />
       <MoreMenu
@@ -121,15 +136,18 @@ export const BlockStepActions: FunctionComponent<BlockStepActionsProps> = (
             text={BLOCK_CHALLENGE_INSTEAD}
             tooltip={BLOCK_CHALLENGE_TOOLTIP}
             onClick={() => {
-              props.onBlock(BLOCK_CHALLENGE_CHOICE);
+              props.onBlock({
+                ...BLOCK_CHALLENGE_CHOICE,
+                duration: main.duration,
+              });
             }}
           />,
           <MoreMenuItem
-            key="seven-days"
+            key={isWeek ? "one-day" : "seven-days"}
             icon={IconProp.NoSymbol}
-            text={BLOCK_FOR_SEVEN_DAYS}
+            text={isWeek ? ACTION_BLOCK_FOR_A_DAY : BLOCK_FOR_SEVEN_DAYS}
             onClick={() => {
-              props.onBlock(BLOCK_SEVEN_DAYS_CHOICE);
+              props.onBlock(other);
             }}
           />,
           <MoreMenuItem

@@ -30,6 +30,10 @@ describe("ProbeCapability", () => {
     expect(ProbeCapability.TotpCodes).toBe("totpCodes");
     // Only a probe declaring this is handed an array, single-value or text body (#10737).
     expect(ProbeCapability.AnyRequestBody).toBe("anyRequestBody");
+    // Only a probe declaring this is handed the secret values it hides in its log (#10875).
+    expect(ProbeCapability.HideSecretValuesInLogs).toBe(
+      "hideSecretValuesInLogs",
+    );
   });
 
   test("a probe that reads a 429 from its scheduling fetches alone does not declare it reads one from all its work fetches", () => {

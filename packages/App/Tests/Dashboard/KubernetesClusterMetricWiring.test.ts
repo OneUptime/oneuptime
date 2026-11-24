@@ -277,14 +277,12 @@ describe("cluster overview: golden charts", () => {
       "if (!props.chartWindow)",
     );
 
+    // The (i) after the title's last word (WordsWithInfoTooltip, #8044).
     expectCode(
       header,
-      "<InfoTooltip label={props.title} text={props.description} />",
+      '<WordsWithInfoTooltip className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider" text={translator.translateText(props.title) || props.title} label={props.title} description={props.description} />',
     );
-    expectCode(
-      header,
-      "{translator.translateText(props.title) || props.title}",
-    );
+    expect(header).not.toContain("<InfoTooltip");
     // Loading skeleton and loaded chart.
     expect(countOf(card, "{header}")).toBe(2);
     /*
@@ -294,7 +292,7 @@ describe("cluster overview: golden charts", () => {
     expect(
       countOf(
         tight(card),
-        tight(">{translator.translateText(props.title) || props.title}<"),
+        tight("text={translator.translateText(props.title) || props.title}"),
       ),
     ).toBe(1);
     expect(countOf(tight(card), ">{props.title}<")).toBe(0);
@@ -470,7 +468,11 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
       "const KubernetesClusterOverview: FunctionComponent<",
     );
 
-    expectCode(helper, "<InfoTooltip label={title} text={description} />");
+    // Its (i) after the title's last word (WordsWithInfoTooltip, #8044).
+    expectCode(
+      helper,
+      "<WordsWithInfoTooltip text={translateText(title) || title} label={title} description={description} />",
+    );
   });
 
   test("the overview shows every cluster description except the Insights one", () => {
@@ -765,9 +767,10 @@ describe("cluster Costs page", () => {
       CLUSTER_COSTS,
       `title={getSectionTitle( IconProp.Billing, "Spend", ${COST_RECORD}.spendTrend, )}`,
     );
+    // In the reader's words, its (i) after the last of them (#8044).
     expectCode(
       CLUSTER_COSTS,
-      "<InfoTooltip label={title} text={description} />",
+      '<WordsWithInfoTooltip className="min-w-0" text={translateText(title) || title} label={title} description={description} />',
     );
   });
 

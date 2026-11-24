@@ -20,6 +20,7 @@ import {
 } from "../LogParsers/SecurityLogLine";
 import {
   WEB_ATTACK_KIND_ATTRIBUTE,
+  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WEB_ATTACK_MARKERS,
   WEB_HTTP_ACTIVITY_CLASS_UID,
   WebAttackKind,
@@ -31,6 +32,10 @@ import {
   readStatusCode,
   requestOutcomeFromStatusCode,
 } from "../RequestOutcome";
+import {
+  SENSITIVE_FILE_PROBE_WORDS,
+  readSensitiveFileProbe,
+} from "../SensitiveFileProbe";
 import {
   CLIENT_ADDRESS_ATTRIBUTE_KEYS,
   ClientAddressReading,
@@ -59,6 +64,9 @@ import {
  *     traversal, a Log4Shell lookup - as "Your logs" finds it in an access
  *     log, but from the server span that answered it, so an app that logs
  *     nothing about its requests is still covered;
+ *   - a request for a well-known sensitive file or admin page - /.env,
+ *     /.git/config, /wp-admin - that the app refused or does not have, its
+ *     answer a 4xx status (#10745, SensitiveFileProbe);
  *   - a request whose URL names a cloud metadata address
  *     (169.254.169.254, metadata.google.internal ...): somebody trying to
  *     make the server fetch its own credentials (server-side request
@@ -234,6 +242,15 @@ export function getTraceScanUrlMarkers(): Array<string> {
     ),
     ...CLOUD_METADATA_MARKERS,
   ];
+}
+
+/*
+ * The words of a sensitive path in a server span's URL (#10745): read with
+ * the span's status, so only a request the app refused or does not have is
+ * worth reading - never the admin pages a WordPress site serves its people.
+ */
+export function getTraceScanSensitiveFileWords(): Array<string> {
+  return [...SENSITIVE_FILE_PROBE_WORDS];
 }
 
 export function readTraceAttribute(
@@ -494,7 +511,10 @@ function statusNameOf(statusCode: number): string {
   return statusCode >= 400 ? "Failure" : "Success";
 }
 
-// A server span whose URL carries an attack string, as the event it is.
+/*
+ * A server span whose URL carries an attack string, as the event it is - or
+ * that asked for a sensitive file the app refused or does not have (#10745).
+ */
 export function buildTraceWebAttackEvent(
   span: TraceScanSpan,
   options?: TraceScanOptions | undefined,
@@ -504,11 +524,24 @@ export function buildTraceWebAttackEvent(
   }
 
   const request: SpanRequest = readSpanRequest(span, options);
-  const kind: WebAttackKind | null = readWebAttackKind(request.target);
 
-  if (!kind || !request.target) {
+  if (!request.target) {
     return null;
   }
+
+  const attackKind: WebAttackKind | null = readWebAttackKind(request.target);
+  const sensitivePath: string | null = attackKind
+    ? null
+    : readSensitiveFileProbe({
+        target: request.target,
+        statusCode: request.statusCode,
+      });
+
+  if (!attackKind && !sensitivePath) {
+    return null;
+  }
+
+  const kind: WebAttackKind = attackKind || WebAttackKind.SensitiveFile;
 
   return buildTelemetrySecurityEvent({
     kind: SecurityTelemetrySourceKind.Traces,
@@ -531,6 +564,9 @@ export function buildTraceWebAttackEvent(
     attributes: {
       ...request.attributes,
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
+      ...(sensitivePath
+        ? { [WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]: sensitivePath }
+        : {}),
     },
     traceId: span.traceId,
     spanId: span.spanId,

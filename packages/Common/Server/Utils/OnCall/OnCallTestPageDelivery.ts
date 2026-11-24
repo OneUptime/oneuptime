@@ -70,6 +70,10 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import {
+  ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS,
+  getOnCallPageCallOpening,
+} from "../../../Utils/Call/OnCallPageCall";
 import AlertSeverityService from "../../Services/AlertSeverityService";
 import CallService from "../../Services/CallService";
 import CustomNotificationChannelDeliveryService from "../../Services/CustomNotificationChannelDeliveryService";
@@ -1045,7 +1049,12 @@ export default class OnCallTestPageDelivery {
     });
   }
 
-  // The test's call: in English, as every call is; 1 acknowledges it.
+  /*
+   * The test's call: in English, as every call is, and said as a real
+   * page's call is (OnCallPageCall) - who calls, that it is a test, the
+   * prompt, then what it tests, said again while no key is pressed. 1
+   * acknowledges it.
+   */
   public static async getCallRequest(data: {
     to: CallRequest["to"];
     timelineId: ObjectID;
@@ -1055,19 +1064,25 @@ export default class OnCallTestPageDelivery {
       to: data.to,
       data: [
         {
+          sayMessage: getOnCallPageCallOpening(data.context.projectName),
+        },
+        {
           sayMessage: ON_CALL_TEST_PAGE_CALL_GREETING,
+          repeated: true,
         },
         {
           sayMessage: getOnCallTestPageCallWhatItTests({
             recordKind: data.context.recordKind,
             projectName: data.context.projectName || ONEUPTIME_PRODUCT_NAME,
-            severityName: data.context.severityName || "-",
+            severityName: data.context.severityName,
           }),
+          afterPrompt: true,
+          repeated: true,
         },
         {
           introMessage: ON_CALL_TEST_PAGE_CALL_PROMPT,
           numDigits: 1,
-          timeoutInSeconds: 10,
+          timeoutInSeconds: ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS,
           noInputMessage: ON_CALL_TEST_PAGE_CALL_NO_INPUT,
           onInputCallRequest: {
             "1": {

@@ -1,6 +1,6 @@
 # Resposta automática
 
-As políticas de resposta automática desafiam ou bloqueiam um endereço que ataca assim que a detecção é feita, antes que alguém faça a triagem do caso: scanners que sondam seu app e bots que tentam senha após senha são barrados poucos minutos depois da primeira solicitação. Todo projeto vem com três políticas prontas, cada uma desativada até você ativá-la, e cada uma começa com uma semana de período de teste que só registra o que teria feito. As salvaguardas tornam uma política segura para deixar ativada: ela nunca toca nos seus próprios endereços nem em um que seus usuários conectados usam, e para e avisa uma pessoa quando um ataque é maior do que ela deveria tratar sozinha.
+As políticas de resposta automática desafiam ou bloqueiam um endereço que ataca assim que a detecção é feita, antes que alguém faça a triagem do caso: scanners que vasculham seu app e bots que tentam senha após senha são barrados poucos minutos depois da primeira solicitação. Todo projeto vem com três políticas prontas, cada uma desativada até você ativá-la, e cada uma começa com uma semana de período de teste que só registra o que teria feito. As salvaguardas tornam uma política segura para deixar ativada: ela nunca toca nos seus próprios endereços nem em um que seus usuários conectados usam, e para e avisa uma pessoa quando um ataque é maior do que ela deveria tratar sozinha.
 
 :::cards
 - [Ativar uma política](#ativar-uma-política): Primeiro uma semana de período de teste, depois um clique.
@@ -35,11 +35,13 @@ Uma política age sobre uma detecção assim que ela é registrada no caso, pouc
 
 | Política | Age sobre | Faz | Primeiro bloqueio |
 | --- | --- | --- | --- |
-| **Scanners** | Varreduras web e tentativas de exploração (ATT&CK T1595, T1190): tentativas de injeção de SQL, travessia de caminho e Log4Shell, e muitas correspondências de regras gerenciadas do Cloudflare a partir de um endereço, enquanto todas as solicitações do endereço foram recusadas | Desafio | 1 hora |
+| **Scanners** | Varreduras web e tentativas de exploração (ATT&CK T1595, T1190): tentativas de injeção de SQL, travessia de caminho e Log4Shell, varredura em busca de arquivos sensíveis como `/.env`, `/.git/config` e `/wp-admin`, e muitas correspondências de regras gerenciadas do Cloudflare a partir de um endereço, enquanto todas as solicitações do endereço foram recusadas | Desafio | 1 hora |
 | **Adivinhação de senhas** | Força bruta e pulverização de senhas (ATT&CK T1110): logins com falha a partir de um endereço, e logins com falha seguidos de um sucesso a partir do mesmo endereço | Bloquear | 1 hora |
 | **Endereços sabidamente maliciosos** | Qualquer detecção sobre um endereço que sua [inteligência de ameaças](/docs/telemetry/threat-intelligence) lista | Bloquear | 24 horas |
 
 Pessoas passam em um desafio, scripts e bots, não. Scanners só desafia um endereço enquanto nenhuma solicitação dele tiver chegado ao seu app: um endereço cujas solicitações passaram é um caso para uma pessoa.
+
+A varredura em busca de arquivos sensíveis só conta as solicitações que seu site recusou ou que pedem algo que ele não tem, e só quando um endereço pede três ou mais arquivos ou páginas de administração diferentes em até cinco minutos. Uma página que seu site serve nunca conta, então os próprios administradores de um site WordPress carregam `/wp-admin` e `/wp-login.php` quantas vezes quiserem.
 
 Ativar Scanners ou Adivinhação de senhas, no período de teste ou de vez, executa em tempo real as regras da **Biblioteca de regras** sobre as quais ela age, adicionando as que seu projeto não tem: uma regra em tempo real dispara segundos depois que os eventos chegam, enquanto uma agendada lê com minutos de atraso. Uma regra que alguém desativou continua desativada. Um projeto executa no máximo 50 regras em tempo real: além disso, uma regra fica no agendamento dela, e o cartão da política mostra **Em um agendamento** ao lado.
 
@@ -66,7 +68,7 @@ Para ativar uma política sem a semana de período de teste, abra **Mais configu
 - **Nunca seus próprios endereços nem os protegidos.** As entradas de **Entidades protegidas**, e tudo o que o OneUptime protege sozinho: seus hosts, recursos de nuvem e sondas, os intervalos que não estão na internet, e a borda na frente do seu app. Veja [Lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio).
 - **Nunca um endereço que um usuário conectado usou nos últimos 30 dias.** A rede de um escritório, o proxy de um cliente ou a casa de uma pessoa: o OneUptime procura o endereço nos logins do seu provedor de identidade e nas solicitações que seu app atendeu para um usuário conectado, as que têm um ID de usuário nos traces ou logs. Um endereço que ele não consegue verificar, porque esses eventos não puderam ser lidos ou porque suas regras de ocultação escondem os endereços de um jeito que ele não consegue comparar, fica para uma pessoa.
 - **Bloqueios mais longos para um endereço que volta.** O primeiro bloqueio dura 1 hora, depois 24 horas, depois 7 dias para um endereço bloqueado de novo em até 30 dias. Endereços sabidamente maliciosos começa em 24 horas.
-- **No máximo 50 bloqueios automáticos por hora.** Além disso, suas políticas param de bloquear e avisam seus responsáveis pela segurança: um ataque desse tamanho precisa de uma pessoa. A página avisa enquanto durar.
+- **No máximo 50 bloqueios automáticos por hora, ou o limite que você definir.** Além disso, suas políticas param de bloquear e avisam seus responsáveis pela segurança: um ataque desse tamanho precisa de uma pessoa. A página avisa enquanto durar. Um Administrador de segurança, Administrador do projeto ou Proprietário do projeto pode definir o limite entre 1 e 500, em **Mais configurações**, no fim da página: **Limite por hora**. Um novo limite vale a partir da próxima detecção.
 - **Desfazer na dúvida.** Quando um usuário conectado é visto a partir de um endereço que uma política bloqueou, a política suspende o bloqueio e avisa seus responsáveis pela segurança.
 
 Seus responsáveis pela segurança são os Administradores de segurança do seu projeto ou, quando não há nenhum, os Proprietários do projeto. Cada endereço que uma salvaguarda deixou em paz aparece no caso dele, com o motivo.
@@ -101,7 +103,7 @@ Veja a linha do tempo do caso: uma política que deixou um endereço em paz diz 
 :::
 
 :::details A página diz que os bloqueios automáticos da hora acabaram
-Suas políticas fizeram 50 bloqueios automáticos na última hora e avisaram seus responsáveis pela segurança. Elas voltam a agir à medida que os bloqueios dessa hora envelhecem. Veja os casos do ataque, e bloqueie um intervalo na **Lista de bloqueio** se ele vier de uma só rede.
+Suas políticas atingiram seu limite de bloqueios automáticos por hora, 50 a menos que alguém o tenha alterado, e avisaram seus responsáveis pela segurança. Elas voltam a agir à medida que os bloqueios dessa hora envelhecem. Veja os casos do ataque, e bloqueie um intervalo na **Lista de bloqueio** se ele vier de uma só rede. Se seu projeto costuma ser alvo de tantos scanners assim, clique em **Alterar limite** ao lado do aviso e aumente o limite.
 :::
 
 ## Próximos passos

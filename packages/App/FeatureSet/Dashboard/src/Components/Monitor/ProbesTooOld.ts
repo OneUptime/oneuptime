@@ -6,6 +6,7 @@ import MonitorType from "Common/Types/Monitor/MonitorType";
 import ProbeReportedVersionUtil, {
   ProbeFeature,
   ProbeFeatureSupport,
+  UPDATE_A_PROBE_DOCS_PATH as UPDATE_A_PROBE_DOCS_PATH_IN_DOCS,
 } from "Common/Types/Probe/ProbeReportedVersion";
 import { translationKey } from "Common/Types/Translator";
 import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
@@ -37,9 +38,13 @@ import {
  * ProbeFeature needs its sentence here and a way to tell a step needs it.
  */
 
-// The docs section that says how to update a custom probe.
+/*
+ * The docs section that says how to update a custom probe: the one the
+ * server's notice links too (Types/Probe/ProbeReportedVersion), so a page
+ * and an email never send someone to two places.
+ */
 export const UPDATE_A_PROBE_DOCS_PATH: string =
-  "/probe/custom-probe#update-a-probe";
+  UPDATE_A_PROBE_DOCS_PATH_IN_DOCS;
 
 export const PROBES_TOO_OLD_WARNING_TEST_ID: string = "probes-too-old-warning";
 

@@ -11,6 +11,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Express, {
@@ -332,6 +333,16 @@ router.post(
       let monitorsWithSecretPopulated: Array<Monitor> = [];
       const monitorWithSecretsPopulatePromises: Array<Promise<Monitor>> = [];
 
+      /*
+       * A probe that hides the values filled into a step in its own log is
+       * handed them beside the step (#10875); an older one is handed
+       * nothing more than it was.
+       */
+      const handSecretValuesToHide: boolean = ProbeStepGate.isDeclaredByRequest(
+        data,
+        ProbeCapability.HideSecretValuesInLogs,
+      );
+
       for (const monitor of monitors) {
         const monitorKey: string | undefined = monitor.id?.toString();
 
@@ -341,6 +352,7 @@ router.post(
             monitorKey && monitorIdsNeedingSecretsSet.has(monitorKey)
               ? secretsByMonitorId.get(monitorKey) || []
               : undefined,
+            { handSecretValuesToHide: handSecretValuesToHide },
           ),
         );
       }
@@ -539,9 +551,17 @@ router.post(
         Promise<MonitorTest>
       > = [];
 
+      // As for monitors: only to a probe that hides them (#10875).
+      const handSecretValuesToHide: boolean = ProbeStepGate.isDeclaredByRequest(
+        data,
+        ProbeCapability.HideSecretValuesInLogs,
+      );
+
       for (const monitorTest of monitorTests) {
         monitorTestsWithSecretsPopulatePromises.push(
-          MonitorUtil.populateSecretsOnMonitorTest(monitorTest),
+          MonitorUtil.populateSecretsOnMonitorTest(monitorTest, {
+            handSecretValuesToHide: handSecretValuesToHide,
+          }),
         );
       }
 

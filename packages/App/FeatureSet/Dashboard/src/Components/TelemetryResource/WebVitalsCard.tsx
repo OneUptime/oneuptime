@@ -3,7 +3,7 @@ import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import Card from "Common/UI/Components/Card/Card";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
 import { WebVital, formatDurationMsInLanguage } from "./telemetryMetrics";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
@@ -113,14 +113,13 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
       <Card
         title={
           props.description ? (
-            <span className="inline-flex items-center gap-1.5">
-              {translator.translateText("Core Web Vitals")}
-              <InfoTooltip
-                label="Core Web Vitals"
-                text={props.description}
-                iconClassName="h-4 w-4"
-              />
-            </span>
+            <WordsWithInfoTooltip
+              text={
+                translator.translateText("Core Web Vitals") || "Core Web Vitals"
+              }
+              label="Core Web Vitals"
+              description={props.description}
+            />
           ) : (
             "Core Web Vitals"
           )
@@ -169,13 +168,12 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                   className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex min-w-0 items-center gap-1">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        {v.key}
-                      </span>
-                      <InfoTooltip
+                    <div className="flex min-w-0">
+                      <WordsWithInfoTooltip
+                        className="min-w-0 text-xs font-semibold uppercase tracking-wider text-gray-500"
+                        text={v.key}
                         label={`${v.key.toUpperCase()} (${v.label})`}
-                        text={describeWebVital(v)}
+                        description={describeWebVital(v)}
                       />
                     </div>
                     <span

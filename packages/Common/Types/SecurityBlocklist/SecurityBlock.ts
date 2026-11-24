@@ -38,8 +38,11 @@ import {
 /*
  * What a block holds: an address or a range (#10338), or a domain, a URL
  * or a file by its hash (#10346), which the endpoint products block on
- * every machine (Microsoft Defender, CrowdStrike). How each is written is
- * readSecurityBlockIndicator's, and SecurityBlockIndicator.ts's.
+ * every machine (Microsoft Defender, CrowdStrike), or a whole network by
+ * its autonomous system number (#10354) - the hosting provider a rotating
+ * scanner comes from, "AS14061" - which only an edge that matches a
+ * request's ASN holds (Cloudflare's IP Access Rules). How each is written
+ * is readSecurityBlockIndicator's, and SecurityBlockIndicator.ts's.
  */
 export enum SecurityBlockIndicatorType {
   IpAddress = "IpAddress",
@@ -49,6 +52,7 @@ export enum SecurityBlockIndicatorType {
   FileSha256 = "FileSha256",
   FileSha1 = "FileSha1",
   FileMd5 = "FileMd5",
+  Asn = "Asn",
 }
 
 /*
@@ -114,11 +118,24 @@ export const SECURITY_BLOCK_INDICATOR_TYPES: ReadonlyArray<SecurityBlockIndicato
     SecurityBlockIndicatorType.FileSha256,
     SecurityBlockIndicatorType.FileSha1,
     SecurityBlockIndicatorType.FileMd5,
+    SecurityBlockIndicatorType.Asn,
   ];
 
 // The kinds of value that are an address or a range of them.
 export const SECURITY_BLOCK_ADDRESS_TYPES: ReadonlyArray<SecurityBlockIndicatorType> =
   [SecurityBlockIndicatorType.IpAddress, SecurityBlockIndicatorType.IpRange];
+
+/*
+ * The kinds of value a request's sender is matched by at the edge, and so
+ * can be challenged: an address, a range, or a whole network by its ASN
+ * (#10354). The Blocklist lists them together, on its Addresses tab.
+ */
+export const SECURITY_BLOCK_NETWORK_TYPES: ReadonlyArray<SecurityBlockIndicatorType> =
+  [
+    SecurityBlockIndicatorType.IpAddress,
+    SecurityBlockIndicatorType.IpRange,
+    SecurityBlockIndicatorType.Asn,
+  ];
 
 // The kinds of value that are a file, by its hash.
 export const SECURITY_BLOCK_FILE_TYPES: ReadonlyArray<SecurityBlockIndicatorType> =
@@ -179,6 +196,15 @@ export function isSecurityBlockAddressType(
   );
 }
 
+// Whether a block's value is an address, a range or a whole network by its ASN (#10354).
+export function isSecurityBlockNetworkType(
+  type: SecurityBlockIndicatorType | string | undefined | null,
+): boolean {
+  return (SECURITY_BLOCK_NETWORK_TYPES as ReadonlyArray<string>).includes(
+    type || "",
+  );
+}
+
 // Whether a block's value is a file's hash.
 export function isSecurityBlockFileType(
   type: SecurityBlockIndicatorType | string | undefined | null,
@@ -190,12 +216,18 @@ export function isSecurityBlockFileType(
 
 /*
  * Where a block of this kind is enforced: an address where asked - at the
- * edge unless asked for everywhere - and anything else everywhere.
+ * edge unless asked for everywhere - a network by its ASN at the edge, the
+ * only place a request's ASN is known (#10354), and anything else
+ * everywhere.
  */
 export function getSecurityBlockReach(data: {
   indicatorType: SecurityBlockIndicatorType | string | undefined | null;
   reach?: SecurityBlockReach | string | undefined | null;
 }): SecurityBlockReach {
+  if (data.indicatorType === SecurityBlockIndicatorType.Asn) {
+    return SecurityBlockReach.Edge;
+  }
+
   if (!isSecurityBlockAddressType(data.indicatorType)) {
     return SecurityBlockReach.Everywhere;
   }
@@ -465,10 +497,76 @@ export interface SecurityBlockIndicatorValue {
   address?: string | undefined;
 }
 
+// The highest autonomous system number there is: ASNs are 32 bits (RFC 6793).
+export const SECURITY_BLOCK_ASN_MAX: number = 4294967295;
+
+/*
+ * A network by its autonomous system number, as blocks write it: "AS"
+ * and the number, however it was typed ("as14061", "AS 14061") - or null.
+ * A number on its own is no ASN here: written without "AS" it could be
+ * anything. Shared with Campaigns' network rows (#10354), which name an
+ * ASN the way Cloudflare's events carry it, digits alone
+ * (readSecurityAsnNumber).
+ */
+export function readSecurityBlockAsn(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const text: string = value.trim();
+
+  if (text.length < 3 || text.length > 16) {
+    return null;
+  }
+
+  if (text.slice(0, 2).toUpperCase() !== "AS") {
+    return null;
+  }
+
+  return readSecurityAsnNumber(text.slice(2).trim());
+}
+
+/*
+ * An ASN written as digits alone, as Cloudflare's firewall events carry it
+ * ("14061"), in the way blocks write one ("AS14061"); null for anything
+ * else, AS0 and a number past 32 bits.
+ */
+export function readSecurityAsnNumber(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const digits: string = value.trim();
+
+  if (!digits || digits.length > 10) {
+    return null;
+  }
+
+  for (let index: number = 0; index < digits.length; index++) {
+    const code: number = digits.charCodeAt(index);
+
+    if (code < 48 || code > 57) {
+      return null;
+    }
+  }
+
+  const number: number = Number(digits);
+
+  if (!Number.isSafeInteger(number) || number < 1) {
+    return null;
+  }
+
+  if (number > SECURITY_BLOCK_ASN_MAX) {
+    return null;
+  }
+
+  return `AS${number}`;
+}
+
 /*
  * What a value is and how it is kept, whatever it is, or null when it is
- * none of them: an address or a range first, then a file's hash, a URL
- * (which starts with its scheme) and a domain.
+ * none of them: an address or a range first, then a network by its ASN,
+ * a file's hash, a URL (which starts with its scheme) and a domain.
  */
 export function readSecurityBlockIndicator(
   value: unknown,
@@ -481,6 +579,12 @@ export function readSecurityBlockIndicator(
 
   if (address) {
     return address;
+  }
+
+  const asn: string | null = readSecurityBlockAsn(value);
+
+  if (asn) {
+    return { indicatorType: SecurityBlockIndicatorType.Asn, value: asn };
   }
 
   const hash: SecurityBlockHashReading | null = readSecurityBlockHash(value);
@@ -581,6 +685,8 @@ export const SECURITY_BLOCK_SENTENCES: {
   alreadyBlockedBy: string;
   checkFailed: string;
   checkFailedValue: string;
+  asnTakesAdmin: string;
+  asnUnchecked: string;
 } = {
   enterAddress: translationKey("Enter the IP address or range to block."),
   notAnAddress: translationKey(
@@ -619,6 +725,12 @@ export const SECURITY_BLOCK_SENTENCES: {
   ),
   checkFailedValue: translationKey(
     "OneUptime could not check whether {{value}} is protected, so it did not block it. Try again in a minute.",
+  ),
+  asnTakesAdmin: translationKey(
+    "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.",
+  ),
+  asnUnchecked: translationKey(
+    "OneUptime cannot tell whether {{value}} holds your own servers or your users, so it did not block it. Challenge it from Campaigns, where a Security Admin can do it knowingly.",
   ),
 };
 
@@ -685,6 +797,8 @@ export const SECURITY_BLOCK_MESSAGES: {
   notDeletable: string;
   checkFailed: (data: { value: string }) => string;
   checkFailedValue: (data: { value: string }) => string;
+  asnTakesAdmin: (data: { value: string }) => string;
+  asnUnchecked: (data: { value: string }) => string;
 } = {
   enterAddress: SECURITY_BLOCK_SENTENCES.enterAddress,
   notAnAddress: SECURITY_BLOCK_SENTENCES.notAnAddress,
@@ -757,12 +871,25 @@ export const SECURITY_BLOCK_MESSAGES: {
       values: data,
     });
   },
+  // A whole network by its ASN, for a person who may not block past the largest range.
+  asnTakesAdmin: (data: { value: string }): string => {
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.asnTakesAdmin,
+      values: data,
+    });
+  },
+  asnUnchecked: (data: { value: string }): string => {
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.asnUnchecked,
+      values: data,
+    });
+  },
 };
 
 /*
  * What is wrong with blocking a value of this kind with this action, where
- * it is enforced, or null: a challenge is for an address at the edge, and
- * quarantine for a file.
+ * it is enforced, or null: a challenge is for an address, a range or a
+ * network at the edge, and quarantine for a file.
  */
 export function getSecurityBlockActionProblem(data: {
   indicatorType: SecurityBlockIndicatorType;
@@ -770,7 +897,7 @@ export function getSecurityBlockActionProblem(data: {
   reach: SecurityBlockReach;
 }): string | null {
   if (data.action === SecurityBlockAction.Challenge) {
-    if (!isSecurityBlockAddressType(data.indicatorType)) {
+    if (!isSecurityBlockNetworkType(data.indicatorType)) {
       return SECURITY_BLOCK_MESSAGES.challengeOnlyAddresses;
     }
 
@@ -850,6 +977,19 @@ export function getSecurityBlockValueSentence(data: {
 
   if (!indicator) {
     return { template: SECURITY_BLOCK_SENTENCES.notAValue, values: {} };
+  }
+
+  /*
+   * A whole network by its ASN (#10354) is wider than any range: only a
+   * person who may block past the largest range may block or challenge one.
+   */
+  if (indicator.indicatorType === SecurityBlockIndicatorType.Asn) {
+    return data.mayBlockWideRanges
+      ? null
+      : {
+          template: SECURITY_BLOCK_SENTENCES.asnTakesAdmin,
+          values: { value: indicator.value },
+        };
   }
 
   if (!indicator.block) {

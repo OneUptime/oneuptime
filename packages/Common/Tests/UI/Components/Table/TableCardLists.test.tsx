@@ -18,6 +18,8 @@ import {
 import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
 import {
   TABLE_CARD_LIST_ITEM_CLASS_NAME,
+  TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME,
+  TABLE_LIST_ATTRIBUTE,
   TABLE_LIST_ITEM_CLASS_NAME,
   TABLE_CARD_WIDE_FIELD_CLASS_NAME,
   TABLE_MOBILE_FIELD_CLASS_NAME,
@@ -252,6 +254,44 @@ describe("a list in a phone's card", () => {
     fireEvent.mouseEnter(items[0]!);
 
     expect(items[0]).toHaveAttribute("title", MONITOR);
+  });
+
+  /*
+   * Each item clips its own line a ring's width outside its words, and the
+   * cell's value box leaves the clip to them, so a focused resource's ring
+   * shows at its sides too (#6862): the list says it is one
+   * (TABLE_LIST_ATTRIBUTE), and the box's classes give up their clip for
+   * such a list alone.
+   */
+  test("in a row, the list says it clips its own items, and its cell's box leaves the clip to them", () => {
+    renderBody([row(1, resources(MONITOR, CLUSTER))], false);
+
+    const items: Array<HTMLElement> = itemsOf(
+      screen.getByRole("row") as HTMLElement,
+    );
+    const list: HTMLElement = items[0]!.parentElement as HTMLElement;
+    const valueBox: HTMLElement = list.parentElement as HTMLElement;
+
+    expect(list).toHaveAttribute(TABLE_LIST_ATTRIBUTE, "true");
+    expect(items[0]).toHaveClass("-mx-[3px]", "px-[3px]", "overflow-x-clip");
+    expect(valueBox.className.split(/\s+/)).toEqual(
+      expect.arrayContaining([
+        "overflow-x-clip",
+        TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME,
+      ]),
+    );
+  });
+
+  test("on a phone's card, where items wrap and nothing clips, the list says nothing of it", () => {
+    renderBody([row(1, resources(MONITOR, CLUSTER))], true);
+
+    const items: Array<HTMLElement> = itemsOf(document.body);
+
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      expect(item.parentElement).not.toHaveAttribute(TABLE_LIST_ATTRIBUTE);
+      expect(item).not.toHaveClass("-mx-[3px]");
+    }
   });
 });
 

@@ -254,7 +254,7 @@ export function getOnCallObserverPageCallSentence(data: {
   return `You are paged as an observer about an ${data.recordNoun}`;
 }
 
-// What a call asks for, where a responder's says "To acknowledge this incident, press 1".
+// What a call asks for, where a responder's says "Press 1 to acknowledge, or 2 to escalate.".
 export function getOnCallObserverPageCallPrompt(
   kind: OnCallObserverPageRecordKind,
 ): string {

@@ -528,6 +528,279 @@ describe("value coercions", () => {
   });
 });
 
+describe("a comparison with the previous check (#10821)", () => {
+  function previousCheckFilter(
+    options: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return {
+      checkOn: "Response Time (in ms)",
+      filterType: "Greater Than",
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: {
+        timeValueInMinutes: 10,
+        evaluateOverTimeType: "Previous Check",
+        ...options,
+      },
+    };
+  }
+
+  function exportedFilter(
+    options: Record<string, unknown>,
+  ): Record<string, HclTestValue> {
+    const converted: HclTestValue = convert(
+      envelope([
+        step({
+          monitorCriteria: criteriaEnvelope([
+            { name: "Slower", filters: [previousCheckFilter(options)] },
+          ]),
+        }),
+      ]),
+    );
+
+    return (
+      converted as Array<{
+        criteria: Array<{ filters: Array<Record<string, HclTestValue>> }>;
+      }>
+    )[0]!.criteria[0]!.filters[0]!;
+  }
+
+  test("writes the change's kind and size, a fraction kept", () => {
+    expect(
+      exportedFilter({ changeType: "Percentage", changeValue: 12.5 }),
+    ).toEqual({
+      check_on: "Response Time (in ms)",
+      filter_type: "Greater Than",
+      evaluate_over_time: true,
+      evaluate_over_time_minutes: 10,
+      evaluate_over_time_type: "Previous Check",
+      evaluate_over_time_change_type: "Percentage",
+      evaluate_over_time_change_value: 12.5,
+    });
+  });
+
+  test("reads a change kept as its digits, and leaves out one that is not a number, as the provider does", () => {
+    expect(
+      exportedFilter({ changeType: "Amount", changeValue: " 200 " })[
+        "evaluate_over_time_change_value"
+      ],
+    ).toBe(200);
+
+    for (const changeValue of ["NaN", "Infinity", "fast", "", null, {}]) {
+      expect({
+        changeValue,
+        written: exportedFilter({ changeType: "Amount", changeValue })[
+          "evaluate_over_time_change_value"
+        ],
+      }).toEqual({ changeValue, written: undefined });
+    }
+  });
+
+  test("a filter with no change set writes none", () => {
+    expect(exportedFilter({})).toEqual({
+      check_on: "Response Time (in ms)",
+      filter_type: "Greater Than",
+      evaluate_over_time: true,
+      evaluate_over_time_minutes: 10,
+      evaluate_over_time_type: "Previous Check",
+    });
+  });
+});
+
+describe("a criteria's recovery condition and active hours (#10822)", () => {
+  // Weekdays from 08:00 to 18:00 in Oslo, as the dashboard keeps them.
+  const OSLO_WEEKDAYS: Record<string, unknown> = {
+    _type: "RestrictionTimes",
+    value: {
+      restictionType: "Weekly",
+      dayRestrictionTimes: null,
+      weeklyRestrictionTimes: [12, 13, 14, 15, 16].map((date: number) => {
+        const day: string = [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+        ][date - 12]!;
+
+        return {
+          startDay: day,
+          endDay: day,
+          startTime: {
+            _type: "DateTime",
+            value: `2026-01-${date}T07:00:00.000Z`,
+          },
+          endTime: {
+            _type: "DateTime",
+            value: `2026-01-${date}T17:00:00.000Z`,
+          },
+        };
+      }),
+    },
+  };
+
+  function offlineCriteria(
+    settings: Record<string, unknown>,
+  ): Array<Record<string, unknown>> {
+    return [
+      {
+        name: "Offline",
+        filterCondition: "Any",
+        filters: [
+          { checkOn: "Is Online", filterType: "False" },
+          {
+            checkOn: "Response Time (in ms)",
+            filterType: "Greater Than",
+            value: 5000,
+          },
+        ],
+        ...settings,
+      },
+    ];
+  }
+
+  function exportedCriteria(
+    settings: Record<string, unknown>,
+  ): Record<string, HclTestValue> {
+    const converted: HclTestValue = convert(
+      envelope([
+        step({ monitorCriteria: criteriaEnvelope(offlineCriteria(settings)) }),
+      ]),
+    );
+
+    return (
+      converted as Array<{ criteria: Array<Record<string, HclTestValue>> }>
+    )[0]!.criteria[0]!;
+  }
+
+  test("writes the recovery filters, how they combine, the hours and their zone", () => {
+    expect(
+      exportedCriteria({
+        recoveryFilters: [
+          {
+            checkOn: "Response Time (in ms)",
+            filterType: "Less Than",
+            value: 300,
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 10,
+              evaluateOverTimeType: "Percentile",
+              percentile: 99,
+            },
+          },
+        ],
+        recoveryFilterCondition: "All",
+        activeHours: OSLO_WEEKDAYS,
+        activeHoursTimezone: "Europe/Oslo",
+      }),
+    ).toEqual({
+      name: "Offline",
+      filter_condition: "Any",
+      filters: [
+        { check_on: "Is Online", filter_type: "False" },
+        {
+          check_on: "Response Time (in ms)",
+          filter_type: "Greater Than",
+          value: "5000",
+        },
+      ],
+      recovery_filters: [
+        {
+          check_on: "Response Time (in ms)",
+          filter_type: "Less Than",
+          value: "300",
+          evaluate_over_time: true,
+          evaluate_over_time_minutes: 10,
+          evaluate_over_time_type: "Percentile",
+          evaluate_over_time_percentile: 99,
+        },
+      ],
+      recovery_filter_condition: "All",
+      active_hours: { days: [0, 1, 2, 3, 4], from: "08:00", to: "18:00" },
+      active_hours_timezone: "Europe/Oslo",
+    });
+  });
+
+  test("hours read on another zone's clock are other hours", () => {
+    expect(
+      exportedCriteria({
+        activeHours: OSLO_WEEKDAYS,
+        activeHoursTimezone: "America/New_York",
+      })["active_hours"],
+    ).toEqual({ days: [0, 1, 2, 3, 4], from: "02:00", to: "12:00" });
+  });
+
+  test("hours that are not alike on each day, or have no zone, are left out as the provider leaves them", () => {
+    const differentHours: Record<string, unknown> = {
+      _type: "RestrictionTimes",
+      value: {
+        restictionType: "Weekly",
+        dayRestrictionTimes: null,
+        weeklyRestrictionTimes: [
+          {
+            startDay: "Monday",
+            endDay: "Monday",
+            startTime: { _type: "DateTime", value: "2026-01-12T08:00:00.000Z" },
+            endTime: { _type: "DateTime", value: "2026-01-12T16:00:00.000Z" },
+          },
+          {
+            startDay: "Tuesday",
+            endDay: "Tuesday",
+            startTime: { _type: "DateTime", value: "2026-01-13T09:00:00.000Z" },
+            endTime: { _type: "DateTime", value: "2026-01-13T12:00:00.000Z" },
+          },
+        ],
+      },
+    };
+
+    const different: Record<string, HclTestValue> = exportedCriteria({
+      activeHours: differentHours,
+      activeHoursTimezone: "UTC",
+    });
+
+    expect(different["active_hours"]).toBeUndefined();
+    expect(different["active_hours_timezone"]).toBe("UTC");
+    expect(
+      exportedCriteria({ activeHours: OSLO_WEEKDAYS })["active_hours"],
+    ).toBeUndefined();
+    expect(
+      exportedCriteria({ activeHours: "weekdays", activeHoursTimezone: "UTC" })[
+        "active_hours"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("a criteria with neither writes neither", () => {
+    expect(Object.keys(exportedCriteria({}))).toEqual([
+      "name",
+      "filter_condition",
+      "filters",
+    ]);
+  });
+
+  test("the printed hours say which days they are on", () => {
+    const printed: string = printHclExpression(
+      monitorStepsToHcl(
+        envelope([
+          step({
+            monitorCriteria: criteriaEnvelope(
+              offlineCriteria({
+                activeHours: OSLO_WEEKDAYS,
+                activeHoursTimezone: "Europe/Oslo",
+              }),
+            ),
+          }),
+        ]),
+        context(),
+      )!,
+    );
+
+    expect(printed).toMatch(/days = \[0, 1, 2, 3, 4\] +# Monday to Friday\n/);
+    expect(printed).toMatch(/from = "08:00"\n/);
+    expect(printed).toMatch(/to {3}= "18:00"\n/);
+    expect(printed).toMatch(/active_hours_timezone += "Europe\/Oslo"\n/);
+  });
+});
+
 describe("raw-JSON sub-configs (TestMonitorStepsFromAPIMapsInjectedSubConfigs)", () => {
   test("a log monitor's query is written with jsonencode, exactly as stored", () => {
     const converted: HclTestValue = convert(

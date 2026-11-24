@@ -315,14 +315,18 @@ describe.each(OPENSTACK_AUDIT_RECORDED_RELEASES)("%s", (release: string) => {
         burst.title,
         events,
       );
+      // Counted per principalIp, as the rule groups them (#10773).
+      expect(burst.groupByField).toBe("principalIp");
+
       const addresses: Set<unknown> = new Set(
         matched.map((event: NormalizedSecurityEvent): unknown => {
-          return event.attributes[burst.groupByField as string];
+          return event.principalIp;
         }),
       );
 
       expect(matched).toEqual(failed);
       expect(addresses.size).toBe(1);
+      expect(addresses.has("")).toBe(false);
       expect(matched.length).toBeGreaterThanOrEqual(burst.matchCountThreshold);
       expect(burst.matchCountThreshold).toBe(10);
     });

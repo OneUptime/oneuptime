@@ -1261,6 +1261,13 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
       );
 
+      /*
+       * When this check's rows begin to be written: a criteria that compares
+       * the check with the previous one reads the newest row before it, so
+       * the check's own rows are never read as its previous check (#10821).
+       */
+      const checkWrittenAt: Date = OneUptimeDate.getCurrentDate();
+
       try {
         await MonitorMetricUtil.saveMonitorMetrics({
           monitorId: monitor.id!,
@@ -1464,6 +1471,7 @@ export default class MonitorResourceUtil {
          * below re-reads other probes' stored checks and records nothing.
          */
         recordMatchHistory: true,
+        checkWrittenAt: checkWrittenAt,
         matchHistoryReads: matchHistoryReads,
         criteriaInEffect: criteriaInEffect,
         seriesBehindStatus: seriesBehindStatus,

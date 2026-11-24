@@ -47,7 +47,7 @@ import {
 import { CephPgStateReadings, loadCephPgStates } from "../Utils/CephReadings";
 import { getCephPartAttention } from "../Utils/CephPartAttention";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -368,10 +368,14 @@ const CephClusterPoolDetail: FunctionComponent<
                 <div className="mt-4 space-y-6">
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      {translator.translateText("Client IOPS")}
-                      <InfoTooltip
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
+                        text={
+                          translator.translateText("Client IOPS") ||
+                          "Client IOPS"
+                        }
                         label="Client IOPS"
-                        text={CEPH_METRIC_DESCRIPTIONS.poolClientIops}
+                        description={CEPH_METRIC_DESCRIPTIONS.poolClientIops}
                       />
                       <TimeRangeZoomHint
                         revealOnHover={true}
@@ -394,10 +398,16 @@ const CephClusterPoolDetail: FunctionComponent<
                   </div>
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      {translator.translateText("Client Throughput")}
-                      <InfoTooltip
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
+                        text={
+                          translator.translateText("Client Throughput") ||
+                          "Client Throughput"
+                        }
                         label="Client Throughput"
-                        text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput}
+                        description={
+                          CEPH_METRIC_DESCRIPTIONS.poolClientThroughput
+                        }
                       />
                       <TimeRangeZoomHint
                         revealOnHover={true}

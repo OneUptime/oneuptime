@@ -9,6 +9,7 @@ import {
   TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES,
   TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME,
   TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME,
+  TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME,
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
   TABLE_CELL_PART_LINE_CLASS_NAME,
   TABLE_CELL_TEXT_CLASS_NAME,
@@ -20,7 +21,10 @@ import {
   TABLE_HEADER_CELL_CLASS_NAME,
   TABLE_HEADER_CONTENT_CLASS_NAME,
   TABLE_HEADER_SELECT_CELL_CLASS_NAME,
+  TABLE_LIST_ATTRIBUTE,
   TABLE_LIST_ITEM_CLASS_NAME,
+  TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME,
+  TABLE_SHRINKABLE_ATTRIBUTE,
   TABLE_MOBILE_FIELD_CLASS_NAME,
   TABLE_MOBILE_FIELD_NAME_CLASS_NAME,
   TABLE_MOBILE_FIELD_VALUE_CLASS_NAME,
@@ -373,8 +377,74 @@ describe("a value too long for its column", () => {
       "overflow-x-clip",
       "text-ellipsis",
       "whitespace-nowrap",
+      ...tokens(TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME),
       ...tokens(TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES),
     ]);
+  });
+
+  /*
+   * A resource's link starts flush with its item, and its focus ring is
+   * drawn just outside it: the item's sideways clip cut the ring's start
+   * side off (the left in English, the right in Persian), and both sides of
+   * a name that fills the column (#6862). The item clips a ring's width
+   * outside its words: padded by 3px and pulled back out by 3px, so its
+   * words, its "..." and its room in the column do not move.
+   */
+  test("an item of a list clips a ring's width outside its words, without moving them", () => {
+    expect(tokens(TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME)).toEqual([
+      "-mx-[3px]",
+      "px-[3px]",
+    ]);
+    expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toEqual(
+      expect.arrayContaining(["-mx-[3px]", "px-[3px]"]),
+    );
+
+    // The padding and the pull back are the same width, start and end.
+    const padding: RegExpMatchArray | null =
+      TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME.match(/(?:^|\s)px-\[(\d+)px\]/);
+    const pull: RegExpMatchArray | null =
+      TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME.match(/(?:^|\s)-mx-\[(\d+)px\]/);
+
+    expect(padding?.[1]).toBeDefined();
+    expect(pull?.[1]).toBe(padding?.[1]);
+    // As wide as a focus ring: Chrome's is two pixels, drawn outside.
+    expect(Number(padding?.[1])).toBeGreaterThanOrEqual(2);
+    // Never one side alone, which would move the words.
+    for (const oneSide of [
+      "pl-",
+      "pr-",
+      "ps-",
+      "pe-",
+      "ml-",
+      "mr-",
+      "ms-",
+      "me-",
+    ]) {
+      expect(TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME).not.toContain(oneSide);
+    }
+  });
+
+  /*
+   * The cell's own value box clipped at its edges too, cutting the room
+   * the items keep for the ring off again: a cell whose value is a list
+   * leaves the clip to its items, each of which cuts its own line short.
+   * Any other value is clipped by its box, as before.
+   */
+  test("a cell whose value is a list leaves the clip to its items; any other value keeps its clip", () => {
+    expect(TABLE_LIST_ATTRIBUTE).toBe("data-table-list");
+    expect(TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME).toBe(
+      `[&:has(>[${TABLE_LIST_ATTRIBUTE}])]:overflow-x-visible`,
+    );
+    expect(tokens(TABLE_CELL_TRUNCATE_CLASS_NAMES)).toEqual(
+      expect.arrayContaining([
+        "overflow-x-clip",
+        TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME,
+      ]),
+    );
+    // Only for a list: never for a pill, a person or another shrinking part.
+    expect(TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME).not.toContain(
+      TABLE_SHRINKABLE_ATTRIBUTE,
+    );
   });
 
   /*

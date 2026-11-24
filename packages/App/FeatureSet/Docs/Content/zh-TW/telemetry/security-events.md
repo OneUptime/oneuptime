@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 可以用 `?format=`、`x-oneuptime-security-event-format` 標頭，或最上層的 `"format"` 欄位指定格式。不指定時，每個事件的格式會個別判斷，所以一個 Webhook 可以混合傳送偵測和原始事件。
 
 - 內文可以是一個事件、一個事件陣列，或 `{ "events": [...] }`。
+- 一個批次可以用 gzip 壓縮，並帶上 `Content-Encoding: gzip` 傳送：它會被當作未壓縮的同一批次讀取。Fluent Bit 的 `http` 輸出用 `compress gzip` 壓縮，Vector 的 `http` 接收器用 `compression = "gzip"`，Logstash 的 `http` 輸出用 `http_compression => true`。只有 JSON 會以壓縮形式讀取：其他類型的壓縮內文會以 `400` 被拒絕。
 - `x-oneuptime-service-name` 標頭指定事件所屬的遙測服務。沒有它時，事件屬於以第一個事件的產品或供應商命名的服務，或屬於 `Security Events`。
 - 不會因為無法對應而捨棄任何內容：來源的每個欄位都會進入事件的屬性。
 
@@ -174,6 +175,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日誌中尋找安全性事件
 
-**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Palo Alto Networks、FortiGate 或 Cisco ASA 防火牆的記錄、Kubernetes 稽核記錄和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
+**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Palo Alto Networks、FortiGate 或 Cisco ASA 防火牆的記錄、Kubernetes 稽核記錄、Web 攻擊和被拒絕的敏感檔案請求都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
 
 每一類都以一般日誌的形式到達 OneUptime：
 
@@ -298,6 +300,8 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 
 執行雜湊的規則會為安全性事件保存位址，因此事件會指出該位址，除非其權杖已超過 30 天，或是在權杖有金鑰之前產生的：請參閱[清理敏感資料](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感資料)。要找到這些事件，請搜尋 `@oneuptime.request.client_address_hidden:scrub-rule`。規則在位址處留下的內容（例如 `[REDACTED]`）保存在 `oneuptime.request.client_address_scrubbed` 中。對於目標位址，請搜尋 `@oneuptime.target_address_hidden:scrub-rule`。
 
+按位址計數的偵測規則應按 `principalIp` 或 `targetIp` 計數，就像規則庫中的規則那樣：它們會指出執行雜湊的規則所產生權杖背後的位址。某種格式自身的位址欄位，例如 `openstack.audit.initiator_address` 或 `asa.src_ip`，只保存日誌寫下的位址，因此在清理規則隱藏了位址的地方，它會保持為空。
+
 清除或遮蓋使用者的規則也會以同樣的方式隱藏使用者：凡是事件原本應指出使用者的地方，**來源使用者** 或 **目標使用者** 都會說明是某條清理規則隱藏了該使用者。在安全性事件讀取使用者的位置，執行雜湊的規則會為安全性事件保存該使用者：請求的 `enduser.id` 或 `user.id` 、AI 呼叫的使用者，以及日誌行指出的使用者，例如雲端稽核記錄的主體。因此，事件會指出權杖背後的使用者，關於該使用者的案件會指出該帳戶，劇本也可以像對待其他任何使用者一樣對該帳戶採取行動。規則留下的內容保存在 `oneuptime.principal_user_hashed_as` 或 `oneuptime.target_user_hashed_as` 中，方便你在只包含權杖的日誌和追蹤中找到該使用者。沒有保存使用者的權杖，例如在權杖有金鑰之前產生的權杖，仍是事件的使用者：規則會把它算作一個帳戶，任何劇本都不會對它採取行動。
 
 ## 探索安全性事件
@@ -333,7 +337,16 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 
 ### Campaigns
 
-**攻擊活動** 把每個傳送過攻擊請求的位址列為一列，包括攻擊類型、工具、傳送的請求，以及有多少請求通過。請求到達了你的應用程式的位址排在最前面。
+**攻擊活動** 把每個傳送過攻擊請求的位址列為一列，包括攻擊類型、工具、傳送的請求，以及有多少請求通過。請求到達了你的應用程式的位址排在最前面。你的封鎖清單已涵蓋的列會顯示封鎖或挑戰持續到何時，並寫明涵蓋它的範圍或網路。
+
+若要一次封鎖多個攻擊者，請選取它們所在的列並按一下 **封鎖位址**。一個對話方塊會列出它封鎖的每個位址和排除的每個位址，並說明原因：已被封鎖、你自己的位址或受保護的位址、已登入使用者在最近 30 天內用過的位址，或 OneUptime 無法檢查的位址。除非你選擇其他時長，否則封鎖 24 小時，也可以用 **改為挑戰** 改為挑戰；每個封鎖都會以你的名義進入你的[封鎖清單](/docs/telemetry/security-cases#封鎖清單)。
+
+**依網路分組** 把同一網路的位址放在一列：如果你的 [Cloudflare](/docs/integrations/cloudflare) 連線的事件提供 ASN，就依 ASN 分組，否則 IPv4 依 /24、IPv6 依 /48 分組。ASN 的列會列出其位址傳送請求時所用的範圍。**挑戰此網路** 會在執行前說明它將做什麼、在哪裡以及持續多久：除非你選擇其他時長，否則為 24 小時；對之前挑戰過的網路，則使用階梯中的下一級。Cloudflare 把範圍放進它的挑戰清單，把 ASN 作為 IP Access Rule 保存，每個方案都有這項功能。
+
+- 包含已登入使用者在最近 30 天內用過的位址或你自己位址的網路永遠不會被挑戰，對話方塊會寫明是誰或什麼。
+- 比 /24 更寬的範圍（IPv6 為 /48）和整個 ASN 需要安全性管理員、專案管理員或專案擁有者。ASN 的列也會列出它的每個範圍，任何可以封鎖的人都可以挑戰這些範圍。
+- 當 OneUptime 無法判斷誰在使用某個網路時（因為它是整個 ASN，或清理規則隱藏了用戶端位址），只有安全性管理員、專案管理員或專案擁有者在勾選表示知情後才能挑戰它。
+- 當伺服器上關閉了安全性事件時，不會封鎖或挑戰任何內容。
 
 ### 關聯分析
 

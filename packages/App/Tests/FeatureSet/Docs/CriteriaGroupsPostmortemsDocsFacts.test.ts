@@ -3281,7 +3281,7 @@ describe("turning monitoring off for a whole group (#6401)", () => {
 
   it("asks before turning it off, and turns it back on at once", () => {
     expect(MonitorGroupMonitoringCopy.turnOffButton).toBe(
-      "Turn off monitoring",
+      "Turn monitoring off",
     );
     expect(MonitorGroupMonitoringCopy.turnOnButton).toBe("Turn monitoring on");
     // Off opens the dialog; on saves.
@@ -3289,7 +3289,7 @@ describe("turning monitoring off for a whole group (#6401)", () => {
     expect(GROUP_MONITORING_CARD).toContain("void turn(true);");
     expect(GROUP_MONITORING_CARD).toContain("<ConfirmModal");
     expect(turning).toContain(
-      "- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
+      "- **Turn monitoring off** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
     );
     expect(turning).toContain(
       "- **Turn monitoring on** saves at once. Each monitor's next check sets its status again.",

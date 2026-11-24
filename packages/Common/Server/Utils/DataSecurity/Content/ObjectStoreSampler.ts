@@ -10,6 +10,10 @@ import {
   toPathPattern,
 } from "../../../../Utils/DataSecurity/PathPattern";
 import {
+  mergeShadowCounts,
+  ShadowCounts,
+} from "../../../../Utils/DataSecurity/ShadowCount";
+import {
   MAX_UNPLACED_LOCATION_LENGTH,
   UnplacedField,
 } from "../../../../Utils/DataSecurity/UnplacedFields";
@@ -28,7 +32,10 @@ import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
-import { classifyContent, ContentClassification } from "./ContentClassifier";
+import {
+  classifyContentWithModel,
+  ContentClassification,
+} from "./ContentClassifier";
 
 /*
  * A BUCKET, SAMPLED BY KIND.
@@ -610,6 +617,8 @@ export async function sampleObjectStore(
   const stats: Map<string, PatternStats> = new Map();
   const plaintextPasswordFields: Array<string> = [];
   const unplacedFields: Array<UnplacedField> = [];
+  // What the drafts run in shadow would find, by each pattern's fields (#10371).
+  const shadowCounts: ShadowCounts = {};
   const readNow: Map<string, StateEntry> = new Map();
 
   for (let index: number = 0; index < picks.length; index++) {
@@ -679,7 +688,7 @@ export async function sampleObjectStore(
     let classification: ContentClassification;
 
     try {
-      classification = classifyContent({
+      classification = await classifyContentWithModel({
         name: key,
         bytes,
         options,
@@ -714,6 +723,12 @@ export async function sampleObjectStore(
         unplacedFields.push({ ...unplaced, location: path });
       }
     }
+
+    mergeShadowCounts(
+      shadowCounts,
+      classification.shadowCounts,
+      `${pick.group.pattern}${LOCATION_SEPARATOR}`,
+    );
 
     for (const field of classification.plaintextPasswordFields) {
       const path: string = `${pick.group.pattern}${LOCATION_SEPARATOR}${field}`;
@@ -763,6 +778,10 @@ export async function sampleObjectStore(
 
   result.locations = findings.toLocations();
   result.unplacedFields = unplacedFields;
+
+  if ((options.shadowDetectors || []).length > 0) {
+    result.shadowCounts = shadowCounts;
+  }
   result.fingerprints = fingerprints.getFingerprints();
   result.plaintextPasswordFields = plaintextPasswordFields;
   result.warnings = warnings;

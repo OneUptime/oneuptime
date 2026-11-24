@@ -183,6 +183,8 @@ export class Service extends ProjectReferencesService<Model> {
       isConfigurationScanEnabled: true,
       isContentScanEnabled: true,
       isTelemetryScanEnabled: true,
+      isModelScanEnabled: true,
+      isTelemetryModelScanEnabled: true,
       keepMaskedSamples: true,
       openCasesForCriticalIssues: true,
       raiseAlertsForCriticalIssues: true,

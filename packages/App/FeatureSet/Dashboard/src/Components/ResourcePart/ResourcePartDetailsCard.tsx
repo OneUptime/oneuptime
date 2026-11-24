@@ -10,7 +10,7 @@ import {
   getDetailCellClassNames,
   getDetailGridClassName,
 } from "Common/UI/Components/Detail/DetailGridLayout";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -91,17 +91,16 @@ const ResourcePartDetailsCard: FunctionComponent<ComponentProps> = (
                     <dt
                       className={`flex justify-start ${DETAIL_FIELD_LABEL_CLASS_NAME}`}
                     >
-                      <span className="inline-flex items-center gap-1">
-                        {tx(row.label)}
-                        {row.description ? (
-                          <InfoTooltip
-                            label={row.label}
-                            text={row.description}
-                          />
-                        ) : (
-                          <></>
-                        )}
-                      </span>
+                      {/*
+                       * The (i), when the row has one, after the label's
+                       * last word (#7348, #8044).
+                       */}
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
+                        text={tx(row.label)}
+                        label={row.label}
+                        description={row.description}
+                      />
                     </dt>
                     <dd
                       className={`${DETAIL_VALUE_CLASS_NAME} flex items-start gap-2`}

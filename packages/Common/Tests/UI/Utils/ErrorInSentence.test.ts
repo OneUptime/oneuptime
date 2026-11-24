@@ -584,6 +584,7 @@ describe("getErrorReader: the page's reader", () => {
         "../../Types/Exception/RefusalWithValues",
         "../../Types/Exception/UnexplainedError",
         "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce",
+        "../../Types/SecurityCase/SecurityCasePullRequestLink",
         "../../Types/Translator",
         "../../Utils/Monitor/MonitorTemplateLinkRefusal",
         "./SentenceSeparator",

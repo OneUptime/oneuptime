@@ -109,6 +109,7 @@ import {
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
 import { isScrubHashToken } from "Common/Types/Telemetry/ScrubHashTokenFormat";
+import { getScrubRuleFingerprint } from "Common/Types/Telemetry/ScrubRuleProof";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
   DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
@@ -2379,8 +2380,15 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       [LogScrubPatternType.CreditCard]: ["4111 1111 1111 1111"],
       [LogScrubPatternType.SSN]: ["123-45-6789"],
       [LogScrubPatternType.PhoneNumber]: ["555-123-4567"],
-      // Public ones: a private address is no one's, and is kept (#10393).
-      [LogScrubPatternType.IPAddress]: ["203.0.113.7", "2001:db8::1"],
+      /*
+       * Public ones: a private address is no one's, and is kept (#10393). One
+       * group each side of "::" is an address too (#10466).
+       */
+      [LogScrubPatternType.IPAddress]: [
+        "203.0.113.7",
+        "2001:db8::1",
+        "2001::1",
+      ],
     };
     const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
 
@@ -2499,9 +2507,16 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(codes).toEqual([
       "2001:db8::1",
+      "::",
+      "2001::1",
       "[2001:db8::1]:443",
       "2001:db8::2%eth0",
       "::ffff:203.0.113.7",
+      "::",
+      "10::30",
+      "ab::cd",
+      "2001%3Adb8%3A%3A1",
+      "/geo?ip=2001%3Adb8%3A%3A1",
       "10.0.0.12",
       "127.0.0.1",
       "fe80::1",
@@ -2511,6 +2526,18 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     // Hidden: shortened, whole when IPv4 written as IPv6; a port and a zone kept.
     expect(scrubbedBody("2001:db8::1", redact)).toBe("[REDACTED]");
+    // One group each side of "::", in the range public addresses are in (#10466).
+    expect(scrubbedBody("2001::1", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("2a00::1", redact)).toBe("[REDACTED]");
+
+    for (const kept of ["10::30", "ab::cd"]) {
+      expect(scrubbedBody(kept, redact)).toBe(kept);
+    }
+
+    // Percent-encoded in a URL: read decoded, hidden as written, the rest kept (#10467).
+    expect(scrubbedBody("/geo?ip=2001%3Adb8%3A%3A1", redact)).toBe(
+      "/geo?ip=[REDACTED]",
+    );
     expect(scrubbedBody("[2001:db8::1]:443", redact)).toBe("[[REDACTED]]:443");
     expect(scrubbedBody("2001:db8::2%eth0", redact)).toBe("[REDACTED]%eth0");
     expect(scrubbedBody("::ffff:203.0.113.7", redact)).toBe("[REDACTED]");
@@ -2572,11 +2599,17 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "ENCRYPTION_SECRET",
       "::ffff:203.0.113.7",
       "203.0.113.7",
+      "2001%3Adb8%3A%3A1",
+      "2001:db8::1",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
     expect(scrubbedBody("::ffff:203.0.113.7", [hashRule()])).toBe(
       scrubbedBody("203.0.113.7", [hashRule()]),
+    );
+    // Percent-encoded, one token with the address as it reads (#10467).
+    expect(scrubbedBody("2001%3Adb8%3A%3A1", [hashRule()])).toBe(
+      scrubbedBody("2001:db8::1", [hashRule()]),
     );
     expect(scrubbedBody("203.0.113.7", [hashRule()])).toMatch(
       /^\[HASHED:[0-9a-f]{16}\]$/,
@@ -2584,6 +2617,73 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(isScrubHashToken("[HASHED:8c87b489]")).toBe(true);
     expect(item).toContain("8-character");
     expect(item).toContain("16-character");
+  });
+
+  it("says every pattern rule but the two that read keys reads only the attributes it lists under More fields, as the form draws it (#10751)", () => {
+    const item: string = listItemOf(
+      page,
+      "A rule can name the attributes it reads.",
+    );
+    const field: string = between(
+      scrubForm,
+      'title: "Only in These Attributes",',
+      "customValidation",
+    );
+
+    expect(item).toContain("**Only in These Attributes**, one a line");
+    expect(item).toContain("**More fields**");
+    expect(field).toContain("showIf: isPatternReadingValues");
+    // Folded under More fields, as the help says: one a line, empty for every attribute.
+    expect(field).toContain("getFoldedValue: getOnlyInAttributesFoldedValue");
+    // Not Named Attributes, whose Attributes to Hide holds them, nor Sensitive Attribute Keys.
+    expect(between(scrubForm, "const isPatternReadingValues", "};")).toContain(
+      "!isNamedKeysPattern(values) &&\n    !isSensitiveKeysPattern(values)",
+    );
+    expect(
+      between(scrubForm, "LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP", ");"),
+    ).toContain(
+      "Reads only these attributes, one key a line, or every attribute when empty.",
+    );
+    expect(inlineCodes(item)).toEqual(["db.password_old"]);
+  });
+
+  it("says Proven goes away when the rule changes what was proven, and stays for the same attributes in another order or case (#10751)", () => {
+    const item: string = listItemOf(
+      page,
+      "A rule Data Security proved says so.",
+    );
+    const rule: Parameters<typeof getScrubRuleFingerprint>[0] = {
+      signal: "log",
+      patternType: LogScrubPatternType.Custom,
+      customRegex: "ghp_[A-Za-z0-9]{36}",
+      attributeKeys: ["db.password", "db.password_old"],
+      scrubAction: LogScrubAction.Redact,
+      fieldsToScrub: LogScrubField.Attributes,
+      serviceId: ObjectID.generate().toString(),
+    };
+    const proven: string = getScrubRuleFingerprint(rule);
+
+    expect(item).toContain(
+      "Change what it finds, the attributes it reads, how it scrubs, what it scrubs or its service, and **Proven** goes away. The same attributes in another order or case keep it.",
+    );
+
+    // What it finds, the attributes it reads, how and what it scrubs, its service.
+    for (const changed of [
+      { customRegex: "ghp_[A-Za-z0-9]{40}" },
+      { attributeKeys: ["db.password"] },
+      { scrubAction: LogScrubAction.Hash },
+      { fieldsToScrub: LogScrubField.Both },
+      { serviceId: ObjectID.generate().toString() },
+    ]) {
+      expect(getScrubRuleFingerprint({ ...rule, ...changed })).not.toBe(proven);
+    }
+
+    expect(
+      getScrubRuleFingerprint({
+        ...rule,
+        attributeKeys: ["DB.Password_Old", "db.password"],
+      }),
+    ).toBe(proven);
   });
 
   it("masks each kind of value the way the Mask row says", () => {

@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import useResizableColumns, {
   ResizableColumns,
@@ -173,14 +173,11 @@ const FramesByScreenCard: FunctionComponent<FramesByScreenCardProps> = (
       <Card
         title={
           props.description ? (
-            <span className="inline-flex items-center gap-1.5">
-              {title}
-              <InfoTooltip
-                label={title}
-                text={props.description}
-                iconClassName="h-4 w-4"
-              />
-            </span>
+            <WordsWithInfoTooltip
+              text={title}
+              label={title}
+              description={props.description}
+            />
           ) : (
             title
           )

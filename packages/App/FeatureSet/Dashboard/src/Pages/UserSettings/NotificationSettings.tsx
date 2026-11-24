@@ -488,6 +488,13 @@ const EVENT_LIBRARY: Record<
     label: "Added as probe owner",
     description: "You are added as an owner of a probe.",
   },
+  // Told once for each major release of OneUptime the probe falls behind (#9977).
+  [NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION]:
+    {
+      label: "Probe a major release behind",
+      description:
+        "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.",
+    },
 
   [NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION]: {
     label: "Status page created",
@@ -881,6 +888,7 @@ const monitoring: Array<SectionDef> = [
     translationKey("Notify me about custom probes I own."),
     [
       NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
       NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
     ],
   ),

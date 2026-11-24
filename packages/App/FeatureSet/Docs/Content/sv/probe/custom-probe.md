@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Tillämpa den sedan med `kubectl apply -f oneuptime-probe.yaml`.
 :::
 
 Med värdnätverk (`--network host`, `network_mode: host`) använder sonden värdens eget nätverk, IPv6 inräknat. Läs [Övervaka IPv6-mål](#övervaka-ipv6-mål) innan du kör den utan värdnätverk.
+
+Utan värdens nätverk, som i Kubernetes-Deployment ovan eller med Docker på ett bridgenätverk, lämnar sondens kontroller maskinen från värdens egen adress, som sonden inte kan se inifrån sin container. `PROBE_HOST_IP_ADDRESSES` talar om adressen för den, så att [Säkerhetshändelser](/docs/telemetry/security-events) känner igen sondens avfrågningar, upptäckter och monitorkontroller som dess eget arbete. Kubernetes-Deployment sätter den från `status.hostIPs`, som innehåller båda adresserna för en dual-stack-nod; på Kubernetes äldre än 1.29 använder du `status.hostIP`. På ett Docker-bridgenätverk anger du själv värdens adress, till exempel `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Kontrollera att den ansluter
 
@@ -150,6 +156,22 @@ Ersätt `<version>` med den version som ska köras, till exempel `17.1.0`, och s
 :::
 
 Sondens sida visar versionen den kör, under **Sondstatus**. En sond äldre än 17.1.0 kan inte generera koderna för en [engångskodshemlighet](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod): dess sida säger det, och det gör också formuläret för en monitor som den kontrollerar. Detsamma gäller en sond som är för gammal för att skicka en API-monitors begärandetext när den är en JSON-array, ett enda värde eller text.
+
+När en sond hamnar en huvudversion eller mer efter OneUptime meddelas dess ägare en gång, med det den saknar och en länk till det här avsnittet; en sond utan ägare meddelar Projektägarna. De meddelas igen först när den hamnar efter en senare huvudversion, eller när den hamnar efter igen efter att ha uppdaterats. Var och en väljer hur de får veta det med **Sond en huvudversion efter**, under **Användarinställningar → Aviseringsinställningar**: från början via e-post. En sond som bara ligger efter med mindre versioner visar det på sin sida, och ingen meddelas.
+
+## Vad en sond skickar när den hör av sig
+
+Varje förfrågan från sonden innehåller dess ID och nyckel, versionen den kör och vad den kan, och en gång i minuten hör den av sig med adresserna den känner sig själv vid. Inget annat om ditt nätverk skickas, utöver resultaten av dess kontroller.
+
+| Fält | Skickas | Vad OneUptime gör med det |
+| --- | --- | --- |
+| `probeVersion` | Med varje förfrågan | Sparar versionen sonden kör. Dess sida och **Anpassade sonder** visar när den är äldre än OneUptime, och dess ägare meddelas en gång när den hamnar en huvudversion efter. |
+| `probeCapabilities` | Med varje förfrågan | Ger sonden bara det arbete den kan utföra. En kontroll som behöver en nyare sond misslyckas, med en mening om att uppdatera den. |
+| `probeInterfaceAddresses` | En gång i minuten | Sparar adresserna på sondens nätverksgränssnitt, och dem som `PROBE_HOST_IP_ADDRESSES` ger den. [Säkerhetshändelser](/docs/telemetry/security-events) känner igen sondens egna avfrågningar, upptäckter och monitorkontroller i dina nätverksflöden på dem, och blocklistan blockerar dem aldrig. Loopback-, link-local- och multicastadresser utelämnas. |
+
+OneUptime sparar också adressen som sonden hör av sig från, så som OneUptime ser den: ditt nätverks NAT, om det har en. Sondens sida visar båda under **Sondstatus**, som **Rapportadress** och **Gränssnittsadresser**, för alla som kan läsa sonden, och ingen av dem för en sond som inte har hört av sig än.
+
+Det en sond säger om sina egna adresser är dess ord, och vem som helst med dess nyckel skulle kunna ange vilken adress som helst. Därför lägger Säkerhetshändelser aldrig trafik åt sidan bara på grund av adressen: varje värd och port den nådde måste också vara en som sonden ska nå, och allt utöver det rapporteras, med sondens namn.
 
 ## Ansluta via en proxy
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Gränserna som en syntetisk monitor körs inom (hur många samtidigt, deras minn
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | ingen | Proxyinställningarna: se [Ansluta via en proxy](#ansluta-via-en-proxy). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Tidsfrist för varje förfrågan som sonden skickar till OneUptime. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Logga en varning för förfrågningar till OneUptime som är långsammare än så. |
+| `PROBE_HOST_IP_ADDRESSES` | ingen | Värdens IP-adresser, åtskilda med kommatecken, för en sond utan värdens nätverk: listas bredvid sondens egna varje gång den hör av sig. Se [Kör sonden](#kör-sonden). |
 
 ### Nätverks-discovery
 
