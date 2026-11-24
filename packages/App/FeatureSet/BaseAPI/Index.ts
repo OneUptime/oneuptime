@@ -2181,6 +2181,7 @@ import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
+import SecurityTrustedProxiesAPI from "Common/Server/API/SecurityTrustedProxiesAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
@@ -6967,6 +6968,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * never why. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectCanSendAPI);
+
+    /*
+     * What Security Events trusts as a proxy without being told
+     * (SecurityTrustedProxiesAPI, #10546): the edges the project connected
+     * and its own application load balancers, for Trusted Proxies to show.
+     * A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SecurityTrustedProxiesAPI);
 
     /*
      * What refers to a record (UsedByAPI, #6813): the status pages that

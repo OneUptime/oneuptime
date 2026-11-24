@@ -1180,6 +1180,7 @@ import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "./18091875
 import { AddSecurityCasePullRequest1809187560604 } from "./1809187560604-AddSecurityCasePullRequest";
 import { AddProbeMajorVersionBehindNotifiedFor1809187570000 } from "./1809187570000-AddProbeMajorVersionBehindNotifiedFor";
 import { AddDataStoreFindingAiScrubRules1809187570752 } from "./1809187570752-AddDataStoreFindingAiScrubRules";
+import { AddProjectSecurityTrustedProxySwitches1809187580546 } from "./1809187580546-AddProjectSecurityTrustedProxySwitches";
 
 export default [
   InitialMigration,
@@ -2364,4 +2365,5 @@ export default [
   AddSecurityCasePullRequest1809187560604,
   AddProbeMajorVersionBehindNotifiedFor1809187570000,
   AddDataStoreFindingAiScrubRules1809187570752,
+  AddProjectSecurityTrustedProxySwitches1809187580546,
 ];
