@@ -608,6 +608,64 @@ func TestMonitorStepsKeepUnmanaged_NothingHeldOrNothingReadableSendsThePlanAsItI
 	}
 }
 
+func TestMonitorStepsKeepUnmanaged_AFilterKeepsWhatANewerOneUptimeHoldsOnIt(t *testing.T) {
+	ctx := context.Background()
+	responseTime := func(value string) map[string]interface{} {
+		return map[string]interface{}{
+			"checkOn":          "Response Time (in ms)",
+			"filterType":       "Greater Than",
+			"value":            value,
+			"evaluateOverTime": true,
+			"evaluateOverTimeOptions": map[string]interface{}{
+				"timeValueInMinutes":   float64(10),
+				"evaluateOverTimeType": "Average",
+			},
+		}
+	}
+	steps := func(filters ...interface{}) map[string]interface{} {
+		return unmanagedStepsWire(unmanagedStepWire(nil, unmanagedOffline(map[string]interface{}{"filters": filters})))
+	}
+	firstFilter := func(sent interface{}) map[string]interface{} {
+		return unmanagedFirstTemplate(unmanagedCriteriaNamed(sent, "Offline"), "filters")
+	}
+
+	heldFilter := responseTime("500")
+	heldFilter["sampleSize"] = float64(3)
+	heldFilter["evaluateOverTimeOptions"].(map[string]interface{})["alignToClock"] = true
+	held := unmanagedHeld(t, steps(heldFilter))
+
+	t.Run("on the filter at its place that checks the same thing, and on its window", func(t *testing.T) {
+		planned := steps(responseTime("800"))
+		filter := firstFilter(MonitorStepsKeepUnmanaged(ctx, unmanagedOutgoing(t, planned), unmanagedPrior(t, planned), held))
+		if filter["sampleSize"] != float64(3) {
+			t.Fatalf("the filter lost the setting a newer OneUptime holds on it: %v", filter)
+		}
+		if filter["evaluateOverTimeOptions"].(map[string]interface{})["alignToClock"] != true {
+			t.Fatalf("the filter's window lost the setting a newer OneUptime holds on it: %v", filter["evaluateOverTimeOptions"])
+		}
+		if planned := firstFilter(unmanagedOutgoing(t, planned)); !reflect.DeepEqual(filter["value"], planned["value"]) {
+			t.Fatalf("the plan's own value was not sent: %v, not %v", filter["value"], planned["value"])
+		}
+	})
+
+	t.Run("not on a filter at its place that checks another thing", func(t *testing.T) {
+		planned := steps(map[string]interface{}{"checkOn": "Is Online", "filterType": "False"})
+		filter := firstFilter(MonitorStepsKeepUnmanaged(ctx, unmanagedOutgoing(t, planned), unmanagedPrior(t, planned), held))
+		if _, leaked := filter["sampleSize"]; leaked {
+			t.Fatalf("a filter that checks another thing took the held one's setting: %v", filter)
+		}
+	})
+
+	t.Run("not on a filter the plan adds after the held ones", func(t *testing.T) {
+		planned := steps(responseTime("800"), responseTime("900"))
+		sent := MonitorStepsKeepUnmanaged(ctx, unmanagedOutgoing(t, planned), unmanagedPrior(t, planned), held)
+		filters := unmanagedCriteriaNamed(sent, "Offline")["filters"].([]interface{})
+		if _, leaked := filters[1].(map[string]interface{})["sampleSize"]; leaked {
+			t.Fatalf("the added filter took the held one's setting: %v", filters[1])
+		}
+	})
+}
+
 func TestMonitorStepsKeepUnmanaged_AStepOrACriteriaTheServerGivesANewIDGetsNothing(t *testing.T) {
 	ctx := context.Background()
 	held := unmanagedHeld(t, unmanagedStepsWire(unmanagedStepWire(
@@ -756,6 +814,10 @@ var unmanagedKeptKeys = []unmanagedKeptKey{
 	{"a newer OneUptime's setting of an alert template", "runbookId", "a1000000-0000-4000-8000-000000010991", false,
 		func(steps interface{}, criteria string) map[string]interface{} {
 			return unmanagedFirstTemplate(unmanagedCriteriaNamed(steps, criteria), "alerts")
+		}},
+	{"a newer OneUptime's setting of a filter", "sampleSize", float64(3), false,
+		func(steps interface{}, criteria string) map[string]interface{} {
+			return unmanagedFirstTemplate(unmanagedCriteriaNamed(steps, criteria), "filters")
 		}},
 }
 

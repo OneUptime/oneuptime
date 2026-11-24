@@ -23,10 +23,13 @@ package provider
  * templates by a title that each side holds once, then by position. The
  * ids themselves are the server's and are never sent.
  *
- * A filter, and a window of one, has no id and no name to be matched by:
- * the configuration writes it whole. Every key OneUptime stores on one has
- * an attribute, which monitorstepsunmanaged_test.go checks against every key
- * of OneUptime's own API schema (testdata/monitor_steps_api_keys.json).
+ * A filter has no id and no name: the server stores the filters sent, in
+ * order. Every key OneUptime stores on one, its window and its server
+ * options has an attribute, which monitorstepsunmanaged_test.go checks
+ * against every key of OneUptime's own API schema
+ * (testdata/monitor_steps_api_keys.json). A key a newer OneUptime adds there
+ * is kept on the planned filter at the same place that checks the same
+ * thing (checkOn), as are the more of its jsonencode() options.
  *
  * A setting written with jsonencode() - a step's dns_monitor or
  * metric_monitor, a criteria's incident_grouping, a filter's
@@ -242,7 +245,7 @@ func monitorStepsKeepUnreadCriteria(outgoingStep, priorStep, heldStep, readBackS
 		monitorStepsKeepUnreadKeys(outgoingOne, heldOne, readBackOne)
 		monitorStepsKeepUnwrittenJSONAt(outgoingOne, priorOne, heldOne, "incidentGrouping", monitorStepsAtCriteria)
 		for _, key := range []string{"filters", "recoveryFilters"} {
-			monitorStepsKeepUnwrittenFilterJSON(outgoingOne, priorOne, heldOne, key)
+			monitorStepsKeepHeldFilterSettings(outgoingOne, priorOne, heldOne, readBackOne, key)
 		}
 
 		for _, key := range []string{"incidents", "alerts"} {
@@ -254,16 +257,22 @@ func monitorStepsKeepUnreadCriteria(outgoingStep, priorStep, heldStep, readBackS
 // The settings of a filter written with jsonencode().
 var monitorStepsFilterJSONKeys = []string{"metricMonitorOptions", "snmpMonitorOptions", "databaseMonitorOptions", "customCodeMonitorOptions"}
 
+// The objects of a filter the provider writes attribute by attribute.
+var monitorStepsFilterObjectKeys = []string{"evaluateOverTimeOptions", "serverMonitorOptions"}
+
 /*
  * A criteria's filters have no id: the server stores the ones sent, in
  * order. A planned filter stands for the held one at its place that checks
  * the same thing (checkOn), and for the prior one at that place, when the
- * prior criteria has as many.
+ * prior criteria has as many. It keeps what that one holds that the
+ * provider cannot read back, on it and on its window and server options,
+ * and the more of its jsonencode() options.
  */
-func monitorStepsKeepUnwrittenFilterJSON(outgoingCriteria, priorCriteria, heldCriteria map[string]interface{}, key string) {
+func monitorStepsKeepHeldFilterSettings(outgoingCriteria, priorCriteria, heldCriteria, readBackCriteria map[string]interface{}, key string) {
 	outgoingFilters, _ := outgoingCriteria[key].([]interface{})
 	heldFilters, _ := heldCriteria[key].([]interface{})
 	priorFilters, _ := priorCriteria[key].([]interface{})
+	readBackFilters, _ := readBackCriteria[key].([]interface{})
 
 	for i, raw := range outgoingFilters {
 		if i >= len(heldFilters) {
@@ -280,6 +289,24 @@ func monitorStepsKeepUnwrittenFilterJSON(outgoingCriteria, priorCriteria, heldCr
 		}
 		for _, optionKey := range monitorStepsFilterJSONKeys {
 			monitorStepsKeepUnwrittenJSONAt(filter, priorFilter, heldFilter, optionKey, monitorStepsAtFilter)
+		}
+
+		// What the provider cannot read back: only when the held filters read back one for one.
+		if len(readBackFilters) != len(heldFilters) {
+			continue
+		}
+		readBackFilter, _ := readBackFilters[i].(map[string]interface{})
+		if readBackFilter == nil {
+			continue
+		}
+		monitorStepsKeepUnreadKeys(filter, heldFilter, readBackFilter)
+		for _, objectKey := range monitorStepsFilterObjectKeys {
+			object, _ := filter[objectKey].(map[string]interface{})
+			heldObject, _ := heldFilter[objectKey].(map[string]interface{})
+			readBackObject, _ := readBackFilter[objectKey].(map[string]interface{})
+			if object != nil && heldObject != nil && readBackObject != nil {
+				monitorStepsKeepUnreadKeys(object, heldObject, readBackObject)
+			}
 		}
 	}
 }
