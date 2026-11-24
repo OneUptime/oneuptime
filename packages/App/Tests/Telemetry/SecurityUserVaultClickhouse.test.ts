@@ -137,7 +137,6 @@ import LogScrubField from "Common/Types/Log/LogScrubField";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import ObjectID from "Common/Types/ObjectID";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
-import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
@@ -385,11 +384,7 @@ integration("Security Events' user vault against ClickHouse", () => {
       withTtl: true,
     });
 
-    for (const service of [
-      LogService,
-      SpanService,
-      SecurityUserVaultService,
-    ]) {
+    for (const service of [LogService, SpanService, SecurityUserVaultService]) {
       useTestDatabase(service as unknown as ServiceConnection);
     }
 
@@ -676,7 +671,11 @@ integration("Security Events' user vault against ClickHouse", () => {
       const token: string = tokenOf(MALLORY);
 
       await writeVault(PROJECT_ID, [{ token, user: MALLORY }], new Date());
-      await writeVault(PROJECT_ID, [{ token, user: "eve@acme.com" }], new Date());
+      await writeVault(
+        PROJECT_ID,
+        [{ token, user: "eve@acme.com" }],
+        new Date(),
+      );
       await client.command({ query: `OPTIMIZE TABLE ${vaultTable} FINAL` });
 
       expect(await vaultRowsOf(PROJECT_ID)).toHaveLength(2);
@@ -891,7 +890,10 @@ integration("Security Events' user vault against ClickHouse", () => {
     const AUDIT_LINE: string = JSON.stringify({
       insertId: "1a2b3c4d5e",
       logName: "projects/acme-prod/logs/cloudaudit.googleapis.com%2Factivity",
-      resource: { type: "service_account", labels: { project_id: "acme-prod" } },
+      resource: {
+        type: "service_account",
+        labels: { project_id: "acme-prod" },
+      },
       timestamp: "2026-11-24T09:58:12.345Z",
       severity: "NOTICE",
       protoPayload: {

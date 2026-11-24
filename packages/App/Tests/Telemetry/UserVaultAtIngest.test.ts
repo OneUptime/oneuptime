@@ -486,10 +486,7 @@ async function ingestOtlpTraces(): Promise<void> {
                     attribute("http.request.method", "POST"),
                     attribute("url.path", "/login"),
                     attribute("enduser.id", MALLORY),
-                    attribute(
-                      "url.query",
-                      "reset=bob@acme.com",
-                    ),
+                    attribute("url.query", "reset=bob@acme.com"),
                   ],
                   events: [],
                   links: [],
