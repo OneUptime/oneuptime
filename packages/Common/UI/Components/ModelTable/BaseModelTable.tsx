@@ -1132,6 +1132,19 @@ export const getEntityFilterHeldValues: (rawValue: unknown) => Array<string> = (
     });
 };
 
+/*
+ * The choices a filter that searches the server offers beside the records
+ * it finds (#10764): the options it was handed - a value no record holds,
+ * such as the "Unknown Service" telemetry that named no service is filed
+ * under. Each names itself when the filter holds it, and is never read by
+ * its id.
+ */
+export const getOfferedFilterOptions: (
+  filter: Filter<any>,
+) => Array<DropdownOption> = (filter: Filter<any>): Array<DropdownOption> => {
+  return filter.filterDropdownOptions || [];
+};
+
 // The table whose records a filter lists, for the names they start with.
 const getFilterTableName: (entityType: unknown) => string | null = (
   entityType: unknown,
@@ -1205,7 +1218,8 @@ const getEntityFilterSelect: (filter: Filter<any>) => Dictionary<unknown> = (
   if (
     ArchivedValuePicker.isArchivableValueModel(
       filter.filterEntityType as DatabaseBaseModelType,
-    )
+    ) ||
+    filter.marksArchivedRecords
   ) {
     select["isArchived"] = true;
   }
@@ -1257,12 +1271,16 @@ const toEntityFilterOption: (
     getFilterTableName(filter.filterEntityType),
   );
 
-  // The filter's dropdown draws the Archived tag beside it.
+  /*
+   * The filter's dropdown draws the Archived tag beside it: an archived
+   * value, or an archived record of a filter that marks them (a service).
+   */
   if (
     isDatabaseModel &&
-    ArchivedValuePicker.isArchivableValueModel(
+    (ArchivedValuePicker.isArchivableValueModel(
       filter.filterEntityType as DatabaseBaseModelType,
-    ) &&
+    ) ||
+      filter.marksArchivedRecords) &&
     item.getColumnValue("isArchived") === true
   ) {
     option.isArchived = true;
@@ -3067,8 +3085,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * that named one showed blank, and the Admin Dashboard's Project
            * filter listed every project on the instance.
            */
+          /*
+           * The options the filter is handed stay its own (they are not
+           * read back): they are offered beside the search, always, and
+           * name a value of theirs the filter holds (getOfferedFilterOptions,
+           * #10764).
+           */
           if (filter.filterEntityType.prototype instanceof BaseModel) {
-            filter.filterDropdownOptions = undefined;
             entitySearchByKey.set(key.toString(), {
               modelType: filter.filterEntityType as DatabaseBaseModelType,
               labelField: filter.filterDropdownField.label,
@@ -3076,6 +3099,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               query: (filter.filterQuery || {}) as Record<string, unknown>,
               modelAPI: tableModelAPI,
               notFoundLabel: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
+              marksArchivedRecords: filter.marksArchivedRecords,
             });
             continue;
           }
@@ -3109,7 +3133,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
             return {
               title: filter.title,
-              filterDropdownOptions: filter.filterDropdownOptions,
+              /*
+               * A filter that searches the server is handed what it holds
+               * and offers as it is drawn (shownClassicTableFilters).
+               */
+              filterDropdownOptions: entitySearchByKey.has(key.toString())
+                ? undefined
+                : filter.filterDropdownOptions,
               entitySearch: entitySearchByKey.get(key.toString()),
               key: key,
               type: filter.type,
@@ -4727,10 +4757,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       const known: Record<string, DropdownOption> =
         heldFilterOptionsRef.current[key] || {};
       const isIdColumn: boolean = classic.entitySearch.valueField === "_id";
+      // A value an offered choice names is named by it, never read.
+      const offered: Set<string> = new Set<string>(
+        getOfferedFilterOptions(filter).map(
+          (option: DropdownOption): string => {
+            const value: string = String(option.value);
+
+            return isIdColumn ? value.toLowerCase() : value;
+          },
+        ),
+      );
       const values: Array<string> = getEntityFilterHeldValues(
         filterData[classic.key],
       ).filter((value: string): boolean => {
-        return !known[isIdColumn ? value.toLowerCase() : value];
+        const lookup: string = isIdColumn ? value.toLowerCase() : value;
+
+        return !known[lookup] && !offered.has(lookup);
       });
 
       if (values.length > 0) {
@@ -4818,7 +4860,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   /*
    * The filters the list draws: a filter that searches the server offers
-   * the records it holds, named (heldFilterOptions); every other filter
+   * the choices it was handed beside its search (getOfferedFilterOptions)
+   * and the records it holds, named (heldFilterOptions); every other filter
    * its own options, as before.
    */
   const shownClassicTableFilters: Array<ClassicFilterType<TBaseModel>> =
@@ -4831,15 +4874,36 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             return classic;
           }
 
+          const filter: Filter<TBaseModel> | undefined = props.filters.find(
+            (candidate: Filter<TBaseModel>): boolean => {
+              return (
+                getFilterKey(candidate)?.toString() === classic.key.toString()
+              );
+            },
+          );
+          const offered: Array<DropdownOption> = filter
+            ? getOfferedFilterOptions(filter)
+            : [];
+          const offeredValues: Set<string> = new Set<string>(
+            offered.map((option: DropdownOption): string => {
+              return String(option.value).toLowerCase();
+            }),
+          );
+
           return {
             ...classic,
-            filterDropdownOptions: Object.values(
-              heldFilterOptions[classic.key.toString()] || {},
-            ),
+            filterDropdownOptions: [
+              ...offered,
+              ...Object.values(
+                heldFilterOptions[classic.key.toString()] || {},
+              ).filter((option: DropdownOption): boolean => {
+                return !offeredValues.has(String(option.value).toLowerCase());
+              }),
+            ],
           };
         },
       );
-    }, [classicTableFilters, heldFilterOptions]);
+    }, [classicTableFilters, heldFilterOptions, props.filters]);
 
   type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
 
