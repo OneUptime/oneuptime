@@ -263,7 +263,7 @@ Wenn Xen Orchestra einen Pool 15 Minuten lang nicht mehr meldet, wird der Pool *
 
 ## Die Pools mit Projekt-Beschriftungen versehen
 
-Ein Ressourcenattribut, das mit `oneuptime.label.` beginnt, wird zu einer Projekt-Beschriftung an jedem Pool, den der Agent liest: `oneuptime.label.<dimension>=<value>` ist die Beschriftung `<dimension>:<value>`. Fügen Sie die Attribute dem Prozessor `resource` in `otel-collector-config.yaml` hinzu, neben `xen_orchestra.name`:
+Ein Ressourcenattribut, das mit `oneuptime.label.` beginnt, wird zu einer Projekt-Beschriftung an jedem Pool, den der Agent liest: `oneuptime.label.<dimension>=<value>` ist die Beschriftung `<dimension>:<value>`. Fügen Sie die Attribute dem Prozessor `resource` in `otel-collector-config.yaml` hinzu, neben `oneuptime.agent.version`:
 
 ```yaml
 processors:

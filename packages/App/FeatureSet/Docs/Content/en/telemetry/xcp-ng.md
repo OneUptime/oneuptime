@@ -263,7 +263,7 @@ When Xen Orchestra stops reporting a pool for 15 minutes, the pool turns **Disco
 
 ## Tag the pools with project labels
 
-A resource attribute that starts with `oneuptime.label.` becomes a project label on every pool the agent reads: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add the attributes to the `resource` processor in `otel-collector-config.yaml`, next to `xen_orchestra.name`:
+A resource attribute that starts with `oneuptime.label.` becomes a project label on every pool the agent reads: `oneuptime.label.<dimension>=<value>` is the label `<dimension>:<value>`. Add the attributes to the `resource` processor in `otel-collector-config.yaml`, next to `oneuptime.agent.version`:
 
 ```yaml
 processors:
