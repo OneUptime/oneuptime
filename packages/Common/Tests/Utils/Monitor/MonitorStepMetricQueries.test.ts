@@ -766,6 +766,7 @@ describe("whatever a step holds (seeded)", () => {
         vcenterIdentifier: textOf(random),
         arrayIdentifier: textOf(random),
         fleetIdentifier: textOf(random),
+        poolIdentifier: textOf(random),
       };
 
       const step: MonitorStep = stepOf({

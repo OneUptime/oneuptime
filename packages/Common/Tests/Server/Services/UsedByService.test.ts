@@ -657,6 +657,7 @@ describe("every relation is defined, in one place", () => {
       [UsedByRowKind.ProxmoxCluster]: "ProxmoxCluster",
       [UsedByRowKind.OpenStackCloud]: "OpenStackCloud",
       [UsedByRowKind.VMwareVCenter]: "VMwareVCenter",
+      [UsedByRowKind.XcpNgPool]: "XcpNgPool",
       [UsedByRowKind.CephCluster]: "CephCluster",
       [UsedByRowKind.StorageArray]: "StorageArray",
       [UsedByRowKind.NetworkDevice]: "NetworkDevice",

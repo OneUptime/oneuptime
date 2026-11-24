@@ -220,6 +220,8 @@ const FriendlyLabelNames: Record<string, string> = {
   vm_name: "VM",
   vm_uuid: "VM UUID",
   sr_name: "Storage Repository",
+  // Xen Orchestra's short id of a storage repository, on a host's disk series.
+  sr: "Storage Repository",
   sr_uuid: "Storage Repository UUID",
   sr_type: "Storage Repository Type",
   vdi_name: "Virtual Disk",
@@ -454,6 +456,7 @@ const LabelPriority: Record<string, number> = {
   vm_name: 25,
   vdi_name: 25,
   sr_name: 26,
+  sr: 27,
   host_name: 30,
   "xcp_ng.id": 31,
   "xcp_ng.scope": 55,
