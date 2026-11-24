@@ -64055,5 +64055,15 @@
   "Part of {{incident}}": "جزء من {{incident}}",
   "Show Incidents Grouped by Episode": "عرض الحوادث مجمّعة حسب الحلقة",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه."
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
+  "A Microsoft 365 admin of the organization with tenant ID {{tenantId}} grants the OneUptime app consent again, so it can post to its teams' channels.": "يمنح مسؤول Microsoft 365 في المؤسسة ذات معرّف المستأجر {{tenantId}} تطبيق OneUptime الموافقة مجددًا، ليتمكن من النشر في قنوات فرقها.",
+  "A Microsoft 365 admin of the organization {{organization}} grants the OneUptime app consent again, so it can post to its teams' channels.": "يمنح مسؤول Microsoft 365 في المؤسسة «{{organization}}» تطبيق OneUptime الموافقة مجددًا، ليتمكن من النشر في قنوات فرقها.",
+  "Connect a Different Organization": "ربط مؤسسة أخرى",
+  "Connect a different Microsoft 365 organization?": "هل تريد ربط مؤسسة Microsoft 365 أخرى؟",
+  "Consent is granted for the Microsoft 365 organization with tenant ID {{tenantId}}, so OneUptime can post to its teams' channels.": "مُنحت الموافقة لمؤسسة Microsoft 365 ذات معرّف المستأجر {{tenantId}}، لذا يستطيع OneUptime النشر في قنوات فرقها.",
+  "Consent is granted for the Microsoft 365 organization {{organization}}, so OneUptime can post to its teams' channels.": "مُنحت الموافقة لمؤسسة Microsoft 365 «{{organization}}»، لذا يستطيع OneUptime النشر في قنوات فرقها.",
+  "Disconnect and Continue": "قطع الاتصال والمتابعة",
+  "OneUptime disconnects this project from its Microsoft 365 organization first: it stops posting to that organization's channels, and every member's Microsoft Teams account is disconnected. Rules and summaries are kept. Then a Microsoft 365 admin of the other organization grants consent.": "يفصل OneUptime هذا المشروع عن مؤسسة Microsoft 365 الخاصة به أولًا: فيتوقف عن النشر في قنوات تلك المؤسسة، ويُفصل حساب Microsoft Teams لكل عضو. يُحتفظ بالقواعد والملخصات. ثم يمنح مسؤول Microsoft 365 في المؤسسة الأخرى الموافقة.",
+  "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 ذات معرّف المستأجر {{tenantId}}. سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams."
 }
