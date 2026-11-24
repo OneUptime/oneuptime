@@ -868,11 +868,26 @@ function isDocumentationIpv6Value(address: string): boolean {
  * address (#10466). The other forms never take that shape: it is refused
  * at their start.
  *
+ * Where it may start (#10936): never inside a word - no letter, digit or
+ * "_" right before it, as no other detector starts inside one - nor inside
+ * a longer run of groups and colons, but right after a key's colon, as
+ * logfmt and syslog lines write one: peer ip:2a00:1450:4001:82a::200e,
+ * remote:2a00:..., addr:2001:db8::7, client_ip:2a02:... A colon ends a key
+ * when the word before it holds a letter no hex group has (g to z) or a
+ * "_" within its last 63 characters, so after "ip:", "ip6:" or "remote:"
+ * an address starts at its first group - "remote:" no longer lends it its
+ * "e", nor "node:" its "de" or "ip6:" its "6" - while inside 2001:db8::1 no
+ * candidate starts at db8, as every group before a colon there is hex. A
+ * clock, a MAC address or a ratio after a key's colon (time:12:30:45,
+ * mac:00:1a:2b:3c:4d:5e, ratio:3:1) is still no address: isIpv6AddressData
+ * judges them as anywhere else. A key of hex letters alone (cafe:2001::1)
+ * cannot be told from an address's first group, which it is read as.
+ *
  * Bounded, so a long run of colons and digits is read in time in line
  * with its length.
  */
 const IPV6_PATTERN: RegExp =
-  /(?<![0-9A-Fa-f:])(?:(?![0-9A-Fa-f]{1,4}::[0-9A-Fa-f]{1,4}(?![0-9A-Fa-f:]))(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|(?<![A-Za-z_.])[23][0-9A-Fa-f]{3}::[0-9A-Fa-f]{1,4}(?![A-Za-z_:]))(?![0-9]|\.[0-9])/g;
+  /(?<![0-9A-Za-z_]|(?<![G-Zg-z_][0-9A-Za-z_.-]{0,62}):)(?:(?![0-9A-Fa-f]{1,4}::[0-9A-Fa-f]{1,4}(?![0-9A-Fa-f:]))(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|(?<![A-Za-z_.])[23][0-9A-Fa-f]{3}::[0-9A-Fa-f]{1,4}(?![A-Za-z_:]))(?![0-9]|\.[0-9])/g;
 
 const ipv6Detector: DataTypeDetector = {
   dataTypeId: "ip-address",
