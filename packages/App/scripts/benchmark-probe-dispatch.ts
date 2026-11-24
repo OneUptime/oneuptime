@@ -30,7 +30,12 @@
  * (Scripts/Perf/profile-summary.js summarises one). pg_stat_statements, if
  * the server loads it, adds the statements' own times.
  *
- * Settings for the App replicas go in as `--app-env NAME=value`.
+ * Settings for the App replicas go in as `--app-env NAME=value`. A busier
+ * system than the machine it runs on: `--statement-latency-ms <n>` answers
+ * every statement of an App replica n ms later, as a database under load
+ * does, and `--app-busy-percent <n>` gives n% of each replica's event loop
+ * to other work, as the results, telemetry and jobs an App pod also
+ * handles do.
  */
 import {
   ProbeDispatchBenchmarkOptions,
@@ -40,6 +45,7 @@ import {
 import { TimingSummary } from "../Tests/Telemetry/ProbeDispatch/ProbeDispatchAppReplica";
 import { ISSUE_10819_FLEET } from "../Tests/Telemetry/ProbeDispatch/ProbeDispatchFleet";
 import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
+import { JSONObject } from "Common/Types/JSON";
 import path from "path";
 
 export const RESULTS_PREFIX: string = "PROBE_DISPATCH_BENCHMARK ";
@@ -127,6 +133,8 @@ function readArguments(argv: Array<string>): Arguments {
         : null,
       appEnvironment: appEnvironment,
       metricsPath: textOf("--metrics-path"),
+      statementLatencyMs: valueOf("--statement-latency-ms", 0),
+      busyPercent: valueOf("--app-busy-percent", 0),
     },
   };
 }
@@ -139,6 +147,41 @@ function describeTiming(name: string, timing: TimingSummary): string {
   return `${name} ${timing.count}x mean ${timing.meanMs} ms p95 ${timing.p95Ms} ms max ${timing.maxMs} ms (total ${Math.round(timing.totalMs)} ms)`;
 }
 
+interface LaneMetrics {
+  slotWaitMs?: { p95?: number; max?: number };
+  refused?: number;
+  maxConcurrentRequests?: number;
+}
+
+interface SchedulingMetrics {
+  lanes?: Record<string, LaneMetrics>;
+  monitorsHandedOut?: number;
+  dispatchLagSeconds?: { p50?: number; p95?: number; max?: number };
+  monitorsLateByAnInterval?: number;
+  monitorTestsHandedOut?: number;
+  monitorTestWaitSeconds?: { p95?: number; max?: number };
+}
+
+/*
+ * A replica's probe scheduling metrics (ProbeSchedulingMetrics), as the
+ * code under test keeps them: what its /metrics/probe-scheduling adds up.
+ */
+function describeSchedulingMetrics(metrics: JSONObject): string {
+  const snapshot: SchedulingMetrics = metrics as SchedulingMetrics;
+
+  if (!snapshot.lanes) {
+    return `metrics ${JSON.stringify(metrics)}`;
+  }
+
+  const lanes: string = Object.entries(snapshot.lanes)
+    .map(([lane, state]: [string, LaneMetrics]): string => {
+      return `${lane}: ${state.maxConcurrentRequests} slots, wait p95 ${Math.round(state.slotWaitMs?.p95 || 0)} ms max ${Math.round(state.slotWaitMs?.max || 0)} ms, refused ${state.refused}`;
+    })
+    .join("; ");
+
+  return `scheduling metrics (last minute): ${lanes} | ${snapshot.monitorsHandedOut} monitors handed out, dispatch lag p50 ${snapshot.dispatchLagSeconds?.p50} s p95 ${snapshot.dispatchLagSeconds?.p95} s max ${Math.round(snapshot.dispatchLagSeconds?.max || 0)} s, ${snapshot.monitorsLateByAnInterval} a whole interval late | ${snapshot.monitorTestsHandedOut} tests, wait p95 ${snapshot.monitorTestWaitSeconds?.p95} s max ${Math.round(snapshot.monitorTestWaitSeconds?.max || 0)} s`;
+}
+
 function describe(run: ProbeDispatchRun): Array<string> {
   const lines: Array<string> = [];
   const fetches: ProbeDispatchRun["monitorFetches"] = run.monitorFetches;
@@ -147,6 +190,13 @@ function describe(run: ProbeDispatchRun): Array<string> {
     `handed out ${run.monitorsHandedOut} monitors in ${Math.round(run.durationMs / 1000)} s: ${run.monitorsPerSecond}/s, best 5 s ${run.peakMonitorsPerSecond}/s` +
       ` | backlog of ${run.initialBacklog} drained ${run.drainedAtMs === null ? "never" : `in ${Math.round(run.drainedAtMs / 1000)} s`}, 95% ${run.drained95AtMs === null ? "never" : `in ${Math.round(run.drained95AtMs / 1000)} s`}` +
       ` | oldest due p50 ${Math.round(run.oldestDueAgeMs.p50 / 1000)} s p95 ${Math.round(run.oldestDueAgeMs.p95 / 1000)} s max ${Math.round(run.oldestDueAgeMs.max / 1000)} s`,
+  );
+  lines.push(
+    `  App replicas started in ${Math.round(run.replicasStartedInMs / 1000)} s; every 5 s, handed out a second / due / busy answers: ${run.timeline
+      .map((point: ProbeDispatchRun["timeline"][number]): string => {
+        return `${point.handedOutPerSecond}/${point.due}/${point.busyAnswers}`;
+      })
+      .join(" ")}`,
   );
   lines.push(
     `  monitor fetches ${fetches.total}: ${JSON.stringify(fetches.outcomes)}, full ${fetches.full}, short ${fetches.short}, empty ${fetches.empty} (short while due: ${fetches.shortWhileDue}) | latency p50 ${fetches.latencyMs.p50} ms p95 ${fetches.latencyMs.p95} ms max ${fetches.latencyMs.max} ms`,
@@ -171,7 +221,7 @@ function describe(run: ProbeDispatchRun): Array<string> {
     }
 
     if (replica.metrics) {
-      lines.push(`    metrics ${JSON.stringify(replica.metrics)}`);
+      lines.push(`    ${describeSchedulingMetrics(replica.metrics)}`);
     }
   }
 

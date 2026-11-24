@@ -82,6 +82,13 @@ export type AppReplicaMessage =
   | { type: "stop" };
 
 const REPLICA: number = Number(process.env["PROBE_DISPATCH_REPLICA"] || "0");
+const STATEMENT_LATENCY_MS: number = Number(
+  process.env["PROBE_DISPATCH_STATEMENT_LATENCY_MS"] || "0",
+);
+const BUSY_PERCENT: number = Math.min(
+  90,
+  Number(process.env["PROBE_DISPATCH_BUSY_PERCENT"] || "0"),
+);
 
 const timings: Map<string, Timing> = new Map<string, Timing>();
 const answers: Map<string, number> = new Map<string, number>();
@@ -236,7 +243,20 @@ function timeStatements(): void {
         ? first
         : String((first as { text?: string } | null)?.text || "");
     const startedAt: number = performance.now();
-    const result: unknown = original.apply(this, args);
+    const usesCallback: boolean = typeof args[args.length - 1] === "function";
+
+    /*
+     * A database busier than this one: each statement's answer comes
+     * STATEMENT_LATENCY_MS later, its connection held meanwhile.
+     */
+    const result: unknown =
+      STATEMENT_LATENCY_MS > 0 && !usesCallback
+        ? new Promise<void>((resolve: () => void): void => {
+            setTimeout(resolve, STATEMENT_LATENCY_MS);
+          }).then((): unknown => {
+            return original.apply(this, args);
+          })
+        : original.apply(this, args);
 
     if (result && typeof (result as Promise<unknown>).then === "function") {
       return (result as Promise<unknown>).finally((): void => {
@@ -249,6 +269,33 @@ function timeStatements(): void {
 
     return result;
   };
+}
+
+/*
+ * An App busier than this one: of every 100 ms, BUSY_PERCENT go to other
+ * work on the event loop - the probe results, telemetry and jobs an App pod
+ * also handles - done here as JSON round trips of a monitor log.
+ */
+function keepBusy(): void {
+  if (BUSY_PERCENT <= 0) {
+    return;
+  }
+
+  const sample: string = JSON.stringify({
+    monitorStepId: ObjectID.generate().toString(),
+    responseBody: "x".repeat(2048),
+    responseHeaders: { "content-type": "text/html", server: "benchmark" },
+    responseTimeInMs: 123,
+    isOnline: true,
+  });
+
+  setInterval((): void => {
+    const until: number = performance.now() + BUSY_PERCENT;
+
+    while (performance.now() < until) {
+      JSON.parse(sample);
+    }
+  }, 100).unref();
 }
 
 interface PoolOwner {
@@ -376,10 +423,34 @@ function reset(): void {
 }
 
 /*
- * The scheduling metrics this replica serves, when it serves any: read
- * from its own metrics endpoint, as an operator's scraper would.
+ * This replica's probe scheduling metrics (ProbeSchedulingMetrics, issue
+ * #10819), when the code it runs has them. The benchmark also runs code
+ * from before them (a baseline), so they are looked up, not imported.
+ */
+function readSchedulingMetrics(): JSONObject | null {
+  try {
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const metricsModule: { default?: { snapshot?: () => unknown } } =
+      require("Common/Server/Utils/Probe/ProbeSchedulingMetrics");
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const snapshot: unknown = metricsModule.default?.snapshot?.();
+    return snapshot ? (snapshot as JSONObject) : null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * The scheduling metrics this replica keeps, or serves: from the process,
+ * or read from its own metrics endpoint, as an operator's scraper would.
  */
 async function readMetrics(origin: string): Promise<JSONObject | null> {
+  const own: JSONObject | null = readSchedulingMetrics();
+
+  if (own) {
+    return own;
+  }
+
   const metricsPath: string | undefined =
     process.env["PROBE_DISPATCH_METRICS_PATH"];
 
@@ -403,6 +474,7 @@ async function main(): Promise<void> {
   timeStatements();
   timePoolWaits();
   timeSlotWaits();
+  keepBusy();
 
   const app: ExpressApplication = Express.getExpressApp();
 

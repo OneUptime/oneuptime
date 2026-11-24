@@ -59,6 +59,14 @@ export interface ProbeDispatchBenchmarkOptions {
   appEnvironment: Record<string, string>;
   // The scheduling metrics route each replica is read through, when any.
   metricsPath: string | null;
+  /*
+   * A busier system than this one: each App replica's statements answer
+   * this much later (a database under load), and this share of each
+   * replica's event loop goes to other work (the results, telemetry and
+   * jobs an App pod also handles).
+   */
+  statementLatencyMs: number;
+  busyPercent: number;
 }
 
 export interface Distribution {
@@ -78,8 +86,19 @@ export interface BacklogSample {
   initialRemaining: number;
 }
 
+// Five seconds of a run.
+export interface TimelinePoint {
+  atSecond: number;
+  handedOutPerSecond: number;
+  due: number;
+  busyAnswers: number;
+}
+
 export interface ProbeDispatchRun {
   assignments: number;
+  // How long the App replicas took to start (ts-node loads their code).
+  replicasStartedInMs: number;
+  timeline: Array<TimelinePoint>;
   checksPerMinute: number;
   durationMs: number;
   monitorsHandedOut: number;
@@ -384,8 +403,12 @@ export async function runProbeDispatchBenchmark(
       ...(options.metricsPath
         ? { PROBE_DISPATCH_METRICS_PATH: options.metricsPath }
         : {}),
+      PROBE_DISPATCH_STATEMENT_LATENCY_MS: String(options.statementLatencyMs),
+      PROBE_DISPATCH_BUSY_PERCENT: String(options.busyPercent),
       ...options.appEnvironment,
     };
+
+    const replicasStartingAt: number = Date.now();
 
     for (let index: number = 0; index < options.appReplicas; index++) {
       replicas.push(new AppReplica(index, environment));
@@ -396,6 +419,8 @@ export async function runProbeDispatchBenchmark(
         return replica.ready;
       }),
     );
+
+    const replicasStartedInMs: number = Date.now() - replicasStartingAt;
 
     // Warm each replica up: its first requests load and compile code.
     for (const replica of replicas) {
@@ -647,8 +672,37 @@ export async function runProbeDispatchBenchmark(
       },
     );
 
+    const timeline: Array<TimelinePoint> = [];
+
+    for (let second: number = 0; second < perSecond.length; second += 5) {
+      const handed: number = perSecond
+        .slice(second, second + 5)
+        .reduce((sum: number, count: number): number => {
+          return sum + count;
+        }, 0);
+      const sampleAt: BacklogSample | undefined = backlog.find(
+        (backlogSample: BacklogSample): boolean => {
+          return backlogSample.atMs >= (second + 5) * 1000;
+        },
+      );
+
+      timeline.push({
+        atSecond: second,
+        handedOutPerSecond: Math.round(handed / 5),
+        due: sampleAt ? sampleAt.due : 0,
+        busyAnswers: fetches.filter((fetchRecord: FetchRecord): boolean => {
+          const at: number = (fetchRecord.at - startedAt) / 1000;
+          return (
+            fetchRecord.outcome === "busy" && at >= second && at < second + 5
+          );
+        }).length,
+      });
+    }
+
     return {
       assignments: seeded.assignments,
+      replicasStartedInMs: replicasStartedInMs,
+      timeline: timeline,
       checksPerMinute: seeded.checksPerMinute,
       durationMs: durationMs,
       monitorsHandedOut: fleet.monitorsHandedOut,
