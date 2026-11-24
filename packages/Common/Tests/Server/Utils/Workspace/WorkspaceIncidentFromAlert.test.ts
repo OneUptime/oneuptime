@@ -41,7 +41,10 @@ import { AiAffectedResourceKind } from "../../../../Types/AI/AiAffectedResources
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
-import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
+} from "../../../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -494,6 +497,15 @@ describe("linking the alert a submission names, as whoever submits it", () => {
       name: ALERT_NAME,
       isPrivate: false,
     });
+    /*
+     * The alert's owners own the incident too (#10867): the chat form has
+     * no Owners field, so the switch is left on and IncidentService adds
+     * them as it declares the incident.
+     */
+    expect(
+      INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY in
+        (result as WorkspaceAlertToLink).miscDataProps,
+    ).toBe(false);
 
     // Checked as the member, before anything is written.
     expect(validateSpy).toHaveBeenCalledWith({

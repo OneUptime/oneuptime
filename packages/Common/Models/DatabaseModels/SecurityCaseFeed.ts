@@ -57,6 +57,13 @@ export enum SecurityCaseFeedEventType {
    * report, or handed the case to people.
    */
   AiResponse = "AiResponse",
+  /*
+   * The case's exposure assessment (#10377): started - by Data Security on
+   * its own, or a person - written up by OneUptime AI, a part edited, or
+   * where the people live said. Never what it says: the assessment is for
+   * the case's readers who may read the store's findings.
+   */
+  ExposureAssessment = "ExposureAssessment",
 }
 
 /*

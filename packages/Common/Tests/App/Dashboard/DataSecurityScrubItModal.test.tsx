@@ -43,13 +43,18 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import {
+  DATA_SECURITY_API_ROUTES,
   DataSecurityScrubImpact,
   DataSecurityScrubResult,
   DataSecurityScrubRulePlan,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE } from "../../../Types/Telemetry/ScrubRuleKeys";
+import API from "../../../UI/Utils/API/API";
 import {
   getEmptyTelemetryFieldReadersByKind,
   SecurityEventsFieldNeed,
@@ -753,5 +758,181 @@ describe("pressing Scrub It", () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(scrubSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHAT THE SERVER SAYS OF THE RULE REACHES THE DIALOG (#10366, #10396).
+ *
+ * The server's answer says why an IP Address rule hashes rather than
+ * redacts, the attributes a rule names and what it was proven on, and the
+ * dialog has a line for each. But the Dashboard's client read the answer's
+ * plan without them, so the dialog said every rule was made "as it is
+ * planned", never named the attributes a rule hides whole, and said a
+ * hashing rule's action as Hash alone. These go through the client, with
+ * the request answered as the server answers it.
+ */
+describe("the Dashboard's client for Scrub It's dialog", () => {
+  let posts: Array<string>;
+
+  const PROOF: JSONObject = {
+    recordsRead: 64,
+    findingRecordsRead: 1,
+    valuesWithData: 50,
+    valuesStillWithData: 0,
+    otherValues: 14,
+    otherValuesChanged: 0,
+  };
+
+  // An IP address Security Events reads, hashed, proven on its records.
+  const HASHING_PLAN: JSONObject = {
+    signal: "log",
+    name: "Data Security: IP address in log attributes of checkout",
+    scrubAction: "hash",
+    patternType: "ipAddress",
+    fieldsToScrub: "attributes",
+    dataTypeName: "IP address",
+    serviceId: SERVICE_ID,
+    serviceName: "checkout",
+    hashesForSecurityEvents: true,
+    proof: PROOF,
+  };
+
+  // Two attributes hidden whole, with no record left to prove the rule on.
+  const NAMED_KEYS_PLAN: JSONObject = {
+    signal: "log",
+    name: "Data Security: Email address in user.email, customer.email of checkout",
+    scrubAction: "mask",
+    patternType: SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+    fieldsToScrub: "attributes",
+    dataTypeName: "Email address",
+    serviceId: SERVICE_ID,
+    serviceName: "checkout",
+    attributeKeys: ["user.email", "customer.email"],
+  };
+
+  function answer(rule: JSONObject): void {
+    jest.spyOn(API, "post").mockImplementation((async (request: {
+      url: { toString: () => string };
+    }): Promise<unknown> => {
+      posts.push(request.url.toString());
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        {
+          isAvailable: true,
+          rule,
+          readers: nothingReads() as unknown as JSONObject,
+        },
+        {},
+      );
+    }) as never);
+  }
+
+  async function readPlan(): Promise<DataSecurityScrubRulePlan> {
+    const impact: DataSecurityScrubImpact =
+      await DataSecurityApi.getScrubImpact(new ObjectID(FINDING_ID));
+
+    expect(impact.isAvailable).toBe(true);
+
+    return impact.rule!;
+  }
+
+  beforeEach(() => {
+    posts = [];
+    impactSpy.mockRestore();
+  });
+
+  test("asks the server about the finding, and passes on why the rule hashes and what it was proven on", async () => {
+    answer(HASHING_PLAN);
+
+    expect(await readPlan()).toEqual(HASHING_PLAN);
+    expect(posts).toHaveLength(1);
+    expect(posts[0]).toContain(
+      DATA_SECURITY_API_ROUTES.scrubImpact(FINDING_ID),
+    );
+  });
+
+  test("passes on the attributes a rule names, and no proof when the server has none", async () => {
+    answer(NAMED_KEYS_PLAN);
+
+    const plan: DataSecurityScrubRulePlan = await readPlan();
+
+    expect(plan).toEqual(NAMED_KEYS_PLAN);
+    expect(plan.proof).toBeUndefined();
+    expect(plan.hashesForSecurityEvents).toBeUndefined();
+  });
+
+  test("reads them defensively: a hash that is not true, a key that is no text and a proof with a count that is no count are none", async () => {
+    answer({
+      ...HASHING_PLAN,
+      hashesForSecurityEvents: "true",
+      attributeKeys: [" user.email ", 7, null, ""],
+      proof: { ...PROOF, otherValues: "14" },
+    });
+
+    const plan: DataSecurityScrubRulePlan = await readPlan();
+
+    expect(plan.hashesForSecurityEvents).toBeUndefined();
+    expect(plan.attributeKeys).toEqual(["user.email"]);
+    // Never "proven" when the dialog cannot say on what.
+    expect(plan.proof).toBeUndefined();
+  });
+
+  test("keys written as one text, and a proof that is no object, are none", async () => {
+    answer({
+      ...NAMED_KEYS_PLAN,
+      attributeKeys: "user.email",
+      proof: [64, 1, 50, 0, 14, 0],
+    });
+
+    const plan: DataSecurityScrubRulePlan = await readPlan();
+
+    expect(plan.attributeKeys).toBeUndefined();
+    expect(plan.proof).toBeUndefined();
+  });
+
+  test("a proof missing a count is none", async () => {
+    const partial: JSONObject = { ...PROOF };
+
+    delete partial["otherValuesChanged"];
+    answer({ ...HASHING_PLAN, proof: partial });
+
+    expect((await readPlan()).proof).toBeUndefined();
+  });
+
+  test("so the dialog says what a hashing rule was proven on, and why it hashes", async () => {
+    answer(HASHING_PLAN);
+    renderModal();
+
+    expect(
+      textOf(await screen.findByTestId("data-security-scrub-it-proof")),
+    ).toBe(
+      "Proven on 64 records the data was seen in: it hid the data in all 50 values that held it, and changed 0 of the 14 other values there.",
+    );
+
+    const action: HTMLElement = screen.getByTestId(
+      "data-security-scrub-it-action-words",
+    );
+
+    expect(textOf(action)).toMatch(/^Scrub Action: Hash/);
+    expect(
+      within(action).getByText(
+        "People will see a token instead of the address. Security Events still sees the address, so it can tell you which one to block.",
+      ),
+    ).toBeInTheDocument();
+    expect(submitButton()).toBeEnabled();
+  });
+
+  test("and the attributes a rule hides whole, saying it is made as planned when there was no record to prove it on", async () => {
+    answer(NAMED_KEYS_PLAN);
+    renderModal();
+
+    expect(
+      textOf(await screen.findByTestId("data-security-scrub-it-keys-words")),
+    ).toBe("Hides the whole value of: user.email, customer.email");
+    expect(textOf(screen.getByTestId("data-security-scrub-it-proof"))).toBe(
+      "There was no record left to run it on, so it is made as it is planned.",
+    );
   });
 });

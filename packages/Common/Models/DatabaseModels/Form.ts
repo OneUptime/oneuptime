@@ -31,7 +31,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * A form (the Forms product): a page anyone with its link can open, without
  * a OneUptime account, built question by question in the dashboard's form
  * builder. Each submission creates something in the form's project - an
- * incident or a scheduled maintenance event (targetType) - from the answers
+ * incident, an alert or a scheduled maintenance event (targetType) - from
+ * the answers
  * (fields) and the form's own settings (targetSettings), and leaves a
  * FormSubmission behind. A submission can start from one of the form's
  * templates (templates): named sets of answers that fill the form in, ask
@@ -44,9 +45,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * Because a form lets people outside the team page on-call and schedule
  * maintenance, building one takes the project's owners and admins, or the
- * Form permissions given on purpose - not a domain's member tier. Everyone
- * who can read incidents or scheduled maintenance can read forms, and so
- * their links: a link is meant to be passed around.
+ * Form permissions given on purpose - not a domain's member tier. A form
+ * that creates alerts takes permission to create alerts too (FormService,
+ * #10760). Everyone who can read incidents, alerts or scheduled
+ * maintenance can read forms, and so their links: a link is meant to be
+ * passed around.
  *
  * The link is /accounts/form/<shareKey>. shareKey is minted by FormService
  * on create - never taken from the request - and form editors can replace it
@@ -118,7 +121,7 @@ const UPDATE_PERMISSIONS: Array<Permission> = [
   pluralName: "Forms",
   icon: IconProp.ClipboardDocumentList,
   tableDescription:
-    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a maintenance event in this project.",
+    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident, an alert or a maintenance event in this project.",
 })
 export default class Form extends BaseModel {
   @ColumnAccessControl({
@@ -273,7 +276,7 @@ export default class Form extends BaseModel {
     allowedValues: Object.values(FormTargetType),
     title: "Creates",
     description:
-      "What each submission creates: Incident, or ScheduledMaintenance (a maintenance event).",
+      "What each submission creates: Incident, Alert, or ScheduledMaintenance (a maintenance event). A form that creates alerts takes permission to create alerts to set up.",
     defaultValue: DEFAULT_FORM_TARGET_TYPE,
     example: FormTargetType.Incident,
   })
@@ -384,7 +387,7 @@ export default class Form extends BaseModel {
     type: TableColumnType.JSON,
     title: "On Submit Settings",
     description:
-      "What every submission starts with besides the answers. For incidents: defaultTitle, incidentSeverityId, incidentTemplateId, monitorIds, labelIds, onCallDutyPolicyIds, ownerUserIds and ownerTeamIds. For maintenance events: defaultTitle, monitorIds, statusPageIds, labelIds, ownerUserIds, ownerTeamIds, showOnStatusPages and notifySubscribers.",
+      "What every submission starts with besides the answers. For incidents: defaultTitle, incidentSeverityId, incidentTemplateId, monitorIds, labelIds, onCallDutyPolicyIds, ownerUserIds and ownerTeamIds. For alerts: defaultTitle, alertSeverityId, alertStateId, monitorId, labelIds, onCallDutyPolicyIds, ownerUserIds and ownerTeamIds. For maintenance events: defaultTitle, monitorIds, statusPageIds, labelIds, ownerUserIds, ownerTeamIds, showOnStatusPages and notifySubscribers.",
     example: {
       incidentSeverityId: "c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f",
       ownerTeamIds: ["e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b"],

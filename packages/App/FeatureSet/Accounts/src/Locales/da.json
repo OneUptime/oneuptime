@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "Captcha-tokenet mangler. Gennemfør verifikationen.",
   "Captcha verification failed. Please try again.": "Captcha-verifikationen mislykkedes. Prøv igen.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Denne formular kan ikke oprette en hændelse, fordi den ikke har nogen alvorlighed. Giv besked til det team, der delte den.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "Denne formular kan ikke oprette en advarsel, fordi den ikke har nogen alvorlighed. Giv besked til det team, der delte den.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Indsendelser kan ikke modtages lige nu. Prøv igen om et par minutter.",
   "This form is receiving too many files right now. Please try again later.": "Denne formular modtager for mange filer lige nu. Prøv igen senere.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Filer kan ikke tjekkes for virus lige nu, så de blev ikke modtaget. Prøv igen om et par minutter.",
@@ -724,6 +725,10 @@
   "Add one file at a time.": "Tilføj én fil ad gangen.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dette felt kan indeholde op til {{count}} filer. Fjern en for at tilføje en anden.",
   "This field holds up to {{count}} files. Remove one to add another._one": "Dette felt kan indeholde én fil. Fjern den for at tilføje en anden.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" blev ikke tilføjet: dette felt kan indeholde op til {{count}} filer.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" blev ikke tilføjet: dette felt kan indeholde én fil.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "Disse filer blev ikke tilføjet, fordi dette felt kan indeholde op til {{count}} filer: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "Disse filer blev ikke tilføjet, fordi dette felt kan indeholde én fil: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",
@@ -732,5 +737,6 @@
     "note": "Bemærk",
     "tip": "Tip",
     "warning": "Advarsel"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Hent en lokal diagnosefil med fejlstakken, komponentstakken, den rensede side-URL, browseroplysninger og OneUptime-buildet. Den læser aldrig cookies, gemte browserdata eller formularindhold. Gennemgå den, før du deler den."
 }

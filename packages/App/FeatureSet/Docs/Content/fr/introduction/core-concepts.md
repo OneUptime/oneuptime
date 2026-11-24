@@ -92,7 +92,7 @@ Tous deux consignent un problème, et tous deux peuvent alerter la personne d'as
 
 | | Incident | Alerte |
 | --- | --- | --- |
-| **Ce que c'est** | Un problème qui touche vos utilisateurs, comme une panne ou un ralentissement | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés |
+| **Ce qu'il est** | Un problème qui touche vos utilisateurs, comme une panne ou un ralentissement | Un problème que votre équipe doit examiner avant que les utilisateurs ne soient touchés |
 | **Sur les pages de statut** | Peut apparaître, et prévient les abonnés | Jamais |
 | **États de départ** | **Identifié**, **Pris en compte**, **Résolu** | **Identifié**, **Pris en compte**, **Résolu** |
 | **Gravités de départ** | Critical Incident, Major Incident, Minor Incident | **Élevé**, **Faible** |

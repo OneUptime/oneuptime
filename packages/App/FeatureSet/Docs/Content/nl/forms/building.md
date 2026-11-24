@@ -66,7 +66,7 @@ Het logo houdt de hoogte van het OneUptime-logo dat het vervangt, en een breed l
 
 ## Wat je kunt toevoegen
 
-**Vraag toevoegen** toont vier groepen: **Vragen** van het formulier zelf, **Incidentvelden** of **Velden van gepland onderhoud** van wat het formulier aanmaakt, **Aangepaste velden** en **Inzender**.
+**Vraag toevoegen** toont vier groepen: **Vragen** van het formulier zelf, **Incidentvelden**, **Waarschuwingsvelden** of **Velden van gepland onderhoud** van wat het formulier aanmaakt, **Aangepaste velden** en **Inzender**.
 
 ### Eigen vragen van het formulier
 
@@ -92,7 +92,7 @@ Een vraag **Bestand** of **Meerdere bestanden** neemt bestanden van de computer 
 
 ### Velden van wat het formulier aanmaakt
 
-De velden van een incident, of van een onderhoudsgebeurtenis, die een inzender kan beantwoorden. Het antwoord wordt de waarde van het veld.
+De velden van een incident, een waarschuwing of een onderhoudsgebeurtenis die een inzender kan beantwoorden. Het antwoord wordt de waarde van het veld.
 
 | Incidentveld | Beantwoord met |
 | --- | --- |
@@ -100,6 +100,15 @@ De velden van een incident, of van een onderhoudsgebeurtenis, die een inzender k
 | **Beschrijving** | Opgemaakte tekst, tot 20.000 tekens. |
 | **Ernst** | Een van je incidenternstniveaus. |
 | **Monitoren** | Elk van de monitoren die je aanbiedt — de getroffen monitoren van het incident. |
+| **Labels** | Elk van de labels die je aanbiedt. |
+| **Begin van de impact** | Een datum en tijd: wanneer het probleem begon, zoals de inzender het zich herinnert. |
+
+| Waarschuwingsveld | Beantwoord met |
+| --- | --- |
+| **Titel** | Eén regel, tot 500 tekens. |
+| **Beschrijving** | Opgemaakte tekst, tot 20.000 tekens. |
+| **Ernst** | Een van je waarschuwingsernstniveaus. |
+| **Monitor** | Een van de monitoren die je aanbiedt — de monitor van de waarschuwing. Een waarschuwing gaat over één monitor. |
 | **Labels** | Elk van de labels die je aanbiedt. |
 | **Begin van de impact** | Een datum en tijd: wanneer het probleem begon, zoals de inzender het zich herinnert. |
 
@@ -115,11 +124,11 @@ De velden van een incident, of van een onderhoudsgebeurtenis, die een inzender k
 
 Elk veld kan één keer worden gevraagd; de lijst markeert de velden die al op het formulier staan met **Toegevoegd**. Een veld dat het formulier niet vraagt — of dat leeg blijft — wordt ingevuld vanuit de [instellingen Bij verzenden](/docs/forms/on-submit) van het formulier.
 
-**Aangeboden keuzes.** Een openbare pagina mag niet je hele project aan vreemden tonen, dus een veld dat wordt beantwoord door records te kiezen, biedt alleen de records aan die jij kiest. **Monitoren**, **Labels** en **Statuspagina's** tonen precies de keuzes die je aanbiedt, en worden pas gevraagd als je er minstens één aanbiedt. **Ernst** biedt alle incidenternstniveaus aan tenzij je het beperkt, omdat ernstniveaus niet geheim zijn. Antwoorden buiten de aangeboden keuzes worden geweigerd.
+**Aangeboden keuzes.** Een openbare pagina mag niet je hele project aan vreemden tonen, dus een veld dat wordt beantwoord door records te kiezen, biedt alleen de records aan die jij kiest. **Monitoren**, **Monitor**, **Labels** en **Statuspagina's** tonen precies de keuzes die je aanbiedt, en worden pas gevraagd als je er minstens één aanbiedt. **Ernst** biedt alle incidenternstniveaus aan, of in een waarschuwingsformulier alle waarschuwingsernstniveaus, tenzij je het beperkt, omdat ernstniveaus niet geheim zijn. Antwoorden buiten de aangeboden keuzes worden geweigerd.
 
 ### Aangepaste velden
 
-Je aangepaste velden voor incidenten — of voor gepland onderhoud, bij een onderhoudsformulier — elk een vraag waarvan het antwoord de waarde van het veld wordt. De vraag neemt het type en de opties over van het aangepaste veld, en begint met de naam ervan als vraag en de beschrijving als helptekst, die je kunt wijzigen. Een aangepast veld **Bestand** of **Meerdere bestanden** wordt gevraagd als bestandsvraag, en de bestanden komen in het veld.
+Je aangepaste velden voor incidenten — of voor waarschuwingen bij een waarschuwingsformulier, en voor gepland onderhoud bij een onderhoudsformulier — elk een vraag waarvan het antwoord de waarde van het veld wordt. De vraag neemt het type en de opties over van het aangepaste veld, en begint met de naam ervan als vraag en de beschrijving als helptekst, die je kunt wijzigen. Een aangepast veld **Bestand** of **Meerdere bestanden** wordt gevraagd als bestandsvraag, en de bestanden komen in het veld.
 
 Een formulier vraagt alleen de aangepaste velden die je eraan toevoegt, wat **Tonen bij aanmaken** ook zegt: elk veld dat een formulier vraagt, toont zijn naam, beschrijving en opties aan iedereen met de link. Als een aangepast veld wordt verwijderd, blijft zijn vraag op het formulier staan maar wordt hij niet meer gevraagd, en de kaart zegt dat — verwijder de vraag. Een veld dat opnieuw met dezelfde naam wordt aangemaakt, is een nieuw veld: voeg het opnieuw toe.
 
@@ -231,6 +240,7 @@ Na het verzenden zegt de pagina "Bedankt — je antwoord is verzonden." en geeft
 | Antwoord | Limiet |
 | --- | --- |
 | De **Titel** van een incident | 500 tekens, spaties aan beide uiteinden niet meegeteld. |
+| De **Titel** van een waarschuwing | 500 tekens, spaties aan beide uiteinden niet meegeteld. |
 | De **Titel** van een onderhoudsgebeurtenis | 100 tekens. |
 | **Beschrijving** | 20.000 tekens. |
 | Elk ander tekstantwoord | 10.000 tekens. |

@@ -274,10 +274,22 @@ describe("GitHub and GitLab: an issue for every incident", () => {
         "URL",
         "Request Body",
         "Request Headers",
+        "Allow self-signed certificates",
+        "CA certificate",
       ]);
       // Request Headers are folded under More fields, and hidden in run logs.
       expect(argumentNamed(post, "Request Headers").isAdvanced).toBe(true);
       expect(argumentNamed(post, "Request Headers").isSensitive).toBe(true);
+      /*
+       * A step's own certificate settings (#10440): folded under More
+       * fields and off unless set, so GitHub's and GitLab's certificates
+       * are checked as ever and the page's steps leave them alone.
+       */
+      for (const name of ["Allow self-signed certificates", "CA certificate"]) {
+        expect(argumentNamed(post, name).isAdvanced).toBe(true);
+        expect(argumentNamed(post, name).required).toBe(false);
+      }
+      expect(text).not.toContain(bold("Allow self-signed certificates"));
       expect(
         post.outPorts.map((port: Port): string => {
           return port.title;

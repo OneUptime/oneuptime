@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "Captcha-token saknas. Slutför verifieringen.",
   "Captcha verification failed. Please try again.": "Captcha-verifieringen misslyckades. Försök igen.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Det här formuläret kan inte skapa en incident eftersom det saknar allvarlighetsgrad. Meddela teamet som delade det.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "Det här formuläret kan inte skapa ett larm eftersom det saknar allvarlighetsgrad. Meddela teamet som delade det.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Inskickade svar kan inte tas emot just nu. Försök igen om några minuter.",
   "This form is receiving too many files right now. Please try again later.": "Det här formuläret tar emot för många filer just nu. Försök igen senare.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Filer kan inte kontrolleras för virus just nu, så de togs inte emot. Försök igen om några minuter.",
@@ -724,6 +725,10 @@
   "Add one file at a time.": "Lägg till en fil i taget.",
   "This field holds up to {{count}} files. Remove one to add another.": "Det här fältet rymmer upp till {{count}} filer. Ta bort en för att lägga till en annan.",
   "This field holds up to {{count}} files. Remove one to add another._one": "Det här fältet rymmer en fil. Ta bort den för att lägga till en annan.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" lades inte till: det här fältet rymmer upp till {{count}} filer.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" lades inte till: det här fältet rymmer en fil.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "De här filerna lades inte till, eftersom det här fältet rymmer upp till {{count}} filer: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "De här filerna lades inte till, eftersom det här fältet rymmer en fil: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",
@@ -732,5 +737,6 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den."
 }

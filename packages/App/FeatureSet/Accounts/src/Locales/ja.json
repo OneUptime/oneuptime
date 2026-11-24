@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "キャプチャトークンがありません。認証を完了してください。",
   "Captcha verification failed. Please try again.": "キャプチャの認証に失敗しました。もう一度お試しください。",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "このフォームには重大度が設定されていないため、インシデントを作成できません。フォームを共有したチームにお知らせください。",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "このフォームには重大度が設定されていないため、アラートを作成できません。フォームを共有したチームにお知らせください。",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "現在、送信を受け付けることができません。数分後に再度お試しください。",
   "This form is receiving too many files right now. Please try again later.": "現在、このフォームにはファイルが集中しています。しばらくしてから再度お試しください。",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "現在ファイルのウイルスチェックができないため、ファイルは受け付けられませんでした。数分後にもう一度お試しください。",
@@ -724,6 +725,10 @@
   "Add one file at a time.": "ファイルは 1 つずつ追加してください。",
   "This field holds up to {{count}} files. Remove one to add another.": "このフィールドに入れられるファイルは最大 {{count}} 個です。別のファイルを追加するには、1 つ削除してください。",
   "This field holds up to {{count}} files. Remove one to add another._one": "このフィールドに入れられるファイルは 1 個です。別のファイルを追加するには、削除してください。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは最大 {{count}} 個です。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは 1 個です。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "このフィールドに入れられるファイルは最大 {{count}} 個のため、次のファイルは追加されませんでした: {{fileNames}}。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "このフィールドに入れられるファイルは 1 個のため、次のファイルは追加されませんでした: {{fileNames}}。",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",
@@ -732,5 +737,6 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "エラースタック、コンポーネントスタック、個人情報を除去したページ URL、ブラウザーの詳細、OneUptime のビルド情報を含む診断ファイルをローカルにダウンロードします。Cookie、ブラウザーに保存されたデータ、フォームの内容を読み取ることはありません。共有する前に内容を確認してください。"
 }

@@ -244,8 +244,9 @@ describe("the docs on picking owners", () => {
   test("the Forms On Submit settings and table have one Owners field and row", () => {
     const onSubmit: string = read("en", "forms/on-submit");
 
+    // The step, then an incident, an alert (#10760) and a maintenance form.
     expect(onSubmit).toMatch(
-      /^\| \*\*Owners\*\* +\| \*\*Owners\*\* +\| \*\*Owners\*\* +\|$/m,
+      /^\| \*\*Owners\*\* +\| \*\*Owners\*\* +\| \*\*Owners\*\* +\| \*\*Owners\*\* +\|$/m,
     );
     expect(onSubmit).toContain("**Owners** is one picker for people and teams");
   });

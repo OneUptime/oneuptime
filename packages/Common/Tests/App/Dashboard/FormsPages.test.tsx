@@ -213,6 +213,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+import Alert from "../../../Models/DatabaseModels/Alert";
 import Form from "../../../Models/DatabaseModels/Form";
 import Route_ from "../../../Types/API/Route";
 import { FormField, FormFieldSource } from "../../../Types/Form/FormField";
@@ -221,7 +222,9 @@ import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import Navigation from "../../../UI/Utils/Navigation";
-import PermissionGate from "../../../UI/Utils/PermissionGate";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 import { getJestSpyOn } from "../../Spy";
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import { getDeleteConsequence } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
@@ -442,6 +445,8 @@ describe("the list of forms", () => {
       ),
     ).toEqual([
       "Incident:Incident",
+      // An alert, beside an incident (#10760): offered while not known refused.
+      "Alert:Alert",
       "ScheduledMaintenance:Scheduled Maintenance",
     ]);
     expect(fields[2]).toMatchObject({
@@ -451,6 +456,57 @@ describe("the list of forms", () => {
       // Shown on the public page, where a private image cannot load.
       allowImageUpload: false,
     });
+  });
+
+  test("Alert is left out for someone known to be unable to create alerts", async () => {
+    // Setting up a form that creates alerts takes permission to create them.
+    getJestSpyOn(PermissionGate, "check").mockImplementation(((
+      model: unknown,
+    ): PermissionGateResult => {
+      return model instanceof Alert
+        ? {
+            isAllowed: false,
+            disabledReason: "You need Create Alert to do this.",
+          }
+        : { isAllowed: true };
+    }) as never);
+
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
+
+    const targets: Field<Form> = fieldsOf(lastTable())[1]!;
+
+    expect(
+      (targets.cardSelectOptions as Array<CardSelectOption>).map(
+        (option: CardSelectOption): string => {
+          return option.value;
+        },
+      ),
+    ).toEqual([FormTargetType.Incident, FormTargetType.ScheduledMaintenance]);
+  });
+
+  test("each choice has its product's icon and its own words", async () => {
+    await renderAt(<Forms {...PAGE_PROPS} />, "/dashboard/p/forms");
+
+    const options: Array<CardSelectOption> = fieldsOf(lastTable())[1]!
+      .cardSelectOptions as Array<CardSelectOption>;
+    const alert: CardSelectOption | undefined = options.find(
+      (option: CardSelectOption): boolean => {
+        return option.value === FormTargetType.Alert;
+      },
+    );
+
+    expect(alert).toMatchObject({
+      title: "Alert",
+      description:
+        "Each submission creates an alert, so its owners are told without declaring an incident. Use it for warnings and things to check.",
+    });
+    expect(
+      new Set(
+        options.map((option: CardSelectOption): unknown => {
+          return option.icon;
+        }),
+      ).size,
+    ).toBe(options.length);
   });
 
   test("a new form starts with its target's questions, in the dashboard's language", async () => {
