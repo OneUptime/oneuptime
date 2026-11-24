@@ -4,10 +4,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration and split in two (issue #10767).
  *
- * Group Incidents by Episode (StatusPage.groupIncidentsByEpisode): while a
- * status page shows both incidents and episodes, on, it draws an episode as
- * one card that lists its incidents, and those incidents get no card of
- * their own.
+ * Show Incidents Grouped by Episode (StatusPage.groupIncidentsByEpisode):
+ * while a status page shows both incidents and episodes, on, it draws an
+ * episode as one card that lists its incidents, and those incidents get no
+ * card of their own.
  *
  * The generator adds the column with the model's default, true, which would
  * have regrouped every status page there is on the day of the upgrade. A

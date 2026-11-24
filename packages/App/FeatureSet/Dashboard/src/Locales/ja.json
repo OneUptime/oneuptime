@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} が {{host}} を呼び出し",
   "{{service}} sends calls to {{provider}}": "{{service}} が {{provider}} に呼び出しを送信",
   "{{store}} holds a copy of its data": "{{store}} がこのデータのコピーを保持",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} はネットワーク全体であり、ブロックやチャレンジはそのネットワークのすべての利用者に及びます。これを実行できるのは、セキュリティ管理者、プロジェクト管理者、プロジェクト所有者だけです。"
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} はネットワーク全体であり、ブロックやチャレンジはそのネットワークのすべての利用者に及びます。これを実行できるのは、セキュリティ管理者、プロジェクト管理者、プロジェクト所有者だけです。",
+  "Part of {{incident}}": "{{incident}} の一部",
+  "Show Incidents Grouped by Episode": "インシデントをエピソードごとにまとめて表示",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。"
 }

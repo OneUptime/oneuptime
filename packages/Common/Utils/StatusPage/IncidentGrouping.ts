@@ -5,7 +5,7 @@ import { JSONObject } from "../../Types/JSON";
  *
  * Three of the page's switches decide it (StatusPage): Show Incidents
  * (showIncidentsOnStatusPage), Show Episodes (showEpisodesOnStatusPage) and,
- * while both are on, Group Incidents by Episode (groupIncidentsByEpisode).
+ * while both are on, Show Incidents Grouped by Episode (groupIncidentsByEpisode).
  * Between them the page is in one of five modes:
  *
  *   None              neither list: no incidents anywhere on the page.

@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "تستدعي الخدمة {{service}} المضيف {{host}}",
   "{{service}} sends calls to {{provider}}": "ترسل الخدمة {{service}} استدعاءات إلى {{provider}}",
   "{{store}} holds a copy of its data": "يحتفظ المخزن {{store}} بنسخة من بياناته",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} شبكة كاملة، وحظرها أو إخضاعها للتحدي يطال كل من تخدمهم. لا يستطيع فعل ذلك إلا مسؤول الأمان أو مسؤول المشروع أو مالك المشروع."
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} شبكة كاملة، وحظرها أو إخضاعها للتحدي يطال كل من تخدمهم. لا يستطيع فعل ذلك إلا مسؤول الأمان أو مسؤول المشروع أو مالك المشروع.",
+  "Part of {{incident}}": "جزء من {{incident}}",
+  "Show Incidents Grouped by Episode": "عرض الحوادث مجمّعة حسب الحلقة",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه."
 }

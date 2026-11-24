@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} roept {{host}} aan",
   "{{service}} sends calls to {{provider}}": "{{service}} stuurt aanroepen naar {{provider}}",
   "{{store}} holds a copy of its data": "{{store}} bevat een kopie van de gegevens ervan",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} is een heel netwerk, en het blokkeren of een challenge geven raakt iedereen die het bedient. Alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar kan dat doen."
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} is een heel netwerk, en het blokkeren of een challenge geven raakt iedereen die het bedient. Alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar kan dat doen.",
+  "Part of {{incident}}": "Onderdeel van {{incident}}",
+  "Show Incidents Grouped by Episode": "Incidenten gegroepeerd per episode weergeven",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Bezoekers zien een kaart voor elk incident en nog een voor elke episode, dus een incident in een episode staat er twee keer.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Bezoekers zien elke episode als één kaart met de incidenten erin en wat ze treffen."
 }

@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} обращается к {{host}}",
   "{{service}} sends calls to {{provider}}": "{{service}} отправляет вызовы в {{provider}}",
   "{{store}} holds a copy of its data": "{{store}} содержит копию его данных",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} — это целая сеть, и её блокировка или проверка затрагивает всех, кого она обслуживает. Это может сделать только Администратор безопасности, Администратор проекта или Владелец проекта."
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} — это целая сеть, и её блокировка или проверка затрагивает всех, кого она обслуживает. Это может сделать только Администратор безопасности, Администратор проекта или Владелец проекта.",
+  "Part of {{incident}}": "Входит в {{incident}}",
+  "Show Incidents Grouped by Episode": "Показывать инциденты, сгруппированные по эпизодам",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли."
 }

@@ -3903,7 +3903,7 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Group Incidents by Episode",
+    title: "Show Incidents Grouped by Episode",
     description:
       "When on, an episode shows on the status page as one card that lists its incidents and the resources they affect, instead of a card for each of its incidents.",
     defaultValue: true,

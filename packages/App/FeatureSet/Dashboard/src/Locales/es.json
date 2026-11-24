@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} llama a {{host}}",
   "{{service}} sends calls to {{provider}}": "{{service}} envía llamadas a {{provider}}",
   "{{store}} holds a copy of its data": "{{store}} contiene una copia de sus datos",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} es una red entera, y bloquearla o someterla a desafío afecta a todos a quienes sirve. Solo un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto puede hacerlo."
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} es una red entera, y bloquearla o someterla a desafío afecta a todos a quienes sirve. Solo un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto puede hacerlo.",
+  "Part of {{incident}}": "Parte de {{incident}}",
+  "Show Incidents Grouped by Episode": "Mostrar incidentes agrupados por episodio",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Los visitantes ven una tarjeta por cada incidente y otra por cada episodio, así que un incidente de un episodio aparece dos veces.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Los visitantes ven cada episodio como una sola tarjeta que enumera sus incidentes y lo que afectan."
 }

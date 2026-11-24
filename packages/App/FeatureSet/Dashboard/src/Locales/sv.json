@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} anropar {{host}}",
   "{{service}} sends calls to {{provider}}": "{{service}} skickar anrop till {{provider}}",
   "{{store}} holds a copy of its data": "{{store}} innehåller en kopia av dess data",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} är ett helt nätverk, och att blockera eller utmana det drabbar alla det betjänar. Bara en Säkerhetsadministratör, en Projektadministratör eller en Projektägare kan göra det."
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} är ett helt nätverk, och att blockera eller utmana det drabbar alla det betjänar. Bara en Säkerhetsadministratör, en Projektadministratör eller en Projektägare kan göra det.",
+  "Part of {{incident}}": "Del av {{incident}}",
+  "Show Incidents Grouped by Episode": "Visa incidenter grupperade per episod",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besökare ser ett kort för varje incident och ett till för varje episod, så en incident i en episod visas två gånger.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besökare ser varje episod som ett kort som listar dess incidenter och vad de påverkar."
 }

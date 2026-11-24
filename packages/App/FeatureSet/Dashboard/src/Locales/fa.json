@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} به {{host}} درخواست می‌فرستد",
   "{{service}} sends calls to {{provider}}": "{{service}} برای {{provider}} فراخوانی می‌فرستد",
   "{{store}} holds a copy of its data": "{{store}} نسخه‌ای از داده‌های آن را دارد",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} یک شبکهٔ کامل است، و مسدود کردن آن یا روبه‌رو کردنش با چالش، همهٔ کسانی را که به آن‌ها خدمت می‌دهد در بر می‌گیرد. فقط مدیر امنیت، مدیر پروژه یا مالک پروژه می‌تواند این کار را انجام دهد."
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} یک شبکهٔ کامل است، و مسدود کردن آن یا روبه‌رو کردنش با چالش، همهٔ کسانی را که به آن‌ها خدمت می‌دهد در بر می‌گیرد. فقط مدیر امنیت، مدیر پروژه یا مالک پروژه می‌تواند این کار را انجام دهد.",
+  "Part of {{incident}}": "بخشی از {{incident}}",
+  "Show Incidents Grouped by Episode": "نمایش حوادث گروه‌بندی‌شده بر اساس اپیزود",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "بازدیدکنندگان برای هر حادثه یک کارت و برای هر اپیزود کارتی دیگر می‌بینند، بنابراین حادثه‌ای که در یک اپیزود است دو بار نمایش داده می‌شود.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "بازدیدکنندگان هر اپیزود را در یک کارت می‌بینند که حوادث آن و آنچه را تحت تأثیر قرار داده‌اند فهرست می‌کند."
 }

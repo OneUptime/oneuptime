@@ -9,7 +9,7 @@ import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
- * Group Incidents by Episode (StatusPage.groupIncidentsByEpisode, #10767):
+ * Show Incidents Grouped by Episode (StatusPage.groupIncidentsByEpisode, #10767):
  * on for a new status page, off for every page made before it, so an
  * existing page shows what it always showed until someone turns it on.
  *

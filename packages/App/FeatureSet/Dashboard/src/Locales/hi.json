@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} {{host}} को कॉल करता है",
   "{{service}} sends calls to {{provider}}": "{{service}} {{provider}} को कॉल भेजता है",
   "{{store}} holds a copy of its data": "{{store}} में इसके डेटा की कॉपी है",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} एक पूरा नेटवर्क है, और इसे ब्लॉक करने या इस पर चैलेंज लगाने का असर उन सभी पर पड़ता है जिन्हें यह सेवा देता है। केवल सुरक्षा एडमिन, प्रोजेक्ट एडमिन या प्रोजेक्ट स्वामी ही ऐसा कर सकते हैं।"
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} एक पूरा नेटवर्क है, और इसे ब्लॉक करने या इस पर चैलेंज लगाने का असर उन सभी पर पड़ता है जिन्हें यह सेवा देता है। केवल सुरक्षा एडमिन, प्रोजेक्ट एडमिन या प्रोजेक्ट स्वामी ही ऐसा कर सकते हैं।",
+  "Part of {{incident}}": "{{incident}} का हिस्सा",
+  "Show Incidents Grouped by Episode": "घटनाएं एपिसोड के अनुसार समूहित करके दिखाएं",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।"
 }

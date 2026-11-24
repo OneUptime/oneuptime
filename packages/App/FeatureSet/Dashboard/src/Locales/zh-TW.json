@@ -63429,5 +63429,9 @@
   "{{service}} calls {{host}}": "{{service}} 呼叫 {{host}}",
   "{{service}} sends calls to {{provider}}": "{{service}} 向 {{provider}} 傳送呼叫",
   "{{store}} holds a copy of its data": "{{store}} 保存著其資料的副本",
-  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} 是一個完整的網路，封鎖或挑戰它會影響它服務的所有人。只有安全性管理員、專案管理員或專案擁有者可以執行此操作。"
+  "{{value}} is a whole network, and blocking or challenging it reaches everyone it serves. Only a Security Admin, a Project Admin or a Project Owner can do it.": "{{value}} 是一個完整的網路，封鎖或挑戰它會影響它服務的所有人。只有安全性管理員、專案管理員或專案擁有者可以執行此操作。",
+  "Part of {{incident}}": "屬於 {{incident}}",
+  "Show Incidents Grouped by Episode": "依片段分組顯示事件",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪客會看到每個事件一張卡片，每個片段另一張卡片，因此片段中的事件會顯示兩次。",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "訪客會將每個片段看作一張卡片，其中列出該片段的事件及其影響範圍。"
 }
