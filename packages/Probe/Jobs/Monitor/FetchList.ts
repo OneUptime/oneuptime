@@ -469,17 +469,22 @@ export class FetchListAndProbe {
   /*
    * Each check consumes its result or error at once and resolves void, so a
    * slow check never holds on to another check's response.
+   *
+   * The log names the monitor by its id and type, never the monitor itself:
+   * its steps hold the values of its secrets, filled in by the server, and
+   * the values it hands this probe to hide (#10875).
    */
   private async probeAndLogMonitor(monitor: Monitor): Promise<void> {
     try {
       await probeMonitorWithDeadline(monitor);
-      logger.debug(`Probed monitor ${monitor.id?.toString()}`);
+      logger.debug(
+        `Probed monitor ${monitor.id?.toString()} (${monitor.monitorType})`,
+      );
     } catch (err) {
-      logger.error("Error in probing monitor:");
+      logger.error(
+        `Error in probing monitor ${monitor.id?.toString()} (${monitor.monitorType}):`,
+      );
       logger.error(err);
-    } finally {
-      logger.debug("Monitor:");
-      logger.debug(monitor);
     }
   }
 }

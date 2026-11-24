@@ -372,7 +372,7 @@ describe("the fields that take a secret", () => {
 
     expect(ingest).toContain("MonitorUtil.populateSecrets(");
     expect(ingest).toContain(
-      "MonitorUtil.populateSecretsOnMonitorTest(monitorTest)",
+      "MonitorUtil.populateSecretsOnMonitorTest(monitorTest,",
     );
     expect(page).toContain(
       "Before OneUptime hands a monitor to a probe, it replaces each reference the monitor may use with the decrypted value",
