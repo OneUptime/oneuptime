@@ -70,7 +70,9 @@ describe("AddDataStoreFindingAiVerdicts1809187520372", () => {
       );
 
       if (statement.includes("DEFAULT")) {
-        expect(statement).toContain(`"isConfirmedByAi" boolean NOT NULL DEFAULT false`);
+        expect(statement).toContain(
+          `"isConfirmedByAi" boolean NOT NULL DEFAULT false`,
+        );
       }
     }
   });
@@ -89,9 +91,11 @@ describe("AddDataStoreFindingAiVerdicts1809187520372", () => {
 
   test("is registered once, last of the migrations before it, named for its class", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
-    const names: Array<string> = registered.map((migration: unknown): string => {
-      return (migration as { name: string }).name;
-    });
+    const names: Array<string> = registered.map(
+      (migration: unknown): string => {
+        return (migration as { name: string }).name;
+      },
+    );
     const index: number = names.indexOf(
       "AddDataStoreFindingAiVerdicts1809187520372",
     );
