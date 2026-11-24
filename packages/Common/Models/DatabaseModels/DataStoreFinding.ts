@@ -588,6 +588,25 @@ export default class DataStoreFinding extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    title: "Found By Model",
+    description:
+      "Found in free text by the names-and-addresses model that runs inside the scanner, not by a pattern.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isFoundByModel?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    computed: true,
+    canReadOnRelationQuery: true,
     title: "Scrubbed",
     description:
       "For telemetry: a scrub rule already masks this data at ingest.",

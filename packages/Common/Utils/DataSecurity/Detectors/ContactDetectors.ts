@@ -8,6 +8,7 @@ import {
   isPlaceholderDigits,
 } from "../Detector";
 import { isRealDate } from "../Validators";
+import { isTestStreetAddress } from "../Model/RecognizedEntity";
 import IpCanonicalUtil from "../../IpCanonicalUtil";
 
 /*
@@ -550,6 +551,8 @@ const streetAddressDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 1,
   fieldValuePattern: /^[0-9]{1,6}[A-Za-z]?[ ,].{3,120}$/,
+  // 123 Main Street and the other placeholders: as the names-and-addresses model counts them.
+  isTestValue: isTestStreetAddress,
 };
 
 // "SW1A 1AA", "EC1A 1BB": a UK postcode with its space.
