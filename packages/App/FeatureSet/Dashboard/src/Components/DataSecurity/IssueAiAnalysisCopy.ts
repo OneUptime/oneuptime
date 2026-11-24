@@ -211,6 +211,10 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   ),
   [DataSecurityAiProposalKind.AddScanExclusion]:
     translationKey("Scan exclusions"),
+  // The one pull request that stops a service writing its telemetry leaks (#10367).
+  [DataSecurityAiProposalKind.FixTelemetryLeaksInCode]: translationKey(
+    "One pull request for the service's telemetry leaks",
+  ),
 };
 
 // Where a proposal stands, as a fact says it (DataSecurityAiProposalStatus).

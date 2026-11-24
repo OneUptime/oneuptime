@@ -448,7 +448,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       feature: DataSecurityAiFeature.FixTelemetryLeaks,
       title: translationKey("Fix leaks in the code"),
       startedBy: translationKey(
-        "A person, with Fix with AI on a telemetry issue or by approving OneUptime AI's proposal, in a repository they may change in Code; or, on its own, an AI rule whose Fix is Without asking.",
+        "A person, with Fix with AI on a telemetry issue or by approving OneUptime AI's proposal, in a repository they may change in Code; or, on its own, an AI rule whose Fix is set to Automatically.",
       ),
       runsOnItsOwn: false,
       sends: [
