@@ -67,6 +67,9 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
      */
     case SecurityCaseFeedEventType.AiResponse:
       return { icon: IconProp.Sparkles, tone: FeedTone.AI };
+    // The exposure assessment (#10377): started, written up, edited.
+    case SecurityCaseFeedEventType.ExposureAssessment:
+      return { icon: IconProp.Scale, tone: FeedTone.Record };
     // A task added, done, opened again, handed on or deleted.
     case SecurityCaseFeedEventType.Task:
       return { icon: IconProp.ClipboardDocumentCheck, tone: FeedTone.Record };

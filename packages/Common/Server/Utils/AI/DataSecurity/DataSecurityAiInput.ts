@@ -97,6 +97,26 @@ import {
   RecordPeople,
   RecordTransfer,
 } from "../../../../Types/DataSecurity/RecordOfProcessing";
+import {
+  BreachLawId,
+  BreachLawRule,
+  getBreachLawRule,
+} from "../../../../Types/DataSecurity/BreachLaws";
+import {
+  describeBreachCheckInEnglish,
+  describeBreachDeadlineInEnglish,
+  describeBreachPlaceInEnglish,
+  EXPOSURE_DRAFT_PART_ASKS,
+  ExposureAssessmentView,
+  ExposureDataType,
+  ExposureDraftPart,
+  ExposureIssueView,
+  ExposureSecret,
+  ExposureWindow,
+  ExposureWindowStartKind,
+  getBreachLawName,
+  isKnownObligation,
+} from "../../../../Types/DataSecurity/ExposureAssessment";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { findInstructionLikePhrase } from "../../../../Utils/AI/InstructionLikeText";
@@ -4646,6 +4666,236 @@ export function buildDescribeDataTypePrompt(data: {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * An exposure's assessment (#10377): what plain code worked out, as facts
+ * ---------------------------------------------------------------------------
+ *
+ * OneUptime AI writes up an exposure's assessment - what it means, a
+ * notice to the regulator, a notice to the people affected, an internal
+ * summary - from what plain code worked out (ExposureAssessmentView): the
+ * store, its exposure issues, the window, whether reads were logged and
+ * who could read it, whose data it was, the secrets found in it by type
+ * and place, where a person said the people live, and every breach law of
+ * the table with whether it may apply, its deadline and what a person
+ * still checks. Never a value, a sample, a record or a secret's value, and
+ * never who can reach the store by name: the readers are counted. Every
+ * text a cloud or a person wrote is cleaned and held to a length
+ * (customerText).
+ */
+
+// The most secrets, and exposure issues, an assessment's facts name.
+export const MAX_EXPOSURE_SECRETS_FOR_AI: number = 30;
+export const MAX_EXPOSURE_ISSUES_FOR_AI: number = 10;
+
+export interface AiExposureAssessmentDossier {
+  store: AiStoreRecord;
+  view: ExposureAssessmentView;
+}
+
+export function exposureAssessmentFacts(data: {
+  dossier: AiExposureAssessmentDossier;
+  marks?: AiInputMarks | undefined;
+}): AiComplianceFacts {
+  const marks: AiInputMarks = data.marks || new AiInputMarks();
+  const list: ComplianceFactList = new ComplianceFactList("F");
+  const store: AiStoreRecord = data.dossier.store;
+  const view: ExposureAssessmentView = data.dossier.view;
+
+  list.add({
+    key: "store",
+    kind: ComplianceFactKind.StoreIdentity,
+    name: customerText(store.name, MAX_ISSUE_VALUE_LENGTH, "store.name", marks),
+    storeKind: store.kind || "",
+    provider: store.provider || undefined,
+    environment: store.environment || undefined,
+  });
+
+  list.add({
+    key: "store:holds",
+    kind: ComplianceFactKind.StoreHolds,
+    dataTypes: dataTypeNames(
+      view.whose.dataTypes.map((type: ExposureDataType): string => {
+        return type.name;
+      }),
+      "store.dataTypes",
+      marks,
+    ),
+    categories: [...view.whose.categories],
+    sensitivity: effectiveSensitivity(store),
+    records: view.whose.records,
+  });
+
+  const location: CloudRegionLocation | null = getCloudRegionLocation(
+    store.region,
+  );
+
+  list.add({
+    key: "store:location",
+    kind: ComplianceFactKind.Location,
+    region:
+      customerText(store.region, MAX_WORD_LENGTH, "store.region", marks) ||
+      undefined,
+    country: location?.country || undefined,
+    isInEea: location ? location.isInEea : undefined,
+    replicationRegions: [],
+    subjectCountries: [...view.whose.countriesFromData],
+  });
+
+  list.add({
+    key: "store:exposure",
+    kind: ComplianceFactKind.Exposure,
+    exposure: store.exposure || DataStoreExposure.Unknown,
+    isPublicByDesign: store.isPublicByDesign === true,
+  });
+
+  view.exposureIssues
+    .slice(0, MAX_EXPOSURE_ISSUES_FOR_AI)
+    .forEach((issue: ExposureIssueView, index: number): void => {
+      list.add({
+        key: `issue:${issue.id.toLowerCase()}`,
+        kind: ComplianceFactKind.ExposureIssue,
+        title: customerText(
+          issue.title,
+          MAX_ISSUE_VALUE_LENGTH,
+          `exposureIssues[${index}].title`,
+          marks,
+        ),
+        checkId: issue.checkId,
+        severity: issue.severity,
+        status: issue.status,
+        firstDetectedAt: issue.firstDetectedAt,
+        resolvedAt: issue.resolvedAt,
+      });
+    });
+
+  const window: ExposureWindow | null = view.window;
+
+  if (window) {
+    list.add({
+      key: "exposure:window",
+      kind: ComplianceFactKind.ExposureWindow,
+      foundAt: window.foundAt,
+      start: window.start,
+      startIsExact: window.startKind === ExposureWindowStartKind.Change,
+      startOperation: window.startOperation,
+      end: window.end,
+      endKind: window.isStillOpen ? undefined : window.endKind,
+      isStillOpen: window.isStillOpen,
+      hours: window.hours,
+      days: window.days,
+    });
+  }
+
+  list.add({
+    key: "exposure:reads",
+    kind: ComplianceFactKind.ExposureReads,
+    logged: view.reads.logged,
+    isPublic: view.reads.isPublic,
+    outsideAccounts: view.reads.outsideAccounts,
+    outsideAccountsUsedInWindow: view.reads.outsideAccountsUsedInWindow,
+    isTreatedAsRead: view.reads.isTreatedAsRead,
+  });
+
+  if (view.whose.placesNamed && view.whose.placesNamed.length > 0) {
+    list.add({
+      key: "people:places",
+      kind: ComplianceFactKind.PeopleLiveIn,
+      places: view.whose.placesNamed.map(describeBreachPlaceInEnglish),
+    });
+  }
+
+  view.secretsToRotate
+    .slice(0, MAX_EXPOSURE_SECRETS_FOR_AI)
+    .forEach((secret: ExposureSecret, index: number): void => {
+      const location: string = customerText(
+        secret.location,
+        MAX_FINDING_LOCATION_LENGTH,
+        `secretsToRotate[${index}].location`,
+        marks,
+      );
+
+      list.add({
+        key: `secret:${lowerKey(secret.dataTypeId)}:${lowerKey(location)}`,
+        kind: ComplianceFactKind.SecretFound,
+        dataType: customerText(
+          secret.dataTypeName,
+          MAX_ISSUE_VALUE_LENGTH,
+          `secretsToRotate[${index}].dataType`,
+          marks,
+        ),
+        location,
+        locationKind: secret.locationKind || undefined,
+        isStillThere: secret.isStillThere,
+      });
+    });
+
+  for (const obligation of view.obligations) {
+    if (!isKnownObligation(obligation)) {
+      continue;
+    }
+
+    const rule: BreachLawRule = getBreachLawRule(obligation.ruleId);
+
+    list.add({
+      key: `obligation:${rule.id}`,
+      kind: ComplianceFactKind.BreachObligation,
+      ruleId: rule.id,
+      family: rule.family,
+      law: getBreachLawName(rule.id),
+      status: obligation.status,
+      action: rule.action,
+      recipient: rule.recipient,
+      deadline: describeBreachDeadlineInEnglish(rule),
+      deadlineAmount: rule.deadline.amount,
+      deadlineUnit: rule.deadline.unit,
+      dueAt: obligation.dueAt,
+      countsFrom: obligation.foundAt,
+      checks: obligation.checks
+        .map(describeBreachCheckInEnglish)
+        .filter((check: string): boolean => {
+          return check.length > 0;
+        }),
+    });
+  }
+
+  return { facts: list.facts, data: list.data, marks };
+}
+
+/*
+ * An exposure's write-up: the parts to write and what each asks, the fact
+ * of the notice due first, and the assessment's facts.
+ */
+export function buildExposureAssessmentPrompt(data: {
+  feature:
+    | DataSecurityAiFeature.DraftExposureAssessment
+    | DataSecurityAiFeature.DraftExposureAssessmentOnRequest;
+  instructions: string;
+  built: AiComplianceFacts;
+  parts: ReadonlyArray<ExposureDraftPart>;
+  // The row of the notice due first, when one is known to apply.
+  dueFirst?: BreachLawId | undefined;
+}): DataSecurityAiPrompt {
+  const dueFirst: ComplianceFact | undefined = data.dueFirst
+    ? data.built.facts.find((fact: ComplianceFact): boolean => {
+        return fact.key === `obligation:${data.dueFirst}`;
+      })
+    : undefined;
+
+  return prompt({
+    feature: data.feature,
+    instructions: data.instructions,
+    facts: withoutEmpty({
+      write: data.parts.map((part: ExposureDraftPart): JSONObject => {
+        return { part, write: EXPOSURE_DRAFT_PART_ASKS[part] };
+      }),
+      dueFirst: dueFirst ? dueFirst.id : undefined,
+      facts: data.built.data,
+    }),
+    marks: data.built.marks,
+  });
+}
+
+/*
  * Whether a value is a prompt this file made: for the one call
  * (DataSecurityAiCall) to refuse anything else that reached it past the
  * type, and for tests.
@@ -4715,6 +4965,8 @@ const DataSecurityAiInput: {
   buildAuditEvidencePrompt: typeof buildAuditEvidencePrompt;
   buildDraftDataTypePrompt: typeof buildDraftDataTypePrompt;
   buildDescribeDataTypePrompt: typeof buildDescribeDataTypePrompt;
+  exposureAssessmentFacts: typeof exposureAssessmentFacts;
+  buildExposureAssessmentPrompt: typeof buildExposureAssessmentPrompt;
   isDataSecurityAiPrompt: typeof isDataSecurityAiPrompt;
   isDataSecurityAiCodeRequest: typeof isDataSecurityAiCodeRequest;
 } = {
@@ -4760,6 +5012,8 @@ const DataSecurityAiInput: {
   buildAuditEvidencePrompt,
   buildDraftDataTypePrompt,
   buildDescribeDataTypePrompt,
+  exposureAssessmentFacts,
+  buildExposureAssessmentPrompt,
   isDataSecurityAiPrompt,
   isDataSecurityAiCodeRequest,
 };
