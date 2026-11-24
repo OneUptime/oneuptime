@@ -37,6 +37,7 @@ export type DashboardResourceType =
   | "podman-volume"
   | "proxmox-resource"
   | "vmware-resource"
+  | "xcp-ng-resource"
   | "ceph-resource"
   | "storage-array-resource"
   | "docker-swarm-resource"

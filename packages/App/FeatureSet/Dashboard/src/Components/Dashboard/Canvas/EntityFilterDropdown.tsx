@@ -38,6 +38,7 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -331,6 +332,13 @@ export function getEntityModelDef(
     case EntityFilterModelType.VMwareVCenter:
       return {
         modelType: VMwareVCenter as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
+      };
+    case EntityFilterModelType.XcpNgPool:
+      return {
+        modelType: XcpNgPool as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
         isSearchedOnServer: true,
