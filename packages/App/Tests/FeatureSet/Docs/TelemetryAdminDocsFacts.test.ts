@@ -3460,18 +3460,18 @@ describe("Topology (telemetry/topology)", () => {
     };
   }
 
-  it("opens from Products → Observability → Topology, and from Inventory → Topology Map", () => {
+  it("opens from Products → Observability → Topology, and from Inventory → Topology", () => {
     expect(navbarValue("items", "topologyTitle")).toBe("Topology");
     expect(productsMenuCategory("topologyTitle")).toBe("observability");
     expect(
       between(
         readDashboardSource("Pages/Inventory/SideMenu.tsx"),
-        'title: "Topology Map",',
+        'title: "Topology",',
         "},",
       ),
     ).toContain("RouteMap[PageMap.TOPOLOGY]");
     expect(page).toContain(
-      "Go to **Products → Observability → Topology**. **Inventory → Topology Map** opens the same page.",
+      "Go to **Products → Observability → Topology**. **Inventory → Topology** opens the same page.",
     );
   });
 
@@ -3953,7 +3953,7 @@ describe("the four pages together", () => {
       ],
       [TOPOLOGY]: [
         "Products → Observability → Topology",
-        "Inventory → Topology Map",
+        "Inventory → Topology",
       ],
     };
 

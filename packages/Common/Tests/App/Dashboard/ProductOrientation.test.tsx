@@ -454,7 +454,7 @@ describe("Products menu sections", () => {
       sections.find((section: MenuSection): boolean => {
         return section.heading === "AI";
       }),
-    ).toEqual({ heading: "AI", items: ["Chat", "Insights"] });
+    ).toEqual({ heading: "AI", items: ["Ask AI", "AI Insights"] });
     /*
      * One item, Code: the repositories first, each repository's tasks
      * inside it - not Tasks plus Code Repositories.

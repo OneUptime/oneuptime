@@ -70,7 +70,7 @@
       "logsDescription": "ログを検索・分析。",
       "securityEventsTitle": "セキュリティイベント",
       "sentinelInsightsDescription": "OneUptime AI のテレメトリ監視によるプロアクティブな検出結果 — 新しい例外、急増、レイテンシの悪化、メトリクスのドリフト。",
-      "sentinelInsightsTitle": "インサイト",
+      "sentinelInsightsTitle": "AI インサイト",
       "securityEventsDescription": "オブザーバビリティデータと相関付けた SIEM シグナル。",
       "metricsTitle": "メトリクス",
       "metricsDescription": "サービス全体のシステムメトリクスを監視・可視化。",
@@ -130,7 +130,7 @@
       "runbooksDescription": "再利用可能な対応手順：手動チェックリストまたはスクリプト。",
       "formsTitle": "フォーム",
       "formsDescription": "誰でも入力でき、インシデントやメンテナンスイベントを作成するフォーム。",
-      "aiChatTitle": "チャット",
+      "aiChatTitle": "AI に質問",
       "aiChatDescription": "AI とチャット — ログ、トレース、メトリクス、インシデント、アラート、モニターをもとに回答し、実行したクエリをすべて引用します。",
       "usersTitle": "ユーザー",
       "usersDescription": "プロジェクトのユーザーと招待を管理します。",
@@ -168,8 +168,8 @@
   },
   "userProfile": {
     "label": "ユーザープロフィール",
-    "profile": "プロフィール",
-    "adminSettings": "管理者設定",
+    "profile": "ユーザープロフィール",
+    "adminDashboard": "管理者ダッシュボード",
     "switchToDarkTheme": "ダークテーマに切り替える",
     "switchToLightTheme": "ライトテーマに切り替える",
     "signOut": "サインアウト"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "1 時間以内に再試行します。{{marketplace}} でこのプロジェクトのサブスクリプションが有効か確認するか、今すぐ残高をチャージしてください。",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "1 時間以内に再試行します。「プロジェクト設定 > 請求と請求書 > 請求」で支払い方法を確認するか、今すぐ残高をチャージしてください。",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "SMS、電話、WhatsApp、Telegram の料金はこの残高（USD）から支払われます。チャージしたり、残高が尽きないように自動チャージをオンにしたりできるのは、プロジェクト所有者または「請求の管理」権限を持つユーザーです。",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS、電話、WhatsApp、Telegram の料金はこの残高（USD）から支払われます。チャージするか、自動チャージをオンにして残高が尽きないようにしてください。"
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS、電話、WhatsApp、Telegram の料金はこの残高（USD）から支払われます。チャージするか、自動チャージをオンにして残高が尽きないようにしてください。",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "一致する Docker Swarm クラスターの作成時に、所有者のユーザーとチームを自動的に割り当てるルールを設定します",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "一致する Docker Swarm クラスターの作成時に、ラベルを自動的に付与するルールを設定します",
+  "Docker Swarm Cluster Description Pattern": "Docker Swarm クラスターの説明パターン",
+  "Docker Swarm Cluster Label Rule": "Docker Swarm クラスターのラベルルール",
+  "Docker Swarm Cluster Name Pattern": "Docker Swarm クラスターの名前パターン",
+  "Docker Swarm Cluster Owner Rule": "Docker Swarm クラスターの所有者ルール",
+  "Docker Swarm Cluster Team Owner": "Docker Swarm クラスターの所有者チーム",
+  "Docker Swarm Cluster Team Owners": "Docker Swarm クラスターの所有者チーム",
+  "Docker Swarm Cluster User Owner": "Docker Swarm クラスターの所有者ユーザー",
+  "Docker Swarm Cluster User Owners": "Docker Swarm クラスターの所有者ユーザー",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "このプロジェクトで監視している Docker Swarm クラスター。各クラスターは OneUptime Docker Swarm エージェントがメトリクスを送信すると自動検出されます。手動で登録することもできます。"
 }

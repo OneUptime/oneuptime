@@ -62,7 +62,7 @@
     "dataRetention": "データ保持",
     "globalLlmProviders": "グローバルLLMプロバイダー",
     "apiKey": "APIキー",
-    "sendEmail": "メール送信",
+    "sendEmail": "メールを送信",
     "signOut": "サインアウト",
     "telemetryUsage": "テレメトリ使用量",
     "ingestionBudgets": "取り込み予算",
@@ -495,7 +495,7 @@
       "title": "サインアウト"
     },
     "sendEmail": {
-      "title": "お知らせメールを送信",
+      "title": "メールを送信",
       "testCardTitle": "テストメールを送信",
       "testCardDescription": "すべてのユーザーに送信する前に、どのように見えるかをプレビューするために、単一のメールアドレスにテストのお知らせメールを送信します。",
       "allCardTitle": "すべてのユーザーにメール送信",
@@ -512,7 +512,7 @@
       "confirmButton": "はい、すべてのユーザーに送信"
     },
     "moreEmail": {
-      "title": "お知らせメールを送信",
+      "title": "メールを送信",
       "cardTitle": "お知らせメールを送信",
       "cardDescription": "すべての登録済みユーザーに送信するお知らせメールを作成します。最初にテストメールを送信して、どのように見えるかをプレビューできます。",
       "sendTestButton": "テストメールを送信",
@@ -534,7 +534,7 @@
       "confirmButton": "はい、すべてのユーザーに送信"
     },
     "settings": {
-      "title": "管理者設定",
+      "title": "設定",
       "authentication": {
         "signUpCardTitle": "サインアップ",
         "signUpCardDescription": "このサーバーでアカウントを作成できるユーザー。",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "ワーカーのメモリーと CPU を増やし、失敗し続けるジョブがないかアプリのログを確認してください。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "このサーバーは OneUptime {{current}} を実行しています。{{latest}} がリリースされています。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "バックアップしてから更新してください。Docker Compose では npm run update、Kubernetes では helm upgrade です。",
-  "Finish it on the Server setup page.": "「サーバーの設定」ページで完了してください。",
+  "Finish it on the Server Setup page.": "「サーバーの設定」ページで完了してください。",
   "Products on this server": "このサーバーの製品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "このサーバーのすべてのプロジェクトで提供する製品を選びます。オフにした製品は、すべてのプロジェクトのメニュー、ホーム、検索から消え、そのページにはオフになっていることが表示されます。",
   "Start from": "次のいずれかから始める",

@@ -21,7 +21,12 @@ import { useTranslation } from "react-i18next";
  * kept: the Welcome checklist (#6803) and the docs (#6827) link to it.
  */
 
-export const SERVER_SETUP_PAGE_TITLE: string = "Server setup";
+/*
+ * The words of the menu entry that opens it, its title and its trail's
+ * last step: the menu said Server Setup over a page titled "Server setup"
+ * (#7474).
+ */
+export const SERVER_SETUP_PAGE_TITLE: string = "Server Setup";
 
 export const SERVER_SETUP_PAGE_LOAD_ERROR: string =
   "The setup checklist could not be read. Reload the page to try again.";

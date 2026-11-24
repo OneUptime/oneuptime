@@ -23,8 +23,8 @@ Klik op uw foto rechtsboven in het dashboard.
 
 | Item | Wat het doet |
 | --- | --- |
-| **Profiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, taal, foto en de beveiliging van uw aanmelding. |
-| **Beheerdersinstellingen** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
+| **Gebruikersprofiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, taal, foto en de beveiliging van uw aanmelding. |
+| **Admin-dashboard** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
 | **Thema** | Stelt het thema van het dashboard in: **Licht**, **Donker** of **Systeem**, dat licht of donker is zoals uw apparaat is ingesteld. |
 | **Afmelden** | Meldt u af, meteen op elke OneUptime-server. Waar uw beheerder het heeft ingesteld, meldt het u ook af bij uw identiteitsprovider. |
 
@@ -35,7 +35,7 @@ Klik op uw foto rechtsboven in het dashboard.
 :::steps
 ### Uw profiel openen
 
-Klik rechtsboven op uw foto en kies **Profiel**. De pagina **Overzicht** opent met de kaart **Basisinformatie**: uw naam, e-mailadres, tijdzone en taal.
+Klik rechtsboven op uw foto en kies **Gebruikersprofiel**. De pagina **Overzicht** opent met de kaart **Basisinformatie**: uw naam, e-mailadres, tijdzone en taal.
 
 ### Uw gegevens bewerken
 

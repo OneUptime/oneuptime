@@ -70,7 +70,7 @@
       "logsDescription": "搜索和分析日志。",
       "securityEventsTitle": "安全事件",
       "sentinelInsightsDescription": "OneUptime AI 监视遥测数据时主动发现的问题 — 新异常、峰值、延迟变差和指标漂移。",
-      "sentinelInsightsTitle": "洞察",
+      "sentinelInsightsTitle": "AI 洞察",
       "securityEventsDescription": "与可观测性数据关联的 SIEM 信号。",
       "metricsTitle": "指标",
       "metricsDescription": "监控和可视化跨服务的系统指标。",
@@ -130,7 +130,7 @@
       "runbooksDescription": "可重用的响应流程：手动检查清单或脚本。",
       "formsTitle": "表单",
       "formsDescription": "任何人都可以填写、用于创建事件或维护事件的表单。",
-      "aiChatTitle": "聊天",
+      "aiChatTitle": "询问 AI",
       "aiChatDescription": "与 AI 聊天 — 它根据你的日志、追踪、指标、事件、警报和监视器作答，并列出它运行的每条查询。",
       "usersTitle": "用户",
       "usersDescription": "管理项目用户和邀请。",
@@ -168,8 +168,8 @@
   },
   "userProfile": {
     "label": "用户配置",
-    "profile": "个人资料",
-    "adminSettings": "管理员设置",
+    "profile": "用户配置",
+    "adminDashboard": "管理员仪表板",
     "switchToDarkTheme": "切换到深色主题",
     "switchToLightTheme": "切换到浅色主题",
     "signOut": "退出登录"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "它会在一小时内重试。请检查此项目在 {{marketplace}} 上的订阅是否有效，或立即为余额充值。",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "它会在一小时内重试。请在 项目设置 > 账单和发票 > 账单 中检查支付方式，或立即为余额充值。",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "短信、电话、WhatsApp 和 Telegram 消息从此余额（美元）中扣费。项目所有者或拥有“Manage Billing”权限的用户可以为其充值，或开启自动充值，避免余额用完。",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "短信、电话、WhatsApp 和 Telegram 消息从此余额（美元）中扣费。请为其充值，或开启自动充值，避免余额用完。"
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "短信、电话、WhatsApp 和 Telegram 消息从此余额（美元）中扣费。请为其充值，或开启自动充值，避免余额用完。",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created",
+  "Docker Swarm Cluster Description Pattern": "Docker Swarm Cluster Description Pattern",
+  "Docker Swarm Cluster Label Rule": "Docker Swarm Cluster Label Rule",
+  "Docker Swarm Cluster Name Pattern": "Docker Swarm Cluster Name Pattern",
+  "Docker Swarm Cluster Owner Rule": "Docker Swarm Cluster Owner Rule",
+  "Docker Swarm Cluster Team Owner": "Docker Swarm Cluster Team Owner",
+  "Docker Swarm Cluster Team Owners": "Docker Swarm Cluster Team Owners",
+  "Docker Swarm Cluster User Owner": "Docker Swarm Cluster User Owner",
+  "Docker Swarm Cluster User Owners": "Docker Swarm Cluster User Owners",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered."
 }

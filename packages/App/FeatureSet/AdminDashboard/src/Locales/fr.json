@@ -495,7 +495,7 @@
       "title": "Se déconnecter"
     },
     "sendEmail": {
-      "title": "Envoyer un e-mail d'annonce",
+      "title": "Envoyer un e-mail",
       "testCardTitle": "Envoyer un e-mail de test",
       "testCardDescription": "Envoyez un e-mail d'annonce de test à une seule adresse e-mail pour prévisualiser son apparence avant de l'envoyer à tous les utilisateurs.",
       "allCardTitle": "Envoyer un e-mail à tous les utilisateurs",
@@ -512,7 +512,7 @@
       "confirmButton": "Oui, envoyer à tous les utilisateurs"
     },
     "moreEmail": {
-      "title": "Envoyer un e-mail d'annonce",
+      "title": "Envoyer un e-mail",
       "cardTitle": "Envoyer un e-mail d'annonce",
       "cardDescription": "Rédigez un e-mail d'annonce à envoyer à tous les utilisateurs enregistrés. Vous pouvez d'abord envoyer un e-mail de test pour prévisualiser son apparence.",
       "sendTestButton": "Envoyer l'e-mail de test",
@@ -534,7 +534,7 @@
       "confirmButton": "Oui, envoyer à tous les utilisateurs"
     },
     "settings": {
-      "title": "Paramètres admin",
+      "title": "Paramètres",
       "authentication": {
         "signUpCardTitle": "Inscription",
         "signUpCardDescription": "Qui peut créer un compte sur ce serveur.",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Donnez plus de mémoire et de CPU aux workers, et cherchez dans le journal de l'application les tâches qui échouent sans cesse.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Ce serveur exécute OneUptime {{current}}. La version {{latest}} est disponible.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Faites une sauvegarde, puis mettez à jour : npm run update avec Docker Compose, helm upgrade sur Kubernetes.",
-  "Finish it on the Server setup page.": "Terminez-le sur la page Configuration du serveur.",
+  "Finish it on the Server Setup page.": "Terminez-le sur la page Configuration du serveur.",
   "Products on this server": "Produits sur ce serveur",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Choisissez ce que chaque projet de ce serveur propose. Un produit désactivé disparaît du menu, de l'accueil et de la recherche de chaque projet, et ses pages indiquent qu'il est désactivé.",
   "Start from": "Partir de",

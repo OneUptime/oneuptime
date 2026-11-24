@@ -495,7 +495,7 @@
       "title": "Sair"
     },
     "sendEmail": {
-      "title": "Enviar e-mail de anúncio",
+      "title": "Enviar e-mail",
       "testCardTitle": "Enviar e-mail de teste",
       "testCardDescription": "Envie um e-mail de anúncio de teste para um único endereço de e-mail para visualizar como fica antes de enviar a todos os usuários.",
       "allCardTitle": "Enviar e-mail para todos os usuários",
@@ -512,7 +512,7 @@
       "confirmButton": "Sim, enviar para todos os usuários"
     },
     "moreEmail": {
-      "title": "Enviar e-mail de anúncio",
+      "title": "Enviar e-mail",
       "cardTitle": "Enviar e-mail de anúncio",
       "cardDescription": "Componha um e-mail de anúncio para enviar a todos os usuários registrados. Você pode enviar primeiro um e-mail de teste para visualizar como fica.",
       "sendTestButton": "Enviar e-mail de teste",
@@ -534,7 +534,7 @@
       "confirmButton": "Sim, enviar para todos os usuários"
     },
     "settings": {
-      "title": "Configurações do admin",
+      "title": "Configurações",
       "authentication": {
         "signUpCardTitle": "Cadastro",
         "signUpCardDescription": "Quem pode criar uma conta neste servidor.",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Dê mais memória e CPU aos workers e procure no log do app as tarefas que continuam falhando.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Este servidor roda o OneUptime {{current}}. A versão {{latest}} já está disponível.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Faça um backup e depois atualize: npm run update no Docker Compose, helm upgrade no Kubernetes.",
-  "Finish it on the Server setup page.": "Conclua na página Configuração do servidor.",
+  "Finish it on the Server Setup page.": "Conclua na página Configuração do servidor.",
   "Products on this server": "Produtos neste servidor",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Escolha o que cada projeto deste servidor oferece. Um produto desativado some do menu, do Início e da Pesquisa de cada projeto, e as páginas dele avisam que ele está desativado.",
   "Start from": "Começar por",

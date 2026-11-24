@@ -70,7 +70,7 @@
       "logsDescription": "로그를 검색하고 분석하세요.",
       "securityEventsTitle": "보안 이벤트",
       "sentinelInsightsDescription": "OneUptime AI가 텔레메트리를 지켜보며 미리 찾아낸 발견 사항 — 새 예외, 급증, 지연 시간 저하, 메트릭 드리프트.",
-      "sentinelInsightsTitle": "인사이트",
+      "sentinelInsightsTitle": "AI 인사이트",
       "securityEventsDescription": "관측성 데이터와 연관된 SIEM 신호입니다.",
       "metricsTitle": "메트릭",
       "metricsDescription": "서비스 전반의 시스템 메트릭을 모니터링하고 시각화하세요.",
@@ -130,7 +130,7 @@
       "runbooksDescription": "재사용 가능한 대응 절차: 수동 체크리스트 또는 스크립트.",
       "formsTitle": "양식",
       "formsDescription": "누구나 작성할 수 있으며 인시던트나 유지 관리 이벤트를 만드는 양식입니다.",
-      "aiChatTitle": "채팅",
+      "aiChatTitle": "AI에게 질문",
       "aiChatDescription": "AI와 채팅하세요 — 로그, 트레이스, 메트릭, 인시던트, 경고, 모니터를 바탕으로 답하고 모든 쿼리를 인용합니다.",
       "usersTitle": "사용자",
       "usersDescription": "프로젝트 사용자 및 초대를 관리합니다.",
@@ -168,8 +168,8 @@
   },
   "userProfile": {
     "label": "사용자 프로필",
-    "profile": "프로필",
-    "adminSettings": "관리자 설정",
+    "profile": "사용자 프로필",
+    "adminDashboard": "관리자 대시보드",
     "switchToDarkTheme": "다크 테마로 전환",
     "switchToLightTheme": "라이트 테마로 전환",
     "signOut": "로그아웃"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "1시간 안에 다시 시도합니다. {{marketplace}}에서 이 프로젝트의 구독이 활성 상태인지 확인하거나 지금 잔액을 충전하세요.",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "1시간 안에 다시 시도합니다. 프로젝트 설정 > 결제 및 청구서 > 결제에서 결제 수단을 확인하거나 지금 잔액을 충전하세요.",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "SMS, 전화, WhatsApp, Telegram 메시지 요금은 이 잔액(USD)에서 결제됩니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전하거나, 잔액이 바닥나지 않도록 자동 충전을 켤 수 있습니다.",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS, 전화, WhatsApp, Telegram 메시지 요금은 이 잔액(USD)에서 결제됩니다. 잔액을 충전하거나 자동 충전을 켜서 잔액이 바닥나지 않게 하세요."
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS, 전화, WhatsApp, Telegram 메시지 요금은 이 잔액(USD)에서 결제됩니다. 잔액을 충전하거나 자동 충전을 켜서 잔액이 바닥나지 않게 하세요.",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created",
+  "Docker Swarm Cluster Description Pattern": "Docker Swarm Cluster Description Pattern",
+  "Docker Swarm Cluster Label Rule": "Docker Swarm Cluster Label Rule",
+  "Docker Swarm Cluster Name Pattern": "Docker Swarm Cluster Name Pattern",
+  "Docker Swarm Cluster Owner Rule": "Docker Swarm Cluster Owner Rule",
+  "Docker Swarm Cluster Team Owner": "Docker Swarm Cluster Team Owner",
+  "Docker Swarm Cluster Team Owners": "Docker Swarm Cluster Team Owners",
+  "Docker Swarm Cluster User Owner": "Docker Swarm Cluster User Owner",
+  "Docker Swarm Cluster User Owners": "Docker Swarm Cluster User Owners",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered."
 }

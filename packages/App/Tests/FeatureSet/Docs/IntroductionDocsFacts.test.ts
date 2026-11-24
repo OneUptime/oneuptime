@@ -4027,7 +4027,7 @@ describe("Your Account", () => {
     dashboard("Locales/en.json"),
   ) as { userProfile: Record<string, string> };
 
-  it("lists the user menu as the header draws it: admin settings for master admins, the theme row with its three choices", () => {
+  it("lists the user menu as the header draws it: the Admin Dashboard for master admins, the theme row with its three choices", () => {
     const source: string = dashboard("Components/Header/UserProfile.tsx");
     const keys: Array<string> = Array.from(source.matchAll(USER_MENU_KEY)).map(
       (match: RegExpMatchArray): string => {
@@ -4035,10 +4035,10 @@ describe("Your Account", () => {
       },
     );
 
-    expect(keys).toEqual(["label", "profile", "adminSettings", "signOut"]);
+    expect(keys).toEqual(["label", "profile", "adminDashboard", "signOut"]);
 
     /*
-     * The theme is one row between Admin Settings and Sign Out, which draws
+     * The theme is one row between Admin Dashboard and Sign Out, which draws
      * its own words (Common's ThemeChoiceRow): "Theme", and Light, Dark and
      * System, in that order.
      */
@@ -4046,7 +4046,7 @@ describe("Your Account", () => {
     const themeRow: number = menu.indexOf("<ThemeChoiceRow />");
 
     expect(themeRow).toBeGreaterThan(
-      menu.indexOf('t("userProfile.adminSettings")'),
+      menu.indexOf('t("userProfile.adminDashboard")'),
     );
     expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.signOut")'));
 
@@ -4079,13 +4079,13 @@ describe("Your Account", () => {
       }),
     ).toEqual([
       english.userProfile["profile"] as string,
-      english.userProfile["adminSettings"] as string,
+      english.userProfile["adminDashboard"] as string,
       "Theme",
       english.userProfile["signOut"] as string,
     ]);
 
     expect(menu).toContain(
-      'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminSettings")}',
+      'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminDashboard")}',
     );
     expect((rows[1] as Array<string>)[1]).toContain(
       "Only master admins of a self-hosted installation see it.",

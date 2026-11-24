@@ -70,7 +70,7 @@
       "logsDescription": "ابحث في السجلات وحلّلها.",
       "securityEventsTitle": "الأحداث الأمنية",
       "sentinelInsightsDescription": "نتائج استباقية من مراقبة OneUptime AI للقياس عن بُعد — استثناءات جديدة وارتفاعات وتراجعات في زمن الانتقال وانحرافات في المقاييس.",
-      "sentinelInsightsTitle": "الرؤى",
+      "sentinelInsightsTitle": "رؤى الذكاء الاصطناعي",
       "securityEventsDescription": "إشارات SIEM مربوطة ببيانات قابلية الملاحظة لديك.",
       "metricsTitle": "المقاييس",
       "metricsDescription": "راقب مقاييس النظام عبر خدماتك واعرضها مرئيًا.",
@@ -130,7 +130,7 @@
       "runbooksDescription": "إجراءات استجابة قابلة لإعادة الاستخدام: قوائم تحقق يدوية أو برامج نصية.",
       "formsTitle": "النماذج",
       "formsDescription": "نماذج يمكن لأي شخص تعبئتها لإنشاء حوادث أو أحداث صيانة.",
-      "aiChatTitle": "الدردشة",
+      "aiChatTitle": "اسأل الذكاء الاصطناعي",
       "aiChatDescription": "تحدّث مع الذكاء الاصطناعي — يجيب من سجلاتك وتتبعاتك ومقاييسك وحوادثك وتنبيهاتك ومراقباتك، ويستشهد بكل استعلام.",
       "usersTitle": "المستخدمون",
       "usersDescription": "إدارة مستخدمي المشروع والدعوات.",
@@ -169,7 +169,7 @@
   "userProfile": {
     "label": "الملف الشخصي",
     "profile": "الملف الشخصي",
-    "adminSettings": "إعدادات المسؤول",
+    "adminDashboard": "لوحة معلومات المسؤول",
     "switchToDarkTheme": "التبديل إلى المظهر الداكن",
     "switchToLightTheme": "التبديل إلى المظهر الفاتح",
     "signOut": "تسجيل الخروج"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "سيحاول مرة أخرى خلال ساعة. تحقق من أن اشتراك هذا المشروع على {{marketplace}} نشط، أو أضف الآن مبلغًا إلى الرصيد.",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "سيحاول مرة أخرى خلال ساعة. تحقق من طريقة الدفع في إعدادات المشروع > الفوترة والفواتير > الفوترة، أو أضف الآن مبلغًا إلى الرصيد.",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "تُدفع الرسائل النصية والمكالمات ورسائل WhatsApp وTelegram من هذا الرصيد، بالدولار الأمريكي. يمكن لمالك المشروع أو لمن يملك إذن «Manage Billing» إضافة مبلغ إليه، أو تفعيل «الشحن التلقائي» حتى لا ينفد أبدًا.",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "تُدفع الرسائل النصية والمكالمات ورسائل WhatsApp وTelegram من هذا الرصيد، بالدولار الأمريكي. أضف إليه مبلغًا، أو فعّل «الشحن التلقائي» حتى لا ينفد أبدًا."
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "تُدفع الرسائل النصية والمكالمات ورسائل WhatsApp وTelegram من هذا الرصيد، بالدولار الأمريكي. أضف إليه مبلغًا، أو فعّل «الشحن التلقائي» حتى لا ينفد أبدًا.",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "هيّئ قواعد لتعيين المستخدمين والفرق المالكين تلقائيًا عند إنشاء عناقيد Docker Swarm مطابقة",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "هيّئ قواعد لإرفاق التسميات تلقائيًا بعناقيد Docker Swarm عند إنشاء عناقيد Docker Swarm مطابقة",
+  "Docker Swarm Cluster Description Pattern": "نمط وصف عنقود Docker Swarm",
+  "Docker Swarm Cluster Label Rule": "قاعدة تسميات عناقيد Docker Swarm",
+  "Docker Swarm Cluster Name Pattern": "نمط اسم عنقود Docker Swarm",
+  "Docker Swarm Cluster Owner Rule": "قاعدة مالكي عناقيد Docker Swarm",
+  "Docker Swarm Cluster Team Owner": "الفريق المالك لعنقود Docker Swarm",
+  "Docker Swarm Cluster Team Owners": "الفرق المالكة لعناقيد Docker Swarm",
+  "Docker Swarm Cluster User Owner": "المستخدم المالك لعنقود Docker Swarm",
+  "Docker Swarm Cluster User Owners": "المستخدمون المالكون لعناقيد Docker Swarm",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "عناقيد Docker Swarm الخاضعة للمراقبة في هذا المشروع. يُكتشف كل عنقود تلقائيًا عندما يرسل وكيل OneUptime لـ Docker Swarm المقاييس، أو يمكن تسجيله يدويًا."
 }

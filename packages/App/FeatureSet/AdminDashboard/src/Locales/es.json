@@ -495,7 +495,7 @@
       "title": "Cerrar sesión"
     },
     "sendEmail": {
-      "title": "Enviar correo de anuncio",
+      "title": "Enviar correo",
       "testCardTitle": "Enviar correo de prueba",
       "testCardDescription": "Envíe un correo de anuncio de prueba a una sola dirección de correo para previsualizar su aspecto antes de enviarlo a todos los usuarios.",
       "allCardTitle": "Enviar correo a todos los usuarios",
@@ -512,7 +512,7 @@
       "confirmButton": "Sí, enviar a todos los usuarios"
     },
     "moreEmail": {
-      "title": "Enviar correo de anuncio",
+      "title": "Enviar correo",
       "cardTitle": "Enviar correo de anuncio",
       "cardDescription": "Redacte un correo de anuncio para enviar a todos los usuarios registrados. Puede enviar primero un correo de prueba para previsualizar su aspecto.",
       "sendTestButton": "Enviar correo de prueba",
@@ -534,7 +534,7 @@
       "confirmButton": "Sí, enviar a todos los usuarios"
     },
     "settings": {
-      "title": "Ajustes de administrador",
+      "title": "Ajustes",
       "authentication": {
         "signUpCardTitle": "Registro",
         "signUpCardDescription": "Quién puede crear una cuenta en este servidor.",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Da más memoria y CPU a los workers, y busca en el registro de la aplicación las tareas que fallan una y otra vez.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Este servidor ejecuta OneUptime {{current}}. Ya está disponible la {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Haz una copia de seguridad y luego actualiza: npm run update en Docker Compose, helm upgrade en Kubernetes.",
-  "Finish it on the Server setup page.": "Termínalo en la página Configuración del servidor.",
+  "Finish it on the Server Setup page.": "Termínalo en la página Configuración del servidor.",
   "Products on this server": "Productos en este servidor",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Elige qué ofrece cada proyecto de este servidor. Un producto desactivado desaparece del menú, de Inicio y de la búsqueda de cada proyecto, y sus páginas indican que está desactivado.",
   "Start from": "Empezar con",

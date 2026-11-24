@@ -495,7 +495,7 @@
       "title": "Logga ut"
     },
     "sendEmail": {
-      "title": "Skicka kungörelse-e-post",
+      "title": "Skicka e-post",
       "testCardTitle": "Skicka test-e-post",
       "testCardDescription": "Skicka en test-kungörelse-e-post till en enda e-postadress för att förhandsgranska innan du skickar till alla användare.",
       "allCardTitle": "Skicka e-post till alla användare",
@@ -512,7 +512,7 @@
       "confirmButton": "Ja, skicka till alla användare"
     },
     "moreEmail": {
-      "title": "Skicka kungörelse-e-post",
+      "title": "Skicka e-post",
       "cardTitle": "Skicka kungörelse-e-post",
       "cardDescription": "Skriv ett kungörelse-e-postmeddelande att skicka till alla registrerade användare. Du kan skicka en test-e-post först för att förhandsgranska.",
       "sendTestButton": "Skicka test-e-post",
@@ -534,7 +534,7 @@
       "confirmButton": "Ja, skicka till alla användare"
     },
     "settings": {
-      "title": "Admin-inställningar",
+      "title": "Inställningar",
       "authentication": {
         "signUpCardTitle": "Registrering",
         "signUpCardDescription": "Vem som kan skapa ett konto på den här servern.",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Ge workerna mer minne och CPU, och leta i appens logg efter jobb som fortsätter att misslyckas.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Den här servern kör OneUptime {{current}}. {{latest}} har släppts.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Säkerhetskopiera och uppdatera sedan: npm run update på Docker Compose, helm upgrade på Kubernetes.",
-  "Finish it on the Server setup page.": "Slutför det på sidan Serverkonfiguration.",
+  "Finish it on the Server Setup page.": "Slutför det på sidan Serverkonfiguration.",
   "Products on this server": "Produkter på den här servern",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Välj vad varje projekt på den här servern erbjuder. En produkt som är avstängd försvinner från varje projekts meny, Hem och Sök, och dess sidor visar att den är avstängd.",
   "Start from": "Börja med",

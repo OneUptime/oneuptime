@@ -70,7 +70,7 @@
       "logsDescription": "लॉग्स खोजें और विश्लेषण करें।",
       "securityEventsTitle": "सुरक्षा इवेंट",
       "sentinelInsightsDescription": "OneUptime AI की टेलीमेट्री निगरानी से पहले ही मिले निष्कर्ष — नए एक्सेप्शन, स्पाइक, बढ़ती लेटेंसी और मेट्रिक में बहाव।",
-      "sentinelInsightsTitle": "इनसाइट्स",
+      "sentinelInsightsTitle": "एआई इनसाइट्स",
       "securityEventsDescription": "आपके ऑब्ज़र्वेबिलिटी डेटा से जोड़े गए SIEM सिग्नल।",
       "metricsTitle": "मेट्रिक्स",
       "metricsDescription": "अपनी सेवाओं में सिस्टम मेट्रिक्स की निगरानी और विज़ुअलाइज़ करें।",
@@ -130,7 +130,7 @@
       "runbooksDescription": "पुन: प्रयोज्य प्रतिक्रिया प्रक्रियाएँ: मैनुअल चेकलिस्ट या स्क्रिप्ट।",
       "formsTitle": "फ़ॉर्म",
       "formsDescription": "ऐसे फ़ॉर्म जिन्हें कोई भी भर सकता है और जो घटनाएँ या रखरखाव इवेंट बनाते हैं।",
-      "aiChatTitle": "चैट",
+      "aiChatTitle": "AI से पूछें",
       "aiChatDescription": "AI से चैट करें — यह आपके लॉग, ट्रेस, मेट्रिक, घटनाओं, अलर्ट और मॉनिटर से जवाब देता है और हर क्वेरी का हवाला देता है।",
       "usersTitle": "उपयोगकर्ता",
       "usersDescription": "प्रोजेक्ट उपयोगकर्ताओं और आमंत्रणों का प्रबंधन करें।",
@@ -168,8 +168,8 @@
   },
   "userProfile": {
     "label": "उपयोगकर्ता प्रोफ़ाइल",
-    "profile": "प्रोफ़ाइल",
-    "adminSettings": "व्यवस्थापक सेटिंग्स",
+    "profile": "उपयोगकर्ता प्रोफ़ाइल",
+    "adminDashboard": "एडमिन डैशबोर्ड",
     "switchToDarkTheme": "गहरे रंग वाली थीम पर जाएँ",
     "switchToLightTheme": "हल्के रंग वाली थीम पर जाएँ",
     "signOut": "साइन आउट करें"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "यह एक घंटे के भीतर फिर से कोशिश करेगा। जांचें कि {{marketplace}} पर इस प्रोजेक्ट की सदस्यता सक्रिय है, या अभी शेष राशि में पैसे जोड़ें।",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "यह एक घंटे के भीतर फिर से कोशिश करेगा। प्रोजेक्ट सेटिंग्स > बिलिंग और चालान > बिलिंग में भुगतान विधि जांचें, या अभी शेष राशि में पैसे जोड़ें।",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "SMS, कॉल, WhatsApp और Telegram संदेशों का भुगतान इसी शेष राशि से USD में होता है। प्रोजेक्ट स्वामी या 'Manage Billing' अनुमति वाला कोई व्यक्ति इसमें राशि जोड़ सकता है, या ऑटो रिचार्ज चालू कर सकता है ताकि यह कभी खत्म न हो।",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS, कॉल, WhatsApp और Telegram संदेशों का भुगतान इसी शेष राशि से USD में होता है। इसमें राशि जोड़ें, या ऑटो रिचार्ज चालू करें ताकि यह कभी खत्म न हो।"
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS, कॉल, WhatsApp और Telegram संदेशों का भुगतान इसी शेष राशि से USD में होता है। इसमें राशि जोड़ें, या ऑटो रिचार्ज चालू करें ताकि यह कभी खत्म न हो।",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created",
+  "Docker Swarm Cluster Description Pattern": "Docker Swarm Cluster Description Pattern",
+  "Docker Swarm Cluster Label Rule": "Docker Swarm Cluster Label Rule",
+  "Docker Swarm Cluster Name Pattern": "Docker Swarm Cluster Name Pattern",
+  "Docker Swarm Cluster Owner Rule": "Docker Swarm Cluster Owner Rule",
+  "Docker Swarm Cluster Team Owner": "Docker Swarm Cluster Team Owner",
+  "Docker Swarm Cluster Team Owners": "Docker Swarm Cluster Team Owners",
+  "Docker Swarm Cluster User Owner": "Docker Swarm Cluster User Owner",
+  "Docker Swarm Cluster User Owners": "Docker Swarm Cluster User Owners",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered."
 }

@@ -1367,12 +1367,12 @@ describe("the SSO guide", () => {
 });
 
 describe("the Global SSO guide", () => {
-  it("opens the Admin Dashboard from Admin Settings in a master admin's user menu", () => {
+  it("opens the Admin Dashboard from Admin Dashboard in a master admin's user menu", () => {
     expect(readSource("userMenu")).toMatch(
-      /User\.isMasterAdmin\(\) \?\s*\(\s*<IconDropdownItem\s*title=\{t\("userProfile\.adminSettings"\)\}[\s\S]{0,200}?Navigation\.navigate\(ADMIN_DASHBOARD_URL\)/,
+      /User\.isMasterAdmin\(\) \?\s*\(\s*<IconDropdownItem\s*title=\{t\("userProfile\.adminDashboard"\)\}[\s\S]{0,200}?Navigation\.navigate\(ADMIN_DASHBOARD_URL\)/,
     );
     expect(english(GLOBAL_SSO)).toContain(
-      "Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu.",
+      "Sign in as a master admin and choose **Admin Dashboard** in your user menu.",
     );
   });
 

@@ -495,7 +495,7 @@
       "title": "登出"
     },
     "sendEmail": {
-      "title": "傳送公告電子郵件",
+      "title": "傳送電子郵件",
       "testCardTitle": "傳送測試電子郵件",
       "testCardDescription": "在傳送給所有使用者之前,向單一電子郵件地址傳送測試公告電子郵件以預覽其外觀。",
       "allCardTitle": "向所有使用者傳送電子郵件",
@@ -512,7 +512,7 @@
       "confirmButton": "是,傳送給所有使用者"
     },
     "moreEmail": {
-      "title": "傳送公告電子郵件",
+      "title": "傳送電子郵件",
       "cardTitle": "傳送公告電子郵件",
       "cardDescription": "撰寫公告電子郵件以傳送給所有已註冊使用者。您可以先傳送一封測試電子郵件以預覽其外觀。",
       "sendTestButton": "傳送測試電子郵件",
@@ -534,7 +534,7 @@
       "confirmButton": "是,傳送給所有使用者"
     },
     "settings": {
-      "title": "管理員設定",
+      "title": "設定",
       "authentication": {
         "signUpCardTitle": "註冊",
         "signUpCardDescription": "誰可以在此伺服器上建立帳戶。",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "為工作程序分配更多記憶體和 CPU，並在應用程式的日誌中查找反覆失敗的工作。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此伺服器執行的是 OneUptime {{current}}。{{latest}} 已發布。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "先備份，再更新：Docker Compose 上執行 npm run update，Kubernetes 上執行 helm upgrade。",
-  "Finish it on the Server setup page.": "請在「伺服器設定」頁面完成。",
+  "Finish it on the Server Setup page.": "請在「伺服器設定」頁面完成。",
   "Products on this server": "此伺服器上的產品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "選擇此伺服器上每個專案提供的內容。關閉的產品會從每個專案的選單、首頁和搜尋中消失，其頁面會說明它已關閉。",
   "Start from": "從以下方案開始",

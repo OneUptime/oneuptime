@@ -70,7 +70,7 @@
       "logsDescription": "لاگ‌ها را جستجو و تحلیل کنید.",
       "securityEventsTitle": "رویدادهای امنیتی",
       "sentinelInsightsDescription": "یافته‌های پیشگیرانه از پایش تله‌متری توسط OneUptime AI — استثناهای تازه، جهش‌ها، بدتر شدن تأخیر و انحراف متریک‌ها.",
-      "sentinelInsightsTitle": "بینش‌ها",
+      "sentinelInsightsTitle": "بینش‌های هوش مصنوعی",
       "securityEventsDescription": "سیگنال‌های SIEM هم‌بسته با داده‌های مشاهده‌پذیری شما.",
       "metricsTitle": "متریک‌ها",
       "metricsDescription": "متریک‌های سامانه را در همه سرویس‌هایتان پایش و مصورسازی کنید.",
@@ -130,7 +130,7 @@
       "runbooksDescription": "رویه‌های پاسخ قابل استفاده مجدد: فهرست‌های دستی یا اسکریپت‌ها.",
       "formsTitle": "فرم‌ها",
       "formsDescription": "فرم‌هایی که هر کسی می‌تواند پر کند و حادثه یا رویداد تعمیر و نگهداری ایجاد می‌کنند.",
-      "aiChatTitle": "گفتگو",
+      "aiChatTitle": "پرسش از هوش مصنوعی",
       "aiChatDescription": "با هوش مصنوعی گفتگو کنید — از لاگ‌ها، ترِیس‌ها، متریک‌ها، حوادث، هشدارها و مانیتورهای شما پاسخ می‌دهد و برای هر کوئری منبع می‌آورد.",
       "usersTitle": "کاربران",
       "usersDescription": "کاربران و دعوت‌های پروژه را مدیریت کنید.",
@@ -168,8 +168,8 @@
   },
   "userProfile": {
     "label": "پروفایل کاربری",
-    "profile": "پروفایل",
-    "adminSettings": "تنظیمات مدیریت",
+    "profile": "پروفایل کاربری",
+    "adminDashboard": "داشبورد مدیریت",
     "switchToDarkTheme": "تغییر به پوسته تیره",
     "switchToLightTheme": "تغییر به پوسته روشن",
     "signOut": "خروج از حساب"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "ظرف یک ساعت دوباره تلاش می‌کند. بررسی کنید که اشتراک این پروژه در {{marketplace}} فعال باشد، یا همین حالا به موجودی مبلغ اضافه کنید.",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "ظرف یک ساعت دوباره تلاش می‌کند. روش پرداخت را در تنظیمات پروژه > صورت‌حساب و فاکتورها > صورت‌حساب بررسی کنید، یا همین حالا به موجودی مبلغ اضافه کنید.",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "هزینه پیامک‌ها، تماس‌ها و پیام‌های WhatsApp و Telegram از این موجودی و به دلار آمریکا پرداخت می‌شود. مالک پروژه یا کسی که مجوز «Manage Billing» دارد می‌تواند به آن مبلغ اضافه کند، یا شارژ خودکار را روشن کند تا هیچ‌وقت تمام نشود.",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "هزینه پیامک‌ها، تماس‌ها و پیام‌های WhatsApp و Telegram از این موجودی و به دلار آمریکا پرداخت می‌شود. به آن مبلغ اضافه کنید، یا شارژ خودکار را روشن کنید تا هیچ‌وقت تمام نشود."
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "هزینه پیامک‌ها، تماس‌ها و پیام‌های WhatsApp و Telegram از این موجودی و به دلار آمریکا پرداخت می‌شود. به آن مبلغ اضافه کنید، یا شارژ خودکار را روشن کنید تا هیچ‌وقت تمام نشود.",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "پیکربندی قواعدی برای تخصیص خودکار کاربران و تیم‌های مالک هنگام ساخت خوشه‌های Docker Swarm منطبق",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "پیکربندی قواعدی برای چسباندن خودکار برچسب‌ها به خوشه‌های Docker Swarm هنگام ساخت خوشه‌های Docker Swarm منطبق",
+  "Docker Swarm Cluster Description Pattern": "الگوی توضیحات خوشه Docker Swarm",
+  "Docker Swarm Cluster Label Rule": "قاعده برچسب خوشه Docker Swarm",
+  "Docker Swarm Cluster Name Pattern": "الگوی نام خوشه Docker Swarm",
+  "Docker Swarm Cluster Owner Rule": "قاعده مالکیت خوشه Docker Swarm",
+  "Docker Swarm Cluster Team Owner": "تیم مالک خوشه Docker Swarm",
+  "Docker Swarm Cluster Team Owners": "تیم‌های مالک خوشه Docker Swarm",
+  "Docker Swarm Cluster User Owner": "کاربر مالک خوشه Docker Swarm",
+  "Docker Swarm Cluster User Owners": "کاربران مالک خوشه Docker Swarm",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "خوشه‌های Docker Swarm که در این پروژه پایش می‌شوند. هر خوشه وقتی عامل Docker Swarm در OneUptime متریک بفرستد خودکار کشف می‌شود، یا می‌توان آن را دستی ثبت کرد."
 }

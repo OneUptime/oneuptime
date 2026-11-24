@@ -495,7 +495,7 @@
       "title": "تسجيل الخروج"
     },
     "sendEmail": {
-      "title": "إرسال بريد إعلان",
+      "title": "إرسال بريد إلكتروني",
       "testCardTitle": "إرسال بريد اختباري",
       "testCardDescription": "أرسل بريد إعلان اختباريًا إلى عنوان بريد إلكتروني واحد لمعاينة شكله قبل إرساله إلى جميع المستخدمين.",
       "allCardTitle": "إرسال بريد إلى جميع المستخدمين",
@@ -512,7 +512,7 @@
       "confirmButton": "نعم، أرسل إلى جميع المستخدمين"
     },
     "moreEmail": {
-      "title": "إرسال بريد إعلان",
+      "title": "إرسال بريد إلكتروني",
       "cardTitle": "إرسال بريد إعلان",
       "cardDescription": "اكتب بريد إعلان لإرساله إلى جميع المستخدمين المسجلين. يمكنك إرسال بريد اختباري أولًا لمعاينة شكله.",
       "sendTestButton": "إرسال بريد اختباري",
@@ -534,7 +534,7 @@
       "confirmButton": "نعم، أرسل إلى جميع المستخدمين"
     },
     "settings": {
-      "title": "إعدادات المسؤول",
+      "title": "الإعدادات",
       "authentication": {
         "signUpCardTitle": "إنشاء حساب",
         "signUpCardDescription": "من يمكنه إنشاء حساب على هذا الخادم.",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "امنح العمّال ذاكرة ومعالجًا أكثر، وابحث في سجل التطبيق عن المهام التي تفشل مرارًا.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "يعمل هذا الخادم بالإصدار {{current}} من OneUptime. صدر الإصدار {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "خذ نسخة احتياطية، ثم حدّث: npm run update على Docker Compose، وhelm upgrade على Kubernetes.",
-  "Finish it on the Server setup page.": "أكمله في صفحة إعداد الخادم.",
+  "Finish it on the Server Setup page.": "أكمله في صفحة إعداد الخادم.",
   "Products on this server": "المنتجات على هذا الخادم",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "اختر ما يقدّمه كل مشروع على هذا الخادم. المنتج المتوقف يختفي من القائمة والصفحة الرئيسية والبحث في كل مشروع، وتذكر صفحاته أنه متوقف.",
   "Start from": "ابدأ من",

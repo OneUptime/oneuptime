@@ -495,7 +495,7 @@
       "title": "Sign Out"
     },
     "sendEmail": {
-      "title": "Send Announcement Email",
+      "title": "Send Email",
       "testCardTitle": "Send Test Email",
       "testCardDescription": "Send a test announcement email to a single email address to preview how it looks before sending to all users.",
       "allCardTitle": "Send Email to All Users",
@@ -512,7 +512,7 @@
       "confirmButton": "Yes, Send to All Users"
     },
     "moreEmail": {
-      "title": "Send Announcement Email",
+      "title": "Send Email",
       "cardTitle": "Send Announcement Email",
       "cardDescription": "Compose an announcement email to send to all registered users. You can send a test email first to preview how it looks.",
       "sendTestButton": "Send Test Email",
@@ -534,7 +534,7 @@
       "confirmButton": "Yes, Send to All Users"
     },
     "settings": {
-      "title": "Admin Settings",
+      "title": "Settings",
       "authentication": {
         "signUpCardTitle": "Sign Up",
         "signUpCardDescription": "Who can create an account on this server.",
@@ -2523,7 +2523,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "This server runs OneUptime {{current}}. {{latest}} is out.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.",
-  "Finish it on the Server setup page.": "Finish it on the Server setup page.",
+  "Finish it on the Server Setup page.": "Finish it on the Server Setup page.",
   "Products on this server": "Products on this server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.",
   "Start from": "Start from",

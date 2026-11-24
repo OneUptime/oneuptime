@@ -70,7 +70,7 @@
       "logsDescription": "Busca y analiza registros.",
       "securityEventsTitle": "Eventos de seguridad",
       "sentinelInsightsDescription": "Hallazgos proactivos de la vigilancia de telemetría de OneUptime AI — nuevas excepciones, picos, regresiones de latencia y desviaciones de métricas.",
-      "sentinelInsightsTitle": "Hallazgos",
+      "sentinelInsightsTitle": "Hallazgos de IA",
       "securityEventsDescription": "Señales SIEM correlacionadas con tus datos de observabilidad.",
       "metricsTitle": "Métricas",
       "metricsDescription": "Monitorea y visualiza las métricas del sistema en tus servicios.",
@@ -130,7 +130,7 @@
       "runbooksDescription": "Procedimientos de respuesta reutilizables: listas de verificación manuales o scripts.",
       "formsTitle": "Formularios",
       "formsDescription": "Formularios que cualquiera puede rellenar y que crean incidentes o eventos de mantenimiento.",
-      "aiChatTitle": "Chat",
+      "aiChatTitle": "Preguntar a la IA",
       "aiChatDescription": "Chatea con la IA — responde a partir de tus registros, trazas, métricas, incidentes, alertas y monitores, y cita cada consulta.",
       "usersTitle": "Usuarios",
       "usersDescription": "Gestiona los usuarios y las invitaciones del proyecto.",
@@ -168,8 +168,8 @@
   },
   "userProfile": {
     "label": "Perfil de usuario",
-    "profile": "Perfil",
-    "adminSettings": "Ajustes de admin",
+    "profile": "Perfil de usuario",
+    "adminDashboard": "Panel de administración",
     "switchToDarkTheme": "Cambiar al tema oscuro",
     "switchToLightTheme": "Cambiar al tema claro",
     "signOut": "Cerrar sesión"
@@ -63684,5 +63684,16 @@
   "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "Lo vuelve a intentar en menos de una hora. Comprueba que la suscripción de este proyecto en {{marketplace}} esté activa, o añade saldo ahora.",
   "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "Lo vuelve a intentar en menos de una hora. Revisa el método de pago en Ajustes del proyecto > Facturación y facturas > Facturación, o añade saldo ahora.",
   "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "Los SMS, las llamadas y los mensajes de WhatsApp y Telegram se pagan con este saldo, en USD. Un Propietario del proyecto o alguien con el permiso «Manage Billing» puede añadir saldo o activar la recarga automática para que nunca se agote.",
-  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "Los SMS, las llamadas y los mensajes de WhatsApp y Telegram se pagan con este saldo, en USD. Añade saldo o activa la recarga automática para que nunca se agote."
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "Los SMS, las llamadas y los mensajes de WhatsApp y Telegram se pagan con este saldo, en USD. Añade saldo o activa la recarga automática para que nunca se agote.",
+  "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created": "Configura reglas para asignar automáticamente usuarios y equipos propietarios cuando se crean clústeres de Docker Swarm coincidentes",
+  "Configure rules for automatically attaching labels to Docker Swarm clusters when matching Docker Swarm clusters are created": "Configura reglas para asociar automáticamente etiquetas a los clústeres de Docker Swarm cuando se crean clústeres de Docker Swarm coincidentes",
+  "Docker Swarm Cluster Description Pattern": "Patrón de descripción del clúster de Docker Swarm",
+  "Docker Swarm Cluster Label Rule": "Regla de etiquetas del clúster de Docker Swarm",
+  "Docker Swarm Cluster Name Pattern": "Patrón de nombre del clúster de Docker Swarm",
+  "Docker Swarm Cluster Owner Rule": "Regla de propietarios del clúster de Docker Swarm",
+  "Docker Swarm Cluster Team Owner": "Equipo propietario del clúster de Docker Swarm",
+  "Docker Swarm Cluster Team Owners": "Equipos propietarios del clúster de Docker Swarm",
+  "Docker Swarm Cluster User Owner": "Usuario propietario del clúster de Docker Swarm",
+  "Docker Swarm Cluster User Owners": "Usuarios propietarios del clúster de Docker Swarm",
+  "Docker Swarm clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Docker Swarm Agent sends metrics, or can be manually registered.": "Clústeres de Docker Swarm que se monitorean en este proyecto. Cada clúster se descubre automáticamente cuando el agente de Docker Swarm de OneUptime envía métricas, o se puede registrar manualmente."
 }
