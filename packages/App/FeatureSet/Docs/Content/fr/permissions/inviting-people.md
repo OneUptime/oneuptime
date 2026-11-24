@@ -132,8 +132,8 @@ La retirer l'enlève de chaque équipe du projet. Elle perd l'accès aussitôt, 
 
 ## Dépannage
 
-:::details "This user has already been invited to this team"
-La personne est déjà dans cette équipe, comme membre ou avec une invitation qu'elle n'a pas acceptée. Ouvrez-la dans **Utilisateurs** pour voir ses équipes, ou invitez-la dans une autre équipe.
+:::details "This person has already been invited to this team, or is a member of it"
+La personne est déjà dans cette équipe, comme membre ou avec une invitation qu'elle n'a pas acceptée. Ouvrez-la dans **Utilisateurs** pour voir ses équipes, ou invitez-la dans une autre équipe. Si elle n'a pas encore rejoint l'équipe, **Renvoyer l'invitation**, dans le menu de sa ligne, lui renvoie l'e-mail d'invitation.
 :::
 
 :::details "You have reached the user limit for the free plan"

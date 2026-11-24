@@ -258,7 +258,7 @@ describe.each(["single monitor", "linked monitors"] as const)(
       const writes: SyncWrites = mockSync(template, monitor);
 
       await expect(sync(mode, monitor, ["description"])).rejects.toThrow(
-        'Field "description" is not syncable from a monitor template',
+        'A monitor template cannot sync "description". Choose from the template sync settings the template offers, then save again.',
       );
 
       expect(writes.single).not.toHaveBeenCalled();

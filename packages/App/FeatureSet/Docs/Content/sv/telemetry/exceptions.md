@@ -219,6 +219,8 @@ Kontrollera vyn först: **Problem** döljer användarfel och förväntade nekand
 
 :::details Ett fel visas som flera undantag
 Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, eller efter ett meddelande utan dess kort-, Social Security- och telefonnummer, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**. En scrub-regel delar inte ett undantag: det grupperas efter vad det sa innan reglerna kördes. Ett undantag från loggar som en regel delade i två i en tidigare version av OneUptime förblir delat. Så snart en ny förekomst kommer är båda märkta **Uppdelat** i listan över undantag, och sidan för vart och ett nämner det andra: där gör **Slå ihop undantag** dem till ett igen, utan OneUptime AI. Det äldsta av de två behålls, och **Dela upp** ångrar det.
+
+Slå på **Uppdelade av en scrub-regel** bredvid **Tilldelade till mig** för att bara visa de paren: varje par står då en gång i listan, genom undantaget som regeln delade upp, och diagrammet och siffrorna i sidopanelen räknar bara de undantagen. Knappen visas med antalet så länge projektet har ett par att slå ihop, och sparade vyer och länkar behåller den.
 :::
 
 :::details Ett undantags fingeravtryck ändrades

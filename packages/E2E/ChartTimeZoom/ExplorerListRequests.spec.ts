@@ -435,13 +435,15 @@ test.describe("the exceptions explorer reads its list, chart and facets once per
         `${visit}: one facet read`,
       ).toHaveLength(1);
       /*
-       * One count per error class for the Error Class facet, and the
-       * Unresolved tab's badge: six, not eleven.
+       * One count per error class for the Error Class facet, the
+       * Unresolved tab's badge, and the project's exceptions a scrub rule
+       * split, which offers Split by a scrub rule (#11026): seven, not
+       * twelve.
        */
       expect(
         await readsOf(page, "count", "TelemetryException"),
         `${visit}: class counts once`,
-      ).toHaveLength(6);
+      ).toHaveLength(7);
     }
   });
 });

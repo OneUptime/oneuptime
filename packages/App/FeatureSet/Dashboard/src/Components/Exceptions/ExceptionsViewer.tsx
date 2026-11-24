@@ -131,6 +131,7 @@ import {
 import Dictionary from "Common/Types/Dictionary";
 import Search from "Common/Types/BaseDatabase/Search";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ErrorClass, {
   NON_ACTIONABLE_ERROR_CLASSES,
   isNonActionableErrorClass,
@@ -205,7 +206,12 @@ import {
   readEveryMatchingException,
 } from "./ExceptionListRead";
 import {
+  SPLIT_BY_SCRUB_RULE_PARAM,
+  SPLIT_BY_SCRUB_RULE_PARAM_VALUE,
+  countSplitExceptions,
+  getOccurrenceFingerprints,
   idOf,
+  readSplitExceptionFingerprints,
   readSplitPairExceptionIds,
 } from "../../Utils/ExceptionSplitPairs";
 import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
@@ -418,6 +424,11 @@ interface InitialUrlState {
   classScope: ExceptionClassScope | null;
   // `assigned=me`: only the exceptions assigned to the reader.
   assignedToMe: boolean;
+  /*
+   * `split=scrub-rule`: only the exceptions a scrub rule split from another
+   * one (ExceptionSplitPairs, #11026).
+   */
+  splitByScrubRule: boolean;
   // `sort=`: the list's order (ExceptionListSort), last seen by default.
   sort: ExceptionListSort;
   // `savedView=`: the saved view a link opens (ExceptionSavedView).
@@ -527,6 +538,8 @@ function readInitialUrlState(): InitialUrlState {
       : null;
 
   const assignedToMe: boolean = params.get("assigned") === "me";
+  const splitByScrubRule: boolean =
+    params.get(SPLIT_BY_SCRUB_RULE_PARAM) === SPLIT_BY_SCRUB_RULE_PARAM_VALUE;
   const sort: ExceptionListSort = readExceptionListSort(params.get("sort"));
 
   const savedViewRaw: string | null = params.get("savedView");
@@ -542,6 +555,7 @@ function readInitialUrlState(): InitialUrlState {
     status,
     classScope,
     assignedToMe,
+    splitByScrubRule,
     sort,
     savedViewId,
     hasRange,
@@ -681,6 +695,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     !(entityKeysFilter && entityKeysFilter.length > 0);
 
   /*
+   * Split by a scrub rule (#11026) belongs to the Exceptions list itself,
+   * as its saved views do: tidying up the pairs a scrub rule split is a
+   * chore of the whole project, and the list counts the project's pairs to
+   * offer it. A service's or an inventory item's exceptions, and an
+   * event's, are a slice that count would not describe.
+   */
+  const offersSplitFilter: boolean = enableSavedViews;
+
+  /*
    * Parse filter state from the URL once on first mount so refresh and
    * back-from-exception-detail restore the view.
    */
@@ -695,6 +718,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         status: null,
         classScope: null,
         assignedToMe: false,
+        splitByScrubRule: false,
         sort: DEFAULT_EXCEPTION_LIST_SORT,
         savedViewId: null,
         hasRange: false,
@@ -724,6 +748,21 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   const [assignedToMe, setAssignedToMe] = useState<boolean>(
     initialUrlState.assignedToMe,
+  );
+  /*
+   * Split by a scrub rule: only the exceptions a scrub rule split from
+   * another one, each pair once, by its split one (ExceptionSplitPairs).
+   */
+  const [splitByScrubRule, setSplitByScrubRule] = useState<boolean>(
+    offersSplitFilter && initialUrlState.splitByScrubRule,
+  );
+  /*
+   * How many exceptions a scrub rule split the project has, counted once as
+   * the list opens: the filter is offered while there are any. Null while
+   * it is counted, and when the count failed.
+   */
+  const [splitExceptionCount, setSplitExceptionCount] = useState<number | null>(
+    null,
   );
   const [sort, setSort] = useState<ExceptionListSort>(initialUrlState.sort);
   /*
@@ -949,6 +988,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       class: classScope === DEFAULT_EXCEPTION_CLASS_SCOPE ? null : classScope,
       // As `class`: written only off its default, and cleared explicitly.
       assigned: assignedToMe ? "me" : null,
+      [SPLIT_BY_SCRUB_RULE_PARAM]: splitByScrubRule
+        ? SPLIT_BY_SCRUB_RULE_PARAM_VALUE
+        : null,
       sort: sort === DEFAULT_EXCEPTION_LIST_SORT ? null : sort,
       // The saved view picked, so the link opens it; cleared with it.
       savedView: selectedSavedViewId || null,
@@ -964,9 +1006,32 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     defaultStatus,
     classScope,
     assignedToMe,
+    splitByScrubRule,
     sort,
     selectedSavedViewId,
   ]);
+
+  /*
+   * The project's split exceptions, counted once (countSplitExceptions).
+   * Best effort: a count that fails offers no filter, as none does.
+   */
+  useEffect(() => {
+    if (!offersSplitFilter) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void countSplitExceptions().then((count: number | null): void => {
+      if (!isCancelled) {
+        setSplitExceptionCount(count);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [offersSplitFilter]);
 
   // Load services / hosts / docker hosts / k8s clusters once
   useEffect(() => {
@@ -1558,14 +1623,67 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
 
   /*
-   * Whether the reads below wait (issue #4709): for the service names a
-   * `@service:` token resolves against, or for the fingerprints of the
-   * instance scope. Read before, the list, the chart, the facets and the
-   * error-class counts each went out once with a stand-in (every service,
-   * the no-match sentinel) and once more a moment later with the answer.
-   * Now each goes out once, with it.
+   * With Split by a scrub rule on, the chart and the facet counts read the
+   * split exceptions' occurrences only, by their fingerprints
+   * (readSplitExceptionFingerprints): read once, the first time it is on.
+   * Null until they are in.
    */
-  const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;
+  const [splitFingerprints, setSplitFingerprints] =
+    useState<Array<string> | null>(null);
+
+  useEffect(() => {
+    if (!splitByScrubRule || splitFingerprints !== null) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void readSplitExceptionFingerprints().then(
+      (fingerprints: Array<string>): void => {
+        if (!isCancelled) {
+          setSplitFingerprints(fingerprints);
+        }
+      },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [splitByScrubRule, splitFingerprints]);
+
+  const isResolvingSplitScope: boolean =
+    splitByScrubRule && splitFingerprints === null;
+
+  /*
+   * The fingerprints the chart and the facet counts read occurrences of
+   * (getOccurrenceFingerprints): the instance scope's, within the split
+   * exceptions' while Split by a scrub rule is on. Null when neither
+   * narrows them.
+   */
+  const occurrenceFingerprints: Array<string> | null = useMemo(() => {
+    return getOccurrenceFingerprints({
+      scopeFingerprints: instanceScopeKey
+        ? resolvedScopeFingerprints || []
+        : null,
+      splitFingerprints: splitByScrubRule ? splitFingerprints || [] : null,
+    });
+  }, [
+    instanceScopeKey,
+    resolvedScopeFingerprints,
+    splitByScrubRule,
+    splitFingerprints,
+  ]);
+
+  /*
+   * Whether the reads below wait (issue #4709): for the service names a
+   * `@service:` token resolves against, for the fingerprints of the
+   * instance scope, or for the split exceptions'. Read before, the list,
+   * the chart, the facets and the error-class counts each went out once
+   * with a stand-in (every service, the no-match sentinel) and once more a
+   * moment later with the answer. Now each goes out once, with it.
+   */
+  const holdsReads: boolean =
+    isWaitingForServiceNames || isResolvingScope || isResolvingSplitScope;
 
   /*
    * The Exceptions pages' first steps: shown while the list is empty, nothing
@@ -1603,6 +1721,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     // Assigned to me: the reader's own, the ones assigned to them by name.
     if (assignedToMe) {
       q.assignToUserId = UserUtil.getUserId();
+    }
+
+    /*
+     * Split by a scrub rule: each pair once, by its split one, whose page
+     * offers Merge Exceptions (ExceptionSplitPairs). A merged pair is left
+     * out by the server, as every merged exception is.
+     */
+    if (splitByScrubRule) {
+      (q as Record<string, unknown>)["splitFromTelemetryExceptionId"] =
+        new NotNull();
     }
 
     if (status === "unresolved") {
@@ -1722,6 +1850,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     primaryEntityId,
     status,
     assignedToMe,
+    splitByScrubRule,
     columnLiterals,
     errorClassClause,
     resourceIds,
@@ -1932,12 +2061,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     /*
      * Instance scope: the endpoint has no attribute dimension and takes
      * literal lists only, but it accepts `fingerprints` — the resolved scope
-     * is what carries an attribute or wildcard filter to the chart.
+     * is what carries an attribute or wildcard filter to the chart. So does
+     * Split by a scrub rule, which the occurrences know nothing of: the
+     * split exceptions' fingerprints (getOccurrenceFingerprints), a bounded
+     * list unlike the class lens's, so the chart counts what the list lists.
      */
-    if (instanceScopeKey) {
+    if (occurrenceFingerprints) {
       payload["fingerprints"] =
-        resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
-          ? resolvedScopeFingerprints
+        occurrenceFingerprints.length > 0
+          ? occurrenceFingerprints
           : [NO_MATCH_FINGERPRINT];
     }
 
@@ -1970,8 +2102,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resolvedServices,
     parsedSearch,
     primaryEntityId,
-    instanceScopeKey,
-    resolvedScopeFingerprints,
+    occurrenceFingerprints,
     exclusions,
   ]);
 
@@ -2184,11 +2315,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       if (Object.keys(facetSearchTextActive).length > 0) {
         payload["facetSearchText"] = facetSearchTextActive;
       }
-      // The instance scope narrows facet counts too (see fetchHistogram).
-      if (instanceScopeKey) {
+      /*
+       * The instance scope and Split by a scrub rule narrow the facet
+       * counts too (see fetchHistogram).
+       */
+      if (occurrenceFingerprints) {
         payload["fingerprints"] =
-          resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
-            ? resolvedScopeFingerprints
+          occurrenceFingerprints.length > 0
+            ? occurrenceFingerprints
             : [NO_MATCH_FINGERPRINT];
       }
 
@@ -2236,8 +2370,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     parsedSearch,
     primaryEntityId,
     facetSearchText,
-    instanceScopeKey,
-    resolvedScopeFingerprints,
+    occurrenceFingerprints,
   ]);
 
   useEffect(() => {
@@ -2737,6 +2870,53 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </button>
   );
 
+  /*
+   * Split by a scrub rule, beside Assigned to me and drawn as it is, with
+   * how many the project has (ExceptionSplitPairs, #11026). Only a project
+   * whose scrub rules split exceptions before #10434 has any, so it shows
+   * only while the count says there are some: never while it is counted,
+   * nor when the count failed. Or while it is on, which a link or a saved
+   * view can ask for when there are none: the list is then never narrowed
+   * to nothing by a filter nobody can see, and the toggle, pressed, with
+   * its 0, says why and is the one control that widens it again.
+   */
+  const showsSplitToggle: boolean =
+    offersSplitFilter && (splitByScrubRule || (splitExceptionCount || 0) > 0);
+
+  const splitByScrubRuleToggle: ReactElement = showsSplitToggle ? (
+    <button
+      type="button"
+      aria-pressed={splitByScrubRule}
+      data-testid="exceptions-split-by-scrub-rule"
+      title={translator.translateText(
+        "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.",
+      )}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+        splitByScrubRule
+          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+          : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
+      }`}
+      onClick={() => {
+        setSplitByScrubRule(!splitByScrubRule);
+        setPage(1);
+      }}
+    >
+      {translator.translateText("Split by a scrub rule")}
+      {splitExceptionCount !== null ? (
+        <span
+          data-testid="exceptions-split-by-scrub-rule-count"
+          className="font-semibold tabular-nums"
+        >
+          {translator.formatNumber(splitExceptionCount)}
+        </span>
+      ) : (
+        <></>
+      )}
+    </button>
+  ) : (
+    <></>
+  );
+
   const sortMenu: ReactElement = (
     <MoreMenu
       text={translator.translateTemplate("Sort: {{order}}", {
@@ -2771,9 +2951,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   /*
    * SAVED VIEWS (ExceptionSavedView, Utils/ExceptionSavedView): the list as
    * someone left it - search, filters, window, status, lens, Assigned to
-   * me, order, page size - saved for the project, applied from the
-   * toolbar, and opened by its link (`savedView=`), as in the traces
-   * explorer.
+   * me, Split by a scrub rule, order, page size - saved for the project,
+   * applied from the toolbar, and opened by its link (`savedView=`), as in
+   * the traces explorer.
    */
   const savedViewDefaults: ExceptionsListViewDefaults = useMemo(() => {
     return {
@@ -2798,6 +2978,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     initialUrlState.status !== null ||
     initialUrlState.classScope !== null ||
     initialUrlState.assignedToMe ||
+    initialUrlState.splitByScrubRule ||
     initialUrlState.sort !== DEFAULT_EXCEPTION_LIST_SORT;
 
   // What the link said besides the view it named, laid over that view.
@@ -2815,6 +2996,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         status: initialUrlState.status,
         classScope: initialUrlState.classScope,
         assignedToMe: initialUrlState.assignedToMe,
+        splitByScrubRule: initialUrlState.splitByScrubRule,
         sort: initialUrlState.sort,
       });
     }, [initialUrlState]);
@@ -2831,6 +3013,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         status,
         classScope,
         assignedToMe,
+        splitByScrubRule,
         sort,
       });
     }, [
@@ -2841,6 +3024,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       status,
       classScope,
       assignedToMe,
+      splitByScrubRule,
       sort,
     ]);
 
@@ -2875,10 +3059,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setStatus(view.status);
         setClassScope(view.classScope);
         setAssignedToMe(view.assignedToMe);
+        setSplitByScrubRule(offersSplitFilter && view.splitByScrubRule);
         setSort(view.sort);
         setPage(1);
       },
-      [savedViewDefaults],
+      [savedViewDefaults, offersSplitFilter],
     );
 
   const savedViewsControl: ReactElement = enableSavedViews ? (
@@ -2904,6 +3089,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       {statusPills}
       {classPills}
       {assignedToMeToggle}
+      {splitByScrubRuleToggle}
       {sortMenu}
     </div>
   );

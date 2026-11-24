@@ -219,6 +219,8 @@ Prüfen Sie zuerst die Ansicht: **Probleme** blendet Benutzerfehler und erwartet
 
 :::details Ein Fehler erscheint als mehrere Ausnahmen
 Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme. Neue Ausnahmen werden stattdessen nach den Funktionen Ihres eigenen Codes gruppiert oder nach einer Nachricht ohne Karten-, Sozialversicherungs- und Telefonnummern, das betrifft also vor allem früher erfasste Ausnahmen; führen Sie zwei, die derselbe Fehler sind, über **Ähnliche Ausnahmen** zusammen. Eine Scrub-Regel teilt keine Ausnahme: Sie wird danach gruppiert, was sie vor den Regeln enthielt. Eine Ausnahme aus Protokollen, die eine Regel in einer früheren Version von OneUptime in zwei geteilt hat, bleibt geteilt. Sobald ein neues Vorkommen eintrifft, sind beide in der Ausnahmenliste als **Abgespalten** markiert, und die Seite jeder der beiden nennt die andere: **Ausnahmen zusammenführen** macht dort wieder eine daraus, ohne OneUptime AI. Die ältere der beiden bleibt erhalten, und **Trennen** macht es rückgängig.
+
+Um nur diese Paare aufzulisten, schalten Sie **Von einer Scrub-Regel abgespalten** neben **Mir zugewiesen** ein: Jedes Paar steht dann einmal in der Liste, mit der Ausnahme, die die Regel abgespalten hat, und das Diagramm und die Zahlen in der Seitenleiste zählen nur diese Ausnahmen. Der Schalter erscheint mit ihrer Anzahl, solange das Projekt noch ein Paar zusammenzuführen hat, und gespeicherte Ansichten und Links behalten ihn bei.
 :::
 
 :::details Der Fingerabdruck einer Ausnahme hat sich geändert

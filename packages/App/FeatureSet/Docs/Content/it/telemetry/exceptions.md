@@ -219,6 +219,8 @@ Controllate prima la vista: **Problemi** nasconde gli errori degli utenti e i ri
 
 :::details Un errore compare come più eccezioni
 L'impronta include il messaggio e lo stack trace. Quando differiscono, ad esempio quando un messaggio contiene un numero breve o un nome che cambia a ogni chiamata, ogni variante è un'eccezione a sé. Le nuove eccezioni vengono invece raggruppate per le funzioni del vostro codice, o per un messaggio senza i suoi numeri di carta, di previdenza sociale e di telefono, quindi questo riguarda soprattutto le eccezioni registrate prima; unitene due che sono lo stesso bug da **Eccezioni simili**. Una regola di mascheramento non divide un'eccezione: viene raggruppata in base a ciò che diceva prima delle regole. Un'eccezione trovata nei log che una regola ha diviso in due in una versione precedente di OneUptime resta divisa. Appena arriva una nuova occorrenza, entrambe sono segnate come **Separata** nell'elenco delle eccezioni, e la pagina di ciascuna nomina l'altra: lì **Unisci eccezioni** le riunisce in una sola, senza OneUptime AI. Viene mantenuta la più vecchia delle due, e **Separa** annulla l'unione.
+
+Per elencare solo queste coppie, attivate **Separate da una regola di mascheramento** accanto a **Assegnate a me**: ogni coppia compare allora una sola volta, con l'eccezione che la regola ha separato, e il grafico e i conteggi della barra laterale contano solo quelle eccezioni. Il pulsante compare con il loro numero finché il progetto ha una coppia da unire, e le viste salvate e i link lo conservano.
 :::
 
 :::details L'impronta di un'eccezione è cambiata

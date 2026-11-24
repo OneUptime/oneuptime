@@ -1,7 +1,12 @@
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
+import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { MAX_SCOPED_FINGERPRINTS } from "./ExceptionsAttributeScope";
 
 /*
  * WHICH EXCEPTIONS OF A LIST ARE A PAIR A SCRUB RULE SPLIT (#10897).
@@ -184,4 +189,170 @@ export async function readSplitPairExceptionIds(
   } catch {
     return new Set<string>();
   }
+}
+
+/*
+ * THE LIST'S FILTER FOR THEM: SPLIT BY A SCRUB RULE (#11026).
+ *
+ * The Split pill marks each pair as a person scrolls; the filter lists only
+ * them. It lists each pair once, by its split one: the exception the rule's
+ * occurrences went to, which records the pair
+ * (splitFromTelemetryExceptionId) and whose page offers Merge Exceptions.
+ * As every list read, merged exceptions and former fingerprints are left
+ * out by the server (hideMergedExceptions), so a pair is no longer listed
+ * once it is merged.
+ *
+ * Only a project that has such an exception needs the filter, and only
+ * projects whose scrub rules split exceptions before #10434 have one: the
+ * list counts them once as it opens, by the column's partial index, and
+ * offers the filter while there are any, or while a link or a saved view
+ * asks for it.
+ */
+
+// The URL's word for the filter: `split=scrub-rule`, as `assigned=me`.
+export const SPLIT_BY_SCRUB_RULE_PARAM: string = "split";
+export const SPLIT_BY_SCRUB_RULE_PARAM_VALUE: string = "scrub-rule";
+
+/*
+ * The exceptions the filter lists and the count counts: the project's split
+ * ones, in any state, last seen at any time.
+ */
+export function getSplitExceptionsQuery(): Query<TelemetryException> {
+  const query: Query<TelemetryException> = {};
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  if (projectId) {
+    query.projectId = projectId;
+  }
+
+  (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] =
+    new NotNull();
+
+  return query;
+}
+
+/*
+ * How many exceptions the filter can list: the project's unmerged split
+ * ones, counted once. Null when the count fails: the list then offers no
+ * filter, as it offers none to a project that has no split pair.
+ */
+export async function countSplitExceptions(): Promise<number | null> {
+  try {
+    return await ModelAPI.count<TelemetryException>({
+      modelType: TelemetryException,
+      query: getSplitExceptionsQuery(),
+    });
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * What the chart's narrowing reads of the split ones, and of the exceptions
+ * merged into them.
+ */
+export const SPLIT_FINGERPRINT_SELECT: {
+  _id: true;
+  fingerprint: true;
+} = {
+  _id: true,
+  fingerprint: true,
+};
+
+function fingerprintOf(exception: TelemetryException): string {
+  return exception.fingerprint?.toString() || "";
+}
+
+/*
+ * The fingerprints of the occurrences the filtered list counts: its split
+ * ones', and those of the exceptions merged into them, whose occurrences
+ * keep their own fingerprint and count there (TelemetryExceptionMerge).
+ *
+ * The chart and the facet counts above the list read occurrences
+ * (ExceptionInstance), which know nothing of the pair. With the filter on
+ * they are narrowed by these, as an attribute filter narrows them
+ * (ExceptionsAttributeScope), so they count what the list lists. Two reads,
+ * once: the split ones by their column's partial index, the exceptions
+ * merged into them by the merge column's index. The split ones are few
+ * (only rules from before #10434 split exceptions), and at most
+ * MAX_SCOPED_FINGERPRINTS are read. Empty when a read fails: the chart then
+ * counts nothing, rather than every exception under a filter that says
+ * otherwise.
+ */
+export async function readSplitExceptionFingerprints(): Promise<Array<string>> {
+  try {
+    const splitOnes: ListResult<TelemetryException> =
+      await ModelAPI.getList<TelemetryException>({
+        modelType: TelemetryException,
+        query: getSplitExceptionsQuery(),
+        select: SPLIT_FINGERPRINT_SELECT,
+        limit: MAX_SCOPED_FINGERPRINTS,
+        skip: 0,
+        sort: { _id: SortOrder.Ascending },
+      });
+
+    const splitIds: Array<string> = Array.from(
+      new Set<string>(
+        (splitOnes.data || []).map(idOf).filter((id: string): boolean => {
+          return id.length > 0;
+        }),
+      ),
+    );
+
+    const mergedIn: ListResult<TelemetryException> | null =
+      splitIds.length > 0
+        ? await ModelAPI.getList<TelemetryException>({
+            modelType: TelemetryException,
+            query: {
+              mergedIntoTelemetryExceptionId: new Includes(splitIds),
+            },
+            select: SPLIT_FINGERPRINT_SELECT,
+            limit: MAX_SCOPED_FINGERPRINTS,
+            skip: 0,
+            sort: { _id: SortOrder.Ascending },
+          })
+        : null;
+
+    return Array.from(
+      new Set<string>(
+        [...(splitOnes.data || []), ...(mergedIn?.data || [])]
+          .map(fingerprintOf)
+          .filter((fingerprint: string): boolean => {
+            return fingerprint.length > 0;
+          }),
+      ),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/*
+ * The fingerprints the chart and the facet counts read occurrences of. An
+ * instance scope's (an attribute filter, an entity key or a host's stored
+ * query: null when there is none), within the split ones' while the filter
+ * is on (null while it is off). Null when nothing narrows them. Empty when
+ * the two have none in common, or a read found none: the caller then sends
+ * the no-match sentinel, as for an instance scope that matched nothing.
+ * Pure, for the tests.
+ */
+export function getOccurrenceFingerprints(input: {
+  scopeFingerprints: ReadonlyArray<string> | null;
+  splitFingerprints: ReadonlyArray<string> | null;
+}): Array<string> | null {
+  if (input.splitFingerprints === null) {
+    return input.scopeFingerprints === null
+      ? null
+      : [...input.scopeFingerprints];
+  }
+
+  if (input.scopeFingerprints === null) {
+    return [...input.splitFingerprints];
+  }
+
+  const split: Set<string> = new Set<string>(input.splitFingerprints);
+
+  return input.scopeFingerprints.filter((fingerprint: string): boolean => {
+    return split.has(fingerprint);
+  });
 }

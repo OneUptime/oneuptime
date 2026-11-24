@@ -219,6 +219,8 @@ Tjek først visningen: **Problemer** skjuler brugerfejl og forventede afvisninge
 
 :::details Én fejl vises som flere undtagelser
 Fingeraftrykket omfatter beskeden og stack trace. Når de er forskellige, for eksempel når en besked indeholder et kort tal eller et navn, der ændrer sig ved hvert kald, er hver variant sin egen undtagelse. Nye undtagelser grupperes i stedet efter funktionerne i din egen kode eller efter en besked uden dens kort-, socialsikrings- og telefonnumre, så det gælder mest undtagelser registreret før; flet to, der er den samme fejl, fra **Lignende undtagelser**. En scrub-regel deler ikke en undtagelse: den grupperes efter det, den sagde, før reglerne kørte. En undtagelse fundet i logposter, som en regel delte i to i en tidligere version af OneUptime, forbliver to. Så snart en ny forekomst kommer, er begge markeret **Delt** på listen over undtagelser, og hver af dem nævner den anden på sin side: dér gør **Flet undtagelser** dem til én igen, uden OneUptime AI. Den ældste af de to beholdes, og **Fjern fletning** gør det om.
+
+Slå **Delt af en scrub-regel** ved siden af **Tildelt til mig** til for kun at vise disse par: hvert par står så én gang på listen, ved den undtagelse, reglen delte fra, og diagrammet og tallene i sidepanelet tæller kun de undtagelser. Knappen vises med antallet, så længe projektet har et par at flette, og gemte visninger og links husker den.
 :::
 
 :::details En undtagelses fingeraftryk ændrede sig

@@ -56,7 +56,8 @@ export default interface TelemetrySavedViewState {
   explorerConfig?: JSONObject | undefined;
   /*
    * Exceptions list: what it shows besides the search, filters and window,
-   * as it writes them in its address bar (status, class, assigned, sort).
+   * as it writes them in its address bar (status, class, assigned, split,
+   * sort).
    * Read them with readExceptionsSavedViewState (Dashboard
    * Utils/ExceptionSavedView), which drops a value the list does not know.
    * Each its own field, as the other explorers' are, so a link that names
@@ -68,6 +69,12 @@ export default interface TelemetrySavedViewState {
   exceptionClassScope?: string | undefined;
   // Only the exceptions assigned to whoever applies the view.
   exceptionAssignedToMe?: boolean | undefined;
+  /*
+   * Only the exceptions a scrub rule split from another one (Split by a
+   * scrub rule, `split=scrub-rule`). A view saved before it opens with it
+   * off.
+   */
+  exceptionSplitByScrubRule?: boolean | undefined;
   // An ExceptionListSort: "last-seen", "first-seen" or "most-events".
   exceptionSort?: string | undefined;
 }

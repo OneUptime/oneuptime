@@ -508,7 +508,7 @@ describe("nobody connects a Slack or Microsoft Teams account through the API", (
     });
 
     expect(error?.message).toBe(
-      "create on Workspace User Auth Token is not allowed.",
+      "Workspace User Auth Token records cannot be created through the Dashboard or the API: OneUptime keeps them itself.",
     );
   });
 

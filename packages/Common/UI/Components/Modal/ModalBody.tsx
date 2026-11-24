@@ -2,6 +2,9 @@ import Alert, { AlertType } from "../Alerts/Alert";
 import ErrorExplanation, {
   isUnexplainedErrorMessage,
 } from "../ErrorMessage/ErrorExplanation";
+import { sayRefusalWithValues } from "../../Utils/ErrorInSentence";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -22,10 +25,19 @@ export interface ComponentProps {
  * whatever came first (Start Packet Capture's red refusal sat on its yellow
  * notice, two banners read as one). The Modal brings it into view when it
  * appears.
+ *
+ * A refusal with values in it - a monitor's type beside a template's, a
+ * setting a template does not sync - is said in the reader's language
+ * around its values (sayRefusalWithValues, #7711): the Alert looks its title
+ * up whole, and such a refusal is no key once its values are in.
  */
 const ModalBody: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const refusal: string | null = sayRefusalWithValues(props.error, translator);
+
   return (
     <div className="modal-body">
       {props.error && (
@@ -37,7 +49,7 @@ const ModalBody: FunctionComponent<ComponentProps> = (
                 whatFailed={props.whatFailed}
               />
             ) : (
-              props.error
+              refusal ?? props.error
             )
           }
           type={AlertType.DANGER}

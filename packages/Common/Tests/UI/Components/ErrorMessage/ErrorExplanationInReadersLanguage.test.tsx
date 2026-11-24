@@ -1,8 +1,14 @@
 import ErrorExplanation from "../../../../UI/Components/ErrorMessage/ErrorExplanation";
+import NewVersion, {
+  NewVersionAudience,
+} from "../../../../UI/Utils/NewVersion/NewVersion";
 import {
+  getExplanationWords,
   getUnexplainedServerErrorMessage,
   SERVER_DOWN_MESSAGE,
   UNEXPLAINED_ERROR_MESSAGES,
+  UnexplainedErrorExplanation,
+  UnexplainedErrorKind,
   UnexplainedErrorWords,
 } from "../../../../Types/Exception/UnexplainedError";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
@@ -26,12 +32,16 @@ import {
 /*
  * AN ERROR NOBODY EXPLAINED, IN THE READER'S LANGUAGE (#6836).
  *
- * The Dashboard, Accounts (the sign-in pages) and the Admin Dashboard each
- * draw ErrorExplanation, and each looks its words up in its own locale. Each
- * app's locale files are read here, as the app ships them, and every kind
- * of unexplained error is drawn in every language the app offers - as a
- * master admin of a self-hosted server, who reads the most of it: none of
- * its English sentences is left on the page, and the reference is drawn as
+ * The Dashboard, Accounts (the sign-in pages), the Admin Dashboard, the
+ * status page and the public dashboard each draw ErrorExplanation (a form's
+ * alert, a list that did not load, the page that did not load), and each
+ * looks its words up in its own locale. Each app's locale files are read
+ * here, as the app ships them, and every kind of unexplained error is drawn
+ * in every language the app offers - for the people who use OneUptime as a
+ * master admin of a self-hosted server, who reads the most of it, and for
+ * a status page's or a public dashboard's visitor as a visitor, who is told
+ * to try again and nothing about the server's logs (#7274): none of its
+ * English sentences is left on the page, and the reference is drawn as
  * written.
  */
 
@@ -62,10 +72,28 @@ jest.mock("../../../../UI/Utils/User", () => {
   };
 });
 
-type App = "Accounts" | "AdminDashboard" | "Dashboard";
+type App =
+  | "Accounts"
+  | "AdminDashboard"
+  | "Dashboard"
+  | "StatusPage"
+  | "PublicDashboard";
 type Words = Record<string, unknown>;
 
-const APPS: Array<App> = ["Dashboard", "Accounts", "AdminDashboard"];
+const APPS: Array<App> = [
+  "Dashboard",
+  "Accounts",
+  "AdminDashboard",
+  "StatusPage",
+  "PublicDashboard",
+];
+
+// The apps a visitor reads, who never chose OneUptime (NewVersion's audience).
+const VISITOR_APPS: ReadonlyArray<App> = ["StatusPage", "PublicDashboard"];
+
+const isVisitorApp: (app: App) => boolean = (app: App): boolean => {
+  return VISITOR_APPS.includes(app);
+};
 
 const LANGUAGES: Array<string> = [
   "de",
@@ -131,6 +159,42 @@ const ENGLISH_SENTENCES: Array<string> = Object.values(
   return !words.includes("{{");
 });
 
+/*
+ * The sentences a visitor can read: the first line, and why and what to do
+ * next for every kind, on OneUptime Cloud and on a server somebody runs -
+ * read from getExplanationWords, so a new one for visitors is a key their
+ * apps need too. Never where to look, nor the reference's next step, which
+ * names whoever runs the server.
+ */
+const VISITOR_SENTENCES: Array<string> = Array.from(
+  new Set<string>([
+    UnexplainedErrorWords.didNotFinish,
+    ...Object.values(UnexplainedErrorKind).flatMap(
+      (kind: UnexplainedErrorKind): Array<string> => {
+        return [true, false].flatMap((isCloud: boolean): Array<string> => {
+          const words: UnexplainedErrorExplanation = getExplanationWords({
+            error: { kind: kind, reference: null },
+            isCloud: isCloud,
+            isMasterAdmin: true,
+            isVisitor: true,
+          });
+
+          return [words.why, words.next, words.whereToLook].filter(
+            (sentence: string | null): sentence is string => {
+              return Boolean(sentence);
+            },
+          );
+        });
+      },
+    ),
+  ]),
+);
+
+// What each app's reader can read, as its locales must word it.
+const sentencesOf: (app: App) => Array<string> = (app: App): Array<string> => {
+  return isVisitorApp(app) ? VISITOR_SENTENCES : ENGLISH_SENTENCES;
+};
+
 const REFERENCE: string = "a1b2c3d4";
 
 const MESSAGES: Array<string> = [
@@ -158,6 +222,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
+  NewVersion.reset();
 });
 
 afterAll(async () => {
@@ -169,6 +234,13 @@ describe.each(APPS)("%s", (app: App) => {
     "in %s, says none of it in English",
     async (language: string) => {
       await readIn(app, language);
+
+      NewVersion.start({
+        audience: isVisitorApp(app)
+          ? NewVersionAudience.Visitors
+          : NewVersionAudience.Members,
+        firstCheckDelayInMs: 24 * 60 * 60 * 1000,
+      });
 
       for (const message of MESSAGES) {
         const { container, unmount } = render(
@@ -197,6 +269,13 @@ describe.each(APPS)("%s", (app: App) => {
           expect(text).toContain(REFERENCE);
         }
 
+        if (isVisitorApp(app)) {
+          // A visitor is never told where the server's logs are.
+          expect(
+            container.querySelector("[data-testid='error-where-to-look']"),
+          ).toBeNull();
+        }
+
         unmount();
       }
     },
@@ -208,7 +287,11 @@ describe.each(APPS)("%s", (app: App) => {
 
       for (const key of [
         ...Object.values(UNEXPLAINED_ERROR_MESSAGES),
-        ...ENGLISH_SENTENCES,
+        ...sentencesOf(app),
+        // What a page was doing, said first ("The monitor was not saved.").
+        UnexplainedErrorWords.createFailed,
+        UnexplainedErrorWords.saveFailed,
+        UnexplainedErrorWords.loadFailed,
       ]) {
         expect({ language, key, has: typeof words[key] === "string" }).toEqual({
           language,
@@ -218,4 +301,44 @@ describe.each(APPS)("%s", (app: App) => {
       }
     }
   });
+});
+
+describe("a visitor's apps", () => {
+  test("read only what a visitor can read, never where to look", () => {
+    expect(VISITOR_SENTENCES).toContain(UnexplainedErrorWords.serverNext);
+    expect(VISITOR_SENTENCES).toContain(UnexplainedErrorWords.unreachableWhy);
+
+    for (const memberOnly of [
+      UnexplainedErrorWords.serverNextWithReferenceCloud,
+      UnexplainedErrorWords.serverNextWithReferenceSelfHosted,
+      UnexplainedErrorWords.adminWhereToLookWithReference,
+      UnexplainedErrorWords.adminWhereToLook,
+      UnexplainedErrorWords.serverDownWhereToLook,
+      UnexplainedErrorWords.tooLargeWhereToLook,
+    ]) {
+      expect(VISITOR_SENTENCES).not.toContain(memberOnly);
+    }
+  });
+
+  test.each(VISITOR_APPS as Array<App>)(
+    "%s words each sentence as the Dashboard does",
+    (app: App) => {
+      for (const language of LANGUAGES) {
+        const words: Words = wordsOf(app, language);
+        const dashboard: Words = wordsOf("Dashboard", language);
+
+        for (const key of [
+          ...Object.values(UNEXPLAINED_ERROR_MESSAGES),
+          ...VISITOR_SENTENCES,
+        ]) {
+          expect({ app, language, key, words: words[key] }).toEqual({
+            app,
+            language,
+            key,
+            words: dashboard[key],
+          });
+        }
+      }
+    },
+  );
 });

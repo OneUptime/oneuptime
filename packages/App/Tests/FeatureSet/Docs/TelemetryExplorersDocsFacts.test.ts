@@ -3179,6 +3179,70 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   /*
+   * The list's filter for those pairs (#11026): beside Assigned to me, only
+   * while the project has a split exception left to merge, with how many;
+   * each pair once, by the one the rule split off; the chart and the
+   * sidebar's counts narrowed with it; kept by saved views and links.
+   */
+  it("lists only the pairs a scrub rule split, beside Assigned to me, while the project has one to merge", () => {
+    const viewer: string = exceptionsViewer.replace(/\s+/g, " ");
+    const splitPairs: string = readDashboardSource(
+      "Utils/ExceptionSplitPairs.ts",
+    ).replace(/\s+/g, " ");
+    const savedView: string = readDashboardSource(
+      "Utils/ExceptionSavedView.ts",
+    );
+    const exceptionService: string = readCommonSource(
+      "Server/Services/TelemetryExceptionService.ts",
+    ).replace(/\s+/g, " ");
+    const troubleshooting: string = section(page, "## Troubleshooting");
+
+    expect(troubleshooting).toContain(
+      "**Unmerge** undoes it.\n\nTo list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many, and saved views and links keep it.\n:::",
+    );
+
+    // Its words, right after Assigned to me, with how many.
+    expect(viewer).toContain(
+      'translator.translateText("Split by a scrub rule")',
+    );
+    expect(viewer).toContain("{assignedToMeToggle} {splitByScrubRuleToggle}");
+    expect(viewer).toContain("translator.formatNumber(splitExceptionCount)");
+    // While the project has one: counted once, merged ones left out.
+    expect(viewer).toContain(
+      "offersSplitFilter && (splitByScrubRule || (splitExceptionCount || 0) > 0);",
+    );
+    expect(splitPairs).toContain(
+      'const query: Query<TelemetryException> = {}; const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId(); if (projectId) { query.projectId = projectId; } (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
+    );
+    expect(splitPairs).toContain(
+      "return await ModelAPI.count<TelemetryException>({ modelType: TelemetryException, query: getSplitExceptionsQuery(), });",
+    );
+    expect(exceptionService).toContain(
+      "countBy.query = await this.addExceptionScope( Service.hideMergedExceptions(",
+    );
+    // Each pair once, by the exception the rule split off.
+    expect(viewer).toContain(
+      'if (splitByScrubRule) { (q as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull(); }',
+    );
+    // The chart and the sidebar's counts: the split ones' occurrences only.
+    expect(viewer).toContain(
+      "splitFingerprints: splitByScrubRule ? splitFingerprints || [] : null,",
+    );
+    expect(
+      viewer.match(
+        /if \(occurrenceFingerprints\) \{ payload\["fingerprints"\]/g,
+      ),
+    ).toHaveLength(2);
+    // Saved views and links keep it.
+    expect(savedView).toContain(
+      "exceptionSplitByScrubRule: state.splitByScrubRule,",
+    );
+    expect(viewer).toContain(
+      "[SPLIT_BY_SCRUB_RULE_PARAM]: splitByScrubRule ? SPLIT_BY_SCRUB_RULE_PARAM_VALUE : null,",
+    );
+  });
+
+  /*
    * An exception moved to a private fingerprint (#10619): on its next
    * occurrence a rule changed, when its fingerprint hashes what the rule
    * hid; the occurrences from before keep the old one until their retention
