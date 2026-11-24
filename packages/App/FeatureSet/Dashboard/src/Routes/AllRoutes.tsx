@@ -38,6 +38,7 @@ export { default as PodmanRoutes } from "./PodmanRoutes";
 export { default as ProxmoxRoutes } from "./ProxmoxRoutes";
 export { default as OpenStackRoutes } from "./OpenStackRoutes";
 export { default as VMwareRoutes } from "./VMwareRoutes";
+export { default as XcpNgRoutes } from "./XcpNgRoutes";
 export { default as IoTRoutes } from "./IoTRoutes";
 export { default as DockerSwarmRoutes } from "./DockerSwarmRoutes";
 export { default as CephRoutes } from "./CephRoutes";
