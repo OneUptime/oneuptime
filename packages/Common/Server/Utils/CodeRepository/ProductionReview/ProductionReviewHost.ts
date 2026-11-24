@@ -3,12 +3,19 @@ import CodeHostAccess, {
   CodeHostConnectionApi,
 } from "../CodeHost/CodeHostAccess";
 import {
+  CodeHostHttpError,
+  CodeHostHttpErrorKind,
+} from "../CodeHost/CodeHostHttp";
+import {
   CodeHostChangedFiles,
   CodeHostComment,
+  CodeHostLineComment,
   CodeHostPullRequestDetails,
+  CodeHostServerInfo,
 } from "../CodeHost/CodeHostTypes";
 import ForgejoApi from "../CodeHost/ForgejoApi";
-import GitLabApi from "../CodeHost/GitLabApi";
+import GitLabApi, { GitLabDiscussion } from "../CodeHost/GitLabApi";
+import { LineSuggestionFormat } from "./ProductionReviewComposer";
 import GitHubConversation, {
   GitHubIssueComment,
   GitHubPullRequestDetails,
@@ -117,18 +124,35 @@ export interface ProductionReviewHost {
       }) => Promise<void>)
     | undefined;
   /*
-   * GitHub only: suggested changes on their lines, as one review of the
-   * pull request (#10376) - each a suggestion block its author can commit.
-   * Never posted without them; throws when GitHub refuses one.
+   * Suggested changes, each on the line it changes (#10376, #10777), with
+   * the host's own review comments: GitHub's and Forgejo's or Gitea's as
+   * one review of the pull request, which the host takes whole or refuses
+   * (and this throws); GitLab's as a diff discussion each, which it takes
+   * or refuses one by one. Answers the keys of the suggestions the host
+   * took. A review is never posted without its comments.
    */
   writeSuggestions?:
     | ((data: {
-        pullRequestNumber: number;
-        headSha: string;
+        pullRequest: Pick<
+          CodeHostPullRequestDetails,
+          "number" | "headSha" | "diffRefs"
+        >;
+        // The review's own words, where the host's comments are a review's.
         body: string;
-        comments: Array<{ path: string; line: number; body: string }>;
-      }) => Promise<void>)
+        suggestions: Array<LineSuggestion>;
+      }) => Promise<Array<string>>)
     | undefined;
+  /*
+   * What a suggested change on its line is written as on this host: a
+   * block its author can apply, in the host's syntax - or the change as a
+   * diff, where the host applies none (Gitea, Forgejo before 18).
+   */
+  getLineSuggestionFormat?: (() => Promise<LineSuggestionFormat>) | undefined;
+}
+
+// One suggested change on its line: the point it is of, and the comment.
+export interface LineSuggestion extends CodeHostLineComment {
+  key: string;
 }
 
 /*
@@ -257,6 +281,26 @@ export function fromGitHubPullRequest(data: {
     changedLineCount: pullRequest.additions + pullRequest.deletions,
     updatedAt: "",
   };
+}
+
+// The points of the suggestions a host took whole.
+function keysOf(suggestions: Array<LineSuggestion>): Array<string> {
+  return suggestions.map((suggestion: LineSuggestion): string => {
+    return suggestion.key;
+  });
+}
+
+/*
+ * Whether a host's refusal of one comment refuses every one after it: the
+ * token refused (401), or not allowed to comment there (403) - unlike a
+ * line it cannot place (400), which is that comment's alone.
+ */
+export function isRefusalOfEveryComment(error: unknown): boolean {
+  return (
+    error instanceof CodeHostHttpError &&
+    (error.kind === CodeHostHttpErrorKind.Unauthorized ||
+      error.kind === CodeHostHttpErrorKind.Forbidden)
+  );
 }
 
 /*
@@ -442,19 +486,29 @@ export default class ProductionReviewHosts {
         });
       },
       writeSuggestions: async (args: {
-        pullRequestNumber: number;
-        headSha: string;
+        pullRequest: Pick<CodeHostPullRequestDetails, "number" | "headSha">;
         body: string;
-        comments: Array<{ path: string; line: number; body: string }>;
-      }): Promise<void> => {
+        suggestions: Array<LineSuggestion>;
+      }): Promise<Array<string>> => {
         await GitHubConversation.createPullRequestReview({
           ...repository,
-          pullRequestNumber: args.pullRequestNumber,
+          pullRequestNumber: args.pullRequest.number,
           body: args.body,
-          comments: args.comments,
-          commitSha: args.headSha,
+          comments: args.suggestions.map((suggestion: LineSuggestion) => {
+            return {
+              path: suggestion.path,
+              line: suggestion.line,
+              body: suggestion.body,
+            };
+          }),
+          commitSha: args.pullRequest.headSha,
           isOnlyItsComments: true,
         });
+
+        return keysOf(args.suggestions);
+      },
+      getLineSuggestionFormat: async (): Promise<LineSuggestionFormat> => {
+        return LineSuggestionFormat.Suggestion;
       },
     };
   }
@@ -548,6 +602,69 @@ export default class ProductionReviewHosts {
             targetUrl: args.targetUrl,
           });
         });
+      },
+      /*
+       * Each suggestion as a discussion on its line of the diff the review
+       * read (its diff_refs), one at a time: one GitLab refuses - a line a
+       * push moved, a file it shows collapsed - is left to the comment's
+       * diff, and the rest are still posted. A token GitLab refuses, or
+       * that may not comment there, posts none after it.
+       */
+      writeSuggestions: async (args: {
+        pullRequest: Pick<
+          CodeHostPullRequestDetails,
+          "number" | "headSha" | "diffRefs"
+        >;
+        body: string;
+        suggestions: Array<LineSuggestion>;
+      }): Promise<Array<string>> => {
+        const diffRefs: CodeHostPullRequestDetails["diffRefs"] =
+          args.pullRequest.diffRefs;
+
+        if (!diffRefs) {
+          logger.info(
+            `Production review: GitLab did not say which diff merge request !${args.pullRequest.number} is, so its suggested changes stay in its comment.`,
+          );
+
+          return [];
+        }
+
+        const posted: Array<string> = [];
+
+        for (const suggestion of args.suggestions) {
+          try {
+            const discussion: GitLabDiscussion = await api.call(() => {
+              return gitLab.createMergeRequestDiffDiscussion({
+                project,
+                iid: args.pullRequest.number,
+                body: suggestion.body,
+                diffRefs,
+                comment: suggestion,
+              });
+            });
+
+            if (!discussion.isOnItsLine) {
+              logger.info(
+                `Production review: GitLab started the suggestion for ${suggestion.path}:${suggestion.line} on merge request !${args.pullRequest.number} as a thread of its own, not on its line.`,
+              );
+            }
+
+            posted.push(suggestion.key);
+          } catch (error) {
+            logger.info(
+              `Production review: GitLab did not take the suggestion for ${suggestion.path}:${suggestion.line} on merge request !${args.pullRequest.number}, so its comment holds it alone: ${error instanceof Error ? error.message : String(error)}`,
+            );
+
+            if (isRefusalOfEveryComment(error)) {
+              break;
+            }
+          }
+        }
+
+        return posted;
+      },
+      getLineSuggestionFormat: async (): Promise<LineSuggestionFormat> => {
+        return LineSuggestionFormat.GitLabSuggestion;
       },
       listUpdatedPullRequests: async (
         updatedAfter: Date,
@@ -691,6 +808,36 @@ export default class ProductionReviewHosts {
             targetUrl: args.targetUrl,
           });
         });
+      },
+      // One review of the head the review read, its comments each on its line.
+      writeSuggestions: async (args: {
+        pullRequest: Pick<CodeHostPullRequestDetails, "number" | "headSha">;
+        body: string;
+        suggestions: Array<LineSuggestion>;
+      }): Promise<Array<string>> => {
+        await api.call(() => {
+          return forgejo.createPullRequestReview({
+            owner,
+            name,
+            number: args.pullRequest.number,
+            commitId: args.pullRequest.headSha,
+            body: args.body,
+            comments: args.suggestions,
+          });
+        });
+
+        return keysOf(args.suggestions);
+      },
+      /*
+       * Forgejo applies a ```suggestion block from version 18; Gitea, and
+       * an older Forgejo, draw one as code - there the change is a diff.
+       */
+      getLineSuggestionFormat: async (): Promise<LineSuggestionFormat> => {
+        const info: CodeHostServerInfo = await forgejo.getServerInfo();
+
+        return ForgejoApi.appliesSuggestions(info)
+          ? LineSuggestionFormat.Suggestion
+          : LineSuggestionFormat.Diff;
       },
       listUpdatedPullRequests: async (
         updatedAfter: Date,
