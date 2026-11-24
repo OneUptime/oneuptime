@@ -26,7 +26,10 @@ import {
  *                           (token), 2sv_enroll (user accounts)
  *   AWS CloudTrail (IAM)    CreateAccessKey, AttachUserPolicy, PutUserPolicy,
  *                           AddUserToGroup, CreateLoginProfile,
- *                           EnableMFADevice, CreateUser
+ *                           EnableMFADevice, CreateUser - each with the AWS
+ *                           account it was made in, and the cloud
+ *                           connection that read it, to read it back
+ *                           through (#10900)
  *
  * Only what succeeded: a refused change gave nothing. Pure, so each event's
  * reading is pinned on its own; the products' read-back is the server's.
@@ -42,26 +45,32 @@ export enum AccountChangeProvider {
 
 // What the change gave.
 export enum AccountChangeKind {
-  // An admin role or privilege: Okta's admin roles, Entra ID's directory roles, Google's admin roles, an IAM policy.
+  // An admin role or privilege: Okta's admin roles, Entra ID's directory roles, Google's admin roles.
   AdminRole = "AdminRole",
+  // A policy put on the account itself: an IAM user's managed policy attached, or inline policy written (#10900).
+  Policy = "Policy",
   // A group the account was put in.
   Group = "Group",
   // An app: assigned in Okta, an app role in Entra ID, access to the account's data in Google Workspace.
   App = "App",
   // A second factor: an Okta factor, Entra ID security info, Google 2-Step Verification, an IAM MFA device.
   MfaDevice = "MfaDevice",
-  // A key: an Okta API token, an Entra ID app's secret or certificate, an IAM access key or console password.
+  // A key: an Okta API token, an Entra ID app's secret or certificate, an IAM access key.
   Key = "Key",
+  // A password to sign in with that the attack set: an IAM user's console password, its login profile (#10900).
+  Password = "Password",
   // An account the attack made.
   Account = "Account",
 }
 
 export const ACCOUNT_CHANGE_KINDS: ReadonlyArray<AccountChangeKind> = [
   AccountChangeKind.AdminRole,
+  AccountChangeKind.Policy,
   AccountChangeKind.Group,
   AccountChangeKind.App,
   AccountChangeKind.MfaDevice,
   AccountChangeKind.Key,
+  AccountChangeKind.Password,
   AccountChangeKind.Account,
 ];
 
@@ -82,6 +91,17 @@ export interface AccountChange {
   detailId: string;
   // An Entra ID key's owner: an app registration ("Application") or its service principal.
   ownerType: string;
+  /*
+   * The cloud account the change was made in, for a product that has
+   * several: the AWS account's 12-digit id (CloudTrail's
+   * recipientAccountId). "" for the others.
+   */
+  cloudAccountId: string;
+  /*
+   * The project's cloud connection whose read brought the event in, when
+   * one did (Cloud audit logs): the connection that reaches that account.
+   */
+  cloudConnectionId: string;
   // The event that says so: its name in the product, its id and when it happened.
   eventName: string;
   eventUid: string;
@@ -188,6 +208,8 @@ function change(
     objectName: (data.objectName || "").trim(),
     detailId: (data.detailId || "").trim(),
     ownerType: (data.ownerType || "").trim(),
+    cloudAccountId: (data.cloudAccountId || "").trim(),
+    cloudConnectionId: (data.cloudConnectionId || "").trim(),
     eventName: data.eventName,
     eventUid: event.eventUid,
     time: event.time,
@@ -590,13 +612,48 @@ export function readGoogleWorkspaceAccountChange(
 // What each IAM call gives, by its name.
 export const AWS_IAM_ACCOUNT_CHANGES: Record<string, AccountChangeKind> = {
   CreateAccessKey: AccountChangeKind.Key,
-  CreateLoginProfile: AccountChangeKind.Key,
-  AttachUserPolicy: AccountChangeKind.AdminRole,
-  PutUserPolicy: AccountChangeKind.AdminRole,
+  CreateLoginProfile: AccountChangeKind.Password,
+  AttachUserPolicy: AccountChangeKind.Policy,
+  PutUserPolicy: AccountChangeKind.Policy,
   AddUserToGroup: AccountChangeKind.Group,
   EnableMFADevice: AccountChangeKind.MfaDevice,
   CreateUser: AccountChangeKind.Account,
 };
+
+// The attributes a CloudTrail event the cloud connection read carries (CloudAuditSecurityEvents).
+const CLOUD_AUDIT_ACCOUNT_ATTRIBUTE: string = "oneuptime.cloud.account_id";
+const CLOUD_AUDIT_CONNECTION_ATTRIBUTE: string =
+  "oneuptime.cloud.connection_id";
+
+// An AWS account's id: twelve digits.
+const AWS_ACCOUNT_ID: RegExp = /^\d{12}$/;
+
+// A managed policy's name, the end of its ARN: "AdministratorAccess" of "arn:aws:iam::aws:policy/AdministratorAccess".
+export function readAwsPolicyName(policyArn: string): string {
+  const name: string = policyArn.slice(policyArn.lastIndexOf("/") + 1).trim();
+
+  return name || policyArn.trim();
+}
+
+/*
+ * The AWS account an IAM call was made in: the one that received it, as
+ * CloudTrail records it, or the one the connection that read it reads.
+ */
+function readAwsAccountId(event: SecurityCaseEventSnapshot): string {
+  for (const key of [
+    "recipientAccountId",
+    CLOUD_AUDIT_ACCOUNT_ATTRIBUTE,
+    "userIdentity.accountId",
+  ]) {
+    const value: string = attribute(event, key);
+
+    if (AWS_ACCOUNT_ID.test(value)) {
+      return value;
+    }
+  }
+
+  return "";
+}
 
 export function readAwsAccountChange(
   event: SecurityCaseEventSnapshot,
@@ -617,27 +674,39 @@ export function readAwsAccountChange(
   const user: string =
     attribute(event, "requestParameters.userName") ||
     attribute(event, "userIdentity.userName");
-  const objects: Record<AccountChangeKind, string> = {
-    [AccountChangeKind.Key]:
-      attribute(event, "responseElements.accessKey.accessKeyId") ||
-      (eventName === "CreateLoginProfile" ? "console password" : ""),
-    [AccountChangeKind.AdminRole]:
-      attribute(event, "requestParameters.policyArn") ||
-      attribute(event, "requestParameters.policyName"),
-    [AccountChangeKind.Group]: attribute(event, "requestParameters.groupName"),
-    [AccountChangeKind.MfaDevice]: attribute(
-      event,
-      "requestParameters.serialNumber",
-    ),
-    [AccountChangeKind.App]: "",
-    [AccountChangeKind.Account]: "",
+  const policyArn: string = attribute(event, "requestParameters.policyArn");
+  // What it gave, by its id in IAM, and its name.
+  const objects: Record<AccountChangeKind, { id: string; name: string }> = {
+    [AccountChangeKind.Key]: {
+      id: attribute(event, "responseElements.accessKey.accessKeyId"),
+      name: attribute(event, "responseElements.accessKey.accessKeyId"),
+    },
+    // A managed policy by its ARN; an inline one has none, only its name.
+    [AccountChangeKind.Policy]: policyArn
+      ? { id: policyArn, name: readAwsPolicyName(policyArn) }
+      : { id: "", name: attribute(event, "requestParameters.policyName") },
+    [AccountChangeKind.Group]: {
+      id: "",
+      name: attribute(event, "requestParameters.groupName"),
+    },
+    [AccountChangeKind.MfaDevice]: {
+      id: attribute(event, "requestParameters.serialNumber"),
+      name: attribute(event, "requestParameters.serialNumber"),
+    },
+    [AccountChangeKind.Password]: { id: "", name: "" },
+    [AccountChangeKind.AdminRole]: { id: "", name: "" },
+    [AccountChangeKind.App]: { id: "", name: "" },
+    [AccountChangeKind.Account]: { id: "", name: "" },
   };
 
   return change(event, {
     provider: AccountChangeProvider.Aws,
     kind,
     account: user,
-    objectName: objects[kind],
+    objectId: objects[kind].id,
+    objectName: objects[kind].name,
+    cloudAccountId: readAwsAccountId(event),
+    cloudConnectionId: attribute(event, CLOUD_AUDIT_CONNECTION_ATTRIBUTE),
     eventName,
   });
 }
@@ -667,11 +736,15 @@ export function readAccountChange(
   return readAwsAccountChange(event);
 }
 
-// One change of each account and thing, whichever event said it first.
+/*
+ * One change of each account and thing, whichever event said it first: a
+ * user of one name in two AWS accounts is two accounts.
+ */
 function getChangeKey(item: AccountChange): string {
   return [
     item.provider,
     item.kind,
+    item.cloudAccountId,
     (item.accountId || item.account).toLowerCase(),
     (item.objectId || item.objectName).toLowerCase(),
   ].join("|");

@@ -5,6 +5,7 @@ import {
   SecurityCaseStepCheckData,
   SecurityCaseStepCheckEvidence,
   SecurityCaseStepCheckSentence,
+  StepCheckFactMark,
   readStepCheckDataTime,
 } from "../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState, {
@@ -175,6 +176,8 @@ export function sentence(
     numbers?: Record<string, number> | undefined;
     times?: Record<string, Date | null | undefined> | undefined;
     count?: number | undefined;
+    // A fact's mark: what it says of the thing it names.
+    mark?: StepCheckFactMark | undefined;
   } = {},
 ): SecurityCaseStepCheckSentence {
   const times: Record<string, string> = {};
@@ -191,6 +194,7 @@ export function sentence(
     ...(extras.numbers ? { numbers: extras.numbers } : {}),
     ...(Object.keys(times).length > 0 ? { times } : {}),
     ...(extras.count !== undefined ? { count: extras.count } : {}),
+    ...(extras.mark ? { mark: extras.mark } : {}),
   };
 }
 

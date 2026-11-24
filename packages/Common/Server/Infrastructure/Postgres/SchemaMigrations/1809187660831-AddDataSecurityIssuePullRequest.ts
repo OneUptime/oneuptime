@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddDataSecurityIssuePullRequest1809187600831
+export class AddDataSecurityIssuePullRequest1809187660831
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityIssuePullRequest1809187600831";
+  public name: string = "AddDataSecurityIssuePullRequest1809187660831";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

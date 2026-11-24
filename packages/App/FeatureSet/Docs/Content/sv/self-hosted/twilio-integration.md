@@ -147,6 +147,21 @@ Det som ingen standard skickar går ut som det skulle ha gjort utan en konfigura
 
 Statussidor erbjuder bara de konfigurationer som skickar SMS, och **Skicka test-SMS** och **Skicka testsamtal** visas bara för det som en konfiguration skickar. Alla befintliga konfigurationer är som tidigare inställda på **Samtal och SMS**. Via API:et och Terraform är valet fältet `usedFor`, och en konfiguration utan de nummer som valet behöver avvisas.
 
+### Rösten som samtalen använder
+
+Samtal talar med den röst som ditt Twilio-konto använder som standard: Twilios kostnadsfria Basic-röst, om du inte har valt en annan i Twilio Console. Enligt Twilio är Basic-rösterna inte avsedda för produktion, så varje konto kan i stället tala med en av de här neurala rösterna. Välj rösten för kontot för hela installationen i kortet **Röst för samtal** på **Admin Dashboard > Inställningar > Samtal och SMS**, och för en projektkonfiguration i **Röst för samtal** under **Fler fält**.
+
+| Röst | Skapad av | Hur den låter |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikansk engelska, kvinnlig röst |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikansk engelska, manlig röst |
+| `Polly.Amy-Neural` | Amazon Polly | Brittisk engelska, kvinnlig röst |
+| `Polly.Brian-Neural` | Amazon Polly | Brittisk engelska, manlig röst |
+| `Google.en-US-Neural2-F` | Google | Amerikansk engelska, kvinnlig röst |
+| `Google.en-US-Neural2-J` | Google | Amerikansk engelska, manlig röst |
+
+Alla samtal via kontot talar med den rösten: jourlarm och svaret på knappen du trycker på, meddelandet som lämnas i röstbrevlådan, verifieringskoder, **Skicka testsamtal** och hälsningarna i en policy för inkommande samtal. Med de här rösterna stavas ett nummer som `INC-42` med SSML, vilket låter mer naturligt än de åtskilda bokstäver som andra röster får. Twilio tar betalt för de här rösterna på kontot som ringer samtalet: $0.0032 per 100 tecken i november 2026, under 2 amerikanska cent per larmsamtal. Se [Twilios röstpriser](https://www.twilio.com/en-us/voice/pricing/us). Lämna fältet **Röst för samtal** tomt för att behålla kontots standardröst. Via API:et och Terraform är rösten fältet `twilioCallVoice`, och en röst som inte finns i tabellen avvisas.
+
 ### Röstbrevlåda vid joursamtal
 
 För Twilio är ett samtal som röstbrevlådan svarar på besvarat, precis som ett samtal som en person svarar på. Därför frågar varje joursamtal Twilio i bakgrunden om en person eller röstbrevlådan svarade, med [telefonsvarardetektering](https://www.twilio.com/docs/voice/answering-machine-detection): den som svarar hör larmet direkt. Ett samtal som röstbrevlådan svarar på räknas som obesvarat, precis som ett samtal som ringer ut, och larmet fortsätter som för ett missat samtal. Så snart hälsningen är slut lämnar OneUptime ett kort meddelande med det samtalet sa. Samtalets logg säger om ett meddelande lämnades, och det gör även incidentens feed: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

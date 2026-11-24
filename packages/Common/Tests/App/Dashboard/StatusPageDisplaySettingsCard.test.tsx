@@ -123,6 +123,7 @@ const NEW_PAGE: StoredColumns = {
   onlyShowScopedIncidents: false,
   showEpisodesOnStatusPage: true,
   showEpisodeHistoryInDays: 14,
+  groupIncidentsByEpisode: true,
   showEpisodeLabelsOnStatusPage: false,
   showAnnouncementsOnStatusPage: true,
   showAnnouncementHistoryInDays: 14,
@@ -473,7 +474,7 @@ const LIST_SWITCHES: Array<DisplaySwitchColumn> = [
 ];
 
 describe("reading the status page", () => {
-  test("asks once for the card's sixteen columns and nothing else", async () => {
+  test("asks once for the card's seventeen columns and nothing else", async () => {
     await renderCard();
     await loaded();
 
@@ -491,6 +492,7 @@ describe("reading the status page", () => {
       onlyShowScopedIncidents: true,
       showEpisodesOnStatusPage: true,
       showEpisodeHistoryInDays: true,
+      groupIncidentsByEpisode: true,
       showEpisodeLabelsOnStatusPage: true,
       showAnnouncementsOnStatusPage: true,
       showAnnouncementHistoryInDays: true,
@@ -503,7 +505,7 @@ describe("reading the status page", () => {
       // What each chip shows.
       downtimeMonitorStatuses: { _id: true, name: true, color: true },
     });
-    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(16);
+    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(17);
   });
 
   test("asks once for the project's monitor statuses, in their colours and priority order, for the downtime picker", async () => {
@@ -598,7 +600,7 @@ describe("reading the status page", () => {
       );
     }
 
-    expect(screen.getAllByRole("switch")).toHaveLength(9);
+    expect(screen.getAllByRole("switch")).toHaveLength(10);
     expect(screen.getAllByRole("spinbutton")).toHaveLength(5);
 
     // The downtime picker; the precision only while the overall % is on.
@@ -615,6 +617,7 @@ describe("reading the status page", () => {
       "Show Incident Labels",
       IncidentStatusPageScopeCopy.onlyShowScopedIncidentsTitle,
       "Show Episodes",
+      "Show Incidents Grouped by Episode",
       "Show Episode Labels",
       "Show Announcements",
       "Show Maintenance Events",
@@ -879,7 +882,9 @@ describe("flipping a switch", () => {
 
   test("a refused save moves the switch back, and says why under it", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -893,7 +898,7 @@ describe("flipping a switch", () => {
           "alert",
         ),
       ).toHaveTextContent(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(switchFor("showScheduledEventLabelsOnStatusPage")).toHaveAttribute(
@@ -1092,7 +1097,9 @@ describe("a list that is off", () => {
 
   test("a refused attempt to hide a list leaves its history and labels where they were", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -1112,6 +1119,208 @@ describe("a list that is off", () => {
     );
     expect(daysFor("showIncidentHistoryInDays")).toBeInTheDocument();
     expect(switchFor("showIncidentLabelsOnStatusPage")).toBeInTheDocument();
+  });
+});
+
+/*
+ * Show Incidents Grouped by Episode (#10767): on, visitors see an episode
+ * as one card listing its incidents; off, a card for every incident and
+ * every episode. It lays the two lists out together, so it is offered only
+ * while the page shows both, and it needs no plan: it shows nothing the
+ * page does not show already.
+ */
+describe("showing incidents grouped by episode", () => {
+  const GROUPING: DisplaySwitchColumn = "groupIncidentsByEpisode";
+
+  test("a new page has it on, first under Show Episodes, saying in one sentence what visitors see", async () => {
+    await renderCard();
+    await loaded();
+
+    const episodes: HTMLElement = screen.getByTestId(
+      getDisplaySectionTestId("episodes"),
+    );
+
+    expect(within(episodes).getAllByRole("switch")).toEqual([
+      switchFor("showEpisodesOnStatusPage"),
+      switchFor(GROUPING),
+      switchFor("showEpisodeLabelsOnStatusPage"),
+    ]);
+    expect(switchFor(GROUPING)).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByRole("switch", { name: "Show Incidents Grouped by Episode" }),
+    ).toBe(switchFor(GROUPING));
+    expect(
+      within(switchRowFor(GROUPING)).getByText(
+        StatusPageDisplaySettingsCopy.groupedByEpisodeDescription,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(switchRowFor(GROUPING)).queryByText(
+        StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a page made before it existed has it off, and says an incident in an episode shows twice", async () => {
+    stored = { ...NEW_PAGE, groupIncidentsByEpisode: false };
+
+    await renderCard();
+    await loaded();
+
+    expect(switchFor(GROUPING)).toHaveAttribute("aria-checked", "false");
+    expect(
+      within(switchRowFor(GROUPING)).getByText(
+        StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("flipping it saves that column alone, at once, and its line says what visitors now see", async () => {
+    await renderCard();
+    await loaded();
+
+    await press(GROUPING);
+
+    await waitFor(() => {
+      expect(lastUpdate()["data"]).toEqual({ groupIncidentsByEpisode: false });
+    });
+    await waitFor(() => {
+      expect(
+        within(switchRowFor(GROUPING)).getByText(
+          StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(switchFor(GROUPING)).not.toHaveAttribute("aria-disabled", "true");
+    });
+
+    await press(GROUPING);
+
+    await waitFor(() => {
+      expect(lastUpdate()["data"]).toEqual({ groupIncidentsByEpisode: true });
+    });
+    expect(updatesOf(GROUPING)).toEqual([
+      { groupIncidentsByEpisode: false },
+      { groupIncidentsByEpisode: true },
+    ]);
+  });
+
+  test.each([
+    "showIncidentsOnStatusPage",
+    "showEpisodesOnStatusPage",
+  ] as Array<DisplaySwitchColumn>)(
+    "turning %s off takes it away, as there is nothing to group, and on again brings it back",
+    async (list: DisplaySwitchColumn) => {
+      await renderCard();
+      await loaded();
+
+      await press(list);
+
+      await waitFor(() => {
+        expect(querySwitchFor(GROUPING)).not.toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(switchFor(list)).not.toHaveAttribute("aria-disabled", "true");
+      });
+
+      await press(list);
+
+      await waitFor(() => {
+        expect(querySwitchFor(GROUPING)).toBeInTheDocument();
+      });
+      expect(switchFor(GROUPING)).toHaveAttribute("aria-checked", "true");
+    },
+  );
+
+  test.each([
+    ["incidents", { showIncidentsOnStatusPage: false }],
+    ["episodes", { showEpisodesOnStatusPage: false }],
+    [
+      "both lists",
+      { showIncidentsOnStatusPage: false, showEpisodesOnStatusPage: false },
+    ],
+  ] as Array<[string, StoredColumns]>)(
+    "a page loaded with %s off does not offer it",
+    async (_label: string, off: StoredColumns) => {
+      stored = { ...NEW_PAGE, ...off };
+
+      await renderCard();
+      await loaded();
+
+      expect(querySwitchFor(GROUPING)).toBeNull();
+    },
+  );
+
+  test("turned away and back, it is as last saved, not as first read", async () => {
+    await renderCard();
+    await loaded();
+
+    await press(GROUPING);
+    await waitFor(() => {
+      expect(switchFor(GROUPING)).not.toHaveAttribute("aria-disabled", "true");
+    });
+
+    await press("showIncidentsOnStatusPage");
+    await waitFor(() => {
+      expect(querySwitchFor(GROUPING)).toBeNull();
+    });
+    await waitFor(() => {
+      expect(switchFor("showIncidentsOnStatusPage")).not.toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    });
+
+    await press("showIncidentsOnStatusPage");
+
+    await waitFor(() => {
+      expect(querySwitchFor(GROUPING)).toBeInTheDocument();
+    });
+    expect(switchFor(GROUPING)).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("names no plan, and saves on the free plan: it only lays out what the page shows", async () => {
+    plan = PlanType.Free;
+
+    getJestSpyOn(
+      SubscriptionPlan,
+      "isFeatureAccessibleOnCurrentPlan",
+    ).mockImplementation((needed: unknown): boolean => {
+      return needed === PlanType.Free;
+    });
+
+    await renderCard();
+    await loaded();
+
+    expect(
+      within(switchRowFor(GROUPING)).queryByTestId("pill"),
+    ).not.toBeInTheDocument();
+
+    await press(GROUPING);
+
+    await waitFor(() => {
+      expect(updatesOf(GROUPING)).toEqual([{ groupIncidentsByEpisode: false }]);
+    });
+  });
+
+  test("a refused save moves it back, and says why under it", async () => {
+    updateByIdMock.mockRejectedValue(
+      new Error("You do not have permission to edit this status page."),
+    );
+
+    await renderCard();
+    await loaded();
+
+    await press(GROUPING);
+
+    await waitFor(() => {
+      expect(
+        within(switchRowFor(GROUPING)).getByRole("alert"),
+      ).toBeInTheDocument();
+    });
+    expect(switchFor(GROUPING)).toHaveAttribute("aria-checked", "true");
   });
 });
 
@@ -1421,7 +1630,9 @@ describe("how many days", () => {
 
   test("a refused number goes back to the one the page has, with the reason", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -1435,7 +1646,7 @@ describe("how many days", () => {
           `${getDisplayDaysTestId("showEpisodeHistoryInDays")}-error`,
         ),
       ).toHaveTextContent(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(daysFor("showEpisodeHistoryInDays")).toHaveValue(14);
@@ -1730,7 +1941,9 @@ describe("the overall uptime percentage", () => {
 
   test("a refused attempt to turn it on (it needs the Scale plan) offers no precision", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Scale to access this feature"),
+      new Error(
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -1742,7 +1955,7 @@ describe("the overall uptime percentage", () => {
       expect(
         within(switchRowFor(OVERALL)).getByRole("alert"),
       ).toHaveTextContent(
-        "Please upgrade your plan to Scale to access this feature",
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "false");

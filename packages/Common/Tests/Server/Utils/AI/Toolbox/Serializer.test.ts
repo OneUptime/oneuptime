@@ -172,6 +172,56 @@ describe("ToolResultSerializer.redact - personal data", () => {
       "[redacted-card]",
     );
   });
+
+  /*
+   * #10935 and #10960: a model is shown no address Data Security calls one -
+   * in a percent-encoded URL, hidden as written and the rest of the URL
+   * kept, or in any script - and no grouped card in any script's digits.
+   */
+  test.each([
+    [
+      "GET /signup?email=jane.doe%40acmecorp.io HTTP/1.1",
+      "GET /signup?email=[redacted-email] HTTP/1.1",
+    ],
+    [
+      "next=%2Fsignup%3Femail%3Djane%2540acmecorp.io&tab=2",
+      "next=%2Fsignup%3Femail%3D[redacted-email]&tab=2",
+    ],
+    ["invite sent to 张伟@acmecorp.io", "invite sent to [redacted-email]"],
+    ["invite sent to josé@acmecorp.io", "invite sent to [redacted-email]"],
+    ["почта@пример.рф wrote", "[redacted-email] wrote"],
+    ["user@例え.jp wrote", "[redacted-email] wrote"],
+    ["邮箱jane@acmecorp.io已发送", "邮箱[redacted-email]已发送"],
+  ])(
+    "an address encoded or in any script is removed: %s",
+    (line: string, expected: string) => {
+      expect(redactionOf(line)).toBe(expected);
+      expect(countOf(line)).toBe(1);
+    },
+  );
+
+  test.each([
+    [
+      "カード番号：４１１１ １１１１ １１１１ １１１１",
+      "カード番号：[redacted-card]",
+    ],
+    ["شماره کارت ۴۱۱۱-۱۱۱۱-۱۱۱۱-۱۱۱۱", "شماره کارت [redacted-card]"],
+    ["card ４１１１ 1111 1111 1111 declined", "card [redacted-card] declined"],
+  ])(
+    "a grouped card in any script's digits is removed: %s",
+    (line: string, expected: string) => {
+      expect(redactionOf(line)).toBe(expected);
+    },
+  );
+
+  test('an excluded attribute keeps its "-@", encoded or not, and an ASCII address after a dash is found from its first letter', () => {
+    expect(redactionOf("-@http.route:/health")).toBe("-@http.route:/health");
+    expect(redactionOf("-alice@example.com")).toBe("-[redacted-email]");
+    // A bare span id of sixteen digits, in any script, stays: the card rule asks for groups.
+    expect(redactionOf("span ４１１１１１１１１１１１１１１１")).toBe(
+      "span ４１１１１１１１１１１１１１１１",
+    );
+  });
 });
 
 describe("ToolResultSerializer.redact - what must survive", () => {

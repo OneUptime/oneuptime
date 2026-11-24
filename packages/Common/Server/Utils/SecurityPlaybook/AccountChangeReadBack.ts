@@ -4,6 +4,25 @@ import {
   AccountChangeKind,
   AccountChangeProvider,
 } from "../../../Utils/SecurityCase/AttackAccountChanges";
+import {
+  AwsIamAccessKey,
+  AwsIamAccessNotGranted,
+  AwsIamAttachedPolicy,
+  AwsIamGroup,
+  AwsIamLoginProfile,
+  AwsIamMfaDevice,
+  AwsIamSession,
+  AwsIamUser,
+  getAwsIamLoginProfile,
+  getAwsIamUser,
+  getAwsIamUserUrl,
+  isAwsIamAccessKeyActive,
+  listAwsIamAccessKeys,
+  listAwsIamAttachedUserPolicies,
+  listAwsIamGroupsForUser,
+  listAwsIamMfaDevices,
+  listAwsIamUserPolicyNames,
+} from "../CloudConnection/Aws/AwsIamUsers";
 import DataSourceHttpFetch from "../DataSource/HttpFetch";
 import {
   ConnectorTransport,
@@ -11,6 +30,7 @@ import {
   readSettingString,
 } from "../SecurityEvent/Connectors/Types";
 import GoogleWorkspaceResponseClient, {
+  GoogleWorkspaceAccessNotGranted,
   GoogleWorkspaceUser,
 } from "../SecurityEvent/Response/GoogleWorkspaceResponseClient";
 import MicrosoftEntraIdResponseClient, {
@@ -43,12 +63,20 @@ import {
  *                       account made
  *   Google Workspace    an admin role (isAdmin, isDelegatedAdmin), an app
  *                       given access to the account's data (its token),
- *                       2-Step Verification, an account made
+ *                       2-Step Verification, an account made, and a group
+ *                       (one membership, with the group member scope,
+ *                       #10901)
+ *   AWS IAM             an access key, a console password, a managed or
+ *                       inline policy, a group, an MFA device, a user made
+ *                       - through the AWS cloud connection that reads the
+ *                       account, with its Security case checks (#10900)
  *
- * A change the product cannot say anything of - a Google Workspace group,
- * anything in AWS - is one OneUptime cannot read back, and a person
- * confirms it. Never a guess: where the account still holds something of
- * the kind and the product does not say which, OneUptime cannot tell.
+ * A change the product cannot say anything of, or one the connection was
+ * not given the access to read (NotGranted: a delegation without the
+ * group member scope, an AWS connection whose Security case checks are
+ * off), is one OneUptime cannot read back, and a person confirms it. Never
+ * a guess: where the account still holds something of the kind and the
+ * product does not say which, OneUptime cannot tell.
  */
 
 export enum AccountChangeState {
@@ -70,6 +98,13 @@ export enum AccountChangeUnknownReason {
   CannotTellWhich = "CannotTellWhich",
   // The event does not name what it gave, so there is nothing to look for.
   NotNamed = "NotNamed",
+  /*
+   * The connection was not given the access this read takes: a Google
+   * Workspace delegation without the group member scope (#10901), an AWS
+   * connection whose Security case checks are off (#10900). Its step says
+   * what to grant.
+   */
+  NotGranted = "NotGranted",
 }
 
 export interface AccountChangeFacts {
@@ -85,7 +120,11 @@ export interface AccountChangeFacts {
   url?: string | undefined;
 }
 
-// The connections that read each product's changes back.
+/*
+ * The security event connections that read each product's changes back.
+ * AWS's are read through the project's AWS cloud connections instead, the
+ * ones that read the account a change was made in (AwsAccountChanges).
+ */
 export const ACCOUNT_CHANGE_CONNECTION_PROVIDERS: Record<
   AccountChangeProvider,
   SecurityEventConnectorProvider | null
@@ -95,9 +134,15 @@ export const ACCOUNT_CHANGE_CONNECTION_PROVIDERS: Record<
     SecurityEventConnectorProvider.MicrosoftEntraId,
   [AccountChangeProvider.GoogleWorkspace]:
     SecurityEventConnectorProvider.GoogleWorkspace,
-  // No identity connection reads AWS IAM back yet.
   [AccountChangeProvider.Aws]: null,
 };
+
+/*
+ * A console password set up again this long after the attack set one is
+ * another: the attack's went with the profile it made. CloudTrail's clock
+ * and IAM's are AWS's own.
+ */
+export const AWS_LOGIN_PROFILE_LEEWAY_MS: number = 5 * 60 * 1000;
 
 /*
  * An Entra ID method added this long before its audit says it was is still
@@ -610,7 +655,272 @@ export default class AccountChangeReadBack {
             })
           : facts(AccountChangeState.Undone);
 
-      // The Directory API reads groups only with a scope the connection is not given.
+      /*
+       * A group, by the address the Admin audit log names: one membership,
+       * read with the group member scope (#10901). A delegation without it
+       * leaves the change a person's to confirm, saying what to grant.
+       */
+      case AccountChangeKind.Group: {
+        if (!change.objectName) {
+          return facts(AccountChangeState.Unknown, {
+            reason: AccountChangeUnknownReason.NotNamed,
+          });
+        }
+
+        try {
+          return facts(
+            (await client.isGroupMember({
+              groupKey: change.objectName,
+              memberKey: user.id,
+            }))
+              ? AccountChangeState.StillThere
+              : AccountChangeState.Undone,
+          );
+        } catch (error) {
+          if (error instanceof GoogleWorkspaceAccessNotGranted) {
+            return facts(AccountChangeState.Unknown, {
+              reason: AccountChangeUnknownReason.NotGranted,
+            });
+          }
+
+          throw error;
+        }
+      }
+
+      default:
+        return facts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.NotReadBack,
+        });
+    }
+  }
+
+  // ---------- AWS IAM ----------
+
+  /*
+   * Whether a change an attack made to an IAM user is still there (#10900),
+   * through a session signed in to the account it was made in: the user
+   * first - deleted, it took everything it was given with it - then the
+   * one list the change is in. A read the connection was not given (its
+   * Security case checks off, its setup command not run again) leaves the
+   * change a person's to confirm, saying what to grant. Throws when IAM
+   * could not be read.
+   */
+  public static async readInAws(data: {
+    session: AwsIamSession;
+    change: AccountChange;
+  }): Promise<AccountChangeFacts> {
+    const { session, change } = data;
+    const provider: string = AccountChangeProvider.Aws;
+
+    try {
+      return await AccountChangeReadBack.readIamUser({ session, change });
+    } catch (error) {
+      if (error instanceof AwsIamAccessNotGranted) {
+        return {
+          provider,
+          state: AccountChangeState.Unknown,
+          reason: AccountChangeUnknownReason.NotGranted,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  private static async readIamUser(data: {
+    session: AwsIamSession;
+    change: AccountChange;
+  }): Promise<AccountChangeFacts> {
+    const { session, change } = data;
+    const provider: string = AccountChangeProvider.Aws;
+    const gone: AccountChangeFacts = {
+      provider,
+      state: AccountChangeState.Undone,
+      isAccountGone: true,
+    };
+    const user: AwsIamUser | null = await getAwsIamUser(
+      session,
+      change.account,
+    );
+
+    if (!user) {
+      return gone;
+    }
+
+    const url: string = getAwsIamUserUrl(session.partition, user.userName);
+    const facts: (
+      state: AccountChangeState,
+      extra?: Partial<AccountChangeFacts>,
+    ) => AccountChangeFacts = (
+      state: AccountChangeState,
+      extra?: Partial<AccountChangeFacts>,
+    ): AccountChangeFacts => {
+      return { provider, state, url, ...(extra || {}) };
+    };
+    const has: (isThere: boolean) => AccountChangeFacts = (
+      isThere: boolean,
+    ): AccountChangeFacts => {
+      return facts(
+        isThere ? AccountChangeState.StillThere : AccountChangeState.Undone,
+      );
+    };
+    const notNamed: AccountChangeFacts = facts(AccountChangeState.Unknown, {
+      reason: AccountChangeUnknownReason.NotNamed,
+    });
+
+    switch (change.kind) {
+      // The user the attack made: still there until it is deleted.
+      case AccountChangeKind.Account:
+        return facts(AccountChangeState.StillThere);
+
+      // An access key: still there while it is, and active.
+      case AccountChangeKind.Key: {
+        const keys: Array<AwsIamAccessKey> | null = await listAwsIamAccessKeys(
+          session,
+          user.userName,
+        );
+
+        if (!keys) {
+          return gone;
+        }
+
+        if (!change.objectId) {
+          const active: Array<AwsIamAccessKey> = keys.filter(
+            isAwsIamAccessKeyActive,
+          );
+
+          return active.length === 0
+            ? facts(AccountChangeState.Undone)
+            : facts(AccountChangeState.Unknown, {
+                reason: AccountChangeUnknownReason.CannotTellWhich,
+                holding: active
+                  .map((key: AwsIamAccessKey): string => {
+                    return key.accessKeyId;
+                  })
+                  .slice(0, 5),
+              });
+        }
+
+        const key: AwsIamAccessKey | undefined = keys.find(
+          (candidate: AwsIamAccessKey): boolean => {
+            return candidate.accessKeyId === change.objectId;
+          },
+        );
+
+        return has(Boolean(key && isAwsIamAccessKeyActive(key)));
+      }
+
+      /*
+       * A console password: undone once the user has none, or one set up
+       * again since. One still there may have had its password changed,
+       * which IAM does not say: a person confirms it.
+       */
+      case AccountChangeKind.Password: {
+        const profile: AwsIamLoginProfile | null = await getAwsIamLoginProfile(
+          session,
+          user.userName,
+        );
+
+        if (!profile) {
+          return facts(AccountChangeState.Undone);
+        }
+
+        const changedAt: number = Date.parse(change.time);
+
+        if (
+          profile.createdAt &&
+          !Number.isNaN(changedAt) &&
+          profile.createdAt.getTime() > changedAt + AWS_LOGIN_PROFILE_LEEWAY_MS
+        ) {
+          return facts(AccountChangeState.Undone);
+        }
+
+        return facts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+        });
+      }
+
+      // A managed policy, by its ARN; an inline one, by its name.
+      case AccountChangeKind.Policy: {
+        if (change.eventName === "AttachUserPolicy" || change.objectId) {
+          if (!change.objectId) {
+            return notNamed;
+          }
+
+          const attached: Array<AwsIamAttachedPolicy> | null =
+            await listAwsIamAttachedUserPolicies(session, user.userName);
+
+          return attached
+            ? has(
+                attached.some((policy: AwsIamAttachedPolicy): boolean => {
+                  return sameText(policy.policyArn, change.objectId);
+                }),
+              )
+            : gone;
+        }
+
+        if (!change.objectName) {
+          return notNamed;
+        }
+
+        const inline: Array<string> | null = await listAwsIamUserPolicyNames(
+          session,
+          user.userName,
+        );
+
+        return inline
+          ? has(
+              inline.some((name: string): boolean => {
+                return sameText(name, change.objectName);
+              }),
+            )
+          : gone;
+      }
+
+      // A group, by its name: IAM's are unique case aside.
+      case AccountChangeKind.Group: {
+        if (!change.objectName) {
+          return notNamed;
+        }
+
+        const groups: Array<AwsIamGroup> | null = await listAwsIamGroupsForUser(
+          session,
+          user.userName,
+        );
+
+        return groups
+          ? has(
+              groups.some((group: AwsIamGroup): boolean => {
+                return sameText(group.groupName, change.objectName);
+              }),
+            )
+          : gone;
+      }
+
+      // An MFA device, by the serial number or ARN the event names.
+      case AccountChangeKind.MfaDevice: {
+        const devices: Array<AwsIamMfaDevice> | null =
+          await listAwsIamMfaDevices(session, user.userName);
+
+        if (!devices) {
+          return gone;
+        }
+
+        if (change.objectId) {
+          return has(
+            devices.some((device: AwsIamMfaDevice): boolean => {
+              return device.serialNumber === change.objectId;
+            }),
+          );
+        }
+
+        return devices.length === 0
+          ? facts(AccountChangeState.Undone)
+          : facts(AccountChangeState.Unknown, {
+              reason: AccountChangeUnknownReason.CannotTellWhich,
+            });
+      }
+
       default:
         return facts(AccountChangeState.Unknown, {
           reason: AccountChangeUnknownReason.NotReadBack,

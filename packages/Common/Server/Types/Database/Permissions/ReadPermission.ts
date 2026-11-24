@@ -74,6 +74,8 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "IncidentPostmortemActionItem.codeTaskId",
     // The code task that opens a Data Security issue group's pull request (#10370): an AIRun too.
     "DataSecurityIssueGroup.codeTaskId",
+    // The code task whose pull request fixes a Data Security issue in code (#10367): an AIRun too.
+    "DataSecurityIssue.codeFixTaskId",
     "SecurityCase.aiSuggestedPlaybookId",
     "AuditLogExport.cursorEntryId",
     "OnCallDutyPolicyExecutionLog.testPageSeverityId",

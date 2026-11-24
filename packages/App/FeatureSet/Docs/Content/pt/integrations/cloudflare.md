@@ -171,10 +171,10 @@ Na Cloudflare, abra **My Profile → API Tokens**, edite o token da conexão e a
 
 ### Ativar o bloqueio
 
-Na linha da conexão, selecione **Bloquear endereços**. Cole um token novo em **Novo token de API**, ou deixe vazio para manter o atual, e em **Zonas** deixe **Todas as zonas**, ou escolha as zonas onde bloquear. **Verificar permissões** pergunta à Cloudflare se o token tem cada permissão, e não muda nada. **Ativar bloqueio** ativa o bloqueio só quando todas as verificações passam, e o OneUptime configura a Cloudflare em menos de um minuto.
+Na linha da conexão, selecione **Bloquear endereços**. Cole um token novo em **Novo token de API**, ou deixe vazio para manter o atual, e em **Zonas** deixe **Todas as zonas**, ou escolha as zonas onde bloquear. **Verificar permissões** pergunta à Cloudflare se o token tem cada permissão, e não muda nada. **Ativar bloqueio** ativa o bloqueio só quando todas as verificações passam, exceto **Challenge a network by its ASN**, que só avisa, e o OneUptime configura a Cloudflare em menos de um minuto.
 :::
 
-Enquanto o bloqueio está ativado, **Testar conexão** executa as mesmas verificações: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** e, onde IP Access Rules são usadas, **Edit IP Access Rules**.
+Enquanto o bloqueio está ativado, **Testar conexão** executa as mesmas verificações: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** e, onde IP Access Rules são usadas, **Edit IP Access Rules**, ou então **Challenge a network by its ASN**.
 
 ### O que o OneUptime adiciona à Cloudflare
 
@@ -183,7 +183,7 @@ Enquanto o bloqueio está ativado, **Testar conexão** executa as mesmas verific
 | As listas `oneuptime_block` e `oneuptime_challenge` | Duas listas de IP na conta, uma para bloqueios e outra para desafios. A descrição delas nomeia o seu projeto do OneUptime. |
 | Uma regra personalizada por lista, em cada zona | `(ip.src in $oneuptime_block)` com a ação Block, e `(ip.src in $oneuptime_challenge)` com a ação Managed Challenge. A descrição delas diz que o OneUptime as gerencia. |
 | Um item de lista por bloqueio | O comentário dele nomeia o caso e quando o bloqueio termina, como `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| Uma IP Access Rule por rede desafiada pelo seu ASN | Uma rede inteira desafiada em **Campanhas**, como uma IP Access Rule cujo alvo é `asn`, que todo plano tem. A nota dela diz o mesmo que o comentário de um item de lista. Sem `Account > Account Firewall Access Rules > Edit` no token, o desafio não é aplicado, e a **Lista de bloqueio** diz qual permissão adicionar. |
+| Uma IP Access Rule por rede desafiada pelo seu ASN | Uma rede inteira desafiada em **Campanhas**, como uma IP Access Rule cujo alvo é `asn`, que todo plano tem. A nota dela diz o mesmo que o comentário de um item de lista. **Verificar permissões** e **Testar conexão** avisam antes, em **Challenge a network by its ASN**, quando o token não tem `Account > Account Firewall Access Rules > Edit`: o bloqueio funciona sem essa permissão, mas o desafio não é aplicado, e a **Lista de bloqueio** diz qual permissão adicionar. |
 
 Cada regra fica em primeiro lugar entre as regras personalizadas da zona, então roda antes das suas: uma regra Skip sua não consegue deixar passar um endereço bloqueado. Quando suas regras Skip deixam passar endereços, como os dos seus monitores ou de um parceiro, **Estado do bloqueio** os nomeia. **Proteger estes endereços** os adiciona a **Entidades protegidas**, que ninguém pode bloquear.
 

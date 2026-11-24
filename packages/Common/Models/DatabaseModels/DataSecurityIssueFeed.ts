@@ -64,6 +64,12 @@ export enum DataSecurityIssueFeedEventType {
   AiChangeUndone = "AiChangeUndone",
   AiChangeFailed = "AiChangeFailed",
   /*
+   * What OneUptime AI proposed for the issue's group, and still waited,
+   * is no longer needed (#10741): none of the group's issues is open, or
+   * its fix was asked for another way.
+   */
+  AiProposalExpired = "AiProposalExpired",
+  /*
    * A telemetry issue resolved as contained at ingest (#10368): a scrub
    * rule hides its data before it is stored, but the code still writes
    * it. Not fixed, so not drawn as Resolved is.

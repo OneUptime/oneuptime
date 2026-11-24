@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "發生了問題",
-  "An unexpected error has occurred. Please reload the page to continue": "發生了未預期的錯誤。請重新載入頁面以繼續",
+  "This page stopped working": "此頁面已停止運作",
+  "Part of this page ran into a problem. Reload the page to continue.": "此頁面的一部分遇到了問題。請重新載入頁面以繼續。",
   "Error details": "錯誤詳細資料",
   "Still stuck?": "還是無法解決？",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享給 OneUptime 支援團隊之前請先檢查。",
@@ -737,5 +737,6 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享之前請先檢查。"
 }

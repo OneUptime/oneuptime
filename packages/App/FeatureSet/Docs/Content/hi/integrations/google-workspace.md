@@ -45,6 +45,7 @@ flowchart TB
 1. [Google एडमिन कंसोल](https://admin.google.com) में, सुपर एडमिनिस्ट्रेटर के रूप में, **Security → Access and data control → API controls → Manage domain-wide delegation** खोलें, और **Add new** चुनें।
 2. सेवा खाते की **Unique ID** को **Client ID** के रूप में, और `https://www.googleapis.com/auth/admin.reports.audit.readonly` को **OAuth scope** के रूप में डालें। **Authorize** चुनें। Google को इसे लागू करने में कुछ मिनट लग सकते हैं।
 3. प्लेबुक को उपयोगकर्ताओं को निलंबित करने, उनका निलंबन हटाने और साइन आउट करने देने के लिए (देखें [रोकथाम](/docs/telemetry/security-cases#रोकथाम)), उसी क्लाइंट के स्कोप में `https://www.googleapis.com/auth/admin.directory.user` और `https://www.googleapis.com/auth/admin.directory.user.security` अल्पविराम से अलग करके जोड़ें। तब कनेक्शन जिस व्यवस्थापक के रूप में काम करता है, उसे उन उपयोगकर्ताओं को प्रबंधित करने वाला होना चाहिए।
+4. किसी [सुरक्षा केस](/docs/telemetry/security-cases#oneuptime-किसी-चरण-की-जाँच-कैसे-करता-है) को यह जाँचने देने के लिए कि हमले ने जिस खाते को किसी समूह में जोड़ा था, उसे उससे निकाल दिया गया है, उसी तरह `https://www.googleapis.com/auth/admin.directory.group.member.readonly` जोड़ें। यह किसी समूह के सदस्यों के अलावा कुछ नहीं पढ़ता, ऐसे व्यवस्थापक के लिए जो समूह पढ़ सकता हो। इसके बिना केस ऐसा हर बदलाव आपकी पुष्टि के लिए बताता है, और कहता है कि कौन-सा स्कोप जोड़ना है।
 
 ### OneUptime में कनेक्शन जोड़ें
 

@@ -5,6 +5,7 @@ As configurações do projeto reúnem o que vale para o projeto inteiro: o nome 
 :::cards
 - [Encontrar uma configuração](#encontrar-uma-configuração): O que cada seção do menu lateral contém.
 - [Os detalhes do projeto](#os-detalhes-do-projeto): O nome, o ID e o acesso do suporte.
+- [Nomes únicos](#nomes-únicos): Se dois registros do mesmo tipo podem ter o mesmo nome.
 - [Produtos](#produtos): Os produtos que este projeto mostra e os que ele oculta.
 - [Rótulos](#rótulos): Marcadores para recursos, permissões e regras.
 - [Excluir o projeto](#excluir-o-projeto): O que exige, e o que vai junto.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Seção | Páginas | Onde ler mais |
 | --- | --- | --- |
-| **Básico** | **Projeto**, **Produtos**, **Rótulos** | [Os detalhes do projeto](#os-detalhes-do-projeto), [Produtos](#produtos), [Rótulos](#rótulos) |
+| **Básico** | **Projeto**, **Produtos**, **Rótulos** | [Os detalhes do projeto](#os-detalhes-do-projeto), [Nomes únicos](#nomes-únicos), [Produtos](#produtos), [Rótulos](#rótulos) |
 | **Espaço de trabalho** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videochamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videochamadas](/docs/workspace-connections/video-calls) |
 | **Telemetria e APM** | **Chaves de ingestão**, **Retenção de dados**, **Uso** | [Chaves de ingestão](/docs/telemetry/ingestion-keys), [Retenção de dados](/docs/telemetry/data-retention), [Uso de telemetria](/docs/telemetry/usage) |
 | **Notificações** | **Canais de notificação**, **Logs de notificação**, **Aplicativos móveis** | [Notificações](#notificações) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## Os detalhes do projeto
 
-**Configurações do projeto → Básico → Projeto** tem dois cartões.
+**Configurações do projeto → Básico → Projeto** tem os cartões do projeto: **Detalhes do projeto**, **Nomes únicos** e, no OneUptime Cloud, **Acesso do suporte ao cliente**.
 
 **Detalhes do projeto** mostra o nome do projeto e o ID dele:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Data Residency**: no OneUptime Cloud, onde os dados do seu projeto devem ficar, quando o OneUptime registrou isso. Só o OneUptime define esse valor.
 
 **Acesso do suporte ao cliente**, no OneUptime Cloud, decide se a equipe de suporte do OneUptime pode abrir o projeto. Ative **Permitir que o suporte da OneUptime acesse este projeto** quando quiser ajuda: o OneUptime pergunta antes, porque o suporte poderá ver e mudar tudo no projeto, e você clica em **Deixar o suporte entrar**. Desative quando terminarem: isso é salvo na hora. Proprietários do projeto e Administradores do projeto mudam essa opção.
+
+## Nomes únicos
+
+**Nomes únicos**, em **Configurações do projeto → Básico → Projeto**, decide se dois registros do mesmo tipo podem ter o mesmo nome no projeto. Enquanto **Exigir nomes únicos** está ativado, o OneUptime recusa um nome que outro registro do mesmo tipo já tem, seja ele digitado aqui, enviado pela API ou definido no Terraform, e independentemente de maiúsculas e espaços: `API Health Check` e `api health check` são um só nome. O botão salva assim que você o aciona. Proprietários do projeto e Administradores do projeto mudam essa opção.
+
+Ele vem ativado em um projeto novo. Um projeto que já existia antes o mantém desativado, porque os clientes da API e as configurações do Terraform do projeto podem depender de nomes que se repetem: ative-o quando estiver pronto.
+
+Abaixo do botão, o cartão lista cada nome que o projeto já tem mais de uma vez, tipo por tipo, com um link para cada registro e o dia em que ele foi criado. Ativar o botão não recusa nada do que existe: esses registros continuam funcionando até que alguém os renomeie, e só um registro novo ou uma renomeação precisa de um nome próprio. Salvar um registro de novo com o próprio nome, com quaisquer maiúsculas, não é uma renomeação.
+
+Seja qual for a posição do botão, um formulário avisa enquanto você digita um nome que outro registro do mesmo tipo já tem, com um link para esse registro. Enquanto o botão está ativado, o aviso também diz que salvar seria recusado.
+
+O botão vale para os tipos que você nomeia e escolhe pelo nome: monitores, grupos de monitores, sondas, SLOs, os modelos de incidente, alerta, manutenção e página de status, chaves de API, chaves de ingestão, funções personalizadas, provedores de LLM, pipelines, orçamentos e conexões. Eventos e registros do que aconteceu repetem os nomes de propósito e ficam de fora: incidentes, alertas, episódios, eventos de manutenção e anúncios de página de status, assim como o que o OneUptime descobre, como hosts e pods. Equipes, rótulos, políticas de plantão, escalas de plantão, páginas de status, fluxos de trabalho e alguns outros tipos têm um nome próprio em todo projeto, seja qual for a posição do botão.
+
+Quando o OneUptime dá nome a um registro por você, como um monitor criado a partir de uma recomendação ou um importado, e o nome já está em uso, ele acrescenta um número em vez de recusá-lo: `API Health Check 2`.
 
 ## Produtos
 
@@ -145,6 +160,10 @@ Renomear o projeto exige um Proprietário do projeto, ou a permissão para edita
 
 :::details Excluir: Projeto continua bloqueado na caixa de diálogo
 Digite o nome do projeto exatamente como a caixa de diálogo o mostra: maiúsculas e minúsculas contam.
+:::
+
+:::details Um nome é recusado porque o projeto exige nomes únicos
+Outro registro do mesmo tipo tem esse nome, independentemente de maiúsculas e espaços. Escolha outro nome, ou renomeie o outro registro primeiro: **Nomes únicos**, em **Configurações do projeto → Básico → Projeto**, lista os nomes que o projeto tem mais de uma vez, com um link para cada registro. Se só um registro arquivado tem o nome, desarquive esse registro ou escolha outro nome.
 :::
 
 ## Próximos passos

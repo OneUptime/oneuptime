@@ -157,16 +157,14 @@ const loadAlertStates: LoadAlertStatesFunction =
       return NO_RECORDS;
     }
 
-    const result: ListResult<AlertState> = await ModelAPI.getList<AlertState>(
-      {
-        modelType: AlertState,
-        query: { projectId: projectId, isArchived: false },
-        select: { _id: true, name: true, color: true, order: true },
-        sort: { order: SortOrder.Ascending },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-      },
-    );
+    const result: ListResult<AlertState> = await ModelAPI.getList<AlertState>({
+      modelType: AlertState,
+      query: { projectId: projectId, isArchived: false },
+      select: { _id: true, name: true, color: true, order: true },
+      sort: { order: SortOrder.Ascending },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+    });
 
     const records: Array<FormReferenceRecord> = [];
 

@@ -115,7 +115,8 @@ function harness(
     externalId: EXTERNAL_ID,
     accountId: FAKE_WAF_ACCOUNT_ID,
     region,
-    scope: scope === "CLOUDFRONT" ? AwsWafScope.CloudFront : AwsWafScope.Regional,
+    scope:
+      scope === "CLOUDFRONT" ? AwsWafScope.CloudFront : AwsWafScope.Regional,
     options: {
       transport: fake.transport,
       now: (): Date => {
@@ -148,7 +149,11 @@ function customerRule(name: string, priority: number): JSONObject {
   };
 }
 
-function cidrsOf(fake: FakeAwsWaf, key: string, region: string = REGION): Array<string> {
+function cidrsOf(
+  fake: FakeAwsWaf,
+  key: string,
+  region: string = REGION,
+): Array<string> {
   return fake.getIpSet(region, "REGIONAL", setName(key))?.addresses || [];
 }
 
@@ -168,12 +173,16 @@ describe("first-time setup: the four IP sets and the rule", () => {
     for (const spec of SETS) {
       const set: FakeWafIpSet = h.fake.getIpSet(REGION, "REGIONAL", spec.name)!;
 
-      expect(set.name).toBe(`oneuptime-${EXTERNAL_ID.slice(10, 18)}-${spec.key}`);
+      expect(set.name).toBe(
+        `oneuptime-${EXTERNAL_ID.slice(10, 18)}-${spec.key}`,
+      );
       expect(set.version).toBe(spec.family === 4 ? "IPV4" : "IPV6");
       expect(set.addresses).toEqual([]);
       expect(set.description).toContain("OneUptime");
       expect(arns[spec.key]).toBe(set.arn);
-      expect(set.arn).toContain(`:${REGION}:${FAKE_WAF_ACCOUNT_ID}:regional/ipset/`);
+      expect(set.arn).toContain(
+        `:${REGION}:${FAKE_WAF_ACCOUNT_ID}:regional/ipset/`,
+      );
     }
 
     // Made again, nothing is made twice.
@@ -209,7 +218,11 @@ describe("first-time setup: the four IP sets and the rule", () => {
       "challenge-ipv6",
     ]);
 
-    const rules: Array<JSONObject> = h.fake.getRules(REGION, "REGIONAL", "prod-alb");
+    const rules: Array<JSONObject> = h.fake.getRules(
+      REGION,
+      "REGIONAL",
+      "prod-alb",
+    );
     const byName: Map<string, JSONObject> = new Map(
       rules.map((rule: JSONObject): [string, JSONObject] => {
         return [rule["Name"] as string, rule];
@@ -217,7 +230,9 @@ describe("first-time setup: the four IP sets and the rule", () => {
     );
 
     // The customer's rules, as they were, where they were.
-    expect(byName.get("allow-office")).toEqual(customerRule("allow-office", 10));
+    expect(byName.get("allow-office")).toEqual(
+      customerRule("allow-office", 10),
+    );
     expect(byName.get("geo")).toEqual(customerRule("geo", 20));
 
     expect(byName.get(RULES.block)).toEqual({
@@ -382,7 +397,9 @@ describe("first-time setup: the four IP sets and the rule", () => {
 
     expect(
       JSON.stringify(cf.fake.getRules(REGION, "REGIONAL", "prod-alb")),
-    ).toContain('"HeaderName":"CF-Connecting-IP","FallbackBehavior":"NO_MATCH","Position":"FIRST"');
+    ).toContain(
+      '"HeaderName":"CF-Connecting-IP","FallbackBehavior":"NO_MATCH","Position":"FIRST"',
+    );
   });
 
   test("a rule already as it should be is not written again; one whose client address changed is rewritten in place", async () => {
@@ -461,7 +478,11 @@ describe("no free priority", () => {
       clientAddress: SecurityBlockClientAddress.SourceIp,
     });
 
-    const rules: Array<JSONObject> = h.fake.getRules(REGION, "REGIONAL", "prod-alb");
+    const rules: Array<JSONObject> = h.fake.getRules(
+      REGION,
+      "REGIONAL",
+      "prod-alb",
+    );
 
     bumpWebAcl(
       h.fake.state(REGION, "REGIONAL").webAcls.get(h.webAcl.id)!,
@@ -554,15 +575,12 @@ describe("lock tokens", () => {
 
   test("a web ACL written between the read and the write is read again: the customer's new rule is kept", async () => {
     const h: Harness = harness({ rules: [customerRule("geo", 10)] });
-    const acl: FakeWafWebAcl = h.fake.state(REGION, "REGIONAL").webAcls.get(
-      h.webAcl.id,
-    )!;
+    const acl: FakeWafWebAcl = h.fake
+      .state(REGION, "REGIONAL")
+      .webAcls.get(h.webAcl.id)!;
 
     h.fake.writeBehind(() => {
-      bumpWebAcl(acl, [
-        customerRule("geo", 10),
-        customerRule("rate-limit", 6),
-      ]);
+      bumpWebAcl(acl, [customerRule("geo", 10), customerRule("rate-limit", 6)]);
     });
 
     const state: AwsWafRuleState = await h.group.ensureRules({
@@ -581,7 +599,12 @@ describe("lock tokens", () => {
       });
 
     expect(names).toEqual(
-      expect.arrayContaining(["geo", "rate-limit", RULES.block, RULES.challenge]),
+      expect.arrayContaining([
+        "geo",
+        "rate-limit",
+        RULES.block,
+        RULES.challenge,
+      ]),
     );
   });
 });
@@ -758,7 +781,9 @@ describe("reading and changing the sets", () => {
         error: `the AWS WAF IP set ${setName("block-ipv4")} is full (10,000)`,
       },
     ]);
-    expect(cidrsOf(h.fake, "block-ipv4")).toHaveLength(AWS_WAF_IP_SET_MAX_ADDRESSES);
+    expect(cidrsOf(h.fake, "block-ipv4")).toHaveLength(
+      AWS_WAF_IP_SET_MAX_ADDRESSES,
+    );
   });
 
   test("a set AWS calls full (WAFLimitsExceededException) refuses the entries it was asked to add, saying so", async () => {
@@ -941,7 +966,9 @@ describe("CloudFront's web ACLs", () => {
       h.fake.getIpSet("us-east-1", "CLOUDFRONT", setName("block-ipv4"))!.arn,
     ).toContain(":global/ipset/");
     // The regional sets of us-east-1 are not CloudFront's.
-    expect(h.fake.getIpSet("us-east-1", "REGIONAL", setName("block-ipv4"))).toBeUndefined();
+    expect(
+      h.fake.getIpSet("us-east-1", "REGIONAL", setName("block-ipv4")),
+    ).toBeUndefined();
   });
 });
 

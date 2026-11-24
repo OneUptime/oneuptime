@@ -388,6 +388,141 @@ export function getSecurityAttackNetworkChallengeValues(
   return values;
 }
 
+// ---------- A network row's requests (#10896) ----------
+
+/*
+ * The attribute a Cloudflare firewall event names its client's ASN in
+ * (CloudflareNormalizer's CLOUDFLARE_ATTRIBUTES.asn): digits alone, as
+ * Cloudflare writes them ("14061"). A test holds the two to one name.
+ */
+export const SECURITY_ATTACK_NETWORK_ASN_ATTRIBUTE: string =
+  "cloudflare.client.asn";
+
+/*
+ * What the Security Events explorer reads a network row's requests by:
+ *
+ *   - an ASN row, the events whose ASN attribute names it - as Cloudflare
+ *     writes it ("14061"), and as a block writes it ("AS14061"), so an
+ *     event either way is found;
+ *   - a /24 or /48 row, the events whose address is in the range, as
+ *     globs of its addresses' text (getSecurityAttackRangeAddressGlobs);
+ *   - the row of requests with no address, nothing: there is no address to
+ *     read them by.
+ */
+export interface SecurityAttackNetworkRequestsFilter {
+  asnValues: Array<string>;
+  addressGlobs: Array<string>;
+}
+
+function toHexGroup(group: number): string {
+  return group.toString(16);
+}
+
+function toPaddedHexGroup(group: number): string {
+  return group.toString(16).padStart(4, "0");
+}
+
+/*
+ * Globs (`*` any run of characters, matched without case) that every
+ * address of an IPv4 /24 or an IPv6 /48 is written to match, and no address
+ * outside it, however the event writes the address:
+ *
+ *   - an IPv4 /24, its three octets: "203.0.113.0/24" is "203.0.113.*";
+ *   - an IPv6 /48, its three groups as an address's shortest form starts
+ *     with them ("2001:db8:85a3:*") and in full ("2001:0db8:85a3:*") - and
+ *     where a group is zero, the shortest form that runs its zeros together
+ *     ("2001:db8:0::/48" holds "2001:db8::7", "2001:db8::*").
+ *
+ * Empty for anything that is no IPv4 /24 or IPv6 /48.
+ */
+export function getSecurityAttackRangeAddressGlobs(
+  range: string,
+): Array<string> {
+  const read: SecurityBlockValue | null = readSecurityBlockValue(range || "");
+
+  if (!read) {
+    return [];
+  }
+
+  const block: NetworkAddressBlock = read.block;
+
+  if (
+    block.family === 4 &&
+    block.prefixLength === SECURITY_ATTACK_NETWORK_IPV4_PREFIX
+  ) {
+    const [high, low] = block.groups as [number, number];
+
+    return [`${high >> 8}.${high & 0xff}.${low >> 8}.*`];
+  }
+
+  if (
+    block.family === 6 &&
+    block.prefixLength === SECURITY_ATTACK_NETWORK_IPV6_PREFIX
+  ) {
+    const [first, second, third] = block.groups as [number, number, number];
+    const globs: Array<string> = [
+      `${toHexGroup(first)}:${toHexGroup(second)}:${toHexGroup(third)}:*`,
+    ];
+
+    /*
+     * An address whose run of zero groups starts at the third group - the
+     * shortest form never starts one at a zero group after another.
+     */
+    if (third === 0 && second !== 0) {
+      globs.push(`${toHexGroup(first)}:${toHexGroup(second)}::*`);
+    }
+
+    // ...at the second.
+    if (second === 0 && third === 0 && first !== 0) {
+      globs.push(`${toHexGroup(first)}::*`);
+    }
+
+    // ...at the first: no public address, but said whole.
+    if (first === 0 && second === 0 && third === 0) {
+      globs.push("::*");
+    }
+
+    // Written in full, each group in four digits.
+    const full: string = `${toPaddedHexGroup(first)}:${toPaddedHexGroup(second)}:${toPaddedHexGroup(third)}:*`;
+
+    if (!globs.includes(full)) {
+      globs.push(full);
+    }
+
+    return globs;
+  }
+
+  return [];
+}
+
+/*
+ * How the explorer finds a network row's requests (#10896); null for the
+ * row of requests with no address, and for a row OneUptime cannot read.
+ */
+export function getSecurityAttackNetworkRequestsFilter(
+  network: Pick<SecurityAttackNetwork, "network" | "kind">,
+): SecurityAttackNetworkRequestsFilter | null {
+  if (!network.network) {
+    return null;
+  }
+
+  if (network.kind === SecurityAttackNetworkKind.Asn) {
+    const asn: string | null = readSecurityBlockAsn(network.network);
+
+    if (!asn) {
+      return null;
+    }
+
+    return { asnValues: [asn.slice(2), asn], addressGlobs: [] };
+  }
+
+  const addressGlobs: Array<string> = getSecurityAttackRangeAddressGlobs(
+    network.network,
+  );
+
+  return addressGlobs.length > 0 ? { asnValues: [], addressGlobs } : null;
+}
+
 function readText(value: JSONValue | undefined): string {
   return typeof value === "string" ? value.trim() : "";
 }

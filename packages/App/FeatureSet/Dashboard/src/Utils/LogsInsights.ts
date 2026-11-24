@@ -14,7 +14,6 @@ import {
   isResourceEntityFacetKey,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
-import { RESOURCE_FACET_CATALOG } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
   CrossSignalQueryParams,
   TelemetryCrossSignalScope,
@@ -176,64 +175,18 @@ export function buildErrorPatternCorrelationRequest(
 // --- Scope picker ---
 
 /**
- * The facets the scope picker offers, in the order their groups render.
- *
- * Services first because most projects think in services, then the
- * resources that log under their own id (agent-ingested host / container /
- * cluster telemetry). The issue this page answers asks for "top errors per
- * host/service", so both kinds have to be selectable — not just the one the
- * page happened to start with.
+ * The facets a scope is made of: services, then the resources that log
+ * under their own id (agent-ingested host / container / cluster telemetry).
+ * The issue this page answers asks for "top errors per host/service", so
+ * both kinds have to be selectable — not just the one the page happened to
+ * start with. The scope picker searches each kind the window's logs list
+ * on the server, and draws each record's kind beside it
+ * (TelemetryResourceScopePicker, #10921).
  */
 export const INSIGHTS_SCOPE_FACET_KEYS: Array<string> = [
   "primaryEntityId",
   ...RESOURCE_ENTITY_FACET_KEYS,
 ];
-
-const PLAIN_CAPITALISED_WORD_PATTERN: RegExp = /^[A-Z][a-z]+$/;
-
-/**
- * A resource type's plural label in the picker's sentence case: the head
- * noun (the last word) goes lower case, so "Docker Hosts" reads "Docker
- * hosts" while product names and acronyms ("Docker Swarm", "RUM", "IoT",
- * "vCenters") keep their casing. A last word that is not plainly
- * capitalised ("CRDs") is left as written rather than mangled.
- */
-export function toInsightsScopeGroupLabel(pluralLabel: string): string {
-  const words: Array<string> = pluralLabel.trim().split(/\s+/);
-
-  if (words.length < 2) {
-    return words.join(" ");
-  }
-
-  const lastIndex: number = words.length - 1;
-  const lastWord: string = words[lastIndex] || "";
-
-  if (PLAIN_CAPITALISED_WORD_PATTERN.test(lastWord)) {
-    words[lastIndex] = lastWord.toLowerCase();
-  }
-
-  return words.join(" ");
-}
-
-function buildInsightsScopeFacetLabels(): Dictionary<string> {
-  const labels: Dictionary<string> = { primaryEntityId: "Services" };
-
-  for (const definition of RESOURCE_FACET_CATALOG) {
-    labels[definition.facetKey] = toInsightsScopeGroupLabel(
-      definition.pluralLabel,
-    );
-  }
-
-  return labels;
-}
-
-/**
- * Human-readable group label per facet key: Services, then one per resource
- * facet catalog entry, so a resource type added to the catalog gets its
- * picker group titled without an edit here.
- */
-export const INSIGHTS_SCOPE_FACET_LABELS: Dictionary<string> =
-  buildInsightsScopeFacetLabels();
 
 export interface ScopeFacetValue {
   facetKey: string;

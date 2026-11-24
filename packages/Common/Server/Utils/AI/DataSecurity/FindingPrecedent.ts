@@ -80,7 +80,10 @@ function isoOf(value: Date | string | null | undefined): string | undefined {
   return time > 0 ? new Date(time).toISOString() : undefined;
 }
 
-function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+function sameText(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
   return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
 }
 
@@ -126,7 +129,10 @@ function toPrecedent(
         ? (candidate.suppressedReason || "")
             .replace(/\s+/g, " ")
             .trim()
-            .slice(0, DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedentReasonLength)
+            .slice(
+              0,
+              DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedentReasonLength,
+            )
         : "",
     isSameName,
     ...(decidedAt ? { decidedAt } : {}),
@@ -239,14 +245,12 @@ export function selectFindingPrecedent(data: {
       decision: DataStoreFindingDecision;
     }>
   > = decided
-    .filter(
-      (entry: { candidate: PrecedentCandidate }): boolean => {
-        return (
-          !taken.has(entry.candidate.id) &&
-          getFindingNameKey(entry.candidate) !== null
-        );
-      },
-    )
+    .filter((entry: { candidate: PrecedentCandidate }): boolean => {
+      return (
+        !taken.has(entry.candidate.id) &&
+        getFindingNameKey(entry.candidate) !== null
+      );
+    })
     .sort(
       (
         a: { candidate: PrecedentCandidate },

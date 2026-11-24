@@ -39,7 +39,7 @@ Under **Hur ska vi nå dig?** klickar du på **Skaffa appen**, skannar koden med
 
 ![Steget ”Hur ska vi nå dig?”, med ”Slå på sms och samtal” markerad](screen:paging-reach-you)
 
-Nya projekt börjar med sms och telefonsamtal avstängda. Om du äger projektet klickar du på **Slå på sms och samtal**; alla andra får veta vem som kan. Om saldot på OneUptime Cloud är 1.00 USD eller mindre klickar du på **Fyll på saldo**, anger 20 till 1 000 USD under **Belopp (USD)** och klickar på **Fyll på**.
+Nya projekt börjar med sms och telefonsamtal avstängda. Om du äger projektet klickar du på **Slå på sms och samtal**; alla andra får veta vem som kan. Om saldot på OneUptime Cloud är 1.00 USD eller mindre klickar du på **Fyll på saldo**, anger 20 till 1 000 USD under **Belopp (USD)** och klickar på **Fyll på saldo**.
 
 ### Lägg till ditt telefonnummer
 

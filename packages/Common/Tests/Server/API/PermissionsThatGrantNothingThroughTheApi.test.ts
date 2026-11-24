@@ -35,6 +35,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 });
 
 import BaseAPI from "../../../Server/API/BaseAPI";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../Server/Infrastructure/Redis";
@@ -412,11 +413,14 @@ function refusalOf(
   const titles: Array<string> = PermissionHelper.getPermissionTitles(
     lists[operation]!,
   );
-  // As DatabaseRequestType names it, which the refusal opens with.
+  // As DatabaseRequestType names it.
   const type: string = operation;
 
   return titles.length === 0
-    ? `${type} on ${model.singularName} is not allowed.`
+    ? HeldPermissionsUtil.getNobodyMayRefusal({
+        recordName: model.singularName,
+        operation: type,
+      })
     : `You do not have permissions to ${type} ${model.singularName}. You need one of these permissions: ${titles.join(", ")}`;
 }
 
@@ -883,7 +887,9 @@ describe("an Edit ... Feed permission edits no feed entry", () => {
       expect(holder.status).toBe(without.status);
       expect(errorOf(holder)).toBe(errorOf(without));
       expect(errorOf(holder)).toBe(refusalOf(feed.service.modelType, "update"));
-      expect(errorOf(holder)).toMatch(/^update on .+ is not allowed\.$/);
+      expect(errorOf(holder)).toMatch(
+        /^.+ records cannot be updated through the Dashboard or the API: OneUptime keeps them itself\.$/,
+      );
       nothingWritten([feedTables[index]!]);
       noHookReached();
     },
@@ -1126,7 +1132,9 @@ describe("Create Invoices and Delete Invoices create and delete no invoice; Read
 
       expect(result.status).toBe(422);
       expect(errorOf(result)).toBe(refusalOf(BillingInvoice, "create"));
-      expect(errorOf(result)).toBe("create on Invoice is not allowed.");
+      expect(errorOf(result)).toBe(
+        "Invoice records cannot be created through the Dashboard or the API: OneUptime keeps them itself.",
+      );
       nothingWritten([invoices]);
       noHookReached();
     },
@@ -1152,7 +1160,9 @@ describe("Create Invoices and Delete Invoices create and delete no invoice; Read
       });
 
       expect(result.status).toBe(422);
-      expect(errorOf(result)).toBe("delete on Invoice is not allowed.");
+      expect(errorOf(result)).toBe(
+        "Invoice records cannot be deleted through the Dashboard or the API: OneUptime keeps them itself.",
+      );
       expect(invoices.get(INVOICE_ID)).toBeDefined();
       nothingWritten([invoices]);
       noHookReached();

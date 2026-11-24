@@ -138,6 +138,10 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.ProbesBehind:
         return AggregationType.Max;
 
+      // A certificate is judged by its fewest days left in a bucket.
+      case MonitorMetricType.SslCertificateExpiresInDays:
+        return AggregationType.Min;
+
       default:
         throw new Error("Invalid MonitorMetricType value");
     }
@@ -235,6 +239,8 @@ class MonitorMetricTypeUtil {
         return MonitorMetricType.DisconnectedProbes;
       case CheckOn.ProbesBehind:
         return MonitorMetricType.ProbesBehind;
+      case CheckOn.ExpiresInDays:
+        return MonitorMetricType.SslCertificateExpiresInDays;
       default:
         throw new Error("Invalid CheckOn value");
     }
@@ -374,12 +380,23 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    /*
+     * And its certificate's days left (#10905): a line that falls by one a
+     * day and jumps up at each renewal.
+     */
+    if (monitorType === MonitorType.SSLCertificate) {
+      return [
+        MonitorMetricType.IsOnline,
+        MonitorMetricType.ResponseTime,
+        MonitorMetricType.SslCertificateExpiresInDays,
+      ];
+    }
+
     if (
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
       monitorType === MonitorType.SQLQuery ||
-      monitorType === MonitorType.SSLCertificate ||
       monitorType === MonitorType.ExternalStatusPage
     ) {
       return [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime];
@@ -688,6 +705,9 @@ class MonitorMetricTypeUtil {
         return translationKey("Disconnected Probes");
       case MonitorMetricType.ProbesBehind:
         return translationKey("Probes Behind");
+      // Named as the filter that reads it.
+      case MonitorMetricType.SslCertificateExpiresInDays:
+        return translationKey("Expires In Days");
       default:
         return "";
     }
@@ -1023,6 +1043,10 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.ProbesBehind:
         return translationKey(
           "Connected probes whose monitors or network devices wait more than a minute past their time, at each evaluation.",
+        );
+      case MonitorMetricType.SslCertificateExpiresInDays:
+        return translationKey(
+          "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.",
         );
       default:
         return "";

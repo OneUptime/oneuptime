@@ -24,6 +24,7 @@ import ScreenSizeType from "../../../../Types/Monitor/SyntheticMonitors/ScreenSi
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * THE SECRETS A CHECK RAN WITH, AS THE SERVER LOADS THEM TO HIDE THEM
@@ -38,7 +39,7 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * values, so the next check is sent the secret as before.
  */
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 const getSecretsForMonitors: AnyMock =
   MonitorSecretService.getSecretsForMonitors as unknown as AnyMock;

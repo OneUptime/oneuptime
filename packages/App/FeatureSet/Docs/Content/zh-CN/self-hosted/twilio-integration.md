@@ -147,6 +147,21 @@ Twilio 号码可以同时拨打电话和发送短信，也可以只支持其中�
 
 状态页只提供发送短信的配置，**发送测试短信** 和 **发送测试呼叫** 也只针对配置所发送的内容显示。所有现有配置都和以前一样用于 **通话和短信**。在 API 和 Terraform 中，这个选择是 `usedFor` 字段，缺少所选用途所需号码的配置会被拒绝。
 
+### 通话使用的语音
+
+通话使用您的 Twilio 账户默认的语音：Twilio 免费的 Basic 语音，除非您在 Twilio Console 中选择了其他语音。Twilio 表示其 Basic 语音不适合用于生产环境，因此每个账户都可以改用下列神经语音之一。整个安装的账户在 **Admin Dashboard > 设置 > 通话和短信** 中的 **通话语音** 卡片里选择，项目配置则在 **更多字段** 中的 **通话语音** 里选择。
+
+| 语音 | 提供商 | 听起来 |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | 美式英语，女声 |
+| `Polly.Matthew-Neural` | Amazon Polly | 美式英语，男声 |
+| `Polly.Amy-Neural` | Amazon Polly | 英式英语，女声 |
+| `Polly.Brian-Neural` | Amazon Polly | 英式英语，男声 |
+| `Google.en-US-Neural2-F` | Google | 美式英语，女声 |
+| `Google.en-US-Neural2-J` | Google | 美式英语，男声 |
+
+通过该账户拨出的每通电话都使用这个语音：值班呼叫和对您所按按键的回应、留在语音信箱中的留言、验证码、**发送测试呼叫**，以及来电策略的问候语。使用这些语音时，像 `INC-42` 这样的编号会通过 SSML 逐个拼读，比其他语音读出的以空格分隔的字母听起来更自然。Twilio 向拨打电话的账户收取这些语音的费用：2026 年 11 月为每 100 个字符 $0.0032，一通呼叫电话不到 2 美分。请参阅 [Twilio 语音价格](https://www.twilio.com/en-us/voice/pricing/us)。将 **通话语音** 留空即可保留账户的默认语音。在 API 和 Terraform 中，语音是 `twilioCallVoice` 字段，不在表中的语音会被拒绝。
+
 ### 值班电话的语音信箱
 
 对 Twilio 来说，语音信箱接听的电话和有人接听的电话一样，都算已接听。因此每个值班电话都会在后台通过[答录机检测](https://www.twilio.com/docs/voice/answering-machine-detection)询问 Twilio 接听的是人还是语音信箱：接起电话的人会立即听到呼叫内容。语音信箱接听的电话算作未接听，和一直响铃无人接的电话一样，呼叫会像未接来电那样继续。问候语一结束，OneUptime 就会留下一段简短留言，内容是电话所说的话。通话日志会说明是否留下了留言，事件的 Feed 也会说明："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

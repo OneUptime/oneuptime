@@ -1,4 +1,4 @@
-import { AddDataSecurityIssuePullRequest1809187600831 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187600831-AddDataSecurityIssuePullRequest";
+import { AddDataSecurityIssuePullRequest1809187660831 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187660831-AddDataSecurityIssuePullRequest";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DataSecurityIssuePullRequest from "../../../../Models/DatabaseModels/DataSecurityIssuePullRequest";
 import { describe, expect, test } from "@jest/globals";
@@ -34,7 +34,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddDataSecurityIssuePullRequest1809187600831()[direction](
+  await new AddDataSecurityIssuePullRequest1809187660831()[direction](
     queryRunner,
   );
 
@@ -55,7 +55,7 @@ function keyTo(statements: Array<string>, column: string): string {
   return found!;
 }
 
-describe("AddDataSecurityIssuePullRequest1809187600831", () => {
+describe("AddDataSecurityIssuePullRequest1809187660831", () => {
   test("a link goes with its issue, its project and its repository, and outlives who made it", async () => {
     const up: Array<string> = await recordQueries("up");
 
@@ -154,7 +154,7 @@ describe("AddDataSecurityIssuePullRequest1809187600831", () => {
     const migrations: Array<MigrationClass> =
       SchemaMigrations as unknown as Array<MigrationClass>;
     const index: number = migrations.indexOf(
-      AddDataSecurityIssuePullRequest1809187600831,
+      AddDataSecurityIssuePullRequest1809187660831,
     );
 
     expect(index).toBeGreaterThan(0);
@@ -167,6 +167,6 @@ describe("AddDataSecurityIssuePullRequest1809187600831", () => {
         return Number(stamp.exec(migration.name)?.[1] || "0");
       });
 
-    expect(Math.max(...stamps)).toBeLessThan(1809187600831);
+    expect(Math.max(...stamps)).toBeLessThan(1809187660831);
   });
 });

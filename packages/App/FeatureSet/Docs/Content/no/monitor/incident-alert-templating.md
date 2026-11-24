@@ -196,7 +196,7 @@ Disse beskriver serien som en gruppert monitor åpnet hendelsen for: en pod, en 
 | `requestMethod` | HTTP-metoden, som `POST`. | `string` |
 | `incomingRequestReceivedAt` | Når forespørselen ble mottatt, som et ISO 8601-tidsstempel. | `string` |
 
-Når kriteriet har **Group incidents and alerts by a payload field** slått på, er grupperingsnøkkelen også en variabel, oppkalt etter det **siste segmentet** av grupperingsstien: gruppering etter `requestBody.alerts[*].labels.alertname` gir `{{alertname}}`, og gruppering etter `requestBody.alerts[*].fingerprint` gir `{{fingerprint}}`. Hele `requestBody` finnes fortsatt ved siden av.
+Når kriteriet har **Grupper hendelser og varsler etter et felt i payloaden** slått på, er grupperingsnøkkelen også en variabel, oppkalt etter det **siste segmentet** av grupperingsstien: gruppering etter `requestBody.alerts[*].labels.alertname` gir `{{alertname}}`, og gruppering etter `requestBody.alerts[*].fingerprint` gir `{{fingerprint}}`. Hele `requestBody` finnes fortsatt ved siden av.
 
 > [!NOTE]
 > `[*]` virker bare i feltene for grupperingsstien. I en mal leser den ingenting, så plassholderen blir stående som den er skrevet. `{{requestBody.alerts[0].annotations.summary}}` leser alltid det første varselet i payloaden, ikke det hendelsen ble åpnet for: bruk grupperingsvariabelen og payloadens felles felt, som `commonLabels` og `commonAnnotations`. Se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor).

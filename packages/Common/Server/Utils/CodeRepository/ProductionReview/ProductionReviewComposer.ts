@@ -28,12 +28,16 @@ import {
   ProductionReviewLeakHeldBeforeJSON,
   ProductionReviewLeakJSON,
   ProductionReviewLeakProductionJSON,
+  ProductionReviewLeakStoreJSON,
   ProductionReviewLeakSuggestionJSON,
+  ProductionReviewLeakTableColumnJSON,
+  ProductionReviewLeakTableJSON,
   ProductionReviewSensitiveDataJSON,
   ProductionReviewSensitiveDataUtil,
   SENSITIVE_DATA_LIMITS,
   SensitiveDataPosting,
 } from "../../../../Types/CodeRepository/ProductionReviewSensitiveData";
+import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
 import { PullRequestTerm } from "../../../../Types/CodeRepository/CodeHost";
 import { GitHubCheckConclusion } from "../GitHub/GitHubCheckRuns";
 import { withArticle } from "./SensitiveData/SensitiveDataWords";
@@ -121,6 +125,38 @@ export interface ProductionReviewCheckRunText {
   title: string;
   summary: string;
 }
+
+/*
+ * What a point's suggested change is written as on its line (#10777): a
+ * block its author can apply - GitHub's ```suggestion, which Forgejo
+ * applies too from version 18; GitLab's ```suggestion:-0+0, the line the
+ * thread is on - or, on a host that applies none (Gitea, an older
+ * Forgejo), the change as a diff to make by hand.
+ */
+export enum LineSuggestionFormat {
+  Suggestion = "Suggestion",
+  GitLabSuggestion = "GitLabSuggestion",
+  Diff = "Diff",
+}
+
+/*
+ * What a migration's new column inherits of the store its table is in
+ * (#10779), said on a private repository's comment: who outside the
+ * project's own accounts reaches the store, and that it is not encrypted.
+ */
+export const STORE_EXPOSURE_SENTENCES: Readonly<
+  Partial<Record<DataStoreExposure, string>>
+> = {
+  [DataStoreExposure.Public]:
+    "Anyone on the internet can read that store, so they could read the new column too.",
+  [DataStoreExposure.OtherAccounts]:
+    "Accounts outside yours can reach that store, so they could reach the new column too.",
+  [DataStoreExposure.InternetReachable]:
+    "That store accepts connections from the internet, and the new column would be in it.",
+};
+
+export const STORE_NOT_ENCRYPTED_SENTENCE: string =
+  "That store is not encrypted at rest, so the new column would not be either.";
 
 // The titles a review's check run has.
 export const PRODUCTION_REVIEW_CHECK_TITLES: {
@@ -729,7 +765,7 @@ export default class ProductionReviewComposer {
   }
 
   /*
-   * The points whose suggested change can go on their line, as a GitHub
+   * The points whose suggested change can go on their line, as a host's
    * suggestion: a change to one line, in the order the section lists them,
    * as many as the comment lists.
    */
@@ -747,23 +783,33 @@ export default class ProductionReviewComposer {
       });
   }
 
-  // The review the suggestions are posted in: what they are, in a line.
+  /*
+   * The review the suggestions are posted in: what they are, in a line -
+   * each one its author can commit, where the host applies them.
+   */
   public static composeSuggestionsBody(
     input: ProductionReviewCommentInput,
     count: number,
+    format: LineSuggestionFormat = LineSuggestionFormat.Suggestion,
   ): string {
-    return mdText`**Sensitive data** · ${githubSafeText(
-      input.productName,
-      60,
-    )}'s production review suggests ${plural(count, "change", "changes")} on the lines below, each one you can commit.`.toString();
+    const product: string = githubSafeText(input.productName, 60);
+
+    return format === LineSuggestionFormat.Diff
+      ? mdText`**Sensitive data** · ${product}'s production review suggests ${plural(count, "change", "changes")} on the lines below.`.toString()
+      : mdText`**Sensitive data** · ${product}'s production review suggests ${plural(count, "change", "changes")} on the lines below, each one you can commit.`.toString();
   }
 
   /*
    * One point's suggestion, on its line: what it is, what it does, the fix
-   * and the change as a suggestion block - what the line becomes. Only
-   * what the diff shows: a suggestion is read wherever the pull request is.
+   * and the change - a block in the host's own syntax, which the author can
+   * apply (`format`), or, where the host applies none, the change as a
+   * diff. Only what the diff shows: a suggestion is read wherever the pull
+   * request is.
    */
-  public static composeSuggestion(point: ProductionReviewLeakJSON): string {
+  public static composeSuggestion(
+    point: ProductionReviewLeakJSON,
+    format: LineSuggestionFormat = LineSuggestionFormat.Suggestion,
+  ): string {
     const suggestion: ProductionReviewLeakSuggestionJSON | undefined =
       point.suggestion;
     const replacement: Array<string> = (suggestion?.replacement || []).map(
@@ -771,7 +817,6 @@ export default class ProductionReviewComposer {
         return line.slice(0, SENSITIVE_DATA_LIMITS.maxSuggestionLineLength);
       },
     );
-    const fence: string = fenceFor(replacement);
     const what: string = point.dataTypeNames.slice(0, 2).join(", ");
     const header: MarkdownText = FeedMarkdown.join(
       [
@@ -790,8 +835,31 @@ export default class ProductionReviewComposer {
       mdText`Fix: ${FeedMarkdown.textWithCode(
         githubSafeAiText(point.fix, SENSITIVE_DATA_LIMITS.maxFixLength),
       )}`.toString(),
-      [`${fence}suggestion`, ...replacement, fence].join("\n"),
+      ProductionReviewComposer.suggestionBlock(suggestion, replacement, format),
     ].join("\n\n");
+  }
+
+  /*
+   * The change itself, as the host reads it: what the line becomes in a
+   * suggestion block - GitLab's names the line it is on, `-0+0` - or the
+   * line as it is and as it would be, as a diff.
+   */
+  private static suggestionBlock(
+    suggestion: ProductionReviewLeakSuggestionJSON | undefined,
+    replacement: Array<string>,
+    format: LineSuggestionFormat,
+  ): string {
+    if (format === LineSuggestionFormat.Diff) {
+      return suggestion ? suggestionDiff(suggestion, "") : "";
+    }
+
+    const fence: string = fenceFor(replacement);
+    const info: string =
+      format === LineSuggestionFormat.GitLabSuggestion
+        ? "suggestion:-0+0"
+        : "suggestion";
+
+    return [`${fence}${info}`, ...replacement, fence].join("\n");
   }
 
   // One point of the Sensitive data section, as a list item.
@@ -842,17 +910,15 @@ export default class ProductionReviewComposer {
       )}`,
     );
 
-    const item: string = `- ${lines
-      .map((line: MarkdownText): string => {
-        return line.toString();
-      })
-      .join("\n  ")}`;
+    // One list item: its lines under its bullet, each placed as written.
+    const item: MarkdownText = mdText`- ${FeedMarkdown.join(lines, "\n  ")}`;
 
     const diff: string = point.suggestion
       ? suggestionDiff(point.suggestion, "  ")
       : "";
 
-    return FeedMarkdown.asMarkdown(diff ? `${item}\n\n${diff}` : item);
+    // The suggested change's diff block, fenced where it was built.
+    return diff ? mdText`${item}\n\n${FeedMarkdown.asMarkdown(diff)}` : item;
   }
 
   /*
@@ -896,7 +962,15 @@ export default class ProductionReviewComposer {
       );
     }
 
-    if (production.store) {
+    if (production.store && production.table) {
+      parts.push(
+        ProductionReviewComposer.tableKnows(
+          production.table,
+          production.store,
+          now,
+        ),
+      );
+    } else if (production.store) {
       const holds: string = production.store.dataTypeNames
         .slice(0, 3)
         .join(", ");
@@ -905,6 +979,78 @@ export default class ProductionReviewComposer {
         holds
           ? mdText`It is the store **${githubSafeText(production.store.name, 120)}**, which holds ${githubSafeText(production.store.sensitivity, 40)} data: ${githubSafeText(holds, 200)}.`
           : mdText`It is the store **${githubSafeText(production.store.name, 120)}**, which holds ${githubSafeText(production.store.sensitivity, 40)} data.`,
+      );
+    }
+
+    return FeedMarkdown.join(parts, " ");
+  }
+
+  /*
+   * What Data Security knows of a migration's table (#10779): the store it
+   * is in and what that holds, what of the store the new column inherits -
+   * reached from outside, unencrypted - and the table's columns already
+   * found holding what the new one is for, which it then copies.
+   */
+  private static tableKnows(
+    table: ProductionReviewLeakTableJSON,
+    store: ProductionReviewLeakStoreJSON,
+    now: Date,
+  ): MarkdownText {
+    const parts: Array<MarkdownText> = [];
+    const name: MarkdownText = FeedMarkdown.code(
+      githubSafeText(table.name, 200),
+    );
+    const holds: string = store.dataTypeNames.slice(0, 3).join(", ");
+    const storeName: string = githubSafeText(store.name, 120);
+    const sensitivity: string = githubSafeText(store.sensitivity, 40);
+
+    parts.push(
+      holds
+        ? mdText`The table ${name} is in the store **${storeName}**, which holds ${sensitivity} data: ${githubSafeText(holds, 200)}.`
+        : mdText`The table ${name} is in the store **${storeName}**, which holds ${sensitivity} data.`,
+    );
+
+    if (store.exposure && STORE_EXPOSURE_SENTENCES[store.exposure]) {
+      parts.push(mdText`${STORE_EXPOSURE_SENTENCES[store.exposure]!}`);
+    }
+
+    if (store.isNotEncryptedAtRest) {
+      parts.push(mdText`${STORE_NOT_ENCRYPTED_SENTENCE}`);
+    }
+
+    if (table.sameData.length > 0) {
+      const columns: Array<MarkdownText> = table.sameData.map(
+        (column: ProductionReviewLeakTableColumnJSON): MarkdownText => {
+          const age: string = formatAge(column.lastSeenAt, now);
+
+          return mdText`${githubSafeText(
+            withArticle(column.dataTypeName || "sensitive data"),
+            120,
+          )} in ${FeedMarkdown.code(githubSafeText(column.location, 200))}${
+            age ? ` ${age}` : ""
+          }`;
+        },
+      );
+
+      parts.push(
+        mdText`Data Security found ${listing(columns)}: the new column copies what the table already holds.`,
+      );
+    } else if (table.dataTypeNames.length > 0) {
+      parts.push(
+        mdText`Data Security found ${githubSafeText(
+          table.dataTypeNames.slice(0, 3).join(", "),
+          200,
+        )} in its columns.`,
+      );
+    }
+
+    if (table.otherStoreCount > 0) {
+      parts.push(
+        mdText`${plural(
+          table.otherStoreCount,
+          "more store of the project holds",
+          "more stores of the project hold",
+        )} a table of this name.`,
       );
     }
 

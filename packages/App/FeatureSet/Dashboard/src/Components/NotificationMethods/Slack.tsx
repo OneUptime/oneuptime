@@ -25,6 +25,7 @@ import {
   useNotificationMethodDeleteGuard,
 } from "./NotificationMethod";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import { ChatTestAnswer, readChatTestAnswer } from "./ChatTestAnswer";
 
 /*
  * Unlike phone-style methods there is nothing to type and nothing to verify
@@ -100,17 +101,23 @@ const Slack: () => JSX.Element = (): ReactElement => {
       if (response.isFailure()) {
         setTestResult(API.getFriendlyMessage(response));
       } else {
-        const data: JSONObject = response.data as JSONObject;
         /*
          * Said in the corner: a dialog to click away said it worked
-         * (#9120). A failure stays in its dialog, to be read.
+         * (#9120). A failure stays in its dialog, to be read - also one
+         * the server answers with ok false (ChatTestAnswer).
          */
-        Toast.success(
-          (data["statusMessage"] as string) ||
-            translateTemplate(
-              "Test message sent. Check your Slack direct messages.",
-            ),
+        const answer: ChatTestAnswer = readChatTestAnswer(
+          response.data as JSONObject,
+          translateTemplate(
+            "Test message sent. Check your Slack direct messages.",
+          ),
         );
+
+        if (answer.isSent) {
+          Toast.success(answer.message);
+        } else {
+          setTestResult(answer.message);
+        }
       }
     } catch (err) {
       setTestResult(API.getFriendlyMessage(err));

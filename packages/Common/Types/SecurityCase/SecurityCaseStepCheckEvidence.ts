@@ -24,9 +24,36 @@ import { ResponseLink, readResponseLink } from "./SecurityCaseResponseLink";
  * readStepCheckEvidence keeps only what fits.
  */
 
-// The most facts and links a check keeps.
-export const STEP_CHECK_MAX_FACTS: number = 8;
+/*
+ * The most facts and links a check keeps. A step that reads back each of
+ * a case's changes names each, and says how to let OneUptime read what it
+ * could not: twenty changes at most (ACCOUNT_CHANGES_MAX), and the lines
+ * that say why.
+ */
+export const STEP_CHECK_MAX_FACTS: number = 24;
 export const STEP_CHECK_MAX_LINKS: number = 6;
+
+/*
+ * What a fact says of the thing it names, for the card to mark it by: a
+ * step that reads back several things - the changes an attack made to
+ * accounts (#10603) - marks each as undone, still there, or a person's to
+ * confirm, and the line that says how to let OneUptime read what it could
+ * not (#10900, #10901). A fact with no mark is drawn as a plain line.
+ */
+export enum StepCheckFactMark {
+  // OneUptime read it back, done: an attack's change undone.
+  Done = "Done",
+  // Still to do: a change still there.
+  NotDone = "NotDone",
+  // A person confirms it: OneUptime cannot read it back.
+  Confirm = "Confirm",
+  // Why OneUptime could not read something back, and how to let it.
+  HowToCheck = "HowToCheck",
+}
+
+const STEP_CHECK_FACT_MARKS: ReadonlyArray<string> = Object.values(
+  StepCheckFactMark,
+) as Array<string>;
 
 const MAX_TEXT_LENGTH: number = 1000;
 const MAX_KEYS: number = 24;
@@ -42,6 +69,8 @@ export interface SecurityCaseStepCheckSentence {
   // ISO times, written as the reader's time where the sentence is drawn.
   times?: Record<string, string> | undefined;
   count?: number | undefined;
+  // A fact's: what it says of the thing it names (StepCheckFactMark).
+  mark?: StepCheckFactMark | undefined;
 }
 
 export type SecurityCaseStepCheckData = Record<
@@ -142,6 +171,11 @@ export function readStepCheckSentence(
     ...(Object.keys(times).length > 0 ? { times } : {}),
     ...(typeof count === "number" && Number.isFinite(count)
       ? { count: Math.max(0, Math.trunc(count)) }
+      : {}),
+    // Only a mark the card knows: anything else is a plain line.
+    ...(typeof sentence["mark"] === "string" &&
+    STEP_CHECK_FACT_MARKS.includes(sentence["mark"])
+      ? { mark: sentence["mark"] as StepCheckFactMark }
       : {}),
   };
 }

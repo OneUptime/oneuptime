@@ -5,6 +5,7 @@ Die Projekteinstellungen enthalten, was für das ganze Projekt gilt: seinen Name
 :::cards
 - [Eine Einstellung finden](#eine-einstellung-finden): Was jeder Abschnitt des Seitenmenüs enthält.
 - [Die Details des Projekts](#die-details-des-projekts): Sein Name, seine ID und der Support-Zugriff.
+- [Eindeutige Namen](#eindeutige-namen): Ob sich zwei Datensätze derselben Art einen Namen teilen dürfen.
 - [Produkte](#produkte): Die Produkte, die dieses Projekt anzeigt, und die, die es ausblendet.
 - [Beschriftungen](#beschriftungen): Markierungen für Ressourcen, Berechtigungen und Regeln.
 - [Das Projekt löschen](#das-projekt-löschen): Was es erfordert und was mitgeht.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Abschnitt | Seiten | Wo Sie mehr lesen |
 | --- | --- | --- |
-| **Grundlegend** | **Projekt**, **Produkte**, **Beschriftungen** | [Die Details des Projekts](#die-details-des-projekts), [Produkte](#produkte), [Beschriftungen](#beschriftungen) |
+| **Grundlegend** | **Projekt**, **Produkte**, **Beschriftungen** | [Die Details des Projekts](#die-details-des-projekts), [Eindeutige Namen](#eindeutige-namen), [Produkte](#produkte), [Beschriftungen](#beschriftungen) |
 | **Arbeitsbereich** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videoanrufe** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videoanrufe](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestion-Schlüssel**, **Datenaufbewahrung**, **Nutzung** | [Ingestion-Schlüssel](/docs/telemetry/ingestion-keys), [Datenaufbewahrung](/docs/telemetry/data-retention), [Telemetrie-Nutzung](/docs/telemetry/usage) |
 | **Benachrichtigungen** | **Benachrichtigungskanäle**, **Benachrichtigungsprotokolle**, **Mobile Apps** | [Benachrichtigungen](#benachrichtigungen) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## Die Details des Projekts
 
-**Projekteinstellungen → Grundlegend → Projekt** enthält zwei Karten.
+**Projekteinstellungen → Grundlegend → Projekt** enthält die Karten des Projekts: **Projektdetails**, **Eindeutige Namen** und, in OneUptime Cloud, **Kundensupport-Zugriff**.
 
 **Projektdetails** zeigt den Namen des Projekts und seine ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Datenresidenz**: in OneUptime Cloud, wo die Daten Ihres Projekts liegen sollen, wenn OneUptime das erfasst hat. Nur OneUptime setzt sie.
 
 **Kundensupport-Zugriff** entscheidet in OneUptime Cloud, ob das Support-Team von OneUptime das Projekt öffnen darf. Schalten Sie **OneUptime-Support Zugriff auf dieses Projekt gewähren** ein, wenn Sie Hilfe möchten: OneUptime fragt vorher, weil der Support dann alles im Projekt sehen und ändern kann, und Sie klicken auf **Support hereinlassen**. Schalten Sie es aus, sobald er fertig ist: Das wird sofort gespeichert. Projektinhaber und Projektadministratoren ändern es.
+
+## Eindeutige Namen
+
+**Eindeutige Namen**, unter **Projekteinstellungen → Grundlegend → Projekt**, entscheidet, ob sich zwei Datensätze derselben Art im Projekt einen Namen teilen dürfen. Solange **Eindeutige Namen verlangen** eingeschaltet ist, lehnt OneUptime einen Namen ab, den schon ein anderer Datensatz derselben Art hat, ob er hier eingegeben, über die API gesendet oder in Terraform gesetzt wird, und unabhängig von Groß- und Kleinschreibung und Leerzeichen: `API Health Check` und `api health check` sind ein Name. Der Schalter speichert, sobald Sie ihn umlegen. Projektinhaber und Projektadministratoren ändern ihn.
+
+In einem neuen Projekt ist er eingeschaltet. Ein Projekt, das es schon vorher gab, behält ihn ausgeschaltet, weil sich die API-Clients und Terraform-Konfigurationen des Projekts auf Namen verlassen können, die sich wiederholen: Schalten Sie ihn ein, wenn Sie so weit sind.
+
+Unter dem Schalter listet die Karte jeden Namen auf, den das Projekt schon mehr als einmal hat, Art für Art, mit einem Link zu jedem Datensatz und dem Tag, an dem er angelegt wurde. Den Schalter einzuschalten lehnt nichts ab, was es schon gibt: Diese Datensätze funktionieren weiter, bis jemand sie umbenennt, und nur ein neuer Datensatz oder eine Umbenennung braucht einen eigenen Namen. Einen Datensatz erneut mit seinem eigenen Namen zu speichern, in welcher Schreibweise auch immer, ist keine Umbenennung.
+
+Was der Schalter auch sagt, ein Formular warnt, während Sie einen Namen eingeben, den schon ein anderer Datensatz seiner Art hat, und verlinkt diesen Datensatz. Solange der Schalter eingeschaltet ist, sagt die Warnung auch, dass das Speichern abgelehnt würde.
+
+Der Schalter gilt für die Arten, die Sie benennen und nach Namen auswählen: Monitore, Monitor-Gruppen, Sonden, SLOs, die Vorlagen für Vorfälle, Alarme, Wartungen und Statusseiten, API-Schlüssel, Ingestion-Schlüssel, benutzerdefinierte Rollen, LLM-Anbieter, Pipelines, Budgets und Verbindungen. Ereignisse und Aufzeichnungen wiederholen ihre Namen bewusst und bleiben außen vor: Vorfälle, Alarme, Episoden, Wartungsereignisse und Ankündigungen auf Statusseiten, ebenso das, was OneUptime entdeckt, etwa Hosts und Pods. Teams, Beschriftungen, Bereitschaftsrichtlinien, Bereitschaftspläne, Statusseiten, Workflows und einige andere Arten haben in jedem Projekt einen eigenen Namen, was der Schalter auch sagt.
+
+Wenn OneUptime einen Datensatz für Sie benennt, etwa einen Monitor aus einer Empfehlung oder einen importierten, und der Name vergeben ist, hängt es eine Zahl an, statt ihn abzulehnen: `API Health Check 2`.
 
 ## Produkte
 
@@ -145,6 +160,10 @@ Umbenennen erfordert einen Projektinhaber oder die Berechtigung, das Projekt zu 
 
 :::details Projekt löschen bleibt im Dialog gesperrt
 Geben Sie den Namen des Projekts genau so ein, wie der Dialog ihn zeigt: Groß- und Kleinschreibung zählt.
+:::
+
+:::details Ein Name wird abgelehnt, weil das Projekt eindeutige Namen verlangt
+Ein anderer Datensatz derselben Art hat den Namen, unabhängig von Groß- und Kleinschreibung und Leerzeichen. Wählen Sie einen anderen Namen, oder benennen Sie zuerst den anderen Datensatz um: **Eindeutige Namen**, unter **Projekteinstellungen → Grundlegend → Projekt**, listet die Namen auf, die das Projekt mehr als einmal hat, mit einem Link zu jedem Datensatz. Hat nur ein archivierter Datensatz den Namen, holen Sie ihn aus dem Archiv oder wählen Sie einen anderen Namen.
 :::
 
 ## Nächste Schritte

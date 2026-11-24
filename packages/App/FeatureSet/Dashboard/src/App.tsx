@@ -12,6 +12,7 @@ import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
 import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
 import ReauthenticationPrompt from "Common/UI/Components/Reauthentication/ReauthenticationPrompt";
 import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
+import HelpAndSupportInit from "./Components/HelpAndSupport/HelpAndSupportInit";
 import DashboardRecording from "./Components/DashboardRecording/DashboardRecording";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
@@ -35,6 +36,9 @@ import {
 } from "./Utils/ProjectNavigation";
 import RouteMap from "./Utils/RouteMap";
 import useSelectedProjectSwitches from "./Utils/UseSelectedProjectSwitches";
+import ProjectPaymentMethods, {
+  useProjectPaymentMethodCount,
+} from "./Utils/ProjectPaymentMethods";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
@@ -391,11 +395,20 @@ const App: () => JSX.Element = () => {
     };
   }, []);
 
-  const [paymentMethodsCount, setPaymentMethodsCount] = useState<
-    number | undefined
-  >(undefined);
+  /*
+   * How many payment methods the open project has, once counted, kept where
+   * every page reads it (Utils/ProjectPaymentMethods): Add to Balance says a
+   * payment method is needed before it asks for an amount (#11053), and the
+   * Billing page counts again when one is added or removed, which the
+   * header's Add Card Details follows.
+   */
+  const paymentMethodsCount: number | undefined = useProjectPaymentMethodCount(
+    selectedProject?._id || null,
+  );
 
-  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean>(false);
+  const hasPaymentMethod: boolean =
+    !BILLING_ENABLED ||
+    (paymentMethodsCount !== undefined && paymentMethodsCount > 0);
 
   /*
    * Deliberately a BACKGROUND fetch: this count must never feed MasterPage's
@@ -404,6 +417,9 @@ const App: () => JSX.Element = () => {
    * selection, and the remount re-fired every mount-time request. Consumers
    * already tolerate the count arriving late — Header renders its add-card
    * nag only once paymentMethodsCount !== undefined.
+   *
+   * A count of rows in OneUptime's database, not a request to the payment
+   * provider (ProjectPaymentMethods says why that is enough).
    */
   useAsyncEffect(async () => {
     try {
@@ -412,22 +428,15 @@ const App: () => JSX.Element = () => {
       }
 
       if (selectedProject && selectedProject._id && BILLING_ENABLED) {
-        const paymentMethodsCount: number = await ModelAPI.count({
+        const count: number = await ModelAPI.count({
           modelType: BillingPaymentMethod,
           query: { projectId: selectedProject._id },
         });
 
-        setPaymentMethodsCount(paymentMethodsCount);
-
-        if (paymentMethodsCount && paymentMethodsCount > 0) {
-          setHasPaymentMethod(true);
-        } else {
-          setHasPaymentMethod(false);
-        }
-      }
-
-      if (!BILLING_ENABLED) {
-        setHasPaymentMethod(true);
+        ProjectPaymentMethods.setCount({
+          projectId: selectedProject._id,
+          count: count,
+        });
       }
     } catch (e) {
       const message: string = API.getFriendlyMessage(e);
@@ -668,6 +677,8 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <UserLanguageInit />
       <ProductFeedbackInit />
+      {/* Where the server sends its people for help (#10864-#10866). */}
+      <HelpAndSupportInit />
       {/*
        * On OneUptime Cloud only, and only with the person's consent: a
        * recording of the first-run pages, to see where people get stuck

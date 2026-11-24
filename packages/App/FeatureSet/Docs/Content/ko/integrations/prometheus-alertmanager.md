@@ -58,13 +58,13 @@ Prometheus는 알림 규칙을 평가하고 발생한 알림을 Alertmanager로 
 
 ### 경고마다 인시던트 하나 열기
 
-같은 기준에서 **설정**을 열고 **Group incidents and alerts by a payload field**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
+같은 기준에서 **설정**을 열고 **페이로드 필드로 인시던트와 경고 그룹화**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
 
 | 필드 | 값 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **다음 값마다 별도의 인시던트 열기…** | `requestBody.alerts[*].fingerprint` |
+| **복구를 나타내는 필드** | `requestBody.alerts[*].status` |
+| **복구를 의미하는 값** | `resolved` |
 
 ### 모니터를 다시 온라인으로
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 자체 호스팅 설치에서는 `oneuptime.com` 대신 자체 호스트를 사용합니다.
 :::
 
-`[*]`는 통지의 모든 알림을 읽으므로, 알림 세 개가 담긴 통지는 **Max incidents per request**(바꾸지 않으면 `100`)까지 인시던트 세 개를 열 수 있습니다. 각 알림의 `status`가 그 인시던트에 일어날 일을 결정합니다. 통지의 알림 하나가 해결되고 두 개가 여전히 발생 중이면, 해결된 알림의 인시던트만 닫힙니다. 각 설정이 하는 일은 [다른 시스템의 경고 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
+`[*]`는 통지의 모든 알림을 읽으므로, 알림 세 개가 담긴 통지는 **요청당 최대 인시던트 수**(바꾸지 않으면 `100`)까지 인시던트 세 개를 열 수 있습니다. 각 알림의 `status`가 그 인시던트에 일어날 일을 결정합니다. 통지의 알림 하나가 해결되고 두 개가 여전히 발생 중이면, 해결된 알림의 인시던트만 닫힙니다. 각 설정이 하는 일은 [다른 시스템의 경고 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
 
 > [!WARNING]
 > 한 통지 안에서 알림마다 다른 값으로 그룹화하세요. Alertmanager의 `fingerprint`는 알림의 전체 레이블 집합의 해시이므로 항상 다릅니다. 라우트의 `group_by`에 있는 레이블은 절대 다르지 않습니다. 그것이 바로 알림을 한 통지로 묶는 기준이기 때문입니다. 아래 라우트에서 `requestBody.alerts[*].labels.alertname`으로 그룹화하면 통지의 모든 알림이 인시던트 하나로 합쳐지고, 그 인시던트는 첫 번째 알림의 상태를 따릅니다.
@@ -264,8 +264,8 @@ receivers:
 :::details 인시던트가 열리지만 해결되지 않음
 - `send_resolved: false`를 설정한 수신기가 없는지 확인합니다. 그런 경우 Alertmanager는 복구를 전혀 보내지 않습니다.
 - 기준의 인시던트에는 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다.
-- **Field that signals recovery**는 `requestBody.alerts[*].status`여야 하고, **Value that means recovered**는 정확히 `resolved`여야 합니다. 비교는 대소문자를 구분합니다.
-- 통지에서 **Max incidents per request**를 넘는 알림은 아예 읽히지 않으므로, 그 복구도 사라집니다.
+- **복구를 나타내는 필드**는 `requestBody.alerts[*].status`여야 하고, **복구를 의미하는 값**은 정확히 `resolved`여야 합니다. 비교는 대소문자를 구분합니다.
+- 통지에서 **요청당 최대 인시던트 수**를 넘는 알림은 아예 읽히지 않으므로, 그 복구도 사라집니다.
 - 기다리는 통지가 너무 많아 건너뛴 복구(아래 참고)는 해당 인시던트를 영영 열린 채로 둡니다. Alertmanager는 발생 중인 경고는 반복해서 보내지만 복구는 반복하지 않습니다. 그런 인시던트는 직접 해결합니다.
 :::
 
@@ -282,7 +282,7 @@ receivers:
 :::
 
 :::details 인시던트가 너무 많음
-라우트를 더 적은 레이블로 그룹화하거나 `group_interval`을 늘려, Alertmanager가 관련 알림을 함께 보내도록 합니다. **Max incidents per request**를 낮추면 한 통지에서 생기는 인시던트가 제한되지만, 한도를 넘는 알림은 읽히지 않으므로 그 복구도 사라집니다.
+라우트를 더 적은 레이블로 그룹화하거나 `group_interval`을 늘려, Alertmanager가 관련 알림을 함께 보내도록 합니다. **요청당 최대 인시던트 수**를 낮추면 한 통지에서 생기는 인시던트가 제한되지만, 한도를 넘는 알림은 읽히지 않으므로 그 복구도 사라집니다.
 :::
 
 :::details 통지가 몰릴 때

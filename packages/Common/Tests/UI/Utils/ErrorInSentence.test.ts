@@ -578,9 +578,11 @@ describe("getErrorReader: the page's reader", () => {
 
     expect(importsOf("UI/Utils/ErrorInSentence.ts")).toEqual(
       [
+        "../../Types/Billing/PlanRequiredRefusal",
         "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
         "../../Types/DataObservability/DataCheckRefusals",
         "../../Types/Database/UniqueName",
+        "../../Types/Database/UniqueValueTaken",
         "../../Types/Exception/RefusalWithValues",
         "../../Types/Exception/UnexplainedError",
         "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce",
@@ -588,6 +590,7 @@ describe("getErrorReader: the page's reader", () => {
         "../../Types/DataSecurity/DataSecurityIssuePullRequestLink",
         "../../Types/Translator",
         "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+        "../../Utils/NetworkDiscovery/DiscoveryScanRun",
         "./SentenceSeparator",
       ].sort(),
     );

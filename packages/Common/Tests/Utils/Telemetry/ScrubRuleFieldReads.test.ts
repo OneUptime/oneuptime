@@ -78,7 +78,9 @@ describe("the parts a rule scrubs, as ingest runs it", () => {
         patternType: "email",
         fieldsToScrub: undefined,
       }),
-    ).toEqual(new Set([TelemetryFieldPart.Body, TelemetryFieldPart.Attributes]));
+    ).toEqual(
+      new Set([TelemetryFieldPart.Body, TelemetryFieldPart.Attributes]),
+    );
     // A sensitive-keys rule reads attributes, whatever its fields say.
     expect(
       getScrubRuleParts({
@@ -117,23 +119,34 @@ describe("the parts a rule scrubs, as ingest runs it", () => {
         patternType: LogScrubPatternType.SensitiveKeys,
         fieldsToScrub: TraceScrubField.Name,
       }),
-    ).toEqual(new Set([TelemetryFieldPart.Attributes, TelemetryFieldPart.Events]));
+    ).toEqual(
+      new Set([TelemetryFieldPart.Attributes, TelemetryFieldPart.Events]),
+    );
   });
 });
 
 describe("what a rule's pattern finds, as ingest compiles it", () => {
   test("built-in patterns, an IP address, a custom regex; none for keys or a pattern that cannot run", () => {
-    const find: (patternType: string, text: string, custom?: string) => boolean =
-      (patternType: string, text: string, custom?: string): boolean => {
-        const regex: ScrubRegExp | null = compileScrubRuleValuePattern({
-          patternType,
-          customRegex: custom,
-        });
+    const find: (
+      patternType: string,
+      text: string,
+      custom?: string,
+    ) => boolean = (
+      patternType: string,
+      text: string,
+      custom?: string,
+    ): boolean => {
+      const regex: ScrubRegExp | null = compileScrubRuleValuePattern({
+        patternType,
+        customRegex: custom,
+      });
 
-        return Boolean(regex && regex.matchRanges(text).length > 0);
-      };
+      return Boolean(regex && regex.matchRanges(text).length > 0);
+    };
 
-    expect(find(LogScrubPatternType.Email, "user alice@example.com")).toBe(true);
+    expect(find(LogScrubPatternType.Email, "user alice@example.com")).toBe(
+      true,
+    );
     expect(find(LogScrubPatternType.CreditCard, "4111 1111 1111 1111")).toBe(
       true,
     );
@@ -159,9 +172,9 @@ describe("what a rule's pattern finds, as ingest compiles it", () => {
   });
 
   test("a sensitive-keys rule hides a secret key's value, never the record's own session id", () => {
-    expect(isKeyHiddenBySensitiveKeysRule("http.request.header.authorization")).toBe(
-      true,
-    );
+    expect(
+      isKeyHiddenBySensitiveKeysRule("http.request.header.authorization"),
+    ).toBe(true);
     expect(isKeyHiddenBySensitiveKeysRule("db.password")).toBe(true);
     expect(isKeyHiddenBySensitiveKeysRule("session.id")).toBe(false);
     expect(isKeyHiddenBySensitiveKeysRule("user.email")).toBe(false);
@@ -192,7 +205,10 @@ describe("whether a rule takes away what a query reads", () => {
 
   test("an exact filter whose value the rule keeps still matches what it matched", () => {
     expect(
-      doesScrubRuleTakeFrom(rule(), ref({ key: "user.email", values: ["none"] })),
+      doesScrubRuleTakeFrom(
+        rule(),
+        ref({ key: "user.email", values: ["none"] }),
+      ),
     ).toBe(false);
     expect(
       doesScrubRuleTakeFrom(
@@ -329,7 +345,10 @@ describe("whether a rule takes away what a query reads", () => {
     expect(
       doesScrubRuleTakeFrom(
         keys,
-        ref({ key: "http.request.header.cookie", use: TelemetryFieldUse.GroupBy }),
+        ref({
+          key: "http.request.header.cookie",
+          use: TelemetryFieldUse.GroupBy,
+        }),
       ),
     ).toBe(true);
     expect(
@@ -394,9 +413,9 @@ describe("what a rule takes from Security Events", () => {
     SecurityEventsTelemetrySource.Traces;
 
   test("an IP Address rule that redacts or masks hides the address to block", () => {
-    expect(losses({ patternType: LogScrubPatternType.IPAddress }, [LOGS])).toEqual(
-      [SecurityEventsFieldNeed.ClientAddresses],
-    );
+    expect(
+      losses({ patternType: LogScrubPatternType.IPAddress }, [LOGS]),
+    ).toEqual([SecurityEventsFieldNeed.ClientAddresses]);
     expect(
       losses(
         {
@@ -442,11 +461,14 @@ describe("what a rule takes from Security Events", () => {
   });
 
   test("a rule that hides nothing Security Events names an attack by takes nothing", () => {
-    expect(losses({ patternType: LogScrubPatternType.CreditCard }, [LOGS])).toEqual(
-      [],
-    );
     expect(
-      losses({ patternType: LogScrubPatternType.SensitiveKeys }, [LOGS, TRACES]),
+      losses({ patternType: LogScrubPatternType.CreditCard }, [LOGS]),
+    ).toEqual([]);
+    expect(
+      losses({ patternType: LogScrubPatternType.SensitiveKeys }, [
+        LOGS,
+        TRACES,
+      ]),
     ).toEqual([]);
   });
 

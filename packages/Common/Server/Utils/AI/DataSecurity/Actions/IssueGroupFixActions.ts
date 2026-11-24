@@ -2,15 +2,20 @@ import DataSecurityAiProposal from "../../../../../Models/DatabaseModels/DataSec
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { DataSecurityAiProposalKind } from "../../../../../Types/DataSecurity/DataSecurityAi";
 import {
+  DataSecurityIssueGroupCloudOutcomeJSON,
   DataSecurityIssueGroupFixPart,
   DataSecurityIssueGroupFixResultJSON,
 } from "../../../../../Types/DataSecurity/DataSecurityIssueGroupFix";
+import { isDataSecurityResponseAction } from "../../../../../Types/DataSecurity/DataSecurityResponseAction";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
-import { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIssueGroupFix, {
   CLOUD_FIX_PERMISSIONS,
   CLOUD_FIX_REFUSED_MESSAGE,
@@ -81,6 +86,49 @@ function readIds(value: unknown): Array<string> {
       return typeof id === "string" && ObjectID.isValidUUID(id);
     },
   );
+}
+
+/*
+ * The action a one-approval proposal said each of its stores takes, by
+ * store id (#10742): each kind's own, from its actions - or, for a proposal
+ * from before it listed them, its one action on every store it named.
+ */
+export function readStoreActions(plan: unknown): Record<string, string> {
+  const actions: Record<string, string> = {};
+
+  if (!plan || typeof plan !== "object" || Array.isArray(plan)) {
+    return actions;
+  }
+
+  const read: JSONObject = plan as JSONObject;
+  const entries: unknown = read["actions"];
+
+  if (Array.isArray(entries) && entries.length > 0) {
+    for (const entry of entries) {
+      const action: unknown =
+        entry && typeof entry === "object"
+          ? (entry as JSONObject)["action"]
+          : undefined;
+
+      if (!isDataSecurityResponseAction(action)) {
+        continue;
+      }
+
+      for (const id of readIds((entry as JSONObject)["storeIds"])) {
+        actions[id.toLowerCase()] = action;
+      }
+    }
+
+    return actions;
+  }
+
+  if (isDataSecurityResponseAction(read["action"])) {
+    for (const id of readIds(read["storeIds"])) {
+      actions[id.toLowerCase()] = read["action"] as string;
+    }
+  }
+
+  return actions;
 }
 
 // What a person changed before approving: the repository, or the stores ticked in.
@@ -231,6 +279,8 @@ export const FixIssueGroupInCloudAction: DataSecurityAiAction = {
         includeDataStoreIds: data.changes?.["includeDataStoreIds"],
         // Only the stores the proposal listed: none that joined the group since.
         onlyDataStoreIds: listed,
+        // Each with the action the proposal said it takes, and no other (#10742).
+        onlyStoreActions: readStoreActions(data.proposal.plan),
       });
     const cloud: DataSecurityIssueGroupFixResultJSON["cloud"] = result.cloud;
 
@@ -247,16 +297,35 @@ export const FixIssueGroupInCloudAction: DataSecurityAiAction = {
     return {
       result: {
         action: cloud.action,
+        actions: cloud.actions.map(
+          (outcome: DataSecurityIssueGroupCloudOutcomeJSON): JSONObject => {
+            return { ...outcome };
+          },
+        ),
         changed: cloud.changed,
         unchanged: cloud.unchanged,
         failed: cloud.failed.length,
+        // The issues whose store it changed: their checks prove it (#10738).
+        changedIssueIds: cloud.changedIssueIds || [],
       },
-      summaryMarkdown:
-        mdText`**${cloud.action}** on the group's stores made in the console: ${String(cloud.changed)} changed, ${String(cloud.unchanged)} already as they should be${
-          cloud.failed.length > 0
-            ? `, ${cloud.failed.length} could not be changed`
-            : ""
-        }. Each store's timeline says what was done, and each issue resolves on its own once its check passes.`.toString(),
+      summaryMarkdown: FeedMarkdown.join(
+        [
+          ...(cloud.actions.length > 0
+            ? cloud.actions
+            : [{ action: cloud.action, changed: 0, unchanged: 0, failed: 0 }]
+          ).map(
+            (outcome: DataSecurityIssueGroupCloudOutcomeJSON): MarkdownText => {
+              return mdText`**${outcome.action}** on the group's stores made in the console: ${String(outcome.changed)} changed, ${String(outcome.unchanged)} already as they should be${
+                outcome.failed > 0
+                  ? mdText`, ${String(outcome.failed)} could not be changed`
+                  : FeedMarkdown.empty()
+              }.`;
+            },
+          ),
+          mdText`Each store's timeline says what was done, and each issue resolves on its own once its check passes.`,
+        ],
+        " ",
+      ).toString(),
     };
   },
 

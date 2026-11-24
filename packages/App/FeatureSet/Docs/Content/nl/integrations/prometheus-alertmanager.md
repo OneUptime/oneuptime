@@ -58,13 +58,13 @@ Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor 
 
 ### Eén incident per waarschuwing openen
 
-Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
+Open in hetzelfde criterium **Instellingen** en zet **Incidenten en waarschuwingen groeperen op een veld uit de payload** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
 
 | Veld | Waarde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Een apart incident openen voor elke…** | `requestBody.alerts[*].fingerprint` |
+| **Veld dat herstel aangeeft** | `requestBody.alerts[*].status` |
+| **Waarde die hersteld betekent** | `resolved` |
 
 ### De monitor weer online brengen
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Een zelf gehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
 :::
 
-`[*]` leest elke waarschuwing van een melding, dus een melding met drie waarschuwingen kan drie incidenten openen, tot **Max incidents per request** (`100`, tenzij je het wijzigt). De eigen `status` van elke waarschuwing bepaalt wat er met haar incident gebeurt: wanneer één waarschuwing van een melding is opgelost en er nog twee afgaan, wordt alleen het incident van de opgeloste waarschuwing gesloten. Zie [Waarschuwingen uit een ander systeem ontvangen](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet.
+`[*]` leest elke waarschuwing van een melding, dus een melding met drie waarschuwingen kan drie incidenten openen, tot **Max. incidenten per verzoek** (`100`, tenzij je het wijzigt). De eigen `status` van elke waarschuwing bepaalt wat er met haar incident gebeurt: wanneer één waarschuwing van een melding is opgelost en er nog twee afgaan, wordt alleen het incident van de opgeloste waarschuwing gesloten. Zie [Waarschuwingen uit een ander systeem ontvangen](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet.
 
 > [!WARNING]
 > Groepeer op een waarde die binnen één melding per waarschuwing verschilt. De `fingerprint` van Alertmanager is een hash van de hele labelset van een waarschuwing, dus die verschilt altijd. Een label in de `group_by` van je route verschilt nooit: dat is juist wat de waarschuwingen in één melding zet. Groeperen op `requestBody.alerts[*].labels.alertname` met de route hieronder vouwt elke waarschuwing van een melding samen tot één incident, dat de status van de eerste waarschuwing krijgt.
@@ -264,8 +264,8 @@ Wanneer de watchdog-waarschuwing tien minuten niet is aangekomen, gaat de watchd
 :::details Incidenten gaan open maar worden nooit opgelost
 - Controleer dat geen enkele ontvanger `send_resolved: false` instelt: dan stuurt Alertmanager nooit een herstel.
 - Het incident van het criterium heeft **Incident automatisch oplossen** nodig, onder **Meer velden**.
-- **Field that signals recovery** moet `requestBody.alerts[*].status` zijn, en **Value that means recovered** precies `resolved`. De vergelijking is hoofdlettergevoelig.
-- Waarschuwingen van een melding boven **Max incidents per request** worden helemaal niet gelezen, dus hun herstel gaat ook verloren.
+- **Veld dat herstel aangeeft** moet `requestBody.alerts[*].status` zijn, en **Waarde die hersteld betekent** precies `resolved`. De vergelijking is hoofdlettergevoelig.
+- Waarschuwingen van een melding boven **Max. incidenten per verzoek** worden helemaal niet gelezen, dus hun herstel gaat ook verloren.
 - Een herstel dat is overgeslagen omdat er te veel meldingen wachtten (zie hieronder) laat zijn incident voorgoed open: Alertmanager herhaalt afgaande waarschuwingen, maar nooit een herstel. Los zo'n incident met de hand op.
 :::
 
@@ -282,7 +282,7 @@ Een verwijzing naar een veld dat de melding niet heeft, blijft staan zoals ze ge
 :::
 
 :::details Te veel incidenten
-Groepeer je route op minder labels, of verhoog `group_interval`, zodat Alertmanager samenhangende waarschuwingen samen stuurt. Een lagere **Max incidents per request** beperkt de incidenten van één melding, maar waarschuwingen boven de grens worden niet gelezen, dus hun herstel gaat ook verloren.
+Groepeer je route op minder labels, of verhoog `group_interval`, zodat Alertmanager samenhangende waarschuwingen samen stuurt. Een lagere **Max. incidenten per verzoek** beperkt de incidenten van één melding, maar waarschuwingen boven de grens worden niet gelezen, dus hun herstel gaat ook verloren.
 :::
 
 :::details Een uitbarsting van meldingen

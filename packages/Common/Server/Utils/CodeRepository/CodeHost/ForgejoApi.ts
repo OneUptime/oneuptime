@@ -34,6 +34,7 @@ import {
   CodeHostFileContent,
   CodeHostFileExpected,
   CodeHostFileWrite,
+  CodeHostLineComment,
   CodeHostOpenedPullRequest,
   CodeHostPullRequestDetails,
   CodeHostPullRequestState,
@@ -115,6 +116,12 @@ const FAILED_STATES: Array<string> = ["error", "failure"];
  * most, and a diff that large is mostly lines it would not read.
  */
 export const MAX_DIFF_LINES_READ: number = 100000;
+
+/*
+ * The first Forgejo whose review comments apply a ```suggestion block (its
+ * code suggestions, forgejo/forgejo#13023). Gitea has none.
+ */
+export const FORGEJO_SUGGESTIONS_VERSION: number = 18;
 
 /*
  * The title prefixes that mark a pull request as a work in progress on a
@@ -1008,6 +1015,72 @@ export default class ForgejoApi {
         target_url: data.targetUrl,
       },
     );
+  }
+
+  /*
+   * One review of a pull request whose comments are each on a line it adds
+   * (#10777): a production review's suggested changes, as Forgejo and
+   * Gitea draw review comments - a comment only, never an approval or a
+   * request for changes, pinned to the head it was reviewed at. The server
+   * takes the review whole or refuses it. Needs write access to the
+   * repository.
+   */
+  public async createPullRequestReview(data: {
+    owner: string;
+    name: string;
+    number: number;
+    commitId: string;
+    body: string;
+    comments: Array<Pick<CodeHostLineComment, "path" | "line" | "body">>;
+  }): Promise<{ reviewId: number }> {
+    const answer: CodeHostApiAnswer = await this.client.postJson(
+      `${ForgejoApi.repositoryPath(data.owner, data.name)}/pulls/${Math.floor(data.number)}/reviews`,
+      {
+        body: data.body,
+        commit_id: data.commitId,
+        event: "COMMENT",
+        comments: data.comments.map(
+          (
+            comment: Pick<CodeHostLineComment, "path" | "line" | "body">,
+          ): JSONObject => {
+            return {
+              path: comment.path,
+              body: comment.body,
+              new_position: Math.floor(comment.line),
+              old_position: 0,
+            };
+          },
+        ),
+      },
+    );
+    const reviewId: number = Number(
+      answer.json && typeof answer.json === "object"
+        ? (answer.json as JSONObject)["id"]
+        : undefined,
+    );
+
+    if (!Number.isSafeInteger(reviewId) || reviewId <= 0) {
+      throw ForgejoApi.badAnswer("the review it wrote");
+    }
+
+    return { reviewId };
+  }
+
+  /*
+   * Whether the server applies a ```suggestion block of a review comment
+   * to the pull request, as its author asks: Forgejo from version 18. Gitea
+   * draws one as code, and so does an older Forgejo (#10777).
+   */
+  public static appliesSuggestions(info: CodeHostServerInfo): boolean {
+    if (info.product !== ForgejoServerProduct.Forgejo || !info.version) {
+      return false;
+    }
+
+    const major: number = Number(
+      (info.version.trim().match(/^v?(\d{1,4})\./) || [])[1],
+    );
+
+    return Number.isSafeInteger(major) && major >= FORGEJO_SUGGESTIONS_VERSION;
   }
 
   // A comment OneUptime wrote, edited in place.

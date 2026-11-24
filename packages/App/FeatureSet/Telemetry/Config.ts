@@ -1,4 +1,5 @@
 import { DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY } from "Common/Types/Rum/SessionReplay";
+import logger from "Common/Server/Utils/Logger";
 
 let concurrency: string | number = process.env["TELEMETRY_CONCURRENCY"] || 100;
 
@@ -86,6 +87,145 @@ export const TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED: boolean =
  */
 export const INCOMING_REQUEST_INGEST_COALESCE_ENABLED: boolean =
   process.env["INCOMING_REQUEST_INGEST_COALESCE_ENABLED"] !== "false";
+
+/*
+ * A WHOLE NUMBER AN OPERATOR MAY SET, WITHIN BOUNDS (#10652).
+ *
+ * Its default suits OneUptime Cloud and a typical self-hosted install, and
+ * its bounds keep it where it still does its job. A value that is not a
+ * whole number within them is refused: the default is used, and the log
+ * says so once, naming the variable and what it takes, so an operator who
+ * mistyped one finds out from the server's first lines rather than from a
+ * monitor that skipped requests. Empty, or not set, is the default.
+ */
+export interface BoundedIntegerSetting {
+  envKey: string;
+  defaultValue: number;
+  min: number;
+  max: number;
+}
+
+export interface BoundedIntegerReading {
+  value: number;
+  // Why the value set was not used. Only for one that was set and refused.
+  refusal?: string | undefined;
+}
+
+const WHOLE_NUMBER: RegExp = /^\d+$/;
+
+export const readBoundedInteger: (
+  setting: BoundedIntegerSetting,
+  rawValue: string | undefined,
+) => BoundedIntegerReading = (
+  setting: BoundedIntegerSetting,
+  rawValue: string | undefined,
+): BoundedIntegerReading => {
+  const text: string = (rawValue || "").trim();
+
+  if (!text) {
+    return { value: setting.defaultValue };
+  }
+
+  const value: number = WHOLE_NUMBER.test(text) ? Number(text) : Number.NaN;
+
+  if (
+    !Number.isSafeInteger(value) ||
+    value < setting.min ||
+    value > setting.max
+  ) {
+    return {
+      value: setting.defaultValue,
+      refusal: `${setting.envKey} is "${rawValue}", which is not a whole number from ${setting.min} to ${setting.max}, so the default, ${setting.defaultValue}, is used.`,
+    };
+  }
+
+  return { value: value };
+};
+
+const readBoundedIntegerFromEnvironment: (
+  setting: BoundedIntegerSetting,
+) => number = (setting: BoundedIntegerSetting): number => {
+  const reading: BoundedIntegerReading = readBoundedInteger(
+    setting,
+    process.env[setting.envKey],
+  );
+
+  if (reading.refusal) {
+    logger.warn(reading.refusal);
+  }
+
+  return reading.value;
+};
+
+/*
+ * HOW MANY REQUESTS A GROUPED INCOMING REQUEST MONITOR KEEPS WAITING, AND
+ * HOW MANY ONE JOB EVALUATES (#10582, #10652).
+ *
+ * A monitor whose criteria group by a payload field evaluates every request
+ * it receives, in order: each is kept in its monitor's list in Redis
+ * (IncomingRequestPendingStore) until its turn comes, and the monitor's one
+ * job works through the list (ProcessIncomingRequestIngest). Past either
+ * limit of the list, the oldest waiting are skipped, and the monitor's next
+ * evaluation says how many, and which limit skipped them.
+ *
+ * The defaults suit OneUptime Cloud and a typical self-hosted install. A
+ * self-hosted install whose senders burst harder - a large estate where one
+ * core switch down fires thousands of alerts - raises the first two; one
+ * whose Redis is small lowers the second. The bounds:
+ *
+ *   - requests: at least 10, so a trigger and its reset never push each
+ *     other out; at most 100,000, which a job drains within the list's day
+ *     in Redis (IncomingRequestPendingStore.TTL_SECONDS) even at half a
+ *     second an evaluation;
+ *   - megabytes: at least 1, a few hundred typical webhooks; at most 512,
+ *     32 times the default, for one monitor's share of Redis;
+ *   - requests per job: at least 1; at most 1,000, so one sender's flood
+ *     holds a worker slot for minutes, not hours, before the jobs queued
+ *     behind it take their turn - within the job's lock
+ *     (TELEMETRY_LOCK_DURATION_MS) even at half a second an evaluation.
+ *
+ * The endpoint applies the first two as it keeps each request, and the
+ * queue's workers the third: an install that runs them apart gives both
+ * the same values (the Helm chart's incomingRequestIngest does).
+ */
+export const INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR_SETTING: BoundedIntegerSetting =
+  {
+    envKey: "INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR",
+    defaultValue: 1000,
+    min: 10,
+    max: 100000,
+  };
+
+export const INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR_SETTING: BoundedIntegerSetting =
+  {
+    envKey: "INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR",
+    defaultValue: 16,
+    min: 1,
+    max: 512,
+  };
+
+export const INCOMING_REQUEST_MAX_REQUESTS_PER_JOB_SETTING: BoundedIntegerSetting =
+  {
+    envKey: "INCOMING_REQUEST_MAX_REQUESTS_PER_JOB",
+    defaultValue: 100,
+    min: 1,
+    max: 1000,
+  };
+
+export const INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR: number =
+  readBoundedIntegerFromEnvironment(
+    INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR_SETTING,
+  );
+
+export const INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR: number =
+  readBoundedIntegerFromEnvironment(
+    INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR_SETTING,
+  );
+
+export const INCOMING_REQUEST_MAX_REQUESTS_PER_JOB: number =
+  readBoundedIntegerFromEnvironment(
+    INCOMING_REQUEST_MAX_REQUESTS_PER_JOB_SETTING,
+  );
 
 /*
  * Some telemetry batches can be large and take >30s (BullMQ default lock) to process.

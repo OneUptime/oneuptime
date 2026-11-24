@@ -12,9 +12,10 @@ import path from "path";
  * from the flat key of the same English text: the Danish menu read
  * "Overvågninger" over pages titled "Monitorer", and the Italian menu "AI /
  * LLM" over "IA / LLM". Since #8229 every menu title is its page's
- * (OneNamePerThingGuard), but Chat's page draws no title. So a page
- * that opens a product from the menu names it as the menu draws it, and
- * every other segment of a path as a label (drawnDashboardLabel).
+ * (OneNamePerThingGuard), and Ask AI's and AI Insights' are their panel's
+ * and page's since #7474 (MenuEntriesNameTheirPagesGuard). A page that
+ * opens a product from the menu names it as the menu draws it, and every
+ * other segment of a path as a label (drawnDashboardLabel).
  *
  * The menu files its products under groups (navbar.categories.<group>),
  * whose names some languages also word apart from the flat key: the Dutch
@@ -71,12 +72,12 @@ export const PRODUCTS_MENU_ITEM_KEYS: Readonly<Record<string, string>> = {
    */
   Inventory: "navbar.items.inventoryTitle",
   /*
-   * The AI pages open Ask AI's own page and the AI Insights inbox from the
-   * menu's AI group. Most languages' menus read "Insights" or "Chat" in
-   * English where a flat label of the same text is translated.
+   * The AI pages open the Ask AI panel and the AI Insights inbox from the
+   * menu's AI group. The menu said "Chat" and "Insights" until #7474; it
+   * says the panel's and the page's names, in every language.
    */
-  Chat: "navbar.items.aiChatTitle",
-  Insights: "navbar.items.sentinelInsightsTitle",
+  "Ask AI": "navbar.items.aiChatTitle",
+  "AI Insights": "navbar.items.sentinelInsightsTitle",
   /*
    * Code is the one product of the menu's Code group, and reads as the
    * group does in every language, so "Products → Code" names both.

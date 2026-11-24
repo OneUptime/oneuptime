@@ -190,10 +190,10 @@ describe("Data Security registry wiring", () => {
       readSquashed(
         "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
       ),
-    ).toContain("AddDataSecurityIssuePullRequest1809187600831,");
+    ).toContain("AddDataSecurityIssuePullRequest1809187660831,");
     expect(
       readSquashed(
-        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187600831-AddDataSecurityIssuePullRequest.ts",
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187660831-AddDataSecurityIssuePullRequest.ts",
       ),
     ).toContain(`CREATE TABLE "${model}"`);
   });

@@ -20,6 +20,8 @@ export const AI_FEED_KINDS: Readonly<Record<string, FeedEntryKind>> = {
   AiProposalDismissed: { icon: IconProp.XCircle, tone: FeedTone.Neutral },
   AiChangeUndone: { icon: IconProp.ArrowUturnLeft, tone: FeedTone.Neutral },
   AiChangeFailed: { icon: IconProp.ExclaimationCircle, tone: FeedTone.Danger },
+  // A group's proposal no longer needed (#10741): its time ran out, nobody said no.
+  AiProposalExpired: { icon: IconProp.Clock, tone: FeedTone.Neutral },
 };
 
 export function getAiFeedKind(eventType: string): FeedEntryKind | undefined {

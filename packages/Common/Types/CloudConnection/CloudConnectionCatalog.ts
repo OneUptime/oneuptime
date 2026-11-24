@@ -355,6 +355,57 @@ function cloudWafBlocklistField(data: {
 }
 
 /*
+ * AWS: the setting that records whether a security case may read back what
+ * an attack changed on the account's IAM users, as the setup command
+ * granted it (#10900): nothing ("off", every connection until someone turns
+ * it on), or the reads the Fix step "Undo what changed on the account"
+ * makes of each user its case's CloudTrail events name - the user, its
+ * access keys, its attached and inline policies, its groups, whether it
+ * has a console password, and its MFA devices ("on"). Each only reads, and
+ * none reads a secret: a key's id and whether it is active, never the key;
+ * that a console password is set, never the password.
+ *
+ * Off until someone turns it on, as every access a connection gives
+ * Security is: OneUptime makes no IAM call through a connection that has
+ * not granted it, so a refused call never shows in the account's
+ * CloudTrail, and a case lists those changes for a person to confirm,
+ * saying how to grant the reads.
+ */
+export const SECURITY_CASE_CHECKS_FIELD_KEY: string = "securityCaseChecks";
+
+export type CloudConnectionSecurityCaseChecks = "off" | "on";
+
+export const CLOUD_CONNECTION_SECURITY_CASE_CHECKS_CHOICES: ReadonlyArray<CloudConnectionSecurityCaseChecks> =
+  ["off", "on"];
+
+// Whether security cases may read the account's IAM users back: "on" alone does.
+export function isCloudConnectionSecurityCaseChecksOn(value: unknown): boolean {
+  return value === "on";
+}
+
+/*
+ * Folded under the command, as the other settings that give Security
+ * access are: the command shown grants the reads once it is on.
+ */
+function securityCaseChecksField(): CloudConnectionField {
+  return {
+    key: SECURITY_CASE_CHECKS_FIELD_KEY,
+    title: "Security case checks",
+    description:
+      "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "On", value: "on" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+    changesSetupCommand: true,
+  };
+}
+
+/*
  * AWS: the setting that says whether the connection reads what each
  * resource costs, from Cost Explorer's resource-level data (opt-in in the
  * account's Cost Management preferences, for the last 14 days). Off until
@@ -509,6 +560,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       dataSecurityField(),
       dataSecurityResponseField(),
       wafBlocklistField(),
+      securityCaseChecksField(),
     ],
     secretFields: [
       {

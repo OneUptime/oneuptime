@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import PageComponentProps from "../PageComponentProps";
 import {
   HUNTS_TEST_IDS,
@@ -294,6 +295,8 @@ const HuntLibraryPage: FunctionComponent<PageComponentProps> = (
       > = await ModelAPI.create<SecurityHunt>({
         model: buildHuntFromLibrary({ entry, projectId, translator }),
         modelType: SecurityHunt,
+        // The library's title: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
       });
       const created: SecurityHunt | undefined = response.data as
         | SecurityHunt

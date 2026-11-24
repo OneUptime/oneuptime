@@ -17,7 +17,10 @@ import {
   readRefusalValues,
   RefusalWithValues,
 } from "../../Types/Exception/RefusalWithValues";
-import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
+import {
+  FIELD_NOT_SYNCABLE_REFUSAL,
+  MONITOR_TYPE_MISMATCH_REFUSAL,
+} from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/DataCheckRefusals";
 import { NAME_TAKEN_REFUSALS } from "../../Types/Database/UniqueName";
 import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../Types/CloudConnection/AwsRoleExternalIdRefusal";
@@ -25,6 +28,8 @@ import { RESPONDER_ON_RULE_ALREADY_REFUSALS } from "../../Types/OnCallDutyPolicy
 import { DISCOVERY_SCAN_PROBE_OFFLINE_REFUSAL } from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
 import { PULL_REQUEST_LINK_REFUSALS } from "../../Types/SecurityCase/SecurityCasePullRequestLink";
 import { ISSUE_PULL_REQUEST_ALREADY_LINKED } from "../../Types/DataSecurity/DataSecurityIssuePullRequestLink";
+import { PLAN_REQUIRED_REFUSAL } from "../../Types/Billing/PlanRequiredRefusal";
+import { UNIQUE_VALUE_TAKEN_REFUSAL } from "../../Types/Database/UniqueValueTaken";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -120,6 +125,8 @@ export type ErrorInSentenceWords =
  */
 const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
   MONITOR_TYPE_MISMATCH_REFUSAL,
+  // A setting a monitor template does not sync, named by its path (#7711).
+  FIELD_NOT_SYNCABLE_REFUSAL,
   // Why a data check could not be written from a sentence (#7530).
   ...DATA_CHECK_REFUSALS_WITH_VALUES,
   // A team's or a label's name another one of the project has (#9674).
@@ -153,7 +160,48 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
    * names the issue.
    */
   ISSUE_PULL_REQUEST_ALREADY_LINKED,
+  /*
+   * A feature the project's plan does not include, with the plan it needs
+   * (#7276): every plan-gated button, form and dialog meets it.
+   */
+  PLAN_REQUIRED_REFUSAL,
+  /*
+   * A value another record holds, in a column that holds each value once,
+   * with the column's title and the value (#7276).
+   */
+  UNIQUE_VALUE_TAKEN_REFUSAL,
 ];
+
+/*
+ * A refusal of the server's with values in it (REFUSALS_WITH_VALUES), said
+ * in `translator`'s language with its values, or null for any other
+ * message. For a place that looks every other text up its own way - a
+ * dialog's description or its error banner (ConfirmModal, ModalBody) - and
+ * has only these to read differently (#7711): looked up whole, such a
+ * refusal is no key once its values are in, and read English in every
+ * dialog.
+ */
+export const sayRefusalWithValues: (
+  message: unknown,
+  translator: Translator,
+) => string | null = (
+  message: unknown,
+  translator: Translator,
+): string | null => {
+  if (typeof message !== "string") {
+    return null;
+  }
+
+  for (const refusal of REFUSALS_WITH_VALUES) {
+    const values: TemplateValues | null = readRefusalValues(refusal, message);
+
+    if (values) {
+      return translator.translateTemplate(refusal.template, values);
+    }
+  }
+
+  return null;
+};
 
 /*
  * A message somebody put into words, in `translator`'s language: a refusal
@@ -165,12 +213,10 @@ export const sayErrorMessage: (
   message: string,
   translator: Translator,
 ) => string = (message: string, translator: Translator): string => {
-  for (const refusal of REFUSALS_WITH_VALUES) {
-    const values: TemplateValues | null = readRefusalValues(refusal, message);
+  const refusal: string | null = sayRefusalWithValues(message, translator);
 
-    if (values) {
-      return translator.translateTemplate(refusal.template, values);
-    }
+  if (refusal !== null) {
+    return refusal;
   }
 
   return translator.translateText(message) || message;

@@ -23,6 +23,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import Port from "../../Types/Port";
+import { CALL_VOICE_VALUES } from "../../Types/Call/CallVoice";
 import {
   DEFAULT_TWILIO_CONFIG_USE,
   TwilioConfigUse,
@@ -738,6 +739,39 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: DEFAULT_TWILIO_CONFIG_USE,
   })
   public twilioUsedFor?: TwilioConfigUse = undefined;
+
+  /*
+   * THE VOICE THE SERVER'S CALLS SPEAK WITH (#10948): one of OneUptime's
+   * short list of neural Amazon Polly and Google voices
+   * (Types/Call/CallVoice), for every call through the server's own Twilio
+   * account - a project's own Twilio config has its own. Empty - as on every
+   * installation before it - calls speak with the account's default voice
+   * in the Twilio Console: Twilio's Basic voice, unless its owner picked
+   * another. Not one of the account's columns (SERVER_TWILIO_ACCOUNT_COLUMNS):
+   * it is chosen in the Admin Dashboard even while the GLOBAL_TWILIO_
+   * environment variables set the account. GlobalConfigService refuses a
+   * voice the list does not hold.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Twilio Call Voice",
+    description:
+      "The voice calls through the server's Twilio account speak with: a neural Amazon Polly or Google voice, which Twilio charges for. Leave it empty for the voice the account uses by default (Twilio's free Basic voice unless you changed it in the Twilio Console).",
+    allowedValues: CALL_VOICE_VALUES,
+    example: "Polly.Joanna-Neural",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioCallVoice?: string = undefined;
 
   /*
    * What carries the server's SMS and calls (Types/CallAndSMS/
@@ -3108,4 +3142,34 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public serverProducts?: JSONObject = undefined;
+
+  /*
+   * Where this server sends its people for help (issues #10864, #10865,
+   * #10866, Types/HelpAndSupport/HelpAndSupport): Help's Support Email, Chat
+   * and Request Demo, the footer's Help and Support link, where Give feedback
+   * goes, the single sign-on screen's message for someone who needs an
+   * invitation, the Get the mobile app prompts and OneUptime's GitHub links.
+   * { [item]: { choice, value } }, holding only the items an admin moved off
+   * their default. Null until a master admin saves Admin Dashboard >
+   * Settings > Help and Support; until then every item shows what OneUptime
+   * always has. Written by OneUptime only (isRoot), through the page's own
+   * route, which checks every link and address: GlobalConfigService refuses
+   * a write through the CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Help and Support",
+    description:
+      "Where this server sends people for help: its own support address, chat, help page, mobile app page and sign-in message, or OneUptime's. Empty until an admin saves Admin Dashboard > Settings > Help and Support.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public helpAndSupport?: JSONObject = undefined;
 }

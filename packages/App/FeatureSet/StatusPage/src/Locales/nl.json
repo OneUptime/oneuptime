@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Er is iets misgegaan",
-  "An unexpected error has occurred. Please reload the page to continue": "Er is een onverwachte fout opgetreden. Laad de pagina opnieuw om verder te gaan",
+  "This page stopped working": "Deze pagina werkt niet meer",
+  "Part of this page ran into a problem. Reload the page to continue.": "Een deel van deze pagina liep tegen een probleem aan. Laad de pagina opnieuw om verder te gaan.",
   "Error details": "Foutdetails",
   "a11y": {
     "skipToMainContent": "Naar hoofdinhoud springen",
@@ -486,6 +486,9 @@
   "No options available": "Geen opties beschikbaar",
   "No matches found": "Geen overeenkomsten gevonden",
   "{{eventType}} state changed to {{state}}": "{{eventType}}: status gewijzigd naar {{state}}",
+  "{{count}} related incidents": "{{count}} gerelateerde incidenten",
+  "{{count}} related incidents_one": "{{count}} gerelateerd incident",
+  "Part of {{incident}}": "Onderdeel van {{incident}}",
   "Use at least {{minimum}} characters.": "Gebruik minimaal {{minimum}} tekens.",
   "Try a few unrelated words.": "Probeer een paar woorden die niets met elkaar te maken hebben.",
   "Password meets requirements": "Het wachtwoord voldoet aan de vereisten",
@@ -521,5 +524,27 @@
     "sessionExpired": "Sessie verlopen. Meld je opnieuw aan.",
     "signedOut": "Je bent afgemeld. Meld je opnieuw aan.",
     "magicLinkTurnedOff": "Aanmeldlinks staan uit voor deze statuspagina. Meld je aan met je e-mailadres en wachtwoord."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "De server liep tegen een probleem aan dat hij niet kon verklaren, dus dit is niet voltooid. Probeer het opnieuw. Blijft het mislukken, geef deze referentie dan aan je beheerder of aan OneUptime-support: {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "De server liep tegen een probleem aan dat hij niet kon verklaren, dus dit is niet voltooid. Probeer het zo meteen opnieuw.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime was niet bereikbaar, dus dit is niet voltooid. Controleer je internetverbinding en probeer het daarna opnieuw.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Deze pagina liep tegen een probleem aan, dus dit is niet voltooid. Laad de pagina opnieuw en probeer het daarna opnieuw.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Wat is verzonden, was te groot voor de server om te accepteren, dus dit is niet voltooid. Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Wat is verzonden, is groter dan de 50 MB die OneUptime in één verzoek accepteert, dus dit is niet voltooid. Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
+  "This did not finish.": "Dit is niet voltooid.",
+  "The server ran into a problem it could not explain.": "De server liep tegen een probleem aan dat hij niet kon verklaren.",
+  "The OneUptime server did not answer.": "De OneUptime-server gaf geen antwoord.",
+  "OneUptime could not be reached.": "OneUptime was niet bereikbaar.",
+  "This page ran into a problem.": "Deze pagina liep tegen een probleem aan.",
+  "What was sent was too large for the server to accept.": "Wat is verzonden, was te groot voor de server om te accepteren.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Wat is verzonden, is groter dan de 50 MB die OneUptime in één verzoek accepteert.",
+  "Try again in a moment.": "Probeer het zo meteen opnieuw.",
+  "It may be starting or restarting. Try again in a few minutes.": "Hij start misschien op of start opnieuw. Probeer het over een paar minuten opnieuw.",
+  "Check your internet connection, then try again.": "Controleer je internetverbinding en probeer het daarna opnieuw.",
+  "Reload the page, then try again.": "Laad de pagina opnieuw en probeer het daarna opnieuw.",
+  "Try again with less at once, such as a smaller file.": "Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
+  "The {{itemName}} was not created.": "{{itemName}} is niet aangemaakt.",
+  "The {{itemName}} was not saved.": "{{itemName}} is niet opgeslagen.",
+  "The {{itemName}} could not be loaded.": "{{itemName}} kon niet worden geladen.",
+  "Page Did Not Load": "Pagina niet geladen"
 }

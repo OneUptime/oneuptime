@@ -203,9 +203,10 @@ const WEBSITE_DOWN_DONE: ReadonlyArray<DocsScreenAction> = [
 // The on-call guided setup (#6805), on OneUptime Cloud, walked step by step.
 const PAGING_PHONE: ReadonlyArray<DocsScreenAction> = [
   { press: "Turn on SMS and phone calls" },
-  { press: "Add balance" },
+  // The step's button, then its dialog's: one verb opens and adds (#7475).
+  { press: "Add to Balance" },
   { type: "Amount (USD)", value: "20", exact: false },
-  { press: "Recharge" },
+  { press: "Add to Balance" },
 ];
 const PAGING_WHO_ELSE: ReadonlyArray<DocsScreenAction> = [
   ...PAGING_PHONE,

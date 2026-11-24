@@ -134,7 +134,7 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
   },
   {
     table: "DataSecurityIssuePullRequest",
-    migration: "1809187600831-AddDataSecurityIssuePullRequest.ts",
+    migration: "1809187660831-AddDataSecurityIssuePullRequest.ts",
   },
 ];
 

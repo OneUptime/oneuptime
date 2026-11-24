@@ -25,6 +25,7 @@
  *     call from, are never counted, so no caller beside them can stop them;
  *   - Valkey away, keys are compared as they always were.
  */
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import FakeCounterRedis from "Common/Tests/Server/TestingUtils/Redis/FakeCounterRedis";
 import {
   WRONG_COMPONENT_KEYS_PER_ADDRESS,
@@ -354,7 +355,7 @@ describe("a probe's key, over HTTP", () => {
       );
 
       expect(result.status).toBe(400);
-      expect(result.body["message"]).toBe("Invalid Probe ID or Probe Key");
+      expect(result.body["message"]).toBe(ProbeConnectionRefusals.wrongIdOrKey);
     }
 
     for (const key of ["guess-eleven", PROBES[PROBE_ONE]!]) {
@@ -628,7 +629,7 @@ describe("a private network address, where OneUptime's own probes call from", ()
 
         expect(wrongProbeKey.status).toBe(400);
         expect(wrongProbeKey.body["message"]).toBe(
-          "Invalid Probe ID or Probe Key",
+          ProbeConnectionRefusals.wrongIdOrKey,
         );
         expect((await registerProbe(address, `guess-${index}`)).status).toBe(
           400,

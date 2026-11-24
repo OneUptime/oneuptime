@@ -104,6 +104,11 @@ import MonitorGroupsSwitchCopy, {
   MONITOR_GROUPS_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchCopy";
 import ProjectSettingsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/ProjectSettings";
+import {
+  REQUIRE_UNIQUE_NAMES_COLUMN,
+  REQUIRE_UNIQUE_NAMES_SWITCH_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Project/RequireUniqueNamesCopy";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import MonitorGroupsSwitchRow from "../../../../App/FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchRow";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
@@ -184,6 +189,11 @@ beforeEach(() => {
     },
   );
   getJestSpyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(null);
+  // The names the project holds twice, under Unique Names: none.
+  getJestSpyOn(UniqueNamesApi, "readDuplicates").mockResolvedValue({
+    requireUniqueNames: false,
+    kinds: [],
+  });
 });
 
 afterEach(() => {
@@ -387,7 +397,47 @@ describe("Settings > Project", () => {
     expect(
       screen.queryByTestId(CUSTOMER_SUPPORT_ACCESS_SWITCH_TEST_ID),
     ).toBeNull();
-    expect(getItemMock).not.toHaveBeenCalled();
+    // Nothing reads whether support may come in.
+    expect(
+      getItemMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return Boolean(
+          (call[0] as ItemCall).select["letCustomerSupportAccessProject"],
+        );
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("Unique Names follows the Project Details card, wherever OneUptime runs (#10761)", async () => {
+    for (const billing of [true, false]) {
+      billingEnabledForTest = billing;
+      getItemMock.mockClear();
+
+      renderPage();
+      await flush();
+
+      const details: HTMLElement = screen.getByTestId(
+        "card-model-detail-Project Details",
+      );
+      const control: HTMLElement = screen.getByTestId(
+        REQUIRE_UNIQUE_NAMES_SWITCH_TEST_ID,
+      );
+
+      expect(
+        details.compareDocumentPosition(control) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        getItemMock.mock.calls.some((call: Array<unknown>): boolean => {
+          const read: ItemCall = call[0] as ItemCall;
+          return (
+            read.id.toString() === PROJECT_ID &&
+            Boolean(read.select[REQUIRE_UNIQUE_NAMES_COLUMN])
+          );
+        }),
+      ).toBe(true);
+
+      cleanup();
+    }
   });
 });
 

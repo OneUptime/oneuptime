@@ -59,13 +59,13 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Åpne én hendelse per varsel
 
-Åpne **Innstillinger** i det samme kriteriet, og slå på **Group incidents and alerts by a payload field**. Fyll den ut som nedenfor, slik at hvert varsel får sin egen hendelse, og gjenopprettingen løser den:
+Åpne **Innstillinger** i det samme kriteriet, og slå på **Grupper hendelser og varsler etter et felt i payloaden**. Fyll den ut som nedenfor, slik at hvert varsel får sin egen hendelse, og gjenopprettingen løser den:
 
 | Felt | Verdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Åpne en egen hendelse for hver…** | `requestBody.alerts[*].fingerprint` |
+| **Felt som signaliserer gjenoppretting** | `requestBody.alerts[*].status` |
+| **Verdi som betyr gjenopprettet** | `resolved` |
 
 ### Få monitoren tilkoblet igjen
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 En selvdriftet installasjon har sin egen vert i stedet for `oneuptime.com`.
 :::
 
-Hvert varsel i en varsling åpner sin egen hendelse, opptil **Max incidents per request** (`100` med mindre du endrer det), og hvert varsels egen `status` avgjør når hendelsen løses. Grafanas `fingerprint` identifiserer et varsel ut fra etikettene, så det er verdien du skal gruppere etter. Se [Motta varsler fra et annet system](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system) for hva hver innstilling gjør.
+Hvert varsel i en varsling åpner sin egen hendelse, opptil **Maks. hendelser per forespørsel** (`100` med mindre du endrer det), og hvert varsels egen `status` avgjør når hendelsen løses. Grafanas `fingerprint` identifiserer et varsel ut fra etikettene, så det er verdien du skal gruppere etter. Se [Motta varsler fra et annet system](/docs/monitor/incoming-request-monitor#motta-varsler-fra-et-annet-system) for hva hver innstilling gjør.
 
 > [!WARNING]
 > Ikke grupper etter en etikett som alle varslene i en varsling deler. Grafanas standard varslingspolicy grupperer varsler etter `grafana_folder` og `alertname`, så alle varslene i én varsling har samme `alertname`: gruppering etter `requestBody.alerts[*].labels.alertname` slår sammen hele varslingen til én hendelse.
@@ -103,7 +103,7 @@ Gi kontaktpunktet navnet `OneUptime`, velg **Webhook** under **Integration**, og
 Gå til **Alerting → Notification policies**. Sett kontaktpunktet for standardpolicyen til `OneUptime`, eller legg til en underordnet policy som samsvarer med varslene OneUptime skal få, med `OneUptime` som kontaktpunkt.
 :::
 
-Grafana sender `Content-Type: application/json`, som monitoren trenger for å lese feltene i en varsling. Innstillingen **Max Alerts** for kontaktpunktet begrenser varslene i én varsling: hold den på `0`, ingen grense, eller høyst på monitorens **Max incidents per request**.
+Grafana sender `Content-Type: application/json`, som monitoren trenger for å lese feltene i en varsling. Innstillingen **Max Alerts** for kontaktpunktet begrenser varslene i én varsling: hold den på `0`, ingen grense, eller høyst på monitorens **Maks. hendelser per forespørsel**.
 
 ## Test det
 
@@ -157,7 +157,7 @@ En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor
 
 :::details Hendelser opprettes, men løses aldri
 - Hendelsen i kriteriet trenger **Løs hendelse automatisk**, under **Flere felt**.
-- **Field that signals recovery** må være `requestBody.alerts[*].status`, og **Value that means recovered** nøyaktig `resolved`. Sammenligningen skiller mellom store og små bokstaver.
+- **Felt som signaliserer gjenoppretting** må være `requestBody.alerts[*].status`, og **Verdi som betyr gjenopprettet** nøyaktig `resolved`. Sammenligningen skiller mellom store og små bokstaver.
 - Grupperingsbanene må begynne med `requestBody.`, og bare den første `[*]` i en bane leser en liste. En bane som bryter en av reglene, samsvarer med ingenting, uten noen feil.
 :::
 

@@ -92,6 +92,11 @@ import {
   BrowserPushProblem,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
+import {
+  MobileAppOffer,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import { PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE } from "../../NotificationMethods/PushNotificationsTurnedOff";
 import { usePushNotificationsTurnedOff } from "../../../Utils/PushNotificationsTurnedOff";
 import Toast from "Common/UI/Utils/Toast";
@@ -106,12 +111,16 @@ import TestPageResult, {
 } from "../../OnCallTestPage/TestPageResult";
 import {
   canAddProjectBalance,
+  getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
+  isPaymentMethodNeededFirst,
 } from "../../ProjectBalance/ProjectBalanceAccess";
+import { ADD_TO_BALANCE_AMOUNT_TITLE } from "../../ProjectBalance/ProjectBalanceCopy";
+import AddPaymentMethodFirstModal from "../../ProjectBalance/AddPaymentMethodFirstModal";
 import {
-  RECHARGE_AMOUNT_DESCRIPTION,
-  RECHARGE_AMOUNT_TITLE,
-} from "../../ProjectBalance/ProjectBalanceCopy";
+  ProjectPaymentMethodsState,
+  useProjectPaymentMethods,
+} from "../../../Utils/ProjectPaymentMethods";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageMap from "../../../Utils/PageMap";
@@ -251,6 +260,13 @@ const pickedIds: (
 
 const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * How the server offers the mobile app (Admin Dashboard > Settings > Help
+   * and Support, #10866): OneUptime's stores, a page of its own, or not at
+   * all - then the push step offers this browser only.
+   */
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
   const serverEmail: ServerEmail = useServerEmail();
   const sendingStatus: ServerSendingStatusAnswer | null =
     useServerSendingStatus();
@@ -320,6 +336,14 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const [showRecharge, setShowRecharge] = useState<boolean>(false);
   const [isRecharging, setIsRecharging] = useState<boolean>(false);
   const [rechargeError, setRechargeError] = useState<string>("");
+  /*
+   * Add to Balance pressed on a project with no payment method: what it
+   * needs first, before any amount (#11053). Whether it has one is the
+   * count the Dashboard already made, so the step asks nothing more.
+   */
+  const [showAddPaymentMethodFirst, setShowAddPaymentMethodFirst] =
+    useState<boolean>(false);
+  const paymentMethods: ProjectPaymentMethodsState = useProjectPaymentMethods();
 
   // Step 2: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -975,6 +999,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 buttonStyle={ButtonStyleType.NORMAL}
                 dataTestId="on-call-setup-add-balance"
                 onClick={() => {
+                  // No payment method yet: say so before asking for an amount.
+                  if (
+                    isPaymentMethodNeededFirst({
+                      paymentMethods: paymentMethods,
+                      marketplace: getCurrentProjectBillingMarketplace(),
+                    })
+                  ) {
+                    setShowAddPaymentMethodFirst(true);
+                    return;
+                  }
+
                   setRechargeError("");
                   setShowRecharge(true);
                 }}
@@ -1105,7 +1140,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ) : (
         <>
           <p className="text-sm text-gray-500">
-            {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
+            {translator.translateText(
+              mobileAppOffer
+                ? ON_CALL_SETUP_COPY.pushHelp
+                : ON_CALL_SETUP_COPY.pushHelpWithoutApp,
+            )}
           </p>
           {browserPushProblem ? (
             <p
@@ -1135,17 +1174,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 }}
               />
             )}
-            <Button
-              title={ON_CALL_SETUP_COPY.getTheApp}
-              icon={IconProp.DevicePhoneMobile}
-              buttonStyle={ButtonStyleType.NORMAL}
-              ariaExpanded={isAppCodesOpen}
-              ariaControls="on-call-setup-app-codes"
-              dataTestId="on-call-setup-get-the-app"
-              onClick={() => {
-                setIsAppCodesOpen(!isAppCodesOpen);
-              }}
-            />
+            {mobileAppOffer ? (
+              <Button
+                title={ON_CALL_SETUP_COPY.getTheApp}
+                icon={IconProp.DevicePhoneMobile}
+                buttonStyle={ButtonStyleType.NORMAL}
+                ariaExpanded={isAppCodesOpen}
+                ariaControls="on-call-setup-app-codes"
+                dataTestId="on-call-setup-get-the-app"
+                onClick={() => {
+                  setIsAppCodesOpen(!isAppCodesOpen);
+                }}
+              />
+            ) : (
+              <></>
+            )}
           </div>
           {browserPushError ? (
             <p
@@ -1167,7 +1210,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           ) : (
             <></>
           )}
-          {isAppCodesOpen ? (
+          {isAppCodesOpen && mobileAppOffer ? (
             <div id="on-call-setup-app-codes" className="space-y-2">
               <MobileAppCodes
                 dataTestId="on-call-setup-app-codes"
@@ -1313,6 +1356,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           }}
         />
       </div>
+      {showAddPaymentMethodFirst ? (
+        <AddPaymentMethodFirstModal
+          balance={ProjectBalanceType.SmsOrCall}
+          onClose={() => {
+            setShowAddPaymentMethodFirst(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {showRecharge ? (
         <BasicFormModal
           title={ON_CALL_SETUP_COPY.addBalance}
@@ -1320,7 +1373,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setShowRecharge(false);
           }}
           isLoading={isRecharging}
-          submitButtonText="Recharge"
+          // The button's words, as the step's button and this title say (#7475).
+          submitButtonText={ON_CALL_SETUP_COPY.addBalance}
           onSubmit={async (item: JSONObject) => {
             setIsRecharging(true);
             setRechargeError("");
@@ -1336,12 +1390,25 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setIsRecharging(false);
           }}
           formProps={{
-            name: "Add balance",
+            name: ON_CALL_SETUP_COPY.addBalance,
             error: rechargeError,
             fields: [
               {
-                title: RECHARGE_AMOUNT_TITLE,
-                description: RECHARGE_AMOUNT_DESCRIPTION,
+                title: ADD_TO_BALANCE_AMOUNT_TITLE,
+                /*
+                 * What the money is for and where it is charged, in the
+                 * reader's words already: an element, which the form's
+                 * label draws as given.
+                 */
+                description: (
+                  <>
+                    {getAddToBalanceAmountDescription({
+                      balance: ProjectBalanceType.SmsOrCall,
+                      marketplace: getCurrentProjectBillingMarketplace(),
+                      translator: translator,
+                    })}
+                  </>
+                ),
                 field: { amount: true },
                 placeholder: "20",
                 required: true,

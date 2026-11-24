@@ -133,7 +133,7 @@ SMS, samtal, WhatsApp- och Telegram-meddelanden betalas från projektets saldo, 
 :::steps
 ### Fyll på nu
 
-Klicka på **Fyll på saldo** på sidans kort **Aktuellt saldo**. Ange ett belopp från $20 till $1,000 och klicka på **Fyll på**. Beloppet debiteras projektets kort.
+Klicka på **Fyll på saldo** på sidans kort **Aktuellt saldo**. Ange ett belopp från $20 till $1,000 och klicka på **Fyll på saldo**. Beloppet debiteras projektets kort.
 
 ### Eller låt det fylla på sig självt
 

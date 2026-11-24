@@ -75,6 +75,12 @@ export enum PageSearchGate {
    * shown only where OneUptime Cloud records them.
    */
   DashboardRecording = "dashboard-recording",
+  /*
+   * The Mobile Apps page, where the server offers the mobile app: not where
+   * its admins took it away (Admin Dashboard > Settings > Help and Support,
+   * #10866), as the settings menu lists no such page there.
+   */
+  MobileApp = "mobile-app",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -554,9 +560,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "rename project",
               "project id",
               "data residency",
+              // Require Unique Names (#10761), by what people ask for.
+              "duplicate names",
+              "same name",
             ],
             settings: [
               "Project Details",
+              "Unique Names",
+              "Require Unique Names",
               {
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
@@ -829,6 +840,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Mobile Apps",
             icon: IconProp.DevicePhoneMobile,
             keywords: ["ios", "android", "push notifications", "phone app"],
+            gate: PageSearchGate.MobileApp,
           },
         ],
       },
@@ -2955,6 +2967,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "risk cases",
             ],
           },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS,
+            title: "Erasure Requests",
+            icon: IconProp.UserMinus,
+            keywords: [
+              "erase person",
+              "right to erasure",
+              "gdpr",
+              "forget user",
+              "user vault",
+              "data subject request",
+            ],
+          },
         ],
       },
     ],
@@ -3446,9 +3471,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.TOPOLOGY,
-            title: "Topology Map",
+            title: "Topology",
             icon: IconProp.FlowDiagram,
-            keywords: ["dependency map", "service map"],
+            // "Topology Map", the Inventory menu's old name for it, still finds it (#7474).
+            keywords: ["topology map", "dependency map", "service map"],
           },
           {
             page: PageMap.INVENTORY_ITEMS,

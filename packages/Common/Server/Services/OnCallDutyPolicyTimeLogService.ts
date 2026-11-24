@@ -95,6 +95,39 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * Every log still open on the policies, ended. A policy deleted takes its
+   * escalation rules, and the rows naming their people, teams and
+   * schedules, with it by the database's own cascade, so none of the hooks
+   * that end a path's log runs; and this table keeps no key to the policy
+   * (a log outlives it). Each such log used to stay open, and the person
+   * was counted on call from then on (#10970).
+   */
+  public async endTimeForPolicies(data: {
+    onCallDutyPolicyIds: Array<ObjectID>;
+    endsAt: Date;
+  }): Promise<void> {
+    if (data.onCallDutyPolicyIds.length === 0) {
+      return;
+    }
+
+    await this.updateBy({
+      // only close still-open logs; never overwrite historical closed intervals.
+      query: {
+        onCallDutyPolicyId: QueryHelper.any(data.onCallDutyPolicyIds),
+        endsAt: QueryHelper.isNull(),
+      },
+      data: {
+        endsAt: data.endsAt,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   public async endTimeForSchedule(data: {
     projectId: ObjectID;
     onCallDutyPolicyScheduleId: ObjectID;

@@ -39,7 +39,7 @@ Uma resposta a um «como faço» termina com um botão que abre a página do seu
 | Qualquer página | Clique em **Pergunte à IA** no cabeçalho, ou pressione `Ctrl` + `I` (`Cmd` + `I` em um Mac). Enquanto você digita em uma caixa de texto ou em um editor, essas teclas continuam sendo o atalho de itálico do editor. |
 | A paleta de comandos | Pressione `Ctrl` + `K` (`Cmd` + `K` em um Mac) e escolha **Pergunte à IA**. |
 | Um padrão de erro dos logs, ou as conclusões de um gráfico | Clique em **Explicar com IA**: o Pergunte à IA abre com as evidências como uma pergunta que você pode editar antes de enviar. |
-| O menu de produtos | Abra **Produtos → IA → Chat**. O Pergunte à IA abre ao lado da página em que você estava. Cada conversa tem o próprio endereço, então você pode salvá-la nos favoritos e voltar a ela. |
+| O menu de produtos | Abra **Produtos → IA → Pergunte à IA**. O Pergunte à IA abre ao lado da página em que você estava. Cada conversa tem o próprio endereço, então você pode salvá-la nos favoritos e voltar a ela. |
 
 O Pergunte à IA abre na lateral da janela, e a página abre espaço para ele: nada fica escondido atrás, então você pode continuar trabalhando na página, ir para outras páginas e perguntar de novo. Arraste a borda para deixá-lo mais largo ou mais estreito. Pressione `Esc` dentro dele, ou clique em **Pergunte à IA** de novo, para devolver à página a janela inteira. Com ele aberto, `Ctrl` + `I` (`Cmd` + `I` em um Mac) vai da página para a caixa em que você digita, e de lá o fecha. A conversa fica onde você parou: abra o Pergunte à IA de novo para continuar. Se você o fechar enquanto ele ainda responde, um lembrete no canto avisa quando a resposta está pronta, e a abre. Em um tablet ou celular, onde não há espaço para os dois, ele abre sobre a página, e em um celular ocupa a tela inteira.
 
@@ -75,6 +75,14 @@ Aberto na página de um recurso cujo agente de IA está conectado (um host, um h
 - Ele executa somente os comandos somente leitura que uma investigação de IA pode executar nesse tipo de recurso (consulte [Agentes de IA para a infraestrutura](/docs/ai/infrastructure-ai-agents)), quantos a resposta precisar, verificados pela OneUptime e de novo pelo agente, em qualquer modo de permissão. Uma alteração por meio do agente, como reiniciar um serviço, nunca é executada pelo Pergunte à IA: em vez disso, ele dá a você o comando exato, e o agente só faz alterações quando a OneUptime AI corrige um incidente ou alerta, de acordo com as próprias configurações de correção do recurso. As ações do próprio Pergunte à IA, como executar um runbook, seguem o modo de permissão da conversa, descrito abaixo.
 - Ele alcança apenas os recursos que você pode ver, e apenas enquanto a investigação de IA estiver ativada para o recurso. Os comandos que ele executa, com o que imprimiram, são seus, como a conversa: os Registros de IA do recurso os listam para você e para mais ninguém.
 - Quando não consegue executar um comando ali (nenhum agente está conectado, o agente está offline ou a investigação de IA está desativada para o recurso), ele avisa, junto com o que mudar, e responde com os dados do seu projeto.
+
+## Os seus servidores MCP
+
+O Pergunte à IA pode usar as ferramentas dos [servidores MCP externos](/docs/ai/external-mcp-servers) que o seu projeto conectou, como os da AWS, do GitHub ou da sua própria equipe, em qualquer página. Pergunte "Quais ferramentas a AWS tem?" e ele as lista; nomeie um servidor e uma das suas ferramentas, e ele chama a ferramenta e responde com o que voltou, citado como qualquer outra evidência. A conversa abaixo do cartão **OneUptime AI** de um incidente ou de um alerta também pode usá-los.
+
+- Uma ferramenta que o servidor marca como somente leitura é executada na hora, em qualquer modo de permissão. Qualquer outra ferramenta, uma que o servidor marca como alteração ou não marca de jeito nenhum, espera em um cartão de aprovação que nomeia o servidor e a ferramenta e mostra exatamente o que é enviado, também em **Execução automática**: nada chega ao servidor até você escolher **Permitir**. Uma conversa no modo **Somente leitura** nunca oferece uma ferramenta assim.
+- Ele usa os servidores ativados, para qualquer pessoa que possa ler os Servidores MCP externos do projeto. Aprovar uma alteração por meio de um deles exige a permissão para iniciar execuções de runbooks.
+- O que um servidor responde são dados de fora do OneUptime, nunca instruções. Uma ferramenta só recebe os argumentos que aceita, e com **Habilitar IA** desligado nada é enviado a nenhum servidor.
 
 ## Ações e modos de permissão
 
@@ -177,6 +185,10 @@ O Pergunte à IA diz qual permissão a ação precisa, ou qual equipe a bloqueia
 
 :::details As respostas são vagas ou nunca usam dados
 Verifique o modelo por trás do provedor. O Pergunte à IA precisa de um modelo que chame ferramentas de forma confiável; modelos locais pequenos muitas vezes respondem sem executar uma única consulta. Veja [Provedores de LLM](/docs/ai/llm-provider).
+:::
+
+:::details O Pergunte à IA diz que não vê as ferramentas de um servidor MCP
+Abra o servidor em **Configurações do projeto → IA → Servidores MCP externos**: ele deve mostrar **Conectado**, o cartão **Ferramentas** deve listar as ferramentas do servidor e **Permitir que o OneUptime AI use este servidor** deve estar ativado. Depois, pergunte "Quais ferramentas a AWS tem?" no Pergunte à IA, com o nome do seu servidor: ele as lista, ou diz por que não consegue, como um servidor que ele não alcança ou uma função que não pode usar os servidores MCP do projeto. Veja [Servidores MCP externos](/docs/ai/external-mcp-servers).
 :::
 
 ## Próximos passos

@@ -22,7 +22,7 @@ import GradientButton from "../components/GradientButton";
 import AppText from "../components/AppText";
 import Card from "../components/Card";
 import IconBadge from "../components/IconBadge";
-import { getFriendlyErrorMessage } from "../utils/error";
+import { alertError } from "../utils/errorAlert";
 import { describeEndNow, type EndNowQuestion } from "../oncall/overrideEndNow";
 import { useSelectedProjectId } from "../hooks/useProject";
 import {
@@ -175,7 +175,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       successFeedback();
     } catch (err: unknown) {
       errorFeedback();
-      Alert.alert("Could not cancel override", getFriendlyErrorMessage(err));
+      alertError("Could not cancel override", err);
     } finally {
       setCancellingId(null);
     }
@@ -210,7 +210,7 @@ export default function OnCallOverridesScreen(): React.JSX.Element {
       successFeedback();
     } catch (err: unknown) {
       errorFeedback();
-      Alert.alert("Could not end override", getFriendlyErrorMessage(err));
+      alertError("Could not end override", err);
     } finally {
       setEndingId(null);
     }

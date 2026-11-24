@@ -39,7 +39,7 @@ Eine Antwort auf „Wie mache ich …?“ endet mit einer Schaltfläche, die die
 | Auf jeder Seite | Klicken Sie in der Kopfzeile auf **KI fragen** oder drücken Sie `Ctrl` + `I` (`Cmd` + `I` auf einem Mac). Während Sie in ein Textfeld oder einen Editor tippen, bleibt die Tastenkombination die Kursiv-Taste des Editors. |
 | Die Befehlspalette | Drücken Sie `Ctrl` + `K` (`Cmd` + `K` auf einem Mac) und wählen Sie **KI fragen**. |
 | Ein Fehlermuster in den Logs oder die Befunde eines Diagramms | Klicken Sie auf **Mit KI erklären**: KI fragen öffnet sich mit den Belegen als Frage, die Sie vor dem Senden bearbeiten können. |
-| Das Produktmenü | Öffnen Sie **Produkte → KI → Chat**. KI fragen öffnet sich neben der Seite, auf der Sie waren. Jede Unterhaltung hat eine eigene Adresse, sodass Sie sie als Lesezeichen speichern und später wieder aufrufen können. |
+| Das Produktmenü | Öffnen Sie **Produkte → KI → KI fragen**. KI fragen öffnet sich neben der Seite, auf der Sie waren. Jede Unterhaltung hat eine eigene Adresse, sodass Sie sie als Lesezeichen speichern und später wieder aufrufen können. |
 
 KI fragen öffnet sich am Rand des Fensters, und die Seite macht dafür Platz: Nichts wird dahinter verdeckt, sodass Sie auf der Seite weiterarbeiten, zu anderen Seiten wechseln und erneut fragen können. Ziehen Sie den Rand, um den Bereich breiter oder schmaler zu machen. Drücken Sie darin `Esc` oder klicken Sie erneut auf **KI fragen**, um der Seite das ganze Fenster zurückzugeben. Ist der Bereich offen, springt `Ctrl` + `I` (`Cmd` + `I` auf einem Mac) von der Seite in das Eingabefeld und schließt ihn von dort aus. Die Unterhaltung bleibt, wo Sie sie verlassen haben: Öffnen Sie KI fragen erneut, um weiterzumachen. Schließen Sie den Chat, während er noch antwortet, sagt ein Hinweis in der Ecke, wann die Antwort fertig ist, und öffnet sie. Auf einem Tablet oder Telefon, wo für beides kein Platz ist, öffnet er sich über der Seite und füllt auf einem Telefon den ganzen Bildschirm.
 
@@ -75,6 +75,14 @@ Auf der Seite einer Ressource geöffnet, deren KI-Agent verbunden ist (ein Host,
 - Ausgeführt werden nur die nur lesenden Befehle, die eine KI-Untersuchung auf dieser Art Ressource ausführen darf (siehe [KI-Agenten für die Infrastruktur](/docs/ai/infrastructure-ai-agents)), so viele, wie die Antwort braucht, geprüft von OneUptime und erneut vom Agenten, in jedem Berechtigungsmodus. Eine Änderung über den Agenten, etwa der Neustart eines Dienstes, wird aus KI fragen nie ausgeführt: Sie erhalten stattdessen den genauen Befehl, und der Agent ändert nur dann etwas, wenn OneUptime AI einen Vorfall oder eine Warnung behebt, nach den eigenen Korrektureinstellungen der Ressource. Die eigenen Aktionen von KI fragen, etwa das Ausführen eines Runbooks, folgen dem Berechtigungsmodus der Unterhaltung, wie unten beschrieben.
 - Erreicht werden nur die Ressourcen, die Sie sehen dürfen, und nur, solange die KI-Untersuchung für die Ressource eingeschaltet ist. Die Befehle, die es ausführt, samt ihrer Ausgabe, gehören Ihnen, wie die Unterhaltung: Die KI-Protokolle der Ressource listen sie für Sie und für niemanden sonst.
 - Kann KI fragen dort keinen Befehl ausführen (kein Agent ist verbunden, der Agent ist offline oder die KI-Untersuchung ist für die Ressource ausgeschaltet), sagt es das, samt dem, was zu ändern ist, und antwortet stattdessen aus den Daten Ihres Projekts.
+
+## Ihre MCP-Server
+
+KI fragen kann auf jeder Seite die Werkzeuge der [externen MCP-Server](/docs/ai/external-mcp-servers) nutzen, die Ihr Projekt verbunden hat, etwa die von AWS, von GitHub oder die Ihres eigenen Teams. Fragen Sie „Welche Werkzeuge hat AWS?“, und es listet sie auf; nennen Sie einen Server und eines seiner Werkzeuge, und es ruft das Werkzeug auf und antwortet mit dem, was zurückkam, belegt wie jeder andere Nachweis. Die Unterhaltung unter der Karte **OneUptime AI** eines Vorfalls oder einer Warnung kann sie ebenfalls nutzen.
+
+- Ein Werkzeug, das der Server als nur lesend markiert, läuft sofort, in jedem Berechtigungsmodus. Jedes andere Werkzeug, eines, das der Server als Änderung markiert oder gar nicht markiert, wartet auf einer Genehmigungskarte, die den Server und das Werkzeug nennt und genau zeigt, was gesendet wird, auch bei **Automatisch ausführen**: Nichts erreicht den Server, bevor Sie **Zulassen** wählen. Eine Unterhaltung im Modus **Nur Lesezugriff** bietet nie eines an.
+- Es nutzt die eingeschalteten Server für jeden, der die externen MCP-Server des Projekts lesen darf. Eine Änderung über einen davon zu genehmigen erfordert die Berechtigung, Runbook-Ausführungen zu starten.
+- Was ein Server antwortet, sind Daten von außerhalb von OneUptime, nie Anweisungen. Ein Werkzeug bekommt nur die Argumente gesendet, die es annimmt, und ist **KI aktivieren** ausgeschaltet, wird nichts an einen Server gesendet.
 
 ## Aktionen und Berechtigungsmodi
 
@@ -177,6 +185,10 @@ KI fragen sagt, welche Berechtigung die Aktion braucht oder welches Team sie blo
 
 :::details Antworten sind vage oder nutzen nie Daten
 Prüfen Sie das Modell hinter dem Anbieter. KI fragen braucht ein Modell, das Werkzeuge zuverlässig aufruft; kleine lokale Modelle antworten oft, ohne eine einzige Abfrage auszuführen. Siehe [LLM-Anbieter](/docs/ai/llm-provider).
+:::
+
+:::details KI fragen sagt, dass es die Werkzeuge eines MCP-Servers nicht sehen kann
+Öffnen Sie den Server unter **Projekteinstellungen → KI → Externe MCP-Server**: Er sollte **Verbunden** anzeigen, seine Karte **Werkzeuge** sollte seine Werkzeuge auflisten, und **OneUptime AI diesen Server nutzen lassen** sollte eingeschaltet sein. Fragen Sie dann in KI fragen „Welche Werkzeuge hat AWS?“, mit dem Namen Ihres Servers: Es listet sie auf oder sagt, warum es das nicht kann, etwa bei einem Server, den es nicht erreicht, oder einer Rolle, die die MCP-Server des Projekts nicht nutzen darf. Siehe [Externe MCP-Server](/docs/ai/external-mcp-servers).
 :::
 
 ## Nächste Schritte

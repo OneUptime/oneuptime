@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "發生了問題",
-  "An unexpected error has occurred. Please reload the page to continue": "發生了未預期的錯誤。請重新載入頁面以繼續",
+  "This page stopped working": "此頁面已停止運作",
+  "Part of this page ran into a problem. Reload the page to continue.": "此頁面的一部分遇到了問題。請重新載入頁面以繼續。",
   "Error details": "錯誤詳細資料",
   "a11y": {
     "skipToMainContent": "跳至主要內容",
@@ -486,6 +486,9 @@
   "No options available": "沒有可用的選項",
   "No matches found": "找不到相符項目",
   "{{eventType}} state changed to {{state}}": "{{eventType}}狀態已變更為 {{state}}",
+  "{{count}} related incidents": "{{count}} 個相關事件",
+  "{{count}} related incidents_one": "{{count}} 個相關事件",
+  "Part of {{incident}}": "屬於 {{incident}}",
   "Use at least {{minimum}} characters.": "請至少使用 {{minimum}} 個字元。",
   "Try a few unrelated words.": "試著組合幾個互不相關的詞。",
   "Password meets requirements": "密碼符合要求",
@@ -521,5 +524,27 @@
     "sessionExpired": "工作階段已過期。請重新登入。",
     "signedOut": "你已登出。請重新登入。",
     "magicLinkTurnedOff": "此狀態頁面已關閉登入連結。請使用你的電子郵件和密碼登入。"
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "伺服器遇到了無法解釋的問題，因此操作未完成。請再試一次；如果仍然失敗，請把這個參考編號提供給您的管理員或 OneUptime 支援團隊：{{reference}}。",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "伺服器遇到了無法解釋的問題，因此操作未完成。請稍後再試一次。",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "無法連線到 OneUptime，因此操作未完成。請檢查您的網路連線，然後再試一次。",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "此頁面遇到了問題，因此操作未完成。請重新載入頁面，然後再試一次。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "傳送的內容太大，伺服器無法接受，因此操作未完成。請一次傳送較少的內容（例如較小的檔案）後再試一次。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "傳送的內容超過了 OneUptime 單次請求可接受的 50 MB，因此操作未完成。請一次傳送較少的內容（例如較小的檔案）後再試一次。",
+  "This did not finish.": "操作未完成。",
+  "The server ran into a problem it could not explain.": "伺服器遇到了無法解釋的問題。",
+  "The OneUptime server did not answer.": "OneUptime 伺服器沒有回應。",
+  "OneUptime could not be reached.": "無法連線到 OneUptime。",
+  "This page ran into a problem.": "此頁面遇到了問題。",
+  "What was sent was too large for the server to accept.": "傳送的內容太大，伺服器無法接受。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "傳送的內容超過了 OneUptime 單次請求可接受的 50 MB。",
+  "Try again in a moment.": "請稍後再試一次。",
+  "It may be starting or restarting. Try again in a few minutes.": "它可能正在啟動或重新啟動。請幾分鐘後再試一次。",
+  "Check your internet connection, then try again.": "請檢查您的網路連線，然後再試一次。",
+  "Reload the page, then try again.": "請重新載入頁面，然後再試一次。",
+  "Try again with less at once, such as a smaller file.": "請一次傳送較少的內容（例如較小的檔案）後再試一次。",
+  "The {{itemName}} was not created.": "{{itemName}}未建立。",
+  "The {{itemName}} was not saved.": "{{itemName}}未儲存。",
+  "The {{itemName}} could not be loaded.": "無法載入{{itemName}}。",
+  "Page Did Not Load": "頁面未能載入"
 }

@@ -1,4 +1,8 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
+import {
+  getChatMessageNotSent,
+  TELEGRAM_WHAT_TO_CHECK,
+} from "../OtherSystemSaidNothing";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
@@ -131,7 +135,7 @@ export default class SendMessageToChat extends ComponentCode {
         const telegramError: string =
           (apiResult.data?.["description"] as string) ||
           apiResult.message ||
-          "Server Error.";
+          getChatMessageNotSent("Telegram", TELEGRAM_WHAT_TO_CHECK);
         return Promise.resolve({
           returnValues: {
             error: telegramError + helpMessage,
@@ -143,7 +147,8 @@ export default class SendMessageToChat extends ComponentCode {
       // Check if Telegram returned ok: false (some errors return 200 OK)
       if (apiResult.data && apiResult.data["ok"] === false) {
         const telegramError: string =
-          (apiResult.data["description"] as string) || "Telegram API Error.";
+          (apiResult.data["description"] as string) ||
+          getChatMessageNotSent("Telegram", TELEGRAM_WHAT_TO_CHECK);
         return Promise.resolve({
           returnValues: {
             error: telegramError + helpMessage,
@@ -165,7 +170,7 @@ export default class SendMessageToChat extends ComponentCode {
         const telegramError: string =
           (err.data?.["description"] as string) ||
           err.message ||
-          "Server Error.";
+          getChatMessageNotSent("Telegram", TELEGRAM_WHAT_TO_CHECK);
         return Promise.resolve({
           returnValues: {
             error: telegramError + helpMessage,

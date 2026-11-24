@@ -134,7 +134,13 @@ Zoomen funktioniert nur in der Ansicht; in der Bearbeitung verschiebt und skalie
 
 ## Vollbild
 
-**⋯ → Vollbild** zeigt die Widgets des Dashboards auf dem ganzen Bildschirm, für eine Wandanzeige oder ein Meeting. Drücken Sie Esc, um es zu verlassen.
+Im Vollbild sehen Sie nur das Dashboard, auf dem ganzen Bildschirm: seine Werkzeugleiste und seine Widgets, ohne obere Leiste, Seitenmenü oder Breadcrumbs. Alles funktioniert wie auf der Seite des Dashboards, und für dieselben Personen: Bearbeiten, Widgets hinzufügen und entfernen, der Zeitbereich, die automatische Aktualisierung und die Variablen.
+
+- **Vollbild**, die quadratische Schaltfläche am Ende der Werkzeugleiste des Dashboards, oder **⋯ → Vollbild** zeigt das Dashboard im Vollbild. Auch Ihr Browser wechselt in den Vollbildmodus, wo er es erlaubt.
+- **In neuem Tab öffnen**, im Menü **⋯** des Dashboards oder im Menü **⋯** einer Zeile der Liste **Dashboards**, öffnet das Dashboard im Vollbild in einem eigenen Tab. In diesem Tab schaltet **Bildschirm ausfüllen** auch Ihren Browser in den Vollbildmodus.
+- **Vollbild beenden** oder Esc führt zurück zur Seite des Dashboards und beendet auch den Vollbildmodus Ihres Browsers. Nach **Bildschirm ausfüllen** beendet das erste Esc nur den Vollbildmodus Ihres Browsers.
+
+Ein Dashboard im Vollbild hat eine eigene Adresse, die auf `?view=full-screen` endet: Setzen Sie ein Lesezeichen darauf oder öffnen Sie sie auf einem Wandbildschirm, und das Dashboard öffnet sich im Vollbild. Um mehrere Dashboards nacheinander auf einem Bildschirm zu zeigen, verwenden Sie eine [Playlist](/docs/dashboards/playlists).
 
 ## Tipps für Dashboards, die gut altern
 

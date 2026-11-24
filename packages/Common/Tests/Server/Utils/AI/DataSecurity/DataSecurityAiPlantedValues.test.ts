@@ -22,6 +22,8 @@ import AIService, {
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
 } from "../../../../../Server/Services/CodeRepositoryService";
+import DataAssetService from "../../../../../Server/Services/DataAssetService";
+import DataAssetUsageService from "../../../../../Server/Services/DataAssetUsageService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityFlowService from "../../../../../Server/Services/DataSecurityFlowService";
@@ -281,6 +283,10 @@ function useIssueGroupTables(): void {
 const CHECKOUT_SERVICE_ID: string = "10365000-0000-4000-8000-0000000000e9";
 // What production knows that a pull request's diff does not: never sent.
 const SCRUB_RULE_NAME: string = "PLANTED-SCRUB-RULE mask checkout emails";
+
+// The database a pull request's migration adds a column to a table of (#10779).
+const ORDERS_DB_ID: string = "10779000-0000-4000-8000-0000000000b1";
+const ORDERS_DB_NAME: string = "PLANTED-STORE-NAME orders-db";
 
 // An analysis of an issue, as OneUptime AI answers one (#10369).
 const ANALYSIS_ANSWER: string = JSON.stringify({
@@ -1400,7 +1406,41 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
         provider: "oneuptime",
         serviceId: CHECKOUT_SERVICE_ID,
       }),
+      // The database a migration's table is in (#10779), every column planted.
+      storeRow(ORDERS_DB_ID, {
+        name: ORDERS_DB_NAME,
+        kind: "AWS RDS Instance",
+        providerResourceId: "arn:aws:rds:eu-north-1:123456789012:db:orders",
+        dataTypeIds: ["us-ssn", "date-of-birth"],
+        exposure: "Internet reachable",
+        posture: { readAt: new Date().toISOString(), encryptedAtRest: false },
+      }),
     ]);
+    useInMemoryTable(asService(DataStoreFindingService), [
+      ...findingRows(),
+      {
+        _id: "10779000-0000-4000-8000-0000000000d1",
+        projectId: PROJECT_ID.toString(),
+        dataStoreId: ORDERS_DB_ID,
+        dataTypeId: "date-of-birth",
+        dataTypeName: "Date of birth",
+        sensitivity: "Confidential",
+        location: "public.customers.birthday",
+        locationKind: "Column",
+        confidence: "High",
+        matchCount: 40,
+        valueCount: 50,
+        isScrubbed: false,
+        isSuppressed: false,
+        isConfirmed: false,
+        isAiSuggested: false,
+        lastSeenAt: new Date(),
+        maskedSamples: [PLANTED["maskedSample"]],
+        suppressedReason: PLANTED["suppressedReason"],
+      },
+    ]);
+    useInMemoryTable(asService(DataAssetService), []);
+    useInMemoryTable(asService(DataAssetUsageService), []);
     jest.spyOn(TelemetryScrubCoverage, "getScrubCoverage").mockResolvedValue({
       rules: [
         {
@@ -1448,6 +1488,16 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
           "+}",
         ].join("\n"),
       },
+      {
+        filename: "db/migrations/20261124_add_customer_ssn.sql",
+        status: "added",
+        additions: 1,
+        deletions: 0,
+        patch: [
+          "@@ -0,0 +1,1 @@",
+          "+ALTER TABLE customers ADD COLUMN date_of_birth DATE;",
+        ].join("\n"),
+      },
     ];
 
     const section: ProductionReviewSensitiveDataJSON =
@@ -1465,6 +1515,10 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
         ],
         isFailOn: true,
         now: new Date(),
+        // A private repository's: what Data Security knows of its table too.
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          return true;
+        },
       });
 
     // What production knows is on the section, for the comment and the page.
@@ -1482,6 +1536,21 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
             expect.objectContaining({ location: "attributes.user.email" }),
           ],
           maskedAtIngestBy: SCRUB_RULE_NAME,
+        }),
+        expect.objectContaining({
+          store: expect.objectContaining({
+            name: ORDERS_DB_NAME,
+            exposure: "Internet reachable",
+            isNotEncryptedAtRest: true,
+          }),
+          table: expect.objectContaining({
+            name: "public.customers",
+            sameData: [
+              expect.objectContaining({
+                location: "public.customers.birthday",
+              }),
+            ],
+          }),
         }),
       ]),
     );
@@ -1507,6 +1576,13 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
       SCRUB_RULE_NAME,
       "Card number",
       "Restricted",
+      // A migration's table (#10779): its store, its columns, what it holds.
+      ORDERS_DB_NAME,
+      "public.customers",
+      "birthday",
+      "Internet reachable",
+      "not encrypted at rest",
+      "isNotEncryptedAtRest",
     ]) {
       expect({
         knownOnlyByProduction,

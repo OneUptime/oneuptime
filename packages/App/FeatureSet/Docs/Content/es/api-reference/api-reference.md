@@ -268,6 +268,14 @@ Junto al mensaje, cada uno de estos rechazos incluye un `refusalCode` que dice q
 
 Una actualización que vuelve a enviar a un registro su propio nombre, en mayúsculas o minúsculas, no es un cambio de nombre, así que los registros que antes compartían un nombre se pueden seguir modificando, y renombrar para distinguirlos, pero nunca con el nombre de otro registro. Para los equipos, las etiquetas, las políticas de guardia y las programaciones de guardia, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) responde cuáles comparten un nombre: `{"groups": [["<id>", "<id>"]]}`, cada grupo con los ID que tu clave puede leer de los registros cuyos nombres se leen igual. Las etiquetas y las políticas de guardia archivadas quedan fuera.
 
+Un proyecto que exige nombres únicos, como lo hace un proyecto nuevo, aplica la misma regla a la mayoría de los demás tipos que usted nombra, entre ellos monitores, grupos de monitores, sondas, plantillas, claves de API y pipelines, con los mismos códigos. El `requireUniqueNames` del proyecto indica si lo hace, y un Propietario del proyecto o un Administrador del proyecto lo cambia en los ajustes del proyecto, en el panel:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Un rechazo así también incluye `takenById`, el ID del registro que tiene el nombre, cuando su clave puede leerlo. Los registros que compartían un nombre antes de que el proyecto exigiera nombres únicos lo conservan hasta que se les cambie el nombre, y una sola actualización no puede dar el mismo nombre a varios registros del mismo tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` responde si un nombre está ocupado antes de enviarlo, y `GET /api/unique-names/duplicates` enumera los nombres que el proyecto tiene más de una vez, tipo por tipo.
+
 #### Valores que ya tiene otro registro
 
 Algunos valores que no son un nombre también pertenecen a un solo registro cada uno: el dominio de una página de estado, de un panel o de un formulario, un dominio del proyecto, el identificador de un host o de un clúster de Kubernetes, la URL de inicio de sesión de un proveedor de SSO y el permiso de una clave de API, entre otros. Una creación, o una actualización que cambia uno de ellos, a un valor que ya tiene otro registro se rechaza con un `400` que lo dice:

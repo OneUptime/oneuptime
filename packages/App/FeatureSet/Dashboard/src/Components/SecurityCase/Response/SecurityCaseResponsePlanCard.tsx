@@ -84,6 +84,8 @@ import {
   isRouteFixStep,
 } from "./SecurityCaseFixPullRequestsModel";
 import {
+  STEP_CHECK_FACT_MARK_STYLES,
+  StepCheckFactMarkStyle,
   StepCheckLinkTarget,
   canConfirmStep,
   getStepCheckDocsUrl,
@@ -141,7 +143,10 @@ import ModelEventType from "Common/Types/Realtime/ModelEventType";
 import { isSecurityCaseAiVerdict } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { SecurityCaseMatchesJson } from "Common/Types/SecurityCase/SecurityCaseMatches";
 import { ResponseLink } from "Common/Types/SecurityCase/SecurityCaseResponseLink";
-import { SecurityCaseStepCheckSentence } from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import {
+  SecurityCaseStepCheckSentence,
+  StepCheckFactMark,
+} from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import URL from "Common/Types/API/URL";
 import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import {
@@ -1130,10 +1135,25 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const isInline: boolean = isCheckExplainedInline(check);
     const isOpen: boolean = openHowWeKnow.includes(step.key);
     const docsUrl: URL | null = getStepCheckDocsUrl(check.evidence.docsPath);
+    /*
+     * A list of what OneUptime read back marks each line by what it says -
+     * done, still to do, a person's to confirm, how to let OneUptime read
+     * the rest - with an icon a glance can read (#10900, #10901). A list
+     * with no marks keeps its bullets.
+     */
+    const isMarked: boolean = check.evidence.facts.some(
+      (fact: SecurityCaseStepCheckSentence): boolean => {
+        return Boolean(fact.mark);
+      },
+    );
     const facts: ReactElement =
       check.evidence.facts.length > 0 ? (
         <ul
-          className="ms-4 list-disc space-y-0.5 text-xs text-gray-600"
+          className={
+            isMarked
+              ? "space-y-1 text-xs text-gray-600"
+              : "ms-4 list-disc space-y-0.5 text-xs text-gray-600"
+          }
           data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFacts}
         >
           {check.evidence.facts.map(
@@ -1141,7 +1161,40 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               fact: SecurityCaseStepCheckSentence,
               index: number,
             ): ReactElement => {
-              return <li key={index}>{sentenceText(fact)}</li>;
+              if (!isMarked) {
+                return <li key={index}>{sentenceText(fact)}</li>;
+              }
+
+              const mark: StepCheckFactMarkStyle | null = fact.mark
+                ? STEP_CHECK_FACT_MARK_STYLES[fact.mark]
+                : null;
+
+              return (
+                <li
+                  key={index}
+                  className="flex items-start gap-1.5"
+                  data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFact}
+                  data-fact-mark={fact.mark || ""}
+                >
+                  {mark ? (
+                    <Icon
+                      icon={mark.icon}
+                      className={`mt-px h-4 w-4 flex-none ${mark.className}`}
+                    />
+                  ) : (
+                    <span className="h-4 w-4 flex-none" aria-hidden="true" />
+                  )}
+                  <span
+                    className={`min-w-0 break-words ${
+                      fact.mark === StepCheckFactMark.HowToCheck
+                        ? "text-gray-700"
+                        : ""
+                    }`}
+                  >
+                    {sentenceText(fact)}
+                  </span>
+                </li>
+              );
             },
           )}
         </ul>

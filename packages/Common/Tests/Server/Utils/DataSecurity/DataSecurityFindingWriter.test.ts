@@ -18,7 +18,9 @@ import {
 } from "../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
 import {
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  DATA_SECURITY_JUDGE_FINDINGS_JOB,
   DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
+  JUDGE_FINDINGS_DELAY_IN_MS,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import AIService from "../../../../Server/Services/AIService";
 import Queue, { QueueName } from "../../../../Server/Infrastructure/Queue";
@@ -368,6 +370,33 @@ describe("recordContentScan: findings", () => {
     expect(
       (createSpy.mock.calls[0]![0] as CreateBy<DataStoreFinding>).props,
     ).toEqual({ isRoot: true });
+    // Patterns found every one of them, not the names-and-addresses model.
+    expect(finding.isFoundByModel).toBe(false);
+  });
+
+  // The scanner's names-and-addresses model, run on free text (#10373).
+  test("a finding the names-and-addresses model made says so", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.tickets.body", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+              foundByModel: true,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    const finding: DataStoreFinding = findingAt(
+      "person-name",
+      "public.tickets.body",
+    );
+
+    expect(finding.isFoundByModel).toBe(true);
+    expect(finding.isFreeText).toBe(true);
   });
 
   test("a custom data type is named and graded as its project defined it; an unknown one by its id", async () => {
@@ -465,6 +494,8 @@ describe("recordContentScan: findings", () => {
       isFreeText: false,
       isNameHinted: true,
       isFoundByName: false,
+      // A pattern found it, not the names-and-addresses model (#10373).
+      isFoundByModel: false,
       locationKind: DataStoreLocationKind.Column,
       lastSeenAt: clock,
       // A detector found it: it is not, or no longer, OneUptime AI's suggestion.
@@ -1183,6 +1214,28 @@ function suggestionsQueued(): Array<Array<unknown>> {
   });
 }
 
+// OneUptime AI's verdicts on the findings that wait for a person (#10372).
+function verdictsQueued(): Array<Array<unknown>> {
+  return queueSpy.mock.calls.filter((call: Array<unknown>) => {
+    return call[2] === DATA_SECURITY_JUDGE_FINDINGS_JOB;
+  });
+}
+
+function storeWritesOfFieldSuggestions(): Array<unknown> {
+  return storeUpdateSpy.mock.calls
+    .map((call: Array<unknown>): unknown => {
+      return (call[0] as { data: JSONObject }).data["fieldSuggestionState"];
+    })
+    .filter((state: unknown): boolean => {
+      return state !== undefined;
+    });
+}
+
+// A scan that placed its one field: an email address, written as a finding.
+function emailFound(): Array<LocationFindings> {
+  return [location("public.users.email", [classification("email-address")])];
+}
+
 describe("recordContentScan: the fields no detector placed", () => {
   test("with Enable AI on, they are kept on the store and OneUptime AI is asked about them, after the evaluation", async () => {
     const aiSpy: jest.SpyInstance = jest
@@ -1258,25 +1311,115 @@ describe("recordContentScan: the fields no detector placed", () => {
     expect(suggestionsQueued()).toEqual([]);
   });
 
-  test("a scan that placed every field asks nothing, and does not read the switch", async () => {
-    const aiSpy: jest.SpyInstance = jest.spyOn(AIService, "isProjectAIEnabled");
+  /*
+   * A scan that wrote findings reads the switch for OneUptime AI's verdicts
+   * on them (#10372) even when it placed every field: the switch is read
+   * once, and nothing is asked about fields.
+   */
+  test("a scan that placed every field asks nothing about fields, and reads the switch once, for its findings' verdicts", async () => {
+    const aiSpy: jest.SpyInstance = jest
+      .spyOn(AIService, "isProjectAIEnabled")
+      .mockResolvedValue(true);
 
-    await record({
-      result: resultOf({
-        locations: [
-          location("public.users.email", [classification("email-address")]),
-        ],
-      }),
-    });
+    await record({ result: resultOf({ locations: emailFound() }) });
+
+    expect(aiSpy).toHaveBeenCalledTimes(1);
+    expect(aiSpy).toHaveBeenCalledWith(PROJECT_ID);
+    expect(suggestionsQueued()).toEqual([]);
+    expect(storeWritesOfFieldSuggestions()).toEqual([]);
+    expect(verdictsQueued()).toHaveLength(1);
+  });
+
+  test("a scan that found nothing and left nothing unplaced asks nothing, and does not read the switch", async () => {
+    const aiSpy: jest.SpyInstance = jest
+      .spyOn(AIService, "isProjectAIEnabled")
+      .mockResolvedValue(true);
+
     await record({ result: { ...resultOf(), unplacedFields: undefined } });
+    await record({ result: resultOf() });
 
     expect(aiSpy).not.toHaveBeenCalled();
     expect(suggestionsQueued()).toEqual([]);
-    for (const call of storeUpdateSpy.mock.calls) {
-      expect(
-        (call[0] as { data: JSONObject }).data["fieldSuggestionState"],
-      ).toBeUndefined();
-    }
+    expect(verdictsQueued()).toEqual([]);
+    expect(storeWritesOfFieldSuggestions()).toEqual([]);
+  });
+});
+
+describe("recordContentScan: OneUptime AI's verdicts on what a scan found (#10372)", () => {
+  test("with Enable AI on, a scan's findings are judged once for the store, a little after the evaluation", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
+
+    await record({ result: resultOf({ locations: emailFound() }) });
+
+    const queued: Array<Array<unknown>> = verdictsQueued();
+
+    expect(queued).toHaveLength(1);
+    expect(queued[0]![0]).toBe(QueueName.Worker);
+    expect(queued[0]![3]).toEqual({
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: STORE_ID.toString(),
+    });
+    // Deduplicated by the store, and run a little later: one ask for scans close together.
+    expect(queued[0]![4]).toMatchObject({
+      deduplication: { id: `data-security-judge-${STORE_ID.toString()}` },
+      delayInMs: JUDGE_FINDINGS_DELAY_IN_MS,
+    });
+    expect(queueSpy.mock.calls[0]![2]).toBe(DATA_SECURITY_EVALUATE_PROJECT_JOB);
+  });
+
+  test("with Enable AI off, the findings wait for a person and nothing is asked", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+
+    await record({ result: resultOf({ locations: emailFound() }) });
+
+    expect(findingAt("email-address", "public.users.email")).toBeTruthy();
+    expect(verdictsQueued()).toEqual([]);
+    expect(suggestionsQueued()).toEqual([]);
+  });
+
+  test("a scan that wrote findings and left fields unplaced reads the switch once, and asks about both", async () => {
+    const aiSpy: jest.SpyInstance = jest
+      .spyOn(AIService, "isProjectAIEnabled")
+      .mockResolvedValue(true);
+
+    await record({
+      result: resultOf({
+        locations: emailFound(),
+        unplacedFields: [unplaced("public.customers.kundennr")],
+      }),
+    });
+
+    expect(aiSpy).toHaveBeenCalledTimes(1);
+    expect(suggestionsQueued()).toHaveLength(1);
+    expect(verdictsQueued()).toHaveLength(1);
+    expect(storeWritesOfFieldSuggestions()).toHaveLength(1);
+  });
+
+  test("a scan whose findings could not be queued for verdicts still records the scan, and says why in the log", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
+    queueSpy.mockImplementation((async (
+      _queue: unknown,
+      _id: unknown,
+      jobName: unknown,
+    ) => {
+      if (jobName === DATA_SECURITY_JUDGE_FINDINGS_JOB) {
+        throw new Error("Redis is away");
+      }
+    }) as never);
+
+    const output: RecordContentScanOutput = await record({
+      result: resultOf({ locations: emailFound() }),
+    });
+
+    expect(output.findingsWritten).toBe(1);
+    expect(output.scanId).not.toBeNull();
+    expect(
+      errorSpy.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).includes(
+          "OneUptime AI's verdicts on the findings",
+        );
+      }),
+    ).toBe(true);
   });
 });
 

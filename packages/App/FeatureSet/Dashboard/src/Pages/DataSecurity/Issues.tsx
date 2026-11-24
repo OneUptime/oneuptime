@@ -34,7 +34,9 @@ import IssueGroups from "../../Components/DataSecurity/IssueGroups";
 import {
   GROUP_BY_CAUSE,
   GROUP_BY_CAUSE_TOOLTIP,
+  IssueRowsGroupFilter,
   NO_OTHER_ISSUES,
+  getIssueRowsGroupFilter,
 } from "../../Components/DataSecurity/IssueGroupsCopy";
 import { VERDICT_TONES } from "../../Components/DataSecurity/IssueAiAnalysisCopy";
 import UserElement from "../../Components/User/User";
@@ -44,6 +46,7 @@ import useAiOffered from "../../Utils/UseAiOffered";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -145,15 +148,20 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
 );
 
 /*
- * Group by cause (#10370): the reader's own choice, kept in this browser -
- * unset, it starts on once one group holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE
- * issues.
+ * Group by cause (#10370): the reader's own choice, kept in this browser
+ * for each project - unset, it starts on once one of the project's groups
+ * holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE issues, so a choice made in one
+ * project does not decide another's.
  */
-const GROUP_BY_CAUSE_KEY: string = "data-security-issues-group-by-cause";
+function getGroupByCauseKey(): string {
+  return `data-security-issues-group-by-cause-${
+    ProjectUtil.getCurrentProjectId()?.toString() || "none"
+  }`;
+}
 
 function readGroupByCauseChoice(): boolean | null {
   try {
-    const value: unknown = LocalStorage.getItem(GROUP_BY_CAUSE_KEY);
+    const value: unknown = LocalStorage.getItem(getGroupByCauseKey());
 
     return value === true || value === "true"
       ? true
@@ -167,7 +175,7 @@ function readGroupByCauseChoice(): boolean | null {
 
 function keepGroupByCauseChoice(value: boolean): void {
   try {
-    LocalStorage.setItem(GROUP_BY_CAUSE_KEY, value ? "true" : "false");
+    LocalStorage.setItem(getGroupByCauseKey(), value ? "true" : "false");
   } catch {
     // A browser that keeps nothing still switches: for this visit.
   }
@@ -212,7 +220,9 @@ function hasNarrowingFilter(query: Query<DataSecurityIssue>): boolean {
  * are then the issues in no group. It starts on once a group holds five
  * issues, and the reader's choice is kept in their browser. The filters
  * narrow both alike (onQueryChange). A reader whose read of issues is held
- * to labels gets no groups, and the list they had.
+ * to labels (#10739) gets each group cut down to the stores they may read -
+ * its counts and cause theirs alone - and an issue whose group they are not
+ * shown (one of which they may read a single issue) stays in the rows.
  */
 const DataSecurityIssuesPage: FunctionComponent<
   PageComponentProps
@@ -234,8 +244,8 @@ const DataSecurityIssuesPage: FunctionComponent<
 
   /*
    * Group by cause (#10370): the project's groups of issues one mistake
-   * made, for a reader of its issues across the whole project - none for
-   * anyone else, whose list stays as it was.
+   * made, each as the reader may read it - cut down to the stores they may
+   * read, for a reader held to labels (#10739).
    */
   const [groups, setGroups] = useState<DataSecurityIssueGroupsJSON | null>(
     null,
@@ -377,6 +387,22 @@ const DataSecurityIssuesPage: FunctionComponent<
         )
       : [];
 
+  /*
+   * Which issues the rows are, grouped by cause: those in no group drawn
+   * above them - an issue in a group the reader is not shown (one cut to a
+   * single issue for a reader held to labels, #10739) is listed with them.
+   */
+  const rowsGroupFilter: IssueRowsGroupFilter = getIssueRowsGroupFilter({
+    isGroupedByCause,
+    isMembersRead: Boolean(members),
+    drawnGroupIds: groupsDrawn.map(
+      (group: DataSecurityIssueGroupJSON): string => {
+        return group.groupId;
+      },
+    ),
+    memberGroupIds: members ? Array.from(members.membersByGroup.keys()) : [],
+  });
+
   // A link to a group's fix opens it once the group is read.
   useEffect(() => {
     const asked: string = Navigation.getQueryStringByName("fixGroup") || "";
@@ -412,10 +438,16 @@ const DataSecurityIssuesPage: FunctionComponent<
           projectId
             ? {
                 projectId: projectId,
-                // Grouped by cause, the rows are the issues in no group (#10370).
-                ...(isGroupedByCause
+                // Grouped by cause, the rows are the issues in no group drawn (#10370, #10739).
+                ...(rowsGroupFilter.kind === "inNoGroup"
                   ? { dataSecurityIssueGroupId: new IsNull() }
-                  : {}),
+                  : rowsGroupFilter.kind === "inNoneOf"
+                    ? {
+                        dataSecurityIssueGroupId: new IncludesNoneOrNull(
+                          rowsGroupFilter.groupIds,
+                        ),
+                      }
+                    : {}),
               }
             : {}
         }

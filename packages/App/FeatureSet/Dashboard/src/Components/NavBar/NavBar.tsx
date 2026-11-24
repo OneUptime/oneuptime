@@ -9,6 +9,11 @@ import { getItemProduct } from "../../Utils/ProjectProducts/ProductsMenu";
 import { loadQuietly } from "../../Utils/ProjectProducts/UseProjectProducts";
 import { HiddenProductsMenuNote } from "./HiddenProductsMenuNote";
 import URL from "Common/Types/API/URL";
+import {
+  ONEUPTIME_REPORT_ISSUE_URL,
+  isOneUptimeGitHubShown,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { canPinAnotherProduct } from "Common/Types/Product/ProductPins";
 import NavBar, { MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
@@ -72,18 +77,25 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     products,
   }: DashboardProductsMenu = useDashboardProductsMenu();
 
+  /*
+   * Report a bug or request a feature, on OneUptime's GitHub - unless the
+   * server's admins took OneUptime's GitHub links away (Admin Dashboard >
+   * Settings > Help and Support, #10866). Read before the early return, so
+   * the hook order stays stable across show/hide.
+   */
+  const isGitHubShown: boolean = isOneUptimeGitHubShown(useHelpAndSupport());
+
   if (!props.show) {
     return <></>;
   }
 
-  // Define the more menu footer
-  const moreMenuFooter: any = {
-    title: t("navbar.moreFooter.title"),
-    description: t("navbar.moreFooter.description"),
-    link: URL.fromString(
-      "https://github.com/OneUptime/oneuptime/issues/new/choose",
-    ),
-  };
+  const moreMenuFooter: any = isGitHubShown
+    ? {
+        title: t("navbar.moreFooter.title"),
+        description: t("navbar.moreFooter.description"),
+        link: URL.fromString(ONEUPTIME_REPORT_ISSUE_URL),
+      }
+    : undefined;
 
   const togglePin: (item: MoreMenuItem) => void = (
     item: MoreMenuItem,
@@ -184,15 +196,19 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       disableCommandKShortcut={true}
       /*
        * The header has no room for Search and Help on a phone (#6816):
-       * the phone's menu starts with Search and ends with Help. It is the
-       * phone's menu below 768px only; from there up the header draws
-       * them (#7037).
+       * the phone's menu starts with them, Search and then Help, above
+       * Home and every product, as the header draws them side by side
+       * from 768px up (#7037). Help, with Give feedback in it, ended the
+       * menu, under every product of a busy project, where people
+       * scrolled looking for it (#7473).
        */
       mobileMenuTop={(closeMenu: () => void): ReactElement => {
-        return <PhoneMenuSearch closeMenu={closeMenu} />;
-      }}
-      mobileMenuBottom={(closeMenu: () => void): ReactElement => {
-        return <PhoneMenuHelp closeMenu={closeMenu} />;
+        return (
+          <>
+            <PhoneMenuSearch closeMenu={closeMenu} />
+            <PhoneMenuHelp closeMenu={closeMenu} />
+          </>
+        );
       }}
     />
   );

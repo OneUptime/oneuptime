@@ -1,7 +1,18 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import {
+  SsoInviteScreen,
+  SsoInviteScreenKind,
+  getSsoInviteScreen,
+  toSsoInviteViewVariables,
+} from "../Utils/SsoInviteScreen";
+import {
+  SSO_INVITE_SCREEN_TITLE,
+  SSO_NO_PROJECT_SCREEN_TITLE,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
 import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
+import OidcEmailVerificationGate from "../Utils/OidcEmailVerificationGate";
 import {
   clearMobileSsoIntentCookie,
   isMobileSsoRequest,
@@ -592,6 +603,28 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       );
     }
 
+    /*
+     * An address the provider says it has not verified signs nobody in -
+     * not the account that has it, a master admin's included, and not a new
+     * one - before any account is read, made, provisioned or emailed
+     * (GHSA-8gwc-w386-fh6w, ../Utils/OidcEmailVerification).
+     */
+    if (
+      await OidcEmailVerificationGate.refuseUnverifiedAddress({
+        req,
+        res,
+        isMobileRequest,
+        identity: result,
+        provider: `Global OIDC provider ${globalOidcId.toString()}`,
+        signIn: {
+          method: SignInMethod.OpenIdConnect,
+          ssoProviderName: globalOidc.name,
+        },
+      })
+    ) {
+      return;
+    }
+
     // Resolve attached projects. No attachment => "default-all" mode.
     const attachments: Array<GlobalOIDCProject> =
       await GlobalOIDCProjectService.findBy({
@@ -625,23 +658,35 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 
     if (!alreadySavedUser) {
       if (isSignUpDisabled) {
+        /*
+         * Whom to ask for an invitation: the server's own words, where a
+         * master admin wrote them (Settings > Help and Support), or the
+         * sentence it always said.
+         */
+        const inviteScreen: SsoInviteScreen = await getSsoInviteScreen(
+          SsoInviteScreenKind.InvitationRequired,
+        );
+
         if (
           respondToMobileSsoFailure({
             res,
             isMobileRequest,
             error: "invitation_required",
-            errorDescription:
-              "You must be invited to a project on this OneUptime instance before you can sign in with SSO. Please contact your administrator.",
+            errorDescription: inviteScreen.message,
           })
         ) {
           return;
         }
 
-        return Response.render(req, res, MESSAGE_VIEW, {
-          title: "You need to be invited.",
-          message:
-            "You must be invited to a project on this OneUptime instance before you can sign in with SSO. Please contact your administrator.",
-        });
+        return Response.render(
+          req,
+          res,
+          MESSAGE_VIEW,
+          toSsoInviteViewVariables(
+            SSO_INVITE_SCREEN_TITLE,
+            inviteScreen,
+          ) as unknown as JSONObject,
+        );
       }
 
       alreadySavedUser = await UserService.createByEmail({
@@ -834,23 +879,31 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     }
 
     if (memberProjectCount.toNumber() === 0) {
+      // A member of no project needs an invitation too: the same words.
+      const noProjectScreen: SsoInviteScreen = await getSsoInviteScreen(
+        SsoInviteScreenKind.NoProject,
+      );
+
       if (
         respondToMobileSsoFailure({
           res,
           isMobileRequest,
           error: "no_project_access",
-          errorDescription:
-            "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
+          errorDescription: noProjectScreen.message,
         })
       ) {
         return;
       }
 
-      return Response.render(req, res, MESSAGE_VIEW, {
-        title: "No project access.",
-        message:
-          "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.",
-      });
+      return Response.render(
+        req,
+        res,
+        MESSAGE_VIEW,
+        toSsoInviteViewVariables(
+          SSO_NO_PROJECT_SCREEN_TITLE,
+          noProjectScreen,
+        ) as unknown as JSONObject,
+      );
     }
 
     /*

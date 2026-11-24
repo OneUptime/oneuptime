@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "17.2.0",
+  "version": "17.3.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -117,6 +117,7 @@
     "test-dashboard-value-widget-ui": "playwright test --config playwright.dashboard-value-widget-ui.config.ts",
     "test-dashboard-table-thresholds-ui": "playwright test --config playwright.dashboard-table-thresholds-ui.config.ts",
     "test-dashboard-playlists-ui": "playwright test --config playwright.dashboard-playlists-ui.config.ts",
+    "test-dashboard-full-screen-ui": "playwright test --config playwright.dashboard-full-screen-ui.config.ts",
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-test-page-ui": "playwright test --config playwright.test-page-ui.config.ts",

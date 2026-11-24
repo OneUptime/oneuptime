@@ -87,6 +87,8 @@ Criteria decide when the certificate counts as fine, degraded or broken, and whe
 
 **Expires In Days** counts whole days: a certificate that expires in 14 days and 20 hours has 14 days left. **Expires In Hours** counts whole hours the same way.
 
+**Expires In Days** also offers **Evaluate this criteria over a period of time**, and with **Previous Check** it compares each check with the probe's previous one. **Less Than** with an **Amount in the check's own unit** of `1` matches when the days left fell by more than one since the previous check, as when the certificate was replaced by one that expires sooner. **Greater Than** matches when they rose, as when the certificate was renewed. See [Comparing a check with the previous one](/docs/monitor/criteria-and-statuses#comparing-a-check-with-the-previous-one).
+
 With two or more filters, **Match Condition** decides whether **All** of them or **Any** one must match. A criteria's **Actions** decide what it does: change the monitor status, create an alert, declare an incident, or any of these.
 
 ### Default Criteria

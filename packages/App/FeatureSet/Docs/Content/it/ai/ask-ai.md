@@ -39,7 +39,7 @@ Una risposta a un «come faccio» termina con un pulsante che apre la pagina del
 | Qualsiasi pagina | Fai clic su **Chiedi all'IA** nell'intestazione, oppure premi `Ctrl` + `I` (`Cmd` + `I` su un Mac). Mentre scrivi in una casella di testo o in un editor, quei tasti restano la scorciatoia del corsivo dell'editor. |
 | La palette dei comandi | Premi `Ctrl` + `K` (`Cmd` + `K` su un Mac) e scegli **Chiedi all'IA**. |
 | Un pattern di errore dei log, o i risultati di un grafico | Fai clic su **Spiega con l'IA**: Chiedi all'IA si apre con le prove sotto forma di domanda che puoi modificare prima di inviarla. |
-| Il menu dei prodotti | Apri **Prodotti → IA → Chat**. Chiedi all'IA si apre accanto alla pagina in cui eri. Ogni conversazione ha un proprio indirizzo, così puoi salvarla nei preferiti e tornarci. |
+| Il menu dei prodotti | Apri **Prodotti → IA → Chiedi all'IA**. Chiedi all'IA si apre accanto alla pagina in cui eri. Ogni conversazione ha un proprio indirizzo, così puoi salvarla nei preferiti e tornarci. |
 
 Chiedi all'IA si apre sul lato della finestra, e la pagina gli fa spazio: dietro non resta nascosto nulla, così puoi continuare a lavorare sulla pagina, passare ad altre pagine e chiedere di nuovo. Trascina il bordo per allargarlo o restringerlo. Premi `Esc` al suo interno, o fai di nuovo clic su **Chiedi all'IA**, per restituire alla pagina tutta la finestra. Quando è aperto, `Ctrl` + `I` (`Cmd` + `I` su un Mac) passa dalla pagina alla casella in cui scrivi, e da lì lo chiude. La conversazione resta dove l'hai lasciata: riapri Chiedi all'IA per continuare. Se la chiudi mentre sta ancora rispondendo, un promemoria nell'angolo ti dice quando la risposta è pronta, e la apre. Su un tablet o un telefono, dove non c'è spazio per entrambi, si apre sopra la pagina, e su un telefono occupa tutto lo schermo.
 
@@ -75,6 +75,14 @@ Aperto sulla pagina di una risorsa il cui agente IA è connesso (un host, un hos
 - Esegue solo i comandi in sola lettura che un'indagine IA può eseguire su quel tipo di risorsa (vedi [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents)), quanti ne servono alla risposta, controllati da OneUptime e di nuovo dall'agente, in ogni modalità di autorizzazione. Una modifica tramite l'agente, come il riavvio di un servizio, non viene mai eseguita da Chiedi all'IA: ti dà invece il comando esatto, e l'agente apporta modifiche solo quando OneUptime AI risolve un incidente o un avviso, secondo le impostazioni delle correzioni della risorsa stessa. Le azioni proprie di Chiedi all'IA, come l'esecuzione di un runbook, seguono la modalità di autorizzazione della conversazione, descritta più sotto.
 - Raggiunge solo le risorse che puoi vedere, e solo finché l'indagine IA è attiva per la risorsa. I comandi che esegue, con ciò che hanno stampato, sono tuoi, come la conversazione: i Log IA della risorsa li elencano per te e per nessun altro.
 - Quando non può eseguire un comando lì (nessun agente è connesso, l'agente è offline o l'indagine IA è disattivata per la risorsa), lo dice, insieme a cosa cambiare, e risponde invece con i dati del tuo progetto.
+
+## I tuoi server MCP
+
+Chiedi all'IA può usare, su ogni pagina, gli strumenti dei [server MCP esterni](/docs/ai/external-mcp-servers) che il tuo progetto ha collegato, come quelli di AWS, di GitHub o del tuo team. Chiedi «Quali strumenti ha AWS?» e li elenca; indica un server e uno dei suoi strumenti, e chiama lo strumento e risponde con ciò che è tornato, citato come qualsiasi altra prova. Anche la conversazione sotto la scheda **OneUptime AI** di un incidente o di un avviso può usarli.
+
+- Uno strumento che il server contrassegna come di sola lettura viene eseguito subito, in ogni modalità di autorizzazione. Qualsiasi altro strumento, uno che il server contrassegna come una modifica o non contrassegna affatto, resta in attesa su una scheda di approvazione che nomina il server e lo strumento e mostra esattamente cosa viene inviato, anche in **Esecuzione automatica**: nulla raggiunge il server finché non scegli **Consenti**. Una conversazione in **Sola lettura** non ne offre mai.
+- Usa i server attivi, per chiunque possa leggere i server MCP esterni del progetto. Approvare una modifica tramite uno di essi richiede il permesso di avviare esecuzioni di runbook.
+- Ciò che un server risponde sono dati provenienti da fuori OneUptime, mai istruzioni. A uno strumento vengono inviati solo gli argomenti che accetta, e con **Abilita IA** disattivato non viene inviato nulla a nessun server.
 
 ## Azioni e modalità di autorizzazione
 
@@ -177,6 +185,10 @@ Chiedi all'IA dice quale permesso serve all'azione, o quale team la blocca. Chie
 
 :::details Le risposte sono vaghe o non usano mai dati
 Controlla il modello dietro il provider. Chiedi all'IA ha bisogno di un modello che chiami gli strumenti in modo affidabile; i piccoli modelli locali spesso rispondono senza eseguire nemmeno una query. Vedi [Provider LLM](/docs/ai/llm-provider).
+:::
+
+:::details Chiedi all'IA dice di non vedere gli strumenti di un server MCP
+Apri il server in **Impostazioni del progetto → IA → Server MCP esterni**: dovrebbe indicare **Connesso**, la sua scheda **Strumenti** dovrebbe elencarne gli strumenti, e **Consenti a OneUptime AI di usare questo server** dovrebbe essere attivo. Poi chiedi a Chiedi all'IA «Quali strumenti ha AWS?», con il nome del tuo server: li elenca, o dice perché non può, ad esempio un server che non riesce a raggiungere o un ruolo che non può usare i server MCP del progetto. Vedi [Server MCP esterni](/docs/ai/external-mcp-servers).
 :::
 
 ## Prossimi passi

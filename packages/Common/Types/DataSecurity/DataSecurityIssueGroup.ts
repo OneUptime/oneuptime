@@ -1012,6 +1012,123 @@ export function getIssueGroupFacts(data: {
 }
 
 /*
+ * The name pattern a group's key was made with ("*-exports-*"), and the
+ * word of the names it is of ("exports"): what a group of a pattern is
+ * narrowed from again. Null for a key of any other fact.
+ */
+export function readIssueGroupKeyPattern(
+  groupKey: string | null | undefined,
+): { pattern: string; word: string } | null {
+  const at: number = (groupKey || "").indexOf("|name:");
+
+  if (at < 0) {
+    return null;
+  }
+
+  const pattern: string = (groupKey || "").slice(at + "|name:".length).trim();
+  const word: string = pattern
+    .split("*")
+    .join("")
+    .replace(/^[-_.]+|[-_.]+$/g, "");
+
+  return pattern && word ? { pattern, word } : null;
+}
+
+/*
+ * A GROUP AS SOME OF ITS STORES ALONE MAKE IT (#10739): for a reader who may
+ * read only some of its issues - one held to labels - so nothing it says is
+ * another store's.
+ *
+ *   - The fact the group is of - its stack, its tag, the identity that
+ *     created its stores - is every store's, theirs too, and stays.
+ *   - What the stores all are, where they all are, the tags they all carry
+ *     and the code their tags say declares them are worked out again from
+ *     these stores alone: one store left out may be all that kept two
+ *     regions apart.
+ *   - A name pattern is narrowed again from these stores' names alone, from
+ *     the pattern the group was made with (its key) - never from the
+ *     narrower one all the group's names share.
+ *   - The code the grouping found is left out: it was looked up through
+ *     whichever of the group's stores came first, and the repository a tag
+ *     of a store the reader may not read named would say something of it.
+ *     A group of that code goes by the module or stack it was found for.
+ *
+ * Pure: the server answers a reader held to labels with these facts
+ * (DataSecurityIssueGroups).
+ */
+export function getIssueGroupFactsOfStores(data: {
+  facts: DataSecurityIssueGroupFacts;
+  groupKey?: string | null | undefined;
+  stores: ReadonlyArray<DataSecurityIssueGroupStore>;
+}): DataSecurityIssueGroupFacts {
+  const facts: DataSecurityIssueGroupFacts = data.facts;
+  const pattern: { pattern: string; word: string } | null =
+    readIssueGroupKeyPattern(data.groupKey);
+  let candidate: CauseCandidate;
+
+  if (facts.cause === DataSecurityIssueGroupCause.NamePattern) {
+    const base: string = pattern?.pattern || facts.pattern || "";
+
+    candidate = {
+      originKey: `name:${base}`,
+      cause: DataSecurityIssueGroupCause.NamePattern,
+      rank: NAME_PATTERN_RANK,
+      pattern: base,
+      word:
+        pattern?.word ||
+        base
+          .split("*")
+          .join("")
+          .replace(/^[-_.]+|[-_.]+$/g, ""),
+    };
+  } else if (facts.cause === DataSecurityIssueGroupCause.Creator) {
+    candidate = {
+      originKey: `creator:${(facts.creator || "").toLowerCase()}`,
+      cause: DataSecurityIssueGroupCause.Creator,
+      rank: CREATOR_RANK,
+      creator: facts.creator,
+    };
+  } else if (facts.stackName && !facts.tag) {
+    // A stack's group, or the code found for its stack.
+    candidate = {
+      originKey: `stack:${facts.stackName.toLowerCase()}`,
+      cause: DataSecurityIssueGroupCause.Stack,
+      rank: 0,
+      stackName: facts.stackName,
+    };
+  } else if (facts.tag) {
+    // A tag's group, or the code found for its module's or stack's tag.
+    candidate = {
+      originKey: `tag:${foldTagKey(facts.tag[0])}=${facts.tag[1].toLowerCase()}`,
+      cause: DataSecurityIssueGroupCause.Tags,
+      rank: facts.tagRole ? TAG_ROLE_RANK[facts.tagRole] : 3,
+      tag: facts.tag,
+      tagRole: facts.tagRole,
+    };
+  } else {
+    // Nothing to work from: the fact alone, with nothing of the other stores.
+    const alone: DataSecurityIssueGroupFacts = {
+      cause: facts.cause,
+      checkId: facts.checkId,
+    };
+
+    for (const key of ["stackName", "creator", "pattern"] as const) {
+      if (facts[key]) {
+        alone[key] = facts[key];
+      }
+    }
+
+    return alone;
+  }
+
+  return getIssueGroupFacts({
+    checkId: facts.checkId,
+    candidate,
+    stores: data.stores,
+  });
+}
+
+/*
  * The project's open issues, grouped by cause (see the module comment):
  *
  *   - only issues of one check, on stores of one cloud, are grouped together;

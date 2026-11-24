@@ -63,6 +63,7 @@ const templateDashboardLinkVariableMap: Partial<
   [WhatsAppTemplateIds.StatusPageOwnerAddedNotification]: "status_page_link",
   [WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification]: "probe_link",
   [WhatsAppTemplateIds.ProbeOwnerAddedNotification]: "probe_link",
+  [WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification]: "probe_link",
   [WhatsAppTemplateIds.AIAgentStatusChangedOwnerNotification]: "ai_agent_link",
   [WhatsAppTemplateIds.AIAgentOwnerAddedNotification]: "ai_agent_link",
   [WhatsAppTemplateIds.OnCallUserIsOnRosterNotification]: "schedule_link",

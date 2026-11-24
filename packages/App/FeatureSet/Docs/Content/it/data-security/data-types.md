@@ -42,6 +42,8 @@ Contano solo i risultati di livello Alto e Medio: rendono sensibile un archivio 
 
 Quando due tipi di dati rivendicano gli stessi caratteri, vince il risultato più sicuro: la confidenza più alta, poi il rilevatore le cui regole dimostrano di più, poi la corrispondenza più lunga.
 
+Un valore viene letto anche come lo scrivono le persone. Le sequenze di escape percentuali di un URL vengono lette, quindi un indirizzo IP o un indirizzo email in una query string, come `jane%40example.com`, viene trovato. Le cifre di un numero di carta vengono lette in qualsiasi scrittura, come le cifre a larghezza piena (`４１１１ １１１１ １１１１ １１１１`) o le cifre arabo-indiche, prima ogni scrittura da sola e poi insieme. Un indirizzo email viene trovato in qualsiasi scrittura, come `张伟@example.com` o `почта@пример.рф`, e un indirizzo IPv6 subito dopo i due punti di una chiave, come `ip:2001:db8::1`. Ogni risultato è il valore così come è scritto, quindi una regola di pulizia lo nasconde lì.
+
 Un valore lungo viene letto in finestre di 64 KB che si sovrappongono di 4 KB, così un valore viene trovato intero ovunque si trovi, e di un singolo valore si leggono al massimo 4 MB.
 
 ## Campi e colonne

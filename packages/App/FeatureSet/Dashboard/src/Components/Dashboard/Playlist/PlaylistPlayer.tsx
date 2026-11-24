@@ -35,11 +35,10 @@ import {
 } from "./PlaylistPlayerKeys";
 import { PlaylistPlayerStatus, PlaylistRound } from "./PlaylistPlayerState";
 import { readPlaylistRound } from "./PlaylistRead";
-import {
-  PageFullScreen,
-  usePageFullScreen,
-  useScreenWakeLock,
-} from "./PlaylistScreen";
+import { PageFullScreen, usePageFullScreen } from "../Utils/PageFullScreen";
+import { getCoveredPageInertScope } from "../Utils/CoveredPage";
+import { usePageInert } from "Common/UI/Utils/PageInert";
+import { useScreenWakeLock } from "./PlaylistScreen";
 import usePlaylistPlayer, {
   PlaylistClock,
   PlaylistPlayer as PlaylistPlayerControls,
@@ -133,8 +132,13 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
 
   const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
-  // The page under the player stays still, and the screen stays on.
+  /*
+   * The page under the player stays still, and out of reach: its header,
+   * menus and footer were still under Tab and a screen reader's cursor,
+   * behind a player that covers them (CoveredPage). And the screen stays on.
+   */
   usePageScrollLock(true);
+  usePageInert(true, rootRef, getCoveredPageInertScope);
   useScreenWakeLock(true);
 
   useEffect(() => {

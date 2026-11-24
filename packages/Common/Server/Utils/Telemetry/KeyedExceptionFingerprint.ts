@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import { EncryptionSecret } from "../../EnvironmentConfig";
 
 /*
@@ -56,7 +57,10 @@ const PROJECT_KEY_DERIVATION_LABEL: string = "oneuptime-exception-fingerprint";
  */
 const MAX_CACHED_PROJECT_KEYS: number = 10_000;
 
-const projectKeys: Map<string, Buffer> = new Map<string, Buffer>();
+const projectKeys: OldestKeyMap<string, Buffer> = new OldestKeyMap<
+  string,
+  Buffer
+>();
 
 // A project's id as its key is derived from it: one spelling of the UUID.
 function projectIdText(projectId: ObjectID | string): string {
@@ -85,7 +89,7 @@ function projectKeyOf(projectId: ObjectID | string): Buffer {
     .digest();
 
   if (projectKeys.size >= MAX_CACHED_PROJECT_KEYS) {
-    const oldest: string | undefined = projectKeys.keys().next().value;
+    const oldest: string | undefined = projectKeys.oldestKey();
 
     if (oldest !== undefined) {
       projectKeys.delete(oldest);
@@ -99,9 +103,9 @@ function projectKeyOf(projectId: ObjectID | string): Buffer {
 
 /*
  * What the text grouping v1 hashes starts with when it is keyed: grouping
- * v2's and v3's texts start with their own version line
+ * v2's, v3's and v4's texts start with their own version line
  * (ExceptionGrouping.getExceptionGroupingText), v1's with none, so this line
- * keeps a keyed v1 fingerprint from ever equalling a keyed v2 or v3 one.
+ * keeps a keyed v1 fingerprint from ever equalling a keyed v2, v3 or v4 one.
  */
 export const KEYED_V1_TEXT_PREFIX: string = "grouping-v1\n";
 

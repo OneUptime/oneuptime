@@ -47,6 +47,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
 import Card from "Common/UI/Components/Card/Card";
 import MarketplaceUsageCard from "../../Components/Billing/MarketplaceUsageCard";
+import ProjectPaymentMethods from "../../Utils/ProjectPaymentMethods";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
@@ -189,6 +190,22 @@ const Settings: FunctionComponent<ComponentProps> = (
           .addRoute(`/${currentProjectId.toString()}/change-plan`)
       : undefined;
 
+  /*
+   * Each count here is the project's payment methods as the payment
+   * provider has them, read a moment ago: the rest of the Dashboard learns
+   * it too (ProjectPaymentMethods) - Add to Balance and the header's Add
+   * Card Details - so a payment method added here is known there at once.
+   */
+  const knowPaymentMethodsCount: (count: number) => void = (
+    count: number,
+  ): void => {
+    setPaymentMethodsCount(count);
+    ProjectPaymentMethods.setCount({
+      projectId: ProjectUtil.getCurrentProjectId(),
+      count: count,
+    });
+  };
+
   const fetchPaymentMethodsCount: PromiseVoidFunction =
     async (): Promise<void> => {
       try {
@@ -205,7 +222,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             },
             sort: {},
           });
-        setPaymentMethodsCount(result.count);
+        knowPaymentMethodsCount(result.count);
       } catch {
         setPaymentMethodsCount(null);
       }
@@ -221,7 +238,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             projectId: ProjectUtil.getCurrentProjectId()!,
           },
         });
-        setPaymentMethodsCount(count);
+        knowPaymentMethodsCount(count);
       } catch {
         setPaymentMethodsCount(null);
       }

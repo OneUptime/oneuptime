@@ -27,7 +27,7 @@ Für den eigenen Anbieter eines einzelnen Projekts siehe [SSO](/docs/identity/ss
 :::steps
 ### Die Anbieterliste öffnen
 
-Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **Admin-Einstellungen** in Ihrem Benutzermenü. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
+Melden Sie sich als Master-Admin an und wählen Sie in Ihrem Benutzermenü **Admin-Dashboard**. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
 
 ### Den Anbieter anlegen
 

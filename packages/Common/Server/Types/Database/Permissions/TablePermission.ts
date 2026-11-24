@@ -119,7 +119,10 @@ export default class TablePermission {
 
       if (permissions.length === 0) {
         throw new NotAuthorizedException(
-          `${type} on ${new modelType().singularName} is not allowed.`,
+          HeldPermissionsUtil.getNobodyMayRefusal({
+            recordName: new modelType().singularName,
+            operation: type,
+          }),
         );
       }
 

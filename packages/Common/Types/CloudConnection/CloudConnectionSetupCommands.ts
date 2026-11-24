@@ -6,15 +6,18 @@ import {
   CloudConnectionAuthMethod,
   CloudConnectionDataSecurityLevel,
   CloudConnectionDataSecurityResponse,
+  CloudConnectionSecurityCaseChecks,
   CloudConnectionWafBlocklist,
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionDataSecurityLevel,
   getCloudConnectionWafBlocklist,
   isCloudConnectionDataSecurityResponseOn,
+  isCloudConnectionSecurityCaseChecksOn,
   isCloudConnectionWafBlocklistOn,
 } from "./CloudConnectionCatalog";
 import { getAzureWafBlocklistRoleLines } from "./AzureWafBlocklist";
@@ -65,7 +68,9 @@ import {
  * the writes a command grants, each on a setting of its own: closing a
  * data store's exposure (dataSecurityResponse, "DATA SECURITY RESPONSE"
  * below), and keeping the blocklist's IP sets and rule in AWS WAF
- * (wafBlocklist, "THE BLOCKLIST IN AWS WAF" below).
+ * (wafBlocklist, "THE BLOCKLIST IN AWS WAF" below). And so is what a
+ * security case reads of the IAM users an attack changed
+ * (securityCaseChecks, "SECURITY CASE CHECKS" below).
  *
  * The dashboard shows these, written from the settings its form holds
  * (getCloudConnectionCommandSettings, read as the server reads them), so
@@ -968,6 +973,87 @@ export function getAwsWafBlocklistPolicyDocument(
 }
 
 /*
+ * SECURITY CASE CHECKS (#10900): what a connection whose "Security case
+ * checks" is on may read, on a setting of its own (securityCaseChecks) -
+ * exactly the reads the Fix step "Undo what changed on the account" makes
+ * of an IAM user its case's CloudTrail events name, each a change an
+ * attack can make (AttackAccountChanges):
+ *
+ *   iam:GetUser                    the user is still there (CreateUser)
+ *   iam:ListAccessKeys             the key is still there and active
+ *                                  (CreateAccessKey): its id and status,
+ *                                  never its secret
+ *   iam:GetLoginProfile            the user still has a console password
+ *                                  (CreateLoginProfile): that one is set,
+ *                                  never the password
+ *   iam:ListAttachedUserPolicies   a managed policy is still attached
+ *                                  (AttachUserPolicy)
+ *   iam:ListUserPolicies           an inline policy is still there, by its
+ *                                  name (PutUserPolicy)
+ *   iam:ListGroupsForUser          the user is still in the group
+ *                                  (AddUserToGroup)
+ *   iam:ListMFADevices             the MFA device is still the user's
+ *                                  (EnableMFADevice)
+ *
+ * A fifth inline policy, OneUptimeSecurityCaseChecks, on every resource:
+ * each action acts on an IAM user and nothing else, so "*" grants no more
+ * than every user's ARN would, in every partition. Nothing reads a role,
+ * a group's or a policy's own settings, or anything IAM writes. The access
+ * key's user, whose inline policies are full, takes it through a group of
+ * the same name, as it takes Data Security's.
+ *
+ * "off" adds nothing, so it leaves what an earlier command granted until
+ * it is removed (aws iam delete-role-policy --policy-name
+ * OneUptimeSecurityCaseChecks).
+ */
+export const AWS_SECURITY_CASE_CHECKS_POLICY_NAME: string =
+  "OneUptimeSecurityCaseChecks";
+
+// The group the access key's user takes the policy through.
+export const AWS_SECURITY_CASE_CHECKS_GROUP_NAME: string =
+  AWS_SECURITY_CASE_CHECKS_POLICY_NAME;
+
+export const AWS_SECURITY_CASE_CHECKS_ACTIONS: ReadonlyArray<string> = [
+  "iam:GetUser",
+  "iam:ListAccessKeys",
+  "iam:GetLoginProfile",
+  "iam:ListAttachedUserPolicies",
+  "iam:ListUserPolicies",
+  "iam:ListGroupsForUser",
+  "iam:ListMFADevices",
+];
+
+// The policy, or null when Security case checks are off.
+export function getAwsSecurityCaseChecksPolicy(
+  choice: CloudConnectionSecurityCaseChecks | undefined,
+): { Version: string; Statement: Array<AwsPolicyStatement> } | null {
+  if (!isCloudConnectionSecurityCaseChecksOn(choice)) {
+    return null;
+  }
+
+  return {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: [...AWS_SECURITY_CASE_CHECKS_ACTIONS],
+        Resource: "*",
+      },
+    ],
+  };
+}
+
+// The policy as the commands write it; "" when it is off.
+export function getAwsSecurityCaseChecksPolicyDocument(
+  choice: CloudConnectionSecurityCaseChecks | undefined,
+): string {
+  const policy: ReturnType<typeof getAwsSecurityCaseChecksPolicy> =
+    getAwsSecurityCaseChecksPolicy(choice);
+
+  return policy ? JSON.stringify(policy) : "";
+}
+
+/*
  * The StackSet that puts the role in every account of an AWS Organization:
  * one per project, named like the project's role, so a second project that
  * connects the same organization adds its own roles instead of replacing
@@ -1068,6 +1154,8 @@ export function getAwsRoleSetupCommand(data: {
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   // The blocklist's AWS WAF policy, a fourth; none unless on.
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+  // Security case checks' IAM reads, a fifth; none unless on.
+  securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
 }): string {
   const role: string = getAwsRoleNameForExternalId(data.externalId);
   const trust: string = getAwsTrustPolicyDocument(data);
@@ -1092,6 +1180,11 @@ export function getAwsRoleSetupCommand(data: {
           `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} --policy-document '${getAwsWafBlocklistPolicyDocument(data.wafBlocklist, data.externalId)}'`,
         ]
       : []),
+    ...(isCloudConnectionSecurityCaseChecksOn(data.securityCaseChecks)
+      ? [
+          `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '${getAwsSecurityCaseChecksPolicyDocument(data.securityCaseChecks)}'`,
+        ]
+      : []),
     `aws iam get-role --role-name "$ROLE" --query Role.Arn --output text`,
   ].join("\n");
 }
@@ -1110,6 +1203,8 @@ export function getAwsReadOnlyRoleTemplate(data: {
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   // The blocklist's AWS WAF policy, a fourth; none unless on.
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+  // Security case checks' IAM reads, a fifth; none unless on.
+  securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
 }): string {
   const dataSecurity: ReturnType<typeof getAwsDataSecurityPolicy> =
     getAwsDataSecurityPolicy(data.dataSecurity);
@@ -1117,12 +1212,26 @@ export function getAwsReadOnlyRoleTemplate(data: {
     getAwsDataSecurityResponsePolicy(data.dataSecurityResponse);
   const waf: ReturnType<typeof getAwsWafBlocklistPolicy> =
     getAwsWafBlocklistPolicy(data.wafBlocklist, data.externalId);
-  const reads: string =
+  const caseChecks: ReturnType<typeof getAwsSecurityCaseChecksPolicy> =
+    getAwsSecurityCaseChecksPolicy(data.securityCaseChecks);
+  const dataStores: string =
     data.dataSecurity === "content"
-      ? ", and its data stores' configuration and samples of their content"
+      ? "its data stores' configuration and samples of their content"
       : dataSecurity
-        ? ", and its data stores' configuration"
+        ? "its data stores' configuration"
         : "";
+  // Which of each, never a key's secret or a password.
+  const iamUsers: string = caseChecks
+    ? "which keys, console passwords, policies, groups and MFA devices its IAM users have"
+    : "";
+  const reads: string = [dataStores, iamUsers]
+    .filter((what: string): boolean => {
+      return Boolean(what);
+    })
+    .map((what: string): string => {
+      return `, and ${what}`;
+    })
+    .join("");
   /*
    * A role that may write does not "only read": it may close a data
    * store's exposures and fix its settings, as Data security response's
@@ -1184,6 +1293,14 @@ export function getAwsReadOnlyRoleTemplate(data: {
                   },
                 ]
               : []),
+            ...(caseChecks
+              ? [
+                  {
+                    PolicyName: AWS_SECURITY_CASE_CHECKS_POLICY_NAME,
+                    PolicyDocument: caseChecks,
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -1213,6 +1330,8 @@ export function getAwsOrganizationSetupCommand(data: {
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   // The blocklist's AWS WAF policy in every account's role; none unless on.
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+  // Security case checks' IAM reads in every account's role; none unless on.
+  securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
 }): string {
   const stackSet: string = getAwsOrganizationStackSetName(data.externalId);
 
@@ -1245,6 +1364,8 @@ export function getAwsAccessKeySetupCommand(
     wafBlocklist?: CloudConnectionWafBlocklist | undefined;
     // The project's external id, which names its IP sets: needed once the blocklist is on.
     externalId?: string | undefined;
+    // Security case checks' IAM reads, in a group of their own; none unless on.
+    securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
   } = {},
 ): string {
   const user: string = CLOUD_CONNECTION_READ_ONLY_NAME;
@@ -1254,6 +1375,10 @@ export function getAwsAccessKeySetupCommand(
     options.dataSecurityResponse,
   );
   const blocks: boolean = isCloudConnectionWafBlocklistOn(options.wafBlocklist);
+  const checksCases: boolean = isCloudConnectionSecurityCaseChecksOn(
+    options.securityCaseChecks,
+  );
+  const caseChecksGroup: string = AWS_SECURITY_CASE_CHECKS_GROUP_NAME;
 
   if (blocks && !options.externalId) {
     throw new BadDataException(
@@ -1289,6 +1414,13 @@ export function getAwsAccessKeySetupCommand(
           `aws iam create-group --group-name ${wafGroup} > /dev/null 2>&1 || true`,
           `aws iam put-group-policy --group-name ${wafGroup} --policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} --policy-document '${getAwsWafBlocklistPolicyDocument(options.wafBlocklist, options.externalId!)}'`,
           `aws iam add-user-to-group --user-name ${user} --group-name ${wafGroup}`,
+        ]
+      : []),
+    ...(checksCases
+      ? [
+          `aws iam create-group --group-name ${caseChecksGroup} > /dev/null 2>&1 || true`,
+          `aws iam put-group-policy --group-name ${caseChecksGroup} --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '${getAwsSecurityCaseChecksPolicyDocument(options.securityCaseChecks)}'`,
+          `aws iam add-user-to-group --user-name ${user} --group-name ${caseChecksGroup}`,
         ]
       : []),
     `aws iam create-access-key --user-name ${user}`,
@@ -1438,6 +1570,8 @@ export interface CloudConnectionCommandContext {
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   // AWS: whether the blocklist may block addresses in AWS WAF (wafBlocklist). Off when absent.
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+  // AWS: whether security cases may read IAM users back (securityCaseChecks). Off when absent.
+  securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
 }
 
 /*
@@ -1460,6 +1594,10 @@ export function getCloudConnectionSetupCommand(
     context.dataSecurityResponse || "off";
   const wafBlocklist: CloudConnectionWafBlocklist =
     getCloudConnectionWafBlocklist(context.wafBlocklist);
+  const securityCaseChecks: CloudConnectionSecurityCaseChecks =
+    isCloudConnectionSecurityCaseChecksOn(context.securityCaseChecks)
+      ? "on"
+      : "off";
 
   if (provider === CloudProvider.AWS) {
     if (method === CloudConnectionAuthMethod.AwsRole) {
@@ -1473,12 +1611,14 @@ export function getCloudConnectionSetupCommand(
         dataSecurity: CloudConnectionDataSecurityLevel;
         dataSecurityResponse: CloudConnectionDataSecurityResponse;
         wafBlocklist: CloudConnectionWafBlocklist;
+        securityCaseChecks: CloudConnectionSecurityCaseChecks;
       } = {
         trustedPrincipalArn: context.trustedPrincipalArn,
         externalId: context.externalId,
         dataSecurity,
         dataSecurityResponse,
         wafBlocklist,
+        securityCaseChecks,
       };
 
       return scope === CloudConnectionSetupScope.Organization
@@ -1495,6 +1635,7 @@ export function getCloudConnectionSetupCommand(
       dataSecurityResponse,
       wafBlocklist,
       externalId: context.externalId,
+      securityCaseChecks,
     });
   }
 
@@ -1522,7 +1663,8 @@ export function getCloudConnectionSetupCommand(
  * through it: the account or its organization (readScope), what Data
  * Security may read (dataSecurity), whether it may close an exposure
  * (dataSecurityResponse) and, for AWS, whether the blocklist may block
- * addresses in AWS WAF (wafBlocklist) - the catalog's fields marked
+ * addresses in AWS WAF (wafBlocklist) and whether security cases may read
+ * IAM users back (securityCaseChecks) - the catalog's fields marked
  * changesSetupCommand. They are read here the way the server reads them
  * (the connectors' readCloudSetting for the scope, DataSecurityRunner's
  * level, DataSecurityResponse's opt-in, the AWS WAF destinations' choice),
@@ -1535,6 +1677,7 @@ export interface CloudConnectionCommandSettings {
   dataSecurity: CloudConnectionDataSecurityLevel;
   dataSecurityResponse: CloudConnectionDataSecurityResponse;
   wafBlocklist: CloudConnectionWafBlocklist;
+  securityCaseChecks: CloudConnectionSecurityCaseChecks;
 }
 
 export function getCloudConnectionCommandSettings(
@@ -1560,6 +1703,11 @@ export function getCloudConnectionCommandSettings(
     wafBlocklist: getCloudConnectionWafBlocklist(
       settings[WAF_BLOCKLIST_FIELD_KEY],
     ),
+    securityCaseChecks: isCloudConnectionSecurityCaseChecksOn(
+      settings[SECURITY_CASE_CHECKS_FIELD_KEY],
+    )
+      ? "on"
+      : "off",
   };
 }
 

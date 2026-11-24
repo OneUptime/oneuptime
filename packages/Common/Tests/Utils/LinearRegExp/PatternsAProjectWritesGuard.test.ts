@@ -132,6 +132,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the address prefixes its callers name: monitor, workflow",
   },
   {
+    file: "packages/Common/Server/Utils/Telemetry/ExceptionGrouping.ts",
+    count: 1,
+    builtFrom:
+      "the placeholders the normalizer folds a value into, which the file lists (FOLDED_VALUE_PLACEHOLDERS), each escaped with escapeRegExp to match itself",
+  },
+  {
     file: "packages/Common/Server/Utils/VM/VMAPI.ts",
     count: 1,
     builtFrom: "a random slot marker of letters and digits",
@@ -296,10 +302,34 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "the migration patterns of Rails, Alembic, Django, Sequelize, TypeORM and Knex the file lists (RAILS, PYTHON, JAVASCRIPT), each a pattern literal",
   },
   {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules.ts",
+    count: 5,
+    builtFrom:
+      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; the table a line opens a block for (#10779), read with the pattern literals of TABLE_HEADERS, DJANGO_MODEL_HEADERS and TABLE_NAMED_BELOW, each of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
+  },
+  {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+    count: 2,
+    builtFrom:
+      "nothing: SensitiveNameMatcher's own match method, handed an attribute's key or a value's name",
+  },
+  {
     file: "packages/Common/Server/Utils/DataSecurity/DataSecurityChangeSignals.ts",
     count: 1,
     builtFrom:
       "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
+  },
+  {
+    file: "packages/Common/Server/Utils/DataSecurity/ExposureAssessmentReader.ts",
+    count: 1,
+    builtFrom:
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change to the exposed store (#10377)",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    count: 1,
+    builtFrom:
+      "the law names a draft's text is read for (LAW_NAMES_IN_TEXT), each a pattern literal of words and section numbers (#10377)",
   },
   {
     file: "packages/Common/Types/NoBreakSpaces.ts",
@@ -330,6 +360,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
+  },
+  {
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
+    count: 1,
+    builtFrom:
+      "the redactor's own two email address patterns (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), pattern literals of bounded parts, as the Android agent's Kotlin writes them",
   },
   {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",
@@ -398,6 +434,8 @@ const RUNS_PATTERNS_A_PROJECT_WRITES: ReadonlyArray<string> = [
   "packages/Common/Utils/PromQL/PromQLRegex.ts",
   "packages/Common/Server/Utils/Telemetry/MetricPipelineEngine.ts",
   "packages/App/FeatureSet/Telemetry/Utils/LogFilterEvaluator.ts",
+  // A detection rule exception's value, with * for any run (#10630).
+  "packages/Common/Server/Utils/SecurityEvent/DetectionRuleExceptions.ts",
 ];
 
 // The string methods that read their argument as a pattern.

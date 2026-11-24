@@ -1,11 +1,20 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { Mock } from "jest-mock";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
@@ -38,7 +47,16 @@ import User from "../../../UI/Utils/User";
 import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
 import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
-import { TracePerformanceFixSuggestion } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  TracePerformanceFixSuggestion,
+} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import { CodeRepositoriesQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  FakeCodeRepository,
+  answerRepositoriesById,
+  answerRepositoriesQuery,
+} from "./CodeRepositoriesServer";
 
 /*
  * The finding strip on the trace page: "Fix performance with AI" with what
@@ -62,6 +80,40 @@ jest.mock("react-i18next", () => {
     },
   };
 });
+
+/*
+ * The connected repositories the person may read, as Code's routes answer
+ * the strip's repository search (#10921).
+ */
+const codeRepositories: {
+  items: Array<FakeCodeRepository>;
+  reads: Array<CodeRepositoriesQuery>;
+} = { items: [], reads: [] };
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getRepositories: async (query: CodeRepositoriesQuery) => {
+          codeRepositories.reads.push(query);
+
+          return answerRepositoriesQuery({
+            repositories: codeRepositories.items,
+            query,
+          });
+        },
+        getRepositoriesById: async (ids: Array<string>) => {
+          return answerRepositoriesById({
+            repositories: codeRepositories.items,
+            ids,
+          });
+        },
+      },
+    };
+  },
+);
 
 function finding(
   overrides: Partial<PerformanceFinding> = {},
@@ -815,13 +867,40 @@ describe("what each offer draws", () => {
  * A repository picker for Fix performance with AI (the follow-up #5273
  * listed): with several repositories connected and none found to hold the
  * trace's code for certain, the strip asks which repository holds it - as a
- * telemetry finding's Fix with AI asks - and the fix starts in the pick.
+ * telemetry finding's Fix with AI asks - and the fix starts in the pick. The
+ * pick is searched on the server among every connected repository the
+ * person may read (#10921): the suggestion's list - its first 200 - says
+ * only that a pick is asked for.
  */
 describe("a repository to pick before the fix starts", () => {
   const REPOSITORIES: Array<{ id: string; name: string }> = [
     { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
     { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
   ];
+
+  beforeEach(() => {
+    codeRepositories.reads = [];
+    codeRepositories.items = [
+      ...REPOSITORIES,
+      // Not connected: no pick may name it.
+      { id: "51000000-0000-4000-8000-000000000009", name: "archive-site" },
+    ].map((repository: { id: string; name: string }): FakeCodeRepository => {
+      return {
+        id: repository.id,
+        name: repository.name,
+        organizationName: "acme",
+        repositoryName: repository.name,
+        isConnected: repository.name !== "archive-site",
+        provider: "GitHub",
+        stats: {
+          working: 0,
+          waitingForYou: 0,
+          openPullRequests: 0,
+          taskCount: 0,
+        },
+      };
+    });
+  });
 
   function withRepositories(): TracePerformanceFixSuggestion {
     return { ...suggestion(SuggestionOffer.Act), repositories: REPOSITORIES };
@@ -831,19 +910,30 @@ describe("a repository to pick before the fix starts", () => {
     return screen.getByTestId(TRACE_FIX_PERFORMANCE_REPOSITORY_TEST_ID);
   }
 
-  function pick(name: string): void {
-    fireEvent.keyDown(within(picker()).getByRole("combobox"), {
-      key: "ArrowDown",
-      code: "ArrowDown",
+  async function open(): Promise<void> {
+    await act(async () => {
+      fireEvent.focus(within(picker()).getByRole("combobox"));
     });
-    fireEvent.click(screen.getByText(name));
+  }
+
+  async function pick(name: string): Promise<void> {
+    await open();
+
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: new RegExp(name),
+    });
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
   }
 
   test("it asks which repository holds the code, in the telemetry finding's own words", () => {
     renderStrip({ suggestion: withRepositories() });
 
     expect(picker()).toHaveTextContent(TELEMETRY_AI_FIX_COPY.pickRepository);
-    expect(picker()).toHaveTextContent(
+    expect(within(picker()).getByRole("combobox")).toHaveAttribute(
+      "placeholder",
       TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
     );
     // The question names the box for a screen reader.
@@ -863,10 +953,10 @@ describe("a repository to pick before the fix starts", () => {
     expect(onFix).not.toHaveBeenCalled();
   });
 
-  test("picked, the fix starts in the pick", () => {
+  test("picked, the fix starts in the pick", async () => {
     const { onFix } = renderStrip({ suggestion: withRepositories() });
 
-    pick("checkout-api");
+    await pick("checkout-api");
 
     const button: HTMLElement = screen.getByTestId("trace-fix-performance");
     expect(button).not.toBeDisabled();
@@ -876,19 +966,65 @@ describe("a repository to pick before the fix starts", () => {
     expect(onFix).toHaveBeenCalledWith("51000000-0000-4000-8000-000000000001");
   });
 
-  test("the repositories are listed in the server's order, by name", () => {
+  test("opened, it lists the connected repositories the server finds, by name - never one OneUptime cannot reach", async () => {
     renderStrip({ suggestion: withRepositories() });
 
-    fireEvent.keyDown(within(picker()).getByRole("combobox"), {
-      key: "ArrowDown",
-      code: "ArrowDown",
-    });
+    await open();
+    await screen.findByRole("option", { name: /billing/ });
 
-    expect(
-      screen.getAllByRole("option").map((option: HTMLElement): string => {
-        return option.textContent || "";
-      }),
-    ).toEqual(["billing", "checkout-api"]);
+    const options: Array<HTMLElement> = screen.getAllByRole("option");
+
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveTextContent("billing");
+    expect(options[1]).toHaveTextContent("checkout-api");
+    // Its host's organization/name under it.
+    expect(options[1]).toHaveTextContent("acme/checkout-api");
+    expect(codeRepositories.reads[codeRepositories.reads.length - 1]).toEqual(
+      expect.objectContaining({ group: "connected", limit: 50 }),
+    );
+  });
+
+  test("a pick the server refused as no longer connected is dropped, and the fix waits for another - any other refusal keeps it", async () => {
+    const onFix: Mock<(repositoryId?: string | undefined) => void> =
+      jest.fn<(repositoryId?: string | undefined) => void>();
+    const draw: (error: string | null) => React.ReactElement = (
+      error: string | null,
+    ): React.ReactElement => {
+      return (
+        <BrowserRouter>
+          <TracePerformanceSuggestion
+            suggestion={withRepositories()}
+            taskRoute={null}
+            connectRepositoryRoute={CODE_ROUTE}
+            isCreating={false}
+            error={error}
+            onFix={onFix as unknown as (repositoryId?: string) => void}
+          />
+        </BrowserRouter>
+      );
+    };
+    const { rerender } = render(draw(null));
+
+    await pick("checkout-api");
+
+    // Refused for another reason: the pick stands, to try again.
+    await act(async () => {
+      rerender(draw("OneUptime AI is out of credits."));
+    });
+    expect(screen.getByTestId("trace-fix-performance")).not.toBeDisabled();
+    expect(within(picker()).getByText("checkout-api")).toBeInTheDocument();
+
+    // Refused as no longer one of the connected repositories: no pick.
+    await act(async () => {
+      rerender(draw(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-fix-performance")).toBeDisabled();
+    });
+    expect(within(picker()).queryByText("checkout-api")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("trace-fix-performance"));
+    expect(onFix).not.toHaveBeenCalled();
   });
 
   test("no repositories to pick from: no picker, and the fix starts at once, in the repository the trace's facts resolve", () => {

@@ -835,6 +835,20 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler.ts": {
     "SecurityHuntScheduler.record SecurityHunt": Why.Bookkeeping,
   },
+  /*
+   * An erasure request (#10908) taking a person out of what Security Events
+   * named them in: the request's creation is recorded, and an entry for
+   * each write here would copy the person's name - what the request erases
+   * - into the audit log as the old value.
+   */
+  "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords.ts":
+    {
+      "SecurityUserErasureRecords.writeCase SecurityCase": Why.FollowOn,
+      "SecurityUserErasureRecords.deleteEntityRisk SecurityEntityRisk":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.withdrawPlaybookRuns SecurityPlaybookRun":
+        Why.FollowOn,
+    },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {
     "SecurityPlaybookActions.addCaseLabels SecurityCase": Why.Automation,
     "SecurityPlaybookActions.declareIncidentForCase SecurityCase":

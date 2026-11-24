@@ -2,6 +2,7 @@ import McpInvestigationTools from "../../../../../Server/Utils/AI/Mcp/McpInvesti
 import McpRunToolkit from "../../../../../Server/Utils/AI/Mcp/McpRunToolkit";
 import ExternalMcpServerConnection from "../../../../../Server/Utils/AI/Mcp/ExternalMcpServerConnection";
 import { clearMcpSignInCachesForTests } from "../../../../../Server/Utils/AI/Mcp/McpSignIn";
+import AiCommandKillSwitch from "../../../../../Server/Utils/AI/AiCommandKillSwitch";
 import ToolOutputPager from "../../../../../Server/Utils/AI/Chat/ToolOutputPager";
 import { ObservabilityAssistantExtraTool } from "../../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../../Server/Utils/AI/Toolbox/Index";
@@ -79,6 +80,9 @@ beforeEach(() => {
   matching = [];
   allowances = [];
   servers = [];
+
+  // Enable AI, read before every connection and call (#10879): on.
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
 
   jest
     .spyOn(IncidentService, "findOneById")
@@ -199,6 +203,40 @@ describe("which servers an investigation may use", () => {
 
     expect(await forIncident()).toBeNull();
     expect(allowances).toEqual([]);
+  });
+
+  /*
+   * Issue #10879: only a person starts an investigation of an incident no
+   * rule matches (Investigate, Ask AI's start_investigation), and no rule
+   * speaks to it - it used to get no server at all.
+   */
+  test("rules set up and none matching - an investigation started by hand: all of them", async () => {
+    servers = [server(AWS_ID, "AWS"), server(AZURE_ID, "Azure")];
+    rules = [rule("Production", [AWS_ID]), rule("Everything", [])];
+    matching = [];
+
+    expect(await forIncident()).not.toBeNull();
+    expect(allowances).toEqual([{ isEveryServer: true, serverIds: [] }]);
+  });
+
+  test("the same for an alert no rule matches", async () => {
+    servers = [server(AWS_ID, "AWS")];
+    rules = [rule("Payments", [AZURE_ID])];
+    matching = [];
+
+    const kit: McpRunToolkit | null = await McpInvestigationTools.forAlert({
+      projectId: PROJECT_ID,
+      alertId: ALERT_ID,
+      aiRunId: RUN_ID,
+      outputPager: new ToolOutputPager(),
+    });
+
+    if (kit) {
+      toolkits.push(kit);
+    }
+
+    expect(kit).not.toBeNull();
+    expect(allowances).toEqual([{ isEveryServer: true, serverIds: [] }]);
   });
 
   test("no server on, or allowed: no toolkit", async () => {

@@ -35,7 +35,9 @@ export const getFormSubmissionTargetType: (
 ) => FormTargetType = (submission: FormSubmission): FormTargetType => {
   if (
     submission.targetType === FormTargetType.ScheduledMaintenance ||
-    Boolean(submission.scheduledMaintenanceId || submission.scheduledMaintenance)
+    Boolean(
+      submission.scheduledMaintenanceId || submission.scheduledMaintenance,
+    )
   ) {
     return FormTargetType.ScheduledMaintenance;
   }

@@ -194,6 +194,8 @@ Start collectoren på nytt. Hver tjeneste med spor som går gjennom den, sender 
 | Sladd attributt | Erstatter verdien til et attributt med en plassholder. |
 | Eksempel | Beholder en prosentandel av datapunktene som passer. |
 
+En regel virker på hvert datapunkt, eller bare på dem som filtrene dens treffer. Et filter sammenligner navnet til målingen eller ett attributt med en verdi eller et regulært uttrykk, eller spør med **Samsvarer med mønstertype** om det inneholder en e-postadresse, et kredittkortnummer, et personnummer, et telefonnummer eller en IP-adresse, funnet slik en rensingsregel for logger eller traces med den **Mønstertype** finner den. Regelen **Sladd attributt** som [Datasikkerhet](/docs/data-security/telemetry) lager for en IP-adresse, en e-postadresse eller et kortnummer i et attributt, bruker den.
+
 **Målinger → Innstillinger → Opptaksregler** regner hvert minutt ut nye målinger fra andre målinger. Se [Opptaksregler for logger](/docs/telemetry/log-recording-rules) for hvordan opptaksregler fungerer.
 
 ## Feilsøking

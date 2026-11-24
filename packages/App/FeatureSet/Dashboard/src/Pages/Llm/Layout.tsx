@@ -52,7 +52,12 @@ const LlmLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Page
-      title="AI / LLM Observability"
+      /*
+       * The product's name, as the products menu, the trail and the
+       * glossary say it: the page said "AI / LLM Observability" under a
+       * menu entry and a trail of "AI / LLM" (#7474).
+       */
+      title="AI / LLM"
       titleRight={<ProductAboutButton product={ProductKey.Llm} />}
       breadcrumbLinks={getLlmBreadcrumbs(path)}
       headerRight={<LlmNavTabs active={getActiveLlmTab(path)} />}

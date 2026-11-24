@@ -1,11 +1,16 @@
 import {
   SECURITY_REPEAT_OFFENDER_LADDER,
   SECURITY_REPEAT_OFFENDER_WINDOW_DAYS,
+  SecurityRepeatOffenderSummary,
   getSecurityRepeatOffenderDuration,
+  getSecurityRepeatOffenderHoldingNetwork,
   getSecurityRepeatOffenderRung,
   isSecurityRepeatOffence,
+  readSecurityRepeatOffenderSummary,
+  writeSecurityRepeatOffenderSummary,
 } from "../../../Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import {
+  SecurityBlockAction,
   SecurityBlockDuration,
   SecurityBlockState,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
@@ -127,5 +132,159 @@ describe("what counts as an offence", () => {
     expect(isSecurityRepeatOffence({ state: SecurityBlockState.Lifted })).toBe(
       false,
     );
+  });
+});
+
+/*
+ * Which network held it (#10895): when the last block that counted was of
+ * a wider network - the whole network by its ASN, which Challenge This
+ * Network holds, or a range around the value - the line names it.
+ */
+describe("the network that held it", () => {
+  function last(value: string): {
+    createdAt: Date;
+    action: SecurityBlockAction;
+    value: string;
+    securityCaseId: string | null;
+    caseNumber: string | null;
+  } {
+    return {
+      createdAt: new Date("2026-11-12T10:00:00.000Z"),
+      action: SecurityBlockAction.Challenge,
+      value,
+      securityCaseId: null,
+      caseNumber: null,
+    };
+  }
+
+  test("an address held by its network's ASN: the ASN", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: last("AS14061"),
+      }),
+    ).toBe("AS14061");
+  });
+
+  test("an address held by a range around it: the range, as blocks write it", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: last("203.0.113.0/24"),
+      }),
+    ).toBe("203.0.113.0/24");
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "2001:db8::7",
+        last: last("2001:0db8:0000::/48"),
+      }),
+    ).toBe("2001:db8::/48");
+  });
+
+  test("an address blocked itself: none, however either is written", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: last("203.0.113.7"),
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "2001:db8::7",
+        last: last("2001:db8:0:0:0:0:0:7"),
+      }),
+    ).toBeNull();
+  });
+
+  test("a network asked about, blocked itself: none - Challenge This Network's own record of an ASN or a range", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "AS14061",
+        last: last("as14061"),
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.0/24",
+        last: last("203.0.113.0/24"),
+      }),
+    ).toBeNull();
+  });
+
+  test("a network asked about, held by an address or a range inside it: none - nothing wider held it", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.0/24",
+        last: last("203.0.113.7"),
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.0/24",
+        last: last("203.0.113.128/25"),
+      }),
+    ).toBeNull();
+  });
+
+  test("a network asked about, held by a wider range: the wider range", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.0/24",
+        last: last("203.0.0.0/16"),
+      }),
+    ).toBe("203.0.0.0/16");
+  });
+
+  test("a range that does not hold the value, nothing at all, or what is no block: none", () => {
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: last("198.51.100.0/24"),
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: null,
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: last(""),
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityRepeatOffenderHoldingNetwork({
+        value: "203.0.113.7",
+        last: last("evil.example"),
+      }),
+    ).toBeNull();
+  });
+
+  test("the network goes on the wire as the block's own value, and is read back", () => {
+    const summary: SecurityRepeatOffenderSummary | null =
+      readSecurityRepeatOffenderSummary(
+        JSON.parse(
+          JSON.stringify(
+            writeSecurityRepeatOffenderSummary({
+              value: "203.0.113.7",
+              offenceCount: 1,
+              last: {
+                createdAt: new Date("2026-11-12T10:00:00.000Z"),
+                action: SecurityBlockAction.Challenge,
+                value: "AS14061",
+                securityCaseId: "case-812",
+                caseNumber: "CASE-812",
+              },
+              suggestedDuration: SecurityBlockDuration.OneDay,
+            }),
+          ),
+        ),
+      );
+
+    expect(summary?.last?.value).toBe("AS14061");
+    expect(summary?.last?.action).toBe(SecurityBlockAction.Challenge);
+    expect(getSecurityRepeatOffenderHoldingNetwork(summary!)).toBe("AS14061");
   });
 });
