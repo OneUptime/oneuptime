@@ -241,7 +241,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("A phone number in international or national format."),
   translationKey("Person name"),
   translationKey(
-    "A person's first, last or full name, found from the field's name.",
+    "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.",
   ),
   translationKey("Street address"),
   translationKey(

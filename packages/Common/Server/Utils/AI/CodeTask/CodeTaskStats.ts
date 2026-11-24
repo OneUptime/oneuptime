@@ -41,7 +41,77 @@ export const WORKING_STATUSES: Array<AIRunStatus> = [
 
 type QueryRows = Array<Record<string, unknown>>;
 
+/*
+ * When anything last happened in a repository: its newest run's start, or
+ * its end once it ended - the same moment getRepositoryStats says and
+ * getLastActivity orders Code's Repositories page by.
+ */
+const LAST_ACTIVITY_SQL: string = `MAX(GREATEST("createdAt", COALESCE("completedAt", "createdAt")))`;
+
 export default class CodeTaskStats {
+  /*
+   * When anything last happened in each repository, by id (lower-cased),
+   * as getRepositoryStats says it - one grouped read for every repository
+   * at once, so Code's Repositories page orders all the reader's
+   * repositories by it, not only one page of them (#10764). A repository
+   * nothing happened in is left out. What the reader may not read counts
+   * for nothing, as in getRepositoryStats.
+   */
+  @CaptureSpan()
+  public static async getLastActivity(data: {
+    projectId: ObjectID;
+    repositoryIds: Array<ObjectID>;
+    reader: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Date>> {
+    const lastActivity: Map<string, Date> = new Map<string, Date>();
+
+    if (data.repositoryIds.length === 0) {
+      return lastActivity;
+    }
+
+    const parameters: Array<unknown> = [
+      data.projectId.toString(),
+      data.repositoryIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+      AIRunType.CodeFix,
+      NOT_TASKS,
+    ];
+    const readable: string | null = AIRunOutputReadFilter.getRunAboutSql({
+      alias: "AIRun",
+      props: data.reader,
+      parameters,
+    });
+
+    const rows: QueryRows = (await AIRunService.getRepository().manager.query(
+      `SELECT "codeRepositoryId", ${LAST_ACTIVITY_SQL} AS "lastActivityAt"
+        FROM "AIRun"
+        WHERE "projectId" = $1 AND "runType" = $3 AND "deletedAt" IS NULL
+          AND "codeRepositoryId" = ANY($2::uuid[])
+          AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($4::text[]))${
+            readable ? ` AND ${readable}` : ""
+          }
+        GROUP BY "codeRepositoryId"`,
+      parameters,
+    )) as QueryRows;
+
+    for (const row of rows) {
+      const value: unknown = row["lastActivityAt"];
+
+      if (!row["codeRepositoryId"] || !value) {
+        continue;
+      }
+
+      const time: Date = new Date(value as string | Date);
+
+      if (!Number.isNaN(time.getTime())) {
+        lastActivity.set(String(row["codeRepositoryId"]).toLowerCase(), time);
+      }
+    }
+
+    return lastActivity;
+  }
+
   @CaptureSpan()
   public static async getRepositoryStats(data: {
     projectId: ObjectID;
@@ -150,7 +220,7 @@ export default class CodeTaskStats {
         `SELECT "codeRepositoryId",
           COUNT(*) FILTER (WHERE "status" = ANY($3::text[]))::int AS "working",
           COUNT(*) FILTER (WHERE "codeTaskId" IS NULL)::int AS "taskCount",
-          MAX(GREATEST("createdAt", COALESCE("completedAt", "createdAt"))) AS "lastActivityAt"
+          ${LAST_ACTIVITY_SQL} AS "lastActivityAt"
         FROM "AIRun"
         WHERE "projectId" = $1 AND "runType" = $4 AND "deletedAt" IS NULL
           AND "codeRepositoryId" = ANY($2::uuid[])

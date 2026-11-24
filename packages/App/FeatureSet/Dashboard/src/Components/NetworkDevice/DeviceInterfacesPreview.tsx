@@ -16,7 +16,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -256,13 +256,11 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
        * headers, so the (i) is where they are named and their window given.
        */
       title={
-        <span className="inline-flex items-center gap-1.5">
-          {PREVIEW_TITLE}
-          <InfoTooltip
-            label={PREVIEW_TITLE}
-            text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesPreview}
-          />
-        </span>
+        <WordsWithInfoTooltip
+          text={translator.translateText(PREVIEW_TITLE) || PREVIEW_TITLE}
+          label={PREVIEW_TITLE}
+          description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesPreview}
+        />
       }
       description="Ports that need attention first — down ports, then ports with errors, then the busiest."
     >

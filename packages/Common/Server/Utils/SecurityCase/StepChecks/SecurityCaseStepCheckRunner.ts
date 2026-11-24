@@ -43,6 +43,10 @@ import {
 import { CHECK_COULD_NOT_CHECK } from "../../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import { wordStepCheckSentence } from "../../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
 import {
+  WrittenMoment,
+  writeMomentInTimezone,
+} from "../../../../Utils/MomentPhrases";
+import {
   stepCheckRegressedDetailMarkdown,
   stepCheckRegressedMarkdown,
 } from "../../../../Utils/SecurityCase/SecurityCaseMarkdown";
@@ -163,13 +167,9 @@ const CASE_SELECT: {
 // English, for the timeline: every reader sees the same entry.
 const ENGLISH: Translator = createTranslator(undefined, "en");
 
-// A time as the timeline writes one: the same for everyone, in UTC.
-export function writeTimelineTime(time: Date): string {
-  return OneUptimeDate.getDateAsFormattedStringInTimezone({
-    date: time,
-    timezone: "UTC",
-    use12HourFormat: false,
-  });
+// A moment as the timeline writes one: the same for everyone, in UTC.
+export function writeTimelineMoment(time: Date): WrittenMoment {
+  return writeMomentInTimezone({ time, timezone: "UTC" });
 }
 
 // What a step is about, as written: the address, the user, the host.
@@ -896,7 +896,7 @@ export default class SecurityCaseStepCheckRunner {
     const line: string = wordStepCheckSentence({
       sentence: data.evidence.sentence,
       translator: ENGLISH,
-      writeTime: writeTimelineTime,
+      writeMoment: writeTimelineMoment,
     });
     const stepText: string =
       data.step.aiText ||

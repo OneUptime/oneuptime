@@ -152,6 +152,32 @@ export interface ProbeReleaseComparison {
   serverRelease: string | null;
 }
 
+/*
+ * How many major releases a custom probe is behind the OneUptime it reports
+ * to (#9977): what its owners are told once (Types/Probe/
+ * ProbeMajorReleaseNotice).
+ */
+export interface ProbeMajorReleaseLag {
+  // How many: 1 or more.
+  majorReleasesBehind: number;
+  /*
+   * Whether that is the least it is behind: a probe that has connected and
+   * says no release is older than FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
+   * by how much nothing says.
+   */
+  isAtLeast: boolean;
+  // The major release of the OneUptime it reports to: 18 for 18.2.0.
+  serverMajor: number;
+  // That OneUptime's release, written canonically.
+  serverRelease: string;
+  // The probe's release, written canonically; null when it says none.
+  probeRelease: string | null;
+}
+
+// The docs section that says how to update a custom probe, under the docs' root.
+export const UPDATE_A_PROBE_DOCS_PATH: string =
+  "/probe/custom-probe#update-a-probe";
+
 export default class ProbeReportedVersionUtil {
   /*
    * What a probe's request body says of the release it runs. Anything that
@@ -362,6 +388,103 @@ export default class ProbeReportedVersionUtil {
 
   public static isOutdated(probe: ProbeReleaseRead): boolean {
     return this.getReleaseStatus(probe).status === ProbeReleaseStatus.Outdated;
+  }
+
+  /*
+   * How many major releases a custom probe is behind the OneUptime it
+   * reports to (#9977), or null when it is not a major release behind or
+   * that cannot be told. By getReleaseStatus' rules - never a global probe,
+   * nothing while this OneUptime runs a test or pre-release build or knows
+   * no release of its own - and only for a probe getReleaseStatus calls
+   * Outdated, so the two never disagree:
+   *
+   *   - a probe that says a release is behind by the majors between them:
+   *     16.4.0 is two behind 18.0.0, and 18.0.0 none behind 18.3.0 - an
+   *     update within a major release is said on its page, not told;
+   *   - a probe that has connected and says no release is older than
+   *     FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE: at least as far behind
+   *     as the newest major release older than that, so behind only a
+   *     OneUptime of a later major release, by at least so many.
+   */
+  public static getMajorReleaseLag(
+    probe: ProbeReleaseRead,
+  ): ProbeMajorReleaseLag | null {
+    const comparison: ProbeReleaseComparison = this.getReleaseStatus(probe);
+
+    if (
+      comparison.status !== ProbeReleaseStatus.Outdated ||
+      !comparison.serverRelease
+    ) {
+      return null;
+    }
+
+    const server: ParsedVersion | null = VersionUtil.parse(
+      comparison.serverRelease,
+    );
+
+    if (!server) {
+      return null;
+    }
+
+    const probeRelease: string | null = this.getRelease(
+      this.getReported(probe),
+    );
+    let newestMajor: number;
+    let isAtLeast: boolean = false;
+
+    if (probeRelease) {
+      newestMajor = (VersionUtil.parse(probeRelease) as ParsedVersion).major;
+    } else if (!this.getReported(probe)) {
+      // Older than the first release that says one: at most its major, or the one before.
+      const first: ParsedVersion = VersionUtil.parse(
+        FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
+      ) as ParsedVersion;
+
+      newestMajor =
+        first.minor === 0 && first.patch === 0 ? first.major - 1 : first.major;
+      isAtLeast = true;
+    } else {
+      return null;
+    }
+
+    const majorReleasesBehind: number = server.major - newestMajor;
+
+    if (majorReleasesBehind < 1) {
+      return null;
+    }
+
+    return {
+      majorReleasesBehind,
+      isAtLeast,
+      serverMajor: server.major,
+      serverRelease: comparison.serverRelease,
+      probeRelease,
+    };
+  }
+
+  /*
+   * Whether a custom probe is known to run the major release of the
+   * OneUptime it reports to, or a later one: what makes a probe that was
+   * told it is behind one that is no longer (Types/Probe/
+   * ProbeMajorReleaseNotice). False whenever that cannot be told - a
+   * global probe, a test or pre-release OneUptime, a probe that says no
+   * release, or a build that is none - so nothing is forgotten on a guess.
+   */
+  public static isOnServerMajorRelease(probe: ProbeReleaseRead): boolean {
+    if (probe.isGlobalProbe) {
+      return false;
+    }
+
+    const server: ParsedVersion | null = VersionUtil.parse(probe.serverVersion);
+    const probeRelease: ParsedVersion | null = VersionUtil.parse(
+      this.getRelease(this.getReported(probe)),
+    );
+
+    if (!server || server.prerelease || !probeRelease) {
+      return false;
+    }
+
+    return probeRelease.major >= server.major;
   }
 
   // What the probe said, trimmed: "" when it said nothing.

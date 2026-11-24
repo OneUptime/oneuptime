@@ -256,9 +256,11 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
     );
 
     expect(definition).toContain("description?: string | undefined;");
+    // The (i) after the title's last word (WordsWithInfoTooltip, #8044).
     expect(definition).toContain(
-      "<InfoTooltip label={params.title} text={params.description} />",
+      '<WordsWithInfoTooltip className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider" text={translator.translateText(params.title) || params.title} label={params.title} description={params.description} />',
     );
+    expect(definition).not.toContain("<InfoTooltip");
 
     const skeleton: string = between(
       definition,
@@ -276,7 +278,10 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
      * (i) - in the reader's language, and nowhere as the bare English text.
      */
     expect(
-      countOf(definition, "{translator.translateText(params.title)} </span>"),
+      countOf(
+        definition,
+        "text={translator.translateText(params.title) || params.title}",
+      ),
     ).toBe(1);
     expect(countOf(definition, "{params.title} </span>")).toBe(0);
   });
@@ -341,9 +346,9 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
     );
 
     expect(renderList).toContain("description: string,");
-    // The card title reads in the reader's language, with its (i) beside it.
+    // The card title reads in the reader's language, its (i) after its last word.
     expect(renderList).toContain(
-      '{translator.translateText(title)} <InfoTooltip label={title} text={description} iconClassName="h-4 w-4" />',
+      "<Card title={ <WordsWithInfoTooltip text={translator.translateText(title) || title} label={title} description={description} /> }",
     );
   });
 
@@ -363,7 +368,8 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
   });
 
   test("every (i) on the page reads from the container host record", () => {
-    const tooltips: number = countOf(code, "<InfoTooltip");
+    const tooltips: number =
+      countOf(code, "<InfoTooltip") + countOf(code, "<WordsWithInfoTooltip");
     const references: Array<string> = Array.from(
       code.matchAll(RECORD_KEY_GLOBAL_PATTERN),
     ).map((match: RegExpMatchArray): string => {

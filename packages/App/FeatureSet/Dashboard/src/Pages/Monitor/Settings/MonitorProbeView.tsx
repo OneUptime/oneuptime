@@ -27,6 +27,10 @@ import OwnersCard from "../../../Components/Owners/OwnersCard";
 import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProbeVersionElement from "../../../Components/Probe/ProbeVersion";
+import ProbeAddresses, {
+  readProbeAddresses,
+} from "../../../Components/Probe/ProbeAddresses";
+import { PROBE_ADDRESSES_COPY } from "../../../Components/Probe/ProbeAddressesCopy";
 import ProbeChecksElement, {
   PROBE_CHECKS_COPY,
   PROBE_DEVICE_POLLS_COPY,
@@ -288,6 +292,50 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
             },
             {
               /*
+               * The addresses OneUptime knows it by (#10634): where it
+               * checks in from, and what it lists when it does. Read by the
+               * probe's readers only - the card leaves out a column its
+               * reader may not read - and shown only once it has checked
+               * in.
+               */
+              field: {
+                egressIpAddress: true,
+              },
+              title: PROBE_ADDRESSES_COPY.checkInTitle,
+              description: PROBE_ADDRESSES_COPY.checkInDescription,
+              fieldType: FieldType.Element,
+              showIf: (item: Probe): boolean => {
+                return (
+                  readProbeAddresses(item.egressIpAddress, false).length > 0
+                );
+              },
+              getElement: (item: Probe): ReactElement => {
+                return <ProbeAddresses value={item.egressIpAddress} />;
+              },
+            },
+            {
+              field: {
+                interfaceIpAddresses: true,
+              },
+              title: PROBE_ADDRESSES_COPY.interfacesTitle,
+              description: PROBE_ADDRESSES_COPY.interfacesDescription,
+              fieldType: FieldType.Element,
+              showIf: (item: Probe): boolean => {
+                return (
+                  readProbeAddresses(item.interfaceIpAddresses, true).length > 0
+                );
+              },
+              getElement: (item: Probe): ReactElement => {
+                return (
+                  <ProbeAddresses
+                    value={item.interfaceIpAddresses}
+                    isList={true}
+                  />
+                );
+              },
+            },
+            {
+              /*
                * Whether it keeps up with its monitors (#9488): only while
                * it is connected, since a disconnected probe checks nothing.
                */
@@ -359,8 +407,8 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         resourceDisplayName="probe"
         ownerUserModelType={ProbeOwnerUser}
         ownerTeamModelType={ProbeOwnerTeam}
-        description="People and teams who own this probe. They are alerted when its status changes."
-        emptyDescription="Add a teammate or a team so they are alerted when this probe's status changes."
+        description="People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime."
+        emptyDescription="Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted."
       />
 
       <ResetObjectID<Probe>

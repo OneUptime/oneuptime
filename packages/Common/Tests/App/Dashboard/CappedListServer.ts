@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
@@ -12,11 +13,11 @@ import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
  *
  * ModelAPI.getList, answered from the rows kept for each model the way the
  * list route answers it: the query's conditions (a value, Includes, Search,
- * MultiSearch), then the sort, the page (skip and limit) and the count of
- * every row that matched. So a picker that reads "the first 10,000 by name"
- * gets exactly those, and a record whose name sorts after them is missing
- * from what it read - as on a real project - while a search, or a read by
- * id, finds it.
+ * MultiSearch, NotEqual), then the sort, the page (skip and limit) and the
+ * count of every row that matched. So a picker that reads "the first 10,000
+ * by name" gets exactly those, and a record whose name sorts after them is
+ * missing from what it read - as on a real project - while a search, or a
+ * read by id, finds it.
  *
  * What the server answers to the same reads, through the real list routes
  * on migrated Postgres, is pinned in Tests/Server/API/*PickerSearchPostgres.
@@ -72,6 +73,11 @@ const matchesCondition: (
 
   if (condition instanceof Search) {
     return comparable(value).includes(comparable(condition.value));
+  }
+
+  // Every row but one: the workflow being edited, say (QueryHelper.notEquals).
+  if (condition instanceof NotEqual) {
+    return comparable(value) !== comparable(condition.value);
   }
 
   if (condition instanceof ObjectID) {

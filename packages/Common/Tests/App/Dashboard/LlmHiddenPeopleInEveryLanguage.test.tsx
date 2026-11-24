@@ -204,7 +204,9 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
           <LlmConversationRow
             conversation={listItem({ people: [LLM_USAGE_HIDDEN_GROUP_KEY] })}
             route={ROUTE}
-            serviceNames={new Map<string, string>()}
+            serviceName={(): string => {
+              return "";
+            }}
           />
         </MemoryRouter>,
       ),

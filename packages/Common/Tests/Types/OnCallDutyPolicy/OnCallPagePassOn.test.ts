@@ -20,7 +20,6 @@ import {
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   OnCallPassOnRule,
-  getOnCallPageCallPassOnPrompt,
   getOnCallPageEscalatedTitle,
   getOnCallPageNotPagedAgainSentence,
   getOnCallPageRecordNoun,
@@ -40,6 +39,7 @@ import {
   joinOnCallPassOnNames,
   readOnCallPassOnResult,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { ON_CALL_PAGE_CALL_PROMPT } from "../../../Utils/Call/OnCallPageCall";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
@@ -118,8 +118,8 @@ describe("the action's name", () => {
 
   test("a call asks for the second key, after the first acknowledges", () => {
     expect(ON_CALL_PAGE_CALL_PASS_ON_DIGIT).toBe("2");
-    expect(getOnCallPageCallPassOnPrompt()).toBe(
-      "If you can't take it, press 2 to escalate.",
+    expect(ON_CALL_PAGE_CALL_PROMPT).toBe(
+      "Press 1 to acknowledge, or 2 to escalate.",
     );
   });
 });

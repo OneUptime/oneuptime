@@ -723,6 +723,9 @@ import SecurityCaseStepCheckService, {
 import SecurityCaseAiActionService, {
   Service as SecurityCaseAiActionServiceType,
 } from "Common/Server/Services/SecurityCaseAiActionService";
+import SecurityCasePullRequestService, {
+  Service as SecurityCasePullRequestServiceType,
+} from "Common/Server/Services/SecurityCasePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1992,6 +1995,7 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -4856,6 +4860,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityCaseAiAction, SecurityCaseAiActionServiceType>(
         SecurityCaseAiAction,
         SecurityCaseAiActionService,
+      ).getRouter(),
+    );
+
+    /*
+     * A person's own pull request, linked to a case's Fix step (#10604):
+     * linked and taken off by whoever works the case, read by the case's
+     * readers. What it says of the pull request is OneUptime's to write.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCasePullRequest, SecurityCasePullRequestServiceType>(
+        SecurityCasePullRequest,
+        SecurityCasePullRequestService,
       ).getRouter(),
     );
 

@@ -1592,6 +1592,18 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
     );
+
+    /*
+     * By email, as a probe's status changes are: told once for each major
+     * release of OneUptime a probe they own falls behind (#9977). The job
+     * seeds it too before it tells, for the members who joined before it
+     * existed (Workers Probe:NotifyMajorReleaseBehind).
+     */
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
+    );
   }
 
   private async addIncidentNotificationSettings(
