@@ -167,7 +167,14 @@ describe("useBulkArchiveActions default copy", () => {
    * (#7195): each is its own key, so a translation can word the one-row
    * sentence as a sentence about one thing.
    */
-  test("stays word for word what every archivable table already shows", () => {
+  /*
+   * Said under the title, which asks the question ("Archive 3 hosts?"):
+   * never the question again, and the way back named as the side menu names
+   * it (#8033). It used to open with "Are you sure you want to archive the
+   * selected hosts?" and send the reader to an Archived tab, which is a
+   * page of the side menu, under Advanced.
+   */
+  test("says what archiving does under the title's question, and where to unarchive", () => {
     const result: BulkArchiveActionsResult<PodmanHost> = renderActions();
     const archive: BulkActionButtonSchema<PodmanHost> = onlyAction(
       result.archiveBulkActions,
@@ -176,18 +183,71 @@ describe("useBulkArchiveActions default copy", () => {
       result.unarchiveBulkActions,
     );
 
+    expect(archive.confirmTitle!(hosts(1))).toBe("Archive 1 host?");
     expect(archive.confirmMessage!(hosts(1))).toBe(
-      "Are you sure you want to archive the selected host? It will be hidden from the list but will keep collecting telemetry. You can unarchive it anytime from the Archived tab.",
+      "It leaves this list but keeps collecting telemetry, and nothing is deleted. Unarchive it at any time from Advanced > Archived.",
     );
+    expect(archive.confirmTitle!(hosts(2))).toBe("Archive 2 hosts?");
     expect(archive.confirmMessage!(hosts(2))).toBe(
-      "Are you sure you want to archive the selected hosts? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.",
+      "They leave this list but keep collecting telemetry, and nothing is deleted. Unarchive them at any time from Advanced > Archived.",
     );
+    expect(unarchive.confirmTitle!(hosts(1))).toBe("Unarchive 1 host?");
     expect(unarchive.confirmMessage!(hosts(1))).toBe(
-      "Are you sure you want to unarchive the selected host? It will reappear in the main list.",
+      "It will reappear in the main list.",
     );
     expect(unarchive.confirmMessage!(hosts(3))).toBe(
-      "Are you sure you want to unarchive the selected hosts? They will reappear in the main list.",
+      "They will reappear in the main list.",
     );
+  });
+
+  test("asks no question: the title asks it", () => {
+    const result: BulkArchiveActionsResult<PodmanHost> = renderActions();
+
+    for (const count of [1, 2, 21]) {
+      for (const actions of [
+        result.archiveBulkActions,
+        result.unarchiveBulkActions,
+      ]) {
+        const action: BulkActionButtonSchema<PodmanHost> = onlyAction(actions);
+        const message: string = action.confirmMessage!(hosts(count));
+
+        expect(message).not.toContain("?");
+        expect(message).not.toMatch(/are you sure/i);
+        expect(message).not.toMatch(/selected/i);
+        expect(action.confirmTitle!(hosts(count)).endsWith("?")).toBe(true);
+      }
+    }
+  });
+
+  test("names no tab: the way back is a page of the side menu, under Advanced", () => {
+    const result: BulkArchiveActionsResult<PodmanHost> = renderActions();
+
+    for (const count of [1, 4]) {
+      const message: string = onlyAction(result.archiveBulkActions)
+        .confirmMessage!(hosts(count));
+
+      expect(message).not.toMatch(/\btab\b/i);
+      expect(message).toContain("Advanced > Archived");
+    }
+  });
+
+  /*
+   * Network names its page "Archived Devices" (its side menu holds more
+   * than devices), and its Devices list hands that name over.
+   */
+  test("a list whose Archived page has a name of its own says that name", () => {
+    const result: BulkArchiveActionsResult<PodmanHost> = renderActions({
+      archivedPageTitle: "Archived Devices",
+    });
+
+    expect(
+      onlyAction(result.archiveBulkActions).confirmMessage!(hosts(1)),
+    ).toBe(
+      "It leaves this list but keeps collecting telemetry, and nothing is deleted. Unarchive it at any time from Advanced > Archived Devices.",
+    );
+    expect(
+      onlyAction(result.archiveBulkActions).confirmMessage!(hosts(5)),
+    ).toContain("from Advanced > Archived Devices.");
   });
 
   test("an empty override is ignored rather than confirming with a blank body", () => {
@@ -198,7 +258,7 @@ describe("useBulkArchiveActions default copy", () => {
 
     expect(
       onlyAction(result.archiveBulkActions).confirmMessage!(hosts(1)),
-    ).toContain("will keep collecting telemetry");
+    ).toContain("keeps collecting telemetry");
     expect(
       onlyAction(result.unarchiveBulkActions).confirmMessage!(hosts(1)),
     ).toContain("It will reappear in the main list.");
@@ -253,7 +313,7 @@ describe("useBulkArchiveActions copy overrides", () => {
     expect(
       onlyAction(result.unarchiveBulkActions).confirmMessage!(hosts(1)),
     ).toBe(
-      "Are you sure you want to unarchive the selected host? It will reappear in the main list.",
+      "It will reappear in the main list.",
     );
   });
 
