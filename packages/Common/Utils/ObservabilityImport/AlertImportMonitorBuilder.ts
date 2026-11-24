@@ -75,6 +75,30 @@ export const getImportedMonitorType: (
     : MonitorType.Metrics;
 };
 
+/*
+ * What a metric query rule reads, for the preview to show as code: its
+ * aggregation, its metric by its stored name, its exact attribute values
+ * and its group-by, in the shape a PromQL aggregation writes them:
+ * avg by (upstream) (nginx.upstream.peers.responses.5xx{env="prod"}).
+ */
+export const describeImportedMetricQuery: (
+  query: ImportedMetricQuery,
+) => string = (query: ImportedMetricQuery): string => {
+  const filters: Array<string> = Object.keys(query.attributes).map(
+    (key: string): string => {
+      return `${key}=${JSON.stringify(query.attributes[key] || "")}`;
+    },
+  );
+  const by: string =
+    query.groupByAttributeKeys.length > 0
+      ? ` by (${query.groupByAttributeKeys.join(", ")})`
+      : "";
+
+  return `${query.aggregation.toLowerCase()}${by} (${query.metricName}${
+    filters.length > 0 ? `{${filters.join(", ")}}` : ""
+  })`;
+};
+
 // One metric read by the query builder, as the form writes a query.
 export const buildImportedMetricQueryConfig: (
   query: ImportedMetricQuery,

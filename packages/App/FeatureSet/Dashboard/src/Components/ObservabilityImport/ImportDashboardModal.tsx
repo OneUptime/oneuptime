@@ -46,10 +46,10 @@ import {
 import {
   buildImportedDashboardViewConfig,
   getCreatedDashboardItems,
+  listDatadogAsCountMetricNames,
   listDatadogMetricNames,
   planDashboardImport,
 } from "Common/Utils/ObservabilityImport/ObservabilityImport";
-import { DatadogMetricKind } from "Common/Utils/ObservabilityImport/Datadog/DatadogPromQL";
 import { fetchDashboardNames } from "../Dashboard/DashboardCreateForm";
 import { getDashboardVariableTypeName } from "../Dashboard/Toolbar/DashboardVariableTypeNames";
 import { getWidgetTypeName } from "../Dashboard/Toolbar/WidgetCatalog";
@@ -61,8 +61,10 @@ import {
   ImportSummary,
 } from "./ImportParts";
 import {
+  DatadogMetricFacts,
   ImportAiTarget,
-  lookUpDatadogMetricKinds,
+  NO_DATADOG_METRIC_FACTS,
+  lookUpDatadogMetrics,
   lookUpVariableStartingValues,
 } from "./ObservabilityImportApi";
 
@@ -115,9 +117,9 @@ const ImportDashboardModal: FunctionComponent<ComponentProps> = (
   const [overrides, setOverrides] = useState<Map<string, string>>(
     new Map<string, string>(),
   );
-  const [metricKinds, setMetricKinds] = useState<
-    Map<string, DatadogMetricKind>
-  >(new Map<string, DatadogMetricKind>());
+  const [metricFacts, setMetricFacts] = useState<DatadogMetricFacts>(
+    NO_DATADOG_METRIC_FACTS,
+  );
   const [startingValues, setStartingValues] = useState<Map<string, string>>(
     new Map<string, string>(),
   );
@@ -134,10 +136,11 @@ const ImportDashboardModal: FunctionComponent<ComponentProps> = (
     return source
       ? planDashboardImport(source, {
           queryOverrides: overrides,
-          knownMetricKinds: metricKinds,
+          knownMetricKinds: metricFacts.kinds,
+          rateIntervalsInSeconds: metricFacts.rateIntervalsInSeconds,
         })
       : null;
-  }, [source, overrides, metricKinds]);
+  }, [source, overrides, metricFacts]);
 
   const createdItems: Array<DashboardImportItem> = useMemo(() => {
     return plan ? getCreatedDashboardItems(plan) : [];
@@ -163,20 +166,23 @@ const ImportDashboardModal: FunctionComponent<ComponentProps> = (
     try {
       const firstPlan: DashboardImportPlan = planDashboardImport(read);
       // Each lookup that fails hands back nothing: the preview still opens.
-      const [names, starting, kinds]: [
+      const [names, starting, facts]: [
         Array<string>,
         Map<string, string>,
-        Map<string, DatadogMetricKind>,
+        DatadogMetricFacts,
       ] = await Promise.all([
         fetchDashboardNames(),
         lookUpVariableStartingValues(firstPlan),
-        lookUpDatadogMetricKinds(listDatadogMetricNames(read)),
+        lookUpDatadogMetrics({
+          names: listDatadogMetricNames(read),
+          asCountNames: listDatadogAsCountMetricNames(read),
+        }),
       ]);
 
       setSource(read);
       setOverrides(new Map<string, string>());
       setStartingValues(starting);
-      setMetricKinds(kinds);
+      setMetricFacts(facts);
       setName(
         getUniqueName({
           name: (firstPlan.title || "Imported Dashboard").slice(
