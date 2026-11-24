@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}（経由: {{services}}）",
   "{{service}} calls {{host}}": "{{service}} が {{host}} を呼び出し",
   "{{service}} sends calls to {{provider}}": "{{service}} が {{provider}} に呼び出しを送信",
-  "{{store}} holds a copy of its data": "{{store}} がこのデータのコピーを保持"
+  "{{store}} holds a copy of its data": "{{store}} がこのデータのコピーを保持",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "このステータスページは、参加しているどのプロジェクトにもありません。リンクを確認するか、このページのプロジェクトのメンバーに招待を依頼してください。"
 }

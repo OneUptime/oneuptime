@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}، از طریق {{services}}",
   "{{service}} calls {{host}}": "{{service}} به {{host}} درخواست می‌فرستد",
   "{{service}} sends calls to {{provider}}": "{{service}} برای {{provider}} فراخوانی می‌فرستد",
-  "{{store}} holds a copy of its data": "{{store}} نسخه‌ای از داده‌های آن را دارد"
+  "{{store}} holds a copy of its data": "{{store}} نسخه‌ای از داده‌های آن را دارد",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "این صفحه وضعیت در هیچ‌یک از پروژه‌هایی که عضوشان هستید نیست. پیوند را بررسی کنید، یا از کسی در پروژه‌اش بخواهید شما را دعوت کند."
 }

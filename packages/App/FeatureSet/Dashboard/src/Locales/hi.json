@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}, {{services}} के ज़रिए",
   "{{service}} calls {{host}}": "{{service}} {{host}} को कॉल करता है",
   "{{service}} sends calls to {{provider}}": "{{service}} {{provider}} को कॉल भेजता है",
-  "{{store}} holds a copy of its data": "{{store}} में इसके डेटा की कॉपी है"
+  "{{store}} holds a copy of its data": "{{store}} में इसके डेटा की कॉपी है",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "यह स्थिति पृष्ठ आपके किसी भी प्रोजेक्ट में नहीं है। लिंक जाँचें, या इसके प्रोजेक्ट के किसी व्यक्ति से आपको आमंत्रित करने के लिए कहें।"
 }

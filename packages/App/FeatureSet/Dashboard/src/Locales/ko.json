@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}({{services}} 경유)",
   "{{service}} calls {{host}}": "{{service}}에서 {{host}} 호출",
   "{{service}} sends calls to {{provider}}": "{{service}}에서 {{provider}}에 호출을 보냄",
-  "{{store}} holds a copy of its data": "{{store}}에 이 데이터의 사본이 있음"
+  "{{store}} holds a copy of its data": "{{store}}에 이 데이터의 사본이 있음",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "이 상태 페이지는 속한 어떤 프로젝트에도 없습니다. 링크를 확인하거나, 이 페이지가 속한 프로젝트의 구성원에게 초대를 요청하세요."
 }

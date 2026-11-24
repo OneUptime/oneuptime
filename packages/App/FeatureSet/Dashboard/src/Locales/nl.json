@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}, via {{services}}",
   "{{service}} calls {{host}}": "{{service}} roept {{host}} aan",
   "{{service}} sends calls to {{provider}}": "{{service}} stuurt aanroepen naar {{provider}}",
-  "{{store}} holds a copy of its data": "{{store}} bevat een kopie van de gegevens ervan"
+  "{{store}} holds a copy of its data": "{{store}} bevat een kopie van de gegevens ervan",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "Deze statuspagina hoort bij geen enkel project waarvan u lid bent. Controleer de link, of vraag iemand uit het project ervan om u uit te nodigen."
 }

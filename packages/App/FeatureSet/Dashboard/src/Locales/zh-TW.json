@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}，經由 {{services}}",
   "{{service}} calls {{host}}": "{{service}} 呼叫 {{host}}",
   "{{service}} sends calls to {{provider}}": "{{service}} 向 {{provider}} 傳送呼叫",
-  "{{store}} holds a copy of its data": "{{store}} 保存著其資料的副本"
+  "{{store}} holds a copy of its data": "{{store}} 保存著其資料的副本",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "此狀態頁面不在您所屬的任何專案中。請檢查連結，或請其所在專案中的成員邀請您。"
 }

@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}، عبر {{services}}",
   "{{service}} calls {{host}}": "تستدعي الخدمة {{service}} المضيف {{host}}",
   "{{service}} sends calls to {{provider}}": "ترسل الخدمة {{service}} استدعاءات إلى {{provider}}",
-  "{{store}} holds a copy of its data": "يحتفظ المخزن {{store}} بنسخة من بياناته"
+  "{{store}} holds a copy of its data": "يحتفظ المخزن {{store}} بنسخة من بياناته",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "صفحة الحالة هذه ليست في أي مشروع تنتمي إليه. تحقّق من الرابط، أو اطلب من أحد أعضاء مشروعها أن يدعوك."
 }

@@ -63344,5 +63344,6 @@
   "{{name}}, through {{services}}": "{{name}}, a través de {{services}}",
   "{{service}} calls {{host}}": "{{service}} llama a {{host}}",
   "{{service}} sends calls to {{provider}}": "{{service}} envía llamadas a {{provider}}",
-  "{{store}} holds a copy of its data": "{{store}} contiene una copia de sus datos"
+  "{{store}} holds a copy of its data": "{{store}} contiene una copia de sus datos",
+  "This status page is not in any project you belong to. Check the link, or ask someone in its project to invite you.": "Esta página de estado no está en ningún proyecto al que pertenezcas. Comprueba el enlace o pide a alguien de su proyecto que te invite."
 }
