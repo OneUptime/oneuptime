@@ -291,6 +291,13 @@ describe("on a page read from the right", () => {
     },
   );
 
+  // As drawn, marks and all: the name and the count each a value set apart.
+  test("fa: the line as drawn, each value set apart", async () => {
+    expect(await leftOutLine({ page: "fa", maxFiles: 3, names: logs(4) })).toBe(
+      `«${isolated("d.log")}» افزوده نشد: این فیلد حداکثر ${isolated("۳")} فایل می‌پذیرد.`,
+    );
+  });
+
   test("fa: the count in Persian digits, and no Latin digit outside the names", async () => {
     const line: string = await leftOutLine({
       page: "fa",

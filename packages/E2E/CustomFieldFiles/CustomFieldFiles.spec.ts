@@ -67,6 +67,9 @@ const FULL_NOTE_KEY: string =
   "This field holds up to {{count}} files. Remove one to add another.";
 const FULL_NOTE: string =
   "This field holds up to 10 files. Remove one to add another.";
+// A file it had no room for, named, with how many it holds (issue #8041).
+const NO_ROOM_KEY: string =
+  '"{{fileName}}" was not added: this field holds up to {{count}} files.';
 
 function readJson(relative: string): Record<string, unknown> {
   return JSON.parse(
@@ -1338,12 +1341,20 @@ test.describe("a public form's file questions", () => {
     );
     for (const name of ["log-1.csv", "log-2.csv", "log-3.csv"]) {
       await expect(
-        formPicker(page, "evidence").locator("xpath=..").getByText(name),
+        formPicker(page, "evidence")
+          .locator("xpath=..")
+          .getByText(name, { exact: true }),
       ).toBeVisible();
     }
+    // No row for the fourth: the picker names it, with why (#8041).
     await expect(
-      formPicker(page, "evidence").locator("xpath=..").getByText("log-4.csv"),
+      formPicker(page, "evidence")
+        .locator("xpath=..")
+        .getByText("log-4.csv", { exact: true }),
     ).toHaveCount(0);
+    await expect(
+      formPicker(page, "evidence").getByTestId("file-picker-error"),
+    ).toHaveText('"log-4.csv" was not added: this field holds up to 3 files.');
     await screenshot(page, "form-three-full-1280");
   });
 
@@ -1419,11 +1430,27 @@ test.describe("a public form's file questions", () => {
       csv("a.csv"),
       csv("b.csv"),
       csv("c.csv"),
+      csv("d.csv"),
     ]);
     // Full, it says its three in Persian's digit, in a sentence of its own words.
     await expect(formPicker(page, "evidence")).toContainText(
       accountsText("fa", FULL_NOTE_KEY).replace("{{count}}", "\u06F3"),
     );
+    /*
+     * And names the fourth in Persian, its name set apart so ".csv" stays at
+     * its end on a page read from the right (issue #8041).
+     */
+    const leftOut: Locator = formPicker(page, "evidence").getByTestId(
+      "file-picker-error",
+    );
+
+    await expect(leftOut).toContainText("d.csv");
+    expect(await leftOut.textContent()).toBe(
+      accountsText("fa", NO_ROOM_KEY)
+        .replace("{{fileName}}", "\u2068d.csv\u2069")
+        .replace("{{count}}", PERSIAN_THREE),
+    );
+    await screenshot(page, "form-three-left-out-fa-1280");
   });
 
   test("German: the pickers in the form page's own words", async ({
