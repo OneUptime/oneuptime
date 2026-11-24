@@ -683,11 +683,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const parsedTimelineEpisodes: Array<UptimeBarTooltipIncident> =
         StatusPageTimelineEpisodes.toTooltipIncidents({
           timelineEpisodes: data[TIMELINE_EPISODES_RESPONSE_KEY],
-          translateSeverityName: (name: string): string => {
-            return translateStatusName(StateListType.IncidentSeverity, name);
+          translateSeverityName: (incidentSeverityName: string): string => {
+            return translateStatusName(
+              StateListType.IncidentSeverity,
+              incidentSeverityName,
+            );
           },
-          translateStateName: (name: string): string => {
-            return translateStatusName(StateListType.IncidentState, name);
+          translateStateName: (incidentStateName: string): string => {
+            return translateStatusName(
+              StateListType.IncidentState,
+              incidentStateName,
+            );
           },
         });
 

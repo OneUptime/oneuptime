@@ -486,7 +486,7 @@
   "No matches found": "لم يُعثر على نتائج مطابقة",
   "{{eventType}} state changed to {{state}}": "تغيّرت حالة {{eventType}} إلى {{state}}",
   "{{count}} related incidents": "الحوادث ذات الصلة: {{count}}",
-  "{{count}} related incidents_one": "حادثة واحدة ذات صلة",
+  "{{count}} related incidents_one": "{{count}} حادثة ذات صلة",
   "Part of {{incident}}": "جزء من {{incident}}",
   "Use at least {{minimum}} characters.": "استخدم {{minimum}} من الأحرف على الأقل.",
   "Try a few unrelated words.": "جرّب بضع كلمات لا رابط بينها.",
