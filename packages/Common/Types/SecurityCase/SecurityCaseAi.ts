@@ -474,6 +474,11 @@ export enum SecurityCaseHandOffReason {
   NoLlmProvider = "NoLlmProvider",
   // The project is out of AI credits, or reached a daily AI limit.
   OutOfCredits = "OutOfCredits",
+  /*
+   * Security Events is switched off on the server (#10816): none of its
+   * work goes on, OneUptime AI's included, until a person asks again.
+   */
+  ProductOff = "ProductOff",
   // The triage read the case as Inconclusive, or something else than malicious.
   NotLikelyMalicious = "NotLikelyMalicious",
   // A step it did does not hold, and it will not repeat it blindly.

@@ -270,7 +270,7 @@ Bara den container som tar emot begäranden (`app`) anger `ports`; en sidecar f�
 
 ## Vad du får
 
-- **Översikt**: begäranden, felfrekvens och p95-latens från dina spår.
+- **Översikt**: begäranden, felfrekvens och p95-latens från dina spår. Anslut projektet under **Moln → Anslut**, så får den här fliken ett avsnitt **Google Cloud Monitoring**: tjänstens begäranden, andelen som besvarades med en 5xx-status, p95-latens och dess containrars CPU och minne, så som Cloud Run mäter dem, oavsett vad appen skickar. Raden **Google Cloud Monitoring-anslutning** i **Konfigurationskontroll** nämner den tjänst som söks så länge ingen läses.
 - **Instanser**: en rad per Cloud Run-instans, namngiven efter `faas.instance`. Cloud Run visar inte en containers resursanvändning för en sidecar, så rutorna **CPU** och **Minne** förblir tomma om du inte själv skickar mätvärdena `container.cpu.utilization` och `container.memory.usage` med samma `faas.instance`. Läs rutorna för begäranden här, och lämna instansernas CPU och minne åt Cloud Monitoring.
 - **Loggar**, **Spår** och **Mätvärden**, filtrerade på miljön.
 - Samma tjänst under **Serverlösa funktioner** (efter `faas.name`) och under **Tjänster** (efter `service.name`).

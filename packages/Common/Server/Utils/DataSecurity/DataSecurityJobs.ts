@@ -10,7 +10,9 @@ import ObjectID from "../../../Types/ObjectID";
  * again after something that decides their checks changed, scanning one
  * store's content, asking OneUptime AI about the fields a store's scan
  * could not place, having OneUptime AI work on an issue that opened, and
- * reading one cloud connection's configuration. The
+ * reading one cloud connection's configuration, having OneUptime AI give
+ * its verdict on a store's findings that wait for a person, and having it
+ * propose what the project's decisions say of its scans. The
  * schedules only queue them, one per project, store or connection, so a
  * large installation is spread over every worker instead of one loop.
  * Each is deduplicated by what it is about, keeping the latest asked for,
@@ -40,6 +42,9 @@ export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
   "DataSecurity:ProposeOwnerRules";
 export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
   "DataSecurity:GroupIssues";
+export const DATA_SECURITY_JUDGE_FINDINGS_JOB: string =
+  "DataSecurity:JudgeFindings";
+export const DATA_SECURITY_TUNE_SCANS_JOB: string = "DataSecurity:TuneScans";
 
 /*
  * How long the grouping waits after an evaluation: a connection's read
@@ -54,6 +59,20 @@ export const GROUP_ISSUES_DELAY_IN_MS: number = 30 * 1000;
  * them finds the rules they share.
  */
 export const OWNER_RULES_DELAY_IN_MS: number = 3 * 60 * 1000;
+
+/*
+ * How long OneUptime AI's verdicts on a store's findings wait after its
+ * scan (#10372): the scan's field suggestions are written in a job of
+ * their own, and one look after both judges what each of them left.
+ */
+export const JUDGE_FINDINGS_DELAY_IN_MS: number = 2 * 60 * 1000;
+
+/*
+ * How long the scans' tuning waits after a finding is marked not
+ * sensitive (#10372): a person marks several in a row, and one look over
+ * all of them proposes what they say of the scans.
+ */
+export const TUNE_SCANS_DELAY_IN_MS: number = 3 * 60 * 1000;
 
 // Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
@@ -328,6 +347,46 @@ export async function queueDataSecurityIssueGrouping(
     payload: { projectId: projectId.toString() },
     description: `the grouping of the issues of project ${projectId.toString()}`,
     delayInMs: GROUP_ISSUES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI give its verdict on the findings of one store that wait
+ * for a person (Server/Utils/AI/DataSecurity/FindingVerdicts, #10372): a
+ * little after the store's scan, once for the scan and its field
+ * suggestions.
+ */
+export async function queueDataSecurityFindingVerdicts(data: {
+  projectId: ObjectID;
+  dataStoreId: ObjectID;
+}): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_JUDGE_FINDINGS_JOB,
+    key: `data-security-judge-${data.dataStoreId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      dataStoreId: data.dataStoreId.toString(),
+    },
+    description: `OneUptime AI's verdicts on the findings of store ${data.dataStoreId.toString()}`,
+    delayInMs: JUDGE_FINDINGS_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI propose what the project's decisions say of its scans
+ * (Server/Utils/AI/DataSecurity/DataSecurityScanTuning, #10372): a data
+ * type to turn off, a location to leave out - a few minutes after a
+ * finding is marked not sensitive, once for several.
+ */
+export async function queueDataSecurityScanTuning(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_TUNE_SCANS_JOB,
+    key: `data-security-tune-scans-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's tuning of the scans of project ${projectId.toString()}`,
+    delayInMs: TUNE_SCANS_DELAY_IN_MS,
   });
 }
 

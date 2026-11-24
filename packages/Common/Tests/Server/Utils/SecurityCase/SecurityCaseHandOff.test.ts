@@ -161,6 +161,7 @@ describe("a hand-off", () => {
     SecurityCaseHandOffReason.BreakerTripped,
     SecurityCaseHandOffReason.AiOff,
     SecurityCaseHandOffReason.OutOfCredits,
+    SecurityCaseHandOffReason.ProductOff,
     SecurityCaseHandOffReason.DidNotHold,
     SecurityCaseHandOffReason.Declined,
     SecurityCaseHandOffReason.OnlyPeopleCanDo,
@@ -174,6 +175,40 @@ describe("a hand-off", () => {
     });
 
     expect(told).toEqual([{ reason }]);
+  });
+
+  /*
+   * Security Events switched off on the server (#10816): the case goes to
+   * people like any hand-off, saying the product is off, with the steps
+   * OneUptime AI was about to take left for a person.
+   */
+  test("Security Events switched off: the case is people's, and the timeline and the notice say why", async () => {
+    const isHandedOver: boolean = await SecurityCaseHandOff.handToPeople({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      reason: SecurityCaseHandOffReason.ProductOff,
+      stepKeys: ["contain:block-ip:10.0.0.1"],
+      stepTitles: { "contain:block-ip:10.0.0.1": "Block 10.0.0.1." },
+      now: NOW,
+    });
+
+    expect(isHandedOver).toBe(true);
+    expect(sets[0]!.data).toEqual({
+      aiResponseState: SecurityCaseAiResponseState.HandedToPeople,
+      aiHandOffReason: SecurityCaseHandOffReason.ProductOff,
+      aiNextLookAt: null,
+    });
+    expect(logged[0]!.handOffReason).toBe(SecurityCaseHandOffReason.ProductOff);
+    expect(String(feed[0]!["feedInfoInMarkdown"])).toContain(
+      "AI handed this case to people.** Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+    );
+    expect(String(feed[0]!["moreInformationInMarkdown"])).toContain(
+      "Left for a person:",
+    );
+    expect(String(feed[0]!["moreInformationInMarkdown"])).toContain(
+      "Block 10.0.0.1.",
+    );
+    expect(told).toEqual([{ reason: SecurityCaseHandOffReason.ProductOff }]);
   });
 
   test("a person who took the case over has it: nobody else is told", async () => {
