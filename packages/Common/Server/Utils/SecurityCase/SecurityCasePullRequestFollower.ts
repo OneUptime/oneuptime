@@ -187,7 +187,10 @@ export default class SecurityCasePullRequestFollower {
     run: VerifierRun;
   }): Promise<PullRequestFollowed> {
     const { row, run } = data;
-    const followed: PullRequestFollowed = { isChanged: false, isShipped: false };
+    const followed: PullRequestFollowed = {
+      isChanged: false,
+      isShipped: false,
+    };
 
     if (!row.id || !row.projectId || !row.securityCaseId) {
       return followed;

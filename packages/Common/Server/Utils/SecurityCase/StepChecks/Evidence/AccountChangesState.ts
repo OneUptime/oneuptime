@@ -89,11 +89,9 @@ export default class AccountChangesState {
       });
 
     return rows
-      .map(
-        (row: SecurityCaseEvidence): SecurityCaseEventSnapshot | null => {
-          return readSecurityCaseEventSnapshot(row.eventSnapshot);
-        },
-      )
+      .map((row: SecurityCaseEvidence): SecurityCaseEventSnapshot | null => {
+        return readSecurityCaseEventSnapshot(row.eventSnapshot);
+      })
       .filter(
         (
           snapshot: SecurityCaseEventSnapshot | null,

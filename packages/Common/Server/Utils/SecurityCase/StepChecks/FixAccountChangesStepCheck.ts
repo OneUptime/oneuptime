@@ -186,7 +186,8 @@ export function describeAccountChange(
 
   if (item.outcome === ChangeOutcome.Undone) {
     return sentence(
-      item.facts?.isAccountGone && item.change.kind !== AccountChangeKind.Account
+      item.facts?.isAccountGone &&
+        item.change.kind !== AccountChangeKind.Account
         ? CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE
         : UNDONE_SENTENCES[item.change.kind],
       values,

@@ -148,6 +148,7 @@ import {
   BLOCK_FROM_CASE_MENU_ITEM,
   BLOCK_HELP_SHOW,
   BLOCK_UNTIL_LIFTED,
+  LINK_PULL_REQUEST,
   RESPONSE_BY_HAND,
   RESPONSE_PHASE_TITLES,
   RESPONSE_TITLE,
@@ -256,7 +257,6 @@ import {
   ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
   ENTRA_ID_DIRECTORY_READ_PERMISSION,
 } from "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient";
-import { LINK_PULL_REQUEST } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import SecurityCaseStepCheckState, {
   SECURITY_CASE_STEP_CHECK_STATES,

@@ -278,7 +278,8 @@ export default class SecurityCasePullRequest extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Pull Request Number",
-    description: "The pull request's number in its repository. Written by OneUptime.",
+    description:
+      "The pull request's number in its repository. Written by OneUptime.",
   })
   @Column({
     nullable: true,

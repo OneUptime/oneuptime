@@ -249,13 +249,11 @@ export default class AccountChangeReadBack {
           .filter((label: string): boolean => {
             return Boolean(label);
           });
-        const isThere: boolean = roles.some(
-          (role: OktaUserObject): boolean => {
-            return granted.some((label: string): boolean => {
-              return sameText(role.name, label);
-            });
-          },
-        );
+        const isThere: boolean = roles.some((role: OktaUserObject): boolean => {
+          return granted.some((label: string): boolean => {
+            return sameText(role.name, label);
+          });
+        });
 
         return isThere
           ? facts(AccountChangeState.StillThere)
@@ -355,12 +353,18 @@ export default class AccountChangeReadBack {
 
       const keyIds: Array<string> | null = await client.readAppKeyIds({
         ownerType:
-          change.ownerType === "Application" ? "Application" : "ServicePrincipal",
+          change.ownerType === "Application"
+            ? "Application"
+            : "ServicePrincipal",
         id: change.accountId,
       });
 
       if (keyIds === null) {
-        return { provider, state: AccountChangeState.Undone, isAccountGone: true };
+        return {
+          provider,
+          state: AccountChangeState.Undone,
+          isAccountGone: true,
+        };
       }
 
       if (!change.objectId) {

@@ -48,7 +48,9 @@ describe("a pull request's address", () => {
 
   test("Forgejo's and Gitea's, on a server of the person's own", () => {
     expect(
-      parsePullRequestLink("https://git.acme.internal:3000/acme/search/pulls/9"),
+      parsePullRequestLink(
+        "https://git.acme.internal:3000/acme/search/pulls/9",
+      ),
     ).toMatchObject({
       type: CodeRepositoryType.Forgejo,
       hostUrl: "https://git.acme.internal:3000",
@@ -137,8 +139,8 @@ describe("a repository's page, held against another", () => {
       expect(getRepositoryAddressKey(same)).toBe(key);
     }
 
-    expect(getRepositoryAddressKey("https://github.com/acme/searcher")).not.toBe(
-      key,
-    );
+    expect(
+      getRepositoryAddressKey("https://github.com/acme/searcher"),
+    ).not.toBe(key);
   });
 });

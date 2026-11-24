@@ -431,7 +431,9 @@ describe("on the case's Response Plan", () => {
     await waitFor(() => {
       expect(screen.getByText(refusal)).toBeInTheDocument();
     });
-    expect(screen.getByTestId("modal-footer-submit-button")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("modal-footer-submit-button"),
+    ).toBeInTheDocument();
     expect(Toast.success).not.toHaveBeenCalled();
   });
 

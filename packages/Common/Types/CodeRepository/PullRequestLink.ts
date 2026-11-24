@@ -37,8 +37,12 @@ export interface PullRequestLink {
 export const PULL_REQUEST_LINK_MAX_LENGTH: number = 2000;
 export const PULL_REQUEST_NUMBER_MAX: number = 2147483647;
 
+// A pull request's number as its address writes it, and an address that names its scheme.
+const NUMBER_TEXT: RegExp = /^[0-9]{1,10}$/;
+const HAS_SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+
 function readNumber(text: string | undefined): number | null {
-  if (!text || !/^[0-9]{1,10}$/.test(text)) {
+  if (!text || !NUMBER_TEXT.test(text)) {
     return null;
   }
 
@@ -60,7 +64,7 @@ export function parsePullRequestLink(
     return null;
   }
 
-  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(address)) {
+  if (!HAS_SCHEME.test(address)) {
     address = `https://${address}`;
   }
 
@@ -94,7 +98,11 @@ export function parsePullRequestLink(
         return part;
       }
     });
-  const page: (owner: string, repository: string, path: string) => {
+  const page: (
+    owner: string,
+    repository: string,
+    path: string,
+  ) => {
     url: string;
     repositoryUrl: string;
   } = (

@@ -23,9 +23,7 @@ type MigrationClass = new () => MigrationInterface;
 
 const TABLE: string = "SecurityCasePullRequest";
 
-async function recordQueries(
-  direction: "up" | "down",
-): Promise<Array<string>> {
+async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
   const statements: Array<string> = [];
   const queryRunner: QueryRunner = {
     query: async (statement: string): Promise<Array<unknown>> => {
@@ -151,10 +149,12 @@ describe("AddSecurityCasePullRequest1809187540604", () => {
 
     expect(index).toBeGreaterThan(0);
 
+    // A migration's moment: the thirteen digits its class name ends with.
+    const stamp: RegExp = /(\d{13})$/;
     const stamps: Array<number> = migrations
       .slice(0, index)
       .map((migration: MigrationClass): number => {
-        return Number(/(\d{13})$/.exec(migration.name)?.[1] || "0");
+        return Number(stamp.exec(migration.name)?.[1] || "0");
       });
 
     expect(Math.max(...stamps)).toBeLessThan(1809187540604);

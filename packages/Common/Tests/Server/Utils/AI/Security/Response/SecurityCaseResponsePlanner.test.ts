@@ -772,7 +772,9 @@ describe("the fix", () => {
       );
 
       expect(plan.intents).toHaveLength(1);
-      expect(plan.intents[0]!.kind).toBe(SecurityCaseAiActionKind.StepForPeople);
+      expect(plan.intents[0]!.kind).toBe(
+        SecurityCaseAiActionKind.StepForPeople,
+      );
 
       return plan.intents[0]!.reason;
     };

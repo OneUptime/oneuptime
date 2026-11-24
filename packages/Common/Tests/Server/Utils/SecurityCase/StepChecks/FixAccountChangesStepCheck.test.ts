@@ -48,7 +48,6 @@ import {
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
   CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE,
   CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
-  CHECK_ACCOUNT_CHANGE_GROUP_STILL,
   CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
   CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_MFA_UNDONE,
@@ -132,9 +131,7 @@ function answer(
   return { change: item, facts: null, hasConnection: true, ...data };
 }
 
-function target(
-  previous: StepCheckTarget["previous"] = null,
-): StepCheckTarget {
+function target(previous: StepCheckTarget["previous"] = null): StepCheckTarget {
   return {
     step: {
       key: KEY,
@@ -306,7 +303,9 @@ describe("what the attack changed, read back", () => {
     const again: StepCheckResult = decideAccountChanges({
       changes: [GROUP],
       reading: {
-        answers: [answer(GROUP, { facts: facts(AccountChangeState.StillThere) })],
+        answers: [
+          answer(GROUP, { facts: facts(AccountChangeState.StillThere) }),
+        ],
       },
       now: new Date("2026-11-17T22:00:00.000Z"),
       target: target({
@@ -399,9 +398,9 @@ describe("what the attack changed, read back", () => {
       AccountChangeState.StillThere,
       AccountChangeState.Unknown,
     ]) {
-      expect(
-        decide([answer(GROUP, { facts: facts(state) })]).state,
-      ).not.toBe(SecurityCaseStepCheckState.Verified);
+      expect(decide([answer(GROUP, { facts: facts(state) })]).state).not.toBe(
+        SecurityCaseStepCheckState.Verified,
+      );
     }
   });
 });

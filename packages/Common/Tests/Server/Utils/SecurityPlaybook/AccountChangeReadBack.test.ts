@@ -174,7 +174,9 @@ describe("Okta", () => {
           /\/api\/v1\/users\/[^/]+\/groups$/,
           (): DataSourceHttpResponse => {
             return data.refuse
-              ? respond(data.refuse, { errorSummary: "You do not have permission" })
+              ? respond(data.refuse, {
+                  errorSummary: "You do not have permission",
+                })
               : respond(200, data.groups || []);
           },
         ],
@@ -283,15 +285,19 @@ describe("Okta", () => {
       objectName: "Super administrator",
     };
 
-    expect(
-      (await read(OKTA_SETTINGS, role, okta({ roles: [] })))?.state,
-    ).toBe(AccountChangeState.Undone);
+    expect((await read(OKTA_SETTINGS, role, okta({ roles: [] })))?.state).toBe(
+      AccountChangeState.Undone,
+    );
     expect(
       (
         await read(
           OKTA_SETTINGS,
           role,
-          okta({ roles: [{ id: "r1", type: "SUPER_ADMIN", label: "Super Administrator" }] }),
+          okta({
+            roles: [
+              { id: "r1", type: "SUPER_ADMIN", label: "Super Administrator" },
+            ],
+          }),
         )
       )?.state,
     ).toBe(AccountChangeState.StillThere);
@@ -300,7 +306,13 @@ describe("Okta", () => {
         OKTA_SETTINGS,
         role,
         okta({
-          roles: [{ id: "r2", type: "HELP_DESK_ADMIN", label: "Help Desk Administrator" }],
+          roles: [
+            {
+              id: "r2",
+              type: "HELP_DESK_ADMIN",
+              label: "Help Desk Administrator",
+            },
+          ],
         }),
       ),
     ).toMatchObject({
@@ -431,7 +443,11 @@ describe("Okta", () => {
     expect(
       await read(
         OKTA_SETTINGS,
-        { kind: AccountChangeKind.Group, accountId: "00u1gone", objectId: "00g1" },
+        {
+          kind: AccountChangeKind.Group,
+          accountId: "00u1gone",
+          objectId: "00g1",
+        },
         okta({ user: null }),
       ),
     ).toEqual({
@@ -799,7 +815,9 @@ describe("Google Workspace", () => {
       [
         /\/admin\/directory\/v1\/users\/[^/]+$/,
         (): DataSourceHttpResponse => {
-          return user ? respond(200, user) : respond(404, { error: { code: 404 } });
+          return user
+            ? respond(200, user)
+            : respond(404, { error: { code: 404 } });
         },
       ],
     ]);
@@ -897,7 +915,10 @@ describe("Google Workspace", () => {
     expect(
       await read(
         GOOGLE_SETTINGS,
-        google({ kind: AccountChangeKind.Group, objectName: "finance@acme.com" }),
+        google({
+          kind: AccountChangeKind.Group,
+          objectName: "finance@acme.com",
+        }),
         workspace({}),
       ),
     ).toMatchObject({
@@ -1019,20 +1040,24 @@ describe("each change is read in every connection of its product", () => {
       productName: "Okta System Log",
       attributes: { eventType: "user.lifecycle.create" },
     } as unknown as JSONObject;
-    const findBy: jest.SpiedFunction<typeof SecurityCaseEvidenceService.findBy> =
-      jest
-        .spyOn(SecurityCaseEvidenceService, "findBy")
-        .mockResolvedValue([kept, new SecurityCaseEvidence()]);
+    const findBy: jest.SpiedFunction<
+      typeof SecurityCaseEvidenceService.findBy
+    > = jest
+      .spyOn(SecurityCaseEvidenceService, "findBy")
+      .mockResolvedValue([kept, new SecurityCaseEvidence()]);
 
-    const events: Awaited<ReturnType<typeof AccountChangesState.readKeptEvents>> =
-      await AccountChangesState.readKeptEvents({
-        projectId: ObjectID.generate(),
-        securityCaseId: ObjectID.generate(),
-      });
+    const events: Awaited<
+      ReturnType<typeof AccountChangesState.readKeptEvents>
+    > = await AccountChangesState.readKeptEvents({
+      projectId: ObjectID.generate(),
+      securityCaseId: ObjectID.generate(),
+    });
 
-    expect(events.map((event: { eventUid: string }) => event.eventUid)).toEqual([
-      "kept-1",
-    ]);
+    expect(
+      events.map((event: { eventUid: string }) => {
+        return event.eventUid;
+      }),
+    ).toEqual(["kept-1"]);
     expect(findBy.mock.calls[0]![0]).toMatchObject({
       query: { kind: "Event" },
       props: { isRoot: true },

@@ -331,7 +331,9 @@ describe("Microsoft Entra ID's audit log", () => {
               id: "33333333-cccc-4ccc-8ccc-333333333333",
               displayName: "Payroll",
             },
-            properties: { "AppRole.Id": '"44444444-dddd-4ddd-8ddd-444444444444"' },
+            properties: {
+              "AppRole.Id": '"44444444-dddd-4ddd-8ddd-444444444444"',
+            },
           },
           { fields: ENTRA_ALICE },
         ]),
@@ -353,13 +355,15 @@ describe("Microsoft Entra ID's audit log", () => {
       expect(
         readAccountChange(
           entra(activity, [{ fields: ENTRA_ALICE }], {
-            resultReason: "User registered Authenticator App with Notification and Code",
+            resultReason:
+              "User registered Authenticator App with Notification and Code",
           }),
         ),
       ).toMatchObject({
         kind: AccountChangeKind.MfaDevice,
         account: "alice@acme.onmicrosoft.com",
-        objectName: "User registered Authenticator App with Notification and Code",
+        objectName:
+          "User registered Authenticator App with Notification and Code",
       });
     }
   });
@@ -430,7 +434,9 @@ describe("Microsoft Entra ID's audit log", () => {
       ),
     ).toBeNull();
     expect(
-      readAccountChange(entra("Remove member from role", [{ fields: ENTRA_ALICE }])),
+      readAccountChange(
+        entra("Remove member from role", [{ fields: ENTRA_ALICE }]),
+      ),
     ).toBeNull();
   });
 
@@ -524,7 +530,10 @@ describe("Google Workspace's audit log", () => {
         workspace(
           "token",
           "authorize",
-          { client_id: "123.apps.googleusercontent.com", app_name: "Mail Sync" },
+          {
+            client_id: "123.apps.googleusercontent.com",
+            app_name: "Mail Sync",
+          },
           "alice@acme.com",
         ),
       ),
@@ -749,14 +758,18 @@ describe("a case's changes", () => {
       many.push({
         ...okta("group.user_membership.add", [
           OKTA_ALICE,
-          { id: `00g${index}`, type: "UserGroup", displayName: `Group ${index}` },
+          {
+            id: `00g${index}`,
+            type: "UserGroup",
+            displayName: `Group ${index}`,
+          },
         ]),
         eventUid: `event-${index}`,
       });
     }
 
-    expect(
-      getAttackAccountChanges({ matches: matches(many) }).length,
-    ).toBe(ACCOUNT_CHANGES_MAX);
+    expect(getAttackAccountChanges({ matches: matches(many) }).length).toBe(
+      ACCOUNT_CHANGES_MAX,
+    );
   });
 });

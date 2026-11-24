@@ -160,9 +160,9 @@ describe("where a moment is written", () => {
   const MOMENT: Date = new Date("2026-11-27T14:25:00.000Z");
 
   test("on the reader's clock: the time alone today", () => {
-    jest.spyOn(OneUptimeDate, "getUserPrefers12HourFormat").mockReturnValue(
-      false,
-    );
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
 
     const today: WrittenMoment = writeReaderMoment(
       MOMENT,
@@ -174,16 +174,18 @@ describe("where a moment is written", () => {
   });
 
   test("on the reader's clock: the day and its time on another day", () => {
-    jest.spyOn(OneUptimeDate, "getUserPrefers12HourFormat").mockReturnValue(
-      false,
-    );
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
 
     const before: WrittenMoment = writeReaderMoment(
       MOMENT,
       new Date("2026-11-30T09:00:00.000Z"),
     );
 
-    expect(before.date).toBe(OneUptimeDate.getDateAsLocalDayMonthString(MOMENT));
+    expect(before.date).toBe(
+      OneUptimeDate.getDateAsLocalDayMonthString(MOMENT),
+    );
     expect(before.time).toBe("14:25");
     expect(before.whole).toBe(
       OneUptimeDate.getDateAsLocalDayMonthTimeString(MOMENT, {
@@ -225,7 +227,11 @@ describe("where a moment is written", () => {
     expect(kolkata.date).toBe("Nov 27, 2026");
     expect(kolkata.time).toBe("19:55 IST");
     expect(
-      wordMoment({ role: MomentRole.Since, moment: kolkata, translator: ENGLISH }),
+      wordMoment({
+        role: MomentRole.Since,
+        moment: kolkata,
+        translator: ENGLISH,
+      }),
     ).toBe("since Nov 27, 2026 at 19:55 IST");
   });
 });

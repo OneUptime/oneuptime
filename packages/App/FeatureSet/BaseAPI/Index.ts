@@ -4854,10 +4854,10 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new BaseAPI<SecurityCasePullRequest, SecurityCasePullRequestServiceType>(
         SecurityCasePullRequest,
-        SecurityCasePullRequestServiceType
-      >(SecurityCasePullRequest, SecurityCasePullRequestService).getRouter(),
+        SecurityCasePullRequestService,
+      ).getRouter(),
     );
 
     // A case's evidence, and the route its files download through.

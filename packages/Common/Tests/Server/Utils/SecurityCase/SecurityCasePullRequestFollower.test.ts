@@ -205,7 +205,9 @@ describe("an open pull request a person linked", () => {
       followedAt: NOW,
       pullRequestState: PullRequestState.Closed,
     });
-    expect(FixProductionVerifier.findDeployContainingFix).not.toHaveBeenCalled();
+    expect(
+      FixProductionVerifier.findDeployContainingFix,
+    ).not.toHaveBeenCalled();
     expect(checksAsked).toHaveLength(1);
   });
 
@@ -325,7 +327,9 @@ describe("a merged one, matched to the deploy that shipped it", () => {
   test("merged with no merge commit the host would say: nothing to match a deploy to", async () => {
     await follow(linkRow({ pullRequestState: PullRequestState.Merged }));
 
-    expect(FixProductionVerifier.findDeployContainingFix).not.toHaveBeenCalled();
+    expect(
+      FixProductionVerifier.findDeployContainingFix,
+    ).not.toHaveBeenCalled();
   });
 
   test("shipped already: never followed again", async () => {
@@ -337,7 +341,9 @@ describe("a merged one, matched to the deploy that shipped it", () => {
       }),
     );
 
-    expect(FixProductionVerifier.findDeployContainingFix).not.toHaveBeenCalled();
+    expect(
+      FixProductionVerifier.findDeployContainingFix,
+    ).not.toHaveBeenCalled();
     expect(LinkedPullRequestReader.readState).not.toHaveBeenCalled();
   });
 });

@@ -138,7 +138,10 @@ export function getMomentRole(placeholder: string): MomentRole {
  * A moment on the reader's clock, in their language: the time alone today,
  * the day and the time on any other day.
  */
-export function writeReaderMoment(time: Date, now: Date = new Date()): WrittenMoment {
+export function writeReaderMoment(
+  time: Date,
+  now: Date = new Date(),
+): WrittenMoment {
   const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
   const clock: string = OneUptimeDate.getLocalTimeString(time, {
     use12HourFormat,

@@ -697,35 +697,36 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
 
   // Takes a linked pull request off the case: the Fix step reads the rest (#10604).
-  const removePullRequest: (row: SecurityCasePullRequest) => Promise<void> =
-    async (row: SecurityCasePullRequest): Promise<void> => {
-      const id: string = row._id?.toString() || row.id?.toString() || "";
+  const removePullRequest: (
+    row: SecurityCasePullRequest,
+  ) => Promise<void> = async (row: SecurityCasePullRequest): Promise<void> => {
+    const id: string = row._id?.toString() || row.id?.toString() || "";
 
-      if (!id || removingPullRequestId) {
-        return;
-      }
+    if (!id || removingPullRequestId) {
+      return;
+    }
 
-      setRemovingPullRequestId(id);
-      setActionError("");
+    setRemovingPullRequestId(id);
+    setActionError("");
 
-      try {
-        await ModelAPI.deleteItem<SecurityCasePullRequest>({
-          modelType: SecurityCasePullRequest,
-          id: new ObjectID(id),
-        });
+    try {
+      await ModelAPI.deleteItem<SecurityCasePullRequest>({
+        modelType: SecurityCasePullRequest,
+        id: new ObjectID(id),
+      });
 
-        Toast.success(
-          translator.translateTemplate(UNLINKED_PULL_REQUEST_TOAST, {
-            pullRequest: getFixPullRequestName(row),
-          }),
-        );
-        await load();
-      } catch (err) {
-        setActionError(API.getFriendlyMessage(err));
-      } finally {
-        setRemovingPullRequestId("");
-      }
-    };
+      Toast.success(
+        translator.translateTemplate(UNLINKED_PULL_REQUEST_TOAST, {
+          pullRequest: getFixPullRequestName(row),
+        }),
+      );
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    } finally {
+      setRemovingPullRequestId("");
+    }
+  };
 
   /*
    * Blocks the step's address through the playbook engine (#10342): at

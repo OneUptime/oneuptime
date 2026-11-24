@@ -372,10 +372,7 @@ export function readEntraKeyIdentifier(description: string): string {
   return match ? match[1]!.toLowerCase() : "";
 }
 
-function findProperty(
-  targets: Array<EntraTarget>,
-  name: string,
-): string {
+function findProperty(targets: Array<EntraTarget>, name: string): string {
   for (const target of targets) {
     const value: string | undefined = target.properties[name];
 
@@ -390,7 +387,10 @@ function findProperty(
 export function readEntraIdAccountChange(
   event: SecurityCaseEventSnapshot,
 ): AccountChange | null {
-  if (attribute(event, "entra.log") && attribute(event, "entra.log") !== "AuditLogs") {
+  if (
+    attribute(event, "entra.log") &&
+    attribute(event, "entra.log") !== "AuditLogs"
+  ) {
     return null;
   }
 
@@ -488,7 +488,8 @@ export function readEntraIdAccountChange(
         kind,
         account: owner?.name || "",
         accountId: owner?.id || "",
-        ownerType: owner?.type === "application" ? "Application" : "ServicePrincipal",
+        ownerType:
+          owner?.type === "application" ? "Application" : "ServicePrincipal",
         objectId: readEntraKeyIdentifier(
           findProperty(targets, "KeyDescription"),
         ),
@@ -601,7 +602,8 @@ export function readAwsAccountChange(
   event: SecurityCaseEventSnapshot,
 ): AccountChange | null {
   const eventName: string = attribute(event, "eventName");
-  const kind: AccountChangeKind | undefined = AWS_IAM_ACCOUNT_CHANGES[eventName];
+  const kind: AccountChangeKind | undefined =
+    AWS_IAM_ACCOUNT_CHANGES[eventName];
 
   if (
     attribute(event, "eventSource") !== "iam.amazonaws.com" ||

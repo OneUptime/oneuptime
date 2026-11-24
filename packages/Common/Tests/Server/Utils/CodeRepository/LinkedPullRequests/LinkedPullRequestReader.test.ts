@@ -102,7 +102,9 @@ describe("the repository a pull request's address names", () => {
     expect(
       isRepositoryOfLink(
         GITLAB,
-        link("https://gitlab.example.com/acme/platform/search/-/merge_requests/17"),
+        link(
+          "https://gitlab.example.com/acme/platform/search/-/merge_requests/17",
+        ),
       ),
     ).toBe(false);
     // A repository with no page and no GitHub name is matched by nothing.
@@ -115,10 +117,9 @@ describe("the repository a pull request's address names", () => {
   });
 
   test("is found among the project's repositories, or is not connected", async () => {
-    const findBy: jest.SpiedFunction<typeof CodeRepositoryService.findBy> =
-      jest
-        .spyOn(CodeRepositoryService, "findBy")
-        .mockResolvedValue([GITLAB, GITHUB]);
+    const findBy: jest.SpiedFunction<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([GITLAB, GITHUB]);
     const projectId: ObjectID = ObjectID.generate();
 
     expect(

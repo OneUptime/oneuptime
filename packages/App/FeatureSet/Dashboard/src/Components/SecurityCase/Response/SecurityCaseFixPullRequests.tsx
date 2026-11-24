@@ -48,6 +48,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 const URL_FIELD: string = "pullRequestUrl";
 
+// An address that names its scheme; one that does not is read as https.
+const HAS_SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+
 export interface FixPullRequestListProps {
   rows: Array<SecurityCasePullRequest>;
   // Whether the reader may take a link off; a closed case keeps its links as they are.
@@ -75,8 +78,7 @@ export const FixPullRequestList: FunctionComponent<FixPullRequestListProps> = (
       {props.rows.map((row: SecurityCasePullRequest): ReactElement => {
         const id: string = row._id?.toString() || row.id?.toString() || "";
         const name: string = getFixPullRequestName(row);
-        const standing: FixPullRequestStanding =
-          getFixPullRequestStanding(row);
+        const standing: FixPullRequestStanding = getFixPullRequestStanding(row);
         const url: URL | undefined = row.pullRequestUrl;
 
         return (
@@ -179,9 +181,7 @@ export const LinkPullRequestModal: FunctionComponent<
           const link: SecurityCasePullRequest = new SecurityCasePullRequest();
           link.securityCaseId = props.securityCaseId;
           link.pullRequestUrl = URL.fromString(
-            /^[a-z][a-z0-9+.-]*:\/\//i.test(address)
-              ? address
-              : `https://${address}`,
+            HAS_SCHEME.test(address) ? address : `https://${address}`,
           );
 
           await ModelAPI.create<SecurityCasePullRequest>({

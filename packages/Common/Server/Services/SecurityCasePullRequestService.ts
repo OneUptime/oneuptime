@@ -155,15 +155,14 @@ export class Service extends ProjectReferencesService<Model> {
      * own pages let them.
      */
     if (!createBy.props.isRoot && !createBy.props.isMasterAdmin) {
-      const readable: CodeRepository | null = await CodeRepositoryService.findOneBy(
-        {
+      const readable: CodeRepository | null =
+        await CodeRepositoryService.findOneBy({
           query: { _id: repository.id, projectId },
           select: { _id: true },
           props: createBy.props,
-        },
-      ).catch((): null => {
-        return null;
-      });
+        }).catch((): null => {
+          return null;
+        });
 
       if (!readable) {
         throw refuse(
@@ -228,7 +227,9 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (read.state === PullRequestState.Closed) {
-      throw refuse(getRefusalText(PULL_REQUEST_LINK_CLOSED, { pullRequest: name }));
+      throw refuse(
+        getRefusalText(PULL_REQUEST_LINK_CLOSED, { pullRequest: name }),
+      );
     }
 
     // What OneUptime read of it, written by OneUptime.
@@ -264,7 +265,11 @@ export class Service extends ProjectReferencesService<Model> {
       | LinkRead
       | undefined;
 
-    if (!createdItem.id || !createdItem.projectId || !createdItem.securityCaseId) {
+    if (
+      !createdItem.id ||
+      !createdItem.projectId ||
+      !createdItem.securityCaseId
+    ) {
       return createdItem;
     }
 

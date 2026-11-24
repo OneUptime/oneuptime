@@ -98,8 +98,7 @@ export const CHECK_BLOCK_REGRESSED: string = translationKey(
 );
 export const CHECK_BLOCK_SINCE_AGAIN: PluralTemplate = {
   one: "{{count}} request from {{address}} has reached your app {{since}}.",
-  other:
-    "{{count}} requests from {{address}} have reached your app {{since}}.",
+  other: "{{count}} requests from {{address}} have reached your app {{since}}.",
 };
 export const CHECK_BLOCK_QUIET_SINCE: string = translationKey(
   "No request from {{address}} has reached your app {{since}}.",

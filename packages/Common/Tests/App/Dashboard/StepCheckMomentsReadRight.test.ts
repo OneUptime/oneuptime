@@ -234,7 +234,8 @@ function phraseEdgesIn(language: string): {
 
 const LETTER: RegExp = /\p{L}/u;
 // Scripts whose words are not set apart by spaces, or whose particles join the word before.
-const JOINED_SCRIPT: RegExp = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const JOINED_SCRIPT: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 function endsWithWord(text: string, word: string): boolean {
   const before: string = text.trimEnd().toLowerCase();
@@ -366,7 +367,10 @@ describe("a moment's phrases, in every language", () => {
 
     for (const language of DASHBOARD_LANGUAGES) {
       for (const role of MOMENT_ROLES) {
-        for (const key of [MOMENT_PHRASES[role].time, MOMENT_PHRASES[role].day]) {
+        for (const key of [
+          MOMENT_PHRASES[role].time,
+          MOMENT_PHRASES[role].day,
+        ]) {
           if (!isWordedInDashboardLocale(key, language)) {
             offenders.push(`${language}: "${key}" is not worded`);
           }
