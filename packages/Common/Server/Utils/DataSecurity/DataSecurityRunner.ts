@@ -344,11 +344,16 @@ export default class DataSecurityRunner {
           (store?.contentScanState as JSONObject | undefined) || undefined,
         fingerprintKey: getFingerprintKey(projectId),
         model: await createModelScanContext({
+          /*
+           * Telemetry needs both switches: its own sits under the content
+           * one on the settings page, and does nothing with that one off.
+           */
           isEnabled:
             model === "content"
               ? setting.isModelScanEnabled !== false
               : model === "telemetry"
-                ? setting.isTelemetryModelScanEnabled === true
+                ? setting.isModelScanEnabled !== false &&
+                  setting.isTelemetryModelScanEnabled === true
                 : false,
           scope: model === "telemetry" ? "telemetry" : "content",
           place: "server",

@@ -3043,6 +3043,53 @@ export function modelStoreKey(sample: {
   return storeKey(sample.kind, sample.ownerId);
 }
 
+// FNV-1a: a store's place in an hour's order for the model.
+function rankOf(text: string): number {
+  let hash: number = 0x811c9dc5;
+
+  for (let index: number = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return hash;
+}
+
+const HOUR_IN_MS: number = 60 * 60 * 1000;
+
+/*
+ * The order the model reads a scan's stores in. Its minute covers a few
+ * dozen stores of a busy project, and the stores come in the order they
+ * were sampled - the same every hour - so the same services would be read
+ * every hour and the rest never. Each hour orders them anew, the same way
+ * for the same hour, so every store's turn comes as often as any other's.
+ */
+export function orderStoresForModel<
+  T extends { kind: DataStoreKind; ownerId: string },
+>(samples: ReadonlyArray<T>, scanEnd: Date): Array<T> {
+  const hour: number = Math.floor(scanEnd.getTime() / HOUR_IN_MS);
+
+  return samples
+    .map((sample: T, index: number) => {
+      return {
+        sample,
+        index,
+        rank: rankOf(`${hour}:${modelStoreKey(sample)}`),
+      };
+    })
+    .sort(
+      (
+        first: { rank: number; index: number },
+        second: { rank: number; index: number },
+      ): number => {
+        return first.rank - second.rank || first.index - second.index;
+      },
+    )
+    .map((entry: { sample: T }): T => {
+      return entry.sample;
+    });
+}
+
 /*
  * What the names-and-addresses model finds in a sample's free text - its
  * bodies, messages and prompts, and attributes long enough to be free text
@@ -3343,14 +3390,24 @@ export async function scanProjectTelemetry(data: {
 
   const scans: Array<TelemetryStoreScan> = [];
 
+  /*
+   * The model reads the stores first, in this hour's order, so that the
+   * time it has goes to different services each hour; the results keep the
+   * order the stores were sampled in.
+   */
+  const recognized: Map<StoreSample, ModelRecognitions | undefined> = new Map();
+
+  if (data.options.model) {
+    for (const sample of orderStoresForModel(samples, context.window.until)) {
+      recognized.set(sample, await recognizeSample(sample, data.options));
+    }
+  }
+
   for (const sample of samples) {
     const name: string | undefined = owners.names.get(
       sample.ownerId.toLowerCase(),
     );
-    const recognitions: ModelRecognitions | undefined = await recognizeSample(
-      sample,
-      data.options,
-    );
+    const recognitions: ModelRecognitions | undefined = recognized.get(sample);
     const scan: TelemetryStoreScan = {
       serviceId: sample.ownerId,
       kind: sample.kind,
