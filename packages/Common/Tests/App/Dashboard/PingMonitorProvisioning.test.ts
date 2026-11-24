@@ -263,10 +263,17 @@ describe("provisionPingMonitorForDevice", () => {
     expect(order).toEqual(["create", "bind"]);
   });
 
+  /*
+   * Beside the probes, every create says its name is OneUptime's ("Ping
+   * <device>"): numbered rather than refused where the project requires
+   * unique names (#10761).
+   */
   test("an empty probe selection sends no probes key", async () => {
     await provision({ probeIds: [] });
 
-    expect(lastCreateCall().miscDataProps).toEqual({});
+    expect(lastCreateCall().miscDataProps).toEqual({
+      numbersTakenName: true,
+    });
   });
 
   test("a probe selection rides in miscDataProps", async () => {
@@ -274,6 +281,7 @@ describe("provisionPingMonitorForDevice", () => {
 
     expect(lastCreateCall().miscDataProps).toEqual({
       probes: ["probe-1", "probe-2"],
+      numbersTakenName: true,
     });
   });
 

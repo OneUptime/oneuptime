@@ -187,7 +187,7 @@ The **Setup Guide** page, under **Connections**, has these snippets with your ow
 
 ### Find security events in your logs
 
-**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and refused request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
 
 Each kind reaches OneUptime as ordinary logs:
 
@@ -288,6 +288,55 @@ Every event is stored with typed fields and its source payload:
 
 Events stored before OneUptime 14.0.84 leave the process fields empty and name their process only as `principalProcess`, the process that acted. They are not filled in afterwards: they keep what they were stored with until their retention ends.
 
+### Which address an event names
+
+An event names the address a request came from only when the request's sender could not have written it. That address is verified, and it becomes the event's **Principal IP**: detection rules count it, threat intelligence matches it, and a case's **Response Plan** offers to block it. Any other address a request names is claimed: the event keeps it as **Claimed IP**, and nothing counts or blocks it.
+
+- The connection's own address is verified: a server span's `network.peer.address`, or the first field of a web server's access log line. Nobody can write it into a request.
+- Behind a proxy you trust, the connection's address is the proxy's, and the client is the address the proxy forwarded in `X-Forwarded-For`. Each proxy appends the address it took the connection from, so OneUptime reads the header from the right and takes the first address that is no proxy you trust. What a sender writes in the header lands on its left, and stays a claim.
+- An address a request names about itself is claimed: `client.address`, which instrumentation fills from the left of the header, the rest of `X-Forwarded-For`, and `Forwarded`.
+
+A claimed address is never blocked from a case: anyone can send `X-Forwarded-For: 192.0.2.44`, and a block would cut off whoever 192.0.2.44 is. An event with only a claimed address has a **Response Plan** that tells you to find the real one in your load balancer's or firewall's logs.
+
+Record two things on your app's server spans so its addresses are verified: the connection's own address, `network.peer.address`, which OpenTelemetry's HTTP instrumentations set, and, behind a proxy, the `X-Forwarded-For` header, which they record as `http.request.header.x-forwarded-for` once you list it in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. A JSON access log is read the same way: its client field, such as `remote_addr`, is the connection's address, and its `http_x_forwarded_for` field is the header.
+
+#### Trusted Proxies
+
+Security Events trusts a proxy to say who its client was when its address is:
+
+| Trusted | Why |
+| --- | --- |
+| Private, loopback or link-local, such as `10.0.0.5` | Always: nobody has it on the internet, so it is a load balancer or an ingress inside your network |
+| Listed under **Trusted Proxies** | You listed it |
+| In the published ranges of an edge you connected, such as [Cloudflare](/docs/integrations/cloudflare) | While the connection exists |
+| One of your own application load balancers | Unless you turn it off |
+
+**Security Events → Connections → More settings** holds **Trusted Proxies**, the list you write, and **Trusted Automatically**, which shows the rest and why. List a proxy under **Trusted Proxies**, one address or range a line, when its address is public and nothing else trusts it: a CDN you have not connected, a load balancer that reaches your app over the internet, or a reverse proxy such as nginx on a server with a public address in front of your app. Until you do, every attack through it is blamed on the proxy. Behind a Google Cloud global external Application Load Balancer, your app's connections come from Google's front ends: list `35.191.0.0/16` and `130.211.0.0/22`.
+
+Your own application load balancers are the ones your [connected cloud accounts](/docs/telemetry/cloud-accounts) list: AWS Application Load Balancers, AWS Classic Load Balancers whose every listener is HTTP or HTTPS, Google Cloud Application Load Balancers and Azure Application Gateways, by their public addresses. Each adds the client it forwards to `X-Forwarded-For`. A Google Cloud load balancer appends its own address after the client's, and an Application Gateway reaches a public backend from its own address, so without them every attack through one would be blamed on the load balancer. **Your Load Balancers**, on **Trusted Automatically**, lists them, and a Project Owner, Project Admin or Security Admin can turn it off.
+
+Nothing else of yours is trusted automatically: not your hosts, Kubernetes nodes, probes or virtual machines, a NAT gateway, or a Network, Gateway or Azure load balancer. They forward nobody, or pass a request on as it came, so whatever runs on them could name any client: a request a monitor sends with headers of its own, a pod, a laptop behind the gateway. If one of them is your proxy, add it to **Trusted Proxies**. A Kubernetes ingress is trusted as the load balancer it is: a GKE ingress is a Google Cloud Application Load Balancer, an AKS Application Gateway ingress an Application Gateway, and an EKS ingress of class `alb` an AWS Application Load Balancer. An ingress controller inside your cluster forwards from a private address, which is always trusted.
+
+A change to any of these takes effect within a minute, and a new load balancer is trusted within five.
+
+#### Access logs that end with X-Forwarded-For
+
+Behind a load balancer, many web servers log the forwarded address last, as nginx's own `main` format does:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+A line never says what its fields are, so its last field is read as `X-Forwarded-For` only once you turn on **Logs End With X-Forwarded-For**, on **Access Logs** under **More settings**, and then only:
+
+- when the line's first field is a proxy you trust: a line from a client that reached your web server directly is that client's;
+- in the combined format, with exactly one quoted field after the user agent and nothing after it;
+- when that field is `-` or a list of addresses whose last has no port.
+
+Leave it off when your format ends with another header that holds an address, such as `X-Real-IP`, or when your web server writes headers without escaping their quotes, as Express's `morgan` does: a request's own user agent could then add a field. A JSON access log needs no switch, since its fields are named.
+
 ### Hidden by a scrub rule
 
 An IP Address scrub rule that redacts or masks your logs or traces hides the address an attack came from before Security Events reads them. The event is still stored, with no address, and wherever it would name the address it says a scrub rule hid it:
@@ -335,13 +384,24 @@ The sidebar counts the window's events by **Source**, **Severity**, **Request Ou
 
 An event read from a log line written inside a traced request is followed into that request. Its panel says how far the request got (**Rejected**, **Reached App**, **Errored** or **Reached Database**), who sent it, and links to its trace, its exception, its session replay and the log line itself. A log line, a trace and an exception that are part of an attack say so on their own pages too.
 
+### A sensitive file your site served
+
+A request for a file that holds secrets, such as `/.env`, `/.git/config`, `/.aws/credentials` or a copy of `wp-config.php`, is a leak when your site answered it with the file itself: whoever asked holds its passwords, keys and tokens. A single-page app answers every path it does not have with its own page and a 200, so a 200 alone never says so. OneUptime reads what the answer carried:
+
+- A type that is no web page, such as `text/plain` or `application/octet-stream`: the file itself.
+- A web page, or JSON for a file that is not JSON: your site's own page.
+- Nothing in it: nothing was taken.
+- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. When nothing tells, the request is no event.
+
+A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**.
+
 ### Campaigns
 
 **Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first. A row your blocklist already holds says until when it is blocked or challenged, and names the range or network that holds it.
 
 To block several attackers at once, select their rows and press **Block Addresses**. One dialog lists every address it blocks and every one it leaves out, with why: already blocked, one of your own or a protected one, one a signed-in user used in the last 30 days, or one OneUptime could not check. It blocks for 24 hours unless you choose another length, or challenges with **Challenge Instead**, and each block goes on your [blocklist](/docs/telemetry/security-cases#blocklist) as yours.
 
-**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has.
+**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has. A network's **View requests** opens what it sent in **Events**: an ASN's by the ASN its Cloudflare events carry, and a range's as a search for its addresses, such as `ip:203.0.113.*`, which you can change.
 
 - A network that holds an address a signed-in user used in the last 30 days, or one of your own, is never challenged, and the dialog names who or what.
 - A range wider than a /24 (a /48 for IPv6), and a whole ASN, take a Security Admin, a Project Admin or a Project Owner. An ASN's row also offers each of its ranges, which anyone who can block may challenge.
@@ -536,6 +596,8 @@ Group By and Distinct Count take the same field names as the rule. With them, th
 | Brute force: 5 failed logons from one IP | `principalIp` | Empty | 5 |
 | Password spraying: one IP failing against 5 different accounts | `principalIp` | `principalUser` | 5 |
 | Port scan: one IP reaching 20 different ports | `principalIp` | `targetPort` | 20 |
+
+A rule with a **Group By Field** that needs more than one event in a group, through a threshold above 1 or a **Distinct Count Field**, leaves out the events that have no value for its field: counted, they would all add up as one value, every failed sign-in with no address as one IP address. A rule that fires on each event keeps firing for them. **Detection Rules** says under a rule's name how many of the last day's matching events it couldn't count, and the line opens why: how many had no value, and how many of those a scrub rule hid, with **Open Scrub Rules**. A rule that could count none of what it matched can't fire, and its **Status** says **Needs attention**. **Run on Past Events** says the same for the period it reads.
 
 ### When a rule runs
 

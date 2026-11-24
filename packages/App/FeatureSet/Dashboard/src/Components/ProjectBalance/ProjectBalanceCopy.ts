@@ -8,11 +8,18 @@ import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
  *
  * Only a project owner, or someone with Manage Billing, may add to either
  * (Common/Utils/Project/ProjectBalance, which also words what the server
- * says). So the page that holds a balance tells those people to recharge it,
- * and offers the Recharge button; everyone else is told who can, and the
- * button stays locked, saying why. A step that needs AI credits links to
+ * says). So the page that holds a balance tells those people to add to it,
+ * and offers the Add to Balance button; everyone else is told who can, and
+ * the button stays locked, saying why. A step that needs AI credits links to
  * AI Credits only for the people who may add them, and names who can to
  * everyone else - never "ask an admin", who could not.
+ *
+ * Adding to a balance by hand is "Add to Balance", one verb from the button
+ * that opens the dialog, through its title, to the button that adds (#7475):
+ * the on-call setup's link said Add balance, the dialog's title Recharge
+ * Balance and its button Recharge, which read as refilling something that
+ * ran out, on a project that never had a balance. Auto Recharge keeps its
+ * name: it is the setting that adds by itself.
  *
  * Kept free of React, so App/Tests can read these exact strings. Every
  * string is a whole sentence, wrapped in translationKey() so npm run
@@ -35,18 +42,18 @@ export const PROJECT_BALANCE_CARD_DESCRIPTIONS: Readonly<
 > = {
   [ProjectBalanceType.SmsOrCall]: {
     forPeopleWhoMayAdd: translationKey(
-      "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
+      "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.",
     ),
     forEveryoneElse: translationKey(
-      "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+      "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.",
     ),
   },
   [ProjectBalanceType.AI]: {
     forPeopleWhoMayAdd: translationKey(
-      "AI features are paid from this balance, in USD. Recharge it, or turn on Auto Recharge so it never runs out.",
+      "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.",
     ),
     forEveryoneElse: translationKey(
-      "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can recharge it, or turn on Auto Recharge so it never runs out.",
+      "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.",
     ),
   },
 };
@@ -54,10 +61,11 @@ export const PROJECT_BALANCE_CARD_DESCRIPTIONS: Readonly<
 /*
  * At the top of the page that holds a balance while Auto Recharge's last
  * automatic charge has failed (AutoRechargeState.Failed): what happened -
- * it tries the card again within the hour, or as soon as someone recharges
- * by hand or saves Auto Recharge - and then what to do, for someone who may
- * add balance, or who can, for everyone else (the words of the Current
- * Balance card). It used to be known only to the owners, by email.
+ * it tries the card again within the hour, or as soon as someone adds to
+ * the balance by hand or saves Auto Recharge - and then what to do, for
+ * someone who may add balance, or who can, for everyone else (the words of
+ * the Current Balance card). It used to be known only to the owners, by
+ * email.
  */
 export const AUTO_RECHARGE_FAILED_TITLE: string = translationKey(
   "Auto Recharge could not charge the card.",
@@ -68,10 +76,10 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
 > = {
   [ProjectBalanceType.SmsOrCall]: {
     forPeopleWhoMayAdd: translationKey(
-      "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
+      "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.",
     ),
     forEveryoneElse: translationKey(
-      "It tries again within an hour. A Project Owner or someone with Manage Billing can recharge the balance.",
+      "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.",
     ),
   },
   [ProjectBalanceType.AI]: {
@@ -93,7 +101,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
  * card.
  */
 export const MARKETPLACE_RECHARGE_BILLED_TEMPLATE: string = translationKey(
-  "Recharges and Auto Recharge are billed through {{marketplace}}, not a card.",
+  "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.",
 );
 
 export const MARKETPLACE_AUTO_RECHARGE_FAILED_TITLE_TEMPLATE: string =
@@ -104,7 +112,7 @@ export const MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
 > = {
   [ProjectBalanceType.SmsOrCall]: {
     forPeopleWhoMayAdd: translationKey(
-      "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or recharge the balance now.",
+      "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.",
     ),
     forEveryoneElse:
       AUTO_RECHARGE_FAILED_DESCRIPTIONS[ProjectBalanceType.SmsOrCall]
@@ -120,8 +128,8 @@ export const MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
 };
 
 /*
- * The locked Recharge Balance button's tooltip: the permissions a recharge
- * needs, by their titles.
+ * The locked Add to Balance button's tooltip: the permissions adding to a
+ * balance needs, by their titles.
  */
 export const RECHARGE_BALANCE_LOCKED_TEMPLATE: string = translationKey(
   "Adding balance needs one of these permissions: {{permissions}}.",
@@ -187,14 +195,46 @@ export const AUTO_RECHARGE_AMOUNTS_IN_USD: ReadonlyArray<number> = [
 ];
 
 /*
- * The Recharge dialog's one field: how much, in USD, with the limits the
- * recharge routes hold it to (20 to 1,000) said where they apply.
+ * Adding to a balance by hand: the Current Balance card's button, the
+ * dialog it opens, and the dialog's own button (#7475).
  */
-export const RECHARGE_AMOUNT_TITLE: string = translationKey("Amount (USD)");
+export const ADD_TO_BALANCE_TITLE: string = translationKey("Add to Balance");
 
-export const RECHARGE_AMOUNT_DESCRIPTION: string = translationKey(
-  "Between 20 and 1,000 USD, charged now.",
-);
+/*
+ * The dialog's one field: how much, in USD, with the limits the recharge
+ * routes hold it to (20 to 1,000) said where they apply - and what the
+ * money is for and where it is charged, before anything is: "Between 20 and
+ * 1,000 USD, charged now." said neither (#7475).
+ */
+export const ADD_TO_BALANCE_AMOUNT_TITLE: string =
+  translationKey("Amount (USD)");
+
+export const ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS: Readonly<
+  Record<ProjectBalanceType, string>
+> = {
+  [ProjectBalanceType.SmsOrCall]: translationKey(
+    "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.",
+  ),
+  [ProjectBalanceType.AI]: translationKey(
+    "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.",
+  ),
+};
+
+/*
+ * The same for a project a cloud marketplace bills
+ * (Project.billingMarketplace), which has no card: billed through the
+ * marketplace.
+ */
+export const ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES: Readonly<
+  Record<ProjectBalanceType, string>
+> = {
+  [ProjectBalanceType.SmsOrCall]: translationKey(
+    "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.",
+  ),
+  [ProjectBalanceType.AI]: translationKey(
+    "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.",
+  ),
+};
 
 // The Current Balance card's one row.
 export const CURRENT_BALANCE_ROW_TITLE: string = translationKey("Balance");

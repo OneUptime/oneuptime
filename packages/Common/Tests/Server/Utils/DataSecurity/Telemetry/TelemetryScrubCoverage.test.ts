@@ -379,7 +379,15 @@ describe("where a finding sits, as scrub rules see it", () => {
 });
 
 describe("a metric pipeline rule", () => {
+  // Scrub It's filter for an email address: the Email Address pattern type (#10934).
   const redactEmails: MetricPipelineRuleFilterCondition = {
+    checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+    attributeKey: "user.email",
+    conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+    value: "email",
+  };
+  // What it was before: the type's own pattern, frozen into the rule.
+  const frozenEmailPattern: MetricPipelineRuleFilterCondition = {
     checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
     attributeKey: "user.email",
     conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
@@ -530,7 +538,12 @@ describe("a metric pipeline rule", () => {
       ),
     ).toBe(false);
 
-    // A filter a person wrote never counts: it may let the data through.
+    /*
+     * A filter a person wrote never counts: it may let the data through. Nor
+     * does the frozen pattern a rule was made with before #10934, which
+     * leaves an address percent-encoded or in another script: the data
+     * migration moves such a rule to the pattern type.
+     */
     for (const filters of [
       [
         {
@@ -539,7 +552,17 @@ describe("a metric pipeline rule", () => {
           value: "user.logins",
         },
       ],
-      [{ ...redactEmails, value: "@acmecorp\\.io$" }],
+      [frozenEmailPattern],
+      [{ ...redactEmails, value: "phoneNumber" }],
+      [{ ...redactEmails, value: "ipAddress" }],
+      [{ ...redactEmails, attributeKey: "user.id" }],
+      [
+        {
+          ...redactEmails,
+          conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+          value: "@acmecorp\\.io$",
+        },
+      ],
       [
         redactEmails,
         {
@@ -563,10 +586,38 @@ describe("a metric pipeline rule", () => {
     }
   });
 
-  test("Scrub It's filter is the type's own pattern on the attribute's value, or none where no pattern finds the type", () => {
+  test("Scrub It's filter is the built-in Pattern Type for an IP address, an email address or a card, the type's own pattern for another, or none where no pattern finds the type", () => {
     expect(buildMetricScrubFilters("email-address", "user.email")).toEqual([
       redactEmails,
     ]);
+    expect(buildMetricScrubFilters("ip-address", "peer")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "peer",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: "ipAddress",
+      },
+    ]);
+    expect(buildMetricScrubFilters("credit-card-number", "card")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "card",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: "creditCard",
+      },
+    ]);
+    // The Phone Number and SSN patterns find less than the types' own do.
+    expect(buildMetricScrubFilters("phone-number", "caller")).toEqual([
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey: "caller",
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+        value: buildScrubPatternForDataType("phone-number"),
+      },
+    ]);
+    expect(buildMetricScrubFilters("us-ssn", "ssn")[0]?.conditionType).toBe(
+      MetricPipelineRuleFilterConditionType.MatchesRegex,
+    );
     // Found by the field's name, or one of the project's own: every value under the key.
     expect(buildMetricScrubFilters("person-name", "customer.name")).toEqual([]);
     expect(
@@ -576,11 +627,19 @@ describe("a metric pipeline rule", () => {
       ),
     ).toEqual([]);
     // Each runs at ingest: saved as a rule is checked.
-    expect(() => {
-      validateMetricPipelineRuleFilters(
-        buildMetricScrubFilters("github-token", "config.token"),
-      );
-    }).not.toThrow();
+    for (const dataTypeId of [
+      "github-token",
+      "ip-address",
+      "email-address",
+      "credit-card-number",
+      "phone-number",
+    ]) {
+      expect(() => {
+        validateMetricPipelineRuleFilters(
+          buildMetricScrubFilters(dataTypeId, "config.value"),
+        );
+      }).not.toThrow();
+    }
   });
 });
 

@@ -39,7 +39,7 @@ Ett svar på ”hur gör jag” slutar med en knapp som öppnar sidan i ditt pro
 | Vilken sida som helst | Klicka på **Fråga AI** i sidhuvudet, eller tryck `Ctrl` + `I` (`Cmd` + `I` på en Mac). Medan du skriver i en textruta eller en redigerare förblir tangenterna redigerarens kortkommando för kursiv. |
 | Kommandopaletten | Tryck `Ctrl` + `K` (`Cmd` + `K` på en Mac) och välj **Fråga AI**. |
 | Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Förklara med AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
-| Produktmenyn | Öppna **Produkter → AI → Chatt**. Fråga AI öppnas bredvid sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
+| Produktmenyn | Öppna **Produkter → AI → Fråga AI**. Fråga AI öppnas bredvid sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
 
 Fråga AI öppnas vid sidan av fönstret, och sidan gör plats för den: inget döljs bakom den, så du kan fortsätta arbeta på sidan, gå till andra sidor och fråga igen. Dra i kanten för att göra den bredare eller smalare. Tryck på `Esc` i den, eller klicka på **Fråga AI** igen, för att ge sidan hela fönstret tillbaka. Medan den är öppen går `Ctrl` + `I` (`Cmd` + `I` på en Mac) från sidan till rutan du skriver i, och stänger den därifrån. Samtalet stannar där du lämnade det: öppna Fråga AI igen för att fortsätta. Stänger du den medan den fortfarande svarar säger en påminnelse i hörnet när svaret är klart, och öppnar det. På en surfplatta eller en telefon, där det inte finns plats för båda, öppnas den över sidan, och på en telefon fyller den hela skärmen.
 

@@ -187,7 +187,7 @@ Die Seite **Einrichtungsanleitung**, unter **Verbindungen**, hat diese Snippets 
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
-Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag, jeder Webangriff und jede abgelehnte Anfrage nach einer sensiblen Datei darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag, jeder Webangriff und jede Anfrage nach einer sensiblen Datei darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
 
 Jede Art erreicht OneUptime als gewöhnliche Logs:
 
@@ -288,6 +288,55 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 
 Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
 
+### Welche Adresse ein Ereignis nennt
+
+Ein Ereignis nennt die Adresse, von der eine Anfrage kam, nur dann, wenn der Absender der Anfrage sie nicht selbst hätte schreiben können. Diese Adresse ist verifiziert und wird zur **Quell-IP** des Ereignisses: Erkennungsregeln zählen sie, Threat Intelligence gleicht sie ab, und der **Reaktionsplan** eines Falls bietet an, sie zu sperren. Jede andere Adresse, die eine Anfrage nennt, ist nur behauptet: Das Ereignis behält sie als **Behauptete IP**, und nichts zählt oder sperrt sie.
+
+- Die eigene Adresse der Verbindung ist verifiziert: die `network.peer.address` eines Server-Spans oder das erste Feld einer Zeile im Zugriffslog eines Webservers. Niemand kann sie in eine Anfrage schreiben.
+- Hinter einem Proxy, dem Sie vertrauen, ist die Adresse der Verbindung die des Proxys, und der Client ist die Adresse, die der Proxy in `X-Forwarded-For` weitergegeben hat. Jeder Proxy hängt die Adresse an, von der er die Verbindung angenommen hat, daher liest OneUptime den Header von rechts und nimmt die erste Adresse, die kein Proxy ist, dem Sie vertrauen. Was ein Absender in den Header schreibt, landet links davon und bleibt eine Behauptung.
+- Eine Adresse, die eine Anfrage über sich selbst nennt, ist behauptet: `client.address`, die die Instrumentierung aus dem linken Teil des Headers füllt, der Rest von `X-Forwarded-For` und `Forwarded`.
+
+Eine behauptete Adresse wird nie aus einem Fall heraus gesperrt: Jeder kann `X-Forwarded-For: 192.0.2.44` senden, und eine Sperre würde treffen, wem auch immer 192.0.2.44 gehört. Ein Ereignis mit nur einer behaupteten Adresse hat einen **Reaktionsplan**, der Sie auffordert, die echte Adresse in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen.
+
+Zeichnen Sie zwei Dinge auf den Server-Spans Ihrer App auf, damit ihre Adressen verifiziert sind: die eigene Adresse der Verbindung, `network.peer.address`, die die HTTP-Instrumentierungen von OpenTelemetry setzen, und hinter einem Proxy den Header `X-Forwarded-For`, den sie als `http.request.header.x-forwarded-for` aufzeichnen, sobald Sie ihn in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` aufführen. Ein JSON-Zugriffslog wird genauso gelesen: Sein Client-Feld, etwa `remote_addr`, ist die Adresse der Verbindung, und sein Feld `http_x_forwarded_for` ist der Header.
+
+#### Vertrauenswürdige Proxys
+
+Sicherheitsereignisse glaubt einem Proxy, wer sein Client war, wenn seine Adresse eine der folgenden ist:
+
+| Vertrauenswürdig | Warum |
+| --- | --- |
+| Privat, Loopback oder Link-Local, etwa `10.0.0.5` | Immer: Niemand hat sie im Internet, also ist sie ein Load Balancer oder ein Ingress in Ihrem Netzwerk |
+| Unter **Vertrauenswürdige Proxys** aufgeführt | Sie haben sie aufgeführt |
+| In den veröffentlichten Bereichen eines Edge, das Sie verbunden haben, etwa [Cloudflare](/docs/integrations/cloudflare) | Solange die Verbindung besteht |
+| Einer Ihrer eigenen Application Load Balancer | Sofern Sie es nicht ausschalten |
+
+**Sicherheitsereignisse → Verbindungen → Weitere Einstellungen** enthält **Vertrauenswürdige Proxys**, die Liste, die Sie schreiben, und **Automatisch vertrauenswürdig**, das den Rest zeigt und warum. Führen Sie einen Proxy unter **Vertrauenswürdige Proxys** auf, eine Adresse oder einen Bereich pro Zeile, wenn seine Adresse öffentlich ist und ihm sonst nichts vertraut: ein CDN, das Sie nicht verbunden haben, ein Load Balancer, der Ihre App über das Internet erreicht, oder ein Reverse Proxy wie nginx auf einem Server mit öffentlicher Adresse vor Ihrer App. Bis dahin wird jeder Angriff über ihn dem Proxy zugeschrieben. Hinter einem globalen externen Application Load Balancer von Google Cloud kommen die Verbindungen Ihrer App von den Front-Ends von Google: Führen Sie `35.191.0.0/16` und `130.211.0.0/22` auf.
+
+Ihre eigenen Application Load Balancer sind die, die Ihre [verbundenen Cloud-Konten](/docs/telemetry/cloud-accounts) aufführen: AWS Application Load Balancer, AWS Classic Load Balancer, deren Listener alle HTTP oder HTTPS sind, Google Cloud Application Load Balancer und Azure Application Gateways, mit ihren öffentlichen Adressen. Jeder hängt den Client, den er weiterleitet, an `X-Forwarded-For` an. Ein Load Balancer von Google Cloud hängt seine eigene Adresse nach der des Clients an, und ein Application Gateway erreicht ein öffentliches Backend von seiner eigenen Adresse aus, daher würde ohne sie jeder Angriff über einen von ihnen dem Load Balancer zugeschrieben. **Ihre Load Balancer** auf **Automatisch vertrauenswürdig** führt sie auf, und ein Projektinhaber, Projektadministrator oder Sicherheits-Administrator kann es ausschalten.
+
+Nichts anderes von Ihnen ist automatisch vertrauenswürdig: nicht Ihre Hosts, Kubernetes-Knoten, Sonden oder virtuellen Maschinen, kein NAT-Gateway und kein Network, Gateway oder Azure Load Balancer. Sie leiten niemanden weiter oder geben eine Anfrage so weiter, wie sie kam, daher könnte alles, was auf ihnen läuft, jeden beliebigen Client nennen: eine Anfrage, die ein Monitor mit eigenen Headern sendet, ein Pod, ein Laptop hinter dem Gateway. Ist einer davon Ihr Proxy, fügen Sie ihn zu **Vertrauenswürdige Proxys** hinzu. Einem Kubernetes-Ingress wird so vertraut wie dem Load Balancer, der er ist: Ein GKE-Ingress ist ein Google Cloud Application Load Balancer, ein AKS-Ingress für Application Gateway ein Application Gateway und ein EKS-Ingress der Klasse `alb` ein AWS Application Load Balancer. Ein Ingress-Controller in Ihrem Cluster leitet von einer privaten Adresse aus weiter, der immer vertraut wird.
+
+Eine Änderung an einem davon wirkt innerhalb einer Minute, und einem neuen Load Balancer wird innerhalb von fünf vertraut.
+
+#### Zugriffslogs, die mit X-Forwarded-For enden
+
+Hinter einem Load Balancer protokollieren viele Webserver die weitergeleitete Adresse zuletzt, wie es das eigene Format `main` von nginx tut:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Eine Zeile sagt nie, was ihre Felder sind, daher wird ihr letztes Feld erst dann als `X-Forwarded-For` gelesen, wenn Sie **Protokolle enden mit X-Forwarded-For** auf **Zugriffsprotokolle** unter **Weitere Einstellungen** einschalten, und dann nur:
+
+- wenn das erste Feld der Zeile ein Proxy ist, dem Sie vertrauen: Eine Zeile von einem Client, der Ihren Webserver direkt erreicht hat, gehört diesem Client;
+- im Format combined, mit genau einem Feld in Anführungszeichen nach dem User-Agent und nichts danach;
+- wenn dieses Feld `-` ist oder eine Liste von Adressen, deren letzte keinen Port hat.
+
+Lassen Sie es aus, wenn Ihr Format mit einem anderen Header endet, der eine Adresse enthält, etwa `X-Real-IP`, oder wenn Ihr Webserver Header schreibt, ohne ihre Anführungszeichen zu maskieren, wie es `morgan` von Express tut: Der eigene User-Agent einer Anfrage könnte dann ein Feld hinzufügen. Ein JSON-Zugriffslog braucht keinen Schalter, da seine Felder benannt sind.
+
 ### Von einer Bereinigungsregel verborgen
 
 Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbirgt die Adresse, von der ein Angriff kam, bevor Sicherheitsereignisse sie liest. Das Ereignis wird trotzdem gespeichert, ohne Adresse, und überall, wo es die Adresse nennen würde, sagt es, dass eine Scrub-Regel sie verborgen hat:
@@ -335,13 +384,24 @@ Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schwe
 
 Ein Ereignis aus einer Logzeile, die innerhalb einer getracten Anfrage geschrieben wurde, wird in diese Anfrage hinein verfolgt. Sein Panel zeigt, wie weit die Anfrage kam (**Abgelehnt**, **App erreicht**, **Fehlgeschlagen** oder **Datenbank erreicht**), wer sie gesendet hat, und verlinkt ihren Trace, ihre Ausnahme, ihre Sitzungswiedergabe und die Logzeile selbst. Auch eine Logzeile, ein Trace und eine Ausnahme, die Teil eines Angriffs sind, sagen das auf ihren eigenen Seiten.
 
+### Eine sensible Datei, die Ihre Website ausgeliefert hat
+
+Eine Anfrage nach einer Datei, die Geheimnisse enthält, etwa `/.env`, `/.git/config`, `/.aws/credentials` oder eine Kopie von `wp-config.php`, ist ein Leck, wenn Ihre Website sie mit der Datei selbst beantwortet hat: Wer sie angefordert hat, besitzt nun deren Passwörter, Schlüssel und Tokens. Eine Single-Page-App beantwortet jeden Pfad, den sie nicht hat, mit ihrer eigenen Seite und dem Status 200, daher verrät der Status 200 allein das nie. OneUptime liest, was die Antwort enthielt:
+
+- Ein Typ, der keine Webseite ist, etwa `text/plain` oder `application/octet-stream`: die Datei selbst.
+- Eine Webseite, oder JSON für eine Datei, die kein JSON ist: die eigene Seite Ihrer Website.
+- Nichts darin: Es wurde nichts entwendet.
+- Eine Größe und kein Typ, wie sie das Zugriffslog eines Webservers festhält: die Datei selbst, wenn kein anderer Pfad diese Größe erhielt und Ihre Website auf Pfade, die sie nicht hat, mit 404 antwortet, und die eigene Seite Ihrer Website, wenn zwei verschiedene Pfade eine Antwort derselben Größe erhielten. Lässt sich nichts erkennen, ist die Anfrage kein Ereignis.
+
+Eine ausgelieferte Datei hat den Schweregrad Kritisch, und die Regel **Sensitive file served** der Regelbibliothek eröffnet dazu einen Fall, mit Schritten, um die Datei vom Netz zu nehmen und zu rotieren, was sie enthält. Jede dieser Anfragen zählt auch für **Scanning for sensitive files**, auch eine, die eine Single-Page-App beantwortet hat. Eine Admin-Seite, die Ihre Website ausliefert, etwa die von WordPress, ist nie eine davon, und ein `wp-config.php`, das WordPress ausgeführt hat, ist die eigene Seite Ihrer Website. Die Firewall-Ereignisse von Cloudflare sagen nicht, was Ihr Ursprungsserver gesendet hat, daher zählt eine Anfrage, die Cloudflare durchgelassen hat, nur für das Scannen. Das Panel eines Ereignisses sagt unter **Was danach geschah**, was Ihre Website gesendet hat.
+
 ### Campaigns
 
 **Kampagnen** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst. Eine Zeile, deren Adresse Ihre Sperrliste bereits enthält, sagt, bis wann sie gesperrt oder mit einer Challenge belegt ist, und nennt den Bereich oder das Netzwerk, das sie erfasst.
 
 Um mehrere Angreifer auf einmal zu sperren, wählen Sie ihre Zeilen aus und klicken Sie auf **Adressen sperren**. Ein Dialog listet jede Adresse, die er sperrt, und jede, die er auslässt, mit dem Grund: bereits gesperrt, eine Ihrer eigenen oder eine geschützte, eine, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat, oder eine, die OneUptime nicht prüfen konnte. Er sperrt für 24 Stunden, sofern Sie keine andere Dauer wählen, oder belegt die Adressen mit **Stattdessen Challenge** mit einer Challenge, und jede Sperre kommt als Ihre auf Ihre [Sperrliste](/docs/telemetry/security-cases#sperrliste).
 
-**Nach Netzwerk gruppieren** fasst die Adressen eines Netzwerks in einer Zeile zusammen: nach seiner ASN, wo die Ereignisse Ihrer [Cloudflare](/docs/integrations/cloudflare)-Verbindung eine nennen, sonst nach seinem /24 bei IPv4 oder seinem /48 bei IPv6. Die Zeile einer ASN listet die Bereiche, aus denen ihre Adressen gesendet haben. **Challenge für dieses Netzwerk** sagt, was es tun wird, wo und wie lange, bevor es das tut: 24 Stunden, sofern Sie keine andere Dauer wählen, und die nächste Stufe der Leiter für ein Netzwerk, das schon einmal eine Challenge erhalten hat. Cloudflare hält einen Bereich in seiner Challenge-Liste und eine ASN als IP Access Rule, die jeder Tarif hat.
+**Nach Netzwerk gruppieren** fasst die Adressen eines Netzwerks in einer Zeile zusammen: nach seiner ASN, wo die Ereignisse Ihrer [Cloudflare](/docs/integrations/cloudflare)-Verbindung eine nennen, sonst nach seinem /24 bei IPv4 oder seinem /48 bei IPv6. Die Zeile einer ASN listet die Bereiche, aus denen ihre Adressen gesendet haben. **Challenge für dieses Netzwerk** sagt, was es tun wird, wo und wie lange, bevor es das tut: 24 Stunden, sofern Sie keine andere Dauer wählen, und die nächste Stufe der Leiter für ein Netzwerk, das schon einmal eine Challenge erhalten hat. Cloudflare hält einen Bereich in seiner Challenge-Liste und eine ASN als IP Access Rule, die jeder Tarif hat. **Anfragen anzeigen** in der Zeile eines Netzwerks öffnet unter **Ereignisse**, was es gesendet hat: bei einer ASN nach der ASN, die ihre Cloudflare-Ereignisse tragen, und bei einem Bereich als Suche nach seinen Adressen, etwa `ip:203.0.113.*`, die Sie ändern können.
 
 - Ein Netzwerk, das eine Adresse enthält, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat, oder eine Ihrer eigenen, erhält nie eine Challenge, und der Dialog nennt, wer oder was es ist.
 - Ein Bereich, der größer als ein /24 ist (ein /48 bei IPv6), und eine ganze ASN erfordern einen Sicherheits-Administrator, einen Projektadministrator oder einen Projektinhaber. Die Zeile einer ASN bietet auch jeden ihrer Bereiche an, den jeder, der sperren darf, mit einer Challenge belegen kann.
@@ -536,6 +596,8 @@ Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mi
 | Brute Force: 5 fehlgeschlagene Anmeldungen von einer IP | `principalIp` | Leer | 5 |
 | Password Spraying: eine IP scheitert an 5 verschiedenen Konten | `principalIp` | `principalUser` | 5 |
 | Portscan: eine IP erreicht 20 verschiedene Ports | `principalIp` | `targetPort` | 20 |
+
+Eine Regel mit **Nach Feld gruppieren**, die mehr als ein Ereignis in einer Gruppe braucht, durch einen Schwellenwert über 1 oder ein **Feld für eindeutige Zählung**, lässt die Ereignisse aus, die keinen Wert für ihr Feld haben: Gezählt würden sie sich alle zu einem Wert summieren, jede fehlgeschlagene Anmeldung ohne Adresse zu einer IP-Adresse. Eine Regel, die bei jedem Ereignis auslöst, löst für sie weiter aus. **Erkennungsregeln** zeigt unter dem Namen einer Regel, wie viele der passenden Ereignisse des letzten Tages sie nicht zählen konnte, und die Zeile öffnet den Grund: wie viele keinen Wert hatten und wie viele davon eine Scrub-Regel verborgen hat, mit **Scrub-Regeln öffnen**. Eine Regel, die nichts von dem zählen konnte, worauf sie zutraf, kann nicht auslösen, und ihr **Status** sagt **Erfordert Aufmerksamkeit**. **Auf vergangene Ereignisse anwenden** sagt dasselbe für den Zeitraum, den es liest.
 
 ### Wann eine Regel läuft
 

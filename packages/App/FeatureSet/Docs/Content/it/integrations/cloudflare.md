@@ -171,10 +171,10 @@ In Cloudflare, apri **My Profile → API Tokens**, modifica il token della conne
 
 ### Attivare il blocco
 
-Sulla riga della connessione, seleziona **Blocca indirizzi**. Incolla un nuovo token in **Nuovo token API**, o lascialo vuoto per tenere quello attuale, e in **Zone** lascia **Tutte le zone**, oppure scegli le zone in cui bloccare. **Controlla autorizzazioni** chiede a Cloudflare se il token ha ogni permesso, e non cambia nulla. **Attiva il blocco** attiva il blocco solo quando ogni controllo riesce, e OneUptime configura Cloudflare entro un minuto.
+Sulla riga della connessione, seleziona **Blocca indirizzi**. Incolla un nuovo token in **Nuovo token API**, o lascialo vuoto per tenere quello attuale, e in **Zone** lascia **Tutte le zone**, oppure scegli le zone in cui bloccare. **Controlla autorizzazioni** chiede a Cloudflare se il token ha ogni permesso, e non cambia nulla. **Attiva il blocco** attiva il blocco solo quando ogni controllo riesce, tranne **Challenge a network by its ASN**, che si limita ad avvisare, e OneUptime configura Cloudflare entro un minuto.
 :::
 
-Finché il blocco è attivo, **Testa la connessione** esegue gli stessi controlli: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** e, dove si usano IP Access Rules, **Edit IP Access Rules**.
+Finché il blocco è attivo, **Testa la connessione** esegue gli stessi controlli: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** e, dove si usano IP Access Rules, **Edit IP Access Rules**, altrimenti **Challenge a network by its ASN**.
 
 ### Cosa aggiunge OneUptime a Cloudflare
 
@@ -183,7 +183,7 @@ Finché il blocco è attivo, **Testa la connessione** esegue gli stessi controll
 | Le liste `oneuptime_block` e `oneuptime_challenge` | Due liste IP nell'account, una per i blocchi e una per le verifiche. La loro descrizione nomina il tuo progetto OneUptime. |
 | Una regola personalizzata per lista, in ogni zona | `(ip.src in $oneuptime_block)` con l'azione Block, e `(ip.src in $oneuptime_challenge)` con l'azione Managed Challenge. La loro descrizione dice che le gestisce OneUptime. |
 | Un elemento di lista per blocco | Il suo commento nomina il caso e quando finisce il blocco, ad esempio `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| Una IP Access Rule per ogni rete sottoposta a verifica tramite il suo ASN | Un'intera rete sottoposta a verifica da **Campagne**, come IP Access Rule il cui target è `asn`, che ogni piano ha. La sua nota dice lo stesso del commento di un elemento di lista. Senza `Account > Account Firewall Access Rules > Edit` sul token, la verifica non viene applicata, e la **Blocklist** dice quale permesso aggiungere. |
+| Una IP Access Rule per ogni rete sottoposta a verifica tramite il suo ASN | Un'intera rete sottoposta a verifica da **Campagne**, come IP Access Rule il cui target è `asn`, che ogni piano ha. La sua nota dice lo stesso del commento di un elemento di lista. **Controlla autorizzazioni** e **Testa la connessione** avvisano prima, sotto **Challenge a network by its ASN**, quando al token manca `Account > Account Firewall Access Rules > Edit`: il blocco funziona anche senza questo permesso, ma la verifica non viene applicata, e la **Blocklist** dice quale permesso aggiungere. |
 
 Ogni regola va per prima tra le regole personalizzate della zona, quindi viene eseguita prima delle tue: una tua regola Skip non può far passare un indirizzo bloccato. Quando le tue regole Skip lasciano passare degli indirizzi, come quelli dei tuoi monitor o di un partner, **Stato del blocco** li nomina. **Proteggi questi indirizzi** li aggiunge alle **Entità protette**, che nessuno può bloccare.
 

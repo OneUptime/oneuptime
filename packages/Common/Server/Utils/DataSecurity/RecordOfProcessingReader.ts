@@ -54,7 +54,7 @@ import DataSecurityFlowService from "../../Services/DataSecurityFlowService";
 import DataStoreService from "../../Services/DataStoreService";
 import ProjectService from "../../Services/ProjectService";
 import ServiceService from "../../Services/ServiceService";
-import CallerPermission from "../Permission/CallerPermission";
+import StoreChangeAccess from "./StoreChangeAccess";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
@@ -479,6 +479,7 @@ export default class RecordOfProcessingReader {
     const flags: RecordFlags = await this.readFlags({
       projectId: data.projectId,
       props: data.props,
+      dataStoreId: data.dataStoreId,
     });
 
     if (recorded.length === 0) {
@@ -594,10 +595,18 @@ export default class RecordOfProcessingReader {
     return { rows, counts: countRecordRows(rows), ...flags };
   }
 
-  // Whether OneUptime AI may draft, and whether the reader may change the record.
+  /*
+   * Whether OneUptime AI may draft, and whether the reader may change the
+   * record - by rows, as its writes are decided (StoreChangeAccess): one
+   * store by its own row, the whole record by whether any of the project's
+   * stores is one the reader may change. Each change is still decided by
+   * its store when it is made: a field is written with the caller's props
+   * (RecordOfProcessingWriter), a draft only for a store they may change.
+   */
   private static async readFlags(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    dataStoreId?: ObjectID | undefined;
   }): Promise<RecordFlags> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
@@ -609,12 +618,15 @@ export default class RecordOfProcessingReader {
       props: { isRoot: true },
     });
     const isAiEnabled: boolean = project?.enableAi !== false;
-    const canEdit: boolean =
-      data.props.isRoot === true ||
-      CallerPermission.holdsModelPermission(data.props, {
-        model: new DataStore(),
-        operation: "update",
-      });
+    const canEdit: boolean = data.dataStoreId
+      ? await StoreChangeAccess.mayChange({
+          dataStoreId: data.dataStoreId,
+          props: data.props,
+        })
+      : await StoreChangeAccess.mayChangeAny({
+          projectId: data.projectId,
+          props: data.props,
+        });
 
     return {
       isAiEnabled,

@@ -55,7 +55,9 @@ function precedent(
   };
 }
 
-function answer(more: Partial<FindingVerdictAnswer> = {}): FindingVerdictAnswer {
+function answer(
+  more: Partial<FindingVerdictAnswer> = {},
+): FindingVerdictAnswer {
   return {
     verdict: DataStoreFindingVerdict.NotSensitive,
     reason: "Your team marked order_number not sensitive on 4 stores.",
@@ -153,7 +155,9 @@ describe("what OneUptime AI is asked", () => {
   test("says the team's decisions weigh most, and a secret is never dismissed on its own", () => {
     const instructions: string = getFindingVerdictInstructions("en");
 
-    expect(instructions).toContain("The team's own decisions are the strongest evidence");
+    expect(instructions).toContain(
+      "The team's own decisions are the strongest evidence",
+    );
     expect(instructions).toContain(
       "only when precedent for the same field name marks it not sensitive",
     );
@@ -257,7 +261,9 @@ describe("how the answer is held to what it was told", () => {
         return entry.findingId;
       }),
     ).toEqual(["finding-1", "finding-2", "finding-3", "finding-4"]);
-    expect(record.signs).toEqual([FindingWrongMatchSign.IdFieldWithLuhnNumbers]);
+    expect(record.signs).toEqual([
+      FindingWrongMatchSign.IdFieldWithLuhnNumbers,
+    ]);
     expect(record.writtenAt).toBe(NOW.toISOString());
   });
 
@@ -333,10 +339,8 @@ describe("how the answer is held to what it was told", () => {
       hold(answer({ draft: "", precedentRefs: [] }), fourDismissals).draft,
     ).toBe("Your team marked order_number not sensitive on 4 stores.");
     expect(
-      hold(
-        answer({ verdict: DataStoreFindingVerdict.Confirm }),
-        fourDismissals,
-      ).draft,
+      hold(answer({ verdict: DataStoreFindingVerdict.Confirm }), fourDismissals)
+        .draft,
     ).toBe("");
   });
 });

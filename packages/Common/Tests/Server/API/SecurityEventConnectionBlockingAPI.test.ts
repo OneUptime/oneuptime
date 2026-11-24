@@ -332,11 +332,39 @@ describe("check: how blocking would be set up, and whether the token may write i
       "blocking-setup:pass",
       "blocking-lists:pass",
       "blocking-rules:pass",
+      "blocking-asn-access-rules:pass",
     ]);
     expect(api.lists).toEqual([]);
     expect(api.rulesets.size).toBe(0);
     expect(updates).toEqual([]);
     expect(reconciles).toEqual([]);
+  });
+
+  test("a token that cannot challenge a network by its ASN is still ready, and the answer warns about Challenge This Network (#10894)", async () => {
+    api.permissions.delete("accessRules");
+
+    await call("check", { zoneIds: [ZONE_A] });
+
+    expect(refusal()).toBeNull();
+    expect(sent()?.["isReady"]).toBe(true);
+    expect(checkStatuses(sent())).toEqual([
+      "blocking-setup:pass",
+      "blocking-lists:pass",
+      "blocking-rules:pass",
+      "blocking-asn-access-rules:warn",
+    ]);
+    const asn: JSONObject | undefined = (
+      (sent()?.["checks"] || []) as Array<JSONObject>
+    ).find((check: JSONObject): boolean => {
+      return check["key"] === "blocking-asn-access-rules";
+    });
+    expect(String(asn?.["message"])).toContain("Challenge This Network");
+    expect(String(asn?.["remediation"])).toContain(
+      "Account > Account Firewall Access Rules > Edit",
+    );
+    // Asked without writing.
+    expect(api.accessRules).toEqual([]);
+    expect(updates).toEqual([]);
   });
 
   test("with a token pasted, checks that token, not the stored one", async () => {
@@ -412,6 +440,19 @@ describe("turn-on: the opt-in", () => {
     expect(checkStatuses(sent())).toContain("blocking-lists:fail");
     expect(updates).toEqual([]);
     expect(reconciles).toEqual([]);
+  });
+
+  test("a token that cannot challenge a network by its ASN still turns blocking on: the warning is advisory (#10894)", async () => {
+    api.permissions.delete("accessRules");
+
+    await call("turn-on");
+
+    expect(refusal()).toBeNull();
+    expect(sent()?.["isOn"]).toBe(true);
+    expect(checkStatuses(sent())).toContain("blocking-asn-access-rules:warn");
+    expect(settingsWritten()).toHaveLength(1);
+    expect(settingsWritten()[0]?.["isEnabled"]).toBe(true);
+    expect(reconciles).toEqual([PROJECT.toString()]);
   });
 
   test("a check that cannot tell turns nothing on either: OneUptime fails toward a person", async () => {

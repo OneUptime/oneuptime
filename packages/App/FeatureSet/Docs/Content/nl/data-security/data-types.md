@@ -42,6 +42,8 @@ Alleen bevindingen met Hoog en Gemiddeld tellen mee: ze maken een opslag gevoeli
 
 Als twee gegevenstypen dezelfde tekens claimen, wint de zekerste bevinding: eerst de hoogste betrouwbaarheid, dan de detector waarvan de eigen regels meer bewijzen, dan de langste match.
 
+Een waarde wordt ook gelezen zoals mensen haar schrijven. De procent-escapes van een URL worden gelezen, zodat een IP-adres of een e-mailadres in een querystring, zoals `jane%40example.com`, wordt gevonden. De cijfers van een kaartnummer worden in elk schrift gelezen, zoals cijfers op volle breedte (`４１１１ １１１１ １１１１ １１１１`) of Arabisch-Indische cijfers, eerst elk schrift apart en dan samen. Een e-mailadres wordt in elk schrift gevonden, zoals `张伟@example.com` of `почта@пример.рф`, en een IPv6-adres direct na de dubbele punt van een sleutel, zoals `ip:2001:db8::1`. Elke bevinding is de waarde zoals ze geschreven is, zodat een opschoonregel haar daar verbergt.
+
 Een lange waarde wordt gelezen in vensters van 64 KB die 4 KB overlappen, zodat een waarde in haar geheel wordt gevonden waar ze ook staat, en van één waarde wordt hoogstens 4 MB gelezen.
 
 ## Velden en kolommen

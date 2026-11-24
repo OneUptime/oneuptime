@@ -21,7 +21,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * build(), and "deploys" build B on request: the files change under the
  * open tab exactly as a deploy changes them, the old chunks gone.
  *
- * What a reader should see, and never: no "Something went wrong" and no
+ * What a reader should see, and never: no "This page stopped working" and no
  * sudden reload. A quiet notice says a new version is ready; the next page
  * they open loads in the new version, at its address; a page whose code is
  * gone says it is updating and reloads into the same address and scroll;
@@ -285,7 +285,7 @@ test.describe("a deploy under the open tab", () => {
 
     expect(await boots(page)).toBe(1);
     expect(await runningBuild(page)).toBe("fixture-build-a");
-    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+    await expect(page.getByText("This page stopped working")).toHaveCount(0);
 
     await shoot(page, testInfo, "notice");
   });
@@ -685,7 +685,7 @@ test.describe("a page whose code is gone after a deploy", () => {
     expect(screens[1]!.text).toContain(
       "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
     );
-    expect(JSON.stringify(screens)).not.toContain("Something went wrong");
+    expect(JSON.stringify(screens)).not.toContain("This page stopped working");
   });
 
   test("while it reloads, the page says what is happening", async ({
@@ -711,7 +711,7 @@ test.describe("a page whose code is gone after a deploy", () => {
     );
     // The menus outside the page stay where they were.
     await expect(page.getByTestId("nav-home")).toBeVisible();
-    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+    await expect(page.getByText("This page stopped working")).toHaveCount(0);
     // Already on its way: no notice offering a reload.
     await expect(notice(page)).toHaveCount(0);
 
@@ -892,7 +892,7 @@ test.describe("a page whose code is gone after a deploy", () => {
     );
     // Drawing it again would fail the same way.
     await expect(page.getByTestId("error-boundary-try-again")).toHaveCount(0);
-    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+    await expect(page.getByText("This page stopped working")).toHaveCount(0);
 
     await expectNoSidewaysScroll(page);
     await shoot(page, testInfo, "failed");

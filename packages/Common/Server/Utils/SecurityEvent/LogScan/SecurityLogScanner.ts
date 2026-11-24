@@ -7,6 +7,10 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import { readClickhouseDate } from "../../../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 import SecurityLogParser from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
+import {
+  judgeSensitiveFileAnswers,
+  keepSensitiveFileOutcomes,
+} from "../../../../Utils/SecurityEvent/SensitiveFileAnswers";
 import SecurityLogFormat, {
   SECURITY_LOG_FORMAT_ATTRIBUTE,
   readLastFoundAtByFormat,
@@ -561,19 +565,33 @@ export default class SecurityLogScanner {
     serviceMetadata: TelemetryServiceMetadata;
   }): Promise<SecurityLogStoredEvents> {
     /*
+     * A request for a file that holds secrets that the site answered with
+     * what no record says - the file, or the site's own page - is decided
+     * by what the same site answered the page's other requests, or is no
+     * event (#10912, SensitiveFileAnswers).
+     */
+    const events: Array<NormalizedSecurityEvent> = judgeSensitiveFileAnswers(
+      data.events,
+    );
+
+    if (events.length === 0) {
+      return { events: [], rows: [] };
+    }
+
+    /*
      * A CloudTrail call OneUptime's own session made - Data Security's
      * reads of the account - is marked as OneUptime's own (#10427), so the
      * rules that should leave it out can.
      */
     await OneUptimeAwsSessions.markSecurityEvents({
       projectId: data.projectId.toString(),
-      events: data.events,
+      events,
     });
 
     // An OpenStack event says which project by ID: this names it, as a case will.
     await OpenStackAuditJoin.enrichEvents({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     /*
@@ -584,8 +602,14 @@ export default class SecurityLogScanner {
      */
     await SecurityRequestTrace.followEvents({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
+
+    /*
+     * A request for a secret file the site answered with its own page found
+     * nothing, however the trace read its status (#10912).
+     */
+    keepSensitiveFileOutcomes(events);
 
     /*
      * An address a Hash rule hid - the field a format reads the source or
@@ -596,7 +620,7 @@ export default class SecurityLogScanner {
      */
     await SecurityAddressVaultLookup.nameHashedAddresses({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     /*
@@ -607,7 +631,7 @@ export default class SecurityLogScanner {
      */
     await SecurityUserVaultLookup.nameHashedUsers({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     /*
@@ -616,13 +640,13 @@ export default class SecurityLogScanner {
      */
     await ScrubbedClientAddresses.nameScrubRules({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     // Threat intel stamps its matches before the rows are built, as ingest does.
     await ThreatIntelEnricher.enrichNormalizedEvents({
       projectId: data.projectId,
-      events: data.events,
+      events,
     });
 
     const retentionDays: number = resolveTelemetryRetentionInDays({
@@ -647,7 +671,7 @@ export default class SecurityLogScanner {
     const split: {
       shared: Array<SharedRecordGroup>;
       rest: Array<NormalizedSecurityEvent>;
-    } = SecurityEventStoreOnce.split(data.events);
+    } = SecurityEventStoreOnce.split(events);
     const stored: Array<NormalizedSecurityEvent> = [...split.rest];
     const rows: Array<JSONObject> = split.rest.map(toRow);
 
@@ -661,9 +685,9 @@ export default class SecurityLogScanner {
           projectId: data.projectId,
           group,
           insert: async (
-            events: Array<NormalizedSecurityEvent>,
+            groupEvents: Array<NormalizedSecurityEvent>,
           ): Promise<void> => {
-            const groupRows: Array<JSONObject> = events.map(toRow);
+            const groupRows: Array<JSONObject> = groupEvents.map(toRow);
 
             // Seen by the next way to look, before the lock is released.
             await SecurityEventService.insertJsonRows(groupRows, {

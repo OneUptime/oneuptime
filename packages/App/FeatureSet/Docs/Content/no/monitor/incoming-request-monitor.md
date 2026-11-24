@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. Åpne kriteriet, og vis **Innstillinger**.
-2. Slå på **Group incidents and alerts by a payload field**.
-3. Fyll inn **Open a separate incident for each…**. Skal hver hendelse løse seg selv, fyller du også inn feltet og verdien under **Auto-resolve each incident when…** (se nedenfor). Lagre deretter monitoren.
+2. Slå på **Grupper hendelser og varsler etter et felt i payloaden**.
+3. Fyll inn **Åpne en egen hendelse for hver…**. Skal hver hendelse løse seg selv, fyller du også inn feltet og verdien under **Løs hver hendelse automatisk når…** (se nedenfor). Lagre deretter monitoren.
 :::
 
 | Felt | Eksempel | Hva det gjør |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Stien der de særskilte verdiene deler opp hendelsene |
-| Field that signals recovery | `requestBody.alerts[*].status` | Stien som sjekkes for å avgjøre at et varsel er over |
-| Value that means recovered | `resolved` | Den nøyaktige verdien som markerer at problemet er over |
-| Max incidents per request | `100` (standard) | Sikkerhetstak slik at et felt med mange verdier ikke kan åpne et ubegrenset antall hendelser |
+| Åpne en egen hendelse for hver… | `requestBody.alerts[*].labels.alertname` | Stien der de særskilte verdiene deler opp hendelsene |
+| Felt som signaliserer gjenoppretting | `requestBody.alerts[*].status` | Stien som sjekkes for å avgjøre at et varsel er over |
+| Verdi som betyr gjenopprettet | `resolved` | Den nøyaktige verdien som markerer at problemet er over |
+| Maks. hendelser per forespørsel | `100` (standard) | Sikkerhetstak slik at et felt med mange verdier ikke kan åpne et ubegrenset antall hendelser |
 
 Grupperingen hører til kriteriet den er slått på i. Monitorens andre kriterier grupperer ikke: når ett av dem samsvarer med en forespørsel, åpner det hendelsen og varselet sitt slik det ville gjort på en monitor der ingen kriterier grupperer.
 
@@ -383,20 +383,20 @@ Kortet **Monitor-sammendrag** på monitorens **Oversikt** viser hva hver foresp�
 
 En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser aldri en hendelse fordi nøkkelen sluttet å dukke opp. En hendelse løses bare når en nyttelast uttrykkelig sier at den nøkkelen er over. To ting må begge være sanne:
 
-1. **Field that signals recovery** og **Value that means recovered** er fylt inn og samsvarer med nyttelasten. Sammenligningen er nøyaktig og skiller mellom store og små bokstaver — `Resolved` samsvarer ikke med `resolved`.
+1. **Felt som signaliserer gjenoppretting** og **Verdi som betyr gjenopprettet** er fylt inn og samsvarer med nyttelasten. Sammenligningen er nøyaktig og skiller mellom store og små bokstaver — `Resolved` samsvarer ikke med `resolved`.
 2. Hendelsen til kriteriet har **Løs hendelse automatisk** slått på, under **Flere felt** i hendelsesskjemaet. Uten det ignoreres samsvarende meldinger om at problemet er over, og hendelsene forblir åpne. (Det samme gjelder varsler og **Løs varsel automatisk**.) Standardkriteriet for offline starter med det slått på; en hendelse du selv legger til i et kriterium, starter med det slått av.
 
-Et varsel du selv legger til i et kriterium, starter også med **Løs varsel automatisk** slått av, så en gjenoppretting lar varselet stå åpent til det er slått på. **Auto-resolve each incident when…** viser hvilke av kriteriets hendelser og varsler en gjenoppretting løser, og nevner hver den ville la stå åpen, med en knapp som slår på den tilhørende innstillingen. Kortet **Monitor-sammendrag** på monitorens **Oversikt** nevner hver hendelse og hvert varsel en gjenoppretting lot stå åpent, og hvorfor.
+Et varsel du selv legger til i et kriterium, starter også med **Løs varsel automatisk** slått av, så en gjenoppretting lar varselet stå åpent til det er slått på. **Løs hver hendelse automatisk når…** viser hvilke av kriteriets hendelser og varsler en gjenoppretting løser, og nevner hver den ville la stå åpen, med en knapp som slår på den tilhørende innstillingen. Kortet **Monitor-sammendrag** på monitorens **Oversikt** nevner hver hendelse og hvert varsel en gjenoppretting lot stå åpent, og hvorfor.
 
-En gjenoppretting løser bare hendelsene og varslene til kriteriet som leser den: det der **Field that signals recovery** og **Value that means recovered** samsvarer med nyttelasten. Hendelsene og varslene til et annet kriterium for samme verdi forblir åpne, og de til et kriterium som lar feltene stå tomme, løses manuelt.
+En gjenoppretting løser bare hendelsene og varslene til kriteriet som leser den: det der **Felt som signaliserer gjenoppretting** og **Verdi som betyr gjenopprettet** samsvarer med nyttelasten. Hendelsene og varslene til et annet kriterium for samme verdi forblir åpne, og de til et kriterium som lar feltene stå tomme, løses manuelt.
 
-**Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
-
-> [!NOTE]
-> En monitor med et kriterium som grupperer etter et felt i innholdet, evaluerer hver forespørsel den mottar, én om gangen og i den rekkefølgen de kom, så en bølge av varsler og gjenopprettinger åpner og løser hendelsen og varselet for hver verdi. Opptil 1 000 forespørsler, eller 16 MB av dem, venter på å bli evaluert; utover det hoppes de eldste ventende over, og kortet **Monitor-sammendrag** sier hvor mange. En monitor uten gruppering evaluerer bare den nyeste av forespørslene som venter på den.
+**Maks. hendelser per forespørsel** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
 > [!NOTE]
-> Hvis **Field that signals recovery** inneholder `[*]`, men **Open a separate incident for each…** ikke gjør det, er en forespørsel over først når hvert element i matrisen sier det. Med `requestBody.alerts[*].status` og `resolved` løses en hendelse gruppert etter `requestBody.groupLabels.alertname` når alle varslene i en forespørsel er løst, og den forblir åpen så lenge ett fortsatt er aktivt.
+> En monitor med et kriterium som grupperer etter et felt i innholdet, evaluerer hver forespørsel den mottar, én om gangen og i den rekkefølgen de kom, så en bølge av varsler og gjenopprettinger åpner og løser hendelsen og varselet for hver verdi. Opptil 1 000 forespørsler, eller 16 MB av dem, venter på å bli evaluert; utover det hoppes de eldste ventende over, og kortet **Monitor-sammendrag** sier hvor mange. Det nevner også grensen som ble nådd, og en installasjon med egen hosting kan endre begge: se [Merknader om egen hosting](#merknader-om-egen-hosting). En monitor uten gruppering evaluerer bare den nyeste av forespørslene som venter på den.
+
+> [!NOTE]
+> Hvis **Felt som signaliserer gjenoppretting** inneholder `[*]`, men **Åpne en egen hendelse for hver…** ikke gjør det, er en forespørsel over først når hvert element i matrisen sier det. Med `requestBody.alerts[*].status` og `resolved` løses en hendelse gruppert etter `requestBody.groupLabels.alertname` når alle varslene i en forespørsel er løst, og den forblir åpen så lenge ett fortsatt er aktivt.
 
 > [!WARNING]
 > En sti for løsning uten `[*]` evalueres mot hele nyttelasten, så en `status: resolved` på nyttelastnivå løser hver nøkkel i den nyttelasten — også varsler der egen status fortsatt er aktiv.
@@ -521,6 +521,18 @@ Klikk på **Bekreft abonnement** i kortet **Monitor-sammendrag** på monitorens 
 :::details Avsenderen får en 500
 Forespørselen sier `Content-Type: application/json`, men teksten er ikke et JSON-objekt eller en JSON-matrise. Send gyldig JSON, eller en annen innholdstype.
 :::
+
+## Merknader om egen hosting
+
+En monitor som grupperer etter et felt i innholdet, holder hver forespørsel i Valkey til det er dens tur. På en installasjon med egen hosting begrenser tre innstillinger det. Med Docker Compose setter du dem i `config.env`; med Helm under `incomingRequests` i chartets verdier, som gir app- og worker-podene de samme:
+
+| Innstilling | Helm-verdi | Standard | Område | Hva den begrenser |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` til `100000` | Forespørslene én monitor lar vente. Utover det hoppes de eldste ventende over. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` til `512` | Megabytene med forespørsler én monitor lar vente. Utover det hoppes de eldste ventende over. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` til `1000` | Forespørslene én jobb evaluerer før monitorens jobb settes i kø igjen, bak hver jobb som allerede venter. |
+
+Øk de to første for avsendere som sender i kraftigere bølger, som en kjernesvitsj som går ned og utløser tusenvis av varsler på én gang, og senk den andre for en liten Valkey. Når forespørsler hoppes over, sier kortet **Monitor-sammendrag** hvilken grense som ble nådd. En verdi som ikke er et heltall innenfor området, brukes ikke: standarden brukes, og appen logger en melding som nevner innstillingen.
 
 ## Neste trinn
 

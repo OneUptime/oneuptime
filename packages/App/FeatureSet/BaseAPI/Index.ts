@@ -2179,12 +2179,14 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
+import UniqueNamesAPI from "Common/Server/API/UniqueNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
+import SecurityTrustedProxiesAPI from "Common/Server/API/SecurityTrustedProxiesAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
@@ -6945,6 +6947,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
 
     /*
+     * Names that repeat in a project (UniqueNamesAPI, #10761): whether a
+     * name a form takes is another record's, for the form to warn, and the
+     * names a project holds twice, for Project Settings to list beside
+     * Require Unique Names. A bare router for the same reason as
+     * OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UniqueNamesAPI);
+
+    /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member
      * or an on-call policy, see what it will send first and what became of
      * it after. A bare router for the same reason as OnCallReadinessAPI.
@@ -6986,6 +6997,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * never why. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectCanSendAPI);
+
+    /*
+     * What Security Events trusts as a proxy without being told
+     * (SecurityTrustedProxiesAPI, #10546): the edges the project connected
+     * and its own application load balancers, for Trusted Proxies to show.
+     * A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SecurityTrustedProxiesAPI);
 
     /*
      * What refers to a record (UsedByAPI, #6813): the status pages that

@@ -39,7 +39,7 @@ Et svar på «hvordan gjør jeg» slutter med en knapp som åpner siden i prosje
 | Hvilken som helst side | Klikk **Spør AI** i toppfeltet, eller trykk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en redigerer, forblir tastene redigererens snarvei for kursiv. |
 | Kommandopaletten | Trykk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og velg **Spør AI**. |
 | Et feilmønster i loggene, eller funnene i et diagram | Klikk **Forklar med AI**: Spør AI åpnes med bevisene som et spørsmål du kan redigere før du sender det. |
-| Produktmenyen | Åpne **Produkter → AI → Chat**. Spør AI åpnes ved siden av siden du var på. Hver samtale har sin egen adresse, så du kan bokmerke den og komme tilbake til den. |
+| Produktmenyen | Åpne **Produkter → AI → Spør AI**. Spør AI åpnes ved siden av siden du var på. Hver samtale har sin egen adresse, så du kan bokmerke den og komme tilbake til den. |
 
 Spør AI åpnes i kanten av vinduet, og siden gir plass til den: ingenting skjules bak den, så du kan jobbe videre på siden, gå til andre sider og spørre igjen. Dra i kanten for å gjøre den bredere eller smalere. Trykk `Esc` i den, eller klikk på **Spør AI** igjen, for å gi siden hele vinduet tilbake. Mens den er åpen, går `Ctrl` + `I` (`Cmd` + `I` på en Mac) fra siden til feltet du skriver i, og lukker den derfra. Samtalen blir der du forlot den: åpne Spør AI igjen for å fortsette. Lukker du den mens den fortsatt svarer, sier en påminnelse i hjørnet når svaret er klart, og åpner det. På et nettbrett eller en telefon, der det ikke er plass til begge, åpnes den over siden, og på en telefon fyller den hele skjermen.
 

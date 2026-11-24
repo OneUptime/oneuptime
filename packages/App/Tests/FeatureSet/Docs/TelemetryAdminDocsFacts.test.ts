@@ -2387,8 +2387,13 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
 
     const examples: Record<string, Array<string>> = {
-      [LogScrubPatternType.Email]: ["jane@example.com"],
-      [LogScrubPatternType.CreditCard]: ["4111 1111 1111 1111"],
+      // In another script too (#10960).
+      [LogScrubPatternType.Email]: ["jane@example.com", "张伟@example.com"],
+      // In another script's digits too (#10960).
+      [LogScrubPatternType.CreditCard]: [
+        "4111 1111 1111 1111",
+        "４１１１ １１１１ １１１１ １１１１",
+      ],
       [LogScrubPatternType.SSN]: ["123-45-6789"],
       [LogScrubPatternType.PhoneNumber]: ["555-123-4567"],
       /*
@@ -2523,6 +2528,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "[2001:db8::1]:443",
       "2001:db8::2%eth0",
       "::ffff:203.0.113.7",
+      "peer ip:2001:db8::1",
+      "remote:2001:db8::1",
       "::",
       "10::30",
       "ab::cd",
@@ -2537,6 +2544,13 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     // Hidden: shortened, whole when IPv4 written as IPv6; a port and a zone kept.
     expect(scrubbedBody("2001:db8::1", redact)).toBe("[REDACTED]");
+    // Right after a key's colon, the key whole (#10936).
+    expect(scrubbedBody("peer ip:2001:db8::1", redact)).toBe(
+      "peer ip:[REDACTED]",
+    );
+    expect(scrubbedBody("remote:2001:db8::1", redact)).toBe(
+      "remote:[REDACTED]",
+    );
     // One group each side of "::", in the range public addresses are in (#10466).
     expect(scrubbedBody("2001::1", redact)).toBe("[REDACTED]");
     expect(scrubbedBody("2a00::1", redact)).toBe("[REDACTED]");
@@ -2612,9 +2626,31 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "203.0.113.7",
       "2001%3Adb8%3A%3A1",
       "2001:db8::1",
+      "jane%40example.com",
+      "jane@example.com",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
+
+    // An email address percent-encoded, and a card in another script's digits, have the plain value's token (#10935, #10960).
+    const emailHash: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+      LogScrubPatternType.Email,
+      LogScrubAction.Hash,
+    );
+    const cardHash: { rule: LogScrubRule; regex: ScrubRegExp } = scrubRule(
+      LogScrubPatternType.CreditCard,
+      LogScrubAction.Hash,
+    );
+
+    emailHash.rule.projectId = projectId;
+    cardHash.rule.projectId = projectId;
+
+    expect(scrubbedBody("jane%40example.com", [emailHash])).toBe(
+      scrubbedBody("jane@example.com", [emailHash]),
+    );
+    expect(
+      scrubbedBody("４１１１ １１１１ １１１１ １１１１", [cardHash]),
+    ).toBe(scrubbedBody("4111 1111 1111 1111", [cardHash]));
     expect(scrubbedBody("::ffff:203.0.113.7", [hashRule()])).toBe(
       scrubbedBody("203.0.113.7", [hashRule()]),
     );
@@ -2628,6 +2664,76 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(isScrubHashToken("[HASHED:8c87b489]")).toBe(true);
     expect(item).toContain("8-character");
     expect(item).toContain("16-character");
+  });
+
+  it("hides the addresses the Email Address list item names, encoded or in any script, and masks an encoded one as the address it is (#10935, #10960)", () => {
+    const item: string = listItemOf(
+      page,
+      "An Email Address rule hides what Data Security calls an email address.",
+    );
+    const redact: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.Email, LogScrubAction.Redact),
+    ];
+
+    expect(inlineCodes(item)).toEqual([
+      "张伟@example.com",
+      "josé@example.com",
+      "user@例え.jp",
+      "jane%40example.com",
+      "/signup?email=jane%40example.com",
+    ]);
+    expect(item).toContain(
+      "**Mask** reads such an address decoded, so it keeps its first letter and the end of its domain",
+    );
+
+    for (const address of [
+      "张伟@example.com",
+      "josé@example.com",
+      "user@例え.jp",
+      "jane%40example.com",
+    ]) {
+      expect({ address, stored: scrubbedBody(address, redact) }).toEqual({
+        address,
+        stored: "[REDACTED]",
+      });
+    }
+
+    expect(scrubbedBody("/signup?email=jane%40example.com", redact)).toBe(
+      "/signup?email=[REDACTED]",
+    );
+    expect(
+      scrubbedBody("jane%40example.com", [
+        scrubRule(LogScrubPatternType.Email, LogScrubAction.Mask),
+      ]),
+    ).toBe("j***@***.com");
+  });
+
+  it("hides the cards the Credit Card Number list item names, in any script's digits, and masks one's last four as ASCII digits (#10960)", () => {
+    const item: string = listItemOf(
+      page,
+      "A Credit Card Number rule hides what Data Security calls a card number.",
+    );
+    const redact: Array<{ rule: LogScrubRule; regex: ScrubRegExp }> = [
+      scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
+    ];
+
+    expect(inlineCodes(item)).toEqual(["４１１１ １１１１ １１１１ １１１１"]);
+    expect(scrubbedBody("４１１１ １１１１ １１１１ １１１１", redact)).toBe(
+      "[REDACTED]",
+    );
+    // An American Express number, in groups of four, six and five.
+    expect(scrubbedBody("card 3782 822463 10005", redact)).toBe(
+      "card [REDACTED]",
+    );
+    // Arabic-Indic and Persian digits, and a card typed in two scripts.
+    expect(scrubbedBody("٤١١١١١١١١١١١١١١١", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("۴۱۱۱-۱۱۱۱-۱۱۱۱-۱۱۱۱", redact)).toBe("[REDACTED]");
+    expect(scrubbedBody("４１１１ 1111 1111 1111", redact)).toBe("[REDACTED]");
+    expect(
+      scrubbedBody("４１１１ １１１１ １１１１ １１１１", [
+        scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Mask),
+      ]),
+    ).toBe("****-****-****-1111");
   });
 
   it("says every pattern rule but the two that read keys reads only the attributes it lists under More fields, as the form draws it (#10751)", () => {
@@ -3471,18 +3577,18 @@ describe("Topology (telemetry/topology)", () => {
     };
   }
 
-  it("opens from Products → Observability → Topology, and from Inventory → Topology Map", () => {
+  it("opens from Products → Observability → Topology, and from Inventory → Topology", () => {
     expect(navbarValue("items", "topologyTitle")).toBe("Topology");
     expect(productsMenuCategory("topologyTitle")).toBe("observability");
     expect(
       between(
         readDashboardSource("Pages/Inventory/SideMenu.tsx"),
-        'title: "Topology Map",',
+        'title: "Topology",',
         "},",
       ),
     ).toContain("RouteMap[PageMap.TOPOLOGY]");
     expect(page).toContain(
-      "Go to **Products → Observability → Topology**. **Inventory → Topology Map** opens the same page.",
+      "Go to **Products → Observability → Topology**. **Inventory → Topology** opens the same page.",
     );
   });
 
@@ -3964,7 +4070,7 @@ describe("the four pages together", () => {
       ],
       [TOPOLOGY]: [
         "Products → Observability → Topology",
-        "Inventory → Topology Map",
+        "Inventory → Topology",
       ],
     };
 

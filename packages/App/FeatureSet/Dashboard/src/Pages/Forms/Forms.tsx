@@ -48,7 +48,6 @@ import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding
  * next step is obvious: adjust the questions, then share the link.
  */
 
-
 const Forms: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {

@@ -255,7 +255,7 @@ describe("OnCallPageService.page on the caller's plan", () => {
 
     expect(refusal).toBeInstanceOf(PaymentRequiredException);
     expect((refusal as Error).message).toBe(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
     expect(resolvedWith).toEqual([]);
     expect(directPages).toBe(0);

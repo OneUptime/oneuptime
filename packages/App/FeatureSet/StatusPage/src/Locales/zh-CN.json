@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "出了点问题",
-  "An unexpected error has occurred. Please reload the page to continue": "发生了意外错误。请重新加载页面以继续",
+  "This page stopped working": "此页面已停止运行",
+  "Part of this page ran into a problem. Reload the page to continue.": "此页面的一部分遇到了问题。请重新加载页面以继续。",
   "Error details": "错误详情",
   "a11y": {
     "skipToMainContent": "跳到主要内容",
@@ -524,5 +524,27 @@
     "sessionExpired": "会话已过期。请重新登录。",
     "signedOut": "你已退出登录。请重新登录。",
     "magicLinkTurnedOff": "此状态页面已关闭登录链接。请使用你的电子邮件和密码登录。"
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "服务器遇到了无法解释的问题，因此操作未完成。请重试；如果仍然失败，请把这个参考编号提供给您的管理员或 OneUptime 支持团队：{{reference}}。",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "服务器遇到了无法解释的问题，因此操作未完成。请稍后重试。",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "无法连接到 OneUptime，因此操作未完成。请检查您的网络连接，然后重试。",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "此页面遇到了问题，因此操作未完成。请重新加载页面，然后重试。",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容太大，服务器无法接受，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "发送的内容超过了 OneUptime 单次请求可接受的 50 MB，因此操作未完成。请一次发送更少的内容（例如更小的文件）后重试。",
+  "This did not finish.": "操作未完成。",
+  "The server ran into a problem it could not explain.": "服务器遇到了无法解释的问题。",
+  "The OneUptime server did not answer.": "OneUptime 服务器没有响应。",
+  "OneUptime could not be reached.": "无法连接到 OneUptime。",
+  "This page ran into a problem.": "此页面遇到了问题。",
+  "What was sent was too large for the server to accept.": "发送的内容太大，服务器无法接受。",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "发送的内容超过了 OneUptime 单次请求可接受的 50 MB。",
+  "Try again in a moment.": "请稍后重试。",
+  "It may be starting or restarting. Try again in a few minutes.": "它可能正在启动或重启。请几分钟后重试。",
+  "Check your internet connection, then try again.": "请检查您的网络连接，然后重试。",
+  "Reload the page, then try again.": "请重新加载页面，然后重试。",
+  "Try again with less at once, such as a smaller file.": "请一次发送更少的内容（例如更小的文件）后重试。",
+  "The {{itemName}} was not created.": "{{itemName}}未创建。",
+  "The {{itemName}} was not saved.": "{{itemName}}未保存。",
+  "The {{itemName}} could not be loaded.": "无法加载{{itemName}}。",
+  "Page Did Not Load": "页面未能加载"
 }

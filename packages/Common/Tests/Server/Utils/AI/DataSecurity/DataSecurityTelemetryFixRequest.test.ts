@@ -279,4 +279,33 @@ describe("OneUptime asks, for a proposal approved without asking", () => {
     });
     expect(queued).not.toHaveBeenCalled();
   });
+
+  test("for a security case's playbook (#10740), the task is kept on the case; asked otherwise, it names none", async () => {
+    const caseId: ObjectID = new ObjectID(
+      "10740000-0000-4000-8000-0000000000ca",
+    );
+
+    jest
+      .spyOn(CodeRepositoryService, "findOneBy")
+      .mockResolvedValue(repository());
+
+    await DataSecurityCodeTask.requestTelemetryLeakFix({
+      props: { isRoot: true },
+      projectId: PROJECT_ID,
+      issueIds: [SPAN_ISSUE],
+      requestedRepositoryId: REPOSITORY_ID,
+      fix: fix(),
+      triggeredBySecurityCaseId: caseId,
+      buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
+        return builtRequest();
+      },
+    });
+    await ask({ props: { isRoot: true } });
+
+    expect(queued.mock.calls[0]![0].triggeredBySecurityCaseId).toEqual(caseId);
+    expect(queued.mock.calls[0]![0].userId).toBeUndefined();
+    expect(queued.mock.calls[1]![0]).not.toHaveProperty(
+      "triggeredBySecurityCaseId",
+    );
+  });
 });

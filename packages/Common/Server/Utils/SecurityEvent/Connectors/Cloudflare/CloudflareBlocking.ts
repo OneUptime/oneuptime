@@ -88,7 +88,9 @@ import CloudflareClient, {
  *   tearDown      takes away all OneUptime added, and nothing else, when
  *                 blocking is turned off and the person asks it to;
  *   checkWriteAccess  the write permissions, for Test Connection and for
- *                 turning blocking on.
+ *                 turning blocking on - and, where every block takes a
+ *                 list, the one Challenge This Network needs, as a warning
+ *                 (#10894).
  *
  * Every write of one account is made by one OneUptime process at a time:
  * the reconciler's lock is the account's (CloudflareBlockDestination's
@@ -124,13 +126,51 @@ export const CLOUDFLARE_BLOCKING_CHECK_NAMES: Readonly<{
   lists: string;
   rules: string;
   accessRules: string;
+  // Where blocks and challenges take the lists: Challenge This Network's permission (#10894).
+  asnChallenges: string;
 }> = {
   unreadable: "Read what blocking needs",
   setup: "How blocking is set up",
   lists: "Edit the lists",
   rules: "Edit custom rules in each zone",
   accessRules: "Edit IP Access Rules",
+  asnChallenges: "Challenge a network by its ASN",
 };
+
+/*
+ * CHALLENGING A NETWORK BY ITS ASN (#10894): Campaigns' Challenge This
+ * Network holds a whole network as an IP Access Rule whose target is its
+ * ASN, on every plan, so it needs Account Firewall Access Rules Edit even
+ * where blocks and challenges take OneUptime's lists. Its check only warns:
+ * every address block works without the permission, and only a network's
+ * challenge fails - so it never keeps blocking off.
+ */
+export const CLOUDFLARE_BLOCKING_ASN_CHECK_KEY: string =
+  "blocking-asn-access-rules";
+
+// The checks that only warn: blocking turns on whatever they say.
+export const CLOUDFLARE_BLOCKING_ADVISORY_CHECK_KEYS: ReadonlyArray<string> = [
+  CLOUDFLARE_BLOCKING_ASN_CHECK_KEY,
+];
+
+/*
+ * Whether blocking may be turned on: some checks ran, and each passed - an
+ * advisory one may warn, but never fail.
+ */
+export function isCloudflareBlockingReady(
+  checks: ReadonlyArray<SecurityConnectorCheck>,
+): boolean {
+  return (
+    checks.length > 0 &&
+    checks.every((check: SecurityConnectorCheck): boolean => {
+      return (
+        check.status === "pass" ||
+        (CLOUDFLARE_BLOCKING_ADVISORY_CHECK_KEYS.includes(check.key) &&
+          check.status === "warn")
+      );
+    })
+  );
+}
 
 export interface CloudflareBlockingScope {
   projectId: string;
@@ -1624,7 +1664,9 @@ export default class CloudflareBlocking {
    * on asks first: how it would be set up - which mechanism each action
    * takes, and why - and whether the token may write what that needs, each
    * permission asked without writing (CloudflareClient.probeWriteAccess). A
-   * check that cannot tell says so, and never passes.
+   * check that cannot tell says so, and never passes. Where every block
+   * takes a list, whether the token may challenge a network by its ASN is
+   * asked too, and only warns (#10894, isCloudflareBlockingReady).
    */
   public async checkWriteAccess(): Promise<{
     checks: Array<SecurityConnectorCheck>;
@@ -1771,12 +1813,70 @@ export default class CloudflareBlocking {
               accountId: this.scope.accountId,
             });
           },
-          passMessage: `The API token can add and remove IP Access Rules (${CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION}).`,
+          // The same permission holds a network by its ASN (#10894).
+          passMessage: `The API token can add and remove IP Access Rules (${CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION}), and so challenge a network by its ASN from Campaigns.`,
         }),
       );
+    } else {
+      /*
+       * Every block takes a list, and a network's challenge still takes an
+       * IP Access Rule (#10894): asked whatever the plan, so a person
+       * learns it before Challenge This Network fails - as a warning,
+       * since blocking itself needs nothing of it.
+       */
+      startedAtMs = Date.now();
+      checks.push(await this.checkAsnChallenges(startedAtMs));
     }
 
     return { checks, reading };
+  }
+
+  /*
+   * Whether the token may challenge a network by its ASN, where blocks and
+   * challenges take the lists (#10894): passes with the permission, and
+   * warns without it - or when Cloudflare could not say - never fails.
+   */
+  private async checkAsnChallenges(
+    startedAtMs: number,
+  ): Promise<SecurityConnectorCheck> {
+    const key: string = CLOUDFLARE_BLOCKING_ASN_CHECK_KEY;
+    const name: string = CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges;
+    const permission: string = CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION;
+
+    try {
+      const access: CloudflareWriteAccess = await this.client.probeWriteAccess({
+        kind: "access-rules",
+        accountId: this.scope.accountId,
+      });
+
+      if (access === CloudflareWriteAccess.Granted) {
+        return makeCheck({
+          key,
+          name,
+          status: "pass",
+          startedAtMs,
+          message: `The API token can challenge a whole network by its ASN from Campaigns (${permission}).`,
+        });
+      }
+
+      return makeCheck({
+        key,
+        name,
+        status: "warn",
+        startedAtMs,
+        message: `Challenging a network by its ASN needs ${permission}, which the API token lacks. Blocking works without it: only Challenge This Network on Campaigns fails.`,
+        remediation: `To challenge networks by their ASN, edit the token in Cloudflare and add ${permission}, or paste a new token that has it.`,
+      });
+    } catch (error) {
+      return makeCheck({
+        key,
+        name,
+        status: "warn",
+        startedAtMs,
+        message: `OneUptime could not tell whether the API token can challenge a network by its ASN (${permission}): ${errorText(error)}`,
+        remediation: "Test again in a few minutes.",
+      });
+    }
   }
 
   private async probeCheck(data: {

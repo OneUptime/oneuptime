@@ -154,7 +154,7 @@ Dans le même critère, ouvrez **Paramètres** et activez **Regrouper les incide
 | --- | --- |
 | **Ouvrir un incident distinct pour chaque…** | `requestBody.event_id` |
 | **Champ qui signale le rétablissement** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Valeur qui signifie rétabli** | `0` |
 
 ### Remettre le moniteur en ligne
 
@@ -321,7 +321,7 @@ Ouvrez le type de média et utilisez **Test** : Zabbix affiche le résultat du s
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - L'action a besoin de **Recovery operations**, sinon Zabbix n'envoie jamais le rétablissement.
 - Avec le modèle, ouvrez **Exécutions** du flux de travail et l'exécution du rétablissement : sa dernière étape dit pourquoi. Le rétablissement d'un problème qui n'a ouvert aucun incident ne change rien.
-- Avec le moniteur, l'incident du critère doit avoir **Résoudre automatiquement l'incident**, sous **Plus de champs**. **Champ qui signale le rétablissement** doit valoir `requestBody.status`, et **Value that means recovered** exactement `0`.
+- Avec le moniteur, l'incident du critère doit avoir **Résoudre automatiquement l'incident**, sous **Plus de champs**. **Champ qui signale le rétablissement** doit valoir `requestBody.status`, et **Valeur qui signifie rétabli** exactement `0`.
 :::
 
 :::details Le problème Zabbix n'est ni pris en compte ni fermé

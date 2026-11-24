@@ -187,7 +187,7 @@ Siden **Opsætningsvejledning**, under **Forbindelser**, har disse kodestykker m
 
 ### Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost, hvert webangreb og hver afvist forespørgsel om en følsom fil i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
+Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost, hvert webangreb og hver forespørgsel om en følsom fil i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
 
 Hver slags når OneUptime som almindelige logs:
 
@@ -288,6 +288,55 @@ Hver begivenhed gemmes med typede felter og kildens payload:
 
 Hændelser, der blev gemt før OneUptime 14.0.84, lader procesfelterne stå tomme og nævner kun deres proces som `principalProcess`, den proces, der handlede. De udfyldes ikke bagefter: de beholder det, de blev gemt med, indtil deres opbevaring udløber.
 
+### Hvilken adresse en begivenhed nævner
+
+En begivenhed nævner kun den adresse, en anmodning kom fra, når anmodningens afsender ikke selv kunne have skrevet den. Den adresse er verificeret, og den bliver begivenhedens **Kilde-IP**: Detektionsregler tæller den, trusselsintelligens matcher den, og en sags **Responsplan** tilbyder at blokere den. Enhver anden adresse, en anmodning nævner, er kun angivet: Begivenheden beholder den som **Angivet IP**, og intet tæller eller blokerer den.
+
+- Forbindelsens egen adresse er verificeret: `network.peer.address` i et serverspan eller det første felt i en linje i en webservers adgangslog. Ingen kan skrive den ind i en anmodning.
+- Bag en proxy, du stoler på, er forbindelsens adresse proxyens, og klienten er den adresse, proxyen videresendte i `X-Forwarded-For`. Hver proxy tilføjer den adresse, den modtog forbindelsen fra, så OneUptime læser headeren fra højre og tager den første adresse, der ikke er en proxy, du stoler på. Det, en afsender skriver i headeren, havner til venstre for den og forbliver en påstand.
+- En adresse, en anmodning nævner om sig selv, er kun angivet: `client.address`, som instrumenteringen udfylder fra venstre side af headeren, resten af `X-Forwarded-For` og `Forwarded`.
+
+En angivet adresse blokeres aldrig fra en sag: Alle kan sende `X-Forwarded-For: 192.0.2.44`, og en blokering ville afskære den, der nu end har 192.0.2.44. En begivenhed med kun en angivet adresse har en **Responsplan**, der beder dig finde den rigtige i din load balancers eller firewalls logs.
+
+Registrér to ting på din apps serverspans, så dens adresser er verificerede: forbindelsens egen adresse, `network.peer.address`, som OpenTelemetrys HTTP-instrumenteringer sætter, og bag en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for`, når du angiver den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-adgangslog læses på samme måde: Dens klientfelt, såsom `remote_addr`, er forbindelsens adresse, og dens felt `http_x_forwarded_for` er headeren.
+
+#### Betroede proxyer
+
+Sikkerhedshændelser tror på, hvad en proxy siger om, hvem dens klient var, når dens adresse er:
+
+| Betroet | Hvorfor |
+| --- | --- |
+| Privat, loopback eller link-local, såsom `10.0.0.5` | Altid: Ingen har den på internettet, så den er en load balancer eller en ingress i dit netværk |
+| Angivet under **Betroede proxyer** | Du har angivet den |
+| I de offentliggjorte intervaller for en edge, du har forbundet, såsom [Cloudflare](/docs/integrations/cloudflare) | Så længe forbindelsen findes |
+| En af dine egne application load balancere | Medmindre du slår det fra |
+
+**Sikkerhedshændelser → Forbindelser → Yderligere indstillinger** rummer **Betroede proxyer**, listen du skriver, og **Betroet automatisk**, som viser resten og hvorfor. Angiv en proxy under **Betroede proxyer**, én adresse eller ét interval på hver linje, når dens adresse er offentlig, og intet andet stoler på den: et CDN, du ikke har forbundet, en load balancer, der når din app over internettet, eller en reverse proxy såsom nginx på en server med en offentlig adresse foran din app. Indtil du gør det, tilskrives hvert angreb gennem den selve proxyen. Bag en global ekstern Application Load Balancer i Google Cloud kommer din apps forbindelser fra Googles front-ends: Angiv `35.191.0.0/16` og `130.211.0.0/22`.
+
+Dine egne application load balancere er dem, dine [forbundne cloudkonti](/docs/telemetry/cloud-accounts) viser: AWS Application Load Balancers, AWS Classic Load Balancers, hvis listeners alle er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med deres offentlige adresser. Hver føjer den klient, den videresender, til `X-Forwarded-For`. En load balancer i Google Cloud tilføjer sin egen adresse efter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uden dem ville hvert angreb gennem en af dem blive tilskrevet load balanceren. **Dine load balancere** på **Betroet automatisk** viser dem, og en Projektejer, Projektadministrator eller Sikkerhedsadministrator kan slå det fra.
+
+Intet andet af dit er automatisk betroet: ikke dine værter, Kubernetes-noder, sonder eller virtuelle maskiner, en NAT-gateway eller en Network, Gateway eller Azure load balancer. De videresender ingen, eller de sender en anmodning videre, som den kom, så det, der kører på dem, kunne angive en hvilken som helst klient: en anmodning, som en monitor sender med sine egne headere, en pod, en bærbar bag gatewayen. Hvis en af dem er din proxy, så tilføj den til **Betroede proxyer**. En Kubernetes-ingress er betroet som den load balancer, den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress til Application Gateway en Application Gateway, og en EKS-ingress af klassen `alb` en AWS Application Load Balancer. En ingress-controller i dit cluster videresender fra en privat adresse, som altid er betroet.
+
+En ændring af en hvilken som helst af disse træder i kraft inden for et minut, og en ny load balancer bliver betroet inden for fem.
+
+#### Adgangslogs, der slutter med X-Forwarded-For
+
+Bag en load balancer logger mange webservere den videresendte adresse sidst, som nginx' eget format `main` gør:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+En linje siger aldrig, hvad dens felter er, så dens sidste felt læses først som `X-Forwarded-For`, når du slår **Logs slutter med X-Forwarded-For** til på **Adgangslogs** under **Yderligere indstillinger**, og da kun:
+
+- når linjens første felt er en proxy, du stoler på: En linje fra en klient, der nåede din webserver direkte, er den klients;
+- i formatet combined, med præcis ét felt i anførselstegn efter user agent og intet efter det;
+- når det felt er `-` eller en liste af adresser, hvis sidste ikke har nogen port.
+
+Lad det være slået fra, når dit format slutter med en anden header, der indeholder en adresse, såsom `X-Real-IP`, eller når din webserver skriver headere uden at escape deres anførselstegn, som `morgan` til Express gør: En anmodnings egen user agent kunne så tilføje et felt. En JSON-adgangslog behøver ingen kontakt, da dens felter har navne.
+
 ### Skjult af en rensningsregel
 
 En IP-adresseregel, der sletter eller maskerer dine logs eller traces, skjuler den adresse, et angreb kom fra, før Sikkerhedsbegivenheder læser dem. Begivenheden gemmes alligevel, uden adresse, og overalt, hvor den ville navngive adressen, siger den, at en scrub-regel skjulte den:
@@ -335,13 +384,24 @@ Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **R
 
 En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Nåede appen**, **Fejlede** eller **Nåede databasen**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
 
+### En følsom fil leveret af dit websted
+
+En forespørgsel om en fil med hemmeligheder, såsom `/.env`, `/.git/config`, `/.aws/credentials` eller en kopi af `wp-config.php`, er et læk, når dit websted besvarede den med selve filen: Den, der spurgte, har nu filens adgangskoder, nøgler og tokens. En single-page-app besvarer hver sti, den ikke har, med sin egen side og status 200, så status 200 alene siger det aldrig. OneUptime læser, hvad svaret indeholdt:
+
+- En type, der ikke er en webside, såsom `text/plain` eller `application/octet-stream`: selve filen.
+- En webside, eller JSON for en fil, der ikke er JSON: dit websteds egen side.
+- Intet i svaret: intet blev taget.
+- En størrelse og ingen type, som en webservers adgangslog registrerer svaret: selve filen, når ingen anden sti fik den størrelse og dit websted svarer 404 for de stier, det ikke har, og dit websteds egen side, når den samme størrelse besvarede to forskellige stier. Når intet afgør det, bliver forespørgslen ikke til en begivenhed.
+
+En leveret fil får alvorligheden Kritisk, og regelbibliotekets regel **Sensitive file served** åbner en sag om den med trin til at fjerne filen og rotere det, den indeholder. Hver af disse forespørgsler tæller også med i **Scanning for sensitive files**, også dem fra en single-page-app. En administrationsside, dit websted leverer, såsom WordPress', er aldrig en af dem, og en `wp-config.php`, som WordPress kørte, er dit websteds egen side. Cloudflares firewallhændelser siger ikke, hvad din oprindelse sendte, så en forespørgsel, Cloudflare lod passere, tæller kun med i scanningen. En begivenheds panel viser, hvad dit websted sendte, under **Hvad der skete bagefter**.
+
 ### Campaigns
 
 **Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først. En række, som din blokeringsliste allerede holder, siger, indtil hvornår den er blokeret eller udfordret, og nævner det interval eller netværk, der holder den.
 
 For at blokere flere angribere på én gang skal du vælge deres rækker og trykke på **Blokér adresser**. Én dialog viser hver adresse, den blokerer, og hver adresse, den udelader, med årsagen: allerede blokeret, en af dine egne eller en beskyttet, en, som en logget ind bruger har brugt i de seneste 30 dage, eller en, som OneUptime ikke kunne kontrollere. Den blokerer i 24 timer, medmindre du vælger en anden varighed, eller udfordrer med **Udfordr i stedet**, og hver blokering kommer på din [blokeringsliste](/docs/telemetry/security-cases#blokeringsliste) som din.
 
-**Gruppér efter netværk** samler adresserne fra ét netværk på én række: efter dets ASN, hvor hændelserne fra din [Cloudflare](/docs/integrations/cloudflare)-forbindelse nævner et, og ellers efter dets /24 for IPv4 eller dets /48 for IPv6. En ASN's række viser de intervaller, dens adresser sendte fra. **Udfordr dette netværk** siger, hvad det vil gøre, hvor og hvor længe, før det gør det: 24 timer, medmindre du vælger en anden varighed, og det næste trin på stigen for et netværk, der er blevet udfordret før. Cloudflare holder et interval i sin udfordringsliste og en ASN som en IP Access Rule, som alle planer har.
+**Gruppér efter netværk** samler adresserne fra ét netværk på én række: efter dets ASN, hvor hændelserne fra din [Cloudflare](/docs/integrations/cloudflare)-forbindelse nævner et, og ellers efter dets /24 for IPv4 eller dets /48 for IPv6. En ASN's række viser de intervaller, dens adresser sendte fra. **Udfordr dette netværk** siger, hvad det vil gøre, hvor og hvor længe, før det gør det: 24 timer, medmindre du vælger en anden varighed, og det næste trin på stigen for et netværk, der er blevet udfordret før. Cloudflare holder et interval i sin udfordringsliste og en ASN som en IP Access Rule, som alle planer har. **Vis anmodninger** på et netværks række åbner det, netværket sendte, i **Begivenheder**: for en ASN efter den ASN, dens Cloudflare-hændelser angiver, og for et interval som en søgning efter dets adresser, såsom `ip:203.0.113.*`, som du kan ændre.
 
 - Et netværk, der rummer en adresse, som en logget ind bruger har brugt i de seneste 30 dage, eller en af dine egne, bliver aldrig udfordret, og dialogen nævner hvem eller hvad.
 - Et interval, der er bredere end et /24 (et /48 for IPv6), og en hel ASN kræver en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer. En ASN's række tilbyder også hvert af dens intervaller, som alle, der må blokere, kan udfordre.
@@ -536,6 +596,8 @@ Group By og Distinct Count tager de samme feltnavne som reglen. Med dem siger t�
 | Brute force: 5 mislykkede logins fra én IP | `principalIp` | Tom | 5 |
 | Password spraying: én IP, der fejler mod 5 forskellige konti | `principalIp` | `principalUser` | 5 |
 | Portscanning: én IP, der rammer 20 forskellige porte | `principalIp` | `targetPort` | 20 |
+
+En regel med et **Grupperingsfelt**, der kræver mere end én begivenhed i en gruppe, gennem en tærskel over 1 eller et **Felt til unik optælling**, udelader de begivenheder, der ikke har nogen værdi for dens felt: Talt med ville de alle lægges sammen som én værdi, hvert mislykket login uden adresse som én IP-adresse. En regel, der udløses ved hver begivenhed, bliver ved med at udløses for dem. **Detektionsregler** viser under en regels navn, hvor mange af det seneste døgns matchende begivenheder den ikke kunne tælle, og linjen åbner hvorfor: hvor mange der ikke havde nogen værdi, og hvor mange af dem en scrub-regel skjulte, med **Åbn scrub-regler**. En regel, der ikke kunne tælle noget af det, den matchede, kan ikke udløses, og dens **Status** siger **Kræver opmærksomhed**. **Kør på tidligere hændelser** siger det samme for den periode, den læser.
 
 ### Hvornår en regel kører
 

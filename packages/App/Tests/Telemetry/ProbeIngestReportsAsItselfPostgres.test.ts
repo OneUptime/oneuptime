@@ -88,6 +88,7 @@ jest.mock("Common/Server/Utils/Monitor/MonitorStatusTimeline", () => {
   };
 });
 
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeIngestAPI from "../../FeatureSet/Telemetry/API/ProbeIngest/Probe";
 import { processProbeFromQueue } from "../../FeatureSet/Telemetry/Jobs/ProbeIngest/ProcessProbeIngest";
 import {
@@ -1008,7 +1009,7 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     const noKey: HttpResult = await post("/probe/response/ingest", withoutKey);
 
     expect(noKey.status).toBe(400);
-    expect(noKey.body["message"]).toBe("ProbeId or ProbeKey is missing");
+    expect(noKey.body["message"]).toBe(ProbeConnectionRefusals.missingIdOrKey);
 
     const unknownProbe: HttpResult = await post("/probe/response/ingest", {
       ...probeBody(probeA, {
@@ -1018,7 +1019,9 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     });
 
     expect(unknownProbe.status).toBe(400);
-    expect(unknownProbe.body["message"]).toBe("Invalid Probe ID or Probe Key");
+    expect(unknownProbe.body["message"]).toBe(
+      ProbeConnectionRefusals.wrongIdOrKey,
+    );
 
     expect(queuedJobs).toHaveLength(0);
     expect(await storedResults(monitorA)).toEqual({
@@ -1071,7 +1074,7 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     });
 
     expect(answer.status).toBe(400);
-    expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");
+    expect(answer.body["message"]).toBe(ProbeConnectionRefusals.wrongIdOrKey);
     expect(queuedJobs).toHaveLength(0);
   });
 
@@ -1308,6 +1311,8 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     );
 
     expect(afterRotation.status).toBe(400);
-    expect(afterRotation.body["message"]).toBe("Invalid Probe ID or Probe Key");
+    expect(afterRotation.body["message"]).toBe(
+      ProbeConnectionRefusals.wrongIdOrKey,
+    );
   });
 });

@@ -148,13 +148,13 @@ Zabbix 6.0은 API 토큰을 `Authorization` 헤더가 아니라 요청 본문에
 
 ### 문제마다 인시던트 하나 열기
 
-같은 기준에서 **설정**을 열고 **Group incidents and alerts by a payload field**를 켭니다. 아래와 같이 채우면 문제마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
+같은 기준에서 **설정**을 열고 **페이로드 필드로 인시던트와 경고 그룹화**를 켭니다. 아래와 같이 채우면 문제마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
 
 | 필드 | 값 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **다음 값마다 별도의 인시던트 열기…** | `requestBody.event_id` |
+| **복구를 나타내는 필드** | `requestBody.status` |
+| **복구를 의미하는 값** | `0` |
 
 ### 모니터를 다시 온라인으로
 
@@ -321,7 +321,7 @@ Zabbix는 심각도를 텍스트로 보냅니다: `Not classified`, `Information
 :::details 인시던트가 열리지만 해결되지 않음
 - 액션에 **Recovery operations**가 필요합니다. 없으면 Zabbix가 복구를 보내지 않습니다.
 - 템플릿을 사용하는 경우 워크플로의 **실행 기록**에서 복구의 실행을 엽니다. 마지막 단계에 이유가 나옵니다. 인시던트를 열지 않은 문제의 복구는 아무것도 바꾸지 않습니다.
-- 모니터를 사용하는 경우 기준의 인시던트에 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다. **Field that signals recovery**는 `requestBody.status`여야 하고, **Value that means recovered**는 정확히 `0`이어야 합니다.
+- 모니터를 사용하는 경우 기준의 인시던트에 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다. **복구를 나타내는 필드**는 `requestBody.status`여야 하고, **복구를 의미하는 값**은 정확히 `0`이어야 합니다.
 :::
 
 :::details Zabbix 문제가 인지되거나 닫히지 않음

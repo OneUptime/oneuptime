@@ -2,6 +2,8 @@ import OneUptimeDate from "../Types/Date";
 import Timezone from "../Types/Timezone";
 import {
   ComposedValue,
+  PluralTemplate,
+  TemplateValues,
   Translator,
   composedValue,
   translationKey,
@@ -39,6 +41,31 @@ import {
  * A sentence never starts with a moment in a language whose letters have a
  * case: the phrase is worded for the middle of a sentence ("seit 14:25"),
  * and would start it without its capital (StepCheckMomentsReadRight).
+ *
+ * WHAT THE MOMENT HOLDS CHOOSES ITS FORM (#10902). A word of the phrase can
+ * change with the day or the hour it holds, the way a noun changes with a
+ * count, so each phrase has forms a language words, chosen as a plural is:
+ *
+ *   - By the hour its clock starts with: a phrase is a plural, counted by
+ *     that hour, since the hour is what its article agrees with. Spanish
+ *     "a las 14:25" but "a la 1:25" (la una), Italian "alle 14:25" but
+ *     "all'1:25" (l'una), Portuguese "às 14:25" but "à 1:25" (a uma) and
+ *     "à 0:25" (a zero hora: Portuguese counts 0 as one). The "_one" form
+ *     is read for the hours the language's plural rules call one, as every
+ *     plural's is (Translator's translatePlural); a language whose article
+ *     never changes words it as its general form.
+ *   - By the day it starts with: a day the language reads with a vowel
+ *     first takes a phrase of its own, {{vowelDay}} in place of {{day}}:
+ *     Italian elides its article there, "l'8 dic", "dall'8 dic", "fino
+ *     all'11 dic", where any other day reads "il 27 dic". Which days those
+ *     are is the language's own (DAYS_READ_WITH_A_VOWEL); a language with
+ *     none never reads the phrase, and words it as its day phrase.
+ *
+ * Both are read from what the moment's text starts with, as a reader
+ * reads it: "8 dic" is the 8th, "01:25" and "1:25 PM" one o'clock, while a
+ * day written "2026-11-08" or "Nov 8, 2026" starts with no day of the
+ * month, and takes the general form. The forms are in the locale files,
+ * and StepCheckMomentsReadRight holds each to its phrase's endings.
  */
 
 export enum MomentRole {
@@ -66,26 +93,152 @@ export interface WrittenMoment {
   whole: string;
 }
 
-// What each part a moment plays reads as: with a time alone, and with a day.
+/*
+ * What each part a moment plays reads as: with a time alone, with a day,
+ * and with a day the language reads with a vowel first - each a plural,
+ * counted by the hour its clock starts with. English words every form
+ * alike.
+ */
 export interface MomentPhraseWords {
-  time: string;
-  day: string;
+  time: PluralTemplate;
+  day: PluralTemplate;
+  vowelDay: PluralTemplate;
 }
 
 export const MOMENT_PHRASES: Record<MomentRole, MomentPhraseWords> = {
   [MomentRole.At]: {
-    time: translationKey("at {{clock}}"),
-    day: translationKey("on {{day}} at {{clock}}"),
+    time: {
+      one: translationKey("at {{clock}}"),
+      other: translationKey("at {{clock}}"),
+    },
+    day: {
+      one: translationKey("on {{day}} at {{clock}}"),
+      other: translationKey("on {{day}} at {{clock}}"),
+    },
+    vowelDay: {
+      one: translationKey("on {{vowelDay}} at {{clock}}"),
+      other: translationKey("on {{vowelDay}} at {{clock}}"),
+    },
   },
   [MomentRole.Since]: {
-    time: translationKey("since {{clock}}"),
-    day: translationKey("since {{day}} at {{clock}}"),
+    time: {
+      one: translationKey("since {{clock}}"),
+      other: translationKey("since {{clock}}"),
+    },
+    day: {
+      one: translationKey("since {{day}} at {{clock}}"),
+      other: translationKey("since {{day}} at {{clock}}"),
+    },
+    vowelDay: {
+      one: translationKey("since {{vowelDay}} at {{clock}}"),
+      other: translationKey("since {{vowelDay}} at {{clock}}"),
+    },
   },
   [MomentRole.Until]: {
-    time: translationKey("until {{clock}}"),
-    day: translationKey("until {{day}} at {{clock}}"),
+    time: {
+      one: translationKey("until {{clock}}"),
+      other: translationKey("until {{clock}}"),
+    },
+    day: {
+      one: translationKey("until {{day}} at {{clock}}"),
+      other: translationKey("until {{day}} at {{clock}}"),
+    },
+    vowelDay: {
+      one: translationKey("until {{vowelDay}} at {{clock}}"),
+      other: translationKey("until {{vowelDay}} at {{clock}}"),
+    },
   },
 };
+
+// Every form of each phrase, by its locale key: the general form, then the "_one" form.
+export const MOMENT_PHRASE_FORMS: ReadonlyArray<keyof MomentPhraseWords> = [
+  "time",
+  "day",
+  "vowelDay",
+];
+
+/*
+ * The days of a month a language reads with a vowel first, where the word
+ * before the day changes for them. Italian: 8 and 11, "l'8 dic" (otto),
+ * "dall'11 dic" (undici) - the days among those CLDR's Italian ordinals
+ * set apart for "l'" (8, 11, 80, 800). The 1st is "il primo", written
+ * "il 1 dic", read with a consonant. A language not listed has none.
+ */
+export const DAYS_READ_WITH_A_VOWEL: Readonly<
+  Record<string, ReadonlyArray<number>>
+> = {
+  it: [8, 11],
+};
+
+// A language's code without its region: "pt" of "pt-BR".
+function baseLanguageOf(language: string): string {
+  return (language.split("-")[0] || "").trim().toLowerCase();
+}
+
+// Whether `language` reads the day of the month `day` with a vowel first.
+export function isDayReadWithAVowel(language: string, day: number): boolean {
+  return (DAYS_READ_WITH_A_VOWEL[baseLanguageOf(language)] || []).includes(day);
+}
+
+/*
+ * The zero of each script a day or a clock is written in: Latin, as every
+ * language with forms writes them, and the scripts some languages write
+ * their digits in (Arabic-Indic, Persian, Devanagari, fullwidth).
+ */
+const DIGIT_ZEROS: ReadonlyArray<number> = [0x30, 0x660, 0x6f0, 0x966, 0xff10];
+
+function digitValue(character: string): number | null {
+  const code: number = character.codePointAt(0) ?? -1;
+
+  for (const zero of DIGIT_ZEROS) {
+    if (code >= zero && code <= zero + 9) {
+      return code - zero;
+    }
+  }
+
+  return null;
+}
+
+// Marks a page may set before a moment's text (a direction mark), and spaces.
+const LEADING_MARKS: RegExp = /^[\s\p{Cf}]+/u;
+
+/*
+ * The number a moment's text starts with, as a reader reads it: 8 of
+ * "8 dic", 1 of "01:25" and of "1:25 PM", 2026 of "2026-11-08". Null when
+ * it starts with anything else - a month's name, "오후" - or holds no digit
+ * of a script it knows.
+ */
+export function readLeadingNumber(text: string): number | null {
+  const rest: string = text.replace(LEADING_MARKS, "");
+  let value: number | null = null;
+
+  for (const character of rest) {
+    const digit: number | null = digitValue(character);
+
+    if (digit === null) {
+      break;
+    }
+
+    value = (value ?? 0) * 10 + digit;
+  }
+
+  return value;
+}
+
+/*
+ * A phrase's form for the hour its clock starts with, or its general form
+ * when the clock starts with no number.
+ */
+function wordForm(data: {
+  phrase: PluralTemplate;
+  hour: number | null;
+  values: TemplateValues;
+  translator: Translator;
+}): string {
+  return data.hour === null
+    ? data.translator.translateTemplate(data.phrase.other, data.values)
+    : data.translator.translatePlural(data.phrase, data.hour, data.values);
+}
 
 // The phrase a moment reads as, in the language of `translator`.
 export function wordMoment(data: {
@@ -94,15 +247,42 @@ export function wordMoment(data: {
   translator: Translator;
 }): string {
   const words: MomentPhraseWords = MOMENT_PHRASES[data.role];
+  const hour: number | null = readLeadingNumber(data.moment.time);
 
-  return data.moment.date
-    ? data.translator.translateTemplate(words.day, {
-        day: data.moment.date,
-        clock: data.moment.time,
-      })
-    : data.translator.translateTemplate(words.time, {
-        clock: data.moment.time,
-      });
+  if (!data.moment.date) {
+    return wordForm({
+      phrase: words.time,
+      hour,
+      values: { clock: data.moment.time },
+      translator: data.translator,
+    });
+  }
+
+  const day: number | null = readLeadingNumber(data.moment.date);
+
+  /*
+   * A day the language reads with a vowel first, in a language that words
+   * its phrase: one that has not yet reads the day phrase, never English.
+   */
+  if (
+    day !== null &&
+    isDayReadWithAVowel(data.translator.language, day) &&
+    data.translator.hasTranslation(words.vowelDay.other)
+  ) {
+    return wordForm({
+      phrase: words.vowelDay,
+      hour,
+      values: { vowelDay: data.moment.date, clock: data.moment.time },
+      translator: data.translator,
+    });
+  }
+
+  return wordForm({
+    phrase: words.day,
+    hour,
+    values: { day: data.moment.date, clock: data.moment.time },
+    translator: data.translator,
+  });
 }
 
 /*

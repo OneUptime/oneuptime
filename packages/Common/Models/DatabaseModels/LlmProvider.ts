@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -17,7 +19,14 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, JoinColumn, ManyToOne, VirtualColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  VirtualColumn,
+} from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import LlmType from "../../Types/LLM/LlmType";
 import { JSONObject } from "../../Types/JSON";
@@ -73,6 +82,18 @@ export const getHasAdditionalParamsSql: (tableAlias: string) => string = (
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/llm-provider"))
 @SlugifyColumn("name", "slug")
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_LLMPROVIDER_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "LlmProvider",
 })
@@ -141,6 +162,7 @@ export default class LlmProvider extends BaseModel {
       Permission.EditProjectLlm,
     ],
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

@@ -514,7 +514,9 @@ describe("flipping a switch", () => {
 
   test("a refused save moves the switch back, and says why under it", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Scale to access this feature"),
+      new Error(
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -528,7 +530,7 @@ describe("flipping a switch", () => {
       expect(
         within(rowFor("enableWebhookSubscribers")).getByRole("alert"),
       ).toHaveTextContent(
-        "Please upgrade your plan to Scale to access this feature",
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     await waitFor(() => {

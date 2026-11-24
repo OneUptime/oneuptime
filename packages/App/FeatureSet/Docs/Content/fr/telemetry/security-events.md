@@ -187,7 +187,7 @@ La page **Guide de configuration**, sous **Connexions**, contient ces extraits a
 
 ### Trouver des événements de sécurité dans vos journaux
 
-La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes, attaque web et requête refusée visant un fichier sensible qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes, attaque web et requête visant un fichier sensible qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
 
 Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 
@@ -288,6 +288,55 @@ Chaque événement est stocké avec des champs typés et son payload source :
 
 Les événements stockés avant OneUptime 14.0.84 laissent vides les champs de processus et ne nomment leur processus que par `principalProcess`, le processus qui a agi. Ils ne sont pas complétés après coup : ils gardent ce avec quoi ils ont été stockés jusqu'à la fin de leur rétention.
 
+### Quelle adresse un événement désigne
+
+Un événement ne désigne l'adresse d'où vient une requête que lorsque l'expéditeur de la requête n'a pas pu l'écrire lui-même. Cette adresse est vérifiée et devient l'**IP source** de l'événement : les règles de détection la comptent, le renseignement sur les menaces la compare à ses listes, et le **Plan de réponse** d'un dossier propose de la bloquer. Toute autre adresse qu'une requête désigne n'est que déclarée : l'événement la garde comme **IP déclarée**, et rien ne la compte ni ne la bloque.
+
+- L'adresse propre de la connexion est vérifiée : la `network.peer.address` d'un span serveur, ou le premier champ d'une ligne du journal d'accès d'un serveur web. Personne ne peut l'écrire dans une requête.
+- Derrière un proxy auquel vous faites confiance, l'adresse de la connexion est celle du proxy, et le client est l'adresse que le proxy a transmise dans `X-Forwarded-For`. Chaque proxy ajoute l'adresse d'où il a reçu la connexion, donc OneUptime lit l'en-tête depuis la droite et prend la première adresse qui n'est pas un proxy auquel vous faites confiance. Ce qu'un expéditeur écrit dans l'en-tête se retrouve à sa gauche et reste une déclaration.
+- Une adresse qu'une requête donne sur elle-même est déclarée : `client.address`, que l'instrumentation remplit depuis la gauche de l'en-tête, le reste de `X-Forwarded-For`, et `Forwarded`.
+
+Une adresse déclarée n'est jamais bloquée depuis un dossier : n'importe qui peut envoyer `X-Forwarded-For: 192.0.2.44`, et un blocage couperait quiconque possède 192.0.2.44. Un événement qui n'a qu'une adresse déclarée a un **Plan de réponse** qui vous demande de trouver la vraie dans les journaux de votre répartiteur de charge ou de votre pare-feu.
+
+Enregistrez deux choses sur les spans serveur de votre application pour que ses adresses soient vérifiées : l'adresse propre de la connexion, `network.peer.address`, que définissent les instrumentations HTTP d'OpenTelemetry, et, derrière un proxy, l'en-tête `X-Forwarded-For`, qu'elles enregistrent comme `http.request.header.x-forwarded-for` dès que vous l'indiquez dans `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Un journal d'accès JSON se lit de la même façon : son champ client, comme `remote_addr`, est l'adresse de la connexion, et son champ `http_x_forwarded_for` est l'en-tête.
+
+#### Proxys de confiance
+
+Les Événements de sécurité font confiance à un proxy pour dire qui était son client quand son adresse est :
+
+| De confiance | Pourquoi |
+| --- | --- |
+| Privée, de bouclage ou lien-local, comme `10.0.0.5` | Toujours : personne ne l'a sur Internet, c'est donc un répartiteur de charge ou un ingress de votre réseau |
+| Listée sous **Proxys de confiance** | Vous l'avez listée |
+| Dans les plages publiées d'un service en périphérie que vous avez connecté, comme [Cloudflare](/docs/integrations/cloudflare) | Tant que la connexion existe |
+| L'un de vos propres répartiteurs de charge d'application | Sauf si vous le désactivez |
+
+**Événements de sécurité → Connexions → Plus de paramètres** contient **Proxys de confiance**, la liste que vous écrivez, et **Fiables automatiquement**, qui montre le reste et pourquoi. Listez un proxy sous **Proxys de confiance**, une adresse ou une plage par ligne, quand son adresse est publique et que rien d'autre ne lui fait confiance : un CDN que vous n'avez pas connecté, un répartiteur de charge qui atteint votre application par Internet, ou un proxy inverse comme nginx sur un serveur à adresse publique devant votre application. Tant que vous ne le faites pas, chaque attaque qui passe par lui est attribuée au proxy. Derrière un Application Load Balancer externe global de Google Cloud, les connexions de votre application viennent des front-ends de Google : listez `35.191.0.0/16` et `130.211.0.0/22`.
+
+Vos propres répartiteurs de charge d'application sont ceux que listent vos [comptes cloud connectés](/docs/telemetry/cloud-accounts) : les AWS Application Load Balancers, les AWS Classic Load Balancers dont chaque écouteur est HTTP ou HTTPS, les Google Cloud Application Load Balancers et les Azure Application Gateways, par leurs adresses publiques. Chacun ajoute à `X-Forwarded-For` le client qu'il transmet. Un répartiteur de charge Google Cloud ajoute sa propre adresse après celle du client, et un Application Gateway atteint un backend public depuis sa propre adresse, donc sans eux chaque attaque passant par l'un d'eux serait attribuée au répartiteur de charge. **Vos répartiteurs de charge**, sur **Fiables automatiquement**, les liste, et un Propriétaire du projet, un Administrateur du projet ou un Administrateur de la sécurité peut le désactiver.
+
+Rien d'autre chez vous n'est fiable automatiquement : ni vos hôtes, nœuds Kubernetes, sondes ou machines virtuelles, ni une passerelle NAT, ni un Network, Gateway ou Azure Load Balancer. Ils ne transmettent personne, ou font suivre une requête telle qu'elle est arrivée, donc ce qui s'exécute sur eux pourrait désigner n'importe quel client : une requête qu'un moniteur envoie avec ses propres en-têtes, un pod, un ordinateur portable derrière la passerelle. Si l'un d'eux est votre proxy, ajoutez-le à **Proxys de confiance**. Un ingress Kubernetes est fiable comme le répartiteur de charge qu'il est : un ingress GKE est un Google Cloud Application Load Balancer, un ingress Application Gateway d'AKS un Application Gateway, et un ingress EKS de classe `alb` un AWS Application Load Balancer. Un contrôleur d'ingress dans votre cluster transmet depuis une adresse privée, toujours fiable.
+
+Une modification de l'un de ces éléments prend effet en moins d'une minute, et un nouveau répartiteur de charge devient fiable en moins de cinq.
+
+#### Journaux d'accès qui se terminent par X-Forwarded-For
+
+Derrière un répartiteur de charge, beaucoup de serveurs web journalisent l'adresse transmise en dernier, comme le fait le format `main` de nginx lui-même :
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Une ligne ne dit jamais ce que sont ses champs, donc son dernier champ n'est lu comme `X-Forwarded-For` qu'une fois que vous avez activé **Journaux terminés par X-Forwarded-For**, sur **Journaux d'accès** sous **Plus de paramètres**, et seulement :
+
+- quand le premier champ de la ligne est un proxy auquel vous faites confiance : une ligne d'un client qui a atteint votre serveur web directement est celle de ce client ;
+- au format combined, avec exactement un champ entre guillemets après l'agent utilisateur et rien après ;
+- quand ce champ vaut `-` ou une liste d'adresses dont la dernière n'a pas de port.
+
+Laissez-le désactivé quand votre format se termine par un autre en-tête qui contient une adresse, comme `X-Real-IP`, ou quand votre serveur web écrit les en-têtes sans échapper leurs guillemets, comme le fait `morgan` d'Express : l'agent utilisateur d'une requête pourrait alors ajouter un champ. Un journal d'accès JSON n'a besoin d'aucun interrupteur, puisque ses champs sont nommés.
+
 ### Masquée par une règle de nettoyage
 
 Une règle d'adresse IP qui efface ou masque vos journaux ou vos traces cache l'adresse d'où vient une attaque avant que les Événements de sécurité ne les lisent. L'événement est tout de même stocké, sans adresse, et partout où il nommerait l'adresse, il dit qu'une règle de masquage l'a cachée :
@@ -335,13 +384,24 @@ La barre latérale compte les événements de la fenêtre par **Source**, **Grav
 
 Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Application atteinte**, **En erreur** ou **Base de données atteinte**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
 
+### Un fichier sensible que votre site a servi
+
+Une requête visant un fichier qui contient des secrets, comme `/.env`, `/.git/config`, `/.aws/credentials` ou une copie de `wp-config.php`, est une fuite quand votre site y a répondu par le fichier lui-même : quiconque l'a demandé détient ses mots de passe, ses clés et ses jetons. Une application monopage répond à chaque chemin qu'elle n'a pas par sa propre page et un 200, si bien qu'un 200 seul ne l'indique jamais. OneUptime lit ce que contenait la réponse :
+
+- Un type qui n'est pas une page web, comme `text/plain` ou `application/octet-stream` : le fichier lui-même.
+- Une page web, ou du JSON pour un fichier qui n'est pas du JSON : la propre page de votre site.
+- Rien dedans : rien n'a été pris.
+- Une taille sans type, telle que l'enregistre le journal d'accès d'un serveur web : le fichier lui-même quand aucun autre chemin n'a reçu cette taille et que votre site répond 404 pour les chemins qu'il n'a pas, et la propre page de votre site quand deux chemins différents ont reçu une réponse de la même taille. Quand rien ne permet de le dire, la requête n'est pas un événement.
+
+Un fichier servi est Critique, et la règle **Sensitive file served** de la Bibliothèque de règles ouvre un dossier à son sujet, avec des étapes pour retirer le fichier et renouveler ce qu'il contient. Chacune de ces requêtes compte aussi pour **Scanning for sensitive files**, y compris celles auxquelles une application monopage a répondu. Une page d'administration que votre site sert, comme celle de WordPress, n'en est jamais une, et un `wp-config.php` que WordPress a exécuté est la propre page de votre site. Les événements de pare-feu de Cloudflare ne disent pas ce que votre serveur d'origine a envoyé : une requête que Cloudflare a laissée passer ne compte donc que comme un scan. Le panneau d'un événement indique ce que votre site a envoyé sous **Ce qui s'est passé ensuite**.
+
 ### Campaigns
 
 **Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier. Une ligne que votre liste de blocage contient déjà indique jusqu'à quand elle est bloquée ou soumise à un défi, et nomme la plage ou le réseau qui la contient.
 
 Pour bloquer plusieurs attaquants à la fois, sélectionnez leurs lignes et cliquez sur **Bloquer des adresses**. Une seule boîte de dialogue liste chaque adresse qu'elle bloque et chaque adresse qu'elle exclut, avec la raison : déjà bloquée, l'une des vôtres ou une adresse protégée, une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou une adresse que OneUptime n'a pas pu vérifier. Elle bloque pendant 24 heures sauf si vous choisissez une autre durée, ou soumet à un défi avec **Défi à la place**, et chaque blocage rejoint votre [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) en votre nom.
 
-**Regrouper par réseau** place les adresses d'un même réseau sur une seule ligne : par son ASN quand les événements de votre connexion [Cloudflare](/docs/integrations/cloudflare) en nomment un, et sinon par son /24 en IPv4 ou son /48 en IPv6. La ligne d'un ASN liste les plages depuis lesquelles ses adresses ont envoyé des requêtes. **Soumettre ce réseau à un défi** indique ce qu'il va faire, où et pendant combien de temps avant de le faire : 24 heures sauf si vous choisissez une autre durée, et l'échelon suivant de l'échelle pour un réseau déjà soumis à un défi. Cloudflare garde une plage dans sa liste de défis, et un ASN sous forme d'IP Access Rule, que chaque forfait possède.
+**Regrouper par réseau** place les adresses d'un même réseau sur une seule ligne : par son ASN quand les événements de votre connexion [Cloudflare](/docs/integrations/cloudflare) en nomment un, et sinon par son /24 en IPv4 ou son /48 en IPv6. La ligne d'un ASN liste les plages depuis lesquelles ses adresses ont envoyé des requêtes. **Soumettre ce réseau à un défi** indique ce qu'il va faire, où et pendant combien de temps avant de le faire : 24 heures sauf si vous choisissez une autre durée, et l'échelon suivant de l'échelle pour un réseau déjà soumis à un défi. Cloudflare garde une plage dans sa liste de défis, et un ASN sous forme d'IP Access Rule, que chaque forfait possède. **Voir les requêtes** sur la ligne d'un réseau ouvre ce qu'il a envoyé dans **Événements** : pour un ASN, par l'ASN que portent ses événements Cloudflare, et pour une plage, sous forme de recherche de ses adresses, comme `ip:203.0.113.*`, que vous pouvez modifier.
 
 - Un réseau qui contient une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou l'une des vôtres, n'est jamais soumis à un défi, et la boîte de dialogue nomme qui ou quoi.
 - Une plage plus large qu'un /24 (un /48 en IPv6), et un ASN entier, demandent un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet. La ligne d'un ASN propose aussi chacune de ses plages, que toute personne qui peut bloquer peut soumettre à un défi.
@@ -536,6 +596,8 @@ Le regroupement et le comptage distinct prennent les mêmes noms de champs que l
 | Force brute : 5 échecs de connexion depuis une IP | `principalIp` | Vide | 5 |
 | Password spraying : une IP qui échoue sur 5 comptes différents | `principalIp` | `principalUser` | 5 |
 | Scan de ports : une IP qui atteint 20 ports différents | `principalIp` | `targetPort` | 20 |
+
+Une règle avec un **Champ de regroupement** qui a besoin de plus d'un événement dans un groupe, par un seuil supérieur à 1 ou un **Champ de comptage distinct**, laisse de côté les événements qui n'ont pas de valeur pour son champ : comptés, ils s'additionneraient tous en une seule valeur, chaque échec de connexion sans adresse en une seule adresse IP. Une règle qui se déclenche sur chaque événement continue de se déclencher pour eux. **Règles de détection** indique sous le nom d'une règle combien d'événements correspondants du dernier jour elle n'a pas pu compter, et la ligne ouvre la raison : combien n'avaient pas de valeur, et combien d'entre eux une règle de masquage a cachés, avec **Ouvrir les règles de masquage**. Une règle qui n'a rien pu compter de ce qu'elle a trouvé ne peut pas se déclencher, et son **Statut** indique **Attention requise**. **Exécuter sur les événements passés** dit la même chose pour la période qu'il lit.
 
 ### Quand une règle s'exécute
 

@@ -250,7 +250,7 @@ test.describe("AI > Insights and AI > Logs", () => {
     for (const path of ["ai/insights", "ai/logs"]) {
       await page.goto(`${CLOUD_PATH}/${path}?${CONNECTED}`);
       await expect(page.locator("body")).not.toContainText(
-        /cannot read|Something went wrong/,
+        /cannot read|Something went wrong|This page stopped working/,
       );
       await expectNoSidewaysScroll(page);
     }

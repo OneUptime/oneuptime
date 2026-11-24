@@ -44,7 +44,7 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 | **Kriterienavn** | Navnet i listen over kriterier og i rotårsaken til hver hendelse og hvert varsel kriteriet åpner. **Legg til kriterier** gir et nytt kriterium navn etter filtrene, og navnet følger dem til du skriver ditt eget. |
 | **Filtre** | Hva kontrollen må vise, som ett eller flere filtre. Kubernetes- og målingsmonitorer kaller dem **Varselsregler**. |
 | **Handlinger** | Hva som skjer når filtrene samsvarer: endre statusen, opprette et varsel, erklære en hendelse eller en kombinasjon. |
-| **Innstillinger** | **Aktiver disse kriteriene**, en valgfri **Beskrivelse**, når det gjenopprettes og når det evalueres, og, på monitorer for innkommende forespørsler, **Group incidents and alerts by a payload field**. |
+| **Innstillinger** | **Aktiver disse kriteriene**, en valgfri **Beskrivelse**, når det gjenopprettes og når det evalueres, og, på monitorer for innkommende forespørsler, **Grupper hendelser og varsler etter et felt i payloaden**. |
 
 ### Filtre
 
@@ -70,7 +70,7 @@ En hendelse eller et varsel ber om en tittel, en **Alvorlighetsgrad** og, sammen
 
 **Aktiver disse kriteriene** er slått på for hvert nytt kriterium. Slå det av for å beholde et kriterium uten å bruke det: det hoppes over ved hver kontroll, endrer ingen status, åpner ingenting, og overskriften viser **Deaktivert**.
 
-**Group incidents and alerts by a payload field** åpner én hendelse per verdi som finnes i en innkommende forespørsel, slik at én webhook-adresse kan holde flere hendelser åpne. Se [Slå på hendelsesgruppering](/docs/monitor/incoming-request-monitor#slå-på-gruppering-av-hendelser).
+**Grupper hendelser og varsler etter et felt i payloaden** åpner én hendelse per verdi som finnes i en innkommende forespørsel, slik at én webhook-adresse kan holde flere hendelser åpne. Se [Slå på hendelsesgruppering](/docs/monitor/incoming-request-monitor#slå-på-gruppering-av-hendelser).
 
 **Gjenopprett bare når en egen betingelse er oppfylt** og **Evaluer disse kriteriene bare på bestemte dager og tider** er slått av for et nytt kriterium. Se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes) og [Bare på bestemte dager og tider](#bare-på-bestemte-dager-og-tider).
 
@@ -218,6 +218,8 @@ Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som 
 ## Hvor lang tid hver sjekk tar
 
 Evalueringssammendraget for hver sjekk, under **Vis sammendrag** i monitorens **Overvåkingslogger** og for den siste sjekken på dens **Oversikt**, forteller når sjekken ble evaluert, hvor lang tid evalueringen tok og, for en monitor som vurderer hver vert, container eller gruppe for seg, hvor mange serier den vurderte. Tiden løper fra OneUptime begynte å lese dataene sjekken vurderer, til den skrev sjekkens logg: lesingen av dataene, vurderingen av kriteriene og åpningen av hendelser og varsler.
+
+I **Overvåkingslogger** viser kolonnen **Sjekkens varighet** hvor lang tid hver sjekk tok, og markerer trege sjekker. En strek betyr at sjekkens varighet ikke ble registrert.
 
 Når en evaluering tar for lang tid for monitoren sin, varsler sammendraget deg. For lang tid er mer enn en tidel av tiden mellom monitorens sjekker, aldri under 5 sekunder og aldri over ett minutt:
 
