@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "切换到可视化编辑器",
   "Visual": "可视化",
   "Drop image to upload": "松开即可上传图片",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "“{{fileName}}”未上传。{{error}}",
+  "Uploading {{fileName}}…": "正在上传 {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "直接在可视化编辑器中输入 — 用工具栏设置格式。",
   "Switch to {{markdown}} to view or edit the raw source.": "切换到 {{markdown}} 可查看或编辑源文本。",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "在列表中，按 {{indentKey}} 缩进项目，按 {{outdentKey}} 取消缩进，或使用缩进和取消缩进按钮。在列表外，{{tabKey}} 会移到下一个字段。",

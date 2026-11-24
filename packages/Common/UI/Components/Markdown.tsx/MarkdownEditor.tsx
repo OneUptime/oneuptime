@@ -1,14 +1,32 @@
 import Icon from "../Icon/Icon";
-import FieldError from "../Forms/Fields/FieldError";
+import FieldError, { getFieldErrorClassName } from "../Forms/Fields/FieldError";
+import ErrorSentence from "../ErrorMessage/ErrorSentence";
 import KeyboardKey, { KeyboardKeyUtil } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import TinyFormDocumentation from "../TinyFormDocumentation/TinyFormDocumentation";
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import useTranslateValue from "../../Utils/Translation";
+import useTranslator from "../../Utils/UseTranslator";
 import joinAriaIds from "../../Utils/AriaIds";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
-import { translationKey } from "../../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../Utils/TranslateTemplate";
+import {
+  FailedImageUpload,
+  getImagesRefusedMessage,
+  getOffsetAfterRemoval,
+  getUploadPlaceholder,
+  IMAGE_NOT_UPLOADED_SENTENCE,
+  ImagesChoice,
+  MARKDOWN_EDITOR_IMAGE_NOT_UPLOADED_TEST_ID,
+  MARKDOWN_EDITOR_IMAGES_REFUSED_TEST_ID,
+  MarkdownImagesLeftOut,
+  nothingLeftOut,
+  removeUploadPlaceholder,
+  replaceUploadPlaceholder,
+  sortImagesGiven,
+  TextWithoutPlaceholder,
+} from "./MarkdownImageUploads";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import CommonURL from "../../../Types/API/URL";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -16,7 +34,6 @@ import MimeType from "../../../Types/File/MimeType";
 import FileModel from "../../../Models/DatabaseModels/File";
 import DOMPurify from "dompurify";
 import { htmlToMarkdown, markdownToHtml } from "./MarkdownConverters";
-import { findAddressAtEnd } from "./MarkdownLinkSpans";
 import { withoutTrailingRun } from "../../../Utils/TrailingRuns";
 import {
   indentMarkdownLines,
@@ -150,8 +167,6 @@ const isEmptyRect: (rect: DOMRect | null | undefined) => boolean = (
 ): boolean => {
   return !rect || (rect.width === 0 && rect.height === 0);
 };
-
-const MAX_IMAGE_SIZE_BYTES: number = 10 * 1024 * 1024; // 10MB
 
 const IMAGE_MIME_BY_EXTENSION: { [key: string]: MimeType } = {
   png: MimeType.png,
@@ -490,6 +505,14 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
    * stayed English on every page.
    */
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  /*
+   * What the last paste, drop or pick of images left out of the text, and
+   * why: said in a line under the editor, never written into the text
+   * (MarkdownImageUploads, #10974).
+   */
+  const [imagesLeftOut, setImagesLeftOut] =
+    useState<MarkdownImagesLeftOut>(nothingLeftOut);
   const givenPlaceholder: string | undefined = props.isPlaceholderTranslated
     ? props.placeholder
     : translateString(props.placeholder);
@@ -859,49 +882,106 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     insertHtmlAtCursorInEditable(html);
   };
 
-  const replacePlaceholderInText: (
-    needle: string,
-    replacement: string,
-  ) => void = (needle: string, replacement: string): void => {
-    const current: string = textRef.current;
-    if (current.includes(needle)) {
-      handleChange(current.split(needle).join(replacement));
+  /*
+   * The visual editor's images that stand in for an upload, by the address
+   * no other image has: none while the markdown source is open.
+   */
+  const getPlaceholderImages: (
+    placeholderUrl: string,
+  ) => Array<HTMLImageElement> = (
+    placeholderUrl: string,
+  ): Array<HTMLImageElement> => {
+    const editable: HTMLDivElement | null = editableRef.current;
+    if (!editable) {
+      return [];
     }
-    /*
-     * Also fix any matching <img>/anchor in the contenteditable so the
-     * visible WYSIWYG view stays in sync without losing cursor.
-     */
-    if (mode === "wysiwyg") {
-      const editable: HTMLDivElement | null = editableRef.current;
-      if (editable) {
-        const url: string | null = findAddressAtEnd(needle);
-        if (url) {
-          const imgs: NodeListOf<HTMLImageElement> = editable.querySelectorAll(
-            `img[src="${url}"]`,
-          );
-          if (imgs.length > 0) {
-            const finalMatch: RegExpMatchArray | null = replacement.match(
-              /^!\[([^\]]*)\]\(([^)]+)\)/,
-            );
-            if (finalMatch) {
-              imgs.forEach((img: HTMLImageElement) => {
-                img.setAttribute("alt", finalMatch[1] || "");
-                img.setAttribute("src", finalMatch[2] || "");
-              });
-            } else {
-              /*
-               * Replacement isn't an image (e.g. error text). Replace each img
-               * with a text node containing the replacement.
-               */
-              imgs.forEach((img: HTMLImageElement) => {
-                const textNode: Text = document.createTextNode(replacement);
-                img.parentNode?.replaceChild(textNode, img);
-              });
-            }
-            syncFromEditable();
-          }
-        }
-      }
+    return Array.from(
+      editable.querySelectorAll<HTMLImageElement>(
+        `img[src="${placeholderUrl}"]`,
+      ),
+    );
+  };
+
+  /*
+   * An uploaded image in its placeholder's place. Found by its address in
+   * whichever view is open now - the person may have switched views while
+   * it uploaded - and in the visual editor changed in place, so the cursor
+   * stays where it is.
+   */
+  const replacePlaceholderInText: (
+    placeholderUrl: string,
+    replacement: string,
+  ) => void = (placeholderUrl: string, replacement: string): void => {
+    const current: string = textRef.current;
+    const replaced: string = replaceUploadPlaceholder({
+      text: current,
+      placeholderUrl: placeholderUrl,
+      replacement: replacement,
+    });
+    if (replaced !== current) {
+      handleChange(replaced);
+    }
+    const images: Array<HTMLImageElement> =
+      getPlaceholderImages(placeholderUrl);
+    const finalMatch: RegExpMatchArray | null = replacement.match(
+      /^!\[([^\]]*)\]\(([^)]+)\)/,
+    );
+    if (images.length > 0 && finalMatch) {
+      images.forEach((img: HTMLImageElement) => {
+        img.setAttribute("alt", finalMatch[1] || "");
+        img.setAttribute("src", finalMatch[2] || "");
+      });
+      syncFromEditable();
+    }
+  };
+
+  /*
+   * An upload that failed leaves nothing in the text (#10974): its
+   * placeholder is taken out again - its own characters, nothing around
+   * them - and the cursor stays against the words it was beside. It used to
+   * be replaced by an English sentence, which was saved with the note.
+   */
+  const removePlaceholderFromText: (placeholderUrl: string) => void = (
+    placeholderUrl: string,
+  ): void => {
+    const images: Array<HTMLImageElement> =
+      getPlaceholderImages(placeholderUrl);
+    if (images.length > 0) {
+      images.forEach((img: HTMLImageElement) => {
+        img.remove();
+      });
+      syncFromEditable();
+      return;
+    }
+    const textarea: HTMLTextAreaElement | null = textareaRef.current;
+    const removal: TextWithoutPlaceholder = removeUploadPlaceholder(
+      textRef.current,
+      placeholderUrl,
+    );
+    if (removal.removedAt === -1) {
+      return;
+    }
+    const hadFocus: boolean = Boolean(
+      textarea && document.activeElement === textarea,
+    );
+    const selectionStart: number = textarea?.selectionStart ?? 0;
+    const selectionEnd: number = textarea?.selectionEnd ?? 0;
+    handleChange(removal.text);
+    if (textarea && hadFocus) {
+      const start: number = getOffsetAfterRemoval({
+        offset: selectionStart,
+        removedAt: removal.removedAt,
+        length: removal.removedLength,
+      });
+      const end: number = getOffsetAfterRemoval({
+        offset: selectionEnd,
+        removedAt: removal.removedAt,
+        length: removal.removedLength,
+      });
+      // Once React has written the shorter value, which moves the cursor.
+      setTimeout(() => {
+        textarea.setSelectionRange(start, end);
+      }, 0);
     }
   };
 
@@ -913,12 +993,12 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       .toString(16)
       .slice(2)}`;
     const placeholderUrl: string = `oneuptime-uploading-${token}`;
-    const placeholderMarkdown: string = `![Uploading ${filename}…](${placeholderUrl})`;
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      insertMarkdownAtCursor(`[Image "${filename}" exceeds the 10MB limit]`);
-      return;
-    }
+    // Its words in the reader's language, while it uploads.
+    const placeholderMarkdown: string = getUploadPlaceholder({
+      translator: translator,
+      fileName: filename,
+      placeholderUrl: placeholderUrl,
+    });
 
     insertMarkdownAtCursor(placeholderMarkdown);
 
@@ -956,28 +1036,38 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       const imageUrl: string = CommonURL.fromURL(FILE_URL)
         .addRoute("/image/access-token/" + accessToken)
         .toString();
-      replacePlaceholderInText(
-        placeholderMarkdown,
-        `![${filename}](${imageUrl})`,
-      );
+      replacePlaceholderInText(placeholderUrl, `![${filename}](${imageUrl})`);
     } catch (err) {
-      const errorMessage: string = API.getFriendlyMessage(err);
-      replacePlaceholderInText(
-        placeholderMarkdown,
-        `[Upload failed for "${filename}": ${errorMessage}]`,
+      removePlaceholderFromText(placeholderUrl);
+      // Said under the editor, with why, beside what else was left out.
+      const failure: FailedImageUpload = {
+        fileName: filename,
+        error: API.getFriendlyMessage(err),
+      };
+      setImagesLeftOut(
+        (leftOut: MarkdownImagesLeftOut): MarkdownImagesLeftOut => {
+          return { ...leftOut, failed: [...leftOut.failed, failure] };
+        },
       );
     }
   };
 
+  /*
+   * A paste, a drop or a pick of files: the images go in, each where the
+   * cursor is, and what is left out is said under the editor - a file that
+   * is not an image, an image over the limit - in place of what the last
+   * one left out. Nothing of it is written into the text (#10974).
+   */
   const handleImageFiles: (files: Array<File>) => Promise<void> = async (
     files: Array<File>,
   ): Promise<void> => {
-    const images: Array<File> = files.filter(isImageFile);
-    if (images.length === 0) {
-      return;
-    }
+    const choice: ImagesChoice<File> = sortImagesGiven({
+      files: files,
+      isImage: isImageFile,
+    });
+    setImagesLeftOut({ ...nothingLeftOut(), refused: choice.refused });
     await Promise.all(
-      images.map((file: File) => {
+      choice.toUpload.map((file: File) => {
         return uploadAndInsertImage(file);
       }),
     );
@@ -2171,6 +2261,14 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       ? translationKey("Switch to markdown source")
       : translationKey("Switch to visual editor");
   const modeToggleTitle: string = tx(modeToggleAction);
+  /*
+   * The files the last paste, drop or pick refused, in the reader's words:
+   * worded as the editor is drawn, so it follows a change of language.
+   */
+  const imagesRefusedMessage: string = getImagesRefusedMessage(
+    translator,
+    imagesLeftOut.refused,
+  );
 
   /*
    * How much of the toolbar is on its line (MarkdownToolbarLayout). Starts
@@ -2835,6 +2933,38 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
           </>
         )}
       </div>
+
+      {/*
+       * What the last paste, drop or pick of images left out, and why, under
+       * the editor as the file picker says it under its zone (#10974): the
+       * files refused in the picker's own sentences, then each upload that
+       * failed. Said at once to a screen reader, in the reader's language,
+       * and never written into the text.
+       */}
+      {imagesRefusedMessage ? (
+        <FieldError
+          message={imagesRefusedMessage}
+          dataTestId={MARKDOWN_EDITOR_IMAGES_REFUSED_TEST_ID}
+        />
+      ) : null}
+      {imagesLeftOut.failed.map(
+        (failure: FailedImageUpload, index: number): ReactElement => {
+          return (
+            <p
+              key={`${index}-${failure.fileName}`}
+              role="alert"
+              data-testid={MARKDOWN_EDITOR_IMAGE_NOT_UPLOADED_TEST_ID}
+              className={getFieldErrorClassName()}
+            >
+              <ErrorSentence
+                template={IMAGE_NOT_UPLOADED_SENTENCE}
+                values={{ fileName: failure.fileName }}
+                error={failure.error}
+              />
+            </p>
+          );
+        },
+      )}
 
       {/* Error Message */}
       {props.error && <FieldError id={errorId} message={props.error} />}

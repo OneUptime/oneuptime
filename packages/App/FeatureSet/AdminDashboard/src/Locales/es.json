@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Cambiar al editor visual",
   "Visual": "Visual",
   "Drop image to upload": "Suelta la imagen para subirla",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" no se subió. {{error}}",
+  "Uploading {{fileName}}…": "Subiendo {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Escribe directamente en el editor visual: usa la barra de herramientas para dar formato.",
   "Switch to {{markdown}} to view or edit the raw source.": "Cambia a {{markdown}} para ver o editar el código fuente sin procesar.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "En una lista, pulsa {{indentKey}} para aumentar la sangría de un elemento y {{outdentKey}} para reducirla, o usa los botones Aumentar sangría y Reducir sangría. Fuera de una lista, {{tabKey}} pasa al siguiente campo.",

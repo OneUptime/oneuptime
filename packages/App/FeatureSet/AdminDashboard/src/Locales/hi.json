@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "विज़ुअल एडिटर पर जाएँ",
   "Visual": "विज़ुअल",
   "Drop image to upload": "अपलोड करने के लिए छवि छोड़ें",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" अपलोड नहीं की गई। {{error}}",
+  "Uploading {{fileName}}…": "{{fileName}} अपलोड हो रही है…",
   "Type directly in the visual editor — use the toolbar to format.": "विज़ुअल एडिटर में सीधे लिखें — फ़ॉर्मैट के लिए टूलबार इस्तेमाल करें।",
   "Switch to {{markdown}} to view or edit the raw source.": "मूल सामग्री देखने या संपादित करने के लिए {{markdown}} पर जाएँ।",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "सूची में, किसी आइटम को इंडेंट करने के लिए {{indentKey}} और आउटडेंट करने के लिए {{outdentKey}} दबाएँ, या इंडेंट और आउटडेंट बटन इस्तेमाल करें। सूची के बाहर, {{tabKey}} अगले फ़ील्ड पर ले जाता है।",

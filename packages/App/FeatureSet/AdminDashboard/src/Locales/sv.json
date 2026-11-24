@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Byt till visuell redigerare",
   "Visual": "Visuell",
   "Drop image to upload": "Släpp bilden för att ladda upp den",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" laddades inte upp. {{error}}",
+  "Uploading {{fileName}}…": "Laddar upp {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Skriv direkt i den visuella redigeraren — använd verktygsfältet för formatering.",
   "Switch to {{markdown}} to view or edit the raw source.": "Byt till {{markdown}} för att visa eller redigera källtexten.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "I en lista trycker du på {{indentKey}} för att dra in en punkt och {{outdentKey}} för att minska indraget, eller använder knapparna Öka indrag och Minska indrag. Utanför en lista flyttar {{tabKey}} till nästa fält.",

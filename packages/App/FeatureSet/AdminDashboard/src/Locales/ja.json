@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "ビジュアルエディターに切り替え",
   "Visual": "ビジュアル",
   "Drop image to upload": "画像をドロップしてアップロード",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "「{{fileName}}」はアップロードされませんでした。{{error}}",
+  "Uploading {{fileName}}…": "{{fileName}} をアップロードしています…",
   "Type directly in the visual editor — use the toolbar to format.": "ビジュアルエディターに直接入力してください — 書式設定にはツールバーを使用します。",
   "Switch to {{markdown}} to view or edit the raw source.": "生のソースを表示・編集するには {{markdown}} に切り替えてください。",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "リストでは、{{indentKey}} で項目をインデント、{{outdentKey}} でインデントを解除するか、「インデント」と「インデント解除」のボタンを使います。リストの外では、{{tabKey}} で次のフィールドに移動します。",

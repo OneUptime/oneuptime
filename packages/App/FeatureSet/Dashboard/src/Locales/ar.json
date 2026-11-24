@@ -64067,5 +64067,7 @@
   "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
   "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 ذات معرّف المستأجر {{tenantId}}. سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "لم يتم رفع «{{fileName}}». {{error}}",
+  "Uploading {{fileName}}…": "جارٍ رفع {{fileName}}…"
 }

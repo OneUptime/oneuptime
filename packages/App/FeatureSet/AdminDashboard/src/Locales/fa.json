@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "رفتن به ویرایشگر دیداری",
   "Visual": "دیداری",
   "Drop image to upload": "برای بارگذاری، تصویر را رها کنید",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "«{{fileName}}» بارگذاری نشد. {{error}}",
+  "Uploading {{fileName}}…": "در حال بارگذاری {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "مستقیم در ویرایشگر دیداری بنویسید — برای قالب‌بندی از نوار ابزار استفاده کنید.",
   "Switch to {{markdown}} to view or edit the raw source.": "برای دیدن یا ویرایش متن خام به {{markdown}} بروید.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "در فهرست، برای تورفتگی یک مورد {{indentKey}} و برای برگرداندن آن {{outdentKey}} را بزنید، یا از دکمه‌های تورفتگی و برگرداندن تورفتگی استفاده کنید. بیرون از فهرست، {{tabKey}} به فیلد بعدی می‌رود.",
