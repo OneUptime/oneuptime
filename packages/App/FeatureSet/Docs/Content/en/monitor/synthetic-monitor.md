@@ -156,13 +156,15 @@ return {
 
 A run keeps up to 20 screenshots, each up to 10 MB and 50 MB in all. A screenshot can also be shown in the incident or alert a failing run opens — on its page and in the emails about it — by placing it in the monitor's incident or alert description. See [Showing a screenshot](/docs/monitor/incident-alert-templating#showing-a-screenshot).
 
+When a run runs out of time, the probe also takes a screenshot of each page the script still has open, so you can see where it stopped. The first page's screenshot is named `timed-out-page`, and the others `timed-out-page-2`, `timed-out-page-3` and so on, in the order the pages were opened. The monitor's summary shows them as "Page when the script timed out" and "Page 2 when the script timed out", and an incident's or alert's description can show them like any other screenshot. They count toward the limits above, after the script's own screenshots.
+
 A check's screenshots are kept in the monitor's own logs, not in an incident's or an alert's logs or in a monitor's status changes: those keep the rest of the check, and each run whose screenshots were left out says so (`areScreenshotsOmitted`). Screenshots stored there before are cleared by an hourly job after the upgrade, a little at a time, until none are left.
 
 > [!NOTE]
 > On a self-hosted install, PostgreSQL reuses the space the cleared screenshots leave, but does not give it back to the disk. To shrink the database once they are cleared, run `VACUUM FULL` on the biggest tables in a maintenance window, as it locks each table while it rewrites it, or use `pg_repack`, which does not.
 
 :::details Returning screenshots (legacy)
-For backward compatibility, you can also return screenshots from the script as part of the return value. Screenshots returned this way are **only** captured when the script completes normally — they are lost if the script throws. Prefer the side-channel pattern above when you want evidence of failures.
+For backward compatibility, you can also return screenshots from the script as part of the return value. Screenshots returned this way are **only** captured when the script completes normally — they are lost if the script throws or runs out of time. Prefer the side-channel pattern above when you want evidence of failures.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Event listeners cannot cross the isolation boundary. Use `page.waitForEvent(...)
 :::
 
 :::details The run times out
-Wait for specific elements with `page.waitForSelector(...)` and a `timeout` shorter than the script's own limit, so the run fails on the step that is slow with a clear error.
+**Show More Details** on the monitor's summary shows "Page when the script timed out": the page the script was on when its time ran out. To fail the run on the slow step itself, with a clear error, wait for specific elements with `page.waitForSelector(...)` and a `timeout` shorter than the script's own limit.
 :::
 
 :::details A self-hosted probe says the browser executable was not found
