@@ -16,7 +16,10 @@ import {
 } from "../../../Types/DataSecurity/DataSecurityIssueGroupFix";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
 import { isTelemetryFindingCheck } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
-import { DataSecurityFixResult } from "../../../Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DataSecurityFixResult,
+  DataSecurityTelemetryFixPlanResult,
+} from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import Dictionary from "../../../Types/Dictionary";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookStepStatus } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
@@ -43,6 +46,10 @@ import DataSecurityIssueGroupFix, {
 } from "../DataSecurity/DataSecurityIssueGroupFix";
 import DataSecurityIssueGroups from "../DataSecurity/DataSecurityIssueGroups";
 import ProjectDataTypeNames from "../DataSecurity/ProjectDataTypeNames";
+import TelemetryLeakFix, {
+  TELEMETRY_FIX_NOTHING_TO_FIX_MESSAGE,
+  TelemetryLeakFixPlan,
+} from "../DataSecurity/TelemetryLeakFix";
 import logger from "../Logger";
 import type {
   PlaybookStepContext,
@@ -63,13 +70,15 @@ import type {
  *   - an issue in no group (#10740): Fix with AI for that issue itself
  *     (DataSecurityCodeTask.requestFix), in the repository its store's
  *     declared code points to (DataSecurityIssueDossier.readDeclaredCode),
- *     as a person's Fix with AI asks it.
+ *     as a person's Fix with AI asks it;
+ *   - a leak in a service's telemetry: the service's one pull request for
+ *     its leaks (#10367, TelemetryLeakFix), in the repository they are
+ *     written in, as Fix with AI on the issue asks it - once a service,
+ *     whichever of the case's issues it fixes.
  *
  * Never a change through a cloud connection, which always asks a person
  * (#10364): a store made in the console waits for Fix it from here on its
- * issue, or for its group's one approval on the Issues list. A leak in
- * telemetry is fixed in the code of the service that writes it, which a
- * person picks on its issue.
+ * issue, or for its group's one approval on the Issues list.
  *
  * What the step says goes on the case's timeline, read by the case's
  * readers, who may not read a group's other stores (#10739): it names the
@@ -358,6 +367,8 @@ export default class SecurityPlaybookIssueGroupFix {
     lines: CaseFixLines;
   }): Promise<void> {
     const projectId: ObjectID = data.context.projectId;
+    // The services whose telemetry fix was asked for: one pull request fixes each one's issues.
+    const servicesAsked: Set<string> = new Set();
 
     for (const issue of data.issues.slice(0, MAX_CASE_ISSUES_FIXED)) {
       const store: DataStore | undefined = data.stores.get(
@@ -367,9 +378,13 @@ export default class SecurityPlaybookIssueGroupFix {
 
       try {
         if (isTelemetryFindingCheck(issue.checkId)) {
-          data.lines.notStarted.push(
-            mdText`${storeName}: data in telemetry is fixed in the code of the service that writes it. Ask for the fix from its issue, where you pick the repository.`,
-          );
+          await SecurityPlaybookIssueGroupFix.fixTelemetryLeaks({
+            context: data.context,
+            issue,
+            storeName,
+            servicesAsked,
+            lines: data.lines,
+          });
           continue;
         }
 
@@ -446,6 +461,76 @@ export default class SecurityPlaybookIssueGroupFix {
         );
       }
     }
+  }
+
+  /*
+   * A leak in a service's telemetry (#10367): the service's one pull
+   * request for its leaks, planned as Fix with AI on the issue plans it -
+   * the repository its leaks are written in, found from where they are
+   * written - and asked as OneUptime, kept on the case. A service is asked
+   * for once: its pull request fixes every one of its issues. Where nothing
+   * says which repository holds its code, a person picks it on the issue.
+   */
+  private static async fixTelemetryLeaks(data: {
+    context: PlaybookStepContext;
+    issue: DataSecurityIssue;
+    storeName: string;
+    servicesAsked: Set<string>;
+    lines: CaseFixLines;
+  }): Promise<void> {
+    const planned: {
+      result: DataSecurityTelemetryFixPlanResult;
+      plan: TelemetryLeakFixPlan | null;
+    } = await TelemetryLeakFix.planForIssue({
+      projectId: data.context.projectId,
+      issueId: data.issue.id!,
+      props: ROOT,
+    });
+    const plan: TelemetryLeakFixPlan | null = planned.plan;
+
+    if (!plan) {
+      data.lines.notStarted.push(
+        mdText`${data.storeName}: ${planned.result.message || TELEMETRY_FIX_NOTHING_TO_FIX_MESSAGE}`,
+      );
+      return;
+    }
+
+    const serviceName: string = plan.serviceName || data.storeName;
+
+    if (data.servicesAsked.has(plan.serviceId.toLowerCase())) {
+      return;
+    }
+
+    data.servicesAsked.add(plan.serviceId.toLowerCase());
+
+    if (!plan.repository) {
+      data.lines.notStarted.push(
+        mdText`${serviceName}: OneUptime could not tell which repository holds the code that writes its telemetry. Ask for the fix from its issue, where you pick the repository.`,
+      );
+      return;
+    }
+
+    const repositoryName: string =
+      plan.repository.name || plan.repository.repositoryName;
+    const answer: DataSecurityFixResult & { wasAlreadyAsked?: boolean } =
+      await TelemetryLeakFix.start({
+        projectId: data.context.projectId,
+        plan,
+        props: ROOT,
+        requestedRepositoryId: plan.repository.id,
+        triggeredBySecurityCaseId: data.context.securityCase.id!,
+      });
+
+    if (!answer.aiRunId) {
+      data.lines.notStarted.push(mdText`${serviceName}: ${answer.message}`);
+      return;
+    }
+
+    data.lines.started.push(
+      answer.wasAlreadyAsked
+        ? mdText`one pull request that stops ${serviceName} writing sensitive data to its telemetry, in ${repositoryName} (already on its way)`
+        : mdText`one pull request that stops ${serviceName} writing sensitive data to its telemetry, in ${repositoryName}`,
+    );
   }
 
   // A store of the case made in the console: what waits, and where.

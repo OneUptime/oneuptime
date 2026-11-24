@@ -373,6 +373,8 @@ export default class DataSecurityCodeTask {
     // The provider the deciding AI rule picks, for a fix made without asking.
     llmProviderId?: ObjectID | undefined;
     buildMessage: () => Promise<DataSecurityAiCodeRequest>;
+    // The security case whose playbook asked, when OneUptime asks (#10740): the task is kept on it.
+    triggeredBySecurityCaseId?: ObjectID | undefined;
   }): Promise<DataSecurityFixResult> {
     const userId: ObjectID | undefined = data.props.userId || undefined;
 
@@ -463,6 +465,9 @@ export default class DataSecurityCodeTask {
         telemetryLeakFix: { ...data.fix, request: request.text },
       },
       ...(data.llmProviderId ? { llmProviderId: data.llmProviderId } : {}),
+      ...(data.triggeredBySecurityCaseId
+        ? { triggeredBySecurityCaseId: data.triggeredBySecurityCaseId }
+        : {}),
     });
 
     for (const issueId of data.issueIds) {

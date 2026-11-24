@@ -4002,6 +4002,10 @@ describe("Issues with one cause, after #10738-#10742", () => {
     expect(english(AI)).toContain(
       "is on the timeline of each open issue it is for when it is proposed, dismissed or expires",
     );
+    // A case's playbook asks a telemetry leak's service fix (#10740 after #10367).
+    expect(english(AI)).toContain(
+      "A security playbook's **Fix the code with AI** step asks for it on a Data Security case about the service's telemetry",
+    );
   });
 
   test("a group's fix is proven by the resolutions the page's own table names (#10738)", () => {

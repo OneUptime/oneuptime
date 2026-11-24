@@ -2931,7 +2931,7 @@ describe("Security Cases and Playbooks docs", () => {
  * step's - and the step never changes a store through its cloud connection.
  */
 describe("Fix the code with AI on a Data Security case (#10740)", () => {
-  test("asks for each issue in no group, up to the step's own cap, and changes no store through its cloud", () => {
+  test("asks for each issue in no group, up to the step's own cap - a telemetry leak's service once - and changes no store through its cloud", () => {
     const capped: RegExpMatchArray | null = source(
       "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookIssueGroupFix.ts",
     ).match(/\bMAX_CASE_ISSUES_FIXED: number = (\d+);/);
@@ -2942,7 +2942,11 @@ describe("Fix the code with AI on a Data Security case (#10740)", () => {
     const step: string = flat(englishPage());
 
     expect(step).toContain(
-      `and for each other issue, up to ${words[capped?.[1] || ""]}, a pull request of its own, asked as **Fix with AI** asks one, in the repository that code is in.`,
+      `and for each other issue, up to ${words[capped?.[1] || ""]}, a pull request of its own in the repository the code that declares its store is in`,
+    );
+    // A leak in a service's telemetry: the service's one pull request (#10367).
+    expect(step).toContain(
+      "or, for a leak in a service's telemetry, the service's one pull request for its leaks, in the repository they are written in.",
     );
     expect(step).toContain(
       "It never changes a store through its cloud connection (see [Issues with one cause](/docs/data-security/checks-and-issues#issues-with-one-cause)).",

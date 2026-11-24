@@ -9,6 +9,9 @@ import { DATA_SECURITY_PLAYBOOK_FIX_FEED_MESSAGE } from "../../../../Server/Util
 import DataSecurityIssueDossier from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueDossier";
 import DataSecurityIssueGrouper from "../../../../Server/Utils/DataSecurity/DataSecurityIssueGrouper";
 import ProjectDataTypeNames from "../../../../Server/Utils/DataSecurity/ProjectDataTypeNames";
+import TelemetryLeakFix, {
+  TELEMETRY_FIX_NOT_A_SERVICE_MESSAGE,
+} from "../../../../Server/Utils/DataSecurity/TelemetryLeakFix";
 import { PlaybookStepOutcome } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookActions";
 import SecurityPlaybookIssueGroupFix, {
   MAX_CASE_ISSUES_FIXED,
@@ -254,22 +257,6 @@ describe("a case whose issue is in no group", () => {
     expect(calls.responses).toHaveLength(0);
   });
 
-  test("a leak in telemetry is left for a person to pick the service's repository", async () => {
-    world.addStoreWithIssue(
-      { name: "checkout logs", kind: "Telemetry Logs", cloudTags: {} },
-      {
-        checkId: "sensitive-data-in-telemetry",
-        securityCaseId: securityCase._id!.toString(),
-      },
-    );
-
-    const outcome: PlaybookStepOutcome = await runStep();
-
-    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
-    expect(said(outcome)).toContain("service that writes it");
-    expect(started).toHaveLength(0);
-  });
-
   test("no repository OneUptime AI can work in holds its code: the step says so, and asks nothing", async () => {
     const made: { store: WorldStore; issue: WorldIssue } =
       declaredStore("customer-exports");
@@ -345,6 +332,176 @@ describe("a case whose issue is in no group", () => {
 
     expect(started).toHaveLength(MAX_CASE_ISSUES_FIXED);
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
+  });
+});
+
+/*
+ * A LEAK IN A SERVICE'S TELEMETRY (#10367, #10740): the step asks for the
+ * service's one pull request for its leaks, as Fix with AI on the issue
+ * asks it - planned as OneUptime, in the repository its leaks are written
+ * in - and keeps it on the case. A service is asked for once.
+ */
+describe("a case about a leak in a service's telemetry", () => {
+  const SERVICE_ID: string = "10740000-0000-4000-8000-0000000005e1";
+  let planned: Array<string>;
+  let asked: Array<{
+    serviceId: string;
+    props: unknown;
+    repositoryId: unknown;
+    caseId: string | undefined;
+  }>;
+  let answer: { message: string; aiRunId?: string; wasAlreadyAsked?: boolean };
+  let hasRepository: boolean;
+
+  function telemetryIssue(name: string): {
+    store: WorldStore;
+    issue: WorldIssue;
+  } {
+    return world.addStoreWithIssue(
+      { name, kind: "Telemetry Logs", cloudTags: {} },
+      {
+        checkId: "sensitive-data-in-telemetry",
+        securityCaseId: securityCase._id!.toString(),
+      },
+    );
+  }
+
+  beforeEach(() => {
+    planned = [];
+    asked = [];
+    hasRepository = true;
+    answer = {
+      message: "OneUptime AI is working on it.",
+      aiRunId: "10740000-0000-4000-8000-0000000000f7",
+    };
+    jest
+      .spyOn(TelemetryLeakFix, "planForIssue")
+      .mockImplementation((async (data: {
+        issueId: ObjectID;
+        props: { isRoot?: boolean };
+      }) => {
+        expect(data.props.isRoot).toBe(true);
+        planned.push(data.issueId.toString());
+
+        return {
+          result: { plan: {} },
+          plan: {
+            serviceId: SERVICE_ID,
+            serviceName: "checkout",
+            repository: hasRepository
+              ? {
+                  id: REPOSITORY_ID,
+                  name: "acme/checkout",
+                  organizationName: "acme",
+                  repositoryName: "checkout",
+                  mainBranchName: "main",
+                  gitHubAppInstallationId: null,
+                }
+              : null,
+          },
+        };
+      }) as never);
+    jest.spyOn(TelemetryLeakFix, "start").mockImplementation((async (data: {
+      plan: { serviceId: string };
+      props: unknown;
+      requestedRepositoryId?: unknown;
+      triggeredBySecurityCaseId?: ObjectID;
+    }) => {
+      asked.push({
+        serviceId: data.plan.serviceId,
+        props: data.props,
+        repositoryId: data.requestedRepositoryId,
+        caseId: data.triggeredBySecurityCaseId?.toString(),
+      });
+
+      return answer;
+    }) as never);
+  });
+
+  test("asks the service's one pull request, as OneUptime, in the repository its leaks are written in, kept on the case", async () => {
+    const made: { store: WorldStore; issue: WorldIssue } =
+      telemetryIssue("checkout logs");
+    const outcome: PlaybookStepOutcome = await runStep();
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
+    expect(planned).toEqual([made.issue.id]);
+    expect(asked).toEqual([
+      {
+        serviceId: SERVICE_ID,
+        props: { isRoot: true },
+        repositoryId: REPOSITORY_ID,
+        caseId: securityCase._id!.toString(),
+      },
+    ]);
+    expect(outcome.summary.toString()).toContain(
+      "one pull request that stops checkout writing sensitive data to its telemetry, in acme/checkout",
+    );
+    // Not the declared code's path, and never a change through a cloud connection.
+    expect(started).toHaveLength(0);
+    expect(calls.responses).toHaveLength(0);
+  });
+
+  test("two of the case's issues of one service: one pull request fixes both", async () => {
+    telemetryIssue("checkout logs");
+    telemetryIssue("cart spans");
+
+    const outcome: PlaybookStepOutcome = await runStep();
+
+    expect(planned).toHaveLength(2);
+    expect(asked).toHaveLength(1);
+    expect(
+      said(outcome).match(/one pull request that stops checkout/g),
+    ).toHaveLength(1);
+  });
+
+  test("nothing says which repository holds the service's code: a person picks it on the issue", async () => {
+    hasRepository = false;
+    telemetryIssue("checkout logs");
+
+    const outcome: PlaybookStepOutcome = await runStep();
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
+    expect(asked).toHaveLength(0);
+    expect(said(outcome)).toContain(
+      "checkout: OneUptime could not tell which repository holds the code that writes its telemetry. Ask for the fix from its issue, where you pick the repository.",
+    );
+  });
+
+  test("a store no service's, or nothing left to fix: the step says why, as Fix with AI does", async () => {
+    jest.spyOn(TelemetryLeakFix, "planForIssue").mockResolvedValue({
+      result: { plan: null, message: TELEMETRY_FIX_NOT_A_SERVICE_MESSAGE },
+      plan: null,
+    } as never);
+    telemetryIssue("checkout logs");
+
+    const outcome: PlaybookStepOutcome = await runStep();
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
+    expect(asked).toHaveLength(0);
+    expect(said(outcome)).toContain(
+      `checkout logs: ${TELEMETRY_FIX_NOT_A_SERVICE_MESSAGE}`,
+    );
+  });
+
+  test("a fix on its way for the service is said to be, not asked twice", async () => {
+    answer = { ...answer, wasAlreadyAsked: true };
+    telemetryIssue("checkout logs");
+
+    const outcome: PlaybookStepOutcome = await runStep();
+
+    expect(outcome.summary.toString()).toContain("(already on its way)");
+  });
+
+  test("what stops Code is said as Code says it, and nothing is asked", async () => {
+    answer = { message: "Turn on OneUptime AI for this project first." };
+    telemetryIssue("checkout logs");
+
+    const outcome: PlaybookStepOutcome = await runStep();
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
+    expect(said(outcome)).toContain(
+      "checkout: Turn on OneUptime AI for this project first.",
+    );
   });
 });
 
