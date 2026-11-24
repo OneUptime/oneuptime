@@ -43,11 +43,12 @@ const NEAR_MISSES: string =
 // Each place of a record and whether the scan calls what it holds an IP address.
 function ipAddressPlaces(
   source: TelemetrySampleSource,
-  row: JSONObject,
+  // As the database answers it: tuples, pairs and texts.
+  row: Record<string, unknown>,
 ): Record<string, boolean> {
   const values: Array<TelemetryRecordValue> = readTelemetryRecordValues(
     source,
-    row,
+    row as JSONObject,
     CAPS,
   )!;
   const places: Record<string, boolean> = {};
