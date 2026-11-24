@@ -17,9 +17,7 @@ export class AddFormSubmissionAlert1809187540760 implements MigrationInterface {
   public name: string = "AddFormSubmissionAlert1809187540760";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "FormSubmission" ADD "alertId" uuid`,
-    );
+    await queryRunner.query(`ALTER TABLE "FormSubmission" ADD "alertId" uuid`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

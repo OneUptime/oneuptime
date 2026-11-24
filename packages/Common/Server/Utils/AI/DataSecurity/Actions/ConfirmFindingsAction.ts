@@ -138,7 +138,9 @@ function findingLine(
  * verdict's reason. Its plan key is the findings it confirms, so the same
  * set is never proposed twice.
  */
-export function planConfirmFindings(plan: ConfirmFindingsPlan): DataSecurityAiPlannedChange {
+export function planConfirmFindings(
+  plan: ConfirmFindingsPlan,
+): DataSecurityAiPlannedChange {
   const findings: ConfirmFindingsPlan["findings"] = plan.findings.slice(
     0,
     MAX_FINDINGS_CONFIRMED_AT_ONCE,
@@ -174,8 +176,10 @@ export function planConfirmFindings(plan: ConfirmFindingsPlan): DataSecurityAiPl
       ),
       "\n",
     ).toString(),
-    proofMarkdown: mdText`Each rests on your team's own confirmation of a finding like it, or on a field whose name says it holds the type. The store's checks run again with them, as they do after a person confirms a finding.`.toString(),
-    undoMarkdown: mdText`Undo takes the confirmations back: each finding is Low again and waits for a person. A finding someone decided since is left as they decided it.`.toString(),
+    proofMarkdown:
+      mdText`Each rests on your team's own confirmation of a finding like it, or on a field whose name says it holds the type. The store's checks run again with them, as they do after a person confirms a finding.`.toString(),
+    undoMarkdown:
+      mdText`Undo takes the confirmations back: each finding is Low again and waits for a person. A finding someone decided since is left as they decided it.`.toString(),
     plan: plan as unknown as JSONObject,
     planKey: `confirm:${sha256Hex(ids.join(",")).slice(0, 32)}`,
     meetsDefaultConditions: false,

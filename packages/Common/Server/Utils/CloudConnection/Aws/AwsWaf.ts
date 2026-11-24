@@ -631,7 +631,9 @@ export async function getAwsWafSampledRequests(
             : null,
         action: readText(sample["Action"]).toUpperCase(),
         weight:
-          typeof sample["Weight"] === "number" ? (sample["Weight"] as number) : 1,
+          typeof sample["Weight"] === "number"
+            ? (sample["Weight"] as number)
+            : 1,
       };
     },
   );
