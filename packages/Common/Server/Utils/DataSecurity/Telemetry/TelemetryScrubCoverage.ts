@@ -1573,15 +1573,25 @@ export function describeRule(data: {
 async function propsFor(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  callerProps?: DatabaseCommonInteractionProps | undefined;
 }): Promise<DatabaseCommonInteractionProps> {
-  if (!data.userId) {
-    return { isRoot: true };
+  if (data.userId) {
+    return await WorkspaceActionAuthorization.getProjectMemberProps({
+      userId: data.userId,
+      projectId: data.projectId,
+    });
   }
 
-  return await WorkspaceActionAuthorization.getProjectMemberProps({
-    userId: data.userId,
-    projectId: data.projectId,
-  });
+  /*
+   * No person asked: a project API key, through the API (#10378). The rule
+   * is made with the key's own props - never as OneUptime, which let a key
+   * that may make one kind of scrub rule make any kind.
+   */
+  if (data.callerProps && !data.callerProps.isRoot) {
+    return data.callerProps;
+  }
+
+  return { isRoot: true };
 }
 
 // Why Scrub It cannot hide a metric's name, in a sentence a person can act on.
@@ -1658,6 +1668,7 @@ export function buildMetricScrubRule(data: {
 async function createMetricScrubRule(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   serviceId?: ObjectID | string | null | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
@@ -1782,6 +1793,8 @@ export function buildMetricDropRule(data: {
 export async function createDropRuleForFinding(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  // The caller's own props, when no person asked (propsFor, #10378).
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
@@ -2033,6 +2046,11 @@ export async function planScrubItRule(data: {
 export async function createScrubRuleForFinding(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  /*
+   * The caller's own props, when no person asked - a project API key,
+   * through the API: the rule is made with them (propsFor, #10378).
+   */
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
   // The name the finding kept for its type: what the rule calls a type that is gone.
