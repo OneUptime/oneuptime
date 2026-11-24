@@ -1,4 +1,7 @@
-import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Select from "Common/Types/BaseDatabase/Select";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownValue } from "Common/UI/Components/Dropdown/Dropdown";
 import { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
@@ -7,12 +10,13 @@ import EntityDropdown, {
 } from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import {
   getHeldValue,
+  getHeldValueSelect,
   HeldValueOptions,
   useHeldValueOptions,
 } from "Common/UI/Components/EntityDropdown/HeldValueOptions";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 /*
  * THE ON-CALL POLICIES AND LABELS A MONITOR'S CRITERIA SET ON WHAT THEY
@@ -30,12 +34,41 @@ import React, { FunctionComponent, ReactElement } from "react";
  * (HeldValueOptions): each by its name, an archived label marked, one
  * deleted since reading "No longer available", to keep or take out. An
  * archived label is never offered for a new pick (ArchivedValuePicker).
+ *
+ * A saved label keeps its colour on its chip, as the labels the search
+ * offers have theirs: the held values are read with the model's colour
+ * column, found the way EntityDropdown finds it. The monitor form read
+ * every label with its colour before #10690, and the chips lost it when
+ * that read went.
  */
 
 // A saved value no record answers to any more.
 export const CRITERIA_RECORD_NOT_FOUND_LABEL: string = translationKey(
   "No longer available",
 );
+
+/*
+ * The column a model's records are coloured by - a label's colour - or
+ * none: the first column decorated as a colour, as EntityDropdown and the
+ * form's own options read it.
+ */
+export function getRecordColorColumn(
+  modelType: DatabaseBaseModelType,
+): string | undefined {
+  try {
+    const probe: { getFirstColorColumn?: () => string | null | undefined } =
+      new modelType() as unknown as {
+        getFirstColorColumn?: () => string | null | undefined;
+      };
+
+    return typeof probe.getFirstColorColumn === "function"
+      ? probe.getFirstColorColumn() || undefined
+      : undefined;
+  } catch {
+    // A model that cannot be made to look at has no colour to read.
+    return undefined;
+  }
+}
 
 export interface ComponentProps {
   modelType: DatabaseBaseModelType;
@@ -52,9 +85,23 @@ const CriteriaRecordPicker: FunctionComponent<ComponentProps> = (
     return id.toString();
   });
 
+  const colorField: string | undefined = useMemo(() => {
+    return getRecordColorColumn(props.modelType);
+  }, [props.modelType]);
+
   const held: HeldValueOptions = useHeldValueOptions({
     modelType: props.modelType,
     ids: ids,
+    // A label's chip keeps its colour: read with its name.
+    ...(colorField
+      ? {
+          select: {
+            ...getHeldValueSelect(props.modelType),
+            [colorField]: true,
+          } as Select<BaseModel>,
+          colorField: colorField,
+        }
+      : {}),
     notFoundLabel: CRITERIA_RECORD_NOT_FOUND_LABEL,
   });
 

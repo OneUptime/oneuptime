@@ -26,7 +26,8 @@ import path from "path";
  *      through ModelForm (dropdownModal.sort), not through a list of their
  *      own;
  *   5. the monitor criteria and monitor recommendation pickers fetch their
- *      statuses and severities with their colours;
+ *      statuses and severities with their colours, and the criteria's
+ *      Labels pickers the labels they hold with theirs;
  *   6. the "Change state to" menu in an event's header shows each state's
  *      colour.
  */
@@ -509,7 +510,12 @@ describe("5. the monitor criteria and recommendations show status and severity c
     "Components/Form/Monitor/MonitorSteps.tsx",
   );
 
-  test.each(["MonitorStatus", "IncidentSeverity", "AlertSeverity", "Label"])(
+  /*
+   * A criteria's labels are no longer read here: since #10690 its Labels
+   * pickers search the server and read the labels they hold by their ids
+   * (CriteriaRecordPicker), with their colour - below.
+   */
+  test.each(["MonitorStatus", "IncidentSeverity", "AlertSeverity"])(
     "the criteria fetch every %s with its colour",
     (model: string) => {
       const selects: Array<string> = listSelectsFor(criteriaSteps, model);
@@ -522,11 +528,44 @@ describe("5. the monitor criteria and recommendations show status and severity c
     },
   );
 
+  test("the criteria's Labels pickers read each label they hold with its colour", () => {
+    const picker: string = readDashboardSource(
+      "Components/Form/Monitor/CriteriaRecordPicker.tsx",
+    );
+
+    // The colour column, found as EntityDropdown finds it...
+    expect(picker).toContain("probe.getFirstColorColumn()");
+    // ...is read with each held value, and set on its chip.
+    expect(picker).toMatch(
+      /\.\.\.getHeldValueSelect\(props\.modelType\),\s*\[colorField\]:\s*true,/,
+    );
+    expect(picker).toMatch(/colorField:\s*colorField,/);
+
+    // The incident's and the alert's Labels fields are that picker.
+    for (const form of [
+      "Components/Form/Monitor/MonitorCriteriaIncidentForm.tsx",
+      "Components/Form/Monitor/MonitorCriteriaAlertForm.tsx",
+    ]) {
+      const source: string = readDashboardSource(form);
+      const labels: number = source.indexOf("modelType={Label}");
+      const picker: number = source.lastIndexOf(
+        "<CriteriaRecordPicker",
+        labels,
+      );
+
+      expect({ form, labels: labels > -1 }).toEqual({ form, labels: true });
+      // Its own opening tag, just above: the next prop of that picker.
+      expect({ form, ownPicker: picker > -1 && labels - picker < 60 }).toEqual({
+        form,
+        ownPicker: true,
+      });
+    }
+  });
+
   test.each([
     "setMonitorStatusDropdownOptions",
     "setIncidentSeverityDropdownOptions",
     "setAlertSeverityDropdownOptions",
-    "setLabelDropdownOptions",
   ])("%s gets options built from the rows", (setter: string) => {
     const index: number = criteriaSteps.indexOf(`${setter}(`);
 
