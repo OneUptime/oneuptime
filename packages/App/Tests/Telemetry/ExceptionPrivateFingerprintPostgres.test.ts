@@ -14,6 +14,9 @@ import TelemetryExceptionRekey, {
   ExceptionRekeyOutcome,
   ExceptionRekeyResult,
 } from "Common/Server/Utils/Telemetry/TelemetryExceptionRekey";
+import FormerExceptionFingerprints, {
+  FORMER_FINGERPRINT_MIN_AGE_MS,
+} from "Common/Server/Utils/Telemetry/FormerExceptionFingerprints";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -482,6 +485,45 @@ describePostgres(
       expect((await read(UNKEYED)).mergedIntoTelemetryExceptionId).toBe(
         (await read(KEYED))._id,
       );
+    });
+
+    test("once no occurrence carries its old fingerprint, the row that keeps it is deleted, and the exception is found by its new one alone", async () => {
+      await exceptionFromBefore();
+      await ingest([occurrence({ ruleHidIt: true })]);
+      const moved: Row = await read(KEYED);
+      const later: Date = new Date(
+        Date.now() + FORMER_FINGERPRINT_MIN_AGE_MS + 60 * 1000,
+      );
+
+      // An occurrence from before the move is kept still: the row stays.
+      const carried: jest.SpyInstance = jest
+        .spyOn(FormerExceptionFingerprints, "readCarried")
+        .mockResolvedValue(new Set<string>([UNKEYED]));
+      expect(
+        await FormerExceptionFingerprints.retireUncarried({ now: later }),
+      ).toEqual({ read: 1, retired: 0 });
+      expect(await rows()).toHaveLength(2);
+
+      // A day after the move at least: not before.
+      carried.mockResolvedValue(new Set<string>());
+      expect(
+        await FormerExceptionFingerprints.retireUncarried({ now: new Date() }),
+      ).toEqual({ read: 0, retired: 0 });
+
+      // Past their retention: deleted, and the exception is as it was.
+      expect(
+        await FormerExceptionFingerprints.retireUncarried({ now: later }),
+      ).toEqual({ read: 1, retired: 1 });
+      expect(await rows()).toHaveLength(1);
+      expect((await read(KEYED))._id).toBe(moved._id);
+      expect((await read(KEYED)).occuranceCount).toBe(2);
+      expect(await groupOf(await read(KEYED))).toEqual([KEYED]);
+
+      // Its next occurrence, a rule or not, still finds it: nothing new.
+      clearExistingV1FingerprintCache();
+      await ingest([occurrence({ ruleHidIt: false })]);
+      expect(await rows()).toHaveLength(1);
+      expect((await read(KEYED)).occuranceCount).toBe(3);
     });
   },
 );
