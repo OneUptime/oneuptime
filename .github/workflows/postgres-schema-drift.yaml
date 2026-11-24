@@ -5138,6 +5138,7 @@ jobs:
           Tests/Server/API/CodeRepositorySearchPostgres.test.ts
           Tests/Server/API/TelemetryServicePickerSearchPostgres.test.ts
           Tests/Server/API/LowerPickersSearchPostgres.test.ts
+          Tests/Server/API/TelemetryResourceScopeSearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two
