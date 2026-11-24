@@ -116,6 +116,8 @@ export const FixPullRequestList: FunctionComponent<FixPullRequestListProps> = (
                     )
                   : undefined
               }
+              // Already in the reader's language: drawn as given, never looked up again.
+              isTooltipUserContent={true}
             />
             {props.canRemove ? (
               <Button

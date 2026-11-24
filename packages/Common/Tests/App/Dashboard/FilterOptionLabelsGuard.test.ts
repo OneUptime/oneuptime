@@ -147,9 +147,9 @@ describe("the reader of a filter's options", () => {
       const filters = [{ filterDropdownOptions: STORE_PROVIDER_OPTIONS }];
     `);
 
-    // The clouds marked; the words beside them read.
-    expect(site.asWritten).toBe(3);
-    expect(site.words).toEqual(["Run by you", "OneUptime telemetry"]);
+    // The clouds and OneUptime marked, names as written; the words beside them read.
+    expect(site.asWritten).toBe(4);
+    expect(site.words).toEqual(["Run by you"]);
   });
 
   test("follows options an Enterprise screen takes from the Dashboard, by the name ee imports it by", () => {

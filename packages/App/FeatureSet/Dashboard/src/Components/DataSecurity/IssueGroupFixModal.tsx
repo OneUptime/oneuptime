@@ -52,6 +52,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -440,7 +441,8 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
 
         {state.kind === "failed" ? (
           <p className="text-sm text-red-700">
-            {translator.translateText(FIX_PLAN_NOT_LOADED)} {state.error}
+            {translator.translateText(FIX_PLAN_NOT_LOADED)}{" "}
+            <ErrorInSentence message={state.error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

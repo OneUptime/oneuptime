@@ -68,6 +68,7 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import TableEmptyState, {
   TableEmptyStateKind,
@@ -434,6 +435,12 @@ const RecordOfProcessingCard: FunctionComponent = (): ReactElement => {
               title: "Data Store",
               type: FieldType.Element,
               disableSort: true,
+              /*
+               * Each of its lines already reads its own way: the store's
+               * name and kind (StoreNameCell), and Review Drafts in the
+               * page's words.
+               */
+              getLineText: drawsItsOwnLines,
               getElement: (
                 row: DataSecurityRecordOfProcessingRow,
               ): ReactElement => {
