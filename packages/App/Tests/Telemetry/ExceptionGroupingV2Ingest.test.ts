@@ -21,6 +21,7 @@ import LogScrubRuleService from "../../FeatureSet/Telemetry/Services/LogScrubRul
 import LlmModelPriceService from "../../FeatureSet/Telemetry/Services/LlmModelPriceService";
 import ExceptionUtil, {
   ExceptionFingerprintInput,
+  GROUP_FINGERPRINT_LOOKUP_SQL,
   TelemetryExceptionPayload,
   clearExistingV1FingerprintCache,
 } from "../../FeatureSet/Telemetry/Utils/Exception";
@@ -133,7 +134,7 @@ function setupMocks(): void {
   jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
     manager: {
       query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
-        if (sql.includes('SELECT "fingerprint" FROM "TelemetryException"')) {
+        if (sql === GROUP_FINGERPRINT_LOOKUP_SQL) {
           lookups.push(params);
           if (lookupFails) {
             throw new Error("connection reset");
