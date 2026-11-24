@@ -355,12 +355,20 @@ function markdown(blocks: Array<WorkspaceMessageBlock>): string {
     .join("\n");
 }
 
+// The record as each kind's call says it after who paged (#10762): severity, kind, number.
+const CALL_RECORD: Record<string, string> = {
+  incident: "Critical incident INC-42",
+  alert: "High alert ALR-12",
+};
+
 describe.each(KINDS)("a person's page about $name", (kind: Kind) => {
   test("the call says who paged whom about it, which one, then what they said - and asks for 1 or 2 as ever", async () => {
     const call: CallRequest = await kind.call(AS_TEAM);
     const said: Array<string> = sayMessages(call);
 
-    expect(said[1]).toBe(`Alice Kim paged Platform about an ${kind.noun}`);
+    expect(said[1]).toBe(
+      `Alice Kim paged Platform about an ${kind.noun}: ${CALL_RECORD[kind.noun]}.`,
+    );
     expect(said[2]).toContain(kind.title);
     expect(said[3]).toBe("Alice Kim says: Can you check the database?");
     expect(said.join(" ")).not.toContain("has been created");
@@ -371,15 +379,17 @@ describe.each(KINDS)("a person's page about $name", (kind: Kind) => {
       },
     ) as { introMessage?: string };
 
-    expect(gather.introMessage).toContain(
-      `To acknowledge this ${kind.noun}, press 1.`,
+    expect(gather.introMessage).toBe(
+      "Press 1 to acknowledge, or 2 to escalate.",
     );
   });
 
   test("a call for a page with no message says nothing more", async () => {
     const said: Array<string> = sayMessages(await kind.call(BY_NAME));
 
-    expect(said[1]).toBe(`Alice Kim paged you about an ${kind.noun}`);
+    expect(said[1]).toBe(
+      `Alice Kim paged you about an ${kind.noun}: ${CALL_RECORD[kind.noun]}.`,
+    );
     expect(
       said.some((text: string): boolean => {
         return text.includes("says:");
@@ -493,8 +503,12 @@ describe.each(KINDS)("a person's page about $name", (kind: Kind) => {
   });
 
   test("every other page reads exactly as before", async () => {
+    // A first page's call: new, how bad and which one (#10762).
     expect(sayMessages(await kind.call())[1]).toBe(
-      `A new ${kind.noun} has been created`,
+      {
+        incident: "A new Critical incident has been created: INC-42.",
+        alert: "A new High alert has been created: ALR-12.",
+      }[kind.noun],
     );
     expect((await kind.email()).subject).toBe(
       `ACTION REQUIRED: ${kind.label} ${kind.number} created - ${kind.title}`,
@@ -835,7 +849,7 @@ describe("a delivery hands a person's page to every channel's message", () => {
     const callRequest: CallRequest = (await spies.call.mock.results[0]!
       .value) as CallRequest;
     expect(sayMessages(callRequest)[1]).toBe(
-      "Alice Kim paged Platform about an incident",
+      "Alice Kim paged Platform about an incident: Critical incident INC-42.",
     );
 
     const email: EmailMessage = (await spies.email.mock.results[0]!
