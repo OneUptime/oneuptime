@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import timers from "timers";
 import { RecognizedEntity } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import logger from "../../Logger";
 import { EntityRecognizer } from "./EntityRecognizer";
@@ -322,10 +323,10 @@ async function ensureThread(
 // Ends the thread once no batch has come for a while.
 function touch(current: ModelState): void {
   if (current.idleTimer) {
-    clearTimeout(current.idleTimer);
+    timers.clearTimeout(current.idleTimer);
   }
 
-  current.idleTimer = setTimeout((): void => {
+  current.idleTimer = timers.setTimeout((): void => {
     current.idleTimer = null;
 
     const thread: NameAddressModelThread | null = current.thread;
@@ -444,7 +445,7 @@ export async function closeNameAddressRecognizer(): Promise<void> {
 
   if (current) {
     if (current.idleTimer) {
-      clearTimeout(current.idleTimer);
+      timers.clearTimeout(current.idleTimer);
     }
 
     const thread: NameAddressModelThread | null = current.thread;

@@ -27,8 +27,18 @@
 const path = require("path");
 const yaml = require("js-yaml");
 
-const { render, parseStages, instructions } = require("./Utils/DockerfileTemplate");
-const { read, all, commands, copies, readProject } = require("./Utils/IronBank");
+const {
+  render,
+  parseStages,
+  instructions,
+} = require("./Utils/DockerfileTemplate");
+const {
+  read,
+  all,
+  commands,
+  copies,
+  readProject,
+} = require("./Utils/IronBank");
 
 const MANIFEST_PATH =
   "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModel.json";
@@ -52,7 +62,12 @@ describe("NameAddressModel.json", () => {
       model.files.map((file) => {
         return file.name;
       }),
-    ).toEqual(["model_quantized.onnx", "vocab.txt", "config.json", "README.md"]);
+    ).toEqual([
+      "model_quantized.onnx",
+      "vocab.txt",
+      "config.json",
+      "README.md",
+    ]);
 
     for (const file of model.files) {
       expect(file.url).toBe(
@@ -116,7 +131,9 @@ describe.each([
 });
 
 test("the App's pruned builds walk the model's worker thread, so onnxruntime-web stays", () => {
-  const stages = parseStages(render(read("packages/App/Dockerfile.tpl"), "production"));
+  const stages = parseStages(
+    render(read("packages/App/Dockerfile.tpl"), "production"),
+  );
 
   for (const stageName of ["community-pruned", "enterprise-pruned"]) {
     const stage = stages.find((candidate) => {
@@ -136,7 +153,9 @@ test("the App's pruned builds walk the model's worker thread, so onnxruntime-web
 
   // The worker requires the runtime by its name, which the walk follows.
   expect(
-    read("packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs"),
+    read(
+      "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs",
+    ),
   ).toContain('require("onnxruntime-web")');
 });
 

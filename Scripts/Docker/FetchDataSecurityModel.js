@@ -63,7 +63,11 @@ function readArguments(argv) {
     const name = argv[index];
     const value = argv[index + 1];
 
-    if (name === "--manifest" || name === "--directory" || name === "--runtime") {
+    if (
+      name === "--manifest" ||
+      name === "--directory" ||
+      name === "--runtime"
+    ) {
       if (!value) {
         throw new Error(`${name} needs a value.`);
       }

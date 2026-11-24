@@ -1,4 +1,6 @@
 import path from "path";
+// Node's own timers, which unref: a process is never kept alive by the model.
+import timers from "timers";
 import { Worker } from "worker_threads";
 
 /*
@@ -104,7 +106,7 @@ export default class NameAddressModelThread {
           }
 
           settled = true;
-          clearTimeout(timer);
+          timers.clearTimeout(timer);
 
           if (error) {
             void thread.close();
@@ -113,7 +115,7 @@ export default class NameAddressModelThread {
             resolve();
           }
         };
-        const timer: NodeJS.Timeout = setTimeout((): void => {
+        const timer: NodeJS.Timeout = timers.setTimeout((): void => {
           finish(new ModelThreadError("The model took too long to load."));
         }, options.loadTimeLimitInMs || LOAD_TIME_LIMIT_IN_MS);
 
@@ -161,7 +163,7 @@ export default class NameAddressModelThread {
     this.exited = true;
 
     for (const [id, run] of this.pending) {
-      clearTimeout(run.timer);
+      timers.clearTimeout(run.timer);
       run.reject(error);
       this.pending.delete(id);
     }
@@ -176,16 +178,19 @@ export default class NameAddressModelThread {
     }
 
     this.pending.delete(id);
-    clearTimeout(run.timer);
+    timers.clearTimeout(run.timer);
 
-    if (
-      message["type"] === "logits" &&
-      message["logits"] instanceof Float32Array
-    ) {
+    /*
+     * A typed array of whichever realm the message landed in: instanceof
+     * would refuse one from another (as under a test's jsdom).
+     */
+    const logits: unknown = message["logits"];
+
+    if (message["type"] === "logits" && ArrayBuffer.isView(logits)) {
       const elapsed: number = Number(message["elapsedInMs"]);
 
       run.resolve({
-        logits: message["logits"] as Float32Array,
+        logits: logits as Float32Array,
         labels: Number(message["labels"]),
         elapsedInMs: Number.isFinite(elapsed) ? elapsed : undefined,
       });
@@ -230,7 +235,7 @@ export default class NameAddressModelThread {
         resolve: (result: ModelBatchResult) => void,
         reject: (error: Error) => void,
       ): void => {
-        const timer: NodeJS.Timeout = setTimeout((): void => {
+        const timer: NodeJS.Timeout = timers.setTimeout((): void => {
           this.pending.delete(id);
           reject(new ModelThreadError("The model took too long on a batch."));
           void this.close();

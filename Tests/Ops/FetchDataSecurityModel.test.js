@@ -86,7 +86,10 @@ describe("FetchDataSecurityModel", () => {
   test("fetches every file into the manifest's directory when its size and SHA-256 are the pinned ones", async () => {
     const weights = Buffer.from("weights of the model");
     const vocabulary = Buffer.from("[PAD]\n[UNK]\n");
-    const files = [fileOf("model_quantized.onnx", weights), fileOf("vocab.txt", vocabulary)];
+    const files = [
+      fileOf("model_quantized.onnx", weights),
+      fileOf("vocab.txt", vocabulary),
+    ];
     const manifestPath = writeManifest(directory, files);
     const { fetcher, calls } = fakeFetcher({
       [files[0].url]: weights,
@@ -134,34 +137,28 @@ describe("FetchDataSecurityModel", () => {
     ).rejects.toThrow(/3 bytes/);
   });
 
-  test(
-    "retries a download that failed, and gives up after its attempts with the URL in the error",
-    async () => {
-      const bytes = Buffer.from("weights");
-      const files = [fileOf("model_quantized.onnx", bytes)];
-      const manifestPath = writeManifest(directory, files);
-      const flaky = fakeFetcher({ [files[0].url]: bytes }, { [files[0].url]: 1 });
+  test("retries a download that failed, and gives up after its attempts with the URL in the error", async () => {
+    const bytes = Buffer.from("weights");
+    const files = [fileOf("model_quantized.onnx", bytes)];
+    const manifestPath = writeManifest(directory, files);
+    const flaky = fakeFetcher({ [files[0].url]: bytes }, { [files[0].url]: 1 });
 
-      await script.main(["--manifest", manifestPath], flaky.fetcher, {
+    await script.main(["--manifest", manifestPath], flaky.fetcher, {
+      retryDelayInMs: 1,
+    });
+    expect(flaky.calls).toHaveLength(2);
+
+    const down = fakeFetcher({ [files[0].url]: bytes }, { [files[0].url]: 99 });
+
+    await expect(
+      script.main(["--manifest", manifestPath], down.fetcher, {
         retryDelayInMs: 1,
-      });
-      expect(flaky.calls).toHaveLength(2);
-
-      const down = fakeFetcher(
-        { [files[0].url]: bytes },
-        { [files[0].url]: 99 },
-      );
-
-      await expect(
-        script.main(["--manifest", manifestPath], down.fetcher, {
-          retryDelayInMs: 1,
-        }),
-      ).rejects.toThrow(
-        `Could not fetch model_quantized.onnx from ${files[0].url}: connection reset`,
-      );
-      expect(down.calls).toHaveLength(4);
-    },
-  );
+      }),
+    ).rejects.toThrow(
+      `Could not fetch model_quantized.onnx from ${files[0].url}: connection reset`,
+    );
+    expect(down.calls).toHaveLength(4);
+  });
 
   test("refuses a manifest whose file is not of the pinned revision, or not over https", () => {
     const bytes = Buffer.from("x");

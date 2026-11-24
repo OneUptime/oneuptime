@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import fs from "fs";
+import http from "http";
+import https from "https";
 import os from "os";
 import path from "path";
 import {
@@ -41,19 +43,68 @@ function sha256(filePath: string): string {
     .digest("hex");
 }
 
-async function download(file: ModelFile, target: string): Promise<void> {
-  const response: Response = await fetch(file.url, { redirect: "follow" });
+// GET a URL into a file, following redirects (the model's host answers with its CDN's).
+function getInto(
+  url: string,
+  target: string,
+  redirectsLeft: number,
+): Promise<void> {
+  return new Promise<void>(
+    (resolve: () => void, reject: (error: Error) => void): void => {
+      https
+        .get(url, (response: http.IncomingMessage): void => {
+          const status: number = response.statusCode || 0;
+          const location: string | undefined = response.headers.location;
 
-  if (!response.ok || !response.body) {
+          if (status >= 300 && status < 400 && location) {
+            response.resume();
+
+            if (redirectsLeft <= 0) {
+              reject(new Error(`Too many redirects fetching ${url}.`));
+              return;
+            }
+
+            getInto(
+              new URL(location, url).toString(),
+              target,
+              redirectsLeft - 1,
+            )
+              .then(resolve)
+              .catch(reject);
+            return;
+          }
+
+          if (status !== 200) {
+            response.resume();
+            reject(new Error(`HTTP ${status} fetching ${url}.`));
+            return;
+          }
+
+          const out: fs.WriteStream = fs.createWriteStream(target);
+
+          response.pipe(out);
+          out.on("finish", (): void => {
+            resolve();
+          });
+          out.on("error", reject);
+          response.on("error", reject);
+        })
+        .on("error", reject);
+    },
+  );
+}
+
+async function download(file: ModelFile, target: string): Promise<void> {
+  const partial: string = `${target}.${process.pid}.${Date.now()}.part`;
+
+  try {
+    await getInto(file.url, partial, 5);
+  } catch (error) {
+    fs.rmSync(partial, { force: true });
     throw new Error(
-      `Could not fetch ${file.name} of the model: HTTP ${response.status}.`,
+      `Could not fetch ${file.name} of the model: ${(error as Error).message}`,
     );
   }
-
-  const partial: string = `${target}.${process.pid}.${Date.now()}.part`;
-  const bytes: Buffer = Buffer.from(await response.arrayBuffer());
-
-  fs.writeFileSync(partial, bytes);
 
   const digest: string = sha256(partial);
 

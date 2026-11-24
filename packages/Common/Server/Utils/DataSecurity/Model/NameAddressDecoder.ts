@@ -20,8 +20,6 @@ import { WordPieceToken } from "./WordPieceTokenizer";
  *    or just before or after it ("14 Calle Mayor", "Lindenstraße 23"), and
  *    then the number is part of it. A city or a country alone - "Madrid" -
  *    is no finding: it says where something is, not who lives there.
- *  - A name inside an address ("58 cours Victor Hugo") is part of the
- *    address.
  *  - Organisations and dates are left to the detectors and to no one.
  *
  * Punctuation at either end of a run is left out. Each finding's score is
@@ -341,27 +339,14 @@ export function decodeEntities(data: {
     merged.push({ ...span });
   }
 
-  const addresses: Array<Span> = merged.filter((span: Span): boolean => {
-    return span.dataTypeId === "postal-address";
+  return merged.map((span: Span): RecognizedEntity => {
+    return {
+      dataTypeId: span.dataTypeId,
+      start: span.start,
+      end: span.end,
+      score: span.score,
+    };
   });
-
-  return merged
-    .filter((span: Span): boolean => {
-      return (
-        span.dataTypeId !== "person-name" ||
-        !addresses.some((address: Span): boolean => {
-          return span.start < address.end && address.start < span.end;
-        })
-      );
-    })
-    .map((span: Span): RecognizedEntity => {
-      return {
-        dataTypeId: span.dataTypeId,
-        start: span.start,
-        end: span.end,
-        score: span.score,
-      };
-    });
 }
 
 // Each row of logits (pieces x labels) as probabilities, in place.

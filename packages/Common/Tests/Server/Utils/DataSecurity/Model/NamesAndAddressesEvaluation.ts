@@ -74,6 +74,28 @@ export function parseCase(language: string, marked: string): TestCase {
   return { language, text, gold };
 }
 
+/*
+ * The public benchmark: a slice of gretelai/synthetic_pii_finance_multilingual
+ * (Apache-2.0, GretelPiiFinanceSlice.json says which), its spans given as
+ * UTF-16 offsets.
+ */
+export const BENCHMARK_PATH: string = path.join(
+  __dirname,
+  "../../../../Utils/DataSecurity/Model/GretelPiiFinanceSlice.json",
+);
+
+export function loadBenchmarkSlice(): Array<TestCase> {
+  const data: {
+    cases: Array<{ language: string; text: string; gold: Array<GoldSpan> }>;
+  } = JSON.parse(fs.readFileSync(BENCHMARK_PATH, "utf8"));
+
+  return data.cases.map(
+    (item: { language: string; text: string; gold: Array<GoldSpan> }) => {
+      return { language: item.language, text: item.text, gold: item.gold };
+    },
+  );
+}
+
 export function loadTestSet(): Array<TestCase> {
   const data: { cases: Array<{ language: string; text: string }> } = JSON.parse(
     fs.readFileSync(TEST_SET_PATH, "utf8"),

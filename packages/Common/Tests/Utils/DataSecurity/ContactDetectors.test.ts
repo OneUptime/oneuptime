@@ -293,8 +293,12 @@ describe("postal-address", () => {
     expectFound("lives at 221B Baker Street, London", [
       found("postal-address", "221B Baker Street", H),
     ]);
+    // A placeholder everyone knows: counted apart, as the names-and-addresses model counts it.
     expectFound("742 Evergreen Terrace", [
-      found("postal-address", "742 Evergreen Terrace", M),
+      found("postal-address", "742 Evergreen Terrace", M, true),
+    ]);
+    expectFound("Bill to 123 Main Street, Springfield", [
+      found("postal-address", "123 Main Street", H, true),
     ]);
     expectFound("10 Downing St.", [
       found("postal-address", "10 Downing St.", M),
