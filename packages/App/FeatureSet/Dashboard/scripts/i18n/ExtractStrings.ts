@@ -254,6 +254,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What a Data Security scan could not read (#10930): each warning a
+   * content scan, the telemetry scan and the names-and-addresses model
+   * write, and the formats they name, as a scan's details draw them in the
+   * reader's language. The server writes the same file's English into the
+   * scan. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.

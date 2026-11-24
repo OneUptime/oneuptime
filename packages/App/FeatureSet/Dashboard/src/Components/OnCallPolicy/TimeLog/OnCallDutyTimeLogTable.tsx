@@ -28,6 +28,10 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
 import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
+import {
+  getMinutesOnCallInRange,
+  OnCallStint,
+} from "Common/Types/OnCallDutyPolicy/OnCallTimeInRange";
 
 export interface ComponentProps {
   projectId: ObjectID;
@@ -62,151 +66,86 @@ const OnCallPolicyLogTable: FunctionComponent<ComponentProps> = (
       const startDate: Date = pickedStartAndEndDate.startValue;
       const endDate: Date = pickedStartAndEndDate.endValue;
 
-      const onCallDutyPolicyTimeLogsStartsAt: ListResult<OnCallDutyPolicyTimeLog> =
-        await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
-          modelType: OnCallDutyPolicyTimeLog,
-          query: {
-            projectId: props.projectId,
-            startsAt: new LessThan<Date>(endDate),
-          },
-          select: {
-            user: {
-              _id: true,
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-            startsAt: true,
-            endsAt: true,
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
-        });
+      /*
+       * The stints that overlap the range, and no others: started before it
+       * ends, and ended after it starts or still going on. Page by page, so
+       * a range with more stints than one page holds counts them all.
+       */
+      const timeLogs: Array<OnCallDutyPolicyTimeLog> = [];
 
-      const onCallDutyPolicyTimeLogsEndsAt: ListResult<OnCallDutyPolicyTimeLog> =
-        await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
-          modelType: OnCallDutyPolicyTimeLog,
-          query: {
-            projectId: props.projectId,
-            endsAt: new GreaterThanOrNull<Date>(startDate),
-          },
-          select: {
-            user: {
-              _id: true,
-              name: true,
-              email: true,
-              profilePictureId: true,
+      for (let skip: number = 0; ; skip += LIMIT_MAX) {
+        const page: ListResult<OnCallDutyPolicyTimeLog> =
+          await ModelAPI.getList<OnCallDutyPolicyTimeLog>({
+            modelType: OnCallDutyPolicyTimeLog,
+            query: {
+              projectId: props.projectId,
+              startsAt: new LessThan<Date>(endDate),
+              endsAt: new GreaterThanOrNull<Date>(startDate),
             },
-            startsAt: true,
-            endsAt: true,
-          },
-          skip: 0,
-          limit: LIMIT_MAX,
-          sort: {
-            startsAt: SortOrder.Ascending,
-          },
-        });
+            select: {
+              user: {
+                _id: true,
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+              startsAt: true,
+              endsAt: true,
+            },
+            skip: skip,
+            limit: LIMIT_MAX,
+            // The id breaks ties, so no stint falls between two pages.
+            sort: {
+              startsAt: SortOrder.Ascending,
+              _id: SortOrder.Ascending,
+            },
+          });
 
-      // Extract time logs from the API response
-      const timeLogs: OnCallDutyPolicyTimeLog[] = [
-        ...onCallDutyPolicyTimeLogsStartsAt.data,
-        ...onCallDutyPolicyTimeLogsEndsAt.data,
-      ];
+        timeLogs.push(...page.data);
+
+        if (page.data.length < LIMIT_MAX) {
+          break;
+        }
+      }
 
       // Group time logs by user ID
       const userTimeLogs: Map<string, OnCallDutyPolicyTimeLog[]> = new Map();
+      const userMap: Map<string, User> = new Map<string, User>();
+
       timeLogs.forEach((timeLog: OnCallDutyPolicyTimeLog) => {
-        const userId: string = timeLog.user!.id!.toString();
+        const userId: string | undefined = timeLog.user?.id?.toString();
+
+        if (!userId || !timeLog.startsAt) {
+          return;
+        }
+
         if (!userTimeLogs.has(userId)) {
           userTimeLogs.set(userId, []);
+          userMap.set(userId, timeLog.user!);
         }
         userTimeLogs.get(userId)!.push(timeLog);
       });
 
-      // Process each user's time logs to calculate total time on call (accounting for overlaps)
+      /*
+       * Each user's time on call in the range: each stint cut to it, a stint
+       * still going on up to now, overlapping stints counted once
+       * (getMinutesOnCallInRange).
+       */
       const timeLogMap: Map<string, number> = new Map<string, number>();
-      const userMap: Map<string, User> = new Map<string, User>();
+      const now: Date = OneUptimeDate.getCurrentDate();
 
       userTimeLogs.forEach(
         (logs: OnCallDutyPolicyTimeLog[], userId: string) => {
-          // Store user object for later use
-          if (logs.length > 0) {
-            userMap.set(userId, logs[0]!.user!);
-          }
-
-          // Sort logs by start time to properly handle overlaps
-          logs.sort(
-            (a: OnCallDutyPolicyTimeLog, b: OnCallDutyPolicyTimeLog) => {
-              return a.startsAt!.getTime() - b.startsAt!.getTime();
-            },
+          timeLogMap.set(
+            userId,
+            getMinutesOnCallInRange({
+              stints: logs.map((log: OnCallDutyPolicyTimeLog): OnCallStint => {
+                return { startsAt: log.startsAt!, endsAt: log.endsAt };
+              }),
+              range: { startsAt: startDate, endsAt: endDate },
+              now: now,
+            }),
           );
-
-          // Merge overlapping time periods
-          const mergedPeriods: Array<{ start: Date; end: Date }> = [];
-
-          logs.forEach((log: OnCallDutyPolicyTimeLog) => {
-            let startDate: Date = log.startsAt!;
-            let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();
-
-            /*
-             * if end date is more than the end date selected in the range, then
-             * set the end date to the end date selected in the range
-             */
-            if (
-              OneUptimeDate.isAfter(endDate, pickedStartAndEndDate.endValue)
-            ) {
-              endDate = pickedStartAndEndDate.endValue;
-            }
-
-            /*
-             * if start date is less than the start date selected in the range, then
-             * set the start date to the start date selected in the range
-             */
-
-            if (
-              OneUptimeDate.isBefore(
-                startDate,
-                pickedStartAndEndDate.startValue,
-              )
-            ) {
-              startDate = pickedStartAndEndDate.startValue;
-            }
-
-            // Check if we should create a new period or extend an existing one
-            if (
-              mergedPeriods.length === 0 ||
-              startDate.getTime() >
-                mergedPeriods[mergedPeriods.length - 1]!.end.getTime()
-            ) {
-              // No overlap - add as a new period
-              mergedPeriods.push({ start: startDate, end: endDate });
-            } else {
-              // Overlapping with the last period - extend the end time if necessary
-              const lastPeriod:
-                | {
-                    start: Date;
-                    end: Date;
-                  }
-                | undefined = mergedPeriods[mergedPeriods.length - 1];
-              if (endDate.getTime() > lastPeriod!.end.getTime()) {
-                lastPeriod!.end = endDate;
-              }
-            }
-          });
-
-          // Calculate total minutes from merged periods (no double counting)
-          let totalMinutes: number = 0;
-          mergedPeriods.forEach((period: { start: Date; end: Date }) => {
-            totalMinutes += OneUptimeDate.getDifferenceInMinutes(
-              period.start,
-              period.end,
-            );
-          });
-
-          timeLogMap.set(userId, totalMinutes);
         },
       );
 

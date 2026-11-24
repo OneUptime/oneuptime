@@ -1008,6 +1008,11 @@ export enum DataSecurityOccurrencesUnavailableReason {
   UnreadableLocation = "UnreadableLocation",
   // The service or RUM application the telemetry was sent under is gone.
   NoOwner = "NoOwner",
+  /*
+   * The names-and-addresses model found it, and cannot run on this server
+   * just now: only it can tell its data in a record (#10926).
+   */
+  ModelUnavailable = "ModelUnavailable",
 }
 
 // What a part of a record's excerpt is.
@@ -1109,6 +1114,12 @@ export interface DataSecurityFindingOccurrences {
   source?: DataSecurityOccurrencesSource | undefined;
   // When a scan last saw the finding (ISO 8601): the records it was found in are from then.
   lastSeenAt?: string | undefined;
+  /*
+   * For a finding the names-and-addresses model made: how many of the
+   * values read the model had no time to read (#10926). A record that held
+   * the data among them is not listed. Absent when it read them all.
+   */
+  modelValuesNotRead?: number | undefined;
 }
 
 /*

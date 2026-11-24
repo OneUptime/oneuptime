@@ -543,6 +543,7 @@ export default class TelemetryLeakFixWatch {
           isScrubbed: true,
           fixedAt: true,
           lastSeenAt: true,
+          isFoundByModel: true,
         },
         skip: 0,
         limit: MAX_LEAK_PLACES_PER_STORE,
@@ -594,6 +595,7 @@ export default class TelemetryLeakFixWatch {
         ...(rule && isMetricRule
           ? { metricRule: { id: rule.id, ruleType: rule.patternType } }
           : {}),
+        ...(finding.isFoundByModel === true ? { isFoundByModel: true } : {}),
       });
     }
 
@@ -1351,6 +1353,7 @@ export default class TelemetryLeakFixWatch {
           lastSeenAt: true,
           fixedAt: true,
           isScrubbed: true,
+          isFoundByModel: true,
         },
         skip: 0,
         limit: MAX_LEAK_PLACES_PER_STORE,
@@ -1382,6 +1385,7 @@ export default class TelemetryLeakFixWatch {
         return {
           dataTypeId: finding.dataTypeId || "",
           location: finding.location || "",
+          isFoundByModel: finding.isFoundByModel === true,
         };
       }),
       since: data.verifiedAt,

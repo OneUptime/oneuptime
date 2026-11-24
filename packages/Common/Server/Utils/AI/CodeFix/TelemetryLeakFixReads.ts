@@ -14,6 +14,8 @@ import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { ContentScanOptions } from "../../DataSecurity/DataSecurityScanTypes";
+import { ModelRereads } from "../../DataSecurity/Model/ModelRereads";
+import { RecognizerAvailability } from "../../DataSecurity/Model/NameAddressRecognizer";
 import {
   appendOwnersIn,
   appendWhere,
@@ -35,6 +37,7 @@ import {
   getOccurrenceReadLimit,
   OccurrencePlan,
   planOccurrenceRead,
+  readValuesAtLocation,
   VERSIONED_OCCURRENCE_SOURCES,
 } from "../../DataSecurity/Telemetry/TelemetryFindingOccurrences";
 
@@ -50,7 +53,11 @@ import {
  *     version, read with the scanner's own matchers - narrowed in the
  *     database by the data type's own patterns, as Show the records it was
  *     seen in narrows them - and the version each record that still holds
- *     the data came from.
+ *     the data came from. A place the names-and-addresses model found its
+ *     data at is read with the model (Model/ModelRereads.ts, #10926), not
+ *     narrowed by patterns that cannot find it; a record the model had no
+ *     time for is not counted, and where the model cannot run the read
+ *     stops with an error, as any read that cannot be made does.
  *
  * Every store's records name the version that wrote them (#10832): a
  * service's logs, spans, AI calls, exceptions and metric data points under
@@ -215,9 +222,16 @@ export function isReadableLeakPlace(
   );
 }
 
-// A place as it is read: its data type and location, and a Redact Attribute rule's replacement.
+/*
+ * A place as it is read: its data type and location, a Redact Attribute
+ * rule's replacement (#10832), and whether the names-and-addresses model
+ * found it, so its records are read again with the model (#10926).
+ */
 export function toLeakPlaceToRead(
-  place: Pick<TelemetryLeakFixPlace, "dataTypeId" | "location" | "metricRule">,
+  place: Pick<
+    TelemetryLeakFixPlace,
+    "dataTypeId" | "location" | "metricRule" | "isFoundByModel"
+  >,
 ): LeakPlaceToRead {
   const replacement: string =
     place.metricRule?.ruleType === MetricPipelineRuleType.RedactAttribute
@@ -228,6 +242,7 @@ export function toLeakPlaceToRead(
     dataTypeId: place.dataTypeId,
     location: place.location,
     ...(replacement ? { redactedAs: replacement } : {}),
+    ...(place.isFoundByModel === true ? { isFoundByModel: true } : {}),
   };
 }
 
@@ -256,6 +271,8 @@ export interface LeakPlaceToRead {
    * value the rule changed.
    */
   redactedAs?: string | undefined;
+  // The names-and-addresses model found it there.
+  isFoundByModel?: boolean | undefined;
 }
 
 /*
@@ -487,6 +504,8 @@ export default class TelemetryLeakFixReads {
     version?: string | undefined;
     options: ContentScanOptions;
     readRows?: LeakRowReader | undefined;
+    // Stands in for the process's model in a test.
+    getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
   }): Promise<LeakDataFound> {
     const found: LeakDataFound = {
       recordsRead: 0,
@@ -517,6 +536,18 @@ export default class TelemetryLeakFixReads {
       const source: SourceDefinition = getTelemetrySource(plan.source);
       const caps: TelemetrySampleCaps = capsOf(source, data.options);
       const redactedAs: string = place.redactedAs || "";
+      const model: ModelRereads | null = await ModelRereads.forFinding({
+        isFoundByModel: place.isFoundByModel,
+        getRecognizer: data.getRecognizer,
+      });
+
+      // Only the model tells its data: a read it cannot make is made again next time.
+      if (model && !model.isAvailable) {
+        throw new Error(
+          `The names-and-addresses model cannot read the records at ${place.location}: ${model.unavailableReason}.`,
+        );
+      }
+
       const statement: Statement = buildTelemetryOccurrenceStatement({
         projectId: data.projectId,
         since: data.since,
@@ -526,17 +557,19 @@ export default class TelemetryLeakFixReads {
         limit: getOccurrenceReadLimit(plan),
         caps,
         /*
-         * A redacted value is no longer the data type's shape, so the
-         * database is not asked to narrow by it: every record with the key
-         * is read, and each value is looked at here.
+         * What the model finds no pattern does, and a redacted value is no
+         * longer the data type's shape: neither place is narrowed by a
+         * pattern - every record with the key is read, and each value is
+         * looked at here.
          */
-        prefilter: redactedAs
-          ? null
-          : getOccurrencePrefilter({
-              dataTypeId: place.dataTypeId,
-              location: place.location,
-              options: data.options,
-            }),
+        prefilter:
+          model || redactedAs
+            ? null
+            : getOccurrencePrefilter({
+                dataTypeId: place.dataTypeId,
+                location: place.location,
+                options: data.options,
+              }),
         serviceVersion: data.version,
         readsServiceVersion: true,
       });
@@ -544,6 +577,7 @@ export default class TelemetryLeakFixReads {
         dataTypeId: place.dataTypeId,
         location: place.location,
         options: data.options,
+        model,
       });
       const holdsTheData: (value: string) => boolean = (
         value: string,
@@ -553,10 +587,36 @@ export default class TelemetryLeakFixReads {
           Boolean(matches(value))
         );
       };
+      const rows: Array<JSONObject> = await read({ source, statement });
 
-      for (const row of await read({ source, statement })) {
+      if (model) {
+        await model.read(
+          readValuesAtLocation({
+            source: plan.source,
+            rows,
+            location: place.location,
+            caps,
+          }),
+        );
+      }
+
+      for (const row of rows) {
         const values: Array<TelemetryRecordValue> =
           readTelemetryRecordValues(plan.source, row, caps) || [];
+
+        // A record whose value there the model had no time for is not counted.
+        if (
+          model &&
+          values.some((value: TelemetryRecordValue): boolean => {
+            return (
+              value.location === place.location &&
+              value.value.trim().length > 0 &&
+              !model.isRead(value.value)
+            );
+          })
+        ) {
+          continue;
+        }
 
         found.recordsRead++;
 

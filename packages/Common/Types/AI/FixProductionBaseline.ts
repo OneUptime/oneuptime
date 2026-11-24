@@ -106,6 +106,11 @@ export interface TelemetryLeakFixPlace {
    * read.
    */
   metricRule?: TelemetryLeakFixMetricRule | undefined;
+  /*
+   * The names-and-addresses model found it: its records are read again
+   * with the model (#10926). Absent from a check made before.
+   */
+  isFoundByModel?: boolean | undefined;
 }
 
 export interface TelemetryLeakFixMetricRule {

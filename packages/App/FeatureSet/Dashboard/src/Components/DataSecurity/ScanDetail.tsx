@@ -5,6 +5,7 @@ import {
   UnitAmount,
 } from "Common/Types/DateLanguage";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
+import { translateScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import {
   Blue500,
   Gray500,
@@ -34,7 +35,10 @@ import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
  * Succeeded, Partly succeeded, Failed or Skipped, having read so many
  * objects, rows and bytes and made so many findings. What it read is kept
  * by name - never the contents - with what it could not read and why:
- * folded under each scan until someone opens it.
+ * folded under each scan until someone opens it. What it could not read is
+ * drawn in the reader's language: each warning a content or telemetry scan
+ * or the names-and-addresses model wrote is read back as its sentence and
+ * values (Types/DataSecurity/ScanWarnings), and any other as written.
  */
 
 // What a scan read, and how it ended: the values the server writes.
@@ -326,7 +330,9 @@ export const ScanDetails: FunctionComponent<{
                   (warning: string, index: number): ReactElement => {
                     return (
                       <li key={index} className="[overflow-wrap:anywhere]">
-                        <IsolatedText text={warning} />
+                        <IsolatedText
+                          text={translateScanWarning(warning, translator)}
+                        />
                       </li>
                     );
                   },
