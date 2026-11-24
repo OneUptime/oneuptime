@@ -2,7 +2,7 @@ import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import IP from "Common/Types/IP/IP";
-import { JSONObject, JSONValue, ObjectType } from "Common/Types/JSON";
+import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
@@ -32,6 +32,9 @@ import {
   TotpSecretReading,
   readTotpSecret,
 } from "Common/Utils/Totp/TotpSecret";
+
+// {{monitorSecrets}} on its own: the map every reference reads its value from.
+const WHOLE_SECRETS_MAP: string = MONITOR_SECRETS_REFERENCE_PREFIX.slice(0, -1);
 
 export default class MonitorUtil {
   /*
@@ -850,18 +853,13 @@ export default class MonitorUtil {
       data.secrets,
     );
 
-    // Each placeholder read as fillSecrets reads it: by the name it references.
-    for (const placeholder of findTemplatePlaceholders(
-      data.populateSecretsIn,
-    )) {
-      const name: string | null = getReferencedName(placeholder);
-      const value: string | undefined =
-        name === null ? undefined : values.get(name);
-
-      if (value) {
-        data.filled.add(value);
-      }
-    }
+    // fillSecrets reads a placeholder by the name it references, and no other way.
+    MonitorUtil.noteFilledValues({
+      text: data.populateSecretsIn,
+      values: values,
+      wholeMapIsWritten: false,
+      filled: data.filled,
+    });
 
     return MonitorRequestBody.fillSecrets(
       data.populateSecretsIn,
@@ -898,7 +896,9 @@ export default class MonitorUtil {
         typeof data.populateSecretsIn === "string"
           ? data.populateSecretsIn
           : JSON.stringify(data.populateSecretsIn),
-      storageMap: storageMap,
+      values: values,
+      // VMUtil writes {{monitorSecrets}} itself as the whole map.
+      wholeMapIsWritten: true,
       filled: data.filled,
     });
 
@@ -911,36 +911,34 @@ export default class MonitorUtil {
 
   /*
    * The values a field's placeholders are filled with, each read as the
-   * filling reads it (VMUtil.replaceValueInPlace finds a placeholder's
-   * value at its path in the same map): every text at a path under
-   * monitorSecrets, and each one for {{monitorSecrets}} itself, which is
-   * written as the whole map. Never logged.
+   * filling reads it: {{monitorSecrets.NAME}} by the name it references
+   * (getReferencedName, the server's own reading - a dotted name is one
+   * name, as the map's key is), and {{monitorSecrets}} itself as every
+   * value, where the filling writes it as the whole map. Never logged.
    */
   private static noteFilledValues(data: {
     text: string;
-    storageMap: JSONObject;
+    values: ReadonlyMap<string, string>;
+    wholeMapIsWritten: boolean;
     filled: Set<string>;
   }): void {
     for (const placeholder of findTemplatePlaceholders(data.text)) {
-      const path: string = placeholder.inner;
+      if (placeholder.inner === WHOLE_SECRETS_MAP) {
+        if (data.wholeMapIsWritten) {
+          for (const value of Array.from(data.values.values())) {
+            data.filled.add(value);
+          }
+        }
 
-      if (
-        path !== "monitorSecrets" &&
-        !path.startsWith(MONITOR_SECRETS_REFERENCE_PREFIX)
-      ) {
         continue;
       }
 
-      const found: JSONValue = VMUtil.deepFind(data.storageMap, path);
-      const texts: Array<unknown> =
-        found && typeof found === "object"
-          ? Object.values(found as JSONObject)
-          : [found];
+      const name: string | null = getReferencedName(placeholder);
+      const value: string | undefined =
+        name === null ? undefined : data.values.get(name);
 
-      for (const text of texts) {
-        if (typeof text === "string" && text) {
-          data.filled.add(text);
-        }
+      if (value) {
+        data.filled.add(value);
       }
     }
   }

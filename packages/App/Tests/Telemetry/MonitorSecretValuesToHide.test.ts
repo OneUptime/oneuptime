@@ -482,9 +482,27 @@ describe("the secret values the server hands a probe beside each step", () => {
 
     for (const value of [TOKEN, API_KEY, PASSWORD, HOST, UNUSED, DOTTED]) {
       expect(handed(filled!)).toContain(value);
+      // ...since the step does hold each.
+      expect(filled!.data!.requestHeaders!["X-All"]).toContain(
+        JSON.stringify(value).slice(1, -1),
+      );
     }
     expect(handed(filled!)).not.toContain(SHORT);
     expect(JSON.stringify(handed(filled!))).not.toContain(SEED);
+
+    // A body fills a reference by its name only: {{monitorSecrets}} stays as written there.
+    const inBody: MonitorStep = new MonitorStep();
+    inBody.setRequestBody(
+      '{"token": "{{monitorSecrets.Token}}", "all": "{{monitorSecrets}}"}',
+    );
+
+    const [filledBody] = await populate({
+      monitorType: MonitorType.API,
+      steps: [inBody],
+    });
+
+    expect(filledBody!.data!.requestBody).toContain('"{{monitorSecrets}}"');
+    expect(handed(filledBody!)).toEqual([TOKEN]);
   });
 
   test("never a secret the monitor may not use, a value too short to hide, or a seed", async () => {
