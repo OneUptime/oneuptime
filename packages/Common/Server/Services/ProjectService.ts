@@ -1524,6 +1524,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     this.applyNewProjectAiDefaults(data.data);
     this.applyNewProjectSecurityDefaults(data.data);
+    this.applyNewProjectNameDefaults(data.data);
 
     const carryForward: ProjectCreateCarryForward = {
       isCreatorMasterAdmin: user.isMasterAdmin === true,
@@ -1672,6 +1673,27 @@ export class ProjectService extends ProjectReferencesService<Model> {
       data.enableSecurityRiskCases === null
     ) {
       data.enableSecurityRiskCases = true;
+    }
+  }
+
+  /*
+   * A new project requires unique names (#10761): two monitors, templates or
+   * other records of one kind never share a name in it, so a name picks one
+   * record wherever it is shown, searched or looked up - a Terraform data
+   * source by name included. On unless the create request set it itself (a
+   * request that says false keeps false). The column's database default
+   * stays false, so a project that existed before keeps letting names repeat
+   * until an owner turns it on under Project Settings > Project: its API
+   * clients and Terraform configurations may rely on them.
+   */
+  public applyNewProjectNameDefaults(data: {
+    requireUniqueNames?: boolean | null | undefined;
+  }): void {
+    if (
+      data.requireUniqueNames === undefined ||
+      data.requireUniqueNames === null
+    ) {
+      data.requireUniqueNames = true;
     }
   }
 

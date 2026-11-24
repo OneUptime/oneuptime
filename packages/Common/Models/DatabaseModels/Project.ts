@@ -5566,6 +5566,55 @@ export default class Project extends TenantModel {
   public requireIncomingRequestSecret?: boolean = undefined;
 
   /*
+   * Require unique names (#10761): while it is on, a monitor, a template, a
+   * connection or any other kind a model marks @UniqueNameWhenRequired
+   * cannot take a name another record of its kind in the project has - case
+   * and spacing aside - on a create or a rename, over the Dashboard, the API
+   * and Terraform alike (Server/Utils/Database/RequiredUniqueNames). Names
+   * the project already holds twice stay as they are until someone renames
+   * them, so turning it on never fails: Project Settings > Project lists
+   * them. Off, names may repeat, and the Dashboard still warns when a form
+   * takes a name another record has.
+   *
+   * On for new projects (ProjectService.applyNewProjectNameDefaults), never
+   * by this column's default, which stays off: an upgrade must not start
+   * refusing the writes of API clients and Terraform configurations that
+   * rely on names repeating, and a default reaches the generated Terraform
+   * provider as a static default that would switch Terraform-managed
+   * projects on at their next apply. Everyone in the project reads it, so a
+   * form can say a name will be refused; owners and admins change it.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Unique Names",
+    description:
+      "When on, two monitors, templates or other records of one kind cannot share a name in this project, case and spacing aside. On for new projects.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public requireUniqueNames?: boolean = undefined;
+
+  /*
    * Use global Runners (Runbooks -> Runners): one switch for the whole
    * project, on by default, like global probes. While it is on, a step that
    * picked no Runner of its own runs on one of the Runners OneUptime runs

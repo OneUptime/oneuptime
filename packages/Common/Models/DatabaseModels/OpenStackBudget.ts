@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import AlertSeverity from "./AlertSeverity";
 import OnCallDutyPolicy from "./OnCallDutyPolicy";
 import OpenStackCloud from "./OpenStackCloud";
@@ -116,6 +118,18 @@ const deletePermissions: Array<Permission> = [
   delete: deletePermissions,
   update: updatePermissions,
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187560000-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_OPENSTACKBUDGET_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "OpenStackBudget",
 })
@@ -237,6 +251,7 @@ export default class OpenStackBudget extends BaseModel {
     read: readPermissions,
     update: updatePermissions,
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

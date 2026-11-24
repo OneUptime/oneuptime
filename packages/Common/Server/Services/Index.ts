@@ -449,6 +449,10 @@ import SecurityCaseNoteTemplateService from "./SecurityCaseNoteTemplateService";
 import SecurityCaseCustomFieldService from "./SecurityCaseCustomFieldService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
+import SecurityAutomaticResponsePolicyService from "./SecurityAutomaticResponsePolicyService";
+import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
+import LogPipelineService from "./LogPipelineService";
+import TracePipelineService from "./TracePipelineService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import DataBiConnectionService from "./DataBiConnectionService";
 import DataDashboardService from "./DataDashboardService";
@@ -1279,6 +1283,15 @@ const services: Array<BaseService> = [
   McpOAuthClientService,
   McpOAuthGrantService,
   McpOAuthTokenService,
+  /*
+   * Kinds a project's Require Unique Names holds (#10761), which its list of
+   * the names a project holds twice walks this registry for: they were never
+   * registered, so neither was their soft-deleted rows' purge.
+   */
+  SecurityAutomaticResponsePolicyService,
+  TelemetryIngestionKeyService,
+  LogPipelineService,
+  TracePipelineService,
 ];
 
 export const AnalyticsServices: Array<

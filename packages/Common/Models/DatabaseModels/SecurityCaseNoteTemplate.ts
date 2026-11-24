@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -79,6 +81,18 @@ const deletePermissions: Array<Permission> = [
   update: updatePermissions,
 })
 @CrudApiEndpoint(new Route("/security-case-note-template"))
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187560000-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_SECURITYCASENOTETEMPLATE_PROJECT_NAME_KEY",
+  ["projectId", "templateName"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "SecurityCaseNoteTemplate",
 })
@@ -143,6 +157,7 @@ export default class SecurityCaseNoteTemplate extends BaseModel {
     read: readPermissions,
     update: updatePermissions,
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

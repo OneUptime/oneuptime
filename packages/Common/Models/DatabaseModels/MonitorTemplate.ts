@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -74,6 +76,18 @@ import {
 })
 @CrudApiEndpoint(new Route("/monitor-template"))
 @SlugifyColumn("templateName", "slug")
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187560000-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_MONITORTEMPLATE_PROJECT_NAME_KEY",
+  ["projectId", "templateName"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "MonitorTemplate",
 })
@@ -199,6 +213,7 @@ export default class MonitorTemplate extends BaseModel {
     ],
   })
   @Index()
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

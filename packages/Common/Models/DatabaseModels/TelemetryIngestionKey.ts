@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import ServerOwned from "../../Types/Database/ServerOwned";
 import Project from "./Project";
 import User from "./User";
@@ -47,6 +49,18 @@ const INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
 @EnableDocumentation()
 @TenantColumn("projectId")
 @CrudApiEndpoint(new Route("/telemetry-ingestion-key"))
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187560000-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_TELEMETRYINGESTIONKEY_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "TelemetryIngestionKey",
 })
@@ -165,6 +179,7 @@ export default class TelemetryIngestionKey extends BaseModel {
     ],
   })
   @Index()
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

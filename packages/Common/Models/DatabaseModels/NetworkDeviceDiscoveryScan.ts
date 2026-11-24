@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Probe from "./Probe";
 import Project from "./Project";
 import User from "./User";
@@ -243,6 +245,18 @@ export interface DiscoveredNetworkDevice extends SnmpHardwareIdentity {
   tableDescription:
     "Network discovery scans that sweep an address space — a CIDR subnet or an octet range — from a probe and report the hosts found, so they can be imported as Network Devices. Every sweep pings; an SNMP scan also queries each live host over SNMP, an ICMP scan asks nothing more.",
 })
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187560000-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_NETWORKDEVICEDISCOVERYSCAN_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "NetworkDeviceDiscoveryScan",
 })
@@ -478,6 +492,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
    * every surface that renders it falls back to the scan target. See
    * Common/Utils/NetworkDiscovery/ScanNameUtil.
    */
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
