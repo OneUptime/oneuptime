@@ -63506,5 +63506,6 @@
   "{{subject}} is different from the previous check": "{{subject}} diffère de la vérification précédente",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} dépasse de plus de {{change}} la vérification précédente",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} est inférieur de plus de {{change}} à la vérification précédente",
-  "{{subject}} is the same as on the previous check": "{{subject}} est identique à la vérification précédente"
+  "{{subject}} is the same as on the previous check": "{{subject}} est identique à la vérification précédente",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Combien de jours entiers il reste au certificat SSL présenté à la sonde avant son expiration. Le nombre baisse d'un par jour et remonte d'un coup quand le certificat est renouvelé."
 }

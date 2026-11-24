@@ -63506,5 +63506,6 @@
   "{{subject}} is different from the previous check": "{{subject}}이(가) 이전 검사와 다름",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}}이(가) 이전 검사보다 {{change}} 넘게 높음",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}}이(가) 이전 검사보다 {{change}} 넘게 낮음",
-  "{{subject}} is the same as on the previous check": "{{subject}}이(가) 이전 검사와 같음"
+  "{{subject}} is the same as on the previous check": "{{subject}}이(가) 이전 검사와 같음",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "프로브가 받은 SSL 인증서가 만료되기까지 남은 온전한 일수입니다. 하루에 하나씩 줄고, 인증서가 갱신되면 껑충 올라갑니다."
 }

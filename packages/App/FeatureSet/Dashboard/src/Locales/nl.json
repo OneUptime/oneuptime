@@ -63506,5 +63506,6 @@
   "{{subject}} is different from the previous check": "{{subject}} wijkt af van de vorige controle",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} ligt meer dan {{change}} boven de vorige controle",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} ligt meer dan {{change}} onder de vorige controle",
-  "{{subject}} is the same as on the previous check": "{{subject}} is gelijk aan de vorige controle"
+  "{{subject}} is the same as on the previous check": "{{subject}} is gelijk aan de vorige controle",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Hoeveel hele dagen het SSL-certificaat dat de sonde kreeg nog heeft voordat het verloopt. Het getal daalt elke dag met één en springt omhoog wanneer het certificaat wordt vernieuwd."
 }

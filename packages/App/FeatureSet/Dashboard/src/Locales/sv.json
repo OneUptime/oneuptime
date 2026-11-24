@@ -63506,5 +63506,6 @@
   "{{subject}} is different from the previous check": "{{subject}} skiljer sig från föregående kontroll",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} ligger mer än {{change}} över föregående kontroll",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} ligger mer än {{change}} under föregående kontroll",
-  "{{subject}} is the same as on the previous check": "{{subject}} är detsamma som vid föregående kontroll"
+  "{{subject}} is the same as on the previous check": "{{subject}} är detsamma som vid föregående kontroll",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Hur många hela dagar SSL-certifikatet som sonden fick har kvar innan det går ut. Talet sjunker med ett om dagen och hoppar upp när certifikatet förnyas."
 }

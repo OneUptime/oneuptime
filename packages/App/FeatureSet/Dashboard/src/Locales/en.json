@@ -63506,5 +63506,6 @@
   "{{subject}} is different from the previous check": "{{subject}} is different from the previous check",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} is more than {{change}} above the previous check",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} is more than {{change}} below the previous check",
-  "{{subject}} is the same as on the previous check": "{{subject}} is the same as on the previous check"
+  "{{subject}} is the same as on the previous check": "{{subject}} is the same as on the previous check",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed."
 }

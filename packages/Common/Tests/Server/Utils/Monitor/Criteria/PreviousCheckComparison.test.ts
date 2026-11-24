@@ -563,7 +563,7 @@ describe("PreviousCheckComparison: where the previous check is read from", () =>
     expect(
       PreviousCheckComparison.getSource({
         criteriaFilter: previousCheck({
-          checkOn: CheckOn.ExpiresInDays,
+          checkOn: CheckOn.ExpiresInHours,
           filterType: FilterType.LessThan,
           value: undefined,
         }),
@@ -571,6 +571,26 @@ describe("PreviousCheckComparison: where the previous check is read from", () =>
         monitorStepId: STEP_ID,
       }),
     ).toBeNull();
+  });
+
+  test("a certificate's days left are read from the series each check writes (#10905)", () => {
+    expect(
+      PreviousCheckComparison.getSource({
+        criteriaFilter: previousCheck({
+          checkOn: CheckOn.ExpiresInDays,
+          filterType: FilterType.LessThan,
+          value: undefined,
+        }),
+        monitorType: MonitorType.SSLCertificate,
+        monitorStepId: STEP_ID,
+      }),
+    ).toMatchObject({
+      metricName: MonitorMetricType.SslCertificateExpiresInDays,
+      groupByAttributeKeys: ["probeId"],
+      isMatchHistory: false,
+      // A measured value: its previous value makes the threshold.
+      condition: null,
+    });
   });
 });
 

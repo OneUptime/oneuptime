@@ -84,8 +84,10 @@ import {
  *
  * Then the rows written before rows named their step: read by a monitor
  * with one step, left out by a monitor with several, whose windows fill
- * again. And a server's disks, each disk a series of its own, judged on the
- * step's rows.
+ * again. A server's disks, each disk a series of its own, judged on the
+ * step's rows. And an SSL monitor's two certificates (#10905), each one's
+ * days left compared with its own previous check: replaced by one that
+ * expires sooner, then renewed.
  *
  * Opt in against a local ClickHouse server, for example
  *   docker run --rm -d --name <a name of your own> -p 127.0.0.1:8195:8123 -e CLICKHOUSE_PASSWORD=test clickhouse/clickhouse-server:26.7.38.18
@@ -1154,6 +1156,149 @@ integration("each step of a monitor judged on its own checks, in a real ClickHou
       expect(checks[0]!.criteriaMet).toBeNull();
       expect(checks[1]!.criteriaMet).toBe("disk");
       expect(matchedDisks(checks[1]!)).toEqual(["/data"]);
+    });
+  });
+
+  describe("an SSL monitor with two steps: each certificate's days left compared with its own previous check (#10905)", () => {
+    const DROPPED_BY_MORE_THAN_ONE: CriteriaFilter = overTime(
+      {
+        checkOn: CheckOn.ExpiresInDays,
+        filterType: FilterType.LessThan,
+        value: undefined,
+      },
+      {
+        timeValueInMinutes: 60,
+        evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
+        changeType: PreviousCheckChangeType.Amount,
+        changeValue: 1,
+      },
+    );
+
+    const RENEWED: CriteriaFilter = overTime(
+      {
+        checkOn: CheckOn.ExpiresInDays,
+        filterType: FilterType.GreaterThan,
+        value: undefined,
+      },
+      {
+        timeValueInMinutes: 60,
+        evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
+        changeType: PreviousCheckChangeType.Amount,
+        changeValue: 0,
+      },
+    );
+
+    // A certificate this many days and an hour from the clock's now.
+    function certificateCheck(input: {
+      monitor: Monitor;
+      monitorStep: MonitorStep;
+      daysLeft: number;
+    }): ProbeMonitorResponse {
+      return {
+        ...websiteCheck({
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+          responseTimeInMs: 50,
+          isOnline: true,
+          responseCode: 200,
+        }),
+        sslResponse: {
+          expiresAt: new Date(
+            OneUptimeDate.getCurrentDate().getTime() +
+              (input.daysLeft * 24 + 1) * 60 * MINUTE,
+          ),
+        },
+      } as ProbeMonitorResponse;
+    }
+
+    test("a shop's certificate replaced, then renewed, never read against the status page's", async () => {
+      const shop: MonitorStep = stepWith([
+        criteria("shop: dropped by more than a day", [DROPPED_BY_MORE_THAN_ONE]),
+        criteria("shop: renewed", [RENEWED]),
+      ]);
+      const status: MonitorStep = stepWith([
+        criteria("status: dropped by more than a day", [DROPPED_BY_MORE_THAN_ONE]),
+        criteria("status: renewed", [RENEWED]),
+      ]);
+      const monitor: Monitor = monitorWith(MonitorType.SSLCertificate, [
+        shop,
+        status,
+      ]);
+
+      // Every five minutes: the shop's certificate, then the status page's.
+      const rounds: Array<{ shop: number; status: number }> = [
+        { shop: 30, status: 300 },
+        // Read against each other, 30 is far below 300 and 300 far above 30.
+        { shop: 30, status: 300 },
+        // The shop's certificate replaced by one that expires sooner.
+        { shop: 27, status: 300 },
+        // And renewed.
+        { shop: 90, status: 300 },
+      ];
+
+      const shopMet: Array<string | null> = [];
+      const statusMet: Array<string | null> = [];
+
+      for (let index: number = 0; index < rounds.length; index++) {
+        at(120 + index * 5, 0);
+        shopMet.push(
+          (
+            await check({
+              monitor: monitor,
+              monitorStep: shop,
+              dataToProcess: certificateCheck({
+                monitor: monitor,
+                monitorStep: shop,
+                daysLeft: rounds[index]!.shop,
+              }),
+            })
+          ).criteriaMet,
+        );
+
+        at(120 + index * 5, 20);
+        statusMet.push(
+          (
+            await check({
+              monitor: monitor,
+              monitorStep: status,
+              dataToProcess: certificateCheck({
+                monitor: monitor,
+                monitorStep: status,
+                daysLeft: rounds[index]!.status,
+              }),
+            })
+          ).criteriaMet,
+        );
+      }
+
+      expect(shopMet).toEqual([
+        null,
+        null,
+        "shop: dropped by more than a day",
+        "shop: renewed",
+      ]);
+      expect(statusMet).toEqual([null, null, null, null]);
+
+      // The days left are a series of each step's own.
+      const rows: Array<JSONObject> = (await rowsOf(monitor)).filter(
+        (row: JSONObject): boolean => {
+          return row["name"] === MonitorMetricType.SslCertificateExpiresInDays;
+        },
+      );
+
+      expect(
+        rows
+          .filter((row: JSONObject): boolean => {
+            return (
+              (row["attributes"] as Record<string, string>)[
+                MONITOR_STEP_ID_ATTRIBUTE
+              ] === shop.id.toString()
+            );
+          })
+          .map((row: JSONObject): number => {
+            return Number(row["value"]);
+          }),
+      ).toEqual([30, 30, 27, 90]);
     });
   });
 

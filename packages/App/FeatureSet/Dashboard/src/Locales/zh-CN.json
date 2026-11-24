@@ -63506,5 +63506,6 @@
   "{{subject}} is different from the previous check": "{{subject}} 与上一次检查不同",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} 比上一次检查高出超过 {{change}}",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} 比上一次检查低超过 {{change}}",
-  "{{subject}} is the same as on the previous check": "{{subject}} 与上一次检查相同"
+  "{{subject}} is the same as on the previous check": "{{subject}} 与上一次检查相同",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "探测器收到的 SSL 证书在过期前还剩多少整天。它每天减少一天，证书续期后会跳升。"
 }

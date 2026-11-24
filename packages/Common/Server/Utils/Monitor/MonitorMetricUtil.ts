@@ -37,6 +37,7 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import SslCertificateExpiry from "../../../Types/Monitor/SSLMonitor/SslCertificateExpiry";
 import SyntheticMonitorResponse from "../../../Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import { translationKey } from "../../../Types/Translator";
 import {
@@ -1591,6 +1592,42 @@ export default class MonitorMetricUtil {
 
       metricNameServiceNameMap[MonitorMetricType.ResponseStatusCode] =
         metricType;
+    }
+
+    /*
+     * An SSL certificate's days left, once per check that read its expiry
+     * (#10905): what Expires In Days judges, read the way it reads it
+     * (SslCertificateExpiry), so the filter can be judged over a window and
+     * compared with the previous check - "the days left dropped by more than
+     * one", a certificate replaced by one that expires sooner. A check that
+     * read no certificate writes none: a gap, never a 0 that would read as a
+     * certificate expiring today.
+     */
+    const sslDaysLeft: number | null = SslCertificateExpiry.getDaysLeft({
+      sslResponse: (data.dataToProcess as ProbeMonitorResponse).sslResponse,
+      at: OneUptimeDate.getCurrentDate(),
+    });
+
+    if (sslDaysLeft !== null) {
+      await this.pushMonitorMetric({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        monitorName: data.monitorName,
+        probeName: data.probeName,
+        metricName: MonitorMetricType.SslCertificateExpiresInDays,
+        value: sslDaysLeft,
+        description: translationKey(
+          "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.",
+        ),
+        unit: "days",
+        extraAttributes: {
+          probeId: (
+            data.dataToProcess as ProbeMonitorResponse
+          ).probeId.toString(),
+        },
+        metricRows: metricRows,
+        metricNameServiceNameMap: metricNameServiceNameMap,
+      });
     }
 
     /*
