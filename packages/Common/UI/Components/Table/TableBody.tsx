@@ -26,6 +26,8 @@ import { DragAndDropLibrary } from "../DragAndDrop/DragAndDropLoader";
 export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
   getRowProps?: ((item: T) => React.HTMLAttributes<HTMLElement>) | undefined;
+  // A line about a row across its whole width, or null (Table's getRowNote).
+  getRowNote?: ((item: T) => ReactElement | null) | undefined;
   id: string;
   columns: Columns<T>;
   actionButtons?: undefined | Array<ActionButtonSchema<T>> | undefined;
@@ -278,6 +280,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   {...getDragProps(i)}
                   item={item}
                   rowProps={props.getRowProps?.(item)}
+                  rowNote={props.getRowNote?.(item) || null}
                   columns={props.columns}
                   actionButtons={props.actionButtons}
                   dragDropIdField={props.dragDropIdField}
@@ -327,6 +330,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 {...getDragProps(i)}
                 item={item}
                 rowProps={props.getRowProps?.(item)}
+                rowNote={props.getRowNote?.(item) || null}
                 columns={props.columns}
                 actionButtons={props.actionButtons}
                 dragDropIdField={props.dragDropIdField}
