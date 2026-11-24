@@ -67,6 +67,10 @@ import {
   ComplianceFactKind,
   ComplianceRecency,
 } from "Common/Types/DataSecurity/ComplianceFacts";
+import {
+  RECORD_FIELD_TITLES,
+  isRecordField,
+} from "Common/Types/DataSecurity/RecordOfProcessing";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -488,7 +492,19 @@ export const ComplianceFactLine: FunctionComponent<{
         <span className={ROW_CLASS_NAME}>
           <span className="text-gray-500">
             {translator.translateTemplate(FACT_RECORD_SAYS, {
-              field: fact.field,
+              field: composedValue((sentence: Translator): string => {
+                // The field by its key ("record:legalBasis"): its words are OneUptime AI's English.
+                const field: string = fact.key.startsWith("record:")
+                  ? fact.key.slice("record:".length)
+                  : fact.field;
+                const title: string | undefined = isRecordField(field)
+                  ? RECORD_FIELD_TITLES[field]
+                  : undefined;
+
+                return title
+                  ? sentence.translateText(title) || title
+                  : fact.field;
+              }),
             })}
           </span>
           <Quoted text={fact.value} />

@@ -7,7 +7,9 @@ Gegevensbeveiliging scoort negen kaders op basis van wat de scans vonden. Elk ka
 - [Hoe een kader wordt gescoord](#hoe-een-kader-wordt-gescoord): Eisen die slagen, falen of niet zijn beoordeeld.
 - [Op de pagina van een resource](#op-de-pagina-van-een-resource): De compliance van één cluster, host, database, service of cloud-resource, en wat ervoor is uitgeschakeld.
 - [Eisen en hun controles](#eisen-en-hun-controles): Elke eis, en de controles die er bewijs voor leveren.
-- [Verwerkingsregister](#verwerkingsregister): Artikel 30 van de AVG, opgesteld uit je opslagen.
+- [Verwerkingsregister](#verwerkingsregister): Artikel 30 van de AVG, opgesteld uit je opslagen, met concepten van OneUptime AI die je bevestigt.
+- [Effectbeoordelingen](#effectbeoordelingen): Een gegevensbeschermingseffectbeoordeling voor elke opslag die er een nodig heeft.
+- [Auditbewijs](#auditbewijs): Wat een auditor onder elke eis leest, geëxporteerd met je register en de probleemgeschiedenis.
 :::
 
 ## De kaders
@@ -185,13 +187,30 @@ Artikel 30 van de AVG vraagt je een register van je verwerkingsactiviteiten bij 
 | Omgeving | De tags of de naam van de opslag, of wat je instelt |
 | Gevoeligheid, categorieën en gegevenstypen | Wat de scans vonden, of de gevoeligheid die je instelt |
 | Eigenaren | De eigenaren van de opslag, personen en de leden van zijn teams |
-| Doel | Wat je in het **Doel** van de opslag schrijft: waarom hij persoonsgegevens bevat. OneUptime vult het in voor de opslag die het voor je beveiliging bewaart |
-| Bewaartermijn | Wat je in de **Bewaartermijn** van de opslag schrijft: hoe lang gegevens erin worden bewaard. OneUptime vult die in voor de opslag die het voor je beveiliging bewaart |
+| Doel | Wat je in het **Doel** van de opslag schrijft of bevestigt: waarom hij persoonsgegevens bevat. OneUptime vult het in voor de opslag die het voor je beveiliging bewaart |
+| Bewaartermijn | Wat je in de **Bewaartermijn** van de opslag schrijft of bevestigt: hoe lang gegevens erin worden bewaard. OneUptime vult die in voor de opslag die het voor je beveiliging bewaart, en voor de telemetrie van een service op basis van de bewaartermijn voor telemetrie van je project |
 | Wie kan lezen | Wie een opslag kan lezen die OneUptime voor je beveiliging bewaart |
 | Kaders | De kaders waaronder de opslag door zijn gegevenstypen valt |
 | Opgegeven door | OneUptime, voor de opslag die het voor je beveiliging bewaart |
+| Rechtsgrond | Wat je schrijft of bevestigt: de rechtsgrond van de opslag volgens artikel 6 van de AVG, een van toestemming, overeenkomst, wettelijke verplichting, vitale belangen, taak van algemeen belang en gerechtvaardigde belangen. Gerechtvaardigde belangen voor de opslag die OneUptime voor je beveiliging bewaart |
+| Betrokkenen | Wat je schrijft of bevestigt: over wie de gegevens van de opslag gaan, zoals klanten, gebruikers, medewerkers of patiënten |
+| Ontvangers | Afgeleid uit de gegevensstromen van de opslag: de externe hosts en AI-aanbieders waarnaar de gegevens worden gestuurd, en de opslagen die er een kopie van bevatten |
+| Doorgiften | Afgeleid uit de regio van de opslag, de regio's waarnaar de cloud hem kopieert en de regio's van de kopieën, afgezet tegen de landen van de betrokkenen: elke doorgifte buiten die landen, of waarom die niet bekend is |
+| Effectbeoordeling | Of de opslag een gegevensbeschermingseffectbeoordeling nodig heeft, en hoe die ervoor staat: niet nodig, nodig, opgesteld of bewerkt |
+| Wacht op beoordeling | De velden waarvan het concept op een persoon wacht. Een concept staat nooit in het register, en ook niet in de exports ervan, totdat iemand het bevestigt |
 
-Vul voor een opslag die Gegevensbeveiliging heeft gevonden **Doel** en **Bewaartermijn** in bij de **Instellingen** ervan: geen scan kan die weten. Het register en de scores worden ook geleverd door de API van Gegevensbeveiliging, op `/data-security/record-of-processing`, `/data-security/compliance` en, voor één resource, `/data-security/resource-compliance`, voor iedereen die gegevensopslagen mag lezen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#api-terraform-en-mcp)).
+Voor een opslag die Gegevensbeveiliging heeft gevonden, kan geen scan weten waarom hij persoonsgegevens bevat, hoe lang, op welke grond of over wie: schrijf dat in de **Instellingen** ervan, of bevestig de concepten van OneUptime AI. Het register en de scores worden ook geleverd door de API van Gegevensbeveiliging, op `/data-security/record-of-processing`, `/data-security/compliance` en, voor één resource, `/data-security/resource-compliance`, voor iedereen die gegevensopslagen mag lezen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#api-terraform-en-mcp)).
+
+### De concepten van OneUptime AI
+
+OneUptime AI stelt het **Doel**, de **Bewaartermijn**, de **Rechtsgrond** en de **Betrokkenen** van een opslag op uit wat Gegevensbeveiliging ervan weet: de gevonden gegevenstypen, de naam, tags en beschrijving, de services die de opslag gebruiken en waarvoor hun teams schreven dat ze dienen, waar de gegevens naartoe gaan en waar ze worden bewaard. Het ziet nooit een waarde van je gegevens (zie [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai)).
+
+- **Een concept is gemarkeerd als Concept** en zegt waarom, met de feiten waarop het berust één klik verderop. Het staat pas in het register als je op **Bevestigen** drukt, of het met **Bewerken** in je eigen woorden schrijft.
+- **Je eigen woorden worden nooit door een concept vervangen.** Voor een veld dat je zelf schreef, wordt nooit meer een concept opgesteld. Een concept dat je bevestigde, wordt alleen opnieuw opgesteld als een feit waarop het berust verandert, en dan wordt het voorgesteld, niet toegepast: gemarkeerd als **Wijziging voorgesteld**, met wat er veranderde, **Nieuw concept gebruiken** en **Huidige behouden**.
+- **Concepten beoordelen**, op de kaart **Verwerkingsregister**, loopt één voor één de opslagen langs waarvan de concepten op je wachten. De **Instellingen** van een opslag hebben dezelfde velden, met **Opstellen met OneUptime AI** voor de lege.
+- **Uit zichzelf** stelt OneUptime AI eens per dag de lege velden van de riskantste opslagen op, zolang **Aan nieuwe problemen werken** aan staat onder **Gegevensbeveiliging → AI**, zoals je AI-regels toestaan.
+
+De bewaartermijn van de telemetrie van een service, de ontvangers en de doorgiften worden met gewone code afgeleid, nooit als concept opgesteld. De concepten zijn een startpunt, geen juridisch advies: laat ze controleren door wie verantwoordelijk is voor je compliance.
 
 ### Opslag die OneUptime voor je beveiliging bewaart
 
@@ -206,6 +225,32 @@ Drie opslagen bevatten met opzet IP-adressen, om je netwerk te beschermen: **Bev
 Het doel van elk is "Netwerk- en informatiebeveiliging (overweging 49 AVG)". Om je eigen doel of bewaartermijn te schrijven, gebruik je **Register bewerken** in de **Instellingen** van de opslag: een veld dat je leeg laat, houdt dat van OneUptime.
 
 Een opslag staat erin zolang je project de gegevens ervan bewaart: de kluis zolang een ingeschakelde IP-adresregel logs of traces hasht die Beveiligingsgebeurtenissen leest, en nog 31 dagen daarna (zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Zodra de gegevens weg zijn, wordt de opslag gearchiveerd, en die komt terug met je doel en bewaartermijn als de gegevens terugkomen.
+
+## Effectbeoordelingen
+
+Artikel 35 van de AVG vraagt om een gegevensbeschermingseffectbeoordeling vóór een verwerking die waarschijnlijk een hoog risico inhoudt. Gegevensbeveiliging zegt welke opslagen er een nodig hebben: een opslag met bijzondere persoonsgegevens, zoals gezondheidsgegevens, gegevens over veel personen (ongeveer 100.000 records of meer), of gegevens die de landen van de betrokkenen verlaten.
+
+De **Effectbeoordeling** van een opslag, in het menu ervan onder **Instellingen**, zegt waarom de opslag er een nodig heeft, of dat dat niet zo is. **Effectbeoordeling opstellen** vraagt OneUptime AI om de vier delen die artikel 35, lid 7, vraagt, op basis van het register van de opslag, de openstaande problemen en de onlangs herstelde, hoe blootgesteld de opslag is, hoeveel er erbij kunnen en de versleuteling:
+
+| Deel | Artikel |
+| --- | --- |
+| De verwerking en de doeleinden ervan | Art. 35(7)(a) |
+| Noodzaak en evenredigheid | Art. 35(7)(b) |
+| Risico's voor de betrokkenen | Art. 35(7)(c) |
+| Maatregelen om de risico's aan te pakken | Art. 35(7)(d) |
+
+Elk deel zegt wie het schreef en wanneer, met de feiten waarop een opgesteld deel berust. **Bewerken** maakt een deel van jou, en het wordt nooit opnieuw opgesteld; **Opnieuw opstellen** stelt alleen de delen op die niemand bewerkte. Een deel dat is geschreven op feiten die sindsdien zijn veranderd, meldt dat. **PDF exporteren** en **Markdown exporteren** downloaden de effectbeoordeling.
+
+## Auditbewijs
+
+**Auditbewijs**, bij het kader dat je kiest op **Gegevensbeveiliging → Compliance**, is wat een auditor leest onder elk van de eisen ervan, over de afgelopen 30, 90, 180 of 365 dagen:
+
+- de opslagen binnen het bereik van de eis, en hoe de controles ervan ervoor staan;
+- de problemen van die controles die in de periode zijn geopend en hersteld, en hoe snel ze zijn hersteld;
+- de risico's die eronder zijn geaccepteerd, met hun redenen en vervaldatum;
+- de resources die de eis hebben uitgeschakeld, en waarom.
+
+**Bewijs opstellen** vraagt OneUptime AI om een alinea onder elke eis, gebonden aan die feiten; **Bewerken** maakt een alinea van jou, en die wordt nooit opnieuw opgesteld. Een eis zonder alinea toont het bewijs zoals het is. **PDF exporteren** en **Markdown exporteren** downloaden het bewijs met twee bijlagen: het verwerkingsregister van de opslagen binnen bereik, en de probleemgeschiedenis die het aanhaalt.
 
 ## Volgende stappen
 

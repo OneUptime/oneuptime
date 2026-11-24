@@ -208,7 +208,7 @@ export const RECORD_PEOPLE_TITLES: Readonly<Record<RecordPeople, string>> = {
   [RecordPeople.BusinessContacts]: translationKey("Business contacts"),
   [RecordPeople.Patients]: translationKey("Patients"),
   [RecordPeople.Students]: translationKey("Students"),
-  [RecordPeople.Children]: translationKey("Children"),
+  [RecordPeople.Children]: translationKey("Children (people)"),
   [RecordPeople.Public]: translationKey("Members of the public"),
 };
 

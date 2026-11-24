@@ -38,7 +38,7 @@ export const DRAFTS_TURNED_OFF: string = translationKey(
 export const DRAFT_PILL: string = translationKey("Draft");
 export const CHANGE_PILL: string = translationKey("Change proposed");
 export const REVIEW: string = translationKey("Review");
-export const RECIPIENTS: string = translationKey("Recipients");
+export const RECIPIENTS: string = translationKey("Recipients (of data)");
 export const TRANSFERS: string = translationKey("Transfers");
 export const LEGAL_BASIS: string = translationKey("Legal Basis");
 export const PEOPLE: string = translationKey("People It Is About");
@@ -73,7 +73,7 @@ export const RECORD_CARD_DESCRIPTION: string = translationKey(
 );
 export const CONFIRM: string = translationKey("Confirm");
 export const EDIT: string = translationKey("Edit");
-export const WRITE: string = translationKey("Write");
+export const WRITE: string = translationKey("Write (own words)");
 export const SAVE: string = translationKey("Save");
 export const CANCEL: string = translationKey("Cancel");
 export const USE_NEW_DRAFT: string = translationKey("Use New Draft");
@@ -126,7 +126,10 @@ export const NO_TRANSFERS: string = translationKey(
 export const RECIPIENT_VIA: string = translationKey(
   "{{name}}, through {{services}}",
 );
-export const TRANSFER_LINE: string = translationKey("{{from}} to {{to}}");
+// A transfer by where the store itself is kept: its own key, as "{{from}} to {{to}}" is a range.
+export const TRANSFER_LINE: string = translationKey(
+  "{{from}} to {{to}}, where the store is kept",
+);
 export const TRANSFER_BY_REPLICATION: string = translationKey(
   "{{from}} to {{to}}, by replication",
 );
