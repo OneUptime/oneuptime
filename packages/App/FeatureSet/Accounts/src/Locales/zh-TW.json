@@ -725,6 +725,10 @@
   "Add one file at a time.": "請一次新增一個檔案。",
   "This field holds up to {{count}} files. Remove one to add another.": "此欄位最多可包含 {{count}} 個檔案。請先移除一個，再新增其他檔案。",
   "This field holds up to {{count}} files. Remove one to add another._one": "此欄位只能包含一個檔案。請先移除它，再新增其他檔案。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」未新增：此欄位最多可包含 {{count}} 個檔案。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」未新增：此欄位只能包含一個檔案。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "此欄位最多可包含 {{count}} 個檔案，因此以下檔案未新增：{{fileNames}}。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "此欄位只能包含一個檔案，因此以下檔案未新增：{{fileNames}}。",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

@@ -1,7 +1,10 @@
 import FormsCopy, {
   FORM_QUESTION_TYPE_TEXT,
+  FormQuestionTypeText,
 } from "../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import Form from "Common/Models/DatabaseModels/Form";
+import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import { PluralTemplate } from "Common/Types/Translator";
 import { FORM_SUBMITTER_FIELD_DEFINITIONS } from "Common/Types/Form/FormField";
 import { validateFormIpAllowlist } from "Common/Types/Form/FormIpAllowlist";
 import {
@@ -125,12 +128,33 @@ const COMPOSED_STRINGS: Array<string> = [
 
 const COPY_STRINGS: Array<string> = Object.values(FormsCopy);
 
-// The question types the builder's palette offers.
+/*
+ * The question types the builder's palette offers: each one's name, and
+ * what it says the type takes - a sentence, or a plural whose {{count}}
+ * the palette fills in (QUESTION_TYPE_PLURALS).
+ */
 const QUESTION_TYPE_STRINGS: Array<string> = Object.values(
   FORM_QUESTION_TYPE_TEXT,
-).flatMap((text: { title: string; description: string }): Array<string> => {
-  return [text.title, text.description];
+).flatMap((text: FormQuestionTypeText): Array<string> => {
+  return typeof text.description === "string"
+    ? [text.title, text.description]
+    : [text.title];
 });
+
+/*
+ * What a type that takes a number of things says it takes: a plural, so
+ * the number is a value of the sentence, in the reader's digits and plural
+ * forms (#8039), never written into its words.
+ */
+const QUESTION_TYPE_PLURALS: Array<PluralTemplate> = Object.values(
+  FORM_QUESTION_TYPE_TEXT,
+).flatMap((text: FormQuestionTypeText): Array<PluralTemplate> => {
+  return typeof text.description === "string" ? [] : [text.description];
+});
+
+// The Multiple Files type's sentence when its count was written into its words.
+const OLD_MULTIPLE_FILES_SENTENCE: RegExp =
+  /^Up to \d+ files, such as screenshots and logs\.$/;
 
 // What each target is called, and what the picker says about it.
 const TARGET_TYPE_STRINGS: Array<string> = FORM_TARGET_TYPES.flatMap(
@@ -553,6 +577,45 @@ describe("Forms strings in every Dashboard locale", () => {
     expect(missing).toEqual([]);
   });
 
+  /*
+   * A type that takes a number of things - a Multiple Files question's
+   * files - says the number as its plural's {{count}}: the general form is
+   * the key and holds it once, the one form ("One file, ...") names no
+   * count and sits under the key plus "_one", and neither writes a number
+   * into its words.
+   */
+  test("a question type's count is its plural's, in en.json as the extraction keeps a plural", () => {
+    expect(
+      QUESTION_TYPE_PLURALS.map((plural: PluralTemplate): string => {
+        return plural.other;
+      }),
+    ).toEqual([
+      (
+        FORM_QUESTION_TYPE_TEXT[CustomFieldType.MultipleFiles]
+          .description as PluralTemplate
+      ).other,
+    ]);
+
+    for (const plural of QUESTION_TYPE_PLURALS) {
+      expect(english[plural.other]).toBe(plural.other);
+      expect(english[`${plural.other}_one`]).toBe(plural.one);
+      expect(plural.other.split("{{count}}")).toHaveLength(2);
+      expect(plural.one).not.toContain("{{");
+      expect(`${plural.other} ${plural.one}`).not.toMatch(/[0-9]/);
+      expect(
+        englishKeys.indexOf(`${plural.other}_one`) -
+          englishKeys.indexOf(plural.other),
+      ).toBe(1);
+    }
+
+    // The sentence it replaced, with 10 written into its words, is gone.
+    expect(
+      englishKeys.filter((key: string): boolean => {
+        return OLD_MULTIPLE_FILES_SENTENCE.test(key);
+      }),
+    ).toEqual([]);
+  });
+
   test("the words of the Incident Forms pages are gone from every locale", () => {
     for (const locale of ["en", ...OTHER_LOCALES]) {
       const keys: Array<string> = Object.keys(readLocale(locale));
@@ -608,6 +671,35 @@ describe("Forms strings in every Dashboard locale", () => {
       for (const key of SAME_AS_ENGLISH[locale] || []) {
         expect(ALL_STRINGS).toContain(key);
         expect(translations[key]).toBe(key);
+      }
+    });
+
+    /*
+     * A question type's count, worded in both forms: the general one keeps
+     * {{count}} once and writes no number of its own, the one form names no
+     * count. Russian and Arabic say their general form for 21 and 100 too,
+     * so it names its count as a label's value (Locales/ARABIC.md), and no
+     * noun has to agree with a count it cannot see.
+     */
+    test("words a question type's count in both forms, the count a value", () => {
+      for (const plural of QUESTION_TYPE_PLURALS) {
+        const general: string = String(translations[plural.other] || "");
+        const one: string = String(translations[`${plural.other}_one`] || "");
+
+        expect({ locale, general }).not.toEqual({
+          locale,
+          general: plural.other,
+        });
+        expect({ locale, one }).not.toEqual({ locale, one: plural.one });
+        expect(general.split("{{count}}")).toHaveLength(2);
+        expect(general).not.toMatch(/[0-9٠-٩۰-۹]/);
+        expect(one).not.toContain("{{");
+        expect(endingOf(general)).toBe(endingOf(plural.other));
+        expect(endingOf(one)).toBe(endingOf(plural.one));
+
+        if (locale === "ru" || locale === "ar") {
+          expect(general).toMatch(/: \{\{count\}\}[.,،]/);
+        }
       }
     });
 

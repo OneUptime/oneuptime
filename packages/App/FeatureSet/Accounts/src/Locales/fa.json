@@ -725,6 +725,10 @@
   "Add one file at a time.": "هر بار یک فایل اضافه کنید.",
   "This field holds up to {{count}} files. Remove one to add another.": "این فیلد حداکثر {{count}} فایل می‌پذیرد. برای افزودن فایل دیگر، یکی را حذف کنید.",
   "This field holds up to {{count}} files. Remove one to add another._one": "این فیلد یک فایل می‌پذیرد. برای افزودن فایل دیگر، آن را حذف کنید.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "«{{fileName}}» افزوده نشد: این فیلد حداکثر {{count}} فایل می‌پذیرد.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "«{{fileName}}» افزوده نشد: این فیلد یک فایل می‌پذیرد.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "این فایل‌ها افزوده نشدند، چون این فیلد حداکثر {{count}} فایل می‌پذیرد: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "این فایل‌ها افزوده نشدند، چون این فیلد یک فایل می‌پذیرد: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",
