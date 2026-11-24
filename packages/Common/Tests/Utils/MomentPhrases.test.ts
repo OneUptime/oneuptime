@@ -145,8 +145,8 @@ describe("the number a moment's text starts with (#10902)", () => {
     ["१:२५", 1],
     ["１:２５", 1],
     // After a direction mark, or a space.
-    ["‏۱۴:۲۵", 14],
-    ["⁨ 8 dic⁩", 8],
+    ["\u200f۱۴:۲۵", 14],
+    ["\u2068 8 dic\u2069", 8],
   ])("%s starts with %s", (text: string, number: number) => {
     expect(readLeadingNumber(text)).toBe(number);
   });
@@ -213,7 +213,8 @@ describe("a moment's form is chosen by what it holds (#10902)", () => {
     "until {{day}} at {{clock}}": "fino al {{day}} alle {{clock}}",
     "until {{day}} at {{clock}}_one": "fino al {{day}} all'{{clock}}",
     "until {{vowelDay}} at {{clock}}": "fino all'{{vowelDay}} alle {{clock}}",
-    "until {{vowelDay}} at {{clock}}_one": "fino all'{{vowelDay}} all'{{clock}}",
+    "until {{vowelDay}} at {{clock}}_one":
+      "fino all'{{vowelDay}} all'{{clock}}",
   };
 
   function translatorOf(

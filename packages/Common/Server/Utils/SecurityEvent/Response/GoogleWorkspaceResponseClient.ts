@@ -1,6 +1,8 @@
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONObject } from "../../../../Types/JSON";
-import GoogleWorkspaceClient from "../Connectors/GoogleWorkspace/GoogleWorkspaceClient";
+import GoogleWorkspaceClient, {
+  GoogleWorkspaceHttpError,
+} from "../Connectors/GoogleWorkspace/GoogleWorkspaceClient";
 import { ConnectorTransport } from "../Connectors/Types";
 import ResponseHttp, {
   RESPONSE_ACTION_TIMEOUT_IN_MS,
@@ -30,6 +32,20 @@ import ResponseHttp, {
  * account-changes check (#10603) reads, with the same scopes, whether a
  * user is still an admin and whether an app still has a token of theirs
  * (GET {directory}/users/{id}/tokens/{clientId}).
+ *
+ * Whether a user is still in a group an attack added them to (#10901) is a
+ * group's membership, which the user scopes do not read: it takes one more
+ * read-only scope, https://www.googleapis.com/auth/admin.directory.group.
+ * member.readonly, and reads one membership, never a group's settings or
+ * its other members:
+ *
+ *   GET  {directory}/groups/{group's address}/members/{user's id}
+ *
+ * A connection whose delegation was set up before it was asked for keeps
+ * working: the token Google refuses for the scope, or a membership it
+ * will not show the administrator, is access the connection was not
+ * given (GoogleWorkspaceAccessNotGranted), and the change is a person's to
+ * confirm.
  */
 
 export const GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE: string =
@@ -38,8 +54,35 @@ export const GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE: string =
 export const GOOGLE_WORKSPACE_DIRECTORY_SECURITY_SCOPE: string =
   "https://www.googleapis.com/auth/admin.directory.user.security";
 
+// Reading one group's member, and nothing else of the group (#10901).
+export const GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE: string =
+  "https://www.googleapis.com/auth/admin.directory.group.member.readonly";
+
 export const GOOGLE_WORKSPACE_DIRECTORY_USERS_URL: string =
   "https://admin.googleapis.com/admin/directory/v1/users";
+
+export const GOOGLE_WORKSPACE_DIRECTORY_GROUPS_URL: string =
+  "https://admin.googleapis.com/admin/directory/v1/groups";
+
+// The token endpoint's word for a scope the client ID has no delegation for.
+const SCOPE_REFUSALS: ReadonlyArray<string> = [
+  "unauthorized_client",
+  "access_denied",
+];
+
+/*
+ * Google will not let the connection read something: its delegation lacks
+ * the scope, or the administrator it acts as may not see it. Not a failure
+ * of Google's: the connection was not given this access.
+ */
+export class GoogleWorkspaceAccessNotGranted extends APIException {
+  public readonly scope: string;
+
+  public constructor(data: { scope: string; message: string }) {
+    super(data.message);
+    this.scope = data.scope;
+  }
+}
 
 export interface GoogleWorkspaceUser {
   id: string;
@@ -277,6 +320,64 @@ export default class GoogleWorkspaceResponseClient {
 
     if (result.statusCode === 404) {
       return false;
+    }
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result);
+    }
+
+    return true;
+  }
+
+  /*
+   * Whether the user is still a member of the group, by its address
+   * (GET {directory}/groups/{groupKey}/members/{memberKey}): only a member
+   * the group names itself, as an attack's ADD_GROUP_MEMBER made one -
+   * never one through a group inside it. Google answers 404 once the
+   * member is removed, or the group with it (#10901).
+   *
+   * Throws GoogleWorkspaceAccessNotGranted when the connection may not read
+   * groups: its delegation lacks the scope, or the administrator it acts as
+   * may not see the group.
+   */
+  public async isGroupMember(data: {
+    groupKey: string;
+    memberKey: string;
+  }): Promise<boolean> {
+    const step: string = "Google Workspace group membership lookup";
+    const scope: string = GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE;
+    let result: ResponseHttpResult;
+
+    try {
+      result = await this.send({
+        step,
+        scope,
+        method: "GET",
+        url: `${GOOGLE_WORKSPACE_DIRECTORY_GROUPS_URL}/${encodeURIComponent(data.groupKey.trim())}/members/${encodeURIComponent(data.memberKey.trim())}`,
+      });
+    } catch (error) {
+      if (
+        error instanceof GoogleWorkspaceHttpError &&
+        SCOPE_REFUSALS.includes(error.reason)
+      ) {
+        throw new GoogleWorkspaceAccessNotGranted({
+          scope,
+          message: `Google refused to let the connection read groups: its domain-wide delegation does not have the ${scope} scope.`,
+        });
+      }
+
+      throw error;
+    }
+
+    if (result.statusCode === 404) {
+      return false;
+    }
+
+    if (result.statusCode === 403) {
+      throw new GoogleWorkspaceAccessNotGranted({
+        scope,
+        message: `Google would not show the administrator ${this.adminEmail} the group's members: the administrator must be one who may read groups.`,
+      });
     }
 
     if (!ResponseHttp.isSuccess(result)) {

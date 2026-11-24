@@ -28,6 +28,13 @@ import {
  */
 
 const NOW: Date = new Date("2026-12-27T10:00:00.000Z");
+
+// A moment written whole, as the sentences once held it: its day, a comma, then its clock - "8 dic, 01:25".
+const MOMENT_WRITTEN_WHOLE: RegExp = /,\s*\d{1,2}[:.]\d{2}/u;
+// A placeholder no value filled.
+const PLACEHOLDER_LEFT: RegExp = /\{\{|\}\}/u;
+// A sentence whose value came out empty: nothing before its full stop ("until .").
+const NOTHING_BEFORE_END: RegExp = /\s[.。।]$/u;
 const TODAY_AT_14_25: string = "2026-12-27T14:25:00.000Z";
 const THE_8TH_AT_01_25: string = "2026-12-08T01:25:00.000Z";
 const ADDRESS: string = "35.205.11.131";
@@ -59,7 +66,8 @@ const IN_EVERY_LANGUAGE: Record<string, CampaignSentences> = {
     toastToday: "203.0.113.0/24 bis 14:25 mit einer Challenge belegt.",
     blockedOnThe8th: "Gesperrt bis zum 8. Dez. um 01:25",
     challengedOnThe8th: "Mit Challenge bis zum 8. Dez. um 01:25",
-    toastOnThe8th: "203.0.113.0/24 bis zum 8. Dez. um 01:25 mit einer Challenge belegt.",
+    toastOnThe8th:
+      "203.0.113.0/24 bis zum 8. Dez. um 01:25 mit einer Challenge belegt.",
     toastUntilLifted: "203.0.113.0/24 mit einer Challenge belegt.",
   },
   fr: {
@@ -77,7 +85,8 @@ const IN_EVERY_LANGUAGE: Record<string, CampaignSentences> = {
     toastToday: "Se sometió 203.0.113.0/24 a desafío hasta las 14:25.",
     blockedOnThe8th: "Bloqueada hasta el 8 dic a la 01:25",
     challengedOnThe8th: "Sometida a desafío hasta el 8 dic a la 01:25",
-    toastOnThe8th: "Se sometió 203.0.113.0/24 a desafío hasta el 8 dic a la 01:25.",
+    toastOnThe8th:
+      "Se sometió 203.0.113.0/24 a desafío hasta el 8 dic a la 01:25.",
     toastUntilLifted: "Se sometió 203.0.113.0/24 a desafío.",
   },
   it: {
@@ -86,7 +95,8 @@ const IN_EVERY_LANGUAGE: Record<string, CampaignSentences> = {
     toastToday: "203.0.113.0/24 sottoposto a verifica fino alle 14:25.",
     blockedOnThe8th: "Bloccato fino all'8 dic all'01:25",
     challengedOnThe8th: "Sottoposto a verifica fino all'8 dic all'01:25",
-    toastOnThe8th: "203.0.113.0/24 sottoposto a verifica fino all'8 dic all'01:25.",
+    toastOnThe8th:
+      "203.0.113.0/24 sottoposto a verifica fino all'8 dic all'01:25.",
     toastUntilLifted: "203.0.113.0/24 sottoposto a verifica.",
   },
   pt: {
@@ -149,7 +159,8 @@ const IN_EVERY_LANGUAGE: Record<string, CampaignSentences> = {
     toastToday: "203.0.113.0/24 に 14:25 までチャレンジを適用しました。",
     blockedOnThe8th: "12月8日 01:25 までブロック",
     challengedOnThe8th: "12月8日 01:25 までチャレンジ",
-    toastOnThe8th: "203.0.113.0/24 に 12月8日 01:25 までチャレンジを適用しました。",
+    toastOnThe8th:
+      "203.0.113.0/24 に 12月8日 01:25 までチャレンジを適用しました。",
     toastUntilLifted: "203.0.113.0/24 にチャレンジを適用しました。",
   },
   ko: {
@@ -238,10 +249,7 @@ function readCampaignSentences(language: string): CampaignSentences {
       challengedToday: pill(SecurityBlockAction.Challenge, TODAY_AT_14_25),
       toastToday: toast(new Date(TODAY_AT_14_25)),
       blockedOnThe8th: pill(SecurityBlockAction.Block, THE_8TH_AT_01_25),
-      challengedOnThe8th: pill(
-        SecurityBlockAction.Challenge,
-        THE_8TH_AT_01_25,
-      ),
+      challengedOnThe8th: pill(SecurityBlockAction.Challenge, THE_8TH_AT_01_25),
       toastOnThe8th: toast(new Date(THE_8TH_AT_01_25)),
       toastUntilLifted: toast(null),
     };
@@ -285,12 +293,14 @@ describe("the campaigns' sentences that name a moment, in every language", () =>
       const isRussian: boolean = language === "ru";
 
       for (const sentence of Object.values(read)) {
-        // A moment written whole: its day, a comma, then its clock - "8 dic, 01:25".
-        if (!isRussian && /\d[^\d\s]*,\s*\d{1,2}[:.]\d{2}/u.test(sentence)) {
+        if (!isRussian && MOMENT_WRITTEN_WHOLE.test(sentence)) {
           offenders.push(`${language}: a moment written whole in ${sentence}`);
         }
 
-        if (/\{\{|\}\}/u.test(sentence) || /\s[.。।]$/u.test(sentence)) {
+        if (
+          PLACEHOLDER_LEFT.test(sentence) ||
+          NOTHING_BEFORE_END.test(sentence)
+        ) {
           offenders.push(`${language}: unfilled in ${sentence}`);
         }
       }

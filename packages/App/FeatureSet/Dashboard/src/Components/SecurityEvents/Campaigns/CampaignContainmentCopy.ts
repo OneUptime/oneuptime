@@ -45,8 +45,9 @@ export const NETWORKS_LABEL: string = translationKey("Networks");
 export const ROW_BLOCKED: string = translationKey("Blocked");
 export const ROW_CHALLENGED: string = translationKey("Challenged");
 export const ROW_BLOCKED_UNTIL: string = translationKey("Blocked {{until}}");
-export const ROW_CHALLENGED_UNTIL: string =
-  translationKey("Challenged {{until}}");
+export const ROW_CHALLENGED_UNTIL: string = translationKey(
+  "Challenged {{until}}",
+);
 // Beside the pill, when a range or a network holds the row: what does.
 export const ROW_HELD_BY: string = translationKey("By {{value}}");
 

@@ -5,11 +5,15 @@ import {
 import { ResponseStep } from "./SecurityCaseResponseTypes";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   ResponseLink,
   ResponseLinkKind,
 } from "Common/Types/SecurityCase/SecurityCaseResponseLink";
-import { SecurityCaseStepCheckSentence } from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import {
+  SecurityCaseStepCheckSentence,
+  StepCheckFactMark,
+} from "Common/Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { DOCS_URL } from "Common/UI/Config";
@@ -65,7 +69,9 @@ export function getStepCheckLineClassName(
  * and how to let it check - since that is what the person acts on, and so
  * does one that looks done but leaves something for the person to confirm,
  * named one by one: the account changes OneUptime cannot read back
- * (#10603). Every other check folds what else it saw under How We Know.
+ * (#10603). So does one that names what is still to undo: the changes an
+ * attack made that are still there, each the person's to undo (#10900).
+ * Every other check folds what else it saw under How We Know.
  */
 export function isCheckExplainedInline(check: {
   state: SecurityCaseStepCheckState;
@@ -75,14 +81,55 @@ export function isCheckExplainedInline(check: {
     return true;
   }
 
-  const toConfirm: unknown = check.evidence.data["toConfirm"];
+  const counted: (key: string) => boolean = (key: string): boolean => {
+    const count: unknown = check.evidence.data[key];
+
+    return typeof count === "number" && count > 0;
+  };
+
+  if (check.state === SecurityCaseStepCheckState.LooksDone) {
+    return counted("toConfirm");
+  }
 
   return (
-    check.state === SecurityCaseStepCheckState.LooksDone &&
-    typeof toConfirm === "number" &&
-    toConfirm > 0
+    (check.state === SecurityCaseStepCheckState.NotDone ||
+      check.state === SecurityCaseStepCheckState.Regressed) &&
+    counted("stillThere")
   );
 }
+
+/*
+ * How the card marks a fact (StepCheckFactMark): an icon and its colour,
+ * one each, so a list of what OneUptime read back reads at a glance - done,
+ * still to do, a person's to confirm, how to let OneUptime read the rest.
+ * The sentence says it too: the mark is never all a reader has.
+ */
+export interface StepCheckFactMarkStyle {
+  icon: IconProp;
+  className: string;
+}
+
+export const STEP_CHECK_FACT_MARK_STYLES: Record<
+  StepCheckFactMark,
+  StepCheckFactMarkStyle
+> = {
+  [StepCheckFactMark.Done]: {
+    icon: IconProp.CheckCircle,
+    className: "text-emerald-600",
+  },
+  [StepCheckFactMark.NotDone]: {
+    icon: IconProp.XCircle,
+    className: "text-red-600",
+  },
+  [StepCheckFactMark.Confirm]: {
+    icon: IconProp.QuestionMarkCircle,
+    className: "text-amber-600",
+  },
+  [StepCheckFactMark.HowToCheck]: {
+    icon: IconProp.InformationCircle,
+    className: "text-indigo-600",
+  },
+};
 
 // A step that looks done is a person's to confirm: it becomes their tick.
 export function canConfirmStep(step: ResponseStep): boolean {

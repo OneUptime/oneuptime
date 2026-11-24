@@ -177,9 +177,7 @@ function baseLanguageOf(language: string): string {
 
 // Whether `language` reads the day of the month `day` with a vowel first.
 export function isDayReadWithAVowel(language: string, day: number): boolean {
-  return (DAYS_READ_WITH_A_VOWEL[baseLanguageOf(language)] || []).includes(
-    day,
-  );
+  return (DAYS_READ_WITH_A_VOWEL[baseLanguageOf(language)] || []).includes(day);
 }
 
 /*
@@ -187,9 +185,7 @@ export function isDayReadWithAVowel(language: string, day: number): boolean {
  * language with forms writes them, and the scripts some languages write
  * their digits in (Arabic-Indic, Persian, Devanagari, fullwidth).
  */
-const DIGIT_ZEROS: ReadonlyArray<number> = [
-  0x30, 0x660, 0x6f0, 0x966, 0xff10,
-];
+const DIGIT_ZEROS: ReadonlyArray<number> = [0x30, 0x660, 0x6f0, 0x966, 0xff10];
 
 function digitValue(character: string): number | null {
   const code: number = character.codePointAt(0) ?? -1;
