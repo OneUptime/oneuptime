@@ -23,6 +23,7 @@ import { MonitorEgressPolicy } from "../../../../Utils/Monitors/MonitorEgressGua
 import PrivateNetworkMonitorPolicy, {
   ResolvedPrivateNetworkMonitorPolicy,
 } from "../../../../Utils/PrivateNetworkMonitorPolicy";
+import { approveOnLoopback } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 import FakeInternet, { FakeInternetRequest } from "./Fixtures/FakeInternet";
 
 /*
@@ -157,6 +158,8 @@ describe.each(BROWSERS)(
       code: string,
       policy: MonitorEgressPolicy = HOSTED_GLOBAL_PROBE,
       extraArgs: Record<string, number> = {},
+      // Hosts the egress proxy reaches directly, as NO_PROXY names them.
+      noProxy?: string,
     ): Promise<SandboxExecutionResult> {
       const session: SyntheticBrowserSession = await SyntheticBrowser.start({
         config: {
@@ -167,7 +170,10 @@ describe.each(BROWSERS)(
           viewport: { width: 800, height: 600 },
           timeoutInMs: 60_000,
           chromiumSandboxEnabled: false,
-          proxy: { server: fakeInternet.url() },
+          proxy: {
+            server: fakeInternet.url(),
+            ...(noProxy ? { bypass: noProxy } : {}),
+          },
           egressPolicy: policy,
           args: {},
         },
@@ -809,6 +815,124 @@ describe.each(BROWSERS)(
       }
     });
 
+    /*
+     * The page can read the probe's mark: after a refused navigation it sits
+     * at the refused origin, and the egress proxy answers its own fetch
+     * there. A site the script points at can then echo the mark on its own
+     * page; that page loaded, and is not reported as a refusal.
+     */
+    test("does not take a site's page for the probe's refusal, though the page read the probe's mark", async () => {
+      const result: SandboxExecutionResult = await check(`
+        let refusal;
+        try {
+          await page.goto("http://127.0.0.1:" + args.loopback + "/refused");
+          refusal = "loaded";
+        } catch (error) {
+          refusal = error.message;
+        }
+        const marker = await page.evaluate(async () => {
+          try {
+            return (await fetch(location.href)).headers.get("x-oneuptime-egress-refusal");
+          } catch (error) {
+            return null;
+          }
+        });
+        const echoed = await page.goto(
+          "http://${PUBLIC_SITE}:" + args.site + "/echo?m=" + encodeURIComponent(marker || "")
+        );
+        return { data: {
+          refusal,
+          markerRead: typeof marker === "string" && marker.length > 0,
+          echoed: echoed.status() + " " + (await page.textContent("body")),
+        } };
+      `);
+
+      expect(result.scriptError).toBeUndefined();
+      expect(result.returnValue).toEqual({
+        data: {
+          refusal:
+            "Monitor target host 127.0.0.1 is not allowed: loopback address.",
+          markerRead: true,
+          echoed: "200 the site's own page",
+        },
+      });
+    });
+
+    /*
+     * Only the navigation's own request is told in the proxy's words. Here
+     * the page loads, an image on its host gets an answer the proxy cannot
+     * relay, and another never answers: the navigation times out, and says
+     * so, rather than taking the image's failure for its own.
+     */
+    test("reports a navigation that timed out as a timeout, though a resource on its host failed at the proxy", async () => {
+      const asked: Array<string> = [];
+      const sockets: Set<net.Socket> = new Set<net.Socket>();
+      const flaky: net.Server = net.createServer((socket: net.Socket): void => {
+        sockets.add(socket);
+        socket.on("error", (): void => {
+          // The proxy gave up on it.
+        });
+        let received: string = "";
+        socket.on("data", (chunk: Buffer): void => {
+          received += chunk.toString("latin1");
+          if (!received.includes("\r\n\r\n")) {
+            return;
+          }
+          const path: string = received.split(" ")[1] || "";
+          received = "";
+          asked.push(path);
+          if (path === "/page") {
+            const body: string =
+              '<!doctype html><title>Flaky</title><img src="/bad"><img src="/hang">';
+            socket.write(
+              `HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: ${body.length}\r\n\r\n${body}`,
+            );
+          } else if (path === "/bad") {
+            socket.end("HTTP/1.1 099 Odd\r\nContent-Length: 0\r\n\r\n");
+          }
+          // "/hang" is never answered: the page never finishes loading.
+        });
+      });
+      await new Promise<void>((resolve: () => void): void => {
+        flaky.listen(0, "127.0.0.1", resolve);
+      });
+      // A site the proxy reaches directly; loopback stands in for its public address.
+      approveOnLoopback({ "flaky.example.test": ["127.0.0.1"] });
+
+      try {
+        const result: SandboxExecutionResult = await check(
+          `
+            try {
+              await page.goto("http://flaky.example.test:" + args.flaky + "/page", { timeout: 4000 });
+              return { data: "loaded" };
+            } catch (error) {
+              return { data: error.message };
+            }
+          `,
+          HOSTED_GLOBAL_PROBE,
+          { flaky: (flaky.address() as AddressInfo).port },
+          "flaky.example.test",
+        );
+        const message: string = String(
+          (result.returnValue as { data: unknown }).data,
+        );
+
+        expect(asked).toEqual(expect.arrayContaining(["/page", "/bad"]));
+        expect(message).toContain("Timeout 4000ms exceeded");
+        expect(message).not.toContain("could not read");
+      } finally {
+        jest.restoreAllMocks();
+        for (const socket of sockets) {
+          socket.destroy();
+        }
+        await new Promise<void>((resolve: () => void): void => {
+          flaky.close((): void => {
+            resolve();
+          });
+        });
+      }
+    });
+
     test("never falls back to a direct connection once the egress proxy is gone", async () => {
       const before: number = loopbackConnections;
       const session: SyntheticBrowserSession = await SyntheticBrowser.start({
@@ -898,6 +1022,16 @@ function servePublicSite(
         "Access-Control-Allow-Origin": "*",
       });
       response.end(JSON.stringify({ ok: true }));
+      return;
+    case "/echo":
+      // A site writing the probe's mark on its own page.
+      response.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "x-oneuptime-egress-refusal": url.searchParams.get("m") || "",
+      });
+      response.end(
+        "<!doctype html><title>Echo</title><p>the site's own page</p>",
+      );
       return;
     case "/redirect":
       response.writeHead(302, {
