@@ -63714,5 +63714,6 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserne på denne sondes netværksgrænseflader og på dens vært, når den får dem oplyst, som sonden angiver dem, hver gang den melder sig. Sikkerhedshændelser lægger sondens egne forespørgsler, opdagelser og monitortjek fra disse adresser til side, og blokeringslisten blokerer dem aldrig.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Den adresse, OneUptime ser denne sonde melde sig fra. Blokeringslisten blokerer den aldrig.",
   "OneUptime AI's Scrub Rule Input Hash": "Input-hash for OneUptime AI's scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's scrub-regler",
+  "To challenge a network by its ASN, and on a plan without a list or a custom rule to spare.": "To challenge a network by its ASN, and on a plan without a list or a custom rule to spare."
 }

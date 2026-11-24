@@ -63714,5 +63714,6 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
-  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール"
+  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
+  "To challenge a network by its ASN, and on a plan without a list or a custom rule to spare.": "To challenge a network by its ASN, and on a plan without a list or a custom rule to spare."
 }
