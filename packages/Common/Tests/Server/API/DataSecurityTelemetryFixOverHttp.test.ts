@@ -239,7 +239,7 @@ function as(role: Role): void {
 }
 
 describe.each(
-  ROLES.map((role: Role) => {
+  ROLES.map((role: Role): [string, Role] => {
     return [role.name, role];
   }),
 )("%s", (_name: string, role: Role) => {
