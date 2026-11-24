@@ -779,6 +779,41 @@ describe("OneUptime AI in Security docs", () => {
     );
   });
 
+  /*
+   * What follows OneUptime AI's own close of a benign case or a false
+   * positive (#10847): the engine carries it out as the close's run
+   * finishes, unless a person reopened the case or took it over first, or
+   * Security Events is switched off.
+   */
+  it("says what stops what follows OneUptime AI's own close, as the engine carries it out", () => {
+    const section: string = flat(
+      sectionOf("A case it reads as benign or a false positive"),
+    );
+    const engine: string = flat(
+      source("Common/Server/Utils/SecurityPlaybook/SecurityPlaybookEngine.ts"),
+    );
+    const afterClose: string = flat(
+      source(
+        "Common/Server/Utils/AI/Security/Response/SecurityCaseResponseAfterClose.ts",
+      ),
+    );
+
+    // As the close's run finishes, with no look.
+    expect(engine).toContain(
+      "await SecurityCaseResponseAfterClose.followUp(data.aiCase);",
+    );
+    // Reopened: nothing follows. Switched off: left for a person.
+    expect(afterClose).toContain(
+      "if (!securityCase?.id || !securityCase.closedAt) {",
+    );
+    expect(afterClose).toContain("if (await SecurityEventsSwitch.isOff()) {");
+    // Taken over: its log since the hand-off holds no close of its own.
+    expect(afterClose).toContain("log: SecurityCaseResponseLook.toLog(rows),");
+    expect(section).toContain(
+      "A person who reopens the case or takes it over first stops both, and while Security Events is switched off OneUptime AI leaves both for a person.",
+    );
+  });
+
   it("names where people hear of a hand-off as their settings and the workspace rules name it", () => {
     const settings: string = flat(
       source(`${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`),

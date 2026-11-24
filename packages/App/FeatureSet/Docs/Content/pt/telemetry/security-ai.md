@@ -136,7 +136,7 @@ Abaixo, cada etapa que ele realizou, perguntou ou deixou, a mais recente primeir
 
 ### Um caso que ele lê como benigno ou falso positivo
 
-**Responder com IA** em um caso que a classificação leu como Provavelmente benigno ou Provável falso positivo o fecha como Benign Positive ou False Positive, como **Fechar o caso** permite. Depois que o caso é fechado, o OneUptime AI revoga os bloqueios que ele fez, como **Fechar o caso** também permite, e propõe à regra do caso uma exceção para o valor que a disparou. A exceção sempre aguarda uma pessoa: **Aprovar** a adiciona, em seu nome.
+**Responder com IA** em um caso que a classificação leu como Provavelmente benigno ou Provável falso positivo o fecha como Benign Positive ou False Positive, como **Fechar o caso** permite. Depois que o caso é fechado, o OneUptime AI revoga os bloqueios que ele fez, como **Fechar o caso** também permite, e propõe à regra do caso uma exceção para o valor que a disparou. A exceção sempre aguarda uma pessoa: **Aprovar** a adiciona, em seu nome. Uma pessoa que reabre o caso ou o assume antes impede as duas coisas, e enquanto o produto Eventos de segurança está desativado, o OneUptime AI deixa as duas para uma pessoa.
 
 ## O que o OneUptime AI pode fazer em um caso
 
