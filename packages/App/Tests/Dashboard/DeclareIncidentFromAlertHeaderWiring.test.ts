@@ -629,10 +629,10 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     ).toBe(1);
     expect(countOf(code, "INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY")).toBe(2);
     expect(code).toContain(
-      "importIncidentFromAlerts,{AlertForIncidentPrefill,AlertsToAcknowledge,AlertStateForAcknowledgement,",
+      "importIncidentFromAlerts,{AlertForIncidentPrefill,AlertOwnerIds,AlertsToAcknowledge,AlertStateForAcknowledgement,",
     );
     expect(code).toContain(
-      'INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,INCIDENT_ALERT_IDS_TO_LINK_KEY,INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,MAX_ALERTS_PER_INCIDENT_LINK_ACTION,}from"Common/Types/Incident/IncidentAlertLink";',
+      'INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,INCIDENT_ALERT_IDS_TO_LINK_KEY,INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,MAX_ALERTS_PER_INCIDENT_LINK_ACTION,}from"Common/Types/Incident/IncidentAlertLink";',
     );
   });
 
@@ -688,7 +688,7 @@ describe("the create-incident page asking to acknowledge the alerts", () => {
     const loader: string = bodyOf(code, "constfetchInitialValuesFromAlerts:");
 
     const reads: string =
-      "awaitPromise.all([fetchAlertsToLink(parsedAlertIds.alertIds),fetchAlertSeverities(),fetchIncidentSeverities(),fetchAlertStates(),fetchIncidentsLinkedToAlerts(parsedAlertIds.alertIds),]);";
+      "awaitPromise.all([fetchAlertsToLink(parsedAlertIds.alertIds),fetchAlertSeverities(),fetchIncidentSeverities(),fetchAlertStates(),fetchIncidentsLinkedToAlerts(parsedAlertIds.alertIds),fetchAlertOwners(parsedAlertIds.alertIds),]);";
 
     expect(loader).toContain(reads);
 
@@ -880,7 +880,7 @@ describe("the server acknowledging the alerts an incident is declared from", () 
      * that declared it, if one did (read off the validated alert ids).
      */
     const carryForwardAt: number = onBeforeCreate.indexOf(
-      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],declaredByAlertIncidentRuleName:this.getDeclaringAlertIncidentRuleName({createBy:createBy,alertIdsToLink:validatedAlertIds,}),};",
+      "constcarryForward:IncidentCreateCarryForward={startingStage:startingStage,alertIdsToLink:validatedAlertIds,acknowledgedAlertStateId:alertsToAcknowledge?.acknowledgedAlertStateId||null,alertIdsToAcknowledge:alertsToAcknowledge?.alertIdsToAcknowledge||[],declaredByAlertIncidentRuleName:this.getDeclaringAlertIncidentRuleName({createBy:createBy,alertIdsToLink:validatedAlertIds,}),carryOverAlertOwners:carryOverAlertOwners,};",
     );
     /*
      * The incident number is taken by the service's one numbering method
@@ -916,7 +916,7 @@ describe("the server acknowledging the alerts an incident is declared from", () 
     const code: string = denseCommon(INCIDENT_SERVICE);
 
     expect(code).toContain(
-      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;declaredByAlertIncidentRuleName:string|null;})|null;",
+      "typeIncidentCreateCarryForward=|(StartingStageCarryForward&{alertIdsToLink:Array<ObjectID>;acknowledgedAlertStateId:ObjectID|null;alertIdsToAcknowledge:Array<ObjectID>;declaredByAlertIncidentRuleName:string|null;carryOverAlertOwners:boolean;})|null;",
     );
     expect(code).toContain(
       'importIncidentAlertService,{AcknowledgeDeclaredAlertsResult,AlertsToAcknowledgeOnDeclare,LinkAlertsToIncidentResult,}from"./IncidentAlertService";',

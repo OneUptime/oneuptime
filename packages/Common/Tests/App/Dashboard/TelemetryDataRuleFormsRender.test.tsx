@@ -101,6 +101,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
               ),
               steps: props.formSteps || [],
               formType: FormType.Update,
+              // As the real table hands its Edit form the record it fetched.
+              onItemFetched: props.onEditFormItemFetched,
             }}
           />
         );
@@ -227,6 +229,17 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import ScrubRulePatternPill from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRulePatternPill";
 import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
 import ScrubRuleValueCountsApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleCounts/ScrubRuleValueCountsApi";
+import DropFilterImpactApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/DropFilterImpact/DropFilterImpactApi";
+import {
+  DropFilterImpact,
+  DropFilterImpactAction,
+  DropFilterImpactRequest,
+  DropFilterRecordCountState,
+  getDropFilterKeepPercentage,
+  getEmptyDropFilterImpact,
+} from "../../../Types/Telemetry/DropFilterImpact";
+import ScrubRuleReadersApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/FieldReaders/ScrubRuleReadersApi";
+import { getEmptyTelemetryFieldReadersByKind } from "../../../Types/Telemetry/TelemetryFieldReaders";
 import LogScrubRule from "../../../Models/DatabaseModels/LogScrubRule";
 import TraceScrubRule from "../../../Models/DatabaseModels/TraceScrubRule";
 import { Blue500 } from "../../../Types/BrandColors";
@@ -335,6 +348,41 @@ beforeEach(() => {
     isChecked: true,
     rules: [],
   });
+  /*
+   * What a drop or sample filter would take (#10436), which the drop filter
+   * forms ask as the filter is written and before it is saved: some of the
+   * records, which nothing else reads, so nothing is asked before a save.
+   */
+  jest
+    .spyOn(DropFilterImpactApi, "getImpact")
+    .mockImplementation(
+      async (request: DropFilterImpactRequest): Promise<DropFilterImpact> => {
+        const action: DropFilterImpactAction =
+          request.action === DropFilterImpactAction.Sample
+            ? DropFilterImpactAction.Sample
+            : DropFilterImpactAction.Drop;
+        const impact: DropFilterImpact = getEmptyDropFilterImpact({
+          signal: request.signal,
+          action: action,
+          keepPercentage: getDropFilterKeepPercentage({
+            action: action,
+            samplePercentage: request.samplePercentage,
+          }),
+          timeLimitInSeconds: 10,
+        });
+
+        impact.count = {
+          ...impact.count,
+          state: DropFilterRecordCountState.Counted,
+          total: 100,
+          matched: 40,
+        };
+        impact.readers = getEmptyTelemetryFieldReadersByKind(true);
+        impact.securityEvents.isChecked = true;
+
+        return impact;
+      },
+    );
 });
 
 afterEach(() => {
@@ -689,6 +737,242 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
       expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     });
     expect(sentModel()["scrubAction"]).toBe("mask");
+  });
+
+  /*
+   * #10751: a pattern rule can name the attributes it reads, as a rule
+   * Data Security made for a finding does - folded under More fields, the
+   * column Attributes to Hide writes for a Named Attributes rule.
+   */
+  describe("Only in These Attributes (#10751)", () => {
+    /*
+     * What the form says under the name asks the server what reads the
+     * values the rule would hide, a moment after the values stop changing:
+     * nothing reads them here.
+     */
+    beforeEach(() => {
+      jest.spyOn(ScrubRuleReadersApi, "getReaders").mockResolvedValue({
+        kinds: getEmptyTelemetryFieldReadersByKind(true),
+        securityEvents: { isChecked: true, sources: [], loses: [] },
+      });
+    });
+
+    function onlyInBox(): HTMLElement | null {
+      return within(dialog()).queryByRole("textbox", {
+        name: /^Only in These Attributes/,
+      });
+    }
+
+    function attributesToHideBox(): HTMLElement | null {
+      return within(dialog()).queryByRole("textbox", {
+        name: /^Attributes to Hide/,
+      });
+    }
+
+    test("asks a pattern rule, folded, and never a Named Attributes or Sensitive Attribute Keys rule", async () => {
+      const user: UserEvent = await renderPage(page.Page);
+      await screen.findByText(`Create New ${page.singularName}`);
+
+      await pickOption(user, patternTypePicker(), "Email Address");
+      // Folded: listed on the line, not drawn.
+      expect(onlyInBox()).toBeNull();
+      await user.click(advancedHeader());
+      expect(
+        await within(dialog()).findByRole("textbox", {
+          name: /^Only in These Attributes/,
+        }),
+      ).toBeInTheDocument();
+      expect(attributesToHideBox()).toBeNull();
+
+      await pickOption(user, patternTypePicker(), "Named Attributes");
+      await waitFor(() => {
+        expect(onlyInBox()).toBeNull();
+      });
+      expect(attributesToHideBox()).not.toBeNull();
+
+      await pickOption(user, patternTypePicker(), "Sensitive Attribute Keys");
+      await waitFor(() => {
+        expect(attributesToHideBox()).toBeNull();
+      });
+      expect(onlyInBox()).toBeNull();
+
+      await pickOption(user, patternTypePicker(), "Custom Regex");
+      expect(
+        await within(dialog()).findByRole("textbox", {
+          name: /^Only in These Attributes/,
+        }),
+      ).toBeInTheDocument();
+    });
+
+    test("creates a pattern rule that reads only the attributes typed, and says the fold is changed", async () => {
+      const user: UserEvent = await renderPage(page.Page);
+      await screen.findByText(`Create New ${page.singularName}`);
+
+      await pickOption(user, patternTypePicker(), "IP Address");
+      await user.click(advancedHeader());
+
+      const box: HTMLElement = await within(dialog()).findByRole("textbox", {
+        name: /^Only in These Attributes/,
+      });
+
+      fireEvent.change(box, {
+        target: { value: "client.address\nnet.peer.ip" },
+      });
+      // Folded again: the line names what it reads, and no defaults sentence.
+      await user.click(advancedHeader());
+
+      await waitFor(() => {
+        expect(setChips(dialog())).toContain(
+          "Only in These Attributes: client.address, net.peer.ip",
+        );
+      });
+      expect(advancedSummary()).toBeNull();
+
+      await submit();
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+      expect(sentModel()["patternType"]).toBe("ipAddress");
+      expect(sentModel()["attributeKeys"]).toBe("client.address\nnet.peer.ip");
+    });
+
+    test("refuses more attributes than a rule names, in the form", async () => {
+      const user: UserEvent = await renderPage(page.Page);
+      await screen.findByText(`Create New ${page.singularName}`);
+
+      await pickOption(user, patternTypePicker(), "Email Address");
+      await user.click(advancedHeader());
+
+      const box: HTMLElement = await within(dialog()).findByRole("textbox", {
+        name: /^Only in These Attributes/,
+      });
+      const keys: Array<string> = [];
+
+      // No numbered part: attribute.1 and attribute.2 name one place (attribute[]).
+      for (let index: number = 0; index < 51; index++) {
+        keys.push(`attribute_${index}`);
+      }
+
+      fireEvent.change(box, { target: { value: keys.join("\n") } });
+      fireEvent.blur(box);
+      await submit();
+
+      expect(
+        await within(dialog()).findByText(
+          "A rule names at most 50 attributes.",
+        ),
+      ).toBeInTheDocument();
+      expect(createOrUpdateMock).not.toHaveBeenCalled();
+    });
+
+    test("opens a saved pattern rule's attributes one a line, and sends them back as they are", async () => {
+      getItemMock.mockImplementation((() => {
+        return Promise.resolve(
+          Object.assign(new page.modelType(), {
+            _id: RULE_ID,
+            name: "Database passwords",
+            patternType: "custom",
+            customRegex: "pw=[^&]+",
+            scrubAction: "redact",
+            fieldsToScrub: page.defaultFieldsToScrub,
+            isEnabled: true,
+            attributeKeys: ["db.password", "db.password_old"],
+          }),
+        );
+      }) as never);
+
+      const user: UserEvent = await renderPage(page.Page, "edit");
+
+      await within(dialog()).findByDisplayValue("Database passwords");
+
+      // Folded, the line says which attributes it reads.
+      await waitFor(() => {
+        expect(setChips(dialog())).toContain(
+          "Only in These Attributes: db.password, db.password_old",
+        );
+      });
+
+      await user.click(advancedHeader());
+
+      expect(
+        await within(dialog()).findByRole("textbox", {
+          name: /^Only in These Attributes/,
+        }),
+      ).toHaveValue("db.password\ndb.password_old");
+      expect(attributesToHideBox()).toBeNull();
+
+      await submit();
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+      expect(sentModel()["attributeKeys"]).toBe("db.password\ndb.password_old");
+    });
+
+    test("emptied, a saved pattern rule reads every attribute again", async () => {
+      getItemMock.mockImplementation((() => {
+        return Promise.resolve(
+          Object.assign(new page.modelType(), {
+            _id: RULE_ID,
+            name: "Database passwords",
+            patternType: "email",
+            scrubAction: "redact",
+            fieldsToScrub: page.defaultFieldsToScrub,
+            isEnabled: true,
+            attributeKeys: ["db.password"],
+          }),
+        );
+      }) as never);
+
+      const user: UserEvent = await renderPage(page.Page, "edit");
+
+      await within(dialog()).findByDisplayValue("Database passwords");
+      await user.click(advancedHeader());
+
+      const box: HTMLElement = await within(dialog()).findByRole("textbox", {
+        name: /^Only in These Attributes/,
+      });
+
+      fireEvent.change(box, { target: { value: "" } });
+      await submit();
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+      expect(sentModel()["attributeKeys"]).toBe("");
+    });
+
+    test("a saved Named Attributes rule opens its attributes one a line under the type, and asks no more", async () => {
+      getItemMock.mockImplementation((() => {
+        return Promise.resolve(
+          Object.assign(new page.modelType(), {
+            _id: RULE_ID,
+            name: "Customer names",
+            patternType: "namedKeys",
+            scrubAction: "redact",
+            fieldsToScrub: page.defaultFieldsToScrub,
+            isEnabled: true,
+            attributeKeys: ["customer_name", "user.full_name"],
+          }),
+        );
+      }) as never);
+
+      const user: UserEvent = await renderPage(page.Page, "edit");
+
+      await within(dialog()).findByDisplayValue("Customer names");
+
+      expect(
+        await within(dialog()).findByRole("textbox", {
+          name: /^Attributes to Hide/,
+        }),
+      ).toHaveValue("customer_name\nuser.full_name");
+
+      await user.click(advancedHeader());
+      await settle();
+
+      expect(onlyInBox()).toBeNull();
+    });
   });
 
   describe("edited", () => {

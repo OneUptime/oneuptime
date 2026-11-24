@@ -158,13 +158,19 @@ export default class NetworkPathMonitor {
       errorMessage: undefined,
     };
 
+    /*
+     * Cleared once the race is over: left running, it held the process
+     * for the whole timeout after every lookup that finished first.
+     */
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
     try {
       const timeoutPromise: Promise<never> = new Promise(
         (
           _resolve: (value: never) => void,
           reject: (reason?: Error) => void,
         ) => {
-          setTimeout(() => {
+          timer = setTimeout(() => {
             return reject(new Error("DNS lookup timed out"));
           }, timeout);
         },
@@ -227,6 +233,10 @@ export default class NetworkPathMonitor {
       result.errorMessage = (err as Error).message;
 
       logger.debug(`DNS lookup for ${hostname} failed: ${result.errorMessage}`);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
     }
 
     return result;
@@ -249,6 +259,9 @@ export default class NetworkPathMonitor {
       failedHop: undefined,
       failureMessage: undefined,
     };
+
+    // Cleared once the race is over, as the DNS lookup's is.
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
 
     try {
       // Validate destination to prevent command injection
@@ -307,7 +320,7 @@ export default class NetworkPathMonitor {
           _resolve: (value: never) => void,
           reject: (reason?: Error) => void,
         ) => {
-          setTimeout(() => {
+          timer = setTimeout(() => {
             return reject(new Error("Traceroute timed out"));
           }, timeout);
         },
@@ -368,6 +381,10 @@ export default class NetworkPathMonitor {
       logger.debug(
         `Traceroute to ${destination} failed: ${result.failureMessage}`,
       );
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
     }
 
     return result;

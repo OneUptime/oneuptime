@@ -39,6 +39,17 @@ class LogSessionNoteTest {
     }
 
     @Test
+    fun `every space Android's backslash-s takes is one space, here as on a device`() {
+        // The JVM's \s took six of them, so a note with Chinese or Japanese text's own space read otherwise in the tests (#10876).
+        for (space in "\u3000\u1680\u2000\u2003\u200A\u202F\u205F\u000B\u000C") {
+            assertEquals("U+%04X".format(space.code), "a b", LogSessionNote.clean("a${space}b"))
+        }
+        // A zero-width no-break space is none, as on a device.
+        assertEquals("a\uFEFFb", LogSessionNote.clean("a\uFEFFb"))
+    }
+
+
+    @Test
     fun `control characters, and those that reorder the text around them, are left out`() {
         // An override that would turn the words after it round on screen, and an isolate.
         assertEquals("Allow it, it is safe", LogSessionNote.clean("Allow it, \u202Eit is safe\u202C"))

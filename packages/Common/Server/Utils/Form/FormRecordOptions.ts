@@ -1,3 +1,4 @@
+import AlertSeverityService from "../../Services/AlertSeverityService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import LabelService from "../../Services/LabelService";
 import MonitorService from "../../Services/MonitorService";
@@ -8,6 +9,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { FormRecordOption } from "../../../Types/Form/FormPublic";
 import { FormTargetOptionsSource } from "../../../Types/Form/FormTargetCatalog";
 import ObjectID from "../../../Types/ObjectID";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -15,7 +17,8 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 
 /*
  * The project's records a choice question can offer on a form's public
- * page: its severities, monitors, labels or status pages. Read as root -
+ * page: its incident or alert severities, monitors, labels or status
+ * pages. Read as root -
  * the page is anonymous - and only the name (and a color, where the record
  * has one) ever leaves here: buildPublicForm picks the ones a question
  * offers, and nothing else about a record reaches the page.
@@ -60,6 +63,25 @@ export default class FormRecordOptions {
       case FormTargetOptionsSource.IncidentSeverity: {
         const severities: Array<IncidentSeverity> =
           await IncidentSeverityService.findBy({
+            // A choice a submitter makes: never an archived value.
+            query: {
+              projectId: data.projectId,
+              isArchived: false,
+              ...idFilter,
+            },
+            select: { _id: true, name: true, color: true, order: true },
+            sort: { order: SortOrder.Ascending },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: { isRoot: true },
+          });
+
+        return FormRecordOptions.toOptions(severities);
+      }
+
+      case FormTargetOptionsSource.AlertSeverity: {
+        const severities: Array<AlertSeverity> =
+          await AlertSeverityService.findBy({
             // A choice a submitter makes: never an archived value.
             query: {
               projectId: data.projectId,

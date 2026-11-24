@@ -93,10 +93,12 @@ export default class TelemetryAiActivityReader {
       props: { isRoot: true },
     });
 
+    // Only whether there is one, and the first: never every repository.
     const repositories: Array<LocatableRepository> =
       await SourceLocator.getLocatableRepositories({
         projectId: data.projectId,
         props: { isRoot: true },
+        limit: 1,
       });
 
     let blocker: CodeTaskBlocker | null = null;

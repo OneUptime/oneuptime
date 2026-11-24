@@ -38,7 +38,9 @@
 # build toolchain, which stayed in the layers that installed it after `apk
 # del`. The pruned stages walk the App's imports
 # (Scripts/Docker/PruneUnreachablePackages.js) from its entry, from the
-# external calendar's worker thread (which alone requires ical.js), from the
+# external calendar's worker thread (which alone requires ical.js), from
+# Data Security's names-and-addresses model's worker thread (which alone
+# requires ONNX Runtime's WebAssembly build), from the
 # stack-trace support every start command requires first
 # (Common/Server/Utils/TsNode/PrecompiledSourceMaps.js) and, for the
 # Enterprise Edition, from ee/'s entry, which the Enterprise loader requires,
@@ -112,6 +114,18 @@ RUN mkdir /usr/src
 WORKDIR /usr/src/Common
 COPY ./packages/Common/package*.json /usr/src/Common/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+# Data Security's names-and-addresses model, which the workers run inside the
+# scanner (Common/Server/Utils/DataSecurity/Model): its files, fetched from
+# the revision NameAddressModel.json pins and checked against their SHA-256
+# (any other bytes stop the build), into /usr/src/DataSecurityModel, which
+# /usr/src carries into the image; and of ONNX Runtime's WebAssembly package
+# only what the model's thread loads in Node.js, not the builds for browsers
+# and GPUs it also ships. Before Common's sources, so a change to them does
+# not fetch the model again. Scripts/Docker/FetchDataSecurityModel.js.
+COPY ./packages/Common/Server/Utils/DataSecurity/Model/NameAddressModel.json /tmp/NameAddressModel.json
+COPY ./Scripts/Docker/FetchDataSecurityModel.js /tmp/FetchDataSecurityModel.js
+RUN node /tmp/FetchDataSecurityModel.js --manifest /tmp/NameAddressModel.json --runtime /usr/src/Common/node_modules/onnxruntime-web \
+    && rm /tmp/FetchDataSecurityModel.js /tmp/NameAddressModel.json
 COPY ./packages/Common /usr/src/Common
 # mermaid for the docs, built from mermaid's ES module source with the
 # packages npm just installed (Common/Scripts/build-mermaid-browser.js) and
@@ -361,10 +375,12 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --entry /usr/src/app/Index.ts \
         --entry /usr/src/app/Migrate.ts \
         --entry /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs \
+        --entry /usr/src/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs \
         --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js \
         --entry /usr/src/ee/Server/Index.ts \
         --entry-loader /usr/src/app/Utils/EnterpriseLoader.ts \
         --entry-loader /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts \
+        --entry-loader /usr/src/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \
@@ -441,9 +457,11 @@ RUN node /tmp/PruneUnreachablePackages.js \
         --entry /usr/src/app/Index.ts \
         --entry /usr/src/app/Migrate.ts \
         --entry /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs \
+        --entry /usr/src/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs \
         --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js \
         --entry-loader /usr/src/app/Utils/EnterpriseLoader.ts \
         --entry-loader /usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansion.ts \
+        --entry-loader /usr/src/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts \
         --package /usr/src/Common \
     && npm prune --omit=dev --offline --no-audit --no-fund \
     && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" \

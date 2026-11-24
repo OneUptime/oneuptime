@@ -1,4 +1,6 @@
 import { loadFormRecordOptions } from "../FormBuilderData";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
@@ -32,7 +34,8 @@ import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 
 /*
  * The records a form's On Submit settings name - severities, templates,
- * monitors, labels, on-call policies, users, teams, status pages - read for
+ * alert states, monitors, labels, on-call policies, users, teams, status
+ * pages - read for
  * the On Submit page: its table names them, and its editor starts from
  * them. Only the kinds the form's target has settings for are read.
  *
@@ -45,9 +48,9 @@ import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
  * The editor's pickers of the kinds a project can have any number of -
  * monitors, labels, on-call policies, status pages, people and teams -
  * search the server as they are typed in, so nothing else of those is read
- * here. Severities and incident templates are picked from short lists, read
- * whole as before; a saved one missing from them (archived since, say) is
- * read by its id too, so it is named.
+ * here. Severities, incident templates and alert states are picked from
+ * short lists, read whole as before; a saved one missing from them
+ * (archived since, say) is read by its id too, so it is named.
  */
 
 /*
@@ -77,6 +80,8 @@ export const FORM_REFERENCE_LISTED_MODELS: Array<FormTargetSettingReferenceModel
   [
     FormTargetSettingReferenceModel.IncidentSeverity,
     FormTargetSettingReferenceModel.IncidentTemplate,
+    FormTargetSettingReferenceModel.AlertSeverity,
+    FormTargetSettingReferenceModel.AlertState,
   ];
 
 interface ReferenceRecords {
@@ -137,6 +142,45 @@ const loadTemplates: LoadTemplatesFunction =
     return toTemplateRecords(result.data);
   };
 
+/*
+ * The project's alert states a new alert may start in, in the order an
+ * alert moves through them: never an archived one (ArchivedValuePicker's
+ * rule), as the Create Alert form offers them.
+ */
+type LoadAlertStatesFunction = () => Promise<ReferenceRecords>;
+
+const loadAlertStates: LoadAlertStatesFunction =
+  async (): Promise<ReferenceRecords> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return NO_RECORDS;
+    }
+
+    const result: ListResult<AlertState> = await ModelAPI.getList<AlertState>(
+      {
+        modelType: AlertState,
+        query: { projectId: projectId, isArchived: false },
+        select: { _id: true, name: true, color: true, order: true },
+        sort: { order: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      },
+    );
+
+    const records: Array<FormReferenceRecord> = [];
+
+    for (const state of result.data) {
+      const record: FormReferenceRecord | null = toNamedRecord(state);
+
+      if (record) {
+        records.push(record);
+      }
+    }
+
+    return { records, idsWithSeverity: [] };
+  };
+
 // The kinds of record each target's settings can name.
 export const FORM_REFERENCE_MODELS_BY_TARGET: Record<
   FormTargetType,
@@ -155,6 +199,15 @@ export const FORM_REFERENCE_MODELS_BY_TARGET: Record<
     FormTargetSettingReferenceModel.Monitor,
     FormTargetSettingReferenceModel.StatusPage,
     FormTargetSettingReferenceModel.Label,
+    FormTargetSettingReferenceModel.User,
+    FormTargetSettingReferenceModel.Team,
+  ],
+  [FormTargetType.Alert]: [
+    FormTargetSettingReferenceModel.AlertSeverity,
+    FormTargetSettingReferenceModel.AlertState,
+    FormTargetSettingReferenceModel.Monitor,
+    FormTargetSettingReferenceModel.Label,
+    FormTargetSettingReferenceModel.OnCallDutyPolicy,
     FormTargetSettingReferenceModel.User,
     FormTargetSettingReferenceModel.Team,
   ],
@@ -228,6 +281,16 @@ const HELD_RECORD_READS: Record<
     toRecord: (): FormReferenceRecord | null => {
       return null;
     },
+  },
+  [FormTargetSettingReferenceModel.AlertSeverity]: {
+    modelType: AlertSeverity,
+    select: { _id: true, name: true, color: true, isArchived: true } as never,
+    toRecord: toNamedRecord,
+  },
+  [FormTargetSettingReferenceModel.AlertState]: {
+    modelType: AlertState,
+    select: { _id: true, name: true, color: true, isArchived: true } as never,
+    toRecord: toNamedRecord,
   },
   [FormTargetSettingReferenceModel.Monitor]: {
     modelType: Monitor,
@@ -333,7 +396,7 @@ type LoadListedRecordsFunction = (
   model: FormTargetSettingReferenceModel,
 ) => Promise<ReferenceRecords>;
 
-// The short lists a picker offers whole: severities and templates.
+// The short lists a picker offers whole: severities, templates, states.
 const loadListedRecords: LoadListedRecordsFunction = async (
   model: FormTargetSettingReferenceModel,
 ): Promise<ReferenceRecords> => {
@@ -345,6 +408,15 @@ const loadListedRecords: LoadListedRecordsFunction = async (
         ),
         idsWithSeverity: [],
       };
+    case FormTargetSettingReferenceModel.AlertSeverity:
+      return {
+        records: await loadFormRecordOptions(
+          FormTargetOptionsSource.AlertSeverity,
+        ),
+        idsWithSeverity: [],
+      };
+    case FormTargetSettingReferenceModel.AlertState:
+      return await loadAlertStates();
     case FormTargetSettingReferenceModel.IncidentTemplate:
       return await loadTemplates();
     default:

@@ -125,6 +125,8 @@ Klik op **Monitor toevoegen**. Klik onder de keuzelijst met monitoren op **Voeg 
 Kies de groep. **Weergavenaam**, de naam die bezoekers lezen, neemt de naam van de groep over tot u er zelf een typt. Klik op **Monitor toevoegen**: de rij verschijnt op de pagina met de status van de groep.
 :::
 
+Een rij die een monitor toont, kan in plaats daarvan een groep tonen: open zijn **Resource bewerken**, het potlood bij de rij, en klik onder de keuzelijst op **Toon in plaats daarvan een monitorgroep.** Bij de rij van een groep opent **Resource bewerken** met de groep gekozen, en **Toon in plaats daarvan een monitor.** richt de rij op een monitor. Opslaan maakt leeg wat de rij eerst toonde: een rij toont één monitor of één monitorgroep, nooit beide.
+
 Op de statuspagina staat de rij voor elke monitor in de groep:
 
 - **Haar status.** Dat is die van de groep: de slechtste van haar monitoren met bewaking aan. Staat de bewaking voor allemaal uit, dan toont de rij **Niet bewaakt** en telt ze niet mee voor de kop erboven of voor de algemene status van de pagina.

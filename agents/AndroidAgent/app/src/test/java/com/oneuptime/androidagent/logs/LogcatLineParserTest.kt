@@ -122,6 +122,29 @@ class LogcatLineParserTest {
     }
 
     @Test
+    fun `a message is read whole, whatever character an app put in it`() {
+        // A line or paragraph separator and a next-line character reach the agent as they are, -v printable or not, and a
+        // vertical tab and a form feed do from a Logcat without -v printable. Android's "." took neither of the two and the
+        // JVM's took both, and neither took the other three, so such a line was dropped (#10876).
+        for (inside in listOf("\u2028", "\u2029", "\u0085", "\u000B", "\u000C", "\u3000", "\u00A0")) {
+            val name: String = "U+%04X".format(inside[0].code)
+            assertEquals(name, "before${inside}after", entry("1795076845.927 10143   580   974 I Tag: before${inside}after").message)
+            assertEquals(name, "before${inside}after", entry("1795076845.927   580   974 I Tag: before${inside}after").message)
+            assertEquals(name, "before${inside}after", entry("11-19 08:27:37.467  1000   580  1029 E Tag: before${inside}after").message)
+        }
+    }
+
+    @Test
+    fun `a line's header is Logcat's own, in ASCII`() {
+        // Android's \d and \s read every script's digits and spaces, which Logcat writes in no header: no engine reads them there now.
+        listOf("1795076845.927   ٥٨٠   974 I Tag: m", "1795076845.927\u00A0  580   974 I Tag: m", "１795076845.927   580   974 I Tag: m")
+            .forEach { assertEquals(it, LogcatParse.Unrecognized, LogcatLineParser.parse(it, now, utc)) }
+        // A tab between its fields is a space, as it was.
+        assertEquals("m", entry("1795076845.927\t580\t974 I Tag: m").message)
+    }
+
+
+    @Test
     fun `each priority has its OpenTelemetry severity`() {
         assertEquals(
             listOf(Severity.TRACE, Severity.DEBUG, Severity.INFO, Severity.WARN, Severity.ERROR, Severity.FATAL, Severity.FATAL),

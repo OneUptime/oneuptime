@@ -125,6 +125,8 @@ Klik på **Tilføj monitor**. Under rullelisten med monitorer klikker du på **T
 Vælg gruppen. **Visningsnavn**, det navn, besøgende læser, overtager gruppens navn, indtil du skriver dit eget. Klik på **Tilføj monitor**: rækken vises på siden med gruppens status.
 :::
 
+En række, der viser en monitor, kan vise en gruppe i stedet: åbn dens **Rediger ressource**, blyanten på rækken, og klik på **Vis en monitorgruppe i stedet.** under rullelisten. På en gruppes række åbner **Rediger ressource** med gruppen valgt, og **Vis en monitor i stedet.** retter rækken mod en monitor. Når du gemmer, tømmes det, rækken viste før: en række viser én monitor eller én monitorgruppe, aldrig begge.
+
 På statussiden står rækken for hver monitor i gruppen:
 
 - **Dens status.** Det er gruppens: den værste blandt dens monitorer med overvågning slået til. Når overvågning er slået fra for dem alle, viser rækken **Ikke overvåget** og tæller hverken med i overskriften over den eller i sidens samlede status.

@@ -57,6 +57,55 @@ interface BannerStyle {
  * interrupts whatever a screen reader is saying, which is right for a
  * problem and wrong for a page that simply opens with a note.
  */
+/*
+ * WHERE THE ACTION GOES (#8034).
+ *
+ * A banner's action (rightElement: Unarchive, Turn monitoring on) acts on
+ * what its sentence says, so it comes after the sentence: in the page's
+ * order, which a screen reader and Tab follow, and on screen wherever the
+ * banner is narrow. It used to share a wrapping row with the title, the
+ * sentence below: on a 390px phone, or beside a long German or Danish
+ * title, the row wrapped and the button landed between the title and the
+ * sentence it acts on ("Fjern fra arkivet" before why).
+ *
+ * Where the banner is wide enough for both, the action stays at the end of
+ * the title's line, as it always was, and the sentence runs on under the
+ * title, beside the action rather than under its height. "Wide enough" is
+ * the banner's own width - a container query - not the
+ * window's: a banner also sits in a narrow card on a wide screen. Start
+ * and end, never left and right, so it mirrors on an Arabic or Persian
+ * page: under the sentence at the right, at the title's left end.
+ */
+
+// The banner's words and action: the box whose width the query reads.
+export const ALERT_BANNER_CONTENT_CLASS_NAME: string =
+  "min-w-0 flex-1 [container-type:inline-size]";
+
+/*
+ * One column - title, sentence, action - until the banner's words have
+ * 32rem: then the title and the sentence are the first column, and the
+ * action the second, at the end of the title's line.
+ */
+export const ALERT_BANNER_LAYOUT_CLASS_NAME: string =
+  "grid grid-cols-[minmax(0,1fr)] [@container(min-width:32rem)]:grid-cols-[minmax(0,1fr)_auto] [@container(min-width:32rem)]:gap-x-4";
+
+export const ALERT_BANNER_TITLE_PLACE_CLASS_NAME: string =
+  "[@container(min-width:32rem)]:col-start-1 [@container(min-width:32rem)]:row-start-1";
+
+export const ALERT_BANNER_BODY_PLACE_CLASS_NAME: string =
+  "mt-1 [@container(min-width:32rem)]:col-start-1 [@container(min-width:32rem)]:row-start-2";
+
+/*
+ * Under the sentence, at its start; at the end of the title's line where
+ * there is room, beside the sentence too (row-span-2), so the sentence
+ * follows its title with no gap the button's height would leave. Its own
+ * height, never stretched to the rows'.
+ */
+export const ALERT_BANNER_ACTION_PLACE_CLASS_NAME: string =
+  "mt-3 flex items-center self-start justify-self-start [@container(min-width:32rem)]:col-start-2 [@container(min-width:32rem)]:row-start-1 [@container(min-width:32rem)]:row-span-2 [@container(min-width:32rem)]:mt-0 [@container(min-width:32rem)]:justify-self-end";
+
+export const ALERT_BANNER_ACTION_TEST_ID: string = "alert-banner-action";
+
 const bannerStyles: Record<AlertBannerType, BannerStyle> = {
   [AlertBannerType.Info]: {
     container: "border-gray-200 bg-white",
@@ -111,26 +160,34 @@ const AlertBanner: FunctionComponent<ComponentProps> = (
         icon={props.icon || styles.defaultIcon}
         className={`mt-0.5 h-5 w-5 flex-shrink-0 ${styles.icon}`}
       />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+      <div className={ALERT_BANNER_CONTENT_CLASS_NAME}>
+        <div className={ALERT_BANNER_LAYOUT_CLASS_NAME}>
           {/*
            * The title stays a text node of its own, so callers and their
            * tests can find the banner by its exact wording.
            */}
-          <p className={`text-sm font-semibold leading-6 ${styles.title}`}>
+          <p
+            className={`text-sm font-semibold leading-6 ${styles.title} ${ALERT_BANNER_TITLE_PLACE_CLASS_NAME}`}
+          >
             {translatedTitle}
           </p>
+          {props.children && (
+            <div
+              className={`text-sm leading-relaxed text-gray-600 ${ALERT_BANNER_BODY_PLACE_CLASS_NAME}`}
+            >
+              {props.children}
+            </div>
+          )}
+          {/* After the sentence it acts on (ALERT_BANNER_ACTION_PLACE_CLASS_NAME). */}
           {props.rightElement && (
-            <div className="flex flex-shrink-0 items-center">
+            <div
+              className={ALERT_BANNER_ACTION_PLACE_CLASS_NAME}
+              data-testid={ALERT_BANNER_ACTION_TEST_ID}
+            >
               {props.rightElement}
             </div>
           )}
         </div>
-        {props.children && (
-          <div className="mt-1 text-sm leading-relaxed text-gray-600">
-            {props.children}
-          </div>
-        )}
       </div>
     </div>
   );

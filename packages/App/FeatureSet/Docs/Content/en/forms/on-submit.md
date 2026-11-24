@@ -1,9 +1,10 @@
 # What a Submission Creates
 
-Every submission through a form creates one record in your project: an **incident** or a **maintenance event**. A form's **On Submit** page shows which, and how each field of the new record is filled in — from an answer, from a default, from a setting that always applies, or from the incident template. **Edit Settings** changes the defaults and what always applies.
+Every submission through a form creates one record in your project: an **incident**, an **alert** or a **maintenance event**. A form's **On Submit** page shows which, and how each field of the new record is filled in — from an answer, from a default, from a setting that always applies, or from the incident template. **Edit Settings** changes the defaults and what always applies.
 
 :::cards
 - [How a submission becomes an incident](#how-a-submission-becomes-an-incident): Every field of the new incident, and where its value comes from.
+- [How a submission becomes an alert](#how-a-submission-becomes-an-alert): The same, for a warning or something to check.
 - [How a submission becomes a maintenance event](#how-a-submission-becomes-a-maintenance-event): The same, for a maintenance request.
 - [The On Submit settings](#the-on-submit-settings): Defaults, what always attaches, owners and publishing.
 - [The private note](#the-private-note): Who sent it, and the answers no field holds.
@@ -11,11 +12,11 @@ Every submission through a form creates one record in your project: an **inciden
 
 ## What happens on Submit
 
-```mermaid title="From a submission to an incident or a maintenance event"
+```mermaid title="From a submission to an incident, an alert or a maintenance event"
 flowchart TB
     submit["Submit"] --> checks["Protections and<br/>answer checks"]
     checks --> fields["Each field: the answer,<br/>else the On Submit settings,<br/>else the incident template"]
-    fields --> record["The incident or<br/>maintenance event"]
+    fields --> record["The incident, alert or<br/>maintenance event"]
     record --> note["A private note: who sent it,<br/>and the other answers"]
     record --> runs["Rules, on-call policies<br/>and workflows run"]
 ```
@@ -27,13 +28,14 @@ A submission that fails a check creates nothing. See [What protects a form](/doc
 The **What Each Submission Creates** card holds the choice you made when you created the form:
 
 - **Incident** — each submission declares an incident, so your on-call team is told straight away. Use it for problem reports.
+- **Alert** — each submission creates an alert, so its owners are told without declaring an incident. Use it for warnings and things to check.
 - **Scheduled Maintenance** — each submission schedules a maintenance event. Use it for change and maintenance requests.
 
-Choosing the other one asks you to confirm, because the form changes with it:
+**Alert** is offered only to someone who may create alerts: see [Permissions](/docs/forms/index#permissions). Choosing another one asks you to confirm, because the form changes with it:
 
-- The title, description, monitors and labels stay linked: both kinds of record have them.
-- Every other linked question — a severity, a status page choice, a custom field of the old kind — becomes a question of the form's own, with the same wording, whose answer is listed on the private note.
-- The On Submit settings start over, since an incident's and an event's settings are different.
+- The title, description and labels stay linked: every kind of record has them. Between an incident and a maintenance event the monitors stay linked too. An alert has its own severities and one monitor, so a severity or monitors question does not keep its link to or from an alert.
+- Every other linked question — a severity, a monitor or status page choice, a custom field of the old kind — becomes a question of the form's own, with the same wording, whose answer is listed on the private note.
+- The On Submit settings start over, since each kind of record has settings of its own.
 - A form that now creates maintenance events asks when the maintenance starts and ends.
 
 The questions are saved at once, together with the change. Check them on the **Build** page.
@@ -92,6 +94,36 @@ Turn **Visible on Status Page** on from the incident's **Settings** page.
 Because the incident was declared with **Notify Status Page Subscribers** off, publishing it does not send the "incident created" notification. To tell subscribers, post a public note with **Notify Status Page Subscribers** ticked — see [Posting a public note](/docs/incidents/notes-owners-and-feed#posting-a-public-note).
 :::
 
+## How a submission becomes an alert
+
+| Field | Comes from |
+| --- | --- |
+| **Title** | The answer to the **Title** question. When the form does not ask it, or it is left empty: the **Default Title**, or else the form's name. |
+| **Description** | The answer to the **Description** question. |
+| **Severity** | The submitter's choice, when the form asks for it. Otherwise the form's **Severity** setting. |
+| **Monitor** | The monitor the submitter chose, when the form asks for it. Otherwise the form's **Monitor** setting. An alert is about one monitor. |
+| **Labels** | The labels the submitter chose, together with the ones the settings always add. |
+| **Impact Started At** | The answer to **Impact Started At**, when the form asks it. |
+| **Initial State** | The form's **Initial State** setting, or else the usual starting state, where every new alert starts. A later state, such as **Acknowledged**, pages nobody. |
+| **On-Call Policies** | The policies the settings name, executed for every alert the form creates. |
+| **Owners** | The people and teams the settings name. They own every alert the form creates, and are told about it. |
+| **Custom Fields** | Each custom field question's answer — unless the field copies its value from a monitor custom field and the alert's monitor holds one. |
+| **Other Answers** | Listed on a private note on the alert, with who submitted it. |
+
+> [!IMPORTANT]
+> **No severity, no alert.** An alert needs a severity. When the form does not ask for one and its settings name none — or the one they named was deleted — the **Severity** row warns you, and every submission is refused with "This form cannot create an alert because it has no severity. Please let the team that shared it know." Choose a severity in **Edit Settings**.
+
+### What the alert looks like
+
+An alert created through a form is an ordinary alert, made as one created by hand with **Create Alert** is:
+
+- **Its owners are told, once.** The owners the settings name are added once the alert's Slack and Microsoft Teams channels exist, and the alert's **Alert created** notification waits until they are its owners, so it goes to them rather than to the Project Owners — and it is the only notice they get of it.
+- **It starts where you say.** In the usual starting state, unless the **Initial State** setting names a later one. An alert that starts acknowledged or resolved pages nobody: a form for reports that only need a look can say so.
+- **Created by nobody, and not private.** The submitter is not a OneUptime user, so no user is recorded as having created it. A privacy rule can still make it private.
+- **A private note records the submission** — see [The private note](#the-private-note).
+
+Everything that runs for a new alert runs for these too: privacy, owner, label, on-call, grouping, runbook and incident rules, on-call policies, and **On Create Alert** workflows. An alert incident rule that matches it declares an incident from it, as from any alert. Alerts never show on status pages.
+
 ## How a submission becomes a maintenance event
 
 | Field | Comes from |
@@ -116,14 +148,14 @@ A submission is somebody's request, and a request is reviewed before it is publi
 
 **Edit Settings** opens the settings in steps: **Next** walks on, and **Save Changes** is on the last step. Every step is filled in already, so the step list beside the form opens any of them, the last one included: change a setting on its step, then open the last step and save.
 
-| Step | Incident form | Maintenance form |
-| --- | --- | --- |
-| **Defaults** | **Default Title**, **Severity**, **Incident Template** | **Default Title** |
-| **Always Attach** | **Monitors**, **Labels**, **On-Call Policies** | **Monitors**, **Status Pages**, **Labels** |
-| **Owners** | **Owners** | **Owners** |
-| **Publishing** | — | **Show on Status Pages**, **Notify Subscribers** |
+| Step | Incident form | Alert form | Maintenance form |
+| --- | --- | --- | --- |
+| **Defaults** | **Default Title**, **Severity**, **Incident Template** | **Default Title**, **Severity**, **Initial State**, **Monitor** | **Default Title** |
+| **Always Attach** | **Monitors**, **Labels**, **On-Call Policies** | **Labels**, **On-Call Policies** | **Monitors**, **Status Pages**, **Labels** |
+| **Owners** | **Owners** | **Owners** | **Owners** |
+| **Publishing** | — | — | **Show on Status Pages**, **Notify Subscribers** |
 
-**Owners** is one picker for people and teams: **Add owner** opens one search list of both, and each pick shows as a chip you can remove. Everything the settings name must belong to the form's project, and owners must be members of it. A record deleted after it was chosen is skipped when a submission is created, and the rest still applies.
+**Owners** is one picker for people and teams: **Add owner** opens one search list of both, and each pick shows as a chip you can remove. Everything the settings name must belong to the form's project, and owners must be members of it. A record deleted after it was chosen is skipped when a submission is created, and the rest still applies. On an alert form, **Edit Settings** is locked for someone who may not create alerts.
 
 ## The private note
 

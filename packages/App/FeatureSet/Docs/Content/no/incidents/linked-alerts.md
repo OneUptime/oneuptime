@@ -2,7 +2,7 @@
 
 Et avbrudd utløser sjelden bare ett varsel. Når primærdatabasen faller ut, slår monitoren for replikeringsforsinkelse ut, monitoren for API-ets feilrate slår ut, og SLO-en for checkoutens ventetid begynner å brenne — tre varsler, ett problem. Å knytte de varslene til hendelsen sier nettopp det: hendelsen er der responsen skjer, og hvert varsel viser hvilken hendelse som forklarer det.
 
-En tilknytting er bare en tilknytting. Varselet beholder sin egen tilstand, sine eiere, vaktpolicyer, notater og sin feed; hendelsen beholder sine. Tilknytting slår ikke sammen og kopierer ingenting, og bekrefter, løser eller demper aldri i seg selv et varsel. (Å erklære en ny hendelse fra varsler er annerledes: den nye hendelsen forhåndsutfylles fra dem, som [beskrevet nedenfor](#erklær-en-hendelse-fra-varsler), og med mindre du fjerner haken på skjemaet, bekreftes varslene mens du erklærer den, noe som stopper eskaleringen deres — se [Bekreft varslene mens du erklærer](#bekreft-varslene-mens-du-erklærer).) To prosjektbrytere, slått på i nye prosjekter, tar de tilknyttede varslene med seg etter hvert som hendelsen bekreftes og løses — se [lenger ned](#hold-varslenes-tilstander-i-takt-med-hendelsen).
+En tilknytting er bare en tilknytting. Varselet beholder sin egen tilstand, sine eiere, vaktpolicyer, notater og sin feed; hendelsen beholder sine. Tilknytting slår ikke sammen og kopierer ingenting, og bekrefter, løser eller demper aldri i seg selv et varsel. (Å erklære en ny hendelse fra varsler er annerledes: den nye hendelsen forhåndsutfylles fra dem og starter med eierne deres, som [beskrevet nedenfor](#erklær-en-hendelse-fra-varsler), og med mindre du fjerner haken på skjemaet, bekreftes varslene mens du erklærer den, noe som stopper eskaleringen deres — se [Bekreft varslene mens du erklærer](#bekreft-varslene-mens-du-erklærer).) To prosjektbrytere, slått på i nye prosjekter, tar de tilknyttede varslene med seg etter hvert som hendelsen bekreftes og løses — se [lenger ned](#hold-varslenes-tilstander-i-takt-med-hendelsen).
 
 :::cards
 - [Knytt varsler til en hendelse](#knytt-varsler-fra-en-hendelse): Fra hendelsen, fra et varsel eller mange på én gang.
@@ -119,11 +119,12 @@ Uansett hvilken du bruker, havner du på det vanlige skjemaet **Erklær ny hende
 | **Hendelsesalvor**     | Alvorlighetsgraden til det mest alvorlige varselet, oversatt til en alvorlighetsgrad for hendelser. En alvorlighetsgrad for hendelser med samme navn, uten hensyn til store og små bokstaver, vinner. Ellers tar OneUptime alvorlighetsgraden for hendelser på samme plass i rekkefølgen av alvorlighetsgrader, eller den siste hvis du har færre alvorlighetsgrader for hendelser. |
 | **Berørte ressurser**  | Hver monitor, vert, Kubernetes-klynge, Docker-vert, Podman-vert og tjeneste fra de valgte varslene, slått sammen. Monitorene havner under **Monitorer**, resten under **Andre berørte ressurser**. Andre ressurser, som SLO-er eller VMware-, Proxmox- og Ceph-klynger, kopieres ikke — legg dem til selv hvis hendelsen berører dem. |
 | **Etiketter**          | Hver etikett fra hvert valgte varsel.                                                                                                                                                                                                                                                  |
-| **Privat hendelse**    | Slått på hvis noen av varslene er private. Skjemaet sier det, og eierne av varslene blir eiere av hendelsen — se nedenfor.                                                                                                                                                              |
+| **Eiere**              | Hver person og hvert team som eier et av varslene, hver én gang — men ikke en person som har forlatt prosjektet. Banneret nevner dem. Se [Varslenes eiere eier hendelsen](#varslenes-eiere-eier-hendelsen). |
+| **Privat hendelse**    | Slått på hvis noen av varslene er private. Skjemaet sier det — se nedenfor.                                                                                                                                                                                                            |
 
 "Mest alvorlig" følger rekkefølgen av alvorlighetsgradene for varsler: den første alvorlighetsgraden for varsler i listen er den mest alvorlige. Med alvorlighetsgradene hvert prosjekt starter med, blir et varsel **Høy** til en **Kritisk hendelse** og et varsel **Lav** til en **Større hendelse**.
 
-Alt kan redigeres før du sender. **Etiketter** og **Privat hendelse** ligger under **Flere felt** på skjemaets første trinn, der den sammenbrettede overskriften viser hver av dem mens den er satt.
+Alt kan redigeres før du sender. **Etiketter**, **Privat hendelse** og **Eiere** ligger under **Flere felt** på skjemaets første trinn, der den sammenbrettede overskriften viser hver av dem mens den er satt.
 
 **Et varsel som allerede har en hendelse, merkes.** Med **Erklær hendelse** på siden til hvert varsel kan to vakthavende som tilkalles av det samme avbruddet, hver erklære det. Derfor merker banneret som viser varslene, hvert varsel som allerede er knyttet til en hendelse — "(already linked to Incident INC-42)", med en lenke til den hendelsen — og legger til en merknad, formulert etter hvor mange av varslene som er tilknyttet:
 
@@ -137,7 +138,7 @@ Hendelseslenkene åpnes i en ny fane, så du kan sjekke den eksisterende hendels
 
 **Varslenes monitorer forhåndsutfylles som berørte monitorer.** Som med enhver hendelse som erklæres for hånd, settes den aktive overvåkingen av hendelsens monitorer på pause til hendelsen er løst. Fjern en monitor fra **Monitorer** på trinnet **Berørte ressurser** før du sender, hvis den skal fortsette å bli kontrollert.
 
-**Et privat varsel gir en privat hendelse.** Er noen av varslene private, starter **Privat hendelse** slått på, og banneret som viser varslene, sier det. En privat hendelse er bare synlig for eierne sine, Prosjekteiere og Prosjektadministratorer, så OneUptime sørger for at personene som kunne se varslene, kan se hendelsen: når den er erklært, legges eierne av hvert varsel det ble erklært fra — brukere og team — til som eiere av hendelsen, uten å få beskjed. De legges til rett etter at hendelsens Slack- og Microsoft Teams-kanaler er opprettet, så de inviteres til de kanalene som enhver annen eier. Du er også eier, som med enhver hendelse du erklærer. Det samme skjer når en personvernregel for hendelser gjør den nye hendelsen privat. Slår du av **Privat hendelse** før du sender, og ingen personvernregel gjelder, er hendelsen ikke privat, og ingen eiere kopieres.
+**Et privat varsel gir en privat hendelse.** Er noen av varslene private, starter **Privat hendelse** slått på, og banneret som viser varslene, sier det. En privat hendelse er bare synlig for eierne sine, Prosjekteiere og Prosjektadministratorer — og varslenes eiere er eiere av den fra start, så personene som kunne se varslene, kan se hendelsen, med mindre du tar dem ut. Du er også eier, som med enhver hendelse du erklærer.
 
 ```mermaid title="Hva som skjer når du erklærer fra varsler"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 Når du sender, kontrollerer serveren varslene før den oppretter noe: høyst 50 av dem, hvert et varsel i dette prosjektet som du har lov til å se, og du må ha lov til å knytte varsler til hendelser. Feiler en kontroll, avvises forespørselen, og ingen hendelse opprettes — så en feil varsel-ID bruker aldri opp et hendelsesnummer. Når hendelsen finnes — og når personvernreglene har kjørt, slik at tilknyttingene vet om den er privat — knyttes hvert varsel til før forespørselen returnerer, så hendelsens side **Tilknyttede varsler** allerede viser dem. Feiler en enkelt tilknytting — fordi varselet ble slettet et øyeblikk før, for eksempel — erklæres hendelsen likevel, og de andre varslene knyttes likevel til.
 
 Hendelsens feed får én oppføring **Varsel tilknyttet** som nevner varslene, skrevet etter **Hendelse opprettet**, i stedet for én per varsel — se [Feeden, Slack og Microsoft Teams](#feeden-slack-og-microsoft-teams).
+
+### Varslenes eiere eier hendelsen
+
+Personene som jobber med varslene, er personene som jobber med hendelsen, så den starter med dem. Feltet **Eiere** under **Flere felt** starter med hver person og hvert team som eier et av varslene — hver én gang, etter eierne til en hendelsesmal hvis du erklærer fra en mal — og banneret som viser varslene, nevner dem: "Varselets eiere eier også hendelsen. Endre dem under Flere felt før du erklærer den." Ta ut noen av dem, eller legg til andre, før du sender; hendelsens eiere er da nøyaktig det feltet inneholder, privat hendelse eller ikke. Sammendraget viser dem sammen med eierreglene som vil legge til flere.
+
+- **En person som har forlatt prosjektet, overføres ikke**, og det gjør heller ikke en som aldri godtok invitasjonen sin. Et team som er slettet, eier ikke lenger varselet, så det overføres heller ikke.
+- **De får beskjed én gang.** Varslenes eiere legges til slik hver eier en hendelse starter med, legges til — rett etter at hendelsens Slack- og Microsoft Teams-kanaler er opprettet, så de inviteres til de kanalene, og før varslingen **Hendelse opprettet** sendes ut — så de hører om hendelsen fra den varslingen, etter sine egne varslingsregler, og får ingen beskjed om at de er "lagt til som eier" i tillegg. En eier som også legges til av en eierregel, eller velges to ganger, legges til én gang.
+- **Hvis du ikke har lov til å legge til eiere av hendelser**, kan du fortsatt erklære hendelsen: feltet blir stående som det var, OneUptime legger selv til varslenes eiere når hendelsen erklæres, og banneret sier "Varselets eiere eier også hendelsen når den er erklært." Det sier det samme, uten å nevne dem, når du ikke har lov til å se hvem som eier varslene.
+- **Varsler uten eiere** legger ikke til noen, og banneret sier ingenting om eiere.
+
+En hendelse som erklæres fra varsler på en annen måte, får også varslenes eiere: via API-et (se [Erklær via API-et](#erklær-via-api-et)), gjennom en [hendelsesregel](/docs/alerts/settings#hendelsesregler) og med `/oneuptime incident` i et varsels [Slack](/docs/workspace-connections/slack)- eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-kanal. Å knytte et varsel til en hendelse som allerede finnes, kopierer ingen eiere.
 
 ### Bekreft varslene mens du erklærer
 
@@ -180,7 +192,7 @@ Varslene bekreftes i bakgrunnen, rett etter at de er tilknyttet, noen få om gan
 
 ### Erklær via API-et
 
-`POST /api/incident` tar imot ID-ene til varslene som skal knyttes til, i `miscDataProps` under `alertIdsToLink`, og om de varslene skal bekreftes, under `acknowledgeAlertsToLink`:
+`POST /api/incident` tar imot ID-ene til varslene som skal knyttes til, i `miscDataProps` under `alertIdsToLink`, om de varslene skal bekreftes, under `acknowledgeAlertsToLink`, og om eierne deres blir hendelsens, under `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - API-nøkkelen ikke har lov til å bekrefte hvert varsel som ikke er bekreftet ennå — det krever **Create Alert State Timeline**, med etiketter og et eieromfang som når hvert av de varslene, slik som når hvert av dem bekreftes.
 
 En API-nøkkel er ikke en bruker, så varsler som bekreftes med en, tilskrives ingen, akkurat som tilknyttingene ikke har noen **Tilknyttet av**.
+
+`carryOverAlertOwners` er valgfri og slått på med mindre du sender `false`: hver person og hvert team som eier et av varslene, blir eier av hendelsen så snart den finnes, som i skjemaet — en person som har forlatt prosjektet, hoppes over — og får beskjed om det én gang, gjennom varslingen **Hendelse opprettet**. De legges til av OneUptime, så API-nøkkelen trenger ingen tillatelse til å legge til eiere for dem. Send `false` for å velge eierne selv, i `ownerUsers` og `ownerTeams`. Den avvises med en 400 når den er noe annet enn `true` eller `false`, og når den er `true` uten `alertIdsToLink`.
 
 ## Knytt til og koble fra via API-et
 

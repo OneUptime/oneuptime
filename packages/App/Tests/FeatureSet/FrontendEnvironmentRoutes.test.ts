@@ -61,9 +61,16 @@ describe("all frontend env.js routes use the hardened serializer", () => {
   });
 
   test("the combined server sends only the shared hardened script", () => {
+    /*
+     * With which frontend asks and, for the Dashboard and the sign-in pages,
+     * where the server sends its people for help (#10864-#10866): the same
+     * serializer, handed what only the combined server can read.
+     */
     expect(combinedServerSource).toContain(
-      "sendFrontendEnvironmentResponse(req, res)",
+      "sendFrontendEnvironmentResponse(req, res, {",
     );
+    expect(combinedServerSource).toContain("frontend: frontend,");
+    expect(combinedServerSource).toContain("frontendConfig.routePrefix,");
     expect(combinedServerSource).not.toContain("getFrontendEnvVars");
     expect(combinedServerSource).not.toContain("JSON.stringify(env)");
   });
@@ -86,8 +93,8 @@ describe("all frontend env.js routes use the hardened serializer", () => {
     expect(sharedEnvironmentResponseSource).toContain(
       "Response.setNoCacheHeaders(res)",
     );
-    expect(sharedEnvironmentResponseSource).toContain(
-      "Response.sendJavaScriptResponse(req, res, getFrontendEnvironmentScript())",
+    expect(sharedEnvironmentResponseSource).toMatch(
+      /Response\.sendJavaScriptResponse\(\s*req,\s*res,\s*getFrontendEnvironmentScript\(options\),?\s*\)/,
     );
   });
 

@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} समूह",
     "noResourcesTitle": "अभी दिखाने के लिए कुछ नहीं है",
     "noResourcesDescription": "यह पृष्ठ अभी कोई सेवा नहीं दिखा रहा है।",
-    "noResourcesPreviewDescription": "जब तक आप संसाधन नहीं जोड़ते, आगंतुकों को यही दिखता है। डैशबोर्ड में संसाधन के अंतर्गत इस स्थिति पृष्ठ में मॉनिटर या समूह जोड़ें।"
+    "noResourcesPreviewDescription": "जब तक आप संसाधन नहीं जोड़ते, आगंतुकों को यही दिखता है।",
+    "noResourcesPreviewLink": "डैशबोर्ड में संसाधन जोड़ें"
   },
   "eventItem": {
     "affectedResources": "प्रभावित संसाधन",

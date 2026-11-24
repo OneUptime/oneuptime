@@ -9,6 +9,7 @@ Il n'y a rien à configurer : la télémétrie de chaque service est analysée t
 - [Comment une analyse échantillonne](#comment-une-analyse-échantillonne): Les enregistrements les plus récents de chaque service, toutes les heures.
 - [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, dans le service où elle a été trouvée.
 - [Confiné de lui-même](#confiné-de-lui-même): Un secret masqué sans que personne n'appuie sur quoi que ce soit, là où c'est prouvé sûr.
+- [Le corriger dans le code](#le-corriger-dans-le-code): Une seule pull request qui empêche un service d'écrire toutes ses fuites.
 - [Abandonner cette métrique](#abandonner-cette-métrique): Ne plus stocker les métriques dont le nom contient des données sensibles.
 - [Ce qui compte comme nettoyé](#ce-qui-compte-comme-nettoyé): Quand une règle de nettoyage couvre déjà une détection.
 :::
@@ -99,7 +100,7 @@ Cliquez sur **Nettoyer**. Une boîte de dialogue dit ce que ferait la règle ava
 
 ### Corriger aussi le code
 
-La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut.
+La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut. **Corriger avec l'IA** sur le problème ouvre une seule pull request pour toutes les fuites du service : voir [Le corriger dans le code](#le-corriger-dans-le-code).
 :::
 
 La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in log attributes of checkout », ou « Data Security: Password or secret in db.password of checkout » pour une règle qui nomme son attribut, et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est la règle la plus étroite qui masque les données de la détection, la première de celles-ci qui convient :
@@ -118,7 +119,7 @@ La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: 
 
 Avant que la boîte de dialogue ne dise ce que ferait la règle, OneUptime exécute chaque règle qu'il pourrait créer sur les enregistrements où la détection a été vue, et sur les enregistrements les plus récents de son service qui ont une valeur à cet emplacement, avec le code même qu'exécute l'ingestion, et demande au scanner ce qui reste. La première règle qui masque les données dans chaque valeur qui les contenait, et qui modifie au plus 5 sur 100 des autres valeurs à cet endroit, est la bonne. La boîte de dialogue dit sur combien d'enregistrements elle a été exécutée, combien de valeurs contenaient les données et combien d'autres elle a modifiées. Un motif qui en modifierait davantage n'est jamais proposé : c'est la règle qui nomme l'attribut qui l'est, en disant ce qu'elle modifie d'autre.
 
-La preuve est conservée avec la règle, et la liste des règles de nettoyage affiche **Prouvé** sur sa ligne jusqu'à ce que la règle soit modifiée. Là où il ne reste aucun enregistrement sur lequel exécuter une règle, comme pour une exception ou une relecture de session, ou pour des enregistrements au-delà de leur conservation, la règle est créée telle qu'elle est prévue, et la boîte de dialogue le dit.
+La preuve est conservée avec la règle, et la liste des règles de nettoyage affiche **Prouvé** sur sa ligne jusqu'à ce que la règle soit modifiée. La règle d'une exception est exécutée sur les exceptions où les données ont été vues, de la même façon que l'ingestion nettoie l'exception qu'un span enregistre. Là où il ne reste aucun enregistrement sur lequel exécuter une règle, comme pour une relecture de session, ou pour des enregistrements au-delà de leur conservation, la règle est créée telle qu'elle est prévue, et la boîte de dialogue le dit.
 
 Une règle de journaux ou de traces vaut pour le service où la détection a été trouvée : elle nettoie les journaux ou les spans de ce service, et ceux des autres services restent tels quels, si bien que rien de ce qui lit les leurs ne change. La colonne **Portée** de la liste des règles de nettoyage indique pour quel service vaut une règle. Une détection dans les enregistrements de session d'une application RUM crée une règle pour tous les services et applications du projet, puisque les règles de journaux nettoient aussi les enregistrements, et la boîte de dialogue le dit. Si le service n'existe plus, **Nettoyer** le dit et ne crée aucune règle.
 
@@ -144,9 +145,11 @@ Tant qu'OneUptime AI travaille sur les problèmes de Sécurité des données (vo
 - **Rien ne lit ce qu'elle masque** : aucun moniteur, tableau de bord, vue enregistrée, règle d'enregistrement ou SLO, et rien dont les Événements de sécurité ont besoin.
 - **Elle vaut pour le service** où les données ont été vues.
 
-Tout le reste est proposé à la place, dans **Sécurité des données → IA** et sur la page du problème, en disant comment la règle a été prouvée et ce qui lit ce qu'elle masquerait : des données personnelles, une règle dont quelque chose lit les valeurs, une règle qui modifie d'autres valeurs, une règle pour laquelle il ne restait aucun enregistrement sur lequel l'exécuter, une règle pour tous les services, la règle de pipeline d'une métrique, et tout emplacement dont une personne a annulé ou ignoré la règle précédente. Une règle IA de Sécurité des données qui met **Confinement** sur **Automatiquement** pour un problème permet aussi à OneUptime AI de masquer de lui-même des données personnelles prouvées. Aucune règle ne permet à une modification qui n'est pas prouvée sûre de s'exécuter d'elle-même.
+Tout le reste est proposé à la place, dans **Sécurité des données → IA** et sur la page du problème, en disant comment la règle a été prouvée et ce qui lit ce qu'elle masquerait : des données personnelles, une règle dont quelque chose lit les valeurs, une règle qui modifie d'autres valeurs, une règle pour laquelle il ne restait aucun enregistrement sur lequel l'exécuter, une règle pour tous les services, et tout emplacement dont une personne a annulé ou ignoré la règle précédente. Une règle IA de Sécurité des données qui met **Confinement** sur **Automatiquement** pour un problème permet aussi à OneUptime AI de masquer de lui-même des données personnelles prouvées. Aucune règle ne permet à une modification qui n'est pas prouvée sûre de s'exécuter d'elle-même.
 
-Là où aucune des règles de **Nettoyer** ne peut masquer les données, comme pour l'un de vos propres types de données sans motif, OneUptime AI en écrit une : un motif pour les données, ou l'attribut à masquer en entier. On lui indique le type de données, où il se trouve, les noms des attributs voisins et les formes des valeurs, comme `AA-9999` pour `AB-1234`, jamais une valeur, et ce qu'il écrit est prouvé sur les enregistrements comme toute autre règle avant d'être proposé ou créé.
+L'attribut d'une métrique est soumis aux mêmes conditions. Sa règle est exécutée sur les points de données où la détection a été vue, et sur les plus récents de son service qui ont une valeur dans cet attribut, avec le pipeline de métriques qu'exécute l'ingestion, et ce qui le lit, c'est chaque moniteur, tableau de bord, règle d'enregistrement et SLO qui lit l'une des métriques du service ayant porté l'attribut au cours du dernier jour.
+
+Là où aucune des règles de **Nettoyer** ne peut masquer les données, comme pour l'un de vos propres types de données sans motif, OneUptime AI en écrit une : un motif pour les données, ou l'attribut à masquer en entier. On lui indique le type de données, où il se trouve, les noms des attributs voisins et les formes des valeurs, comme `AA-9999` pour `AB-1234`, jamais une valeur, et ce qu'il écrit est prouvé sur les enregistrements comme toute autre règle avant d'être proposé ou créé. On l'interroge une fois pour chaque emplacement : ce qu'il a écrit, ou le fait qu'il n'a rien pu écrire, est conservé avec la détection, si bien que, lorsque le problème est de nouveau traité, ce qu'il a écrit est prouvé à nouveau sur les enregistrements les plus récents et aucun crédit IA n'est dépensé. On l'interroge de nouveau quand ce qu'on lui indiquerait change : le type de données, l'endroit où se trouvent les données, les noms voisins ou les formes de leurs valeurs. Un appel qui échoue ne conserve rien, si bien qu'on l'interroge de nouveau sur cet emplacement la fois suivante.
 
 Une modification qu'OneUptime AI a faite de lui-même :
 
@@ -155,6 +158,48 @@ Une modification qu'OneUptime AI a faite de lui-même :
 - **Dit de renouveler un secret.** Masquer un secret n'arrête que les nouvelles copies : le secret fonctionne toujours, et les enregistrements stockés avant la règle le gardent jusqu'à la fin de leur conservation. La chronologie et l'e-mail disent où il a été vu.
 
 Les nouvelles détections dans un service dont le problème est déjà ouvert sont confinées de la même façon, dès que l'analyse horaire les trouve.
+
+## Le corriger dans le code
+
+Une règle de masquage cache les nouvelles données à l'ingestion, mais le code les écrit toujours. **Corriger avec l'IA** sur un problème de télémétrie demande à OneUptime AI une seule pull request qui empêche le service d'écrire toutes les fuites que OneUptime voit encore dans sa télémétrie : celle de ce problème et les autres du service, y compris celles confinées à l'ingestion. Une boîte de dialogue montre ce que fera la pull request avant que quoi que ce soit ne démarre, et **Ouvrir la pull request** demande exactement cela.
+
+:::steps
+### Trouver où chaque fuite est écrite
+
+Avant que OneUptime AI ne commence, la Sécurité des données relit, dans OneUptime, les enregistrements où chaque fuite a été vue, et ne garde que l'endroit où le code les a écrits :
+
+- **Un span ou un appel d'IA** : le fichier, la ligne et la fonction que nomment ses attributs `code.*`, et le nom du span.
+- **Une exception** : ses propres frames du haut de la pile, celles du code du service.
+- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`.
+- **Une métrique** : le nom de la métrique.
+- **Toute fuite** : sa clé d'attribut, par exemple `user.email`, que le code écrit généralement telle quelle.
+
+### Choisir le dépôt
+
+La pull request va au dépôt qui contient les fichiers que nomment les enregistrements, trouvés comme les fichiers d'une trace de pile. Une fuite dont les enregistrements ne nomment aucun fichier va là où sont les autres fuites du service, sinon au dépôt qui porte le nom du service, ou au seul dépôt du projet. Dans un dépôt qui contient plusieurs services, OneUptime AI travaille dans le dossier du service : celui que partagent ces fichiers, sinon celui qu'utilisent les revues de production du service. Quand rien ne décide, c'est vous qui choisissez, parmi les dépôts où vous pouvez faire travailler OneUptime AI.
+
+### Ouvrir la pull request
+
+La boîte de dialogue dit comment le code va changer, liste chaque fuite avec l'endroit où elle est écrite, et nomme le dépôt, pourquoi c'est celui-là, et les fichiers par lesquels OneUptime AI commence. **Ouvrir la pull request** demande exactement ce plan : si une fuite a été trouvée ou corrigée depuis que vous l'avez ouverte, rien ne démarre, et le plan est montré à nouveau.
+:::
+
+La façon dont le code change dépend du nombre d'endroits qui écrivent les données :
+
+| Où les données sont écrites | Ce que fait la pull request |
+| --- | --- |
+| À trois endroits ou moins | Modifie le code à chaque endroit : retire la valeur, ou la masque ou la hache avant qu'elle ne soit envoyée |
+| À plus de trois endroits | Ajoute une étape de masquage, avec un test, là où le service configure sa télémétrie, au lieu de modifier chaque endroit |
+| Là où vos règles de masquage les cachent déjà à l'ingestion | Ajoute aussi cette étape de masquage pour ces clés, afin que le code fasse ce que fait l'ingestion |
+
+Une pull request corrige un service dans un dépôt : un service dont les fuites sont écrites dans deux dépôts en reçoit une dans chacun. Pendant qu'elle est rédigée, **Corriger avec l'IA** sur n'importe quel problème du service y renvoie, et aucune deuxième n'est lancée.
+
+OneUptime AI reçoit les endroits, les clés, les types de données et les modèles, jamais une valeur de vos données, un échantillon masqué ou un enregistrement, et l'agent de code ne lit rien de votre télémétrie pendant qu'il travaille. La description de la pull request liste les fuites et renvoie aux problèmes qu'elle corrige, sans jamais citer un enregistrement.
+
+Chaque problème que la pull request corrige la garde : sa carte **Comment corriger** dit si elle est en cours de rédaction, ouverte, fusionnée ou fermée, avec des liens vers la pull request et la tâche, et une fois fusionnée, ce que la production a montré. La chronologie du problème dit quand elle a été ouverte. Le problème est résolu comme **Corrigé dans le code** dès que la nouvelle version du service n'écrit plus les données (voir [Ce qu'il advient d'un problème](/docs/data-security/checks-and-issues#ce-quil-advient-dun-problème)).
+
+Un secret demande plus qu'une correction du code : le code n'empêche que les nouvelles copies, et le secret fonctionne toujours. La pull request, la chronologie du problème et sa carte **Comment corriger** disent de le faire tourner, et la carte liste où il a été vu.
+
+Avec **Travailler sur les nouveaux problèmes** activé, OneUptime AI propose aussi de lui-même la correction de chaque service, le service le plus risqué d'abord, dans **Sécurité des données → IA** et sur le problème le plus risqué du service. Par défaut, elle vous attend. Une règle d'IA de la Sécurité des données qui règle **Correction** sur **Automatiquement** pour le problème le plus risqué du service ouvre la pull request sans demander, dans un dépôt que quelque chose a décidé. **Nombre max de demandes de tirage de correctifs ouvertes** du dépôt plafonne les deux : au plafond, une pull request qu'une règle ouvrirait vous attend, et aucune nouvelle pull request de correction ne s'ouvre avant qu'une ne soit fusionnée ou fermée.
 
 ## Abandonner cette métrique
 

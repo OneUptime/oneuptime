@@ -34,6 +34,7 @@ import {
   METRIC_REDACT_REPLACEMENT,
   ScrubTarget,
 } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import MetricPipelineEngine from "Common/Server/Utils/Telemetry/MetricPipelineEngine";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -192,5 +193,67 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     expect(attributesAfter(point({ region: "eu" }), CHECKOUT, rules)).toEqual({
       region: "eu",
     });
+  });
+});
+
+/*
+ * #10753: Data Security proves a metric attribute's rule on the finding's
+ * data points before OneUptime AI may make it on its own
+ * (TelemetryScrubProof.proveMetricScrubRule). It runs the rule through the
+ * engine ingest runs every metric pipeline rule with
+ * (Common/Server/Utils/Telemetry/MetricPipelineEngine), so what was proven
+ * is what ingest does.
+ */
+describe("the rule proven is the rule ingest runs", () => {
+  test("ingest hands each point to the one engine: the service's rules, then the project's", () => {
+    const serviceRule: MetricPipelineRule = scrubRule(
+      "attributes.user.email",
+      "email-address",
+    );
+    const projectRule: MetricPipelineRule = scrubRule(
+      "attributes.http.route",
+      "email-address",
+    );
+    const engine: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      MetricPipelineEngine,
+      "applyRules",
+    );
+    const row: JSONObject = point({ "user.email": "jane.doe@acme-corp.com" });
+
+    MetricPipelineRuleService.applyRules(row, CHECKOUT, {
+      projectRules: [projectRule],
+      rulesByServiceId: new Map([[CHECKOUT.toString(), [serviceRule]]]),
+    });
+
+    expect(engine).toHaveBeenCalledWith(row, [serviceRule], [projectRule]);
+    engine.mockRestore();
+  });
+
+  test("a point left by the engine, as the proof runs it, is the point ingest stores", () => {
+    const rule: MetricPipelineRule = scrubRule(
+      "attributes.http.route",
+      "email-address",
+    );
+
+    for (const route of [
+      "/users/jane.doe@acme-corp.com/orders",
+      "/orders/:id",
+      "/users/max.mustermann@acme-corp.com",
+    ]) {
+      const byEngine: JSONObject | null = MetricPipelineEngine.applyRules(
+        point({ "http.route": route, "http.method": "GET" }),
+        [rule],
+        [],
+      );
+
+      expect(byEngine).not.toBeNull();
+      expect(byEngine!["attributes"]).toEqual(
+        attributesAfter(
+          point({ "http.route": route, "http.method": "GET" }),
+          CHECKOUT,
+          rulesOf(rule),
+        ),
+      );
+    }
   });
 });

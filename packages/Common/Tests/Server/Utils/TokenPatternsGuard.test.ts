@@ -3,6 +3,7 @@ import {
   JavaScriptPattern,
   KotlinStringLiteral,
   WordEdge,
+  differentReadings,
   differentWordEdges,
   javaScriptForm,
   kotlinProductFiles,
@@ -66,6 +67,16 @@ import ts from "typescript";
  * look-around read case-insensitively (where ICU folds "ſ" and "K" into s
  * and k): differentWordEdges says what each reads otherwise, and what to
  * write instead.
+ *
+ * NOR DOES IT READ A CLASS OR A "." OTHERWISE ANYWHERE ELSE.
+ *
+ * Outside a look-around too, ICU's \s took Chinese and Japanese text's own
+ * space and a no-break space, and its \w a Java class name's Cyrillic
+ * letters, where the JVM's read ASCII alone; and ICU's "." takes no vertical
+ * tab or form feed where the JVM's takes both, so an app's log line holding
+ * one was dropped on a device alone (#10876). So no pattern of the agents'
+ * Kotlin holds a shorthand or POSIX class anywhere, or a "." where (?s) does
+ * not hold: differentReadings says what each reads otherwise.
  */
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx|js|mjs|cjs)$/;
@@ -440,12 +451,12 @@ describe("a Kotlin pattern reads a word's edge as the JVM and JavaScript do", ()
       });
     }
 
-    // The redactor's five: the card's start, the address, the credential, the token and the secret's value.
+    // The redactor's six: the card's start, the ASCII address and the address in any script, the credential, the token and the secret's value.
     expect(
       KOTLIN_PATTERNS.filter((pattern: FoundPattern): boolean => {
         return pattern.file === AGENT_REDACTOR;
       }),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
   });
 
   test("none holds what Android's regular expressions read otherwise at a word's edge", () => {
@@ -507,6 +518,75 @@ describe("a Kotlin pattern reads a word's edge as the JVM and JavaScript do", ()
 
       for (const reason of told) {
         expect(reason).toMatch(/write|turn \(\?i\) on after/);
+      }
+    }
+  });
+});
+
+describe("a Kotlin pattern reads every class and every dot as the JVM does", () => {
+  /*
+   * Beyond a word's edge: a shorthand or POSIX class anywhere, and a "."
+   * outside (?s), read a text otherwise on a device than in the agent's
+   * unit tests (#10876). The redactor's \s took U+3000 and U+00A0 on a
+   * device alone, a Java class name in Cyrillic was parsed on a device
+   * alone, and an app's log line holding a form feed was dropped on a
+   * device alone. differentReadings says what each reads otherwise, and
+   * what to write instead.
+   */
+  test("none holds a class or a dot that Android's regular expressions read otherwise", () => {
+    const offending: Array<string> = KOTLIN_PATTERNS.flatMap(
+      (pattern: FoundPattern): Array<string> => {
+        const where: string = `${pattern.file}:${pattern.line} /${pattern.source}/`;
+
+        if (pattern.hasTemplate) {
+          return [`${where} is built from code, which is not read here`];
+        }
+
+        return differentReadings(pattern.source).map(
+          (reading: WordEdge): string => {
+            return `${where}: ${reading.what} ${reading.reason}`;
+          },
+        );
+      },
+    );
+
+    expect(offending).toEqual([]);
+  });
+
+  test("the rule tells each pattern that read a text otherwise on Android, and why", () => {
+    // The agent's patterns before #10876, each of which read some text otherwise on a device than in its tests.
+    const before: Array<[string, string]> = [
+      [
+        "a credential's space",
+        String.raw`(?<![A-Za-z0-9_])(?i)(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}`,
+      ],
+      [
+        "a secret's value",
+        String.raw`(?<![A-Za-z0-9_-])(?i)(["']?[A-Za-z0-9_-]{0,40}?(?:password|token)["']?\s{0,8}[:=]\s{0,8})([^\s,;&)\]\}]+)`,
+      ],
+      [
+        "a Java class name",
+        String.raw`^([A-Za-z_$][\w$]*(?:\.[\w$]+)+)(?::\s?(.*))?$`,
+      ],
+      [
+        "a logcat line",
+        String.raw`^\s*(\d{1,12})\.(\d{1,9})\s+(\d+)\s+(\d+)\s+([VDIWEFA])\s(.*)$`,
+      ],
+      ["a note's spaces", String.raw`[\s\u0085\u00A0\u2028\u2029]+`],
+      ["a kernel panic", "Kernel panic - not syncing:.*"],
+    ];
+
+    for (const [kind, java] of before) {
+      const told: Array<string> = differentReadings(java).map(
+        (reading: WordEdge): string => {
+          return reading.reason;
+        },
+      );
+
+      expect({ kind, told: told.length > 0 }).toEqual({ kind, told: true });
+
+      for (const reason of told) {
+        expect(reason).toMatch(/write|turn \(\?s\) on/);
       }
     }
   });

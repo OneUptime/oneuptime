@@ -137,13 +137,14 @@ jest.mock(
   () => {
     return {
       __esModule: true,
+      // An app named by its id, as the page asks for it (#10764).
       useLlmServiceNames: (): {
-        names: Map<string, string>;
-        options: Array<{ id: string; name: string }>;
+        nameOf: (serviceId: string) => string;
       } => {
         return {
-          names: new Map<string, string>([["service-1", "Support bot"]]),
-          options: [{ id: "service-1", name: "Support bot" }],
+          nameOf: (serviceId: string): string => {
+            return serviceId === "service-1" ? "Support bot" : "";
+          },
         };
       },
     };

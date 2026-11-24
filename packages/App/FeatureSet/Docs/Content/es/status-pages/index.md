@@ -178,6 +178,8 @@ La pantalla **Vista general** de cada página de estado tiene una tarjeta **Enla
 
 Por debajo, cada ruta pública tiene una gemela de vista previa en `/status-page/{statusPageId}/...`: un resumen de vista previa, una lista de incidencias de vista previa, una página de suscripción de vista previa, etc. Por eso, una URL o una captura de pantalla tomada de la vista previa del panel no coincidirá con lo que ve un cliente una vez asociado un dominio personalizado, así que comprueba cualquier enlace que pegues en un runbook o un correo electrónico.
 
+Mientras una página no tiene nada, sus visitantes leen **Aún no hay nada que mostrar**. En la vista previa, una nota debajo dice «Los visitantes ven este aviso hasta que añadas recursos.», con **Añadir recursos en el panel**, que abre los **Recursos** de la página en el panel, en cualquiera de tus proyectos en que esté la página.
+
 ## Restringir quién puede ver la página
 
 No todas las páginas de estado son para el público. Quién puede ver una página es una sola elección, la primera tarjeta de **Páginas de estado → tu página → Seguridad → Acceso**, **Quién puede ver esta página de estado**:

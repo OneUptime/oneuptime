@@ -1,5 +1,7 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
+import { ENTITY_DROPDOWN_NOT_FOUND_LABEL } from "../EntityDropdown/EntityDropdownNotFound";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -29,6 +31,13 @@ import {
  * that is not its name (severities run from the most severe down), and
  * whether the workflow being edited is left out (a workflow cannot run
  * itself).
+ *
+ * A project's workflows and incident templates are searched on the server as
+ * the person types, and the one a step holds is read by its ID (#10764): the
+ * settings read the project's first 10,000 by name and filtered them in the
+ * browser, so one past them could not be picked, and one a step held showed
+ * blank. Its severities are a handful, listed whole in the order of how
+ * severe they are.
  */
 
 export interface RecordChoiceSource {
@@ -37,6 +46,12 @@ export interface RecordChoiceSource {
   // The column the list is sorted by, ascending. Default: labelColumn.
   sortColumn?: string | undefined;
   excludesCurrentWorkflow: boolean;
+  /*
+   * Searched on the server as the person types, by labelColumn, the record
+   * a step holds read by its ID (getRecordChoiceDropdownModal). Unset, the
+   * list is read whole as the settings open (loadRecordChoices).
+   */
+  searchesServer?: boolean | undefined;
 }
 
 const SOURCES: Partial<Record<ComponentInputType, RecordChoiceSource>> = {
@@ -44,11 +59,13 @@ const SOURCES: Partial<Record<ComponentInputType, RecordChoiceSource>> = {
     modelType: Workflow,
     labelColumn: "name",
     excludesCurrentWorkflow: true,
+    searchesServer: true,
   },
   [ComponentInputType.IncidentTemplateSelect]: {
     modelType: IncidentTemplate,
     labelColumn: "templateName",
     excludesCurrentWorkflow: false,
+    searchesServer: true,
   },
   [ComponentInputType.AlertSeveritySelect]: {
     modelType: AlertSeverity,
@@ -95,6 +112,66 @@ export const getRecordChoiceTypes: GetRecordChoiceTypesFunction = (
   return types;
 };
 
+// The record-choice types a step's settings use whose list is read whole.
+export const getRecordChoiceTypesReadWhole: GetRecordChoiceTypesFunction = (
+  args: Array<Argument> | undefined,
+): Array<ComponentInputType> => {
+  return getRecordChoiceTypes(args).filter(
+    (type: ComponentInputType): boolean => {
+      return !getRecordChoiceSource(type)?.searchesServer;
+    },
+  );
+};
+
+export interface RecordChoiceDropdownModal {
+  type: { new (): BaseModel };
+  labelField: string;
+  valueField: string;
+  query?: Record<string, unknown> | undefined;
+  notFoundLabel: string;
+}
+
+type GetRecordChoiceDropdownModalFunction = (data: {
+  type: ComponentInputType;
+  // The workflow being edited.
+  workflowId: ObjectID;
+}) => RecordChoiceDropdownModal | null;
+
+/*
+ * How a setting searched on the server lists its records - the form's
+ * entity dropdown (FormField's dropdownModal, EntityDropdown): 50 by name
+ * as it opens and for what is typed, the workflow being edited never
+ * offered, and the record a step holds read by its ID, whichever it sorts
+ * after. One deleted since - or one the person may not read - reads "No
+ * longer available", removable, rather than blank. Null for a setting whose
+ * list is read whole.
+ */
+export const getRecordChoiceDropdownModal: GetRecordChoiceDropdownModalFunction =
+  (data: {
+    type: ComponentInputType;
+    workflowId: ObjectID;
+  }): RecordChoiceDropdownModal | null => {
+    const source: RecordChoiceSource | null = getRecordChoiceSource(data.type);
+
+    if (!source || !source.searchesServer) {
+      return null;
+    }
+
+    return {
+      type: source.modelType,
+      labelField: source.labelColumn,
+      valueField: "_id",
+      ...(source.excludesCurrentWorkflow
+        ? {
+            query: {
+              _id: new NotEqual<string>(data.workflowId.toString()),
+            },
+          }
+        : {}),
+      notFoundLabel: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
+    };
+  };
+
 type LoadRecordChoicesFunction = (data: {
   type: ComponentInputType;
   // The workflow being edited.
@@ -102,9 +179,11 @@ type LoadRecordChoicesFunction = (data: {
 }) => Promise<Array<DropdownOption>>;
 
 /*
- * The options of one record-choice setting: the records by name, in the
- * source's order (their names', unless it says otherwise), each one's value
- * its ID. A record with no name is listed by its ID rather than left out.
+ * The options of one record-choice setting whose list is read whole: the
+ * records by name, in the source's order (their names', unless it says
+ * otherwise), each one's value its ID. A record with no name is listed by
+ * its ID rather than left out. A setting searched on the server has none to
+ * read up front (getRecordChoiceDropdownModal), so nothing is asked for it.
  */
 export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
   type: ComponentInputType;
@@ -112,7 +191,7 @@ export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
 }): Promise<Array<DropdownOption>> => {
   const source: RecordChoiceSource | null = getRecordChoiceSource(data.type);
 
-  if (!source) {
+  if (!source || source.searchesServer) {
     return [];
   }
 

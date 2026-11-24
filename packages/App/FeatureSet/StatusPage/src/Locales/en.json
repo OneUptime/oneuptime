@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} groups",
     "noResourcesTitle": "Nothing to show yet",
     "noResourcesDescription": "This page isn't showing any services yet.",
-    "noResourcesPreviewDescription": "Visitors see this until you add resources. Add monitors or groups to this status page under Resources in the Dashboard."
+    "noResourcesPreviewDescription": "Visitors see this until you add resources.",
+    "noResourcesPreviewLink": "Add resources in the Dashboard"
   },
   "eventItem": {
     "affectedResources": "Affected resources",

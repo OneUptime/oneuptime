@@ -34,6 +34,7 @@ import {
   doesFormRuleHideAddresses,
   TRACE_SCRUB_RULE_FORM_OPTIONS,
   getTraceScrubRuleFormFields,
+  withAttributeKeysOneALine,
 } from "../../../Components/Telemetry/ScrubRuleForm";
 import HashInsteadNotice, {
   HashInsteadFormNote,
@@ -363,6 +364,15 @@ const TraceScrubRules: FunctionComponent<
       }}
       noItemsMessage={"No scrub rules yet."}
       formFields={formFields}
+      /*
+       * The attributes a rule names, one a line, as its form's fields take
+       * them (#10751).
+       */
+      onEditFormItemFetched={async (
+        item: TraceScrubRule,
+      ): Promise<TraceScrubRule> => {
+        return withAttributeKeysOneALine(item);
+      }}
       onFetchSuccess={(rules: Array<TraceScrubRule>) => {
         valueCounts.setRuleIds(
           rules

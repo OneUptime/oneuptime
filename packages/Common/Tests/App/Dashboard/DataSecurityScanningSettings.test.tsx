@@ -114,6 +114,8 @@ const DEFAULTS: Record<string, unknown> = {
   isConfigurationScanEnabled: true,
   isContentScanEnabled: true,
   isTelemetryScanEnabled: true,
+  isModelScanEnabled: true,
+  isTelemetryModelScanEnabled: false,
   keepMaskedSamples: true,
   openCasesForCriticalIssues: true,
   raiseAlertsForCriticalIssues: false,
@@ -331,13 +333,18 @@ describe("Data Security > Settings > Scan Settings", () => {
     expect(isBefore(issues, cloud)).toBe(true);
     expect(isBefore(cloud, fold)).toBe(true);
 
-    for (const testId of [
+    const readRows: Array<HTMLElement> = [
       "data-security-check-configuration",
       "data-security-scan-content",
       "data-security-scan-telemetry",
+      "data-security-find-names-and-addresses",
       "data-security-keep-masked-samples",
-    ]) {
-      expect(within(reads).getByTestId(`${testId}-row`)).toBeInTheDocument();
+    ].map((testId: string): HTMLElement => {
+      return within(reads).getByTestId(`${testId}-row`);
+    });
+
+    for (let index: number = 1; index < readRows.length; index++) {
+      expect(isBefore(readRows[index - 1]!, readRows[index]!)).toBe(true);
     }
 
     const issueRows: Array<HTMLElement> = [
@@ -401,6 +408,148 @@ describe("Data Security > Settings > Scan Settings", () => {
     await renderPage();
 
     expect(created).toEqual([]);
+  });
+
+  /*
+   * The names-and-addresses model (#10373): its own switch beside what
+   * scans read - not OneUptime AI's - on for every project, with Also in
+   * telemetry under it while it is on, off until a project turns it on.
+   */
+  test("Find names and street addresses is on by default and says it is a model inside the scanner, not OneUptime AI", async () => {
+    storeSettings();
+
+    await renderPage();
+
+    const row: HTMLElement = screen.getByTestId(
+      "data-security-find-names-and-addresses-row",
+    );
+
+    expect(
+      screen.getByTestId("data-security-find-names-and-addresses"),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(row).toHaveTextContent("Find names and street addresses");
+    expect(row).toHaveTextContent(
+      "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.",
+    );
+    // It is set here, not behind the AI page's switches.
+    expect(screen.getByTestId(SCANNING_READS_CARD_TEST_ID)).toContainElement(
+      row,
+    );
+  });
+
+  test("flipping it off saves only its own column, says what is still found, and hides Also in telemetry", async () => {
+    storeSettings();
+
+    await renderPage();
+
+    expect(
+      screen.getByTestId("data-security-find-names-and-addresses-in-telemetry"),
+    ).toHaveAttribute("aria-checked", "false");
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("data-security-find-names-and-addresses"),
+      );
+    });
+    await settle();
+
+    await waitFor(() => {
+      expect(updates).toEqual([{ isModelScanEnabled: false }]);
+    });
+    expect(
+      screen.getByTestId("data-security-find-names-and-addresses-row"),
+    ).toHaveTextContent(
+      "Free text is not read for names and street addresses. Fields named for them are still found.",
+    );
+    expect(
+      screen.queryByTestId(
+        "data-security-find-names-and-addresses-in-telemetry",
+      ),
+    ).toBeNull();
+  });
+
+  test("Also in telemetry sits under it, saves only its own column, and is drawn again as it was left", async () => {
+    storeSettings();
+
+    await renderPage();
+
+    const children: HTMLElement = screen.getByTestId(
+      "data-security-find-names-and-addresses-children",
+    );
+    const telemetry: HTMLElement = screen.getByTestId(
+      "data-security-find-names-and-addresses-in-telemetry",
+    );
+
+    expect(children).toContainElement(telemetry);
+    expect(
+      screen.getByTestId(
+        "data-security-find-names-and-addresses-in-telemetry-row",
+      ),
+    ).toHaveTextContent(
+      "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.",
+    );
+
+    await act(async () => {
+      fireEvent.click(telemetry);
+    });
+    await settle();
+
+    await waitFor(() => {
+      expect(updates).toEqual([{ isTelemetryModelScanEnabled: true }]);
+    });
+
+    // Off and on again above: the switch under it comes back on, as saved.
+    const parent: HTMLElement = screen.getByTestId(
+      "data-security-find-names-and-addresses",
+    );
+
+    await act(async () => {
+      fireEvent.click(parent);
+    });
+    await settle();
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(
+          "data-security-find-names-and-addresses-in-telemetry",
+        ),
+      ).toBeNull();
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("data-security-find-names-and-addresses"),
+      );
+    });
+    await settle();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "data-security-find-names-and-addresses-in-telemetry",
+        ),
+      ).toHaveAttribute("aria-checked", "true");
+    });
+    expect(updates).toEqual([
+      { isTelemetryModelScanEnabled: true },
+      { isModelScanEnabled: false },
+      { isModelScanEnabled: true },
+    ]);
+  });
+
+  test("a project that turned it off reads it off, with nothing under it", async () => {
+    storeSettings({
+      isModelScanEnabled: false,
+      isTelemetryModelScanEnabled: true,
+    });
+
+    await renderPage();
+
+    expect(
+      screen.getByTestId("data-security-find-names-and-addresses"),
+    ).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.queryByTestId("data-security-find-names-and-addresses-children"),
+    ).toBeNull();
   });
 
   test("the alert severity is asked for under Raise alerts, only while it is on", async () => {

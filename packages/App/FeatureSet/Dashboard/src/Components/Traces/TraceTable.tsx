@@ -26,18 +26,19 @@ import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Query from "Common/Types/BaseDatabase/Query";
 import SpanUtil from "../../Utils/SpanUtil";
 import TraceElement from "./TraceElement";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
-import TelemetryServiceUtil, {
-  UNKNOWN_RESOURCE_LABEL,
-} from "Common/UI/Utils/TelemetryService";
+import { UNKNOWN_RESOURCE_LABEL } from "Common/UI/Utils/TelemetryService";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
+import { getUnknownServiceScopeOption } from "../Telemetry/TelemetryServiceScope";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -76,14 +77,16 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [attributesError, setAttributesError] = React.useState<string>("");
 
-  const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
-  const [pageError, setPageError] = React.useState<string>("");
-
   const [spanQuery, setSpanQuery] = React.useState<Query<Span> | null>(
     props.spanQuery || null,
   );
 
-  const [telemetryServices, setServices] = React.useState<Array<Service>>([]);
+  /*
+   * The services the shown rows name, read by their ids as each page of
+   * rows arrives - never the project's first 10,000 by name, which left a
+   * row whose service sorted past them reading "Unknown" (#10764).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
     useState<boolean>(false);
@@ -159,51 +162,19 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
   }, [props.spanQuery]);
 
-  const loadServices: PromiseVoidFunction = async (): Promise<void> => {
-    try {
-      setIsPageLoading(true);
-      setPageError("");
+  /*
+   * Traces without a service.name are tagged with the projectId
+   * (ServiceType.Unknown) and have no Service row: the filter offers them
+   * as "Unknown Service" beside its search, so the list can be narrowed to
+   * them.
+   */
+  const unknownServiceOptions: Array<DropdownOption> = useMemo(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-      const telemetryServicesResponse: ListResult<Service> =
-        await ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-      /*
-       * Traces without a service.name are tagged with the projectId
-       * (ServiceType.Unknown) and have no Service row. Add a synthetic
-       * "Unknown Service" so those rows resolve to a labelled entry and
-       * users can filter the list to them.
-       */
-      const loadedServices: Array<Service> =
-        telemetryServicesResponse.data || [];
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      setServices(
-        projectId
-          ? [
-              ...loadedServices,
-              TelemetryServiceUtil.getUnknownService(projectId),
-            ]
-          : loadedServices,
-      );
-    } catch (err) {
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    } finally {
-      setIsPageLoading(false);
-    }
-  };
+    return projectId
+      ? [getUnknownServiceScopeOption(projectId.toString())]
+      : [];
+  }, []);
 
   const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
     if (attributesLoading || attributesLoaded) {
@@ -243,12 +214,6 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     }
   };
 
-  useEffect(() => {
-    loadServices().catch((err: Error) => {
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    });
-  }, []);
-
   const handleAdvancedFiltersToggle: (show: boolean) => void = (
     show: boolean,
   ): void => {
@@ -275,23 +240,19 @@ const TraceTable: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (isPageLoading) {
-    return <PageSkeleton shape="table" />;
-  }
-
   return (
     <Fragment>
-      {pageError && (
+      {servicesOnPage.error && (
         <div className="mb-4">
           <ErrorMessage
             message={
               <ErrorSentence
                 template="We couldn't load telemetry services. {{error}}"
-                error={pageError}
+                error={servicesOnPage.error}
               />
             }
             onRefreshClick={() => {
-              void loadServices();
+              void servicesOnPage.retry();
             }}
           />
         </div>
@@ -344,7 +305,15 @@ const TraceTable: FunctionComponent<ComponentProps> = (
           noItemsMessage={
             props.noItemsMessage ? props.noItemsMessage : "No spans found."
           }
-          onFetchSuccess={props.onFetchSuccess}
+          onFetchSuccess={(data: Array<Span>, totalCount: number) => {
+            // The services the page's rows name, read by their ids.
+            void servicesOnPage.readServicesOf(
+              data.map((span: Span): ObjectID | undefined => {
+                return span.primaryEntityId;
+              }),
+            );
+            props.onFetchSuccess?.(data, totalCount);
+          }}
           showRefreshButton={true}
           sortBy="startTime"
           sortOrder={SortOrder.Descending}
@@ -382,18 +351,16 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                 primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
-              filterDropdownOptions: telemetryServices.map(
-                (service: Service) => {
-                  return {
-                    label: TelemetryServiceUtil.getServiceDisplayName(
-                      service.name,
-                      translator,
-                    )!,
-                    value: service.id!.toString(),
-                    isUserContent: true,
-                  };
-                },
-              ),
+              /*
+               * Searched on the server as it is typed in, 50 by name; what
+               * the filter holds - from a link or a saved view - is named by
+               * its ids, one gone as "No longer available" (#10764).
+               * Archived services keep sending traces: offered, marked.
+               */
+              filterEntityType: Service,
+              filterDropdownField: { label: "name", value: "_id" },
+              marksArchivedRecords: true,
+              filterDropdownOptions: unknownServiceOptions,
               title: "Service",
             },
             {
@@ -495,14 +462,14 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               type: FieldType.Element,
               getElement: (span: Span): ReactElement => {
                 const telemetryService: Service | undefined =
-                  telemetryServices.find((service: Service) => {
-                    return (
-                      service.id?.toString() ===
-                      span.primaryEntityId?.toString()
-                    );
-                  });
+                  servicesOnPage.getService(span.primaryEntityId);
 
                 if (!telemetryService) {
+                  // Its name is on its way: never "Unknown" meanwhile.
+                  if (servicesOnPage.isReading(span.primaryEntityId)) {
+                    return <InlineValueSkeleton widthClassName="w-24" />;
+                  }
+
                   return (
                     <p>{translator.translateText(UNKNOWN_RESOURCE_LABEL)}</p>
                   );

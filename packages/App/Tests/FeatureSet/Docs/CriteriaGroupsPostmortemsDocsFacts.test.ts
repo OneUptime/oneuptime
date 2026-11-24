@@ -3281,7 +3281,7 @@ describe("turning monitoring off for a whole group (#6401)", () => {
 
   it("asks before turning it off, and turns it back on at once", () => {
     expect(MonitorGroupMonitoringCopy.turnOffButton).toBe(
-      "Turn off monitoring",
+      "Turn monitoring off",
     );
     expect(MonitorGroupMonitoringCopy.turnOnButton).toBe("Turn monitoring on");
     // Off opens the dialog; on saves.
@@ -3289,7 +3289,7 @@ describe("turning monitoring off for a whole group (#6401)", () => {
     expect(GROUP_MONITORING_CARD).toContain("void turn(true);");
     expect(GROUP_MONITORING_CARD).toContain("<ConfirmModal");
     expect(turning).toContain(
-      "- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
+      "- **Turn monitoring off** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.",
     );
     expect(turning).toContain(
       "- **Turn monitoring on** saves at once. Each monitor's next check sets its status again.",
@@ -3367,6 +3367,33 @@ describe("a monitor group on a status page", () => {
     );
     expect(groupsPage).toContain(
       "**Add a Monitor Group instead.** appears in the dialog only while the **Monitor Groups** switch is on for the project.",
+    );
+  });
+
+  /*
+   * Edit resource opens on what the row shows, and its link swaps the
+   * picker for that dialog alone (#6540, #6559): the words come from the
+   * switch the Edit form draws, and saving clears what the row showed.
+   */
+  it("points a monitor's row at a group, and back, from Edit resource", () => {
+    expect(STATUS_PAGE_RESOURCE_PANEL).toContain('title="Edit resource"');
+    expect(STATUS_PAGE_RESOURCE_PANEL).toContain(
+      "targetType: getStatusPageResourceTargetType(statusPageResource),",
+    );
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
+      'translator.translateText("Show a Monitor instead.")',
+    );
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
+      'translator.translateText("Show a Monitor Group instead.")',
+    );
+    expect(STATUS_PAGE_RESOURCE_SERVICE).toContain(
+      "RelationIdUtil.stamp(updateData, MONITOR_GROUP_KEYS, null);",
+    );
+    expect(STATUS_PAGE_RESOURCE_SERVICE).toContain(
+      "RelationIdUtil.stamp(updateData, MONITOR_KEYS, null);",
+    );
+    expect(showing).toContain(
+      "A row that shows a monitor can show a group instead: open its **Edit resource**, the pencil on the row, and click **Show a Monitor Group instead.** under the dropdown. On a group's row, **Edit resource** opens with the group picked, and **Show a Monitor instead.** points the row at a monitor. Saving clears what the row showed before: a row shows one monitor or one monitor group, never both.",
     );
   });
 

@@ -13,7 +13,9 @@ import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeFixTaskContext, {
   getInfrastructureFixTaskContext,
+  getTelemetryLeakFixTaskContext,
   InfrastructureFixTaskContext,
+  TelemetryLeakFixTaskContext,
   CodeHostPullRequestTaskContext,
   getCodeHostPullRequestTaskContext,
   getGitHubTaskContext,
@@ -424,6 +426,31 @@ export default class CodeTaskOrigin {
           infrastructureFix.cause || infrastructureFix.title,
         ),
         recordId: infrastructureFix.groupId,
+      };
+    }
+
+    /*
+     * A service's telemetry leaks, fixed in its code (#10367): the service
+     * names it, and it opens the riskiest of the issues it fixes - the
+     * first it lists.
+     */
+    const telemetryLeakFix: TelemetryLeakFixTaskContext | null =
+      getTelemetryLeakFixTaskContext(data.taskContext?.telemetryLeakFix);
+
+    if (telemetryLeakFix) {
+      const firstIssueId: string =
+        telemetryLeakFix.issues[0]?.issueId ||
+        telemetryLeakFix.leaks[0]?.issueId ||
+        "";
+
+      return {
+        type: CodeTaskOriginType.DataSecurityTelemetryLeaks,
+        label: CodeTaskOrigin.shorten(
+          telemetryLeakFix.serviceName || telemetryLeakFix.title,
+        ),
+        ...(ObjectID.isValidUUID(firstIssueId)
+          ? { recordId: firstIssueId }
+          : {}),
       };
     }
 

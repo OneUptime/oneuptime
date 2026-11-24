@@ -273,7 +273,8 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Monitor,
     title: "Monitor",
-    description: "Relation to Monitor Resource in which this object belongs",
+    description:
+      "The monitor this resource shows. A resource shows one monitor or one monitor group: send this or monitorGroup, never both and never neither.",
   })
   @ManyToOne(
     () => {
@@ -322,7 +323,8 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     title: "Monitor ID",
-    description: "Relation to Monitor ID Resource in which this object belongs",
+    description:
+      "ID of the monitor this resource shows. A resource shows one monitor or one monitor group: send monitorId or monitorGroupId, never both and never neither.",
     example: "a7b8c9d0-e1f2-3456-789a-bcdef0123456",
   })
   @Column({
@@ -366,7 +368,7 @@ export default class StatusPageResource extends BaseModel {
     modelType: MonitorGroup,
     title: "Monitor Group",
     description:
-      "Relation to Monitor Group Resource in which this object belongs",
+      "The monitor group this resource shows, as one row. A resource shows one monitor or one monitor group: send this or monitor, never both and never neither.",
   })
   @ManyToOne(
     () => {
@@ -416,7 +418,7 @@ export default class StatusPageResource extends BaseModel {
     required: false,
     title: "Monitor Group ID",
     description:
-      "Relation to Monitor Group ID Resource in which this object belongs",
+      "ID of the monitor group this resource shows, as one row. A resource shows one monitor or one monitor group: send monitorGroupId or monitorId, never both and never neither.",
     example: "b8c9d0e1-f2a3-4567-89ab-cdef01234567",
   })
   @Column({

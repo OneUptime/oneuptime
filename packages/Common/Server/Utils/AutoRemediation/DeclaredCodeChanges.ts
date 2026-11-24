@@ -308,30 +308,37 @@ export default class DeclaredCodeChanges {
     const step: DeclaredStep = await DeclaredCodeChanges.readStep(data);
     const projectId: ObjectID = step.suggestion.projectId!;
 
-    const [ranked, readable]: [
-      Array<DeclaredCodeOwnerCandidate>,
-      Array<CodeRepository>,
-    ] = await Promise.all([
-      DeclaredCodeOwner.findCandidates({
+    const ranked: Array<DeclaredCodeOwnerCandidate> =
+      await DeclaredCodeOwner.findCandidates({
         projectId,
         declaredCode: step.declaredCode,
         resource: { name: step.resource.name, tags: step.resource.tags },
-      }),
-      CodeTaskAccess.listReadableRepositories({
+      });
+
+    /*
+     * Only the repositories the reader may read are named to them: the
+     * ranked ones, read by their ids - never looked for among the project's
+     * first 500 by name, which left a repository past them out (#10764).
+     */
+    const readable: Array<CodeRepository> =
+      await CodeTaskAccess.listReadableRepositoriesByIds({
         props: data.props,
         projectId,
-      }),
-    ]);
-
-    // Only the repositories the reader may read are named to them.
+        repositoryIds: ranked.map(
+          (candidate: DeclaredCodeOwnerCandidate): string => {
+            return candidate.repository.id;
+          },
+        ),
+        select: { _id: true },
+      });
     const readableIds: Set<string> = new Set<string>(
       readable.map((repository: CodeRepository): string => {
-        return repository.id!.toString();
+        return repository.id!.toString().toLowerCase();
       }),
     );
     const candidates: Array<DeclaredCodeOwnerCandidate> = ranked.filter(
       (candidate: DeclaredCodeOwnerCandidate): boolean => {
-        return readableIds.has(candidate.repository.id);
+        return readableIds.has(candidate.repository.id.toLowerCase());
       },
     );
     const best: DeclaredCodeOwnerCandidate | null =
@@ -696,6 +703,11 @@ export default class DeclaredCodeChanges {
      * - a task kept open as a working thread never reads as it stood
      * months ago.
      */
+    /*
+     * The steps' repositories the reader may read, named by their ids - not
+     * looked for among the project's first 500 by name, which left a step
+     * in a repository past them without its name (#10764).
+     */
     const [replies, pullRequests, readable]: [
       Map<string, CodeTaskRepliesRead>,
       Map<string, AIAgentTaskPullRequest>,
@@ -703,15 +715,22 @@ export default class DeclaredCodeChanges {
     ] = await Promise.all([
       CodeTaskListRows.readReplies({ projectId: data.tenantId, taskIds }),
       CodeTaskListRows.readPullRequests({ projectId: data.tenantId, taskIds }),
-      CodeTaskAccess.listReadableRepositories({
+      CodeTaskAccess.listReadableRepositoriesByIds({
         props: data.props,
         projectId: data.tenantId,
+        repositoryIds: Array.from(latestBySequence.values())
+          .filter((task: AIRun): boolean => {
+            return !isHidden(task) && Boolean(task.codeRepositoryId);
+          })
+          .map((task: AIRun): string => {
+            return task.codeRepositoryId!.toString();
+          }),
       }),
     ]);
     const readableNames: Map<string, string> = new Map<string, string>(
       readable.map((repository: CodeRepository): [string, string] => {
         return [
-          repository.id!.toString(),
+          repository.id!.toString().toLowerCase(),
           getRepositoryFullName({
             name: repository.name || "",
             organizationName: repository.organizationName || "",
@@ -740,7 +759,7 @@ export default class DeclaredCodeChanges {
       const pullRequest: AIAgentTaskPullRequest | undefined =
         pullRequests.get(key);
       const repositoryName: string | undefined = task.codeRepositoryId
-        ? readableNames.get(task.codeRepositoryId.toString())
+        ? readableNames.get(task.codeRepositoryId.toString().toLowerCase())
         : undefined;
       const taskState: CodeTaskState = CodeTaskStateUtil.fromRun(latest);
       let state: DeclaredCodeChangeState;

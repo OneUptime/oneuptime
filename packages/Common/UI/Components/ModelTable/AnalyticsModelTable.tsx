@@ -1,10 +1,14 @@
 import ModelAPI from "../../Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import DatabaseModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Query from "../../../Types/BaseDatabase/Query";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
 import BaseModelTable, { BaseTableProps, ModalType } from "./BaseModelTable";
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import NotImplementedException from "../../../Types/Exception/NotImplementedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -78,6 +82,26 @@ const AnalyticsModelTable: <TBaseModel extends AnalyticsBaseModel>(
           select: Select<TBaseModel>;
           requestOptions?: RequestOptions | undefined;
         }) => {
+          /*
+           * A filter's records of the project's database - the services a
+           * Service filter searches and names by their ids - are read
+           * through the database's list route, as any other list's
+           * pickers read them (#10764). The rows, and any other analytics
+           * model, go through the analytics API.
+           */
+          if (data.modelType.prototype instanceof BaseModel) {
+            return (await DatabaseModelAPI.getList<BaseModel>({
+              modelType: data.modelType as DatabaseBaseModelType,
+              query: data.query as Query<BaseModel>,
+              groupBy: data.groupBy as GroupBy<BaseModel> | undefined,
+              limit: data.limit,
+              skip: data.skip,
+              sort: data.sort as Sort<BaseModel>,
+              select: data.select as Select<BaseModel>,
+              requestOptions: data.requestOptions,
+            })) as unknown as ListResult<TBaseModel>;
+          }
+
           return await modelAPI.getList<TBaseModel>({
             modelType: data.modelType as { new (): TBaseModel },
             query: data.query,

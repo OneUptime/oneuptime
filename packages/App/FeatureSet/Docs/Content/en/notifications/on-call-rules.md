@@ -27,6 +27,25 @@ flowchart TB
 
 Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Slack, Microsoft Teams and Mattermost messages carry an acknowledge link, and a call asks you to press 1. When you cannot take a page, the same messages let you escalate it, and a call asks you to press 2: the policy pages its next level straight away, and you are not paged again for it. See [Escalating a page](/docs/on-call/escalation-rules#escalating-a-page). Each page you get is listed under **User Settings → On-Call Logs**, where **View Timeline** shows every message it sent and whether it was delivered.
 
+### What a phone call says
+
+A call says who it is from, what happened, how severe it is and its number, then which key does what, then the title. You can press a key at any moment, even while the call is still speaking. If you press none, the call says the details and the keys once more, waits 10 seconds and hangs up, and the page stays unacknowledged:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+The call names your project. A call that is not for a project, such as a verification code, names OneUptime, or the name your self-hosted installation goes by. A title longer than about 100 characters is cut after a whole word, and OneUptime keeps the full title. The letters of a number such as `INC-42` are said one at a time, so the voice never reads them as a word. Calls are always in English.
+
 ## One ladder for everything
 
 **User Settings → How to Reach Me** opens on your ladder: numbered steps that every page tries in turn, for incidents, alerts and episodes of every severity. Each step is a time, such as at once or after 5 minutes, and the verified methods that go out together then. A later step goes out only if nobody has acknowledged the page by then.
