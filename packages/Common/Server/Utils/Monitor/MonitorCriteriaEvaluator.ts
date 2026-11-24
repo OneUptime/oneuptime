@@ -99,6 +99,9 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorStepSeries, {
+  MonitorStepSeriesScope,
+} from "../../../Types/Monitor/MonitorStepSeries";
 import MonitorStepMetricMonitor, {
   MonitorStepMetricMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepMetricMonitor";
@@ -1073,6 +1076,7 @@ ${incomingRequestGrouping.rootCauseNote}
           (input.dataToProcess as ProbeMonitorResponse).projectId,
         monitorId: input.monitor.id || input.dataToProcess.monitorId,
         probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+        monitorStepId: input.monitorStep.id,
         checks: Array.from(matchHistory.checks.values()),
       });
     }
@@ -1482,10 +1486,14 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaFilter: CriteriaFilter;
     matchHistory?: MatchHistoryContext | undefined;
   }): Promise<CheckWindowJudgement> {
+    const stepScope: MonitorStepSeriesScope =
+      MonitorCriteriaEvaluator.getStepScope(input);
+
     const source: CheckWindowSource | null = CheckWindowCounts.getSource({
       criteriaFilter: input.criteriaFilter,
       monitorType: input.monitor.monitorType,
       monitorStepId: input.monitorStep.id,
+      stepScope: stepScope,
     });
 
     const checkAt: Date =
@@ -1532,6 +1540,7 @@ ${incomingRequestGrouping.rootCauseNote}
         (input.dataToProcess as ProbeMonitorResponse).projectId,
       monitorId: input.monitor.id || input.dataToProcess.monitorId,
       monitorStepId: input.monitorStep.id,
+      stepScope: stepScope,
       monitorType: input.monitor.monitorType,
       probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
       criteriaFilter: input.criteriaFilter,
@@ -1582,6 +1591,7 @@ ${incomingRequestGrouping.rootCauseNote}
         (input.dataToProcess as ProbeMonitorResponse).projectId,
       monitorId: input.monitor.id || input.dataToProcess.monitorId,
       monitorStepId: input.monitorStep.id,
+      stepScope: MonitorCriteriaEvaluator.getStepScope(input),
       monitorType: input.monitor.monitorType,
       probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
       criteriaFilter: input.criteriaFilter,
@@ -1618,6 +1628,22 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaFilter: thisCheckFilter,
         });
       },
+    });
+  }
+
+  /*
+   * The rows of a series a window of this step reads (MonitorStepSeries,
+   * #10906): the step's own, and on a monitor with one step the rows written
+   * before rows named their step. Every window of a step - counted, compared
+   * with the previous check, or read whole - reads these alone.
+   */
+  private static getStepScope(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+  }): MonitorStepSeriesScope {
+    return MonitorStepSeries.getScope({
+      monitorStepId: input.monitorStep.id,
+      monitorSteps: input.monitor.monitorSteps,
     });
   }
 
@@ -2696,6 +2722,13 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInEffect?: CriteriaInEffect | undefined;
     seriesEvaluations?: MetricSeriesEvaluations | undefined;
   }): Promise<string | null> {
+    /*
+     * The rows of a series this step's over-time windows read (#10906): its
+     * own checks, never another step's.
+     */
+    const stepScope: MonitorStepSeriesScope =
+      MonitorCriteriaEvaluator.getStepScope(input);
+
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
       /*
        * What the expression can name, per monitor type - the same map the
@@ -2774,6 +2807,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (apiRequestCriteriaResult) {
@@ -2820,6 +2854,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (incomingRequestResult) {
@@ -2845,6 +2880,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (sslMonitorResult) {
@@ -2858,6 +2894,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (serverMonitorResult) {
@@ -2963,6 +3000,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (snmpMonitorResult) {
@@ -2976,6 +3014,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (dnsMonitorResult) {
@@ -2989,6 +3028,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (domainMonitorResult) {
@@ -3014,6 +3054,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (ntpMonitorResult) {
@@ -3039,6 +3080,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (databaseMonitorResult) {
@@ -3053,6 +3095,7 @@ ${incomingRequestGrouping.rootCauseNote}
             dataToProcess: input.dataToProcess,
             criteriaFilter: input.criteriaFilter,
             monitoringInterval: input.monitor.monitoringInterval,
+            stepScope: stepScope,
           },
         );
 
@@ -3067,6 +3110,7 @@ ${incomingRequestGrouping.rootCauseNote}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitoringInterval: input.monitor.monitoringInterval,
+          stepScope: stepScope,
         });
 
       if (probeStatusResult) {
