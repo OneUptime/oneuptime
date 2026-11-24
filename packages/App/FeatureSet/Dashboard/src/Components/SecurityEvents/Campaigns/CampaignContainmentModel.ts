@@ -3,6 +3,8 @@ import {
   BLOCKED_ADDRESSES_TOAST,
   CAMPAIGN_OF_ADDRESS_LINE,
   CHALLENGED_ADDRESSES_TOAST,
+  CHALLENGED_NETWORK_TOAST,
+  CHALLENGED_NETWORK_UNTIL_LIFTED_TOAST,
   CHALLENGE_NETWORK_DOES,
   CHALLENGE_ONE_RANGE,
   CHALLENGE_WHOLE_ASN,
@@ -38,7 +40,6 @@ import {
   writeSecurityProtection,
 } from "../Blocklist/BlocklistWords";
 import { formatNamesInSentence } from "../../SecurityCase/Response/SecurityCaseBlockStepModel";
-import { writeCheckTime } from "../../SecurityCase/Response/SecurityCaseResponseChecks";
 import OneUptimeDate from "Common/Types/Date";
 import { SecurityRepeatOffenderSummary } from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import {
@@ -54,6 +55,11 @@ import {
   SecurityAttackCampaign,
   SecurityAttackCampaignBlock,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
+import {
+  MomentRole,
+  momentPhrase,
+  writeReaderMoment,
+} from "Common/Utils/MomentPhrases";
 import {
   SecurityAttackNetwork,
   SecurityAttackNetworkKind,
@@ -153,9 +159,11 @@ export interface RowBlockPill {
 }
 
 /*
- * The pill of the block that holds a row: "Blocked until Nov 24, 10:42",
- * "Challenged", with what holds it on hover when that is a range or a
- * network around the row.
+ * The pill of the block that holds a row: "Blocked until 10:42" today,
+ * "Blocked until 24 Nov at 10:42" on another day (the moment brings its own
+ * words, #10932), "Challenged" for a block that ends when it is lifted,
+ * with what holds it on hover when that is a range or a network around the
+ * row.
  */
 export function writeRowBlockPill(data: {
   block: SecurityAttackCampaignBlock;
@@ -173,7 +181,12 @@ export function writeRowBlockPill(data: {
     expiresAt && Number.isFinite(expiresAt.getTime())
       ? translator.translateTemplate(
           isChallenge ? ROW_CHALLENGED_UNTIL : ROW_BLOCKED_UNTIL,
-          { time: writeCheckTime(expiresAt, data.now || new Date()) },
+          {
+            until: momentPhrase(
+              MomentRole.Until,
+              writeReaderMoment(expiresAt, data.now || new Date()),
+            ),
+          },
         )
       : translator.translateText(isChallenge ? ROW_CHALLENGED : ROW_BLOCKED) ||
         (isChallenge ? ROW_CHALLENGED : ROW_BLOCKED);
@@ -638,6 +651,39 @@ export function describeNetworkCheck(data: {
         ...(check.problem ? { asWritten: check.problem } : {}),
       };
   }
+}
+
+/*
+ * What Challenge This Network says once it is done: "Challenged
+ * 203.0.113.0/24 until 14:25." today, "... until 27 Nov at 14:25." on
+ * another day - the moment brings its own words (#10932) - and the network
+ * alone for a challenge that ends when it is lifted, never "until" with
+ * nothing after it.
+ */
+export function writeNetworkChallengedToast(data: {
+  // What the challenge holds, and when it ends: null when it is lifted by hand.
+  challenged: { value: string; expiresAt: Date | null };
+  translator: Translator;
+  now?: Date | undefined;
+}): string {
+  const { challenged, translator } = data;
+
+  if (
+    !challenged.expiresAt ||
+    !Number.isFinite(challenged.expiresAt.getTime())
+  ) {
+    return translator.translateTemplate(CHALLENGED_NETWORK_UNTIL_LIFTED_TOAST, {
+      network: challenged.value,
+    });
+  }
+
+  return translator.translateTemplate(CHALLENGED_NETWORK_TOAST, {
+    network: challenged.value,
+    until: momentPhrase(
+      MomentRole.Until,
+      writeReaderMoment(challenged.expiresAt, data.now || new Date()),
+    ),
+  });
 }
 
 // ---------- A case's repeat offender ----------

@@ -11,9 +11,14 @@ import {
   AccountChangeProvider,
   getAttackAccountChanges,
   readAccountChange,
+  readAwsPolicyName,
   readEntraKeyIdentifier,
   readEntraPropertyValue,
 } from "../../../Utils/SecurityCase/AttackAccountChanges";
+import {
+  CLOUD_AUDIT_ACCOUNT_ATTRIBUTE,
+  CLOUD_AUDIT_CONNECTION_ATTRIBUTE,
+} from "../../../Server/Utils/SecurityEvent/CloudAudit/CloudAuditSecurityEvents";
 
 /*
  * What an attack changed on accounts, read from a case's events (#10603):
@@ -594,6 +599,7 @@ describe("AWS CloudTrail's IAM calls", () => {
       },
       AccountChangeKind.Key,
       "AKIAEXAMPLE",
+      "AKIAEXAMPLE",
     ],
     [
       "AttachUserPolicy",
@@ -602,8 +608,19 @@ describe("AWS CloudTrail's IAM calls", () => {
         "requestParameters.policyArn":
           "arn:aws:iam::aws:policy/AdministratorAccess",
       },
-      AccountChangeKind.AdminRole,
+      AccountChangeKind.Policy,
       "arn:aws:iam::aws:policy/AdministratorAccess",
+      "AdministratorAccess",
+    ],
+    [
+      "PutUserPolicy",
+      {
+        "requestParameters.userName": "deploy-bot",
+        "requestParameters.policyName": "backdoor",
+      },
+      AccountChangeKind.Policy,
+      "",
+      "backdoor",
     ],
     [
       "AddUserToGroup",
@@ -612,35 +629,185 @@ describe("AWS CloudTrail's IAM calls", () => {
         "requestParameters.groupName": "Admins",
       },
       AccountChangeKind.Group,
+      "",
       "Admins",
     ],
     [
       "CreateLoginProfile",
       { "requestParameters.userName": "deploy-bot" },
-      AccountChangeKind.Key,
-      "console password",
+      AccountChangeKind.Password,
+      "",
+      "",
+    ],
+    [
+      "EnableMFADevice",
+      {
+        "requestParameters.userName": "deploy-bot",
+        "requestParameters.serialNumber":
+          "arn:aws:iam::123456789012:mfa/deploy-bot",
+      },
+      AccountChangeKind.MfaDevice,
+      "arn:aws:iam::123456789012:mfa/deploy-bot",
+      "arn:aws:iam::123456789012:mfa/deploy-bot",
     ],
     [
       "CreateUser",
       { "requestParameters.userName": "backup-admin" },
       AccountChangeKind.Account,
       "",
+      "",
     ],
   ])(
-    "%s",
+    "%s: what it gave, by its id in IAM and its name (#10900)",
     (
       eventName: string,
       fields: Record<string, string>,
       kind: AccountChangeKind,
+      objectId: string,
       objectName: string,
     ) => {
       expect(readAccountChange(cloudTrail(eventName, fields))).toMatchObject({
         provider: AccountChangeProvider.Aws,
         kind,
+        objectId,
         objectName,
       });
     },
   );
+
+  test("a managed policy is named by the end of its ARN, a path and a customer's account kept in its id", () => {
+    expect(
+      readAwsPolicyName("arn:aws:iam::aws:policy/AdministratorAccess"),
+    ).toBe("AdministratorAccess");
+    expect(
+      readAwsPolicyName(
+        "arn:aws:iam::123456789012:policy/team/ops/break-glass",
+      ),
+    ).toBe("break-glass");
+    expect(readAwsPolicyName("not-an-arn")).toBe("not-an-arn");
+    expect(
+      readAccountChange(
+        cloudTrail("AttachUserPolicy", {
+          "requestParameters.userName": "deploy-bot",
+          "requestParameters.policyArn":
+            "arn:aws:iam::123456789012:policy/team/ops/break-glass",
+        }),
+      ),
+    ).toMatchObject({
+      objectId: "arn:aws:iam::123456789012:policy/team/ops/break-glass",
+      objectName: "break-glass",
+    });
+  });
+
+  test("the account a call was made in: the one CloudTrail says received it, else the connection's, else the caller's", () => {
+    const made: (fields: Record<string, string>) => AccountChange | null = (
+      fields: Record<string, string>,
+    ): AccountChange | null => {
+      return readAccountChange(
+        cloudTrail("AddUserToGroup", {
+          "requestParameters.userName": "deploy-bot",
+          "requestParameters.groupName": "Admins",
+          ...fields,
+        }),
+      );
+    };
+
+    expect(
+      made({
+        recipientAccountId: "123456789012",
+        [CLOUD_AUDIT_ACCOUNT_ATTRIBUTE]: "210987654321",
+        "userIdentity.accountId": "111122223333",
+      })?.cloudAccountId,
+    ).toBe("123456789012");
+    expect(
+      made({
+        [CLOUD_AUDIT_ACCOUNT_ATTRIBUTE]: "210987654321",
+        "userIdentity.accountId": "111122223333",
+      })?.cloudAccountId,
+    ).toBe("210987654321");
+    expect(
+      made({ "userIdentity.accountId": "111122223333" })?.cloudAccountId,
+    ).toBe("111122223333");
+    // Anything but twelve digits names no account.
+    expect(
+      made({ recipientAccountId: "anonymous", "userIdentity.accountId": "12" })
+        ?.cloudAccountId,
+    ).toBe("");
+  });
+
+  test("the cloud connection whose Cloud audit logs read the call, when one did", () => {
+    expect(
+      readAccountChange(
+        cloudTrail("CreateUser", {
+          "requestParameters.userName": "backup-admin",
+          [CLOUD_AUDIT_CONNECTION_ATTRIBUTE]:
+            "5d0c2a7e-0000-4000-8000-00000000c0de",
+        }),
+      )?.cloudConnectionId,
+    ).toBe("5d0c2a7e-0000-4000-8000-00000000c0de");
+    expect(
+      readAccountChange(
+        cloudTrail("CreateUser", { "requestParameters.userName": "a" }),
+      )?.cloudConnectionId,
+    ).toBe("");
+  });
+
+  test("a user of one name in two AWS accounts is two accounts; the same change twice in one is one", () => {
+    const groupAdded: (
+      account: string,
+      time: string,
+      uid: string,
+    ) => SecurityCaseEventSnapshot = (
+      account: string,
+      time: string,
+      uid: string,
+    ): SecurityCaseEventSnapshot => {
+      return {
+        ...cloudTrail("AddUserToGroup", {
+          "requestParameters.userName": "deploy-bot",
+          "requestParameters.groupName": "Admins",
+          recipientAccountId: account,
+        }),
+        time,
+        eventUid: uid,
+      };
+    };
+
+    const changes: Array<AccountChange> = getAttackAccountChanges({
+      matches: null,
+      keptEvents: [
+        groupAdded("123456789012", "2026-11-17T19:30:00.000Z", "a"),
+        groupAdded("210987654321", "2026-11-17T19:31:00.000Z", "b"),
+        groupAdded("123456789012", "2026-11-17T19:32:00.000Z", "c"),
+      ],
+    });
+
+    expect(
+      changes.map((item: AccountChange): [string, string] => {
+        return [item.cloudAccountId, item.eventUid];
+      }),
+    ).toEqual([
+      ["123456789012", "a"],
+      ["210987654321", "b"],
+    ]);
+  });
+
+  test("an identity product's change names no cloud account or connection", () => {
+    const okta: AccountChange | null = readAccountChange(
+      event({
+        productName: "Okta System Log",
+        attributes: {
+          eventType: "user.lifecycle.create",
+          "outcome.result": "SUCCESS",
+          "target.0.id": "00u1",
+          "target.0.type": "User",
+          "target.0.alternateId": "new@acme.com",
+        },
+      }),
+    );
+
+    expect(okta).toMatchObject({ cloudAccountId: "", cloudConnectionId: "" });
+  });
 
   test("a refused call, another service's and a read are no change", () => {
     expect(

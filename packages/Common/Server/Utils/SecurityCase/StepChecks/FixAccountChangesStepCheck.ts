@@ -4,7 +4,9 @@ import {
   ResponseLinkKind,
 } from "../../../../Types/SecurityCase/SecurityCaseResponseLink";
 import {
+  STEP_CHECK_MAX_FACTS,
   SecurityCaseStepCheckSentence,
+  StepCheckFactMark,
   readStepCheckDataTime,
 } from "../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState, {
@@ -22,8 +24,10 @@ import {
   CHECK_ACCOUNT_CHANGES_BACK,
   CHECK_ACCOUNT_CHANGES_CANNOT_READ,
   CHECK_ACCOUNT_CHANGES_CONFIRM_REST,
-  CHECK_ACCOUNT_CHANGES_FACT_AWS,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_NONE_FOUND,
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
@@ -43,6 +47,12 @@ import {
   CHECK_ACCOUNT_CHANGE_MFA_CONFIRM,
   CHECK_ACCOUNT_CHANGE_MFA_STILL,
   CHECK_ACCOUNT_CHANGE_MFA_UNDONE,
+  CHECK_ACCOUNT_CHANGE_PASSWORD_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_PASSWORD_STILL,
+  CHECK_ACCOUNT_CHANGE_PASSWORD_UNDONE,
+  CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_UNDONE,
@@ -55,6 +65,7 @@ import {
   AccountChangeState,
   AccountChangeUnknownReason,
 } from "../../SecurityPlaybook/AccountChangeReadBack";
+import { GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE } from "../../SecurityEvent/Response/GoogleWorkspaceResponseClient";
 import {
   AccountChangeAnswer,
   AccountChangesReading,
@@ -80,14 +91,21 @@ import {
  *
  *   Looks Done  each change OneUptime could read back is undone. Never
  *               Checked: a change made another way may not be in the case's
- *               events, and what it cannot read back - an AWS key, a Google
- *               Workspace group, a role a product does not tell apart - a
- *               person confirms, named one by one;
+ *               events, and what it cannot read back - a change in a
+ *               product it has no connection to, or one whose connection
+ *               was not given the read (an AWS connection's Security case
+ *               checks, #10900; a Google Workspace delegation's group
+ *               member scope, #10901), a role a product does not tell
+ *               apart - a person confirms, named one by one, with a line
+ *               on how to let OneUptime read it;
  *   Not Done    a change is still there, and the evidence names each;
  *   Regressed   they were all undone, and one is back;
  *   Cannot Tell the case's events record no change to an account, OneUptime
- *               can read none of them back (no connection to the product,
- *               AWS), or a product could not be read just now.
+ *               can read none of them back, or a product could not be read
+ *               just now.
+ *
+ * Each line is marked by what it says (StepCheckFactMark): undone, still
+ * there, to confirm, or how to let OneUptime read the rest.
  */
 
 export interface AccountChangesInput {
@@ -115,6 +133,8 @@ interface ReadChange {
 
 const STILL_SENTENCES: Record<AccountChangeKind, string> = {
   [AccountChangeKind.AdminRole]: CHECK_ACCOUNT_CHANGE_ROLE_STILL,
+  [AccountChangeKind.Policy]: CHECK_ACCOUNT_CHANGE_POLICY_STILL,
+  [AccountChangeKind.Password]: CHECK_ACCOUNT_CHANGE_PASSWORD_STILL,
   [AccountChangeKind.Group]: CHECK_ACCOUNT_CHANGE_GROUP_STILL,
   [AccountChangeKind.App]: CHECK_ACCOUNT_CHANGE_APP_STILL,
   [AccountChangeKind.MfaDevice]: CHECK_ACCOUNT_CHANGE_MFA_STILL,
@@ -124,6 +144,8 @@ const STILL_SENTENCES: Record<AccountChangeKind, string> = {
 
 const UNDONE_SENTENCES: Record<AccountChangeKind, string> = {
   [AccountChangeKind.AdminRole]: CHECK_ACCOUNT_CHANGE_ROLE_UNDONE,
+  [AccountChangeKind.Policy]: CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
+  [AccountChangeKind.Password]: CHECK_ACCOUNT_CHANGE_PASSWORD_UNDONE,
   [AccountChangeKind.Group]: CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
   [AccountChangeKind.App]: CHECK_ACCOUNT_CHANGE_APP_UNDONE,
   [AccountChangeKind.MfaDevice]: CHECK_ACCOUNT_CHANGE_MFA_UNDONE,
@@ -133,6 +155,8 @@ const UNDONE_SENTENCES: Record<AccountChangeKind, string> = {
 
 const CONFIRM_SENTENCES: Record<AccountChangeKind, string> = {
   [AccountChangeKind.AdminRole]: CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
+  [AccountChangeKind.Policy]: CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM,
+  [AccountChangeKind.Password]: CHECK_ACCOUNT_CHANGE_PASSWORD_CONFIRM,
   [AccountChangeKind.Group]: CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
   [AccountChangeKind.App]: CHECK_ACCOUNT_CHANGE_APP_CONFIRM,
   [AccountChangeKind.MfaDevice]: CHECK_ACCOUNT_CHANGE_MFA_CONFIRM,
@@ -170,7 +194,7 @@ function readChange(answer: AccountChangeAnswer): ReadChange {
   };
 }
 
-// A change as one line of the evidence.
+// A change as one line of the evidence, marked by what it says of the change.
 export function describeAccountChange(
   item: Pick<ReadChange, "change" | "outcome" | "facts">,
 ): SecurityCaseStepCheckSentence {
@@ -181,7 +205,9 @@ export function describeAccountChange(
   };
 
   if (item.outcome === ChangeOutcome.Still) {
-    return sentence(STILL_SENTENCES[item.change.kind], values);
+    return sentence(STILL_SENTENCES[item.change.kind], values, {
+      mark: StepCheckFactMark.NotDone,
+    });
   }
 
   if (item.outcome === ChangeOutcome.Undone) {
@@ -191,55 +217,134 @@ export function describeAccountChange(
         ? CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE
         : UNDONE_SENTENCES[item.change.kind],
       values,
+      { mark: StepCheckFactMark.Done },
     );
   }
 
-  return sentence(CONFIRM_SENTENCES[item.change.kind], values);
+  return sentence(CONFIRM_SENTENCES[item.change.kind], values, {
+    mark: StepCheckFactMark.Confirm,
+  });
 }
 
 /*
- * Why OneUptime asks a person to confirm what it cannot read back, said
- * once a product (or an account, where the product cannot tell which).
+ * Why OneUptime asks a person to confirm what it cannot read back, and how
+ * to let it read it: said once a product, an AWS account, or an account a
+ * product cannot tell about.
+ *
+ *   - no connection to the product, or - AWS - none that reads the account
+ *     the change was made in;
+ *   - a connection not given the read: an AWS connection whose Security
+ *     case checks are off (#10900), a Google Workspace delegation without
+ *     the group member scope (#10901);
+ *   - a product that says the account holds something of the kind, but
+ *     not which.
  */
-function confirmReasons(
-  confirms: Array<ReadChange>,
+export function confirmReasons(
+  confirms: Array<Pick<ReadChange, "change" | "facts" | "hasConnection">>,
 ): Array<SecurityCaseStepCheckSentence> {
   const reasons: Array<SecurityCaseStepCheckSentence> = [];
   const said: Set<string> = new Set();
-  const once: (key: string, line: SecurityCaseStepCheckSentence) => void = (
+  const once: (
     key: string,
-    line: SecurityCaseStepCheckSentence,
+    template: string,
+    values?: Record<string, string>,
+  ) => void = (
+    key: string,
+    template: string,
+    values: Record<string, string> = {},
   ): void => {
     if (!said.has(key)) {
       said.add(key);
-      reasons.push(line);
+      reasons.push(
+        sentence(template, values, { mark: StepCheckFactMark.HowToCheck }),
+      );
     }
   };
 
   for (const item of confirms) {
     const provider: string = item.change.provider;
+    const isAws: boolean = provider === AccountChangeProvider.Aws;
+    const cloudAccount: string = item.change.cloudAccountId;
 
-    if (item.change.provider === AccountChangeProvider.Aws) {
-      once("aws", sentence(CHECK_ACCOUNT_CHANGES_FACT_AWS));
-    } else if (!item.hasConnection) {
-      once(
-        `connection:${provider}`,
-        sentence(CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION, { provider }),
-      );
+    if (!item.hasConnection) {
+      if (isAws && cloudAccount) {
+        once(
+          `aws-connection:${cloudAccount}`,
+          CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+          { cloudAccount },
+        );
+      } else {
+        once(
+          `connection:${provider}`,
+          CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
+          {
+            provider,
+          },
+        );
+      }
+    } else if (item.facts?.reason === AccountChangeUnknownReason.NotGranted) {
+      if (isAws) {
+        once(
+          `aws-grant:${cloudAccount}`,
+          CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+          { cloudAccount },
+        );
+      } else if (provider === AccountChangeProvider.GoogleWorkspace) {
+        once("google-groups", CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS, {
+          scope: GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE,
+        });
+      }
     } else if (
       item.facts?.reason === AccountChangeUnknownReason.CannotTellWhich
     ) {
       once(
         `which:${provider}:${item.change.account.toLowerCase()}`,
-        sentence(CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH, {
-          provider,
-          account: item.change.account,
-        }),
+        CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
+        { provider, account: item.change.account },
       );
     }
   }
 
   return reasons;
+}
+
+/*
+ * The facts of the step, in the order the card draws them - what is still
+ * there, what a person confirms and how to let OneUptime read it, what is
+ * undone - and within the facts a check keeps: past it, the undone ones go
+ * first, then those to confirm, never what is still there nor how to let
+ * OneUptime read the rest.
+ */
+export function orderAccountChangeFacts(groups: {
+  still: Array<SecurityCaseStepCheckSentence>;
+  confirm: Array<SecurityCaseStepCheckSentence>;
+  howToCheck: Array<SecurityCaseStepCheckSentence>;
+  undone: Array<SecurityCaseStepCheckSentence>;
+}): Array<SecurityCaseStepCheckSentence> {
+  let room: number = STEP_CHECK_MAX_FACTS;
+  const take: (
+    facts: Array<SecurityCaseStepCheckSentence>,
+  ) => Array<SecurityCaseStepCheckSentence> = (
+    facts: Array<SecurityCaseStepCheckSentence>,
+  ): Array<SecurityCaseStepCheckSentence> => {
+    const kept: Array<SecurityCaseStepCheckSentence> = facts.slice(
+      0,
+      Math.max(0, room),
+    );
+
+    room -= kept.length;
+
+    return kept;
+  };
+  // Kept in this order of need.
+  const still: Array<SecurityCaseStepCheckSentence> = take(groups.still);
+  const howToCheck: Array<SecurityCaseStepCheckSentence> = take(
+    groups.howToCheck,
+  );
+  const confirm: Array<SecurityCaseStepCheckSentence> = take(groups.confirm);
+  const undone: Array<SecurityCaseStepCheckSentence> = take(groups.undone);
+
+  return [...still, ...confirm, ...howToCheck, ...undone];
 }
 
 // The accounts' pages in their products, each once.
@@ -301,12 +406,25 @@ export function decideAccountChanges(
     toConfirm: confirm.length,
   };
 
+  // What a person confirms, and how to let OneUptime read it back.
+  const confirmLines: Array<SecurityCaseStepCheckSentence> = confirm.map(
+    describeAccountChange,
+  );
+  const howToCheck: Array<SecurityCaseStepCheckSentence> =
+    confirmReasons(confirm);
+  const undoneLines: Array<SecurityCaseStepCheckSentence> = undone.map(
+    describeAccountChange,
+  );
+
   if (still.length > 0) {
-    const facts: Array<SecurityCaseStepCheckSentence> = [
-      ...still,
-      ...undone,
-      ...confirm,
-    ].map(describeAccountChange);
+    const facts: Array<SecurityCaseStepCheckSentence> = orderAccountChangeFacts(
+      {
+        still: still.map(describeAccountChange),
+        confirm: confirmLines,
+        howToCheck,
+        undone: undoneLines,
+      },
+    );
     const wasHolding: boolean =
       Boolean(
         input.target.previous &&
@@ -374,11 +492,6 @@ export function decideAccountChanges(
     };
   }
 
-  const confirmFacts: Array<SecurityCaseStepCheckSentence> = [
-    ...confirm.map(describeAccountChange),
-    ...confirmReasons(confirm),
-  ];
-
   if (undone.length === 0) {
     return {
       state: SecurityCaseStepCheckState.CannotTell,
@@ -388,7 +501,12 @@ export function decideAccountChanges(
           {},
           { count: confirm.length },
         ),
-        facts: confirmFacts,
+        facts: orderAccountChangeFacts({
+          still: [],
+          confirm: confirmLines,
+          howToCheck,
+          undone: [],
+        }),
         links,
         docsPath: STEP_CHECK_DOCS_PATH,
         data: { ...counts, reason: "CannotReadBack" },
@@ -416,8 +534,15 @@ export function decideAccountChanges(
               {},
               { count: undone.length },
             ),
-      facts: [...confirmFacts, ...undone.map(describeAccountChange)],
+      facts: orderAccountChangeFacts({
+        still: [],
+        confirm: confirmLines,
+        howToCheck,
+        undone: undoneLines,
+      }),
       links,
+      // What a person confirms: the docs say how to let OneUptime read it back.
+      ...(confirm.length > 0 ? { docsPath: STEP_CHECK_DOCS_PATH } : {}),
       data: {
         ...counts,
         // Since when it holds: kept while it holds.
