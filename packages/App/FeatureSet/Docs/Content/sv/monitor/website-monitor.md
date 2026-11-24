@@ -71,7 +71,7 @@ Behåll eller ändra **Sonder** och **Övervakningsintervall** (det börjar på 
 
 ### Webbplats-URL
 
-Sidan som ska kontrolleras, som fullständig URL med schema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`, till exempel en token i frågesträngen.
+Sidan som ska kontrolleras, som fullständig URL med schema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`, till exempel en token i frågesträngen. Felet från en misslyckad kontroll nämner bara URL:ens schema, värd och port, som `https://example.com`, så hemligheten visas aldrig.
 
 ### Dynamiska URL-platshållare
 
@@ -179,17 +179,18 @@ Monitorer som skapades innan OneUptime ändrade dessa standarder behåller de kr
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Statuskod för svar**, **Svarstid (i ms)**, **Svarstext**, **Svarshuvud**, **Värde för svarshuvud**, **JavaScript-uttryck** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Statuskod för svar**, **Svarstid (i ms)**, **Svarstext**, **Svarshuvud**, **Värde för svarshuvud**, **JavaScript-uttryck** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 minuter till 24 timmar under **Under de senaste**.
 
 | Aggregering | Matchar när |
 | --- | --- |
-| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Percentil** | Det värdet över fönstret uppfyller villkoret, till exempel p95-svarstiden. Bara numeriska filter. |
 | **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
 | **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
+| **Antal**, **Procentandel**, **Statusbyten** | Hur många kontroller som uppfyllde villkoret, deras andel eller hur ofta de växlade mellan att uppfylla det och inte, jämförs med talet som anges under. |
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
-En body, en header, ett headervärde eller ett uttryck är inte ett tal som OneUptime registrerar. För de filtren och för **Är begärandetimeout** registrerar OneUptime därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**. Så tar sig en monitor igenom en omstart. En app som startar kan svara `200` med en tillfällig sida som `Application starting...`; med **Alla värden** sätter ett filter **Svarstext** som letar efter appens titel monitorn offline först när den tillfälliga sidan har varat hela fönstret.
+En body, en header, ett headervärde eller ett uttryck är inte ett tal som OneUptime registrerar. För de filtren och för **Är begärandetimeout** registrerar OneUptime därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**. Eller så räknar OneUptime den med **Antal**, **Procentandel** eller **Statusbyten**. Så tar sig en monitor igenom en omstart. En app som startar kan svara `200` med en tillfällig sida som `Application starting...`; med **Alla värden** sätter ett filter **Svarstext** som letar efter appens titel monitorn offline först när den tillfälliga sidan har varat hela fönstret.
 
 Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 

@@ -607,15 +607,13 @@ describe.each(CHILDREN)(
       expect(request.data.createdByUserId).toBeUndefined();
     });
 
-    test("a row read and sent back whole is created as the caller's: someone else's creator and deleter are dropped, not refused", async () => {
+    test("a row read and sent back whole is created as the caller's: someone else's creator is dropped, not refused", async () => {
       const someoneElse: Record<string, unknown> = {
         _id: OTHER_USER_ID.toString(),
       };
       const request: CreateBy<Child> = input(fixture, {
         createdByUserId: OTHER_USER_ID,
         createdByUser: someoneElse,
-        deletedByUserId: OTHER_USER_ID,
-        deletedByUser: someoneElse,
       });
 
       await expect(fixture.service.create(request)).resolves.toBe(request.data);
@@ -625,12 +623,7 @@ describe.each(CHILDREN)(
         unknown
       >;
 
-      for (const column of [
-        "createdByUserId",
-        "createdByUser",
-        "deletedByUserId",
-        "deletedByUser",
-      ]) {
+      for (const column of ["createdByUserId", "createdByUser"]) {
         expect(sent[column]).toBeUndefined();
       }
       expect(createSpy).toHaveBeenCalledTimes(1);

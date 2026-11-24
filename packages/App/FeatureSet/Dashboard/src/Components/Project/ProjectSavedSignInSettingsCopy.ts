@@ -23,6 +23,7 @@ export const PROJECT_SAVED_SIGN_IN_SETTINGS_COPY: {
   confirmTitle: string;
   confirmDescription: string;
   cleared: PluralTemplate;
+  alreadyCleared: string;
 } = {
   stillSaved: {
     one: "{{count}} person whose projects are all yours still has a password or two-factor authentication saved in OneUptime.",
@@ -38,6 +39,15 @@ export const PROJECT_SAVED_SIGN_IN_SETTINGS_COPY: {
     one: "Cleared the sign-in settings of {{count}} person.",
     other: "Cleared the sign-in settings of {{count}} people.",
   },
+  /*
+   * The server cleared nobody: another clear of them - another owner's, a
+   * server admin's, or this one sent twice - came first (#10776). The
+   * people of the dialog's question ("Clear their saved sign-in
+   * settings?"), many: the Users list's toast for one person is its own.
+   */
+  alreadyCleared: translationKey(
+    "These people's sign-in settings were already cleared.",
+  ),
 };
 
 // The data-testid of the row; its parts add -count, -clear.

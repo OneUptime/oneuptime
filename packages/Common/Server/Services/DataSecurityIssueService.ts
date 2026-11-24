@@ -22,6 +22,9 @@ import ObjectID from "../../Types/ObjectID";
 import DataSecurityIssueStatus, {
   isDataSecurityIssueStatus,
 } from "../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution, {
+  toResolutionDetailsJSON,
+} from "../../Types/DataSecurity/DataSecurityIssueResolution";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 /*
@@ -240,6 +243,26 @@ export class Service extends ProjectReferencesService<Model> {
       data["resolvedAt"] = now;
       data["recheckRequestedAt"] = now;
     }
+
+    /*
+     * How it resolved (#10368): a person who marks it resolved resolved
+     * it; any other status a person sets leaves it unresolved. What a
+     * change waited on (a response action's) is no longer waited on.
+     */
+    data["resolution"] =
+      data["status"] === DataSecurityIssueStatus.Resolved
+        ? DataSecurityIssueResolution.ResolvedByPerson
+        : null;
+    data["resolutionDetails"] =
+      data["status"] === DataSecurityIssueStatus.Resolved
+        ? toResolutionDetailsJSON({
+            at: OneUptimeDate.getCurrentDate().toISOString(),
+            ...(updateBy.props.userId
+              ? { userId: updateBy.props.userId.toString() }
+              : {}),
+          })
+        : null;
+    data["pendingResolution"] = null;
   }
 
   @CaptureSpan()

@@ -21,6 +21,7 @@ import ProbeReportIdentity, {
 } from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 import { ProbeCapabilityUtil } from "Common/Types/Probe/ProbeCapability";
 import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -199,9 +200,21 @@ export async function processProbeFromQueue(
 
   const reportingProbeId: ObjectID = readSenderOfResult(jobData);
 
-  const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
-    queuedResult?.["probeMonitorResponse"] as JSONObject,
-  ) as unknown as ProbeMonitorResponse;
+  /*
+   * Every URL in what the probe says of the check - its failure cause, each
+   * attempt's, why its request failed - by its scheme, host and port alone
+   * (MonitorUrlInText, #10785): the server filled the monitor's secrets
+   * into the URL it handed the probe, and a custom probe from before this
+   * wrote that URL whole into its errors. Everything below reads the check
+   * as written here: the monitor's logs and summary, an incident's root
+   * cause and its notifications' templates, a Test Monitor run's result.
+   */
+  const probeResponse: ProbeMonitorResponse =
+    MonitorUrlInText.writeProbeResponse(
+      JSONFunctions.deserialize(
+        queuedResult?.["probeMonitorResponse"] as JSONObject,
+      ) as unknown as ProbeMonitorResponse,
+    );
 
   if (!probeResponse) {
     throw new BadDataException("ProbeMonitorResponse not found");

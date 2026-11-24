@@ -462,47 +462,4 @@ export default class AuditLogExport extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: adminPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Relation to the user who deleted this export.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: adminPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the user who deleted this export.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

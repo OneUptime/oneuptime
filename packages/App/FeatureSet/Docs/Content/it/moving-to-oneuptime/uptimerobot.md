@@ -57,7 +57,7 @@ Il report conta ciò che è stato creato e non importato, ed elenca ogni element
 | Monitors | Monitor | Ogni monitor diventa un monitor dello stesso tipo, con lo stesso indirizzo, intervallo e timeout, e gli stessi codici di stato considerati attivi. |
 | Public status pages | Pagine di stato | Ogni pagina mostra gli stessi monitor: quelli che nomina, quelli con i suoi tag o tutti, con disponibilità e barre dello storico come li mostrava. Una pagina con password viene importata come privata. |
 
-- **I monitor HTTP(S) e a parola chiave** diventano monitor sito web, o monitor API quando inviano un altro metodo, intestazioni o un corpo JSON. Un monitor a parola chiave va giù quando la parola chiave compare o manca, come in UptimeRobot, e la confronta esattamente, maiuscole comprese.
+- **I monitor HTTP(S) e a parola chiave** diventano monitor sito web, o monitor API quando inviano un altro metodo, intestazioni o un corpo. Un monitor a parola chiave va giù quando la parola chiave compare o manca, come in UptimeRobot, e la confronta esattamente, maiuscole comprese.
 - **I monitor ping e porta** diventano monitor ping e porta.
 - **I monitor heartbeat** diventano monitor richieste in arrivo, che vanno giù quando non arriva nessuna richiesta per l'intervallo e il periodo di tolleranza. Ognuno ha un nuovo indirizzo in OneUptime.
 - **I monitor DNS e API** diventano monitor DNS e API.

@@ -280,6 +280,7 @@ describe("the pure view-model", () => {
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+      "../../Utils/NetworkDiscovery/DiscoveryScanRun",
       "./SentenceSeparator",
     ]);
     // An AWS role that lets OneUptime in without the project's external ID (#10405, #10425).
@@ -330,6 +331,34 @@ describe("the pure view-model", () => {
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Translator",
     ]);
+    /*
+     * A discovery scan's Run Again refusals (#10698), with the scan's
+     * statuses they name, which import nothing.
+     */
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "NetworkDiscovery",
+          "DiscoveryScanRun.ts",
+        ),
+      ),
+    ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Translator",
+      "./DiscoveryScanStatus",
+    ]);
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "NetworkDiscovery",
+          "DiscoveryScanStatus.ts",
+        ),
+      ),
+    ).toEqual([]);
     /*
      * The sentence joiner is a module of its own, which imports nothing
      * (SentenceSeparator): joined through DeleteConsequences, the error

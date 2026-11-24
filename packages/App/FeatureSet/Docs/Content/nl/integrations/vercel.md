@@ -188,7 +188,7 @@ Dezelfde aangepaste drain werkt ook op OneUptime Cloud, met `oneuptime.com` als 
 Vercel toont het antwoord van OneUptime op de leveringen van de drain:
 
 - `403` met `x-vercel-signature` in het bericht: Vercel heeft de levering niet ondertekend met de sleutel die Vercel meestuurt. Controleer bij een aangepaste drain de `x-oneuptime-token`-header ervan, en stel het ondertekeningsgeheim in op dezelfde sleutel.
-- `401`: OneUptime kent geen project met de sleutel die de drain meestuurt: die is verwijderd, of op beide plekken verkeerd getypt. Gebruik een sleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**.
+- `401`: OneUptime kent geen project met de sleutel die de drain meestuurt: die is verwijderd, of verkeerd getypt. Gebruik een sleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**.
 - `422`: de sleutel is uitgeschakeld. Zet hem op dezelfde pagina weer aan, of gebruik een andere.
 :::
 

@@ -191,7 +191,7 @@ OneUptime 知道你的代码在生产环境中做了什么，因此它能用阅�
 
 | 更改 | 何时成为一个要点 |
 | --- | --- |
-| 写入遥测的代码 | 把名称表明其包含个人数据、密钥或你项目自有数据类型的值（`email`、`customer_ssn`、`password`、`apiKey`）写入日志、span 或事件的属性、指标的标签或发送给 AI 提供商的提示词，或者写入整个请求体、其请求头或用户记录。描述数据而非数据本身的名称，例如 `emailTemplate`、`isEmailVerified` 或 `hashedPassword`，不会成为要点。 |
+| 写入遥测的代码 | 把名称表明其包含个人数据、密钥或你项目自有数据类型的值（`email`、`customer_ssn`、`password`、`apiKey`）写入日志、span 或事件的属性、指标的标签或发送给 LLM 的提示词，或者写入整个请求体、其请求头或用户记录。描述数据而非数据本身的名称，例如 `emailTemplate`、`isEmailVerified` 或 `hashedPassword`，不会成为要点。 |
 | Terraform、CloudFormation、Bicep、ARM、Kubernetes、Pulumi 或 CDK | 公开数据存储或共享其快照，关闭其加密、备份、时间点恢复、版本控制或访问日志，或向所有地址开放其防火墙：文件能显示的每个 [数据安全检查](/docs/data-security/checks-and-issues) 都有一条规则。 |
 | 迁移或模型 | 添加名称表明其包含个人数据的列、名称和更改都没有表明已哈希的密码列、卡号列，或永远不得存储的卡安全码列。 |
 

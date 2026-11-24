@@ -8,6 +8,7 @@ OneUptime AI läser varje säkerhetsärende som en analytiker skulle göra: äre
 - [Arbeta med ett ärende från början till slut](#arbeta-med-ett-ärende-från-början-till-slut): Begränsa, kontrollera, åtgärda och stäng, med en person som godkänner det du väljer.
 - [Vad OneUptime AI får göra i ett ärende](#vad-oneuptime-ai-får-göra-i-ett-ärende): Av, Fråga först eller På egen hand, för varje typ av steg.
 - [När den lämnar över ett ärende till personer](#när-den-lämnar-över-ett-ärende-till-personer): Varför den slutar, och vem som får veta det.
+- [Låt OneUptime AI agera först](#låt-oneuptime-ai-agera-först): Larma personer bara när OneUptime AI behöver dem.
 - [Kör en playbook efter en AI-bedömning](#kör-en-playbook-efter-en-ai-bedömning): Agera på ett ärende som läses som Troligen skadlig.
 - [Skriv ett utkast till en detektionsregel](#skriv-ett-utkast-till-en-detektionsregel): Beskriv vad som ska fångas, och läs Sigma-regeln.
 - [Ask AI på säkerhetssidorna](#ask-ai-på-säkerhetssidorna): Frågor om ärenden och händelser, med vanliga ord.
@@ -176,6 +177,7 @@ OneUptime AI drar sig aldrig tillbaka i tysthet. Den lämnar över ärendet till
 - det som nästa steg agerar på är skyddat;
 - den har agerat på egen hand så ofta som den får under en timme;
 - AI är avstängd för projektet eller för säkerhetsärenden, det inte finns någon LLM-leverantör, eller projektet har slut på AI-krediter eller har nått sin dagliga AI-gräns;
+- produkten Säkerhetshändelser är avstängd på servern;
 - dess AI-bedömning inte kunde avgöra om ärendet är verkligt;
 - ett steg som den utförde inte håller, ett steg som den startade inte slutfördes, eller en person avböjde eller ångrade ett steg som den utförde;
 - den inte kan avgöra vad den ska göra härnäst, eller allt som återstår i ärendet måste göras av en person.
@@ -183,6 +185,46 @@ OneUptime AI drar sig aldrig tillbaka i tysthet. Den lämnar över ärendet till
 Personerna på ärendet får veta det direkt, eller, när ingen är på ärendet, de personer som aviseras om ärenden med dess prioritet: **OneUptime AI lämnade över ett säkerhetsärende till personer**, under **Användarinställningar → Aviseringsinställningar**. En aviseringsregel för arbetsytan för säkerhetsärenden postar det i sin Slack- eller Microsoft Teams-kanal under **Överlämnat till personer av OneUptime AI**. **Ta över** lämnar över ärendet utan att meddela någon, eftersom personen som tryckte på den har ärendet.
 
 **Agera med AI** ber OneUptime AI att arbeta med ärendet igen, från där ärendet står.
+
+Så länge produkten Säkerhetshändelser är avstängd på servern startar OneUptime AI inget nytt steg i något ärende, och inom en minut lämnar den över varje ärende den arbetar med till personer. Ett steg som den redan har startat slutförs eller kan ångras som vanligt. När produkten är påslagen igen tar den inte upp något av de ärendena igen av sig själv: det gör **Agera med AI**.
+
+Ett ärende som hålls inne medan OneUptime AI agerar först når personer en gång, med aviseringen om det nya ärendet och varför OneUptime AI slutade: se [Låt OneUptime AI agera först](#låt-oneuptime-ai-agera-först).
+
+## Låt OneUptime AI agera först
+
+Under **Låt OneUptime AI agera först**, på **Produkter → Säkerhetshändelser → AI → Inställningar**, slår du på **Agera först**: då väntar ett nytt ärende på OneUptime AI innan någon larmas, om en detektion öppnar det med en prioritet under den du väljer. Det erbjuds medan **Bedöm nya ärenden** och **Arbeta med ärenden från början till slut** är påslagna. Det startar avslaget och sparas så fort du ändrar det. Projektägare och Projektadministratör kan ändra det.
+
+- **För ärenden under**: den prioritet som ett ärende måste ligga under för att hållas inne. Den är High tills du väljer en annan.
+- **Larma personer ändå efter**: hur länge ett ärende som längst hålls inne, 5, 10, 15, 20 eller 30 minuter. Det startar på 10 minuter.
+
+Medan ett ärende hålls inne väntar aviseringen om det nya ärendet, och det gör även stegen **Larma jouren** i de playbooks som startar på det av sig själva. Ärendet visar **OneUptime AI tar hand om det** tillsammans med när personer larmas, och **Larma nu** larmar dem direkt. En playbook-körning vars larm väntar står som **Väntar på OneUptime AI**.
+
+Ärendet slutar hållas inne så fort något av följande händer:
+
+| När | Då |
+| --- | --- |
+| OneUptime AI begränsar ärendet och OneUptime kontrollerar varje steg som begränsar det, eller ärendet stängs | Ingen larmas. Kanalerna som postar nya ärenden får en sammanfattning av vad OneUptime AI gjorde, och larmstegen som väntade hoppas över |
+| OneUptime AI behöver en person: den ber någon att godkänna ett steg, lämnar över ärendet till personer eller kan inte börja arbeta med det | Alla som ärendet hölls inne för larmas direkt, med en förklaring och vad OneUptime AI redan har gjort, och larmstegen som väntade larmar |
+| Dess AI-bedömning läser inte ärendet som Troligen skadlig, ärendet markeras som Begränsad innan OneUptime hann kontrollera varje steg, eller väntetiden tar slut | Alla larmas direkt, med en förklaring |
+| Någon trycker på **Larma nu**, ärendet stiger till den prioritet du valde, eller **Agera först** eller **Arbeta med ärenden från början till slut** stängs av | Alla larmas direkt |
+| En person tar ärendet: med **Ta över**, genom att tilldela det eller genom att flytta det vidare | Personen har det. Ingen annan larmas, kanalerna får veta om det nya ärendet, och larmstegen som väntade hoppas över |
+
+Ett ärende hålls aldrig inne, och personer larmas som vanligt, när:
+
+- det har din högsta prioritet, eller den prioritet du valde eller en högre;
+- 3 andra ärenden öppnades under de 5 minuterna före det, vilket ser ut som en aktiv attack: de ärenden som hålls inne då går också till personer;
+- något i dess data låter som instruktioner till en AI;
+- det gäller en adress, användare eller värd från ett ärende som OneUptime AI har löst under de senaste 24 timmarna, eftersom det den gjorde inte höll;
+- OneUptime AI inte kan bedöma eller arbeta med det, till exempel när projektet har slut på AI-krediter;
+- en person öppnade det, eller det är testattackens ärende.
+
+Ärendets tidslinje säger varför det inte hölls inne, utom för ett ärende med den prioritet du valde eller en högre, ett ärende som en person öppnade och testattackens ärende. Aviseringar om ett svarsmål hålls aldrig inne.
+
+Tills du ställer in blockering av adresser och begränsning av konton och värdar på **På egen hand** under **Vad OneUptime AI får göra i ett ärende** frågar OneUptime AI först, och ett ärende når personer så fort den frågar. Med **Blockera adresser** på **På egen hand**, bekräftat av en Säkerhetsadministratör, kan den begränsa en skanner utan att någon larmas.
+
+### Det veckovisa e-postmeddelandet
+
+Varje måndag får Projektägare och Säkerhetsadministratörer som kan läsa säkerhetsärenden ett e-postmeddelande om vad OneUptime AI gjorde i projektets säkerhetsärenden veckan innan: ärendena den agerade först på och hur de slutade; hur snabbt ärendena den arbetade med begränsades; adresserna den blockerade och blockeringarna som hävdes igen; stegen den bad personer att godkänna och hur snabbt de svarade; och stegen som personer ångrade. Det innehåller bara siffror, och en länk till **Produkter → Säkerhetshändelser → Översikt**. En vecka då OneUptime AI inte gjorde något skickas inget e-postmeddelande.
 
 ## Den avslutande rapporten
 
@@ -242,6 +284,14 @@ En Projektägare eller någon med Manage Billing kan lägga till krediter under 
 
 :::details Kortet säger att text i ärendet låter som instruktioner till en AI
 Något i ärendets data, som ett händelsemeddelande eller ett användarnamn, skrevs för att styra en AI. OneUptime AI läste det som data och lämnade beslutet till dig: läs detektionerna och bevisen själv innan du stänger ärendet.
+:::
+
+:::details Personer larmades medan OneUptime AI agerade först
+Ärendets tidslinje säger varför det slutade hållas inne: OneUptime AI bad någon att godkänna ett steg, lämnade över ärendet till personer eller blev inte klar inom **Larma personer ändå efter**, eller någon tryckte på **Larma nu**. Ett steg som frågar först når personer så fort OneUptime AI frågar: se **Vad OneUptime AI får göra i ett ärende**.
+:::
+
+:::details Ett nytt ärende hölls inte inne
+Kontrollera att **Agera först** är påslaget, och att ärendet ligger under den prioritet som är vald under **För ärenden under**. Ett ärende med din högsta prioritet, ett ärende som en person öppnade och testattackens ärende hålls aldrig inne. I alla andra fall säger ärendets tidslinje varför.
 :::
 
 :::details En playbook med AI-utlösaren kördes inte

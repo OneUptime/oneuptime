@@ -34,6 +34,7 @@
     "pageNotFoundMetaDescription": "जिस पृष्ठ की आप तलाश कर रहे हैं वह नहीं मिला।",
     "required": "आवश्यक",
     "defaultValue": "डिफ़ॉल्ट",
+    "readOnly": "केवल पढ़ने के लिए",
     "or": "या",
     "copy": "कॉपी करें",
     "copied": "कॉपी हो गया!",

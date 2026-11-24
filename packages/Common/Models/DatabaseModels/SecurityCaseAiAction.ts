@@ -21,12 +21,6 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import {
-  SECURITY_CASE_AI_ACTION_KINDS,
-  SECURITY_CASE_AI_ACTION_REASONS,
-  SECURITY_CASE_AI_ACTION_STATUSES,
-  SECURITY_CASE_AI_AREAS,
-  SECURITY_CASE_AI_MODES,
-  SECURITY_CASE_HAND_OFF_REASONS,
   SecurityCaseAiActionKind,
   SecurityCaseAiActionReason,
   SecurityCaseAiActionStatus,
@@ -215,7 +209,7 @@ export default class SecurityCaseAiAction extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    allowedValues: SECURITY_CASE_AI_ACTION_KINDS,
+    allowedValues: Object.values(SecurityCaseAiActionKind),
     title: "Kind",
     description:
       "What OneUptime AI did, or would have done: TakeCase, SetPriority, MarkStepDone, MarkContained, BlockAddress, ContainAccount, ContainHost, DeclareIncident, RequestCodeFix, CloseCase, LiftBlock, OfferRuleException, StepForPeople or HandToPeople.",
@@ -232,7 +226,7 @@ export default class SecurityCaseAiAction extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    allowedValues: SECURITY_CASE_AI_AREAS,
+    allowedValues: Object.values(SecurityCaseAiArea),
     title: "Area",
     description:
       "The kind of action the project's setting for it covers: Case, Edge, Accounts, Hosts, Code or Close. Empty for a step no setting covers.",
@@ -249,7 +243,7 @@ export default class SecurityCaseAiAction extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Mode",
     description:
       "What the project's setting for this kind of action said when OneUptime AI acted: Off, Ask or OnItsOwn.",
@@ -268,7 +262,7 @@ export default class SecurityCaseAiAction extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
-    allowedValues: SECURITY_CASE_AI_ACTION_STATUSES,
+    allowedValues: Object.values(SecurityCaseAiActionStatus),
     title: "Status",
     description:
       "What became of it: Doing, Done, Asked (waiting for a person), Declined, Left (OneUptime AI would not), Failed or Undone.",
@@ -285,7 +279,7 @@ export default class SecurityCaseAiAction extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_ACTION_REASONS,
+    allowedValues: Object.values(SecurityCaseAiActionReason),
     title: "Reason",
     description: "Why it is as it is, as a code the case's AI card words.",
     example: SecurityCaseAiActionReason.OnItsOwn,
@@ -300,7 +294,7 @@ export default class SecurityCaseAiAction extends BaseModel {
   @ColumnAccessControl(columnAccess)
   @TableColumn({
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_HAND_OFF_REASONS,
+    allowedValues: Object.values(SecurityCaseHandOffReason),
     title: "Hand Off Reason",
     description:
       "For a hand-off to people: why OneUptime AI handed the case over.",
@@ -518,39 +512,4 @@ export default class SecurityCaseAiAction extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Unused: an action goes with its case.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "Unused: an action goes with its case.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

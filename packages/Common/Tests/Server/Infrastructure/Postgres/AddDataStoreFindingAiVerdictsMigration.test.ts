@@ -1,5 +1,5 @@
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
-import { AddDataStoreFindingAiVerdicts1809187472372 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187472372-AddDataStoreFindingAiVerdicts";
+import { AddDataStoreFindingAiVerdicts1809187520372 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187520372-AddDataStoreFindingAiVerdicts";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
@@ -41,11 +41,11 @@ async function statementsOf(
   return statements;
 }
 
-describe("AddDataStoreFindingAiVerdicts1809187472372", () => {
+describe("AddDataStoreFindingAiVerdicts1809187520372", () => {
   test("adds the six columns, as TypeORM writes them", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddDataStoreFindingAiVerdicts1809187472372().up(runner);
+        return new AddDataStoreFindingAiVerdicts1809187520372().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "DataStoreFinding" ADD "aiVerdict" character varying(100)`,
@@ -60,7 +60,7 @@ describe("AddDataStoreFindingAiVerdicts1809187472372", () => {
   test("never rewrites the table: only a constant default, and no update", async () => {
     const statements: Array<string> = await statementsOf(
       (runner: QueryRunner) => {
-        return new AddDataStoreFindingAiVerdicts1809187472372().up(runner);
+        return new AddDataStoreFindingAiVerdicts1809187520372().up(runner);
       },
     );
 
@@ -78,7 +78,7 @@ describe("AddDataStoreFindingAiVerdicts1809187472372", () => {
   test("down() takes back exactly what up() made, in reverse", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddDataStoreFindingAiVerdicts1809187472372().down(runner);
+        return new AddDataStoreFindingAiVerdicts1809187520372().down(runner);
       }),
     ).toEqual(
       [...COLUMNS].reverse().map((column: string): string => {
@@ -93,20 +93,20 @@ describe("AddDataStoreFindingAiVerdicts1809187472372", () => {
       return (migration as { name: string }).name;
     });
     const index: number = names.indexOf(
-      "AddDataStoreFindingAiVerdicts1809187472372",
+      "AddDataStoreFindingAiVerdicts1809187520372",
     );
 
     expect(index).toBeGreaterThan(-1);
     expect(index).toBeGreaterThan(
-      names.indexOf("AddCodeRepositoryProductionReviewFailOnLeak1809187470500"),
+      names.indexOf("AddDataSecurityIssueResolution1809187510368"),
     );
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddDataStoreFindingAiVerdicts1809187472372;
+        return candidate === AddDataStoreFindingAiVerdicts1809187520372;
       }),
     ).toHaveLength(1);
-    expect(new AddDataStoreFindingAiVerdicts1809187472372().name).toBe(
-      "AddDataStoreFindingAiVerdicts1809187472372",
+    expect(new AddDataStoreFindingAiVerdicts1809187520372().name).toBe(
+      "AddDataStoreFindingAiVerdicts1809187520372",
     );
   });
 });

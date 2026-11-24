@@ -136,7 +136,11 @@ const GENERIC_CHECK_STATUSES: Array<SecurityConnectorCheckStatus> = [
  */
 const LEGACY_TABLES_SQL: string = `SELECT to_regclass('"GoogleSecOpsConnection"') IS NOT NULL AS "hasConnectionTable", to_regclass('"GoogleSecOpsConnectionRun"') IS NOT NULL AS "hasRunTable"`;
 
-const LEGACY_CONNECTIONS_SQL: string = `SELECT "_id", "createdAt", "updatedAt", "projectId", "name", "region", "instanceResourceName", "serviceAccountJson", "isEnabled", "pollIntervalInMinutes", "includeNonAlertingDetections", "lastSuccessfulPollAt", "lastEventIngestedAt", "lastPollResult", "lastPolledAt", "cursor", "lastError", "createdByUserId", "deletedByUserId" FROM "GoogleSecOpsConnection" WHERE "deletedAt" IS NULL ORDER BY "_id"`;
+/*
+ * Not "deletedByUserId": no write ever filled it in (records are deleted
+ * outright), and a security event connection no longer has one (#10469).
+ */
+const LEGACY_CONNECTIONS_SQL: string = `SELECT "_id", "createdAt", "updatedAt", "projectId", "name", "region", "instanceResourceName", "serviceAccountJson", "isEnabled", "pollIntervalInMinutes", "includeNonAlertingDetections", "lastSuccessfulPollAt", "lastEventIngestedAt", "lastPollResult", "lastPolledAt", "cursor", "lastError", "createdByUserId" FROM "GoogleSecOpsConnection" WHERE "deletedAt" IS NULL ORDER BY "_id"`;
 
 const LEGACY_RUNS_SQL: string = `SELECT "_id", "createdAt", "updatedAt", "requestedByUserId", "type", "status", "startedAt", "completedAt", "request", "result", "error" FROM "GoogleSecOpsConnectionRun" WHERE "googleSecOpsConnectionId" = $1 AND "deletedAt" IS NULL ORDER BY "createdAt" DESC, "_id" DESC LIMIT $2`;
 
@@ -173,7 +177,6 @@ export interface LegacyGoogleSecOpsConnectionRow {
   cursor: string | null;
   lastError: string | null;
   createdByUserId: string | null;
-  deletedByUserId: string | null;
 }
 
 // A GoogleSecOpsConnectionRun row as the Postgres driver returns it.
@@ -695,10 +698,6 @@ export function buildSecurityEventConnection(data: {
 
   if (row.createdByUserId) {
     connection.createdByUserId = new ObjectID(String(row.createdByUserId));
-  }
-
-  if (row.deletedByUserId) {
-    connection.deletedByUserId = new ObjectID(String(row.deletedByUserId));
   }
 
   const lastPollResult: unknown = transformLegacyLastPollResult(

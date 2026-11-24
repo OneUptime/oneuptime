@@ -576,7 +576,10 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
       }).toEqual({ label, named: true });
     }
 
-    // ...and offered exactly the two evaluation types the form offers them.
+    /*
+     * ...and offered exactly the evaluation types the form offers them: every
+     * check or any, and the counts of their checks (#10355).
+     */
     const offeredTypes: Array<EvaluateOverTimeType> =
       CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter({
         checkOn: CheckOn.IsRequestTimeout,
@@ -587,6 +590,9 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
     expect(offeredTypes).toEqual([
       EvaluateOverTimeType.AllValues,
       EvaluateOverTimeType.AnyValue,
+      EvaluateOverTimeType.Count,
+      EvaluateOverTimeType.Percentage,
+      EvaluateOverTimeType.StatusChanges,
     ]);
     expect(
       Array.from(
@@ -651,7 +657,7 @@ describe.each(PROBE_PAGES)("$page", (probePage: ProbePage) => {
     );
 
     expect(section(page, "### Evaluating over a period of time")).toContain(
-      `from ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, under **For the last (in minutes)**`,
+      `from ${Math.min(...minutes)} minutes to ${Math.max(...minutes) / 60} hours, under **For the last**`,
     );
   });
 
@@ -1367,7 +1373,7 @@ describe("the labels the probe check pages name exist where the pages say", () =
 
     for (const label of [
       "Evaluate this criteria over a period of time",
-      "For the last (in minutes)",
+      "For the last",
       "If No Data",
     ]) {
       expect({ label, inForm: filterForm.includes(`"${label}"`) }).toEqual({

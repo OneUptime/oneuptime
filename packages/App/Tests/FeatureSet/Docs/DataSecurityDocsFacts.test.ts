@@ -92,6 +92,7 @@ import {
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "Common/Types/NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityAddressVaultRetention";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -2592,11 +2593,14 @@ describe("Data Security Compliance", () => {
     expect(stores[1]?.[2]).toBe(
       `${NETWORK_FLOW_RETENTION_IN_DAYS} days after a flow arrives`,
     );
+    // The record keeps the figure on its word's line; the table writes a space.
     expect(stores[2]?.[2]).toBe(
       getDeclaredRetentionText({
         basis: DeclaredStoreRetentionBasis.AddressVault,
         retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
-      }),
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
     );
 
     // Who can read: the tables' own readers, or nobody but Security Events' scans.
@@ -3298,9 +3302,13 @@ describe("Data Security Integrations", () => {
       expect(rules).toContain(`**${name}**`);
     }
 
-    // The retired word is gone from the page, as it is from the Dashboard.
+    /*
+     * The retired word is gone from the page, as it is from the Dashboard:
+     * from the whole page, since a row of What OneUptime AI sees names a
+     * rule's Fix setting too (Fix the cause).
+     */
     expect(copy).not.toContain('translationKey("Without asking")');
-    expect(rules).not.toContain("**Without asking**");
+    expect(english(AI)).not.toContain("**Without asking**");
 
     // Suggest wins over Automatically, as the engine decides it.
     expect(rules).toContain("**Suggest** wins over **Automatically**");

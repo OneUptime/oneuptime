@@ -94,13 +94,13 @@ describe("which columns record a person doing something", () => {
     expect(ATTRIBUTION_COLUMNS.length).toBeGreaterThan(1500);
 
     expect(attributionIn("Incident")).toEqual(
-      expect.arrayContaining([
-        "createdByUser",
-        "createdByUserId",
-        "deletedByUser",
-        "deletedByUserId",
-      ]),
+      expect.arrayContaining(["createdByUser", "createdByUserId"]),
     );
+    /*
+     * Who deleted a record is no column: records are deleted outright, and
+     * the audit log's Delete entries say who deleted one (#10469).
+     */
+    expect(attributionIn("Incident")).not.toContain("deletedByUserId");
     expect(attributionIn("Monitor")).toEqual(
       expect.arrayContaining(["archivedByUser", "archivedByUserId"]),
     );
@@ -293,7 +293,6 @@ describe("which columns record a person doing something", () => {
        */
       "closed",
       "created",
-      "deleted",
       "dismissed",
       /*
        * SecurityCaseTask.doneByUserId: who ticked a task on a security case
@@ -354,6 +353,13 @@ describe("which columns record a person doing something", () => {
        * never writable through the API, so no request chooses it.
        */
       "merged",
+      /*
+       * SecurityAutomaticResponsePolicy.modeChangedByUserId: who last turned
+       * an automatic response policy off, into its trial run or on (#10350).
+       * The policy service stamps it from the caller as the mode changes;
+       * no request chooses it.
+       */
+      "modeChanged",
       "overrided",
       "pinned",
       "previewSeen",
@@ -405,6 +411,13 @@ describe("which columns record a person doing something", () => {
        * transcript routes stamp it from the caller; no request chooses it.
        */
       "transcriptAdded",
+      /*
+       * SecurityAutomaticResponsePolicy.trialSkippedByUserId: who turned a
+       * policy on before its week of trial run was over (#10350). The policy
+       * service stamps it from the caller as the policy is turned on, and
+       * clears it when a trial run starts again; no request chooses it.
+       */
+      "trialSkipped",
       "triggered",
       /*
        * DataSecurityComplianceSetting.turnedOffByUserId: who last turned a
@@ -415,6 +428,13 @@ describe("which columns record a person doing something", () => {
        * again; no request chooses it.
        */
       "turnedOff",
+      /*
+       * SecurityAutomaticResponsePolicy.turnedOnByUserId: who turned an
+       * automatic response policy on (#10350) - the approval its blocks run
+       * without. The policy service stamps it from the caller as the policy
+       * is turned on; no request chooses it.
+       */
+      "turnedOn",
       /*
        * DataSecurityAiProposal.undoneByUserId: who undid a change OneUptime
        * AI made for a Data Security issue (#10364). DataSecurityAiProposals
@@ -586,14 +606,29 @@ describe("the API offers each for reading only", () => {
       );
     }
 
+    /*
+     * A field as the spec writes it: its own schema, or the one it refers
+     * to - what created a record and who last modified it are each
+     * described once, by reference (ModelSchema.RECORD_ACTOR_SCHEMA_NAMES).
+     */
+    function resolved(field: JSONObject | undefined): JSONObject | undefined {
+      const ref: unknown = field?.["$ref"];
+
+      if (typeof ref !== "string") {
+        return field;
+      }
+
+      return schemas[ref.replace("#/components/schemas/", "")];
+    }
+
     test("a read schema marks each read-only, and no write schema has one", () => {
       const wrong: Array<string> = [];
       let readOnlySeen: number = 0;
 
       for (const entry of ATTRIBUTION_COLUMNS) {
-        const read: JSONObject | undefined = properties(
-          `${entry.table}ReadSchema`,
-        )[entry.column];
+        const read: JSONObject | undefined = resolved(
+          properties(`${entry.table}ReadSchema`)[entry.column],
+        );
 
         if (read) {
           if (read["readOnly"] !== true) {

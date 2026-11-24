@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Nye logs maskeres,<br/>før de gemmes"]
 ```
 
-Et fund, som en rensningsregel dækker, markeres som renset: det, der er tilbage af de data, er gamle data, der venter på, at deres opbevaring udløber, ikke en lækage, der stadig flyder. De to telemetrikontroller tæller kun det, ingen regel dækker, så deres problem løses, når hvert fund er renset (se [Telemetrikontroller](/docs/data-security/checks-and-issues#telemetri)).
+Et fund, som en rensningsregel dækker, markeres som renset: det, OneUptime gemmer af de data, er gamle data, der venter på, at deres opbevaring udløber. Koden skriver dem dog stadig, så de to telemetrikontroller tæller fundet som inddæmmet, ikke rettet: deres problem løses som **Inddæmmet ved modtagelsen**, når hvert fund er renset, og som **Rettet i koden** først, når en koderettelses nye version holder op med at skrive dataene (se [Hvad der sker med et problem](/docs/data-security/checks-and-issues#hvad-der-sker-med-et-problem)).
 
 ## Hvad der læses
 

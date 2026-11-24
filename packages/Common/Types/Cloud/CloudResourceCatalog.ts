@@ -260,6 +260,12 @@ export const AZURE_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
     ),
     // App hosting and containers
     azure("Microsoft.Web/sites", "App Service or Function App", PAAS, C.Web),
+    /*
+     * A site's deployment slot other than production (#6793): Azure Monitor
+     * measures each as a resource of its own, and an App Platforms app of
+     * a slot reads its slot's numbers, never the site's.
+     */
+    azure("Microsoft.Web/sites/slots", "Deployment Slot", PAAS, C.Web),
     azure("Microsoft.Web/serverfarms", "App Service Plan", PAAS, C.Web),
     azure("Microsoft.Web/staticSites", "Static Web App", PAAS, C.Web),
     azure("Microsoft.App/containerApps", "Container App", PAAS, C.Containers),

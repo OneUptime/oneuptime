@@ -1,10 +1,14 @@
 import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import {
-  IssueStatusPill,
+  IssueResolutionPill,
   SeverityPill,
   getIssueStatusOptions,
 } from "../../Components/DataSecurity/DataSecurityPills";
+import {
+  RESOLUTION_FILTER_TITLE,
+  getResolutionOptions,
+} from "../../Components/DataSecurity/IssueResolutionCopy";
 import {
   ISSUE_DELETE_WARNING,
   getIssueName,
@@ -492,6 +496,8 @@ const DataSecurityIssuesPage: FunctionComponent<
         // What a row's moves read: where it stands, and its acceptance.
         selectMoreFields={{
           status: true,
+          // How a resolved one was resolved: fixed, or only contained (#10368).
+          resolution: true,
           checkId: true,
           dataStoreId: true,
           acceptedReason: true,
@@ -518,6 +524,17 @@ const DataSecurityIssuesPage: FunctionComponent<
             title: "Group",
             type: FieldType.Dropdown,
             filterDropdownOptions: groupOptions,
+          },
+          /*
+           * How a resolved issue was resolved (#10368): the leaks fixed at
+           * the source apart from those only contained at ingest.
+           */
+          {
+            field: { resolution: true },
+            title: RESOLUTION_FILTER_TITLE,
+            type: FieldType.Dropdown,
+            filterDropdownOptions: getResolutionOptions(),
+            isAdvancedFilter: true,
           },
           {
             field: { dataStoreId: true },
@@ -589,7 +606,10 @@ const DataSecurityIssuesPage: FunctionComponent<
                     {item.status &&
                     item.status !== DataSecurityIssueStatus.Open ? (
                       <span className="me-1.5 inline-flex align-middle">
-                        <IssueStatusPill status={item.status} />
+                        <IssueResolutionPill
+                          status={item.status}
+                          resolution={item.resolution}
+                        />
                       </span>
                     ) : (
                       <></>
@@ -753,7 +773,12 @@ const DataSecurityIssuesPage: FunctionComponent<
             disableSort: true,
             isHiddenByDefault: true,
             getElement: (item: DataSecurityIssue): ReactElement => {
-              return <IssueStatusPill status={item.status} />;
+              return (
+                <IssueResolutionPill
+                  status={item.status}
+                  resolution={item.resolution}
+                />
+              );
             },
           },
           ...(isAiOffered

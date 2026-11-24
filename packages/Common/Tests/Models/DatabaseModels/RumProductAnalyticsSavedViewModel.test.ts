@@ -208,7 +208,6 @@ describe("RumProductAnalyticsSavedView", () => {
     expect(findRelation("project")?.options.onDelete).toBe("CASCADE");
     expect(findRelation("rumApplication")?.options.onDelete).toBe("CASCADE");
     expect(findRelation("createdByUser")?.options.onDelete).toBe("SET NULL");
-    expect(findRelation("deletedByUser")?.options.onDelete).toBe("SET NULL");
   });
 
   test("is listed by application and kind, as the pages and the widget settings read it", () => {

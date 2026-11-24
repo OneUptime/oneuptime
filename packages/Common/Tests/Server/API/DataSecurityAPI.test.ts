@@ -43,6 +43,7 @@ import {
   DataSecurityAiVerdict,
   DataSecurityIssueAnalysisView,
 } from "../../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import DataSecurityAiSettings from "../../../Server/Utils/AI/DataSecurity/DataSecurityAiSettings";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import ServerProducts from "../../../Server/Utils/ServerProducts/ServerProducts";
@@ -5044,14 +5045,14 @@ describe("the record of processing", () => {
       dataTypeNames: ["IP address", "Username", "Email address"],
       owners: [],
       purpose: "Network and information security (GDPR Recital 49)",
-      retention: "15 days",
+      retention: `15${NO_BREAK_SPACE}days`,
       frameworks: [ComplianceFramework.GDPR, ComplianceFramework.CCPA],
       declared: {
         kind: DataStoreKind.SecurityEvents,
         purpose: "Network and information security (GDPR Recital 49)",
         retentionInDays: 15,
         retentionBasis: DeclaredStoreRetentionBasis.SecurityEvents,
-        retentionText: "15 days",
+        retentionText: `15${NO_BREAK_SPACE}days`,
         isPurposeTheTeams: false,
         isRetentionTheTeams: false,
         readers: DeclaredStoreReaders.Roles,
@@ -5072,7 +5073,7 @@ describe("the record of processing", () => {
     expect(rowNamed(answer, "Network Flows")).toMatchObject({
       dataStoreId: flows.id!.toString(),
       purpose: "Network and information security (GDPR Recital 49)",
-      retention: "30 days",
+      retention: `30${NO_BREAK_SPACE}days`,
       declared: {
         retentionInDays: 30,
         readers: DeclaredStoreReaders.Roles,
@@ -5096,7 +5097,7 @@ describe("the record of processing", () => {
     expect(rowNamed(answer, "Security Address Vault")).toMatchObject({
       dataTypeNames: ["IP address"],
       purpose: "Network and information security (GDPR Recital 49)",
-      retention: "30 days after an address was last seen",
+      retention: `30${NO_BREAK_SPACE}days after an address was last seen`,
       declared: {
         readers: DeclaredStoreReaders.SecurityEventsScansOnly,
         readPermissions: [],
@@ -5142,7 +5143,7 @@ describe("the record of processing", () => {
       isRetentionTheTeams: true,
       // What OneUptime would say stays beside it.
       purpose: "Network and information security (GDPR Recital 49)",
-      retentionText: "15 days",
+      retentionText: `15${NO_BREAK_SPACE}days`,
     });
   });
 
@@ -5156,7 +5157,7 @@ describe("the record of processing", () => {
       "Security Events",
     );
 
-    expect(row.retention).toBe("60 days");
+    expect(row.retention).toBe(`60${NO_BREAK_SPACE}days`);
     expect(row.declared?.retentionInDays).toBe(60);
   });
 
@@ -5227,7 +5228,7 @@ describe("a declared store's page", () => {
       expect(result.thrown).toBeUndefined();
       expect(result.answer).toMatchObject({
         purpose: "Network and information security (GDPR Recital 49)",
-        retention: "30 days",
+        retention: `30${NO_BREAK_SPACE}days`,
         declared: {
           kind: DataStoreKind.NetworkFlows,
           readers: DeclaredStoreReaders.Roles,
@@ -5261,7 +5262,7 @@ describe("a declared store's page", () => {
 
     expect(result.answer).toMatchObject({
       purpose: "Our own words",
-      retention: "15 days",
+      retention: `15${NO_BREAK_SPACE}days`,
       declared: { isPurposeTheTeams: true, isRetentionTheTeams: false },
     });
 

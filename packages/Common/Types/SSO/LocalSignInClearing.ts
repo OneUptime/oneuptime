@@ -345,6 +345,14 @@ export const CLEAR_MASTER_ADMIN_SIGN_IN_NOT_CONFIRMED_MESSAGE: string =
 export const CLEAR_OWN_SIGN_IN_MESSAGE: string =
   "You cannot clear your own sign-in settings here. Change them in User Profile, under Security.";
 
+/*
+ * Another clear of the same people held them for longer than a clear waits
+ * (#10776, Server/Utils/LocalSignInClearing's lock): nothing more of this
+ * one is cleared, and it can be sent again once that one is done.
+ */
+export const CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE: string =
+  "These sign-in settings are already being cleared. Try again in a moment.";
+
 // Nothing saved: the person has nothing to clear.
 export const NO_LOCAL_SIGN_IN_SETTINGS: LocalSignInSettings = {
   hasPassword: false,

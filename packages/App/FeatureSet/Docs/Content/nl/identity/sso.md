@@ -383,7 +383,7 @@ Een account kan bij veel organisaties horen, dus u kunt alleen de instellingen w
 
 Om één persoon te wissen, opent u **Gebruikers**: de rij van elke persoon die u mag wissen toont **Aanmeldinstellingen opgeslagen**, en **Aanmeldinstellingen wissen** in het menu ervan wist alleen die van die persoon, volgens dezelfde regel, na een vraag die opsomt wat er verdwijnt.
 
-Iedereen van wie de instellingen zijn gewist, krijgt een e-mail over wat er is verwijderd en dat diegene zich nu met SSO aanmeldt, en de auditlogboeken van uw projecten leggen vast dat u het wissen hebt gedaan. Alleen een **Projecteigenaar** kan wissen, aangemeld bij het dashboard: nooit met een API-sleutel.
+Iedereen van wie de instellingen zijn gewist, krijgt een e-mail over wat er is verwijderd en dat diegene zich nu met SSO aanmeldt, en de auditlogboeken van uw projecten leggen vast dat u het wissen hebt gedaan. Alleen een **Projecteigenaar** kan wissen, aangemeld bij het dashboard: nooit met een API-sleutel. Wissen vraagt u eerst [te bevestigen dat u het bent](/docs/introduction/your-account#bevestigen-dat-u-het-bent).
 
 ## Een provider uitzetten of verwijderen
 

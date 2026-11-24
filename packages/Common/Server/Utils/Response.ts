@@ -32,6 +32,7 @@ import MimeType from "../../Types/File/MimeType";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import RetiredColumns from "./Database/RetiredColumns";
 import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
 import { getProductBrandingViewVariables } from "./ProductBrandingViewVariables";
 import { createHash } from "crypto";
@@ -83,6 +84,15 @@ export interface CalendarResponseData {
 export interface ListResponseOptions {
   hasMore?: boolean | undefined;
   isCountCapped?: boolean | undefined;
+}
+
+/*
+ * What an answer of records adds to each: the columns the request selected
+ * that no model has now, answered as null as they always were
+ * (RetiredColumns, #10469).
+ */
+export interface EntityResponseOptions {
+  retiredColumns?: ReadonlyArray<string> | undefined;
 }
 
 export enum CalendarResponseDisposition {
@@ -519,7 +529,7 @@ export default class Response {
     list: Array<BaseModel | AnalyticsDataModel>,
     count: PositiveNumber | number,
     modelType: { new (): BaseModel | AnalyticsDataModel },
-    options?: ListResponseOptions | undefined,
+    options?: (ListResponseOptions & EntityResponseOptions) | undefined,
   ): void {
     if (!(count instanceof PositiveNumber)) {
       count = new PositiveNumber(count);
@@ -543,6 +553,11 @@ export default class Response {
       );
     }
 
+    RetiredColumns.answerAsNull(
+      jsonArray as Array<JSONObject>,
+      options?.retiredColumns || [],
+    );
+
     return this.sendJsonArrayResponse(req, res, jsonArray, count, options);
   }
 
@@ -553,15 +568,18 @@ export default class Response {
     item: BaseModel | AnalyticsDataModel | null,
     modelType: { new (): BaseModel | AnalyticsDataModel },
     options?:
-      | {
+      | ({
           miscData?: JSONObject;
-        }
+        } & EntityResponseOptions)
       | undefined,
   ): void {
     let response: JSONObject = {};
 
     if (item && item instanceof BaseModel) {
-      response = BaseModel.toJSON(item, modelType as DatabaseBaseModelType);
+      response = RetiredColumns.answerAsNull(
+        BaseModel.toJSON(item, modelType as DatabaseBaseModelType),
+        options?.retiredColumns || [],
+      );
     }
 
     if (item && item instanceof AnalyticsDataModel) {

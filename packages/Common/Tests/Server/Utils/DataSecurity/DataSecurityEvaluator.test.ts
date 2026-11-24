@@ -570,6 +570,7 @@ function factsOf(overrides: Partial<StoreFacts> = {}): StoreFacts {
   return {
     findings: [],
     unscrubbedDataTypeIds: new Set(),
+    containedDataTypeIds: new Set(),
     hasOwner: true,
     readers: new Set(),
     unusedReaders: new Map(),
@@ -772,6 +773,52 @@ describe("DataSecurityEvaluator.evaluateStore", () => {
       "secrets-in-telemetry",
       "sensitive-data-in-telemetry",
     ]);
+  });
+
+  test("data a scrub rule only hides reaches the reconciler as a contained check, on a telemetry store only (#10368)", async () => {
+    const logs: DataStore = storeOf({
+      name: "checkout · Logs",
+      kind: DataStoreKind.TelemetryLogs,
+      storeKey: "telemetry:service-1:Logs",
+    });
+    const bucket: DataStore = storeOf({ name: "support-attachments" });
+    const reconcileSpy: jest.SpyInstance = jest.spyOn(
+      DataSecurityIssueReconciler,
+      "reconcileStore",
+    );
+    const facts: () => StoreFacts = (): StoreFacts => {
+      return factsOf({
+        findings: [
+          EMAIL_HIGH,
+          { dataTypeId: "generic-secret", confidence: DataConfidence.High },
+        ],
+        // The email is hidden at ingest; the secret is not, and still fails.
+        unscrubbedDataTypeIds: new Set(["generic-secret"]),
+        containedDataTypeIds: new Set(["email-address"]),
+      });
+    };
+    const lastInput: () => ReconcileStoreInput = (): ReconcileStoreInput => {
+      return reconcileSpy.mock.calls[
+        reconcileSpy.mock.calls.length - 1
+      ]![0] as ReconcileStoreInput;
+    };
+
+    await evaluateOne({ store: logs, facts: facts() });
+
+    expect([...(lastInput().containedCheckIds || [])]).toEqual([
+      "sensitive-data-in-telemetry",
+    ]);
+    expect(
+      checkOn("checkout · Logs", "sensitive-data-in-telemetry")?.result.status,
+    ).toBe(CheckCatalog.DataSecurityCheckStatus.Pass);
+    expect(
+      checkOn("checkout · Logs", "secrets-in-telemetry")?.result.status,
+    ).toBe(CheckCatalog.DataSecurityCheckStatus.Fail);
+
+    // A bucket's findings are never scrubbed, so nothing of it is contained.
+    await evaluateOne({ store: bucket, facts: facts() });
+
+    expect(lastInput().containedCheckIds).toBeUndefined();
   });
 
   test("residency rules the store's region or replicas break reach the checks", async () => {

@@ -76,6 +76,8 @@ export const UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES: Array<SecurityPlaybookRu
     SecurityPlaybookRunStatus.Queued,
     SecurityPlaybookRunStatus.Running,
     SecurityPlaybookRunStatus.WaitingForApproval,
+    // A Page On-Call step waits while OneUptime AI responds first (#10353).
+    SecurityPlaybookRunStatus.WaitingForOneUptimeAi,
   ];
 
 // What a one-step run from a case is started with (startOneStepRun).
@@ -83,7 +85,14 @@ export interface OneStepRunRequest {
   projectId: ObjectID;
   securityCaseId: ObjectID;
   // The person who asked for it: the run is theirs, and approved by someone else.
-  userId: ObjectID;
+  userId?: ObjectID | undefined;
+  /*
+   * Or the automatic response policy that started it (#10350), by its id
+   * and name: the run is the policy's, with nobody's approval to wait for
+   * since the project turned the policy on (its step says who and when).
+   */
+  automaticResponsePolicyId?: ObjectID | undefined;
+  policyName?: string | undefined;
   // One step of an action a one-step run takes (ONE_STEP_RUN_ACTIONS).
   step: SecurityPlaybookStep;
   // What it acts on, picked by the person and checked by the caller.
@@ -131,6 +140,12 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    if (!data.userId === !data.automaticResponsePolicyId) {
+      throw new BadDataException(
+        "A one-step run is asked for by a person or by an automatic response policy.",
+      );
+    }
+
     // The step as a run reads it back: cleaned, and refused when it cannot run.
     const steps: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps([
       data.step,
@@ -145,8 +160,17 @@ export class Service extends ProjectReferencesService<Model> {
     run.securityCaseId = data.securityCaseId;
     run.playbookName =
       getSecurityPlaybookAction(data.step.action)?.title || data.step.action;
-    run.trigger = SecurityPlaybookTrigger.Manual;
-    run.triggeredByUserId = data.userId;
+
+    if (data.automaticResponsePolicyId) {
+      // The policy's, by its name: "Scanners".
+      run.playbookName = (data.policyName || run.playbookName).slice(0, 100);
+      run.trigger = SecurityPlaybookTrigger.AutomaticResponse;
+      run.securityAutomaticResponsePolicyId = data.automaticResponsePolicyId;
+    } else {
+      run.trigger = SecurityPlaybookTrigger.Manual;
+      run.triggeredByUserId = data.userId!;
+    }
+
     run.steps = steps as unknown as JSONArray;
     run.stepResults = results as unknown as JSONArray;
 

@@ -288,7 +288,7 @@ criteria = [
 
 किसी फ़िल्टर में `check_on` (क्या देखना है), `filter_type` (कैसे तुलना करनी है) और `value` (किससे तुलना करनी है, स्ट्रिंग के रूप में; `True` और `False` जैसी सही-या-गलत जाँचों के लिए इसे छोड़ दें) होते हैं।
 
-कोई फ़िल्टर आख़िरी जाँच के बजाय समय की एक अवधि को भी परख सकता है: `evaluate_over_time = true` सेट करें, अवधि की लंबाई `evaluate_over_time_minutes` में, और `evaluate_over_time_type` में यह कि अवधि को कैसे पढ़ा जाए: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` या `Any Value`।
+कोई फ़िल्टर आख़िरी जाँच के बजाय समय की एक अवधि को भी परख सकता है: `evaluate_over_time = true` सेट करें, अवधि की लंबाई `evaluate_over_time_minutes` में, और `evaluate_over_time_type` में यह कि अवधि को कैसे पढ़ा जाए: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` या `Status Changes`। `Percentile`, `evaluate_over_time_percentile` के पर्सेंटाइल की तुलना फ़िल्टर के मान से करता है (सेट न होने पर 95)। `Count`, `Percentage` और `Status Changes` हर प्रोब के लिए विंडो की उन जाँचों को गिनते हैं जिन्होंने शर्त पूरी की, उनका प्रतिशत हिस्सा, या वे शर्त पूरी करने और न करने के बीच कितनी बार बदलीं, और उस संख्या की तुलना `evaluate_over_time_count_filter_type` के अनुसार `evaluate_over_time_count_value` से करते हैं (सेट न होने पर `Greater Than` 0)।
 
 `All Values` का मतलब है कि अवधि की हर जाँच ने नियम तोड़ा, इसलिए यह तभी मेल खाता है जब अवधि डेटा से भर चुकी हो: अभी बना मॉनिटर अपनी पहली जाँच पर मेल खाने के बजाय अपनी अवधि भरने का इंतज़ार करता है। इसे मॉनिटर के `monitoring_interval` से कम से कम दोगुनी अवधि दें; नहीं तो अवधि में एक ही जाँच होती है, और "सभी मान" का मतलब वही हो जाता है जो "कोई भी मान" का। `Any Value` जानबूझकर नियम तोड़ने वाली एक जाँच पर मेल खाता है।
 

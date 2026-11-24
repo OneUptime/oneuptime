@@ -80,12 +80,12 @@ describe("ProbeCapability", () => {
     expect(FIRST_PROBE_VERSION_WITH_SNMP_TABLES).toBe("14.0.18");
   });
 
-  test("one-time codes ship in the release after 17.0.0", () => {
-    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+  test("one-time codes shipped in 17.1.0, the release after 17.0.0: no 17.0.1 was released", () => {
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.1.0");
   });
 
-  test("any request body ships in the release after 17.1.0", () => {
-    expect(FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY).toBe("17.2.0");
+  test("any request body ships in the release after 17.2.0, which was cut before it merged", () => {
+    expect(FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY).toBe("17.2.1");
   });
 
   test("a probe from before any request body does not declare it sends one", () => {

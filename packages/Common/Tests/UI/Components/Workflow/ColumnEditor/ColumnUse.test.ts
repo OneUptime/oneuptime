@@ -80,12 +80,8 @@ describe("isSystemColumn", () => {
 });
 
 describe("isAlwaysEmptyColumn", () => {
-  test("the deleted-record columns are empty on every record a workflow can see", () => {
+  test("when a record was deleted, and its version, are empty on every record a workflow can see", () => {
     expect(isAlwaysEmptyColumn(makeColumn({ id: "deletedAt" }))).toBe(true);
-    expect(isAlwaysEmptyColumn(makeColumn({ id: "deletedByUserId" }))).toBe(
-      true,
-    );
-    expect(isAlwaysEmptyColumn(makeColumn({ id: "deletedByUser" }))).toBe(true);
     expect(isAlwaysEmptyColumn(makeColumn({ id: "version" }))).toBe(true);
   });
 

@@ -21,6 +21,7 @@ import CronTab from "../../CronTab";
 import MonitoringIntervalUtil from "../../../../Utils/Monitor/MonitoringIntervalUtil";
 import logger from "../../Logger";
 import WindowCoverage from "./WindowCoverage";
+import CompareCriteria from "./CompareCriteria";
 
 /**
  * Outcome of trying to turn an "evaluate over time" filter into a value the
@@ -261,6 +262,15 @@ export default class EvaluateOverTime {
         windowStart: windowStart,
         windowEnd: now,
         attributes: data.miscData,
+        /*
+         * A window of hours (#10355) can hold more rows than one read
+         * returns - a day of checks every 30 seconds from eight probes. Read
+         * newest first, a read cut at its limit leaves out the oldest rows:
+         * All Values then waits, as for a window its checks do not reach
+         * back over yet, and an aggregate reads the newest checks. Counting
+         * a window's checks reads them in the database (CheckWindowCounts).
+         */
+        newestFirst: windowInMinutes > 60,
       });
     } catch (err) {
       logger.error(
@@ -286,8 +296,19 @@ export default class EvaluateOverTime {
      * as All Values. Reducing it would hand the True / False comparators a
      * number such as 0.6, which matches neither, so the filter never fired.
      */
-    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+    const effectiveType: EvaluateOverTimeType | undefined =
       CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(data.criteriaFilter);
+
+    /*
+     * A window that counts its checks is judged by the criteria evaluator
+     * before any monitor type's evaluator asks for a value here
+     * (CheckWindowCounts). A caller that asks anyway gets the strictest
+     * reading of the window, All Values, never a count read as a value.
+     */
+    const evaluateOverTimeType: EvaluateOverTimeType | undefined =
+      CriteriaFilterUtil.isCountedWindowType(effectiveType)
+        ? EvaluateOverTimeType.AllValues
+        : effectiveType;
 
     const sampleTimes: Array<Date> = [];
 
@@ -368,6 +389,7 @@ export default class EvaluateOverTime {
       value: this.getValueByEvaluationType({
         values: values as Array<number>,
         evaluateOverTimeType: evaluateOverTimeType!,
+        percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
       }),
       sampleCount: values.length,
       noDataReason: null,
@@ -560,8 +582,15 @@ export default class EvaluateOverTime {
   private static getValueByEvaluationType(data: {
     values: Array<number>;
     evaluateOverTimeType: EvaluateOverTimeType;
+    percentile?: number | undefined;
   }): number {
     switch (data.evaluateOverTimeType) {
+      // One figure for the window, as Average is (#10355).
+      case EvaluateOverTimeType.Percentile:
+        return CompareCriteria.getPercentileOf({
+          values: data.values,
+          percentile: data.percentile,
+        });
       case EvaluateOverTimeType.Average:
         return this.getAverage(data.values);
       case EvaluateOverTimeType.MaximumValue:

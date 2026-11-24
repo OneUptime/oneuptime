@@ -234,7 +234,6 @@ describe("the statuses table", () => {
         "archivedAt",
         "archivedByUserId",
         "createdByUserId",
-        "deletedByUserId",
       ]),
     );
 
@@ -319,11 +318,7 @@ describe("the statuses table", () => {
       relationOf(IncidentPostmortemStatus, "project")!.options.onDelete,
     ).toBe("CASCADE");
 
-    for (const relation of [
-      "createdByUser",
-      "deletedByUser",
-      "archivedByUser",
-    ]) {
+    for (const relation of ["createdByUser", "archivedByUser"]) {
       expect(
         relationOf(IncidentPostmortemStatus, relation)!.options.onDelete,
       ).toBe("SET NULL");

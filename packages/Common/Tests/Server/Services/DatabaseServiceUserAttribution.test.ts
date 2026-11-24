@@ -554,15 +554,12 @@ describe("OneUptime's own server code, acting for a person", () => {
       incident,
       {
         createdByUser: { _id: OTHER_USER_ID },
-        deletedByUserId: new ObjectID(OTHER_USER_ID),
       },
       SERVER_WITH_PERSON_PROPS,
     );
 
     expect(reached.outcome).toBeInstanceOf(PastTheRule);
     expect(reached.data?.["createdByUser"]).toBeUndefined();
-    // The other columns it names are its own to name.
-    expect(String(reached.data?.["deletedByUserId"])).toBe(OTHER_USER_ID);
   });
 
   test("an update keeps what it names", async () => {
@@ -690,7 +687,6 @@ describe("the creator of a record, end to end", () => {
   const NAMING_SOMEBODY_ELSE: Record<string, unknown> = {
     createdByUserId: new ObjectID(OTHER_USER_ID),
     createdByUser: { _id: OTHER_USER_ID },
-    deletedByUserId: new ObjectID(OTHER_USER_ID),
   };
 
   test("a person's note is by that person, after the permission check", async () => {
@@ -721,7 +717,6 @@ describe("the creator of a record, end to end", () => {
 
     expect(String(row["createdByUserId"])).toBe(USER_ID.toString());
     expect(row["createdByUser"]).toBeUndefined();
-    expect(row["deletedByUserId"]).toBeUndefined();
     expect(row["note"]).toBe("Rolled back the deploy.");
 
     // The check ran, and did not ask the person for access to the creator.
@@ -759,7 +754,6 @@ describe("the creator of a record, end to end", () => {
 
     expect(row["createdByUserId"]).toBeUndefined();
     expect(row["createdByUser"]).toBeUndefined();
-    expect(row["deletedByUserId"]).toBeUndefined();
   });
 
   test("a workflow's note is by nobody", async () => {

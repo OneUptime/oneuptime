@@ -83,6 +83,8 @@ Secrets are filled in before a Synthetic or Custom JavaScript Code monitor's scr
 
 If a monitor references a secret it cannot use, the reference is left as it is and is not replaced with the value.
 
+When an API, Website or External Status Page check fails, its error names the URL by its scheme, host and port alone, such as `https://api.example.com`, so a secret in the URL is never shown.
+
 When you test a monitor before saving it, only secrets available to **All monitors** are filled in, because a new monitor is not on any list and has no labels yet. After you save the monitor, tests use every secret the monitor can use.
 
 ## Signing in with a one-time code
@@ -128,7 +130,7 @@ return {
 The probe never hands out a code with less than five seconds left, or a third of the period when the period is shorter: it waits for the next code instead, at most five seconds, and leaves that wait out of the check's execution time. Every code a check makes is shown as asterisks, such as `******`, in its log messages, its result, its error and the names of its screenshots. A screenshot is a picture of the page, so take it before the code is typed or after the page moves on.
 
 > [!NOTE]
-> The probe makes the codes, so a custom probe needs OneUptime 17.0.1 or later. On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe; the monitor's form and the probe's page name a probe that is too old, and [Update a probe](/docs/probe/custom-probe#update-a-probe) says how. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
+> The probe makes the codes, so a custom probe needs OneUptime 17.1.0 or later. On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe; the monitor's form and the probe's page name a probe that is too old, and [Update a probe](/docs/probe/custom-probe#update-a-probe) says how. The probe's clock must be right too, because a probe that is a minute off makes codes the site has already moved past.
 
 ## Troubleshooting
 
@@ -149,7 +151,7 @@ Check that the **Current code** matched your authenticator app when you saved th
 :::
 
 :::details The check says the probe is too old to make one-time codes
-The probe runs a release older than OneUptime 17.0.1, which cannot make one-time codes, so the check did not run on it. Update the probe (see [Update a probe](/docs/probe/custom-probe#update-a-probe)), or check the monitor from probes that run 17.0.1 or later.
+The probe runs a release older than OneUptime 17.1.0, which cannot make one-time codes, so the check did not run on it. Update the probe (see [Update a probe](/docs/probe/custom-probe#update-a-probe)), or check the monitor from probes that run 17.1.0 or later.
 :::
 
 ## Next steps

@@ -8,6 +8,7 @@ OneUptime AI leest elke beveiligingszaak zoals een analist dat zou doen: de dete
 - [Een zaak van begin tot eind behandelen](#een-zaak-van-begin-tot-eind-behandelen): Indammen, controleren, herstellen en sluiten, met een persoon die goedkeurt wat jij kiest.
 - [Wat OneUptime AI mag doen op een zaak](#wat-oneuptime-ai-mag-doen-op-een-zaak): Uit, Eerst vragen of Zelfstandig, per soort stap.
 - [Wanneer het een zaak aan mensen overdraagt](#wanneer-het-een-zaak-aan-mensen-overdraagt): Waarom het stopt, en wie het hoort.
+- [OneUptime AI eerst laten reageren](#oneuptime-ai-eerst-laten-reageren): Mensen alleen waarschuwen als OneUptime AI ze nodig heeft.
 - [Een playbook uitvoeren na een beoordeling](#een-playbook-uitvoeren-na-een-beoordeling): Reageren op een zaak die als Waarschijnlijk kwaadaardig wordt gelezen.
 - [Een detectieregel laten opstellen](#een-detectieregel-laten-opstellen): Beschrijf wat je wilt vangen en lees de Sigma-regel.
 - [Ask AI op de beveiligingspagina's](#ask-ai-op-de-beveiligingspaginas): Vragen over zaken en gebeurtenissen, in gewone woorden.
@@ -176,6 +177,7 @@ OneUptime AI trekt zich nooit stilletjes terug. Het draagt de zaak over aan mens
 - waar de volgende stap op ingrijpt, beschermd is;
 - het binnen een uur zo vaak zelfstandig heeft gehandeld als het mag;
 - AI uit staat voor het project of voor beveiligingszaken, er geen LLM-provider is, of het project geen AI-tegoed meer heeft of zijn dagelijkse AI-limiet heeft bereikt;
+- het product Beveiligingsgebeurtenissen op de server is uitgeschakeld;
 - de beoordeling niet kon vaststellen of de zaak echt is;
 - een stap die het zette geen stand houdt, een stap die het startte niet is voltooid, of iemand een stap die het zette heeft geweigerd of ongedaan gemaakt;
 - het niet kan bepalen wat het nu moet doen, of alles wat nog op de zaak staat door een persoon moet worden gedaan.
@@ -183,6 +185,46 @@ OneUptime AI trekt zich nooit stilletjes terug. Het draagt de zaak over aan mens
 De mensen op de zaak horen het meteen, of, als niemand aan de zaak werkt, de mensen die over zaken met die prioriteit worden geïnformeerd: **OneUptime AI heeft een beveiligingszaak aan mensen overgedragen**, onder **Gebruikersinstellingen → Meldingsinstellingen**. Een meldingsregel van de werkruimte voor beveiligingszaken plaatst het in zijn Slack- of Microsoft Teams-kanaal onder **Door OneUptime AI aan mensen overgedragen**. **Overnemen** draagt de zaak over zonder iemand te informeren, omdat degene die erop drukte de zaak al heeft.
 
 **Reageren met AI** vraagt OneUptime AI de zaak opnieuw te behandelen, vanaf waar de zaak nu staat.
+
+Zolang het product Beveiligingsgebeurtenissen op de server is uitgeschakeld, start OneUptime AI op geen enkele zaak een nieuwe stap en draagt het binnen een minuut elke zaak die het behandelt over aan mensen. Een stap die het al had gestart, wordt zoals gewoonlijk voltooid of kan ongedaan worden gemaakt. Staat het product weer aan, dan pakt het geen van die zaken uit zichzelf weer op: dat doet **Reageren met AI**.
+
+Een zaak die wordt tegengehouden terwijl OneUptime AI eerst reageert, bereikt mensen één keer, met de melding van de nieuwe zaak en waarom OneUptime AI stopte: zie [OneUptime AI eerst laten reageren](#oneuptime-ai-eerst-laten-reageren).
+
+## OneUptime AI eerst laten reageren
+
+Onder **OneUptime AI eerst laten reageren**, op **Producten → Beveiligingsgebeurtenissen → AI → Instellingen**, zet je **Eerst reageren** aan: een nieuwe zaak die een detectie opent met een lagere prioriteit dan die je kiest, wacht dan op OneUptime AI voordat iemand wordt gewaarschuwd. Het wordt aangeboden zolang **Nieuwe zaken beoordelen** en **Zaken van begin tot eind behandelen** aan staan. Het staat eerst uit en slaat op zodra je het wijzigt. Projecteigenaar en Projectbeheerder kunnen het wijzigen.
+
+- **Voor zaken onder**: de prioriteit waaronder een zaak moet liggen om te worden tegengehouden. Dat is High tot je een andere kiest.
+- **Toch waarschuwen na**: hoe lang een zaak hooguit wordt tegengehouden, 5, 10, 15, 20 of 30 minuten. Het begint op 10 minuten.
+
+Zolang een zaak wordt tegengehouden, wacht de melding van de nieuwe zaak, en dat doen ook de stappen **Bereikbaarheidsdienst oproepen** van de playbooks die er vanzelf op starten. De zaak toont **OneUptime AI is ermee bezig**, met het moment waarop mensen worden gewaarschuwd, en **Nu oproepen** waarschuwt ze meteen. Een playbookuitvoering waarvan de oproep wacht, staat op **Wacht op OneUptime AI**.
+
+Het tegenhouden eindigt zodra een van deze dingen gebeurt:
+
+| Wanneer | Dan |
+| --- | --- |
+| OneUptime AI damt de zaak in en OneUptime controleert elke stap die hem indamt, of de zaak wordt gesloten | Niemand wordt gewaarschuwd. De kanalen waarin nieuwe zaken worden geplaatst, krijgen één samenvatting van wat OneUptime AI deed, en de oproepstappen die wachtten, worden overgeslagen |
+| OneUptime AI heeft een persoon nodig: het vraagt iemand een stap goed te keuren, draagt de zaak over aan mensen of kan niet beginnen met het behandelen ervan | Iedereen voor wie de zaak werd tegengehouden, wordt meteen gewaarschuwd, met de reden en wat OneUptime AI al deed, en de oproepstappen die wachtten, roepen op |
+| De beoordeling leest de zaak niet als Waarschijnlijk kwaadaardig, de zaak wordt als Ingedamd gemarkeerd voordat OneUptime elke stap kon controleren, of de tegenhoudtijd verstrijkt | Iedereen wordt meteen gewaarschuwd, met de reden |
+| Iemand drukt op **Nu oproepen**, de zaak stijgt naar de prioriteit die je koos, of **Eerst reageren** of **Zaken van begin tot eind behandelen** wordt uitgezet | Iedereen wordt meteen gewaarschuwd |
+| Een persoon pakt de zaak op: **Overnemen**, de zaak toewijzen of naar een volgende status zetten | Die heeft de zaak. Verder wordt niemand gewaarschuwd, de kanalen horen van de nieuwe zaak, en de oproepstappen die wachtten, worden overgeslagen |
+
+Een zaak wordt nooit tegengehouden, en mensen worden zoals gewoonlijk gewaarschuwd, wanneer:
+
+- ze je hoogste prioriteit heeft, of de prioriteit die je koos of een hogere;
+- 3 andere zaken in de 5 minuten ervoor zijn geopend, wat op een actieve aanval lijkt: de zaken die dan worden tegengehouden, gaan ook naar mensen;
+- een deel van de gegevens ervan leest als instructies aan een AI;
+- ze over een adres, gebruiker of host gaat van een zaak die OneUptime AI in de afgelopen 24 uur heeft opgelost, want wat het deed, hield dan geen stand;
+- OneUptime AI de zaak niet kan beoordelen of behandelen, zoals wanneer het project geen AI-tegoed meer heeft;
+- een persoon de zaak heeft geopend, of het de zaak van de testaanval is.
+
+De tijdlijn van de zaak zegt waarom ze niet werd tegengehouden, behalve bij een zaak met de prioriteit die je koos of hoger, een zaak die een persoon opende en de zaak van de testaanval. De meldingen van een reactiedoel worden nooit tegengehouden.
+
+Adressen blokkeren en accounts en hosts indammen vragen het eerst, tot je ze onder **Wat OneUptime AI mag doen op een zaak** op **Zelfstandig** zet, en een zaak bereikt mensen zodra OneUptime AI iets vraagt. Met **Adressen blokkeren** op **Zelfstandig**, bevestigd door een Beveiligingsbeheerder, kan het een scanner indammen zonder dat iemand wordt gewaarschuwd.
+
+### De wekelijkse e-mail
+
+Elke maandag krijgen Projecteigenaren en Beveiligingsbeheerders die beveiligingszaken mogen lezen, één e-mail over wat OneUptime AI de week ervoor op de beveiligingszaken van het project deed: de zaken waarop het eerst reageerde en hoe die afliepen, hoe snel de zaken die het behandelde werden ingedamd, de adressen die het blokkeerde en de blokkeringen die weer werden opgeheven, de stappen die het mensen vroeg goed te keuren en hoe snel ze antwoordden, en de stappen die mensen ongedaan maakten. Ze bevat alleen cijfers, en een link naar **Producten → Beveiligingsgebeurtenissen → Overzicht**. Een week waarin OneUptime AI niets deed, levert geen e-mail op.
 
 ## Het afsluitende rapport
 
@@ -242,6 +284,14 @@ Een Projecteigenaar of iemand met Manage Billing kan tegoed toevoegen onder **Pr
 
 :::details De kaart zegt dat tekst in de zaak leest als instructies aan een AI
 Een deel van de gegevens van de zaak, zoals een gebeurtenisbericht of een gebruikersnaam, is geschreven om een AI te sturen. OneUptime AI heeft het als gegevens gelezen en de beslissing aan jou gelaten: lees de detecties en het bewijs zelf voordat je de zaak sluit.
+:::
+
+:::details Mensen werden gewaarschuwd terwijl OneUptime AI eerst reageerde
+De tijdlijn van de zaak zegt waarom het tegenhouden eindigde: OneUptime AI vroeg iemand een stap goed te keuren, droeg de zaak over aan mensen of was niet klaar binnen **Toch waarschuwen na**, of iemand drukte op **Nu oproepen**. Een stap die het eerst vraagt, bereikt mensen zodra OneUptime AI iets vraagt: zie **Wat OneUptime AI mag doen op een zaak**.
+:::
+
+:::details Een nieuwe zaak is niet tegengehouden
+Controleer of **Eerst reageren** aan staat, en of de prioriteit van de zaak lager is dan die bij **Voor zaken onder**. Een zaak met je hoogste prioriteit, een zaak die een persoon opende en de zaak van de testaanval worden nooit tegengehouden. Bij elke andere reden zegt de tijdlijn van de zaak waarom.
 :::
 
 :::details Een playbook met de AI-trigger is niet gedraaid

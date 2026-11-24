@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 62240,
-    "untranslated": 8239
+    "keys": 62857,
+    "untranslated": 8238
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -272,6 +272,7 @@
     "Pattern {{number}}: {{problem}}",
     "Payload",
     "Peer",
+    "Percentile",
     "Perf",
     "Ping",
     "Pipeline",
@@ -365,6 +366,7 @@
     "Stratum",
     "Stripe Payments API",
     "Switch",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

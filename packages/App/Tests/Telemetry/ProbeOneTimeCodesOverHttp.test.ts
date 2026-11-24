@@ -8,7 +8,7 @@
  * A Synthetic monitor signs in with a one-time code secret. A probe that
  * declares totpCodes is handed the monitor with the code's parameters beside
  * its step, as #9703 made it. A custom probe that does not - every probe
- * before 17.0.1 - is handed nothing for it, and the check's result is
+ * before 17.1.0 - is handed nothing for it, and the check's result is
  * written for it instead: a script error that says the probe is too old to
  * make one-time codes and to update it, where the old probe would have sent
  * {{monitorSecrets.NAME}} as written and failed its sign-in.
@@ -490,7 +490,7 @@ describe("a monitor that signs in with a one-time code, over HTTP", () => {
         browserType: BrowserType.Chromium,
         screenSizeType: ScreenSizeType.Desktop,
         scriptError:
-          "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+          "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.",
       }),
     );
     // Neither the seed nor the password is in what is written.

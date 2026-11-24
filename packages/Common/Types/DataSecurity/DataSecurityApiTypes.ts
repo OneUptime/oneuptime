@@ -54,6 +54,7 @@ export const DATA_SECURITY_API_ROUTES: {
   fixIssueGroup: (groupId: string) => string;
   similarFindings: (findingId: string) => string;
   applyToSimilarFindings: (findingId: string) => string;
+  issueContainment: (issueId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -171,6 +172,15 @@ export const DATA_SECURITY_API_ROUTES: {
   applyToSimilarFindings: (findingId: string): string => {
     return `/data-store-finding/${findingId}/apply-to-similar`;
   },
+  /*
+   * What hides a telemetry issue's data at ingest now, or was kept after
+   * its code fix was verified (#10368): each scrub rule, and what it
+   * changed of the issue's service lately and since the fix - whether the
+   * code still writes the data.
+   */
+  issueContainment: (issueId: string): string => {
+    return `/data-security-issue/${issueId}/containment`;
+  },
 };
 
 /*
@@ -213,6 +223,45 @@ export interface DataSecurityApplyToSimilarResult {
   skipped: number;
 }
 
+// The days an issue's containment counts what its rules changed.
+export const ISSUE_CONTAINMENT_DAYS: number = 7;
+
+// One scrub rule that hides a telemetry issue's data at ingest (#10368).
+export interface DataSecurityIssueContainmentRule {
+  id: string;
+  // "log", "trace" or "metric": which list it is on.
+  signal: string;
+  name: string;
+  /*
+   * The values it changed in the issue's service in the last
+   * ISSUE_CONTAINMENT_DAYS days; null where nothing counts them (a metric
+   * pipeline rule), or the count could not be read.
+   */
+  valuesChanged: number | null;
+  // ISO-8601: when it last changed one there, and in which version.
+  lastChangedAt?: string | undefined;
+  lastChangedVersion?: string | undefined;
+  /*
+   * Kept after the issue's code fix was verified (Fixed in code): what it
+   * changed since - none, while the fix holds. Absent for a rule that only
+   * contains the issue.
+   */
+  valuesChangedSinceFix?: number | null | undefined;
+  isKept: boolean;
+}
+
+export interface DataSecurityIssueContainment {
+  days: number;
+  // The issue's findings a rule hides at ingest now.
+  containedFindingCount: number;
+  rules: Array<DataSecurityIssueContainmentRule>;
+}
+
+export interface DataSecurityIssueContainmentResult {
+  // None for an issue that is not a telemetry issue.
+  containment: DataSecurityIssueContainment | null;
+}
+
 export interface DataSecurityOverviewIssue {
   issueId: string;
   title: string;
@@ -230,7 +279,28 @@ export interface DataSecurityOverviewTrendDay {
    */
   day: string;
   opened: number;
+  // Every issue resolved that day, however (contained included).
   resolved: number;
+  /*
+   * Of them, the telemetry leaks only contained at ingest (#10368): a rule
+   * hides the data, the code still writes it. Absent from an older
+   * server's answer.
+   */
+  contained?: number | undefined;
+}
+
+/*
+ * How the issues resolved in the overview's 30 days were resolved
+ * (#10368): fixed where the problem starts - in code, in infrastructure
+ * code, from here, or its check passing - against only contained at
+ * ingest, and the rest (a person, a check turned off, a store gone).
+ */
+export interface DataSecurityOverviewResolutions {
+  fixedAtSource: number;
+  // Of them, the fixes OneUptime followed to production and proved.
+  verifiedFixes: number;
+  contained: number;
+  other: number;
 }
 
 export interface DataSecurityOverview {
@@ -246,6 +316,8 @@ export interface DataSecurityOverview {
   topIssues: Array<DataSecurityOverviewIssue>;
   // The last 30 days, oldest first.
   issueTrend: Array<DataSecurityOverviewTrendDay>;
+  // How those 30 days' resolved issues were resolved; absent from an older server.
+  resolutions?: DataSecurityOverviewResolutions | undefined;
   telemetryFindingCount: number;
   unscrubbedTelemetryFindingCount: number;
   // Cloud connections whose role does not allow content reads yet.

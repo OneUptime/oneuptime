@@ -18,9 +18,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
-  ONE_TIME_CODE_PROBES_COPY,
+  PROBES_TOO_OLD_COPY,
   UPDATE_A_PROBE_DOCS_PATH,
-} from "../Monitor/OneTimeCodeProbes";
+} from "../Monitor/ProbesTooOld";
 import {
   PROBE_MISSED_FEATURE_COPY,
   PROBE_UPDATE_COPY,
@@ -136,7 +136,7 @@ const ProbeVersionElement: FunctionComponent<ComponentProps> = (
   } else if (oneTimeCodes === ProbeOneTimeCodes.TooOld) {
     version = (
       <span className="text-sm text-gray-900">
-        {translator.translateTemplate(ONE_TIME_CODE_PROBES_COPY.olderThan, {
+        {translator.translateTemplate(PROBES_TOO_OLD_COPY.olderThan, {
           version: FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
         })}
       </span>
@@ -215,7 +215,7 @@ const ProbeVersionElement: FunctionComponent<ComponentProps> = (
               className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline"
               dataTestId={PROBE_UPDATE_DOCS_TEST_ID}
             >
-              {translator.translateText(ONE_TIME_CODE_PROBES_COPY.updateLink)}
+              {translator.translateText(PROBES_TOO_OLD_COPY.updateLink)}
               <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
             </Link>
           </div>

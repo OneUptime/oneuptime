@@ -253,7 +253,7 @@ OneUptime の [プライベートネットワークアクセスの設定](/docs/
 
 ### 送信アクセスと IP 制限
 
-OneUptime アプリからの DNS 解決と送信 HTTPS を許可します。`graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework の認証エンドポイントとチャネルエンドポイント、そして会話ごとに渡されるコネクタサービスの URL を使います。商用クラウドのフォールバックのコネクタは `https://smba.trafficmanager.net/teams/` ですが、会話のサービス URL はこれと異なる場合があります。[Microsoft のファイアウォールのガイダンス](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) に従い、テスト中にブロックされた通信を調べてください。これはホスト名の完全な一覧ではありません。 [米国政府向けクラウド](#米国政府向けクラウド)では、これらはそのクラウド自身のホストになります。
+OneUptime アプリからの DNS 解決と送信 HTTPS を許可します。`graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework の認証エンドポイントとチャネルエンドポイント、そして会話ごとに渡されるコネクタサービスの URL を使います。商用クラウドのフォールバックのコネクタは `https://smba.trafficmanager.net/teams/` ですが、会話のサービス URL はこれと異なる場合があります。[Microsoft のファイアウォールのガイダンス](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) に従い、テスト中にブロックされた通信を調べてください。これはホスト名の完全な一覧ではありません。 [米国政府向けクラウド](#米国政府向けクラウド)では、これらはそのクラウド自身のホストになります。送信プロキシの背後では、ボットもサーバーのほかの部分と同じく、`NO_PROXY` にあるホストを除いて、これらすべてにプロキシを通って接続します。[プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access)を参照してください。
 
 Microsoft は、Bot Framework の受信トラフィックについて固定の IP 許可リストをサポートしていません。送信元アドレスが変わるためです。Teams クライアントのメディア用 IP 範囲は、ボットの Webhook の送信元を表すものではありません。送信元 IP を身元の証明として扱うのではなく、Bot Framework の認証を有効にしたままにしてください。
 

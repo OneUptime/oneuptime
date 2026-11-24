@@ -5,7 +5,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { UPDATE_A_PROBE_DOCS_PATH } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbes";
+import { UPDATE_A_PROBE_DOCS_PATH } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ProbesTooOld";
 import ProbeVersionElement, {
   PROBE_MISSED_FEATURE_TEST_IDS,
   PROBE_OLDER_THAN_SERVER_TEST_ID,
@@ -35,9 +35,10 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  *
  * Under the probe's version, on its page: that it is older than this
  * OneUptime, by OneUptime's release; what it cannot do until it is updated
- * (a probe older than 17.0.1 makes no one-time codes); and one link to the
+ * (a probe older than 17.1.0 makes no one-time codes, and one from 17.2.0
+ * or before sends no request body that is an array); and one link to the
  * docs that say how to update a probe. In a row of Custom Probes: "Update
- * available: 17.2.0", linked to the same docs.
+ * available: 17.3.0", linked to the same docs.
  *
  * Releases are compared by their numbers alone: a test build of OneUptime's
  * own release is level, and main's 17.0.0-test build, which made one-time
@@ -48,7 +49,7 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * Drawn with the real component and every Dashboard locale.
  */
 
-const SERVER: string = "17.2.0";
+const SERVER: string = "17.3.0";
 const CONNECTED_AT: Date = new Date("2026-11-19T10:00:00.000Z");
 
 const OLDER_SENTENCE: string = `Older than OneUptime ${SERVER}, which it reports to. Update the probe to get the latest checks and fixes.`;
@@ -151,7 +152,7 @@ describe("the probe's page", () => {
 
   test.each([
     ["says no release", undefined],
-    ["runs a release older than 17.0.1", "16.0.0"],
+    ["runs a release older than 17.1.0", "16.0.0"],
   ])(
     "a probe that %s is older than OneUptime, and cannot make one-time codes, with one link for both",
     async (_label: string, reportedVersion: string | undefined) => {
@@ -182,8 +183,8 @@ describe("the probe's page", () => {
   });
 
   test.each([
-    ["OneUptime's own release", "17.2.0"],
-    ["a test build of OneUptime's own release", "17.2.0-test"],
+    ["OneUptime's own release", SERVER],
+    ["a test build of OneUptime's own release", "17.3.0-test"],
     ["a later release than OneUptime's", "18.0.0"],
     ["a build that is no release", "unknown"],
   ])(
@@ -206,7 +207,7 @@ describe("the probe's page", () => {
   });
 
   test.each([
-    ["a test build", "17.2.0-test"],
+    ["a test build", "17.3.0-test"],
     ["no release of its own", ""],
   ])(
     "while OneUptime runs %s, a probe is not called older, and is still told what it misses",
@@ -265,7 +266,7 @@ describe("a row of Custom Probes", () => {
   });
 
   test("an up-to-date probe's version alone", async () => {
-    for (const reportedVersion of ["17.2.0", "17.2.0-rc.1", "17.3.0"]) {
+    for (const reportedVersion of ["17.3.0", "17.3.0-rc.1", "18.0.0"]) {
       await draw(probe({ reportedVersion }), SERVER, "cell");
 
       expect(textOf(PROBE_VERSION_TEST_ID)).toContain(reportedVersion);
@@ -278,9 +279,9 @@ describe("a row of Custom Probes", () => {
   });
 
   test("while OneUptime runs a test build, no row offers an update it might never reach", async () => {
-    await draw(probe({}), "17.2.0-test", "cell");
+    await draw(probe({}), "17.3.0-test", "cell");
 
-    expect(textOf(PROBE_VERSION_TEST_ID)).toContain("Older than 17.0.1");
+    expect(textOf(PROBE_VERSION_TEST_ID)).toContain("Older than 17.1.0");
     expect(
       screen.queryByTestId(PROBE_UPDATE_AVAILABLE_TEST_ID),
     ).not.toBeInTheDocument();

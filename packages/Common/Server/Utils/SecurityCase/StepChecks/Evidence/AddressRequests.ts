@@ -9,6 +9,7 @@ import {
   getProxyOfAddresses,
 } from "../../../../../Utils/SecurityCase/ProxyAddresses";
 import { readClickhouseTime } from "../../../../../Utils/SecurityCase/SecurityCaseStoryItems";
+import { getSecurityAddressSpellings } from "../../../../../Types/SecurityBlocklist/SecurityAddressSpellings";
 import { canonicalAddress } from "../../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import LogService from "../../../../Services/LogService";
 import SpanService from "../../../../Services/SpanService";
@@ -217,6 +218,21 @@ function appendAggregates(data: {
 }
 
 /*
+ * Every spelling a source may have written the address in (#10744).
+ * Telemetry keeps a client's address as the app or its proxy wrote it - an
+ * IPv6 one compressed as often as written out in full, an IPv4 one mapped
+ * by a dual-stack server - so a request is looked for under each. A value
+ * that is not one address is looked for as given.
+ */
+export function getAddressRequestSpellings(address: string): Array<string> {
+  const spellings: Array<string> = getSecurityAddressSpellings(
+    canonicalAddress(address) || address,
+  );
+
+  return spellings.length > 0 ? spellings : [address];
+}
+
+/*
  * The app's server spans whose client address is the address, over the
  * window: how many, when, how far they got.
  */
@@ -256,13 +272,15 @@ export function buildSpanRequestsStatement(data: {
     }} AND (`,
   );
 
+  const spellings: Array<string> = getAddressRequestSpellings(data.address);
+
   SPAN_CLIENT_ADDRESS_ATTRIBUTES.forEach(
     (attribute: string, index: number): void => {
       statement.append(index === 0 ? "" : " OR ");
       statement.append(
-        SQL`attributes[${{ type: TableColumnType.Text, value: attribute }}] = ${{
-          type: TableColumnType.Text,
-          value: data.address,
+        SQL`attributes[${{ type: TableColumnType.Text, value: attribute }}] IN ${{
+          type: TableColumnType.ArrayText,
+          value: spellings,
         }}`,
       );
     },
@@ -319,13 +337,15 @@ export function buildLogRequestsStatement(data: {
     }} AND (`,
   );
 
+  const spellings: Array<string> = getAddressRequestSpellings(data.address);
+
   LOG_CLIENT_ADDRESS_ATTRIBUTES.forEach(
     (attribute: string, index: number): void => {
       statement.append(index === 0 ? "" : " OR ");
       statement.append(
-        SQL`attributes[${{ type: TableColumnType.Text, value: attribute }}] = ${{
-          type: TableColumnType.Text,
-          value: data.address,
+        SQL`attributes[${{ type: TableColumnType.Text, value: attribute }}] IN ${{
+          type: TableColumnType.ArrayText,
+          value: spellings,
         }}`,
       );
     },
@@ -334,20 +354,24 @@ export function buildLogRequestsStatement(data: {
   /*
    * A line that names the address in its body - the body's token index
    * reads only the granules that hold its parts - and names it as a
-   * client: first, or under a JSON client field.
+   * client: first, or under a JSON client field. In any of its spellings.
    */
-  statement.append(
-    SQL` OR (position(body, ${{
-      type: TableColumnType.Text,
-      value: data.address,
-    }}) > 0 AND (startsWith(body, ${{
-      type: TableColumnType.Text,
-      value: `${data.address} `,
-    }}) OR multiSearchAny(body, ${{
-      type: TableColumnType.ArrayText,
-      value: getLogJsonClientNeedles(data.address),
-    }}))))`,
-  );
+  for (const spelling of spellings) {
+    statement.append(
+      SQL` OR (position(body, ${{
+        type: TableColumnType.Text,
+        value: spelling,
+      }}) > 0 AND (startsWith(body, ${{
+        type: TableColumnType.Text,
+        value: `${spelling} `,
+      }}) OR multiSearchAny(body, ${{
+        type: TableColumnType.ArrayText,
+        value: getLogJsonClientNeedles(spelling),
+      }})))`,
+    );
+  }
+
+  statement.append(")");
   statement.append(getQuerySettings(ADDRESS_REQUESTS_READ_LIMIT));
 
   return statement;

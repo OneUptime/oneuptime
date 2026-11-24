@@ -100,8 +100,8 @@ const NON_SECRET_CREDENTIAL_COLUMNS: ReadonlyArray<string> = [
 ];
 
 /*
- * Every column an operator writes on the profile form, and the two audit
- * relations. `_id`, `createdAt` and the rest come from BaseModel and are not
+ * Every column an operator writes on the profile form, and the audit
+ * relation. `_id`, `createdAt` and the rest come from BaseModel and are not
  * listed - the test that walks every column reads them from the model.
  */
 const DECLARED_COLUMNS: ReadonlyArray<string> = [
@@ -113,8 +113,6 @@ const DECLARED_COLUMNS: ReadonlyArray<string> = [
   ...SECRET_COLUMNS,
   "createdByUser",
   "createdByUserId",
-  "deletedByUser",
-  "deletedByUserId",
 ];
 
 function profile(): NetworkSnmpCredentialProfile {
@@ -635,9 +633,10 @@ describe("every column carries column access control", () => {
 
   /*
    * The audit columns are written by the server, never by the API. Granting
-   * update on deletedByUserId would let a caller forge who deleted a row.
+   * create or update on createdByUserId would let a caller forge who created
+   * a row.
    */
-  test.each(["deletedByUser", "deletedByUserId"])(
+  test.each(["createdByUser", "createdByUserId"])(
     "%s is server-owned: nobody may create or update it",
     (columnName: string) => {
       const accessControl: ColumnAccessControl = accessControlFor(

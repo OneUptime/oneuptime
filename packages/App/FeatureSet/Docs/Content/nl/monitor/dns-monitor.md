@@ -118,13 +118,14 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **DNS is online** en **DNS-reactietijd (in ms)**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **DNS is online** en **DNS-reactietijd (in ms)**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Die waarde over het venster aan de voorwaarde voldoet. Alleen **DNS-reactietijd (in ms)**. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde**, **Percentiel** | Die waarde over het venster aan de voorwaarde voldoet, zoals de p95-reactietijd. Alleen **DNS-reactietijd (in ms)**. |
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Aantal**, **Percentage**, **Statuswijzigingen** | Hoeveel controles aan de voorwaarde voldeden, hun aandeel, of hoe vaak ze wisselden tussen wel en niet voldoen, wordt vergeleken met het getal dat eronder is ingesteld. |
 
 De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
 

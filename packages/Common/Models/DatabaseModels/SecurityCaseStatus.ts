@@ -452,40 +452,4 @@ export default class SecurityCaseStatus extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl(serverWrittenColumnAccess)
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description: "The person who deleted this status.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl(serverWrittenColumnAccess)
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description: "ID of the person who deleted this status.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

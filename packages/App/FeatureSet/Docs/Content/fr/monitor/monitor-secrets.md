@@ -83,6 +83,8 @@ Les secrets sont remplis avant l'exécution du script d'un moniteur Moniteur syn
 
 Si un moniteur fait référence à un secret qu'il ne peut pas utiliser, la référence reste telle quelle et n'est pas remplacée par la valeur.
 
+Quand la vérification d'un moniteur API, Site web ou Page de statut externe échoue, son erreur ne nomme l'URL que par son schéma, son hôte et son port, comme `https://api.example.com`, si bien qu'un secret dans l'URL n'est jamais affiché.
+
 Quand vous testez un moniteur avant de l'enregistrer, seuls les secrets disponibles pour **Tous les moniteurs** sont remplis, car un nouveau moniteur ne figure sur aucune liste et n'a pas encore d'étiquettes. Une fois le moniteur enregistré, les tests utilisent chaque secret que le moniteur peut utiliser.
 
 ## Se connecter avec un code à usage unique
@@ -128,7 +130,7 @@ return {
 La sonde ne fournit jamais un code qui reste valable moins de cinq secondes, ou moins d'un tiers de la période quand la période est plus courte : elle attend plutôt le code suivant, cinq secondes au plus, et ne compte pas cette attente dans le temps d'exécution de la vérification. Chaque code qu'une vérification produit est affiché sous forme d'astérisques, comme `******`, dans ses messages du journal, son résultat, son erreur et les noms de ses captures d'écran. Une capture d'écran est une image de la page : prenez-la donc avant que le code soit saisi ou une fois que la page est passée à la suite.
 
 > [!NOTE]
-> C'est la sonde qui produit les codes : une sonde personnalisée doit donc exécuter OneUptime 17.0.1 ou une version ultérieure. Sur une sonde plus ancienne, une vérification qui a besoin d'un code ne s'exécute pas et échoue avec une phrase demandant de mettre la sonde à jour ; le formulaire du moniteur et la page de la sonde nomment une sonde trop ancienne, et [Mettre à jour une sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde) explique comment faire. L'horloge de la sonde doit aussi être juste, car une sonde décalée d'une minute produit des codes que le site a déjà dépassés.
+> C'est la sonde qui produit les codes : une sonde personnalisée doit donc exécuter OneUptime 17.1.0 ou une version ultérieure. Sur une sonde plus ancienne, une vérification qui a besoin d'un code ne s'exécute pas et échoue avec une phrase demandant de mettre la sonde à jour ; le formulaire du moniteur et la page de la sonde nomment une sonde trop ancienne, et [Mettre à jour une sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde) explique comment faire. L'horloge de la sonde doit aussi être juste, car une sonde décalée d'une minute produit des codes que le site a déjà dépassés.
 
 ## Dépannage
 
@@ -149,7 +151,7 @@ Vérifiez que le **Code actuel** correspondait à votre application d'authentifi
 :::
 
 :::details La vérification indique que la sonde est trop ancienne pour produire des codes à usage unique
-La sonde exécute une version antérieure à OneUptime 17.0.1, qui ne peut pas produire de codes à usage unique, donc la vérification ne s'y est pas exécutée. Mettez la sonde à jour (voir [Mettre à jour une sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde)), ou faites vérifier le moniteur par des sondes qui exécutent 17.0.1 ou une version ultérieure.
+La sonde exécute une version antérieure à OneUptime 17.1.0, qui ne peut pas produire de codes à usage unique, donc la vérification ne s'y est pas exécutée. Mettez la sonde à jour (voir [Mettre à jour une sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde)), ou faites vérifier le moniteur par des sondes qui exécutent 17.1.0 ou une version ultérieure.
 :::
 
 ## Étapes suivantes

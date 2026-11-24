@@ -200,11 +200,8 @@ describe("AIPostmortemRule", () => {
 
   it("never moves to another project, and never says who deleted it", () => {
     expect(model.getColumnAccessControlFor("projectId")?.update).toEqual([]);
-    expect(model.getColumnAccessControlFor("deletedByUserId")).toEqual({
-      create: [],
-      read: [],
-      update: [],
-    });
+    // A rule is deleted outright, so no column says who deleted it (#10469).
+    expect(model.hasColumn("deletedByUserId")).toBe(false);
   });
 
   it("keeps each list it names in a join table of its own", () => {

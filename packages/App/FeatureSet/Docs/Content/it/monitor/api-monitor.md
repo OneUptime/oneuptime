@@ -70,7 +70,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 
 ### URL API
 
-L'endpoint da chiamare, come URL completo con lo schema, come `https://api.example.com/v1/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`.
+L'endpoint da chiamare, come URL completo con lo schema, come `https://api.example.com/v1/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`. L'errore di un controllo non riuscito indica l'URL solo con schema, host e porta, come `https://api.example.com`, quindi il segreto non viene mai mostrato.
 
 ### Segnaposto dinamici nell'URL
 
@@ -194,17 +194,18 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 minuti a 24 ore, in **Nell'ultimo periodo di**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
-| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, sulla finestra, soddisfa la condizione. Solo filtri numerici. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Percentile** | Quel valore, sulla finestra, soddisfa la condizione, come il tempo di risposta p95. Solo filtri numerici. |
 | **Tutti i valori** | Ogni controllo nella finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo nella finestra soddisfa la condizione. |
+| **Conteggio**, **Percentuale**, **Cambi di stato** | Quanti controlli hanno soddisfatto la condizione, la loro quota o quante volte sono passati dal soddisfarla al non soddisfarla viene confrontato con il numero impostato sotto. |
 
 L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
-Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Timeout della richiesta** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **Tutti i valori**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
+Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Timeout della richiesta** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**. Può anche contarla con **Conteggio**, **Percentuale** o **Cambi di stato**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **Tutti i valori**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
 
 Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli: un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti.
 
@@ -250,7 +251,7 @@ Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monit
 :::
 
 :::details Il controllo dice che la sonda è troppo vecchia per inviare il corpo della richiesta
-Il corpo del monitor è un array JSON, un singolo valore o **Testo**, e la sonda personalizzata che lo controlla esegue una versione precedente a OneUptime 17.2.0, che invia solo un oggetto JSON, quindi il controllo non è stato eseguito su di essa. [Aggiornate la sonda](/docs/probe/custom-probe#aggiornare-una-sonda) oppure controllate il monitor da un'altra sonda.
+Il corpo del monitor è un array JSON, un singolo valore o **Testo**, e la sonda personalizzata che lo controlla esegue una versione più vecchia, che invia solo un oggetto JSON, quindi il controllo non è stato eseguito su di essa. Il modulo del monitor e la pagina della sonda indicano una sonda del genere. [Aggiornate la sonda](/docs/probe/custom-probe#aggiornare-una-sonda) all'ultima versione oppure controllate il monitor da un'altra sonda.
 :::
 
 ## Passaggi successivi

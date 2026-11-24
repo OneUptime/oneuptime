@@ -6,7 +6,7 @@ Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen
 - [Wie eine Prüfung entscheidet](#wie-eine-prüfung-entscheidet): Bestanden, fehlgeschlagen oder nicht feststellbar, und wie schlimm ein Fehlschlag ist.
 - [Jede Prüfung](#jede-prüfung): Alle 34, mit dem, was jede prüft, und wie Sie den Mangel beheben.
 - [Risikowert](#risikowert): Wie Probleme innerhalb eines Schweregrads geordnet werden.
-- [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem.
+- [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem, wie jedes behoben wurde, und Korrekturen, die bis in die Produktion verfolgt werden.
 - [Die Analyse von OneUptime AI](#die-analyse-von-oneuptime-ai): Ob ein Problem echt ist, was es gefährdet, was die Korrektur beeinträchtigen würde und der kürzeste Weg zur Behebung.
 - [Hier beheben](#hier-beheben): Eine Exponierung schließen oder einen fehlenden Schutz einschalten, mit einem Klick.
 - [Probleme mit einer Ursache](#probleme-mit-einer-ursache): Die Probleme, die ein Fehler verursacht hat, gruppiert, und ihre Ursache einmal behoben.
@@ -154,13 +154,41 @@ OneUptime eröffnet, aktualisiert und behebt Probleme, während die Prüfungen l
 | Status | Wie es dorthin kommt | Was folgt |
 | --- | --- | --- |
 | **Offen** | Seine Prüfung schlägt jetzt am Datenspeicher fehl. | Es zählt in der Übersicht, in der Zusammenfassung des Datenspeichers und in der Compliance, bis die Prüfung besteht. |
-| **Behoben** | Seine Prüfung hat bei einem späteren Lauf bestanden, gilt nicht mehr oder wurde ausgeschaltet, oder sein Datenspeicher wurde archiviert. Jemand kann auch **Als behoben markieren** wählen: Der Datenspeicher wird dann sofort erneut geprüft. | Es öffnet sich wieder, wenn die Prüfung erneut fehlschlägt, und das Problem zählt, wie oft es wieder geöffnet wurde. |
+| **Behoben** | Seine Prüfung hat bei einem späteren Lauf bestanden, gilt nicht mehr oder wurde ausgeschaltet, oder sein Datenspeicher wurde archiviert. Jemand kann auch **Als behoben markieren** wählen: Der Datenspeicher wird dann sofort erneut geprüft. | Es sagt, wie es behoben wurde (siehe unten). Es öffnet sich wieder, wenn die Prüfung erneut fehlschlägt, und das Problem zählt, wie oft es wieder geöffnet wurde. |
 | **Akzeptiert** | Jemand hat **Risiko akzeptieren** gewählt, mit einem **Grund** und einem Datum unter **Akzeptiert bis**, höchstens ein Jahr entfernt. | Es bleibt bis zu diesem Datum geschlossen und öffnet sich dann wieder, wenn die Prüfung noch fehlschlägt. Akzeptieren Sie es dann erneut, wenn der Grund noch gilt. |
 | **Kein Problem** | Jemand hat **Kein Problem** gewählt und unter **Grund** gesagt, warum: Der Fund war falsch. | Es bleibt geschlossen, auch solange die Prüfung fehlschlägt, und behält den Grund. **Wieder öffnen** öffnet es erneut. |
 
 Sicherheits-Mitglieder, Sicherheits-Administratoren, Projektadministratoren und Projektinhaber können den Status eines Problems ändern und es mit **Zuweisen** einer Person oder einem Team zuweisen. Jede Änderung wird in die **Zeitachse** des Problems geschrieben: wann es sich geöffnet hat, jede Änderung des Schweregrads, jede Statusänderung und wer sie vorgenommen hat, die angeforderten erneuten Prüfungen und was die Integrationen getan haben.
 
 Ein Problem, das sich wieder öffnet, behält seinen Verlauf. Akzeptierte Risiken werden jeden Tag erneut betrachtet, sodass eines pünktlich abläuft, auch wenn nichts gescannt wurde.
+
+### Wie es behoben wurde
+
+Ein behobenes Problem zeigt oben auf seiner Seite und in der Problemliste, wie es behoben wurde, und die Liste kann unter **Lösung** danach filtern:
+
+| Lösung | Was es bedeutet |
+| --- | --- |
+| **Im Code korrigiert** | Der Pull Request einer Code-Korrektur wurde ausgeliefert, und die neue Version des Dienstes schreibt die Daten nicht mehr. Das Problem nennt ihn und den Zeitpunkt: „Im Pull Request #482 behoben, in Version 2.4.1 deployt, verifiziert“. |
+| **Im Infrastrukturcode korrigiert** | Ein Pull Request an den Terraform-, CloudFormation- oder Bicep-Code, der den Datenspeicher deklariert, wurde zusammengeführt, und der Datenspeicher hat seine Prüfung bestanden, sobald die Änderung angewendet war. |
+| **Von hier aus korrigiert** | Eine Reaktionsaktion ([Hier beheben](#hier-beheben)) hat den Datenspeicher geändert, und seine Prüfung hat danach bestanden. |
+| **Bei der Aufnahme eingedämmt** | Jeder Fund eines Telemetrie-Problems wird von einer Bereinigungsregel verborgen, bevor er gespeichert wird. Das ist keine Korrektur: Der Code schreibt die Daten weiterhin, nach stdout und an jeden anderen Ort, an den der Dienst seine Telemetrie sendet. Das Problem sagt das in Gelb, mit dem, was die Regel in der letzten Woche geändert hat, und bietet **Code korrigieren** an. |
+| **Prüfung bestanden** | Seine Prüfung besteht, ohne dass OneUptime etwas geändert hat. |
+| **Von einer Person behoben** | Jemand hat **Als behoben markieren** gewählt. Der Datenspeicher wird sofort erneut geprüft, und das Problem öffnet sich wieder, wenn seine Prüfung noch fehlschlägt. |
+| **Nicht mehr geprüft** | Seine Prüfung wurde ausgeschaltet oder gilt für den Datenspeicher nicht mehr. |
+| **Datenspeicher archiviert** | Sein Datenspeicher ist aus seiner Quelle verschwunden. |
+
+Die Übersicht zählt die Probleme, die dort behoben wurden, wo sie entstehen, getrennt von den Lecks, die nur bei der Aufnahme eingedämmt sind, und **In Ihrer Telemetrie** zeigt einen eingedämmten Fund weiter an, als **Bereinigt** markiert, bis der Code aufhört, ihn zu schreiben.
+
+### Korrekturen bis in die Produktion verfolgt
+
+Ein Pull Request, den OneUptime AI für ein Problem geöffnet hat (**Mit KI beheben** oder ein Pull Request für eine [Gruppe von Problemen](#probleme-mit-einer-ursache)), hat beim Zusammenführen noch nichts behoben. OneUptime verfolgt ihn, bis die Produktion es beweist:
+
+- **Ein Leck im Code.** OneUptime wartet auf einen aufgezeichneten Deploy des Dienstes, der den Merge enthält, und beobachtet dann dessen neue Version. Wo eine Bereinigungsregel die Daten verbirgt, darf die Regel in dieser Version keinen Wert ändern; wo keine Regel das tut, darf kein Eintrag dieser Version die Daten an den Stellen enthalten, an denen sie gefunden wurden. Die neue Version muss außerdem einen Tag laufen und mindestens so viele Logs oder Spans senden wie die alte in der Stunde, in der das Leck zuletzt gesehen wurde. Dann ist das Problem **Im Code korrigiert**. Ein geänderter Wert oder ein Eintrag, der die Daten noch enthält, bedeutet, dass die Korrektur das Leck nicht gestoppt hat, und über eine Version, die in einer Woche zu wenig sendet, lässt sich nichts sagen. Deploys werden über ihren Commit zugeordnet: Zeichnen Sie sie mit `oneuptime deploy` auf, oder senden Sie `vcs.ref.head.revision` (siehe [Deploys und Änderungen](/docs/telemetry/change-events)).
+- **Die Konfiguration eines Datenspeichers.** Wenn der Pull Request zusammengeführt wird, werden seine Datenspeicher sofort neu gelesen. Jedes Problem, dessen Prüfung danach besteht, ist **Im Infrastrukturcode korrigiert**. Besteht ein Datenspeicher seine Prüfung noch immer nicht, wenn er einen Tag nach dem Merge erneut gelesen wird, wurde die Korrektur **gemergt, nicht angewendet**: Die Eigentümer des Datenspeichers und die Person, die den Pull Request angefordert hat, erhalten einmalig eine E-Mail, und die Zeitachsen des Problems und des Datenspeichers vermerken es. Meist fehlt nur noch ein Apply.
+- **Die Bereinigungsregel bleibt.** Nach einer verifizierten Code-Korrektur bleibt die Bereinigungsregel, die das Leck eingedämmt hat, bestehen, sodass eine Regression verborgen wird, sobald sie auftritt. Das Problem sagt, dass die Regel seit der Korrektur nichts geändert hat, und bietet **Regel entfernen** an.
+- **Eine Regression.** Eine verifizierte Korrektur wird weiter beobachtet: Ändert eine beibehaltene Regel wieder Werte oder findet der Scan die Daten wieder, öffnet sich das Problem erneut und nennt die Version, die sie zurückgebracht hat. Es bleibt offen, bis es erneut behoben ist, auch solange eine Regel die Daten verbirgt.
+
+Jeder Schritt steht in der **Zeitachse** des Problems und in der des Datenspeichers, und KI-Ergebnisse zählt die verifizierten Korrekturen nach Art (siehe [Wie gut OneUptime AI abschneidet](/docs/ai/ai-sre#wie-gut-oneuptime-ai-abschneidet)).
 
 ## Die Analyse von OneUptime AI
 

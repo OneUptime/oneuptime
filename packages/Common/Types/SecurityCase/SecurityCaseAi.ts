@@ -1,6 +1,13 @@
 import { SecurityBlockDuration } from "../SecurityBlocklist/SecurityBlock";
 import SecurityCaseVerdict from "./SecurityCaseVerdict";
 import SecurityCaseAiVerdict from "./SecurityCaseAiVerdict";
+import {
+  SECURITY_CASE_AI_MODES,
+  SecurityCaseAiMode,
+} from "./SecurityCaseAiMode";
+
+// The modes are a module of their own, which a project's model reads alone.
+export { SECURITY_CASE_AI_MODES, SecurityCaseAiMode };
 
 /*
  * WHAT ONEUPTIME AI MAY DO ON A SECURITY CASE (#10352): the one reading,
@@ -67,21 +74,6 @@ export const SECURITY_CASE_AI_AREAS: ReadonlyArray<SecurityCaseAiArea> = [
   SecurityCaseAiArea.Hosts,
   SecurityCaseAiArea.Code,
   SecurityCaseAiArea.Close,
-];
-
-export enum SecurityCaseAiMode {
-  // Left to a person, and OneUptime AI says so on the case.
-  Off = "Off",
-  // Asked of a person, with the evidence, wherever they are.
-  Ask = "Ask",
-  // Done, on the timeline as OneUptime AI's, where it can be undone.
-  OnItsOwn = "OnItsOwn",
-}
-
-export const SECURITY_CASE_AI_MODES: ReadonlyArray<SecurityCaseAiMode> = [
-  SecurityCaseAiMode.Off,
-  SecurityCaseAiMode.Ask,
-  SecurityCaseAiMode.OnItsOwn,
 ];
 
 // What a project starts with, and what an existing one gets once it turns the section on.
@@ -482,6 +474,11 @@ export enum SecurityCaseHandOffReason {
   NoLlmProvider = "NoLlmProvider",
   // The project is out of AI credits, or reached a daily AI limit.
   OutOfCredits = "OutOfCredits",
+  /*
+   * Security Events is switched off on the server (#10816): none of its
+   * work goes on, OneUptime AI's included, until a person asks again.
+   */
+  ProductOff = "ProductOff",
   // The triage read the case as Inconclusive, or something else than malicious.
   NotLikelyMalicious = "NotLikelyMalicious",
   // A step it did does not hold, and it will not repeat it blindly.

@@ -1,4 +1,5 @@
 import ObjectID from "../../../../../Types/ObjectID";
+import SecurityAutomaticResponseTrial from "../../../SecurityAutomaticResponse/SecurityAutomaticResponseTrial";
 
 /*
  * WHETHER EDGE'S ON ITS OWN IS CLEARED BY THE SCANNERS POLICY (#10352,
@@ -11,21 +12,19 @@ import ObjectID from "../../../../../Types/ObjectID";
  * project's own traffic first (Types/SecurityCase/SecurityCaseAi's
  * getEdgeOnItsOwnClearance).
  *
- * #10350's trial is not on main yet (its pull request #10678 adds
- * SecurityAutomaticResponseTrial). Until it is, no trial has finished, and
- * Edge's On its own takes a Security Admin's confirmation.
- *
- * TODO(#10350): once #10678 is on main, return
- * SecurityAutomaticResponseTrial.hasScannersPolicyFinishedTrial(projectId,
- * now) here - it reads true only for a whole 7-day trial, and false on a
- * read failure, so a doubt still asks a Security Admin.
+ * Automatic response answers it (SecurityAutomaticResponseTrial): true only
+ * for a whole 7-day trial - not for a policy turned on without one, nor one
+ * still running - and false when the policy cannot be read, so a doubt
+ * still asks a Security Admin.
  */
 export default class SecurityCaseAiEdgeTrial {
   public static async hasScannersPolicyFinishedTrial(data: {
     projectId: ObjectID;
     now?: Date | undefined;
   }): Promise<boolean> {
-    void data;
-    return false;
+    return await SecurityAutomaticResponseTrial.hasScannersPolicyFinishedTrial(
+      data.projectId,
+      data.now,
+    );
   }
 }

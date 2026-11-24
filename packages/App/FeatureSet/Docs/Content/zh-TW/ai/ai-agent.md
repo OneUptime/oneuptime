@@ -191,7 +191,7 @@ OneUptime 知道你的程式碼在正式環境中做了什麼，因此它能用�
 
 | 變更 | 何時成為一個要點 |
 | --- | --- |
-| 寫入遙測的程式碼 | 把名稱表明其包含個人資料、密鑰或你專案自有資料類型的值（`email`、`customer_ssn`、`password`、`apiKey`）寫入日誌、span 或事件的屬性、指標的標籤或傳送給 AI 提供商的提示詞，或者寫入整個請求本文、其請求標頭或使用者記錄。描述資料而非資料本身的名稱，例如 `emailTemplate`、`isEmailVerified` 或 `hashedPassword`，不會成為要點。 |
+| 寫入遙測的程式碼 | 把名稱表明其包含個人資料、密鑰或你專案自有資料類型的值（`email`、`customer_ssn`、`password`、`apiKey`）寫入日誌、span 或事件的屬性、指標的標籤或傳送給 LLM 的提示詞，或者寫入整個請求本文、其請求標頭或使用者記錄。描述資料而非資料本身的名稱，例如 `emailTemplate`、`isEmailVerified` 或 `hashedPassword`，不會成為要點。 |
 | Terraform、CloudFormation、Bicep、ARM、Kubernetes、Pulumi 或 CDK | 公開資料儲存區或共用其快照，關閉其加密、備份、時間點復原、版本控制或存取記錄，或向所有位址開放其防火牆：檔案能顯示的每個 [資料安全檢查](/docs/data-security/checks-and-issues) 都有一條規則。 |
 | 遷移或模型 | 新增名稱表明其包含個人資料的欄位、名稱和變更都沒有表明已雜湊的密碼欄位、卡號欄位，或永遠不得儲存的卡片安全碼欄位。 |
 

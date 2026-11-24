@@ -10,6 +10,7 @@ import SecurityBlockService, {
 import SecurityBlockDestinations from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
 import SecurityBlocklistReconciler from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistReconciler";
 import TestSecurityBlockDestination from "../../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
+import SecurityAutomaticResponseRecorder from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRecorder";
 import { PlaybookStepOutcome } from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookActions";
 import SecurityPlaybookAddressBlocks, {
   NOT_ENFORCED_ANYWHERE_ERROR,
@@ -864,5 +865,151 @@ describe("a playbook's block expires", () => {
     }).toThrow(
       "Step 2 (Block the address): a playbook's block expires. Choose 1 hour, 24 hours, 7 days or 30 days.",
     );
+  });
+});
+
+describe("an automatic response policy's block (#10350)", () => {
+  const POLICY_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  let recorded: Array<{
+    value: string;
+    block: SecurityBlock | null;
+    failure: string | null;
+  }>;
+  let writesLine: boolean;
+
+  beforeEach(() => {
+    recorded = [];
+    writesLine = true;
+    jest
+      .spyOn(SecurityAutomaticResponseRecorder, "recordBlockStep")
+      .mockImplementation(
+        async (data: {
+          value: string;
+          block: SecurityBlock | null;
+          failure: string | null;
+        }): Promise<boolean> => {
+          recorded.push({
+            value: data.value,
+            block: data.block,
+            failure: data.failure,
+          });
+          return writesLine && Boolean(data.block);
+        },
+      );
+  });
+
+  async function blockAsPolicy(): Promise<PlaybookStepOutcome> {
+    return await SecurityPlaybookAddressBlocks.block({
+      projectId: PROJECT_ID,
+      runId: RUN_ID,
+      securityCaseId: CASE_ID,
+      reason: `Path traversal attempts - ${ADDRESS}`,
+      config: {
+        blockAction: SecurityBlockAction.Challenge,
+        duration: SecurityBlockDuration.OneHour,
+      },
+      targets: [target(ADDRESS)],
+      automaticResponse: { policyId: POLICY_ID, policyName: "Scanners" },
+    });
+  }
+
+  test("is made through the blocklist as the policy's: its source and id, its challenge held as a block where an edge cannot challenge", async () => {
+    const block: SecurityBlock = madeBlock({
+      index: 9,
+      value: ADDRESS,
+      action: SecurityBlockAction.Challenge,
+    });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
+    enforcement.push(
+      row({
+        block,
+        destination: "Cloudflare",
+        state: SecurityBlockEnforcementState.Applied,
+      }),
+    );
+
+    const outcome: PlaybookStepOutcome = await blockAsPolicy();
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toMatchObject({
+      value: ADDRESS,
+      action: SecurityBlockAction.Challenge,
+      duration: SecurityBlockDuration.OneHour,
+      source: SecurityBlockSource.AutomaticResponse,
+      securityAutomaticResponsePolicyId: POLICY_ID,
+      securityAutomaticResponsePolicyName: "Scanners",
+      challengeFallsBackToBlock: true,
+      securityPlaybookRunId: RUN_ID,
+      securityCaseId: CASE_ID,
+    });
+    // As OneUptime: nobody's approval, nobody's name.
+    expect(asked[0]!.props).toEqual({ isRoot: true });
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
+
+    // What the policy's action came to, and the case's line, written by the policy rather than the engine.
+    expect(recorded).toEqual([{ value: ADDRESS, block, failure: null }]);
+    expect(outcome.hasWrittenOwnFeed).toBe(true);
+  });
+
+  test("a block not holding anywhere yet leaves the case's line to the sweep: the engine says what the step did", async () => {
+    writesLine = false;
+    const block: SecurityBlock = madeBlock({ index: 10, value: ADDRESS });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
+    enforcement.push(
+      row({
+        block,
+        destination: "Cloudflare",
+        state: SecurityBlockEnforcementState.Pending,
+      }),
+    );
+
+    const outcome: PlaybookStepOutcome = await blockAsPolicy();
+
+    expect(outcome.hasWrittenOwnFeed).toBeFalsy();
+  });
+
+  test("a block the blocklist refused is recorded on the policy's action as failed, with why", async () => {
+    const refusal: string =
+      "OneUptime could not check whether 35.205.11.131 is one of your own addresses, so it did not block it. Try again in a minute.";
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Refused,
+      message: refusal,
+    });
+
+    const outcome: PlaybookStepOutcome = await blockAsPolicy();
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Failed);
+    expect(recorded).toEqual([
+      { value: ADDRESS, block: null, failure: refusal },
+    ]);
+  });
+
+  test("a person's and a playbook's block never are", async () => {
+    const block: SecurityBlock = madeBlock({ index: 11, value: ADDRESS });
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block,
+    });
+
+    await blockTargets({ targets: [target(ADDRESS)] });
+    await blockTargets({ targets: [target(ADDRESS)], personId: PERSON_ID });
+
+    expect(asked[0]!.source).toBe(SecurityBlockSource.Playbook);
+    expect(asked[1]!.source).toBe(SecurityBlockSource.Person);
+
+    for (const request of asked) {
+      expect(request.securityAutomaticResponsePolicyId).toBeUndefined();
+      expect(request.challengeFallsBackToBlock).toBeUndefined();
+    }
+
+    expect(recorded).toHaveLength(0);
   });
 });

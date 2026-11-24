@@ -460,7 +460,7 @@ export default class SecurityBlocklistFeed extends BaseModel {
     serverOwned: ServerOwned.Always,
     title: "Stopped Reading Told At",
     description:
-      "When the project's owners were told the firewall stopped reading the feed. Cleared when it reads it again, so they are told once each time.",
+      "When the Project Owners were told the firewall stopped reading the feed. Cleared when it reads it again, so they are told once each time.",
   })
   @Column({
     nullable: true,

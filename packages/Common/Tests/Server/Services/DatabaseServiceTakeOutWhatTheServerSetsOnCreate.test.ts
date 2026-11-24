@@ -78,7 +78,6 @@ describe("who did something to the record", () => {
     const row: StatusPageSubscriber = subscriber({
       createdByUserId: SOMEONE_ELSE,
       createdByUser: { _id: SOMEONE_ELSE.toString() },
-      deletedByUserId: SOMEONE_ELSE,
     });
 
     // As handed in, the row is refused: nobody may give a new record its creator.
@@ -90,7 +89,6 @@ describe("who did something to the record", () => {
 
     expect(value(row, "createdByUserId")).toBeUndefined();
     expect(value(row, "createdByUser")).toBeUndefined();
-    expect(value(row, "deletedByUserId")).toBeUndefined();
     expect(() => {
       CreatePermission.checkCreatePermissions(StatusPageSubscriber, row, props);
     }).not.toThrow();

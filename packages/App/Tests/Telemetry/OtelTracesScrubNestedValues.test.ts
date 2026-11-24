@@ -1048,13 +1048,31 @@ describe("a span's status message, its events' names and its exception's type, o
       expect(exceptionRows[0]!["exceptionType"]).toBe(
         `CardDeclined[${EMAIL_MASKED}]`,
       );
-      // The occurrence's group, and the group's upsert, as without a rule.
+      /*
+       * Grouped by the exception as it came (#10600, #10434): it tries the
+       * groups it has without the rule first, so an exception made before
+       * the rule keeps its occurrences. A new one is made under the keyed
+       * fingerprint: the email the rule hid is in the text v1 and v2 hash,
+       * and an unkeyed hash of it would give it back to whoever hashes
+       * guesses. These exceptions cannot be read, so the occurrence keeps
+       * the keyed one too.
+       */
+      const scrubbedPayload: TelemetryExceptionPayload = exceptionPayloads[0]!;
+      const keyed: string = scrubbedPayload.fingerprintCandidates![2]!;
+
       expect(typeof unscrubbed["fingerprint"]).toBe("string");
-      expect(exceptionRows[0]!["fingerprint"]).toBe(unscrubbed["fingerprint"]);
-      expect(exceptionPayloads[0]!.fingerprint).toBe(unscrubbed["fingerprint"]);
-      expect(exceptionPayloads[0]!.fingerprintV2).toBe(
+      expect(scrubbedPayload.fingerprintCandidates).toEqual([
+        unscrubbed["fingerprint"],
         unscrubbedPayload.fingerprintV2,
-      );
+        keyed,
+      ]);
+      expect([
+        unscrubbed["fingerprint"],
+        unscrubbedPayload.fingerprintV2,
+      ]).not.toContain(keyed);
+      expect(scrubbedPayload.fingerprintV2).toBe(keyed);
+      expect(scrubbedPayload.fingerprint).toBe(keyed);
+      expect(exceptionRows[0]!["fingerprint"]).toBe(keyed);
     },
   );
 
@@ -1257,7 +1275,20 @@ describe("a JSON text held in a string is read key by key on each OTLP route (#8
       );
       expect(exceptionRows).toHaveLength(1);
       expect(exceptionRows[0]!["message"]).toBe(hiddenMessage);
-      expect(exceptionRows[0]!["fingerprint"]).toBe(fingerprint);
+
+      /*
+       * Grouped by the exception as it came (#10600, #10434): the rule hid
+       * part of its message, so it tries the group it was filed under
+       * before the rule first. These exceptions cannot be read, so it keeps
+       * v2's fingerprint, which the message is not in beside a stack
+       * trace's frames: never v1's, an unkeyed hash of what the rule hid.
+       */
+      const before: TelemetryExceptionPayload = exceptionPayloads[0]!;
+      const after: TelemetryExceptionPayload = exceptionPayloads[1]!;
+
+      expect(after.fingerprintCandidates![0]).toBe(fingerprint);
+      expect(exceptionRows[0]!["fingerprint"]).toBe(before.fingerprintV2);
+      expect(exceptionRows[0]!["fingerprint"]).not.toBe(fingerprint);
 
       const stored: string = JSON.stringify([spanRows, exceptionRows]);
 

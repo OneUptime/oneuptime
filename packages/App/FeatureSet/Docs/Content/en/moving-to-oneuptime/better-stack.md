@@ -58,7 +58,7 @@ The report counts what was created and not brought over, and lists every item wi
 | Status pages | Status pages | Each page comes over with its sections as groups and the monitors and heartbeats it shows. An item you track by hand becomes a manual monitor. A page with a password or an IP allowlist comes over private. |
 | Email subscribers | Status page subscribers | Confirmed email subscribers come over once you confirm you may move them, following the same resources. Nobody is emailed, and every update they get from OneUptime has a link to unsubscribe. |
 
-- **Status, expected status code, keyword and keyword absence monitors** become website monitors, or API monitors when they send another method, headers or a JSON body. A status monitor is up on any 2xx answer, and an expected status code monitor on the codes it lists.
+- **Status, expected status code, keyword and keyword absence monitors** become website monitors, or API monitors when they send another method, headers or a body. A status monitor is up on any 2xx answer, and an expected status code monitor on the codes it lists.
 - **Ping and TCP monitors** become ping and port monitors. **SMTP, POP and IMAP monitors** become port monitors on their port: OneUptime checks that the port answers, not the mail conversation.
 - **DNS monitors** become DNS monitors of the name they query, asking the same server.
 - **Heartbeats** become incoming request monitors, which go down when no request has come for the period and the grace. Each has a new address in OneUptime.

@@ -8,6 +8,7 @@ OneUptime AI lit chaque dossier de sécurité comme le ferait un analyste : ses 
 - [Traiter un dossier de bout en bout](#traiter-un-dossier-de-bout-en-bout): Confiner, vérifier, corriger et fermer, avec une personne qui approuve ce que vous choisissez.
 - [Ce que OneUptime AI peut faire sur un dossier](#ce-que-oneuptime-ai-peut-faire-sur-un-dossier): Désactivé, Demander d'abord ou En autonomie, pour chaque type d'étape.
 - [Quand il confie un dossier à des personnes](#quand-il-confie-un-dossier-à-des-personnes): Pourquoi il s'arrête, et qui en est averti.
+- [Laisser OneUptime AI répondre en premier](#laisser-oneuptime-ai-répondre-en-premier): N'alerter les personnes que lorsque OneUptime AI a besoin d'elles.
 - [Lancer un playbook après une qualification](#lancer-un-playbook-après-une-qualification): Agir sur un dossier lu comme Probablement malveillant.
 - [Rédiger une règle de détection](#rédiger-une-règle-de-détection): Décrivez ce qu'il faut détecter, et lisez la règle Sigma.
 - [Demander à l'IA sur les pages de sécurité](#demander-à-lia-sur-les-pages-de-sécurité): Des questions sur les dossiers et les événements, en langage courant.
@@ -176,6 +177,7 @@ OneUptime AI ne se retire jamais en silence. Il confie le dossier à des personn
 - la cible de sa prochaine étape est protégée ;
 - il a agi en autonomie autant de fois qu'il le peut en une heure ;
 - l'IA est désactivée pour le projet ou pour les dossiers de sécurité, il n'y a pas de fournisseur LLM, ou le projet n'a plus de crédits IA ou a atteint sa limite quotidienne d'IA ;
+- le produit Événements de sécurité est désactivé sur le serveur ;
 - sa qualification n'a pas pu dire si le dossier est réel ;
 - une étape qu'il a effectuée ne tient pas, une étape qu'il a lancée n'a pas abouti, ou une personne a refusé ou annulé une étape qu'il a effectuée ;
 - il ne sait pas quoi faire ensuite, ou tout ce qui reste à faire sur le dossier revient à une personne.
@@ -183,6 +185,46 @@ OneUptime AI ne se retire jamais en silence. Il confie le dossier à des personn
 Les personnes qui s'occupent du dossier en sont averties tout de suite, ou, quand personne ne s'en occupe, les personnes averties des dossiers à sa priorité : **OneUptime AI a confié un dossier de sécurité à des personnes**, sous **Paramètres utilisateur → Paramètres de notification**. Une règle de notification d'espace de travail pour les dossiers de sécurité le publie dans son canal Slack ou Microsoft Teams sous **Dossiers confiés à des personnes par OneUptime AI**. **Reprendre la main** remet le dossier sans prévenir personne, puisque la personne qui a appuyé dessus l'a en main.
 
 **Répondre avec l'IA** demande à OneUptime AI de traiter à nouveau le dossier, là où il en est.
+
+Tant que le produit Événements de sécurité est désactivé sur le serveur, OneUptime AI ne lance aucune nouvelle étape sur aucun dossier et, en moins d'une minute, confie à des personnes chaque dossier qu'il traite. Une étape qu'il a déjà lancée se termine, ou peut être annulée, comme d'habitude. Une fois le produit réactivé, il ne reprend aucun de ces dossiers de lui-même : c'est **Répondre avec l'IA** qui le fait.
+
+Un dossier mis en attente pendant que OneUptime AI répond en premier n'atteint les personnes qu'une fois, avec la notification du nouveau dossier et la raison pour laquelle OneUptime AI s'est arrêté : voir [Laisser OneUptime AI répondre en premier](#laisser-oneuptime-ai-répondre-en-premier).
+
+## Laisser OneUptime AI répondre en premier
+
+Sous **Laisser OneUptime AI répondre en premier**, sur **Produits → Événements de sécurité → IA → Paramètres**, activez **Répondre en premier** : un nouveau dossier qu'une détection ouvre en dessous de la priorité que vous choisissez attend alors OneUptime AI avant que quiconque soit alerté. L'option est proposée tant que **Qualifier les nouveaux dossiers** et **Traiter les dossiers de bout en bout** sont activés. Elle est désactivée au départ et s'enregistre dès que vous la modifiez. Propriétaire du projet et Administrateur du projet peuvent la modifier.
+
+- **Pour les dossiers en dessous de** : la priorité en dessous de laquelle un dossier doit se trouver pour être mis en attente. Elle est réglée sur Élevé tant que vous n'en choisissez pas une autre.
+- **Alerter quand même les personnes après** : la durée maximale pendant laquelle un dossier est mis en attente, 5, 10, 15, 20 ou 30 minutes. Elle est de 10 minutes au départ.
+
+Tant qu'un dossier est en attente, la notification du nouveau dossier attend, tout comme les étapes **Alerter l'astreinte** des playbooks qui démarrent d'eux-mêmes sur ce dossier. Le dossier affiche **OneUptime AI s'en occupe**, avec l'heure à laquelle les personnes seront alertées, et **Alerter maintenant** les alerte tout de suite. Une exécution de playbook dont l'alerte attend est **En attente de OneUptime AI**.
+
+La mise en attente prend fin dès que l'un de ces cas se produit :
+
+| Quand | Alors |
+| --- | --- |
+| OneUptime AI maîtrise le dossier et OneUptime vérifie chaque étape de confinement, ou le dossier est fermé | Personne n'est alerté. Les canaux qui publient les nouveaux dossiers reçoivent un seul résumé de ce qu'a fait OneUptime AI, et les étapes d'alerte qui attendaient sont ignorées |
+| OneUptime AI a besoin d'une personne : il demande à quelqu'un d'approuver une étape, confie le dossier à des personnes ou ne peut pas commencer à le traiter | Toutes les personnes dont l'alerte était en attente sont alertées tout de suite, avec la raison et ce que OneUptime AI a déjà fait, et les étapes d'alerte qui attendaient s'exécutent |
+| Sa qualification ne lit pas le dossier comme Probablement malveillant, le dossier est marqué comme Maîtrisé avant que OneUptime ait pu vérifier chaque étape, ou le délai de mise en attente est écoulé | Tout le monde est alerté tout de suite, avec la raison |
+| Quelqu'un appuie sur **Alerter maintenant**, le dossier monte à la priorité que vous avez choisie, ou **Répondre en premier** ou **Traiter les dossiers de bout en bout** est désactivé | Tout le monde est alerté tout de suite |
+| Une personne prend le dossier en charge : avec **Reprendre la main**, en l'attribuant ou en le faisant avancer | Elle l'a en main. Personne d'autre n'est alerté, les canaux sont prévenus du nouveau dossier, et les étapes d'alerte qui attendaient sont ignorées |
+
+Un dossier n'est jamais mis en attente, et les personnes sont alertées comme d'habitude, quand :
+
+- il est à votre priorité la plus élevée, ou à la priorité que vous avez choisie ou au-dessus ;
+- 3 autres dossiers se sont ouverts dans les 5 minutes qui le précèdent, ce qui ressemble à une attaque en cours : les dossiers alors en attente reviennent aussi à des personnes ;
+- une partie de ses données ressemble à des instructions adressées à une IA ;
+- il porte sur une adresse, un utilisateur ou un hôte d'un dossier que OneUptime AI a résolu au cours des 24 dernières heures, puisque ce qu'il a fait n'a pas tenu ;
+- OneUptime AI ne peut pas le qualifier ou le traiter, par exemple quand le projet n'a plus de crédits IA ;
+- une personne l'a ouvert, ou c'est le dossier de l'attaque de test.
+
+La chronologie du dossier dit pourquoi il n'a pas été mis en attente, sauf pour un dossier à la priorité que vous avez choisie ou au-dessus, un dossier ouvert par une personne et le dossier de l'attaque de test. Les notifications d'un objectif de réponse ne sont jamais mises en attente.
+
+Bloquer des adresses et confiner des comptes et des hôtes demandent d'abord tant que vous ne les réglez pas sur **En autonomie** sous **Ce que OneUptime AI peut faire sur un dossier**, et un dossier atteint les personnes dès que OneUptime AI demande. Avec **Bloquer des adresses** sur **En autonomie**, confirmé par un Administrateur de la sécurité, il peut confiner un scanner sans que personne soit alerté.
+
+### L'e-mail hebdomadaire
+
+Chaque lundi, les Propriétaires du projet et les Administrateurs de la sécurité qui peuvent lire les dossiers de sécurité reçoivent un seul e-mail récapitulant ce que OneUptime AI a fait sur les dossiers de sécurité du projet la semaine précédente : les dossiers auxquels il a répondu en premier et leur issue, en combien de temps les dossiers qu'il a traités ont été maîtrisés, les adresses qu'il a bloquées et les blocages levés depuis, les étapes qu'il a demandé aux personnes d'approuver et en combien de temps elles ont répondu, et les étapes que des personnes ont annulées. Il ne contient que des chiffres, et un lien vers **Produits → Événements de sécurité → Vue d'ensemble**. Une semaine où OneUptime AI n'a rien fait n'envoie aucun e-mail.
 
 ## Le rapport de clôture
 
@@ -242,6 +284,14 @@ Un Propriétaire du projet ou une personne disposant de Manage Billing peut ajou
 
 :::details La carte indique qu'un texte du dossier ressemble à des instructions adressées à une IA
 Une partie des données du dossier, comme le message d'un événement ou un nom d'utilisateur, a été écrite pour manipuler une IA. OneUptime AI l'a lue comme des données et vous a laissé la décision : lisez vous-même les détections et les preuves avant de clore le dossier.
+:::
+
+:::details Les personnes ont été alertées pendant que OneUptime AI répondait en premier
+La chronologie du dossier dit pourquoi la mise en attente a pris fin : OneUptime AI a demandé à quelqu'un d'approuver une étape, a confié le dossier à des personnes ou n'a pas terminé dans le délai fixé sous **Alerter quand même les personnes après**, ou quelqu'un a appuyé sur **Alerter maintenant**. Une étape qui demande d'abord atteint les personnes dès que OneUptime AI demande : voir **Ce que OneUptime AI peut faire sur un dossier**.
+:::
+
+:::details Un nouveau dossier n'a pas été mis en attente
+Vérifiez que **Répondre en premier** est activé, et que le dossier est en dessous de la priorité choisie sous **Pour les dossiers en dessous de**. Un dossier à votre priorité la plus élevée, un dossier ouvert par une personne et le dossier de l'attaque de test ne sont jamais mis en attente. Pour toute autre raison, la chronologie du dossier dit pourquoi.
 :::
 
 :::details Un playbook au déclencheur IA ne s'est pas exécuté

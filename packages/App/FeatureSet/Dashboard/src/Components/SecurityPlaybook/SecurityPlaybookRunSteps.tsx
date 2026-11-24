@@ -53,6 +53,12 @@ function getMarker(status: string | undefined): {
         icon: IconProp.Pause,
         className: "bg-amber-400 text-white",
       };
+    // A Page On-Call step held while OneUptime AI responds first (#10353).
+    case SecurityPlaybookStepStatus.WaitingForOneUptimeAi:
+      return {
+        icon: IconProp.Clock,
+        className: "bg-indigo-100 text-indigo-700",
+      };
     case SecurityPlaybookStepStatus.Running:
       return {
         icon: IconProp.Play,

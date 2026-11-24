@@ -9,6 +9,7 @@ import Semaphore, {
 import AIRunEventService from "../../../../Services/AIRunEventService";
 import AIRunService from "../../../../Services/AIRunService";
 import logger from "../../../Logger";
+import SecurityCaseAiHold from "../../../SecurityCase/SecurityCaseAiHold";
 import SecurityCaseHandOff from "../../../SecurityCase/SecurityCaseHandOff";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import AIInvestigationQueue from "../../SRE/InvestigationQueue";
@@ -88,6 +89,16 @@ export default class SecurityCaseResponseRunner {
         aiRunId: data.aiRunId,
       });
 
+      /*
+       * A case OneUptime AI responds first to (#10353): whether this look
+       * resolved it, asked a person, or handed it over ends its hold now,
+       * not at the next minute's review. Never throws.
+       */
+      await SecurityCaseAiHold.reviewSoon({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+      });
+
       const completed: number = await AIRunService.attemptStatusTransition({
         aiRunId: data.aiRunId,
         fromStatus: AIRunStatus.Running,
@@ -157,6 +168,13 @@ export default class SecurityCaseResponseRunner {
   public static describe(outcome: LookOutcome): string {
     if (outcome.handedOff) {
       return `Handed the case to people (${outcome.handedOff}).`;
+    }
+
+    // Handed to people before the look, or while it looked (#10816).
+    if (outcome.isNoLongerWorking) {
+      return outcome.carriedOut > 0
+        ? `Carried out ${outcome.carriedOut} step(s), then stopped: the case was handed to people.`
+        : "Did nothing: the case was handed to people.";
     }
 
     if (outcome.isFinished) {

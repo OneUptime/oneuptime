@@ -21,10 +21,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * them rewrites nothing. An existing finding has no verdict until
  * OneUptime AI gives one, and when its decision was made is not known.
  */
-export class AddDataStoreFindingAiVerdicts1809187472372
+export class AddDataStoreFindingAiVerdicts1809187520372
   implements MigrationInterface
 {
-  public name: string = "AddDataStoreFindingAiVerdicts1809187472372";
+  public name: string = "AddDataStoreFindingAiVerdicts1809187520372";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

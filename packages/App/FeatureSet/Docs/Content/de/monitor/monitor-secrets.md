@@ -83,6 +83,8 @@ Geheimnisse werden ausgefüllt, bevor das Skript eines Synthetischen Monitors od
 
 Verweist ein Monitor auf ein Geheimnis, das er nicht verwenden darf, bleibt der Verweis, wie er ist, und wird nicht durch den Wert ersetzt.
 
+Wenn die Prüfung eines Monitors vom Typ API, Website oder Externe Statusseite fehlschlägt, nennt ihr Fehler die URL nur mit Schema, Host und Port, etwa `https://api.example.com`, sodass ein Geheimnis in der URL nie angezeigt wird.
+
 Wenn Sie einen Monitor testen, bevor Sie ihn speichern, werden nur Geheimnisse ausgefüllt, die für **Alle Monitore** verfügbar sind, weil ein neuer Monitor in keiner Liste steht und noch keine Beschriftungen hat. Nachdem Sie den Monitor gespeichert haben, verwenden Tests jedes Geheimnis, das der Monitor verwenden darf.
 
 ## Mit einem Einmalcode anmelden
@@ -128,7 +130,7 @@ return {
 Die Sonde gibt nie einen Code heraus, der nur noch weniger als fünf Sekunden gilt, oder weniger als ein Drittel des Zeitraums, wenn der Zeitraum kürzer ist: Sie wartet stattdessen auf den nächsten Code, höchstens fünf Sekunden, und rechnet diese Wartezeit nicht in die Ausführungszeit der Prüfung ein. Jeder Code, den eine Prüfung erzeugt, erscheint als Sternchen, etwa `******`, in ihren Protokollmeldungen, ihrem Ergebnis, ihrem Fehler und den Namen ihrer Screenshots. Ein Screenshot ist ein Bild der Seite, machen Sie ihn also, bevor der Code eingegeben wird, oder nachdem die Seite weitergegangen ist.
 
 > [!NOTE]
-> Die Sonde erzeugt die Codes, daher braucht eine benutzerdefinierte Sonde OneUptime 17.0.1 oder neuer. Auf einer älteren läuft eine Prüfung, die einen Code braucht, nicht, sondern schlägt mit einem Satz fehl, der sagt, dass die Sonde aktualisiert werden muss; das Formular des Monitors und die Seite der Sonde nennen eine zu alte Sonde, und [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren) erklärt, wie. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
+> Die Sonde erzeugt die Codes, daher braucht eine benutzerdefinierte Sonde OneUptime 17.1.0 oder neuer. Auf einer älteren läuft eine Prüfung, die einen Code braucht, nicht, sondern schlägt mit einem Satz fehl, der sagt, dass die Sonde aktualisiert werden muss; das Formular des Monitors und die Seite der Sonde nennen eine zu alte Sonde, und [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren) erklärt, wie. Auch die Uhr der Sonde muss stimmen, denn eine Sonde, die eine Minute falsch geht, erzeugt Codes, über die die Website schon hinaus ist.
 
 ## Fehlerbehebung
 
@@ -149,7 +151,7 @@ Prüfen Sie, ob der Code unter **Aktueller Code** beim Speichern des Geheimnisse
 :::
 
 :::details Die Prüfung meldet, dass die Sonde zu alt ist, um Einmalcodes zu erzeugen
-Die Sonde läuft mit einer Version vor OneUptime 17.0.1, die keine Einmalcodes erzeugen kann, daher wurde die Prüfung auf ihr nicht ausgeführt. Aktualisieren Sie die Sonde (siehe [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren)), oder lassen Sie den Monitor von Sonden mit 17.0.1 oder neuer prüfen.
+Die Sonde läuft mit einer Version vor OneUptime 17.1.0, die keine Einmalcodes erzeugen kann, daher wurde die Prüfung auf ihr nicht ausgeführt. Aktualisieren Sie die Sonde (siehe [Eine Sonde aktualisieren](/docs/probe/custom-probe#eine-sonde-aktualisieren)), oder lassen Sie den Monitor von Sonden mit 17.1.0 oder neuer prüfen.
 :::
 
 ## Nächste Schritte

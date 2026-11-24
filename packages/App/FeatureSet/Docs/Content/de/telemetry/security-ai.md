@@ -8,6 +8,7 @@ OneUptime AI liest jeden Sicherheitsfall so, wie es ein Analyst täte: seine Erk
 - [Einen Fall von Anfang bis Ende bearbeiten](#einen-fall-von-anfang-bis-ende-bearbeiten): Eindämmen, prüfen, korrigieren und schließen, wobei eine Person genehmigt, was Sie festlegen.
 - [Was OneUptime AI in einem Fall tun darf](#was-oneuptime-ai-in-einem-fall-tun-darf): Aus, Vorher fragen oder Selbstständig, für jede Art von Schritt.
 - [Wann es einen Fall an Menschen übergibt](#wann-es-einen-fall-an-menschen-übergibt): Warum es aufhört und wer davon erfährt.
+- [OneUptime AI zuerst reagieren lassen](#oneuptime-ai-zuerst-reagieren-lassen): Personen nur alarmieren, wenn OneUptime AI sie braucht.
 - [Ein Playbook nach einer Triage ausführen](#ein-playbook-nach-einer-triage-ausführen): Auf einen Fall reagieren, der als Wahrscheinlich bösartig gelesen wird.
 - [Eine Erkennungsregel entwerfen](#eine-erkennungsregel-entwerfen): Beschreiben, was erkannt werden soll, und die Sigma-Regel lesen.
 - [KI fragen auf den Sicherheitsseiten](#ki-fragen-auf-den-sicherheitsseiten): Fragen zu Fällen und Ereignissen, in einfachen Worten.
@@ -176,6 +177,7 @@ OneUptime AI zieht sich nie stillschweigend zurück. Es übergibt den Fall an Me
 - das Ziel seines nächsten Schritts geschützt ist;
 - es innerhalb einer Stunde so oft selbstständig gehandelt hat, wie es darf;
 - KI für das Projekt oder für Sicherheitsfälle ausgeschaltet ist, kein LLM-Anbieter vorhanden ist oder das Projekt kein KI-Guthaben mehr hat oder sein tägliches KI-Limit erreicht hat;
+- das Produkt Sicherheitsereignisse auf dem Server ausgeschaltet ist;
 - seine Triage nicht feststellen konnte, ob der Fall echt ist;
 - ein ausgeführter Schritt nicht hält, ein gestarteter Schritt nicht abgeschlossen wurde oder eine Person einen seiner Schritte abgelehnt oder rückgängig gemacht hat;
 - es nicht erkennen kann, was als Nächstes zu tun ist, oder alles, was im Fall noch offen ist, eine Person erledigen muss.
@@ -183,6 +185,46 @@ OneUptime AI zieht sich nie stillschweigend zurück. Es übergibt den Fall an Me
 Die Zuständigen des Falls erfahren es sofort, oder, wenn niemand zuständig ist, die Personen, die über Fälle seiner Priorität informiert werden: **OneUptime AI hat einen Sicherheitsfall an Menschen übergeben**, unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Eine Workspace-Benachrichtigungsregel für Sicherheitsfälle postet es in ihrem Kanal in Slack oder Microsoft Teams unter **Von OneUptime AI an Menschen übergebene Fälle**. **Übernehmen** übergibt den Fall, ohne jemanden zu benachrichtigen, denn die Person, die es gedrückt hat, hat ihn.
 
 **Mit KI reagieren** bittet OneUptime AI, den Fall erneut zu bearbeiten, ab dem Stand, an dem der Fall gerade ist.
+
+Solange das Produkt Sicherheitsereignisse auf dem Server ausgeschaltet ist, startet OneUptime AI in keinem Fall einen neuen Schritt und übergibt innerhalb einer Minute jeden Fall, den es bearbeitet, an Menschen. Ein Schritt, den es bereits gestartet hat, wird wie gewohnt abgeschlossen oder kann rückgängig gemacht werden. Sobald das Produkt wieder eingeschaltet ist, nimmt es keinen dieser Fälle von selbst wieder auf: Das tut **Mit KI reagieren**.
+
+Ein Fall, der zurückgehalten wird, während OneUptime AI zuerst reagiert, erreicht Personen ein einziges Mal, mit der Benachrichtigung über den neuen Fall und dem Grund, warum OneUptime AI aufgehört hat: siehe [OneUptime AI zuerst reagieren lassen](#oneuptime-ai-zuerst-reagieren-lassen).
+
+## OneUptime AI zuerst reagieren lassen
+
+Unter **OneUptime AI zuerst reagieren lassen** auf **Produkte → Sicherheitsereignisse → KI → Einstellungen** schalten Sie **Zuerst reagieren** ein: Dann wartet ein neuer Fall, den eine Erkennung mit einer Priorität unter der von Ihnen gewählten eröffnet, auf OneUptime AI, bevor jemand alarmiert wird. Angeboten wird es, solange **Neue Fälle triagieren** und **Fälle von Anfang bis Ende bearbeiten** eingeschaltet sind. Es ist anfangs ausgeschaltet und speichert, sobald Sie es ändern. Projektinhaber und Projektadministrator können es ändern.
+
+- **Für Fälle unter**: die Priorität, unter der ein Fall liegen muss, um zurückgehalten zu werden. Voreingestellt ist Hoch, bis Sie eine andere wählen.
+- **Trotzdem alarmieren nach**: wie lange ein Fall höchstens zurückgehalten wird, 5, 10, 15, 20 oder 30 Minuten. Voreingestellt sind 10 Minuten.
+
+Solange ein Fall zurückgehalten wird, wartet die Benachrichtigung über den neuen Fall, ebenso die Schritte **Bereitschaft alarmieren** der Playbooks, die von selbst für ihn starten. Der Fall zeigt **OneUptime AI kümmert sich darum** mit dem Zeitpunkt, zu dem Personen alarmiert werden, und **Jetzt alarmieren** alarmiert sie sofort. Eine Playbook-Ausführung, deren Alarmierung wartet, steht auf **Wartet auf OneUptime AI**.
+
+Die Zurückhaltung endet, sobald eines davon eintritt:
+
+| Wenn | Dann |
+| --- | --- |
+| OneUptime AI dämmt den Fall ein, und OneUptime prüft jeden Schritt, der ihn eindämmt, oder der Fall wird geschlossen | Niemand wird alarmiert. Die Kanäle, in die neue Fälle gepostet werden, erhalten eine Zusammenfassung dessen, was OneUptime AI getan hat, und die wartenden Alarmierungsschritte werden übersprungen |
+| OneUptime AI braucht eine Person: Es bittet jemanden, einen Schritt zu genehmigen, übergibt den Fall an Menschen oder kann mit der Bearbeitung nicht beginnen | Alle, vor denen der Fall zurückgehalten wurde, werden sofort alarmiert, mit dem Grund und dem, was OneUptime AI schon getan hat, und die wartenden Alarmierungsschritte alarmieren |
+| Die Triage schätzt den Fall nicht als Wahrscheinlich bösartig ein, der Fall wird als Eingedämmt markiert, bevor OneUptime jeden Schritt prüfen konnte, oder die Zurückhaltezeit läuft ab | Alle werden sofort alarmiert, mit dem Grund |
+| Jemand drückt **Jetzt alarmieren**, der Fall steigt auf die von Ihnen gewählte Priorität, oder **Zuerst reagieren** oder **Fälle von Anfang bis Ende bearbeiten** wird ausgeschaltet | Alle werden sofort alarmiert |
+| Eine Person übernimmt den Fall: **Übernehmen**, ihn zuweisen oder in den nächsten Status setzen | Sie hat ihn. Sonst wird niemand alarmiert, die Kanäle erfahren vom neuen Fall, und die wartenden Alarmierungsschritte werden übersprungen |
+
+Ein Fall wird nie zurückgehalten, und Personen werden wie gewohnt alarmiert, wenn:
+
+- er Ihre höchste Priorität hat oder die von Ihnen gewählte oder eine höhere;
+- 3 andere Fälle in den 5 Minuten vor ihm eröffnet wurden, was nach einem laufenden Angriff aussieht: Dann gehen auch die gerade zurückgehaltenen Fälle an Menschen;
+- sich ein Teil seiner Daten wie Anweisungen an eine KI liest;
+- er eine Adresse, einen Benutzer oder einen Host eines Falls betrifft, den OneUptime AI in den letzten 24 Stunden gelöst hat, denn was es getan hat, hat dann nicht gehalten;
+- OneUptime AI ihn nicht triagieren oder bearbeiten kann, etwa wenn das Projekt kein KI-Guthaben mehr hat;
+- eine Person ihn eröffnet hat oder es der Fall des Testangriffs ist.
+
+Die Zeitachse des Falls sagt, warum er nicht zurückgehalten wurde, außer bei einem Fall mit der von Ihnen gewählten oder einer höheren Priorität, einem Fall, den eine Person eröffnet hat, und dem Fall des Testangriffs. Die Benachrichtigungen eines Reaktionsziels werden nie zurückgehalten.
+
+Das Sperren von Adressen und das Eindämmen von Konten und Hosts fragen vorher nach, bis Sie sie unter **Was OneUptime AI in einem Fall tun darf** auf **Selbstständig** setzen, und ein Fall erreicht Personen, sobald OneUptime AI nachfragt. Steht **Adressen sperren** auf **Selbstständig**, von einem Sicherheits-Administrator bestätigt, kann es einen Scanner eindämmen, ohne dass jemand alarmiert wird.
+
+### Die wöchentliche E-Mail
+
+Jeden Montag erhalten Projektinhaber und Sicherheits-Administratoren, die Sicherheitsfälle lesen dürfen, eine E-Mail darüber, was OneUptime AI in der Vorwoche in den Sicherheitsfällen des Projekts getan hat: die Fälle, auf die es zuerst reagiert hat, und wie sie endeten, wie schnell die Fälle, die es bearbeitet hat, eingedämmt wurden, die Adressen, die es gesperrt hat, und die wieder aufgehobenen Sperren, die Schritte, um deren Genehmigung es Personen gebeten hat, und wie schnell sie geantwortet haben, sowie die Schritte, die Personen rückgängig gemacht haben. Sie enthält nur Zahlen und einen Link zu **Produkte → Sicherheitsereignisse → Übersicht**. In einer Woche, in der OneUptime AI nichts getan hat, wird keine E-Mail gesendet.
 
 ## Der Abschlussbericht
 
@@ -242,6 +284,14 @@ Ein Projektinhaber oder jemand mit Manage Billing kann unter **Projekteinstellun
 
 :::details Die Karte sagt, dass sich Text im Fall wie Anweisungen an eine KI liest
 Ein Teil der Daten des Falls, etwa eine Ereignismeldung oder ein Benutzername, wurde geschrieben, um eine KI zu steuern. OneUptime AI hat ihn als Daten gelesen und die Entscheidung Ihnen überlassen: Lesen Sie die Erkennungen und die Beweise selbst, bevor Sie den Fall schließen.
+:::
+
+:::details Personen wurden alarmiert, während OneUptime AI zuerst reagierte
+Die Zeitachse des Falls sagt, warum die Zurückhaltung endete: OneUptime AI hat jemanden gebeten, einen Schritt zu genehmigen, hat den Fall an Menschen übergeben oder ist nicht innerhalb von **Trotzdem alarmieren nach** fertig geworden, oder jemand hat **Jetzt alarmieren** gedrückt. Ein Schritt, der vorher fragt, erreicht Personen, sobald OneUptime AI fragt: siehe **Was OneUptime AI in einem Fall tun darf**.
+:::
+
+:::details Ein neuer Fall wurde nicht zurückgehalten
+Prüfen Sie, ob **Zuerst reagieren** eingeschaltet ist und ob die Priorität des Falls unter der bei **Für Fälle unter** gewählten liegt. Ein Fall mit Ihrer höchsten Priorität, ein Fall, den eine Person eröffnet hat, und der Fall des Testangriffs werden nie zurückgehalten. Jeden anderen Grund nennt die Zeitachse des Falls.
 :::
 
 :::details Ein Playbook mit dem KI-Auslöser ist nicht gelaufen

@@ -9,6 +9,11 @@ import OpenStackAuditLogParser, {
   OpenStackAuditAttribute,
 } from "Common/Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
+import {
+  SCRUBBED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_HIDDEN_BY_SCRUB_RULE,
+} from "Common/Utils/SecurityEvent/ScrubbedUser";
 import LogScrubRuleService from "../../FeatureSet/Telemetry/Services/LogScrubRuleService";
 
 /*
@@ -105,9 +110,19 @@ describe("a project's scrub rules, on an audit record", () => {
       customRule("[a-z.]+@example\\.com"),
     );
     const text: string = JSON.stringify(event);
+    const marker: { hidden: string; scrubbed: string; in: string } =
+      SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal];
 
     expect(text).not.toContain("ada.lovelace@example.com");
-    expect(event.principalUser).toBe("[REDACTED]");
+    /*
+     * A user Redact hid is no user (#10435): its "[REDACTED]" stands for
+     * everybody a rule hid, never one account to count or suspend. The
+     * event has no user, and its marker says a rule hid one, in a log.
+     */
+    expect(event.principalUser).toBe("");
+    expect(event.attributes[marker.hidden]).toBe(USER_HIDDEN_BY_SCRUB_RULE);
+    expect(event.attributes[marker.scrubbed]).toBe("[REDACTED]");
+    expect(event.attributes[marker.in]).toBe("log");
   });
 
   test("an address a rule takes out is no address, and the event still says what happened", () => {

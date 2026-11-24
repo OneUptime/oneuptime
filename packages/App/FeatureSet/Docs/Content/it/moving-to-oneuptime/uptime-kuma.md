@@ -56,7 +56,7 @@ Il report conta ciò che è stato creato e non importato, ed elenca ogni element
 | --- | --- | --- |
 | Monitors | Monitor | Da un backup, ogni monitor diventa un monitor dello stesso tipo, con lo stesso indirizzo, intervallo, timeout e codici di stato considerati attivi. Dalla pagina delle metriche, ognuno viene importato con un controllo ogni cinque minuti: verificali uno per uno dopo l'importazione. |
 
-- **I monitor HTTP(S) e a parola chiave** diventano monitor sito web, o monitor API quando inviano un altro metodo, intestazioni o un corpo JSON, con la parola chiave dove deve stare.
+- **I monitor HTTP(S) e a parola chiave** diventano monitor sito web, o monitor API quando inviano un altro metodo, intestazioni o un corpo, con la parola chiave dove deve stare.
 - **I monitor JSON query** diventano monitor API, senza la query: aggiungila come criterio in OneUptime.
 - **I monitor ping, porta e DNS** diventano monitor ping, porta e DNS.
 - **I monitor push** diventano monitor richieste in arrivo, che vanno giù quando non arriva nessuna richiesta per l'intervallo e i suoi tentativi. Ognuno ha un nuovo indirizzo in OneUptime.

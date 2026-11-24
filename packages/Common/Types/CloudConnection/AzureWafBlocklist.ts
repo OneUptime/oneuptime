@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../JSON";
+import { getLinearRegExp } from "../../Utils/LinearRegExp/PatternCache";
 import {
   SecurityBlockValue,
   readSecurityBlockValue,
@@ -1109,7 +1110,8 @@ export function isAzureActionPermitted(data: {
       .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
       .replace(/\*/g, ".*");
 
-    return new RegExp(`^${escaped}$`, "i").test(data.action);
+    // Azure's own wildcards, from its answer: run in linear time, however many stars.
+    return getLinearRegExp(`^${escaped}$`, "i").test(data.action);
   };
 
   return data.permissions.some(

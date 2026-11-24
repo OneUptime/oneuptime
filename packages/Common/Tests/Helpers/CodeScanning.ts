@@ -1,3 +1,4 @@
+import { spawnSync, SpawnSyncReturns } from "child_process";
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
@@ -1852,10 +1853,66 @@ export const isTestCodeFile: IsTestCodeFileFunction = (
 };
 
 /*
+ * What git ignores under `root`, by its path from `root` ("/" between
+ * folders; a folder whole, as git names it, with a "/" at its end): what a
+ * build or a generator writes, and no checkout holds - the Dashboard's
+ * public/sw.js, which its compile writes (#10706). Code scanning reads the
+ * checkout, so never these. Read once for each root; nothing when `root` is
+ * no checkout or git does not run, and the walk is the walk it always was.
+ */
+const IGNORED_BY_GIT: Map<string, ReadonlySet<string>> = new Map<
+  string,
+  ReadonlySet<string>
+>();
+
+export type IgnoredByGitFunction = (root: string) => ReadonlySet<string>;
+
+export const ignoredByGit: IgnoredByGitFunction = (
+  root: string,
+): ReadonlySet<string> => {
+  const known: ReadonlySet<string> | undefined = IGNORED_BY_GIT.get(root);
+
+  if (known) {
+    return known;
+  }
+
+  const listing: SpawnSyncReturns<string> = spawnSync(
+    "git",
+    [
+      "ls-files",
+      "--others",
+      "--ignored",
+      "--exclude-standard",
+      "--directory",
+      "-z",
+    ],
+    {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
+  const ignored: ReadonlySet<string> =
+    listing.status === 0 && typeof listing.stdout === "string"
+      ? new Set<string>(
+          listing.stdout.split("\0").filter((entry: string): boolean => {
+            return entry.length > 0;
+          }),
+        )
+      : new Set<string>();
+
+  IGNORED_BY_GIT.set(root, ignored);
+
+  return ignored;
+};
+
+/*
  * Every file under the given folders of `root` that `isWanted` takes, by its
  * path from `root` ("/" between folders), sorted. Builds, dependencies,
- * hidden folders and the directories code scanning leaves out are not
- * walked; a folder that is not there holds nothing.
+ * hidden folders, the directories code scanning leaves out and what git
+ * ignores (ignoredByGit) are not walked; a folder that is not there holds
+ * nothing.
  */
 function walkFiles(
   root: string,
@@ -1863,6 +1920,7 @@ function walkFiles(
   isWanted: (relativePath: string) => boolean,
 ): Array<string> {
   const files: Array<string> = [];
+  const ignored: ReadonlySet<string> = ignoredByGit(root);
 
   const walk: (directory: string) => void = (directory: string): void => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -1877,6 +1935,12 @@ function walkFiles(
         .join("/");
 
       if (isIgnoredByCodeScanning(relativePath)) {
+        continue;
+      }
+
+      if (
+        ignored.has(entry.isDirectory() ? `${relativePath}/` : relativePath)
+      ) {
         continue;
       }
 

@@ -232,7 +232,7 @@ Os critérios decidem quando o monitor está online, degradado ou offline, e qua
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção separada no formulário de critérios, e não uma condição do filtro. Ela está disponível para **Online** e para todo tipo de filtro numérico. Ative-a para comparar um agregado – escolhido em **Avaliar** (Média, Soma, Valor máximo, Valor mínimo, Todos os valores, Qualquer valor) na janela definida em **Nos últimos (em minutos)** – em vez do valor da última verificação. Em um filtro **Online**, a janela é o tempo que o agente pode ficar em silêncio antes de o servidor contar como offline.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção separada no formulário de critérios, e não uma condição do filtro. Ela está disponível para **Online** e para todo tipo de filtro numérico. Ative-a para comparar um agregado – escolhido em **Avaliar** (Média, Soma, Valor máximo, Valor mínimo, Percentil, Todos os valores, Qualquer valor, Contagem, Porcentagem, Mudanças de status) na janela definida em **No último período de** – em vez do valor da última verificação. Em um filtro **Online**, a janela é o tempo que o agente pode ficar em silêncio antes de o servidor contar como offline.
 
 A opção **Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder à única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
 

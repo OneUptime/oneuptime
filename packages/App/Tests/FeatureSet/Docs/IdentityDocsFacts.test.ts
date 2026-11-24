@@ -1747,6 +1747,30 @@ describe("the Global SSO guide", () => {
     );
   });
 
+  it("says a Project Owner confirms it's them before a clear, as the two clear routes ask it, and the count and the list never do (#10775)", () => {
+    const page: string = english(SSO);
+    const routes: string = fs.readFileSync(
+      path.join(REPO_DIR, "packages/Common/Server/API/ProjectAPI.ts"),
+      "utf8",
+    );
+    const countOf: (text: string) => number = (text: string): number => {
+      return routes.split(text).length - 1;
+    };
+
+    expect(page).toContain(
+      "Only a **Project Owner** can clear, signed in to the Dashboard: never with an API key. Clearing asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.",
+    );
+
+    // The two clears ask; the count, the list and the check itself read the owner alone.
+    expect(
+      countOf("await ProjectAPI.assertSignInClearingOwnerConfirmed(req);"),
+    ).toBe(2);
+    expect(countOf("await ProjectAPI.assertSignInClearingOwner(req);")).toBe(3);
+    expect(routes).toContain(
+      "await Reauthentication.assertConfirmed(\n      owner.props,\n      ReauthenticationPurpose.AdminChange,\n    );",
+    );
+  });
+
   it("names the Admin Dashboard's Settings and Single Sign-On by the words its menus look up, which agree in every language", () => {
     const locales: string = path.join(
       PACKAGES_DIR,

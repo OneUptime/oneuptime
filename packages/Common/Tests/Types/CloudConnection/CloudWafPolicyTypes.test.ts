@@ -367,6 +367,38 @@ describe("Azure WAF policies", () => {
     );
   });
 
+  /*
+   * Azure's wildcards are its role definitions' own: a definition of many
+   * stars that does not match is answered in linear time, and the rest of a
+   * pattern - dots, brackets - is matched as written, without case.
+   */
+  test("a permission of many stars is matched in linear time, and its other characters as written", () => {
+    const action: string = `Microsoft.Network/${"a".repeat(200)}/write`;
+
+    expect(
+      isAzureActionPermitted({
+        action,
+        permissions: [
+          { actions: ["*a*a*a*a*a*a*a*a*a*a*/read"], notActions: [] },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isAzureActionPermitted({
+        action,
+        permissions: [
+          { actions: ["MICROSOFT.NETWORK/*a*a*a*/WRITE"], notActions: [] },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      isAzureActionPermitted({
+        action: "MicrosoftXNetwork/frontDoors/write",
+        permissions: [{ actions: ["Microsoft.Network/*"], notActions: [] }],
+      }),
+    ).toBe(false);
+  });
+
   test("the setup command makes the role on its scope and assigns it; one policy's lines widen an existing role by its id and roleName and assign it on the policy alone", () => {
     const lines: Array<string> = getAzureWafBlocklistRoleLines();
 

@@ -81,6 +81,7 @@ import {
   ResourceResponse,
 } from "./Botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
+import BotFrameworkRouting from "./BotFrameworkRouting";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 import MicrosoftTeamsHosts from "./MicrosoftTeamsHosts";
 import MicrosoftTeamsCutChatIds from "./MicrosoftTeamsCutChatIds";
@@ -485,8 +486,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     logger.debug(`App Type: ${MICROSOFT_TEAMS_APP_TYPE}`);
     logger.debug(`Tenant ID: ${MicrosoftTeamsAppTenantId}`);
 
+    /*
+     * Each of the SDK's requests - the token check of every incoming
+     * activity, the bot's own tokens, its replies - on the outbound proxy's
+     * route, as every other request of the server (issue #10763).
+     */
     const botFrameworkAuthentication: ConfigurationBotFrameworkAuthentication =
-      new ConfigurationBotFrameworkAuthentication(
+      BotFrameworkRouting.createAuthentication(
         this.getBotAuthenticationOptions(),
       );
     const adapter: CloudAdapter = new CloudAdapter(botFrameworkAuthentication);
@@ -7683,9 +7689,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * The AAD group id for a team, which is what Graph calls the team id and what
    * every notification rule stores. Teams normally puts it on the activity as
-   * channelData.team.aadGroupId; when it does not, TeamsInfo.getTeamDetails
-   * fetches it. Returns undefined rather than throwing — a missing group id
-   * degrades the record, it does not invalidate the install.
+   * channelData.team.aadGroupId; when it does not, the team's details from
+   * the Bot Connector have it (BotFrameworkRouting.getTeamDetails). Returns
+   * undefined rather than throwing — a missing group id degrades the
+   * record, it does not invalidate the install.
    */
   public static async resolveGraphTeamIdFromBotActivity(data: {
     team: JSONObject | undefined;
@@ -7699,7 +7706,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     try {
-      const teamDetails: TeamDetails = await TeamsInfo.getTeamDetails(
+      // On the bot's HttpClient: TeamsInfo's own client takes no route.
+      const teamDetails: TeamDetails = await BotFrameworkRouting.getTeamDetails(
         data.turnContext,
       );
 

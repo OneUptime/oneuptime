@@ -47,6 +47,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../../Types/Permission";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "../../../../Types/SecurityEvent/SecurityAddressVaultRetention";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "../../../../Types/NetFlow/NetworkFlowRetention";
+import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -696,7 +697,7 @@ describe("what OneUptime declares of a store", () => {
       purpose: "Network and information security (GDPR Recital 49)",
       retentionInDays: 15,
       retentionBasis: DeclaredStoreRetentionBasis.SecurityEvents,
-      retentionText: "15 days",
+      retentionText: `15${NO_BREAK_SPACE}days`,
       isPurposeTheTeams: false,
       isRetentionTheTeams: false,
       readers: DeclaredStoreReaders.Roles,
@@ -740,7 +741,7 @@ describe("what OneUptime declares of a store", () => {
           store: storeOf(DataStoreKind.SecurityEvents),
         })
       )?.retentionText,
-    ).toBe("90 days");
+    ).toBe(`90${NO_BREAK_SPACE}days`);
 
     eventRetentionInDays = 1;
 
@@ -751,7 +752,7 @@ describe("what OneUptime declares of a store", () => {
           store: storeOf(DataStoreKind.SecurityEvents),
         })
       )?.retentionText,
-    ).toBe("1 day");
+    ).toBe(`1${NO_BREAK_SPACE}day`);
   });
 
   test("Network Flows: the table's own 30 days, read by whoever may read network devices", async () => {
@@ -763,7 +764,7 @@ describe("what OneUptime declares of a store", () => {
 
     expect(declared).toMatchObject({
       retentionInDays: NETWORK_FLOW_RETENTION_IN_DAYS,
-      retentionText: "30 days",
+      retentionText: `30${NO_BREAK_SPACE}days`,
       retentionBasis: DeclaredStoreRetentionBasis.NetworkFlows,
       readers: DeclaredStoreReaders.Roles,
       readPermissions: [...new NetworkFlow().getReadPermissions()],
@@ -784,7 +785,7 @@ describe("what OneUptime declares of a store", () => {
 
     expect(declared).toMatchObject({
       retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
-      retentionText: "30 days after an address was last seen",
+      retentionText: `30${NO_BREAK_SPACE}days after an address was last seen`,
       retentionBasis: DeclaredStoreRetentionBasis.AddressVault,
       readers: DeclaredStoreReaders.SecurityEventsScansOnly,
       readPermissions: [],
@@ -817,7 +818,7 @@ describe("what OneUptime declares of a store", () => {
       DeclaredDataStores.getRecordedPurposeAndRetention({ store, declared }),
     ).toEqual({
       purpose: "Detecting and blocking attacks on our shop",
-      retention: "15 days",
+      retention: `15${NO_BREAK_SPACE}days`,
     });
   });
 

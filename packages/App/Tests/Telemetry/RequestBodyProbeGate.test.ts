@@ -72,7 +72,7 @@ import { ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE } from "../../FeatureSet/Telemetry/U
  * AN API STEP WHOSE BODY ONLY A NEWER PROBE SENDS GOES ONLY TO SUCH A
  * PROBE (issue #10737).
  *
- * A custom probe from before 17.2.0 reads every body as a JSON object, so
+ * A custom probe of 17.2.0 or before reads every body as a JSON object, so
  * a check whose body is an array or a single value failed with "Expected
  * JSONObject, but got JSONArray", which said nothing of the probe being too
  * old. Such a probe does not declare anyRequestBody: the server keeps the
@@ -124,7 +124,7 @@ const CURRENT_PROBE: JSONObject = {
     "totpCodes",
     "anyRequestBody",
   ],
-  probeVersion: "17.2.0",
+  probeVersion: "17.2.1",
 };
 
 let nextId: number = 1;
@@ -248,17 +248,18 @@ beforeEach(() => {
 });
 
 describe("the sentence a step kept from an old probe says", () => {
-  test("says what happened, why, and what to do, naming the first release that sends such a body", () => {
-    expect(FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY).toBe("17.2.0");
+  test("says what happened, why, and what to do, naming no release: the first that sends such a body is the one after 17.2.0, not known until it is cut", () => {
+    expect(FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY).toBe("17.2.1");
     expect(REQUEST_BODY_STEP_NOT_RUN_MESSAGE).toBe(
-      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime 17.2.0 or later.",
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.",
     );
+    expect(REQUEST_BODY_STEP_NOT_RUN_MESSAGE).not.toMatch(/\d+\.\d+\.\d+/);
   });
 
   test("is one of the probe failure causes, so a summary words it in the reader's language", () => {
     expect(readProbeFailureCause(REQUEST_BODY_STEP_NOT_RUN_MESSAGE)).toEqual({
       cause: ProbeFailureCause.ProbeTooOldForRequestBody,
-      values: { version: "17.2.0" },
+      values: {},
     });
   });
 

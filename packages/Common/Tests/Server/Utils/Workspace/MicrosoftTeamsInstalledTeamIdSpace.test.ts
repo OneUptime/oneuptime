@@ -50,7 +50,6 @@ jest.mock("botbuilder", () => {
     TeamsInfo: {
       getMembers: jest.fn(),
       getPagedMembers: jest.fn(),
-      getTeamDetails: jest.fn(),
     },
   };
 });
@@ -67,7 +66,8 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import { WorkspaceChannel } from "../../../../Server/Utils/Workspace/WorkspaceBase";
-import { TeamsInfo, type ConversationReference } from "botbuilder";
+import BotFrameworkRouting from "../../../../Server/Utils/Workspace/MicrosoftTeams/BotFrameworkRouting";
+import { type ConversationReference } from "botbuilder";
 
 /*
  * Realistic ids. The two forms are deliberately unrelated strings so that a
@@ -222,8 +222,17 @@ function sendAsNotificationRuleWould(): Promise<unknown> {
   });
 }
 
+/*
+ * The team's details from the Bot Connector, which the bot reads on its own
+ * HttpClient (BotFrameworkRouting.getTeamDetails, #10763): none, unless a
+ * test says.
+ */
+let teamDetails: jest.SpyInstance;
+
 beforeEach(() => {
-  (TeamsInfo.getTeamDetails as jest.Mock).mockReset();
+  teamDetails = jest
+    .spyOn(BotFrameworkRouting, "getTeamDetails")
+    .mockResolvedValue(undefined as never);
   /*
    * Force the Graph fallback to fail so nothing in this file can pass by way of
    * the install check. A send that succeeds here succeeded because the captured
@@ -305,8 +314,8 @@ describe("Microsoft Teams install capture and channel send agree on the team id 
     expect(adapter.refs[0]!.serviceUrl).not.toBe(FALLBACK_SERVICE_URL);
   });
 
-  test("an activity without aadGroupId falls back to TeamsInfo, and the send still works", async () => {
-    (TeamsInfo.getTeamDetails as jest.Mock).mockResolvedValue({
+  test("an activity without aadGroupId falls back to the Bot Connector's team details, and the send still works", async () => {
+    teamDetails.mockResolvedValue({
       id: TEAM_THREAD_ID,
       name: "WBNOC",
       aadGroupId: GRAPH_TEAM_ID,
@@ -324,7 +333,7 @@ describe("Microsoft Teams install capture and channel send agree on the team id 
 
     await sendAsNotificationRuleWould();
 
-    expect(TeamsInfo.getTeamDetails as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(teamDetails).toHaveBeenCalledTimes(1);
     expect(adapter.continueConversationAsync).toHaveBeenCalledTimes(1);
   });
 
@@ -335,7 +344,7 @@ describe("Microsoft Teams install capture and channel send agree on the team id 
      * team — but it must not be silently treated as an install of some Graph
      * team id, which is the class of confusion this whole change removes.
      */
-    (TeamsInfo.getTeamDetails as jest.Mock).mockRejectedValue(
+    teamDetails.mockRejectedValue(
       new Error("The bot is not part of the conversation roster."),
     );
 
@@ -612,7 +621,7 @@ describe("captureTeamFromBotActivity onlyIfMissingOrStale", () => {
       onlyIfMissingOrStale: true,
     });
 
-    expect(TeamsInfo.getTeamDetails as jest.Mock).not.toHaveBeenCalled();
+    expect(teamDetails).not.toHaveBeenCalled();
   });
 
   test("a team that is not on record yet IS written", async () => {

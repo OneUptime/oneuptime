@@ -211,18 +211,18 @@ describe("a subscriber notification template and its link to a status page", () 
   });
 
   test("an old link entry and a new one go out without what the link redacts", () => {
-    const deletedBy: string = ObjectID.generate().toString();
+    const actorId: string = ObjectID.generate().toString();
 
     expect(
       redactAuditLogExportRecord(
         toAuditLogExportRecord(
           storedRow({
             resourceType: LINK_TYPE,
-            changes: [{ field: "deletedByUserId", newValue: deletedBy }],
+            changes: [{ field: "createdByActorId", newValue: actorId }],
           }),
         )!,
       ).changes,
-    ).toEqual([{ field: "deletedByUserId", newValue: "[REDACTED]" }]);
+    ).toEqual([{ field: "createdByActorId", newValue: "[REDACTED]" }]);
 
     const batch: Array<AuditLogExportRecord> = AuditLogExporter.toBatch({
       rows: [
@@ -233,7 +233,7 @@ describe("a subscriber notification template and its link to a status page", () 
               field: "statusPageId",
               newValue: ObjectID.generate().toString(),
             },
-            { field: "deletedByUserId", newValue: deletedBy },
+            { field: "createdByActorId", newValue: actorId },
           ],
         }),
       ],
@@ -241,10 +241,10 @@ describe("a subscriber notification template and its link to a status page", () 
     });
 
     expect(batch[0]!.changes[1]).toEqual({
-      field: "deletedByUserId",
+      field: "createdByActorId",
       newValue: "[REDACTED]",
     });
-    expect(toNdjson(batch)).not.toContain(deletedBy);
+    expect(toNdjson(batch)).not.toContain(actorId);
   });
 });
 

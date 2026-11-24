@@ -24,7 +24,8 @@ import OneUptimeDate from "Common/Types/Date";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ObjectID from "Common/Types/ObjectID";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import MetricTypeSearch from "./MetricTypeSearch";
+// The reads alone, which import no React: the pickers' hooks are elsewhere.
+import MetricTypeSearch from "./MetricTypeReads";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";

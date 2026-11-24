@@ -235,7 +235,6 @@ describe("ServiceLevelObjectiveMonitorRule", () => {
       "monitorNamePattern",
       "monitorDescriptionPattern",
       "createdByUserId",
-      "deletedByUserId",
     ]) {
       expect(columns).toContain(column);
     }

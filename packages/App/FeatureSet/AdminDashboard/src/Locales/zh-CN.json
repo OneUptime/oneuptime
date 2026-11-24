@@ -4484,5 +4484,15 @@
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”的当前值班者，因此没有再次添加该计划。",
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "值班策略“{{policy}}”的升级规则“{{rule}}”已在呼叫值班计划“{{schedule}}”轮换中的下一个人，因此没有再次添加该计划。",
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”轮换中的下一个人，因此没有再次添加该计划。",
-  "No longer available": "已不可用"
+  "No longer available": "已不可用",
+  "An enabled drop filter drops the logs it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "已启用的丢弃过滤器会在 1 分钟内丢弃匹配的日志，读取这些日志的内容将一条也收不到。请逐个启用，以便先看清每个过滤器会拿走什么。",
+  "An enabled drop filter drops the spans it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "已启用的丢弃过滤器会在 1 分钟内丢弃匹配的跨度，读取这些跨度的内容将一个也收不到。请逐个启用，以便先看清每个过滤器会拿走什么。",
+  "This scan is already queued to run. It starts when its probe picks it up.": "此扫描已在队列中。探测器领取后即会开始。",
+  "This scan is already running. Run it again once this run finishes.": "此扫描已在运行。请在本次运行结束后再次运行。",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "此扫描已不存在。刷新列表即可查看最新的扫描。",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此扫描的探测器未连接到 OneUptime，因此现在无法运行扫描。请启动该探测器，或在“编辑”中选择其他探测器。",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "此扫描的探测器已不存在，因此无法运行扫描。请在“编辑”中选择其他探测器。",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此扫描的探测器 {{probe}} 未连接到 OneUptime，因此现在无法运行扫描。请启动该探测器，或在“编辑”中选择其他探测器。",
+  "You may not edit this project's discovery scans, so you cannot run one.": "你无权编辑此项目的发现扫描，因此无法运行扫描。",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "显示 {{total}} 个中的 {{shown}} 个。输入内容可缩小列表范围。"
 }

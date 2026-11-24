@@ -57,7 +57,7 @@ Het rapport telt wat is aangemaakt en niet overgenomen, en toont elk item met ee
 | Monitors | Monitoren | Elke monitor wordt een monitor van hetzelfde soort, met hetzelfde adres, interval en dezelfde time-out, en dezelfde statuscodes die als beschikbaar gelden. |
 | Public status pages | Statuspagina's | Elke pagina toont dezelfde monitoren: de monitoren die ze noemt, die met haar tags, of allemaal, met beschikbaarheid en geschiedenisbalken zoals ze die toonde. Een pagina met een wachtwoord wordt privé overgenomen. |
 
-- **HTTP(S)- en trefwoordmonitoren** worden websitemonitoren, of API-monitoren als ze een andere methode, headers of een JSON-body sturen. Een trefwoordmonitor valt uit als zijn trefwoord verschijnt of ontbreekt, zoals in UptimeRobot, en zoekt het exact, inclusief hoofdletters.
+- **HTTP(S)- en trefwoordmonitoren** worden websitemonitoren, of API-monitoren als ze een andere methode, headers of een body sturen. Een trefwoordmonitor valt uit als zijn trefwoord verschijnt of ontbreekt, zoals in UptimeRobot, en zoekt het exact, inclusief hoofdletters.
 - **Ping- en poortmonitoren** worden ping- en poortmonitoren.
 - **Heartbeatmonitoren** worden inkomende-verzoekmonitoren, die uitvallen als er gedurende het interval en de respijtperiode geen verzoek is gekomen. Elk heeft een nieuw adres in OneUptime.
 - **DNS- en API-monitoren** worden DNS- en API-monitoren.

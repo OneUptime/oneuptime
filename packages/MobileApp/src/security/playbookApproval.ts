@@ -24,6 +24,8 @@ export const SECURITY_PLAYBOOK_RUN_STATUSES: ReadonlyArray<string> = [
   "Queued",
   "Running",
   WAITING_FOR_APPROVAL,
+  // A Page On-Call step waits while OneUptime AI responds first to the case.
+  "Waiting for OneUptime AI",
   "Succeeded",
   "Failed",
   "Cancelled",
@@ -124,7 +126,8 @@ const TRIGGER_DESCRIPTIONS: Readonly<Record<string, string>> = {
   "Triaged as Likely Malicious":
     "Started on its own when OneUptime AI read the case as likely malicious",
   // A step OneUptime AI asks about while it works the case (#10352).
-  "OneUptime AI": "Started on its own by OneUptime AI, which is working the case",
+  "OneUptime AI":
+    "Started on its own by OneUptime AI, which is working the case",
 };
 
 export interface PlaybookTarget {

@@ -217,8 +217,8 @@
       "button: 待命策略",
       "button: 儲存並繼續"
     ],
-    "width": 768,
-    "height": 262
+    "width": 784,
+    "height": 291
   },
   "website-down-test": {
     "text": [
@@ -232,8 +232,8 @@
       "button: 傳送測試呼叫給我",
       "button: 略過測試"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: 測試此策略",
       "button: 略過測試"
     ],
-    "width": 768,
-    "height": 158
+    "width": 784,
+    "height": 187
   },
   "paging-summary": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: 解決",
+      "button: 重新指派 Maya Chen 的 事件指揮官",
       "button: 新增 新增擁有者",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"

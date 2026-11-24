@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import { spawnSync } from "child_process";
 import fs from "fs";
 import yaml from "js-yaml";
 import os from "os";
@@ -14,6 +15,7 @@ import {
   findCodeScanningProblems,
   isIgnoredByCodeScanning,
   isProductCode,
+  ignoredByGit,
   listProductFiles,
   reachesCommon,
   readCodeScanningIgnoredPaths,
@@ -708,6 +710,65 @@ describe("CodeScanning - which files are product code", () => {
 
   test("only the folders asked for, when they are named", () => {
     expect(listProductFiles(root, ["ee"])).toEqual(["ee/Server/E.ts"]);
+  });
+
+  test("a folder that is no git checkout ignores nothing", () => {
+    expect(ignoredByGit(root).size).toBe(0);
+  });
+});
+
+/*
+ * What a build or a generator writes, and git ignores, is in no checkout,
+ * so code scanning never reads it: after the Dashboard's compile its
+ * public/sw.js made PatternsAProjectWritesGuard fail on a developer's
+ * machine and nowhere else (#10706). A file that is new and not ignored is
+ * read, as it will be once it is committed.
+ */
+describe("CodeScanning - what git ignores is not read", () => {
+  let root: string = "";
+
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), "code-scanning-gitignored-"));
+
+    const init: { status: number | null } = spawnSync("git", ["init", "-q"], {
+      cwd: root,
+    });
+    expect(init.status).toBe(0);
+
+    for (const [file, text] of [
+      [
+        ".gitignore",
+        "packages/App/FeatureSet/Dashboard/public/sw.js\npackages/App/generated/\n",
+      ],
+      [
+        "packages/App/FeatureSet/Dashboard/public/sw.js",
+        "caches.match(request);",
+      ],
+      ["packages/App/FeatureSet/Dashboard/public/offline.js", ""],
+      ["packages/App/generated/client.ts", ""],
+      ["packages/App/Server.ts", ""],
+    ] as Array<[string, string]>) {
+      fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+      fs.writeFileSync(path.join(root, file), text);
+    }
+  });
+
+  afterAll(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  test("a generated file and a generated folder git ignores are left out; the rest is read, committed or not", () => {
+    expect(listProductFiles(root, ["packages"])).toEqual([
+      "packages/App/FeatureSet/Dashboard/public/offline.js",
+      "packages/App/Server.ts",
+    ]);
+  });
+
+  test("git names a file it ignores, and a folder it ignores whole", () => {
+    expect(Array.from(ignoredByGit(root)).sort()).toEqual([
+      "packages/App/FeatureSet/Dashboard/public/sw.js",
+      "packages/App/generated/",
+    ]);
   });
 });
 

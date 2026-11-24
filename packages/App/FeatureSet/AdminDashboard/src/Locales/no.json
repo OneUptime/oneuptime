@@ -4484,5 +4484,15 @@
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Denne eskaleringsregelen tilkaller allerede den som har vakt i vaktplanen «{{schedule}}», så vaktplanen ble ikke lagt til på nytt.",
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Eskaleringsregelen «{{rule}}» i vaktpolicyen «{{policy}}» tilkaller allerede neste person i rotasjonen i vaktplanen «{{schedule}}», så vaktplanen ble ikke lagt til på nytt.",
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Denne eskaleringsregelen tilkaller allerede neste person i rotasjonen i vaktplanen «{{schedule}}», så vaktplanen ble ikke lagt til på nytt.",
-  "No longer available": "Ikke lenger tilgjengelig"
+  "No longer available": "Ikke lenger tilgjengelig",
+  "An enabled drop filter drops the logs it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "Et aktivert drop-filter forkaster samsvarende logger innen ett minutt, og det som leser dem, får ingen av dem. Aktiver dem ett om gangen for å se først hva hvert filter ville ta.",
+  "An enabled drop filter drops the spans it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "Et aktivert drop-filter forkaster samsvarende spans innen ett minutt, og det som leser dem, får ingen av dem. Aktiver dem ett om gangen for å se først hva hvert filter ville ta.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Denne skanningen står allerede i kø. Den starter når sonden plukker den opp.",
+  "This scan is already running. Run it again once this run finishes.": "Denne skanningen kjører allerede. Kjør den igjen når denne kjøringen er ferdig.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Denne skanningen finnes ikke lenger. Oppdater listen for å se de nyeste skanningene.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Sonden til denne skanningen er ikke koblet til OneUptime, så skanningen kan ikke kjøre nå. Start sonden, eller velg en annen sonde under Rediger.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Sonden til denne skanningen finnes ikke lenger, så skanningen kan ikke kjøre. Velg en annen sonde under Rediger.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Sonden til denne skanningen, {{probe}}, er ikke koblet til OneUptime, så skanningen kan ikke kjøre nå. Start sonden, eller velg en annen sonde under Rediger.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Du kan ikke redigere oppdagelsesskanningene i dette prosjektet, så du kan ikke kjøre en.",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "Viser {{shown}} av {{total}}. Skriv for å snevre inn listen."
 }

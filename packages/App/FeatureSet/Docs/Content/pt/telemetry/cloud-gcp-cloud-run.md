@@ -270,7 +270,7 @@ Só o contêiner que recebe requisições (`app`) declara `ports`; um sidecar n�
 
 ## O que você recebe
 
-- **Visão geral**: requisições, taxa de erro e latência p95 dos seus traços.
+- **Visão geral**: requisições, taxa de erro e latência p95 dos seus traços. Conecte o projeto em **Nuvem → Conectar**, e esta aba ganha uma seção **Google Cloud Monitoring**: as requisições do serviço, a parcela respondida com status 5xx, a latência p95 e a CPU e a memória dos contêineres dele, como o Cloud Run os mede, seja o que for que o app envie. A linha **Conexão do Google Cloud Monitoring** da **Verificação da configuração** nomeia o serviço procurado enquanto nenhum é lido.
 - **Instâncias**: uma linha por instância do Cloud Run, nomeada por `faas.instance`. O Cloud Run não mostra a um sidecar o uso de recursos de um contêiner, então os blocos **CPU** e **Memória** ficam vazios, a menos que você envie métricas `container.cpu.utilization` e `container.memory.usage` com o mesmo `faas.instance`. Leia aqui os blocos de requisições, e deixe a CPU e a memória das instâncias para o Cloud Monitoring.
 - **Registros**, **Traços** e **Métricas**, filtrados para o ambiente.
 - O mesmo serviço em **Funções serverless** (por `faas.name`) e em **Serviços** (por `service.name`).
