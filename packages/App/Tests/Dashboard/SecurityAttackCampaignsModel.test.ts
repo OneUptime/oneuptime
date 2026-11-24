@@ -457,7 +457,9 @@ describe("a network row's requests", () => {
       expect(parsed.attributes).toEqual({});
       expect(Object.keys(parsed.fields)).toEqual(["principalIp"]);
       expect(parsed.fields["principalIp"]).toBeInstanceOf(Wildcard);
-      expect((parsed.fields["principalIp"] as Wildcard).toPatterns()).toEqual(
+      expect(
+        (parsed.fields["principalIp"] as Wildcard<string>).toPatterns(),
+      ).toEqual(
         globs.map((glob: string): string => {
           return toLikePattern(glob);
         }),

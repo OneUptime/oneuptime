@@ -299,7 +299,9 @@ describe("the record of an address, with the networks it sent from", () => {
     const value: unknown = query["value"];
 
     if (value instanceof Includes) {
-      if (!value.values.includes(made.value || "")) {
+      const values: Array<unknown> = value.values as Array<unknown>;
+
+      if (!values.includes(made.value || "")) {
         return false;
       }
     } else if (typeof value === "string" && made.value !== value) {
