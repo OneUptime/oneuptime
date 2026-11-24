@@ -723,6 +723,60 @@ describe("the one-click fixes on Setup Health", () => {
     });
   });
 
+  /*
+   * The dialog offered the project's first 10,000 policies, read once: a
+   * policy past them could not be paged (#10764). It offers the first ones,
+   * and searches the server for what is typed.
+   */
+  test("a policy past the first ones is found on the server by what is typed, and the rule pages it", async () => {
+    const LATE: string = "68127299-0000-4000-8000-0000000000b9";
+
+    getAnswer.mockResolvedValue(
+      answer([pagesNobody(SetupHealthEventKind.Incident)]),
+    );
+    jest.spyOn(SetupHealthQuickFixApi, "getPolicies").mockResolvedValue([
+      { id: PRIMARY, name: "Primary" },
+      { id: SECONDARY, name: "Secondary" },
+    ]);
+    const search: SpyInstance<typeof SetupHealthQuickFixApi.searchPolicies> =
+      jest
+        .spyOn(SetupHealthQuickFixApi, "searchPolicies")
+        .mockResolvedValue([{ id: LATE, name: "Warehouse rota" }]);
+    const create: SpyInstance<typeof SetupHealthQuickFixApi.createOnCallRule> =
+      jest
+        .spyOn(SetupHealthQuickFixApi, "createOnCallRule")
+        .mockResolvedValue(undefined as never);
+    renderView();
+
+    fireEvent.click(await screen.findByTestId("setup-health-quick-fix"));
+
+    fireEvent.change(
+      within(await screen.findByTestId("setup-health-quick-fix-policy")).getByRole(
+        "combobox",
+      ),
+      { target: { value: "warehouse" } },
+    );
+
+    fireEvent.click(await screen.findByText("Warehouse rota"));
+
+    expect(search).toHaveBeenCalledWith("warehouse");
+    expect(
+      await screen.findByTestId("setup-health-quick-fix-change"),
+    ).toHaveTextContent(
+      "Every new incident of Checkout API will page on-call policy Warehouse rota.",
+    );
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          policy: { id: LATE, name: "Warehouse rota" },
+        }),
+      );
+    });
+  });
+
   test("with no policy in service, it says so and makes nothing", async () => {
     getAnswer.mockResolvedValue(
       answer([pagesNobody(SetupHealthEventKind.Incident)]),
