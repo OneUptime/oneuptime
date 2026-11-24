@@ -98,6 +98,17 @@ export enum DataSecurityAiFeature {
    * asks (#10375).
    */
   DraftAuditEvidence = "DraftAuditEvidence",
+  /*
+   * An exposure's assessment written up (#10377): what it means, a notice
+   * to the regulator, a notice to the people affected and an internal
+   * summary, from the facts plain code worked out - the window, who could
+   * read the data, whose data it was, the secrets to rotate and the breach
+   * laws that may apply. On its own for a Critical exposure of a store with
+   * Restricted or Confidential data, as the project's Data Security AI
+   * rules allow, and when a person asks on any case about a store.
+   */
+  DraftExposureAssessment = "DraftExposureAssessment",
+  DraftExposureAssessmentOnRequest = "DraftExposureAssessmentOnRequest",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -229,6 +240,36 @@ const RECORD_DRAFT_NEVER_SENDS: ReadonlyArray<string> = [
 
 const RECORD_DRAFT_KEEPS: string = translationKey(
   "Each draft, beside the store's record with the facts it rests on, until a person confirms it. A field a person wrote is never drafted.",
+);
+
+/*
+ * What an exposure's write-up sends (#10377), on its own or when a person
+ * asks: the facts plain code worked out, never what the store holds.
+ */
+const EXPOSURE_ASSESSMENT_SENDS: ReadonlyArray<string> = [
+  translationKey(
+    "The store's name, kind, region and the country it keeps its data in, its sensitivity, the names and categories of its data types and about how many records it holds",
+  ),
+  translationKey(
+    "The exposure's issues, when it started and ended, whether reads were logged, and how many accounts outside the company could read it",
+  ),
+  translationKey(
+    "The secrets found in the store by their type and where they were found, and where the people the data is about live",
+  ),
+  translationKey(
+    "Each breach law that may apply, as plain code worked it out: who must be told, its deadline and what a person still checks",
+  ),
+];
+
+const EXPOSURE_ASSESSMENT_NEVER_SENDS: ReadonlyArray<string> = [
+  translationKey("A sample of what was found, not even a masked one"),
+  translationKey("A record the data was seen in"),
+  translationKey("A secret's value"),
+  translationKey("Who read the data, or who can reach the store, by name"),
+];
+
+const EXPOSURE_ASSESSMENT_KEEPS: string = translationKey(
+  "What it means and the three drafted notices, on the case, with the facts each rests on, for the case's readers who may read the store's findings. A draft a person edited is never drafted again. Nothing is sent.",
 );
 
 export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo> =
@@ -559,6 +600,32 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       keeps: translationKey(
         "The paragraphs, for the framework and the period, with the facts each rests on. A paragraph a person edited is never drafted again.",
       ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftExposureAssessment,
+      title: translationKey("Exposure assessments"),
+      startedBy: translationKey(
+        "A security case Data Security opens for a Critical exposure of a store with Restricted or Confidential data, while Work on new issues is on, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: EXPOSURE_ASSESSMENT_SENDS,
+      neverSends: EXPOSURE_ASSESSMENT_NEVER_SENDS,
+      keeps: EXPOSURE_ASSESSMENT_KEEPS,
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+      title: translationKey("Exposure assessments on request"),
+      startedBy: translationKey(
+        "A person, on the Was It a Breach? card of any security case about a data store.",
+      ),
+      runsOnItsOwn: false,
+      sends: EXPOSURE_ASSESSMENT_SENDS,
+      neverSends: EXPOSURE_ASSESSMENT_NEVER_SENDS,
+      keeps: EXPOSURE_ASSESSMENT_KEEPS,
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
     },
