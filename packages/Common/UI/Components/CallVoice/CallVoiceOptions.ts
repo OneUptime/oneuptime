@@ -10,6 +10,11 @@ import {
   getInlineSeparator,
   translationKey,
 } from "../../../Types/Translator";
+import {
+  ReadingDirection,
+  getReadingDirection,
+  setApartInSentence,
+} from "../../../Types/ReadingDirection";
 import { DropdownOption } from "../Dropdown/Dropdown";
 
 /*
@@ -52,19 +57,51 @@ export function getCallVoiceKindWords(voice: CallVoice): string {
 }
 
 /*
+ * Facts about a voice set apart by the line's separator, " · " (" • " in a
+ * language whose zero is a dot). A fact that reads the other way from the
+ * line - a voice's or a maker's Latin name on a Persian or Arabic page - is
+ * set apart (setApartInSentence), so two of them side by side stay two:
+ * "Neural2-F" and "Google" would otherwise read as one left-to-right run, and
+ * a Persian reader would meet the maker before the voice.
+ */
+export function joinCallVoiceFacts(
+  facts: ReadonlyArray<string>,
+  language: string,
+): string {
+  const direction: ReadingDirection = getReadingDirection(language);
+
+  return facts
+    .map((fact: string): string => {
+      return setApartInSentence(fact, direction);
+    })
+    .join(getInlineSeparator(language));
+}
+
+/*
+ * Who makes a voice and how it sounds, each in the reader's language: the
+ * maker is a product's own name, written as it is.
+ */
+export function getCallVoiceFacts(
+  voice: CallVoice,
+  translator: Translator,
+): Array<string> {
+  const kind: string = getCallVoiceKindWords(voice);
+
+  return [voice.provider, translator.translateText(kind) || kind];
+}
+
+/*
  * Who makes a voice and how it sounds, in the reader's language: "Amazon
- * Polly · US English, female voice". The maker is a product's own name,
- * written as it is.
+ * Polly · US English, female voice".
  */
 export function getCallVoiceDescription(
   voice: CallVoice,
   translator: Translator,
 ): string {
-  const kind: string = getCallVoiceKindWords(voice);
-
-  return `${voice.provider}${getInlineSeparator(translator.language)}${
-    translator.translateText(kind) || kind
-  }`;
+  return joinCallVoiceFacts(
+    getCallVoiceFacts(voice, translator),
+    translator.language,
+  );
 }
 
 /*
@@ -86,9 +123,10 @@ export function getCallVoiceSummary(
     );
   }
 
-  return `${voice.name}${getInlineSeparator(
+  return joinCallVoiceFacts(
+    [voice.name, ...getCallVoiceFacts(voice, translator)],
     translator.language,
-  )}${getCallVoiceDescription(voice, translator)}`;
+  );
 }
 
 /*

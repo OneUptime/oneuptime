@@ -4,6 +4,7 @@ import CallVoiceSample, {
   CALL_VOICE_HEAR_IT_SENTENCE,
   CALL_VOICE_SAMPLE_LABEL,
   CALL_VOICE_SAMPLE_PROJECT_NAME,
+  CALL_VOICE_SAMPLE_RECORD_NUMBER,
   getCallVoiceSampleSentence,
 } from "../../../../UI/Components/CallVoice/CallVoiceSample";
 import {
@@ -12,7 +13,12 @@ import {
   getCallVoiceDescription,
   getCallVoiceOptions,
   getCallVoiceSummary,
+  joinCallVoiceFacts,
 } from "../../../../UI/Components/CallVoice/CallVoiceOptions";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../../Types/ReadingDirection";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import {
   CALL_VOICES,
@@ -78,6 +84,15 @@ const createLanguage: (
   return instance;
 };
 
+const PERSIAN_WORDS: Record<string, string> = {
+  "US English, female voice": "انگلیسی آمریکایی، صدای زن",
+};
+
+// A fact as a line that reads the other way holds it.
+const isolated: (fact: string) => string = (fact: string): string => {
+  return `${FIRST_STRONG_ISOLATE}${fact}${POP_DIRECTIONAL_ISOLATE}`;
+};
+
 let german: i18n;
 let english: i18n;
 let persian: i18n;
@@ -85,9 +100,7 @@ let persian: i18n;
 beforeAll(() => {
   german = createLanguage("de", GERMAN_WORDS);
   english = createLanguage("en", {});
-  persian = createLanguage("fa", {
-    "US English, female voice": "انگلیسی آمریکایی، صدای زن",
-  });
+  persian = createLanguage("fa", PERSIAN_WORDS);
 });
 
 // A translator in English, as code that runs outside React builds one.
@@ -330,9 +343,104 @@ describe("under the picker", () => {
       "dir",
       "ltr",
     );
-    // Persian writes its zero as a dot, so its facts are set apart by a bullet.
-    expect(screen.getByTestId("call-voice-sample-voice")).toHaveTextContent(
-      "Joanna • Amazon Polly • انگلیسی آمریکایی، صدای زن",
+    /*
+     * Persian writes its zero as a dot, so its facts are set apart by a
+     * bullet; the Latin ones are each isolated, so the line reads them in
+     * their order from the right.
+     */
+    expect(screen.getByTestId("call-voice-sample-voice").textContent).toBe(
+      `${isolated("Joanna")} • ${isolated("Amazon Polly")} • انگلیسی آمریکایی، صدای زن`,
+    );
+  });
+
+  test("the sample's record number is never split across two lines, and the sentence reads as before", () => {
+    render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value="Polly.Joanna-Neural" />
+      </I18nextProvider>,
+    );
+
+    const number: HTMLElement = screen.getByText(
+      CALL_VOICE_SAMPLE_RECORD_NUMBER,
+    );
+
+    expect(number).toHaveClass("whitespace-nowrap");
+    expect(number.textContent).toBe("INC-42");
+    expect(screen.getByTestId("call-voice-sample-sentence").textContent).toBe(
+      `“${getCallVoiceSampleSentence()}”`,
+    );
+  });
+
+  test("a project named like the record keeps its name as it is: only the headline's number is held together", () => {
+    render(
+      <I18nextProvider i18n={english}>
+        <CallVoiceSample value="Polly.Joanna-Neural" projectName="INC-42 Ops" />
+      </I18nextProvider>,
+    );
+
+    const sentence: HTMLElement = screen.getByTestId(
+      "call-voice-sample-sentence",
+    );
+    const heldTogether: NodeListOf<Element> =
+      sentence.querySelectorAll(".whitespace-nowrap");
+
+    expect(heldTogether).toHaveLength(1);
+    expect(heldTogether[0]?.previousSibling?.textContent).toBe(
+      "This is a call from INC-42 Ops. A new Critical Incident has been created: ",
+    );
+    expect(sentence.textContent).toBe(
+      `“${getCallVoiceSampleSentence("INC-42 Ops")}”`,
+    );
+  });
+});
+
+describe("a voice's facts on a page read from the right", () => {
+  const persianTranslator: Translator = createTranslator(
+    (text: string): string => {
+      return PERSIAN_WORDS[text] ?? text;
+    },
+    "fa",
+  );
+
+  test("each Latin fact is set apart, so the voice comes before its maker, as a Persian reader reads", () => {
+    expect(
+      getCallVoiceSummary("Google.en-US-Neural2-F", persianTranslator),
+    ).toBe(
+      `${isolated("Neural2-F")} • ${isolated("Google")} • انگلیسی آمریکایی، صدای زن`,
+    );
+    expect(
+      getCallVoiceDescription(
+        getCallVoice("Polly.Joanna-Neural") as CallVoice,
+        persianTranslator,
+      ),
+    ).toBe(`${isolated("Amazon Polly")} • انگلیسی آمریکایی، صدای زن`);
+  });
+
+  test("a fact in the line's own script is left as it is", () => {
+    expect(joinCallVoiceFacts(["انگلیسی آمریکایی", "صدای زن"], "fa")).toBe(
+      "انگلیسی آمریکایی • صدای زن",
+    );
+  });
+
+  test("on a page read from the left nothing is set apart: the line is the same as before", () => {
+    expect(
+      joinCallVoiceFacts(["Neural2-F", "Google", "US English"], "en"),
+    ).toBe("Neural2-F · Google · US English");
+    expect(
+      getCallVoiceSummary("Google.en-US-Neural2-F", englishTranslator),
+    ).not.toContain(FIRST_STRONG_ISOLATE);
+  });
+
+  test("the options, read from the right, carry the same set-apart facts", () => {
+    const option: DropdownOption | undefined = getCallVoiceOptions(
+      persianTranslator,
+    ).find((candidate: DropdownOption): boolean => {
+      return candidate.value === "Polly.Joanna-Neural";
+    });
+
+    expect(option?.label).toBe("Joanna");
+    expect(option?.description).toBe(
+      `${isolated("Amazon Polly")} • انگلیسی آمریکایی، صدای زن`,
     );
   });
 });
