@@ -9,7 +9,9 @@ import { EVERY_MINUTE } from "Common/Utils/CronTime";
  * a close over - gets a look, queued on the AI queue as a
  * SecurityCaseResponse run (SecurityCaseResponse.startDueLooks). A case is
  * read only when its moment comes, by an index (SecurityCase.aiNextLookAt),
- * and has one look on its way at a time.
+ * and has one look on its way at a time. While Security Events is switched
+ * off on the server, no look starts: each case OneUptime AI works goes to
+ * people instead, saying why (SecurityCaseResponseProductOff, #10816).
  */
 RunCron(
   "SecurityCases:WorkCasesWithAi",

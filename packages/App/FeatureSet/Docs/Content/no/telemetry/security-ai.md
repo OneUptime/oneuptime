@@ -177,6 +177,7 @@ OneUptime AI trekker seg aldri stille tilbake. Den overleverer saken til persone
 - det neste trinn handler på, er beskyttet;
 - den har handlet på egen hånd så ofte som den får i løpet av en time;
 - KI er slått av for prosjektet eller for sikkerhetssaker, det ikke finnes noen LLM-leverandør, eller prosjektet er tomt for AI-kreditter eller har nådd sin daglige KI-grense;
+- produktet Sikkerhetshendelser er slått av på serveren;
 - vurderingen ikke kunne avgjøre om saken er ekte;
 - et trinn den utførte, ikke holder, et trinn den startet, ikke ble fullført, eller en person avslo eller angret et trinn den utførte;
 - den ikke kan avgjøre hva den skal gjøre videre, eller alt som gjenstår på saken, må gjøres av en person.
@@ -184,6 +185,8 @@ OneUptime AI trekker seg aldri stille tilbake. Den overleverer saken til persone
 Personene på saken får vite det med en gang, eller, når ingen er på saken, personene som varsles om saker med den prioriteten: **OneUptime AI overleverte en sikkerhetssak til personer**, under **Brukerinnstillinger → Varslingsinnstillinger**. En varslingsregel for arbeidsområdet for sikkerhetssaker legger det ut i sin Slack- eller Microsoft Teams-kanal under **Overlevert til personer av OneUptime AI**. **Overta** overleverer saken uten å varsle noen, siden personen som trykket på den, har saken.
 
 **Reager med KI** ber OneUptime AI om å arbeide med saken igjen, fra der saken står.
+
+Så lenge produktet Sikkerhetshendelser er slått av på serveren, starter OneUptime AI ikke noe nytt trinn på noen sak, og innen ett minutt overleverer den hver sak den arbeider med, til personer. Et trinn den allerede har startet, blir fullført eller kan angres som vanlig. Når produktet er slått på igjen, tar den ikke opp igjen noen av de sakene av seg selv: Det gjør **Reager med KI**.
 
 En sak som holdes tilbake mens OneUptime AI reagerer først, når fram til folk én gang, med varslingen om den nye saken og grunnen til at OneUptime AI stoppet: se [La OneUptime AI reagere først](#la-oneuptime-ai-reagere-først).
 
