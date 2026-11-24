@@ -695,10 +695,22 @@ describe("loading the trace", () => {
         "traceId",
       ].sort(),
     );
-    expect(serviceListMock.mock.calls[0]![0].modelType).toBe(Service);
-    expect(String(serviceListMock.mock.calls[0]![0].query["projectId"])).toBe(
-      PROJECT_ID,
-    );
+    /*
+     * The services the spans are attributed to, read by their ids once the
+     * spans are in: never the project's first 10,000 by name (#10921).
+     */
+    const serviceRead: ListArgs = serviceListMock.mock.calls[0]![0];
+
+    expect(serviceRead.modelType).toBe(Service);
+    expect(serviceRead.query["_id"]).toBeInstanceOf(Includes);
+    expect(
+      (serviceRead.query["_id"] as Includes).values
+        .map((value: unknown): string => {
+          return String(value).toLowerCase();
+        })
+        .sort(),
+    ).toEqual([GATEWAY, INVENTORY, CHECKOUT].sort());
+    expect(serviceRead.limit).toBe(3);
   });
 
   test("the header names the request and summarises the trace", async () => {
@@ -1147,6 +1159,70 @@ describe("batch loading a large trace", () => {
     });
     expect(spanReads()[1]).toMatchObject({ skip: 500, limit: 750 });
     expect(spanReads()).toHaveLength(2);
+  });
+
+  /*
+   * The services are read by the ids the spans name, as each page lands:
+   * never the project's first 10,000 by name, past which a span's service
+   * read as "Unknown Service" (#10921).
+   */
+  test("a later page's services are read by their ids as it lands, each once", async () => {
+    const large: Backend = largeBackend(1250);
+
+    // Past the first page, a service the first page never named.
+    for (const span of large.traceSpans.slice(600)) {
+      span.primaryEntityId = new ObjectID(INVENTORY);
+    }
+
+    setBackend(large);
+    await renderTrace();
+    await totalShown("1,250");
+
+    const serviceIdsRead: () => Array<Array<string>> = (): Array<
+      Array<string>
+    > => {
+      return serviceListMock.mock.calls
+        .map((call: [ListArgs]): ListArgs => {
+          return call[0];
+        })
+        .filter((args: ListArgs): boolean => {
+          return args.modelType === Service;
+        })
+        .map((args: ListArgs): Array<string> => {
+          return (args.query["_id"] as Includes).values
+            .map((value: unknown): string => {
+              return String(value).toLowerCase();
+            })
+            .sort();
+        });
+    };
+
+    expect(serviceIdsRead()).toEqual([[GATEWAY, CHECKOUT].sort()]);
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+        "Showing 1,000 of 1,250 spans",
+      );
+    });
+
+    // Only the service the new page adds.
+    expect(serviceIdsRead()).toEqual([[GATEWAY, CHECKOUT].sort(), [INVENTORY]]);
+    expect(
+      screen
+        .getAllByTestId("trace-service-chip")
+        .some((chip: HTMLElement): boolean => {
+          return (chip.textContent || "").includes("inventory-service");
+        }),
+    ).toBe(true);
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
+    });
+
+    // Nothing new to name: nothing read.
+    expect(serviceIdsRead()).toHaveLength(2);
   });
 
   test("a server that runs out early ends the batches instead of looping", async () => {
@@ -2542,6 +2618,73 @@ async function suggestionStrip(): Promise<HTMLElement> {
   return screen.findByTestId("trace-performance-suggestion");
 }
 
+/*
+ * The connected repositories Code's routes answer the strip's repository
+ * search with (#10921): the pick is searched on the server, not taken from
+ * the suggestion's list. Those whose name has what is typed, by name; the
+ * rest of the page's reads are answered as before.
+ */
+function answerCodeRepositories(
+  connectedRepositories: () => Array<JSONObject>,
+): void {
+  const answerTheRest: ((args: PostArgs) => Promise<unknown>) | undefined =
+    postMock.getMockImplementation();
+
+  postMock.mockImplementation(async (args: PostArgs) => {
+    if (!args.url.toString().includes("/code-task/repositories")) {
+      return answerTheRest ? answerTheRest(args) : undefined;
+    }
+
+    const search: string = String(args.data?.["search"] || "").toLowerCase();
+    const found: Array<JSONObject> = connectedRepositories()
+      .filter((repository: JSONObject): boolean => {
+        return String(repository["name"]).toLowerCase().includes(search);
+      })
+      .map((repository: JSONObject): JSONObject => {
+        return {
+          ...repository,
+          isConnected: true,
+          provider: "GitHub",
+          stats: {
+            working: 0,
+            waitingForYou: 0,
+            openPullRequests: 0,
+            taskCount: 0,
+          },
+        };
+      });
+
+    return new HTTPResponse(
+      200,
+      { repositories: found, count: found.length },
+      {},
+    );
+  });
+}
+
+// The strip's repository field, opened: the server's first page of picks.
+async function openRepositoryPicker(strip: HTMLElement): Promise<void> {
+  await act(async () => {
+    fireEvent.focus(
+      within(
+        within(strip).getByTestId("trace-fix-performance-repository"),
+      ).getByRole("combobox"),
+    );
+  });
+}
+
+async function pickRepository(strip: HTMLElement, name: string): Promise<void> {
+  await openRepositoryPicker(strip);
+
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: new RegExp(name),
+  });
+
+  await act(async () => {
+    fireEvent.click(option);
+  });
+}
+
 describe("performance fix with AI", () => {
   afterEach(() => {
     mockCurrentProject = null;
@@ -2674,13 +2817,17 @@ describe("performance fix with AI", () => {
    * the strip asks which one, and the click names the pick.
    */
   test("a repository to pick: the click names the pick, and only then is the fix asked", async () => {
+    const REPOSITORIES: Array<JSONObject> = [
+      { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+    ];
     answerSuggestion({
       offer: "Act",
       finding: nPlusOneFinding(),
-      repositories: [
-        { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
-        { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
-      ],
+      repositories: REPOSITORIES,
+    });
+    answerCodeRepositories(() => {
+      return REPOSITORIES;
     });
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();
@@ -2692,13 +2839,7 @@ describe("performance fix with AI", () => {
     fireEvent.click(button);
     expect(postsTo(CREATE_PATH)).toHaveLength(0);
 
-    fireEvent.keyDown(
-      within(
-        within(strip).getByTestId("trace-fix-performance-repository"),
-      ).getByRole("combobox"),
-      { key: "ArrowDown", code: "ArrowDown" },
-    );
-    fireEvent.click(screen.getByText("checkout-api"));
+    await pickRepository(strip, "checkout-api");
     fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
 
     expect(
@@ -2714,8 +2855,9 @@ describe("performance fix with AI", () => {
   /*
    * The pick was disconnected between the page's read and the click: the
    * reason shows beside the finding, and the list to pick from is the
-   * server's again - the gone repository is no longer offered, and the
-   * fix waits for a new pick.
+   * server's again - the gone repository is no longer offered (the search
+   * is of the connected repositories, #10921), and the fix waits for a new
+   * pick.
    */
   test("a pick refused because it was disconnected meanwhile: the reason shows, and the list is the server's again", async () => {
     const REPOSITORIES: Array<JSONObject> = [
@@ -2745,19 +2887,16 @@ describe("performance fix with AI", () => {
         repositories: [REPOSITORIES[0]!, REPOSITORIES[2]!],
       },
     );
+    // Code's routes: checkout-api is disconnected once the click is refused.
+    answerCodeRepositories(() => {
+      return postsTo(CREATE_PATH).length > 0
+        ? [REPOSITORIES[0]!, REPOSITORIES[2]!]
+        : REPOSITORIES;
+    });
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();
-    const openPicker: () => void = (): void => {
-      fireEvent.keyDown(
-        within(
-          within(strip).getByTestId("trace-fix-performance-repository"),
-        ).getByRole("combobox"),
-        { key: "ArrowDown", code: "ArrowDown" },
-      );
-    };
 
-    openPicker();
-    fireEvent.click(screen.getByText("checkout-api"));
+    await pickRepository(strip, "checkout-api");
     fireEvent.click(within(strip).getByTestId("trace-fix-performance"));
 
     expect(
@@ -2774,10 +2913,12 @@ describe("performance fix with AI", () => {
         within(strip).getByTestId("trace-fix-performance-repository"),
       ).queryByText("checkout-api"),
     ).toBeNull();
-    openPicker();
-    expect(screen.queryByText("checkout-api")).toBeNull();
-    expect(screen.getByText("billing")).toBeInTheDocument();
-    expect(screen.getByText("storefront")).toBeInTheDocument();
+    await openRepositoryPicker(strip);
+    expect(
+      await screen.findByRole("option", { name: /storefront/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /billing/ })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /checkout-api/ })).toBeNull();
     expect(postsTo(CREATE_PATH)).toHaveLength(1);
   });
 

@@ -270,6 +270,39 @@ const flush: () => Promise<void> = async (): Promise<void> => {
   });
 };
 
+/*
+ * When set, the facets endpoint waits for it — lets a test observe what is
+ * looked up BEFORE the facets, which name most chips, have answered.
+ */
+let facetsGate: Promise<void> | null = null;
+
+const closeFacetsGate: () => () => void = (): (() => void) => {
+  let release: () => void = (): void => {};
+  facetsGate = new Promise<void>((resolve: () => void): void => {
+    release = resolve;
+  });
+  return (): void => {
+    release();
+  };
+};
+
+/*
+ * Reads of a project's services, hosts or clusters that are not by id: the
+ * first 10,000 by name, which named nothing past them (#10921).
+ */
+const projectListReads: () => Array<GetListArgs> = (): Array<GetListArgs> => {
+  return getListMock.mock.calls
+    .map((call: Array<unknown>): GetListArgs => {
+      return call[0] as GetListArgs;
+    })
+    .filter((args: GetListArgs): boolean => {
+      return (
+        args.modelType !== TelemetryException &&
+        !(args.query["_id"] instanceof Includes)
+      );
+    });
+};
+
 const closeResourceListGate: () => () => void = (): (() => void) => {
   let release: () => void = (): void => {};
   resourceListGate = new Promise<void>((resolve: () => void): void => {
@@ -311,12 +344,16 @@ describe("ExceptionsViewer — entity chip names", () => {
       return fakeGetList(args[0] as GetListArgs);
     });
     postMock.mockReset();
-    postMock.mockImplementation((...args: Array<any>) => {
+    facetsGate = null;
+    postMock.mockImplementation(async (...args: Array<any>) => {
       const url: string = String((args[0] as { url?: unknown })?.url || "");
-      if (facetsResponse && url.includes("/telemetry/exceptions/facets")) {
-        return Promise.resolve({ data: { facets: facetsResponse } });
+      if (url.includes("/telemetry/exceptions/facets") && facetsGate) {
+        await facetsGate;
       }
-      return Promise.resolve({ data: {} });
+      if (facetsResponse && url.includes("/telemetry/exceptions/facets")) {
+        return { data: { facets: facetsResponse } };
+      }
+      return { data: {} };
     });
     analyticsGetListMock.mockReset();
     analyticsGetListMock.mockResolvedValue({ data: [], count: 0 });
@@ -512,7 +549,12 @@ describe("ExceptionsViewer — entity chip names", () => {
     );
   });
 
-  test("REGRESSION: a Service page whose Service is already listed issues no name lookup", async () => {
+  /*
+   * The explorer read the project's first 10,000 services, hosts and
+   * clusters to name its chips: one past them read as its id (#10921). A
+   * chip is named by its own id now - by the facets, or one lookup.
+   */
+  test("a Service page's own service is named by one lookup of its id, never from the project's lists", async () => {
     await renderViewer({
       primaryEntityId: new ObjectID(SERVICE_ID),
       scopeEntityType: ServiceType.OpenTelemetry,
@@ -526,7 +568,10 @@ describe("ExceptionsViewer — entity chip names", () => {
     });
     await flush();
 
-    expect(resolverRequests()).toHaveLength(0);
+    expect(resolverRequests()).toEqual([
+      { modelType: Service, ids: [SERVICE_ID] },
+    ]);
+    expect(projectListReads()).toEqual([]);
   });
 
   test("a scope typed as a non-Service entity is named while the resource lists are still loading", async () => {
@@ -563,8 +608,8 @@ describe("ExceptionsViewer — entity chip names", () => {
     );
   });
 
-  test("URL chips wait for the resource lists, then only the ids they cannot name are looked up", async () => {
-    const releaseLists: () => void = closeResourceListGate();
+  test("URL chips wait for the facets, then are named by a lookup of their ids", async () => {
+    const releaseFacets: () => void = closeFacetsGate();
     window.history.pushState(
       {},
       "",
@@ -579,11 +624,11 @@ describe("ExceptionsViewer — entity chip names", () => {
     await renderViewer({});
     await flush();
 
-    // Nothing is looked up while every id still looks unnamed.
+    // Nothing is looked up while the facets may still name them.
     expect(resolverRequests()).toHaveLength(0);
 
     await act(async (): Promise<void> => {
-      releaseLists();
+      releaseFacets();
     });
 
     await waitFor(() => {
@@ -591,18 +636,16 @@ describe("ExceptionsViewer — entity chip names", () => {
         "checkout-web",
       );
     });
-    expect(chipFor("primaryEntityId", SERVICE_ID)?.displayValue).toBe(
-      "checkout-api",
-    );
+    await waitFor(() => {
+      expect(chipFor("primaryEntityId", SERVICE_ID)?.displayValue).toBe(
+        "checkout-api",
+      );
+    });
     expect(chipFor("primaryEntityId", SERVICE_ID)?.displayKey).toBe("Service");
-
-    expect(resolverRequests().length).toBeGreaterThan(0);
-    for (const request of resolverRequests()) {
-      expect(request.ids).not.toContain(SERVICE_ID);
-    }
+    expect(projectListReads()).toEqual([]);
   });
 
-  test("a hostId chip the Host list names is not looked up", async () => {
+  test("a hostId chip is named by a lookup of its id: no Host list is read", async () => {
     sidebarHosts = [makeSidebarHost()];
     window.history.pushState(
       {},
@@ -618,7 +661,7 @@ describe("ExceptionsViewer — entity chip names", () => {
     await flush();
 
     expect(chipFor("hostId", HOST_ID)?.displayKey).toBe("Host");
-    expect(resolverRequests()).toHaveLength(0);
+    expect(projectListReads()).toEqual([]);
   });
 
   test("the same Host id under primaryEntityId is still resolved (its facet lists Services only)", async () => {
@@ -667,12 +710,34 @@ describe("ExceptionsViewer — entity chip names", () => {
     });
     await flush();
 
-    for (const request of resolverRequests()) {
-      expect(request.ids).not.toContain(FACET_ONLY_SERVICE_ID);
-    }
+    /*
+     * Named by the facet, never looked up by the entity resolver. Its one
+     * read by id is the page's own, of the Service facet's values, for the
+     * colour each is drawn in (#10921).
+     */
+    const reads: Array<{ query: Record<string, unknown>; select?: unknown }> =
+      getListMock.mock.calls
+        .map((call: Array<unknown>) => {
+          return call[0] as {
+            query: Record<string, unknown>;
+            select?: unknown;
+          };
+        })
+        .filter((args: { query: Record<string, unknown> }): boolean => {
+          return (
+            args.query["_id"] instanceof Includes &&
+            idsOf(args.query["_id"] as Includes).includes(FACET_ONLY_SERVICE_ID)
+          );
+        });
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!.select).toMatchObject({ name: true, serviceColor: true });
     expect(chipFor("primaryEntityId", FACET_ONLY_SERVICE_ID)?.displayKey).toBe(
       "Service",
     );
+    expect(
+      chipFor("primaryEntityId", FACET_ONLY_SERVICE_ID)?.displayValue,
+    ).toBe("billing-api");
   });
 
   test("REGRESSION: a stored scope attribute chip reads 'Host', not 'resource.host.name'", async () => {
