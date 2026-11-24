@@ -1860,8 +1860,9 @@ describe("listing every task the caller may read (Code's first page)", () => {
     });
 
     expect(
-      ((result as JSONObject)["tasks"] as unknown as Array<CodeTaskSummaryJSON>)[0]!
-        .repository,
+      (
+        (result as JSONObject)["tasks"] as unknown as Array<CodeTaskSummaryJSON>
+      )[0]!.repository,
     ).toBeUndefined();
   });
 
@@ -2304,7 +2305,8 @@ describe("stopping a task", () => {
 describe("a page of the repositories, as the body asks for it", () => {
   function listRequest(): CodeRepositoryListRequest {
     return (
-      (CodeTaskRepositoryList.read as unknown as jest.Mock).mock.calls[0]![0] as {
+      (CodeTaskRepositoryList.read as unknown as jest.Mock).mock
+        .calls[0]![0] as {
         request: CodeRepositoryListRequest;
       }
     ).request;

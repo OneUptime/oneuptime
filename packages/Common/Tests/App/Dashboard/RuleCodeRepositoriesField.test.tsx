@@ -519,9 +519,7 @@ describe("a rule's code repositories past the project's first 10,000", () => {
     await waitFor(() => {
       expect(screen.queryAllByRole("option")).toHaveLength(1);
     });
-    expect(screen.getAllByRole("option")[0]).toHaveTextContent(
-      "warehouse-api",
-    );
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent("warehouse-api");
     expect(screen.getAllByRole("option")[0]).toHaveTextContent(
       "harbour/warehouse",
     );
@@ -548,9 +546,7 @@ describe("a rule's code repositories past the project's first 10,000", () => {
     await waitFor(() => {
       expect(screen.queryAllByRole("option")).toHaveLength(1);
     });
-    expect(screen.getAllByRole("option")[0]).toHaveTextContent(
-      "warehouse-api",
-    );
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent("warehouse-api");
   });
 
   test("one a rule holds past them keeps its name, read by its id - never called out of reach", async () => {

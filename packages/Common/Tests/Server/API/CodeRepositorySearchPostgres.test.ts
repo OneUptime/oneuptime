@@ -524,18 +524,18 @@ describePostgres(
         await propsOf(labelReaderId);
 
       expect(
-        (await CodeTaskAccess.listReadableRepositories({ props, projectId })).map(
-          (repository: CodeRepository): string => {
-            return repository.name || "";
-          },
-        ),
+        (
+          await CodeTaskAccess.listReadableRepositories({ props, projectId })
+        ).map((repository: CodeRepository): string => {
+          return repository.name || "";
+        }),
       ).toEqual(["Warehouse service"]);
       expect(
-        (await CodeTaskAccess.readReadableRepositoryIds({ props, projectId })).map(
-          (id: ObjectID): string => {
-            return id.toString();
-          },
-        ),
+        (
+          await CodeTaskAccess.readReadableRepositoryIds({ props, projectId })
+        ).map((id: ObjectID): string => {
+          return id.toString();
+        }),
       ).toEqual([warehouseId.toString()]);
     });
 
@@ -570,9 +570,9 @@ describePostgres(
         },
       });
 
-      expect(namesOf(connected["repositories"] as Array<JSONObject>)).toEqual(
-        ["Warehouse service"],
-      );
+      expect(namesOf(connected["repositories"] as Array<JSONObject>)).toEqual([
+        "Warehouse service",
+      ]);
       expect(
         (connected["repositories"] as Array<JSONObject>)[0]!["isConnected"],
       ).toBe(true);
@@ -626,9 +626,11 @@ describePostgres(
         },
       });
 
-      expect(namesOf(byActivity["repositories"] as Array<JSONObject>)).toEqual(
-        ["AP000001", "Warehouse service", "AP000002"],
-      );
+      expect(namesOf(byActivity["repositories"] as Array<JSONObject>)).toEqual([
+        "AP000001",
+        "Warehouse service",
+        "AP000002",
+      ]);
     });
 
     test("/code-task/repositories: a member whose team reads one label's repositories never finds another, by a search or a page", async () => {
@@ -682,9 +684,9 @@ describePostgres(
         },
       });
 
-      expect(
-        idsOf(asLabelReader["repositories"] as Array<JSONObject>),
-      ).toEqual([warehouseId.toString().toLowerCase()]);
+      expect(idsOf(asLabelReader["repositories"] as Array<JSONObject>)).toEqual(
+        [warehouseId.toString().toLowerCase()],
+      );
     });
 
     test("/code-task/list across repositories: a task in a repository past the 500th is listed and its row named - never one in a repository the reader may not read", async () => {
@@ -928,18 +930,21 @@ describePostgres(
     test("an AI rule's Code Repositories field: what a rule holds is read by its ids - one the reader may not read is not answered, and the field keeps it as one they cannot access", async () => {
       harness.routeModelAPIReads({ userId: labelReaderId, projectId });
 
-      const held: Array<CodeRepository> = await RecordsById.read<CodeRepository>(
-        {
+      const held: Array<CodeRepository> =
+        await RecordsById.read<CodeRepository>({
           modelType: CodeRepository,
-          ids: [warehouseId.toString(), wharfId.toString(), deletedId.toString()],
+          ids: [
+            warehouseId.toString(),
+            wharfId.toString(),
+            deletedId.toString(),
+          ],
           select: {
             _id: true,
             name: true,
             organizationName: true,
             repositoryName: true,
           },
-        },
-      );
+        });
 
       expect(
         held.map((repository: CodeRepository): string => {

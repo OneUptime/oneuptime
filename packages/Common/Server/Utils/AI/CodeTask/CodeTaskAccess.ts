@@ -265,14 +265,15 @@ export default class CodeTaskAccess {
       let permittedQuery: Query<CodeRepository>;
 
       try {
-        permittedQuery = await ModelPermission.getUpdatableQuery<CodeRepository>(
-          CodeRepository,
-          {
-            _id: QueryHelper.any(batch),
-            projectId: data.projectId,
-          } as Query<CodeRepository>,
-          data.props,
-        );
+        permittedQuery =
+          await ModelPermission.getUpdatableQuery<CodeRepository>(
+            CodeRepository,
+            {
+              _id: QueryHelper.any(batch),
+              projectId: data.projectId,
+            } as Query<CodeRepository>,
+            data.props,
+          );
       } catch (error) {
         // canAskInRepository's refusals: no repository may be asked in.
         if (
@@ -323,13 +324,11 @@ export default class CodeTaskAccess {
       return [];
     }
 
-    const askable: Set<string> = await CodeTaskAccess.listAskableRepositoryIds(
-      {
-        props: data.props,
-        projectId: data.projectId,
-        repositoryIds: data.repositories.map(data.getId),
-      },
-    );
+    const askable: Set<string> = await CodeTaskAccess.listAskableRepositoryIds({
+      props: data.props,
+      projectId: data.projectId,
+      repositoryIds: data.repositories.map(data.getId),
+    });
 
     return data.repositories.filter((repository: TRepository): boolean => {
       return askable.has(data.getId(repository).toLowerCase());

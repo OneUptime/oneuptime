@@ -69,7 +69,9 @@ function makeRepositories(count: number): Array<CodeRepository> {
   return rows;
 }
 
-function namesOf(repositories: Array<LocatableRepositoryWithTree>): Array<string> {
+function namesOf(
+  repositories: Array<LocatableRepositoryWithTree>,
+): Array<string> {
   return repositories.map((repository: LocatableRepositoryWithTree): string => {
     return repository.name;
   });
@@ -116,32 +118,30 @@ beforeEach(() => {
       return summaries;
     });
   // The root read of the installation each is reached through - in no particular order.
-  jest
-    .spyOn(CodeRepositoryService, "findBy")
-    .mockImplementation((async (data: {
-      query: { _id: unknown };
-      props: { isRoot?: boolean };
-    }) => {
-      expect(data.props.isRoot).toBe(true);
+  jest.spyOn(CodeRepositoryService, "findBy").mockImplementation((async (data: {
+    query: { _id: unknown };
+    props: { isRoot?: boolean };
+  }) => {
+    expect(data.props.isRoot).toBe(true);
 
-      // The ids asked for: the Raw operator's one list of values.
-      const parameters: Record<string, unknown> =
-        (data.query._id as { objectLiteralParameters?: Record<string, unknown> })
-          .objectLiteralParameters || {};
-      const asked: Set<string> = new Set<string>(
-        ((Object.values(parameters)[0] as Array<unknown> | undefined) || []).map(
-          (id: unknown): string => {
-            return String(id);
-          },
-        ),
-      );
+    // The ids asked for: the Raw operator's one list of values.
+    const parameters: Record<string, unknown> =
+      (data.query._id as { objectLiteralParameters?: Record<string, unknown> })
+        .objectLiteralParameters || {};
+    const asked: Set<string> = new Set<string>(
+      ((Object.values(parameters)[0] as Array<unknown> | undefined) || []).map(
+        (id: unknown): string => {
+          return String(id);
+        },
+      ),
+    );
 
-      return all
-        .filter((row: CodeRepository): boolean => {
-          return asked.size === 0 || asked.has(row.id!.toString());
-        })
-        .reverse();
-    }) as never);
+    return all
+      .filter((row: CodeRepository): boolean => {
+        return asked.size === 0 || asked.has(row.id!.toString());
+      })
+      .reverse();
+  }) as never);
 });
 
 afterEach(() => {

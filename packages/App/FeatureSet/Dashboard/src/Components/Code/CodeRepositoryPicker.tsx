@@ -139,7 +139,8 @@ const CodeRepositoryPicker: FunctionComponent<ComponentProps> = (
     setIsLoading(false);
   };
 
-  const repositories: Array<CodeRepositoryListItem> = answer?.repositories || [];
+  const repositories: Array<CodeRepositoryListItem> =
+    answer?.repositories || [];
   const searchText: string = search.trim();
   const hasMore: boolean = Boolean(
     answer && answer.count > answer.repositories.length,

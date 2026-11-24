@@ -79,8 +79,9 @@ describe("readCodeRepositorySearch", () => {
     expect(readCodeRepositorySearch(null)).toBe("");
     expect(readCodeRepositorySearch(undefined)).toBe("");
     expect(
-      readCodeRepositorySearch("a".repeat(MAX_CODE_REPOSITORY_SEARCH_LENGTH + 50))
-        .length,
+      readCodeRepositorySearch(
+        "a".repeat(MAX_CODE_REPOSITORY_SEARCH_LENGTH + 50),
+      ).length,
     ).toBe(MAX_CODE_REPOSITORY_SEARCH_LENGTH);
   });
 });

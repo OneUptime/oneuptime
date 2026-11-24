@@ -489,11 +489,7 @@ describe("a page of the reader's repositories, on a project of 1,200", () => {
       page.repositories.map((row: CodeRepository): string => {
         return row.name || "";
       }),
-    ).toEqual([
-      "ap-001001-service",
-      "ap-001003-service",
-      "ap-001005-service",
-    ]);
+    ).toEqual(["ap-001001-service", "ap-001003-service", "ap-001005-service"]);
     expect(page.count).toBe(600);
     expect(pageReads).toEqual([
       page.repositories.map((row: CodeRepository): string => {

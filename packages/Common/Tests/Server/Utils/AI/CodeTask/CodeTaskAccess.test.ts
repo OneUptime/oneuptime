@@ -404,19 +404,22 @@ describe("every repository the caller may read, however many", () => {
       select: unknown;
     }> = [];
 
-    jest.spyOn(CodeRepositoryService, "findBy").mockImplementation((async (
-      data: {
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (data: {
         skip: number;
         limit: number;
         props: unknown;
         sort: unknown;
         select: unknown;
-      },
-    ) => {
-      reads.push(data);
+      }) => {
+        reads.push(data);
 
-      return all.slice(Number(data.skip), Number(data.skip) + Number(data.limit));
-    }) as never);
+        return all.slice(
+          Number(data.skip),
+          Number(data.skip) + Number(data.limit),
+        );
+      }) as never);
 
     const caller: DatabaseCommonInteractionProps = callerWith([
       row(Permission.ReadCodeRepository),
@@ -449,17 +452,26 @@ describe("every repository the caller may read, however many", () => {
     const all: Array<CodeRepository> = repositoriesNamed(700);
     let select: unknown = null;
 
-    jest.spyOn(CodeRepositoryService, "findBy").mockImplementation((async (
-      data: { skip: number; limit: number; select: unknown },
-    ) => {
-      select = data.select;
-      return all.slice(Number(data.skip), Number(data.skip) + Number(data.limit));
-    }) as never);
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (data: {
+        skip: number;
+        limit: number;
+        select: unknown;
+      }) => {
+        select = data.select;
+        return all.slice(
+          Number(data.skip),
+          Number(data.skip) + Number(data.limit),
+        );
+      }) as never);
 
-    const ids: Array<ObjectID> = await CodeTaskAccess.readReadableRepositoryIds({
-      props: callerWith([row(Permission.ReadCodeRepository)]),
-      projectId: PROJECT_ID,
-    });
+    const ids: Array<ObjectID> = await CodeTaskAccess.readReadableRepositoryIds(
+      {
+        props: callerWith([row(Permission.ReadCodeRepository)]),
+        projectId: PROJECT_ID,
+      },
+    );
 
     expect(select).toEqual({ _id: true });
     expect(
@@ -474,8 +486,9 @@ describe("every repository the caller may read, however many", () => {
   });
 
   test("one page of them, by name, as the caller - for a reader that stops once it has what it needs", async () => {
-    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
-      jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
     const caller: DatabaseCommonInteractionProps = callerWith([
       row(Permission.ReadCodeRepository),
     ]);
@@ -504,8 +517,9 @@ describe("repositories read by their ids", () => {
       ids.push(ObjectID.generate().toString());
     }
 
-    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
-      jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
     const caller: DatabaseCommonInteractionProps = callerWith([
       row(Permission.ReadCodeRepository),
     ]);
@@ -536,8 +550,9 @@ describe("repositories read by their ids", () => {
   });
 
   test("no ids reads nothing", async () => {
-    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
-      jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
 
     expect(
       await CodeTaskAccess.listReadableRepositoriesByIds({
@@ -558,18 +573,17 @@ describe("who may ask AI, of many repositories at once", () => {
       ids.push(ObjectID.generate());
     }
 
-    const updatable: SpyInstance<
-      typeof ModelPermission.getUpdatableQuery
-    > = jest.spyOn(ModelPermission, "getUpdatableQuery");
-    jest.spyOn(CodeRepositoryService, "findBy").mockImplementation((async (
-      data: { props: { isRoot?: boolean } },
-    ) => {
-      // As OneUptime, through the query the caller's edit is allowed on.
-      expect(data.props.isRoot).toBe(true);
-      const allowed: CodeRepository = new CodeRepository();
-      allowed._id = ids[1]!.toString().toUpperCase();
-      return [allowed];
-    }) as never);
+    const updatable: SpyInstance<typeof ModelPermission.getUpdatableQuery> =
+      jest.spyOn(ModelPermission, "getUpdatableQuery");
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (data: { props: { isRoot?: boolean } }) => {
+        // As OneUptime, through the query the caller's edit is allowed on.
+        expect(data.props.isRoot).toBe(true);
+        const allowed: CodeRepository = new CodeRepository();
+        allowed._id = ids[1]!.toString().toUpperCase();
+        return [allowed];
+      }) as never);
 
     const askable: Set<string> = await CodeTaskAccess.listAskableRepositoryIds({
       props: callerWith([row(Permission.ProjectMember)]),
@@ -579,12 +593,15 @@ describe("who may ask AI, of many repositories at once", () => {
 
     // Two batches; what they allow, lower-cased.
     expect(updatable).toHaveBeenCalledTimes(2);
-    expect(askable).toEqual(new Set<string>([ids[1]!.toString().toLowerCase()]));
+    expect(askable).toEqual(
+      new Set<string>([ids[1]!.toString().toLowerCase()]),
+    );
   });
 
   test("someone who may change no repository, or whose plan holds none, may ask in none - and nothing is read", async () => {
-    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
-      jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
 
     expect(
       (

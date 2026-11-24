@@ -39,11 +39,15 @@ let findBy: SpyInstance<typeof CodeRepositoryService.findBy>;
 beforeEach(() => {
   rows = new Map<string, CodeRepository>();
 
-  findBy = jest.spyOn(CodeRepositoryService, "findBy").mockImplementation(
-    (async (data: { query: { _id: unknown } }) => {
+  findBy = jest
+    .spyOn(CodeRepositoryService, "findBy")
+    .mockImplementation((async (data: { query: { _id: unknown } }) => {
       const parameters: Record<string, unknown> =
-        (data.query._id as { objectLiteralParameters?: Record<string, unknown> })
-          .objectLiteralParameters || {};
+        (
+          data.query._id as {
+            objectLiteralParameters?: Record<string, unknown>;
+          }
+        ).objectLiteralParameters || {};
       const asked: Array<string> = (
         (Object.values(parameters)[0] as Array<unknown> | undefined) || []
       ).map((id: unknown): string => {
@@ -57,8 +61,7 @@ beforeEach(() => {
         .filter((row: CodeRepository | undefined): row is CodeRepository => {
           return Boolean(row);
         });
-    }) as never,
-  );
+    }) as never);
   jest
     .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
     .mockResolvedValue(INSTALLATION_ID);
@@ -130,9 +133,9 @@ describe("CodeHostAccess.getConnectionSummaries", () => {
       CodeHostConnectionState.GitHubNotConnected,
     );
     // The project's installation and the connections, once for all of them.
-    expect(GitHubInstallationBinding.getBoundInstallationId).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      GitHubInstallationBinding.getBoundInstallationId,
+    ).toHaveBeenCalledTimes(1);
     expect(CodeHostAccess.readConnections).toHaveBeenCalledTimes(1);
   });
 

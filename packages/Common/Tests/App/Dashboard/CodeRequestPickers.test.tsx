@@ -781,9 +781,7 @@ describe("the repository picker", () => {
   test("the repository picked is the one checked in the list", async () => {
     getRepositoriesMock.mockResolvedValue({ repositories: REPOSITORIES });
 
-    draw(
-      <CodeRepositoryPicker value={REPOSITORIES[1]!} onChange={() => {}} />,
-    );
+    draw(<CodeRepositoryPicker value={REPOSITORIES[1]!} onChange={() => {}} />);
 
     expect(button("code-repository-picker")).toHaveTextContent("web");
     await userEvent.click(button("code-repository-picker"));

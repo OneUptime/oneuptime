@@ -4179,7 +4179,9 @@ describe("Code past the 10,000th repository (#10764)", () => {
 
       expect(fold).toHaveTextContent("1 repository");
 
-      fireEvent.click(within(fold).getByRole("button", { name: "Not connected" }));
+      fireEvent.click(
+        within(fold).getByRole("button", { name: "Not connected" }),
+      );
 
       await waitFor(() => {
         expect(rowNamesIn(fold)).toEqual(["wharf-legacy"]);

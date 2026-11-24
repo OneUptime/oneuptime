@@ -417,7 +417,9 @@ export default class CodeApi {
     return answers.flatMap(
       (response: JSONObject): Array<CodeRepositoryListItem> => {
         return Array.isArray(response["repositories"])
-          ? (response["repositories"] as unknown as Array<CodeRepositoryListItem>)
+          ? (response[
+              "repositories"
+            ] as unknown as Array<CodeRepositoryListItem>)
           : [];
       },
     );

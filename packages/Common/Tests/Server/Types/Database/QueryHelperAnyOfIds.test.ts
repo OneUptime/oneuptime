@@ -27,9 +27,7 @@ const SECOND: string = "6f2a5c4b-8d9e-4f0a-9b1c-3d4e5f6a7b8c";
 
 describe("QueryHelper.anyOfIds", () => {
   it("matches the column against one array of uuids, never one bind value per id", () => {
-    const operator: RawOperator = asRaw(
-      QueryHelper.anyOfIds([FIRST, SECOND]),
-    );
+    const operator: RawOperator = asRaw(QueryHelper.anyOfIds([FIRST, SECOND]));
 
     expect(operator).toBeInstanceOf(FindOperator);
     expect(operator.type).toBe("raw");
