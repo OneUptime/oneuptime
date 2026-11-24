@@ -1332,8 +1332,9 @@ export default class DataSecurityAPI extends BaseAPI<
          * open telemetry leak of the service, from the places its records
          * name - the plan the person was shown, held to it.
          */
+        // A RUM application's front-end leaks are planned the same way (#10933).
         if (
-          await TelemetryLeakFix.serviceOfIssue({
+          await TelemetryLeakFix.ownerOfIssue({
             projectId,
             issue,
           })

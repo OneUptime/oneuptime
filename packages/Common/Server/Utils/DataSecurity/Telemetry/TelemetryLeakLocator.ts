@@ -14,10 +14,16 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  MinifiedStackFrame,
+  ResolveStackTraceResult,
+  ResolvedStackFrame,
+} from "../../../../Types/Telemetry/SourceMap";
+import {
   TelemetryLeakTemplateOptions,
   buildTelemetryLeakTemplate,
 } from "../../../../Utils/DataSecurity/TelemetryLeakTemplate";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
+import TelemetrySourceMapService from "../../../Services/TelemetrySourceMapService";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import logger from "../../Logger";
@@ -36,7 +42,11 @@ import {
   OccurrencePlan,
   planOccurrenceRead,
 } from "./TelemetryFindingOccurrences";
-import { readLeakPlaces } from "./TelemetryLeakPlaces";
+import {
+  RumFrameResolver,
+  readLeakPlaces,
+  resolveRumStacks,
+} from "./TelemetryLeakPlaces";
 // Read while this module loads, which can be in the middle of the scanner's: see its module.
 import { TelemetrySampleSource } from "./TelemetrySampleSource";
 
@@ -67,6 +77,18 @@ import { TelemetrySampleSource } from "./TelemetrySampleSource";
  * A finding from before scans kept records is looked for as its records
  * list on the issue's page is (findTelemetryFindingOccurrences), and the
  * records that carry it are read again the same way.
+ *
+ * A RUM application's records (#10933) are read the same way: a browser
+ * log's or span's code location attributes, its line or its name, the
+ * page it was written on (url.path, url.full, http.url: kept as the path
+ * the URL scrubber keeps, as a template), and the JavaScript stack a log
+ * holds (exception.stacktrace) - resolved, here, through the source maps
+ * the application's builds uploaded (TelemetrySourceMapService), for the
+ * release the record names, to the original files. A minified frame that
+ * does not resolve is no file of the repository's, and is dropped. A
+ * session's user details read the page it started on. A replay's
+ * recording - the text of the pages people saw - is never read: no
+ * finding is in one.
  *
  * Nothing else of a record leaves this file: no value, no attribute but
  * the code's own, no excerpt. The values a template is made from are read
@@ -113,6 +135,22 @@ export const LEAK_READ_TIME_LIMIT_IN_SECONDS: number = 20;
 // How much of a log line, a message or a stack is read to make a place of it.
 export const LEAK_TEXT_READ_LENGTH: number = 4_096;
 export const LEAK_FRAMES_READ_LENGTH: number = 16_384;
+// How much of a page's address is read: the scrubber keeps its path alone.
+export const LEAK_PAGE_READ_LENGTH: number = 2_048;
+// The longest release a RUM record's source maps are looked up by.
+export const LEAK_VERSION_READ_LENGTH: number = 100;
+
+/*
+ * The attributes a RUM record names its page and its stack by (#10933),
+ * each read cut, by its alias: what TelemetryLeakPlaces reads.
+ */
+const RUM_ATTRIBUTE_ALIASES: ReadonlyArray<[string, string, number]> = [
+  ["url.path", "readUrlPath", LEAK_PAGE_READ_LENGTH],
+  ["url.full", "readUrlFull", LEAK_PAGE_READ_LENGTH],
+  ["http.url", "readHttpUrl", LEAK_PAGE_READ_LENGTH],
+  ["exception.stacktrace", "readStackTrace", LEAK_FRAMES_READ_LENGTH],
+  ["resource.service.version", "readServiceVersion", LEAK_VERSION_READ_LENGTH],
+];
 
 const LEAK_MAX_RESULT_BYTES: number = 16 * 1024 * 1024;
 
@@ -120,8 +158,14 @@ const LEAK_MAX_RESULT_BYTES: number = 16 * 1024 * 1024;
 export interface TelemetryLeakFindingToLocate {
   findingId: string;
   storeKind: DataStoreKind | string;
-  // Whose records they are: the store's service.
+  // Whose records they are: the store's service, or its RUM application.
   ownerId: string;
+  /*
+   * A RUM application's: the service its builds' source maps were uploaded
+   * under (named as the application is), which resolves its records'
+   * JavaScript stacks to the original files (#10933).
+   */
+  sourceMapServiceId?: string | undefined;
   location: string;
   dataTypeId: string;
   // The records the last scan found it in.
@@ -163,6 +207,17 @@ function appendText(
   statement.append(`) AS ${alias}`);
 }
 
+// A RUM record's page and stack attributes, each cut, by its alias (#10933).
+function appendRumAttributes(statement: Statement): void {
+  for (const [key, alias, length] of RUM_ATTRIBUTE_ALIASES) {
+    statement.append(
+      SQL`, substringUTF8(attributes[${{ type: TableColumnType.Text, value: key }}], 1, `,
+    );
+    appendNumber(statement, length);
+    statement.append(`) AS ${alias}`);
+  }
+}
+
 // The code's own attributes, each cut, by its alias.
 function appendCodeAttributes(statement: Statement): void {
   for (const [key, alias] of CODE_ATTRIBUTE_ALIASES) {
@@ -186,6 +241,9 @@ function appendLeakRecords(
 ): void {
   const isLogLine: boolean = SOURCES_WITH_LOG_IDS.has(source.source);
   const isMetric: boolean = source.source === TelemetrySampleSource.Metrics;
+  // A session is told apart by its own id; it has no trace or span of its own.
+  const isSession: boolean =
+    source.source === TelemetrySampleSource.RumSessions;
 
   statement.append(" AND (");
 
@@ -206,13 +264,19 @@ function appendLeakRecords(
       );
     }
 
-    if (!isMetric && record.traceId) {
+    if (isSession && record.sessionId) {
+      statement.append(
+        SQL`sessionId = ${{ type: TableColumnType.Text, value: record.sessionId }} AND `,
+      );
+    }
+
+    if (!isMetric && !isSession && record.traceId) {
       statement.append(
         SQL`traceId = ${{ type: TableColumnType.Text, value: record.traceId }} AND `,
       );
     }
 
-    if (!isMetric && record.spanId) {
+    if (!isMetric && !isSession && record.spanId) {
       statement.append(
         SQL`spanId = ${{ type: TableColumnType.Text, value: record.spanId }} AND `,
       );
@@ -294,6 +358,21 @@ export function buildLeakRecordStatement(data: {
     case TelemetrySampleSource.Metrics:
       appendText(statement, "name", LEAK_TEXT_READ_LENGTH, "readMetricName");
       break;
+    // A RUM application's browser log and span (#10933).
+    case TelemetrySampleSource.RumLogs:
+      appendCodeAttributes(statement);
+      appendText(statement, "body", LEAK_TEXT_READ_LENGTH, "readBody");
+      appendRumAttributes(statement);
+      break;
+    case TelemetrySampleSource.RumSpans:
+      appendCodeAttributes(statement);
+      appendText(statement, "name", MAX_TELEMETRY_LEAK_NAME_LENGTH, "readName");
+      appendRumAttributes(statement);
+      break;
+    // A session's user details: the page it started on, never a recording.
+    case TelemetrySampleSource.RumSessions:
+      appendText(statement, "entryUrl", LEAK_PAGE_READ_LENGTH, "readPage");
+      break;
     default:
       break;
   }
@@ -339,6 +418,27 @@ async function readRows(
 }
 
 export default class TelemetryLeakLocator {
+  // The resolver of one project's service's source maps, as the server reads them.
+  public static sourceMapResolverOf(data: {
+    projectId: ObjectID;
+    serviceId: string;
+  }): RumFrameResolver {
+    return async (asked: {
+      serviceVersion: string;
+      frames: Array<MinifiedStackFrame>;
+    }): Promise<Array<ResolvedStackFrame>> => {
+      const result: ResolveStackTraceResult =
+        await TelemetrySourceMapService.resolveFramesForService({
+          projectId: data.projectId,
+          serviceId: new ObjectID(data.serviceId),
+          serviceVersion: asked.serviceVersion,
+          frames: asked.frames,
+        });
+
+      return result.frames;
+    };
+  }
+
   /*
    * The records a finding was seen in: the ones the last scan kept, else
    * those its records list would show (findTelemetryFindingOccurrences),
@@ -395,6 +495,8 @@ export default class TelemetryLeakLocator {
     finding: TelemetryLeakFindingToLocate;
     options: ContentScanOptions;
     nameOf: (dataTypeId: string) => string;
+    // Stands in for the source maps' read: the eval set's and the tests'.
+    resolveRumFrames?: RumFrameResolver | undefined;
   }): Promise<TelemetryLeakLocation> {
     const none: TelemetryLeakLocation = {
       findingId: data.finding.findingId,
@@ -439,6 +541,27 @@ export default class TelemetryLeakLocator {
           records,
         }),
       );
+
+      // A RUM application's stacks, resolved to its original files - or dropped.
+      if (
+        plan.source === TelemetrySampleSource.RumLogs ||
+        plan.source === TelemetrySampleSource.RumSpans
+      ) {
+        await resolveRumStacks({
+          rows,
+          resolve:
+            data.resolveRumFrames ||
+            (data.finding.sourceMapServiceId &&
+            ObjectID.isValidUUID(data.finding.sourceMapServiceId)
+              ? TelemetryLeakLocator.sourceMapResolverOf({
+                  projectId: data.projectId,
+                  serviceId: data.finding.sourceMapServiceId,
+                })
+              : async (): Promise<Array<ResolvedStackFrame>> => {
+                  return [];
+                }),
+        });
+      }
       const templateOptions: TelemetryLeakTemplateOptions = {
         customDetectors: data.options.customDetectors,
         nameOf: data.nameOf,

@@ -49,7 +49,7 @@ import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
-import { isServiceTelemetryFix } from "../../../Components/DataSecurity/TelemetryFixCopy";
+import { isTelemetryCodeFix } from "../../../Components/DataSecurity/TelemetryFixCopy";
 import TelemetryFixModal from "../../../Components/DataSecurity/TelemetryFixModal";
 import {
   STORE_DATA_TYPES_NOT_LOADED,
@@ -289,9 +289,11 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const storeName: string = store?.name || "";
   /*
    * An issue in a service's telemetry: Fix with AI shows the one pull
-   * request that stops the service writing all of its leaks first (#10367).
+   * request that stops the service writing all of its leaks first (#10367)
+   * - and for a RUM application's session replays, the one that fixes its
+   * front-end code (#10933).
    */
-  const isServiceTelemetry: boolean = isServiceTelemetryFix({
+  const isServiceTelemetry: boolean = isTelemetryCodeFix({
     isTelemetryCheck: isTelemetryFindingCheck(issue.checkId),
     storeKind: store?.kind,
     serviceId: store?.serviceId,

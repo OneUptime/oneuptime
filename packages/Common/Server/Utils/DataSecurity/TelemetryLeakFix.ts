@@ -4,7 +4,9 @@ import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue"
 import { DataSecurityIssueFeedEventType } from "../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
+import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import Service from "../../../Models/DatabaseModels/Service";
+import TelemetrySourceMap from "../../../Models/DatabaseModels/TelemetrySourceMap";
 import {
   TelemetryLeakFixTaskContext,
   getTelemetryLeakFixIssueIds,
@@ -34,20 +36,27 @@ import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
 import DataSecurityIssueResolution from "../../../Types/DataSecurity/DataSecurityIssueResolution";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataTypeNamer from "../../../Types/DataSecurity/DataTypeNamer";
+import { telemetryDataStoreKey } from "../../../Types/DataSecurity/DataStoreKey";
+import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import { readFindingSampleRecords } from "../../../Types/DataSecurity/FindingSampleRecord";
 import {
   MAX_TELEMETRY_LEAK_ISSUES,
+  MAX_TELEMETRY_LEAK_PATH_LENGTH,
   MAX_TELEMETRY_LEAKS_PER_FIX,
+  RUM_TELEMETRY_STORE_KINDS,
   SERVICE_TELEMETRY_STORE_KINDS,
   TelemetryLeakFixDecision,
   TelemetryLeakFixIssue,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakSignal,
   decideTelemetryLeakFix,
   getTelemetryLeakFixFingerprint,
   getTelemetryLeakFixLane,
+  getRumSessionKey,
   getTelemetryLeakFixPlanKey,
   getTelemetryLeakSignal,
+  getTelemetryLeakSignalOf,
   getTelemetryLeakStartFiles,
 } from "../../../Types/DataSecurity/TelemetryLeakFix";
 import { getScrubTarget } from "../../../Types/DataSecurity/TelemetryScrubTarget";
@@ -55,7 +64,7 @@ import { DataSecurityAiProposalKind } from "../../../Types/DataSecurity/DataSecu
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import AIRunService from "../../Services/AIRunService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
@@ -65,7 +74,9 @@ import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedSe
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import DataStoreFindingService from "../../Services/DataStoreFindingService";
 import DataStoreService from "../../Services/DataStoreService";
+import RumApplicationService from "../../Services/RumApplicationService";
 import ServiceService from "../../Services/ServiceService";
+import TelemetrySourceMapService from "../../Services/TelemetrySourceMapService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import CodeFixOnItsWay from "../AI/CodeFix/CodeFixOnItsWay";
 import CodeTaskAccess from "../AI/CodeTask/CodeTaskAccess";
@@ -78,6 +89,7 @@ import ProductionReviewScope, {
 import { ResolvableRepository } from "../CodeRepository/StackTraceRepoResolver";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SourceMapResolver from "../Telemetry/SourceMapResolver";
 import DataSecurityIssueCodeFix from "./DataSecurityIssueCodeFix";
 import { getIssuePageUrl, getIssuesPageUrl } from "./DataSecurityIssueGroupFix";
 import DataSecurityRunner from "./DataSecurityRunner";
@@ -87,6 +99,7 @@ import {
   findCoveringScrubRule,
   getScrubCoverage,
 } from "./Telemetry/TelemetryScrubCoverage";
+import { getTelemetryStoreOwnerId } from "./Telemetry/TelemetryFindingOccurrences";
 import TelemetryLeakLocator, {
   TelemetryLeakFindingToLocate,
   TelemetryLeakLocation,
@@ -130,9 +143,25 @@ import {
  * (TelemetryLeakFixProposals). Every issue it fixes keeps the task
  * (DataSecurityIssue.codeFixTaskId) and gets its pull request on its
  * timeline; #10368 follows it to production.
+ *
+ * A RUM application's leaks are fixed the same way, in its front-end code
+ * (#10933): its session replay store's findings - its browser logs' and
+ * spans' attributes, its sessions' details - located where its
+ * records say they were written (a JavaScript stack resolved through the
+ * application's source maps, a code location, the page, the session
+ * recorder call), in the repository its records' files are in, else where
+ * the files its newest release's source maps name are, else the one named
+ * like it; one pull request per application and repository, through the
+ * same plan, the same lanes and the same cap.
  */
 
 const ROOT: { isRoot: true } = { isRoot: true };
+
+// The most of an application's source maps whose files are read, and how much of them.
+export const MAX_SOURCE_MAPS_READ: number = 3;
+export const MAX_SOURCE_MAP_BYTES_READ: number = 16 * 1024 * 1024;
+// The most of an application's own files its source maps name that are matched against trees.
+export const MAX_SOURCE_MAP_FILES: number = 200;
 
 // The most of a service's findings looked through, and of its issues.
 const MAX_FINDINGS_READ: number = 200;
@@ -145,6 +174,9 @@ export const TELEMETRY_FIX_NOTHING_TO_FIX_MESSAGE: string =
 
 export const TELEMETRY_FIX_NOT_A_SERVICE_MESSAGE: string =
   "This issue is not in a service's telemetry, so there is no service code to fix.";
+
+export const TELEMETRY_FIX_NOTHING_TO_FIX_IN_APPLICATION_MESSAGE: string =
+  "This application sends no sensitive data from the browser that OneUptime still sees, so there is nothing to fix in its code.";
 
 export const TELEMETRY_FIX_CHANGED_MESSAGE: string =
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.";
@@ -168,8 +200,33 @@ export interface ServiceLeaks {
   findings: Array<ServiceLeakFinding>;
 }
 
+/*
+ * Whose code a fix changes: a service, or a RUM application's front end
+ * (#10933) - its id and name, and for an application, the service its
+ * builds' source maps were uploaded under and the service.name it sends.
+ */
+export interface TelemetryLeakFixOwner {
+  kind: TelemetryLeakFixOwnerKind;
+  id: string;
+  name: string;
+  // An application's: what its browser SDK names it (service.name), which a repository may be named like.
+  codeName?: string | undefined;
+  // An application's: the service its builds' source maps were uploaded under.
+  sourceMapServiceId?: string | undefined;
+}
+
+// A RUM application's leaks: its session replay store's findings (#10933).
+export interface RumApplicationLeaks {
+  owner: TelemetryLeakFixOwner;
+  stores: Array<DataStore>;
+  issues: Array<DataSecurityIssue>;
+  findings: Array<ServiceLeakFinding>;
+}
+
 // A plan of one fix: a service's leaks in one repository, decided.
 export interface TelemetryLeakFixPlan {
+  // A service's, unless it is a RUM application's front end (#10933).
+  ownerKind: TelemetryLeakFixOwnerKind;
   serviceId: string;
   serviceName: string;
   repository: ResolvableRepository | null;
@@ -230,6 +287,46 @@ function issueOfFinding(data: {
     : null;
 }
 
+/*
+ * The application's own files a source map names (#10933): its "sources",
+ * cleaned of a bundler's prefix (webpack://app/./src/a.ts is src/a.ts),
+ * a dependency's and a bundler's own left out. Never its sourcesContent.
+ */
+export function readSourceMapSources(content: string): Array<string> {
+  let sources: unknown;
+
+  try {
+    sources = (JSON.parse(content) as { sources?: unknown }).sources;
+  } catch {
+    return [];
+  }
+
+  const files: Array<string> = [];
+
+  for (const source of Array.isArray(sources) ? sources : []) {
+    if (typeof source !== "string") {
+      continue;
+    }
+
+    const file: string = SourceMapResolver.cleanSourcePath(source).trim();
+
+    if (
+      !file ||
+      file.includes("node_modules/") ||
+      file.startsWith("webpack/") ||
+      file.includes("(webpack)") ||
+      file.length > MAX_TELEMETRY_LEAK_PATH_LENGTH ||
+      files.includes(file)
+    ) {
+      continue;
+    }
+
+    files.push(file);
+  }
+
+  return files;
+}
+
 export default class TelemetryLeakFix {
   /*
    * The service's leaks: its telemetry stores, their telemetry issues, and
@@ -270,6 +367,112 @@ export default class TelemetryLeakFix {
       return { service, stores: [], issues: [], findings: [] };
     }
 
+    return {
+      service,
+      stores,
+      ...(await TelemetryLeakFix.readLeaksOfStores({
+        projectId: data.projectId,
+        stores,
+        now,
+      })),
+    };
+  }
+
+  /*
+   * A RUM application's leaks (#10933): its session replay store's
+   * telemetry issues and each finding that is a leak - in its browser
+   * logs, its browser spans and its sessions' details. Null for an
+   * application that is not the project's.
+   */
+  @CaptureSpan()
+  public static async readRumApplicationLeaks(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<RumApplicationLeaks | null> {
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const application: RumApplication | null =
+      await RumApplicationService.findOneBy({
+        query: { _id: data.rumApplicationId, projectId: data.projectId },
+        select: { _id: true, name: true, appIdentifier: true },
+        props: ROOT,
+      });
+
+    if (!application?.id) {
+      return null;
+    }
+
+    const applicationId: string = idOf(application);
+    const codeName: string = application.appIdentifier || "";
+    // The service its builds' source maps were uploaded under: named as it names itself.
+    const sourceMapService: Service | null = codeName
+      ? await ServiceService.findOneBy({
+          query: { projectId: data.projectId, name: codeName },
+          select: { _id: true },
+          props: ROOT,
+        })
+      : null;
+    const owner: TelemetryLeakFixOwner = {
+      kind: TelemetryLeakFixOwnerKind.RumApplication,
+      id: applicationId,
+      name: application.name || codeName,
+      ...(codeName ? { codeName } : {}),
+      ...(sourceMapService
+        ? { sourceMapServiceId: idOf(sourceMapService) }
+        : {}),
+    };
+    const stores: Array<DataStore> = await DataStoreService.findBy({
+      query: {
+        projectId: data.projectId,
+        kind: QueryHelper.any([...RUM_TELEMETRY_STORE_KINDS]),
+        storeKey: QueryHelper.any(
+          RUM_TELEMETRY_STORE_KINDS.map((kind: DataStoreKind): string => {
+            return telemetryDataStoreKey({ serviceId: applicationId, kind });
+          }),
+        ),
+        isArchived: false,
+      },
+      select: {
+        _id: true,
+        name: true,
+        kind: true,
+        serviceId: true,
+        storeKey: true,
+      },
+      skip: 0,
+      limit: MAX_STORES_READ,
+      props: ROOT,
+    });
+
+    if (stores.length === 0) {
+      return { owner, stores: [], issues: [], findings: [] };
+    }
+
+    return {
+      owner,
+      stores,
+      ...(await TelemetryLeakFix.readLeaksOfStores({
+        projectId: data.projectId,
+        stores,
+        now,
+      })),
+    };
+  }
+
+  /*
+   * The telemetry issues of an owner's stores, and each finding that is a
+   * leak (see the module comment): a service's, or a RUM application's.
+   */
+  public static async readLeaksOfStores(data: {
+    projectId: ObjectID;
+    stores: ReadonlyArray<DataStore>;
+    now: Date;
+  }): Promise<{
+    issues: Array<DataSecurityIssue>;
+    findings: Array<ServiceLeakFinding>;
+  }> {
+    const now: Date = data.now;
+    const stores: ReadonlyArray<DataStore> = data.stores;
     const storeIds: Array<string> = stores.map((store: DataStore): string => {
       return idOf(store);
     });
@@ -302,7 +505,7 @@ export default class TelemetryLeakFix {
       });
 
     if (issues.length === 0) {
-      return { service, stores, issues: [], findings: [] };
+      return { issues: [], findings: [] };
     }
 
     const found: Array<DataStoreFinding> = await DataStoreFindingService.findBy(
@@ -353,8 +556,10 @@ export default class TelemetryLeakFix {
       const store: DataStore | undefined = storeById.get(
         idOf({ id: finding.dataStoreId || null }),
       );
-      const signal: TelemetryLeakSignal | null = getTelemetryLeakSignal(
+      // A service's by its store's kind; a RUM application's by where it sits.
+      const signal: TelemetryLeakSignal | null = getTelemetryLeakSignalOf(
         store?.kind,
+        finding.location,
       );
 
       if (
@@ -374,7 +579,8 @@ export default class TelemetryLeakFix {
           kind: store.kind!,
           dataTypeId: finding.dataTypeId,
           location: finding.location,
-          serviceId: store.serviceId,
+          // A RUM application's records are sent under its own id.
+          serviceId: store.serviceId || getTelemetryStoreOwnerId(store),
         }) !== null;
       const issue: DataSecurityIssue | null = issueOfFinding({
         issues,
@@ -388,7 +594,7 @@ export default class TelemetryLeakFix {
       }
     }
 
-    return { service, stores, issues, findings };
+    return { issues, findings };
   }
 
   /*
@@ -409,8 +615,57 @@ export default class TelemetryLeakFix {
       return [];
     }
 
+    return await TelemetryLeakFix.planOwner({
+      projectId: data.projectId,
+      owner: {
+        kind: TelemetryLeakFixOwnerKind.Service,
+        id: idOf(leaks.service),
+        name: leaks.service.name || "",
+      },
+      issues: leaks.issues,
+      findings: leaks.findings,
+    });
+  }
+
+  /*
+   * A RUM application's fixes in its front-end code (#10933): one plan for
+   * each repository its leaks are written in, the riskiest first - none
+   * when it has no leak OneUptime still sees.
+   */
+  @CaptureSpan()
+  public static async planRumApplication(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<Array<TelemetryLeakFixPlan>> {
+    const leaks: RumApplicationLeaks | null =
+      await TelemetryLeakFix.readRumApplicationLeaks(data);
+
+    if (!leaks || leaks.findings.length === 0) {
+      return [];
+    }
+
+    return await TelemetryLeakFix.planOwner({
+      projectId: data.projectId,
+      owner: leaks.owner,
+      issues: leaks.issues,
+      findings: leaks.findings,
+    });
+  }
+
+  // An owner's fixes: its leaks located, put in repositories, and decided.
+  public static async planOwner(data: {
+    projectId: ObjectID;
+    owner: TelemetryLeakFixOwner;
+    issues: ReadonlyArray<DataSecurityIssue>;
+    findings: ReadonlyArray<ServiceLeakFinding>;
+  }): Promise<Array<TelemetryLeakFixPlan>> {
+    const owner: TelemetryLeakFixOwner = data.owner;
+    const isApplication: boolean =
+      owner.kind === TelemetryLeakFixOwnerKind.RumApplication;
+
     // The riskiest issues' findings first: those a long list keeps.
-    const findings: Array<ServiceLeakFinding> = [...leaks.findings]
+    const findings: Array<ServiceLeakFinding> = [...data.findings]
       .sort((left: ServiceLeakFinding, right: ServiceLeakFinding): number => {
         return (
           (right.issue.riskScore || 0) - (left.issue.riskScore || 0) ||
@@ -429,7 +684,10 @@ export default class TelemetryLeakFix {
             return {
               findingId: idOf(entry.finding),
               storeKind: entry.store.kind!,
-              ownerId: idOf(leaks.service),
+              ownerId: owner.id,
+              ...(owner.sourceMapServiceId
+                ? { sourceMapServiceId: owner.sourceMapServiceId }
+                : {}),
               location: entry.finding.location!,
               dataTypeId: entry.finding.dataTypeId!,
               sampleRecords: readFindingSampleRecords(
@@ -447,10 +705,9 @@ export default class TelemetryLeakFix {
       });
     const toPlace: Array<TelemetryLeakToPlace> = findings.map(
       (entry: ServiceLeakFinding): TelemetryLeakToPlace => {
-        const key: string | undefined = getScrubTarget(
-          entry.store.kind,
-          entry.finding.location!,
-        )?.key;
+        const key: string | undefined =
+          getScrubTarget(entry.store.kind, entry.finding.location!)?.key ||
+          getRumSessionKey(entry.finding.location!);
 
         return {
           issueId: idOf(entry.issue),
@@ -478,26 +735,38 @@ export default class TelemetryLeakFix {
     const groups: Array<TelemetryLeakRepositoryGroup> =
       await chooseTelemetryLeakRepositories({
         leaks: toPlace,
-        serviceName: leaks.service.name || "",
+        // An application's repository is named like what its code calls it.
+        serviceName: (isApplication && owner.codeName) || owner.name,
         repositories,
         getTreePaths: CodeRepositoryServiceClass.getRepositoryTreePaths,
         getServiceFolder: async (
           repository: ResolvableRepository,
         ): Promise<string | null> => {
-          return await TelemetryLeakFix.getServiceFolder({
-            projectId: data.projectId,
-            repositoryId: repository.id,
-            serviceId: idOf(leaks.service),
-          });
+          // Production Review keeps services' folders: an application has none.
+          return isApplication
+            ? null
+            : await TelemetryLeakFix.getServiceFolder({
+                projectId: data.projectId,
+                repositoryId: repository.id,
+                serviceId: owner.id,
+              });
         },
+        ...(isApplication && owner.sourceMapServiceId
+          ? {
+              appFiles: await TelemetryLeakFix.readSourceMapFiles({
+                projectId: data.projectId,
+                serviceId: owner.sourceMapServiceId,
+              }),
+            }
+          : {}),
       });
 
     return groups
       .map((group: TelemetryLeakRepositoryGroup): TelemetryLeakFixPlan => {
         return TelemetryLeakFix.toPlan({
           projectId: data.projectId,
-          service: leaks.service,
-          issues: leaks.issues,
+          owner,
+          issues: data.issues,
           group,
         });
       })
@@ -506,13 +775,22 @@ export default class TelemetryLeakFix {
       });
   }
 
-  // One repository's leaks of the service, decided, as a plan.
+  /*
+   * One repository's leaks of an owner, decided, as a plan: a service's -
+   * named by its row - or a RUM application's (#10933).
+   */
   public static toPlan(data: {
     projectId: ObjectID;
-    service: Service;
+    service?: Service | undefined;
+    owner?: TelemetryLeakFixOwner | undefined;
     issues: ReadonlyArray<DataSecurityIssue>;
     group: TelemetryLeakRepositoryGroup;
   }): TelemetryLeakFixPlan {
+    const owner: TelemetryLeakFixOwner = data.owner || {
+      kind: TelemetryLeakFixOwnerKind.Service,
+      id: data.service ? idOf(data.service) : "",
+      name: data.service?.name || "",
+    };
     const decision: TelemetryLeakFixDecision = decideTelemetryLeakFix(
       data.group.leaks,
     );
@@ -561,15 +839,16 @@ export default class TelemetryLeakFix {
         );
       })
       .slice(0, MAX_TELEMETRY_LEAK_ISSUES);
-    const serviceId: string = idOf(data.service);
+    const serviceId: string = owner.id.toLowerCase();
     const repositoryId: string | null = data.group.repository?.id || null;
     const startFiles: Array<string> = getTelemetryLeakStartFiles(
       decision.leaks,
     );
 
     return {
+      ownerKind: owner.kind,
       serviceId,
-      serviceName: data.service.name || "",
+      serviceName: owner.name,
       repository: data.group.repository,
       choice: data.group.choice,
       folder: data.group.folder,
@@ -640,17 +919,92 @@ export default class TelemetryLeakFix {
     }
   }
 
+  /*
+   * A RUM application's own files, as its newest release's source maps name
+   * them (#10933): the paths in their "sources", cleaned of a bundler's
+   * prefix, a dependency's left out - never sourcesContent. At most
+   * MAX_SOURCE_MAPS_READ maps, MAX_SOURCE_MAP_BYTES_READ in all. Never
+   * fails: none when nothing was uploaded, or nothing could be read.
+   */
+  public static async readSourceMapFiles(data: {
+    projectId: ObjectID;
+    serviceId: string;
+  }): Promise<Array<string>> {
+    try {
+      const listed: Array<TelemetrySourceMap> =
+        await TelemetrySourceMapService.findBy({
+          query: {
+            projectId: data.projectId,
+            serviceId: new ObjectID(data.serviceId),
+          },
+          select: { _id: true, serviceVersion: true, sizeInBytes: true },
+          sort: { createdAt: SortOrder.Descending },
+          skip: 0,
+          limit: 50,
+          props: ROOT,
+        });
+      const release: string | undefined = listed[0]?.serviceVersion;
+      const files: Array<string> = [];
+      let bytes: number = 0;
+      let read: number = 0;
+
+      for (const map of listed) {
+        if (
+          map.serviceVersion !== release ||
+          read >= MAX_SOURCE_MAPS_READ ||
+          files.length >= MAX_SOURCE_MAP_FILES
+        ) {
+          continue;
+        }
+
+        const size: number = map.sizeInBytes || 0;
+
+        if (bytes + size > MAX_SOURCE_MAP_BYTES_READ) {
+          continue;
+        }
+
+        const withContent: TelemetrySourceMap | null =
+          await TelemetrySourceMapService.findOneBy({
+            query: { _id: map.id!, projectId: data.projectId },
+            select: { _id: true, content: true },
+            props: ROOT,
+          });
+
+        bytes += size;
+        read++;
+
+        for (const file of readSourceMapSources(withContent?.content || "")) {
+          if (!files.includes(file) && files.length < MAX_SOURCE_MAP_FILES) {
+            files.push(file);
+          }
+        }
+      }
+
+      return files;
+    } catch (error) {
+      logger.debug(
+        `DataSecurity: could not read the files of service ${data.serviceId}'s source maps: ${error}`,
+      );
+      return [];
+    }
+  }
+
   // The task context a plan's fix carries, but its request.
   public static toTaskContext(data: {
     projectId: ObjectID;
     plan: TelemetryLeakFixPlan;
   }): Omit<TelemetryLeakFixTaskContext, "request"> {
     const plan: TelemetryLeakFixPlan = data.plan;
+    const isApplication: boolean =
+      plan.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
 
     return {
+      ...(isApplication ? { ownerKind: plan.ownerKind } : {}),
       serviceId: plan.serviceId,
       serviceName: plan.serviceName,
-      title: `Stop ${plan.serviceName || "the service"} writing sensitive data to its telemetry`,
+      title: isApplication
+        ? `Stop ${plan.serviceName || "the application"} sending sensitive data from the browser`
+        : `Stop ${plan.serviceName || "the service"} writing sensitive data to its telemetry`,
       strategy: plan.decision.strategy,
       placeCount: plan.decision.placeCount,
       leaks: plan.decision.leaks,
@@ -669,6 +1023,7 @@ export default class TelemetryLeakFix {
     plan: TelemetryLeakFixPlan,
   ): DataSecurityAiCodeRequest {
     return buildTelemetryLeakFixRequest({
+      ownerKind: plan.ownerKind,
       serviceName: plan.serviceName,
       folder: plan.folder || undefined,
       strategy: plan.decision.strategy,
@@ -821,23 +1176,30 @@ export default class TelemetryLeakFix {
       throw new BadDataException("Issue not found.");
     }
 
-    const serviceId: ObjectID | null = await TelemetryLeakFix.serviceOfIssue({
-      projectId: data.projectId,
-      issue,
-    });
+    const owner: { kind: TelemetryLeakFixOwnerKind; id: ObjectID } | null =
+      await TelemetryLeakFix.ownerOfIssue({
+        projectId: data.projectId,
+        issue,
+      });
 
-    if (!serviceId) {
+    if (!owner) {
       return {
         result: { plan: null, message: TELEMETRY_FIX_NOT_A_SERVICE_MESSAGE },
         plan: null,
       };
     }
 
-    const plans: Array<TelemetryLeakFixPlan> =
-      await TelemetryLeakFix.planService({
-        projectId: data.projectId,
-        serviceId,
-      });
+    const isApplication: boolean =
+      owner.kind === TelemetryLeakFixOwnerKind.RumApplication;
+    const plans: Array<TelemetryLeakFixPlan> = isApplication
+      ? await TelemetryLeakFix.planRumApplication({
+          projectId: data.projectId,
+          rumApplicationId: owner.id,
+        })
+      : await TelemetryLeakFix.planService({
+          projectId: data.projectId,
+          serviceId: owner.id,
+        });
     const plan: TelemetryLeakFixPlan | null = TelemetryLeakFix.planOfIssue(
       plans,
       idOf(issue),
@@ -845,7 +1207,12 @@ export default class TelemetryLeakFix {
 
     if (!plan) {
       return {
-        result: { plan: null, message: TELEMETRY_FIX_NOTHING_TO_FIX_MESSAGE },
+        result: {
+          plan: null,
+          message: isApplication
+            ? TELEMETRY_FIX_NOTHING_TO_FIX_IN_APPLICATION_MESSAGE
+            : TELEMETRY_FIX_NOTHING_TO_FIX_MESSAGE,
+        },
         plan: null,
       };
     }
@@ -884,6 +1251,50 @@ export default class TelemetryLeakFix {
     }
 
     return best;
+  }
+
+  /*
+   * Whose code an issue's fix changes: the service its store is the
+   * telemetry of, or the RUM application its session replay store is
+   * (#10933) - null for any other issue.
+   */
+  public static async ownerOfIssue(data: {
+    projectId: ObjectID;
+    issue: Pick<DataSecurityIssue, "checkId" | "dataStoreId">;
+  }): Promise<{ kind: TelemetryLeakFixOwnerKind; id: ObjectID } | null> {
+    if (
+      !isTelemetryFindingCheck(data.issue.checkId) ||
+      !data.issue.dataStoreId
+    ) {
+      return null;
+    }
+
+    const store: DataStore | null = await DataStoreService.findOneBy({
+      query: { _id: data.issue.dataStoreId, projectId: data.projectId },
+      select: { _id: true, kind: true, serviceId: true, storeKey: true },
+      props: ROOT,
+    });
+
+    if (!store) {
+      return null;
+    }
+
+    if (store.serviceId && getTelemetryLeakSignal(store.kind)) {
+      return { kind: TelemetryLeakFixOwnerKind.Service, id: store.serviceId };
+    }
+
+    const applicationId: string | null = RUM_TELEMETRY_STORE_KINDS.includes(
+      store.kind as DataStoreKind,
+    )
+      ? getTelemetryStoreOwnerId(store)
+      : null;
+
+    return applicationId
+      ? {
+          kind: TelemetryLeakFixOwnerKind.RumApplication,
+          id: new ObjectID(applicationId),
+        }
+      : null;
   }
 
   /*
@@ -947,6 +1358,9 @@ export default class TelemetryLeakFix {
       : null;
 
     return {
+      ...(plan.ownerKind === TelemetryLeakFixOwnerKind.RumApplication
+        ? { ownerKind: plan.ownerKind }
+        : {}),
       serviceId: plan.serviceId,
       serviceName: plan.serviceName,
       strategy: plan.decision.strategy,
@@ -1057,11 +1471,18 @@ export default class TelemetryLeakFix {
       const repositories: Array<DataSecurityFixRepository> =
         planned.result.plan.repositories || [];
 
+      const isApplication: boolean =
+        planned.plan.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
+
       return {
         message:
           repositories.length > 0
-            ? "Choose the repository that holds this service's code."
-            : "Connect the repository that holds this service's code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it.",
+            ? isApplication
+              ? "Choose the repository that holds this application's front-end code."
+              : "Choose the repository that holds this service's code."
+            : isApplication
+              ? "Connect the repository that holds this application's front-end code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it."
+              : "Connect the repository that holds this service's code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it.",
         repositories,
         plan: planned.result.plan,
       };
@@ -1134,10 +1555,13 @@ export default class TelemetryLeakFix {
       const isWebAddress: boolean =
         data.pullRequestUrl.startsWith("https://") ||
         data.pullRequestUrl.startsWith("http://");
+      const pullRequest: MarkdownText = isWebAddress
+        ? mdText`[${data.title}](${data.pullRequestUrl})`
+        : mdText`${data.title}`;
       const opened: string = (
-        isWebAddress
-          ? mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: [${data.title}](${data.pullRequestUrl}).`
-          : mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: ${data.title}.`
+        fix.ownerKind === TelemetryLeakFixOwnerKind.RumApplication
+          ? mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the application"} sending sensitive data from the browser, for this issue and the application's others: ${pullRequest}.`
+          : mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: ${pullRequest}.`
       ).toString();
       const markdown: string = fix.hasSecrets
         ? `${opened} ${mdText`**Rotate the secret too:** the code fix stops new copies only.`.toString()}`

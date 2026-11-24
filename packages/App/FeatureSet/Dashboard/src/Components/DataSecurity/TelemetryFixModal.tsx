@@ -7,18 +7,23 @@ import {
   LEAK_HEADING,
   MORE_PLACES,
   NO_REPOSITORY_TO_PICK,
+  NO_REPOSITORY_TO_PICK_APPLICATION,
   PICK_REPOSITORY_HINT,
+  PICK_REPOSITORY_HINT_APPLICATION,
+  PLACE_PAGE,
   PICK_REPOSITORY_LABEL,
   PICK_REPOSITORY_PLACEHOLDER,
   PLACE_RECORDS,
   REDACTION_KEYS_LABEL,
-  REPOSITORY_CHOICE_WORDS,
   REPOSITORY_LINE,
   REPOSITORY_LINE_IN_FOLDER,
+  REPOSITORY_LINE_IN_FOLDER_APPLICATION,
   ROTATE_SECRET,
   START_FILES,
   TELEMETRY_FIX_DESCRIPTION,
+  TELEMETRY_FIX_DESCRIPTION_APPLICATION,
   TELEMETRY_FIX_ISSUES,
+  TELEMETRY_FIX_ISSUES_OF_APPLICATION,
   TELEMETRY_FIX_NOT_LOADED,
   TELEMETRY_FIX_SUBMIT,
   TELEMETRY_FIX_TEST_ID,
@@ -29,7 +34,9 @@ import {
   TelemetryFixStrategyWords,
   TelemetryLeakPlaceKind,
   TelemetryLeakPlaceShown,
+  getRepositoryChoiceWords,
   getTelemetryFixStrategyWords,
+  isApplicationTelemetryFix,
   getTelemetryLeakPlacesShown,
   isTelemetryFixOnItsWay,
 } from "./TelemetryFixCopy";
@@ -142,6 +149,19 @@ const PlaceLine: FunctionComponent<{
             slots={{ name: <Code text={place.name} /> }}
           />
         </span>
+      )}
+      {place.page ? (
+        <span
+          className="text-gray-500"
+          data-testid={`${TELEMETRY_FIX_TEST_ID}-place-page`}
+        >
+          <TranslatedSentence
+            template={PLACE_PAGE}
+            slots={{ page: <Code text={place.page} /> }}
+          />
+        </span>
+      ) : (
+        <></>
       )}
       {place.recordCount > 0 ? (
         <span className="text-gray-500">
@@ -267,6 +287,8 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
   const strategy: TelemetryFixStrategyWords | null = plan
     ? getTelemetryFixStrategyWords(plan)
     : null;
+  // A RUM application's plan, in its front-end code (#10933).
+  const isApplication: boolean = isApplicationTelemetryFix(plan);
 
   const say: (message: string) => string = (message: string): string => {
     return translator.translateText(message) || message;
@@ -324,16 +346,29 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
       title={TELEMETRY_FIX_TITLE}
       description={
         plan ? (
-          <TranslatedSentence
-            template={TELEMETRY_FIX_DESCRIPTION}
-            slots={{
-              service: (
-                <span className="font-medium">
-                  <IsolatedText text={plan.serviceName} />
-                </span>
-              ),
-            }}
-          />
+          isApplication ? (
+            <TranslatedSentence
+              template={TELEMETRY_FIX_DESCRIPTION_APPLICATION}
+              slots={{
+                application: (
+                  <span className="font-medium">
+                    <IsolatedText text={plan.serviceName} />
+                  </span>
+                ),
+              }}
+            />
+          ) : (
+            <TranslatedSentence
+              template={TELEMETRY_FIX_DESCRIPTION}
+              slots={{
+                service: (
+                  <span className="font-medium">
+                    <IsolatedText text={plan.serviceName} />
+                  </span>
+                ),
+              }}
+            />
+          )
         ) : undefined
       }
       submitButtonText={TELEMETRY_FIX_SUBMIT}
@@ -377,7 +412,9 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
             {plan.issues.length > 1 ? (
               <p className="text-sm text-gray-700">
                 {translator.translatePlural(
-                  TELEMETRY_FIX_ISSUES,
+                  isApplication
+                    ? TELEMETRY_FIX_ISSUES_OF_APPLICATION
+                    : TELEMETRY_FIX_ISSUES,
                   plan.issues.length,
                 )}
               </p>
@@ -476,7 +513,9 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
                     <TranslatedSentence
                       template={
                         plan.folder
-                          ? REPOSITORY_LINE_IN_FOLDER
+                          ? isApplication
+                            ? REPOSITORY_LINE_IN_FOLDER_APPLICATION
+                            : REPOSITORY_LINE_IN_FOLDER
                           : REPOSITORY_LINE
                       }
                       slots={{
@@ -491,10 +530,10 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
                       }}
                     />
                   </p>
-                  {REPOSITORY_CHOICE_WORDS[plan.repository.choice] ? (
+                  {getRepositoryChoiceWords(plan, plan.repository.choice) ? (
                     <p className="mt-0.5 text-xs text-gray-500">
                       {translator.translateText(
-                        REPOSITORY_CHOICE_WORDS[plan.repository.choice],
+                        getRepositoryChoiceWords(plan, plan.repository.choice),
                       )}
                     </p>
                   ) : (
@@ -527,7 +566,11 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  {translator.translateText(PICK_REPOSITORY_HINT)}
+                  {translator.translateText(
+                    isApplication
+                      ? PICK_REPOSITORY_HINT_APPLICATION
+                      : PICK_REPOSITORY_HINT,
+                  )}
                 </p>
               </div>
             ) : (
@@ -536,7 +579,13 @@ const TelemetryFixModal: FunctionComponent<ComponentProps> = (
                   icon={IconProp.Folder}
                   className="mt-0.5 h-4 w-4 flex-none text-gray-400"
                 />
-                <span>{say(NO_REPOSITORY_TO_PICK)}</span>
+                <span>
+                  {say(
+                    isApplication
+                      ? NO_REPOSITORY_TO_PICK_APPLICATION
+                      : NO_REPOSITORY_TO_PICK,
+                  )}
+                </span>
               </p>
             )}
             {plan.startFiles.length > 0 ? (
