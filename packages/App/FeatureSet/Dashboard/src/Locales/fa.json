@@ -63657,5 +63657,9 @@
   "since {{clock}}": "از ساعت {{clock}}",
   "since {{day}} at {{clock}}": "از {{day}} ساعت {{clock}}",
   "until {{clock}}": "تا ساعت {{clock}}",
-  "until {{day}} at {{clock}}": "تا {{day}} ساعت {{clock}}"
+  "until {{day}} at {{clock}}": "تا {{day}} ساعت {{clock}}",
+  "Exit Full Screen": "خروج از تمام‌صفحه",
+  "Fill the Screen": "پر کردن کل صفحه‌نمایش",
+  "Full-screen dashboard": "داشبورد تمام‌صفحه",
+  "Open in New Tab": "باز کردن در زبانه‌ای جدید"
 }

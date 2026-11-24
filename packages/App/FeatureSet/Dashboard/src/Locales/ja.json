@@ -63657,5 +63657,9 @@
   "since {{clock}}": "{{clock}} から",
   "since {{day}} at {{clock}}": "{{day}} {{clock}} から",
   "until {{clock}}": "{{clock}} まで",
-  "until {{day}} at {{clock}}": "{{day}} {{clock}} まで"
+  "until {{day}} at {{clock}}": "{{day}} {{clock}} まで",
+  "Exit Full Screen": "全画面を終了",
+  "Fill the Screen": "画面いっぱいに表示",
+  "Full-screen dashboard": "全画面のダッシュボード",
+  "Open in New Tab": "新しいタブで開く"
 }

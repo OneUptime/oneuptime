@@ -63657,5 +63657,9 @@
   "since {{clock}}": "{{clock}} से",
   "since {{day}} at {{clock}}": "{{day}} को {{clock}} से",
   "until {{clock}}": "{{clock}} तक",
-  "until {{day}} at {{clock}}": "{{day}} को {{clock}} तक"
+  "until {{day}} at {{clock}}": "{{day}} को {{clock}} तक",
+  "Exit Full Screen": "फ़ुल स्क्रीन से बाहर निकलें",
+  "Fill the Screen": "पूरी स्क्रीन भरें",
+  "Full-screen dashboard": "फ़ुल स्क्रीन डैशबोर्ड",
+  "Open in New Tab": "नए टैब में खोलें"
 }

@@ -63657,5 +63657,9 @@
   "since {{clock}}": "منذ الساعة {{clock}}",
   "since {{day}} at {{clock}}": "منذ {{day}} الساعة {{clock}}",
   "until {{clock}}": "حتى الساعة {{clock}}",
-  "until {{day}} at {{clock}}": "حتى {{day}} الساعة {{clock}}"
+  "until {{day}} at {{clock}}": "حتى {{day}} الساعة {{clock}}",
+  "Exit Full Screen": "الخروج من ملء الشاشة",
+  "Fill the Screen": "استخدام الشاشة بأكملها",
+  "Full-screen dashboard": "لوحة المعلومات بملء الشاشة",
+  "Open in New Tab": "فتح في علامة تبويب جديدة"
 }

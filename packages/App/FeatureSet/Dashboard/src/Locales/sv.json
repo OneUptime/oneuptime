@@ -63657,5 +63657,9 @@
   "since {{clock}}": "sedan kl. {{clock}}",
   "since {{day}} at {{clock}}": "sedan den {{day}} kl. {{clock}}",
   "until {{clock}}": "till kl. {{clock}}",
-  "until {{day}} at {{clock}}": "till den {{day}} kl. {{clock}}"
+  "until {{day}} at {{clock}}": "till den {{day}} kl. {{clock}}",
+  "Exit Full Screen": "Avsluta helskärm",
+  "Fill the Screen": "Fyll skärmen",
+  "Full-screen dashboard": "Instrumentpanel i helskärm",
+  "Open in New Tab": "Öppna i ny flik"
 }

@@ -63657,5 +63657,9 @@
   "since {{clock}}": "dalle {{clock}}",
   "since {{day}} at {{clock}}": "dal {{day}} alle {{clock}}",
   "until {{clock}}": "fino alle {{clock}}",
-  "until {{day}} at {{clock}}": "fino al {{day}} alle {{clock}}"
+  "until {{day}} at {{clock}}": "fino al {{day}} alle {{clock}}",
+  "Exit Full Screen": "Esci da schermo intero",
+  "Fill the Screen": "Riempi lo schermo",
+  "Full-screen dashboard": "Dashboard a schermo intero",
+  "Open in New Tab": "Apri in una nuova scheda"
 }

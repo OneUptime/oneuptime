@@ -63657,5 +63657,9 @@
   "since {{clock}}": "siden kl. {{clock}}",
   "since {{day}} at {{clock}}": "siden den {{day}} kl. {{clock}}",
   "until {{clock}}": "indtil kl. {{clock}}",
-  "until {{day}} at {{clock}}": "indtil den {{day}} kl. {{clock}}"
+  "until {{day}} at {{clock}}": "indtil den {{day}} kl. {{clock}}",
+  "Exit Full Screen": "Afslut fuld skærm",
+  "Fill the Screen": "Fyld skærmen",
+  "Full-screen dashboard": "Dashboard i fuld skærm",
+  "Open in New Tab": "Åbn i ny fane"
 }

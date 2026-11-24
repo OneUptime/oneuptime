@@ -63657,5 +63657,9 @@
   "since {{clock}}": "с {{clock}}",
   "since {{day}} at {{clock}}": "с {{day}}, {{clock}}",
   "until {{clock}}": "до {{clock}}",
-  "until {{day}} at {{clock}}": "до {{day}}, {{clock}}"
+  "until {{day}} at {{clock}}": "до {{day}}, {{clock}}",
+  "Exit Full Screen": "Выйти из полноэкранного режима",
+  "Fill the Screen": "Заполнить экран",
+  "Full-screen dashboard": "Панель во весь экран",
+  "Open in New Tab": "Открыть в новой вкладке"
 }

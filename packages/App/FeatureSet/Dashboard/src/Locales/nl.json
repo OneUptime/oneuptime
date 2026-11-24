@@ -63657,5 +63657,9 @@
   "since {{clock}}": "sinds {{clock}}",
   "since {{day}} at {{clock}}": "sinds {{day}} om {{clock}}",
   "until {{clock}}": "tot {{clock}}",
-  "until {{day}} at {{clock}}": "tot {{day}} om {{clock}}"
+  "until {{day}} at {{clock}}": "tot {{day}} om {{clock}}",
+  "Exit Full Screen": "Volledig scherm afsluiten",
+  "Fill the Screen": "Scherm vullen",
+  "Full-screen dashboard": "Dashboard op volledig scherm",
+  "Open in New Tab": "Openen in nieuw tabblad"
 }

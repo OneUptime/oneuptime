@@ -63657,5 +63657,9 @@
   "since {{clock}}": "自 {{clock}} 起",
   "since {{day}} at {{clock}}": "自 {{day}} {{clock}} 起",
   "until {{clock}}": "直到 {{clock}}",
-  "until {{day}} at {{clock}}": "直到 {{day}} {{clock}}"
+  "until {{day}} at {{clock}}": "直到 {{day}} {{clock}}",
+  "Exit Full Screen": "退出全屏",
+  "Fill the Screen": "填满屏幕",
+  "Full-screen dashboard": "全屏仪表板",
+  "Open in New Tab": "在新标签页中打开"
 }

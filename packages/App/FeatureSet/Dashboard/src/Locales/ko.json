@@ -63657,5 +63657,9 @@
   "since {{clock}}": "{{clock}}부터",
   "since {{day}} at {{clock}}": "{{day}} {{clock}}부터",
   "until {{clock}}": "{{clock}}까지",
-  "until {{day}} at {{clock}}": "{{day}} {{clock}}까지"
+  "until {{day}} at {{clock}}": "{{day}} {{clock}}까지",
+  "Exit Full Screen": "전체 화면 종료",
+  "Fill the Screen": "화면 가득 채우기",
+  "Full-screen dashboard": "전체 화면 대시보드",
+  "Open in New Tab": "새 탭에서 열기"
 }
