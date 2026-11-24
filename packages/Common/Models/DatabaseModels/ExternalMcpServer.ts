@@ -80,7 +80,10 @@ export const getHeaderNamesSql: (tableAlias: string) => string = (
  *   - while it investigates a new incident or alert, the tools the server
  *     marks read-only - an investigation never changes anything;
  *   - while it fixes one, those, and the tools that may change something,
- *     the way the auto remediation rule's Approval says.
+ *     the way the auto remediation rule's Approval says;
+ *   - in Ask AI and an incident's or alert's conversation, for the person
+ *     asking: the tools that only read at once, any other once that person
+ *     approves the call (ChatMcpAccess, issue #10879).
  *
  * An investigation rule and an auto remediation rule may name the servers
  * OneUptime AI may use for what they match; none named is all of them
@@ -115,7 +118,7 @@ export const getHeaderNamesSql: (tableAlias: string) => string = (
   pluralName: "External MCP Servers",
   icon: IconProp.PuzzlePiece,
   tableDescription:
-    "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use while it investigates and fixes incidents and alerts.",
+    "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.",
 })
 export default class ExternalMcpServer extends BaseModel {
   @ColumnAccessControl({

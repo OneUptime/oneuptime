@@ -57,9 +57,12 @@ import { AiContextRule, readAiContext } from "../../../../Types/AI/AiContext";
  * A rule also names the external MCP servers OneUptime AI may use while it
  * investigates what the rule matches (getIncidentMcpServerAllowance): with
  * no rule, or a matching rule that names none, all of the project's; with
- * matching rules that name some, those. That one fails the other way: rules
- * that cannot be read let OneUptime AI use no outside server, since a rule
- * might have kept one out.
+ * matching rules that name some, those. An incident no rule matches is
+ * investigated only when someone starts it by hand (Investigate, Ask AI's
+ * start_investigation): no rule speaks to it, so it may use all of them
+ * too - it used to get none (issue #10879). That one fails the other way:
+ * rules that cannot be read let OneUptime AI use no outside server, since
+ * a rule might have kept one out.
  *
  * The code repositories it may read are named the same way
  * (getIncidentCodeRepositoryAllowance, CodeRepositoryAllowance): with no
@@ -390,6 +393,21 @@ export default class InvestigationRules {
       }
     }
 
+    return this.getMcpServerAllowanceOfMatches(matchingRules);
+  }
+
+  /*
+   * The servers the matching rules allow - and with none matching, every
+   * server: only a person starts an investigation no rule matches, and no
+   * rule speaks to it (see the note at the top).
+   */
+  private static getMcpServerAllowanceOfMatches(
+    matchingRules: Array<AutoRemediationRule>,
+  ): ExternalMcpServerAllowance {
+    if (matchingRules.length === 0) {
+      return EVERY_EXTERNAL_MCP_SERVER;
+    }
+
     return getExternalMcpServerAllowance({
       rulesSetUp: true,
       matchingRules,
@@ -510,10 +528,7 @@ export default class InvestigationRules {
       }
     }
 
-    return getExternalMcpServerAllowance({
-      rulesSetUp: true,
-      matchingRules,
-    });
+    return this.getMcpServerAllowanceOfMatches(matchingRules);
   }
 
   /*

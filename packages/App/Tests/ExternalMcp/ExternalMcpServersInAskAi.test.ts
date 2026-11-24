@@ -81,6 +81,16 @@ const PROVIDER_FUNCTION_NAME: RegExp = /^[A-Za-z0-9_-]{1,64}$/;
 
 let mcpServer: LocalMcpServerProcess;
 let harness: TurnHarness;
+// Servers a test starts for itself: stopped after it, whatever happened.
+const startedInTest: Array<LocalMcpServerProcess> = [];
+
+async function startServerForTest(): Promise<LocalMcpServerProcess> {
+  const server: LocalMcpServerProcess = await LocalMcpServerProcess.start({
+    token: SERVER_TOKEN,
+  });
+  startedInTest.push(server);
+  return server;
+}
 
 beforeAll(async () => {
   mcpServer = await LocalMcpServerProcess.start({
@@ -105,8 +115,12 @@ beforeEach(() => {
   ]);
 });
 
-afterEach(() => {
+afterEach(async () => {
   jest.restoreAllMocks();
+
+  for (const server of startedInTest.splice(0)) {
+    await server.kill();
+  }
 });
 
 function callsReceived(): Array<McpFixtureCall> {
@@ -561,10 +575,12 @@ describe("the person's permissions decide", () => {
     const first: AILogRequest = harness.llmRequests()[0]!;
     expect(toolNamesOffered(first)).not.toContain(LIST_MCP_TOOLS_TOOL_NAME);
     expect(toolNamesOffered(first)).not.toContain(CALL_MCP_TOOL_TOOL_NAME);
-    expect(systemPromptOf(first)).toContain(
-      "the person asking may not use them",
-    );
-    expect(systemPromptOf(first)).not.toContain(SERVER_NAME);
+    const mcpSection: string =
+      systemPromptOf(first).split("# External MCP servers")[1] || "";
+
+    expect(mcpSection).toContain("the person asking may not use them");
+    expect(mcpSection).not.toContain(`- ${SERVER_NAME}`);
+    expect(systemPromptOf(first)).not.toContain(SERVER_DESCRIPTION);
     expect(harness.connectionsOpened()).toEqual([]);
     expect(callsReceived()).toEqual([]);
   });
@@ -589,7 +605,7 @@ describe("the person's permissions decide", () => {
     expect(harness.pausedState()).toBeUndefined();
     expect(pendingAction()).toBeUndefined();
     expect(toolResultFor(lastRequest(), "change-1")).toContain(
-      "your role does not allow",
+      "their role does not allow it: a change takes the permission that starts a runbook",
     );
     expect(callsReceived()).toEqual([]);
   });
@@ -803,9 +819,7 @@ describe("when a server does not answer as it should, the answer still comes", (
   });
 
   test("a server that is gone: it says so, its page says so, and the other server still answers", async () => {
-    const gone: LocalMcpServerProcess = await LocalMcpServerProcess.start({
-      token: SERVER_TOKEN,
-    });
+    const gone: LocalMcpServerProcess = await startServerForTest();
     await gone.kill();
 
     harness.setServers([
@@ -866,9 +880,7 @@ describe("when a server does not answer as it should, the answer still comes", (
   });
 
   test("a server that goes away during the turn: the next call says so, and the turn goes on", async () => {
-    const leaving: LocalMcpServerProcess = await LocalMcpServerProcess.start({
-      token: SERVER_TOKEN,
-    });
+    const leaving: LocalMcpServerProcess = await startServerForTest();
 
     harness.setServers([
       storedServer({

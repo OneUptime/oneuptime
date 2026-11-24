@@ -237,8 +237,8 @@ export function installTurnHarness(): TurnHarness {
     .mockImplementation((async (data: { query: JSONObject }) => {
       return servers.filter((server: ExternalMcpServer): boolean => {
         if (
-          data.query["isEnabled"] === true &&
-          server.isEnabled !== true
+          typeof data.query["isEnabled"] === "boolean" &&
+          data.query["isEnabled"] !== (server.isEnabled === true)
         ) {
           return false;
         }
