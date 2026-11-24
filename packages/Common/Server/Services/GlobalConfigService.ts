@@ -298,6 +298,21 @@ export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
 ];
 
 /*
+ * Where the server sends its people for help (Types/HelpAndSupport/
+ * HelpAndSupport, #10864-#10866), written only through Admin Dashboard >
+ * Settings > Help and Support's own route (HelpAndSupportServerSettings),
+ * which accepts only https, http and mailto links, valid addresses and plain
+ * text. Through the CRUD API a master admin could store a javascript: link
+ * every person's Help menu would hold.
+ */
+export const ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS: ReadonlyArray<keyof Model> =
+  ["helpAndSupport"];
+
+// What a write of the help and support settings through the API is told.
+export const HELP_AND_SUPPORT_WRITTEN_HERE_MESSAGE: string =
+  "Where this server sends people for help is changed on Admin Dashboard > Settings > Help and Support, which checks every link and address, and cannot be written here.";
+
+/*
  * The server's master API key (#7901): the SHA-256 of the key, never the
  * key itself (Utils/MasterApiKey), and which key it is (#8903): when it was
  * made, by whom, and its hint, its last four characters. They are made only
@@ -1394,6 +1409,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Refuses a write of the help and support settings by anyone but
+   * OneUptime itself (ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS). An explicit null
+   * counts as a write: it puts every item back on OneUptime's own as surely
+   * as a value changes one.
+   */
+  public assertHelpAndSupportWrittenByRootOnly(
+    data: unknown,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const isWritten: boolean = ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS.some(
+      (column: keyof Model): boolean => {
+        return (
+          (data as Record<string, unknown> | undefined)?.[column as string] !==
+          undefined
+        );
+      },
+    );
+
+    if (!isWritten) {
+      return;
+    }
+
+    throw new NotAuthorizedException(HELP_AND_SUPPORT_WRITTEN_HERE_MESSAGE);
+  }
+
+  /*
    * Refuses a write of the master API key by anyone but OneUptime itself
    * (ROOT_ONLY_MASTER_API_KEY_COLUMNS). An explicit null counts as a write:
    * clearing the key takes it away as surely as replacing it.
@@ -1562,6 +1607,22 @@ export class Service extends DatabaseService<Model> {
     const data: PartialEntity<Model> = {};
 
     (data as Record<string, unknown>)["serverProducts"] = settings;
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+    });
+  }
+
+  /*
+   * Writes where the server sends its people for help, as the settings page
+   * saved it (HelpAndSupportServerSettings, which checked every value): one
+   * statement, no hooks. The caller keeps its copy of what it wrote.
+   */
+  public async writeHelpAndSupport(settings: JSONObject): Promise<void> {
+    const data: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["helpAndSupport"] = settings;
 
     await this.updateColumnsByIdWithoutHooks({
       id: ObjectID.getZeroObjectID(),
@@ -1979,6 +2040,7 @@ export class Service extends DatabaseService<Model> {
     this.assertBackupScriptRunWrittenByRootOnly(createBy.data, createBy.props);
     this.assertServerAlertStateWrittenByRootOnly(createBy.data, createBy.props);
     this.assertServerProductsWrittenByRootOnly(createBy.data, createBy.props);
+    this.assertHelpAndSupportWrittenByRootOnly(createBy.data, createBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioAccountNotSetByEnvironment(createBy.data, createBy.props);
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
@@ -2022,6 +2084,7 @@ export class Service extends DatabaseService<Model> {
     this.assertBackupScriptRunWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertServerAlertStateWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertServerProductsWrittenByRootOnly(updateBy.data, updateBy.props);
+    this.assertHelpAndSupportWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertEmailSettingsNotSetByEnvironment(updateBy.data, updateBy.props);
