@@ -951,10 +951,17 @@ describe("FormService: setting up a form that creates alerts", () => {
   });
 
   test.each([
-    ["its questions", { fields: getDefaultFormFields(FormTargetType.Alert) }],
+    [
+      "its questions",
+      {
+        fields: getDefaultFormFields(
+          FormTargetType.Alert,
+        ) as unknown as JSONArray,
+      },
+    ],
     ["its settings", { targetSettings: { alertStateId: ALERT_STATE_ID } }],
     ["its templates", { templates: [] }],
-  ])(
+  ] as Array<[string, JSONObject]>)(
     "changing %s takes the permission too",
     async (_what: string, data: JSONObject) => {
       storedForms = [storedAlertForm()];
@@ -1012,7 +1019,9 @@ describe("FormService: setting up a form that creates alerts", () => {
       update(
         {
           targetType: FormTargetType.Incident,
-          fields: getDefaultFormFields(FormTargetType.Incident),
+          fields: getDefaultFormFields(
+            FormTargetType.Incident,
+          ) as unknown as JSONArray,
           targetSettings: {},
         },
         teammate([Permission.EditForm]),
