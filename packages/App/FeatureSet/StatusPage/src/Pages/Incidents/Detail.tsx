@@ -28,6 +28,18 @@ import EventItem, {
   TimelineItem,
   TimelineItemType,
 } from "Common/UI/Components/EventItem/EventItem";
+import {
+  EventItemRelatedEvent,
+  EventItemRelatedEvents,
+} from "Common/UI/Components/EventItem/EventItemRelatedEvents";
+import { translatePlural } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getEpisodeIncidents,
+  PartOfEpisode,
+  readEpisodeIncidents,
+  readPartOfEpisodes,
+  RELATED_INCIDENTS_WORDS,
+} from "../../Utils/IncidentGrouping";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -72,6 +84,86 @@ type GetIncidentEventItemFunctionProps = {
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   isPreviewPage: boolean;
   isSummary: boolean;
+  /*
+   * On a page that groups incidents by episode, the episodes the page shows
+   * that hold this incident: it has no card of its own there, so its page
+   * says where it is listed ("Part of Infrastructure Outage").
+   */
+  partOfEpisodes?: Array<PartOfEpisode> | undefined;
+};
+
+/*
+ * The route to an incident's page on this status page - an episode's too:
+ * the page opens an episode under the incident's own route (Detail).
+ */
+const getIncidentRoute: (data: {
+  id: ObjectID;
+  isPreviewPage: boolean;
+}) => Route = (data: { id: ObjectID; isPreviewPage: boolean }): Route => {
+  return RouteUtil.populateRouteParams(
+    data.isPreviewPage
+      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+    data.id,
+  );
+};
+
+/*
+ * The incidents an episode's card lists on a page that groups incidents by
+ * episode: each its own row, with its state and when it was declared,
+ * opening its own page. Folded on a list, open on the episode's own page.
+ */
+const getRelatedIncidents: (data: {
+  incidents: Array<Incident>;
+  isPreviewPage: boolean;
+  isOpenByDefault: boolean;
+}) => EventItemRelatedEvents | undefined = (data: {
+  incidents: Array<Incident>;
+  isPreviewPage: boolean;
+  isOpenByDefault: boolean;
+}): EventItemRelatedEvents | undefined => {
+  if (data.incidents.length === 0) {
+    return undefined;
+  }
+
+  return {
+    title: translatePlural(RELATED_INCIDENTS_WORDS, data.incidents.length),
+    isOpenByDefault: data.isOpenByDefault,
+    items: data.incidents.map((incident: Incident): EventItemRelatedEvent => {
+      const incidentId: string = (
+        incident.id?.toString() ||
+        incident._id ||
+        ""
+      ).toString();
+      const declaredAt: Date | undefined =
+        incident.declaredAt || (incident.createdAt as Date | undefined);
+
+      return {
+        id: incidentId,
+        title: incident.title || "",
+        detail: declaredAt
+          ? i18n.t("incidents.declaredAtTime", {
+              time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                declaredAt,
+              ),
+            })
+          : undefined,
+        statusName: incident.currentIncidentState?.name
+          ? translateStatusName(
+              StateListType.IncidentState,
+              incident.currentIncidentState.name,
+            )
+          : undefined,
+        statusColor: incident.currentIncidentState?.color || undefined,
+        route: incidentId
+          ? getIncidentRoute({
+              id: new ObjectID(incidentId),
+              isPreviewPage: data.isPreviewPage,
+            })
+          : undefined,
+      };
+    }),
+  };
 };
 
 type GetIncidentEventItemFunction = (
@@ -406,6 +498,15 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
           color: label.color!,
         };
       }) || [],
+    partOf: (props.partOfEpisodes || []).map((episode: PartOfEpisode) => {
+      return {
+        title: episode.title,
+        route: getIncidentRoute({
+          id: new ObjectID(episode.id),
+          isPreviewPage: isPreviewPage,
+        }),
+      };
+    }),
   };
 
   return data;
@@ -427,6 +528,12 @@ type GetEpisodeEventItemFunctionProps = {
   isPreviewPage: boolean;
   isSummary: boolean;
   statusPageId?: ObjectID | undefined;
+  /*
+   * On a page that groups incidents by episode, the incidents of the
+   * episode the page shows (Utils/IncidentGrouping): its card lists them,
+   * folded on a list and open on its own page.
+   */
+  incidents?: Array<Incident> | undefined;
 };
 
 type GetEpisodeEventItemFunction = (
@@ -704,6 +811,11 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
           color: label.color!,
         };
       }) || [],
+    relatedEvents: getRelatedIncidents({
+      incidents: props.incidents || [],
+      isPreviewPage: isPreviewPage,
+      isOpenByDefault: !isSummary,
+    }),
   };
 
   return data;
@@ -753,6 +865,15 @@ const Detail: FunctionComponent<PageComponentProps> = (
   >({});
 
   const [isEpisode, setIsEpisode] = useState<boolean>(false);
+
+  /*
+   * On a page that groups incidents by episode: the episodes an incident is
+   * part of, and the incidents an episode lists (Utils/IncidentGrouping).
+   */
+  const [partOfEpisodes, setPartOfEpisodes] = useState<Array<PartOfEpisode>>(
+    [],
+  );
+  const [episodeIncidents, setEpisodeIncidents] = useState<Array<Incident>>([]);
 
   useAsyncEffect(async () => {
     try {
@@ -840,6 +961,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
               setIncident(incident);
               setStatusPageResources(statusPageResources);
               setIncidentStateTimelines(incidentStateTimelines);
+              setPartOfEpisodes(readPartOfEpisodes(data));
             }
           }
         } else {
@@ -920,6 +1042,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 setEpisode(episode);
                 setStatusPageResources(statusPageResources);
                 setEpisodeStateTimelines(episodeStateTimelines);
+                setEpisodeIncidents(
+                  getEpisodeIncidents(
+                    readEpisodeIncidents(rawEpisodes),
+                    episode.id.toString(),
+                  ),
+                );
               }
             }
           }
@@ -966,6 +1094,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           isPreviewPage: StatusPageUtil.isPreviewPage(),
           isSummary: false,
           statusPageId: StatusPageUtil.getStatusPageId() || undefined,
+          incidents: episodeIncidents,
         }),
       );
     } else if (!isEpisode && incident) {
@@ -979,6 +1108,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           monitorsInGroup,
           isPreviewPage: StatusPageUtil.isPreviewPage(),
           isSummary: false,
+          partOfEpisodes: partOfEpisodes,
         }),
       );
     }
@@ -988,6 +1118,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
     episode,
     isEpisode,
     incidentStates,
+    partOfEpisodes,
+    episodeIncidents,
     i18nInstance.resolvedLanguage,
   ]);
 
