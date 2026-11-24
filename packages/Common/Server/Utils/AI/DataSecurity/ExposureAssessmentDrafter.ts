@@ -82,8 +82,8 @@ import {
  *   - a person starts one on any case about a store they may read (assess),
  *     and asks OneUptime AI for the write-up (draftForPerson).
  *
- * Its readers are the case's who may read the store's findings too, since
- * it names what the store holds (ExposureAssessmentReader.mayRead); to
+ * Its readers are the case's who may read the store and its findings too,
+ * since it names what the store holds (ExposureAssessmentReader.mayRead); to
  * change it, they may edit the case as well. The case's timeline says when
  * it was started, written up or edited - never what it says. Nothing is
  * sent anywhere: a notice is text a person edits and copies.

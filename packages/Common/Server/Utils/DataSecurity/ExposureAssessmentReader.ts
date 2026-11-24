@@ -131,17 +131,18 @@ import { ResponseJSON } from "@clickhouse/client";
  *     confirmed them;
  *   - the case's tasks, matched to the playbook's checklist.
  *
- * Who reads it: the case's readers who may read the store's findings too
- * (mayRead), since it names what the store holds. The case and its stores
- * are read as the reader first - a case or a store a label keeps from
- * them is not found - and the rest as OneUptime, once that read passed.
+ * Who reads it: the case's readers who may read the store and its
+ * findings too (mayRead), since it names what the store holds. The case
+ * and its stores are read as the reader first - a case or a store a label
+ * keeps from them is not found - and the rest as OneUptime, once that read
+ * passed.
  */
 
 export const READ_REFUSED_MESSAGE: string =
-  "An exposure assessment names what a data store holds, so it takes reading both the security case and the store's findings. Ask a project admin for a role that reads Data Store Findings.";
+  "An exposure assessment names what a data store holds, so it takes reading the security case, the data store and the store's findings. Ask a project admin for a role that reads all three.";
 
 export const CHANGE_REFUSED_MESSAGE: string =
-  "Changing an exposure assessment takes permission to edit the security case, and to read the store's findings.";
+  "Changing an exposure assessment takes permission to edit the security case, and to read the data store and its findings.";
 
 export const NOT_ABOUT_A_STORE_MESSAGE: string =
   "This security case is about no data store you may read, so there is no exposure to assess.";
@@ -242,7 +243,7 @@ function toIso(value: Date | string | null | undefined): string | undefined {
 export default class ExposureAssessmentReader {
   /*
    * Whether a caller may read a case's exposure assessment: one who may
-   * read security cases and the store's findings.
+   * read security cases, data stores and the stores' findings.
    */
   public static mayRead(props: DatabaseCommonInteractionProps): boolean {
     return (
@@ -251,6 +252,10 @@ export default class ExposureAssessmentReader {
         model: new SecurityCase(),
         operation: "read",
       }) &&
+        CallerPermission.holdsModelPermission(props, {
+          model: new DataStore(),
+          operation: "read",
+        }) &&
         CallerPermission.holdsModelPermission(props, {
           model: new DataStoreFinding(),
           operation: "read",

@@ -348,7 +348,8 @@ export const APPLY_TO_SIMILAR_PERMISSIONS: Array<Permission> = [
 /*
  * Who may read a security case's exposure assessment (#10377): the readers
  * of the store's findings - and then, checked as it is read, of the case
- * too (ExposureAssessmentReader.mayRead): it names what the store holds.
+ * and the store too (ExposureAssessmentReader.mayRead): it names what the
+ * store holds.
  */
 export const EXPOSURE_ASSESSMENT_READ_PERMISSIONS: Array<Permission> = [
   ...new DataStoreFinding().readRecordPermissions,
@@ -356,8 +357,8 @@ export const EXPOSURE_ASSESSMENT_READ_PERMISSIONS: Array<Permission> = [
 
 /*
  * Who may start one, ask OneUptime AI to write it up, edit a draft or say
- * where the people live: who may edit the case - and read the store's
- * findings too (ExposureAssessmentReader.mayChange).
+ * where the people live: who may edit the case - and read the store and
+ * its findings too (ExposureAssessmentReader.mayChange).
  */
 export const EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS: Array<Permission> = [
   ...new SecurityCase().updateRecordPermissions,
@@ -719,7 +720,7 @@ export default class DataSecurityAPI extends BaseAPI<
      * A security case's exposure assessment (#10377): what plain code works
      * out - the window, who could read the data, whose data it was, the
      * secrets to rotate and the breach laws that may apply - and OneUptime
-     * AI's write-up, for the case's readers who may read the store's
+     * AI's write-up, for the case's readers who may read the store and its
      * findings too. Nothing here sends anything anywhere.
      */
     this.post(

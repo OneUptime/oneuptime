@@ -52,7 +52,7 @@ import ExposureAssessmentDrafter, {
  */
 
 export enum ExposureRunSkip {
-  // The issue is gone, not open, or not in the case.
+  // The issue or its store is gone: deleted, or the store archived.
   IssueGone = "issue-gone",
   // Not a Critical exposure of a store with Restricted or Confidential data.
   NotAssessedOnItsOwn = "not-assessed-on-its-own",
