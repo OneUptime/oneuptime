@@ -188,7 +188,7 @@ describe("ChatMcpAccess.buildForTurn", () => {
     offServers = [server("Staging", false)];
 
     const built: ChatMcpServers | null = await build({
-      permissions: [Permission.ReadIncident],
+      permissions: [Permission.ReadProjectIncident],
     });
 
     expect(built!.extraTools).toEqual([]);
@@ -260,7 +260,7 @@ describe("ChatMcpAccess.mayUseServers", () => {
     expect(
       ChatMcpAccess.mayUseServers({
         projectId: PROJECT_ID,
-        props: props([Permission.ReadIncident]),
+        props: props([Permission.ReadProjectIncident]),
       }),
     ).toBe(false);
   });

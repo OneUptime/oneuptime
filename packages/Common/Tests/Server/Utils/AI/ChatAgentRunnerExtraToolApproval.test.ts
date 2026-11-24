@@ -44,6 +44,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHAT A CHAT TURN DOES WITH AN EXTRA TOOL THAT CHANGES SOMETHING OUTSIDE
@@ -174,16 +175,16 @@ function stubTools(data?: {
 }
 
 interface Spies {
-  executeWithLogging: jest.SpiedFunction<typeof AIService.executeWithLogging>;
-  runUpdateOneBy: jest.SpiedFunction<typeof AIRunService.updateOneBy>;
-  messageUpdateOneBy: jest.SpiedFunction<
+  executeWithLogging: SpyInstance<typeof AIService.executeWithLogging>;
+  runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy>;
+  messageUpdateOneBy: SpyInstance<
     typeof AIConversationMessageService.updateOneBy
   >;
-  createEvent: jest.SpiedFunction<typeof AIRunEventService.create>;
+  createEvent: SpyInstance<typeof AIRunEventService.create>;
 }
 
 function installSpies(run?: AIRun | undefined): Spies {
-  const createEvent: jest.SpiedFunction<typeof AIRunEventService.create> = jest
+  const createEvent: SpyInstance<typeof AIRunEventService.create> = jest
     .spyOn(AIRunEventService, "create")
     .mockResolvedValue({} as never);
   jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1 as never);
@@ -195,7 +196,7 @@ function installSpies(run?: AIRun | undefined): Spies {
   const running: AIRun = new AIRun();
   running.status = AIRunStatus.Running;
 
-  const findRun: jest.SpiedFunction<typeof AIRunService.findOneById> = jest
+  const findRun: SpyInstance<typeof AIRunService.findOneById> = jest
     .spyOn(AIRunService, "findOneById")
     .mockResolvedValue(running as never);
 
@@ -203,7 +204,7 @@ function installSpies(run?: AIRun | undefined): Spies {
     findRun.mockResolvedValueOnce(run as never);
   }
 
-  const runUpdateOneBy: jest.SpiedFunction<typeof AIRunService.updateOneBy> =
+  const runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy> =
     jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1 as never);
 
   jest
@@ -212,7 +213,7 @@ function installSpies(run?: AIRun | undefined): Spies {
   jest
     .spyOn(AIConversationMessageService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
-  const messageUpdateOneBy: jest.SpiedFunction<
+  const messageUpdateOneBy: SpyInstance<
     typeof AIConversationMessageService.updateOneBy
   > = jest
     .spyOn(AIConversationMessageService, "updateOneBy")
@@ -224,7 +225,7 @@ function installSpies(run?: AIRun | undefined): Spies {
     .spyOn(AIConversationService, "updateOneById")
     .mockResolvedValue(1 as never);
 
-  const executeWithLogging: jest.SpiedFunction<
+  const executeWithLogging: SpyInstance<
     typeof AIService.executeWithLogging
   > = jest
     .spyOn(AIService, "executeWithLogging")
@@ -467,11 +468,11 @@ describe("an extra tool that always asks for approval", () => {
 
 describe("the project's external MCP servers in a turn", () => {
   function stubServers(): {
-    build: jest.SpiedFunction<typeof ChatMcpAccess.buildForTurn>;
+    build: SpyInstance<typeof ChatMcpAccess.buildForTurn>;
     closed: Array<string>;
   } {
     const closed: Array<string> = [];
-    const build: jest.SpiedFunction<typeof ChatMcpAccess.buildForTurn> = jest
+    const build: SpyInstance<typeof ChatMcpAccess.buildForTurn> = jest
       .spyOn(ChatMcpAccess, "buildForTurn")
       .mockImplementation(async (): Promise<ChatMcpServers> => {
         return {

@@ -568,7 +568,7 @@ describe("the person's permissions decide", () => {
       ]),
     ]);
 
-    await askAi({ props: personProps([Permission.ReadIncident]) });
+    await askAi({ props: personProps([Permission.ReadProjectIncident]) });
 
     const first: AILogRequest = harness.llmRequests()[0]!;
     expect(toolNamesOffered(first)).not.toContain(LIST_MCP_TOOLS_TOOL_NAME);

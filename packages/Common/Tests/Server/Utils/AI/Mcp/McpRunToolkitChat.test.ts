@@ -329,7 +329,7 @@ describe("list_mcp_tools in a chat", () => {
     const fake: FakeMcpServer = await startServer();
     const kit: McpRunToolkit = chatToolkit({
       servers: [stored(fake)],
-      props: props([Permission.ReadIncident]),
+      props: props([Permission.ReadProjectIncident]),
     });
 
     const outcome: ToolCallOutcome = await tool(

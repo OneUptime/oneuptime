@@ -40,6 +40,7 @@ import Permission from "Common/Types/Permission";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { LocalMcpHttpTransport } from "Common/Tests/Helpers/FakeMcpServer";
 import { jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHAT AN ASK AI TURN NEEDS AROUND IT, for the tests of the project's
@@ -183,7 +184,7 @@ export function installTurnHarness(): TurnHarness {
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "info").mockImplementation((): void => {});
 
-  const createEvent: jest.SpiedFunction<typeof AIRunEventService.create> = jest
+  const createEvent: SpyInstance<typeof AIRunEventService.create> = jest
     .spyOn(AIRunEventService, "create")
     .mockResolvedValue({} as never);
   jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1 as never);
@@ -195,7 +196,7 @@ export function installTurnHarness(): TurnHarness {
   jest
     .spyOn(AIRunService, "findOneById")
     .mockResolvedValue(runningRun as never);
-  const runUpdateOneBy: jest.SpiedFunction<typeof AIRunService.updateOneBy> =
+  const runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy> =
     jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1 as never);
 
   jest
@@ -207,7 +208,7 @@ export function installTurnHarness(): TurnHarness {
   jest
     .spyOn(AIConversationMessageService, "findOneBy")
     .mockResolvedValue(null as never);
-  const messageUpdateOneBy: jest.SpiedFunction<
+  const messageUpdateOneBy: SpyInstance<
     typeof AIConversationMessageService.updateOneBy
   > = jest
     .spyOn(AIConversationMessageService, "updateOneBy")
@@ -269,7 +270,7 @@ export function installTurnHarness(): TurnHarness {
       });
     });
 
-  const executeWithLogging: jest.SpiedFunction<
+  const executeWithLogging: SpyInstance<
     typeof AIService.executeWithLogging
   > = jest
     .spyOn(AIService, "executeWithLogging")
