@@ -7,6 +7,7 @@ import {
   test,
   TestInfo,
 } from "@playwright/test";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -1103,12 +1104,10 @@ test.describe("how it looks", () => {
     await expect(exitButton(page)).toHaveAccessibleName(/خروج از تمام‌صفحه/);
 
     // The row's end is its left on a page read right to left.
-    const exitBox: { x: number; width: number } | null =
-      await exitButton(page).boundingBox();
-    const nameBox: { x: number; width: number } | null = await view(page)
-      .locator("h2")
-      .first()
-      .boundingBox();
+    const [exitBox, nameBox]: Array<FrameBox> = await boxesInOneFrame([
+      exitButton(page),
+      view(page).locator("h2").first(),
+    ]);
 
     expect(exitBox!.x).toBeLessThan(nameBox!.x);
     await expectNoSidewaysScroll(page);
