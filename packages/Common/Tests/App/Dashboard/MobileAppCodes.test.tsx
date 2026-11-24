@@ -260,6 +260,21 @@ describe("the mobile app, as the server's admins offer it", () => {
     );
   });
 
+  test("from the server's own page, a code that cannot be drawn sends a laptop to the link, never asking it to scan", () => {
+    fromOwnPage();
+    renderCodes();
+
+    act(() => {
+      mockCodeFailures.get(OWN_PAGE)!();
+    });
+
+    const laptop: HTMLElement = sentenceWith("app-server-url");
+
+    expect(laptop.textContent).toMatch(/^Get the app from the link above/);
+    expect(laptop.textContent).not.toMatch(/Scan/);
+    expect(laptop).toHaveClass("max-sm:hidden");
+  });
+
   test("a page of the server's own not read from the server yet: nothing, rather than OneUptime's stores", () => {
     // env.js says the server has a page of its own, and holds its address back.
     setHelpAndSupportEnvironment(
