@@ -725,6 +725,10 @@
   "Add one file at a time.": "ファイルは 1 つずつ追加してください。",
   "This field holds up to {{count}} files. Remove one to add another.": "このフィールドに入れられるファイルは最大 {{count}} 個です。別のファイルを追加するには、1 つ削除してください。",
   "This field holds up to {{count}} files. Remove one to add another._one": "このフィールドに入れられるファイルは 1 個です。別のファイルを追加するには、削除してください。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは最大 {{count}} 個です。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは 1 個です。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "このフィールドに入れられるファイルは最大 {{count}} 個のため、次のファイルは追加されませんでした: {{fileNames}}。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "このフィールドに入れられるファイルは 1 個のため、次のファイルは追加されませんでした: {{fileNames}}。",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

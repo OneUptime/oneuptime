@@ -4,6 +4,7 @@ Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het 
 
 :::cards
 - [Security Operations](#security-operations): Een beveiligingszaak voor elke opslag met een kritiek probleem.
+- [Was het een datalek?](#was-het-een-datalek): Elke kritieke blootstelling beoordeeld: hoe lang, wie de gegevens kon lezen, van wie ze waren, en de datalekwetten die van toepassing kunnen zijn.
 - [Waarschuwingen en on-call](#waarschuwingen-en-on-call): De dienstdoende oproepen wanneer er een kritiek probleem opent.
 - [Incidenten](#incidenten): Een incident melden voor een inbreuk die je incidentproces moet afhandelen.
 - [Eigenaren](#eigenaren): Wie eigenaar is van elke opslag, met de hand of door regels ingesteld, en de e-mail die ze krijgen.
@@ -45,6 +46,22 @@ Elke opslag is een eigen entiteit in Security Operations, van het type **Gegeven
 Vanaf daar wordt de zaak afgehandeld zoals elke andere: toegewezen, van notities voorzien, gesloten, en beantwoord door de playbooks van het project. De detecties van de opslag tellen mee voor zijn risico onder [Entiteitrisico](/docs/telemetry/security-entity-risk), net als die van elke entiteit. Zie [Beveiligingszaken en playbooks](/docs/telemetry/security-cases).
 
 Elke beveiligingszaak, wat haar ook opende, toont de gegevens in gevaar onder **Impact**: de opslagen met gevoelige gegevens waar de zaak over gaat, en elke opslag waar haar gebruikers en rollen bij kunnen, de gevoeligste eerst, met wat elke opslag bevat, ongeveer hoeveel records, hoe blootgesteld hij is en hoeveel identiteiten erbij kunnen. Een sessie van een aangenomen rol die de zaak noemt, telt als die rol, en een e-mailadres als de cloudgebruikers waar het bij hoort. Er wordt gelezen met de eigen machtigingen van de lezer, dus een rol die Gegevensbeveiliging niet mag lezen, ziet dat dit deel ontbreekt.
+
+## Was het een datalek?
+
+Bij een kritieke blootstelling van een opslag met gegevens die **Beperkt** of **Vertrouwelijk** zijn - open voor iedereen op internet, gedeeld met accounts buiten de jouwe, of een snapshot die anderen kunnen herstellen - wordt de zaak vanzelf beoordeeld, zodra die opent. Elke andere zaak over een gegevensopslag wordt beoordeeld wanneer iemand op **Deze blootstelling beoordelen** drukt op het **Overzicht** ervan. Gewone code leidt de beoordeling af uit wat OneUptime heeft vastgelegd, en doet dat opnieuw elke keer dat die wordt gelezen:
+
+- **Hoe lang het openstond**: vanaf de wijziging in het log van je cloud die de opslag blootstelde, als die werd vastgelegd in de 30 dagen voordat de blootstelling werd gevonden, en anders minstens sinds Gegevensbeveiliging die vond; tot de eigen respons van Gegevensbeveiliging de blootstelling sloot, een wijziging haar sloot, of een controle vaststelde dat ze gesloten was.
+- **Wie het kon lezen**: of de opslag leesacties logde. Waar dat niet zo was, zegt de beoordeling "Leesacties zijn niet gelogd. Ga ervan uit dat de gegevens zijn gelezen." Ze telt de accounts buiten je bedrijf die de opslag konden lezen, en hoeveel daarvan hun toegang gebruikten terwijl die openstond, zonder ze ooit te noemen.
+- **Van wie de gegevens waren**: wat de opslag bevat, ongeveer hoeveel records, over wie ze gaan, en waar de betrokkenen wonen, volgens de gegevens en volgens wat iemand aangeeft.
+- **De te roteren geheimen**: elk geheim dat in de opslag is gevonden terwijl die openstond, naar type en vindplaats, nooit de waarde ervan.
+- **De datalekwetten die van toepassing kunnen zijn**: elke rij van de tabel met datalekwetten van OneUptime, met wat die vraagt, van wie, de termijn gerekend vanaf het moment dat Gegevensbeveiliging de blootstelling vond, en wat iemand nog controleert voordat die van toepassing is.
+
+De tabel dekt artikel 33 en 34 van de GDPR, artikel 33 en 34 van de UK GDPR, de Breach Notification Rule van HIPAA, eis 12.10.1 van PCI DSS, de Braziliaanse LGPD, de Indiase DPDP Rules en richtlijnen van CERT-In, en de datalekwetten van Californië, Colorado, Florida, New York, Texas en Washington. Elke rij linkt naar de eigen tekst van de wet, de bron, en vermeldt de dag waarop de rij er voor het laatst mee is vergeleken. Wat de tabel niet dekt - een ander land, een andere Amerikaanse staat, waar je organisatie gevestigd is, je contracten - zegt de beoordeling in gewone woorden.
+
+OneUptime AI werkt de beoordeling uit zoals je AI-regels voor Gegevensbeveiliging toestaan, of wanneer iemand erom vraagt: wat het betekent, een melding aan de toezichthouder, een melding aan de getroffen betrokkenen en een interne samenvatting (zie [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai)). Elk concept wordt getoetst aan de feiten van de beoordeling: een getal of een wet die in geen ervan staat, laat het vervallen. Er wordt nergens iets naartoe verzonden: een melding is tekst die iemand bewerkt en kopieert, en de beoordeling en elk concept vermelden dat ze geen juridisch advies zijn.
+
+De lezers van de zaak die ook de opslag en de bevindingen ervan mogen lezen, zien de beoordeling, omdat die noemt wat de opslag bevat. Beoordelen, concepten opstellen, een melding bewerken en aangeven waar de betrokkenen wonen vereisen daarnaast toestemming om de zaak te bewerken. Zie [Was het een datalek?](/docs/telemetry/security-cases#was-het-een-datalek) voor de kaarten van de zaak.
 
 ## Waarschuwingen en on-call
 
@@ -132,7 +149,7 @@ Twee wijzigingen sluiten de blootstelling van een cloudopslag, elk via de cloudk
 
 Een persoon voert er een uit vanuit een openstaand probleem dat ermee wordt opgelost, met **Hier oplossen** (zie [Controles en problemen van Gegevensbeveiliging](/docs/data-security/checks-and-issues#hier-oplossen)). Een playbook van Security Operations voert ze uit als stappen van de categorie **Indammen**, **Openbare toegang tot gegevensopslagen blokkeren** en **Delen van gegevensopslag intrekken**: op elke gegevensopslag waar de zaak over gaat, hoogstens 10, elk een stap die begint met **Goedkeuring nodig** aan. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd. Hoe dan ook zegt de feed van de opslag wat er is gedaan, en wordt de opslag meteen opnieuw gecontroleerd, zodat het probleem oplost zodra de wijziging is doorgevoerd.
 
-Het playbooksjabloon **Een gegevenslek dichten** beantwoordt de zaken die Gegevensbeveiliging opent: het mailt de eigenaren van de opslag, blokkeert openbare toegang en trekt het delen in zodra een mens elke stap goedkeurt, en voegt de checklist van de respons als taken aan de zaak toe - wie de gegevens las terwijl ze blootgesteld waren, of het een datalek is dat je moet melden, welke geheimen je moet vervangen en wat je opschrijft als de zaak sluit. Voeg het toe met **Maken op basis van sjabloon** bij de playbooks van het project.
+Het playbooksjabloon **Een gegevenslek dichten** beantwoordt de zaken die Gegevensbeveiliging opent: het mailt de eigenaren van de opslag, blokkeert openbare toegang en trekt het delen in zodra een mens elke stap goedkeurt, en voegt de checklist van de respons als taken aan de zaak toe - wie de gegevens las terwijl ze blootgesteld waren, of het een datalek is dat je moet melden, welke geheimen je moet vervangen en wat je opschrijft als de zaak sluit. Voeg het toe met **Maken op basis van sjabloon** bij de playbooks van het project. De kaart **Was het een datalek?** van de zaak beantwoordt elk van die taken (zie [Was het een datalek?](#was-het-een-datalek)).
 
 ## API, Terraform en MCP
 
@@ -171,6 +188,11 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | `/data-security-ai-proposal/<id>/approve` | **Goedkeuren** op een wijziging die OneUptime AI voorstelt, die daarmee wordt uitgevoerd met je eigen machtigingen. Neemt de `expectedPlanFingerprint` van het voorstel dat je te zien kreeg, en weigert een voorstel dat sindsdien is veranderd |
 | `/data-security-ai-proposal/<id>/dismiss` | **Voorstel negeren**, met `{"reason": "..."}`, dat op de tijdlijn van het probleem komt |
 | `/data-security-ai-proposal/<id>/undo` | **Ongedaan maken** op een wijziging die OneUptime AI heeft gedaan: die wordt teruggedraaid, en de opslag wordt opnieuw gecontroleerd |
+| `/security-case/<id>/exposure-assessment` | De beoordeling van de blootstelling van een beveiligingszaak, zoals je die mag lezen: wat gewone code afleidt over de opslag waar de zaak over gaat, en de uitwerking van OneUptime AI |
+| `/security-case/<id>/exposure-assessment/assess` | **Deze blootstelling beoordelen**: start de beoordeling van de zaak, van de opslag die `{"dataStoreId": "..."}` noemt als de zaak over meer dan één opslag gaat |
+| `/security-case/<id>/exposure-assessment/draft` | **Opstellen met OneUptime AI**: OneUptime AI werkt elk deel uit dat niemand heeft bewerkt. Er wordt niets verzonden |
+| `/security-case/<id>/exposure-assessment/edit` | Een deel in de eigen woorden van een persoon, zoals `{"part": "regulatorNotice", "markdown": "..."}`, waarvoor nooit opnieuw een concept wordt opgesteld |
+| `/security-case/<id>/exposure-assessment/people` | Waar de betrokkenen over wie de gegevens gaan wonen, zoals `{"places": ["EEA", "GB"]}`; een lege lijst trekt het antwoord in |
 
 De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, compliance-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
 

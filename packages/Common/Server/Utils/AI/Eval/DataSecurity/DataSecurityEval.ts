@@ -145,6 +145,10 @@ import {
   scoreImpactAssessment,
   scoreRecordDraft,
 } from "./DataSecurityPaperworkEval";
+import {
+  exposureAssessmentCall,
+  scoreExposureAssessment,
+} from "./DataSecurityExposureEval";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -265,6 +269,14 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    */
   [DataSecurityAiFeature.DraftDataTypes]: 0.75,
   [DataSecurityAiFeature.DescribeDataType]: 0.75,
+  /*
+   * An exposure's write-up (#10377): every part is held to its facts - no
+   * number and no law the facts do not hold - before it is read, and must
+   * say what the case names (the deadline due first, "treat it as read").
+   * Written prose read by its words, as an assessment is: one in two.
+   */
+  [DataSecurityAiFeature.DraftExposureAssessment]: 0.5,
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]: 0.5,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -1382,6 +1394,9 @@ export function buildEvalCall(
     case DataSecurityAiFeature.DraftDataTypes:
     case DataSecurityAiFeature.DescribeDataType:
       return dataTypeDraftCall(testCase);
+    case DataSecurityAiFeature.DraftExposureAssessment:
+    case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
+      return exposureAssessmentCall(testCase);
   }
 }
 
@@ -1454,6 +1469,9 @@ export function scoreAnswer(
     case DataSecurityAiFeature.DraftDataTypes:
     case DataSecurityAiFeature.DescribeDataType:
       return scoreDataTypeDraft(testCase, answer);
+    case DataSecurityAiFeature.DraftExposureAssessment:
+    case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
+      return scoreExposureAssessment(testCase, answer);
   }
 }
 

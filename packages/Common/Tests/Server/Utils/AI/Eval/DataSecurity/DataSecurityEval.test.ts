@@ -78,6 +78,7 @@ import {
 } from "../../../../../../Server/Utils/AI/DataSecurity/DataTypeDraftPrompt";
 import { valueShape } from "../../../../../../Utils/DataSecurity/UnplacedFields";
 import { describe, expect, test } from "@jest/globals";
+import { getGoodExposureAnswer } from "./ExposureEvalAnswers";
 
 /*
  * THE DATA SECURITY EVAL (#10365), AGAINST A PINNED MODEL STOOD IN FOR.
@@ -607,6 +608,9 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
     case DataSecurityAiFeature.DraftDataTypes:
     case DataSecurityAiFeature.DescribeDataType:
       return expectedDataTypeAnswer(testCase);
+    case DataSecurityAiFeature.DraftExposureAssessment:
+    case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
+      return getGoodExposureAnswer(testCase);
   }
 }
 

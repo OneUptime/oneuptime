@@ -161,6 +161,11 @@ const MEANT_LOOKS: Record<
     icon: IconProp.Sparkles,
     tone: FeedTone.AI,
   },
+  // The exposure assessment (#10377): started, written up, edited.
+  [SecurityCaseFeedEventType.ExposureAssessment]: {
+    icon: IconProp.Scale,
+    tone: FeedTone.Record,
+  },
   [SecurityCaseFeedEventType.Task]: {
     icon: IconProp.ClipboardDocumentCheck,
     tone: FeedTone.Record,

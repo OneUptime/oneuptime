@@ -1185,7 +1185,8 @@ import { AddProbeMajorVersionBehindNotifiedFor1809187570000 } from "./1809187570
 import { AddDataStoreFindingAiScrubRules1809187570752 } from "./1809187570752-AddDataStoreFindingAiScrubRules";
 import { AddDataSecurityIssueCodeFixTask1809187580367 } from "./1809187580367-AddDataSecurityIssueCodeFixTask";
 import { AddDataSecurityIssueCodeFixTaskIndex1809187580377 } from "./1809187580377-AddDataSecurityIssueCodeFixTaskIndex";
-import { AddHelpAndSupport1809187590000 } from "./1809187590000-AddHelpAndSupport";
+import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
+import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
 
 export default [
   InitialMigration,
@@ -2375,5 +2376,6 @@ export default [
   AddDataStoreFindingAiScrubRules1809187570752,
   AddDataSecurityIssueCodeFixTask1809187580367,
   AddDataSecurityIssueCodeFixTaskIndex1809187580377,
-  AddHelpAndSupport1809187590000,
+  AddSecurityCaseExposureAssessment1809187590377,
+  AddHelpAndSupport1809187600000,
 ];

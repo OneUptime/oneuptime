@@ -1,4 +1,6 @@
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import { FORM_FILE_QUESTION_MAX_FILES } from "Common/Types/Form/FormFileAnswer";
+import { PluralTemplate } from "Common/Types/Translator";
 
 /*
  * The text of the Forms product's pages: the list of forms, the form
@@ -14,7 +16,9 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
  *
  * No string here may contain "{{": the lookup would read it as one of its
  * own placeholders. Every string is a whole sentence or a whole name, so a
- * translation never has to be put together from pieces.
+ * translation never has to be put together from pieces. The one sentence
+ * with a value in it, the Multiple Files question type's count, is a plural
+ * the builder fills in (getFormQuestionTypeDescription).
  */
 export const FormsCopy: {
   // The product.
@@ -636,10 +640,22 @@ export const FormsCopy: {
   inputFiles: "Drop files here or choose them",
 };
 
+/*
+ * What the builder's list of question types says a type takes: a sentence,
+ * or - for a type that takes a number of things - a plural whose {{count}}
+ * is that number (getFormQuestionTypeDescription).
+ */
+export type FormQuestionTypeDescription = string | PluralTemplate;
+
+export interface FormQuestionTypeText {
+  title: string;
+  description: FormQuestionTypeDescription;
+}
+
 // How each kind of question of the form's own is named in the builder.
 export const FORM_QUESTION_TYPE_TEXT: Record<
   CustomFieldType,
-  { title: string; description: string }
+  FormQuestionTypeText
 > = {
   [CustomFieldType.Text]: {
     title: "Short Answer",
@@ -681,10 +697,52 @@ export const FORM_QUESTION_TYPE_TEXT: Record<
     title: "File",
     description: "One file, such as a screenshot or a signed document.",
   },
+  /*
+   * How many files every Multiple Files question takes is the plural's
+   * count (FORM_FILE_QUESTION_MAX_FILES). Written into the words, "Up to 10
+   * files" would go on saying 10 the day that number changed, beside a
+   * picker saying its own (#8039), as the picker's hint once did (#7421).
+   */
   [CustomFieldType.MultipleFiles]: {
     title: "Multiple Files",
-    description: "Up to 10 files, such as screenshots and logs.",
+    description: {
+      one: "One file, such as a screenshot or a log.",
+      other: "Up to {{count}} files, such as screenshots and logs.",
+    },
   },
+};
+
+export interface GetFormQuestionTypeDescriptionData {
+  type: CustomFieldType;
+  // A sentence in the reader's language (the page's lookup).
+  translateText: (text: string) => string;
+  // A plural in the reader's language, its count in the reader's digits.
+  translatePlural: (template: PluralTemplate, count: number) => string;
+  /*
+   * How many files a Multiple Files question takes: every such question's
+   * (FORM_FILE_QUESTION_MAX_FILES) unless said.
+   */
+  maxFiles?: number | undefined;
+}
+
+/*
+ * What the list of question types says a type takes, in the reader's
+ * words: its sentence looked up, or its plural filled with its count.
+ */
+export const getFormQuestionTypeDescription: (
+  data: GetFormQuestionTypeDescriptionData,
+) => string = (data: GetFormQuestionTypeDescriptionData): string => {
+  const description: FormQuestionTypeDescription =
+    FORM_QUESTION_TYPE_TEXT[data.type].description;
+
+  if (typeof description === "string") {
+    return data.translateText(description);
+  }
+
+  return data.translatePlural(
+    description,
+    data.maxFiles ?? FORM_FILE_QUESTION_MAX_FILES,
+  );
 };
 
 export default FormsCopy;

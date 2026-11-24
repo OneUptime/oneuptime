@@ -725,6 +725,10 @@
   "Add one file at a time.": "Add one file at a time.",
   "This field holds up to {{count}} files. Remove one to add another.": "This field holds up to {{count}} files. Remove one to add another.",
   "This field holds up to {{count}} files. Remove one to add another._one": "This field holds one file. Remove it to add another.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" was not added: this field holds up to {{count}} files.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" was not added: this field holds one file.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "These files were not added, as this field holds one file: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "Caution",
     "danger": "Danger",

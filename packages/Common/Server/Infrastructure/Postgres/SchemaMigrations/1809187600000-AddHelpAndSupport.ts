@@ -13,8 +13,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * it showed before until an admin saves Admin Dashboard > Settings > Help
  * and Support.
  */
-export class AddHelpAndSupport1809187590000 implements MigrationInterface {
-  public name: string = "AddHelpAndSupport1809187590000";
+export class AddHelpAndSupport1809187600000 implements MigrationInterface {
+  public name: string = "AddHelpAndSupport1809187600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
