@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} grupper",
     "noResourcesTitle": "Inget att visa än",
     "noResourcesDescription": "Den här sidan visar inga tjänster än.",
-    "noResourcesPreviewDescription": "Besökare ser det här tills du lägger till resurser. Lägg till monitorer eller grupper på den här statussidan under Resurser i instrumentpanelen."
+    "noResourcesPreviewDescription": "Besökare ser det här tills du lägger till resurser.",
+    "noResourcesPreviewLink": "Lägg till resurser i instrumentpanelen"
   },
   "eventItem": {
     "affectedResources": "Berörda resurser",
@@ -485,6 +486,9 @@
   "No options available": "Inga tillgängliga alternativ",
   "No matches found": "Inga träffar hittades",
   "{{eventType}} state changed to {{state}}": "{{eventType}}: status ändrad till {{state}}",
+  "{{count}} related incidents": "{{count}} relaterade incidenter",
+  "{{count}} related incidents_one": "{{count}} relaterad incident",
+  "Part of {{incident}}": "Del av {{incident}}",
   "Use at least {{minimum}} characters.": "Använd minst {{minimum}} tecken.",
   "Try a few unrelated words.": "Prova några ord utan koppling till varandra.",
   "Password meets requirements": "Lösenordet uppfyller kraven",

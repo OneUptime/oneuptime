@@ -9,6 +9,7 @@ Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre
 - [Sådan tager en scanning prøver](#sådan-tager-en-scanning-prøver): De nyeste poster fra hver tjeneste, hver time.
 - [Rens](#rens): Skjul et fund ved indtagelse, i den tjeneste, det blev fundet i.
 - [Inddæmmet af sig selv](#inddæmmet-af-sig-selv): En hemmelighed skjult, uden at nogen trykker på noget, hvor det er bevist sikkert.
+- [Ret det i koden](#ret-det-i-koden): Én pull request, der får en tjeneste til at holde op med at skrive alle sine læk.
 - [Kassér denne metrik](#kassér-denne-metrik): Stop med at gemme de metrikker, hvis navne indeholder følsomme data.
 - [Hvad der tæller som renset](#hvad-der-tæller-som-renset): Når en rensningsregel allerede dækker et fund.
 :::
@@ -99,7 +100,7 @@ Klik på **Rens**. En dialog siger, hvad reglen ville gøre, før noget oprettes
 
 ### Ret også koden
 
-Reglen skjuler nye data, før de gemmes. Data, der allerede er gemt, bliver liggende, indtil deres opbevaring udløber, så ret den kode, der skriver dem: fundet nævner tjenesten og attributten.
+Reglen skjuler nye data, før de gemmes. Data, der allerede er gemt, bliver liggende, indtil deres opbevaring udløber, så ret den kode, der skriver dem: fundet nævner tjenesten og attributten. **Ret med AI** på problemet åbner én pull request for hvert af tjenestens læk: se [Ret det i koden](#ret-det-i-koden).
 :::
 
 Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address in log attributes of checkout", eller "Data Security: Password or secret in db.password of checkout" for en regel, der navngiver sin attribut, og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er den smalleste regel, der skjuler fundets data, den første af disse, der passer:
@@ -112,7 +113,7 @@ Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address i
 | En datatype, der kan skelnes ved ordene omkring den, f.eks. et routingnummer | Dens form, kun i den attribut, den blev fundet i |
 | En datatype, der findes ud fra feltets navn, f.eks. en persons navn under `customer_name`, eller en værdi under en nøgle, der nævner en hemmelighed | En regel af typen **Navngivne attributter**, som skjuler hele værdien af den attribut |
 | En værdi under en nøgle, der ligner noget følsomt, hvor intet smallere skjuler den | En regel af typen **Følsomme attributnøgler**, som erstatter hele værdien af hver sådan attribut |
-| Enhver datatype i en metriks attribut | En metrik-pipelineregel af typen **Redigér attribut bort** for tjenesten, som erstatter attributtens værdier af datatypens form med `[REDACTED]`, eller hver værdi af attributten, hvor intet mønster finder datatypen |
+| Enhver datatype i en metriks attribut | En metrik-pipelineregel af typen **Redigér attribut bort** for tjenesten, som erstatter de af attributtens værdier, der indeholder datatypen, med `[REDACTED]`. For en IP-adresse, en e-mailadresse eller et kortnummer er dens filter **Matcher mønstertype** med den type, som finder det, en regel for logs eller traces med den **Mønstertype** finder, herunder IPv6-adresser og værdier, der er procentkodede eller i en anden skrift. For en anden datatype er det typens eget mønster, og hvor intet mønster finder datatypen, erstatter reglen hver værdi af attributten |
 
 ### Bevist på de poster, det blev set i
 
@@ -158,11 +159,53 @@ En ændring, OneUptime AI har lavet af sig selv:
 
 Nye fund i en tjeneste, hvis problem allerede er åbent, inddæmmes på samme måde, så snart den timelige scanning finder dem.
 
+## Ret det i koden
+
+En scrub-regel skjuler nye data ved modtagelsen, men koden skriver dem stadig. **Ret med AI** på et telemetriproblem beder OneUptime AI om én pull request, der får tjenesten til at holde op med at skrive hvert læk, OneUptime stadig ser i dens telemetri: dette problems og tjenestens andre, også dem, der er inddæmmet ved modtagelsen. En dialog viser, hvad pull requesten vil gøre, før noget går i gang, og **Åbn pull request** beder om præcis det.
+
+:::steps
+### Find ud af, hvor hvert læk skrives
+
+Før OneUptime AI går i gang, læser Datasikkerhed de poster, hvert læk blev set i, igen inde i OneUptime og beholder kun, hvor koden skrev dem:
+
+- **Et span eller et AI-kald**: filen, linjen og funktionen, som dets attributter `code.*` nævner, og spannets navn.
+- **En undtagelse**: dens egne øverste frames, dem i tjenestens kode.
+- **En loglinje**: filen, linjen og funktionen, som dens attributter nævner, hvis den har dem, dens logger og linjen som skabelon, hvor hver værdi er erstattet af navnet på sin type, f.eks. `User <Email address> signed up`.
+- **En metrik**: metrikkens navn.
+- **Ethvert læk**: dets attributnøgle, f.eks. `user.email`, som koden som regel skriver, som den er.
+
+### Vælg repositoriet
+
+Pull requesten går til det repositorium, der indeholder de filer, posterne nævner, fundet som filerne i et stack trace. Et læk, hvis poster ikke nævner nogen fil, går derhen, hvor tjenestens andre læk er, ellers til det repositorium, der hedder som tjenesten, eller til projektets eneste. I et repositorium med flere tjenester arbejder OneUptime AI i tjenestens mappe: den, filerne deler, ellers den, tjenestens produktionsgennemgange bruger. Når intet afgør det, vælger du selv blandt de repositorier, du må bede OneUptime AI arbejde i.
+
+### Åbn pull requesten
+
+Dialogen fortæller, hvordan koden vil ændre sig, viser hvert læk med, hvor det skrives, og nævner repositoriet, hvorfor det er det, og de filer, OneUptime AI starter fra. **Åbn pull request** beder om netop den plan: Hvis et læk er fundet eller rettet, siden du åbnede den, går intet i gang, og planen vises igen.
+:::
+
+Hvordan koden ændres, afhænger af, hvor mange steder dataene skrives:
+
+| Hvor dataene skrives | Hvad pull requesten gør |
+| --- | --- |
+| Tre steder eller færre | Ændrer koden hvert sted: udelader værdien eller maskerer eller hasher den, før den sendes |
+| Mere end tre steder | Tilføjer ét redigeringstrin med en test der, hvor tjenesten opsætter sin telemetri, i stedet for at ændre hvert sted |
+| Hvor dine scrub-regler allerede skjuler dem ved modtagelsen | Tilføjer også redigeringstrinnet for de nøgler, så koden gør det samme som modtagelsen |
+
+Én pull request retter én tjeneste i ét repositorium: En tjeneste, hvis læk skrives i to repositorier, får én i hvert. Mens den skrives, peger **Ret med AI** på ethvert af tjenestens problemer på den, og der startes ikke en til.
+
+OneUptime AI får stederne, nøglerne, datatyperne og skabelonerne, aldrig en værdi fra dine data, et maskeret eksempel eller en post, og kodeagenten læser intet af din telemetri, mens den arbejder. Pull requestens beskrivelse viser lækkene og linker til de problemer, den retter, og citerer aldrig en post.
+
+Hvert problem, pull requesten retter, beholder den: Dets kort **Sådan rettes det** viser, om den er ved at blive skrevet, åben, flettet eller lukket, med links til pull requesten og opgaven, og når den er flettet, hvad produktionen viste. Problemets tidslinje viser, hvornår den blev åbnet. Problemet løses som **Rettet i koden**, så snart tjenestens nye version ikke længere skriver dataene (se [Hvad der sker med et problem](/docs/data-security/checks-and-issues#hvad-der-sker-med-et-problem)).
+
+En hemmelighed kræver mere end en kodeændring: Koden stopper kun nye kopier, og hemmeligheden virker stadig. Pull requesten, problemets tidslinje og dets kort **Sådan rettes det** siger, at den skal roteres, og kortet viser, hvor den blev set.
+
+Med **Arbejd med nye problemer** slået til foreslår OneUptime AI også af sig selv hver tjenestes rettelse, den mest risikable tjeneste først, under **Datasikkerhed → AI** og på tjenestens mest risikable problem. Som standard venter den på dig. En AI-regel i Datasikkerhed, der sætter **Rettelse** til **Automatisk** for tjenestens mest risikable problem, åbner pull requesten uden at spørge, i et repositorium, som noget har afgjort. Repositoriets **Maks. åbne pull requests med rettelser** begrænser begge: Ved grænsen venter en pull request, som en regel ville åbne, på dig, og ingen ny pull request med rettelser åbnes, før én er flettet eller lukket.
+
 ## Kassér denne metrik
 
 Ingen regel fjerner dataene fra en metriks navn, så indtil koden, der navngiver metrikken, er rettet, bliver dataene ved med at komme. **Kassér denne metrik** på et fund i en metriks navn stopper med at gemme de metrikker, hvis navne indeholder dem, på bekostning af deres data, så det sker kun, når du beder om det:
 
-- **Én tjenestes metrikker.** Den opretter en metrik-pipelineregel af typen **Kassér** for fundets tjeneste: hvert nyt datapunkt fra en metrik, hvis navn indeholder den datatype, kasseres, før det gemmes. Dens filter er det mønster, **Rens** bruger for typen, så en type, som intet mønster kan finde, som en persons navn, kan ikke kasseres, og dialogen siger hvorfor.
+- **Én tjenestes metrikker.** Den opretter en metrik-pipelineregel af typen **Kassér** for fundets tjeneste: hvert nyt datapunkt fra en metrik, hvis navn indeholder den datatype, kasseres, før det gemmes. Dens filter er datatypens eget mønster, anvendt på metrikkens navn, så en type, som intet mønster kan finde, som en persons navn, kan ikke kasseres, og dialogen siger hvorfor.
 - **Sagt, før det sker.** Dialogen siger, at de datapunkter går tabt for altid, hvor mange af tjenestens metrikker skrevet det seneste døgn der har sådan et navn, hvad der læser dem og derfor ikke får nye data, at det, der allerede er gemt, bliver, indtil opbevaringen udløber, og hvordan det fortrydes. Intet kasseres, før du har markeret, at du forstår det.
 - **Hvad der læser dem, og hvad der sker med det.** Dialogen nævner, hver som et link, hver monitor, hvert dashboard med de widgets på det, der læser de metrikker, hvert metrik-SLO for tjenesten og hver optagelsesregel for metrikker, der læser dem. Monitorer kan ikke længere advare på deres værdier, widgets viser ingen nye data, SLO'er tæller ingen nye begivenheder fra dem, og optagelsesreglernes outputmetrikker medtager dem ikke længere. Under hver optagelsesregel nævner den også, hvad der læser reglens outputmetrik, og hvad der igen læser deres, op til tre outputmetrikker længere nede i kæden. Et widgets link åbner dets dashboard ved den widget. Det, du ikke kan se, tælles med, men nævnes aldrig ved navn.
 - **Som dig, og registreret.** Reglen oprettes med din egen tilladelse til at oprette metrik-pipelineregler: Projektejere og Projektadministratorer kan oprette den, og det kan et team også, der må oprette metrik-pipelineregler. Auditloggen registrerer, hvem der oprettede den.
@@ -181,7 +224,7 @@ Et fund markeres kun som renset, når indtagelsen ville køre en aktiveret regel
 - **En regel, der er bevist på fundets poster.** En regel, som OneUptime oprettede og beviste på de poster, et fund blev set i, dækker det fund, uanset dens mønster, så længe den er den regel, der blev bevist: Ændr dens mønster, dens attributter, dens handling, dens felter eller dens tjeneste, og den dækker det ikke længere.
 - **En regel af typen Navngivne attributter** dækker et fund i en attribut, den navngiver, eller i en, der ligger under den.
 - **Ellers tæller dine egne brugerdefinerede mønstre aldrig.** En **Brugerdefineret regex**, du selv har skrevet, dækker kun et fund, når den er præcis det mønster, **Rens** opretter for dets type. Et fund gemmer kun maskerede prøver, som intet mønster kan afprøves på, så OneUptime kan ikke bevise, at dit mønster skjuler dataene, og et fund, der fejlagtigt kaldes renset, er en lækage, ingen kigger på.
-- **En metriks attribut.** En metrik-pipelineregel af typen **Redigér attribut bort** eller **Fjern attribut** for den attributs nøgle, for fundets tjeneste eller hele projektet, dækker det, når den ikke har noget filter, eller præcis det filter, **Rens** opretter. Et filter, du selv har skrevet, tæller aldrig, af samme grund.
+- **En metriks attribut.** En metrik-pipelineregel af typen **Redigér attribut bort** eller **Fjern attribut** for den attributs nøgle, for fundets tjeneste eller hele projektet, dækker det, når den ikke har noget filter, eller præcis det filter, **Rens** opretter. Et filter, du selv har skrevet, tæller aldrig, af samme grund. En regel, **Rens** oprettede for en IP-adresse, en e-mailadresse eller et kortnummer, før dens filter var **Matcher mønstertype**, flyttes til det filter, når du opgraderer, så den også skjuler IPv6-adresser og dækker sit fund.
 - **En metriks navn.** En metrik-pipelineregel af typen **Kassér** for fundets tjeneste eller hele projektet dækker det, når den har præcis det filter, **Kassér denne metrik** opretter, eller slet intet filter, hvor den ikke gemmer nogen af tjenestens metrikker. Sådan en regel uden filter dækker hvert fund i de metrikker.
 
 En regel, der er slået fra, eller som intet renser, tæller aldrig. Dækningen beregnes igen efter hver scanning, så en regel, du tilføjer eller fjerner manuelt, ændrer inden for en time, hvad der er markeret som renset.

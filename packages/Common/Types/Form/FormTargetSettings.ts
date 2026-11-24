@@ -1,5 +1,6 @@
 import ObjectID from "../ObjectID";
 import {
+  FORM_ALERT_TITLE_MAX_LENGTH,
   FORM_INCIDENT_TITLE_MAX_LENGTH,
   FORM_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
 } from "./FormTargetCatalog";
@@ -9,8 +10,8 @@ import FormTargetType, { FORM_TARGET_TYPE_TEXT } from "./FormTargetType";
  * What a form's submissions start with, beyond the answers: Form.
  * targetSettings, the form's On Submit page. The default title when the form
  * does not ask for one, the severity when the submitter does not choose
- * one, an incident template, the owners to notify, monitors and labels to
- * attach every time, and so on.
+ * one, an incident template, the state an alert starts in, the owners to
+ * notify, monitors and labels to attach every time, and so on.
  *
  * One object for the form's current target, holding only that target's
  * settings. Ids are stored as lowercase uuids; whether each still names a
@@ -60,14 +61,46 @@ export interface ScheduledMaintenanceFormTargetSettings {
   notifySubscribers?: boolean | undefined;
 }
 
+/*
+ * An alert form's (#10760). As an incident form's, without a template -
+ * alerts have none - and with the state an alert starts in: an alert that
+ * starts acknowledged pages nobody, so a form for reports that only need a
+ * look can say so.
+ */
+export interface AlertFormTargetSettings {
+  // The title when the form does not ask for one, or it is left empty.
+  defaultTitle?: string | undefined;
+  // The severity when the form does not ask for one, or it is left empty.
+  alertSeverityId?: string | undefined;
+  /*
+   * The state the alert starts in. Empty: the project's created state,
+   * where every new alert starts.
+   */
+  alertStateId?: string | undefined;
+  /*
+   * The alert's monitor when the form does not ask for one, or it is left
+   * empty. An alert is about one monitor.
+   */
+  monitorId?: string | undefined;
+  // Added to every alert, together with any the submitter chooses.
+  labelIds?: Array<string> | undefined;
+  onCallDutyPolicyIds?: Array<string> | undefined;
+  // The alert's owners, told when it is created.
+  ownerUserIds?: Array<string> | undefined;
+  ownerTeamIds?: Array<string> | undefined;
+}
+
 export type FormTargetSettings =
   | IncidentFormTargetSettings
-  | ScheduledMaintenanceFormTargetSettings;
+  | ScheduledMaintenanceFormTargetSettings
+  | AlertFormTargetSettings;
 
 // The record kinds a setting can name, for the server's project check.
 export enum FormTargetSettingReferenceModel {
   IncidentSeverity = "IncidentSeverity",
   IncidentTemplate = "IncidentTemplate",
+  AlertSeverity = "AlertSeverity",
+  AlertState = "AlertState",
   Monitor = "Monitor",
   Label = "Label",
   OnCallDutyPolicy = "OnCallDutyPolicy",
@@ -172,15 +205,63 @@ const SCHEDULED_MAINTENANCE_SETTINGS: Array<SettingDefinition> = [
   },
 ];
 
+const ALERT_SETTINGS: Array<SettingDefinition> = [
+  { key: "defaultTitle", title: "Default Title", kind: "title" },
+  {
+    key: "alertSeverityId",
+    title: "Severity",
+    kind: "id",
+    model: FormTargetSettingReferenceModel.AlertSeverity,
+  },
+  {
+    key: "alertStateId",
+    title: "Initial State",
+    kind: "id",
+    model: FormTargetSettingReferenceModel.AlertState,
+  },
+  {
+    key: "monitorId",
+    title: "Monitor",
+    kind: "id",
+    model: FormTargetSettingReferenceModel.Monitor,
+  },
+  {
+    key: "labelIds",
+    title: "Labels",
+    kind: "ids",
+    model: FormTargetSettingReferenceModel.Label,
+  },
+  {
+    key: "onCallDutyPolicyIds",
+    title: "On-Call Policies",
+    kind: "ids",
+    model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
+  },
+  {
+    key: "ownerUserIds",
+    title: "Owner Users",
+    kind: "ids",
+    model: FormTargetSettingReferenceModel.User,
+  },
+  {
+    key: "ownerTeamIds",
+    title: "Owner Teams",
+    kind: "ids",
+    model: FormTargetSettingReferenceModel.Team,
+  },
+];
+
 const SETTINGS_BY_TARGET: Record<FormTargetType, Array<SettingDefinition>> = {
   [FormTargetType.Incident]: INCIDENT_SETTINGS,
   [FormTargetType.ScheduledMaintenance]: SCHEDULED_MAINTENANCE_SETTINGS,
+  [FormTargetType.Alert]: ALERT_SETTINGS,
 };
 
 const TITLE_MAX_LENGTH: Record<FormTargetType, number> = {
   [FormTargetType.Incident]: FORM_INCIDENT_TITLE_MAX_LENGTH,
   [FormTargetType.ScheduledMaintenance]:
     FORM_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
+  [FormTargetType.Alert]: FORM_ALERT_TITLE_MAX_LENGTH,
 };
 
 // The most records one list setting names.

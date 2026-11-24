@@ -99,11 +99,13 @@ import AlertElement from "../../Components/Alert/Alert";
 import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "Common/Types/Incident/IncidentAlertLink";
 import IncidentFromAlerts, {
   AlertForIncidentPrefill,
+  AlertOwnerIds,
   AlertsToAcknowledge,
   AlertStateForAcknowledgement,
   IncidentPrefillFromAlerts,
@@ -147,8 +149,26 @@ import {
   getAcknowledgeAlertsTitle,
   getAlertsKeepEscalatingNote,
 } from "../../Components/Incident/AcknowledgeAlertsOnDeclare";
-import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
+import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import { PeopleListFromIds } from "Common/UI/Components/PeoplePicker/PeopleList";
+import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import {
+  AlertOwnersOnDeclare,
+  getAlertOwnersOnDeclare,
+  getAlertOwnersOnDeclareSentence,
+  isOwnersFieldTheAlertOwnersSource,
+  NO_ALERT_OWNERS_ON_DECLARE,
+  PRIVATE_INCIDENT_FROM_ALERTS,
+} from "../../Components/Incident/AlertOwnersOnDeclare";
 import Link from "Common/UI/Components/Link/Link";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import {
@@ -432,6 +452,20 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "Service",
 ];
 
+// People first, then teams, as the Owners field lists them.
+const ALERT_OWNER_KINDS: Array<PeoplePickerKind> = [
+  PeoplePickerKind.User,
+  PeoplePickerKind.Team,
+];
+
+/*
+ * The alerts' owners as the page read them: the ones of the alerts it
+ * links, worked out once it knows which alerts those are.
+ */
+interface AlertOwnersRead {
+  ownersOf: (linkedAlertIds: Array<string>) => AlertOwnerIds;
+}
+
 type GetAlreadyLinkedNoteFunction = (
   alerts: Array<Alert>,
   incidentsLinkedToAlerts: Map<string, Array<Incident>>,
@@ -556,6 +590,14 @@ const IncidentCreate: FunctionComponent<
    */
   const [isPrivateFromAlerts, setIsPrivateFromAlerts] =
     useState<boolean>(false);
+  /*
+   * The alerts' owners own the incident too (#10867): in the Owners field,
+   * where the declarer can change them, or added by OneUptime as it is
+   * declared when the declarer may not add owners (AlertOwnersOnDeclare).
+   * The banner names them either way.
+   */
+  const [alertOwnersOnDeclare, setAlertOwnersOnDeclare] =
+    useState<AlertOwnersOnDeclare>(NO_ALERT_OWNERS_ON_DECLARE);
   /*
    * Declaring the incident does not, on its own, stop the alerts escalating:
    * only acknowledging an alert does. So the page offers to acknowledge the
@@ -735,18 +777,21 @@ const IncidentCreate: FunctionComponent<
         incidentSeverities,
         alertStates,
         existingLinks,
+        alertOwners,
       ]: [
         Array<Alert>,
         Array<SeverityForMapping>,
         Array<SeverityForMapping>,
         Array<AlertStateForAcknowledgement> | null,
         Map<string, Array<Incident>>,
+        AlertOwnersRead | null,
       ] = await Promise.all([
         fetchAlertsToLink(parsedAlertIds.alertIds),
         fetchAlertSeverities(),
         fetchIncidentSeverities(),
         fetchAlertStates(),
         fetchIncidentsLinkedToAlerts(parsedAlertIds.alertIds),
+        fetchAlertOwners(parsedAlertIds.alertIds),
       ]);
 
       const prefill: IncidentPrefillFromAlerts =
@@ -778,8 +823,41 @@ const IncidentCreate: FunctionComponent<
       setMissingAlertCount(parsedAlertIds.alertIds.length - alerts.length);
       setWereAlertIdsTruncated(parsedAlertIds.wasTruncated);
       setIsPrivateFromAlerts(prefill.isPrivate);
+
+      /*
+       * Only the owners of the alerts that are linked: an alert that could
+       * not be read is not declared from, and its owners do not carry over.
+       */
+      const ownersOnDeclare: AlertOwnersOnDeclare = getAlertOwnersOnDeclare({
+        owners: alertOwners
+          ? alertOwners.ownersOf(
+              alerts.map((alert: Alert): string => {
+                return alert._id?.toString() || "";
+              }),
+            )
+          : null,
+        mayAddOwnerUsers: PermissionGate.check(
+          new IncidentOwnerUser(),
+          ModelAction.Create,
+        ).isAllowed,
+        mayAddOwnerTeams: PermissionGate.check(
+          new IncidentOwnerTeam(),
+          ModelAction.Create,
+        ).isAllowed,
+      });
+
+      setAlertOwnersOnDeclare(ownersOnDeclare);
+
+      const prefilledValues: JSONObject =
+        IncidentFromAlerts.applyPrefillToInitialValues(initialValues, prefill);
+
       setInitialValuesForIncident(
-        IncidentFromAlerts.applyPrefillToInitialValues(initialValues, prefill),
+        isOwnersFieldTheAlertOwnersSource(ownersOnDeclare)
+          ? IncidentFromAlerts.applyOwnersToInitialValues(
+              prefilledValues,
+              ownersOnDeclare.owners,
+            )
+          : prefilledValues,
       );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -831,6 +909,122 @@ const IncidentCreate: FunctionComponent<
       .filter((alert: Alert | undefined): boolean => {
         return Boolean(alert);
       }) as Array<Alert>;
+  };
+
+  /*
+   * Who owns the alerts (#10867): their owner rows, as the declarer may read
+   * them, and which of those people are still members of the project - an
+   * owner who left does not carry over. Null when the owners could not be
+   * read (no permission to read them, say): OneUptime then adds them itself
+   * as the incident is declared, and the page does not name them. A failed
+   * read of who is a member leaves the people as read: the server skips one
+   * who left whatever it is sent.
+   */
+  const fetchAlertOwners: (
+    alertIds: Array<string>,
+  ) => Promise<AlertOwnersRead | null> = async (
+    alertIds: Array<string>,
+  ): Promise<AlertOwnersRead | null> => {
+    let ownerUsers: Array<AlertOwnerUser> = [];
+    let ownerTeams: Array<AlertOwnerTeam> = [];
+
+    try {
+      const [usersResult, teamsResult]: [
+        ListResult<AlertOwnerUser>,
+        ListResult<AlertOwnerTeam>,
+      ] = await Promise.all([
+        ModelAPI.getList<AlertOwnerUser>({
+          modelType: AlertOwnerUser,
+          query: { alertId: new Includes(alertIds) },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { alertId: true, userId: true, createdAt: true },
+          sort: { createdAt: SortOrder.Ascending },
+        }),
+        ModelAPI.getList<AlertOwnerTeam>({
+          modelType: AlertOwnerTeam,
+          query: { alertId: new Includes(alertIds) },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { alertId: true, teamId: true, createdAt: true },
+          sort: { createdAt: SortOrder.Ascending },
+        }),
+      ]);
+
+      ownerUsers = usersResult.data;
+      ownerTeams = teamsResult.data;
+    } catch {
+      return null;
+    }
+
+    // Each person once, however many of the alerts they own.
+    const userIds: Array<string> = Array.from(
+      new Set<string>(
+        ownerUsers
+          .map((owner: AlertOwnerUser): string => {
+            return owner.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return Boolean(userId);
+          }),
+      ),
+    );
+
+    let projectMemberUserIds: Array<string> | null = null;
+
+    if (userIds.length > 0) {
+      try {
+        const members: ListResult<TeamMember> =
+          await ModelAPI.getList<TeamMember>({
+            modelType: TeamMember,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+              userId: new Includes(userIds),
+              hasAcceptedInvitation: true,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            select: { userId: true },
+            sort: {},
+          });
+
+        projectMemberUserIds = members.data.map(
+          (member: TeamMember): string => {
+            return member.userId?.toString() || "";
+          },
+        );
+      } catch {
+        projectMemberUserIds = null;
+      }
+    }
+
+    return {
+      ownersOf: (linkedAlertIds: Array<string>): AlertOwnerIds => {
+        const isLinked: (alertId: ObjectID | undefined) => boolean = (
+          alertId: ObjectID | undefined,
+        ): boolean => {
+          return linkedAlertIds.includes(alertId?.toString() || "");
+        };
+
+        return IncidentFromAlerts.getAlertOwnersToCarryOver({
+          ownerUserIds: ownerUsers
+            .filter((owner: AlertOwnerUser): boolean => {
+              return isLinked(owner.alertId);
+            })
+            .map((owner: AlertOwnerUser): string | undefined => {
+              return owner.userId?.toString();
+            }),
+          ownerTeamIds: ownerTeams
+            .filter((owner: AlertOwnerTeam): boolean => {
+              return isLinked(owner.alertId);
+            })
+            .map((owner: AlertOwnerTeam): string | undefined => {
+              return owner.teamId?.toString();
+            }),
+          projectMemberUserIds: projectMemberUserIds,
+        });
+      },
+    };
   };
 
   /*
@@ -1301,6 +1495,12 @@ const IncidentCreate: FunctionComponent<
         ]
       : [];
 
+  // The banner's sentence about the alerts' owners, if there is one.
+  const alertOwnersSentence: string | null = getAlertOwnersOnDeclareSentence(
+    alertOwnersOnDeclare,
+    alertsToLink.length,
+  );
+
   const isPageLoading: boolean =
     isLoading ||
     isLoadingCustomFieldDefinitions ||
@@ -1414,14 +1614,38 @@ const IncidentCreate: FunctionComponent<
                       )}
                     </p>
                   )}
+                  {alertOwnersSentence && (
+                    <div
+                      className="mt-3"
+                      data-testid="incident-create-alert-owners"
+                      data-mode={alertOwnersOnDeclare.mode}
+                    >
+                      <p>{translator.translateText(alertOwnersSentence)}</p>
+                      {alertOwnersOnDeclare.areOwnersKnown &&
+                        IncidentFromAlerts.countAlertOwners(
+                          alertOwnersOnDeclare.owners,
+                        ) > 0 && (
+                          <div className="mt-2">
+                            <PeopleListFromIds
+                              kinds={ALERT_OWNER_KINDS}
+                              value={{
+                                [PeoplePickerKind.User]:
+                                  alertOwnersOnDeclare.owners.userIds,
+                                [PeoplePickerKind.Team]:
+                                  alertOwnersOnDeclare.owners.teamIds,
+                              }}
+                              dataTestId="incident-create-alert-owners-list"
+                            />
+                          </div>
+                        )}
+                    </div>
+                  )}
                   {isPrivateFromAlerts && (
                     <p
                       className="mt-2"
                       data-testid="incident-create-private-from-alerts"
                     >
-                      {translator.translateText(
-                        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, Project Owners and Project Admins can see it, and the owners of these alerts are added as its owners once it is declared.",
-                      )}
+                      {translator.translateText(PRIVATE_INCIDENT_FROM_ALERTS)}
                     </p>
                   )}
                   {wereAlertIdsTruncated && (
@@ -1538,12 +1762,13 @@ const IncidentCreate: FunctionComponent<
                 });
 
                 /*
-                 * The owners - picked under More fields, a template's to
-                 * start with - travel as the misc data ModelForm builds from
-                 * the Owners field (ownerUsers / ownerTeams): the server
-                 * asks whether the declarer may add them before the incident
-                 * is saved, and adds them once it exists, marked as already
-                 * notified.
+                 * The owners - picked under More fields, a template's and
+                 * the alerts' to start with - travel as the misc data
+                 * ModelForm builds from the Owners field (ownerUsers /
+                 * ownerTeams): the server asks whether the declarer may add
+                 * them before the incident is saved, and adds them once it
+                 * exists, marked as already notified - they hear of it from
+                 * its "Incident Created" notification, once.
                  */
 
                 /*
@@ -1566,6 +1791,16 @@ const IncidentCreate: FunctionComponent<
                   if (willAcknowledgeAlerts) {
                     miscDataProps[INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY] =
                       true;
+                  }
+
+                  /*
+                   * The Owners field started with the alerts' owners, so
+                   * what it holds now is who owns the incident: the server
+                   * adds no alert owner of its own, and one the declarer
+                   * took out stays out (#10867).
+                   */
+                  if (isOwnersFieldTheAlertOwnersSource(alertOwnersOnDeclare)) {
+                    miscDataProps[INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY] = false;
                   }
                 }
 

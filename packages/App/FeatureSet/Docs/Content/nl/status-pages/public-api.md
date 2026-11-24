@@ -70,6 +70,8 @@ De endpoints volgen de eigen instellingen van de pagina, in de kaart **Wat uw st
 
 **Welke incidenten een pagina teruggeeft.** Het incidentenendpoint geeft de incidenten op de monitors van de pagina terug, min de incidenten die tot andere statuspagina's zijn beperkt, en min elk incident dat niet tot deze pagina is beperkt als de pagina alleen incidenten toont die tot haar zijn beperkt (zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience)). Tot welke pagina's een incident is beperkt, staat nooit in het antwoord.
 
+**Hoe een pagina haar incidenten indeelt.** Het overzicht en de lijsten met incidenten en episodes noemen de modus van de pagina in `incidentListMode`: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly`, of `None` in het overzicht van een pagina die incidenten noch episodes toont. Zolang de pagina zowel incidenten als episodes toont, bevat elke episode in `episodes` en `activeEpisodes` ook `incidents`: haar incidenten die de pagina toont, de nieuwste eerst, elk met zijn `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` en `monitors`. Een incident dat op ID wordt opgevraagd, bevat dan `partOfEpisodes`: elke episode waar het deel van uitmaakt, met haar `_id` en `title`. Wanneer de pagina per episode groepeert, met **Incidenten gegroepeerd per episode weergeven** aan, tekent ze een episode als één kaart en laat ze de incidenten van die episode weg uit de incidentkaarten, en blijft een episode zonder incidenten die de pagina toont buiten de lijsten; `incidents` en `activeIncidents` bevatten nog altijd elk incident dat de pagina toont, zodat een lezer die episodes negeert er geen mist. Overal waar een incident of een episode `monitors` noemt, zijn dat alleen de monitors van de pagina zelf.
+
 ## Het overzicht lezen
 
 Het overzicht is één request voor de hele pagina. Het zijn dezelfde gegevens die de statuspagina tekent, en ze zijn hooguit 15 seconden oud.
@@ -140,7 +142,9 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Waaruit de beschikbaarheidsbalken worden getekend, en de kleurregels voor de balken van de pagina. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De onopgeloste incidenten die de pagina toont, hun publieke notities en statuswijzigingen, en de incidentstatussen van het project. |
 | `timelineIncidents` | De incidenten in het venster van de beschikbaarheidsbalken, opgeloste incidenten inbegrepen, voor de tooltips van de balken. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Hetzelfde voor incidentepisodes. |
+| `timelineEpisodes` | Op een pagina die episodes toont maar geen incidenten, wat de tooltips van de balken en het dialoogvenster van elke dag in plaats daarvan vermelden: elke episode achter een incident in het venster van de beschikbaarheidsbalken, met voor elk van haar incidenten die de pagina los van de episode zou tonen alleen de `declaredAt` en de `monitors` van de pagina. Leeg op elke andere pagina. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Hetzelfde voor incidentepisodes. Elke episode bevat `monitors`, de monitors van de pagina waarop haar getoonde incidenten staan, en, zolang de pagina ook incidenten toont, `incidents`. |
+| `incidentListMode` | Hoe de pagina haar incidenten en episodes indeelt: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` of `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De onderhoudsgebeurtenissen die nog moeten komen of lopen, hun publieke notities en statuswijzigingen. |
 | `timelineScheduledMaintenanceEvents` | De onderhoudsgebeurtenissen in het venster van de beschikbaarheidsbalken die zijn begonnen, of ze nu lopen of voorbij zijn, voor de tooltips van de balken en het dialoogvenster van elke dag: de gebeurtenissen die de pagina toont en die een van haar monitors bevatten, elk met alleen de monitors van de pagina. |
 | `activeAnnouncements` | De aankondigingen die nu worden getoond: begonnen en nog niet afgelopen. |
@@ -195,7 +199,7 @@ Het antwoord:
 | --- | -------------- |
 | `overallStatus` | De algemene status van de pagina, zoals haar banner die toont: `name`, `color` en `isOperational`. `null` als de pagina al haar resources als **Niet bewaakt** toont. |
 | `resources` | Elke resource die de pagina toont, in haar volgorde: de `name` op de pagina, de `groupName` met de groepen erboven, de `currentStatus`, `isMonitored`, en `isUnderMaintenance`. |
-| `activeIncidents` | De onopgeloste incidenten die de pagina toont, elk met de `affectedResourceIds` van de resources die het raakt. |
+| `activeIncidents` | De onopgeloste incidenten die de pagina toont, elk met de `affectedResourceIds` van de resources die het raakt. Op een pagina die episodes toont maar geen incidenten, zijn het haar actieve episodes, die haar overzicht als actieve incidenten vermeldt. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De onderhoudsgebeurtenissen die lopen of nog komen, elk met haar `affectedResourceIds`. |
 
 De `currentStatus` van een resource is `null` als de pagina die niet toont, en als `isMonitored` `false` is: niets controleert de resource, omdat de bewaking van haar monitor uit staat of elke monitor van haar monitorgroep die uit heeft staan, dus toont de pagina haar als **Niet bewaakt**, of niets heeft haar nog gecontroleerd, dus toont de pagina haar als **Nog niet bewaakt**. `isUnderMaintenance` is `true` zolang een lopende gebeurtenis een van de monitors van de resource noemt, of een monitor in de monitorgroep ervan, in welke status die monitors ook staan.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | Endpoint | Sleutels in het antwoord |
 | -------- | -------------------- |
-| Incidenten | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Episodes | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Incidenten | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| Episodes | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | Onderhoudsgebeurtenissen | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Aankondigingen | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ Een fout antwoordt met een statuscode en JSON-inhoud die de reden noemt:
 
 ## Andere manieren om een statuspagina te lezen
 
-- **RSS.** Elke statuspagina biedt `/rss`, een feed van haar incidenten, aankondigingen en onderhoudsgebeurtenissen, elk gedateerd zoals de pagina ze dateert. Zie [De insluitbare badge en de RSS-feed](/docs/status-pages/index#de-insluitbare-badge-en-de-rss-feed).
+- **RSS.** Elke statuspagina biedt `/rss`, een feed van haar incidenten en episodes, aankondigingen en onderhoudsgebeurtenissen, elk gedateerd zoals de pagina ze dateert, met de incidenten ingedeeld zoals de pagina ze indeelt. Zie [De insluitbare badge en de RSS-feed](/docs/status-pages/index#de-insluitbare-badge-en-de-rss-feed).
 - **llms.txt.** Naast `/rss` biedt elke statuspagina `/llms.txt`, dat AI-agents naar de RSS-feed en de overzichts-JSON verwijst.
 - **MCP.** AI-agents kunnen de pagina lezen via de MCP-server van OneUptime op `https://oneuptime.com/mcp`, zonder API-sleutel, door het ID of domein van de pagina mee te geven als `statusPageIdOrDomain`. Dit staat standaard aan; zet het uit met **MCP-server inschakelen** onder **Geavanceerd → MCP** in het zijmenu van de pagina. Zie [MCP-server](/docs/ai/mcp-server).
 - **De REST API.** Om statuspagina's, resources, abonnees en aankondigingen te maken of te wijzigen, gebruik je de [OneUptime API](/docs/api-reference/api-reference) met een API-sleutel.

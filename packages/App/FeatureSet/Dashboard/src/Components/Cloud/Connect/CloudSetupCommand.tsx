@@ -4,6 +4,7 @@ import {
   CloudConnectionDataSecurityLevel,
   CloudConnectionDataSecurityResponse,
   CloudConnectionDefinition,
+  CloudConnectionSecurityCaseChecks,
   CloudConnectionWafBlocklist,
   getCloudConnectionAuthMethodDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
@@ -149,6 +150,8 @@ export interface ComponentProps {
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
   // AWS: whether the blocklist may block addresses in AWS WAF. Off when absent.
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+  // AWS: whether security cases may read IAM users back. Off when absent.
+  securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
   /*
    * AWS: what a role trusts, and the project's external id, which names a
    * role and the blocklist's IP sets. Undefined while it loads; the command
@@ -173,6 +176,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       dataSecurity: props.dataSecurity,
       dataSecurityResponse: props.dataSecurityResponse,
       wafBlocklist: props.wafBlocklist,
+      securityCaseChecks: props.securityCaseChecks,
     },
   );
   // What the command grants beyond reading how things are set up, if anything.

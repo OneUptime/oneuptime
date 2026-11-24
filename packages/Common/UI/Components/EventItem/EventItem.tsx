@@ -16,6 +16,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { translationKey } from "../../Utils/TranslateTemplate";
+import EventItemRelatedEventsList, {
+  EventItemRelatedEvents,
+} from "./EventItemRelatedEvents";
 
 /*
  * A change of an event's state, as one sentence with the event's kind and
@@ -25,6 +28,19 @@ import { translationKey } from "../../Utils/TranslateTemplate";
 export const EVENT_STATE_CHANGED_TO: string = translationKey(
   "{{eventType}} state changed to {{state}}",
 );
+
+/*
+ * The incident an incident card belongs to, on a page that groups incidents
+ * by episode (#10767): "Part of Infrastructure Outage", its name a link to
+ * it. One sentence, the name where the reader's language puts it.
+ */
+export const EVENT_PART_OF: string = translationKey("Part of {{incident}}");
+
+// What an event is part of: its name, and its own page.
+export interface EventItemParent {
+  title: string;
+  route?: Route | URL | undefined;
+}
 
 export enum TimelineItemType {
   StateChange = "StateChange",
@@ -109,6 +125,14 @@ export interface ComponentProps {
    * attachments and each timeline note's. See EventAttachmentList.
    */
   attachmentRefreshSession?: (() => Promise<boolean>) | undefined;
+  /*
+   * The events this one holds - an episode's incidents, on a page that
+   * groups incidents by episode - folded under its resources until opened
+   * (EventItemRelatedEvents).
+   */
+  relatedEvents?: EventItemRelatedEvents | undefined;
+  // The events this one is part of: an incident's episodes, on such a page.
+  partOf?: Array<EventItemParent> | undefined;
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
@@ -179,6 +203,37 @@ const EventItem: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
+        {props.partOf && props.partOf.length > 0 ? (
+          <div className="mt-2 space-y-1" data-testid="event-item-part-of">
+            {props.partOf.map((parent: EventItemParent, i: number) => {
+              return (
+                <p key={i} className="text-sm text-gray-500">
+                  <TranslatedSentence
+                    template={EVENT_PART_OF}
+                    slots={{
+                      incident: parent.route ? (
+                        <Link
+                          className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          to={parent.route}
+                          dataTestId="event-item-part-of-link"
+                        >
+                          {parent.title}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-gray-900">
+                          {parent.title}
+                        </span>
+                      ),
+                    }}
+                  />
+                </p>
+              );
+            })}
+          </div>
+        ) : (
+          <></>
+        )}
+
         {props.eventMiniDescription && (
           <div
             className={`mt-3 ${EVENT_ITEM_QUIET_TEXT_CLASS_NAME} active-event-box-body-mini-description`}
@@ -233,10 +288,33 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 {t("eventItem.affectedResources", "Affected resources")}
               </div>
               {props.eventResourcesAffected?.map((item: string, i: number) => {
-                return <Pill key={i} text={item} color={VeryLightGray} />;
+                return (
+                  <Pill
+                    key={i}
+                    text={item}
+                    /*
+                     * A resource's name on the page, as its owner wrote it:
+                     * never looked up, so "Website" stays "Website" (#10767).
+                     */
+                    isUserContent={true}
+                    color={VeryLightGray}
+                  />
+                );
               })}
             </div>
           </div>
+        ) : (
+          <></>
+        )}
+
+        {props.relatedEvents && props.relatedEvents.items.length > 0 ? (
+          <>
+            <div
+              className="w-full border-t border-gray-200 mt-5 mb-4 -ms-5"
+              style={{ width: "calc(100% + 2.5em)" }}
+            ></div>
+            <EventItemRelatedEventsList relatedEvents={props.relatedEvents} />
+          </>
         ) : (
           <></>
         )}

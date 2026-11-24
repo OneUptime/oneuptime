@@ -12,7 +12,8 @@ package com.oneuptime.androidagent.collect
 
 /** /proc/meminfo, as bytes by field name ("MemTotal", "MemAvailable", ...). */
 object MemInfoParser {
-    private val LINE: Regex = Regex("""^([A-Za-z0-9_()]+):\s+(\d+)(?:\s+kB)?\s*$""")
+    // The kernel writes its files in ASCII: a digit is [0-9], and a field ends at a space or a tab.
+    private val LINE: Regex = Regex("""^([A-Za-z0-9_()]+):[ \t]+([0-9]+)(?:[ \t]+kB)?[ \t]*$""")
 
     fun parse(text: String): Map<String, Long> {
         val values: MutableMap<String, Long> = linkedMapOf()
@@ -45,7 +46,7 @@ object CpuStatParser {
     fun parse(text: String): Map<String, CpuTimes> {
         val result: MutableMap<String, CpuTimes> = linkedMapOf()
         text.lineSequence().forEach { line ->
-            val fields: List<String> = line.trim().split(Regex("\\s+"))
+            val fields: List<String> = line.trim().split(Regex("""[ \t]+"""))
             val name: String = fields.firstOrNull() ?: return@forEach
             if (!name.startsWith("cpu")) {
                 return@forEach
@@ -102,7 +103,7 @@ data class LoadAverage(val oneMinute: Double, val fiveMinutes: Double, val fifte
 
 object LoadAverageParser {
     fun parse(text: String): LoadAverage? {
-        val fields: List<Double> = text.trim().split(Regex("\\s+")).take(3).mapNotNull { it.toDoubleOrNull() }
+        val fields: List<Double> = text.trim().split(Regex("""[ \t]+""")).take(3).mapNotNull { it.toDoubleOrNull() }
         if (fields.size < 3 || fields.any { !it.isFinite() || it < 0 }) {
             return null
         }
@@ -118,7 +119,7 @@ data class MountEntry(val device: String, val mountpoint: String, val type: Stri
 object MountsParser {
     fun parse(text: String): List<MountEntry> =
         text.lineSequence().mapNotNull { line ->
-            val fields: List<String> = line.trim().split(Regex("\\s+"))
+            val fields: List<String> = line.trim().split(Regex("""[ \t]+"""))
             if (fields.size < 4) {
                 null
             } else {

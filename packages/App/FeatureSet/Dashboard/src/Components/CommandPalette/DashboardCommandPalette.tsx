@@ -78,6 +78,8 @@ import {
 } from "./RecordPageSearchProvider";
 import { useProductFeedbackSettings } from "Common/UI/Utils/ProductFeedback";
 import { ProductFeedbackSettings } from "Common/Types/ProductFeedback/ProductFeedback";
+import { getMobileAppOffer } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
@@ -441,6 +443,13 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   // Give feedback is offered once the server says it takes feedback (#6832).
   const feedbackSettings: ProductFeedbackSettings | null =
     useProductFeedbackSettings();
+  /*
+   * Whether the server offers the mobile app (Admin Dashboard > Settings >
+   * Help and Support, #10866): Search finds no Mobile Apps page where its
+   * admins took the app away, as the settings menu lists none.
+   */
+  const isMobileAppOffered: boolean =
+    getMobileAppOffer(useHelpAndSupport()) !== null;
 
   const closePalette: () => void = useCallback((): void => {
     setIsOpen(false);
@@ -762,7 +771,13 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           hasProjectSelected,
           isMasterAdmin,
           isThemeFollowingDevice: themePreference === ThemePreference.System,
-          canGiveFeedback: feedbackSettings?.isOn === true,
+          /*
+           * Where the server offers Give feedback: not where its admins hid
+           * it, or sent it to an address it cannot email yet (#10865).
+           */
+          canGiveFeedback:
+            feedbackSettings?.isOn === true &&
+            feedbackSettings.isGiveFeedbackOffered !== false,
         }),
         offProducts,
       );
@@ -1092,6 +1107,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       isBillingEnabled: BILLING_ENABLED,
       isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
       isDashboardRecordingOn: isDashboardRecordingConfigured(),
+      isMobileAppOffered: isMobileAppOffered,
       canDeleteProject:
         hasProjectSelected &&
         canDeleteProject({ held: heldPermissions, isMasterAdmin }),

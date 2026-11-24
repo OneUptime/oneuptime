@@ -132,6 +132,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "the address prefixes its callers name: monitor, workflow",
   },
   {
+    file: "packages/Common/Server/Utils/Telemetry/ExceptionGrouping.ts",
+    count: 1,
+    builtFrom:
+      "the placeholders the normalizer folds a value into, which the file lists (FOLDED_VALUE_PLACEHOLDERS), each escaped with escapeRegExp to match itself",
+  },
+  {
     file: "packages/Common/Server/Utils/VM/VMAPI.ts",
     count: 1,
     builtFrom: "a random slot marker of letters and digits",
@@ -196,6 +202,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 7,
     builtFrom:
       "the file's JSON string forms, quote marks, tool names and flag letters",
+  },
+  {
+    file: "packages/Common/Utils/Call/CallSpeech.ts",
+    count: 1,
+    builtFrom:
+      "a project's record number prefixes (NumberPrefix: at most 20 letters, digits and - _ . : # /), each escaped with escapeRegExp to match itself, then a run of digits - literals, nothing repeated inside a repetition - run on a call's sentences",
   },
   {
     file: "packages/Common/Utils/DataSecurity/DetectorPrefilter.ts",
@@ -288,6 +300,18 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "the migration patterns of Rails, Alembic, Django, Sequelize, TypeORM and Knex the file lists (RAILS, PYTHON, JAVASCRIPT), each a pattern literal",
+  },
+  {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules.ts",
+    count: 2,
+    builtFrom:
+      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
+  },
+  {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+    count: 2,
+    builtFrom:
+      "nothing: SensitiveNameMatcher's own match method, handed an attribute's key or a value's name",
   },
   {
     file: "packages/Common/Server/Utils/DataSecurity/DataSecurityChangeSignals.ts",
@@ -392,6 +416,8 @@ const RUNS_PATTERNS_A_PROJECT_WRITES: ReadonlyArray<string> = [
   "packages/Common/Utils/PromQL/PromQLRegex.ts",
   "packages/Common/Server/Utils/Telemetry/MetricPipelineEngine.ts",
   "packages/App/FeatureSet/Telemetry/Utils/LogFilterEvaluator.ts",
+  // A detection rule exception's value, with * for any run (#10630).
+  "packages/Common/Server/Utils/SecurityEvent/DetectionRuleExceptions.ts",
 ];
 
 // The string methods that read their argument as a pattern.

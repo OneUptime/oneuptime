@@ -1,5 +1,6 @@
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import { getNumbersTakenNameData } from "../../Database/RequiredUniqueNames";
 import MonitorStep from "../MonitorStep";
 import MonitorSteps from "../MonitorSteps";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -211,9 +212,15 @@ export default class MonitorRecommendationCreateUtil {
      */
     linkMonitor?: ((monitor: Monitor) => void) | undefined;
   }): Array<MonitorRecommendationCreatePlanItem> {
-    const miscDataProps: JSONObject = this.buildMiscDataProps(
-      data.notificationSettings,
-    );
+    /*
+     * The owners, and that each monitor's name is OneUptime's: where the
+     * project requires unique names, a taken one is numbered ("web - High
+     * CPU 2") rather than refused (Types/Database/RequiredUniqueNames).
+     */
+    const miscDataProps: JSONObject = {
+      ...this.buildMiscDataProps(data.notificationSettings),
+      ...getNumbersTakenNameData(),
+    };
 
     const plan: Array<MonitorRecommendationCreatePlanItem> = [];
 

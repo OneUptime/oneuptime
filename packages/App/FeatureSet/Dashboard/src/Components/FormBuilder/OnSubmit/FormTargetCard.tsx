@@ -1,5 +1,10 @@
 import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import FormsCopy from "../FormsCopy";
+import {
+  FORM_TARGET_ICONS,
+  getChangeTargetDescription,
+  getFormTargetSetUpGate,
+} from "./FormTargetChoices";
 import Form from "Common/Models/DatabaseModels/Form";
 import {
   convertFormFieldsForTarget,
@@ -26,8 +31,11 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
- * What each submission through the form creates: an incident or a scheduled
- * maintenance event, as two cards to choose between.
+ * What each submission through the form creates: an incident, an alert or a
+ * scheduled maintenance event, as three cards to choose between - one
+ * choice, read across. A card the reader may not choose is drawn locked,
+ * with why on hover: changing the form takes Edit Form, and making it
+ * create alerts takes permission to create alerts too (#10760).
  *
  * Changing it is one request that writes the new target, the questions kept
  * for it (convertFormFieldsForTarget: nothing the submitter is asked goes
@@ -43,11 +51,6 @@ export interface ComponentProps {
   fields: unknown;
   onChanged: () => void;
 }
-
-const TARGET_ICONS: Record<FormTargetType, IconProp> = {
-  [FormTargetType.Incident]: IconProp.Alert,
-  [FormTargetType.ScheduledMaintenance]: IconProp.Clock,
-};
 
 const FormTargetCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -107,14 +110,18 @@ const FormTargetCard: FunctionComponent<ComponentProps> = (
       description={FormsCopy.targetCardDescription}
     >
       <div
-        className="grid grid-cols-1 gap-3 md:grid-cols-2"
+        className="grid grid-cols-1 gap-3 md:grid-cols-3"
         role="radiogroup"
         aria-label={tx(FormsCopy.targetCardTitle)}
         data-testid="form-target-options"
       >
         {FORM_TARGET_TYPES.map((target: FormTargetType): ReactElement => {
           const isSelected: boolean = target === props.targetType;
-          const isDisabled: boolean = !updateGate.isAllowed && !isSelected;
+          // Edit Form first, then what setting the form up for it takes.
+          const setUpGate: PermissionGateResult = updateGate.isAllowed
+            ? getFormTargetSetUpGate(target)
+            : updateGate;
+          const isDisabled: boolean = !setUpGate.isAllowed && !isSelected;
 
           return (
             <button
@@ -123,7 +130,7 @@ const FormTargetCard: FunctionComponent<ComponentProps> = (
               role="radio"
               aria-checked={isSelected}
               disabled={isDisabled}
-              title={isDisabled ? updateGate.disabledReason : undefined}
+              title={isDisabled ? setUpGate.disabledReason : undefined}
               data-testid={`form-target-${target}`}
               className={`flex items-start gap-3 rounded-lg border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnLookClassName(
                 {
@@ -134,7 +141,7 @@ const FormTargetCard: FunctionComponent<ComponentProps> = (
                 },
               )}`}
               onClick={() => {
-                if (!isSelected && updateGate.isAllowed) {
+                if (!isSelected && setUpGate.isAllowed) {
                   setError("");
                   setPendingTarget(target);
                 }
@@ -147,7 +154,7 @@ const FormTargetCard: FunctionComponent<ComponentProps> = (
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                <Icon icon={TARGET_ICONS[target]} className="h-5 w-5" />
+                <Icon icon={FORM_TARGET_ICONS[target]} className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-2">
@@ -175,11 +182,10 @@ const FormTargetCard: FunctionComponent<ComponentProps> = (
       {pendingTarget ? (
         <ConfirmModal
           title={FormsCopy.changeTargetTitle}
-          description={
-            pendingTarget === FormTargetType.Incident
-              ? FormsCopy.changeTargetToIncident
-              : FormsCopy.changeTargetToScheduledMaintenance
-          }
+          description={getChangeTargetDescription({
+            from: props.targetType,
+            to: pendingTarget,
+          })}
           submitButtonText={FormsCopy.changeTargetConfirm}
           isLoading={isSaving}
           error={error || undefined}

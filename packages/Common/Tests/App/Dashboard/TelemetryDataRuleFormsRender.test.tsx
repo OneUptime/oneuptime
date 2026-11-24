@@ -229,6 +229,15 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import ScrubRulePatternPill from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRulePatternPill";
 import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
 import ScrubRuleValueCountsApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleCounts/ScrubRuleValueCountsApi";
+import DropFilterImpactApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/DropFilterImpact/DropFilterImpactApi";
+import {
+  DropFilterImpact,
+  DropFilterImpactAction,
+  DropFilterImpactRequest,
+  DropFilterRecordCountState,
+  getDropFilterKeepPercentage,
+  getEmptyDropFilterImpact,
+} from "../../../Types/Telemetry/DropFilterImpact";
 import ScrubRuleReadersApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/FieldReaders/ScrubRuleReadersApi";
 import { getEmptyTelemetryFieldReadersByKind } from "../../../Types/Telemetry/TelemetryFieldReaders";
 import LogScrubRule from "../../../Models/DatabaseModels/LogScrubRule";
@@ -339,6 +348,41 @@ beforeEach(() => {
     isChecked: true,
     rules: [],
   });
+  /*
+   * What a drop or sample filter would take (#10436), which the drop filter
+   * forms ask as the filter is written and before it is saved: some of the
+   * records, which nothing else reads, so nothing is asked before a save.
+   */
+  jest
+    .spyOn(DropFilterImpactApi, "getImpact")
+    .mockImplementation(
+      async (request: DropFilterImpactRequest): Promise<DropFilterImpact> => {
+        const action: DropFilterImpactAction =
+          request.action === DropFilterImpactAction.Sample
+            ? DropFilterImpactAction.Sample
+            : DropFilterImpactAction.Drop;
+        const impact: DropFilterImpact = getEmptyDropFilterImpact({
+          signal: request.signal,
+          action: action,
+          keepPercentage: getDropFilterKeepPercentage({
+            action: action,
+            samplePercentage: request.samplePercentage,
+          }),
+          timeLimitInSeconds: 10,
+        });
+
+        impact.count = {
+          ...impact.count,
+          state: DropFilterRecordCountState.Counted,
+          total: 100,
+          matched: 40,
+        };
+        impact.readers = getEmptyTelemetryFieldReadersByKind(true);
+        impact.securityEvents.isChecked = true;
+
+        return impact;
+      },
+    );
 });
 
 afterEach(() => {

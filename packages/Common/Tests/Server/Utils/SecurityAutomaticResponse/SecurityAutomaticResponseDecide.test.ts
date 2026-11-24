@@ -1023,6 +1023,28 @@ describe("the project's own hourly limit", () => {
     );
   });
 
+  /*
+   * The page's description is Markdown, and a policy's name is a person's
+   * to write: it is placed as text, so a name written as a link or as
+   * emphasis reads as it was typed and links nowhere.
+   */
+  test("the page names the policy as text, never as Markdown", async () => {
+    projectLimit = 25;
+    liveBlocksThisHour = 25;
+    policy!.name = "[Scanners](https://example.com/phish) *now*";
+
+    await decide();
+
+    const description: string = paged[0]!.descriptionInMarkdown;
+
+    expect(description).toContain(
+      "The \\[Scanners\\](https://example.com/phish) \\*now\\* policy did not act on `35.205.11.131`.",
+    );
+    expect(description).not.toContain("[Scanners](");
+    // The two paragraphs, as before.
+    expect(description.split("\n\n")).toHaveLength(2);
+  });
+
   test("a project's limit that cannot be read leaves the decision unmade: no block without a limit", async () => {
     jest
       .spyOn(SecurityAutomaticResponseLimit, "read")

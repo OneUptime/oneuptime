@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 Un comando de un nivel inferior sustituye la política de AWS por la de ese nivel. **Desactivado** no añade nada, así que deja en su sitio lo que concedió un comando anterior hasta que lo elimines: la política `OneUptimeDataSecurity` en AWS, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, y los roles del nivel de contenido en Azure y Google Cloud. En cualquier caso, Seguridad de datos deja de leer al momento: solo lee lo que indica el nivel de la conexión. [Configurar Seguridad de datos](/docs/data-security/setup) enumera cada acción de la política, y lo que Seguridad de datos conserva de lo que lee.
 
+## Comprobaciones de casos de seguridad
+
+En AWS, la misma conexión puede permitir que un [caso de seguridad](/docs/telemetry/security-cases#cómo-comprueba-oneuptime-un-paso) compruebe que se deshizo lo que un ataque cambió en un usuario de IAM: la clave de acceso que creó, la contraseña de consola que estableció, las políticas que adjuntó o escribió, los grupos a los que añadió al usuario, el dispositivo MFA que activó y el usuario que creó. En **Más campos**, **Comprobaciones de casos de seguridad** está en **Desactivado** hasta que lo actives, y el comando que muestra el formulario cambia con él. Cada acción solo lee, y ninguna lee un secreto: el ID de una clave de acceso y si está activa, nunca la clave, y que hay una contraseña de consola, nunca la contraseña.
+
+| Lo que el caso lee de cada usuario que nombran sus eventos de CloudTrail | Acciones |
+| --- | --- |
+| El usuario, o que ya no existe | `iam:GetUser` |
+| Sus claves de acceso, y si cada una está activa | `iam:ListAccessKeys` |
+| Si tiene contraseña de consola, y desde cuándo | `iam:GetLoginProfile` |
+| Sus políticas administradas, y los nombres de sus políticas insertadas | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| Los grupos a los que pertenece | `iam:ListGroupsForUser` |
+| Sus dispositivos MFA | `iam:ListMFADevices` |
+
+El comando del rol añade una política insertada propia, `OneUptimeSecurityCaseChecks`, con una línea más, y el StackSet de una organización la coloca en el rol de cada cuenta:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+Con una **Clave de acceso**, la política va en un grupo del mismo nombre, `OneUptimeSecurityCaseChecks`, al que se une el usuario:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Un caso solo vuelve a leer un cambio a través de una conexión que llega a la cuenta en la que se hizo, y no pregunta nada a IAM a través de una conexión con **Comprobaciones de casos de seguridad** en **Desactivado**: nombra esos cambios para que los confirmes, y dice que lo actives. **Desactivado** no añade nada, así que deja en su sitio lo que concedió un comando anterior hasta que lo elimines, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+
 ## Qué lee OneUptime
 
 | | AWS | Azure | Google Cloud |

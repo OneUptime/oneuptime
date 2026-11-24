@@ -194,6 +194,8 @@ Starten Sie den Collector neu. Jeder Dienst, dessen Traces durch ihn laufen, sen
 | Attribut schwärzen | Ersetzt den Wert eines Attributs durch einen Platzhalter. |
 | Stichprobe | Behält einen Prozentsatz der passenden Datenpunkte. |
 
+Eine Regel wirkt auf jeden Datenpunkt oder nur auf die, auf die ihre Filter passen. Ein Filter vergleicht den Namen der Metrik oder ein Attribut mit einem Wert oder einem regulären Ausdruck, oder er fragt mit **Entspricht Mustertyp**, ob er eine E-Mail-Adresse, eine Kreditkartennummer, eine Sozialversicherungsnummer, eine Telefonnummer oder eine IP-Adresse enthält, so gefunden, wie eine Bereinigungsregel für Logs oder Traces mit diesem **Mustertyp** sie findet. Die Regel **Attribut schwärzen**, die [Datensicherheit](/docs/data-security/telemetry) für eine IP-Adresse, eine E-Mail-Adresse oder eine Kartennummer in einem Attribut erstellt, verwendet ihn.
+
 **Metriken → Einstellungen → Aufzeichnungsregeln** berechnet jede Minute neue Metriken aus anderen Metriken. Siehe [Aufzeichnungsregeln für Protokolle](/docs/telemetry/log-recording-rules) dazu, wie Aufzeichnungsregeln funktionieren.
 
 ## Fehlerbehebung

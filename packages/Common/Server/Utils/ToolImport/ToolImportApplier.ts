@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
@@ -649,9 +650,14 @@ class ApplyRun {
       monitor.disableActiveMonitoring = true;
     }
 
-    // No probes are named: it gets the project's default ones, as the form does.
+    /*
+     * No probes are named: it gets the project's default ones, as the form
+     * does. Its name is the other tool's, which may hold one name twice: in
+     * a project that requires unique names it is numbered, not refused.
+     */
     const created: Monitor = await MonitorService.create({
       data: monitor,
+      miscDataProps: getNumbersTakenNameData(),
       props: this.input.props,
     });
 

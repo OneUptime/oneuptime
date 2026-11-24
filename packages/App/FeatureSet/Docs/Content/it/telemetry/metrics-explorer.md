@@ -194,6 +194,8 @@ Riavviate il collector. Ogni servizio le cui tracce lo attraversano invia allora
 | Oscura attributo | Sostituisce il valore di un attributo con un segnaposto. |
 | Campione | Conserva una percentuale dei punti dati che corrispondono. |
 
+Una regola agisce su ogni punto dati, o solo su quelli che corrispondono ai suoi filtri. Un filtro confronta il nome della metrica o un attributo con un valore o un'espressione regolare, oppure chiede con **Corrisponde al tipo di pattern** se contiene un indirizzo email, un numero di carta di credito, un numero di previdenza sociale, un numero di telefono o un indirizzo IP, trovato come lo trova una regola di pulizia di log o di tracce di quel **Tipo di pattern**. La regola **Oscura attributo** che [Sicurezza dei dati](/docs/data-security/telemetry) crea per un indirizzo IP, un indirizzo email o un numero di carta in un attributo lo usa.
+
 **Metriche → Impostazioni → Regole di registrazione** calcola ogni minuto nuove metriche a partire da altre metriche. Vedere [Regole di registrazione dei log](/docs/telemetry/log-recording-rules) per come funzionano le regole di registrazione.
 
 ## Risoluzione dei problemi

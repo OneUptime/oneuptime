@@ -156,7 +156,7 @@ export const DATA_TYPE_CATALOG: ReadonlyArray<DataTypeInfo> = [
     "Person name",
     C.ContactAndIdentity,
     S.Confidential,
-    "A person's first, last or full name, found from the field's name.",
+    "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.",
     {
       frameworks: PERSONAL,
       foundBy: "name",

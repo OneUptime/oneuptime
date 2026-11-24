@@ -27,7 +27,10 @@ import DataSecurityResidencyRuleService from "../../Services/DataSecurityResiden
 import DataSecuritySettingService from "../../Services/DataSecuritySettingService";
 import SecurityEntityRiskService from "../../Services/SecurityEntityRiskService";
 import DataSecurityFlows from "./DataSecurityFlows";
-import { queueDataSecurityIssueGrouping } from "./DataSecurityJobs";
+import {
+  queueDataSecurityIssueGrouping,
+  queueTelemetryLeakFixProposals,
+} from "./DataSecurityJobs";
 import DataSecurityIntegrations, {
   OpenedIssueForIntegrations,
 } from "./DataSecurityIntegrations";
@@ -312,6 +315,13 @@ export default class DataSecurityEvaluator {
      * grouped once.
      */
     await queueDataSecurityIssueGrouping(projectId);
+
+    /*
+     * Each service's telemetry leaks, fixed in its code in one pull request
+     * (#10367): proposed a little after, once for all it opened - only
+     * while OneUptime AI works on the project's issues, which the job asks.
+     */
+    await queueTelemetryLeakFixProposals(projectId);
   }
 
   private static forIntegrations(

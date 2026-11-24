@@ -82,6 +82,8 @@ In a grid group, the dialog also asks for the row and the column the monitor goe
 > [!TIP]
 > To show several checks as one row, add a [monitor group](/docs/monitor/monitor-groups). With the **Monitor Groups** switch on (**Project Settings** > **Basic** > **Products**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** Click it and **Monitor** becomes **Monitor Group** (**Select Monitor Group**); **Add a Monitor instead.** switches back.
 
+**Edit resource**, the pencil on a row, opens on what the row shows: a monitor group's row on **Monitor Group**, with the group picked, and a monitor's row on **Monitor**. With the **Monitor Groups** switch on, the link under the dropdown reads **Show a Monitor instead.** on a group's row and **Show a Monitor Group instead.** on a monitor's. It swaps the dropdown in that dialog only, and saving points the row at what you picked instead. **Display Name** follows the new pick while it is still the name of what the row showed, and stays as it is when you renamed the row. In the list, a group's row whose display name is the group's own says **Same as the monitor group name**.
+
 ### Adding several at once
 
 **Add Multiple** (also **Add multiple monitors** in the **More actions** menu) opens **Add Multiple Monitors**. It is one page too: a **Monitors** multi-select, then the same folded **More fields**, whose display options apply to every monitor you pick. Each resource takes its display name and description from its monitor, and **Add Monitors** adds them all. This is the fastest way to seed a new page.
@@ -97,6 +99,8 @@ A status page lists a monitor once. Adding is idempotent, so picking the same la
 The summary at the end of the bulk add says so: added monitors are listed under **Added**, and the ones that were already there under **Already Added**. Nothing is reported as a failure, and nothing is written for them.
 
 The same rule holds everywhere else a resource is created. Adding a monitor that is already on the page from the single-add form, or pointing an existing resource at one from the edit form, is refused with *"This monitor is already added to this status page"* — including when the existing resource already sits in a different group, because a visitor would still see the monitor twice. To show a monitor in a different group, delete the resource it already has and add it where you want it.
+
+A resource shows one monitor or one monitor group, never both and never neither. Pointing a resource at one clears the other, so moving a row from a monitor to a monitor group is one change. Through the API, a resource that names both is refused with *"A status page resource shows a monitor or a monitor group, not both. Send one of them."*, and one that names neither, or a change that would leave it with neither, with *"A status page resource needs a monitor or a monitor group to show"*.
 
 ## Display options on a resource
 
@@ -122,7 +126,7 @@ Groups have their own copies of these switches (see below), so a group can show 
 
 The colors of the history chart bars are set under **More settings** on the **Branding** page, and which monitor statuses count as "down" in **Counts as downtime**, in the **What your status page shows** card on **Settings**, both covered in [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
 
-Each bar is one day. Point at a bar, or click it (tap it on a phone, or press Enter on it with the keyboard), to read the day: its uptime, how long each status lasted, the incidents declared that day and the scheduled maintenance that ran on it, each linked to its own page. A day with scheduled maintenance has a blue band across the top of its bar, and while an event is in progress, each resource of its monitors says "Under maintenance" beside its name. Maintenance changes neither a bar's color nor the uptime, which come from the monitor's statuses: to keep planned work out of the uptime, give the event a **Change Monitor Status to** that is not one of the page's **Counts as downtime** statuses. See [What an event affects](/docs/scheduled-maintenance/index#what-an-event-affects).
+Each bar is one day. Point at a bar, or click it (tap it on a phone, or press Enter on it with the keyboard), to read the day: its uptime, how long each status lasted, the incidents declared that day and the scheduled maintenance that ran on it, each linked to its own page. On a page that shows episodes but not incidents, the day lists instead the episode each of its incidents belongs to, once, linked to the episode's page. A day with scheduled maintenance has a blue band across the top of its bar, and while an event is in progress, each resource of its monitors says "Under maintenance" beside its name. Maintenance changes neither a bar's color nor the uptime, which come from the monitor's statuses: to keep planned work out of the uptime, give the event a **Change Monitor Status to** that is not one of the page's **Counts as downtime** statuses. See [What an event affects](/docs/scheduled-maintenance/index#what-an-event-affects).
 
 Every bar is a day in the reader's own time zone, the same one the page shows every other time in, so the last bar is their today. A monitor group's bar shows how long the group itself spent in each status that day: at each moment the group has the worst status among its monitors, so a day's statuses add up to the time at least one of its monitors was checked, and never to more than the day.
 
@@ -280,6 +284,10 @@ The import creates groups, not resources: add monitors afterwards with **Add Mon
 
 :::details "This monitor is already added to this status page"
 A page lists each monitor once, even across groups. The monitor already has a resource, perhaps in another group or added by a monitor rule. Search the navigator for it, delete that resource, and add the monitor where you want it.
+:::
+
+:::details "A status page resource needs a monitor or a monitor group to show"
+The API, Terraform or a script sent a resource with no monitor and no monitor group, or a change that clears the one it shows. Send `monitorId` or `monitorGroupId`, one of the two. To point a resource at the other kind, send the new one in the same change: the old one is cleared. Resources that showed neither before this rule were never shown to visitors, and an upgrade deletes them.
 :::
 
 :::details A monitor I added does not show on the status page

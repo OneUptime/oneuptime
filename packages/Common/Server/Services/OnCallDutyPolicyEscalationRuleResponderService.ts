@@ -184,8 +184,10 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
 
   /*
    * The rule a row read back is on, as EscalationRuleReach asks for it: its
-   * project, its id and its policy's - from the relations the hooks select,
-   * or the columns.
+   * project, its id and its policy's. Read from the row's ID columns, which
+   * every row holds (both are required): the relations are there only when
+   * a read joins them, and a hook reads the ids without them (#10970). The
+   * relation is the fallback for a row handed over with it alone.
    */
   protected getRuleOfRow(row: TBaseModel): EscalationRuleOfReach {
     const values: {
@@ -204,10 +206,10 @@ export default abstract class OnCallDutyPolicyEscalationRuleResponderService<
 
     return {
       projectId: values.projectId!,
-      ruleId: (values.onCallDutyPolicyEscalationRule?.id ||
-        values.onCallDutyPolicyEscalationRuleId)!,
+      ruleId: (values.onCallDutyPolicyEscalationRuleId ||
+        values.onCallDutyPolicyEscalationRule?.id)!,
       policyId:
-        values.onCallDutyPolicy?.id || values.onCallDutyPolicyId || null,
+        values.onCallDutyPolicyId || values.onCallDutyPolicy?.id || null,
     };
   }
 

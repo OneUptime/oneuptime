@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} گروه",
     "noResourcesTitle": "هنوز چیزی برای نمایش نیست",
     "noResourcesDescription": "این صفحه هنوز هیچ سرویسی را نشان نمی‌دهد.",
-    "noResourcesPreviewDescription": "تا وقتی منابع را اضافه نکنید، بازدیدکنندگان همین را می‌بینند. در داشبورد، در بخش منابع، مانیتورها یا گروه‌هایی به این صفحه وضعیت اضافه کنید."
+    "noResourcesPreviewDescription": "تا وقتی منابع را اضافه نکنید، بازدیدکنندگان همین را می‌بینند.",
+    "noResourcesPreviewLink": "افزودن منابع در داشبورد"
   },
   "eventItem": {
     "affectedResources": "منابع تحت تأثیر",
@@ -485,6 +486,9 @@
   "No options available": "گزینه‌ای در دسترس نیست",
   "No matches found": "موردی پیدا نشد",
   "{{eventType}} state changed to {{state}}": "وضعیت {{eventType}} به {{state}} تغییر کرد",
+  "{{count}} related incidents": "{{count}} حادثهٔ مرتبط",
+  "{{count}} related incidents_one": "{{count}} حادثهٔ مرتبط",
+  "Part of {{incident}}": "بخشی از {{incident}}",
   "Use at least {{minimum}} characters.": "حداقل از {{minimum}} نویسه استفاده کنید.",
   "Try a few unrelated words.": "چند واژهٔ نامرتبط را امتحان کنید.",
   "Password meets requirements": "گذرواژه شرایط لازم را دارد",

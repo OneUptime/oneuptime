@@ -86,13 +86,19 @@ jest.mock(
   },
 );
 
-// A held case's notice reads the case's hold itself (SecurityCaseAiHoldNotice's own tests).
+/*
+ * OneUptime AI's hold notice (#10353), which reads for itself whether
+ * OneUptime AI holds the case (SecurityCaseAiHoldNotice.test holds what it
+ * does with the answer): a card beside the ones under test, drawn with what
+ * the page hands it, as they are.
+ */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice",
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => {
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        record("SecurityCaseAiHoldNotice", props);
         return React.createElement("div", { "data-testid": "ai-hold-notice" });
       },
     };
@@ -466,6 +472,30 @@ describe("the Overview", () => {
     ).toBeTruthy();
     expect(
       plan.compareDocumentPosition(ai) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("says whether OneUptime AI holds the case, above its figures, and reads the case again once the hold ends", () => {
+    drawPage(
+      <SecurityCaseOverviewPage {...PAGE_PROPS} />,
+      contextFor(buildCase()),
+    );
+
+    const notice: Record<string, unknown> = lastProps(
+      "SecurityCaseAiHoldNotice",
+    );
+
+    expect(String(notice["caseId"])).toBe(CASE_ID);
+    expect(handlers.refresh).not.toHaveBeenCalled();
+    (notice["onChanged"] as () => void)();
+    expect(handlers.refresh).toHaveBeenCalledTimes(1);
+
+    // Above the case's figures and every card below them.
+    expect(
+      screen
+        .getByTestId("ai-hold-notice")
+        .compareDocumentPosition(screen.getByTestId("why-opened")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

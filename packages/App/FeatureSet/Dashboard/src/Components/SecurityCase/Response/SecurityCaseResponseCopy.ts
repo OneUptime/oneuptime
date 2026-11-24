@@ -147,6 +147,7 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   howWeKnow: string;
   howWeKnowPanel: string;
   checkFacts: string;
+  checkFact: string;
   checkLink: string;
   docsLink: string;
   confirm: string;
@@ -183,6 +184,7 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   howWeKnow: "security-case-response-step-how-we-know",
   howWeKnowPanel: "security-case-response-step-how-we-know-panel",
   checkFacts: "security-case-response-step-check-facts",
+  checkFact: "security-case-response-step-check-fact",
   checkLink: "security-case-response-step-check-link",
   docsLink: "security-case-response-step-check-docs",
   confirm: "security-case-response-step-confirm",

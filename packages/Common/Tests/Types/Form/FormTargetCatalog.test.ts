@@ -1,6 +1,7 @@
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import {
+  FORM_ALERT_TITLE_MAX_LENGTH,
   FORM_DESCRIPTION_MAX_LENGTH,
   FORM_INCIDENT_TITLE_MAX_LENGTH,
   FORM_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
@@ -30,7 +31,8 @@ import path from "path";
  * questions stored in Form.fields, the public page and the server's target
  * handlers: a key here is the record's property the answer is written to,
  * and the values of FormTargetType are stored in two tables, so they are
- * pinned exactly.
+ * pinned exactly. A form creates an incident, an alert (#10760) or a
+ * maintenance event.
  */
 
 type KeysFunction = (targetType: FormTargetType) => Array<string>;
@@ -44,13 +46,17 @@ const keys: KeysFunction = (targetType: FormTargetType): Array<string> => {
 };
 
 describe("FormTargetType", () => {
-  test("stores exactly Incident and ScheduledMaintenance", () => {
+  test("stores exactly Incident, Alert and ScheduledMaintenance", () => {
+    // The values stored in Form.targetType, in the order they were added.
     expect(Object.values(FormTargetType)).toEqual([
       "Incident",
       "ScheduledMaintenance",
+      "Alert",
     ]);
+    // The order the dashboard offers them in: an alert beside an incident.
     expect(FORM_TARGET_TYPES).toEqual([
       FormTargetType.Incident,
+      FormTargetType.Alert,
       FormTargetType.ScheduledMaintenance,
     ]);
   });
@@ -87,6 +93,13 @@ describe("FormTargetType", () => {
       description:
         "Each submission declares an incident, so your on-call team is told straight away. Use it for problem reports.",
     });
+    expect(FORM_TARGET_TYPE_TEXT[FormTargetType.Alert]).toEqual({
+      title: "Alert",
+      noun: "alert",
+      nounWithArticle: "an alert",
+      description:
+        "Each submission creates an alert, so its owners are told without declaring an incident. Use it for warnings and things to check.",
+    });
     expect(FORM_TARGET_TYPE_TEXT[FormTargetType.ScheduledMaintenance]).toEqual({
       title: "Scheduled Maintenance",
       noun: "maintenance event",
@@ -98,8 +111,11 @@ describe("FormTargetType", () => {
 
   test.each([
     ["Incident", true],
+    ["Alert", true],
     ["ScheduledMaintenance", true],
     ["incident", false],
+    ["alert", false],
+    ["Monitor", false],
     ["Scheduled Maintenance", false],
     ["", false],
     [null, false],
@@ -116,8 +132,9 @@ describe("FormTargetType", () => {
       FormTargetType.ScheduledMaintenance,
     );
     expect(readFormTargetType("Incident")).toBe(FormTargetType.Incident);
+    expect(readFormTargetType("Alert")).toBe(FormTargetType.Alert);
 
-    for (const value of [undefined, null, "", "Alert", 7, {}]) {
+    for (const value of [undefined, null, "", "alert", "Monitor", 7, {}]) {
       expect(readFormTargetType(value)).toBe(DEFAULT_FORM_TARGET_TYPE);
     }
   });
@@ -210,6 +227,130 @@ describe("the incident fields", () => {
     expect(getFormTargetFieldsThatMustBeAsked(FormTargetType.Incident)).toEqual(
       [],
     );
+  });
+});
+
+describe("the alert fields", () => {
+  test("are the title, description, severity, monitor, labels and impact start, in the palette's order", () => {
+    expect(keys(FormTargetType.Alert)).toEqual([
+      "title",
+      "description",
+      "alertSeverityId",
+      "monitor",
+      "labels",
+      "impactStartedAt",
+    ]);
+  });
+
+  test("the title is a line of text the alert's column can hold", () => {
+    const title: FormTargetFieldDefinition = getFormTargetField(
+      FormTargetType.Alert,
+      "title",
+    )!;
+
+    expect(title.inputType).toBe(CustomFieldType.Text);
+    expect(title.maxLength).toBe(FORM_ALERT_TITLE_MAX_LENGTH);
+    // Alert.title is a LongText column, as an incident's is.
+    expect(FORM_ALERT_TITLE_MAX_LENGTH).toBe(ColumnLength.LongText);
+    // Required by an alert, but the form's name stands in for it.
+    expect(title.isRequiredByTarget).toBe(true);
+    expect(title.hasDefault).toBe(true);
+    expect(title.description).toBe(
+      "A one-line summary that becomes the alert's title.",
+    );
+  });
+
+  test("the description is Markdown, up to 20,000 characters", () => {
+    const description: FormTargetFieldDefinition = getFormTargetField(
+      FormTargetType.Alert,
+      "description",
+    )!;
+
+    expect(description.inputType).toBe(CustomFieldType.Markdown);
+    expect(description.maxLength).toBe(FORM_DESCRIPTION_MAX_LENGTH);
+    expect(description.isRequiredByTarget).toBe(false);
+    expect(description.hasDefault).toBe(false);
+  });
+
+  test("the severity is one alert severity, every one unless narrowed", () => {
+    const severity: FormTargetFieldDefinition = getFormTargetField(
+      FormTargetType.Alert,
+      "alertSeverityId",
+    )!;
+
+    expect(severity.inputType).toBe(CustomFieldType.Dropdown);
+    // An alert's own severities, never the incident ones.
+    expect(severity.optionsSource).toBe(FormTargetOptionsSource.AlertSeverity);
+    expect(severity.mustChooseOptions).toBe(false);
+    expect(severity.isRequiredByTarget).toBe(true);
+    // The form's settings supply one.
+    expect(severity.hasDefault).toBe(true);
+  });
+
+  test("the monitor is one choice of only the monitors the form offers", () => {
+    const monitor: FormTargetFieldDefinition = getFormTargetField(
+      FormTargetType.Alert,
+      "monitor",
+    )!;
+
+    // An alert is about one monitor (Alert.monitorId), so one choice.
+    expect(monitor.inputType).toBe(CustomFieldType.Dropdown);
+    expect(monitor.optionsSource).toBe(FormTargetOptionsSource.Monitor);
+    // A public page never lists the project's monitors unasked.
+    expect(monitor.mustChooseOptions).toBe(true);
+    expect(monitor.isRequiredByTarget).toBe(false);
+    // The form's Monitor setting stands in for it.
+    expect(monitor.hasDefault).toBe(true);
+    expect(monitor.defaultLabel).toBe("Affected Monitor");
+  });
+
+  test("the labels are a multi-select of only the labels the form offers", () => {
+    const labels: FormTargetFieldDefinition = getFormTargetField(
+      FormTargetType.Alert,
+      "labels",
+    )!;
+
+    expect(labels.inputType).toBe(CustomFieldType.MultiSelectDropdown);
+    expect(labels.optionsSource).toBe(FormTargetOptionsSource.Label);
+    expect(labels.mustChooseOptions).toBe(true);
+  });
+
+  test("the impact start is a date and time", () => {
+    const field: FormTargetFieldDefinition = getFormTargetField(
+      FormTargetType.Alert,
+      "impactStartedAt",
+    )!;
+
+    expect(field.inputType).toBe(CustomFieldType.DateTime);
+    expect(field.optionsSource).toBeUndefined();
+  });
+
+  test("nothing must be asked: an alert form can ask nothing at all", () => {
+    expect(getFormTargetFieldsThatMustBeAsked(FormTargetType.Alert)).toEqual(
+      [],
+    );
+  });
+
+  test("an alert has no incident severity, monitors list, status pages or window", () => {
+    for (const key of [
+      "incidentSeverityId",
+      "monitors",
+      "statusPages",
+      "startsAt",
+      "endsAt",
+    ]) {
+      expect(getFormTargetField(FormTargetType.Alert, key)).toBeUndefined();
+    }
+  });
+
+  test("the incident and maintenance targets have no alert severity or single monitor", () => {
+    for (const target of [
+      FormTargetType.Incident,
+      FormTargetType.ScheduledMaintenance,
+    ]) {
+      expect(getFormTargetField(target, "alertSeverityId")).toBeUndefined();
+      expect(getFormTargetField(target, "monitor")).toBeUndefined();
+    }
   });
 });
 
@@ -349,7 +490,7 @@ describe("every field of every target", () => {
   });
 
   test("an unknown target has no fields", () => {
-    expect(getFormTargetFields("Alert" as FormTargetType)).toEqual([]);
+    expect(getFormTargetFields("Monitor" as FormTargetType)).toEqual([]);
   });
 
   test.each([[undefined], [null], [42], [""], ["Title"], ["nope"]])(

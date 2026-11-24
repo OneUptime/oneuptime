@@ -102,6 +102,10 @@ const RouteMap: Dictionary<Route> = {
   ),
   [PageMap.SETTINGS_SSO]: new Route(`/admin/settings/sso`),
   [PageMap.SETTINGS_PRODUCTS]: new Route(`/admin/settings/products`),
+  // Where the server sends its people for help (#10864-#10866).
+  [PageMap.SETTINGS_HELP_AND_SUPPORT]: new Route(
+    `/admin/settings/help-and-support`,
+  ),
   /*
    * The instance-wide providers' own pages live under these. The two list
    * addresses were pages of their own; they open Single Sign-On now.

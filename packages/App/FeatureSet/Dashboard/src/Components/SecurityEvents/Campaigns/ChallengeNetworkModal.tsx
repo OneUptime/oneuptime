@@ -5,7 +5,6 @@ import {
   checkNetworkChallenge,
 } from "./CampaignContainmentApi";
 import {
-  CHALLENGED_NETWORK_TOAST,
   CHALLENGE_NETWORK_TITLE,
   CHALLENGE_THIS_NETWORK,
   CHECK_NETWORK_FAILED,
@@ -21,6 +20,7 @@ import {
   getDefaultNetworkChallengeValue,
   getNetworkChallengeOptions,
   writeNetworkChallengeDoes,
+  writeNetworkChallengedToast,
   writeRepeatOffenderLine,
 } from "./CampaignContainmentModel";
 import {
@@ -32,7 +32,6 @@ import {
   REASON_FIELD_DESCRIPTION,
   REASON_FIELD_TITLE,
 } from "../Blocklist/BlocklistCopy";
-import { writeCheckTime } from "../../SecurityCase/Response/SecurityCaseResponseChecks";
 import {
   SECURITY_BLOCK_REASON_MAX_LENGTH,
   SecurityBlockDuration,
@@ -189,14 +188,7 @@ const ChallengeNetworkModal: FunctionComponent<ComponentProps> = (
         window: props.window,
       });
 
-      Toast.success(
-        translator.translateTemplate(CHALLENGED_NETWORK_TOAST, {
-          network: challenged.value,
-          time: challenged.expiresAt
-            ? writeCheckTime(challenged.expiresAt)
-            : "",
-        }),
-      );
+      Toast.success(writeNetworkChallengedToast({ challenged, translator }));
       props.onChallenged();
     } catch (err) {
       setError(API.getFriendlyMessage(err));

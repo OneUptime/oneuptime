@@ -1,9 +1,10 @@
 # Vad en inlämning skapar
 
-Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident** eller en **underhållshändelse**. Ett formulärs sida **Vid inlämning** visar vilken, och hur varje fält på den nya posten fylls i — från ett svar, från ett standardvärde, från en inställning som alltid gäller, eller från incidentmallen. **Redigera inställningar** ändrar standardvärdena och det som alltid gäller.
+Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident**, ett **larm** eller en **underhållshändelse**. Ett formulärs sida **Vid inlämning** visar vilken, och hur varje fält på den nya posten fylls i — från ett svar, från ett standardvärde, från en inställning som alltid gäller, eller från incidentmallen. **Redigera inställningar** ändrar standardvärdena och det som alltid gäller.
 
 :::cards
 - [Så blir en inlämning en incident](#så-blir-en-inlämning-en-incident): Varje fält på den nya incidenten, och var dess värde kommer ifrån.
+- [Så blir en inlämning ett larm](#så-blir-en-inlämning-ett-larm): Samma sak, för en varning eller något som bör kontrolleras.
 - [Så blir en inlämning en underhållshändelse](#så-blir-en-inlämning-en-underhållshändelse): Samma sak, för en underhållsbegäran.
 - [Inställningarna Vid inlämning](#inställningarna-vid-inlämning): Standardvärden, vad som alltid bifogas, ägare och publicering.
 - [Den privata anteckningen](#den-privata-anteckningen): Vem som skickade den, och de svar som inget fält innehåller.
@@ -11,11 +12,11 @@ Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident*
 
 ## Vad som händer vid inlämning
 
-```mermaid title="Från en inlämning till en incident eller en underhållshändelse"
+```mermaid title="Från en inlämning till en incident, ett larm eller en underhållshändelse"
 flowchart TB
     submit["Skicka"] --> checks["Skydd och<br/>kontroll av svaren"]
     checks --> fields["Varje fält: svaret,<br/>annars inställningarna Vid inlämning,<br/>annars incidentmallen"]
-    fields --> record["Incidenten eller<br/>underhållshändelsen"]
+    fields --> record["Incidenten, larmet eller<br/>underhållshändelsen"]
     record --> note["En privat anteckning: vem som skickade den,<br/>och de andra svaren"]
     record --> runs["Regler, jourpolicyer<br/>och arbetsflöden körs"]
 ```
@@ -27,13 +28,14 @@ En inlämning som inte klarar en kontroll skapar ingenting. Se [Vad som skyddar 
 Kortet **Vad varje inlämning skapar** innehåller det val du gjorde när du skapade formuläret:
 
 - **Incident** — varje inlämning deklarerar en incident, så att ditt jourteam får veta det direkt. Använd det för problemrapporter.
+- **Larm** — varje inlämning skapar ett larm, så att dess ägare får veta det utan att en incident deklareras. Använd det för varningar och saker som bör kontrolleras.
 - **Schemalagt underhåll** — varje inlämning schemalägger en underhållshändelse. Använd det för ändrings- och underhållsbegäranden.
 
-Att välja det andra ber dig bekräfta, eftersom formuläret ändras med det:
+**Larm** erbjuds bara till den som får skapa larm: se [Behörigheter](/docs/forms/index#behörigheter). Att välja ett annat ber dig bekräfta, eftersom formuläret ändras med det:
 
-- Titeln, beskrivningen, monitorerna och etiketterna förblir kopplade: båda typerna av poster har dem.
-- Varje annan kopplad fråga — en allvarlighetsgrad, ett val av statussida, ett anpassat fält av den gamla typen — blir en av formulärets egna frågor, med samma formulering, vars svar visas i den privata anteckningen.
-- Inställningarna Vid inlämning börjar om, eftersom inställningarna för en incident och för en händelse är olika.
+- Titeln, beskrivningen och etiketterna förblir kopplade: alla typer av poster har dem. Mellan en incident och en underhållshändelse förblir även monitorerna kopplade. Ett larm har sina egna allvarlighetsgrader och en enda monitor, så en fråga om allvarlighetsgrad eller monitorer behåller inte sin koppling till eller från ett larm.
+- Varje annan kopplad fråga — en allvarlighetsgrad, ett val av monitor eller statussida, ett anpassat fält av den gamla typen — blir en av formulärets egna frågor, med samma formulering, vars svar visas i den privata anteckningen.
+- Inställningarna Vid inlämning börjar om, eftersom varje typ av post har sina egna inställningar.
 - Ett formulär som nu skapar underhållshändelser frågar när underhållet börjar och slutar.
 
 Frågorna sparas direkt, tillsammans med ändringen. Kontrollera dem på sidan **Bygg**.
@@ -92,6 +94,36 @@ Slå på **Synlig på statussidan** från incidentens sida **Inställningar**.
 Eftersom incidenten deklarerades med **Meddela statussideprenumeranter** avstängt skickar en publicering inte aviseringen "incident skapad". För att meddela prenumeranterna publicerar du en offentlig anteckning med **Meddela statussideprenumeranter** ikryssat — se [Publicera en offentlig anteckning](/docs/incidents/notes-owners-and-feed#publicera-en-offentlig-anteckning).
 :::
 
+## Så blir en inlämning ett larm
+
+| Fält | Kommer från |
+| --- | --- |
+| **Titel** | Svaret på frågan **Titel**. När formuläret inte frågar efter den, eller den lämnas tom: **Standardtitel**, annars formulärets namn. |
+| **Beskrivning** | Svaret på frågan **Beskrivning**. |
+| **Allvarlighetsgrad** | Inlämnarens val, när formuläret frågar efter det. Annars formulärets inställning **Allvarlighetsgrad**. |
+| **Monitor** | Den monitor som inlämnaren valde, när formuläret frågar efter den. Annars formulärets inställning **Monitor**. Ett larm gäller en enda monitor. |
+| **Etiketter** | De etiketter som inlämnaren valde, tillsammans med de som inställningarna alltid lägger till. |
+| **Påverkan började** | Svaret på **Påverkan började**, när formuläret frågar efter det. |
+| **Inledande tillstånd** | Formulärets inställning **Inledande tillstånd**, annars det vanliga starttillståndet, där varje nytt larm börjar. Ett senare tillstånd, som **Bekräftad**, larmar ingen. |
+| **Jourpolicyer** | De policyer som inställningarna anger, körda för varje larm som formuläret skapar. |
+| **Ägare** | De personer och team som inställningarna anger. De äger varje larm som formuläret skapar, och får veta om det. |
+| **Anpassade fält** | Svaret på varje fråga om ett anpassat fält — om inte fältet kopierar sitt värde från ett anpassat monitorfält och larmets monitor har ett. |
+| **Övriga svar** | Visas i en privat anteckning på larmet, med vem som lämnade in. |
+
+> [!IMPORTANT]
+> **Ingen allvarlighetsgrad, inget larm.** Ett larm behöver en allvarlighetsgrad. När formuläret inte frågar efter en och dess inställningar inte anger någon — eller den angivna har tagits bort — varnar raden **Allvarlighetsgrad** dig, och varje inlämning avvisas med "Det här formuläret kan inte skapa ett larm eftersom det saknar allvarlighetsgrad. Meddela teamet som delade det." Välj en allvarlighetsgrad i **Redigera inställningar**.
+
+### Hur larmet ser ut
+
+Ett larm som skapas via ett formulär är ett vanligt larm, skapat på samma sätt som ett som skapas för hand med **Skapa larm**:
+
+- **Dess ägare får veta, en gång.** De ägare som inställningarna anger läggs till så snart larmets Slack- och Microsoft Teams-kanaler finns, och larmets avisering **Larm skapat** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare — och det är det enda meddelande de får om larmet.
+- **Det börjar där du bestämmer.** I det vanliga starttillståndet, om inte inställningen **Inledande tillstånd** anger ett senare. Ett larm som börjar bekräftat eller löst larmar ingen: ett formulär för rapporter som bara behöver en titt kan ange det.
+- **Skapat av ingen, och inte privat.** Inlämnaren är inte en OneUptime-användare, så ingen användare registreras som den som skapade larmet. En sekretessregel kan ändå göra det privat.
+- **En privat anteckning registrerar inlämningen** — se [Den privata anteckningen](#den-privata-anteckningen).
+
+Allt som körs för ett nytt larm körs även för dessa: sekretess-, ägar-, etikett-, jour-, grupperings-, runbook- och incidentregler, jourpolicyer och arbetsflöden med **Vid skapande: Larm**. En incidentregel för larm som matchar det deklarerar en incident från det, som från vilket larm som helst. Larm visas aldrig på statussidor.
+
 ## Så blir en inlämning en underhållshändelse
 
 | Fält | Kommer från |
@@ -116,14 +148,14 @@ En inlämning är någons begäran, och en begäran granskas innan den publicera
 
 **Redigera inställningar** öppnar inställningarna i steg: **Nästa** går vidare, och **Spara ändringar** finns i det sista steget. Varje steg är redan ifyllt, så steglistan bredvid formuläret öppnar vilket som helst av dem, även det sista: ändra en inställning i dess steg, öppna sedan det sista steget och spara.
 
-| Steg | Incidentformulär | Underhållsformulär |
-| --- | --- | --- |
-| **Standardvärden** | **Standardtitel**, **Allvarlighetsgrad**, **Incidentmall** | **Standardtitel** |
-| **Koppla alltid** | **Monitorer**, **Etiketter**, **Jourpolicyer** | **Monitorer**, **Statussidor**, **Etiketter** |
-| **Ägare** | **Ägare** | **Ägare** |
-| **Publicering** | — | **Visa på statussidor**, **Avisera prenumeranter** |
+| Steg | Incidentformulär | Larmformulär | Underhållsformulär |
+| --- | --- | --- | --- |
+| **Standardvärden** | **Standardtitel**, **Allvarlighetsgrad**, **Incidentmall** | **Standardtitel**, **Allvarlighetsgrad**, **Inledande tillstånd**, **Monitor** | **Standardtitel** |
+| **Koppla alltid** | **Monitorer**, **Etiketter**, **Jourpolicyer** | **Etiketter**, **Jourpolicyer** | **Monitorer**, **Statussidor**, **Etiketter** |
+| **Ägare** | **Ägare** | **Ägare** | **Ägare** |
+| **Publicering** | — | — | **Visa på statussidor**, **Avisera prenumeranter** |
 
-**Ägare** är en enda väljare för personer och team: **Lägg till ägare** öppnar en enda söklista med båda, och varje val visas som en bricka som du kan ta bort. Allt som inställningarna anger måste höra till formulärets projekt, och ägare måste vara medlemmar i det. En post som tas bort efter att den valdes hoppas över när en inlämning skapas, och resten gäller fortfarande.
+**Ägare** är en enda väljare för personer och team: **Lägg till ägare** öppnar en enda söklista med båda, och varje val visas som en bricka som du kan ta bort. Allt som inställningarna anger måste höra till formulärets projekt, och ägare måste vara medlemmar i det. En post som tas bort efter att den valdes hoppas över när en inlämning skapas, och resten gäller fortfarande. I ett larmformulär är **Redigera inställningar** låst för den som inte får skapa larm.
 
 ## Den privata anteckningen
 

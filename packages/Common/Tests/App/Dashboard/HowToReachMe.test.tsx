@@ -292,7 +292,17 @@ import UserUtil from "../../../UI/Utils/User";
 import {
   ADD_WAYS_COPY,
   PHONE_CODE_NOT_SENT_COPY,
+  getWaysToOffer,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/AddWaysToReach";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 import { ON_CALL_SETUP_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetup";
 import {
   BROWSER_PUSH_PROBLEM_MESSAGES,
@@ -1956,6 +1966,61 @@ describe("adding a way to reach you from the ladder", () => {
     await screen.findByTestId("paging-ladder");
     await settle();
     expect(screen.queryByTestId("paging-ladder-phone-asked")).toBeNull();
+  });
+
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10866): their phone and this browser are
+   * still offered, the app is not.
+   */
+  test("on a server whose admins took the mobile app away: their phone and this browser, but no app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      givenOnlyEmail();
+      renderPage();
+
+      const ways: HTMLElement = await addWays();
+
+      expect(
+        within(ways).getByTestId("paging-ladder-add-phone"),
+      ).toBeInTheDocument();
+      expect(
+        within(ways).getByTestId("paging-ladder-use-this-browser"),
+      ).toBeInTheDocument();
+      expect(
+        within(ways).queryByTestId("paging-ladder-get-the-app"),
+      ).toBeNull();
+    } finally {
+      forgetHelpAndSupport();
+    }
+  });
+
+  test("the app is offered only where the server offers it, and as before where it does not say", () => {
+    const base: Parameters<typeof getWaysToOffer>[0] = {
+      methods: ONLY_EMAIL,
+      isPushTurnedOff: false,
+      isPhoneMethodRequired: false,
+      browserPushProblem: null,
+      thisBrowserDeviceId: null,
+    };
+
+    expect(getWaysToOffer(base).isAppOffered).toBe(true);
+    expect(
+      getWaysToOffer({ ...base, isMobileAppOffered: true }).isAppOffered,
+    ).toBe(true);
+    expect(
+      getWaysToOffer({ ...base, isMobileAppOffered: false }).isAppOffered,
+    ).toBe(false);
+    // The rest of what is offered does not change.
+    expect({
+      ...getWaysToOffer({ ...base, isMobileAppOffered: false }),
+      isAppOffered: true,
+    }).toEqual(getWaysToOffer(base));
   });
 
   test("a member's page offers nothing to add: their methods are their own", async () => {

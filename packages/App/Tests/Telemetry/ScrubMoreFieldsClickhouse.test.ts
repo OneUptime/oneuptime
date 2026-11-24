@@ -7,7 +7,9 @@ import OtelTracesIngestService from "../../FeatureSet/Telemetry/Services/OtelTra
 import TraceDropFilterService from "../../FeatureSet/Telemetry/Services/TraceDropFilterService";
 import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipelineService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
-import ExceptionUtil from "../../FeatureSet/Telemetry/Utils/Exception";
+import ExceptionUtil, {
+  ExceptionFingerprintInput,
+} from "../../FeatureSet/Telemetry/Utils/Exception";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Log from "Common/Models/AnalyticsModels/Log";
@@ -25,6 +27,11 @@ import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import {
+  getExceptionGroupingKey,
+  getExceptionGroupingText,
+} from "Common/Server/Utils/Telemetry/ExceptionGrouping";
+import KeyedExceptionFingerprint from "Common/Server/Utils/Telemetry/KeyedExceptionFingerprint";
 import TelemetryFanInWriter, {
   FanInInsertTarget,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
@@ -54,7 +61,10 @@ import {
  *     the hidden texts;
  *   - a span's status message and its events' names are masked;
  *   - an exception's type is masked, as its span event's exception.type
- *     is, and the exception keeps the fingerprint it has without a rule.
+ *     is, and the exception is grouped by what it said as it came, never
+ *     by what the rule left of it (#10434): since the rule hid part of
+ *     the text grouping hashes, under the keyed fingerprint of that text,
+ *     which no unkeyed hash of a guess can match.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -591,7 +601,7 @@ integration(
       expect(JSON.stringify(masked)).not.toContain(EMAIL);
     });
 
-    test("an exception's type is stored masked, under the fingerprint it has without a rule", async () => {
+    test("an exception's type is stored masked, grouped by what it said as it came, under a keyed fingerprint where the rule hid part of it", async () => {
       const [unscrubbed] = await readStored(
         new ExceptionInstance().tableName,
         NO_RULES,
@@ -608,19 +618,71 @@ integration(
       expect(unscrubbed!["exceptionType"]).toBe(`CardDeclined[${EMAIL}]`);
       expect(masked!["exceptionType"]).toBe(`CardDeclined[${EMAIL_MASKED}]`);
       expect(masked!["message"]).toBe("card declined");
+
+      const arrived: {
+        message: string;
+        stackTrace: string;
+        exceptionType: string;
+      } = {
+        message: "card declined",
+        stackTrace: "at charge (pay.js:9)",
+        exceptionType: `CardDeclined[${EMAIL}]`,
+      };
+
       /*
-       * The fingerprint is a hash of the content as it came, with the
-       * project and the service: the same content, the same group.
+       * With no rule, the exception is grouped by an unkeyed hash of what it
+       * says, as ever: grouping v1's when the project's exceptions cannot be
+       * read, else v2's, which a new exception is made under.
+       */
+      const unscrubbedArrived: ExceptionFingerprintInput = {
+        projectId: NO_RULES,
+        primaryEntityId: SERVICE_ID,
+        ...arrived,
+      };
+
+      expect([
+        ExceptionUtil.getFingerprint(unscrubbedArrived),
+        ExceptionUtil.getFingerprintV2(unscrubbedArrived),
+      ]).toContain(unscrubbed!["fingerprint"]);
+
+      /*
+       * With the rules, it is grouped by what it said as it came too, never
+       * by what the rule left of it, so a rule added later splits nothing
+       * (#10434). But the address the Email rule hid is in the text that
+       * grouping hashes, so a new exception is made under the keyed
+       * fingerprint of that text (KeyedExceptionFingerprint): the same
+       * content, the same group, and no unkeyed hash that anyone could hash
+       * guesses of the address against.
        */
       expect(masked!["fingerprint"]).toBe(
-        ExceptionUtil.getFingerprint({
+        KeyedExceptionFingerprint.ofGroupingText({
           projectId: MASKING,
-          primaryEntityId: SERVICE_ID,
-          message: "card declined",
-          stackTrace: "at charge (pay.js:9)",
-          exceptionType: `CardDeclined[${EMAIL}]`,
+          text: getExceptionGroupingText({
+            projectId: MASKING.toString(),
+            primaryEntityId: SERVICE_ID.toString(),
+            key: getExceptionGroupingKey(arrived),
+          }),
         }),
       );
+
+      const maskedArrived: ExceptionFingerprintInput = {
+        projectId: MASKING,
+        primaryEntityId: SERVICE_ID,
+        ...arrived,
+      };
+      const maskedStored: ExceptionFingerprintInput = {
+        ...maskedArrived,
+        exceptionType: `CardDeclined[${EMAIL_MASKED}]`,
+      };
+
+      for (const unkeyed of [
+        ExceptionUtil.getFingerprint(maskedArrived),
+        ExceptionUtil.getFingerprintV2(maskedArrived),
+        ExceptionUtil.getFingerprint(maskedStored),
+        ExceptionUtil.getFingerprintV2(maskedStored),
+      ]) {
+        expect(masked!["fingerprint"]).not.toBe(unkeyed);
+      }
     });
   },
 );

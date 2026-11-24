@@ -58,6 +58,9 @@ Scripts
 # The Nginx, Runner and App images' build stages prune their programs'
 # packages with this.
 !Scripts/Docker/PruneUnreachablePackages.js
+# The App and Probe images fetch Data Security's names-and-addresses model
+# with this, checking each file against its pinned SHA-256.
+!Scripts/Docker/FetchDataSecurityModel.js
 .git
 GoSDK
 

@@ -15,7 +15,7 @@ package com.oneuptime.androidagent.device
  * Android 7, which has no java.time without desugaring.
  */
 object SecurityPatchAge {
-    private val DATE: Regex = Regex("""^(\d{4})-(\d{2})-(\d{2})$""")
+    private val DATE: Regex = Regex("""^([0-9]{4})-([0-9]{2})-([0-9]{2})$""")
     private const val MILLIS_PER_DAY: Long = 86_400_000L
 
     fun days(securityPatch: String?, nowMillis: Long): Int? {

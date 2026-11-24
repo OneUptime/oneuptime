@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -106,6 +108,18 @@ export const getHeaderNamesSql: (tableAlias: string) => string = (
   update: ADMINS,
 })
 @CrudApiEndpoint(new Route("/external-mcp-server"))
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_EXTERNALMCPSERVER_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "ExternalMcpServer",
 })
@@ -169,6 +183,7 @@ export default class ExternalMcpServer extends BaseModel {
     read: READERS,
     update: ADMINS,
   })
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

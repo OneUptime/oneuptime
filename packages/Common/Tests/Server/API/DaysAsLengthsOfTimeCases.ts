@@ -7,6 +7,7 @@ import DataAssetFeedService from "../../../Server/Services/DataAssetFeedService"
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
 import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../Server/Services/DataStoreService";
+import SecurityCaseAiActionService from "../../../Server/Services/SecurityCaseAiActionService";
 import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
 import SecurityDetectionService from "../../../Server/Services/SecurityDetectionService";
 import SecurityEntityRiskService from "../../../Server/Services/SecurityEntityRiskService";
@@ -373,7 +374,9 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
    * days, a bar each, today's the last (issue #8474): its cases and
    * detections are read from the reader's midnight 29 and 13 days before
    * today, where the first bar starts. Read from now - 30 x 24 hours, it
-   * drew 31 and 15 bars, the first only part of its day.
+   * drew 31 and 15 bars, the first only part of its day. OneUptime AI's
+   * actions of the window (what it asked people and what they undid,
+   * #10352) are read from the same midnight as the cases.
    */
   describe("the Security overview's last 30 and 14 days", () => {
     const OVERVIEW_READERS: Array<Timezone | undefined> = [
@@ -423,6 +426,9 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
         jest
           .spyOn(SecurityRiskiestEntitiesReader, "read")
           .mockResolvedValue(null);
+        const aiActions: jest.SpyInstance = jest
+          .spyOn(SecurityCaseAiActionService, "findBy")
+          .mockResolvedValue([]);
         const compared: jest.SpyInstance = jest.spyOn(
           QueryHelper,
           "greaterThanEqualTo",
@@ -443,11 +449,17 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
           "metrics"
         ] as unknown as SecurityOverviewMetrics;
 
+        /*
+         * The cases from the midnight of the first of their 30 bars, the
+         * detections from the first of their 14, OneUptime AI's actions
+         * from the cases'.
+         */
         expect(
           datesComparedWith(compared).map((date: Date): number => {
             return date.getTime();
           }),
-        ).toEqual([startOf(29), startOf(13)]);
+        ).toEqual([startOf(29), startOf(13), startOf(29)]);
+        expect(aiActions).toHaveBeenCalledTimes(1);
 
         for (const [days, count] of [
           [metrics.casesOpenedPerDay, 30],
@@ -501,6 +513,7 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
       jest
         .spyOn(SecurityRiskiestEntitiesReader, "read")
         .mockResolvedValue(null);
+      jest.spyOn(SecurityCaseAiActionService, "findBy").mockResolvedValue([]);
 
       const overview: JSONObject = await (
         SecurityCaseAPI.prototype as unknown as {

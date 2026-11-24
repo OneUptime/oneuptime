@@ -1918,6 +1918,30 @@ describe("the App's entry loaders", () => {
     );
   });
 
+  test("the names-and-addresses model starts its worker's file, and nothing else, beside the App", () => {
+    expect(
+      computedIn(
+        "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts",
+      ),
+    ).toEqual(["new Worker("]);
+    const source = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelThread.ts",
+      ),
+      "utf8",
+    );
+    expect(source).toContain('"NameAddressModelWorker.cjs"');
+    expect(
+      fs.existsSync(
+        path.join(
+          REPO_ROOT,
+          "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs",
+        ),
+      ),
+    ).toBe(true);
+  });
+
   test("the external calendar starts its worker's file, and nothing else, beside the App", () => {
     expect(
       computedIn(
@@ -2521,9 +2545,21 @@ const CALENDAR_WORKER = path.join(
   CALENDAR_DIRECTORY,
   "ExternalCalendarExpansionWorker.cjs",
 );
+// Data Security's names-and-addresses model, whose worker thread alone requires ONNX Runtime.
+const MODEL_DIRECTORY = path.join(
+  REPO_ROOT,
+  "packages",
+  "Common",
+  "Server",
+  "Utils",
+  "DataSecurity",
+  "Model",
+);
+const MODEL_WORKER = path.join(MODEL_DIRECTORY, "NameAddressModelWorker.cjs");
 const APP_ENTRY_LOADERS = [
   path.join(REPO_ROOT, "packages", "App", "Utils", "EnterpriseLoader.ts"),
   path.join(CALENDAR_DIRECTORY, "ExternalCalendarExpansion.ts"),
+  path.join(MODEL_DIRECTORY, "NameAddressModelThread.ts"),
 ];
 const APP_INSTALLED =
   COMMON_INSTALLED &&
@@ -2537,7 +2573,7 @@ const APP_INSTALLED =
 
   beforeAll(async () => {
     walk = await walkImports({
-      entries: [APP_ENTRY, CALENDAR_WORKER],
+      entries: [APP_ENTRY, CALENDAR_WORKER, MODEL_WORKER],
       esbuild,
     });
     alone = await walkImports({ entry: APP_ENTRY, esbuild });
@@ -2566,6 +2602,11 @@ const APP_INSTALLED =
   test("reaches ical.js only through the external calendar's worker, which is why the worker is an entry", () => {
     expect(reachedCommonNames(alone).has("ical.js")).toBe(false);
     expect(reachedCommonNames(walk).has("ical.js")).toBe(true);
+  });
+
+  test("reaches onnxruntime-web only through the names-and-addresses model's worker, which is why the worker is an entry", () => {
+    expect(reachedCommonNames(alone).has("onnxruntime-web")).toBe(false);
+    expect(reachedCommonNames(walk).has("onnxruntime-web")).toBe(true);
   });
 
   test("reaches what the App runs on", () => {
