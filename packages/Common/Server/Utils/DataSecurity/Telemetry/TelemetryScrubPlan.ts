@@ -90,6 +90,12 @@ export interface ScrubPlanFindingRecord {
   sampleRecords?: ReadonlyArray<FindingSampleRecord> | undefined;
   lastSeenAt?: Date | null | undefined;
   projectType?: ProjectDataTypePattern | undefined;
+  /*
+   * What OneUptime AI was last told of the place, hashed, and what it
+   * wrote then (#10752): a place told the same is not asked again.
+   */
+  aiScrubRuleInputHash?: string | undefined;
+  aiScrubRules?: unknown;
 }
 
 /*
@@ -130,6 +136,8 @@ export async function readScrubPlanFindingRecord(data: {
         location: true,
         sampleRecords: true,
         lastSeenAt: true,
+        aiScrubRuleInputHash: true,
+        aiScrubRules: true,
       },
       props: { isRoot: true },
     });
@@ -151,6 +159,12 @@ export async function readScrubPlanFindingRecord(data: {
       projectId: data.projectId,
       dataTypeId: finding.dataTypeId,
     }),
+    ...(finding.aiScrubRuleInputHash
+      ? {
+          aiScrubRuleInputHash: finding.aiScrubRuleInputHash,
+          aiScrubRules: finding.aiScrubRules,
+        }
+      : {}),
   };
 }
 

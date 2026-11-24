@@ -770,6 +770,52 @@ export default class DataStoreFinding extends BaseModel {
   public aiVerdictInputHash?: string = undefined;
 
   /*
+   * What OneUptime AI was told when it last wrote a scrub rule for this
+   * place, hashed (#10752): its data type, where it sits, the names of the
+   * attributes beside it and the shapes of its values
+   * (ScrubRuleWriter.getScrubRuleWriterInputHash). An evaluation of the
+   * issue that tells it the same reuses the answer below and makes no model
+   * call. OneUptime's own, read through no route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    title: "OneUptime AI's Scrub Rule Input Hash",
+    description:
+      "A hash of what OneUptime AI was told when it last wrote a scrub rule for this place, so a place told the same is not asked again.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public aiScrubRuleInputHash?: string = undefined;
+
+  /*
+   * What OneUptime AI wrote for this place from that input (#10752): its
+   * rules - a pattern, or the place's attribute to hide whole - or none,
+   * which is an answer too. Proven again on the newest records before it
+   * is offered, as a fresh answer is. OneUptime's own, read through no
+   * route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "OneUptime AI's Scrub Rules",
+    description:
+      "The scrub rules OneUptime AI last wrote for this place, a pattern or the attribute to hide whole, or none when it could write none.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public aiScrubRules?: JSONObject = undefined;
+
+  /*
    * OneUptime AI confirmed the finding on its own, where an AI rule sets
    * Judge to Without asking (#10372). Its own confirmations are never
    * precedent for its verdicts. A person's decision clears it.
@@ -804,8 +850,7 @@ export default class DataStoreFinding extends BaseModel {
     computed: true,
     canReadOnRelationQuery: true,
     title: "Decided At",
-    description:
-      "When the finding was last confirmed or marked not sensitive.",
+    description: "When the finding was last confirmed or marked not sensitive.",
   })
   @Column({
     type: ColumnType.Date,

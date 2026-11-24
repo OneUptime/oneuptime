@@ -25,7 +25,12 @@ import {
   DataSecurityAiPlannedChange,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiAction";
 import DataSecurityAiActions from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiActions";
-import ScrubRuleWriter from "../../../../../Server/Utils/AI/DataSecurity/ScrubRuleWriter";
+import DataSecurityAiCall from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
+import ScrubRuleWriter, {
+  getScrubRuleWriterInputHash,
+} from "../../../../../Server/Utils/AI/DataSecurity/ScrubRuleWriter";
+import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import AIService from "../../../../../Server/Services/AIService";
 import DataSecurityContainmentNotice from "../../../../../Server/Utils/DataSecurity/DataSecurityContainmentNotice";
 import * as IssueFindings from "../../../../../Server/Utils/DataSecurity/DataSecurityIssueFindings";
 import * as Jobs from "../../../../../Server/Utils/DataSecurity/DataSecurityJobs";
@@ -48,6 +53,7 @@ import {
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import {
+  MAX_SCRUB_RULE_WRITER_PLACES,
   ScrubRuleWriterPlace,
   ScrubRuleWriterRuleKind,
 } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
@@ -1190,6 +1196,567 @@ describe("OneUptime AI's rules, where none of Scrub It's fits", () => {
       detail: "not-scrubbable",
     });
     expect(written).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #10752: the issue is evaluated again whenever the hourly scan writes new
+ * findings into it, and a place only OneUptime AI could write a rule for
+ * went back to the model each time, told the same, spending AI credits for
+ * no new rule. Its finding now keeps what OneUptime AI was told, hashed,
+ * and what it wrote - and a place told the same is not asked again.
+ */
+describe("OneUptime AI writes a place's rule once", () => {
+  const KEY: string = "customer_name";
+  const SECOND_FINDING: string = "10364000-0000-4000-8000-0000000004a7";
+
+  // What each finding keeps, as the database would: read back on the next evaluation.
+  let kept: Map<
+    string,
+    { aiScrubRuleInputHash?: string; aiScrubRules?: unknown }
+  >;
+  // What each place is told now, by its location.
+  let toldOf: Map<string, ScrubRuleWriterPlace>;
+  let planned: SpyInstance<typeof ScrubIt.planProvenScrubItRule>;
+  let proveWritten: boolean;
+
+  function toldAbout(
+    location: string,
+    more: Partial<ScrubRuleWriterPlace> = {},
+  ): ScrubRuleWriterPlace {
+    const key: string = location.slice("attributes.".length);
+
+    return {
+      ref: "P1",
+      dataTypeId: "person-name",
+      dataTypeName: "Person name",
+      category: DataCategory.ContactAndIdentity,
+      foundBy: "name",
+      signal: "log",
+      location,
+      attributeKey: key,
+      locationKind: "Attribute",
+      neighbours: ["customer_id", "order.id"],
+      shapes: [
+        { shape: "Aaaa Aaa", share: 0.8 },
+        { shape: "Aaaaa Aaaaaa", share: 0.2 },
+      ],
+      valueCount: 40,
+      averageLength: 9,
+      ...more,
+    };
+  }
+
+  function keysRuleFor(
+    ref: string,
+    key: string = KEY,
+  ): {
+    ref: string;
+    kind: ScrubRuleWriterRuleKind;
+    keys: Array<string>;
+  } {
+    return { ref, kind: ScrubRuleWriterRuleKind.Keys, keys: [key] };
+  }
+
+  beforeEach(() => {
+    kept = new Map();
+    toldOf = new Map([
+      [`attributes.${KEY}`, toldAbout(`attributes.${KEY}`)],
+      ["attributes.contact_name", toldAbout("attributes.contact_name")],
+    ]);
+    proveWritten = true;
+    counted = [
+      finding(
+        NAME_FINDING,
+        "person-name",
+        `attributes.${KEY}`,
+        4,
+        DataCategory.ContactAndIdentity,
+      ),
+    ];
+
+    jest
+      .spyOn(ScrubPlanModule, "readScrubPlanFindingRecord")
+      .mockImplementation(async (data: { findingId: string }) => {
+        const location: string =
+          counted.find((item: DataStoreFinding): boolean => {
+            return item.id!.toString() === data.findingId;
+          })?.location || "";
+
+        return {
+          findingId: data.findingId,
+          kind: DataStoreKind.TelemetryLogs,
+          dataTypeId: "person-name",
+          location,
+          target: {
+            signal: "log",
+            field: "attributes",
+            key: location.slice("attributes.".length),
+          } as never,
+          ...(kept.get(data.findingId) || {}),
+        };
+      });
+    jest
+      .spyOn(ScrubShapes, "describeScrubPlace")
+      .mockImplementation(
+        async (data: { ref: string; finding: { location: string } }) => {
+          return { ...toldOf.get(data.finding.location)!, ref: data.ref };
+        },
+      );
+    // What a finding keeps, the way the database keeps it: read on the next evaluation.
+    jest
+      .spyOn(DataStoreFindingService, "updateColumnsByIdWithoutHooks")
+      .mockImplementation((async (data: {
+        id: ObjectID;
+        data: { aiScrubRuleInputHash?: string; aiScrubRules?: unknown };
+      }) => {
+        if (data.data.aiScrubRuleInputHash) {
+          kept.set(data.id.toString(), {
+            aiScrubRuleInputHash: data.data.aiScrubRuleInputHash,
+            aiScrubRules: JSON.parse(JSON.stringify(data.data.aiScrubRules)),
+          });
+        }
+      }) as never);
+    planned = jest
+      .spyOn(ScrubIt, "planProvenScrubItRule")
+      .mockImplementation(
+        async (data: Parameters<typeof ScrubIt.planProvenScrubItRule>[0]) => {
+          // None of Scrub It's own rules hides a name: OneUptime AI is asked.
+          if (!data.onlyCandidates || !proveWritten) {
+            throw new BadDataException("No rule fits.");
+          }
+
+          return namedKeysRule({
+            findingId: data.findingId!,
+            dataTypeId: "person-name",
+            key: data.onlyCandidates[0]!.attributeKeys![0]!,
+            dataTypeName: "Person name",
+            scrubAction: LogScrubAction.Mask,
+            source: ScrubRuleSource.OneUptimeAi,
+          });
+        },
+      );
+  });
+
+  function writerAnswering(
+    rulesFor: (places: ReadonlyArray<ScrubRuleWriterPlace>) => Array<{
+      ref: string;
+      kind: ScrubRuleWriterRuleKind;
+      keys: Array<string>;
+    }>,
+  ): SpyInstance<typeof ScrubRuleWriter.write> {
+    return jest
+      .spyOn(ScrubRuleWriter, "write")
+      .mockImplementation(
+        async (data: { places: ReadonlyArray<ScrubRuleWriterPlace> }) => {
+          return { kind: "written", rules: rulesFor(data.places) };
+        },
+      );
+  }
+
+  function aiRulesOf(outcome: DataSecurityAiPlanOutcome): Array<string> {
+    return changesOf(outcome).flatMap(
+      (change: DataSecurityAiPlannedChange): Array<string> => {
+        return (readScrubPlan(change.plan)?.rules || []).map(
+          (rule: { name: string; source?: string | undefined }): string => {
+            return `${rule.source}: ${rule.name}`;
+          },
+        );
+      },
+    );
+  }
+
+  test("evaluating the same issue twice asks once, and proposes the same rule from the answer it kept", async () => {
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref);
+        });
+      },
+    );
+
+    const first: DataSecurityAiPlanOutcome =
+      await ScrubTelemetryAction.plan(context());
+    const second: DataSecurityAiPlanOutcome =
+      await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(1);
+    expect(aiRulesOf(second)).toEqual(aiRulesOf(first));
+    expect(aiRulesOf(first)).toEqual([
+      `${ScrubRuleSource.OneUptimeAi}: Data Security: Person name in ${KEY} of checkout`,
+    ]);
+    // The same places in the same lane: the very proposal it made before.
+    expect(
+      changesOf(second).map((change: DataSecurityAiPlannedChange) => {
+        return change.planKey;
+      }),
+    ).toEqual(
+      changesOf(first).map((change: DataSecurityAiPlannedChange) => {
+        return change.planKey;
+      }),
+    );
+    // The kept answer was proven again on the newest records, as a fresh one is.
+    const lastPlanned: Parameters<typeof ScrubIt.planProvenScrubItRule>[0] =
+      planned.mock.calls[planned.mock.calls.length - 1]![0];
+
+    expect(lastPlanned.onlyCandidates).toEqual([
+      expect.objectContaining({
+        source: ScrubRuleSource.OneUptimeAi,
+        patternType: SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+        attributeKeys: [KEY],
+      }),
+    ]);
+  });
+
+  /*
+   * A plan holds at most MAX_SCRUB_PLACES_PER_PROPOSAL places, and one call
+   * tells at most MAX_SCRUB_RULE_WRITER_PLACES: a place no call told keeps
+   * no answer, so it is asked once it is planned.
+   */
+  test("only the places a call told keep an answer; a full plan is asked once", async () => {
+    const PLACES: number = MAX_SCRUB_RULE_WRITER_PLACES + 2;
+
+    counted = [];
+    toldOf = new Map();
+
+    for (let index: number = 0; index < PLACES; index++) {
+      const location: string = `attributes.name_${index}`;
+
+      counted.push(
+        finding(
+          `10364000-0000-4000-8000-0000000005${String(index).padStart(2, "0")}`,
+          "person-name",
+          location,
+          4,
+          DataCategory.ContactAndIdentity,
+        ),
+      );
+      toldOf.set(location, toldAbout(location));
+    }
+
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref, place.attributeKey!);
+        });
+      },
+    );
+
+    await ScrubTelemetryAction.plan(context());
+
+    const told: number = Math.min(
+      MAX_SCRUB_PLACES_PER_PROPOSAL,
+      MAX_SCRUB_RULE_WRITER_PLACES,
+    );
+
+    expect(written).toHaveBeenCalledTimes(1);
+    expect(written.mock.calls[0]![0].places).toHaveLength(told);
+    // Only the places it was told keep an answer, each its own.
+    expect(kept.size).toBe(told);
+    expect(kept.has(counted[PLACES - 1]!.id!.toString())).toBe(false);
+    expect(kept.get(counted[0]!.id!.toString())?.aiScrubRules).toEqual({
+      rules: [{ kind: "keys", keys: ["name_0"] }],
+    });
+
+    // The same plan again: every place it holds reuses its answer.
+    await ScrubTelemetryAction.plan(context());
+    await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(1);
+  });
+
+  test("keeps on the finding what it was told, hashed, and what it wrote - never a value", async () => {
+    writerAnswering((places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+      return places.map((place: ScrubRuleWriterPlace) => {
+        return keysRuleFor(place.ref);
+      });
+    });
+
+    await ScrubTelemetryAction.plan(context());
+
+    expect(kept.get(NAME_FINDING)).toEqual({
+      aiScrubRuleInputHash: getScrubRuleWriterInputHash(
+        toldOf.get(`attributes.${KEY}`)!,
+      ),
+      aiScrubRules: { rules: [{ kind: "keys", keys: [KEY] }] },
+    });
+  });
+
+  test("spends no AI credits on a repeat: the model is called once, the second evaluation reuses its answer", async () => {
+    jest
+      .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(AIService, "getReachedProjectDailyLimit")
+      .mockResolvedValue(null);
+    const asked: SpyInstance<typeof DataSecurityAiCall.ask> = jest
+      .spyOn(DataSecurityAiCall, "ask")
+      .mockResolvedValue({
+        content: JSON.stringify({
+          rules: [{ ref: "P1", kind: "keys", keys: [KEY] }],
+        }),
+      } as never);
+
+    const first: DataSecurityAiPlanOutcome =
+      await ScrubTelemetryAction.plan(context());
+    const second: DataSecurityAiPlanOutcome =
+      await ScrubTelemetryAction.plan(context());
+    const third: DataSecurityAiPlanOutcome =
+      await ScrubTelemetryAction.plan(context());
+
+    expect(asked).toHaveBeenCalledTimes(1);
+    expect(aiRulesOf(second)).toEqual(aiRulesOf(first));
+    expect(aiRulesOf(third)).toEqual(aiRulesOf(first));
+  });
+
+  test.each([
+    ["its values changed shape", { shapes: [{ shape: "AAA-9999", share: 1 }] }],
+    [
+      "a shape was added",
+      {
+        shapes: [
+          { shape: "Aaaa Aaa", share: 0.7 },
+          { shape: "Aaaaa Aaaaaa", share: 0.2 },
+          { shape: "Aaa", share: 0.1 },
+        ],
+      },
+    ],
+    [
+      "a new attribute sits beside it",
+      { neighbours: ["customer_id", "order.id", "user.email"] },
+    ],
+    ["an attribute beside it is gone", { neighbours: ["customer_id"] }],
+    [
+      "its data type changed",
+      {
+        dataTypeId: "custom:10364000-0000-4000-8000-0000000000c1",
+        dataTypeName: "Customer name",
+      },
+    ],
+    ["its type is named otherwise", { dataTypeName: "Customer name" }],
+  ] as Array<[string, Partial<ScrubRuleWriterPlace>]>)(
+    "asks again for a place whose told facts changed: %s",
+    async (_what: string, change: Partial<ScrubRuleWriterPlace>) => {
+      const written: SpyInstance<typeof ScrubRuleWriter.write> =
+        writerAnswering((places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+          return places.map((place: ScrubRuleWriterPlace) => {
+            return keysRuleFor(place.ref);
+          });
+        });
+
+      await ScrubTelemetryAction.plan(context());
+
+      const before: string | undefined =
+        kept.get(NAME_FINDING)?.aiScrubRuleInputHash;
+
+      toldOf.set(`attributes.${KEY}`, toldAbout(`attributes.${KEY}`, change));
+      await ScrubTelemetryAction.plan(context());
+
+      expect(written).toHaveBeenCalledTimes(2);
+      expect(kept.get(NAME_FINDING)?.aiScrubRuleInputHash).not.toBe(before);
+
+      // Told the same again, it is not asked a third time.
+      await ScrubTelemetryAction.plan(context());
+
+      expect(written).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  test("asks again for a place at another location: a new finding of its own", async () => {
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref, place.attributeKey!);
+        });
+      },
+    );
+
+    await ScrubTelemetryAction.plan(context());
+
+    counted = [
+      finding(
+        SECOND_FINDING,
+        "person-name",
+        "attributes.contact_name",
+        4,
+        DataCategory.ContactAndIdentity,
+      ),
+    ];
+    await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(2);
+    expect(written.mock.calls[1]![0].places).toEqual([
+      expect.objectContaining({ location: "attributes.contact_name" }),
+    ]);
+  });
+
+  test('a "no rule" answer is not asked again until what the place is told changes', async () => {
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      () => {
+        return [];
+      },
+    );
+
+    expect(await ScrubTelemetryAction.plan(context())).toEqual({
+      kind: "nothing",
+      detail: "not-scrubbable",
+    });
+    expect(kept.get(NAME_FINDING)?.aiScrubRules).toEqual({ rules: [] });
+
+    expect(await ScrubTelemetryAction.plan(context())).toEqual({
+      kind: "nothing",
+      detail: "not-scrubbable",
+    });
+    expect(written).toHaveBeenCalledTimes(1);
+
+    toldOf.set(
+      `attributes.${KEY}`,
+      toldAbout(`attributes.${KEY}`, { neighbours: ["customer_id"] }),
+    );
+    await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(2);
+  });
+
+  test("a rule it wrote that could not be proven is not asked again, and is proven again on newer records", async () => {
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref);
+        });
+      },
+    );
+
+    proveWritten = false;
+    expect(await ScrubTelemetryAction.plan(context())).toEqual({
+      kind: "nothing",
+      detail: "not-scrubbable",
+    });
+
+    // Newer records prove it: no model call, the kept rule is proposed.
+    proveWritten = true;
+    expect(aiRulesOf(await ScrubTelemetryAction.plan(context()))).toEqual([
+      `${ScrubRuleSource.OneUptimeAi}: Data Security: Person name in ${KEY} of checkout`,
+    ]);
+    expect(written).toHaveBeenCalledTimes(1);
+  });
+
+  test("a call that wrote nothing - no credits, no provider, an answer it could not read - keeps nothing, and the place is asked again", async () => {
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = jest
+      .spyOn(ScrubRuleWriter, "write")
+      .mockResolvedValue({ kind: "nothing", detail: "no-ai-credits" });
+
+    expect(await ScrubTelemetryAction.plan(context())).toEqual({
+      kind: "nothing",
+      detail: "not-scrubbable",
+    });
+    expect(kept.has(NAME_FINDING)).toBe(false);
+
+    await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(2);
+  });
+
+  test("only the places told something new are asked; the others keep their answers", async () => {
+    counted = [
+      finding(
+        NAME_FINDING,
+        "person-name",
+        `attributes.${KEY}`,
+        4,
+        DataCategory.ContactAndIdentity,
+      ),
+      finding(
+        SECOND_FINDING,
+        "person-name",
+        "attributes.contact_name",
+        3,
+        DataCategory.ContactAndIdentity,
+      ),
+    ];
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref, place.attributeKey!);
+        });
+      },
+    );
+
+    await ScrubTelemetryAction.plan(context());
+
+    expect(written.mock.calls[0]![0].places).toHaveLength(2);
+
+    toldOf.set(
+      "attributes.contact_name",
+      toldAbout("attributes.contact_name", {
+        shapes: [{ shape: "Aaaa", share: 1 }],
+      }),
+    );
+
+    const second: DataSecurityAiPlanOutcome =
+      await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(2);
+    expect(written.mock.calls[1]![0].places).toEqual([
+      expect.objectContaining({ location: "attributes.contact_name" }),
+    ]);
+    // Both places still have a rule - one kept, one written now - merged into one.
+    expect(aiRulesOf(second)).toEqual([
+      `${ScrubRuleSource.OneUptimeAi}: Data Security: Person name in ${KEY}, contact_name of checkout`,
+    ]);
+    expect(
+      changesOf(second).flatMap((change: DataSecurityAiPlannedChange) => {
+        return (readScrubPlan(change.plan)?.rules || []).flatMap(
+          (rule: { findingIds: Array<string> }) => {
+            return rule.findingIds;
+          },
+        );
+      }),
+    ).toEqual([NAME_FINDING, SECOND_FINDING]);
+  });
+
+  test("an answer the finding could not keep is only asked again: the evaluation goes on", async () => {
+    jest
+      .spyOn(DataStoreFindingService, "updateColumnsByIdWithoutHooks")
+      .mockRejectedValue(new Error("connection reset"));
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref);
+        });
+      },
+    );
+
+    expect(aiRulesOf(await ScrubTelemetryAction.plan(context()))).toHaveLength(
+      1,
+    );
+    await ScrubTelemetryAction.plan(context());
+
+    expect(written).toHaveBeenCalledTimes(2);
+  });
+
+  test("an answer kept for what the place was told before is not reused once it is told otherwise", async () => {
+    // Kept from an earlier evaluation, for other shapes: no answer for now.
+    kept.set(NAME_FINDING, {
+      aiScrubRuleInputHash: getScrubRuleWriterInputHash(
+        toldAbout(`attributes.${KEY}`, {
+          shapes: [{ shape: "999", share: 1 }],
+        }),
+      ),
+      aiScrubRules: { rules: [] },
+    });
+    const written: SpyInstance<typeof ScrubRuleWriter.write> = writerAnswering(
+      (places: ReadonlyArray<ScrubRuleWriterPlace>) => {
+        return places.map((place: ScrubRuleWriterPlace) => {
+          return keysRuleFor(place.ref);
+        });
+      },
+    );
+
+    expect(aiRulesOf(await ScrubTelemetryAction.plan(context()))).toHaveLength(
+      1,
+    );
+    expect(written).toHaveBeenCalledTimes(1);
   });
 });
 
