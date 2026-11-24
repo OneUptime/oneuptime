@@ -1163,9 +1163,12 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       "Server/Services/LogSavedViewService.ts",
     );
 
-    // The viewer asks for, and saves to, its own page.
+    /*
+     * The viewer asks for, and saves to, its own page: every read of its
+     * views, the first ones and any held past them (#10646), by that query.
+     */
     expect(dashboardViewer).toContain(
-      "scope: getSavedViewScopeQueryValue(props.savedViewScope),",
+      "scope: getSavedViewScopeQueryValue(props.savedViewScope!),",
     );
     expect(dashboardViewer).toContain("savedView.scope = scope;");
     // The Logs page has its views; a cluster's and a host's tab have theirs.
