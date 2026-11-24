@@ -999,4 +999,31 @@ export default class DataSecurityIssue extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public aiAnalysisLlmLogId?: ObjectID = undefined;
+
+  /*
+   * The Code task whose pull request fixes the issue in code (#10367): Fix
+   * with AI's, or the one pull request that stops a service writing all of
+   * its telemetry leaks - which every issue it fixes keeps. Its first run's
+   * id, no relation: a run is read by every Project Member and Viewer, and
+   * its pull request is read with Code's own rules (DataSecurityIssueCodeFix).
+   * #10368 follows it to production once it merges. The newest asked for
+   * wins; kept once the issue resolves.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Code Fix Task ID",
+    description:
+      "The Code task whose pull request fixes this issue in code: Fix with AI's, or the one that stops its service writing its telemetry leaks. Empty until a fix is asked for.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public codeFixTaskId?: ObjectID = undefined;
 }

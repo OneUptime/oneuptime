@@ -422,7 +422,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
  * so (drawnStepName, #8708).
  */
 const RECORD_STEPS: Record<string, Array<string>> = {
-  [ON_SUBMIT]: ["On Create Incident"],
+  [ON_SUBMIT]: ["On Create Incident", "On Create Alert"],
 };
 
 /*
@@ -532,9 +532,13 @@ const COMPOSED_SEPARATOR: string = " · ";
 /*
  * A table's create button: the Dashboard draws it from the row's name. The
  * form's Custom Domains table had one, after its model ("Create Form
- * Domain"); it opens Add Custom Domain now, a label like any other.
+ * Domain"); it opens Add Custom Domain now, a label like any other. An alert
+ * form's alert is made as one created by hand with the Alerts table's
+ * Create Alert button (#10760) - the button, not the permission of that name.
  */
-const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {};
+const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
+  [ON_SUBMIT]: ["Create Alert"],
+};
 
 // The public form page's labels, by the Accounts locale key it draws them with.
 const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
@@ -706,6 +710,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Hidden from status pages.",
     "Declared by nobody.",
     "Its owners are told.",
+    // An alert form's (#10760).
+    "No severity, no alert.",
+    "Its owners are told, once.",
+    "It starts where you say.",
+    "Created by nobody, and not private.",
     "A private note records the submission",
     "Mentions notify nobody.",
     "Images become links.",
@@ -801,7 +810,11 @@ const PUBLIC_PAGE_MESSAGES: Record<string, Array<PublicPageMessage>> = {
     { key: "form.successTitle" },
     { key: "form.reference", values: { reference: "INC-42" } },
   ],
-  [ON_SUBMIT]: [{ key: FormMessage.NoSeverity }],
+  [ON_SUBMIT]: [
+    { key: FormMessage.NoSeverity },
+    // An alert form's, with no severity to give its alerts (#10760).
+    { key: FormMessage.NoAlertSeverity },
+  ],
   [SHARING]: [
     { key: FormMessage.NotAvailable },
     { key: FormMessage.NetworkNotAllowed },

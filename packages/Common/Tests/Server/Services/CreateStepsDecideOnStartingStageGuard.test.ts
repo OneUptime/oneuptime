@@ -82,7 +82,7 @@ const SERVICES: Array<ServiceSteps> = [
       "IncidentAlertService.createDeclaredFromAlertsFeedItem":
         "the alerts it was declared from",
       "IncidentAlertService.copyAlertOwnersToIncident":
-        "who may see a private incident",
+        "its owners, from the alerts it was declared from - and who may see it",
       "this.handleIncidentStateChangeAsync": "its first state",
       "this.addOwners": "its owners",
       "this.releaseCreatedNotificationHeldForOwners":

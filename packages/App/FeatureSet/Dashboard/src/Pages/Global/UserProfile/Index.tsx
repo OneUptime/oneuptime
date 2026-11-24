@@ -49,6 +49,8 @@ export const FEEDBACK_QUESTIONS_COPY: {
   title: string;
   onDescription: string;
   offDescription: string;
+  onDescriptionWithoutGiveFeedback: string;
+  offDescriptionWithoutGiveFeedback: string;
 } = {
   cardTitle: translationKey("Feedback Questions"),
   cardDescription: translationKey(
@@ -61,6 +63,39 @@ export const FEEDBACK_QUESTIONS_COPY: {
   offDescription: translationKey(
     "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.",
   ),
+  /*
+   * The same, where the server's admins hid Give feedback (Admin Dashboard >
+   * Settings > Help and Support, #10865): nothing promises it.
+   */
+  onDescriptionWithoutGiveFeedback: translationKey(
+    "OneUptime may ask you one short question now and then.",
+  ),
+  offDescriptionWithoutGiveFeedback: translationKey(
+    "OneUptime never asks you.",
+  ),
+};
+
+/*
+ * What the switch says it does, on or off. Give feedback in Help is
+ * promised beside it only where the server offers it: not where its admins
+ * hid it, or sent it to an address the server cannot email yet (#10865).
+ */
+export const getFeedbackQuestionsDescription: (data: {
+  isOn: boolean;
+  isGiveFeedbackOffered: boolean;
+}) => string = (data: {
+  isOn: boolean;
+  isGiveFeedbackOffered: boolean;
+}): string => {
+  if (!data.isGiveFeedbackOffered) {
+    return data.isOn
+      ? FEEDBACK_QUESTIONS_COPY.onDescriptionWithoutGiveFeedback
+      : FEEDBACK_QUESTIONS_COPY.offDescriptionWithoutGiveFeedback;
+  }
+
+  return data.isOn
+    ? FEEDBACK_QUESTIONS_COPY.onDescription
+    : FEEDBACK_QUESTIONS_COPY.offDescription;
 };
 
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
@@ -280,9 +315,11 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardDescription={FEEDBACK_QUESTIONS_COPY.cardDescription}
           title={FEEDBACK_QUESTIONS_COPY.title}
           getDescription={(isOn: boolean): string => {
-            return isOn
-              ? FEEDBACK_QUESTIONS_COPY.onDescription
-              : FEEDBACK_QUESTIONS_COPY.offDescription;
+            return getFeedbackQuestionsDescription({
+              isOn: isOn,
+              isGiveFeedbackOffered:
+                feedbackSettings?.isGiveFeedbackOffered !== false,
+            });
           }}
           onSaved={(isOn: boolean) => {
             const settings: ProductFeedbackSettings | null =

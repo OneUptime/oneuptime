@@ -140,7 +140,7 @@ Chaque requête passe ces vérifications, dans cet ordre :
 5. Elle doit venir d'un utilisateur privé du formulaire, connecté, quand le formulaire est réglé sur **Uniquement les personnes qui se connectent** — voir [Uniquement les personnes qui se connectent](#uniquement-les-personnes-qui-se-connectent).
 6. Une soumission doit réussir le captcha, quand l'instance a activé le captcha.
 7. Chaque réponse doit respecter les limites de taille et convenir à sa question — voir [Créer un formulaire](/docs/forms/building#limites-de-taille).
-8. Ce que les réponses et les paramètres produisent doit pouvoir être créé : un incident a besoin d'une gravité, un événement d'une fin après son début.
+8. Ce que les réponses et les paramètres produisent doit pouvoir être créé : un incident ou une alerte a besoin d'une gravité, un événement d'une fin après son début.
 9. Une soumission doit tenir dans le quota horaire du formulaire — voir [Limites de débit](#limites-de-débit).
 10. Ses fichiers doivent tenir dans le quota horaire de fichiers du formulaire, juste avant d'être enregistrés.
 
@@ -244,6 +244,10 @@ Ouvrez la page **Domaines personnalisés** du formulaire et lisez la colonne **S
 Le formulaire ne demande pas de gravité, ses paramètres n'en nomment aucune — ou celle nommée a été supprimée — et son modèle d'incident n'en définit pas non plus. Choisissez une gravité sur la page **À la soumission** du formulaire. Voir [Pas de gravité, pas d'incident](/docs/forms/on-submit#comment-une-soumission-devient-un-incident).
 :::
 
+:::details Ce formulaire ne peut pas créer d'alerte parce qu'il n'a pas de gravité
+Le formulaire d'alerte ne demande pas de gravité, et ses paramètres n'en nomment aucune — ou celle nommée a été supprimée. Choisissez une gravité sur la page **À la soumission** du formulaire. Voir [Comment une soumission devient une alerte](/docs/forms/on-submit#comment-une-soumission-devient-une-alerte).
+:::
+
 :::details Une soumission est refusée
 Le message dit ce qui ne va pas : une réponse obligatoire manque ou ne contient que des espaces, une réponse est trop longue ou ne convient pas à sa question, l'adresse e-mail n'est pas une seule adresse ordinaire, ou une fenêtre de maintenance finit avant de commencer. "La vérification captcha a échoué. Veuillez réessayer." signifie que le captcha n'a pas été réussi, ou a expiré : résolvez-le à nouveau. Sur une installation auto-hébergée où chaque soumission échoue au captcha, vérifiez que `CAPTCHA_SITE_KEY` et `CAPTCHA_SECRET_KEY` sont tous deux définis.
 :::
@@ -261,7 +265,7 @@ C'est voulu : les incidents d'un formulaire sont déclarés masqués, et les év
 :::
 
 :::details Personne n'a été alerté
-L'incident d'un formulaire exécute les politiques d'astreinte que nomment ses paramètres et son modèle, et ce que vos règles d'astreinte ajoutent, comme tout autre incident. Sans rien de cela, personne n'est alerté. Ajoutez une politique d'astreinte sur la page **À la soumission** du formulaire, ou écrivez une règle d'astreinte qui correspond à ses incidents — par une étiquette que le formulaire ajoute toujours, par exemple.
+L'incident d'un formulaire exécute les politiques d'astreinte que nomment ses paramètres et son modèle, et ce que vos règles d'astreinte ajoutent, comme tout autre incident ; l'alerte d'un formulaire, les politiques que nomment ses paramètres et ce que vos règles d'astreinte des alertes ajoutent. Sans rien de cela, personne n'est alerté. Une alerte qui démarre dans un état ultérieur, comme **Pris en compte**, n'alerte personne, et c'est voulu. Ajoutez une politique d'astreinte sur la page **À la soumission** du formulaire, ou écrivez une règle d'astreinte qui correspond à ses incidents ou à ses alertes — par une étiquette que le formulaire ajoute toujours, par exemple.
 :::
 
 ## Étapes suivantes

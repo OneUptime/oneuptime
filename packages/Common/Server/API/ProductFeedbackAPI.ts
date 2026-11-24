@@ -31,6 +31,7 @@ import {
   PRODUCT_FEEDBACK_LIST_PAGE_SIZE,
   PRODUCT_FEEDBACK_ROUTE,
   PRODUCT_FEEDBACK_SETTINGS_ROUTE,
+  GIVE_FEEDBACK_NOT_TAKEN_MESSAGE,
   ProductFeedbackKind,
   ProductFeedbackSettings,
   ProductFeedbackSubmission,
@@ -212,6 +213,19 @@ router.get(
         ...(settings.giveFeedbackGoesTo
           ? { giveFeedbackGoesTo: settings.giveFeedbackGoesTo }
           : {}),
+        /*
+         * Whether Give feedback is offered, and the address it goes to or
+         * the page it opens where a master admin chose one (#10865).
+         */
+        ...(typeof settings.isGiveFeedbackOffered === "boolean"
+          ? { isGiveFeedbackOffered: settings.isGiveFeedbackOffered }
+          : {}),
+        ...(settings.giveFeedbackTo
+          ? { giveFeedbackTo: settings.giveFeedbackTo }
+          : {}),
+        ...(settings.giveFeedbackUrl
+          ? { giveFeedbackUrl: settings.giveFeedbackUrl }
+          : {}),
       });
     } catch (err) {
       next(err);
@@ -276,6 +290,19 @@ router.post(
       }
 
       await assertMayAnswer(userId);
+
+      /*
+       * Give feedback where the server does not take it here - hidden, sent
+       * to a page of the server's own, or to an address it cannot email
+       * (#10865) - is refused, never kept and called sent: the person is
+       * told to look in Help, which says where it goes.
+       */
+      if (
+        submission.kind === ProductFeedbackKind.General &&
+        !(await ProductFeedbackService.isGiveFeedbackTaken())
+      ) {
+        throw new BadDataException(GIVE_FEEDBACK_NOT_TAKEN_MESSAGE);
+      }
 
       const answerId: ObjectID =
         await ProductFeedbackService.submit(submission);

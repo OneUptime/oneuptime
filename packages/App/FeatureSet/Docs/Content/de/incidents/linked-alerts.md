@@ -2,7 +2,7 @@
 
 Ein Ausfall löst selten nur eine Warnung aus. Fällt die primäre Datenbank aus, schlägt der Monitor für die Replikationsverzögerung an, der Monitor für die API-Fehlerrate schlägt an, und das SLO für die Checkout-Latenz beginnt sein Budget zu verbrennen – drei Warnungen, ein Problem. Diese Warnungen mit dem Vorfall zu verknüpfen sagt genau das: Der Vorfall ist der Ort der Reaktion, und jede Warnung zeigt, welcher Vorfall sie erklärt.
 
-Eine Verknüpfung ist nur eine Verknüpfung. Die Warnung behält ihren eigenen Status, ihre Eigentümer, Bereitschaftsrichtlinien, Notizen und ihren Feed; der Vorfall behält seine. Verknüpfen führt nichts zusammen und kopiert nichts, und für sich allein bestätigt, behebt oder stummschaltet es nie eine Warnung. (Einen neuen Vorfall aus Warnungen zu melden ist anders: Der neue Vorfall wird aus ihnen vorausgefüllt, wie [unten beschrieben](#einen-vorfall-aus-warnungen-melden), und sofern Sie das Häkchen im Formular nicht entfernen, werden die Warnungen beim Melden bestätigt, was ihre Eskalation stoppt – siehe [Die Warnungen beim Melden bestätigen](#die-warnungen-beim-melden-bestätigen).) Zwei Projektschalter, in neuen Projekten eingeschaltet, bewegen die verknüpften Warnungen mit, wenn der Vorfall bestätigt und behoben wird – siehe [weiter unten](#warnungsstatus-mit-dem-vorfall-synchron-halten).
+Eine Verknüpfung ist nur eine Verknüpfung. Die Warnung behält ihren eigenen Status, ihre Eigentümer, Bereitschaftsrichtlinien, Notizen und ihren Feed; der Vorfall behält seine. Verknüpfen führt nichts zusammen und kopiert nichts, und für sich allein bestätigt, behebt oder stummschaltet es nie eine Warnung. (Einen neuen Vorfall aus Warnungen zu melden ist anders: Der neue Vorfall wird aus ihnen vorausgefüllt und beginnt mit ihren Eigentümern, wie [unten beschrieben](#einen-vorfall-aus-warnungen-melden), und sofern Sie das Häkchen im Formular nicht entfernen, werden die Warnungen beim Melden bestätigt, was ihre Eskalation stoppt – siehe [Die Warnungen beim Melden bestätigen](#die-warnungen-beim-melden-bestätigen).) Zwei Projektschalter, in neuen Projekten eingeschaltet, bewegen die verknüpften Warnungen mit, wenn der Vorfall bestätigt und behoben wird – siehe [weiter unten](#warnungsstatus-mit-dem-vorfall-synchron-halten).
 
 :::cards
 - [Warnungen mit einem Vorfall verknüpfen](#warnungen-von-einem-vorfall-aus-verknüpfen): Vom Vorfall aus, von der Warnung aus oder viele auf einmal.
@@ -119,11 +119,12 @@ Welchen Weg Sie auch nehmen, Sie landen im üblichen Formular **Neuen Vorfall me
 | **Vorfallsschweregrad** | Der Schweregrad der schwersten Warnung, übersetzt in einen Vorfallsschweregrad. Ein Vorfallsschweregrad mit demselben Namen, ohne Rücksicht auf Groß- und Kleinschreibung, gewinnt. Sonst nimmt OneUptime den Vorfallsschweregrad an derselben Position in der Reihenfolge der Schweregrade, oder den letzten, wenn Sie weniger Vorfallsschweregrade haben. |
 | **Betroffene Ressourcen** | Alle Monitore, Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste der gewählten Warnungen, zusammengeführt. Die Monitore kommen unter **Monitore**, der Rest unter **Andere betroffene Ressourcen**. Andere Ressourcen, etwa SLOs oder VMware-, Proxmox- und Ceph-Cluster, werden nicht kopiert – fügen Sie sie selbst hinzu, wenn der Vorfall sie betrifft. |
 | **Beschriftungen**     | Jede Beschriftung jeder gewählten Warnung. |
-| **Privater Vorfall**   | An, wenn eine der Warnungen privat ist. Das Formular sagt das, und die Eigentümer der Warnungen werden Eigentümer des Vorfalls – siehe unten. |
+| **Eigentümer**         | Jede Person und jedes Team, denen eine der Warnungen gehört, jeweils einmal – aber keine Person, die das Projekt verlassen hat. Der Kasten nennt sie. Siehe [Die Eigentümer der Warnungen sind Eigentümer des Vorfalls](#die-eigentümer-der-warnungen-sind-eigentümer-des-vorfalls). |
+| **Privater Vorfall**   | An, wenn eine der Warnungen privat ist. Das Formular sagt das – siehe unten. |
 
 „Schwerste“ folgt Ihrer Reihenfolge der Warnungsschweregrade: Der erste Warnungsschweregrad in der Liste ist der schwerste. Mit den Schweregraden, mit denen jedes Projekt startet, wird aus einer Warnung **Hoch** ein Vorfall mit dem Schweregrad **Kritischer Vorfall** und aus einer Warnung **Niedrig** einer mit dem Schweregrad **Schwerwiegender Vorfall**.
 
-Vor dem Absenden lässt sich alles bearbeiten. **Beschriftungen** und **Privater Vorfall** stehen unter **Weitere Felder** im ersten Schritt des Formulars, dessen eingeklappte Überschrift jedes davon zeigt, solange es gesetzt ist.
+Vor dem Absenden lässt sich alles bearbeiten. **Beschriftungen**, **Privater Vorfall** und **Eigentümer** stehen unter **Weitere Felder** im ersten Schritt des Formulars, dessen eingeklappte Überschrift jedes davon zeigt, solange es gesetzt ist.
 
 **Eine Warnung, die schon einen Vorfall hat, wird gekennzeichnet.** Da **Vorfall melden** auf der Seite jeder Warnung steht, könnten zwei Responder, die durch denselben Ausfall alarmiert wurden, ihn jeder für sich melden. Daher markiert der Kasten mit den Warnungen jede Warnung, die schon mit einem Vorfall verknüpft ist – „(already linked to Incident INC-42)“, mit Link zu diesem Vorfall – und fügt einen Hinweis hinzu, dessen Wortlaut davon abhängt, wie viele der Warnungen verknüpft sind:
 
@@ -137,7 +138,7 @@ Die Vorfall-Links öffnen sich in einem neuen Tab, sodass Sie den bestehenden Vo
 
 **Die Monitore der Warnungen werden als betroffene Monitore vorausgefüllt.** Wie bei jedem von Hand gemeldeten Vorfall pausiert die aktive Überwachung der Monitore des Vorfalls, bis der Vorfall behoben ist. Entfernen Sie vor dem Absenden einen Monitor aus **Monitore** im Schritt **Betroffene Ressourcen**, wenn er weiter geprüft werden soll.
 
-**Eine private Warnung ergibt einen privaten Vorfall.** Ist eine der Warnungen privat, beginnt **Privater Vorfall** eingeschaltet, und der Kasten mit den Warnungen sagt das. Ein privater Vorfall ist nur für seine Eigentümer, Projektinhaber und Projektadministratoren sichtbar; OneUptime stellt daher sicher, dass die Leute, die die Warnungen sehen konnten, auch den Vorfall sehen: Nach dem Melden werden die Eigentümer jeder gemeldeten Warnung – Benutzer wie Teams – als Eigentümer des Vorfalls hinzugefügt, ohne benachrichtigt zu werden. Sie werden direkt nach dem Anlegen der Slack- und Microsoft-Teams-Kanäle des Vorfalls hinzugefügt, sodass sie wie jeder andere Eigentümer in diese Kanäle eingeladen werden. Auch Sie sind Eigentümer, wie bei jedem Vorfall, den Sie melden. Dasselbe geschieht, wenn eine Datenschutzregel für Vorfälle den neuen Vorfall privat macht. Schalten Sie **Privater Vorfall** vor dem Absenden aus und greift keine Datenschutzregel, ist der Vorfall nicht privat, und es werden keine Eigentümer kopiert.
+**Eine private Warnung ergibt einen privaten Vorfall.** Ist eine der Warnungen privat, beginnt **Privater Vorfall** eingeschaltet, und der Kasten mit den Warnungen sagt das. Ein privater Vorfall ist nur für seine Eigentümer, Projektinhaber und Projektadministratoren sichtbar – und die Eigentümer der Warnungen sind von Anfang an seine Eigentümer, sodass die Leute, die die Warnungen sehen konnten, auch den Vorfall sehen, sofern Sie sie nicht herausnehmen. Auch Sie sind Eigentümer, wie bei jedem Vorfall, den Sie melden.
 
 ```mermaid title="Was beim Melden aus Warnungen passiert"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 Beim Absenden prüft der Server die Warnungen, bevor er irgendetwas anlegt: höchstens 50, jede eine Warnung in diesem Projekt, die Sie sehen dürfen, und Sie müssen Warnungen mit Vorfällen verknüpfen dürfen. Schlägt eine Prüfung fehl, wird die Anfrage abgelehnt und kein Vorfall angelegt – eine falsche Warnungs-ID verbraucht also nie eine Vorfallnummer. Sobald der Vorfall existiert – und seine Datenschutzregeln gelaufen sind, damit die Verknüpfungen wissen, ob er privat ist –, wird jede Warnung verknüpft, bevor die Anfrage zurückkehrt, sodass die Seite **Verknüpfte Warnungen** des Vorfalls sie bereits listet. Schlägt eine einzelne Verknüpfung fehl – etwa, weil die Warnung einen Moment zuvor gelöscht wurde –, wird der Vorfall trotzdem gemeldet, und die anderen Warnungen werden trotzdem verknüpft.
 
 Der Feed des Vorfalls erhält einen Eintrag **Warnung verknüpft**, der die Warnungen listet und nach **Vorfall erstellt** geschrieben wird, statt einen je Warnung – siehe [Der Feed, Slack und Microsoft Teams](#der-feed-slack-und-microsoft-teams).
+
+### Die Eigentümer der Warnungen sind Eigentümer des Vorfalls
+
+Die Leute, die an den Warnungen arbeiten, sind die Leute, die am Vorfall arbeiten, daher beginnt er mit ihnen. Das Feld **Eigentümer** unter **Weitere Felder** beginnt mit jeder Person und jedem Team, denen eine der Warnungen gehört – jeweils einmal, nach den Eigentümern einer Vorfallsvorlage, wenn Sie aus einer Vorlage melden –, und der Kasten mit den Warnungen nennt sie: "Die Eigentümer der Warnung sind auch Eigentümer des Vorfalls. Ändern Sie sie vor dem Melden unter „Weitere Felder“." Nehmen Sie vor dem Absenden welche heraus oder fügen Sie andere hinzu; die Eigentümer des Vorfalls sind dann genau das, was das Feld enthält, ob privater Vorfall oder nicht. Die Zusammenfassung führt sie zusammen mit den Eigentümerregeln auf, die weitere hinzufügen.
+
+- **Eine Person, die das Projekt verlassen hat, wird nicht übernommen**, ebenso wenig eine, deren Einladung nie angenommen wurde. Ein gelöschtes Team ist nicht mehr Eigentümer der Warnung und wird daher ebenfalls nicht übernommen.
+- **Sie werden einmal benachrichtigt.** Die Eigentümer der Warnungen werden so hinzugefügt wie jeder Eigentümer, mit dem ein Vorfall beginnt – direkt nach dem Anlegen seiner Slack- und Microsoft-Teams-Kanäle, sodass sie in diese Kanäle eingeladen werden, und bevor seine Benachrichtigung **Vorfall erstellt** hinausgeht –, sie erfahren vom Vorfall also durch diese Benachrichtigung, nach ihren eigenen Benachrichtigungsregeln, und bekommen keine zusätzliche Nachricht „als Eigentümer hinzugefügt“. Ein Eigentümer, der auch durch eine Eigentümerregel hinzugefügt oder zweimal gewählt wird, wird einmal hinzugefügt.
+- **Wenn Sie keine Eigentümer von Vorfällen hinzufügen dürfen**, können Sie den Vorfall trotzdem melden: Das Feld bleibt, wie es war, OneUptime fügt die Eigentümer der Warnungen beim Melden selbst hinzu, und der Kasten sagt "Die Eigentümer der Warnung sind auch Eigentümer des Vorfalls, sobald er gemeldet ist." Dasselbe sagt er, ohne sie zu nennen, wenn Sie nicht lesen dürfen, wem die Warnungen gehören.
+- **Warnungen ohne Eigentümer** fügen niemanden hinzu, und der Kasten sagt nichts über Eigentümer.
+
+Ein Vorfall, der auf anderem Weg aus Warnungen gemeldet wird, bekommt ebenfalls die Eigentümer der Warnungen: über die API (siehe [Über die API melden](#über-die-api-melden)), durch eine [Vorfallsregel](/docs/alerts/settings#vorfallsregeln) und mit `/oneuptime incident` im [Slack](/docs/workspace-connections/slack)- oder [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-Kanal einer Warnung. Eine Warnung mit einem bereits bestehenden Vorfall zu verknüpfen kopiert keine Eigentümer.
 
 ### Die Warnungen beim Melden bestätigen
 
@@ -180,7 +192,7 @@ Die Warnungen werden im Hintergrund bestätigt, direkt nach dem Verknüpfen, ein
 
 ### Über die API melden
 
-`POST /api/incident` nimmt die zu verknüpfenden Warnungs-IDs in `miscDataProps` unter `alertIdsToLink` entgegen, und unter `acknowledgeAlertsToLink`, ob diese Warnungen bestätigt werden:
+`POST /api/incident` nimmt die zu verknüpfenden Warnungs-IDs in `miscDataProps` unter `alertIdsToLink` entgegen, unter `acknowledgeAlertsToLink`, ob diese Warnungen bestätigt werden, und unter `carryOverAlertOwners`, ob ihre Eigentümer die des Vorfalls werden:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - der API-Schlüssel nicht jede noch unbestätigte Warnung bestätigen darf – dafür braucht es **Create Alert State Timeline**, mit Beschriftungen und einem Eigentümerumfang, die jede dieser Warnungen erreichen, so wie beim Bestätigen jeder einzelnen.
 
 Ein API-Schlüssel ist kein Benutzer, mit ihm bestätigte Warnungen werden also niemandem zugeschrieben, so wie seine Verknüpfungen kein **Verknüpft von** haben.
+
+`carryOverAlertOwners` ist optional und eingeschaltet, sofern Sie nicht `false` senden: Jede Person und jedes Team, denen eine der Warnungen gehört, wird Eigentümer des Vorfalls, sobald er existiert, wie im Formular – eine Person, die das Projekt verlassen hat, wird übersprungen – und erfährt einmal davon, durch seine Benachrichtigung **Vorfall erstellt**. Sie werden von OneUptime hinzugefügt, daher braucht der API-Schlüssel für sie keine Berechtigung, Eigentümer hinzuzufügen. Senden Sie `false`, um die Eigentümer selbst zu wählen, in `ownerUsers` und `ownerTeams`. Der Wert wird mit 400 abgelehnt, wenn er etwas anderes als `true` oder `false` ist, und wenn er `true` ohne `alertIdsToLink` ist.
 
 ## Über die API verknüpfen und lösen
 

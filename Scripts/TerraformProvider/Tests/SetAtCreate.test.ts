@@ -125,6 +125,16 @@ function buildSpec(): OpenAPISpec {
         createdAt: dateTime,
         updatedAt: dateTime,
         archivedAt: dateTime,
+        // Who created it and who last changed it (#10290), on every record.
+        createdByActorType: { type: "string", description: "What made it." },
+        createdByActorId: { type: "string", description: "Which one." },
+        lastModifiedAt: dateTime,
+        lastModifiedByActorType: {
+          type: "string",
+          description: "What last changed it.",
+        },
+        lastModifiedByActorId: { type: "string", description: "Which one." },
+        lastModifiedByUserId: { type: "string", description: "Who." },
       },
     );
   const incident: { paths: Record<string, any>; schemas: Record<string, any> } =
@@ -226,8 +236,30 @@ describe("an update's plan", () => {
     );
   });
 
+  /*
+   * What created a record is stamped by its create alone (#10290): an
+   * update's plan listed created_by_actor_type and created_by_actor_id as
+   * "(known after apply)" on every resource, and an imported SMTP config's
+   * plan showed them beside the password it set.
+   */
+  test("keeps what created the record, as it keeps who did", () => {
+    for (const attribute of ["created_by_actor_type", "created_by_actor_id"]) {
+      expect(block(teamGo, attribute)).toContain(
+        "stringplanmodifier.UseStateForUnknown()",
+      );
+    }
+  });
+
   test("still says (known after apply) for what changes as the record lives", () => {
-    for (const attribute of ["updated_at", "archived_at"]) {
+    for (const attribute of [
+      "updated_at",
+      "archived_at",
+      // Every write a person, a key, a workflow or an MCP client makes stamps them.
+      "last_modified_at",
+      "last_modified_by_actor_type",
+      "last_modified_by_actor_id",
+      "last_modified_by_user_id",
+    ]) {
       expect(block(teamGo, attribute)).not.toContain("UseStateForUnknown()");
     }
     expect(

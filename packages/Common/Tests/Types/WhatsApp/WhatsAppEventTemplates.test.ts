@@ -46,6 +46,8 @@ const NO_APPROVED_TEMPLATE: ReadonlyArray<NotificationSettingEventType> = [
   E.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
   // A step of a security case that stopped holding (#10340): security cases send no WhatsApp.
   E.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+  // OneUptime AI handing a security case to people (#10352): nor does this one.
+  E.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
   E.SEND_SECURITY_HUNT_FOUND_NOTIFICATION,
   E.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
   E.SEND_PUBLIC_NOTE_APPROVAL_DECIDED_NOTIFICATION,

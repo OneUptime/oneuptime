@@ -99,7 +99,7 @@ Eine Regel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** b
 
 ## Vorfallsregeln
 
-**Warnungen → Regeln → Vorfallsregeln** macht aus Warnungen von selbst Vorfälle. Die erste Regel, von oben nach unten in der Liste, die zu einer neuen Warnung passt, meldet daraus einen Vorfall, wie es **Vorfall melden** auf der Seite der Warnung täte, und verknüpft die Warnung mit ihm.
+**Warnungen → Regeln → Vorfallsregeln** macht aus Warnungen von selbst Vorfälle. Die erste Regel, von oben nach unten in der Liste, die zu einer neuen Warnung passt, meldet daraus einen Vorfall, wie es **Vorfall melden** auf der Seite der Warnung täte, und verknüpft die Warnung mit ihm. Der Vorfall beginnt mit den Eigentümern der Warnung als seinen Eigentümern, die einmal davon erfahren, durch seine Benachrichtigung **Vorfall erstellt**.
 
 :::steps
 ### Die Warnungen auswählen

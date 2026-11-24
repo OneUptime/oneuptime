@@ -87,6 +87,8 @@ Criteria bepalen wanneer het certificaat telt als in orde, verminderd of kapot, 
 
 **Dagen tot verloop** telt hele dagen: een certificaat dat over 14 dagen en 20 uur verloopt, heeft nog 14 dagen. **Uren tot verloop** telt hele uren op dezelfde manier.
 
+**Dagen tot verloop** biedt ook **Evalueer deze criteria over een bepaalde periode**, en met **Vorige controle** vergelijkt het elke controle met de vorige van dezelfde sonde. **Kleiner dan** met een **Waarde in de eenheid van de controle** van `1` komt overeen wanneer de resterende dagen sinds de vorige controle met meer dan één zijn gedaald, zoals wanneer het certificaat is vervangen door een dat eerder verloopt. **Groter dan** komt overeen wanneer ze zijn gestegen, zoals wanneer het certificaat is vernieuwd. Zie [Een controle met de vorige vergelijken](/docs/monitor/criteria-and-statuses#een-controle-met-de-vorige-vergelijken).
+
 Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing aanmaken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria

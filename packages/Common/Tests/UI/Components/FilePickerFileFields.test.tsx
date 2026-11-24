@@ -20,6 +20,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
 import FileModel from "../../../Models/DatabaseModels/File";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import React from "react";
 
 /*
@@ -148,10 +149,14 @@ describe("a picker of several files holds no more than it may", () => {
         },
       ),
     ).toEqual(["one.png", "two.png", "three.png"]);
+    // No row for it: only the line that names it.
     expect(screen.queryByText("four.png")).not.toBeInTheDocument();
-    // Full, it says how many it holds: why the last one was left out.
+    // Full, it says how many it holds, and names the one it left out (#8041).
     expect(screen.getByTestId("file-picker-full")).toHaveTextContent(
       "This field holds up to 3 files. Remove one to add another.",
+    );
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID)).toHaveTextContent(
+      '"four.png" was not added: this field holds up to 3 files.',
     );
   });
 
@@ -203,6 +208,10 @@ describe("a picker of several files holds no more than it may", () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByTestId("file-picker-full")).toBeInTheDocument();
     expect(screen.queryByText("two.png")).not.toBeInTheDocument();
+    // Never without a word: it names what it had no room for (#8041).
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID)).toHaveTextContent(
+      '"two.png" was not added: this field holds one file.',
+    );
   });
 
   /*
@@ -369,6 +378,428 @@ describe("a picker of several files holds no more than it may", () => {
 
       expect(screen.queryByTestId("file-picker-full")).not.toBeInTheDocument();
       expect(screen.getByText("Add more files")).toBeInTheDocument();
+      cleanup();
+    }
+  });
+});
+
+/*
+ * The files a choice or a drop leaves out, named, with why (issue #8041):
+ * a picker of several added what fit and dropped the rest without a word,
+ * so someone who chose 12 log files for a field of 10 had to compare names
+ * to find the two missing. And it said one reason at a time: a drop with a
+ * file too large and one of a kind it does not take named only the large
+ * one.
+ */
+describe("the files a choice leaves out, named", () => {
+  type NamesFunction = () => Array<string>;
+
+  // The names of the files the picker lists.
+  const listedNames: NamesFunction = (): Array<string> => {
+    return screen
+      .queryAllByTestId("file-picker-file-name")
+      .map((element: HTMLElement): string => {
+        return element.textContent || "";
+      });
+  };
+
+  test("a drop of four on a picker with room for three names the fourth", async () => {
+    uploadsSucceed();
+    const onChange: Mock = jest.fn();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={3}
+        mimeTypes={[MimeType.png]}
+        onChange={onChange}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("one.png"),
+      makeFile("two.png"),
+      makeFile("three.png"),
+      makeFile("four.png"),
+    ]);
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    // The first three, in the order given, and never the fourth's upload.
+    expect(createMock).toHaveBeenCalledTimes(3);
+    expect(listedNames()).toEqual(["one.png", "two.png", "three.png"]);
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
+      '"four.png" was not added: this field holds up to 3 files.',
+    );
+  });
+
+  test("one with room for none names every file it was given", async () => {
+    uploadsSucceed();
+    const onChange: Mock = jest.fn();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={2}
+        mimeTypes={[MimeType.png]}
+        initialValue={[
+          heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+          heldFile("two.png", "aaaaaaaa-0000-4000-8000-000000000002"),
+        ]}
+        onChange={onChange}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("three.png"),
+      makeFile("four.png"),
+    ]);
+
+    expect(
+      (await screen.findByTestId(FILE_PICKER_ERROR_TEST_ID)).textContent,
+    ).toBe(
+      "These files were not added, as this field holds up to 2 files: three.png, four.png.",
+    );
+    expect(createMock).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(listedNames()).toEqual(["one.png", "two.png"]);
+    // Under the full picker's note, which says what to do about it.
+    expect(screen.getByTestId("file-picker-full")).toHaveTextContent(
+      "This field holds up to 2 files. Remove one to add another.",
+    );
+  });
+
+  test("a field of one file says one file, never up to 1 files", async () => {
+    const onChange: Mock = jest.fn();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={1}
+        keepFilesInBrowser={true}
+        mimeTypes={[MimeType.png]}
+        onChange={onChange}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("a.png"),
+      makeFile("b.png"),
+      makeFile("c.png"),
+    ]);
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    expect(listedNames()).toEqual(["a.png"]);
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
+      "These files were not added, as this field holds one file: b.png, c.png.",
+    );
+  });
+
+  test("too large and no room in one drop: each named, with why", async () => {
+    uploadsSucceed();
+    const onChange: Mock = jest.fn();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={2}
+        maxFileSizeInBytes={1024}
+        mimeTypes={[MimeType.png]}
+        onChange={onChange}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("a.png"),
+      makeFile("big.png", MimeType.png, 2048),
+      makeFile("b.png"),
+      makeFile("c.png"),
+    ]);
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    // The large one takes no room: the two after it that fit are added.
+    expect(listedNames()).toEqual(["a.png", "b.png"]);
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
+      '"big.png" exceeds the 1\u00A0KB limit. "c.png" was not added: this field holds up to 2 files.',
+    );
+  });
+
+  test("a kind it does not take and a file too large in one drop: both named", async () => {
+    uploadsSucceed();
+    const onChange: Mock = jest.fn();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFileSizeInBytes={1024}
+        mimeTypes={[MimeType.png]}
+        onChange={onChange}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("setup.exe", "application/x-msdownload"),
+      makeFile("big.png", MimeType.png, 2048),
+      makeFile("fine.png"),
+    ]);
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    expect(listedNames()).toEqual(["fine.png"]);
+    // The type was dropped without a word while a large file was named.
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
+      '"setup.exe" is not a type of file this field takes. "big.png" exceeds the 1\u00A0KB limit.',
+    );
+  });
+
+  test("a file too large of a kind it does not take is named for its kind: a smaller one would not do", async () => {
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFileSizeInBytes={1024}
+        mimeTypes={[MimeType.png]}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("big.exe", "application/x-msdownload", 2048),
+    ]);
+
+    expect(
+      (await screen.findByTestId(FILE_PICKER_ERROR_TEST_ID)).textContent,
+    ).toBe('"big.exe" is not a type of file this field takes.');
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("several on a picker of one, one of a kind it does not take: it says both", async () => {
+    render(<FilePicker mimeTypes={[MimeType.png]} dataTestId="picker" />);
+
+    await drop(dropZone("picker"), [
+      makeFile("a.png"),
+      makeFile("b.png"),
+      makeFile("c.exe", "application/x-msdownload"),
+    ]);
+
+    // It said only the type: the two files it did take vanished unsaid.
+    expect(
+      (await screen.findByTestId(FILE_PICKER_ERROR_TEST_ID)).textContent,
+    ).toBe(
+      '"c.exe" is not a type of file this field takes. Add one file at a time.',
+    );
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  test("a following choice that leaves nothing out clears it", async () => {
+    uploadsSucceed();
+    const onChange: Mock = jest.fn();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={2}
+        mimeTypes={[MimeType.png]}
+        onChange={onChange}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("a.png"),
+      makeFile("b.png"),
+      makeFile("c.png"),
+    ]);
+
+    expect(
+      await screen.findByTestId(FILE_PICKER_ERROR_TEST_ID),
+    ).toHaveTextContent('"c.png" was not added');
+    await waitFor(() => {
+      expect(listedNames()).toEqual(["a.png", "b.png"]);
+    });
+
+    // Room for one again, and one chosen: nothing left out.
+    fireEvent.click(screen.getAllByText("Remove")[1]!);
+    await drop(dropZone("picker"), [makeFile("c.png")]);
+
+    await waitFor(() => {
+      expect(listedNames()).toEqual(["a.png", "c.png"]);
+    });
+    expect(screen.queryByTestId(FILE_PICKER_ERROR_TEST_ID)).toBeNull();
+  });
+
+  test("a second choice that leaves files out says its own, never the last one's", async () => {
+    uploadsSucceed();
+
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={3}
+        mimeTypes={[MimeType.png]}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [
+      makeFile("a.png"),
+      makeFile("b.png"),
+      makeFile("c.png"),
+      makeFile("d.png"),
+    ]);
+
+    await waitFor(() => {
+      expect(listedNames()).toHaveLength(3);
+    });
+
+    await drop(dropZone("picker"), [makeFile("e.png"), makeFile("f.png")]);
+
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
+      "These files were not added, as this field holds up to 3 files: e.png, f.png.",
+    );
+  });
+
+  test("is drawn as every refusal is: the field error's red, said at once", async () => {
+    render(
+      <FilePicker
+        isMultiFilePicker={true}
+        maxFiles={1}
+        mimeTypes={[MimeType.png]}
+        initialValue={[
+          heldFile("one.png", "aaaaaaaa-0000-4000-8000-000000000001"),
+        ]}
+        dataTestId="picker"
+      />,
+    );
+
+    await drop(dropZone("picker"), [makeFile("two.png")]);
+
+    const line: HTMLElement = await screen.findByTestId(
+      FILE_PICKER_ERROR_TEST_ID,
+    );
+
+    expect(line).toHaveAttribute("role", "alert");
+    expect(line).toHaveClass(
+      "text-xs",
+      "font-medium",
+      FIELD_ERROR_COLOR_CLASS_NAME,
+    );
+    // Inside the full picker's note, under its words.
+    expect(screen.getByTestId("picker")).toContainElement(line);
+  });
+
+  /*
+   * Seeded drops of any size on pickers of any room: whatever is given,
+   * each file is listed or named in the line, never both and never
+   * neither, and the picker adds what fits in the order it was given.
+   */
+  test("whatever is dropped, each file is listed or named: never lost", async () => {
+    const random: SeededRandom = seededRandom(8041);
+
+    for (let run: number = 0; run < 12; run++) {
+      const maxFiles: number = 1 + random(4);
+      const held: number = random(maxFiles + 1);
+      const dropped: number = 1 + random(6);
+      const heldFiles: Array<FileModel> = [];
+      const names: Array<string> = [];
+
+      for (let index: number = 0; index < held; index++) {
+        heldFiles.push(
+          heldFile(
+            `held-${run}-${index}.png`,
+            `aaaaaaaa-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+          ),
+        );
+      }
+
+      for (let index: number = 0; index < dropped; index++) {
+        names.push(`dropped-${run}-${index}.png`);
+      }
+
+      const onChange: Mock = jest.fn();
+
+      render(
+        <FilePicker
+          isMultiFilePicker={true}
+          maxFiles={maxFiles}
+          keepFilesInBrowser={true}
+          mimeTypes={[MimeType.png]}
+          initialValue={heldFiles}
+          onChange={onChange}
+          dataTestId="picker"
+        />,
+      );
+
+      await drop(
+        dropZone("picker"),
+        names.map((name: string): File => {
+          return makeFile(name);
+        }),
+      );
+
+      const room: number = maxFiles - held;
+      const added: Array<string> = names.slice(0, room);
+      const leftOut: Array<string> = names.slice(room);
+      const expectedListed: Array<string> = [
+        ...heldFiles.map((file: FileModel): string => {
+          return file.name!;
+        }),
+        ...added,
+      ];
+
+      await waitFor(() => {
+        expect({ run, listed: listedNames() }).toEqual({
+          run,
+          listed: expectedListed,
+        });
+        expect({
+          run,
+          hasLine: screen.queryByTestId(FILE_PICKER_ERROR_TEST_ID) !== null,
+        }).toEqual({ run, hasLine: leftOut.length > 0 });
+      });
+
+      expect({ run, changes: onChange.mock.calls.length }).toEqual({
+        run,
+        changes: added.length > 0 ? 1 : 0,
+      });
+
+      const listed: Array<string> = listedNames();
+      const line: string =
+        screen.queryByTestId(FILE_PICKER_ERROR_TEST_ID)?.textContent || "";
+
+      for (const name of names) {
+        // Listed, or named in the line: exactly one of the two.
+        expect({
+          run,
+          name,
+          listed: listed.includes(name),
+          named: line.includes(name),
+        }).toEqual({
+          run,
+          name,
+          listed: added.includes(name),
+          named: leftOut.includes(name),
+        });
+      }
+
+      expect({ run, quiet: line === "" }).toEqual({
+        run,
+        quiet: leftOut.length === 0,
+      });
+
       cleanup();
     }
   });
@@ -547,6 +978,10 @@ describe("files kept in the browser", () => {
     expect(onChange.mock.calls[0]![0] as Array<FileModel>).toHaveLength(2);
     expect(screen.getByTestId("file-picker-full")).toHaveTextContent(
       "This field holds up to 2 files. Remove one to add another.",
+    );
+    // A public form's submitter is told which one was left out (#8041).
+    expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID)).toHaveTextContent(
+      '"c.png" was not added: this field holds up to 2 files.',
     );
   });
 });

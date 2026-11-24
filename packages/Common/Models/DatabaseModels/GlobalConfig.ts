@@ -3108,4 +3108,34 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public serverProducts?: JSONObject = undefined;
+
+  /*
+   * Where this server sends its people for help (issues #10864, #10865,
+   * #10866, Types/HelpAndSupport/HelpAndSupport): Help's Support Email, Chat
+   * and Request Demo, the footer's Help and Support link, where Give feedback
+   * goes, the single sign-on screen's message for someone who needs an
+   * invitation, the Get the mobile app prompts and OneUptime's GitHub links.
+   * { [item]: { choice, value } }, holding only the items an admin moved off
+   * their default. Null until a master admin saves Admin Dashboard >
+   * Settings > Help and Support; until then every item shows what OneUptime
+   * always has. Written by OneUptime only (isRoot), through the page's own
+   * route, which checks every link and address: GlobalConfigService refuses
+   * a write through the CRUD API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    title: "Help and Support",
+    description:
+      "Where this server sends people for help: its own support address, chat, help page, mobile app page and sign-in message, or OneUptime's. Empty until an admin saves Admin Dashboard > Settings > Help and Support.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public helpAndSupport?: JSONObject = undefined;
 }

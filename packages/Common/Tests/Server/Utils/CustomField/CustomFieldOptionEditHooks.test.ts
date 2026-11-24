@@ -1166,7 +1166,7 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
     expect((alertValues.parameters as Array<string>)[1]).toBe("Site");
   });
 
-  test("rewrites the saved views of the monitors, incidents and alerts lists, and the incident forms", async () => {
+  test("rewrites the saved views of the monitors, incidents and alerts lists, and the incident and alert forms", async () => {
     await apply(RENAME_AND_ADD);
 
     const tableIds: Array<unknown> = tableViewFindBy.mock.calls.map(
@@ -1182,11 +1182,21 @@ describe("applyCustomFieldOptionEdit: fields that copy a monitor field", () => {
     expect(tableIds[1]).toContain("all-alerts-table");
     expect(tableIds[2]).toContain("all-incidents-table");
 
-    // Monitors and alerts have no forms; incidents do.
-    expect(formFindBy).toHaveBeenCalledTimes(1);
-    expect((formFindBy.mock.calls[0]![0] as JSONObject)["query"]).toEqual({
+    // Monitors have no forms; incidents and alerts (#10760) do.
+    const formQueries: Array<unknown> = formFindBy.mock.calls.map(
+      (call: Array<unknown>): unknown => {
+        return (call[0] as JSONObject)["query"];
+      },
+    );
+
+    expect(formQueries).toHaveLength(2);
+    expect(formQueries).toContainEqual({
       projectId: projectId,
       targetType: FormTargetType.Incident,
+    });
+    expect(formQueries).toContainEqual({
+      projectId: projectId,
+      targetType: FormTargetType.Alert,
     });
   });
 

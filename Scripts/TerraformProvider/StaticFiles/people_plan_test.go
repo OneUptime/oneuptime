@@ -955,7 +955,7 @@ func TestPeopleLayerUserByEmailChangesPersonInPlace(t *testing.T) {
 	lookups := tf.api.personLookups
 	otherCase := layerUserConfig(tf, map[string]tftypes.Value{"user_email": str("Alice@EXAMPLE.com")})
 	changed, replaced := tf.changes(layerUserType, state, otherCase)
-	if len(replaced) > 0 || strings.Join(withoutServerTimes(changed), ",") != "user_email" {
+	if len(replaced) > 0 || strings.Join(withoutWriteStamps(changed), ",") != "user_email" {
 		t.Fatalf("the same person in another case changes %v and replaces for %v", changed, replaced)
 	}
 	if tf.api.personLookups != lookups {
@@ -1016,7 +1016,7 @@ func TestPeopleAddressChangedInOneUptimeIsNoChange(t *testing.T) {
 
 	renamed := layerUserConfig(tf, map[string]tftypes.Value{"user_email": str("alice.smith@example.com")})
 	changed, replaced := tf.changes(layerUserType, state, renamed)
-	if len(replaced) > 0 || strings.Join(withoutServerTimes(changed), ",") != "user_email" {
+	if len(replaced) > 0 || strings.Join(withoutWriteStamps(changed), ",") != "user_email" {
 		t.Fatalf("writing the new address changes %v and replaces for %v, want user_email only", changed, replaced)
 	}
 	before := len(tf.api.updates["/on-call-duty-schedule-layer-user"])
@@ -1449,12 +1449,25 @@ func TestPeopleDataSourceFindsARecordByThePersonsAddress(t *testing.T) {
 	}
 }
 
-// withoutServerTimes: a change leaves when the server last wrote the row
-// unknown until the apply, which is no change anybody made.
-func withoutServerTimes(changed []string) []string {
+// What OneUptime stamps on a row with every write (OneUptime#10290): when the
+// server last wrote it, and when and by what a person, a key, a workflow or an
+// MCP client last changed it. An update plans each "(known after apply)".
+var stampedByEveryWrite = []string{
+	"updated_at",
+	"last_modified_at",
+	"last_modified_by_actor_type",
+	"last_modified_by_actor_id",
+	"last_modified_by_user_id",
+}
+
+// withoutWriteStamps: a change leaves what every write stamps unknown until
+// the apply, which is no change anybody made. What created the row is
+// stamped by its create alone, and an update plans it as it is in state
+// (SetAtCreate), so it is never left out here.
+func withoutWriteStamps(changed []string) []string {
 	kept := []string{}
 	for _, name := range changed {
-		if name != "updated_at" {
+		if !containsString(stampedByEveryWrite, name) {
 			kept = append(kept, name)
 		}
 	}

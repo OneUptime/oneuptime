@@ -82,6 +82,8 @@ I en gittergruppe beder dialogen også om den række og kolonne, monitoren skal 
 > [!TIP]
 > For at vise flere tjek som én række tilføjer du en [monitorgruppe](/docs/monitor/monitor-groups). Med kontakten **Monitorgrupper** slået til (**Projektindstillinger** > **Grundlæggende** > **Produkter**, som gemmes, så snart du slår den om) står der et link under rullelisten: **Tilføj en monitorgruppe i stedet.** Klik på det, og **Monitor** bliver til **Monitorgruppe** (**Vælg monitorgruppe**); **Tilføj en monitor i stedet.** skifter tilbage.
 
+**Rediger ressource**, blyanten på en række, åbner på det, rækken viser: en monitorgruppes række på **Monitorgruppe**, med gruppen valgt, og en monitors række på **Monitor**. Med kontakten **Monitorgrupper** slået til lyder linket under rullelisten **Vis en monitor i stedet.** på en gruppes række og **Vis en monitorgruppe i stedet.** på en monitors. Det skifter rullelisten i den dialog alene, og når du gemmer, viser rækken det, du valgte, i stedet. **Visningsnavn** følger det nye valg, så længe det stadig er navnet på det, rækken viste, og bliver, som det er, når du har omdøbt rækken. På listen siger en gruppes række, hvis visningsnavn er gruppens eget, **Samme som monitorgruppens navn**.
+
 ### Tilføj flere på én gang
 
 **Tilføj flere** (også **Tilføj flere monitorer** i menuen **Flere handlinger**) åbner **Tilføj flere monitorer**. Den er også én side: en flervalgsliste **Monitorer**, derefter de samme sammenfoldede **Flere felter**, hvis visningsindstillinger gælder for hver monitor, du vælger. Hver ressource får sit visningsnavn og sin beskrivelse fra sin monitor, og **Tilføj monitorer** tilføjer dem alle. Det er den hurtigste måde at fylde en ny side på.
@@ -97,6 +99,8 @@ En statusside viser en monitor én gang. Tilføjelse er idempotent, så når du 
 Oversigten efter tilføjelsen af flere siger det samme: tilføjede monitorer står under **Tilføjet**, og dem, der allerede var der, under **Allerede tilføjet**. Intet rapporteres som en fejl, og intet skrives for dem.
 
 Den samme regel gælder alle andre steder, hvor en ressource oprettes. At tilføje en monitor, der allerede er på siden, fra formularen til én monitor, eller at lade en eksisterende ressource pege på den fra redigeringsformularen, afvises med *"This monitor is already added to this status page"*, også når den eksisterende ressource står i en anden gruppe, for en besøgende ville stadig se monitoren to gange. For at vise en monitor i en anden gruppe sletter du den ressource, den allerede har, og tilføjer den, hvor du vil have den.
+
+En ressource viser én monitor eller én monitorgruppe, aldrig begge og aldrig ingen af dem. At rette en ressource mod den ene tømmer den anden, så at flytte en række fra en monitor til en monitorgruppe er én ændring. Gennem API'et afvises en ressource, der nævner begge, med *"A status page resource shows a monitor or a monitor group, not both. Send one of them."*, og en, der ikke nævner nogen af dem, eller en ændring, der ville efterlade den uden nogen af dem, med *"A status page resource needs a monitor or a monitor group to show"*.
 
 ## Visningsindstillinger for en ressource
 
@@ -122,7 +126,7 @@ Grupper har deres egne udgaver af disse kontakter (se nedenfor), så en gruppe k
 
 Farverne på historikdiagrammets søjler angives under **Yderligere indstillinger** på siden **Branding**, og hvilke monitorstatusser der tæller som "nede" under **Tæller som nedetid** på kortet **Hvad din statusside viser** under **Indstillinger**; begge dele er beskrevet i [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
 
-Hver søjle er én dag. Peg på en søjle, eller klik på den (tryk på den på en telefon, eller tryk Enter med tastaturet), for at læse dagen: dens oppetid, hvor længe hver status varede, de hændelser, der blev erklæret den dag, og den planlagte vedligeholdelse, der kørte på den, hver med et link til sin egen side. En dag med planlagt vedligeholdelse har et blåt bånd øverst på sin søjle, og mens en begivenhed er i gang, står der "Under vedligeholdelse" ved navnet på hver ressource for dens monitorer. Vedligeholdelse ændrer hverken en søjles farve eller oppetiden, som kommer fra monitorens statusser: for at holde planlagt arbejde ude af oppetiden skal du vælge en **Skift monitorstatus til** for begivenheden, der ikke er en af sidens statusser under **Tæller som nedetid**. Se [Hvad en begivenhed påvirker](/docs/scheduled-maintenance/index#hvad-en-begivenhed-påvirker).
+Hver søjle er én dag. Peg på en søjle, eller klik på den (tryk på den på en telefon, eller tryk Enter med tastaturet), for at læse dagen: dens oppetid, hvor længe hver status varede, de hændelser, der blev erklæret den dag, og den planlagte vedligeholdelse, der kørte på den, hver med et link til sin egen side. På en side, der viser episoder, men ikke hændelser, viser dagen i stedet den episode, som hver af dens hændelser hører til, hver episode kun én gang og med et link til episodens side. En dag med planlagt vedligeholdelse har et blåt bånd øverst på sin søjle, og mens en begivenhed er i gang, står der "Under vedligeholdelse" ved navnet på hver ressource for dens monitorer. Vedligeholdelse ændrer hverken en søjles farve eller oppetiden, som kommer fra monitorens statusser: for at holde planlagt arbejde ude af oppetiden skal du vælge en **Skift monitorstatus til** for begivenheden, der ikke er en af sidens statusser under **Tæller som nedetid**. Se [Hvad en begivenhed påvirker](/docs/scheduled-maintenance/index#hvad-en-begivenhed-påvirker).
 
 Hver søjle er en dag i læserens egen tidszone, den samme som siden viser alle andre tidspunkter i, så den sidste søjle er læserens i dag. En monitorgruppes søjle viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har gruppen den værste status blandt sine monitorer, så en dags statusser lægges sammen til den tid, hvor mindst én af dens monitorer blev tjekket, og aldrig til mere end dagen.
 
@@ -280,6 +284,10 @@ Importen opretter grupper, ikke ressourcer: tilføj monitorer bagefter med **Til
 
 :::details "This monitor is already added to this status page"
 En side viser hver monitor én gang, også på tværs af grupper. Monitoren har allerede en ressource, måske i en anden gruppe eller tilføjet af en monitorregel. Søg efter den i navigatoren, slet den ressource, og tilføj monitoren, hvor du vil have den.
+:::
+
+:::details "A status page resource needs a monitor or a monitor group to show"
+API'et, Terraform eller et script sendte en ressource uden monitor og uden monitorgruppe, eller en ændring, der tømmer det, den viser. Send `monitorId` eller `monitorGroupId`, en af de to. For at rette en ressource mod den anden slags sender du den nye i samme ændring: den gamle tømmes. Ressourcer, der ikke viste nogen af dem før denne regel, blev aldrig vist for besøgende, og en opgradering sletter dem.
 :::
 
 :::details En monitor, jeg har tilføjet, vises ikke på statussiden

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 8250
+    "keys": 63890,
+    "untranslated": 8242
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -77,6 +77,7 @@
     "CloudWatch Metric Streams",
     "Clouds",
     "Collector",
+    "Colorado",
     "Commit",
     "Commits",
     "Community Edition",
@@ -147,6 +148,7 @@
     "Flavor",
     "Flavors",
     "Floating IP",
+    "Florida",
     "Fluent Bit",
     "Format",
     "Frustration",
@@ -212,6 +214,7 @@
     "Load balancer",
     "Log",
     "Log4Shell",
+    "Logger {{name}}",
     "Logo",
     "Loopback",
     "MCP",
@@ -246,6 +249,7 @@
     "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Nav",
     "Navigation",
+    "New York",
     "New Zealand (+64)",
     "Node",
     "Normal",
@@ -368,6 +372,7 @@
     "Slug",
     "Snapshots",
     "Span",
+    "Span {{name}}",
     "Span: {{id}}",
     "Spans",
     "Spec",
@@ -400,6 +405,7 @@
     "Test",
     "Test {{name}}",
     "Test {{policy}}",
+    "Texas",
     "Tip",
     "Token",
     "Tokens",
@@ -443,6 +449,7 @@
     "Violet",
     "Vital",
     "WAF",
+    "Washington",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",

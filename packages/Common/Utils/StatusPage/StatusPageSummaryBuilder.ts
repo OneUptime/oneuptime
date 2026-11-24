@@ -23,6 +23,11 @@ import {
 } from "../../Types/StatusPage/StatusPageSummary";
 import ScheduledMaintenanceStartUtil from "../ScheduledMaintenanceStart";
 import StatusPageGroupTreeUtil, { StatusPageGroupTreeIndex } from "./GroupTree";
+import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import StatusPageIncidentGrouping, {
+  INCIDENT_LIST_MODE_RESPONSE_KEY,
+  StatusPageIncidentListMode,
+} from "./IncidentGrouping";
 
 /*
  * A status page's summary (Types/StatusPage/StatusPageSummary), cut down from
@@ -40,7 +45,12 @@ import StatusPageGroupTreeUtil, { StatusPageGroupTreeIndex } from "./GroupTree";
  *     (ScheduledMaintenanceStartUtil), as the page sorts its events;
  *   - what an event or an incident affects as the page names it
  *     (StatusPageAffectedResources): each resource that is one of its
- *     monitors, and each monitor group on the page that holds one.
+ *     monitors, and each monitor group on the page that holds one;
+ *   - its active incidents as its Active Incidents section draws them: a
+ *     page that shows episodes but not incidents draws its active episodes
+ *     there, so they are its active incidents here too (#10767). It used
+ *     to say such a page had none, so a monitor watching it never heard of
+ *     an outage the page showed.
  *
  * No database: the server builds it from the overview it already keeps
  * (StatusPageOverviewCache), so asking for it costs the page nothing more.
@@ -55,6 +65,12 @@ interface ReadOverview {
   notMonitoredResourceIds: Set<string>;
   monitorsInGroup: Dictionary<Array<ObjectID>>;
   activeIncidents: Array<Incident>;
+  // Each active episode, with the monitors its card names its resources from.
+  activeEpisodes: Array<{
+    episode: IncidentEpisode;
+    monitorIds: Array<string>;
+  }>;
+  incidentListMode: StatusPageIncidentListMode;
   scheduledMaintenanceEvents: Array<ScheduledMaintenance>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
 }
@@ -110,17 +126,13 @@ export default class StatusPageSummaryBuilder {
       }
     }
 
-    const affectedIds: (
-      monitors: Array<Monitor> | undefined,
+    const affectedIdsOf: (
+      monitorIds: Array<string | undefined>,
     ) => Array<string> = (
-      monitors: Array<Monitor> | undefined,
+      monitorIds: Array<string | undefined>,
     ): Array<string> => {
       return getResourcesAffectedByMonitors({
-        monitorIds: (monitors || []).map(
-          (monitor: Monitor): string | undefined => {
-            return StatusPageSummaryBuilder.idOf(monitor) || undefined;
-          },
-        ),
+        monitorIds: monitorIds,
         statusPageResources: shownResources,
         monitorsInGroup: read.monitorsInGroup,
       })
@@ -130,6 +142,18 @@ export default class StatusPageSummaryBuilder {
         .filter((id: string): boolean => {
           return Boolean(id);
         });
+    };
+
+    const affectedIds: (
+      monitors: Array<Monitor> | undefined,
+    ) => Array<string> = (
+      monitors: Array<Monitor> | undefined,
+    ): Array<string> => {
+      return affectedIdsOf(
+        (monitors || []).map((monitor: Monitor): string | undefined => {
+          return StatusPageSummaryBuilder.idOf(monitor) || undefined;
+        }),
+      );
     };
 
     const ongoingScheduledMaintenance: Array<StatusPageSummaryMaintenance> =
@@ -175,22 +199,45 @@ export default class StatusPageSummaryBuilder {
         ? StatusPageSummaryBuilder.toStatus(read.overallStatus)
         : null,
       resources: resources,
-      activeIncidents: read.activeIncidents
-        .filter((incident: Incident): boolean => {
-          return Boolean(StatusPageSummaryBuilder.idOf(incident));
-        })
-        .map((incident: Incident): StatusPageSummaryIncident => {
-          return {
-            id: StatusPageSummaryBuilder.idOf(incident),
-            title: incident.title || "",
-            declaredAt: StatusPageSummaryBuilder.toIsoDate(
-              incident.declaredAt || incident.createdAt,
-            ),
-            state: incident.currentIncidentState?.name || null,
-            severity: incident.incidentSeverity?.name || null,
-            affectedResourceIds: affectedIds(incident.monitors),
-          };
-        }),
+      activeIncidents:
+        read.incidentListMode === StatusPageIncidentListMode.EpisodesOnly
+          ? read.activeEpisodes
+              .filter((active: { episode: IncidentEpisode }): boolean => {
+                return Boolean(StatusPageSummaryBuilder.idOf(active.episode));
+              })
+              .map(
+                (active: {
+                  episode: IncidentEpisode;
+                  monitorIds: Array<string>;
+                }): StatusPageSummaryIncident => {
+                  return {
+                    id: StatusPageSummaryBuilder.idOf(active.episode),
+                    title: active.episode.title || "",
+                    declaredAt: StatusPageSummaryBuilder.toIsoDate(
+                      active.episode.declaredAt || active.episode.createdAt,
+                    ),
+                    state: active.episode.currentIncidentState?.name || null,
+                    severity: active.episode.incidentSeverity?.name || null,
+                    affectedResourceIds: affectedIdsOf(active.monitorIds),
+                  };
+                },
+              )
+          : read.activeIncidents
+              .filter((incident: Incident): boolean => {
+                return Boolean(StatusPageSummaryBuilder.idOf(incident));
+              })
+              .map((incident: Incident): StatusPageSummaryIncident => {
+                return {
+                  id: StatusPageSummaryBuilder.idOf(incident),
+                  title: incident.title || "",
+                  declaredAt: StatusPageSummaryBuilder.toIsoDate(
+                    incident.declaredAt || incident.createdAt,
+                  ),
+                  state: incident.currentIncidentState?.name || null,
+                  severity: incident.incidentSeverity?.name || null,
+                  affectedResourceIds: affectedIds(incident.monitors),
+                };
+              }),
       ongoingScheduledMaintenance: ongoingScheduledMaintenance,
       upcomingScheduledMaintenance: upcoming.map(
         (event: ScheduledMaintenance): StatusPageSummaryMaintenance => {
@@ -387,6 +434,39 @@ export default class StatusPageSummaryBuilder {
       activeIncidents: BaseModel.fromJSONArray(
         readArray("activeIncidents"),
         Incident,
+      ),
+      activeEpisodes: readArray("activeEpisodes")
+        .filter((value: unknown): value is JSONObject => {
+          return (
+            Boolean(value) && typeof value === "object" && !Array.isArray(value)
+          );
+        })
+        .map(
+          (
+            json: JSONObject,
+          ): { episode: IncidentEpisode; monitorIds: Array<string> } => {
+            const monitors: unknown = json["monitors"];
+
+            return {
+              episode: BaseModel.fromJSONObject(json, IncidentEpisode),
+              // Not a column: the page's monitors its card names, by id.
+              monitorIds: Array.isArray(monitors)
+                ? monitors
+                    .map((monitor: unknown): string => {
+                      return monitor && typeof monitor === "object"
+                        ? String((monitor as JSONObject)["_id"] || "").trim()
+                        : "";
+                    })
+                    .filter((id: string): boolean => {
+                      return Boolean(id);
+                    })
+                : [],
+            };
+          },
+        ),
+      incidentListMode: StatusPageIncidentGrouping.readMode(
+        overview[INCIDENT_LIST_MODE_RESPONSE_KEY],
+        StatusPageIncidentListMode.Separate,
       ),
       scheduledMaintenanceEvents: BaseModel.fromJSONArray(
         readArray("scheduledMaintenanceEvents"),

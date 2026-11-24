@@ -370,6 +370,12 @@ interface ArchivableList {
    * (#9746, Components/SharedName), or null where the list marks none.
    */
   sharedNameRename: string | null;
+  /*
+   * What each row's ⋯ menu offers first, ahead of Archive: a dashboard's
+   * Open in New Tab, full screen in a tab of its own (#10409). Left out,
+   * the menu starts with the list's switch or Archive.
+   */
+  leadingRowAction?: string | undefined;
 }
 
 const LISTS: Array<ArchivableList> = [
@@ -423,6 +429,7 @@ const LISTS: Array<ArchivableList> = [
     isSwitched: false,
     usedByRecordKind: null,
     sharedNameRename: null,
+    leadingRowAction: "Open in New Tab",
   },
   {
     name: "On-Call Policies",
@@ -593,6 +600,18 @@ describe.each(LISTS)("$name list", (list: ArchivableList) => {
     const props: CapturedTableProps = await renderPage(list.renderLive());
 
     expect(props.actionButtons).toEqual([
+      /*
+       * A dashboard's Open in New Tab, first in the ⋯ menu, never the
+       * row's button (#10409).
+       */
+      ...(list.leadingRowAction
+        ? [
+            expect.objectContaining({
+              title: list.leadingRowAction,
+              placement: "MoreMenu",
+            }),
+          ]
+        : []),
       /*
        * First, Rename: the button of a row that shares its name with
        * another record, and of no other row (#9746).
