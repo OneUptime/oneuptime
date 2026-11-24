@@ -5,6 +5,7 @@ import {
   DisableQueueWorkers,
   MaxPostgresConnections,
   PostgresConnectionAcquireTimeoutMs,
+  ProbeSchedulingMaxConcurrentMonitorTestRequests,
   ProbeSchedulingMaxConcurrentRequests,
 } from "../EnvironmentConfig";
 import QueueJobConnections, {
@@ -203,7 +204,7 @@ export default class Database {
         QueueJobConnections.install(dataSource, queueJobConnectionLimits);
 
         logger.info(
-          `Postgres pool: ${MaxPostgresConnections} connections. Queue jobs hold at most ${DatabaseMaxQueueJobConnections} (DATABASE_MAX_QUEUE_JOB_CONNECTIONS) and probe scheduling runs at most ${ProbeSchedulingMaxConcurrentRequests} requests at once (PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS), so requests always have ${DatabaseConnectionShares.connectionsKeptForRequests}.`,
+          `Postgres pool: ${MaxPostgresConnections} connections. Queue jobs hold at most ${DatabaseMaxQueueJobConnections} (DATABASE_MAX_QUEUE_JOB_CONNECTIONS) and probe scheduling runs at most ${ProbeSchedulingMaxConcurrentRequests} requests at once (PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS) and ${ProbeSchedulingMaxConcurrentMonitorTestRequests} Test Monitor fetches (PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS), so requests always have ${DatabaseConnectionShares.connectionsKeptForRequests}.`,
         );
       }
 

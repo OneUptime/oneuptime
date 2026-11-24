@@ -948,11 +948,14 @@ export const ReceivesIngressTraffic: boolean =
  *   - PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS: probe scheduling requests
  *     (every request a probe makes for work, and the pending counts)
  *     running at once. Default: a fifth of DATABASE_MAX_OPEN_CONNECTIONS.
+ *   - PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS: the Test Monitor
+ *     runs handed to probes at once, in a lane of their own, so they never
+ *     wait behind the monitors (#10819). Default: 2.
  *   - DATABASE_MAX_QUEUE_JOB_CONNECTIONS: Postgres connections the queue jobs
  *     of this process hold at once. Default: the pool less a fifth kept for
- *     requests and less probe scheduling's share - 30 of 50 - or the whole
- *     pool where RECEIVES_INGRESS_TRAFFIC=false (the Helm chart's worker
- *     pods). Set it to DATABASE_MAX_OPEN_CONNECTIONS for no cap.
+ *     requests and less probe scheduling's two lanes - 28 of 50 - or the
+ *     whole pool where RECEIVES_INGRESS_TRAFFIC=false (the Helm chart's
+ *     worker pods). Set it to DATABASE_MAX_OPEN_CONNECTIONS for no cap.
  *
  * A value that is not a whole number above 0 falls back to its default.
  */
@@ -970,6 +973,10 @@ export const DatabaseConnectionShares: ConnectionShares =
     probeSchedulingMaxConcurrentRequests: parseOptionalPositiveIntegerFromEnv(
       "PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS",
     ),
+    probeSchedulingMaxConcurrentMonitorTestRequests:
+      parseOptionalPositiveIntegerFromEnv(
+        "PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS",
+      ),
     maxQueueJobConnections: parseOptionalPositiveIntegerFromEnv(
       "DATABASE_MAX_QUEUE_JOB_CONNECTIONS",
     ),
@@ -977,6 +984,9 @@ export const DatabaseConnectionShares: ConnectionShares =
 
 export const ProbeSchedulingMaxConcurrentRequests: number =
   DatabaseConnectionShares.probeSchedulingMaxConcurrentRequests;
+
+export const ProbeSchedulingMaxConcurrentMonitorTestRequests: number =
+  DatabaseConnectionShares.probeSchedulingMaxConcurrentMonitorTestRequests;
 
 export const DatabaseMaxQueueJobConnections: number =
   DatabaseConnectionShares.maxQueueJobConnections;
