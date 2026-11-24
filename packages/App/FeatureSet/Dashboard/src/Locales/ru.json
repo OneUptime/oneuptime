@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "{{count}} секрет для замены.",
   "{{count}} secrets_one": "{{count}} секрет",
   "{{law}} may apply first: {{due}}.": "{{law}} может применяться первым: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} указал(а), что люди живут в: {{places}}."
+  "{{name}} said the people live in {{places}}.": "{{name}} указал(а), что люди живут в: {{places}}.",
+  "Part of {{incident}}": "Входит в {{incident}}",
+  "Show Incidents Grouped by Episode": "Показывать инциденты, сгруппированные по эпизодам",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли."
 }

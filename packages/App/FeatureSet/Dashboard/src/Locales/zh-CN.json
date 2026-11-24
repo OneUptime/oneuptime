@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "需要轮换 {{count}} 个密钥。",
   "{{count}} secrets_one": "{{count}} 个密钥",
   "{{law}} may apply first: {{due}}.": "{{law}} 可能最先适用：{{due}}。",
-  "{{name}} said the people live in {{places}}.": "{{name}} 表示这些人住在 {{places}}。"
+  "{{name}} said the people live in {{places}}.": "{{name}} 表示这些人住在 {{places}}。",
+  "Part of {{incident}}": "属于 {{incident}}",
+  "Show Incidents Grouped by Episode": "按片段分组显示事件",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "访客会看到每个事件一张卡片，每个片段另一张卡片，因此片段中的事件会显示两次。",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "访客会将每个片段看作一张卡片，其中列出该片段的事件及其影响范围。"
 }

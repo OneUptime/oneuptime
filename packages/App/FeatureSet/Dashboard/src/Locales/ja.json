@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "ローテーションするシークレット: {{count}} 件。",
   "{{count}} secrets_one": "{{count}} 件のシークレット",
   "{{law}} may apply first: {{due}}.": "{{law}} が最初に適用される可能性があります: {{due}}。",
-  "{{name}} said the people live in {{places}}.": "{{name}} が、人々は {{places}} に住んでいると回答しました。"
+  "{{name}} said the people live in {{places}}.": "{{name}} が、人々は {{places}} に住んでいると回答しました。",
+  "Part of {{incident}}": "{{incident}} の一部",
+  "Show Incidents Grouped by Episode": "インシデントをエピソードごとにまとめて表示",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。"
 }

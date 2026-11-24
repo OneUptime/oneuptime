@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "{{count}} سرّ مطلوب تدويره.",
   "{{count}} secrets_one": "{{count}} سرّ",
   "{{law}} may apply first: {{due}}.": "قد ينطبق {{law}} أولًا: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "قال {{name}} إن هؤلاء الأشخاص يعيشون في {{places}}."
+  "{{name}} said the people live in {{places}}.": "قال {{name}} إن هؤلاء الأشخاص يعيشون في {{places}}.",
+  "Part of {{incident}}": "جزء من {{incident}}",
+  "Show Incidents Grouped by Episode": "عرض الحوادث مجمّعة حسب الحلقة",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه."
 }

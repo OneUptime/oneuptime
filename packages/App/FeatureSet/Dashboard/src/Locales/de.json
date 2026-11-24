@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "{{count}} zu rotierendes Geheimnis.",
   "{{count}} secrets_one": "{{count}} Geheimnis",
   "{{law}} may apply first: {{due}}.": "{{law}} kann zuerst gelten: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} hat angegeben, dass die Betroffenen in {{places}} leben."
+  "{{name}} said the people live in {{places}}.": "{{name}} hat angegeben, dass die Betroffenen in {{places}} leben.",
+  "Part of {{incident}}": "Teil von {{incident}}",
+  "Show Incidents Grouped by Episode": "Vorfälle nach Episode gruppiert anzeigen",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besucher sehen eine Karte für jeden Vorfall und eine weitere für jede Episode, sodass ein Vorfall in einer Episode zweimal erscheint.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besucher sehen jede Episode als eine Karte mit ihren Vorfällen und dem, was sie betreffen."
 }

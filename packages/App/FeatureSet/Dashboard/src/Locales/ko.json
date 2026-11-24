@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "교체할 시크릿 {{count}}개.",
   "{{count}} secrets_one": "시크릿 {{count}}개",
   "{{law}} may apply first: {{due}}.": "{{law}}이(가) 가장 먼저 적용될 수 있습니다: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다."
+  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다.",
+  "Part of {{incident}}": "{{incident}}의 일부",
+  "Show Incidents Grouped by Episode": "인시던트를 에피소드별로 묶어 표시",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "방문자에게 인시던트마다 카드가 하나씩, 에피소드마다 카드가 하나씩 더 표시되므로 에피소드에 속한 인시던트는 두 번 표시됩니다.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "방문자에게 각 에피소드가 해당 인시던트와 영향받는 항목을 나열한 하나의 카드로 표시됩니다."
 }

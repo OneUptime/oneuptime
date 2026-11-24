@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "{{count}} hemmelighet som må roteres.",
   "{{count}} secrets_one": "{{count}} hemmelighet",
   "{{law}} may apply first: {{due}}.": "{{law}} kan gjelde først – {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} har sagt at de registrerte bor i {{places}}."
+  "{{name}} said the people live in {{places}}.": "{{name}} har sagt at de registrerte bor i {{places}}.",
+  "Part of {{incident}}": "Del av {{incident}}",
+  "Show Incidents Grouped by Episode": "Vis hendelser gruppert etter episode",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøkende ser ett kort for hver hendelse og ett til for hver episode, så en hendelse i en episode vises to ganger.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøkende ser hver episode som ett kort som viser hendelsene i den og hva de påvirker."
 }

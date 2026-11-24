@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "रोटेट करने के लिए {{count}} सीक्रेट।",
   "{{count}} secrets_one": "{{count}} सीक्रेट",
   "{{law}} may apply first: {{due}}.": "{{law}} सबसे पहले लागू हो सकता है: {{due}}।",
-  "{{name}} said the people live in {{places}}.": "{{name}} ने बताया कि लोग {{places}} में रहते हैं।"
+  "{{name}} said the people live in {{places}}.": "{{name}} ने बताया कि लोग {{places}} में रहते हैं।",
+  "Part of {{incident}}": "{{incident}} का हिस्सा",
+  "Show Incidents Grouped by Episode": "घटनाएं एपिसोड के अनुसार समूहित करके दिखाएं",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।"
 }

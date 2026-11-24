@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "{{count}} راز برای چرخاندن.",
   "{{count}} secrets_one": "{{count}} راز",
   "{{law}} may apply first: {{due}}.": "{{law}} ممکن است نخست اعمال شود: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} گفت این افراد در {{places}} زندگی می‌کنند."
+  "{{name}} said the people live in {{places}}.": "{{name}} گفت این افراد در {{places}} زندگی می‌کنند.",
+  "Part of {{incident}}": "بخشی از {{incident}}",
+  "Show Incidents Grouped by Episode": "نمایش حوادث گروه‌بندی‌شده بر اساس اپیزود",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "بازدیدکنندگان برای هر حادثه یک کارت و برای هر اپیزود کارتی دیگر می‌بینند، بنابراین حادثه‌ای که در یک اپیزود است دو بار نمایش داده می‌شود.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "بازدیدکنندگان هر اپیزود را در یک کارت می‌بینند که حوادث آن و آنچه را تحت تأثیر قرار داده‌اند فهرست می‌کند."
 }

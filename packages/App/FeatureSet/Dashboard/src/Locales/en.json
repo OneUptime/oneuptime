@@ -64051,5 +64051,9 @@
   "{{count}} secrets to rotate._one": "{{count}} secret to rotate.",
   "{{count}} secrets_one": "{{count}} secret",
   "{{law}} may apply first: {{due}}.": "{{law}} may apply first: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} said the people live in {{places}}."
+  "{{name}} said the people live in {{places}}.": "{{name}} said the people live in {{places}}.",
+  "Part of {{incident}}": "Part of {{incident}}",
+  "Show Incidents Grouped by Episode": "Show Incidents Grouped by Episode",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Visitors see each episode as one card that lists its incidents and what they affect."
 }
