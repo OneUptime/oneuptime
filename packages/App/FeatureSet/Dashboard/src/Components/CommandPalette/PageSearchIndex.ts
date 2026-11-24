@@ -2768,6 +2768,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "fail2ban",
               "challenge bots",
             ],
+            settings: [
+              /*
+               * Folded under the page's More settings (#10746): the result
+               * opens the fold at its card (HOURLY_LIMIT_CARD_KEY).
+               */
+              { name: "Hourly Limit", anchor: "hourly-limit" },
+            ],
           },
           {
             page: PageMap.SECURITY_BLOCKLIST,
@@ -3067,6 +3074,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "soc 2",
               "record of processing",
             ],
+          },
+          /*
+           * Under Compliance, not in the menu (#10375): the record of
+           * processing's drafts, a store at a time, and a framework's audit
+           * evidence.
+           */
+          {
+            page: PageMap.DATA_SECURITY_REVIEW_DRAFTS,
+            title: "Review Drafts",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "record of processing",
+              "legal basis",
+              "retention",
+              "ropa",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_AUDIT_EVIDENCE,
+            title: "Audit Evidence",
+            icon: IconProp.DocumentText,
+            keywords: ["auditor", "soc 2 evidence", "gdpr evidence"],
           },
         ],
       },

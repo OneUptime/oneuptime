@@ -2,6 +2,21 @@ import PageComponentProps from "../../PageComponentProps";
 import { SensitivityPill } from "../../../Components/DataSecurity/DataSecurityPills";
 import { getStoreContentScanKindRefusal } from "../../../Components/DataSecurity/StoreNextContentScan";
 import StoreExclusionsInput from "../../../Components/DataSecurity/StoreExclusionsInput";
+import StoreRecordCard from "../../../Components/DataSecurity/StoreRecordCard";
+import {
+  RecordValue,
+  getLegalBasisOptions,
+  getPeopleOptions,
+} from "../../../Components/DataSecurity/StoreRecord";
+import {
+  DECLARED_STORE_LEGAL_BASIS,
+  RECORD_LEGAL_BASIS_TITLES,
+  RecordField,
+  RecordFieldValue,
+  RecordLegalBasis,
+  isRecordLegalBasis,
+  readRecordFieldValue,
+} from "Common/Types/DataSecurity/RecordOfProcessing";
 import { getDataStoreEnvironmentTitle } from "../../../Components/DataSecurity/DataSecurityCatalogTerms";
 import {
   STORE_ENVIRONMENT_OPTIONS,
@@ -65,8 +80,10 @@ import EmptyValue, {
  *   - whether its content is scanned and what the scans skip, and - for a
  *     database you run yourself, folded under More fields - how it is
  *     scanned;
- *   - why it holds personal data and how long it keeps it, for the record
- *     of processing on Compliance.
+ *   - its record of processing on Compliance: why it holds personal data,
+ *     how long it keeps it, on what legal basis and about whom - OneUptime
+ *     AI's drafts confirmed or edited here (StoreRecordCard) - and who
+ *     receives it and where it goes.
  */
 
 const DataStoreSettings: FunctionComponent<
@@ -525,53 +542,63 @@ const DataStoreSettings: FunctionComponent<
           readAgain={declared.readAgain}
         />
       ) : (
-        <CardModelDetail<DataStore>
-          name="Record of Processing"
-          cardProps={{
-            title: "Record of Processing",
-            description:
-              "Why this store holds personal data and how long it keeps it, for the GDPR record of processing on Compliance.",
-          }}
-          isEditable={true}
-          editButtonText="Edit Record"
-          formFields={[
-            {
-              field: { purpose: true },
-              title: "Purpose",
-              description: "Why the store holds personal data.",
-              fieldType: FormFieldSchemaType.LongText,
-              required: false,
-              placeholder: "Customer orders, for fulfilment and support",
-            },
-            {
-              field: { retention: true },
-              title: "Retention",
-              description: "How long data is kept in the store.",
-              fieldType: FormFieldSchemaType.Text,
-              required: false,
-              placeholder: "Two years after an account is closed",
-            },
-          ]}
-          modelDetailProps={{
-            showDetailsInNumberOfColumns: 2,
-            modelType: DataStore,
-            id: "data-store-record-of-processing",
-            modelId: dataStoreId,
-            fields: [
-              {
-                field: { purpose: true },
-                title: "Purpose",
-                fieldType: FieldType.Text,
-                placeholder: "Not set",
-              },
-              {
-                field: { retention: true },
-                title: "Retention",
-                fieldType: FieldType.Text,
-                placeholder: "Not set",
-              },
-            ],
-          }}
+        /*
+         * A store with personal data: its record field by field, with
+         * OneUptime AI's drafts to confirm (#10375). One without keeps the
+         * plain purpose and retention.
+         */
+        <StoreRecordCard
+          dataStoreId={dataStoreId}
+          whenNotInRecord={
+            <CardModelDetail<DataStore>
+              name="Record of Processing"
+              cardProps={{
+                title: "Record of Processing",
+                description:
+                  "Why this store holds personal data and how long it keeps it, for the GDPR record of processing on Compliance.",
+              }}
+              isEditable={true}
+              editButtonText="Edit Record"
+              formFields={[
+                {
+                  field: { purpose: true },
+                  title: "Purpose",
+                  description: "Why the store holds personal data.",
+                  fieldType: FormFieldSchemaType.LongText,
+                  required: false,
+                  placeholder: "Customer orders, for fulfilment and support",
+                },
+                {
+                  field: { retention: true },
+                  title: "Retention",
+                  description: "How long data is kept in the store.",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  placeholder: "Two years after an account is closed",
+                },
+              ]}
+              modelDetailProps={{
+                showDetailsInNumberOfColumns: 2,
+                modelType: DataStore,
+                id: "data-store-record-of-processing",
+                modelId: dataStoreId,
+                fields: [
+                  {
+                    field: { purpose: true },
+                    title: "Purpose",
+                    fieldType: FieldType.Text,
+                    placeholder: "Not set",
+                  },
+                  {
+                    field: { retention: true },
+                    title: "Retention",
+                    fieldType: FieldType.Text,
+                    placeholder: "Not set",
+                  },
+                ],
+              }}
+            />
+          }
         />
       )}
     </Fragment>
@@ -601,6 +628,8 @@ const DeclaredRecordCard: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const declared: DataSecurityDeclaredStore | null = props.declared;
+  const recordMoreFields: FormFieldCollapsibleSection<DataStore> =
+    getAdvancedFormSection<DataStore>();
 
   // What the card says of a field: the team's words, or OneUptime's with where they come from.
   const recorded: (data: {
@@ -670,6 +699,31 @@ const DeclaredRecordCard: FunctionComponent<{
           required: false,
           ...(oneUptimesRetention ? { placeholder: oneUptimesRetention } : {}),
         },
+        /*
+         * The rest of what Article 30 asks (#10375), folded under More
+         * fields: OneUptime's basis stands until the team picks its own,
+         * and few teams change it.
+         */
+        {
+          field: { legalBasis: true },
+          title: "Legal Basis",
+          description: LEAVE_EMPTY_FOR_ONEUPTIMES,
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: getLegalBasisOptions(),
+          required: false,
+          placeholder: RECORD_LEGAL_BASIS_TITLES[DECLARED_STORE_LEGAL_BASIS],
+          collapsibleSection: recordMoreFields,
+        },
+        {
+          field: { dataSubjects: true },
+          title: "People It Is About",
+          description:
+            "The categories of people the store's data is about, for the record of processing.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownOptions: getPeopleOptions(),
+          required: false,
+          collapsibleSection: recordMoreFields,
+        },
       ]}
       onSaveSuccess={(): void => {
         props.readAgain();
@@ -708,6 +762,48 @@ const DeclaredRecordCard: FunctionComponent<{
                   ? getDeclaredRetentionHint(declared)
                   : FILLED_IN_BY_ONEUPTIME,
               });
+            },
+          },
+          {
+            field: { legalBasis: true },
+            title: "Legal Basis",
+            fieldType: FieldType.Element,
+            getElement: (item: DataStore): ReactElement => {
+              const basis: RecordLegalBasis = isRecordLegalBasis(
+                item.legalBasis,
+              )
+                ? item.legalBasis
+                : DECLARED_STORE_LEGAL_BASIS;
+
+              return (
+                <div className="space-y-0.5 text-sm">
+                  <RecordValue field={RecordField.LegalBasis} value={basis} />
+                  <p className="text-xs text-gray-500">
+                    {translator.translateText(
+                      isRecordLegalBasis(item.legalBasis)
+                        ? WRITTEN_BY_YOUR_TEAM
+                        : FILLED_IN_BY_ONEUPTIME,
+                    )}
+                  </p>
+                </div>
+              );
+            },
+          },
+          {
+            field: { dataSubjects: true },
+            title: "People It Is About",
+            fieldType: FieldType.Element,
+            getElement: (item: DataStore): ReactElement => {
+              const people: RecordFieldValue = readRecordFieldValue(
+                RecordField.People,
+                item.dataSubjects,
+              );
+
+              return Array.isArray(people) && people.length > 0 ? (
+                <RecordValue field={RecordField.People} value={people} />
+              ) : (
+                <EmptyValue />
+              );
             },
           },
         ],

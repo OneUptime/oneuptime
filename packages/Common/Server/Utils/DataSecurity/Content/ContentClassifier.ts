@@ -18,6 +18,10 @@ import {
   isGzipName,
 } from "../../../../Utils/DataSecurity/PathPattern";
 import {
+  countShadowField,
+  ShadowCounts,
+} from "../../../../Utils/DataSecurity/ShadowCount";
+import {
   findSensitiveValues,
   MAX_SCANNED_TEXT_LENGTH,
   ScanDetector,
@@ -275,6 +279,8 @@ export interface ContentClassification {
   warnings: Array<string>;
   // Fields no detector placed, described without their values.
   unplacedFields?: Array<UnplacedField> | undefined;
+  // What the drafts run in shadow would find in its fields (ShadowCount).
+  shadowCounts?: ShadowCounts | undefined;
 }
 
 interface ScanSettings {
@@ -364,6 +370,11 @@ export interface FieldsClassification {
   sensitiveShare: number;
   // The fields no detector placed, described without their values.
   unplacedFields: Array<UnplacedField>;
+  /*
+   * What each draft run in shadow would find in the fields (#10371): every
+   * field counted, placed or not, and no finding made.
+   */
+  shadowCounts: ShadowCounts;
 }
 
 /*
@@ -429,6 +440,7 @@ export function classifyCollectedFields(data: {
     : getFieldClassifierOptions(data.options);
   const locations: Array<LocationFindings> = [];
   const unplacedFields: Array<UnplacedField> = [];
+  const shadowCounts: ShadowCounts = {};
   const names: Array<string> = data.fields.map(
     (field: CollectedField): string => {
       return field.path;
@@ -444,6 +456,15 @@ export function classifyCollectedFields(data: {
     if (field.values.length === 0) {
       continue;
     }
+
+    // The drafts run in shadow, each alone: counted, never found.
+    countShadowField({
+      counts: shadowCounts,
+      detectors: data.options.shadowDetectors || [],
+      location: field.path,
+      values: field.values,
+      allowedValues: data.options.allowedValues,
+    });
 
     const classifications: Array<FieldClassification> = classifyField(
       field.path,
@@ -514,6 +535,7 @@ export function classifyCollectedFields(data: {
     plaintextPasswordFields,
     sensitiveShare,
     unplacedFields,
+    shadowCounts,
   };
 }
 
@@ -993,6 +1015,7 @@ function structuredClassification(data: {
     plaintextPasswordFields: fields.plaintextPasswordFields,
     warnings: data.warnings,
     unplacedFields: fields.unplacedFields,
+    shadowCounts: fields.shadowCounts,
   };
 }
 

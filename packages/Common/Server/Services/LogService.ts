@@ -144,7 +144,22 @@ export class LogService extends AnalyticsDatabaseService<Log> {
           type: TableColumnType.Text,
           value: group.requires,
           sendAsHex: true,
-        }}) > 0 AND multiSearchAnyCaseInsensitive(body, ${{
+        }}) > 0`,
+      );
+
+      // One of several words besides: a sensitive path's (#10745).
+      if (group.requiresAnyOf && group.requiresAnyOf.length > 0) {
+        statement.append(
+          SQL` AND multiSearchAnyCaseInsensitive(body, ${{
+            type: TableColumnType.ArrayText,
+            value: [...group.requiresAnyOf],
+            sendAsHex: true,
+          }})`,
+        );
+      }
+
+      statement.append(
+        SQL` AND multiSearchAnyCaseInsensitive(body, ${{
           type: TableColumnType.ArrayText,
           value: [...group.anyOf],
           sendAsHex: true,

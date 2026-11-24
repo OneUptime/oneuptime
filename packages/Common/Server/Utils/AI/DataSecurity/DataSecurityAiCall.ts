@@ -2,11 +2,18 @@ import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecuri
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, {
+  AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+  AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogResponse,
@@ -72,6 +79,9 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   get [DataSecurityAiFeature.SuggestFieldTypes](): string {
     return AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE;
   },
+  get [DataSecurityAiFeature.JudgeFindings](): string {
+    return AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE;
+  },
   get [DataSecurityAiFeature.ProposeStoreOwners](): string {
     return AI_DATA_SECURITY_STORE_OWNERS_FEATURE;
   },
@@ -83,6 +93,24 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   },
   get [DataSecurityAiFeature.ReviewPullRequests](): string {
     return AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftRecord](): string {
+    return AI_DATA_SECURITY_RECORD_DRAFT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftRecordOnRequest](): string {
+    return AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftImpactAssessment](): string {
+    return AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftAuditEvidence](): string {
+    return AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftDataTypes](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DescribeDataType](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE;
   },
 };
 

@@ -184,7 +184,7 @@ pipeline:
 
 ## HTTP आउटपुट से भेजें
 
-Fluent Bit का [HTTP आउटपुट](https://docs.fluentbit.io/manual/pipeline/outputs/http) OneUptime के Fluentd एंडपॉइंट पर भी भेज सकता है, जो हर रिकॉर्ड को वैसे ही पढ़ता है जैसा [Fluentd पेज](/docs/telemetry/fluentd) बताता है। `format` को `json_lines` पर सेट करें, जैसा नीचे है, या `json` पर: OneUptime दोनों पढ़ता है, `compress: gzip` से कंप्रेस किए गए हों या नहीं। Fluent Bit का डिफ़ॉल्ट फ़ॉर्मैट, `msgpack`, अस्वीकार किया जाता है।
+Fluent Bit का [HTTP आउटपुट](https://docs.fluentbit.io/manual/pipeline/outputs/http) OneUptime के Fluentd एंडपॉइंट पर भी भेज सकता है, जो हर रिकॉर्ड को वैसे ही पढ़ता है जैसा [Fluentd पेज](/docs/telemetry/fluentd) बताता है। `format` को `json_lines` पर सेट करें, जैसा नीचे है, या `json` या `json_stream` पर: OneUptime तीनों पढ़ता है, `compress: gzip` से कंप्रेस किए गए हों या नहीं। Fluent Bit का डिफ़ॉल्ट फ़ॉर्मैट, `msgpack`, अस्वीकार किया जाता है।
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

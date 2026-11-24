@@ -18,6 +18,13 @@ export interface DetectionRuleLibraryUpgrade {
   // The YAML and description the library gave the rule before the fix.
   previousSigmaRuleYaml: string;
   previousDescription: string;
+  /*
+   * The field the library's rule grouped by before the fix, when the fix
+   * moved it (#10773): a copy still grouped by it, its YAML still the
+   * library's, is grouped as the library's rule is now. A copy grouped by
+   * a field someone chose is theirs.
+   */
+  previousGroupByField?: string | undefined;
 }
 
 export const DETECTION_RULE_LIBRARY_UPGRADES: ReadonlyArray<DetectionRuleLibraryUpgrade> =
@@ -63,6 +70,65 @@ detection:
       - s3:PutBucketAcl
       - s3:DeletePublicAccessBlock
     statusName: Success
+  condition: selection
+`,
+    },
+    /*
+     * #10773: the two OpenStack rules that count per address count per
+     * principalIp, which names the address behind a Hash rule's token,
+     * rather than the parser's own attribute, which holds real addresses
+     * only - so a sign-in whose address a Hash rule hid is counted. Their
+     * YAML's wording is otherwise as it was.
+     */
+    {
+      id: "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10",
+      why: "OpenStack failed logins burst counts a sign-in whose address a Hash scrub rule hid, per its real address (#10773)",
+      previousDescription:
+        "Ten or more failed sign-ins to Keystone from one address within five minutes: someone guessing passwords, or something using a password that has changed.",
+      previousGroupByField: "openstack.audit.initiator_address",
+      previousSigmaRuleYaml: `title: OpenStack failed logins burst
+id: 6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10
+description: Many failed Keystone sign-ins from one address in a short time.
+level: medium
+tags:
+  - attack.credential_access
+  - attack.t1110
+detection:
+  selection:
+    openstack.audit.event_type: identity.authenticate
+    openstack.audit.outcome: failure
+  condition: selection
+`,
+    },
+    {
+      id: "c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22",
+      why: "OpenStack admin credential used from a new address sees an address a Hash scrub rule hid, as its real address (#10773)",
+      previousDescription:
+        "The admin account was used from an address it had not used in thirty days: a sign-in, a change or a call through the audit filter. If it is not someone you know, its password is somewhere it should not be. Add your other administrators to the rule's list.",
+      previousSigmaRuleYaml: `title: OpenStack admin credential used from a new address
+id: c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22
+description: The first use of the admin account from an address in thirty days.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1078
+correlation:
+  type: new_value
+  rules:
+    - openstack_admin_used
+  group-by:
+    - principalUser
+  timespan: 30d
+  condition:
+    field: openstack.audit.initiator_address
+---
+title: OpenStack admin account used
+name: openstack_admin_used
+detection:
+  selection:
+    openstack.audit.outcome: success
+    openstack.audit.initiator_name:
+      - admin
   condition: selection
 `,
     },

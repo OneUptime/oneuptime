@@ -4,11 +4,17 @@ import {
   DataSecurityAiWork,
   isDataSecurityAiProposalKind,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
+import AddDataTypeAction from "./Actions/AddDataTypeAction";
+import ConfirmFindingsAction from "./Actions/ConfirmFindingsAction";
 import CreateOwnerRuleAction from "./Actions/CreateOwnerRuleAction";
 import {
   FixIssueGroupInCloudAction,
   FixIssueGroupInCodeAction,
 } from "./Actions/IssueGroupFixActions";
+import {
+  AddScanExclusionAction,
+  TurnOffDataTypeAction,
+} from "./Actions/ScanTuningActions";
 import ScrubTelemetryAction from "./Actions/ScrubTelemetryAction";
 import SetStoreOwnersAction from "./Actions/SetStoreOwnersAction";
 import { DataSecurityAiAction } from "./DataSecurityAiAction";
@@ -35,6 +41,10 @@ function actions(): Readonly<
     [DataSecurityAiProposalKind.FixIssueGroupInCode]: FixIssueGroupInCodeAction,
     [DataSecurityAiProposalKind.FixIssueGroupInCloud]:
       FixIssueGroupInCloudAction,
+    [DataSecurityAiProposalKind.ConfirmFindings]: ConfirmFindingsAction,
+    [DataSecurityAiProposalKind.TurnOffDataType]: TurnOffDataTypeAction,
+    [DataSecurityAiProposalKind.AddScanExclusion]: AddScanExclusionAction,
+    [DataSecurityAiProposalKind.AddDataType]: AddDataTypeAction,
   };
 }
 

@@ -101,6 +101,7 @@ import {
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "Common/Types/NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityAddressVaultRetention";
+import { SECURITY_USER_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityUserVaultRetention";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -120,6 +121,17 @@ import {
   DataSecurityAiChangeSafety,
 } from "Common/Types/DataSecurity/DataSecurityAi";
 import { MIN_STORES_FOR_DATA_STORE_OWNER_RULE } from "Common/Types/DataSecurity/DataStoreOwnerProposal";
+import {
+  DATA_STORE_FINDING_VERDICT_LIMITS,
+  DATA_STORE_FINDING_VERDICT_TITLES,
+  DATA_STORE_FINDING_VERDICTS,
+  FindingWrongMatchSign,
+} from "Common/Types/DataSecurity/DataStoreFindingVerdict";
+import { SCAN_TUNING_LIMITS } from "Common/Types/DataSecurity/DataSecurityScanTuning";
+import {
+  getFindingNameKey,
+  getWrongMatchSigns,
+} from "Common/Utils/DataSecurity/FindingJudgement";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
@@ -158,6 +170,16 @@ import {
   MIN_UNPLACED_VALUES,
   valueShape,
 } from "Common/Utils/DataSecurity/UnplacedFields";
+import {
+  MIN_CANDIDATE_FIELDS,
+  MIN_CANDIDATE_STORES,
+} from "Common/Utils/DataSecurity/DataTypeCandidates";
+import {
+  DROPPED_DATA_TYPE_COOLDOWN_DAYS,
+  MAX_SCATTERED_MATCH_SHARE,
+  MIN_GROUP_MATCH_SHARE,
+  PROVING_HOURS,
+} from "Common/Utils/DataSecurity/DataTypeProposal";
 import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
@@ -921,6 +943,15 @@ describe("Set Up Data Security", () => {
     const model: string = source(
       "Common/Models/DatabaseModels/DataSecuritySetting.ts",
     );
+    // A column the server writes for itself - the audit evidence it keeps (#10375) - is no setting.
+    const computed: Set<string> = new Set(
+      Array.from(
+        model.matchAll(/@TableColumn\(\{[^@]*?computed: true[^@]*?\}\)/g),
+        (match: RegExpMatchArray): string => {
+          return (match[0].match(/title: "([^"]+)"/) || [])[1] || "";
+        },
+      ),
+    );
     const titles: Array<string> = Array.from(
       model.matchAll(
         // A long description is written on the line below its key.
@@ -930,7 +961,11 @@ describe("Set Up Data Security", () => {
         // A severity's id column is the severity the form shows.
         return SEVERITY_ID_TITLES[match[1] as string] || (match[1] as string);
       },
-    );
+    ).filter((title: string): boolean => {
+      return !computed.has(title);
+    });
+
+    expect(computed).toEqual(new Set(["Audit Evidence"]));
 
     expect(
       settings.map((row: Array<string>): string => {
@@ -1493,6 +1528,194 @@ describe("Sensitive Data Types", () => {
     expect(section(page, "## How a value is found")).toContain(
       "**Confirm** on one that is right makes it High",
     );
+  });
+
+  it("says how OneUptime AI finds a data type of your own, proves it on your scans and offers it, as the product does (#10371)", () => {
+    const unplaced: string = section(
+      page,
+      "### Fields no detector could place",
+    );
+    const finds: string = section(page, "## Data types OneUptime AI finds");
+    const own: string = section(page, "## Your own data types");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataTypesToReviewCopy.ts",
+    );
+
+    // A telemetry scan's unplaced attributes, as the scanner bounds them.
+    expect(unplaced).toContain(
+      `at most ${constant(
+        `${SERVER}/Telemetry/TelemetryUnplacedAttributes.ts`,
+        "MAX_UNPLACED_ATTRIBUTES_PER_SERVICE",
+      )} a service each scan`,
+    );
+
+    // A group, a draft and its proof, by the product's own numbers.
+    expect([MIN_CANDIDATE_FIELDS, MIN_CANDIDATE_STORES]).toEqual([3, 2]);
+    expect(finds).toContain(
+      "Three or more fields in two or more stores make a group",
+    );
+    expect(finds).toContain(
+      `at most ${constant(
+        "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery.ts",
+        "MAX_DRAFTS_PER_RUN",
+      )} at a time`,
+    );
+    expect(finds).toContain(
+      `for up to ${PROVING_HOURS} hours or one scan interval, whichever is longer`,
+    );
+    expect(finds).toContain(
+      `at least ${Math.round(MIN_GROUP_MATCH_SHARE * 100)}% of its fields' values and at most ${Math.round(MAX_SCATTERED_MATCH_SHARE * 100)}% of the other values`,
+    );
+    expect(finds).toContain(
+      `its group is not drafted again for ${DROPPED_DATA_TYPE_COOLDOWN_DAYS} days`,
+    );
+
+    // The sentence it quotes is the card's own, and so are its buttons.
+    expect(copy).toContain(
+      '"Matches {{share}} of the values in these {{count}} fields, and {{elsewhere}} of values elsewhere in the same stores."',
+    );
+    expect(finds).toContain(
+      '"Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores."',
+    );
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+      "Describe It",
+      "Fill In the Form",
+    ]) {
+      expect(copy).toContain(`translationKey("${label}")`);
+    }
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+    ]) {
+      expect(finds).toContain(`**${label}**`);
+    }
+
+    expect(own).toContain("**Describe It**");
+    expect(own).toContain("**Fill In the Form**");
+  });
+
+  /*
+   * OneUptime AI's verdicts on findings, Apply to Similar Findings and what
+   * the team's decisions say of the scans (#10372), as the product has
+   * them: the verdicts and buttons the Dashboard draws, the precedent's
+   * limit and the names it matches by, the signs of a wrong match, and the
+   * tuning's thresholds.
+   */
+  it("says what OneUptime AI's verdicts rest on, and what it decides on its own, as the product does", () => {
+    const verdicts: string = section(page, "## OneUptime AI's verdicts");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
+    );
+    const aiCopy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+
+    for (const verdict of DATA_STORE_FINDING_VERDICTS) {
+      expect(verdicts).toContain(
+        `**${DATA_STORE_FINDING_VERDICT_TITLES[verdict]}**`,
+      );
+    }
+
+    expect(copy).toContain('translationKey("Show the decisions")');
+    expect(verdicts).toContain("**Show the decisions**");
+    expect(copy).toContain(
+      '"Your team marked {{field}} not sensitive on {{count}} stores."',
+    );
+    expect(verdicts).toContain(
+      '"Your team marked `order_number` not sensitive on 4 stores"',
+    );
+
+    // At most ten decisions, the same name first, however it is written.
+    expect(DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedent).toBe(10);
+    expect(verdicts).toContain("at most ten");
+    expect(verdicts).toContain(
+      "`order_number`, `orderNumber` and `public.orders.order_number` are all",
+    );
+
+    const key: string | null = getFindingNameKey({ location: "order_number" });
+
+    expect(key).not.toBeNull();
+
+    for (const location of ["orderNumber", "public.orders.order_number"]) {
+      expect({ location, key: getFindingNameKey({ location }) }).toEqual({
+        location,
+        key,
+      });
+    }
+
+    expect(getFindingNameKey({ location: "order_ref" })).not.toBe(key);
+
+    // The id fields it names are signs of a wrong match for a card number.
+    for (const location of ["order_number", "invoice_no", "ref_id"]) {
+      expect(verdicts).toContain(`\`${location}\``);
+      expect({
+        location,
+        signs: getWrongMatchSigns({
+          location,
+          dataTypeId: "credit-card-number",
+          confidence: "High",
+        }),
+      }).toEqual({
+        location,
+        signs: [FindingWrongMatchSign.IdFieldWithLuhnNumbers],
+      });
+    }
+
+    // What it may do on its own is a rule's, in the rule form's words.
+    expect(aiCopy).toContain(
+      '[DataSecurityAiWork.Judge]: translationKey("Judge")',
+    );
+    expect(aiCopy).toContain(
+      '[DataSecurityAiAutonomy.WithoutAsking]: translationKey("Automatically")',
+    );
+    expect(verdicts).toContain("whose **Judge** is **Automatically**");
+    expect(verdicts).toContain(
+      "**It never marks a finding as not sensitive**, under any rule.",
+    );
+    expect(verdicts).toContain(
+      `at most ${
+        constant(
+          "Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+          "MAX_FINDINGS_PER_VERDICT_REQUEST",
+        ) *
+        constant(
+          "Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+          "MAX_VERDICT_REQUESTS_PER_RUN",
+        )
+      } of a store's findings after a scan`,
+    );
+  });
+
+  it("names Apply to Similar Findings and the scans' tuning as the Dashboard and the code have them", () => {
+    const similar: string = section(page, "## Similar findings");
+    const tuning: string = section(
+      page,
+      "## What your decisions say of the scans",
+    );
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
+    );
+
+    expect(copy).toContain(
+      'title: translationKey("Apply to Similar Findings")',
+    );
+    expect(similar).toContain("**Apply to Similar Findings**");
+    expect(copy).toContain('notNow: translationKey("Not Now")');
+    expect(similar).toContain("**Not Now**");
+
+    expect(tuning).toContain(
+      `at least ${SCAN_TUNING_LIMITS.minFindingsToTurnOff} findings, on at least ${SCAN_TUNING_LIMITS.minStoresToTurnOff} stores`,
+    );
+    expect(tuning).toContain(
+      `at least ${SCAN_TUNING_LIMITS.minFindingsToExclude} of them`,
+    );
+    expect(tuning).toContain("**Never Sensitive** is never proposed");
   });
 
   it("gives the scanner's own windows, context and field thresholds", () => {
@@ -2606,7 +2829,7 @@ describe("Data Security Compliance", () => {
       header.slice(header.indexOf("purpose")),
     );
 
-    // The three stores, as the catalog has them: declared, never scanned, never checked.
+    // The four stores, as the catalog has them: declared, never scanned, never checked.
     const kinds: Array<DataStoreKindInfo> = DATA_STORE_KINDS.filter(
       (info: DataStoreKindInfo): boolean => {
         return info.isDeclared;
@@ -2654,7 +2877,10 @@ describe("Data Security Compliance", () => {
     }
 
     expect(declared).toContain(
-      "so no scan reads them, no check applies to them, and holding these addresses never raises an issue",
+      "Four stores hold IP addresses and user names on purpose, to protect your network:",
+    );
+    expect(declared).toContain(
+      "so no scan reads them, no check applies to them, and holding these addresses and names never raises an issue",
     );
 
     // What each holds.
@@ -2666,6 +2892,7 @@ describe("Data Security Compliance", () => {
       ["ip-address", "username", "email-address"],
       ["ip-address"],
       ["ip-address"],
+      ["username", "email-address"],
     ]);
     expect(stores[0]?.[1]).toBe(
       "The IP addresses, user names and email addresses of who acted and what it touched",
@@ -2674,13 +2901,16 @@ describe("Data Security Compliance", () => {
     expect(stores[2]?.[1]).toContain(
       "The IP address behind each token an IP Address rule that hashes left in the logs and traces",
     );
+    expect(stores[3]?.[1]).toBe(
+      "The user behind each token a rule that hashes left where [Security Events](/docs/telemetry/security-events) reads a user in your logs and traces",
+    );
 
     // Why, in GDPR's own terms.
     expect(declared).toContain(
       `Each one's purpose is "${DECLARED_STORE_PURPOSE}".`,
     );
 
-    // How long: the project's retention for security events, read now; the flows' and the vault's own.
+    // How long: the project's retention for security events, read now; the flows' and the vaults' own.
     expect(
       DECLARED_DATA_STORES.map((info: DeclaredDataStoreInfo): string => {
         return info.retentionBasis;
@@ -2689,6 +2919,7 @@ describe("Data Security Compliance", () => {
       DeclaredStoreRetentionBasis.SecurityEvents,
       DeclaredStoreRetentionBasis.NetworkFlows,
       DeclaredStoreRetentionBasis.AddressVault,
+      DeclaredStoreRetentionBasis.UserVault,
     ]);
     expect(declaring).toMatch(
       /SecurityEventRetention\.getRetentionInDays\(data\.projectId, \{\s*isFresh: true,/,
@@ -2707,6 +2938,14 @@ describe("Data Security Compliance", () => {
       getDeclaredRetentionText({
         basis: DeclaredStoreRetentionBasis.AddressVault,
         retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
+    );
+    expect(stores[3]?.[2]).toBe(
+      getDeclaredRetentionText({
+        basis: DeclaredStoreRetentionBasis.UserVault,
+        retentionInDays: SECURITY_USER_VAULT_RETENTION_IN_DAYS,
       })
         .split(NO_BREAK_SPACE)
         .join(" "),
@@ -2745,6 +2984,7 @@ describe("Data Security Compliance", () => {
       DeclaredStoreReaders.Roles,
       DeclaredStoreReaders.Roles,
       DeclaredStoreReaders.SecurityEventsScansOnly,
+      DeclaredStoreReaders.SecurityEventsScansOnly,
     ]);
     expect(declaring).toContain(
       "return [...new SecurityEvent().getReadPermissions()];",
@@ -2766,6 +3006,7 @@ describe("Data Security Compliance", () => {
     expect(stores[2]?.[3]).toBe(
       `${SECURITY_EVENTS_SCANS_ONLY_TEXT}: no person, page, export, API or AI tool`,
     );
+    expect(stores[3]?.[3]).toBe(stores[2]?.[3]);
 
     // The team's own words are kept; a field left empty keeps OneUptime's.
     expect(declaring).toContain(
@@ -2782,15 +3023,28 @@ describe("Data Security Compliance", () => {
       "use **Edit Record** in the store's **Settings**: a field left empty keeps OneUptime's.",
     );
 
-    // Listed while its data is kept: the vault for its days, and a day for the schedule.
+    /*
+     * Listed while its data is kept: each vault for its days, and a day for
+     * the schedule. The address vault while an IP Address rule hashes, the
+     * user vault while a rule of any other pattern does.
+     */
+    expect(SECURITY_USER_VAULT_RETENTION_IN_DAYS).toBe(
+      SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+    );
     expect(declared).toContain(
-      `the vault while an enabled IP Address rule hashes logs or traces Security Events reads, and for ${
+      `the address vault while an enabled IP Address rule hashes logs or traces Security Events reads, the user vault while an enabled rule of any other pattern does, each for ${
         SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS +
         constant(
           `${SERVER}/DeclaredDataStores.ts`,
           "ADDRESS_VAULT_STORE_GRACE_IN_DAYS",
         )
       } days after`,
+    );
+    expect(declaring).toMatch(
+      /patternType: LogScrubPatternType\.IPAddress,\s*scrubAction: LogScrubAction\.Hash,/,
+    );
+    expect(declaring).toMatch(
+      /patternType: new NotEqual<LogScrubPatternType>\(\s*LogScrubPatternType\.IPAddress,?\s*\),\s*scrubAction: LogScrubAction\.Hash,/,
     );
     expect(declaring).toContain("data: { isArchived: true } as never,");
     expect(declaring).toContain(

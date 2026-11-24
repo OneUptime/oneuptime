@@ -87,6 +87,7 @@ Met **Evalueer deze criteria over een bepaalde periode** aangevinkt bepaalt **Ev
 | **Aantal** | Het aantal controles dat aan de voorwaarde voldeed zich verhoudt zoals ingesteld onder **Overeenkomende controles**: bijvoorbeeld **Groter dan** 30. |
 | **Percentage** | Hun aandeel in de controles van het venster zich verhoudt zoals ingesteld onder **Aandeel overeenkomende controles**: bijvoorbeeld **Groter dan** 10%. |
 | **Statuswijzigingen** | Het aantal keren dat de controles wisselden tussen wel en niet voldoen aan de voorwaarde zich verhoudt zoals ingesteld onder **Aantal wijzigingen**. Een apparaat dat uitvalt en weer terugkomt, wisselt twee keer. |
+| **Vorige controle** | Deze controle, vergeleken met de vorige controle van dezelfde sonde: bijvoorbeeld een reactietijd die meer dan 50% hoger ligt, of een site die nu plat ligt en eerder niet. Zie [Een controle met de vorige vergelijken](#een-controle-met-de-vorige-vergelijken). |
 
 Een zin onder de instellingen van het venster leest het filter terug zoals het is ingesteld: ‘Controleer: "Is online" is onwaar bij meer dan 30 controles in de afgelopen 8 uur’.
 
@@ -107,6 +108,20 @@ Een Ping-monitor controleert elke minuut een access point op kantoor. Voordat ve
 | Access point is online | **Is online** is **Waar** | Niet over een periode | **Operationeel** |
 
 Zet bij het tweede **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** aan met **Statuswijzigingen**, **Kleiner dan of gelijk aan** 1, **Voor de laatste** 1 uur: het instabiliteitsincident blijft open tot het access point een uur stabiel is geweest, in plaats van te sluiten in de eerste minuut dat het bereikbaar is. Om te waarschuwen als het in 8 uur meer dan 30 pings mist, stel je het tweede criterium in plaats daarvan in op **Aantal**, **Groter dan** 30, **Voor de laatste** 8 uur.
+
+### Een controle met de vorige vergelijken
+
+**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**.
+
+Een gemeten waarde, zoals een reactietijd, voldoet wanneer die meer dan de verandering onder **Verschil met de vorige controle** boven de vorige controle ligt, met **Groter dan**, of eronder, met **Kleiner dan**. De verandering is een **Waarde in de eenheid van de controle**, zoals 200 ms, of een **Procent van de vorige controle**, zoals 50%, en 0 voldoet bij elke stijging of daling. **Gelijk aan** en **Niet gelijk aan** vergelijken met de vorige waarde zelf.
+
+Een filter dat waar of onwaar is, zoals **Is online**, en een filter op de body, een header of een expressie voldoen bij de controle die aan de voorwaarde begon te voldoen: **Is online** op **Onwaar** voldoet bij de controle waarbij de site uitviel, en pas weer bij de volgende uitval.
+
+In beide gevallen voldoet het bij één controle, en bij de volgende houdt het criterium op te werken. Wilt u dat het de status vasthoudt die het zet, of zijn incident open laat, geef het dan een eigen herstelvoorwaarde: zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt).
+
+Zonder vorige controle in het venster, zoals bij de eerste controle van de monitor, voor een net toegevoegde sonde of na een onderbreking, beslist **Als geen gegevens**: **Ignore** voldoet niet, **Trigger** voldoet, en **Treat As Zero** vergelijkt alsof de vorige controle 0 las, of niet aan de voorwaarde voldeed.
+
+De zin onder de instellingen van het venster leest het terug: ‘Controleer: "Reactietijd (in ms)" ligt meer dan 50% boven de vorige controle’, of ‘Controleer: "Is online" is onwaar bij deze controle, maar niet bij de vorige’.
 
 ## Wanneer een criterium herstelt
 
@@ -199,6 +214,21 @@ Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: he
 
 > [!TIP]
 > Als de antwoorden van een website- of API-monitor op zich gevoelig zijn, zet dan **Antwoordinhoud bewaren** uit op de kaart **Antwoordinhoud** van zijn pagina **Geavanceerd → Instellingen**. Zijn monitoringlogboeken, incidenten en waarschuwingen bewaren dan welke filters overeenkwamen, de statuscode en de responstijd, en geen enkel deel van het antwoord. Een monitor voor inkomende verzoeken heeft dezelfde schakelaar voor de verzoeken die hij ontvangt: **Verzoekinhoud bewaren**, op de kaart **Verzoekinhoud**. De schakelaar geldt voor de controles die worden uitgevoerd, en de incidenten en waarschuwingen die worden geopend, nadat u hem wijzigt. Het laatste verzoek in het overzicht van een monitor voor inkomende verzoeken volgt de schakelaar meteen.
+
+## Hoe lang elke controle duurt
+
+De evaluatiesamenvatting van elke controle, onder **Samenvatting bekijken** in de **Monitoringlogboeken** van de monitor en voor de laatste controle op zijn **Overzicht**, zegt wanneer de controle is geëvalueerd, hoe lang de evaluatie duurde en, bij een monitor die elke host, container of groep afzonderlijk beoordeelt, hoeveel reeksen er zijn beoordeeld. De tijd loopt vanaf het moment dat OneUptime de gegevens van de controle begon te lezen tot het het logboek van de controle schreef: het lezen van de gegevens, het beoordelen van de criteria en het openen van incidenten en waarschuwingen.
+
+Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u. Te lang is meer dan een tiende van de tijd tussen de controles van de monitor, nooit minder dan 5 seconden en nooit meer dan een minuut:
+
+| Monitor gecontroleerd | Waarschuwt na |
+| --- | --- |
+| Elke minuut | 6 seconden |
+| Elke 5 minuten | 30 seconden |
+| Elke 10 minuten of minder vaak | 1 minuut |
+| Zodra de resultaten binnenkomen, zoals bij inkomende verzoeken en e-mails | 5 seconden |
+
+Een tiende laat een monitor ruimte om tienvoudig te groeien voordat zijn controles elkaar in de weg zitten en achterlopen, zodat u het vroeg merkt. Onder 5 seconden is een controle in orde, hoe groot ook: 16.000 reeksen beoordelen duurt ongeveer 2,5 seconden. Boven een minuut bezet ze zo lang een worker en de databases die ze leest, wat haar interval ook is. Om haar sneller te maken, maakt u de filters van haar query's nauwer, groepeert u op minder attributen of controleert u minder vaak.
 
 ## De criteria van een monitor wijzigen
 

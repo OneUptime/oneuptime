@@ -19,12 +19,12 @@ flowchart TB
     R --> P["プレビュー:<br/>各項目と、<br/>それが何になるか"]
     P --> A["OneUptime AI<br/>(頼んだときに、<br/>クエリを一つずつ)"]
     A --> P
-    P --> C["ダッシュボード、<br/>または Metrics<br/>モニター"]
+    P --> C["ダッシュボード、<br/>またはモニター"]
 ```
 
 ## 始める前に
 
-- インポートしたウィジェットとモニターは、このプロジェクト自身のメトリクスを PromQL で読みます。Prometheus remote write、OpenTelemetry、Datadog Agent で送れば、そこでの名前のまま保たれます。
+- インポートしたウィジェットとモニターは、このプロジェクト自身のメトリクスとログを読みます。OpenTelemetry や Datadog Agent で、またはメトリクスなら Prometheus remote write、ログなら Loki の push API で送れば、そこでの名前のまま保たれます。
 - ダッシュボードのインポートにはダッシュボードを作成できるロールが、アラートルールのインポートにはモニターを作成できるロールが必要です。
 - ファイルは最大 10 MB までで、そのうち最大 500 のパネルまたはルールが読み込まれます。
 
@@ -44,7 +44,7 @@ Grafana では、ダッシュボードの設定から JSON モデルをコピー
 各パネルと各変数が何になるかを確認し、ダッシュボードに名前を付けて **ダッシュボードを作成** を選びます。新しいダッシュボードが開きます。
 :::
 
-Grafana の PromQL は書かれたとおりに保たれます。OneUptime は `$__interval`、`$__rate_interval`、`$__range` を Grafana と同じように埋め、All の変数はすべての値に一致します。Datadog のクエリは、Datadog Agent が送ったメトリクスに対する PromQL になります。`avg:system.cpu.user{host:web-1}` は `system_cpu_user{host="web-1"}` を読みます。
+Grafana の PromQL は書かれたとおりに保たれます。OneUptime は `$__interval`、`$__rate_interval`、`$__range` を Grafana と同じように埋め、All の変数はすべての値に一致します。Datadog のクエリは、Datadog Agent が送ったメトリクスに対する PromQL になります。`avg:system.cpu.user{host:web-1}` は `system_cpu_user{resource_host_name="web-1"}` を読み、`.as_count()` は Agent がレートとして送ったカウントを、各間隔で数えた数に戻します。ログを一覧する Datadog のウィジェットは **ログストリーム** に、ログを数える時系列は **ログチャート** になり、どちらも Datadog Agent が送ったログを Datadog の検索で絞り込んで読みます。
 
 ## アラートルールをインポートする
 
@@ -64,6 +64,8 @@ Prometheus のルールファイルか PrometheusRule リソース、Grafana の
 
 各ルールは、PromQL クエリ一つ、ルールの条件、その時間枠を持つ Metrics モニターになります。しきい値を超えた系列ごとにアラートまたはインシデントを開き、系列が回復すると解決します。タイトルと説明は、ルールの要約またはメッセージから作られ、系列のラベルが埋め込まれます。
 
+Datadog の異常検知モニターや予測モニターは、OneUptime の異常検知や予測の条件を持つ Metrics モニターになり、Datadog のログモニターは、その検索に一致するログを数える Logs モニターになります。
+
 ## 各項目の変換のされ方
 
 | ステータス | 意味 |
@@ -72,7 +74,7 @@ Prometheus のルールファイルか PrometheusRule リソース、Grafana の
 | **Converted approximately** | 作成され、その注記に違いが書かれます。 |
 | **Not converted** | 何も作成されず、その注記に理由が書かれます。 |
 
-レコーディングルール、ログに対するアラートルール、ログ・トレース・イベントを読む Datadog のウィジェット、Datadog の異常検知・外れ値・予測のモニターは変換されません。
+レコーディングルール、ログに対する Prometheus と Grafana のアラートルール、トレースやイベントを読む Datadog のウィジェット、Datadog の外れ値・変化のモニター、そしてメトリクスとログ以外を読む Datadog のモニターは変換されません。
 
 ## OneUptime AI でクエリを変換する
 

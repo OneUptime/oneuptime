@@ -90,7 +90,7 @@ Node.js 與 .NET 的 Azure 偵測器寫入的是 `azure.container_apps`、`azure
 執行個體已經列出，但概覽中的 **CPU** 與 **記憶體** 圖格，以及 **執行個體** 中的 CPU 與記憶體欄位都是空的。這些資料來自指標而不是追蹤：也就是 `container.cpu.utilization` 與 `container.memory.usage`（或 `container.memory.usage.total`）資料點，其資源帶有與追蹤相同的執行個體識別以及 `cloud.platform`。
 
 - **在 ECS 上**，sidecar Collector 中的 `awsecscontainermetrics` 接收器會以 `ecs.task.cpu.utilized` 與 `ecs.task.memory.utilized` 的形式提供它們。請把它保留在 `metrics` 管線中，並在同一個管線中保留 `resourcedetection`，否則指標送達時不會帶有 `cloud.platform`，而會被歸檔到別處。
-- **在 Cloud Run、Container Apps 與其他平台上**，平台不會向 sidecar 公開容器的使用量。除非你自己傳送這些指標，否則圖格會保持空白：請改為查看請求圖格。在 App Service 上，在 **雲端 → 連線** 中連線訂用帳戶後，應用程式頁面會顯示來自 **Azure Monitor** 的網站 CPU 時間與記憶體。
+- **在 Cloud Run、Container Apps 與其他平台上**，平台不會向 sidecar 公開容器的使用量。除非你自己傳送這些指標，否則圖格會保持空白：請改為查看請求圖格。在 App Service 上，在 **雲端 → 連線** 中連線訂用帳戶後，應用程式頁面會顯示來自 **Azure Monitor** 的網站 CPU 時間與記憶體。在 Container Apps、Cloud Run、App Engine 與 App Runner 上，同樣在 **雲端 → 連線** 中連線帳戶後，應用程式頁面會顯示其雲端測得的 CPU 與記憶體，空白圖格隨之讓位。
 - **使用 SDK direct 時**，沒有任何東西會傳送容器指標，因此圖格是空的屬於正常現象。
 
 ## 環境顯示已中斷

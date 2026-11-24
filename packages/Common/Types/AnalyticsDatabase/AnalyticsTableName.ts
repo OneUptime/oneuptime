@@ -31,6 +31,15 @@ enum AnalyticsTableName {
    */
   SecurityAddressVault = "SecurityAddressVaultV1",
   /*
+   * Security Events' user vault (#10632): the user behind each token a Hash
+   * scrub rule leaves where Security Events reads a user - a span's
+   * enduser.id or user.id, an AI call's user, a log line's user such as a
+   * cloud audit log's principal - kept 30 days after it was last seen, so a
+   * scan can name the user a case is about. Read by Security Events' scans
+   * and nothing else: see Models/AnalyticsModels/SecurityUserVault.
+   */
+  SecurityUserVault = "SecurityUserVaultV1",
+  /*
    * How many values each log or trace scrub rule changed, by service and
    * service.version, an hour a row (#10366): what shows a rule that never
    * fires, and what proves a leak stopped at its source (#10368). See

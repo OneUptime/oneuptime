@@ -8,6 +8,8 @@ Seguridad de datos conoce 143 clases de datos sensibles: números de tarjeta, cu
 - [Nombres y direcciones postales en texto libre](#nombres-y-direcciones-postales-en-texto-libre): El pequeño modelo dentro del escáner y sus puntuaciones.
 - [Cada tipo de datos](#tipos-de-datos-integrados): Los 143, por categoría.
 - [Tus propios tipos de datos](#tus-propios-tipos-de-datos): IDs de empleado, números de póliza y el cuadro Probarlo.
+- [Tipos de datos que encuentra OneUptime AI](#tipos-de-datos-que-encuentra-oneuptime-ai): Tus propios tipos de datos, encontrados en los campos que ningún detector pudo clasificar.
+- [Los veredictos de OneUptime AI](#los-veredictos-de-oneuptime-ai): Un veredicto sobre cada hallazgo que te espera, con las decisiones de tu equipo como precedente.
 :::
 
 ## Cómo se encuentra un valor
@@ -64,7 +66,9 @@ Un campo cuyo nombre dice que contiene una contraseña (`password`, `passwordHas
 
 Una columna o un campo cuyo nombre no apunta a ningún tipo de datos, y cuyos valores no coinciden con ningún detector, no se sabe que sea seguro: puede ser tu propio número de cliente, o una columna con nombre en otro idioma. Con **Habilitar IA** activado en el proyecto, un escaneo de contenido guarda esos campos, como máximo 200 por escaneo, y se pregunta a OneUptime AI qué tipo de datos del proyecto contiene cada uno, como máximo 40 campos de un almacén a la vez. Se le dice el nombre del campo, los nombres de los campos de al lado y las formas de sus valores (cada letra escrita como `a` o `A` y cada dígito como `9`, así que `AB-1234` es `AA-9999`), nunca un valor. No se pregunta por texto libre, campos con menos de 5 valores, números enteros pequeños ni campos con nombre de identificador, fecha o estado.
 
-Cada tipo que nombra OneUptime AI es un hallazgo de confianza Baja, marcado como **Sugerido por OneUptime AI** con su motivo. Como cualquier hallazgo de confianza Baja, no cuenta para nada hasta que una persona elige **Confirmar** en la página **Contenido** del almacén; **Marcar como no sensible** lo rechaza. No se vuelve a preguntar por un campo ya respondido durante 30 días, y nunca más por un campo que una persona haya juzgado.
+Un escaneo de telemetría guarda del mismo modo los atributos que ningún detector clasificó, de los logs, spans, métricas y el resto de la telemetría de un servicio, como máximo 50 por servicio en cada escaneo. Nunca guarda los atributos propios de OneUptime, ni los que las convenciones de OpenTelemetry escriben en cada registro para decir de dónde viene, como el servicio, el host o el pod, ni texto libre, como el cuerpo de un log.
+
+Cada tipo que nombra OneUptime AI es un hallazgo de confianza Baja, marcado como **Sugerido por OneUptime AI** con su motivo, escrito en el idioma de tu proyecto y mostrado a lo ancho de toda la fila del hallazgo. Como cualquier hallazgo de confianza Baja, no cuenta para nada hasta que una persona elige **Confirmar** en la página **Contenido** del almacén; **Marcar como no sensible** lo rechaza. No se vuelve a preguntar por un campo ya respondido durante 30 días, y nunca más por un campo que una persona haya juzgado.
 
 ## Nombres y direcciones postales en texto libre
 
@@ -362,6 +366,32 @@ Un patrón se comprueba al guardarlo: debe compilar, no coincidir con texto vac�
 
 Un valor de tu tipo tiene confianza Media por sí solo y Alta con una palabra clave cerca cuando supera una suma de comprobación, y Baja por sí solo y Media con una palabra clave cuando no tiene ninguna. En una columna, decide la proporción de valores que coinciden, como en todos los tipos.
 
+### Describirlo
+
+Arriba en el formulario de un tipo de datos nuevo, **Describirlo** rellena el formulario por ti. Escribe cómo son los datos, por ejemplo "nuestros ID de empleado son como EMP-123456, a veces sin el guion", añade algunos ejemplos si quieres, uno por línea, y elige **Rellenar el formulario**. OneUptime AI recibe tu frase y las formas de tus ejemplos, nunca los ejemplos: se quedan en tu navegador, donde **Probarlo** muestra cuántos de ellos encuentra su patrón. Lee lo que rellenó, cambia lo que quieras y guarda: no se guarda nada hasta que lo hagas, y el patrón se comprueba como uno que hubieras escrito tú. Describirlo necesita **Habilitar IA** activado en el proyecto.
+
+## Tipos de datos que encuentra OneUptime AI
+
+Los campos que ningún detector pudo clasificar a menudo contienen un tipo de datos propio de tu empresa, guardado en muchos sitios con nombres que dicen lo mismo: los números de póliza de una aseguradora en columnas llamadas `policy_no`, `policyNumber` y `police_nr`, en todas sus bases de datos. Con **Habilitar IA** activado en el proyecto, OneUptime AI encuentra un tipo de datos así en los campos que guardaron tus escaneos, y solo te pregunta por él cuando tus propios escaneos lo han demostrado.
+
+:::steps
+### Encuentra un grupo de campos
+
+Tres o más campos en dos o más almacenes forman un grupo cuando la mayoría de sus valores tienen una misma forma, con o sin los separadores entre sus partes, y sus nombres comparten una palabra que dice lo que contienen. Una forma sin dígitos, una fecha, una hora o un número decimal nunca forman un grupo, y una palabra como `id`, `no` o `number` no dice nada por sí sola.
+
+### Redacta un tipo de datos
+
+OneUptime AI redacta un tipo de datos para cada grupo nuevo, como máximo 3 a la vez, a partir de los nombres de los campos y las formas de sus valores, nunca de un valor. El borrador debe cumplir lo mismo que un tipo guardado y encontrar las formas a partir de las que se redactó. Un borrador que no lo cumple se vuelve a pedir una vez, con el motivo.
+
+### Tus próximos escaneos lo demuestran
+
+El borrador se ejecuta en el próximo escaneo de cada almacén de su grupo, durante un máximo de 48 horas o un intervalo de escaneo, lo que sea más largo. No crea ningún hallazgo: cada escaneo cuenta cuántos valores encontraría, en los campos del grupo y en todos los demás campos de los mismos almacenes. Se ofrece cuando encuentra al menos el 80% de los valores de sus campos y como máximo el 1% de los demás valores. Un campo de otro sitio donde encuentra casi todos los valores contiene los mismos datos con otro nombre: se nombra, no se cuenta en su contra.
+:::
+
+Cada borrador también se cuenta, a la vez, de forma restringida: fuera de los campos de su grupo, un borrador restringido solo encuentra un valor junto a una de sus palabras clave o bajo un nombre de campo que lo nombra. Un borrador que encuentra demasiado en otros sitios se ofrece restringido cuando eso basta. Un borrador que no basta de ninguna de las dos formas se descarta, y su grupo no se vuelve a redactar durante 30 días.
+
+Cada tipo de datos que ofrece espera en **Tipos de datos por revisar**, arriba en **Seguridad de datos → Ajustes → Tipos de datos** y en **Seguridad de datos → IA**, con lo que contaron tus escaneos, por ejemplo "Coincide con 98% de los valores de estos 11 campos, y con 0,1% de los valores en otras partes de los mismos almacenes." **Añadir tipo de datos** abre el formulario de un tipo de datos relleno con él, para cambiarlo y probarlo; guardarlo añade el tipo, que los escaneos encuentran desde su próxima ejecución. **No es un tipo de datos** lo rechaza: nunca se vuelve a ofrecer para esos campos. Añadirlo requiere un rol que pueda crear tipos de datos.
+
 ## No sensible, y nunca sensible
 
 Un escaneo puede encontrar algo que no es lo que parece: una columna de números de pedido que superan la comprobación de Luhn, tu propia dirección de soporte en cada línea de registro. Díselo a OneUptime, y deja de contarlo:
@@ -369,6 +399,42 @@ Un escaneo puede encontrar algo que no es lo que parece: una columna de números
 - **Marca el hallazgo como no sensible.** En la página **Contenido** del almacén, elige **Marcar como no sensible** en el hallazgo y di por qué. Deja de contar para la sensibilidad del almacén y para sus comprobaciones, y el almacén se vuelve a comprobar al momento. El hallazgo sigue en el almacén, marcado, con tu motivo, para que la siguiente persona vea lo que se decidió.
 - **Añade el valor a Nunca sensible**, en los ajustes de Seguridad de datos, para un valor que nunca es un hallazgo en ningún sitio, como `support@yourcompany.com`. Los valores se comparan después de que el escáner los normalice, sin distinguir mayúsculas y minúsculas.
 - **Desactiva un tipo de datos integrado.** En **Tipos de datos integrados**, en **Seguridad de datos → Ajustes → Tipos de datos**, cada tipo de datos tiene un interruptor, que se guarda en el momento en que lo cambias. Ningún escaneo del proyecto busca un tipo que esté desactivado.
+
+## Los veredictos de OneUptime AI
+
+Con **Habilitar IA** activado en el proyecto y **Trabajar en los problemas nuevos** activado en **Seguridad de datos → IA**, OneUptime AI da su veredicto sobre cada hallazgo que espera la decisión de una persona, después de cada escaneo de su almacén. Un hallazgo espera cuando el escaneo no estaba seguro de él (un hallazgo de confianza Baja, o una de las sugerencias de OneUptime AI) o cuando un hallazgo de confianza Media o Alta muestra un indicio de coincidencia errónea:
+
+- la mayoría de las coincidencias eran valores de prueba conocidos;
+- el nombre del campo apunta a otro tipo de datos, y no a este;
+- un campo de ID, como `order_number`, `invoice_no` o `ref_id`, contiene un tipo que se comprueba con el algoritmo de Luhn, que supera una de cada diez series de dígitos cualesquiera, y su nombre no apunta a ese tipo.
+
+El veredicto es **Confirmarlo**, **No sensible** o **No se puede determinar**, con un motivo en el idioma de tu proyecto. Se muestra a lo ancho de toda la fila del hallazgo, en la página **Contenido** del almacén y en **En tu telemetría**, con las decisiones de tu equipo en las que se basa, como «Tu equipo marcó `order_number` como no sensible en 4 almacenes». **Mostrar las decisiones** enumera cada una: su almacén, su campo y el motivo que dio tu equipo.
+
+### Las decisiones de tu equipo como precedente
+
+A OneUptime AI se le dicen las decisiones anteriores de tu equipo sobre hallazgos del mismo tipo de datos, como máximo diez. Primero van las de un campo con el mismo nombre, en cualquier almacén: `order_number`, `orderNumber` y `public.orders.order_number` son todos «order number». El mismo lugar va primero, y después la decisión más reciente. Después van los campos cuyos nombres, o los motivos dados para ellos, dicen lo mismo, como `order_ref` con el motivo «Shopify order numbers». Se le dice dónde estaba cada hallazgo, qué se decidió y el motivo dado, sin ningún valor que aparezca en un motivo. Nunca se le dice un valor, una muestra enmascarada ni una entrada.
+
+Un hallazgo en texto libre, como el cuerpo de un log o un mensaje, no tiene nombre de campo con el que compararlo. Su precedente es el mismo lugar en otro almacén, como el cuerpo del log de otro servicio.
+
+### Lo que OneUptime AI decide por su cuenta
+
+- **Nunca marca un hallazgo como no sensible**, diga lo que diga una regla. Lo hace una persona, con su propio motivo. Cuando el veredicto es **No sensible**, **Marcar como no sensible** parte del motivo que redactó OneUptime AI, que puedes cambiar.
+- **Solo confirma un hallazgo por su cuenta donde una regla de IA lo indica**: una regla de IA de Seguridad de datos en la que **Juzgar** está en **Automáticamente**, para el almacén y el tipo de datos. Además necesita que tu equipo haya confirmado un hallazgo parecido, o un campo con el nombre del tipo. La confirmación está en la **Cronología** del almacén y en **Hecho por la IA** de **Seguridad de datos → IA**, y **Deshacer** la retira.
+
+Si no, el veredicto espera en la fila del hallazgo. Donde el proyecto tiene reglas de IA, un hallazgo recibe un veredicto solo cuando una regla para su almacén y su tipo de datos tiene **Juzgar** activado; una regla limitada a algunas comprobaciones o gravedades trata de problemas, y no juzga ningún hallazgo. OneUptime AI juzga como máximo 40 de los hallazgos de un almacén después de un escaneo, primero los que nunca juzgó, y el resto después del siguiente escaneo. Después de un escaneo posterior, solo se vuelve a preguntar por un hallazgo cuando cambió aquello en lo que se basa su veredicto, como una nueva decisión sobre un hallazgo parecido.
+
+## Hallazgos similares
+
+Después de que confirmes un hallazgo o lo marques como no sensible, **Aplicar a hallazgos similares** enumera los hallazgos parecidos sobre los que nadie ha decidido todavía: el mismo tipo de datos, en un campo con el mismo nombre, en este almacén y en cualquier otro almacén que puedas leer. Cada uno está marcado. Desmarca los que quieras juzgar por separado, y los demás reciben la misma decisión, con tu motivo, como un cambio tuyo; un hallazgo que no puedes cambiar se deja como estaba. **Ahora no** los deja todos como están. Un hallazgo en texto libre nunca tiene hallazgos similares: lo que contiene un texto no dice nada de otro.
+
+## Lo que tus decisiones dicen de los escaneos
+
+Cuando tu equipo marca hallazgos como no sensibles, OneUptime AI propone cambios en los escaneos en **Esperándote**, en **Seguridad de datos → IA**:
+
+- **Desactivar un tipo de datos integrado** cuando cada uno de sus hallazgos se marcó como no sensible: al menos 3 hallazgos, en al menos 2 almacenes. No cuenta un hallazgo que OneUptime AI solo sugirió.
+- **Excluir una ubicación de los escaneos de un almacén** cuando cada hallazgo de esa ubicación se marcó como no sensible, al menos 2 de ellos. Se propone para una columna de base de datos o un atributo de telemetría, que un escaneo puede dejar fuera por separado.
+
+Cada propuesta siempre espera a que una persona la apruebe: un escaneo que deja de buscar se pierde los datos reales que llegan después. **Nunca sensible** nunca se propone, porque contiene valores, y OneUptime AI nunca ve ninguno.
 
 ## Próximos pasos
 

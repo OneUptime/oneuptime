@@ -87,6 +87,7 @@ Con **Valuta questo criterio su un periodo di tempo** selezionato, **Valuta** di
 | **Conteggio** | Il numero di controlli che hanno soddisfatto la condizione si confronta come impostato in **Controlli corrispondenti**: **Maggiore di** 30, ad esempio. |
 | **Percentuale** | La loro quota sui controlli della finestra si confronta come impostato in **Quota di controlli corrispondenti**: **Maggiore di** 10%, ad esempio. |
 | **Cambi di stato** | Il numero di volte in cui i controlli sono passati dal soddisfare la condizione al non soddisfarla, o viceversa, si confronta come impostato in **Volte che è cambiato**. Un dispositivo che cade e torna su cambia due volte. |
+| **Controllo precedente** | Questo controllo, confrontato con il controllo precedente della stessa sonda: un tempo di risposta superiore di oltre il 50%, per esempio, o un sito che ora è giù e prima non lo era. Vedi [Confrontare un controllo con il precedente](#confrontare-un-controllo-con-il-precedente). |
 
 Una frase sotto le impostazioni della finestra rilegge il filtro così come è impostato: «Verifica se "Online" è falso in più di 30 controlli dell'ultimo periodo di 8 ore».
 
@@ -107,6 +108,20 @@ Un monitor Ping controlla ogni minuto un access point d'ufficio. Prima che le fi
 | L'access point è online | **Online** è **Vero** | Non su un periodo di tempo | **Operativo** |
 
 Per il secondo, attiva **Ripristina solo quando è soddisfatta una condizione propria** con **Cambi di stato**, **Minore o uguale a** 1, **Nell'ultimo periodo di** 1 ora: l'incidente di instabilità resta aperto finché l'access point non è stabile da un'ora, invece di chiudersi il primo minuto in cui risponde. Per ricevere un avviso quando fallisce più di 30 ping in 8 ore, imposta invece il secondo criterio su **Conteggio**, **Maggiore di** 30, **Nell'ultimo periodo di** 8 ore.
+
+### Confrontare un controllo con il precedente
+
+**Controllo precedente** confronta ogni controllo con il controllo precedente della stessa sonda, e dello stesso disco per l'occupazione di un disco. **Nell'ultimo periodo di** indica quanto può essere vecchio quel controllo, quindi impostalo più lungo dell'intervallo di monitoraggio. È offerto per gli stessi filtri di **Conteggio**.
+
+Un valore misurato, come un tempo di risposta, corrisponde quando supera il controllo precedente di più della variazione impostata in **Variazione rispetto al controllo precedente**, con **Maggiore di**, o gli resta sotto di più di quella variazione, con **Minore di**. La variazione è un **Valore nell'unità del controllo**, come 200 ms, o una **Percentuale del controllo precedente**, come il 50%, e 0 corrisponde a qualsiasi aumento o calo. **Uguale a** e **Diverso da** confrontano con il valore precedente stesso.
+
+Un filtro vero o falso, come **Online**, e un filtro sul corpo, su un'intestazione o su un'espressione corrispondono al controllo che ha iniziato a soddisfare la condizione: **Online** impostato su **Falso** corrisponde al controllo in cui il sito è caduto, e non di nuovo fino alla caduta successiva.
+
+In entrambi i casi corrisponde a un solo controllo, e al successivo il criterio smette di agire. Perché mantenga lo stato che imposta, o lasci aperto il suo incidente, dagli una condizione di ripristino propria: vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina).
+
+Senza un controllo precedente nella finestra, come al primo controllo del monitor, per una sonda appena aggiunta o dopo un'interruzione, decide **Se nessun dato**: **Ignore** non corrisponde, **Trigger** corrisponde e **Treat As Zero** confronta come se il controllo precedente avesse letto 0, o non avesse soddisfatto la condizione.
+
+La frase sotto le impostazioni della finestra lo rilegge: «Verifica se "Tempo di risposta (in ms)" supera di oltre 50% il controllo precedente», oppure «Verifica se "Online" è falso in questo controllo, ma non in quello precedente».
 
 ## Quando un criterio si ripristina
 
@@ -199,6 +214,21 @@ Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: 
 
 > [!TIP]
 > Quando le risposte di un monitor di siti web o API sono sensibili di per sé, disattivate **Conserva il contenuto della risposta** nella scheda **Contenuto della risposta** della sua pagina **Avanzato → Impostazioni**. I suoi log di monitoraggio, incidenti e avvisi conservano allora quali filtri hanno corrisposto, il codice di stato e il tempo di risposta, e nessuna parte della risposta. Un monitor di richieste in ingresso ha lo stesso interruttore per le richieste che riceve: **Conserva il contenuto della richiesta**, nella scheda **Contenuto della richiesta**. L'interruttore vale per i controlli eseguiti, e per gli incidenti e gli avvisi aperti, dopo averlo cambiato. L'ultima richiesta nella panoramica di un monitor di richieste in ingresso segue subito l'interruttore.
+
+## Quanto dura ogni controllo
+
+Il riepilogo di valutazione di ogni controllo, in **Visualizza riepilogo** nei **Log di monitoraggio** del monitor e, per l'ultimo controllo, nella sua **Panoramica**, dice quando il controllo è stato valutato, quanto è durata la sua valutazione e, per un monitor che giudica ogni host, container o gruppo separatamente, quante serie ha valutato. Il tempo va da quando OneUptime ha iniziato a leggere i dati che il controllo giudica fino a quando ne ha scritto il log: la lettura dei dati, la valutazione dei criteri e l'apertura di incidenti e avvisi.
+
+Quando una valutazione dura troppo per il suo monitor, il suo riepilogo ti avvisa. Troppo è più di un decimo del tempo tra due controlli del monitor, mai meno di 5 secondi e mai più di un minuto:
+
+| Monitor controllato | Avvisa dopo |
+| --- | --- |
+| Ogni minuto | 6 secondi |
+| Ogni 5 minuti | 30 secondi |
+| Ogni 10 minuti o meno spesso | 1 minuto |
+| All'arrivo dei suoi risultati, come richieste ed email in arrivo | 5 secondi |
+
+Un decimo lascia a un monitor lo spazio per crescere di dieci volte prima che i suoi controlli si sovrappongano e restino indietro, così lo sai presto. Sotto i 5 secondi, un controllo va bene per quanto sia grande: valutare 16.000 serie richiede circa 2,5 secondi. Oltre un minuto, occupa un worker e i database che legge per tutto quel tempo, qualunque sia il suo intervallo. Per velocizzarlo, restringi i filtri delle sue query, raggruppa per meno attributi o controllalo meno spesso.
 
 ## Modificare i criteri di un monitor
 

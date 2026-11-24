@@ -162,7 +162,7 @@ O bloqueio precisa de permissões de escrita no token de API da conexão:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Cria suas duas listas, e adiciona e remove os endereços delas. |
 | `Zone > Zone WAF > Edit`, em cada zona onde bloquear | Adiciona suas regras personalizadas, e lê as da própria zona. |
-| `Account > Account Firewall Access Rules > Edit` | Adiciona e remove IP Access Rules, em um plano sem uma lista ou uma regra personalizada sobrando. |
+| `Account > Account Firewall Access Rules > Edit` | Adiciona e remove IP Access Rules: em um plano sem uma lista ou uma regra personalizada sobrando, e para uma rede desafiada pelo seu ASN em **Campanhas**. |
 
 :::steps
 ### Dar permissões de escrita ao token
@@ -183,6 +183,7 @@ Enquanto o bloqueio está ativado, **Testar conexão** executa as mesmas verific
 | As listas `oneuptime_block` e `oneuptime_challenge` | Duas listas de IP na conta, uma para bloqueios e outra para desafios. A descrição delas nomeia o seu projeto do OneUptime. |
 | Uma regra personalizada por lista, em cada zona | `(ip.src in $oneuptime_block)` com a ação Block, e `(ip.src in $oneuptime_challenge)` com a ação Managed Challenge. A descrição delas diz que o OneUptime as gerencia. |
 | Um item de lista por bloqueio | O comentário dele nomeia o caso e quando o bloqueio termina, como `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Uma IP Access Rule por rede desafiada pelo seu ASN | Uma rede inteira desafiada em **Campanhas**, como uma IP Access Rule cujo alvo é `asn`, que todo plano tem. A nota dela diz o mesmo que o comentário de um item de lista. Sem `Account > Account Firewall Access Rules > Edit` no token, o desafio não é aplicado, e a **Lista de bloqueio** diz qual permissão adicionar. |
 
 Cada regra fica em primeiro lugar entre as regras personalizadas da zona, então roda antes das suas: uma regra Skip sua não consegue deixar passar um endereço bloqueado. Quando suas regras Skip deixam passar endereços, como os dos seus monitores ou de um parceiro, **Estado do bloqueio** os nomeia. **Proteger estes endereços** os adiciona a **Entidades protegidas**, que ninguém pode bloquear.
 

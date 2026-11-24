@@ -162,7 +162,7 @@ Blocking needs write permissions on the connection's API token:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Makes its two lists, and adds and removes their addresses. |
 | `Zone > Zone WAF > Edit`, on each zone to block in | Adds its custom rules, and reads the zone's own. |
-| `Account > Account Firewall Access Rules > Edit` | Adds and removes IP Access Rules, on a plan without a list or a custom rule to spare. |
+| `Account > Account Firewall Access Rules > Edit` | Adds and removes IP Access Rules: on a plan without a list or a custom rule to spare, and for a network challenged by its ASN from **Campaigns**. |
 
 :::steps
 ### Give the token write permissions
@@ -183,6 +183,7 @@ While blocking is on, **Test connection** runs the same checks: **How blocking i
 | The lists `oneuptime_block` and `oneuptime_challenge` | Two IP lists in the account, one for blocks and one for challenges. Their description names your OneUptime project. |
 | One custom rule per list, in each zone | `(ip.src in $oneuptime_block)` with the action Block, and `(ip.src in $oneuptime_challenge)` with the action Managed Challenge. Their description says OneUptime manages them. |
 | One list item per block | Its comment names the case and when the block ends, such as `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| One IP Access Rule per network challenged by its ASN | A whole network challenged from **Campaigns**, as an IP Access Rule whose target is `asn`, which every plan has. Its note says the same as a list item's. Without `Account > Account Firewall Access Rules > Edit` on the token, the challenge is not applied, and the **Blocklist** says which permission to add. |
 
 Each rule goes first among the zone's custom rules, so it runs before yours: a skip rule of yours cannot let a blocked address past it. When your skip rules let addresses through, such as your monitors' or a partner's, **Blocking Status** names them. **Protect These Addresses** adds them to **Protected Entities**, which no one can block.
 

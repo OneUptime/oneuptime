@@ -239,10 +239,13 @@ export const ACTIONABLE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
  *     "[REDACTED]" as the user to suspend;
  *   - a Hash token stands for one value, so it stays - as Other, an entity
  *     a case can be about and nobody can act on: no identity provider
- *     knows "[HASHED:3f9a...]";
+ *     knows "[HASHED:3f9a...]". Where Security Events' user vault knows
+ *     the user behind it, the scan names the user before the event is
+ *     stored (#10632), so what reaches here is a token nobody knows;
  *   - one of OneUptime's own actors as a user - a workflow
- *     ("workflow:<id>") or OneUptime itself ("oneuptime",
- *     OneUptimeActorPrincipal) - is no person: Other too.
+ *     ("workflow:<id>"), a project API key ("api-key:<id>", #10630) or
+ *     OneUptime itself ("oneuptime", OneUptimeActorPrincipal) - is no
+ *     person: Other too.
  *
  * Text of other kinds (a process's command line, a URL) may hold what a
  * rule hid and still mean something; only a value that is nothing but

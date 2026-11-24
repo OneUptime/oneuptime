@@ -87,6 +87,7 @@ Com **Avaliar este critério durante um período de tempo** marcado, **Avaliar**
 | **Contagem** | O número de verificações que atenderam à condição é comparado conforme definido em **Verificações correspondentes**: **Maior que** 30, por exemplo. |
 | **Porcentagem** | A proporção delas entre as verificações da janela é comparada conforme definido em **Proporção de verificações correspondentes**: **Maior que** 10%, por exemplo. |
 | **Mudanças de status** | O número de vezes que as verificações passaram de atender à condição para não atender, ou o contrário, é comparado conforme definido em **Vezes que mudou**. Um dispositivo que cai e volta muda duas vezes. |
+| **Verificação anterior** | Esta verificação, comparada com a verificação anterior da mesma sonda: um tempo de resposta mais de 50% acima dela, por exemplo, ou um site que está fora do ar agora e antes não estava. Veja [Comparar uma verificação com a anterior](#comparar-uma-verificação-com-a-anterior). |
 
 Uma frase abaixo das configurações da janela repete o filtro como ele está definido: “Verificar se "Online" é falso em mais de 30 verificações do último período de 8 horas”.
 
@@ -107,6 +108,20 @@ Um monitor Ping verifica um ponto de acesso de escritório a cada minuto. Antes 
 | O ponto de acesso está online | **Online** é **Verdadeiro** | Não durante um período | **Operacional** |
 
 No segundo, ative **Recuperar apenas quando uma condição própria for atendida** com **Mudanças de status**, **Menor ou igual a** 1, **No último período de** 1 hora: o incidente de instabilidade fica aberto até o ponto de acesso ficar estável por uma hora, em vez de fechar no primeiro minuto em que ele responde. Para alertar quando ele falhar mais de 30 pings em 8 horas, defina o segundo critério como **Contagem**, **Maior que** 30, **No último período de** 8 horas.
+
+### Comparar uma verificação com a anterior
+
+**Verificação anterior** compara cada verificação com a verificação anterior da mesma sonda, e do mesmo disco para o uso de um disco. **No último período de** diz há quanto tempo essa verificação pode ter sido feita, então defina um período maior que o intervalo de monitoramento. Ele é oferecido para os mesmos filtros que **Contagem**.
+
+Um valor medido, como um tempo de resposta, corresponde quando fica acima da verificação anterior por mais que a variação definida em **Variação em relação à verificação anterior**, com **Maior que**, ou abaixo dela por mais que essa variação, com **Menor que**. A variação é um **Valor na unidade da verificação**, como 200 ms, ou um **Percentual da verificação anterior**, como 50%, e 0 corresponde a qualquer alta ou queda. **Igual a** e **Diferente de** comparam com o próprio valor anterior.
+
+Um filtro verdadeiro ou falso, como **Online**, e um filtro sobre o corpo, um cabeçalho ou uma expressão correspondem na verificação que começou a atender à condição: **Online** definido como **Falso** corresponde na verificação em que o site caiu, e só de novo na próxima queda.
+
+Nos dois casos ele corresponde em uma única verificação, e na seguinte o critério deixa de agir. Para que mantenha o status que define, ou deixe seu incidente aberto, dê a ele uma condição de recuperação própria: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
+
+Sem verificação anterior na janela, como na primeira verificação do monitor, em uma sonda recém-adicionada ou após uma lacuna, **Se não houver dados** decide: **Ignore** não corresponde, **Gatilho** corresponde e **Treat As Zero** compara como se a verificação anterior tivesse lido 0, ou não tivesse atendido à condição.
+
+A frase abaixo das configurações da janela repete isso: “Verificar se "Tempo de resposta (em ms)" está mais de 50% acima da verificação anterior”, ou “Verificar se "Online" é falso nesta verificação, mas não na anterior”.
 
 ## Quando um critério se recupera
 
@@ -199,6 +214,21 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 
 > [!TIP]
 > Quando as respostas de um monitor de site ou de API forem sensíveis por si só, desative **Manter o conteúdo da resposta** no cartão **Conteúdo da resposta** da página **Avançado → Configurações** dele. Os registros de monitoramento, incidentes e alertas dele passam a guardar quais filtros corresponderam, o código de status e o tempo de resposta, e nenhuma parte da resposta. Um monitor de requisições recebidas tem o mesmo interruptor para as requisições que recebe: **Manter o conteúdo da solicitação**, no cartão **Conteúdo da solicitação**. O interruptor vale para as verificações executadas, e para os incidentes e alertas abertos, depois que você o muda. A última requisição na visão geral de um monitor de requisições recebidas segue o interruptor na hora.
+
+## Quanto tempo leva cada verificação
+
+O resumo de avaliação de cada verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor e, para a última verificação, na sua **Visão geral**, diz quando a verificação foi avaliada, quanto tempo levou a sua avaliação e, num monitor que julga cada host, contêiner ou grupo separadamente, quantas séries avaliou. O tempo vai de quando o OneUptime começou a ler os dados que a verificação julga até escrever o seu registro: a leitura dos dados, a avaliação dos critérios e a abertura de incidentes e alertas.
+
+Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa você. Demais é mais de um décimo do tempo entre as verificações do monitor, nunca menos de 5 segundos e nunca mais de um minuto:
+
+| Monitor verificado | Avisa após |
+| --- | --- |
+| A cada minuto | 6 segundos |
+| A cada 5 minutos | 30 segundos |
+| A cada 10 minutos ou com menos frequência | 1 minuto |
+| À medida que os resultados chegam, como solicitações e e-mails recebidos | 5 segundos |
+
+Um décimo deixa a um monitor espaço para crescer dez vezes antes que as suas verificações se sobreponham e fiquem para trás, então você fica sabendo cedo. Abaixo de 5 segundos, uma verificação está bem, por maior que seja: avaliar 16.000 séries leva cerca de 2,5 segundos. Acima de um minuto, ela ocupa um worker e os bancos de dados que lê durante todo esse tempo, seja qual for o seu intervalo. Para acelerá-la, restrinja os filtros das suas consultas, agrupe por menos atributos ou verifique-a com menos frequência.
 
 ## Alterar os critérios de um monitor
 

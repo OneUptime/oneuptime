@@ -18,6 +18,28 @@ import {
 import useDataSecuritySetting, {
   DataSecuritySettingState,
 } from "../../../Components/DataSecurity/UseDataSecuritySetting";
+import DataSecurityApi from "../../../Components/DataSecurity/DataSecurityApi";
+import DataTypesToReview, {
+  DataTypeToReview,
+  readDataTypeToReview,
+} from "../../../Components/DataSecurity/DataTypesToReview";
+import {
+  DataTypesToReviewCopy,
+  DescribeDataTypeCopy,
+} from "../../../Components/DataSecurity/DataTypesToReviewCopy";
+import DescribeDataType from "../../../Components/DataSecurity/DescribeDataType";
+import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
+import { DataSecurityAiProposalKind } from "Common/Types/DataSecurity/DataSecurityAi";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  getOfferedDraft,
+  toCustomDataTypeFormValues,
+} from "Common/Utils/DataSecurity/DataTypeProposal";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import GlobalEvents from "Common/UI/Utils/GlobalEvents";
+import Navigation from "Common/UI/Utils/Navigation";
+import Toast from "Common/UI/Utils/Toast";
 import {
   getWordListElement,
   lowerCaseWord,
@@ -76,6 +98,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, {
   Fragment,
   FunctionComponent,
@@ -105,8 +128,18 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
  *     then how it is found, and a Test It panel that runs the scanner on
  *     text pasted into it, in the browser (CustomDataTypeTest). The
  *     names-and-addresses model is not in the browser, and the panel says
- *     its findings are not shown there.
+ *     its findings are not shown there. Describe It, at the top of a new
+ *     type's form, has OneUptime AI fill the form in from a sentence and
+ *     the shapes of the person's examples, and puts the examples into
+ *     Test It (#10371).
+ *   - Data Types to Review, first while any waits: the data types OneUptime
+ *     AI found in the fields scans could not place, proven on their stores
+ *     (#10371). Add Data Type opens the form filled in; the type saved there
+ *     closes the proposal. A link may ask for one (ADD_DATA_TYPE_PARAM).
  */
+
+// The address's ask for a proposal's form: Data Security > AI links here so.
+export const ADD_DATA_TYPE_PARAM: string = "add-data-type";
 
 export const BUILT_IN_DATA_TYPES_TEST_ID: string =
   "data-security-built-in-data-types";
@@ -600,6 +633,8 @@ export interface TestPanelProps {
   values: FormValues<DataSecurityCustomDataType>;
   ariaLabelledby?: string | undefined;
   ariaDescribedby?: string | undefined;
+  // Text put in for the person: Describe It's examples (#10371).
+  initialSample?: string | undefined;
 }
 
 /*
@@ -610,8 +645,15 @@ export const CustomDataTypeTestPanel: FunctionComponent<TestPanelProps> = (
   props: TestPanelProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [sample, setSample] = useState<string>("");
+  const [sample, setSample] = useState<string>(props.initialSample || "");
   const deferredSample: string = useDeferredValue(sample);
+
+  // Examples Describe It put in replace the text, as pasting them would.
+  useEffect(() => {
+    if (props.initialSample) {
+      setSample(props.initialSample);
+    }
+  }, [props.initialSample]);
   const values: Record<string, unknown> = (props.values || {}) as Record<
     string,
     unknown
@@ -778,10 +820,70 @@ const getWordsError: (
     : null;
 };
 
-// The project's own data types, with Test It in their form.
-const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
+interface CustomDataTypesTableProps {
+  // A proposal whose form to open, filled in with its draft (#10371).
+  adding: DataTypeToReview | null;
+  // The form it opened is closed, saved or not.
+  onAddClosed: () => void;
+  // A type saved from a proposal's form closed the proposal.
+  onAdded: () => void;
+}
+
+// What a new type's form starts from: the defaults, or a proposal's draft.
+const CREATE_DEFAULTS: FormValues<DataSecurityCustomDataType> = {
+  category: DataCategory.ContactAndIdentity,
+  sensitivity: DataSensitivity.Confidential,
+};
+
+// The project's own data types, with Describe It and Test It in their form.
+const CustomDataTypesTable: FunctionComponent<CustomDataTypesTableProps> = (
+  props: CustomDataTypesTableProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  // The proposal the open form was filled in from, and the one a save is of.
+  const openedFrom: MutableRefObject<DataTypeToReview | null> =
+    useRef<DataTypeToReview | null>(null);
+  const savingFrom: MutableRefObject<DataTypeToReview | null> =
+    useRef<DataTypeToReview | null>(null);
+
+  useEffect(() => {
+    if (props.adding) {
+      openedFrom.current = props.adding;
+    }
+  }, [props.adding]);
+
+  // The type saved from a proposal's form is what the proposal adds.
+  const closeProposal: (
+    item: DataSecurityCustomDataType,
+  ) => Promise<void> = async (
+    item: DataSecurityCustomDataType,
+  ): Promise<void> => {
+    const proposal: DataTypeToReview | null = savingFrom.current;
+
+    savingFrom.current = null;
+
+    if (!proposal || !item._id) {
+      return;
+    }
+
+    try {
+      await DataSecurityApi.approveAiProposal({
+        proposalId: proposal.id,
+        expectedPlanFingerprint: proposal.planFingerprint,
+        changes: { customDataTypeId: item._id.toString() },
+      });
+      GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
+    } catch (error) {
+      Toast.error(
+        translator.translateTemplate(DataTypesToReviewCopy.addedButNotClosed, {
+          error: errorInSentence(API.getFriendlyMessage(error)),
+        }),
+      );
+    }
+
+    props.onAdded();
+  };
 
   return (
     <ModelTable<DataSecurityCustomDataType>
@@ -808,9 +910,34 @@ const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
         icon: IconProp.Fingerprint,
       }}
       rowSwitch={{ column: "isEnabled" }}
-      createInitialValues={{
-        category: DataCategory.ContactAndIdentity,
-        sensitivity: DataSensitivity.Confidential,
+      createInitialValues={
+        props.adding
+          ? (toCustomDataTypeFormValues(
+              getOfferedDraft(props.adding.plan),
+            ) as FormValues<DataSecurityCustomDataType>)
+          : CREATE_DEFAULTS
+      }
+      showCreateForm={Boolean(props.adding)}
+      onCreateEditModalClose={() => {
+        openedFrom.current = null;
+        props.onAddClosed();
+      }}
+      onBeforeCreate={async (
+        item: DataSecurityCustomDataType,
+      ): Promise<DataSecurityCustomDataType> => {
+        // Saved from a proposal's form: the proposal is closed once it is.
+        savingFrom.current = openedFrom.current;
+        return item;
+      }}
+      onCreateSuccess={async (
+        item: DataSecurityCustomDataType,
+        modalType?: ModalType,
+      ): Promise<DataSecurityCustomDataType> => {
+        if (modalType !== ModalType.Edit) {
+          await closeProposal(item);
+        }
+
+        return item;
       }}
       selectMoreFields={{
         description: true,
@@ -822,6 +949,54 @@ const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
         { title: "How It Is Found", id: "how-it-is-found" },
       ]}
       formFields={[
+        {
+          // OneUptime AI fills the form in from a sentence; saves nothing (#10371).
+          overrideField: { name: true },
+          overrideFieldKey: "describeDataType",
+          formOnly: true,
+          title: DescribeDataTypeCopy.title,
+          description: DescribeDataTypeCopy.description,
+          stepId: "data-type",
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: false,
+          doNotShowWhenEditing: true,
+          getCustomElement: (
+            _values: FormValues<DataSecurityCustomDataType>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <DescribeDataType
+                ariaDescribedby={elementProps.ariaDescribedby}
+                onDraft={(values: JSONObject, examples: Array<string>) => {
+                  elementProps.onChange?.({ values, examples });
+                }}
+              />
+            );
+          },
+          onChange: (
+            value: unknown,
+            currentValues: FormValues<DataSecurityCustomDataType>,
+            setFormValues: (
+              values: FormValues<DataSecurityCustomDataType>,
+            ) => void,
+          ): void => {
+            const drafted: { values?: JSONObject; examples?: Array<string> } =
+              value && typeof value === "object"
+                ? (value as { values?: JSONObject; examples?: Array<string> })
+                : {};
+
+            if (!drafted.values) {
+              return;
+            }
+
+            setFormValues({
+              ...currentValues,
+              ...drafted.values,
+              // What Test It runs: the examples, in this browser only.
+              testDataType: (drafted.examples || []).join("\n"),
+            } as FormValues<DataSecurityCustomDataType>);
+          },
+        },
         {
           field: { name: true },
           title: "Name",
@@ -961,11 +1136,16 @@ const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
             values: FormValues<DataSecurityCustomDataType>,
             elementProps: CustomElementProps,
           ): ReactElement => {
+            const sample: unknown = (values as Record<string, unknown>)[
+              "testDataType"
+            ];
+
             return (
               <CustomDataTypeTestPanel
                 values={values}
                 ariaLabelledby={elementProps.ariaLabelledby}
                 ariaDescribedby={elementProps.ariaDescribedby}
+                initialSample={typeof sample === "string" ? sample : undefined}
               />
             );
           },
@@ -1113,13 +1293,65 @@ const CustomDataTypesTable: FunctionComponent = (): ReactElement => {
   );
 };
 
+// A proposal a link asked for (ADD_DATA_TYPE_PARAM), or null.
+async function readAskedProposal(): Promise<DataTypeToReview | null> {
+  const asked: string =
+    Navigation.getQueryStringByName(ADD_DATA_TYPE_PARAM) || "";
+
+  if (!ObjectID.isValidUUID(asked)) {
+    return null;
+  }
+
+  const proposal: DataSecurityAiProposal | null =
+    await ModelAPI.getItem<DataSecurityAiProposal>({
+      modelType: DataSecurityAiProposal,
+      id: new ObjectID(asked),
+      select: { _id: true, kind: true, status: true, plan: true },
+    });
+
+  return proposal?.kind === DataSecurityAiProposalKind.AddDataType
+    ? readDataTypeToReview(proposal)
+    : null;
+}
+
 const DataSecurityDataTypes: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [adding, setAdding] = useState<DataTypeToReview | null>(null);
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
+
+  // Data Security > AI's Add Data Type opens the form here, filled in.
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    readAskedProposal()
+      .then((proposal: DataTypeToReview | null) => {
+        if (isCurrent && proposal) {
+          setAdding(proposal);
+        }
+      })
+      .catch(() => {
+        // A proposal that cannot be read opens nothing; the list still shows it.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
   return (
     <Fragment>
+      <DataTypesToReview onAdd={setAdding} refreshToggle={refreshToggle} />
       <BuiltInDataTypesCard />
-      <CustomDataTypesTable />
+      <CustomDataTypesTable
+        adding={adding}
+        onAddClosed={() => {
+          setAdding(null);
+        }}
+        onAdded={() => {
+          setRefreshToggle(ObjectID.generate().toString());
+        }}
+      />
     </Fragment>
   );
 };

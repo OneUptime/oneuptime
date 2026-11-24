@@ -158,7 +158,7 @@ const PROMPT_BUILDERS: Record<string, string> = {
   "packages/Common/Server/API/AlertAPI.ts":
     "Note drafts: AlertAIContextBuilder.formatAlertContextForNote, every field a draftField.",
   "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityAiCall.ts":
-    "Every Data Security model call - Explain on an issue, the field suggestions - takes only a prompt DataSecurityAiInput built (#10365): the check's own words, and the store's name, cloud id, the evidence, a finding's location and a field's name each held to a length, cleaned of secrets and embedded files, as one JSON value of data under a system message that holds every instruction - never a finding's samples, a record or a connection string.",
+    "Every Data Security model call - Explain on an issue, the field suggestions, the data type drafts from a group of fields or a person's sentence (#10371) - takes only a prompt DataSecurityAiInput built (#10365): the check's own words, and the store's name, cloud id, the evidence, a finding's location and a field's name each held to a length, cleaned of secrets and embedded files, as one JSON value of data under a system message that holds every instruction - never a finding's samples, a record or a connection string.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "Explain an exception: ExceptionExplanationPrompt cuts its message, stack trace, span names, log bodies and deploy titles to fixed lengths before ExceptionSanitizer scrubs them, and sends only allowlisted span attributes.",
   "packages/Common/Server/Utils/AI/TelemetryAi/ExceptionDuplicateCheck.ts":

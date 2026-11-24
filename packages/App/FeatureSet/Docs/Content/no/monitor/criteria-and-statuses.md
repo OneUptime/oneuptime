@@ -87,6 +87,7 @@ Med **Evaluer disse kriteriene over en tidsperiode** avkrysset angir **Evaluer**
 | **Antall** | Antallet sjekker som oppfylte betingelsen, sammenlignes slik det er satt under **Sjekker som samsvarer**: for eksempel **Større enn** 30. |
 | **Prosentandel** | Andelen deres av vinduets sjekker sammenlignes slik det er satt under **Andel sjekker som samsvarer**: for eksempel **Større enn** 10 %. |
 | **Statusskifter** | Antall ganger sjekkene skiftet mellom å oppfylle betingelsen og ikke, sammenlignes slik det er satt under **Antall skifter**. En enhet som går ned og kommer opp igjen, skifter to ganger. |
+| **Forrige sjekk** | Denne sjekken sammenlignet med den forrige sjekken fra samme sonde: for eksempel en svartid som ligger mer enn 50 % over den, eller et nettsted som er nede nå og ikke var det før. Se [Sammenligne en sjekk med den forrige](#sammenligne-en-sjekk-med-den-forrige). |
 
 En setning under vinduets innstillinger gjengir filteret slik det er satt: «Sjekk: "Er tilkoblet" er usann ved flere enn 30 sjekker i den siste perioden på 8 timer».
 
@@ -107,6 +108,20 @@ En Ping-monitor sjekker et tilgangspunkt på kontoret hvert minutt. Før vinduer
 | Tilgangspunktet er tilkoblet | **Er tilkoblet** er **Sann** | Ikke over en periode | **I drift** |
 
 For det andre slår du på **Gjenopprett bare når en egen betingelse er oppfylt** med **Statusskifter**, **Mindre enn eller lik** 1, **For de siste** 1 time: ustabilitetshendelsen forblir åpen til tilgangspunktet har vært stabilt i en time, i stedet for å lukkes det første minuttet det er oppe. For å varsle når det feiler mer enn 30 ping på 8 timer, setter du i stedet det andre kriteriet til **Antall**, **Større enn** 30, **For de siste** 8 timer.
+
+### Sammenligne en sjekk med den forrige
+
+**Forrige sjekk** sammenligner hver sjekk med den forrige sjekken fra samme sonde, og for en disks bruk fra samme disk. **For de siste** er hvor lenge siden den sjekken kan være, så sett den lengre enn overvåkingsintervallet. Den tilbys for de samme filtrene som **Antall**.
+
+En målt verdi, for eksempel en svartid, slår til når den ligger mer enn endringen under **Endring fra forrige sjekk** over den forrige sjekken, med **Større enn**, eller under den, med **Mindre enn**. Endringen er en **Verdi i sjekkens egen enhet**, for eksempel 200 ms, eller en **Prosent av forrige sjekk**, for eksempel 50 %, og 0 slår til ved enhver økning eller nedgang. **Lik** og **Ikke lik** sammenligner med selve den forrige verdien.
+
+Et filter som er sant eller usant, for eksempel **Er tilkoblet**, og et filter på brødteksten, en header eller et uttrykk slår til ved sjekken som begynte å oppfylle betingelsen: **Er tilkoblet** satt til **Usann** slår til ved sjekken der nettstedet gikk ned, og ikke igjen før neste gang det går ned.
+
+I begge tilfeller slår det til ved én sjekk, og ved den neste slutter kriteriet å virke. Skal det holde statusen det setter, eller la hendelsen sin stå åpen, gi det en egen gjenopprettingsbetingelse: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
+
+Uten noen forrige sjekk i vinduet, som ved monitorens første sjekk, for en sonde som nettopp er lagt til, eller etter et opphold, avgjør **Hvis ingen data**: **Ignore** slår ikke til, **Utløser** slår til, og **Treat As Zero** sammenligner som om den forrige sjekken hadde lest 0, eller ikke hadde oppfylt betingelsen.
+
+Setningen under vinduets innstillinger gjengir det: «Sjekk: "Svartid (i ms)" ligger mer enn 50 % over forrige sjekk», eller «Sjekk: "Er tilkoblet" er usann ved denne sjekken, men ikke ved den forrige».
 
 ## Når et kriterium gjenopprettes
 
@@ -199,6 +214,21 @@ Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som 
 
 > [!TIP]
 > Når svarene fra en nettsted- eller API-monitor er sensitive i seg selv, slår du av **Behold svarinnhold** på kortet **Svarinnhold** på siden **Avansert → Innstillinger**. Overvåkingsloggene, hendelsene og varslene tar da vare på hvilke filtre som samsvarte, statuskoden og svartiden, og ingen del av svaret. En monitor for innkommende forespørsler har den samme bryteren for forespørslene den mottar: **Behold forespørselsinnhold**, på kortet **Forespørselsinnhold**. Bryteren gjelder for kontrollene som kjøres, og hendelsene og varslene som åpnes, etter at du endrer den. Den siste forespørselen i oversikten over en monitor for innkommende forespørsler følger bryteren med en gang.
+
+## Hvor lang tid hver sjekk tar
+
+Evalueringssammendraget for hver sjekk, under **Vis sammendrag** i monitorens **Overvåkingslogger** og for den siste sjekken på dens **Oversikt**, forteller når sjekken ble evaluert, hvor lang tid evalueringen tok og, for en monitor som vurderer hver vert, container eller gruppe for seg, hvor mange serier den vurderte. Tiden løper fra OneUptime begynte å lese dataene sjekken vurderer, til den skrev sjekkens logg: lesingen av dataene, vurderingen av kriteriene og åpningen av hendelser og varsler.
+
+Når en evaluering tar for lang tid for monitoren sin, varsler sammendraget deg. For lang tid er mer enn en tidel av tiden mellom monitorens sjekker, aldri under 5 sekunder og aldri over ett minutt:
+
+| Monitor sjekket | Varsler etter |
+| --- | --- |
+| Hvert minutt | 6 sekunder |
+| Hvert 5. minutt | 30 sekunder |
+| Hvert 10. minutt eller sjeldnere | 1 minutt |
+| Når resultatene kommer inn, som ved innkommende forespørsler og e-poster | 5 sekunder |
+
+En tidel gir en monitor rom til å vokse ti ganger før sjekkene går inn i hverandre og kommer på etterskudd, så du får vite det tidlig. Under 5 sekunder er en sjekk i orden, uansett hvor stor den er: å vurdere 16 000 serier tar omtrent 2,5 sekunder. Over ett minutt holder den en worker og databasene den leser like lenge, uansett intervall. Gjør den raskere ved å snevre inn filtrene i spørringene, gruppere etter færre attributter eller sjekke den sjeldnere.
 
 ## Endre en monitors kriterier
 

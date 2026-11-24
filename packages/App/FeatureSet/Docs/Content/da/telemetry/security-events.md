@@ -133,6 +133,7 @@ Endpointet svarer `200`, når begivenhederne står i kø. En begivenhed uden tid
 Angiv formatet med `?format=`, med headeren `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste niveau. Udelader du det, bestemmes hver begivenheds format for sig, så én webhook kan blande detektioner med rå begivenheder.
 
 - Brødteksten kan være én begivenhed, et array af begivenheder eller `{ "events": [...] }`.
+- En batch kan være gzip-komprimeret og sendes med `Content-Encoding: gzip`: den læses som den samme batch ukomprimeret. I Fluent Bit komprimerer `http`-outputtet med `compress gzip`, i Vector `http`-sinken med `compression = "gzip"` og i Logstash `http`-outputtet med `http_compression => true`. Kun JSON læses komprimeret: en komprimeret brødtekst af enhver anden type afvises med `400`.
 - Headeren `x-oneuptime-service-name` angiver den telemetritjeneste, begivenhederne hører til. Uden den hører de til den tjeneste, der er opkaldt efter den første begivenheds produkt eller leverandør, eller til `Security Events`.
 - Intet kasseres, fordi det ikke kunne tilknyttes: hvert felt fra kilden havner i begivenhedens attributter.
 
@@ -174,6 +175,7 @@ For at sende sikkerhedslogs, du allerede indsamler, f.eks. auditd, syslog eller 
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ Siden **Opsætningsvejledning**, under **Forbindelser**, har disse kodestykker m
 
 ### Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost og hvert webangreb i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
+Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost, hvert webangreb og hver afvist forespørgsel om en følsom fil i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
 
 Hver slags når OneUptime som almindelige logs:
 
@@ -298,6 +300,10 @@ En IP-adresseregel, der sletter eller maskerer dine logs eller traces, skjuler d
 
 En regel, der hasher, gemmer adressen til Sikkerhedsbegivenheder, så begivenheden navngiver den, medmindre dens token er ældre end 30 dage eller blev lavet, før tokens havde en nøgle: se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data). Søg efter `@oneuptime.request.client_address_hidden:scrub-rule` for at finde disse begivenheder. Det, reglen efterlod i adressens sted, såsom `[REDACTED]`, står i `oneuptime.request.client_address_scrubbed`. Søg efter `@oneuptime.target_address_hidden:scrub-rule` for en destination.
 
+En detektionsregel, der tæller pr. adresse, bør tælle pr. `principalIp` eller `targetIp`, som navngiver adressen bag tokenet fra en regel, der hasher, sådan som regelbibliotekets regler gør. Et formats eget adressefelt, såsom `openstack.audit.initiator_address` eller `asa.src_ip`, indeholder kun en adresse, der stod i loggen, så det forbliver tomt, overalt hvor en scrub-regel skjulte en.
+
+En regel, der sletter eller maskerer en bruger, skjuler den på samme måde: Hvor begivenheden ville navngive brugeren, siger **Kildebruger** eller **Målbruger**, at en scrub-regel skjulte den. Hvor Sikkerhedsbegivenheder læser en bruger, gemmer en regel, der hasher, brugeren til den: en requests `enduser.id` eller `user.id`, et AI-kalds bruger og en bruger, som en loglinje navngiver, såsom en cloud-auditlogs principal. Så begivenheden navngiver brugeren bag tokenet, en sag om brugeren navngiver kontoen, og en playbook kan handle på den som på enhver anden bruger. Det, reglen efterlod, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finde brugeren i dine logs og traces, som kun indeholder tokenet. Et token, som der ikke er gemt nogen bruger for, såsom et, der blev lavet, før tokens havde en nøgle, forbliver begivenhedens bruger: Regler tæller det som én konto, og ingen playbook handler på det.
+
 ## Udforsk sikkerhedsbegivenheder
 
 **Begivenheder** er en telemetrioversigt ligesom oversigterne for logs og traces: et diagram over vinduets begivenheder efter alvorlighed, en sidebjælke med facetter, listen og et panel med hvert felt og hver attribut i den begivenhed, du åbner. Vinduet, filtrene og søgningen ligger alle i URL'en, så en filtreret visning kan deles og overlever en genindlæsning.
@@ -331,7 +337,16 @@ En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel,
 
 ### Campaigns
 
-**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
+**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først. En række, som din blokeringsliste allerede holder, siger, indtil hvornår den er blokeret eller udfordret, og nævner det interval eller netværk, der holder den.
+
+For at blokere flere angribere på én gang skal du vælge deres rækker og trykke på **Blokér adresser**. Én dialog viser hver adresse, den blokerer, og hver adresse, den udelader, med årsagen: allerede blokeret, en af dine egne eller en beskyttet, en, som en logget ind bruger har brugt i de seneste 30 dage, eller en, som OneUptime ikke kunne kontrollere. Den blokerer i 24 timer, medmindre du vælger en anden varighed, eller udfordrer med **Udfordr i stedet**, og hver blokering kommer på din [blokeringsliste](/docs/telemetry/security-cases#blokeringsliste) som din.
+
+**Gruppér efter netværk** samler adresserne fra ét netværk på én række: efter dets ASN, hvor hændelserne fra din [Cloudflare](/docs/integrations/cloudflare)-forbindelse nævner et, og ellers efter dets /24 for IPv4 eller dets /48 for IPv6. En ASN's række viser de intervaller, dens adresser sendte fra. **Udfordr dette netværk** siger, hvad det vil gøre, hvor og hvor længe, før det gør det: 24 timer, medmindre du vælger en anden varighed, og det næste trin på stigen for et netværk, der er blevet udfordret før. Cloudflare holder et interval i sin udfordringsliste og en ASN som en IP Access Rule, som alle planer har.
+
+- Et netværk, der rummer en adresse, som en logget ind bruger har brugt i de seneste 30 dage, eller en af dine egne, bliver aldrig udfordret, og dialogen nævner hvem eller hvad.
+- Et interval, der er bredere end et /24 (et /48 for IPv6), og en hel ASN kræver en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer. En ASN's række tilbyder også hvert af dens intervaller, som alle, der må blokere, kan udfordre.
+- Når OneUptime ikke kan se, hvem der bruger et netværk, fordi det er en hel ASN, eller fordi en scrub-regel skjuler klienternes adresser, kan kun en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer udfordre det, når de har markeret, at de ved det.
+- Intet bliver blokeret eller udfordret, så længe Sikkerhedsbegivenheder er slået fra på serveren.
 
 ### Korrelér
 
@@ -583,6 +598,7 @@ En undtagelse er noget, en regel springer over, fordi du forventer det, som en s
 | **Et tidsvindue** | Alle hændelser fra **Begynder den** til **Slutter den**, højst 30 dage fra hinanden |
 
 - Værdier matcher uanset store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` springer alle tjenestekonti over, og `*.lab.example.com` alle værter i et domæne. En IP-adresse kan være et interval, som `10.20.0.0/16`. En værdi, der kun er `*`, afvises: slå en regel fra for at stoppe den.
+- Hændelser fra OneUptimes egen revisionslog navngiver en projekt-API-nøgle i `principalUser` som `api-key:` efterfulgt af dens ID, så to nøgler med samme navn er to aktører, og ingen playbook tilbyder en nøgle som en bruger, der kan suspenderes. Nøglens navn står stadig i hændelsens besked og i `audit.api_key_name`. En undtagelse for en nøgles navn, som bruger eller som værdi af `principalUser`, springer stadig alle nøgler med det navn over, og en undtagelse for `api-key:` efterfulgt af nøglens ID springer kun den nøgle over.
 - Hver undtagelse siger hvorfor i sin **Årsag**, som alle, der læser listen, ser, og gemmer, hvem der tilføjede den og hvornår. En entitet eller en værdi kan have en dato i **Udløber den**, hvorefter reglen ser den igen; et tidsvindue slutter af sig selv.
 - **Status** siger, hvor hver enkelt står: **Aktiv**, **Kommende** for et vindue, der ikke er begyndt, **Udløbet** eller **Afsluttet**. Under en regels navn i **Detektionsregler** tæller en linje dens aktive undtagelser, og **Vis undtagelser** i reglens række åbner listen filtreret på den.
 - Oversprungne hændelser udelades, før reglen tæller noget, så de tæller aldrig med i dens **Grænse for antal match** og åbner ingen sag, alarm, hændelse eller fund. Undtagelser gælder for hver kørsel af reglen, korrelationer med, og for **Kør på tidligere hændelser**, men aldrig for et testangreb, der tjekker, at hændelser kommer igennem.

@@ -87,6 +87,7 @@ Con **Evaluar estos criterios durante un periodo de tiempo** marcado, **Evaluar*
 | **Recuento** | El número de comprobaciones que cumplieron la condición se compara como se define en **Comprobaciones que coinciden**: **Mayor que** 30, por ejemplo. |
 | **Porcentaje** | Su proporción entre las comprobaciones de la ventana se compara como se define en **Proporción de comprobaciones que coinciden**: **Mayor que** 10 %, por ejemplo. |
 | **Cambios de estado** | Las veces que las comprobaciones pasaron de cumplir la condición a no cumplirla, o al revés, se comparan como se define en **Veces que cambió**. Un dispositivo que se cae y vuelve cambia dos veces. |
+| **Comprobación anterior** | Esta comprobación, comparada con la comprobación anterior de la misma sonda: un tiempo de respuesta más de un 50 % por encima, por ejemplo, o un sitio que ahora está caído y antes no. Consulta [Comparar una comprobación con la anterior](#comparar-una-comprobación-con-la-anterior). |
 
 Una frase bajo la configuración de la ventana repite el filtro tal como está configurado: «Comprobar si "En línea" es falso en más de 30 comprobaciones del último período de 8 horas».
 
@@ -107,6 +108,20 @@ Un monitor Ping comprueba un punto de acceso de una oficina cada minuto. Antes d
 | El punto de acceso está en línea | **En línea** es **Verdadero** | No durante un período | **Operativo** |
 
 Para el segundo, active **Recuperarse solo cuando se cumpla una condición propia** con **Cambios de estado**, **Menor o igual que** 1, **En el último período de** 1 hora: el incidente de inestabilidad sigue abierto hasta que el punto de acceso lleve una hora estable, en lugar de cerrarse el primer minuto en que responde. Para alertar cuando falle más de 30 pings en 8 horas, configure en cambio el segundo criterio con **Recuento**, **Mayor que** 30, **En el último período de** 8 horas.
+
+### Comparar una comprobación con la anterior
+
+**Comprobación anterior** compara cada comprobación con la comprobación anterior de la misma sonda, y del mismo disco para el uso de un disco. **En el último período de** indica cuánto tiempo atrás puede estar esa comprobación, así que hazlo más largo que el intervalo de monitorización. Se ofrece para los mismos filtros que **Recuento**.
+
+Un valor medido, como un tiempo de respuesta, coincide cuando supera la comprobación anterior en más que el cambio definido en **Cambio respecto a la comprobación anterior**, con **Mayor que**, o queda por debajo en más que ese cambio, con **Menor que**. El cambio es un **Valor en la unidad de la comprobación**, como 200 ms, o un **Porcentaje de la comprobación anterior**, como 50 %, y 0 coincide con cualquier subida o bajada. **Igual a** y **Distinto de** comparan con el propio valor anterior.
+
+Un filtro verdadero o falso, como **En línea**, y un filtro sobre el cuerpo, una cabecera o una expresión coinciden en la comprobación que empezó a cumplir la condición: **En línea** en **Falso** coincide en la comprobación en la que el sitio se cayó, y no vuelve a hacerlo hasta la siguiente caída.
+
+En ambos casos coincide en una sola comprobación, y en la siguiente el criterio deja de actuar. Para que mantenga el estado que fija, o deje abierto su incidente, dale una condición de recuperación propia: consulta [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio).
+
+Si no hay comprobación anterior en la ventana, como en la primera comprobación del monitor, en una sonda recién añadida o tras un hueco, decide **Si no hay datos**: **Ignore** no coincide, **Disparador** coincide y **Treat As Zero** compara como si la comprobación anterior hubiera leído 0, o no hubiera cumplido la condición.
+
+La frase bajo la configuración de la ventana lo repite: «Comprobar si "Tiempo de respuesta (en ms)" supera en más de 50 % a la comprobación anterior», o «Comprobar si "En línea" es falso en esta comprobación, pero no en la anterior».
 
 ## Cuándo se recupera un criterio
 
@@ -199,6 +214,21 @@ Los secretos y los datos personales se enmascaran antes de conservar nada: encab
 
 > [!TIP]
 > Cuando las respuestas de un monitor de sitio web o de API sean sensibles en sí mismas, desactive **Conservar el contenido de la respuesta** en la tarjeta **Contenido de la respuesta** de su página **Avanzado → Ajustes**. Sus registros de monitoreo, incidentes y alertas conservarán entonces qué filtros coincidieron, el código de estado y el tiempo de respuesta, y ninguna parte de la respuesta. Un monitor de solicitudes entrantes tiene el mismo interruptor para las solicitudes que recibe: **Conservar el contenido de la solicitud**, en la tarjeta **Contenido de la solicitud**. El interruptor se aplica a las comprobaciones que se ejecuten, y a los incidentes y alertas que se abran, después de cambiarlo. La última solicitud en la vista general de un monitor de solicitudes entrantes sigue el interruptor al instante.
+
+## Cuánto tarda cada comprobación
+
+El resumen de evaluación de cada comprobación, en **Ver resumen** dentro de los **Registros de monitoreo** del monitor y, para la última comprobación, en su **Vista general**, indica cuándo se evaluó la comprobación, cuánto tardó su evaluación y, en un monitor que juzga cada host, contenedor o grupo por separado, cuántas series evaluó. El tiempo va desde que OneUptime empezó a leer los datos que la comprobación juzga hasta que escribió su registro: la lectura de los datos, la evaluación de los criterios y la apertura de incidentes y alertas.
+
+Cuando una evaluación tarda demasiado para su monitor, su resumen le avisa. Demasiado es más de una décima parte del tiempo entre las comprobaciones del monitor, nunca menos de 5 segundos y nunca más de un minuto:
+
+| Monitor comprobado | Avisa a partir de |
+| --- | --- |
+| Cada minuto | 6 segundos |
+| Cada 5 minutos | 30 segundos |
+| Cada 10 minutos o con menos frecuencia | 1 minuto |
+| Al llegar sus resultados, como solicitudes y correos entrantes | 5 segundos |
+
+Una décima parte deja a un monitor margen para crecer diez veces antes de que sus comprobaciones se solapen y se retrasen, así que usted se entera pronto. Por debajo de 5 segundos, una comprobación está bien por grande que sea: evaluar 16.000 series lleva unos 2,5 segundos. Por encima de un minuto, ocupa un worker y las bases de datos que lee durante todo ese tiempo, sea cual sea su intervalo. Para acelerarla, acote los filtros de sus consultas, agrupe por menos atributos o compruébela con menos frecuencia.
 
 ## Cambiar los criterios de un monitor
 

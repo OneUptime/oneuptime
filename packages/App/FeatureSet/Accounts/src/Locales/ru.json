@@ -486,6 +486,7 @@
   "Can't scan the QR code?": "Не получается отсканировать QR-код?",
   "Enter this setup key in your authenticator app instead.": "Вместо этого введите этот ключ настройки в приложении-аутентификаторе.",
   "If your app asks, choose a time-based key.": "Если приложение спросит, выберите ключ на основе времени.",
+  "Add to Authenticator App": "Добавить в приложение-аутентификатор",
   "Copy": "Скопировать",
   "Copied!": "Скопировано!",
   "Copy failed": "Не удалось скопировать",

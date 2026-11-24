@@ -87,6 +87,7 @@ Med **Evaluér disse kriterier over en periode** markeret angiver **Evaluér**, 
 | **Antal** | Antallet af kontroller, der opfyldte betingelsen, sammenlignes som angivet under **Kontroller, der matcher**: for eksempel **Større end** 30. |
 | **Procentdel** | Deres andel af vinduets kontroller sammenlignes som angivet under **Andel af kontroller, der matcher**: for eksempel **Større end** 10 %. |
 | **Statusskift** | Antallet af gange, kontrollerne skiftede mellem at opfylde betingelsen og ikke at opfylde den, sammenlignes som angivet under **Antal skift**. En enhed, der går ned og kommer op igen, skifter to gange. |
+| **Forrige kontrol** | Denne kontrol sammenlignet med den forrige kontrol fra samme sonde: fx en svartid, der ligger mere end 50 % over den, eller et site, der er nede nu og ikke var det før. Se [Sammenlign en kontrol med den forrige](#sammenlign-en-kontrol-med-den-forrige). |
 
 En sætning under vinduets indstillinger gengiver filteret, som det er indstillet: »Tjek: "Er online" er falsk ved flere end 30 kontroller i den seneste periode på 8 timer«.
 
@@ -107,6 +108,20 @@ En Ping-monitor kontrollerer et adgangspunkt på kontoret hvert minut. Før vind
 | Adgangspunktet er online | **Er online** er **Sand** | Ikke over en periode | **I drift** |
 
 For det andet skal du slå **Gendan kun, når en egen betingelse er opfyldt** til med **Statusskift**, **Mindre end eller lig med** 1, **For de seneste** 1 time: ustabilitetshændelsen forbliver åben, indtil adgangspunktet har været stabilt i en time, i stedet for at lukke det første minut, det er oppe. For at advare, når det fejler mere end 30 ping på 8 timer, skal du i stedet sætte det andet kriterium til **Antal**, **Større end** 30, **For de seneste** 8 timer.
+
+### Sammenlign en kontrol med den forrige
+
+**Forrige kontrol** sammenligner hver kontrol med den forrige kontrol fra samme sonde og, for en disks forbrug, fra samme disk. **For de seneste** er, hvor længe siden den kontrol højst må være, så gør den længere end overvågningsintervallet. Den tilbydes for de samme filtre som **Antal**.
+
+En målt værdi, fx en svartid, matcher, når den ligger mere end ændringen under **Ændring fra den forrige kontrol** over den forrige kontrol, med **Større end**, eller under den, med **Mindre end**. Ændringen er en **Værdi i kontrollens egen enhed**, fx 200 ms, eller en **Procent af den forrige kontrol**, fx 50 %, og 0 matcher enhver stigning eller ethvert fald. **Lig med** og **Ikke lig med** sammenligner med selve den forrige værdi.
+
+Et filter, der er sandt eller falsk, fx **Er online**, og et filter på brødteksten, en header eller et udtryk matcher ved den kontrol, der begyndte at opfylde betingelsen: **Er online** sat til **Falsk** matcher ved den kontrol, hvor sitet gik ned, og først igen næste gang det går ned.
+
+I begge tilfælde matcher det ved én kontrol, og ved den næste holder kriteriet op med at virke. Skal det holde den status, det sætter, eller lade sin hændelse stå åben, så giv det en genoprettelsesbetingelse for sig selv: se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes).
+
+Uden en forrige kontrol i vinduet, som ved monitorens første kontrol, for en netop tilføjet sonde eller efter et hul, afgør **Hvis ingen data**: **Ignore** matcher ikke, **Trigger** matcher, og **Treat As Zero** sammenligner, som om den forrige kontrol havde læst 0 eller ikke havde opfyldt betingelsen.
+
+Sætningen under vinduets indstillinger gengiver det: »Tjek: "Svartid (i ms)" ligger mere end 50 % over den forrige kontrol« eller »Tjek: "Er online" er falsk ved denne kontrol, men ikke ved den forrige«.
 
 ## Hvornår et kriterium gendannes
 
@@ -199,6 +214,21 @@ Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Aut
 
 > [!TIP]
 > Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens overvågningslogs, hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold**, på kortet **Anmodningsindhold**. Kontakten gælder for de kontroller, der kører, og de hændelser og advarsler, der åbnes, efter du ændrer den. Den seneste anmodning i oversigten over en monitor for indgående anmodninger følger kontakten med det samme.
+
+## Hvor lang tid hver kontrol tager
+
+Evalueringsoversigten for hver kontrol, under **Vis oversigt** i monitorens **Overvågningslogs** og for den seneste kontrol på dens **Oversigt**, fortæller, hvornår kontrollen blev evalueret, hvor lang tid evalueringen tog og, for en monitor, der vurderer hver vært, container eller gruppe for sig, hvor mange serier den vurderede. Tiden løber fra det øjeblik, OneUptime begyndte at læse de data, kontrollen vurderer, til den skrev kontrollens log: læsningen af dataene, vurderingen af kriterierne og åbningen af hændelser og advarsler.
+
+Når en evaluering tager for lang tid for sin monitor, advarer dens oversigt dig. For lang tid er mere end en tiendedel af tiden mellem monitorens kontroller, aldrig under 5 sekunder og aldrig over et minut:
+
+| Monitor kontrolleret | Advarer efter |
+| --- | --- |
+| Hvert minut | 6 sekunder |
+| Hvert 5. minut | 30 sekunder |
+| Hvert 10. minut eller sjældnere | 1 minut |
+| Når dens resultater kommer ind, som ved indgående forespørgsler og e-mails | 5 sekunder |
+
+En tiendedel giver en monitor plads til at vokse ti gange, før dens kontroller løber ind i hinanden og kommer bagud, så du hører om det tidligt. Under 5 sekunder er en kontrol i orden, uanset hvor stor den er: at vurdere 16.000 serier tager omkring 2,5 sekunder. Over et minut optager den en worker og de databaser, den læser, så længe, uanset dens interval. Gør den hurtigere ved at indsnævre dens forespørgslers filtre, gruppere efter færre attributter eller kontrollere den sjældnere.
 
 ## Ændr en monitors kriterier
 

@@ -19,12 +19,12 @@ flowchart TB
     R --> P["Förhandsgranskningen:<br/>varje del och vad<br/>den blir"]
     P --> A["OneUptime AI, om du<br/>ber om det: en<br/>fråga i taget"]
     A --> P
-    P --> C["En instrumentpanel,<br/>eller Metrics-monitorer"]
+    P --> C["En instrumentpanel,<br/>eller monitorer"]
 ```
 
 ## Innan du börjar
 
-- De importerade widgetarna och monitorerna läser projektets egna mätvärden med PromQL. Skicka dem med Prometheus remote write, OpenTelemetry eller Datadog Agent, så behåller de namnen de har där.
+- De importerade widgetarna och monitorerna läser projektets egna mätvärden och loggar. Skicka dem med OpenTelemetry eller Datadog Agent, eller med Prometheus remote write för mätvärden och Lokis push-API för loggar, så behåller de namnen de har där.
 - Att importera en instrumentpanel kräver en roll som får skapa instrumentpaneler, och att importera larmregler en roll som får skapa monitorer.
 - En fil får vara upp till 10 MB, och upp till 500 av dess paneler eller regler läses.
 
@@ -44,7 +44,7 @@ Kopiera JSON-modellen från instrumentpanelens inställningar i Grafana. Exporte
 Kontrollera vad varje panel och varje variabel blir, ge instrumentpanelen ett namn och välj **Skapa instrumentpanel**. Den nya instrumentpanelen öppnas.
 :::
 
-PromQL från Grafana behålls som det är skrivet: OneUptime fyller i `$__interval`, `$__rate_interval` och `$__range` som Grafana gör, och en variabel på All matchar alla värden. En Datadog-fråga blir PromQL över de mätvärden som Datadog Agent har skickat: `avg:system.cpu.user{host:web-1}` läser `system_cpu_user{host="web-1"}`.
+PromQL från Grafana behålls som det är skrivet: OneUptime fyller i `$__interval`, `$__rate_interval` och `$__range` som Grafana gör, och en variabel på All matchar alla värden. En Datadog-fråga blir PromQL över de mätvärden som Datadog Agent har skickat: `avg:system.cpu.user{host:web-1}` läser `system_cpu_user{resource_host_name="web-1"}`, och `.as_count()` gör om en räkning som Agent skickade som en takt per sekund till antalet som räknades i varje intervall. En Datadog-widget som listar loggar blir en **Loggström**, och en tidsserie som räknar dem ett **Loggdiagram**, båda över de loggar som Datadog Agent har skickat och filtrerade med Datadogs sökning.
 
 ## Importera larmregler
 
@@ -64,6 +64,8 @@ Avmarkera de regler du inte vill ha, välj under **When a rule fires** vad en re
 
 Varje regel blir en Metrics-monitor med en PromQL-fråga, regelns villkor och dess tidsfönster. Den öppnar ett larm, eller en incident, för varje serie som går över gränsen och löser det när serien återhämtar sig. Titel och beskrivning kommer från regelns sammanfattning eller meddelande, med seriens etiketter ifyllda.
 
+En avvikelse- eller prognosmonitor från Datadog blir en Metrics-monitor med OneUptimes villkor för avvikelser eller prognoser, och en loggmonitor från Datadog en Logs-monitor som räknar de loggar som dess sökning matchar.
+
 ## Hur varje del konverteras
 
 | Status | Vad den betyder |
@@ -72,7 +74,7 @@ Varje regel blir en Metrics-monitor med en PromQL-fråga, regelns villkor och de
 | **Converted approximately** | Den skapas, och dess anteckningar säger vad som skiljer sig. |
 | **Not converted** | Inget skapas för den, och dess anteckningar säger varför. |
 
-Inspelningsregler, larmregler över loggar, Datadog-widgetar som läser loggar, traces eller händelser, och Datadogs monitorer för avvikelser, extremvärden och prognoser konverteras inte.
+Inspelningsregler, larmregler från Prometheus och Grafana över loggar, Datadog-widgetar som läser traces eller händelser, Datadogs monitorer för extremvärden och förändringar och dess monitorer för allt utom mätvärden och loggar konverteras inte.
 
 ## Konvertera en fråga med OneUptime AI
 

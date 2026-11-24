@@ -87,6 +87,7 @@ Ist **Diese Kriterien über einen Zeitraum hinweg auswerten** angehakt, legt **A
 | **Anzahl** | Die Zahl der Prüfungen, die die Bedingung erfüllt haben, so abschneidet, wie unter **Zutreffende Prüfungen** eingestellt: etwa **Größer als** 30. |
 | **Prozentsatz** | Ihr Anteil an den Prüfungen des Fensters so abschneidet, wie unter **Anteil zutreffender Prüfungen** eingestellt: etwa **Größer als** 10 %. |
 | **Statuswechsel** | Die Zahl der Wechsel der Prüfungen zwischen Erfüllen und Nichterfüllen der Bedingung so abschneidet, wie unter **Anzahl der Wechsel** eingestellt. Ein Gerät, das ausfällt und wieder hochkommt, wechselt zweimal. |
+| **Vorherige Prüfung** | Diese Prüfung, verglichen mit der vorherigen Prüfung derselben Sonde: etwa eine Antwortzeit, die mehr als 50 % darüber liegt, oder eine Website, die jetzt ausgefallen ist und es vorher nicht war. Siehe [Eine Prüfung mit der vorherigen vergleichen](#eine-prüfung-mit-der-vorherigen-vergleichen). |
 
 Ein Satz unter den Einstellungen des Fensters gibt den Filter so wieder, wie er eingestellt ist: „Prüfen: "Ist online" ist falsch bei mehr als 30 Prüfungen der letzten 8 Stunden“.
 
@@ -107,6 +108,20 @@ Ein Ping-Monitor prüft jede Minute einen Access Point im Büro. Bevor Fenster P
 | Access Point ist online | **Ist online** ist **Wahr** | Nicht über einen Zeitraum | **Betriebsbereit** |
 
 Schalten Sie beim zweiten **Nur erholen, wenn eine eigene Bedingung erfüllt ist** mit **Statuswechsel**, **Kleiner als oder gleich** 1, **Für die letzten** 1 Stunde ein: Der Instabilitäts-Vorfall bleibt offen, bis der Access Point eine Stunde lang stabil war, statt in der ersten Minute zu schließen, in der er erreichbar ist. Um zu alarmieren, wenn er in 8 Stunden mehr als 30 Pings verfehlt, stellen Sie das zweite Kriterium stattdessen auf **Anzahl**, **Größer als** 30, **Für die letzten** 8 Stunden.
+
+### Eine Prüfung mit der vorherigen vergleichen
+
+**Vorherige Prüfung** vergleicht jede Prüfung mit der vorherigen Prüfung derselben Sonde, bei der Belegung eines Datenträgers auch desselben Datenträgers. **Für die letzten** gibt an, wie lange diese Prüfung zurückliegen darf; wählen Sie den Zeitraum daher länger als das Überwachungsintervall. Angeboten wird es für dieselben Filter wie **Anzahl**.
+
+Ein gemessener Wert, etwa eine Antwortzeit, trifft zu, wenn er um mehr als die unter **Änderung gegenüber der vorherigen Prüfung** eingestellte Änderung über der vorherigen Prüfung liegt (mit **Größer als**) oder darunter (mit **Kleiner als**). Die Änderung ist ein **Wert in der Einheit der Prüfung**, etwa 200 ms, oder ein **Prozent der vorherigen Prüfung**, etwa 50 %, und 0 trifft bei jedem Anstieg oder Rückgang zu. **Gleich** und **Ungleich** vergleichen mit dem vorherigen Wert selbst.
+
+Ein Filter, der wahr oder falsch ist, etwa **Ist online**, und ein Filter auf den Body, einen Header oder einen Ausdruck treffen bei der Prüfung zu, die die Bedingung zu erfüllen begann: **Ist online** auf **Falsch** trifft bei der Prüfung zu, bei der die Website ausfiel, und erst beim nächsten Ausfall wieder.
+
+In beiden Fällen trifft es bei einer Prüfung zu, und bei der nächsten wirkt das Kriterium nicht mehr. Damit es den gesetzten Status hält oder seinen Vorfall offen lässt, geben Sie ihm eine eigene Wiederherstellungsbedingung: siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt).
+
+Gibt es im Fenster keine vorherige Prüfung, etwa bei der ersten Prüfung des Monitors, bei einer gerade hinzugefügten Sonde oder nach einer Lücke, entscheidet **Bei keinen Daten**: **Ignore** trifft nicht zu, **Auslöser** trifft zu, und **Treat As Zero** vergleicht so, als hätte die vorherige Prüfung 0 ergeben oder die Bedingung nicht erfüllt.
+
+Der Satz unter den Einstellungen des Fensters gibt es wieder: „Prüfen: "Antwortzeit (in ms)" liegt mehr als 50 % über der vorherigen Prüfung“ oder „Prüfen: "Ist online" ist falsch bei dieser Prüfung, aber nicht bei der vorherigen“.
 
 ## Wann sich ein Kriterium erholt
 
@@ -199,6 +214,21 @@ Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wir
 
 > [!TIP]
 > Wenn die Antworten eines Website- oder API-Monitors selbst vertraulich sind, schalten Sie **Antwortinhalt behalten** auf der Karte **Antwortinhalt** seiner Seite **Erweitert → Einstellungen** aus. Seine Überwachungsprotokolle, Vorfälle und Warnungen behalten dann, welche Filter zutrafen, den Statuscode und die Antwortzeit, und keinen Teil der Antwort. Ein Monitor für eingehende Anfragen hat denselben Schalter für die Anfragen, die er empfängt: **Anfrageinhalt behalten**, auf der Karte **Anfrageinhalt**. Der Schalter gilt für die Prüfungen, die nach Ihrer Änderung laufen, und die Vorfälle und Warnungen, die danach geöffnet werden. Die letzte Anfrage in der Übersicht eines Monitors für eingehende Anfragen folgt dem Schalter sofort.
+
+## Wie lange jede Prüfung dauert
+
+Die Auswertungszusammenfassung jeder Prüfung, unter **Zusammenfassung anzeigen** auf der Seite **Überwachungsprotokolle** des Monitors und für die letzte Prüfung auf seiner **Übersicht**, sagt, wann die Prüfung ausgewertet wurde, wie lange ihre Auswertung dauerte und, bei einem Monitor, der jeden Host, jeden Container oder jede Gruppe für sich beurteilt, wie viele Reihen sie beurteilt hat. Die Zeit läuft ab dem Moment, in dem OneUptime begann, die Daten der Prüfung zu lesen, bis es das Protokoll der Prüfung schrieb: das Lesen der Daten, das Beurteilen der Kriterien und das Öffnen von Vorfällen und Warnungen.
+
+Wenn eine Auswertung für ihren Monitor zu lange dauert, warnt Sie ihre Zusammenfassung. Zu lange ist mehr als ein Zehntel der Zeit zwischen den Prüfungen des Monitors, nie weniger als 5 Sekunden und nie mehr als eine Minute:
+
+| Monitor geprüft | Warnt nach |
+| --- | --- |
+| Jede Minute | 6 Sekunden |
+| Alle 5 Minuten | 30 Sekunden |
+| Alle 10 Minuten oder seltener | 1 Minute |
+| Wenn seine Ergebnisse eintreffen, etwa bei eingehenden Anfragen und E-Mails | 5 Sekunden |
+
+Ein Zehntel lässt einem Monitor Raum, um das Zehnfache zu wachsen, bevor seine Prüfungen einander in die Quere kommen und in Rückstand geraten, sodass Sie es früh erfahren. Unter 5 Sekunden ist eine Prüfung in Ordnung, wie groß sie auch ist: 16.000 Reihen zu beurteilen dauert etwa 2,5 Sekunden. Über eine Minute belegt sie so lange einen Worker und die Datenbanken, die sie liest, unabhängig von ihrem Intervall. Um sie zu beschleunigen, grenzen Sie die Filter ihrer Abfragen ein, gruppieren Sie nach weniger Attributen oder prüfen Sie seltener.
 
 ## Die Kriterien eines Monitors ändern
 

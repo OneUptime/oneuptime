@@ -162,7 +162,7 @@ Le blocage a besoin d'autorisations d'écriture sur le jeton d'API de la connexi
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Crée ses deux listes, et y ajoute ou en retire des adresses. |
 | `Zone > Zone WAF > Edit`, sur chaque zone où bloquer | Ajoute ses règles personnalisées, et lit celles de la zone. |
-| `Account > Account Firewall Access Rules > Edit` | Ajoute et retire des IP Access Rules, sur un forfait sans liste ni règle personnalisée disponible. |
+| `Account > Account Firewall Access Rules > Edit` | Ajoute et retire des IP Access Rules : sur un forfait sans liste ni règle personnalisée disponible, et pour un réseau soumis à un défi par son ASN depuis **Campagnes**. |
 
 :::steps
 ### Donner au jeton des autorisations d'écriture
@@ -183,6 +183,7 @@ Tant que le blocage est activé, **Tester la connexion** exécute les mêmes vé
 | Les listes `oneuptime_block` et `oneuptime_challenge` | Deux listes d'IP dans le compte, l'une pour les blocages et l'autre pour les défis. Leur description nomme votre projet OneUptime. |
 | Une règle personnalisée par liste, dans chaque zone | `(ip.src in $oneuptime_block)` avec l'action Block, et `(ip.src in $oneuptime_challenge)` avec l'action Managed Challenge. Leur description indique que OneUptime les gère. |
 | Un élément de liste par blocage | Son commentaire nomme le dossier et la fin du blocage, par exemple `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Une IP Access Rule par réseau soumis à un défi par son ASN | Un réseau entier soumis à un défi depuis **Campagnes**, sous forme d'IP Access Rule dont la cible est `asn`, que chaque forfait possède. Sa note dit la même chose que le commentaire d'un élément de liste. Sans `Account > Account Firewall Access Rules > Edit` sur le jeton, le défi n'est pas appliqué, et la **Liste de blocage** indique quelle autorisation ajouter. |
 
 Chaque règle passe en premier parmi les règles personnalisées de la zone, et s'exécute donc avant les vôtres : une règle Skip de votre part ne peut pas laisser passer une adresse bloquée. Quand vos règles Skip laissent passer des adresses, comme celles de vos moniteurs ou d'un partenaire, **État du blocage** les nomme. **Protéger ces adresses** les ajoute aux **Entités protégées**, que personne ne peut bloquer.
 

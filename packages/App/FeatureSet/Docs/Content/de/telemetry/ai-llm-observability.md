@@ -317,6 +317,8 @@ GenAI-Metriken wie `gen_ai.client.token.usage` und `gen_ai.client.operation.dura
 
 KI-Aufrufe werden als Trace-Spans gespeichert, daher gelten die **Scrub-Regeln** und **Drop-Filter** der Traces für sie: Maskieren Sie ein Attribut oder verwerfen Sie einen Span, bevor er gespeichert wird. Beides finden Sie unter **Traces → Einstellungen**. Die Spalte mit der E-Mail des Mitarbeiters wird mit dem Attribut bereinigt, aus dem sie gelesen wurde, sodass eine Regel, die E-Mails maskiert, sie ebenfalls erfasst.
 
+Eine Person, die eine Bereinigungsregel verborgen hat, wird nie als Person gezeigt. **Unterhaltungen** und **Aufrufe** zeigen die ID eines Aufrufs, wenn eine Regel seine E-Mail verborgen, die ID aber unverändert gelassen hat, und **Von einer Bereinigungsregel verborgen**, wenn eine Regel jeden Namen des Aufrufs verborgen hat, ob sie ihn geschwärzt, maskiert oder gehasht hat. **Aufrufe** zeigt ein Team, das eine Regel verborgen hat, genauso.
+
 Als Log-Ereignisse gesendete Prompts und Antworten werden als Logs gespeichert, daher gelten für sie die **Scrub-Regeln** und **Drop-Filter** der Logs, unter **Protokolle → Einstellungen**: Eine Regel, die E-Mails in den Traces maskiert, maskiert sie nicht in Log-Ereignissen. Eine Unterhaltung zeigt sie nur denen, die auch die Logs dieser App lesen dürfen, und diese finden sie auch auf der Seite **Protokolle**.
 
 In beiden Fällen liest eine Regel jeden Text in einer Liste oder einem strukturierten Wert, etwa Nachrichten, die eine Instrumentierung als Liste statt als JSON-Text sendet, und behält die Form des Werts bei: Eine E-Mail-Adresse in einem Prompt wird maskiert, wo immer sie steht. Siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen).

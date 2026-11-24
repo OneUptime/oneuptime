@@ -136,7 +136,7 @@ Daaronder staat elke stap die het zette, waarover het iets vroeg of die het over
 
 ### Een zaak die het als onschuldig of vals positief leest
 
-**Reageren met AI** op een zaak die de beoordeling las als Waarschijnlijk onschuldig of Waarschijnlijk vals positief, sluit de zaak als Benign Positive of False Positive, zoals **De zaak sluiten** toestaat. Zodra de zaak gesloten is, heft OneUptime AI de blokkeringen op die de zaak maakte, zoals **De zaak sluiten** ook toestaat, en biedt het de regel van de zaak een uitzondering aan voor de waarde die hem liet afgaan. De uitzondering wacht altijd op een persoon: **Goedkeuren** voegt haar toe, namens jou.
+**Reageren met AI** op een zaak die de beoordeling las als Waarschijnlijk onschuldig of Waarschijnlijk vals positief, sluit de zaak als Benign Positive of False Positive, zoals **De zaak sluiten** toestaat. Zodra de zaak gesloten is, heft OneUptime AI de blokkeringen op die de zaak maakte, zoals **De zaak sluiten** ook toestaat, en biedt het de regel van de zaak een uitzondering aan voor de waarde die hem liet afgaan. De uitzondering wacht altijd op een persoon: **Goedkeuren** voegt haar toe, namens jou. Een persoon die de zaak eerst heropent of overneemt, voorkomt beide, en zolang het product Beveiligingsgebeurtenissen is uitgeschakeld, laat OneUptime AI beide aan een persoon over.
 
 ## Wat OneUptime AI mag doen op een zaak
 

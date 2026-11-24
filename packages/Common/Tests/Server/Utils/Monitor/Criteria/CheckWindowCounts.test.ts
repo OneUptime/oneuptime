@@ -145,7 +145,7 @@ describe("CheckWindowCounts.judge: a count of the window's checks", () => {
     );
   });
 
-  test.each([
+  test.each<[FilterType, number, boolean]>([
     [FilterType.GreaterThan, 30, false],
     [FilterType.GreaterThanOrEqualTo, 30, true],
     [FilterType.LessThan, 30, false],
@@ -153,7 +153,7 @@ describe("CheckWindowCounts.judge: a count of the window's checks", () => {
     [FilterType.EqualTo, 30, true],
     [FilterType.NotEqualTo, 30, false],
     [FilterType.LessThan, 31, true],
-  ] as const)(
+  ])(
     "%s %p against a count of 30 on a covered window is met: %p",
     (countFilterType: FilterType, countValue: number, isMet: boolean) => {
       expect(
@@ -553,14 +553,14 @@ describe("CheckWindowCounts.getSource", () => {
     ).toEqual({ comparison: "eq", threshold: 1 });
   });
 
-  test.each([
+  test.each<[FilterType, string]>([
     [FilterType.GreaterThan, "gt"],
     [FilterType.GreaterThanOrEqualTo, "gte"],
     [FilterType.LessThan, "lt"],
     [FilterType.LessThanOrEqualTo, "lte"],
     [FilterType.EqualTo, "eq"],
     [FilterType.NotEqualTo, "ne"],
-  ] as const)(
+  ])(
     "a measured value compared %s its threshold is counted with %s",
     (filterType: FilterType, comparison: string) => {
       expect(
@@ -875,14 +875,14 @@ describe("CheckWindowCounts.judgeFilter: the read around the judgement", () => {
 });
 
 describe("CheckWindowCounts.describeComparison and describeWindow", () => {
-  test.each([
+  test.each<[FilterType, string]>([
     [FilterType.GreaterThan, "more than 30"],
     [FilterType.GreaterThanOrEqualTo, "at least 30"],
     [FilterType.LessThan, "fewer than 30"],
     [FilterType.LessThanOrEqualTo, "at most 30"],
     [FilterType.EqualTo, "exactly 30"],
     [FilterType.NotEqualTo, "anything but 30"],
-  ] as const)("%s reads as %p", (filterType: FilterType, text: string) => {
+  ])("%s reads as %p", (filterType: FilterType, text: string) => {
     expect(
       CheckWindowCounts.describeComparison({
         type: EvaluateOverTimeType.Count,

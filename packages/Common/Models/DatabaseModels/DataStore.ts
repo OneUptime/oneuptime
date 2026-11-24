@@ -37,6 +37,10 @@ import {
   DataStoreExposure,
   DataStorePostureFacts,
 } from "../../Types/DataSecurity/DataStorePosture";
+import {
+  RecordLegalBasis,
+  RecordPeople,
+} from "../../Types/DataSecurity/RecordOfProcessing";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { JSONArray, JSONObject } from "../../Types/JSON";
@@ -1105,6 +1109,90 @@ export default class DataStore extends BaseModel {
     nullable: true,
   })
   public retention?: string = undefined;
+
+  /*
+   * The rest of what GDPR Article 30 asks of the store (#10375), written or
+   * confirmed by a person: its lawful basis under Article 6, and the
+   * categories of people its data is about. OneUptime AI's drafts of them,
+   * and of Purpose and Retention, never land here: they are kept beside the
+   * record (recordDrafts) until a person confirms one.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    allowedValues: Object.values(RecordLegalBasis),
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Legal Basis",
+    description:
+      "The store's lawful basis under GDPR Article 6, for the record of processing: Consent, Contract, Legal obligation, Vital interests, Public task or Legitimate interests.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public legalBasis?: RecordLegalBasis = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "People It Is About",
+    description:
+      "The categories of people the store's data is about, for the record of processing: Customers, Users, Prospects, Website visitors, Employees, Job applicants, Contractors, Business contacts, Patients, Students, Children or Members of the public.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public dataSubjects?: Array<RecordPeople> = undefined;
+
+  /*
+   * OneUptime AI's drafts of the store's record (#10375), each with the
+   * facts it rests on, and how a person confirmed one
+   * (Types/DataSecurity/RecordOfProcessing). Never read through the API:
+   * the record of processing's route serves them, each fact to who may
+   * read the record.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Record Drafts",
+    description:
+      "OneUptime AI's drafts of the store's record of processing, with the facts each rests on, until a person confirms one.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public recordDrafts?: JSONObject = undefined;
+
+  /*
+   * The store's data protection impact assessment (#10375): its parts, as
+   * OneUptime AI drafted them or a person edited them, and the facts the
+   * drafted parts rest on (Types/DataSecurity/ImpactAssessment). Served by
+   * its own route, which holds a reader to the store's issues too.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Impact Assessment",
+    description:
+      "The store's data protection impact assessment, as OneUptime AI drafted it and people edited it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public impactAssessment?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

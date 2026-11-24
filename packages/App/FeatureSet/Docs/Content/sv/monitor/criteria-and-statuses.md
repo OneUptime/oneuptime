@@ -87,6 +87,7 @@ Med **Utvärdera dessa kriterier över en tidsperiod** markerat anger **Utvärde
 | **Antal** | Antalet kontroller som uppfyllde villkoret jämförs som angivet under **Kontroller som matchar**: till exempel **Större än** 30. |
 | **Procentandel** | Deras andel av fönstrets kontroller jämförs som angivet under **Andel kontroller som matchar**: till exempel **Större än** 10 %. |
 | **Statusbyten** | Antalet gånger kontrollerna växlade mellan att uppfylla villkoret och inte jämförs som angivet under **Antal byten**. En enhet som går ner och kommer upp igen växlar två gånger. |
+| **Föregående kontroll** | Den här kontrollen jämförd med samma sonds föregående kontroll: till exempel en svarstid som ligger mer än 50 % över den, eller en webbplats som är nere nu och inte var det förut. Se [Jämföra en kontroll med den föregående](#jämföra-en-kontroll-med-den-föregående). |
 
 En mening under fönstrets inställningar återger filtret som det är inställt: ”Kontrollera: "Är online" är falskt vid fler än 30 kontroller under den senaste perioden på 8 timmar”.
 
@@ -107,6 +108,20 @@ En Ping-övervakning kontrollerar en åtkomstpunkt på kontoret varje minut. Inn
 | Åtkomstpunkten är online | **Är online** är **Sant** | Inte över en tidsperiod | **Fungerar** |
 
 För det andra slår du på **Återställ bara när ett eget villkor är uppfyllt** med **Statusbyten**, **Mindre än eller lika med** 1, **Under de senaste** 1 timme: instabilitetsincidenten förblir öppen tills åtkomstpunkten har varit stabil i en timme, i stället för att stängas den första minuten den är uppe. För att larma när den missar mer än 30 ping på 8 timmar ställer du i stället in det andra kriteriet på **Antal**, **Större än** 30, **Under de senaste** 8 timmar.
+
+### Jämföra en kontroll med den föregående
+
+**Föregående kontroll** jämför varje kontroll med samma sonds föregående kontroll, och för en disks användning med samma disks. **Under de senaste** är hur länge sedan den kontrollen får vara, så gör den längre än övervakningsintervallet. Den erbjuds för samma filter som **Antal**.
+
+Ett uppmätt värde, till exempel en svarstid, matchar när det ligger mer än ändringen under **Förändring från föregående kontroll** över den föregående kontrollen, med **Större än**, eller under den, med **Mindre än**. Ändringen är ett **Värde i kontrollens egen enhet**, till exempel 200 ms, eller en **Procent av föregående kontroll**, till exempel 50 %, och 0 matchar varje ökning eller minskning. **Lika med** och **Inte lika med** jämför med själva det föregående värdet.
+
+Ett filter som är sant eller falskt, till exempel **Är online**, och ett filter på brödtexten, en rubrik eller ett uttryck matchar vid den kontroll som började uppfylla villkoret: **Är online** satt till **Falskt** matchar vid den kontroll då webbplatsen gick ner, och inte igen förrän nästa gång den går ner.
+
+I båda fallen matchar det vid en enda kontroll, och vid nästa slutar kriteriet att verka. Ska det behålla statusen det sätter, eller låta sin incident vara öppen, ge det ett eget återställningsvillkor: se [När ett kriterium återställs](#när-ett-kriterium-återställs).
+
+Utan någon föregående kontroll i fönstret, som vid monitorns första kontroll, för en nyss tillagd sond eller efter ett uppehåll, avgör **Om ingen data**: **Ignore** matchar inte, **Utlösare** matchar, och **Treat As Zero** jämför som om den föregående kontrollen hade läst 0, eller inte hade uppfyllt villkoret.
+
+Meningen under fönstrets inställningar återger det: ”Kontrollera: "Svarstid (i ms)" ligger mer än 50 % över föregående kontroll”, eller ”Kontrollera: "Är online" är falskt vid den här kontrollen, men inte vid den föregående”.
 
 ## När ett kriterium återställs
 
@@ -199,6 +214,21 @@ Hemligheter och personuppgifter maskeras innan något sparas: headers som `Autho
 
 > [!TIP]
 > När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess övervakningsloggar, incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll**, på kortet **Förfrågans innehåll**. Reglaget gäller de kontroller som körs, och de incidenter och larm som öppnas, efter att du ändrar det. Den senaste förfrågan i översikten för en monitor för inkommande förfrågningar följer reglaget direkt.
+
+## Hur lång tid varje kontroll tar
+
+Utvärderingssammanfattningen för varje kontroll, under **Visa sammanfattning** i monitorns **Övervakningsloggar** och för den senaste kontrollen på dess **Översikt**, berättar när kontrollen utvärderades, hur lång tid utvärderingen tog och, för en monitor som bedömer varje värd, container eller grupp för sig, hur många serier den bedömde. Tiden räknas från att OneUptime började läsa de data som kontrollen bedömer tills den skrev kontrollens logg: läsningen av data, bedömningen av kriterierna och öppnandet av incidenter och larm.
+
+När en utvärdering tar för lång tid för sin monitor varnar sammanfattningen dig. För lång tid är mer än en tiondel av tiden mellan monitorns kontroller, aldrig under 5 sekunder och aldrig över en minut:
+
+| Monitor kontrollerad | Varnar efter |
+| --- | --- |
+| Varje minut | 6 sekunder |
+| Var 5:e minut | 30 sekunder |
+| Var 10:e minut eller mer sällan | 1 minut |
+| När resultaten kommer in, som vid inkommande förfrågningar och e-post | 5 sekunder |
+
+En tiondel ger en monitor utrymme att växa tiofaldigt innan dess kontroller krockar och hamnar på efterkälken, så att du får veta det tidigt. Under 5 sekunder är en kontroll okej hur stor den än är: att bedöma 16 000 serier tar ungefär 2,5 sekunder. Över en minut håller den en worker och de databaser den läser så länge, oavsett intervall. Gör den snabbare genom att snäva in frågornas filter, gruppera efter färre attribut eller kontrollera den mer sällan.
 
 ## Ändra en monitors kriterier
 

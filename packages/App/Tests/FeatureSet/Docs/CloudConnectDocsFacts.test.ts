@@ -18,6 +18,7 @@ import {
   GCP_OPS_AGENT_INSTALL_URL,
   GcpReadMetric,
   getAzureKeyMetricNames,
+  getAzureKeyMetricSplit,
   getAzureKeyMetrics,
   getAzureReadMetricNames,
   getGcpReadMetrics,
@@ -176,6 +177,7 @@ import {
   WAF_CLOUDFRONT_REGION,
 } from "Common/Server/Utils/CloudConnection/Aws/AwsServiceListings";
 import { AZURE_LISTED_ONLY_TYPES } from "Common/Server/Utils/CloudConnection/Azure/AzureInventory";
+import { AZURE_METRICS_BATCH_MAX_RESOURCES } from "Common/Server/Utils/CloudConnection/Azure/AzureArm";
 import { isInventoryOnlyCloudResourceType } from "Common/Types/Cloud/CloudResourceCatalog";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -712,6 +714,37 @@ describe("Connect a Cloud Account", () => {
     expect(paragraph).toContain("](/docs/telemetry/queues#azure-service-bus)");
     expect(paragraph).toContain(
       "where that receiver also reads a metric of a queue, its figures are kept and the connection's left out",
+    );
+  });
+
+  /*
+   * A Container App's Requests are read split by statusCodeCategory
+   * (#10837), in a call of their own - a call's filter splits every metric
+   * in it that has the dimension - which the Container Apps of a
+   * subscription and Region share in batches of 50: the page states what
+   * that adds an hour at the default read interval.
+   */
+  it("says a Container App's Requests are a call of their own by status code category, which 50 share, and what that costs an hour", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A Container App's `Requests` are read");
+      });
+    const minutes: number = definition(
+      CloudProvider.Azure,
+    ).defaultReadIntervalInMinutes;
+
+    expect(paragraph).toBeDefined();
+    expect(
+      getAzureKeyMetricSplit("Microsoft.App/containerApps", "Requests"),
+    ).toBe("statusCodeCategory");
+    // Its resources share the split's batches, of as many as any batch holds.
+    expect(source("azure")).toContain("batchesSplit: true,");
+    expect(AZURE_METRICS_BATCH_MAX_RESOURCES).toBe(50);
+    expect(60 % minutes).toBe(0);
+    expect(paragraph).toContain("read once per status code category");
+    expect(paragraph).toContain(
+      `read every ${minutes} minutes, up to ${AZURE_METRICS_BATCH_MAX_RESOURCES} Container Apps cost ${60 / minutes} more calls an hour, as one does.`,
     );
   });
 

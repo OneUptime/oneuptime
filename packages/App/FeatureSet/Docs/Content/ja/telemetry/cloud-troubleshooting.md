@@ -90,7 +90,7 @@ Node.js と .NET の Azure 検出器は `azure.container_apps`、`azure.app_serv
 インスタンスは表示されているのに、概要の **CPU** と **メモリ** のタイル、および **インスタンス** の CPU とメモリの列が空です。これらはトレースではなくメトリクスから算出されます。トレースと同じインスタンスの識別子と `cloud.platform` をリソースに持つ、`container.cpu.utilization` と `container.memory.usage` (または `container.memory.usage.total`) のデータポイントです。
 
 - **ECS では**、サイドカー Collector の `awsecscontainermetrics` レシーバーが、これらを `ecs.task.cpu.utilized` と `ecs.task.memory.utilized` として提供します。このレシーバーを `metrics` パイプラインに入れ、同じパイプラインに `resourcedetection` も残してください。そうしないと、メトリクスが `cloud.platform` なしで届き、別の場所に記録されます。
-- **Cloud Run、Container Apps、その他のプラットフォームでは**、プラットフォームがコンテナの使用量をサイドカーに公開しません。それらのメトリクスを自分で送らない限りタイルは空のままなので、代わりにリクエストのタイルを見てください。App Service では、**クラウド → 接続** でサブスクリプションを接続すると、アプリのページに **Azure Monitor** からサイトの CPU 時間とメモリが表示されます。
+- **Cloud Run、Container Apps、その他のプラットフォームでは**、プラットフォームがコンテナの使用量をサイドカーに公開しません。それらのメトリクスを自分で送らない限りタイルは空のままなので、代わりにリクエストのタイルを見てください。App Service では、**クラウド → 接続** でサブスクリプションを接続すると、アプリのページに **Azure Monitor** からサイトの CPU 時間とメモリが表示されます。Container Apps、Cloud Run、App Engine、App Runner でも同じように **クラウド → 接続** でアカウントを接続すると、アプリのページにクラウドが測定した CPU とメモリが表示され、空のタイルは表示されなくなります。
 - **SDK direct では**、コンテナメトリクスを送るものがないため、タイルが空なのは想定どおりです。
 
 ## 環境が切断済みと表示される

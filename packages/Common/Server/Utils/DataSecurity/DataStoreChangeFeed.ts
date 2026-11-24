@@ -46,6 +46,9 @@ export const DATA_STORE_COLUMNS_ON_THE_TIMELINE: ReadonlyArray<TimelineColumn> =
     { column: "watchedPaths", shown: "named" },
     { column: "purpose", shown: "named" },
     { column: "retention", shown: "named" },
+    // The rest of the record of processing (#10375): a basis is a choice from a list.
+    { column: "legalBasis", shown: "value" },
+    { column: "dataSubjects", shown: "named" },
     { column: "labels", shown: "named" },
   ];
 
