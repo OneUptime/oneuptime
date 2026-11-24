@@ -2,6 +2,9 @@ import "../TestingUtils/Init";
 import fs from "fs";
 import path from "path";
 import { MetricService } from "../../../Server/Services/MetricService";
+import { ClickhouseExecuteOptions } from "../../../Server/Services/AnalyticsDatabaseService";
+import { ClickhouseRowsRead } from "../../../Server/Utils/AnalyticsDatabase/ClickhouseReadResult";
+import { JSONObject } from "../../../Types/JSON";
 import Metric from "../../../Models/AnalyticsModels/Metric";
 import AggregateBy from "../../../Server/Types/AnalyticsDatabase/AggregateBy";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -31,8 +34,47 @@ describe("MetricService aggregate statement generation", () => {
 
   let service: MetricService;
 
+  /*
+   * A grouped aggregate reads its rows as they arrive (#10316), through
+   * readRowsAsTheyArrive. These tests answer every read with a stubbed
+   * executeQuery, so a read of rows hands on each row that stub answers, in
+   * its order, keyed by column, as the row reader hands on each row of its
+   * answer (ClickhouseReadRows holds the reader to that).
+   */
+  const readRowsThroughExecuteQuery: (target: MetricService) => void = (
+    target: MetricService,
+  ): void => {
+    type ReadRows = (read: {
+      statement: Statement | string;
+      onRow: (row: JSONObject) => void;
+      options?: ClickhouseExecuteOptions | undefined;
+    }) => Promise<ClickhouseRowsRead>;
+    type ExecuteQuery = (
+      statement: Statement | string,
+      options?: ClickhouseExecuteOptions | undefined,
+    ) => Promise<{ json: () => Promise<{ data?: Array<JSONObject> }> }>;
+
+    (
+      target as unknown as { readRowsAsTheyArrive: ReadRows }
+    ).readRowsAsTheyArrive = async (
+      read: Parameters<ReadRows>[0],
+    ): Promise<ClickhouseRowsRead> => {
+      const answer: Awaited<ReturnType<ExecuteQuery>> = await (
+        target as unknown as { executeQuery: ExecuteQuery }
+      ).executeQuery(read.statement, read.options);
+      const rows: Array<JSONObject> = (await answer.json()).data || [];
+
+      for (const row of rows) {
+        read.onRow(row);
+      }
+
+      return { columns: Object.keys(rows[0] || {}), rowCount: rows.length };
+    };
+  };
+
   beforeEach(() => {
     service = new MetricService();
+    readRowsThroughExecuteQuery(service);
   });
 
   type BuildAggregateByFunction = (
