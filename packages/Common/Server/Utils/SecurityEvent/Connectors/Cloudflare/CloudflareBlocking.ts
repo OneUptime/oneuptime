@@ -1844,11 +1844,10 @@ export default class CloudflareBlocking {
     const permission: string = CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION;
 
     try {
-      const access: CloudflareWriteAccess =
-        await this.client.probeWriteAccess({
-          kind: "access-rules",
-          accountId: this.scope.accountId,
-        });
+      const access: CloudflareWriteAccess = await this.client.probeWriteAccess({
+        kind: "access-rules",
+        accountId: this.scope.accountId,
+      });
 
       if (access === CloudflareWriteAccess.Granted) {
         return makeCheck({

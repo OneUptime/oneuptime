@@ -1414,7 +1414,9 @@ describe("whether the token may write: asked without writing", () => {
   test("an account OneUptime cannot read asks nothing about networks", async () => {
     api.script({
       matches: (request: FakeRequest): boolean => {
-        return request.method === "GET" && request.path.endsWith("/rules/lists");
+        return (
+          request.method === "GET" && request.path.endsWith("/rules/lists")
+        );
       },
       response: restError(403, 10000, "Authentication error"),
       times: 10,
