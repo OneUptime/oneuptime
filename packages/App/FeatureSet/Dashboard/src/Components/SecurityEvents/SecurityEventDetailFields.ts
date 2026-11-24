@@ -20,8 +20,14 @@ import {
   SCRUBBED_USER_ATTRIBUTES,
   ScrubbedUserRole,
   USER_HIDDEN_BY_SCRUB_RULE,
+  isEventUserErased,
+  readHashedEventUser,
   readHiddenEventUser,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
+import {
+  HashedUserSignal,
+  getSecurityEventSignal,
+} from "./SecurityEventTelemetryLinks";
 
 /*
  * What one security event says, as data.
@@ -67,6 +73,67 @@ export interface SecurityEventDetailField {
    * whose user a rule hid.
    */
   isHiddenUser?: boolean | undefined;
+  /*
+   * A user Security Events named behind a Hash rule's token (#10909): the
+   * logs or traces hold only the token, so the user is said with what they
+   * hold, and a search for it.
+   */
+  hashedUser?: HashedEventUser | undefined;
+  /*
+   * A user an erasure request took out of Security Events (#10908): the
+   * event's user is the token again, and says why.
+   */
+  isErasedUser?: boolean | undefined;
+}
+
+// What the logs or traces hold in place of a user Security Events named.
+export interface HashedEventUser {
+  // What the Hash rule left: the token, or a user with it inside.
+  hashed: string;
+  // The kind of record it was read from.
+  signal: HashedUserSignal;
+  // When the event happened: its records are searched around it.
+  time?: Date | undefined;
+}
+
+/*
+ * Principal User or Target User for an event that names its user: the
+ * user, and - when Security Events named them behind a Hash rule's token,
+ * or an erasure request took them out again - what the records hold. Null
+ * for an event that names no user of that role.
+ */
+export function buildEventUserField(
+  event: SecurityEventDetailSource,
+  role: ScrubbedUserRole,
+): SecurityEventDetailField | null {
+  const user: string =
+    role === ScrubbedUserRole.Principal
+      ? text(event.principalUser)
+      : text(event.targetUser);
+
+  if (!user) {
+    return null;
+  }
+
+  const hashed: string = readHashedEventUser(event, role);
+
+  return {
+    label:
+      role === ScrubbedUserRole.Principal ? "Principal User" : "Target User",
+    value: user,
+    facetKey:
+      role === ScrubbedUserRole.Principal ? "principalUser" : "targetUser",
+    ...(hashed && hashed !== user
+      ? {
+          hashedUser: {
+            hashed,
+            signal: getSecurityEventSignal(event),
+            time: event.time ? new Date(event.time) : undefined,
+          },
+        }
+      : {}),
+    ...(isEventUserErased(event, role) ? { isErasedUser: true } : {}),
+  };
 }
 
 /*
@@ -169,6 +236,8 @@ export type SecurityEventDetailSource = Partial<
     | "traceId"
     | "sessionId"
     | "eventUid"
+    // When: a user the logs know by a token is searched for around it (#10909).
+    | "time"
     // What it says of its request: a client address a scrub rule hid.
     | "attributes"
   >
@@ -290,12 +359,15 @@ export function buildSecurityEventOverviewFields(
     { label: "Rule ID", value: text(event.ruleId) },
     { label: "MITRE Tactics", value: joinArray(event.mitreTactics) },
     { label: "MITRE Techniques", value: joinArray(event.mitreTechniques) },
-    // A scrub rule hid it: said where the user would be (#10435).
-    buildHiddenUserField(event, ScrubbedUserRole.Principal) || {
-      label: "Principal User",
-      value: text(event.principalUser),
-      facetKey: "principalUser",
-    },
+    /*
+     * A scrub rule hid it: said where the user would be (#10435). Named
+     * behind a token, or erased on request: said with the token (#10909).
+     */
+    buildHiddenUserField(event, ScrubbedUserRole.Principal) ||
+      buildEventUserField(event, ScrubbedUserRole.Principal) || {
+        label: "Principal User",
+        value: "",
+      },
     {
       label: "Principal Host",
       value: text(event.principalHost),
@@ -332,11 +404,11 @@ export function buildSecurityEventOverviewFields(
       label: "Parent Command Line",
       value: text(event.parentProcessCommandLine),
     },
-    buildHiddenUserField(event, ScrubbedUserRole.Target) || {
-      label: "Target User",
-      value: text(event.targetUser),
-      facetKey: "targetUser",
-    },
+    buildHiddenUserField(event, ScrubbedUserRole.Target) ||
+      buildEventUserField(event, ScrubbedUserRole.Target) || {
+        label: "Target User",
+        value: "",
+      },
     {
       label: "Target Host",
       value: text(event.targetHost),
