@@ -946,6 +946,7 @@ describe("readJsonStream: JSON objects one after another, sent as application/js
     ["text after the records", '{"log":"a"}{"log":"b"} and some text'],
     ["arrays one after another", '[{"log":"a"}][{"log":"b"}]'],
     ["a record that does not parse", '{"log":"a"}{"log":}{"log":"c"}'],
+    ["one record that does not parse", '{"log":"a",}'],
   ])(
     "%s is no stream: refused 400 in the words JSON that does not parse gets, as it is, gzip and deflate",
     async (_what: string, body: string) => {
@@ -980,6 +981,39 @@ describe("readJsonStream: JSON objects one after another, sent as application/js
         (await send("/after-lines", encoding.encode(JSON_STREAM))).answer
           .status,
       ).toBe(400);
+    }
+  });
+
+  test("broken JSON of one object is handed to JSON.parse once, as without it: never a second time as a stream", async () => {
+    const broken: Buffer = Buffer.from(
+      `{"log":"${"a".repeat(4 * KIB)}","level":"info",}`,
+    );
+    const parse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      for (const encoding of encodings) {
+        parse.mockClear();
+
+        const sent: SentRequest = await send(
+          "/after-stream",
+          encoding.encode(broken),
+        );
+
+        expect({ encoding: encoding.how, status: sent.answer.status }).toEqual({
+          encoding: encoding.how,
+          status: 400,
+        });
+        expect({
+          encoding: encoding.how,
+          parsed: (parse.mock.calls as Array<Array<unknown>>).filter(
+            (call: Array<unknown>): boolean => {
+              return typeof call[0] === "string" && call[0].includes('"log":');
+            },
+          ).length,
+        }).toEqual({ encoding: encoding.how, parsed: 1 });
+      }
+    } finally {
+      parse.mockRestore();
     }
   });
 

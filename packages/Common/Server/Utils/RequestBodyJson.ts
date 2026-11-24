@@ -306,6 +306,11 @@ export default class RequestBodyJson {
    * whole, at the first piece that is not one. No more than one record is
    * handed to JSON.parse that fails.
    *
+   * A stream is two records or more. One object alone is one JSON
+   * document, which parse reads - and a caller reads a stream only once
+   * parse refused the body - so a body of one is null, not parsed a second
+   * time: the commonest broken JSON, one object, costs one JSON.parse.
+   *
    * The bytes are read as UTF-8, which the count reads too.
    */
   public static parseStream(
@@ -335,13 +340,20 @@ export default class RequestBodyJson {
         return null;
       }
 
+      const next: number = skipWhitespace(text, end);
+
+      // One object alone: one JSON document, no stream (see above).
+      if (records.length === 0 && next >= text.length) {
+        return null;
+      }
+
       try {
         records.push(JSON.parse(text.toString("utf8", start, end)));
       } catch {
         return null;
       }
 
-      start = skipWhitespace(text, end);
+      start = next;
     }
 
     return records.length > 0 ? records : null;

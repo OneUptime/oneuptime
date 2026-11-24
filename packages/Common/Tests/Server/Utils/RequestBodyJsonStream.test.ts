@@ -118,11 +118,39 @@ describe("parseStream reads JSON objects one after another as records", () => {
     ).toEqual(FLUENT_BIT_RECORDS);
   });
 
-  test("one record is a stream of one", () => {
-    expect(stream(json(FLUENT_BIT_RECORDS[0]))).toEqual([
+  test("two records are a stream", () => {
+    expect(stream(`${json(FLUENT_BIT_RECORDS[0])}{}`)).toEqual([
       FLUENT_BIT_RECORDS[0],
+      {},
     ]);
-    expect(stream("{}")).toEqual([{}]);
+    expect(stream("{} {}")).toEqual([{}, {}]);
+  });
+
+  /*
+   * One object alone is one JSON document, which RequestBodyJson.parse
+   * reads; a caller reads a stream only once parse refused the body. So a
+   * body of one value is no stream - valid or broken - and is not handed to
+   * JSON.parse a second time: broken JSON of one object, the commonest
+   * kind, costs one parse, not two.
+   */
+  test("one object alone is no stream, valid or broken, and is never parsed here", () => {
+    const parse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    for (const body of [
+      json(FLUENT_BIT_RECORDS[0]),
+      "{}",
+      ` \n${json(FLUENT_BIT_RECORDS[1])}\r\n `,
+      '{"log":"a",}',
+      '{"log": undefined}',
+      `{"log":"${"a".repeat(64 * 1024)}",}`,
+    ]) {
+      expect({ body: body.slice(0, 40), records: stream(body) }).toEqual({
+        body: body.slice(0, 40),
+        records: null,
+      });
+    }
+
+    expect(parse).not.toHaveBeenCalled();
   });
 
   test("a brace, bracket, quote or backslash inside a string ends no record", () => {
@@ -411,7 +439,7 @@ describe("a stream is read as the same records as one JSON array", () => {
   test("for 500 batches of drawn records and separators", () => {
     for (let batch: number = 0; batch < 500; batch++) {
       const records: Array<Record<string, unknown>> = Array.from(
-        { length: 1 + RANDOM(20) },
+        { length: 2 + RANDOM(19) },
         record,
       );
       const body: string = records
@@ -438,8 +466,9 @@ describe("a stream is read as the same records as one JSON array", () => {
       const read: Array<unknown> | null = stream(body.slice(0, cut));
 
       /*
-       * Cut between two records, the records before the cut are a stream of
-       * their own; cut inside one, the body is no stream.
+       * Cut after the second record or a later one, the records before the
+       * cut are a stream of their own; cut after the first, it is one
+       * document; cut inside a record, the body is no stream.
        */
       const whole: number = records.findIndex(
         (_: Record<string, unknown>, index: number): boolean => {
@@ -455,8 +484,7 @@ describe("a stream is read as the same records as one JSON array", () => {
       expect({ batch, cut, read }).toEqual({
         batch,
         cut,
-        read:
-          whole === -1 ? null : JSON.parse(json(records.slice(0, whole + 1))),
+        read: whole < 1 ? null : JSON.parse(json(records.slice(0, whole + 1))),
       });
     }
   });
