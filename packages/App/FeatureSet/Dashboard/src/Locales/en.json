@@ -64325,7 +64325,6 @@
   "What no rule matches yet": "What no rule matches yet",
   "What the charge or credit is.": "What the charge or credit is.",
   "What the group is, in your team's words.": "What the group is, in your team's words.",
-  "What the view is called, as Costs lists it under View by.": "What the view is called, as Costs lists it under View by.",
   "What the view sorts the spend by, in your team's words.": "What the view sorts the spend by, in your team's words.",
   "What this group is.": "What this group is.",
   "What this group was charged each day, its shared costs and line items included.": "What this group was charged each day, its shared costs and line items included.",
@@ -64353,5 +64352,6 @@
   "Cost Views": "Cost Views",
   "Custom Line Item": "Custom Line Item",
   "How its costs are split: evenly, by each group's share of spend, by fixed percentages, or by Kubernetes namespace.": "How its costs are split: evenly, by each group's share of spend, by fixed percentages, or by Kubernetes namespace.",
-  "The team whose spend this is. The group's page shows its spend alone, to share with the team.": "The team whose spend this is. The group's page shows its spend alone, to share with the team."
+  "The team whose spend this is. The group's page shows its spend alone, to share with the team.": "The team whose spend this is. The group's page shows its spend alone, to share with the team.",
+  "What the view is called, as the Costs page lists it.": "What the view is called, as the Costs page lists it."
 }

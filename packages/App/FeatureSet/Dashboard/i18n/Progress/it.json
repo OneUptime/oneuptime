@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8227
+    "keys": 64313,
+    "untranslated": 8235
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -378,6 +378,7 @@
     "TX",
     "Tablet",
     "Tag",
+    "Tag {{key}}",
     "Task · 31% CPU · 380 MB",
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",

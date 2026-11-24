@@ -163,7 +163,7 @@ export default class CloudCostView extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "What the view is called, as Costs lists it under View by.",
+    description: "What the view is called, as the Costs page lists it.",
     example: "By team",
   })
   @Column({
