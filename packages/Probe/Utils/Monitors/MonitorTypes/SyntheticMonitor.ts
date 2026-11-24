@@ -1,4 +1,6 @@
 import {
+  PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+  PROBE_PRIVATE_NETWORK_HINT,
   PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED,
   PROBE_SYNTHETIC_MONITOR_MAX_DISK_BYTES,
   PROBE_SYNTHETIC_MONITOR_MAX_CONCURRENCY,
@@ -251,6 +253,19 @@ export default class SyntheticMonitor {
         chromiumSandboxEnabled:
           PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED,
         proxy: this.getBrowserProxy(),
+        /*
+         * Where the check's browser and its script's axios may send requests:
+         * this probe's policy for every monitor whose target a project member
+         * chooses (GHSA-9rx7-vwfj-whp7). Loopback, link-local and the cloud
+         * metadata endpoint never; private addresses only where the operator
+         * turned PROBE_ALLOW_PRIVATE_NETWORK_MONITORS on, and never on a
+         * global probe of a BILLING_ENABLED instance. The worker cannot read
+         * this process's environment, so it is handed the answer.
+         */
+        egressPolicy: {
+          allowPrivateNetworkAddresses: PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+          privateNetworkHint: PROBE_PRIVATE_NETWORK_HINT,
+        },
         args: {},
       };
 
@@ -570,13 +585,17 @@ export default class SyntheticMonitor {
         };
 
         /*
-         * The sentinel controller origin is always bypassed, ahead of whatever
+         * The browser itself only ever talks to the check's egress proxy
+         * (SyntheticEgressProxy), which goes through this proxy apart from the
+         * hosts this list names, as NO_PROXY does for every other request.
+         *
+         * The sentinel controller origin is always on it, ahead of whatever
          * the operator configured. Interception fulfils that navigation before
-         * the network stack is reached, so in practice the proxy never sees it
-         * -- but "in practice" is an ordering assumption inside Chromium, and
-         * the cost of not relying on it is one entry in a list. A corporate
-         * proxy asked to reach a host that cannot resolve does not fail fast;
-         * it hangs, and the runtime bootstrap is exactly where that is least
+         * the network stack is reached, so in practice no proxy sees it -- but
+         * "in practice" is an ordering assumption inside the browser, and the
+         * cost of not relying on it is one entry in a list. A corporate proxy
+         * asked to reach a host that cannot resolve does not fail fast; it
+         * hangs, and the runtime bootstrap is exactly where that is least
          * affordable.
          */
         proxy.bypass = [SYNTHETIC_RUNTIME_CONTROLLER_HOST, ...NO_PROXY].join(

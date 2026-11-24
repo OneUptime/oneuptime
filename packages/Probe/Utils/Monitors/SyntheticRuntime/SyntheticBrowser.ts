@@ -9,6 +9,8 @@ import {
   firefox,
 } from "playwright";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
+import { SYNTHETIC_RUNTIME_CONTROLLER_HOST } from "./ControllerOrigin";
+import SyntheticEgressProxy from "./SyntheticEgressProxy";
 import SyntheticRuntimeFault from "./SyntheticRuntimeFault";
 import { SyntheticMonitorWorkerConfig } from "./SyntheticMonitorWorkerTypes";
 
@@ -50,10 +52,70 @@ export const SYNTHETIC_BROWSER_CLOSE_TIMEOUT_IN_MS: number = 5_000;
 export const FIREFOX_NO_SYNC_LIBRARY_PATH: string =
   "/usr/lib/oneuptime-probe/libsynthetic-no-sync.so";
 
+/*
+ * The browser sends everything through the check's egress proxy
+ * (SyntheticEgressProxy) but the runtime's own controller document, whose
+ * navigation page.route fulfils from memory. Its host is reserved (.invalid)
+ * and never resolves - Chromium resolves no name at all - so the browser
+ * reaches nothing by it; without it, Chromium opens a speculative tunnel for
+ * that navigation, which the egress proxy would refuse and report.
+ */
+export const FIREFOX_PROXY_BYPASS: string = SYNTHETIC_RUNTIME_CONTROLLER_HOST;
+
+/*
+ * Chromium also connects to localhost, 127.0.0.0/8 and [::1] directly by
+ * default, past any proxy: "<-loopback>" takes that exception away.
+ * Playwright adds it on its own today; naming it here keeps that so whatever
+ * Playwright does.
+ */
+export const CHROMIUM_PROXY_BYPASS: string = `${SYNTHETIC_RUNTIME_CONTROLLER_HOST},<-loopback>`;
+
+/*
+ * The connections an HTTP proxy is never asked to make, closed in Chromium:
+ *
+ *   - no host name is looked up by the browser itself, so a connection that
+ *     somehow does not go through the proxy cannot reach a named host either
+ *     (the proxy is at 127.0.0.1, which stays reachable);
+ *   - WebRTC's UDP, which no HTTP proxy carries, stays off: WebRTC may only
+ *     use TCP through the proxy (a TURN server it approves);
+ *   - QUIC (HTTP/3), also UDP, stays off: every request is HTTP/1.1 or
+ *     HTTP/2 through the proxy.
+ */
+export const CHROMIUM_EGRESS_ARGUMENTS: ReadonlyArray<string> = [
+  "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+  "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+  "--disable-quic",
+];
+
+/*
+ * The same, for Firefox:
+ *
+ *   - loopback goes through the proxy too (Playwright's Firefox build sets
+ *     this; naming it here does not depend on that);
+ *   - a request the proxy does not answer is never retried directly;
+ *   - WebRTC's ICE only through the proxy, never directly to a peer;
+ *   - no HTTP/3 or WebTransport, which are QUIC (UDP) and never proxied;
+ *   - no DNS prefetching of a page's links by the browser itself.
+ */
+export const FIREFOX_EGRESS_PREFERENCES: Readonly<Record<string, boolean>> =
+  Object.freeze({
+    "network.proxy.allow_hijacking_localhost": true,
+    "network.proxy.failover_direct": false,
+    "media.peerconnection.ice.proxy_only": true,
+    "network.http.http3.enable": false,
+    "network.webtransport.enabled": false,
+    "network.dns.disablePrefetch": true,
+  });
+
 export interface SyntheticBrowserSession {
   browser: Browser;
   browserContext: BrowserContext;
   page: Page;
+  /*
+   * The check's egress proxy: the browser's only way out, and the axios
+   * bridge's (WorkerController). Close it once the browser is closed.
+   */
+  egress: SyntheticEgressProxy;
 }
 
 export default class SyntheticBrowser {
@@ -86,6 +148,12 @@ export default class SyntheticBrowser {
    * - The browser's own temporary profile is created by Playwright under
    *   os.tmpdir(), which the worker checks is its run directory, so the disk
    *   watchdog and the run-directory cleanup still cover everything written.
+   *
+   * The browser's only proxy is the check's egress proxy, started here
+   * first (GHSA-9rx7-vwfj-whp7): every request the tenant's script can make
+   * the browser send is held to the probe's egress policy there, the one
+   * API and Website monitors are held to (SyntheticEgressProxy). It goes
+   * through the operator's outbound proxy, config.proxy, itself.
    */
   public static async start(data: {
     config: SyntheticMonitorWorkerConfig;
@@ -99,10 +167,16 @@ export default class SyntheticBrowser {
     const config: SyntheticMonitorWorkerConfig = data.config;
     const browserLauncher: PlaywrightBrowserType =
       config.browserType === BrowserType.Chromium ? chromium : firefox;
+    const egress: SyntheticEgressProxy = new SyntheticEgressProxy({
+      policy: config.egressPolicy,
+      upstreamProxy: config.proxy,
+    });
 
     try {
+      await egress.start();
+
       const browser: Browser = await browserLauncher.launch(
-        this.getLaunchOptions(config),
+        this.getLaunchOptions(config, egress.getProxyServer()),
       );
       data.onLaunched?.(browser);
 
@@ -112,8 +186,9 @@ export default class SyntheticBrowser {
       });
       const page: Page = await browserContext.newPage();
 
-      return { browser, browserContext, page };
+      return { browser, browserContext, page, egress };
     } catch (error: unknown) {
+      await egress.close();
       /*
        * Nothing tenant-authored has run and the monitored site has not been
        * contacted, so this is the probe's failure: marked as such, it is
@@ -129,10 +204,12 @@ export default class SyntheticBrowser {
 
   /**
    * Closes the browser, but waits at most `timeoutInMs` for it. Whatever is
-   * still running after that is the supervisor's to kill.
+   * still running after that is the supervisor's to kill. The egress proxy,
+   * when given, is closed after it.
    */
   public static async close(data: {
     browser: Browser;
+    egress?: SyntheticEgressProxy | undefined;
     timeoutInMs?: number | undefined;
   }): Promise<void> {
     let timer: NodeJS.Timeout | undefined;
@@ -154,33 +231,28 @@ export default class SyntheticBrowser {
       if (timer) {
         clearTimeout(timer);
       }
+      await data.egress?.close();
     }
   }
 
   private static getLaunchOptions(
     config: SyntheticMonitorWorkerConfig,
+    egressProxyServer: string,
   ): LaunchOptions {
+    if (config.browserType === BrowserType.Chromium) {
+      return {
+        executablePath: config.executablePath,
+        proxy: { server: egressProxyServer, bypass: CHROMIUM_PROXY_BYPASS },
+        chromiumSandbox: config.chromiumSandboxEnabled,
+        args: [...CHROMIUM_EGRESS_ARGUMENTS],
+      };
+    }
+
     return {
       executablePath: config.executablePath,
-      ...(config.proxy
-        ? {
-            proxy: {
-              server: config.proxy.server,
-              ...(config.proxy.username !== undefined
-                ? { username: config.proxy.username }
-                : {}),
-              ...(config.proxy.password !== undefined
-                ? { password: config.proxy.password }
-                : {}),
-              ...(config.proxy.bypass !== undefined
-                ? { bypass: config.proxy.bypass }
-                : {}),
-            },
-          }
-        : {}),
-      ...(config.browserType === BrowserType.Chromium
-        ? { chromiumSandbox: config.chromiumSandboxEnabled }
-        : this.getFirefoxEnvironmentOptions()),
+      proxy: { server: egressProxyServer, bypass: FIREFOX_PROXY_BYPASS },
+      firefoxUserPrefs: { ...FIREFOX_EGRESS_PREFERENCES },
+      ...this.getFirefoxEnvironmentOptions(),
     };
   }
 

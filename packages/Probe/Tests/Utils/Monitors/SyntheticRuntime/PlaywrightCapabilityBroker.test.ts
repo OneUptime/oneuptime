@@ -1,9 +1,16 @@
+import dns from "dns";
 import fs from "fs";
+import http, { IncomingMessage, ServerResponse } from "http";
+import { AddressInfo } from "net";
 import os from "os";
 import path from "path";
 import { Browser, BrowserContext, Page, chromium } from "playwright";
 import PlaywrightCapabilityBroker from "../../../../Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker";
-import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import SyntheticEgressProxy from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy";
+import { MonitorEgressPolicy } from "../../../../Utils/Monitors/MonitorEgressGuardOptions";
+import PrivateNetworkMonitorPolicy, {
+  ResolvedPrivateNetworkMonitorPolicy,
+} from "../../../../Utils/PrivateNetworkMonitorPolicy";
 import {
   LocalHttpServer,
   RESERVED_CHARACTER_CREDENTIALS,
@@ -12,6 +19,7 @@ import {
   signedInAs,
   useLocalHttpServers,
 } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
+import FakeInternet, { FakeInternetRequest } from "./Fixtures/FakeInternet";
 import {
   CapabilityDescriptor,
   PlaywrightRpcRequest,
@@ -23,6 +31,37 @@ import {
 
 jest.setTimeout(120_000);
 
+type BrokerOptions = ConstructorParameters<
+  typeof PlaywrightCapabilityBroker
+>[0];
+
+// What a probe of this kind hands its synthetic checks (SyntheticMonitor).
+function probePolicy(data: {
+  configuredValue: string | undefined;
+  isAutoRegisteredGlobalProbe: boolean;
+  isBillingEnabled: boolean;
+}): MonitorEgressPolicy {
+  const resolved: ResolvedPrivateNetworkMonitorPolicy =
+    PrivateNetworkMonitorPolicy.resolve(data);
+
+  return {
+    allowPrivateNetworkAddresses: resolved.allowed,
+    privateNetworkHint: resolved.refusalHint,
+  };
+}
+
+const HOSTED_GLOBAL_PROBE: MonitorEgressPolicy = probePolicy({
+  configuredValue: "true",
+  isAutoRegisteredGlobalProbe: true,
+  isBillingEnabled: true,
+});
+
+const CUSTOM_PROBE_WITH_PRIVATE_ACCESS: MonitorEgressPolicy = probePolicy({
+  configuredValue: "true",
+  isAutoRegisteredGlobalProbe: false,
+  isBillingEnabled: false,
+});
+
 describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
   let browser: Browser;
   let targetContext: BrowserContext;
@@ -30,6 +69,7 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
   let controllerPage: Page;
   let abortController: AbortController;
   let broker: PlaywrightCapabilityBroker;
+  let egress: SyntheticEgressProxy;
   let executionId: string;
   let pageCapability: CapabilityDescriptor;
   let requestSequence: number;
@@ -47,6 +87,8 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
     executionId = `execution-${Date.now()}-${Math.random()}`;
     requestSequence = 0;
     runtimeReadySpy = jest.fn();
+    egress = new SyntheticEgressProxy({ policy: HOSTED_GLOBAL_PROBE });
+    await egress.start();
     broker = new PlaywrightCapabilityBroker({
       executionId,
       page: targetPage,
@@ -54,12 +96,14 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
       controllerPage,
       signal: abortController.signal,
       onRuntimeReady: runtimeReadySpy,
+      egress,
     });
     pageCapability = broker.getBootstrapCapabilities().page;
   });
 
   afterEach(async () => {
     abortController.abort();
+    await egress.close();
     await targetContext.close();
   });
 
@@ -433,9 +477,9 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
    * close the extra pages as excess.
    */
   function createBroker(
-    options: ConstructorParameters<typeof PlaywrightCapabilityBroker>[0],
+    options: Omit<BrokerOptions, "egress">,
   ): PlaywrightCapabilityBroker {
-    return new PlaywrightCapabilityBroker(options);
+    return new PlaywrightCapabilityBroker({ ...options, egress });
   }
 
   async function openPages(
@@ -700,11 +744,433 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
   });
 
   /*
-   * A synthetic script's axios bridge goes through the outbound proxy the
-   * probe's environment names, signed in with the proxy's real user name and
-   * password: axios, left to read the proxy itself, sent them
-   * percent-encoded, so a proxy whose password holds an @, a : or a %
-   * refused every request with 407 (#10442).
+   * GHSA-9rx7-vwfj-whp7: the script's axios bridge sent requests from the
+   * probe wherever the script said - the cloud metadata endpoint, loopback,
+   * the network the probe runs in - and handed back the response. It now
+   * sends them through the check's egress proxy, which holds them to the
+   * probe's egress policy hop by hop, as the browser's requests are held.
+   */
+  describe("the axios bridge's egress", () => {
+    let loopbackServer: http.Server;
+    let loopbackPort: number;
+    let loopbackHits: Array<string>;
+    let siteServer: http.Server;
+    let sitePort: number;
+    let fakeInternet: FakeInternet;
+    const ownEgresses: Array<SyntheticEgressProxy> = [];
+
+    async function listen(
+      handler: (request: IncomingMessage, response: ServerResponse) => void,
+    ): Promise<{ server: http.Server; port: number }> {
+      const server: http.Server = http.createServer(handler);
+      await new Promise<void>((resolve: () => void): void => {
+        server.listen(0, "127.0.0.1", resolve);
+      });
+      return { server, port: (server.address() as AddressInfo).port };
+    }
+
+    async function close(server: http.Server): Promise<void> {
+      server.closeAllConnections();
+      await new Promise<void>((resolve: () => void): void => {
+        server.close((): void => {
+          resolve();
+        });
+      });
+    }
+
+    beforeEach(async () => {
+      loopbackHits = [];
+      const loopback: { server: http.Server; port: number } = await listen(
+        (request: IncomingMessage, response: ServerResponse): void => {
+          loopbackHits.push(request.url || "");
+          response.writeHead(200, { "Content-Type": "application/json" });
+          response.end(JSON.stringify({ secret: "loopback-sentinel" }));
+        },
+      );
+      loopbackServer = loopback.server;
+      loopbackPort = loopback.port;
+
+      const site: { server: http.Server; port: number } = await listen(
+        (request: IncomingMessage, response: ServerResponse): void => {
+          if (request.url === "/redirect-to-loopback") {
+            response.writeHead(302, {
+              Location: `http://127.0.0.1:${loopbackPort}/secret`,
+            });
+            response.end();
+            return;
+          }
+          if (request.url === "/missing") {
+            response.writeHead(404, {
+              "Content-Type": "application/json",
+              "X-Site": "public",
+            });
+            response.end(JSON.stringify({ error: "not here" }));
+            return;
+          }
+          response.writeHead(200, {
+            "Content-Type": "application/json",
+            "X-Site": "public",
+          });
+          response.end(
+            JSON.stringify({
+              path: request.url,
+              host: request.headers.host,
+              header: request.headers["x-script"],
+            }),
+          );
+        },
+      );
+      siteServer = site.server;
+      sitePort = site.port;
+
+      fakeInternet = new FakeInternet();
+      await fakeInternet.start();
+      fakeInternet.route("93.184.215.14", 80, sitePort);
+      fakeInternet.route("10.23.45.67", 80, sitePort);
+    });
+
+    afterEach(async () => {
+      jest.restoreAllMocks();
+      while (ownEgresses.length > 0) {
+        await ownEgresses.pop()!.close();
+      }
+      await fakeInternet.stop();
+      await close(siteServer);
+      await close(loopbackServer);
+    });
+
+    // A broker whose check's egress goes out through the fake internet.
+    async function brokerBehindFakeInternet(
+      policy: MonitorEgressPolicy,
+    ): Promise<PlaywrightCapabilityBroker> {
+      const checkEgress: SyntheticEgressProxy = new SyntheticEgressProxy({
+        policy,
+        upstreamProxy: { server: fakeInternet.url() },
+      });
+      await checkEgress.start();
+      ownEgresses.push(checkEgress);
+
+      return new PlaywrightCapabilityBroker({
+        executionId,
+        page: targetPage,
+        browserContext: targetContext,
+        controllerPage,
+        signal: abortController.signal,
+        onRuntimeReady: jest.fn(),
+        egress: checkEgress,
+      });
+    }
+
+    async function axiosRequest(
+      target: PlaywrightCapabilityBroker,
+      call: Record<string, unknown>,
+    ): Promise<PlaywrightRpcResponse> {
+      return await target.dispatch(
+        request(
+          "axiosRequest",
+          [call],
+          target.getBootstrapCapabilities().runtime,
+        ),
+      );
+    }
+
+    test.each([
+      {
+        label: "a loopback address",
+        url: (): string => {
+          return `http://127.0.0.1:${loopbackPort}/secret`;
+        },
+        error:
+          "Monitor target host 127.0.0.1 is not allowed: loopback address.",
+      },
+      {
+        label: "localhost",
+        url: (): string => {
+          return `http://localhost:${loopbackPort}/secret`;
+        },
+        error: "Monitor target host localhost could not be reached.",
+      },
+      {
+        label: "the cloud metadata endpoint",
+        url: (): string => {
+          return "http://169.254.169.254/latest/meta-data/iam/security-credentials/";
+        },
+        error:
+          "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
+      },
+      {
+        label: "the cloud metadata endpoint over https",
+        url: (): string => {
+          return "https://169.254.169.254/latest/api/token";
+        },
+        error:
+          "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
+      },
+      {
+        label: "an IPv4-mapped loopback address",
+        url: (): string => {
+          return `http://[::ffff:127.0.0.1]:${loopbackPort}/secret`;
+        },
+        error:
+          "Monitor target host ::ffff:7f00:1 is not allowed: loopback address.",
+      },
+    ])(
+      "refuses $label as an error of the script's, never reaching it",
+      async ({ url, error }: { url: () => string; error: string }) => {
+        const response: PlaywrightRpcResponse = await axiosRequest(broker, {
+          method: "put",
+          url: url(),
+          data: { token: "x" },
+          config: { headers: { "X-aws-ec2-metadata-token-ttl-seconds": "60" } },
+        });
+
+        expect(response.ok).toBe(false);
+        expect(response.error).toBe(error);
+        expect(JSON.stringify(response)).not.toContain("loopback-sentinel");
+        expect(loopbackHits).toEqual([]);
+      },
+    );
+
+    test("refuses a redirect from a public site to loopback, with the refusal as the error", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "http://93.184.215.14/redirect-to-loopback",
+      });
+
+      expect(response.ok).toBe(false);
+      expect(response.error).toBe(
+        "Monitor target host 127.0.0.1 is not allowed: loopback address.",
+      );
+      expect(loopbackHits).toEqual([]);
+    });
+
+    test("refuses a private address on a global probe of a hosted instance, and points at a private probe", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "http://10.23.45.67/health",
+      });
+
+      expect(response.ok).toBe(false);
+      expect(response.error).toBe(
+        "Monitor target host 10.23.45.67 is not allowed: private network address. Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.",
+      );
+      expect(fakeInternet.isUntouched).toBe(true);
+    });
+
+    test("refuses an internal name on a global probe without saying what it resolves to", async () => {
+      jest
+        .spyOn(dns.promises, "lookup")
+        .mockResolvedValue([{ address: "10.96.0.1", family: 4 }] as never);
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "https://kubernetes.default.svc/api",
+      });
+
+      expect(response.ok).toBe(false);
+      expect(response.error).toBe(
+        "Monitor target host kubernetes.default.svc could not be reached.",
+      );
+      expect(response.error).not.toContain("10.96");
+      expect(fakeInternet.isUntouched).toBe(true);
+    });
+
+    test("reaches a private address on a custom probe whose operator allowed it, as before", async () => {
+      const privateBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(CUSTOM_PROBE_WITH_PRIVATE_ACCESS);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(
+        privateBroker,
+        { method: "get", url: "http://10.23.45.67/health" },
+      );
+
+      expect(response.ok).toBe(true);
+      expect(response.value).toMatchObject({
+        status: 200,
+        data: { path: "/health", host: "10.23.45.67" },
+      });
+      expect(
+        fakeInternet.requests.map((seen: FakeInternetRequest) => {
+          return seen.url;
+        }),
+      ).toEqual(["http://10.23.45.67:80/health"]);
+    });
+
+    test("still refuses loopback and the metadata endpoint on a probe that allows private addresses", async () => {
+      const privateBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(CUSTOM_PROBE_WITH_PRIVATE_ACCESS);
+
+      const loopback: PlaywrightRpcResponse = await axiosRequest(
+        privateBroker,
+        { method: "get", url: `http://127.0.0.1:${loopbackPort}/secret` },
+      );
+      const metadata: PlaywrightRpcResponse = await axiosRequest(
+        privateBroker,
+        { method: "get", url: "http://169.254.169.254/" },
+      );
+
+      expect(loopback.ok).toBe(false);
+      expect(metadata.ok).toBe(false);
+      expect(loopbackHits).toEqual([]);
+      expect(fakeInternet.isUntouched).toBe(true);
+    });
+
+    test("returns a public site's status, headers and body to the script, as before", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "http://93.184.215.14/status",
+        config: { headers: { "X-Script": "sent" } },
+      });
+
+      expect(response.ok).toBe(true);
+      expect(response.value).toMatchObject({
+        status: 200,
+        headers: { "x-site": "public" },
+        data: { path: "/status", host: "93.184.215.14", header: "sent" },
+      });
+    });
+
+    test("keeps the script's own Proxy- headers from the egress proxy, the outbound proxy and the site", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "http://93.184.215.14/status",
+        config: {
+          headers: {
+            "X-Script": "sent",
+            "Proxy-Authorization": "Basic c2NyaXB0OnNlY3JldA==",
+            "proxy-connection": "keep-alive",
+          },
+        },
+      });
+
+      expect(response.ok).toBe(true);
+      expect(response.value).toMatchObject({
+        status: 200,
+        data: { header: "sent" },
+      });
+      expect(fakeInternet.requests).toEqual([
+        expect.objectContaining({
+          url: "http://93.184.215.14:80/status",
+          credentials: "",
+        }),
+      ]);
+    });
+
+    test("returns a public site's error status as the axios error the script expects, as before", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "http://93.184.215.14/missing",
+      });
+
+      expect(response.ok).toBe(true);
+      expect(response.value).toMatchObject({
+        __oneuptimeAxiosError: true,
+        status: 404,
+        headers: { "x-site": "public" },
+        data: { error: "not here" },
+      });
+    });
+
+    test("reports a public host the outbound proxy cannot reach as unreachable", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      // The fake internet refuses the tunnel: it has no such host.
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "https://93.184.215.99/",
+      });
+
+      expect(response.ok).toBe(false);
+      expect(response.error).toBe(
+        "Monitor target host 93.184.215.99 could not be reached.",
+      );
+      expect(fakeInternet.connects).toEqual(["93.184.215.99:443"]);
+    });
+
+    test("hands back the outbound proxy's own answer for a plain-http host it cannot reach, as before", async () => {
+      const publicBroker: PlaywrightCapabilityBroker =
+        await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+      const response: PlaywrightRpcResponse = await axiosRequest(publicBroker, {
+        method: "get",
+        url: "http://93.184.215.99/",
+        config: { responseType: "text" },
+      });
+
+      expect(response.ok).toBe(true);
+      expect(response.value).toMatchObject({
+        __oneuptimeAxiosError: true,
+        status: 502,
+        data: "no such host on the fake internet",
+      });
+    });
+
+    test("never takes a proxy from the environment around the egress proxy", async () => {
+      const decoy: { server: http.Server; port: number } = await listen(
+        (_request: IncomingMessage, response: ServerResponse): void => {
+          response.end("decoy proxy");
+        },
+      );
+      const saved: Record<string, string | undefined> = {
+        HTTP_PROXY: process.env["HTTP_PROXY"],
+        http_proxy: process.env["http_proxy"],
+      };
+      process.env["HTTP_PROXY"] = `http://127.0.0.1:${decoy.port}`;
+      process.env["http_proxy"] = `http://127.0.0.1:${decoy.port}`;
+      let decoyHits: number = 0;
+      decoy.server.on("request", (): void => {
+        decoyHits++;
+      });
+
+      try {
+        const publicBroker: PlaywrightCapabilityBroker =
+          await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+        const response: PlaywrightRpcResponse = await axiosRequest(
+          publicBroker,
+          { method: "get", url: `http://127.0.0.1:${loopbackPort}/secret` },
+        );
+
+        expect(response.ok).toBe(false);
+        expect(decoyHits).toBe(0);
+        expect(loopbackHits).toEqual([]);
+      } finally {
+        for (const [name, value] of Object.entries(saved)) {
+          if (value === undefined) {
+            delete process.env[name];
+          } else {
+            process.env[name] = value;
+          }
+        }
+        await close(decoy.server);
+      }
+    });
+  });
+
+  /*
+   * Behind the operator's outbound proxy, the axios bridge is signed in with
+   * the proxy's real user name and password: axios, left to read the proxy
+   * itself, sent them percent-encoded, so a proxy whose password holds an @,
+   * a : or a % refused every request with 407 (#10442). The proxy is the
+   * check's (config.proxy, as the browser's always was), and it is asked for
+   * the address the egress guard approved, never the name.
    */
   describe("the axios bridge, behind an outbound proxy", () => {
     clearOutboundProxyEnvironmentForEachTest();
@@ -714,57 +1180,115 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
       port?: number | undefined;
       name?: string | undefined;
     }) => Promise<LocalHttpServer> = useLocalHttpServers();
+    const ownEgresses: Array<SyntheticEgressProxy> = [];
 
-    afterEach(() => {
-      OutboundProxyAgents.destroySharedAgents();
+    afterEach(async () => {
+      jest.restoreAllMocks();
+      while (ownEgresses.length > 0) {
+        await ownEgresses.pop()!.close();
+      }
     });
 
-    test("over http, the proxy is sent the request, signed in with its real user name and password", async () => {
-      const proxy: LocalHttpServer = await serve({ name: "proxy" });
-      process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
+    async function brokerBehind(
+      proxy: LocalHttpServer,
+    ): Promise<PlaywrightCapabilityBroker> {
+      jest.spyOn(dns.promises, "lookup").mockImplementation((async (
+        hostname: string,
+      ) => {
+        if (hostname === "service.example.test") {
+          return [{ address: "93.184.215.14", family: 4 }];
+        }
+        // The proxy's own name is the operator's, looked up as usual.
+        return [{ address: "127.0.0.1", family: 4 }];
+      }) as never);
+      const server: string = proxyUrlWithCredentials(
         proxy.port,
         RESERVED_CHARACTER_CREDENTIALS,
       );
+      const parsed: URL = new URL(server);
+      const checkEgress: SyntheticEgressProxy = new SyntheticEgressProxy({
+        policy: HOSTED_GLOBAL_PROBE,
+        upstreamProxy: {
+          server,
+          username: parsed.username,
+          password: parsed.password,
+        },
+      });
+      await checkEgress.start();
+      ownEgresses.push(checkEgress);
 
-      const response: PlaywrightRpcResponse = await broker.dispatch(
+      return new PlaywrightCapabilityBroker({
+        executionId,
+        page: targetPage,
+        browserContext: targetContext,
+        controllerPage,
+        signal: abortController.signal,
+        onRuntimeReady: jest.fn(),
+        egress: checkEgress,
+      });
+    }
+
+    test("over http, the proxy is sent the request for the approved address, signed in with its real user name and password", async () => {
+      const proxy: LocalHttpServer = await serve({ name: "proxy" });
+      const proxied: PlaywrightCapabilityBroker = await brokerBehind(proxy);
+
+      const response: PlaywrightRpcResponse = await proxied.dispatch(
         request(
           "axiosRequest",
           [{ method: "get", url: "http://service.example.test/health" }],
-          broker.getBootstrapCapabilities().runtime,
+          proxied.getBootstrapCapabilities().runtime,
         ),
       );
 
       expect(response.ok).toBe(true);
       expect(
-        proxy.requests.map((seen: { url: string }) => {
-          return seen.url;
+        proxy.requests.map((seen: { url: string; host: string }) => {
+          return { url: seen.url, host: seen.host };
         }),
-      ).toEqual(["http://service.example.test/health"]);
+      ).toEqual([
+        {
+          url: "http://93.184.215.14:80/health",
+          host: "service.example.test",
+        },
+      ]);
       expect(proxy.requestCredentials).toEqual([
         signedInAs(RESERVED_CHARACTER_CREDENTIALS),
       ]);
     });
 
-    test("over https, the CONNECT is signed in with its real user name and password", async () => {
+    test("over https, the CONNECT names the approved address and is signed in with its real user name and password", async () => {
       const proxy: LocalHttpServer = await serve({ name: "proxy" });
-      process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
-        proxy.port,
-        RESERVED_CHARACTER_CREDENTIALS,
-      );
+      const proxied: PlaywrightCapabilityBroker = await brokerBehind(proxy);
 
       // The proxy refuses every tunnel here: who signed in is the point.
-      await broker.dispatch(
+      await proxied.dispatch(
         request(
           "axiosRequest",
           [{ method: "get", url: "https://service.example.test/health" }],
-          broker.getBootstrapCapabilities().runtime,
+          proxied.getBootstrapCapabilities().runtime,
         ),
       );
 
-      expect(proxy.connects).toEqual(["service.example.test:443"]);
+      expect(proxy.connects).toEqual(["93.184.215.14:443"]);
       expect(proxy.connectCredentials).toEqual([
         signedInAs(RESERVED_CHARACTER_CREDENTIALS),
       ]);
+    });
+
+    test("never asks the proxy for a refused target", async () => {
+      const proxy: LocalHttpServer = await serve({ name: "proxy" });
+      const proxied: PlaywrightCapabilityBroker = await brokerBehind(proxy);
+
+      const response: PlaywrightRpcResponse = await proxied.dispatch(
+        request(
+          "axiosRequest",
+          [{ method: "get", url: "http://169.254.169.254/latest/meta-data/" }],
+          proxied.getBootstrapCapabilities().runtime,
+        ),
+      );
+
+      expect(response.ok).toBe(false);
+      expect(proxy.isUntouched).toBe(true);
     });
   });
 });

@@ -40,7 +40,9 @@ import {
 } from "./RpcProtocol";
 import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
 import { getTimedOutPageScreenshotName } from "Common/Utils/Monitor/SyntheticTimedOutPageScreenshot";
-import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import SyntheticEgressProxy, {
+  SyntheticEgressRequestAgents,
+} from "./SyntheticEgressProxy";
 
 type HostObject = Record<string, unknown>;
 
@@ -71,6 +73,12 @@ interface BrokerOptions {
   signal: AbortSignal;
   onRuntimeReady: () => void;
   /*
+   * The check's egress proxy, started: every request of the script's axios
+   * (and its http and https facades) goes through it, held to the probe's
+   * egress policy, as the browser's requests are (GHSA-9rx7-vwfj-whp7).
+   */
+  egress: SyntheticEgressProxy;
+  /*
    * Where oneuptime.getTotpCode's codes come from (issue #9703): the run's
    * one-time code secrets, held on this side. The sandbox only ever gets a
    * code. Absent, the run has none, and asking for one says so.
@@ -83,6 +91,8 @@ const MAX_VIEWPORT_DIMENSION: number = 4_096;
 const MAX_VIEWPORT_PIXELS: number = 16_000_000;
 const HTTP_URL_PATTERN: RegExp = /^https?:\/\//i;
 const REGEXP_FLAGS_PATTERN: RegExp = /^[dgimsuvy]*$/;
+// Proxy-Authorization, Proxy-Connection: the egress proxy's headers, never a script's.
+const PROXY_HEADER_PATTERN: RegExp = /^proxy-/i;
 
 const LOCATOR_CHAIN_METHODS: ReadonlySet<string> = new Set([
   "and",
@@ -402,6 +412,7 @@ export default class PlaywrightCapabilityBroker {
   private readonly internalPages: ReadonlySet<Page>;
   private readonly signal: AbortSignal;
   private readonly onRuntimeReady: () => void;
+  private readonly egress: SyntheticEgressProxy;
   private readonly capabilities: Map<string, CapabilityRecord> = new Map();
   private readonly capabilityIds: WeakMap<HostObject, string> = new WeakMap();
   private readonly screenshotsById: Map<string, Buffer> = new Map();
@@ -427,6 +438,7 @@ export default class PlaywrightCapabilityBroker {
     this.internalPages = options.internalPages ?? new Set<Page>();
     this.signal = options.signal;
     this.onRuntimeReady = options.onRuntimeReady;
+    this.egress = options.egress;
     this.totpCodes = options.totpCodes ?? new TotpCodeIssuer({ secrets: {} });
 
     this.runtimeCapability = this.registerCapability(
@@ -1284,9 +1296,20 @@ export default class PlaywrightCapabilityBroker {
       config.data = bridgeRequest.data;
     }
     if (isRecord(requestedConfig["headers"])) {
-      config.headers = requestedConfig["headers"] as NonNullable<
-        AxiosRequestConfig["headers"]
+      /*
+       * A proxy's own headers are the egress proxy's to send: one from the
+       * script would only be read as the request's own sign-in there.
+       */
+      const headers: Record<string, unknown> = Object.create(null) as Record<
+        string,
+        unknown
       >;
+      for (const [name, value] of Object.entries(requestedConfig["headers"])) {
+        if (!PROXY_HEADER_PATTERN.test(name)) {
+          headers[name] = value;
+        }
+      }
+      config.headers = headers as NonNullable<AxiosRequestConfig["headers"]>;
     }
     if (isRecord(requestedConfig["params"])) {
       config.params = requestedConfig["params"];
@@ -1302,34 +1325,64 @@ export default class PlaywrightCapabilityBroker {
       };
     }
 
+    /*
+     * Through the check's egress proxy, never directly (GHSA-9rx7-vwfj-whp7):
+     * it asks the egress guard about the host of this request and of every
+     * redirect axios follows, connects only to an address it approved, and
+     * goes through the operator's outbound proxy itself, with the proxy's
+     * real user name and password (#10442). axios's own proxy is off, so the
+     * environment's proxy settings cannot route around it.
+     */
+    const agents: SyntheticEgressRequestAgents =
+      this.egress.createRequestAgents();
+    config.proxy = false;
+    config.httpAgent = agents.httpAgent;
+    config.httpsAgent = agents.httpsAgent;
+
     try {
-      /*
-       * Through the outbound proxy the probe's environment names, or
-       * directly, as every request of the probe goes (OutboundProxyAgents):
-       * never through a proxy axios reads itself, which sent the proxy's
-       * password percent-encoded (#10442).
-       */
-      const response: AxiosResponse = await axios.request(
-        OutboundProxyAgents.routeAxiosRequest(config),
-      );
+      let response: AxiosResponse;
+
+      try {
+        response = await axios.request(config);
+      } catch (error: unknown) {
+        /*
+         * A refusal, or a host the egress proxy could not reach, is the
+         * script's error - as a refused or unreachable host always was -
+         * never the proxy's own answer dressed up as the target's.
+         */
+        this.throwEgressFailure(agents);
+
+        if (axios.isAxiosError(error) && error.response) {
+          return {
+            __oneuptimeAxiosError: true,
+            data: error.response.data,
+            headers: this.copyHeaders(error.response.headers),
+            message: error.message,
+            status: error.response.status,
+            statusText: error.response.statusText,
+          };
+        }
+        throw error;
+      }
+
+      this.throwEgressFailure(agents);
+
       return {
         data: response.data,
         headers: this.copyHeaders(response.headers),
         status: response.status,
         statusText: response.statusText,
       };
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error) && error.response) {
-        return {
-          __oneuptimeAxiosError: true,
-          data: error.response.data,
-          headers: this.copyHeaders(error.response.headers),
-          message: error.message,
-          status: error.response.status,
-          statusText: error.response.statusText,
-        };
-      }
-      throw error;
+    } finally {
+      agents.release();
+    }
+  }
+
+  private throwEgressFailure(agents: SyntheticEgressRequestAgents): void {
+    const failure: string | undefined = agents.takeFailure();
+
+    if (failure) {
+      throw new Error(failure);
     }
   }
 

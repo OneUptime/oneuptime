@@ -19,8 +19,24 @@ import ProcessTreeMemory, {
   ProportionalMemoryReading,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 import { SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS } from "../../../../Utils/Monitors/SyntheticRuntime/Limits";
+import FakeInternet from "./Fixtures/FakeInternet";
+import {
+  TEST_SECURE_HOST,
+  TEST_SECURE_HOST_ADDRESS,
+} from "./Fixtures/SyntheticMonitorWorkerWithTestDns";
 
 jest.setTimeout(1_500_000);
+
+/*
+ * A check's browser reaches the internet only through its egress proxy,
+ * which refuses loopback on every probe (GHSA-9rx7-vwfj-whp7). So the test
+ * pages here are served the way an operator's network serves them: by an
+ * outbound proxy (FakeInternet, the checks' config.proxy) that answers for
+ * public addresses from the test's local server.
+ */
+const PUBLIC_TARGET_ADDRESS: string = TEST_SECURE_HOST_ADDRESS;
+const CROSS_SITE_TARGET_ADDRESS: string = "93.184.215.34";
+let testOutboundProxy: string | undefined;
 
 const MEGABYTE: number = 1024 * 1024;
 /*
@@ -58,6 +74,10 @@ interface StorageContainmentCase {
 describe("SyntheticMonitorWorker full process boundary", () => {
   let targetServer: Server;
   let targetUrl: string;
+  // The same page on a *.localhost origin, a secure context (see the fixture).
+  let secureTargetUrl: string;
+  let crossSiteUrl: string;
+  let fakeInternet: FakeInternet;
 
   beforeAll(async () => {
     targetServer = http.createServer(
@@ -74,10 +94,23 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     if (!address || typeof address === "string") {
       throw new Error("Expected a TCP test server address.");
     }
-    targetUrl = `http://127.0.0.1:${address.port}/`;
+    fakeInternet = new FakeInternet();
+    await fakeInternet.start();
+    for (const targetAddress of [
+      PUBLIC_TARGET_ADDRESS,
+      CROSS_SITE_TARGET_ADDRESS,
+    ]) {
+      fakeInternet.route(targetAddress, address.port, address.port);
+    }
+    testOutboundProxy = fakeInternet.url();
+    targetUrl = `http://${PUBLIC_TARGET_ADDRESS}:${address.port}/`;
+    secureTargetUrl = `http://${TEST_SECURE_HOST}:${address.port}/`;
+    crossSiteUrl = `http://${CROSS_SITE_TARGET_ADDRESS}:${address.port}/`;
   });
 
   afterAll(async () => {
+    testOutboundProxy = undefined;
+    await fakeInternet.stop();
     await closeServer(targetServer);
   });
 
@@ -550,8 +583,9 @@ describe("SyntheticMonitorWorker full process boundary", () => {
         code: "return { data: true };",
         timeoutInMs: 120_000,
       });
+      // A secure-context origin, as the page's storage API needs one.
       const healthyCode: string = `
-        await page.goto(${JSON.stringify(targetUrl)});
+        await page.goto(${JSON.stringify(secureTargetUrl)});
         const pageOpfsAvailable = await page.evaluate(() =>
           typeof navigator.storage?.getDirectory === "function"
         );
@@ -566,7 +600,10 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       let maxProcessTreeRssBytes: number = MAX_PROCESS_TREE_RSS_BYTES;
       if (stoppedBy === "memory") {
         const idleBytes: number = await measureCheckPeakBytes(
-          createWorkerRunner({ maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE }),
+          createWorkerRunner(
+            { maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE },
+            "testDns",
+          ),
           { ...baseConfig, code: healthyCode, timeoutInMs: 60_000 },
         );
         expect(idleBytes).toBeGreaterThan(0);
@@ -580,12 +617,15 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       const runDirectories: string[] = [];
       const mkdtempSpy: jest.SpyInstance = jest.spyOn(fs.promises, "mkdtemp");
       const rmSpy: jest.SpyInstance = jest.spyOn(fs.promises, "rm");
-      const runner: ProcessRunner = createWorkerRunner({
-        maxProcessTreeRssBytes,
-        rssPollIntervalInMs: 100,
-        maxDiskBytes: MAX_DISK_BYTES,
-        diskPollIntervalInMs: 50,
-      });
+      const runner: ProcessRunner = createWorkerRunner(
+        {
+          maxProcessTreeRssBytes,
+          rssPollIntervalInMs: 100,
+          maxDiskBytes: MAX_DISK_BYTES,
+          diskPollIntervalInMs: 50,
+        },
+        "testDns",
+      );
       /*
        * `written` counts the chunks stored and `stoppedBy` is the storage
        * error that ended the writes early, if any.
@@ -626,7 +666,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
         {
           label: "page.evaluate OPFS",
           code: `
-            await page.goto(${JSON.stringify(targetUrl)});
+            await page.goto(${JSON.stringify(secureTargetUrl)});
             const { written, stoppedBy } = await page.evaluate(async () => {
               const root = await navigator.storage.getDirectory();
               const chunk = new Uint8Array(${OPFS_CHUNK_BYTES}).fill(0x5a);
@@ -745,11 +785,7 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     : test.skip)(
     "holds a Desktop Chromium check to its PSS, not to its processes' summed RSS",
     async () => {
-      const address: ReturnType<Server["address"]> = targetServer.address();
-      if (!address || typeof address === "string") {
-        throw new Error("Expected a TCP test server address.");
-      }
-      const crossSiteUrl: string = `http://localhost:${address.port}/`;
+      // Another public address than the page's: a site of its own.
       const code: string = `
         const addCrossSiteFrame = async (target) => {
           await target.evaluate((frameUrl) => {
@@ -919,6 +955,191 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     },
     600_000,
   );
+
+  /*
+   * GHSA-9rx7-vwfj-whp7, end to end through the production worker: a
+   * script's axios and its browser read loopback, the cloud metadata endpoint
+   * and the probe's own network. Every request now goes through the check's
+   * egress proxy, held to the policy the supervisor hands the worker.
+   */
+  describe.each([
+    {
+      browserType: BrowserType.Chromium,
+      executablePath: (): string => {
+        return chromium.executablePath();
+      },
+    },
+    {
+      browserType: BrowserType.Firefox,
+      executablePath: (): string => {
+        return firefox.executablePath();
+      },
+    },
+  ])(
+    "a $browserType check's every request, held to the probe's egress policy",
+    (data: { browserType: BrowserType; executablePath: () => string }) => {
+      let loopbackServer: Server;
+      let loopbackUrl: string;
+      let loopbackConnections: number = 0;
+
+      beforeAll(async () => {
+        loopbackServer = http.createServer(
+          (_request: IncomingMessage, response: ServerResponse): void => {
+            response.writeHead(200, { "Content-Type": "text/plain" });
+            response.end("loopback-sentinel");
+          },
+        );
+        loopbackServer.on("connection", (): void => {
+          loopbackConnections++;
+        });
+        await listen(loopbackServer);
+        const address: ReturnType<Server["address"]> = loopbackServer.address();
+        if (!address || typeof address === "string") {
+          throw new Error("Expected a TCP test server address.");
+        }
+        loopbackUrl = `http://127.0.0.1:${address.port}`;
+        const target: URL = new URL(targetUrl);
+        fakeInternet.route(
+          "10.23.45.67",
+          Number(target.port),
+          Number(target.port),
+        );
+      });
+
+      afterAll(async () => {
+        await closeServer(loopbackServer);
+      });
+
+      const attempts: string = `
+        const out = {};
+        const attempt = async (name, operation) => {
+          try { out[name] = await operation(); }
+          catch (error) { out[name] = "refused: " + error.message; }
+        };
+      `;
+
+      test("refuses loopback, metadata and private targets on a public-only probe, and still checks a public site", async () => {
+        const before: number = loopbackConnections;
+        const runner: ProcessRunner = createWorkerRunner({
+          maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE,
+        });
+
+        const output: ProcessRunResult<SyntheticMonitorWorkerResult> =
+          await runner.run<
+            SyntheticMonitorWorkerConfig,
+            SyntheticMonitorWorkerResult
+          >({
+            payload: {
+              ...createWorkerConfig({
+                browserType: data.browserType,
+                executablePath: data.executablePath(),
+                code: `
+                  ${attempts}
+                  await attempt("axiosLoopback", async () =>
+                    (await axios.get(${JSON.stringify(loopbackUrl)} + "/secret")).data);
+                  await attempt("axiosMetadata", async () =>
+                    (await axios.get("http://169.254.169.254/latest/meta-data/")).data);
+                  await attempt("axiosPrivate", async () =>
+                    (await axios.get("http://10.23.45.67:" + ${JSON.stringify(new URL(targetUrl).port)} + "/")).data);
+                  out.gotoLoopback = (await page.goto(${JSON.stringify(loopbackUrl)} + "/secret")).status();
+                  out.gotoPublic = (await page.goto(${JSON.stringify(targetUrl)})).status();
+                  out.title = await page.title();
+                  out.fetchLoopback = await page.evaluate(async (url) => {
+                    try { return (await fetch(url)).status; } catch (error) { return "failed"; }
+                  }, ${JSON.stringify(loopbackUrl)} + "/fetch");
+                  return { data: out };
+                `,
+                timeoutInMs: 60_000,
+              }),
+              // What a global probe of a BILLING_ENABLED instance hands over.
+              egressPolicy: {
+                allowPrivateNetworkAddresses: false,
+                privateNetworkHint:
+                  " Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.",
+              },
+            },
+            timeoutInMs: 180_000,
+            validateResult: isSyntheticMonitorWorkerResult,
+          });
+
+        expect(output.result.scriptError).toBeUndefined();
+        expect(output.result.returnValue).toEqual({
+          data: {
+            axiosLoopback:
+              "refused: Monitor target host 127.0.0.1 is not allowed: loopback address.",
+            axiosMetadata:
+              "refused: Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
+            axiosPrivate:
+              "refused: Monitor target host 10.23.45.67 is not allowed: private network address. Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.",
+            gotoLoopback: 403,
+            gotoPublic: 200,
+            title: "Synthetic target",
+            fetchLoopback: "failed",
+          },
+        });
+        expect(JSON.stringify(output.result)).not.toContain(
+          "loopback-sentinel",
+        );
+        expect(loopbackConnections).toBe(before);
+        expect(output.result.logMessages).toContain(
+          `The probe did not send the browser's request to ${new URL(loopbackUrl).host}: Monitor target host 127.0.0.1 is not allowed: loopback address.`,
+        );
+      });
+
+      test("reaches a private target on a probe whose operator allowed it, and never loopback", async () => {
+        const before: number = loopbackConnections;
+        const runner: ProcessRunner = createWorkerRunner({
+          maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE,
+        });
+        const privateUrl: string = `http://10.23.45.67:${new URL(targetUrl).port}/`;
+
+        const output: ProcessRunResult<SyntheticMonitorWorkerResult> =
+          await runner.run<
+            SyntheticMonitorWorkerConfig,
+            SyntheticMonitorWorkerResult
+          >({
+            payload: {
+              ...createWorkerConfig({
+                browserType: data.browserType,
+                executablePath: data.executablePath(),
+                code: `
+                  ${attempts}
+                  out.gotoPrivate = (await page.goto(${JSON.stringify(privateUrl)})).status();
+                  out.title = await page.title();
+                  await attempt("axiosPrivate", async () =>
+                    (await axios.get(${JSON.stringify(privateUrl)}, { responseType: "text" })).status);
+                  await attempt("axiosLoopback", async () =>
+                    (await axios.get(${JSON.stringify(loopbackUrl)})).data);
+                  out.gotoLoopback = (await page.goto(${JSON.stringify(loopbackUrl)})).status();
+                  return { data: out };
+                `,
+                timeoutInMs: 60_000,
+              }),
+              // A custom probe whose operator set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true.
+              egressPolicy: {
+                allowPrivateNetworkAddresses: true,
+                privateNetworkHint: "",
+              },
+            },
+            timeoutInMs: 180_000,
+            validateResult: isSyntheticMonitorWorkerResult,
+          });
+
+        expect(output.result.scriptError).toBeUndefined();
+        expect(output.result.returnValue).toEqual({
+          data: {
+            gotoPrivate: 200,
+            title: "Synthetic target",
+            axiosPrivate: 200,
+            axiosLoopback:
+              "refused: Monitor target host 127.0.0.1 is not allowed: loopback address.",
+            gotoLoopback: 403,
+          },
+        });
+        expect(loopbackConnections).toBe(before);
+      });
+    },
+  );
 });
 
 /*
@@ -1051,6 +1272,12 @@ function readSandboxIdentity(workerPid: number): ProcessMemoryIdentity | null {
   return { uid, gid };
 }
 
+/*
+ * A runner of the production worker, or - for a check that needs a
+ * secure-context origin (`worker: "testDns"`) - of the production worker
+ * with one made-up *.localhost name in DNS (Fixtures/
+ * SyntheticMonitorWorkerWithTestDns).
+ */
 function createWorkerRunner(
   limits: Pick<
     ProcessRunnerOptions,
@@ -1059,13 +1286,17 @@ function createWorkerRunner(
     | "maxDiskBytes"
     | "diskPollIntervalInMs"
   > = {},
+  worker: "production" | "testDns" = "production",
 ): ProcessRunner {
   const probeDirectory: string = path.resolve(__dirname, "../../../..");
   return new ProcessRunner({
-    workerEntryPath: path.join(
-      probeDirectory,
-      "Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorker.ts",
-    ),
+    workerEntryPath:
+      worker === "testDns"
+        ? path.join(__dirname, "Fixtures/SyntheticMonitorWorkerWithTestDns.ts")
+        : path.join(
+            probeDirectory,
+            "Utils/Monitors/SyntheticRuntime/SyntheticMonitorWorker.ts",
+          ),
     concurrencyLimit: 1,
     maxPendingCount: 0,
     workingDirectory: probeDirectory,
@@ -1087,6 +1318,8 @@ function createWorkerConfig(data: {
     viewport: { width: 800, height: 600 },
     timeoutInMs: data.timeoutInMs,
     chromiumSandboxEnabled: false,
+    // The test's outbound proxy, which serves the test pages (FakeInternet).
+    ...(testOutboundProxy ? { proxy: { server: testOutboundProxy } } : {}),
     args: {},
   };
 }
