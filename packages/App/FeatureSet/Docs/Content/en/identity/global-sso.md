@@ -193,4 +193,5 @@ The whole instance requires SSO, and this was a sign-in with a password, a passk
 - [SSO](/docs/identity/sso): Set up a project's own SAML or OIDC provider.
 - [SCIM](/docs/identity/scim): Let your identity provider add and remove people automatically.
 - [Users, Teams & Permissions](/docs/permissions/index): What the teams newcomers join let them do.
+- [Help and Support](/docs/self-hosted/help-and-support): Tell people who need an invitation whom to ask.
 :::

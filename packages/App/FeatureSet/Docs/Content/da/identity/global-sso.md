@@ -193,4 +193,5 @@ Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle
 - [SSO](/docs/identity/sso): Opsæt et projekts egen SAML- eller OIDC-udbyder.
 - [SCIM](/docs/identity/scim): Lad din identitetsudbyder tilføje og fjerne personer automatisk.
 - [Brugere, teams og tilladelser](/docs/permissions/index): Hvad de teams, nye personer kommer med i, giver dem lov til.
+- [Hjælp og support](/docs/self-hosted/help-and-support): Fortæl folk, der har brug for en invitation, hvem de skal spørge.
 :::

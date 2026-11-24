@@ -18,6 +18,12 @@ import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Serve
 import { AddDataSecurityIssueAiAnalysis1809187436369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436369-AddDataSecurityIssueAiAnalysis";
 import { AddDataSecurityIssueGroups1809187470370 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470370-AddDataSecurityIssueGroups";
 import { AddScrubRuleNamedKeysAndProof1809187470400 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470400-AddScrubRuleNamedKeysAndProof";
+import { AddDataSecurityIssueResolution1809187510368 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187510368-AddDataSecurityIssueResolution";
+import { AddDataStoreFindingAiVerdicts1809187520372 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187520372-AddDataStoreFindingAiVerdicts";
+import { AddDataSecurityComplianceDrafts1809187530375 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187530375-AddDataSecurityComplianceDrafts";
+import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187540373-AddDataSecurityNamesAndAddressesModel";
+import { AddDataStoreFindingAiScrubRules1809187570752 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187570752-AddDataStoreFindingAiScrubRules";
+import { AddDataSecurityIssueCodeFixTask1809187580367 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187580367-AddDataSecurityIssueCodeFixTask";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -208,6 +214,96 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     "DataSecurityIssueFeed",
     "dataSecurityAiProposalId",
     AddScrubRuleNamedKeysAndProof1809187470400,
+  ],
+  /*
+   * How a resolved issue was resolved, and the fix followed to production
+   * (#10368, PR #10811): the issue's resolution and the change waiting for
+   * its check, and when a code fix was proven to stop a telemetry finding.
+   */
+  ...["resolution", "resolutionDetails", "pendingResolution"].map(
+    (column: string): [string, string, MigrationClass] => {
+      return [
+        "DataSecurityIssue",
+        column,
+        AddDataSecurityIssueResolution1809187510368,
+      ];
+    },
+  ),
+  ["DataStoreFinding", "fixedAt", AddDataSecurityIssueResolution1809187510368],
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person, with the
+   * team's own decisions as precedent (#10372, PR #10812).
+   */
+  ...[
+    "aiVerdict",
+    "aiVerdictAnalysis",
+    "aiVerdictAt",
+    "aiVerdictInputHash",
+    "isConfirmedByAi",
+    "decidedAt",
+  ].map((column: string): [string, string, MigrationClass] => {
+    return [
+      "DataStoreFinding",
+      column,
+      AddDataStoreFindingAiVerdicts1809187520372,
+    ];
+  }),
+  /*
+   * The compliance paperwork (#10375, PR #10805): the rest of a store's
+   * record of processing, OneUptime AI's drafts of it, and its impact
+   * assessment; and the project's audit evidence.
+   */
+  ...["legalBasis", "dataSubjects", "recordDrafts", "impactAssessment"].map(
+    (column: string): [string, string, MigrationClass] => {
+      return [
+        "DataStore",
+        column,
+        AddDataSecurityComplianceDrafts1809187530375,
+      ];
+    },
+  ),
+  [
+    "DataSecuritySetting",
+    "auditEvidence",
+    AddDataSecurityComplianceDrafts1809187530375,
+  ],
+  /*
+   * The names-and-addresses model (#10373, PR #10869): a finding it made,
+   * and whether it reads stores' content and the hourly telemetry scan.
+   */
+  [
+    "DataStoreFinding",
+    "isFoundByModel",
+    AddDataSecurityNamesAndAddressesModel1809187540373,
+  ],
+  [
+    "DataSecuritySetting",
+    "isModelScanEnabled",
+    AddDataSecurityNamesAndAddressesModel1809187540373,
+  ],
+  [
+    "DataSecuritySetting",
+    "isTelemetryModelScanEnabled",
+    AddDataSecurityNamesAndAddressesModel1809187540373,
+  ],
+  /*
+   * The scrub rule OneUptime AI wrote once for a finding's place, and what
+   * it was told then (#10752, PR #10870).
+   */
+  ...["aiScrubRuleInputHash", "aiScrubRules"].map(
+    (column: string): [string, string, MigrationClass] => {
+      return [
+        "DataStoreFinding",
+        column,
+        AddDataStoreFindingAiScrubRules1809187570752,
+      ];
+    },
+  ),
+  // The Code task whose pull request fixes the issue in code (#10367, PR #10874).
+  [
+    "DataSecurityIssue",
+    "codeFixTaskId",
+    AddDataSecurityIssueCodeFixTask1809187580367,
   ],
 ];
 

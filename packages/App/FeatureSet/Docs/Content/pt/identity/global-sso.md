@@ -193,4 +193,5 @@ A instância inteira exige SSO, e este foi um login com senha, chave de acesso, 
 - [SSO](/docs/identity/sso): Configurar o provedor SAML ou OIDC próprio de um projeto.
 - [SCIM](/docs/identity/scim): Deixe seu provedor de identidade adicionar e remover pessoas automaticamente.
 - [Usuários, equipes e permissões](/docs/permissions/index): O que as equipes em que os recém-chegados entram permitem que eles façam.
+- [Ajuda e suporte](/docs/self-hosted/help-and-support): Dizer a quem precisa de um convite a quem pedi-lo.
 :::
