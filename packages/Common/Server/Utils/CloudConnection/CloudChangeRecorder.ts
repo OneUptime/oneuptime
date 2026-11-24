@@ -146,6 +146,36 @@ function clamp(text: string, maxLength: number): string {
     : `${trimmed.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
+// The resources a change event keeps the ids of at most, and their length.
+export const CLOUD_CHANGE_RESOURCE_IDS_KEPT: number = 20;
+const CLOUD_CHANGE_RESOURCE_ID_MAX_LENGTH: number = 300;
+
+/*
+ * Every resource a change names, as one attribute: each id in lower case,
+ * once, one a line, the first CLOUD_CHANGE_RESOURCE_IDS_KEPT of them.
+ */
+export function getCloudChangeResourceIds(change: CloudChange): string {
+  const ids: Array<string> = [];
+
+  for (const resource of change.resources) {
+    const id: string = (resource.id || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\r\n]+/g, " ")
+      .slice(0, CLOUD_CHANGE_RESOURCE_ID_MAX_LENGTH);
+
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+
+    if (ids.length >= CLOUD_CHANGE_RESOURCE_IDS_KEPT) {
+      break;
+    }
+  }
+
+  return ids.join("\n");
+}
+
 // What a change is about: the resource's name when held, else its id.
 function subjectOf(
   change: CloudChange,
@@ -235,6 +265,17 @@ export function buildCloudChangeEntry(data: {
       change.resources[0].id,
       1000,
     );
+  }
+
+  /*
+   * Every resource it names, not only the first: who created a resource is
+   * read from the create call that names it, wherever in the list it is
+   * (#11012).
+   */
+  const resourceIds: string = getCloudChangeResourceIds(change);
+
+  if (resourceIds) {
+    attributes[ChangeEventAttribute.CloudResourceIds] = resourceIds;
   }
 
   /*

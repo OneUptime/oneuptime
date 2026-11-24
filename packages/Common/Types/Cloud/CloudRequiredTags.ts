@@ -281,6 +281,52 @@ export function getCloudRequiredTagsForAccount(
     });
 }
 
+/*
+ * The value a resource carries for a required tag that the tag allows, in
+ * any spelling of its key - the exact one first - or null. This is what
+ * "carries the tag" means everywhere: here, and in the SQL that counts
+ * coverage over costs and resources (CloudTagConditions), which asks
+ * whether ANY spelling of the key holds an allowed value.
+ */
+export function findAllowedCloudTagValue(
+  tags: Record<string, unknown> | null | undefined,
+  rule: Pick<CloudRequiredTagRule, "key" | "allowedValues">,
+): { key: string; value: string } | null {
+  if (!tags || typeof tags !== "object" || Array.isArray(tags)) {
+    return null;
+  }
+
+  const wanted: string = normalizeCloudTagKey(rule.key);
+
+  if (!wanted) {
+    return null;
+  }
+
+  const exact: string = rule.key.trim();
+  const keys: Array<string> = [
+    exact,
+    ...Object.keys(tags)
+      .filter((key: string): boolean => {
+        return key !== exact;
+      })
+      .sort(),
+  ];
+
+  for (const key of keys) {
+    if (normalizeCloudTagKey(key) !== wanted) {
+      continue;
+    }
+
+    const value: string = normalizeValue(tags[key]);
+
+    if (value && isCloudTagValueAllowed(value, rule.allowedValues)) {
+      return { key, value };
+    }
+  }
+
+  return null;
+}
+
 // What a resource's tags lack of the required tags: nothing when compliant.
 export function evaluateCloudTags(
   tags: Record<string, unknown> | null | undefined,
@@ -289,24 +335,26 @@ export function evaluateCloudTags(
   const findings: Array<CloudTagFinding> = [];
 
   for (const rule of rules) {
+    if (findAllowedCloudTagValue(tags, rule)) {
+      continue;
+    }
+
+    // It carries the key with no allowed value: said with what it carries.
     const found: { key: string; value: string } | null = findCloudTagValue(
       tags,
       rule.key,
     );
 
-    if (!found) {
-      findings.push({ key: rule.key, problem: CloudTagProblem.Missing });
-      continue;
-    }
-
-    if (!isCloudTagValueAllowed(found.value, rule.allowedValues)) {
-      findings.push({
-        key: rule.key,
-        problem: CloudTagProblem.NotAllowed,
-        foundKey: found.key,
-        value: found.value,
-      });
-    }
+    findings.push(
+      found
+        ? {
+            key: rule.key,
+            problem: CloudTagProblem.NotAllowed,
+            foundKey: found.key,
+            value: found.value,
+          }
+        : { key: rule.key, problem: CloudTagProblem.Missing },
+    );
   }
 
   return findings;
@@ -570,15 +618,10 @@ export function suggestFromCloudTagNeighbours(data: {
       let carrying: number = 0;
 
       for (const tags of group.tags) {
-        const found: { key: string; value: string } | null = findCloudTagValue(
-          tags,
-          data.rule.key,
-        );
+        const found: { key: string; value: string } | null =
+          findAllowedCloudTagValue(tags, data.rule);
 
-        if (
-          !found ||
-          !isCloudTagValueAllowed(found.value, data.rule.allowedValues)
-        ) {
+        if (!found) {
           continue;
         }
 

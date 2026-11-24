@@ -2154,10 +2154,7 @@ import CloudAccountFeedService, {
   Service as CloudAccountFeedServiceType,
 } from "Common/Server/Services/CloudAccountFeedService";
 import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
-import CloudRequiredTag from "Common/Models/DatabaseModels/CloudRequiredTag";
-import CloudRequiredTagService, {
-  Service as CloudRequiredTagServiceType,
-} from "Common/Server/Services/CloudRequiredTagService";
+import CloudRequiredTagAPI from "Common/Server/API/CloudRequiredTagAPI";
 import CloudTagCoverageDay from "Common/Models/DatabaseModels/CloudTagCoverageDay";
 import CloudTagCoverageDayService, {
   Service as CloudTagCoverageDayServiceType,
@@ -3957,10 +3954,7 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<CloudRequiredTag, CloudRequiredTagServiceType>(
-        CloudRequiredTag,
-        CloudRequiredTagService,
-      ).getRouter(),
+      new CloudRequiredTagAPI().getRouter(),
     );
 
     app.use(

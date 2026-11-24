@@ -549,6 +549,14 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
     },
   },
+  // Required tags' coverage (#11012): Cloud > Tags and an account's Tags read it.
+  "packages/Common/Server/API/CloudRequiredTagAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${CLOUD_TAG_COVERAGE_ROUTE}`":
+        READ,
+    },
+  },
   "packages/Common/Server/API/HostAPI.ts": {
     products: [ProductKey.Hosts],
     leftAlone: {
