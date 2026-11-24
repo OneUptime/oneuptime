@@ -1074,12 +1074,14 @@ describe("the Security Events page", () => {
     expect(route).toContain(
       "RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT, { parseGzipJson: true, })",
     );
-    expect(route).toContain('TelemetryIngest.forSurface( TelemetryIngestSurface.SecurityEvents, readSecurityEventsBody, )');
+    expect(route).toContain(
+      "TelemetryIngest.forSurface( TelemetryIngestSurface.SecurityEvents, readSecurityEventsBody, )",
+    );
     expect(flat(page)).toContain(
       "A batch can be gzip-compressed, sent with `Content-Encoding: gzip`: it is read as the same batch uncompressed.",
     );
     expect(flat(page)).toContain(
-      'Fluent Bit\'s `http` output compresses with `compress gzip`, Vector\'s `http` sink with `compression = "gzip"`, and Logstash\'s `http` output with `http_compression => true`.',
+      "Fluent Bit's `http` output compresses with `compress gzip`, Vector's `http` sink with `compression = \"gzip\"`, and Logstash's `http` output with `http_compression => true`.",
     );
     expect(flat(page)).toContain(
       "Only JSON is read compressed: a compressed body of any other type is refused with `400`.",

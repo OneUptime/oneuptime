@@ -84,7 +84,9 @@ const AutomaticResponseHourlyLimitCard: FunctionComponent<ComponentProps> = (
             description: HOURLY_LIMIT_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Number,
             required: true,
-            placeholder: String(SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR),
+            placeholder: String(
+              SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+            ),
             validation: {
               minValue: SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN,
               maxValue: SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MAX,

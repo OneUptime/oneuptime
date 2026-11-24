@@ -424,7 +424,9 @@ describe("the OpenStack rules that count per address (#10773)", () => {
     );
 
     expect(upgrade.previousGroupByField).toBeUndefined();
-    expect(upgrade.previousSigmaRuleYaml).toContain(`    field: ${OLD_FIELD}\n`);
+    expect(upgrade.previousSigmaRuleYaml).toContain(
+      `    field: ${OLD_FIELD}\n`,
+    );
     expect(entry.sigmaRuleYaml).toContain("    field: principalIp\n");
     expect(
       isSameRuleYaml(

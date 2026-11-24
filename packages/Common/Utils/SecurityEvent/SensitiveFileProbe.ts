@@ -221,7 +221,9 @@ export function readRequestPathSegments(target: string): Array<string> {
     .map((segment: string): string => {
       const parameters: number = segment.indexOf(";");
 
-      return (parameters === -1 ? segment : segment.slice(0, parameters)).trim();
+      return (
+        parameters === -1 ? segment : segment.slice(0, parameters)
+      ).trim();
     })
     .filter((segment: string): boolean => {
       return segment.length > 0;

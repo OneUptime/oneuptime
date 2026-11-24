@@ -933,11 +933,12 @@ describe("a row's cells", () => {
         getEnforcementChipTone(failed, SecurityBlockEnforcementView.NotApplied),
       ).toBe(PillTone.Danger);
       // A row that held it again since is no longer held back, whatever it kept.
+      expect(row.errorReason).toBeDefined();
       expect(
         isEnforcementHeldBack(
           enforcement({
             state: SecurityBlockEnforcementState.Applied,
-            errorReason: row.errorReason,
+            errorReason: row.errorReason!,
           }),
         ),
       ).toBe(false);

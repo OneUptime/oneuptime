@@ -834,7 +834,9 @@ describe("the project's own hourly limit", () => {
 
     const stopped: SecurityAutomaticResponseDecision | null = await decide();
 
-    expect(stopped?.outcome).toBe(SecurityAutomaticResponseOutcome.StoppedAtLimit);
+    expect(stopped?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
     expect(paged[0]!.title).toBe(
       "Automatic response stopped at its limit of 1 automatic block an hour",
     );
@@ -886,7 +888,9 @@ describe("the project's own hourly limit", () => {
 
     const stopped: SecurityAutomaticResponseDecision | null = await decide();
 
-    expect(stopped?.outcome).toBe(SecurityAutomaticResponseOutcome.StoppedAtLimit);
+    expect(stopped?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
     expect(stopped?.detail).toBe(
       "The project's policies reached its limit of 10 automatic blocks an hour.",
     );
@@ -939,7 +943,9 @@ describe("the project's own hourly limit", () => {
 
     const decision: SecurityAutomaticResponseDecision | null = await decide();
 
-    expect(decision?.outcome).toBe(SecurityAutomaticResponseOutcome.StoppedAtLimit);
+    expect(decision?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
     expect(decision?.detail).toBe(
       "The project's policies would have reached its limit of 5 automatic blocks an hour.",
     );
@@ -984,7 +990,9 @@ describe("the project's own hourly limit", () => {
   });
 
   test("a record says the limit it was held to, a trial run's what it would have reached", () => {
-    expect(describeAutomaticResponseLimit({ limit: 50, isTrialRun: false })).toBe(
+    expect(
+      describeAutomaticResponseLimit({ limit: 50, isTrialRun: false }),
+    ).toBe(
       "The project's policies reached its limit of 50 automatic blocks an hour.",
     );
     expect(describeAutomaticResponseLimit({ limit: 1, isTrialRun: true })).toBe(

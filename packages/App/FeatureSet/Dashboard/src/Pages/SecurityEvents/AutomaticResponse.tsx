@@ -240,7 +240,9 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
                     <Link
                       to={getRouteToPageAnchor(
                         RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.SECURITY_AUTOMATIC_RESPONSE] as Route,
+                          RouteMap[
+                            PageMap.SECURITY_AUTOMATIC_RESPONSE
+                          ] as Route,
                         ),
                         HOURLY_LIMIT_CARD_KEY,
                       )}

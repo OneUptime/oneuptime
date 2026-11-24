@@ -214,9 +214,7 @@ const GERMAN: Translator = translatorOf(
     [SECURITY_PROTECTED_ADDRESS_SENTENCES[
       SecurityProtectedAddressSource.CloudResource
     ]]: "{{address}} ist die Adresse von {{kind}} {{name}} in {{where}}.",
-    [SECURITY_PROTECTED_ADDRESS_SENTENCES[
-      SecurityProtectedAddressSource.Edge
-    ]]:
+    [SECURITY_PROTECTED_ADDRESS_SENTENCES[SecurityProtectedAddressSource.Edge]]:
       "{{address}} ist eine Adresse von {{name}}, und {{name}} steht vor Ihrer App: eine Sperre würde Ihre Website lahmlegen.",
     [SECURITY_PROTECTED_RESOURCE_KIND]: "Ressource",
   },
@@ -482,9 +480,11 @@ describe("in every language the Dashboard ships", () => {
       ] as Array<[string, Array<string>]>) {
         const wording: unknown = locale[frame];
 
-        expect({ language, frame, worded: typeof wording === "string" }).toEqual(
-          { language, frame, worded: true },
-        );
+        expect({
+          language,
+          frame,
+          worded: typeof wording === "string",
+        }).toEqual({ language, frame, worded: true });
         expect({ language, frame, english: wording === frame }).toEqual({
           language,
           frame,

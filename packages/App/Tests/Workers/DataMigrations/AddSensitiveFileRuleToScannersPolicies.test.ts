@@ -71,10 +71,14 @@ function registeredMigrations(): Array<string> {
 }
 
 function projectId(index: number): ObjectID {
-  return new ObjectID(`10745000-0000-4000-8000-${String(index).padStart(12, "0")}`);
+  return new ObjectID(
+    `10745000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+  );
 }
 
-function policyOf(project: ObjectID | undefined): SecurityAutomaticResponsePolicy {
+function policyOf(
+  project: ObjectID | undefined,
+): SecurityAutomaticResponsePolicy {
   const policy: SecurityAutomaticResponsePolicy =
     new SecurityAutomaticResponsePolicy(ObjectID.generate());
 
@@ -164,13 +168,13 @@ beforeEach(() => {
       },
     };
   }) as never);
-  jest
-    .spyOn(DetectionRuleService, "create")
-    .mockImplementation((async (data: { data: DetectionRule }) => {
-      created.push(data.data);
-      rulesOf(data.data.projectId!).push(data.data);
-      return data.data;
-    }) as never);
+  jest.spyOn(DetectionRuleService, "create").mockImplementation((async (data: {
+    data: DetectionRule;
+  }) => {
+    created.push(data.data);
+    rulesOf(data.data.projectId!).push(data.data);
+    return data.data;
+  }) as never);
   jest
     .spyOn(DetectionRuleService, "updateOneById")
     .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {
@@ -184,7 +188,9 @@ beforeEach(() => {
 
       return 1;
     }) as never);
-  jest.spyOn(Semaphore, "lock").mockImplementation((async (data: JSONObject) => {
+  jest.spyOn(Semaphore, "lock").mockImplementation((async (
+    data: JSONObject,
+  ) => {
     locks.push(data);
     return { key: data["key"] };
   }) as never);

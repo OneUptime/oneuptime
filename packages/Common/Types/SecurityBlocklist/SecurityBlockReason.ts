@@ -252,7 +252,9 @@ export function securityProtectionReasons(data: {
       : {};
 
   return {
-    overlap: lead ? securityBlockReason(lead, valuesNamedIn(lead, values)) : null,
+    overlap: lead
+      ? securityBlockReason(lead, valuesNamedIn(lead, values))
+      : null,
     protection: securityBlockReason(
       sentence,
       valuesNamedIn(sentence, { ...values, ...kind }),

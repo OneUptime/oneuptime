@@ -377,7 +377,9 @@ describe("CloudflareNormalizer - a request for a sensitive file", () => {
       "/wp-admin",
     );
     // A WordPress site's own admin page, served: no probe.
-    expect(letThrough(200).attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBeUndefined();
+    expect(
+      letThrough(200).attributes[WEB_ATTACK_KIND_ATTRIBUTE],
+    ).toBeUndefined();
     expect(
       letThrough(302).attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
     ).toBeUndefined();
@@ -392,7 +394,9 @@ describe("CloudflareNormalizer - a request for a sensitive file", () => {
 
   test("an attack string wins, and a path that only looks like one is none", () => {
     const injection: NormalizedSecurityEvent = normalize(
-      blocked("/.env", { clientRequestQuery: "?id=1%27%20union%20select%201--" }),
+      blocked("/.env", {
+        clientRequestQuery: "?id=1%27%20union%20select%201--",
+      }),
     );
 
     expect(injection.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(

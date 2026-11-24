@@ -74,18 +74,23 @@ describe("SecurityAutomaticResponseLimit.read", () => {
 
     expect(await SecurityAutomaticResponseLimit.read(PROJECT_ID)).toBe(120);
     expect(reads).toHaveLength(1);
-    expect((reads[0]!["id"] as ObjectID).toString()).toBe(PROJECT_ID.toString());
+    expect((reads[0]!["id"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
     expect(reads[0]!["select"]).toEqual({
       securityAutomaticResponseMaxBlocksPerHour: true,
     });
     expect(reads[0]!["props"]).toEqual({ isRoot: true });
   });
 
-  test.each([1, 50, 500])("a limit of %p is the project's", async (limit: number) => {
-    stored = limit;
+  test.each([1, 50, 500])(
+    "a limit of %p is the project's",
+    async (limit: number) => {
+      stored = limit;
 
-    expect(await SecurityAutomaticResponseLimit.read(PROJECT_ID)).toBe(limit);
-  });
+      expect(await SecurityAutomaticResponseLimit.read(PROJECT_ID)).toBe(limit);
+    },
+  );
 
   test.each([undefined, null, 0, 501, 2.5, "lots"])(
     "%p - unset, gone or none a project could set - is the default",
@@ -115,9 +120,9 @@ describe("SecurityAutomaticResponseLimit.read", () => {
       .spyOn(ProjectService, "findOneById")
       .mockRejectedValue(new Error("database unavailable"));
 
-    await expect(SecurityAutomaticResponseLimit.read(PROJECT_ID)).rejects.toThrow(
-      "database unavailable",
-    );
+    await expect(
+      SecurityAutomaticResponseLimit.read(PROJECT_ID),
+    ).rejects.toThrow("database unavailable");
   });
 });
 
@@ -204,7 +209,9 @@ describe("the Automatic Response page's read: the project's own limit, and wheth
       return query["pagedAt"] !== undefined;
     });
 
-    expect(paged?.["outcome"]).toBe(SecurityAutomaticResponseOutcome.StoppedAtLimit);
+    expect(paged?.["outcome"]).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
     expect(paged?.["isTrialRun"]).toBe(false);
     expect(paged?.["projectId"]).toEqual(PROJECT_ID);
   });

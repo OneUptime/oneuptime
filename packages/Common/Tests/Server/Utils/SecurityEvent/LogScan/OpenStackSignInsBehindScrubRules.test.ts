@@ -165,10 +165,14 @@ function signIn(data: {
   );
 }
 
-function eventsOf(lines: Array<SecurityLogLine>): Array<NormalizedSecurityEvent> {
-  return lines.flatMap((line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
-    return SecurityLogParser.parse(line);
-  });
+function eventsOf(
+  lines: Array<SecurityLogLine>,
+): Array<NormalizedSecurityEvent> {
+  return lines.flatMap(
+    (line: SecurityLogLine): Array<NormalizedSecurityEvent> => {
+      return SecurityLogParser.parse(line);
+    },
+  );
 }
 
 function failedSignIns(address: string, count: number): Array<SecurityLogLine> {
@@ -199,7 +203,8 @@ function libraryEntry(id: string): DetectionRuleLibraryEntry {
  * (buildSigmaFieldExpression).
  */
 function valueOf(row: JSONObject, field: string): string {
-  const resolved: ReturnType<typeof resolveSigmaField> = resolveSigmaField(field);
+  const resolved: ReturnType<typeof resolveSigmaField> =
+    resolveSigmaField(field);
 
   if (resolved.kind === "attribute") {
     return String(
@@ -365,7 +370,9 @@ describe("the library's OpenStack rules count per principalIp", () => {
     );
 
     if (definition.kind !== "correlation") {
-      throw new Error("OpenStack admin credential used from a new address is a correlation");
+      throw new Error(
+        "OpenStack admin credential used from a new address is a correlation",
+      );
     }
 
     expect(definition.correlation.condition.fields).toEqual(["principalIp"]);
@@ -414,9 +421,7 @@ describe("failed sign-ins whose address a scrub rule hid, stored by the log scan
 
     for (const row of inserted) {
       // The parser's own attribute still holds real addresses only: a token is none.
-      expect(
-        valueOf(row, OpenStackAuditAttribute.InitiatorAddress),
-      ).toBe("");
+      expect(valueOf(row, OpenStackAuditAttribute.InitiatorAddress)).toBe("");
       expect(
         readHiddenAddress(
           {

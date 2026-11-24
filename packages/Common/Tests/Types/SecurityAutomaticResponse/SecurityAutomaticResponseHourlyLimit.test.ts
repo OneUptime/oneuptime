@@ -111,7 +111,8 @@ describe("the project's column", () => {
   const column: string = "securityAutomaticResponseMaxBlocksPerHour";
 
   test("is a whole number, 50 unless changed, for every project", () => {
-    const metadata: TableColumnMetadata = project.getTableColumnMetadata(column);
+    const metadata: TableColumnMetadata =
+      project.getTableColumnMetadata(column);
 
     expect(metadata.required).toBe(true);
     expect(metadata.isDefaultValueColumn).toBe(true);

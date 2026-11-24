@@ -110,10 +110,13 @@ const NEGATIVE: Array<string> = [
 
 describe("the path of a request", () => {
   test("is read without its scheme, host, query or fragment, decoded once, lowercased, in segments", () => {
-    expect(readRequestPathSegments("https://Shop.Example.com/A/B?x=1#y")).toEqual(
-      ["a", "b"],
-    );
-    expect(readRequestPathSegments("/%2Egit/CONFIG")).toEqual([".git", "config"]);
+    expect(
+      readRequestPathSegments("https://Shop.Example.com/A/B?x=1#y"),
+    ).toEqual(["a", "b"]);
+    expect(readRequestPathSegments("/%2Egit/CONFIG")).toEqual([
+      ".git",
+      "config",
+    ]);
     expect(readRequestPathSegments("//a///b/")).toEqual(["a", "b"]);
     expect(readRequestPathSegments("/a;jsessionid=1/b")).toEqual(["a", "b"]);
     // A percent that encodes nothing is kept as it is.
@@ -173,9 +176,9 @@ describe("which of them were refused or not found", () => {
   test.each([400, 401, 403, 404, 405, 410, 429, 499])(
     "a %p answer makes a request for /.env one",
     (status: number) => {
-      expect(readSensitiveFileProbe({ target: "/.env", statusCode: status })).toBe(
-        "/.env",
-      );
+      expect(
+        readSensitiveFileProbe({ target: "/.env", statusCode: status }),
+      ).toBe("/.env");
     },
   );
 

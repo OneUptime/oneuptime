@@ -124,7 +124,7 @@ jest.mock(
     return {
       ...(jest.requireActual(
         "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard",
-      ) as object),
+      ) as Record<string, unknown>),
       __esModule: true,
       default: () => {
         return React.createElement("div", {

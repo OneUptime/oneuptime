@@ -1,6 +1,8 @@
 import DataMigrationBase from "./DataMigrationBase";
 import SecurityAutomaticResponsePolicy from "Common/Models/DatabaseModels/SecurityAutomaticResponsePolicy";
-import Semaphore, { SemaphoreMutex } from "Common/Server/Infrastructure/Semaphore";
+import Semaphore, {
+  SemaphoreMutex,
+} from "Common/Server/Infrastructure/Semaphore";
 import SecurityAutomaticResponsePolicyService from "Common/Server/Services/SecurityAutomaticResponsePolicyService";
 import logger from "Common/Server/Utils/Logger";
 import SecurityAutomaticResponseRules from "Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRules";

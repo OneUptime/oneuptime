@@ -51,12 +51,10 @@ import SecurityAutomaticResponsePage from "../../../../App/FeatureSet/Dashboard/
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import * as AutomaticResponseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseApi";
 import {
-  HOURLY_LIMIT_CARD_KEY,
-  HOURLY_LIMIT_COLUMN,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
-import {
   AUTOMATIC_RESPONSE_TEST_IDS,
   CHANGE_LIMIT,
+  HOURLY_LIMIT_CARD_KEY,
+  HOURLY_LIMIT_COLUMN,
   HOURLY_LIMIT_DESCRIPTION,
   HOURLY_LIMIT_FIELD_DESCRIPTION,
   HOURLY_LIMIT_FIELD_TITLE,
@@ -126,7 +124,9 @@ configure({ asyncUtilTimeout: 15000 });
 type MockedFn = ReturnType<typeof jest.fn>;
 
 const api: { readAutomaticResponseOverview: MockedFn } =
-  AutomaticResponseApi as unknown as { readAutomaticResponseOverview: MockedFn };
+  AutomaticResponseApi as unknown as {
+    readAutomaticResponseOverview: MockedFn;
+  };
 
 const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/security-events/automatic-response`;
 
@@ -359,9 +359,9 @@ function isBefore(first: HTMLElement, second: HTMLElement): boolean {
   );
 }
 
-// Words as the reader reads them, with plain spaces.
+// Words as the reader reads them, with plain spaces for the no-break ones a number is drawn with.
 function plain(text: string | null | undefined): string {
-  return (text || "").replace(/ /g, " ");
+  return (text || "").replace(/[\u00A0\u202F]/g, " ");
 }
 
 describe("More settings, on the Automatic Response page", () => {
@@ -401,8 +401,9 @@ describe("More settings, on the Automatic Response page", () => {
 
     expect(header(fold)).toHaveAttribute("aria-expanded", "true");
 
-    const place: HTMLElement | null =
-      document.getElementById(HOURLY_LIMIT_CARD_KEY);
+    const place: HTMLElement | null = document.getElementById(
+      HOURLY_LIMIT_CARD_KEY,
+    );
 
     expect(Boolean(place && fold.contains(place))).toBe(true);
     expect(card()).toHaveTextContent(HOURLY_LIMIT_DESCRIPTION);
@@ -515,9 +516,11 @@ describe("Hourly Limit", () => {
   );
 
   test("whoever may change it is whoever may turn a policy on: a Security Admin, a Project Owner, a Project Admin", () => {
-    expect(getProjectColumnsUpdatePermissions([HOURLY_LIMIT_COLUMN])).toEqual(
-      [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.SecurityAdmin],
-    );
+    expect(getProjectColumnsUpdatePermissions([HOURLY_LIMIT_COLUMN])).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ]);
   });
 });
 

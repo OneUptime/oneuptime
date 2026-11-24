@@ -105,9 +105,10 @@ describe("AddSecurityAutomaticResponseHourlyLimit1809187530746", () => {
     );
 
     for (const earlier of migrations.slice(0, index)) {
-      expect({ earlier: earlier.name, before: stampOf(earlier) < stamp }).toEqual(
-        { earlier: earlier.name, before: true },
-      );
+      expect({
+        earlier: earlier.name,
+        before: stampOf(earlier) < stamp,
+      }).toEqual({ earlier: earlier.name, before: true });
     }
   });
 });

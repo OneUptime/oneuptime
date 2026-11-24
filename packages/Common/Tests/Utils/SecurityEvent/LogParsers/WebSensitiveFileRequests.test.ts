@@ -54,7 +54,9 @@ function parseOne(body: string): NormalizedSecurityEvent {
 
 // What the library rule selects: a sensitive-file request.
 function isCounted(event: NormalizedSecurityEvent): boolean {
-  return event.attributes[WEB_ATTACK_KIND_ATTRIBUTE] === WebAttackKind.SensitiveFile;
+  return (
+    event.attributes[WEB_ATTACK_KIND_ATTRIBUTE] === WebAttackKind.SensitiveFile
+  );
 }
 
 /*
@@ -62,9 +64,7 @@ function isCounted(event: NormalizedSecurityEvent): boolean {
  * selects, grouped by principalIp - none for an event with no address -
  * and the distinct sensitive paths of each.
  */
-function distinctPathsByAddress(
-  bodies: Array<string>,
-): Record<string, number> {
+function distinctPathsByAddress(bodies: Array<string>): Record<string, number> {
   const paths: Map<string, Set<string>> = new Map();
 
   for (const body of bodies) {
@@ -102,7 +102,12 @@ const RULE: DetectionRuleLibraryEntry = DETECTION_RULE_LIBRARY.find(
 describe("a request for a sensitive file, refused or not found", () => {
   test("is an HTTP Activity event that says what it asked for, counted by its path", () => {
     const event: NormalizedSecurityEvent = parseOne(
-      clf({ ip: "198.51.100.7", target: "/.env", status: 404, agent: "curl/8.5.0" }),
+      clf({
+        ip: "198.51.100.7",
+        target: "/.env",
+        status: 404,
+        agent: "curl/8.5.0",
+      }),
     );
 
     expect(event.classUid).toBe(4002);
@@ -177,7 +182,8 @@ describe("a request for a sensitive file, refused or not found", () => {
       "http.response.status_code": "404",
       "network.peer.address": "198.51.100.7",
     });
-    const events: Array<NormalizedSecurityEvent> = WebAttackLogParser.parse(line);
+    const events: Array<NormalizedSecurityEvent> =
+      WebAttackLogParser.parse(line);
 
     expect(events).toHaveLength(1);
     expect(events[0]!.targetResource).toBe("/.git/config");
@@ -219,7 +225,11 @@ describe("a request for a sensitive file, refused or not found", () => {
     );
 
     const hashed: NormalizedSecurityEvent = parseOne(
-      clf({ ip: "[HASHED:3f9a1c0be27d4e5a]", target: "/.git/config", status: 404 }),
+      clf({
+        ip: "[HASHED:3f9a1c0be27d4e5a]",
+        target: "/.git/config",
+        status: 404,
+      }),
     );
 
     expect(hashed.principalIp).toBe("");
@@ -227,7 +237,11 @@ describe("a request for a sensitive file, refused or not found", () => {
   });
 
   test("the dispatcher reads it the same way, last, after every other format", () => {
-    const body: string = clf({ ip: "198.51.100.7", target: "/.env", status: 404 });
+    const body: string = clf({
+      ip: "198.51.100.7",
+      target: "/.env",
+      status: 404,
+    });
 
     expect(
       SecurityLogParser.parse(logLine(body)).map(
@@ -259,7 +273,12 @@ describe("the log scan's read", () => {
       clf({ ip: "203.0.113.20", target: "/wp-admin/", status: 302 }),
       clf({ ip: "203.0.113.20", target: "/wp-admin/", status: 200 }),
       clf({ ip: "203.0.113.20", target: "/wp-login.php", status: 200 }),
-      clf({ ip: "203.0.113.20", method: "POST", target: "/wp-login.php", status: 302 }),
+      clf({
+        ip: "203.0.113.20",
+        method: "POST",
+        target: "/wp-login.php",
+        status: 302,
+      }),
       clf({ ip: "203.0.113.20", target: "/wp-admin/edit.php", status: 200 }),
       '{"remote_addr":"203.0.113.20","request":"GET /wp-admin/ HTTP/1.1","status":200}',
     ]) {
@@ -318,7 +337,12 @@ describe("Scanning for sensitive files, over a scanner and a WordPress admin", (
   test("a scanner, working down its list within a minute, reaches it many times over", () => {
     const scanner: string = "198.51.100.7";
     const stream: Array<string> = [
-      clf({ ip: scanner, target: "/", status: 200, agent: "Mozilla/5.0 zgrab/0.x" }),
+      clf({
+        ip: scanner,
+        target: "/",
+        status: 200,
+        agent: "Mozilla/5.0 zgrab/0.x",
+      }),
       clf({ ip: scanner, target: "/robots.txt", status: 200 }),
       clf({ ip: scanner, target: "/.env", status: 404 }),
       clf({ ip: scanner, target: "/.env.local", status: 404 }),
@@ -362,19 +386,59 @@ describe("Scanning for sensitive files, over a scanner and a WordPress admin", (
     for (let round: number = 0; round < 10; round++) {
       stream.push(
         clf({ ip: admin, target: "/wp-admin/", status: 302 }),
-        clf({ ip: admin, target: "/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1", status: 200 }),
-        clf({ ip: admin, method: "POST", target: "/wp-login.php", status: 302 }),
+        clf({
+          ip: admin,
+          target: "/wp-login.php?redirect_to=%2Fwp-admin%2F&reauth=1",
+          status: 200,
+        }),
+        clf({
+          ip: admin,
+          method: "POST",
+          target: "/wp-login.php",
+          status: 302,
+        }),
         clf({ ip: admin, target: "/wp-admin/", status: 200 }),
         clf({ ip: admin, target: "/wp-admin/edit.php", status: 200 }),
-        clf({ ip: admin, target: "/wp-admin/post.php?post=42&action=edit", status: 200 }),
-        clf({ ip: admin, method: "POST", target: "/wp-admin/admin-ajax.php", status: 200 }),
+        clf({
+          ip: admin,
+          target: "/wp-admin/post.php?post=42&action=edit",
+          status: 200,
+        }),
+        clf({
+          ip: admin,
+          method: "POST",
+          target: "/wp-admin/admin-ajax.php",
+          status: 200,
+        }),
         // The heartbeat after its nonce ran out, and an action no plugin registered.
-        clf({ ip: admin, method: "POST", target: "/wp-admin/admin-ajax.php", status: 403 }),
-        clf({ ip: admin, method: "POST", target: "/wp-admin/admin-ajax.php", status: 400 }),
+        clf({
+          ip: admin,
+          method: "POST",
+          target: "/wp-admin/admin-ajax.php",
+          status: 403,
+        }),
+        clf({
+          ip: admin,
+          method: "POST",
+          target: "/wp-admin/admin-ajax.php",
+          status: 400,
+        }),
         // The browser's tools asking for source maps.
-        clf({ ip: admin, target: "/wp-admin/css/forms.min.css.map", status: 404 }),
-        clf({ ip: admin, target: "/wp-includes/js/jquery/jquery.min.js", status: 200 }),
-        clf({ ip: admin, target: "/wp-content/uploads/2026/11/missing.png", status: 404 }),
+        clf({
+          ip: admin,
+          target: "/wp-admin/css/forms.min.css.map",
+          status: 404,
+        }),
+        clf({
+          ip: admin,
+          target: "/wp-includes/js/jquery/jquery.min.js",
+          status: 200,
+        }),
+        clf({
+          ip: admin,
+          target: "/wp-content/uploads/2026/11/missing.png",
+          status: 404,
+        }),
         clf({ ip: admin, target: "/wp-config.php", status: 200 }),
       );
     }

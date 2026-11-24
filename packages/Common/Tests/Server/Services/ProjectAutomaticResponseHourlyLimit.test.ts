@@ -131,9 +131,9 @@ describe("who may set the hourly limit", () => {
     (_what: string, data: Record<string, unknown>) => {
       expect(mayWrite(data, Permission.SecurityAdmin)).toBe(false);
       // Nor with the limit beside it.
-      expect(mayWrite({ ...data, [COLUMN]: 120 }, Permission.SecurityAdmin)).toBe(
-        false,
-      );
+      expect(
+        mayWrite({ ...data, [COLUMN]: 120 }, Permission.SecurityAdmin),
+      ).toBe(false);
     },
   );
 });

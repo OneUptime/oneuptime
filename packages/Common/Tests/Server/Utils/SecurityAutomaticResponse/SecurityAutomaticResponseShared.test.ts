@@ -497,7 +497,9 @@ describe("the ready policies' rules, in real time", () => {
       state: { isEnabled: boolean; isRealTime: boolean },
     ): DetectionRule {
       const made: DetectionRule = new DetectionRule(
-        new ObjectID(`cccccccc-cccc-4ccc-8ccc-${String(index).padStart(12, "0")}`),
+        new ObjectID(
+          `cccccccc-cccc-4ccc-8ccc-${String(index).padStart(12, "0")}`,
+        ),
       );
       made.name = entry.title;
       made.sigmaRuleYaml = entry.sigmaRuleYaml;
@@ -558,7 +560,9 @@ describe("the ready policies' rules, in real time", () => {
       expect(created).toEqual([]);
 
       turnedRealTime = [];
-      rules = [projectRule(sensitive, 3, { isEnabled: false, isRealTime: false })];
+      rules = [
+        projectRule(sensitive, 3, { isEnabled: false, isRealTime: false }),
+      ];
 
       await SecurityAutomaticResponseRules.runInRealTime({
         projectId: PROJECT_ID,
