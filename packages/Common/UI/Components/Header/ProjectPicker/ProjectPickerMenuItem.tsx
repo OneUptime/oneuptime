@@ -19,17 +19,16 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME: string = "bg-indigo-50";
 
 /*
- * The open project's mark (#8050): a check right after its name, as a
- * picker marks what is picked, in the indigo of the keyboard's row, which
- * the dark theme lightens (Theme.css). It never shrinks, so a long name
- * cut short on a phone still shows it. Hidden from a screen reader, which
- * hears the row's aria-current instead.
+ * The open project's mark (#8050): the products menu's dot for the page
+ * the person is on (NavBarMenuModal), right after the name, 6px from it
+ * (-ms-1.5 takes back half the row's 12px gap, on the reading side). Small,
+ * so a whole name still fits beside it on a 320px phone, where a check cut
+ * "Acme Commerce Production" short. It never shrinks, so a long name cut
+ * short still shows it. Hidden from a screen reader, which hears the row's
+ * aria-current instead.
  */
 export const PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME: string =
-  "flex flex-shrink-0 items-center";
-
-export const PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME: string =
-  "h-4 w-4 text-indigo-600";
+  "-ms-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500";
 
 export const PROJECT_PICKER_OPEN_PROJECT_MARK_TEST_ID: string =
   "project-picker-open-project";
@@ -117,12 +116,7 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
             aria-hidden="true"
             className={PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME}
             data-testid={PROJECT_PICKER_OPEN_PROJECT_MARK_TEST_ID}
-          >
-            <Icon
-              icon={IconProp.Check}
-              className={PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME}
-            />
-          </span>
+          />
         )}
         {/*
          * A master admin blocked it: still listed, so it is not a project

@@ -30,7 +30,6 @@ import ProjectPicker, {
 import ProjectPickerMenuItem, {
   PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME,
   PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME,
-  PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME,
   PROJECT_PICKER_OPEN_PROJECT_MARK_TEST_ID,
 } from "../../../UI/Components/Header/ProjectPicker/ProjectPickerMenuItem";
 import LeaveGuard from "../../../UI/Utils/LeaveGuard";
@@ -49,7 +48,9 @@ import {
  * says it, cut short on a phone ("Acme Commer…") - and the keyboard
  * started on the first row wherever the person was. Now:
  *
- *  - the open project's row shows a check right after its name, and says
+ *  - the open project's row shows the products menu's dot for the page
+ *    the person is on, right after its name, small enough that a whole
+ *    name still fits beside it on a 320px phone, and says
  *    "current" to a screen reader (aria-current), found by its id, never
  *    its name: two projects may share one;
  *  - the list opened from the keyboard starts on it, a search starts on
@@ -236,7 +237,7 @@ afterEach(() => {
 });
 
 describe("the open project's row is marked", () => {
-  test("it says so to a screen reader and shows a check after its name; no other row does", () => {
+  test("it says so to a screen reader and shows a dot after its name; no other row does", () => {
     render(picker());
     openWithPointer();
 
@@ -260,7 +261,7 @@ describe("the open project's row is marked", () => {
     }
   });
 
-  test("the check is for the eye only: hidden from a screen reader, and the row's words stay the project's name", () => {
+  test("the dot is for the eye only: hidden from a screen reader, and the row's words stay the project's name", () => {
     render(picker());
     openWithPointer();
 
@@ -277,7 +278,7 @@ describe("the open project's row is marked", () => {
     ).toBe(staging);
   });
 
-  test("the check comes right after the name, and never shrinks, so a long name cut short still shows it", () => {
+  test("the dot comes right after the name, 6px from it, and never shrinks, so a long name cut short still shows it", () => {
     render(
       picker({
         projects: [
@@ -300,15 +301,47 @@ describe("the open project's row is marked", () => {
     );
 
     expect(name.closest("span[dir='auto']")?.nextElementSibling).toBe(mark);
-    expect(PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME.split(" ")).toContain(
-      "flex-shrink-0",
+    expect(mark.getAttribute("class")).toBe(
+      PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME,
     );
-    expect(mark.getAttribute("class")).toContain("flex-shrink-0");
-    // A check of a fixed size, inside the mark that keeps its room.
-    expect(PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME.split(" ")).toEqual(
-      expect.arrayContaining(["h-4", "w-4"]),
+    /*
+     * A 6px dot that keeps its room, pulled 6px back from the row's 12px
+     * gap on the reading side (margin-inline-start), and nothing inside it.
+     */
+    expect(PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex-shrink-0",
+        "h-1.5",
+        "w-1.5",
+        "rounded-full",
+        "-ms-1.5",
+      ]),
     );
-    expect(mark.querySelector("svg")?.getAttribute("class")).toContain("h-4");
+    expect(PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME).not.toMatch(
+      /(^|\s)-?m[lr]-/,
+    );
+    expect(mark.childElementCount).toBe(0);
+  });
+
+  test("it is the products menu's dot for the page the person is on: one mark for where you are", () => {
+    const productsMenu: string = fs.readFileSync(
+      path.join(__dirname, "../../../UI/Components/Navbar/NavBarMenuModal.tsx"),
+      "utf8",
+    );
+    const productsMenuDot: RegExpMatchArray | null = productsMenu.match(
+      /\{isCurrent && \(\s*<span\s+aria-hidden="true"\s+className="([^"]+)"/,
+    );
+
+    expect(productsMenuDot).not.toBeNull();
+
+    // The same size, shape and colour; the picker adds only its spacing.
+    expect(
+      PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME.split(" ")
+        .filter((name: string): boolean => {
+          return name !== "-ms-1.5";
+        })
+        .sort(),
+    ).toEqual(productsMenuDot![1]!.split(" ").sort());
   });
 
   test("two projects with the same name are told apart by id: only the open one is marked", () => {
@@ -366,7 +399,7 @@ describe("the open project's row is marked", () => {
     expect(markedOptions()).toEqual([optionFor(STAGING_ID)]);
   });
 
-  test("an open project a master admin blocked shows its check, then its Blocked pill at the row's end", () => {
+  test("an open project a master admin blocked shows its dot, then its Blocked pill at the row's end", () => {
     render(
       picker({
         projects: [
@@ -391,7 +424,7 @@ describe("the open project's row is marked", () => {
     expect(blocked.className).not.toContain("ml-auto");
   });
 
-  test("on a page read from the right, the check still follows the name: the row's order is the page's", () => {
+  test("on a page read from the right, the dot still follows the name: the row's order is the page's", () => {
     render(
       <div dir="rtl">
         <ProjectPickerMenuItem
@@ -410,7 +443,7 @@ describe("the open project's row is marked", () => {
       PROJECT_PICKER_OPEN_PROJECT_MARK_TEST_ID,
     );
 
-    // The name reads its own way, and the check comes after it in the flow.
+    // The name reads its own way, and the dot comes after it in the flow.
     expect(name.closest("span[dir='auto']")).not.toBeNull();
     expect(
       name.compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -420,23 +453,22 @@ describe("the open project's row is marked", () => {
     expect(row).toHaveAttribute("aria-current", "true");
   });
 
-  test("in the dark theme the check is lightened with the rest of the indigo text", () => {
+  /*
+   * Indigo-500 is 4.5:1 on the light theme's white list and 3.6:1 on the
+   * dark theme's (#172033), both over the 3:1 a mark that means something needs
+   * (WCAG 1.4.11): the dark theme leaves it as it is, as it does the
+   * products menu's (Playwright measures both, ProjectPickerSearch.spec).
+   */
+  test("in the dark theme the dot keeps its indigo, as the products menu's does", () => {
     const theme: string = fs.readFileSync(
       path.join(__dirname, "../../../UI/Styles/Theme.css"),
       "utf8",
     );
-    const darkIndigoRule: RegExpMatchArray | null = theme.match(
-      /html\.dark :is\(([^)]*)\)\s*\{\s*color: (#[0-9a-f]{6});/g,
-    );
 
-    expect(PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME).toContain(
-      "text-indigo-600",
+    expect(PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME).toContain(
+      "bg-indigo-500",
     );
-    expect(
-      (darkIndigoRule || []).some((rule: string): boolean => {
-        return rule.includes(".text-indigo-600");
-      }),
-    ).toBe(true);
+    expect(theme).not.toMatch(/\.bg-indigo-500(?![/\w-])/);
   });
 });
 
