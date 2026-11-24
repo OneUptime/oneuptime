@@ -78,8 +78,14 @@ import {
   ScrubRuleEvalExpectation,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
+  DescribeDataTypeEvalCase,
+  DraftDataTypesEvalCase,
 } from "./DataSecurityEvalCase";
 import { buildTelemetryLeakEvalRequest } from "./TelemetryLeakEvalSet";
+import {
+  dataTypeDraftEvalPrompt,
+  scoreDataTypeDraft,
+} from "./DataTypeDraftEvalSet";
 import PullRequestLeakReview, {
   PULL_REQUEST_LEAK_REVIEW_MAX_TOKENS,
   PullRequestLeakFile,
@@ -131,6 +137,14 @@ import {
   HeldDataStoreOwnerAnswer,
   holdDataStoreOwnerAnswerToEvidence,
 } from "../../../../../Utils/DataSecurity/DataStoreOwnerAnswer";
+import {
+  auditEvidenceCall,
+  impactAssessmentCall,
+  recordDraftCall,
+  scoreAuditEvidence,
+  scoreImpactAssessment,
+  scoreRecordDraft,
+} from "./DataSecurityPaperworkEval";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -234,6 +248,23 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    * the data and keep the rest - as Fix with AI's are held.
    */
   [DataSecurityAiFeature.FixTelemetryLeaks]: 0.5,
+  /*
+   * The paperwork (#10375): every draft is held to its facts before it is
+   * read, and a field the facts do not support must be left empty. Three
+   * in four of a record's cases must pass; an assessment and the evidence
+   * are written prose, read by their words, so one in two.
+   */
+  [DataSecurityAiFeature.DraftRecord]: 0.75,
+  [DataSecurityAiFeature.DraftRecordOnRequest]: 0.75,
+  [DataSecurityAiFeature.DraftImpactAssessment]: 0.5,
+  [DataSecurityAiFeature.DraftAuditEvidence]: 0.5,
+  /*
+   * A data type held to made-up values it must find and leave alone, and
+   * to none where a group holds none (#10371): the product proves every
+   * draft on its stores before anyone sees it, so three in four.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: 0.75,
+  [DataSecurityAiFeature.DescribeDataType]: 0.75,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -1341,7 +1372,31 @@ export function buildEvalCall(
       return pullRequestReviewCall(testCase);
     case DataSecurityAiFeature.FixTelemetryLeaks:
       return telemetryLeakFixCall(testCase);
+    case DataSecurityAiFeature.DraftRecord:
+    case DataSecurityAiFeature.DraftRecordOnRequest:
+      return recordDraftCall(testCase);
+    case DataSecurityAiFeature.DraftImpactAssessment:
+      return impactAssessmentCall(testCase);
+    case DataSecurityAiFeature.DraftAuditEvidence:
+      return auditEvidenceCall(testCase);
+    case DataSecurityAiFeature.DraftDataTypes:
+    case DataSecurityAiFeature.DescribeDataType:
+      return dataTypeDraftCall(testCase);
   }
+}
+
+// A data type's draft asks as it ships (#10371): the same builder, words and limits.
+function dataTypeDraftCall(
+  testCase: DraftDataTypesEvalCase | DescribeDataTypeEvalCase,
+): DataSecurityEvalCall {
+  const call: { prompt: DataSecurityAiPrompt; maxTokens: number } =
+    dataTypeDraftEvalPrompt(testCase);
+
+  return {
+    messages: call.prompt.messages,
+    maxTokens: call.maxTokens,
+    temperature: 0,
+  };
 }
 
 export function scoreAnswer(
@@ -1389,6 +1444,16 @@ export function scoreAnswer(
         },
         answer,
       );
+    case DataSecurityAiFeature.DraftRecord:
+    case DataSecurityAiFeature.DraftRecordOnRequest:
+      return scoreRecordDraft(testCase, answer);
+    case DataSecurityAiFeature.DraftImpactAssessment:
+      return scoreImpactAssessment(testCase, answer);
+    case DataSecurityAiFeature.DraftAuditEvidence:
+      return scoreAuditEvidence(testCase, answer);
+    case DataSecurityAiFeature.DraftDataTypes:
+    case DataSecurityAiFeature.DescribeDataType:
+      return scoreDataTypeDraft(testCase, answer);
   }
 }
 

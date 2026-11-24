@@ -210,8 +210,13 @@ describe("the monitor step values cases", () => {
     expect(criteriaValueCase("onNoDataPolicy", "TREAT-AS-ZERO").read).toBe(
       NoDataPolicy.TreatAsZero,
     );
+    /*
+     * The server reads every window type there - the percentile and the
+     * counts of #10355, the previous check of #10821 - though the dashboard
+     * offers a metric criteria only the first six.
+     */
     expect(criteriaValueCase("metricAggregationType", "x").error).toBe(
-      `Criteria ${JSON.stringify(CRITERIA_NAME)}: filters[0].metricMonitorOptions.metricAggregationType "x" is not a value OneUptime reads there. Use one of "Average", "Sum", "Maximum Value", "Minimum Value", "All Values" or "Any Value".`,
+      `Criteria ${JSON.stringify(CRITERIA_NAME)}: filters[0].metricMonitorOptions.metricAggregationType "x" is not a value OneUptime reads there. Use one of "Average", "Sum", "Maximum Value", "Minimum Value", "All Values", "Any Value", "Percentile", "Count", "Percentage", "Status Changes" or "Previous Check".`,
     );
     // The name is quoted as JSON writes it.
     expect(CRITERIA_NAME).toMatch(/["\\]/);

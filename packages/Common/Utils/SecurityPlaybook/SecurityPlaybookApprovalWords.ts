@@ -273,6 +273,7 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   targetGroupedOn: string;
   targetThreatIntel: string;
   targetOnTheCase: string;
+  targetInTheCampaign: string;
   targetProtected: string;
   targetProtectedBy: string;
   targetProtectedOwn: string;
@@ -343,6 +344,9 @@ export const SECURITY_PLAYBOOK_APPROVAL_WORDS: {
   targetGroupedOn: translationKey("{{target}}: the case is grouped on it"),
   targetThreatIntel: translationKey("{{target}}: known to threat intel"),
   targetOnTheCase: translationKey("{{target}}: one of the case's addresses"),
+  targetInTheCampaign: translationKey(
+    "{{target}}: sent the same requests with the same tools as the case's address",
+  ),
   targetProtected: translationKey(
     "{{target}}: on your protected list, so it is never acted on",
   ),
@@ -803,7 +807,9 @@ function wordTarget(
           ? words.targetThreatIntel
           : target.reason === SecurityPlaybookTargetReason.OnTheCase
             ? words.targetOnTheCase
-            : words.targetGroupedOn,
+            : target.reason === SecurityPlaybookTargetReason.InTheCampaign
+              ? words.targetInTheCampaign
+              : words.targetGroupedOn,
         { target: value },
       );
   }

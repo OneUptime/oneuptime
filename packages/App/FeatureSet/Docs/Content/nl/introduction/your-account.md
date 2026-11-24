@@ -114,7 +114,7 @@ Open **Beveiliging → Tweefactorauthenticatie** en klik op **Tweefactorauthenti
 
 ### Instellen
 
-Voor een authenticator-app scant u de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voert u de 6-cijferige code in die de app toont en klikt u op **Verifiëren en afronden**. Een USB- of NFC-sleutel geeft u een naam, waarna u de aanwijzingen van uw browser volgt. Tweefactorauthenticatie is daarna ingeschakeld en de kaart toont **Ingeschakeld**. Vanaf uw volgende aanmelding met een wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
+Voor een authenticator-app scant u de QR-code met een app zoals 1Password, Google Authenticator of Microsoft Authenticator, voert u de 6-cijferige code in die de app toont en klikt u op **Verifiëren en afronden**. Op een telefoon tikt u in plaats van te scannen op **Toevoegen aan authenticator-app**: uw app opent met uw account al ingevuld. Een USB- of NFC-sleutel geeft u een naam, waarna u de aanwijzingen van uw browser volgt. Tweefactorauthenticatie is daarna ingeschakeld en de kaart toont **Ingeschakeld**. Vanaf uw volgende aanmelding met een wachtwoord of een gemailde link vraagt OneUptime om uw tweede stap.
 
 ### Uw back-upcodes bewaren
 
@@ -127,7 +127,7 @@ Hebt u al een app onder **Authenticator-apps** of een sleutel onder **Beveiligin
 
 Als een beheerder tweefactorauthenticatie vereist en u nog niets hebt ingesteld, vraagt uw volgende aanmelding met een wachtwoord of een gemailde link u om die in te stellen voordat u binnenkomt. Kies **Authenticator-app** of **Beveiligingssleutel** en klik op **Doorgaan**:
 
-- **Authenticator-app**: scan de QR-code, voer de 6-cijferige code in die uw app toont en klik op **Verifiëren en aanmelden**.
+- **Authenticator-app**: scan de QR-code, voer de 6-cijferige code in die uw app toont en klik op **Verifiëren en aanmelden**. Tik op een telefoon in plaats van te scannen op **Toevoegen aan authenticator-app**.
 - **Beveiligingssleutel**: klik op **Beveiligingssleutel registreren** en volg de aanwijzingen van uw browser. Raak een USB- of NFC-sleutel aan, of gebruik de vingerafdruk, het gezicht of de schermvergrendeling van uw telefoon of computer.
 
 Hebt u nog geen back-upcodes, dan toont OneUptime ze daarna één keer, en bent u aangemeld. **Een andere manier kiezen** gaat terug naar de keuze. Een browser die geen beveiligingssleutel kan registreren, zoals een op een pagina zonder HTTPS, biedt alleen de authenticator-app aan.

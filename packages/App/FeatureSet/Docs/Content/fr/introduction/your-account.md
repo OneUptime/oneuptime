@@ -114,7 +114,7 @@ Ouvrez **Sécurité → Authentification à deux facteurs** et cliquez sur **Act
 
 ### La configurer
 
-Pour une application d'authentification, scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Vérifier et terminer**. Pour une clé USB ou NFC, donnez-lui un nom et suivez les instructions de votre navigateur. L'authentification à deux facteurs est alors activée, et la carte indique **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
+Pour une application d'authentification, scannez le code QR avec une application comme 1Password, Google Authenticator ou Microsoft Authenticator, saisissez le code à 6 chiffres qu'elle affiche et cliquez sur **Vérifier et terminer**. Sur un téléphone, appuyez sur **Ajouter à l'application d'authentification** au lieu de scanner : votre application s'ouvre avec votre compte déjà renseigné. Pour une clé USB ou NFC, donnez-lui un nom et suivez les instructions de votre navigateur. L'authentification à deux facteurs est alors activée, et la carte indique **Activé**. Dès votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail, OneUptime vous demande votre deuxième étape.
 
 ### Conserver vos codes de secours
 
@@ -127,7 +127,7 @@ Si vous avez déjà une application sous **Applications d'authentification** ou 
 
 Quand un administrateur exige l'authentification à deux facteurs et que vous n'avez encore rien configuré, votre prochaine connexion avec un mot de passe ou un lien envoyé par e-mail vous demande de la configurer avant de vous laisser entrer. Choisissez **Application d'authentification** ou **Clé de sécurité**, puis cliquez sur **Continuer** :
 
-- **Application d'authentification** : scannez le code QR, saisissez le code à 6 chiffres affiché par votre application et cliquez sur **Vérifier et se connecter**.
+- **Application d'authentification** : scannez le code QR, saisissez le code à 6 chiffres affiché par votre application et cliquez sur **Vérifier et se connecter**. Sur un téléphone, appuyez sur **Ajouter à l'application d'authentification** au lieu de scanner.
 - **Clé de sécurité** : cliquez sur **Enregistrer la clé de sécurité** et suivez les instructions de votre navigateur. Touchez une clé USB ou NFC, ou utilisez l'empreinte digitale, le visage ou le verrouillage d'écran de votre téléphone ou de votre ordinateur.
 
 Si vous n'avez pas encore de codes de secours, OneUptime vous les affiche alors une seule fois, et vous êtes connecté. **Choisir une autre méthode** revient au choix. Un navigateur qui ne peut pas enregistrer de clé de sécurité, par exemple sur une page sans HTTPS, ne propose que l'application d'authentification.

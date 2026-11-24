@@ -70,7 +70,7 @@ Kortet **Loggene dine**, øverst på **Tilkoblinger**, trenger ingen installasjo
 | Fortinet FortiGate | IPS- og antivirusfunn, avvist trafikk, VPN- og administratorpålogginger og konfigurasjonsendringer fra FortiGates egen syslog |
 | Cisco ASA | Avviste tilkoblinger, funn fra trusseloppdagelse og IPS, VPN- og administratorpålogginger og kommandoer fra Cisco ASA og Firepower Threat Defense |
 | Kubernetes-revisjonslogger | Endringer i klyngen, skall åpnet i pods, leste hemmeligheter og avviste forespørsler |
-| Webangrep | Forespørsler i en webservers tilgangslogg som prøver SQL-injeksjon, path traversal eller Log4Shell |
+| Webangrep | Forespørsler i en webservers tilgangslogg som prøver SQL-injeksjon, path traversal eller Log4Shell, og forespørsler om sensitive filer, for eksempel `/.env` eller `/.git/config`, som nettstedet ditt avviste eller ikke har |
 
 Loggene dine forblir som de er. Bare linjene som betyr noe for sikkerheten, blir hendelser: aldri hver side en webserver har levert, eller hver lesing av et API.
 

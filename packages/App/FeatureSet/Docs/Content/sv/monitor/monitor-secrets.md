@@ -85,6 +85,15 @@ Om en monitor hänvisar till en hemlighet som den inte får använda står hänv
 
 När kontrollen av en monitor av typen API, Webbplats eller Extern statussida misslyckas nämner felet bara URL:ens schema, värd och port, som `https://api.example.com`, så en hemlighet i URL:en visas aldrig.
 
+En kontroll kan också ge tillbaka värdet av en hemlighet: en webbläsare citerar URL:en till en sida som inte gick att läsa in, ett skript loggar det som det innehåller, och en server kan upprepa frågan, huvudena eller brödtexten som den fick. OneUptime döljer värdet överallt där det står i det som kontrollen rapporterar: ett skripts fel, loggmeddelanden och resultat, ett svars brödtext och huvuden, och felorsaken för kontrollen och för varje försök. Därför står värdet varken i monitorns loggar, i dess sammanfattning, i resultatet av ett monitortest eller i rotorsaken till en incident eller ett larm. OneUptime skriver `[REDACTED]` i dess ställe och behåller resten, så en sida på `https://app.example.com/login?token={{monitorSecrets.Token}}` som inte går att läsa in rapporteras som `https://app.example.com/login?token=[REDACTED]`. Värdet hittas med stora eller små bokstäver och hur kontrollen än skrev det: procentkodat, escapat i JSON eller HTML, eller i base64.
+
+OneUptime döljer inte:
+
+- Ett värde med färre än 4 tecken, utan att räkna mellanslag runt det. Ett så kort värde är en del av vanlig text, som tal och ord.
+- Det som en skärmbild visar. En skärmbild är en bild, så en hemlighet som sidan visar på skärmen finns i den.
+
+Kriterier läser en kontroll som den rapporteras. Skriv ett kriterium mot texten runt en hemlighet, som `ERR_NAME_NOT_RESOLVED` eller `token=`, i stället för mot hemlighetens värde: ett kriterium visas för alla som kan läsa monitorn.
+
 När du testar en monitor innan du sparar den fylls bara hemligheter i som är tillgängliga för **Alla monitorer**, eftersom en ny monitor inte finns på någon lista och inte har några etiketter ännu. När du har sparat monitorn använder testerna varje hemlighet som monitorn får använda.
 
 ## Logga in med en engångskod
@@ -144,6 +153,10 @@ Innan en monitor är sparad fylls bara hemligheter i som är tillgängliga för 
 
 :::details Ett fält ignorerar hemligheten
 Bara fälten i tabellen ovan tar emot hemligheter. I alla andra fält skickas `{{monitorSecrets.NAME}}` som det skrevs.
+:::
+
+:::details En kontroll visar `[REDACTED]` där ett värde stod
+Värdet av en hemlighet stod i det som kontrollen rapporterade, och OneUptime dolde det. Texten runt det, som `token=[REDACTED]`, visar var skriptet eller begäran använde hemligheten.
 :::
 
 :::details Webbplatsen avvisar engångskoden

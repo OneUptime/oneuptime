@@ -310,6 +310,14 @@ export enum DataSecurityAiProposalStatus {
   Undone = "Undone",
   // Making it failed: the reason is on it, and nothing changed.
   Failed = "Failed",
+  /*
+   * Being proven before anyone is asked (#10371): a data type OneUptime AI
+   * drafted runs in shadow in its stores' next scans, which count what it
+   * would find and make no finding. It waits for no one and no list shows
+   * it; once counted it is Proposed with its numbers, or Expired when they
+   * say it would not do.
+   */
+  Proving = "Proving",
 }
 
 export const DATA_SECURITY_AI_PROPOSAL_STATUSES: ReadonlyArray<DataSecurityAiProposalStatus> =
@@ -400,6 +408,14 @@ export enum DataSecurityAiProposalKind {
    * under the repository's cap on open AI pull requests.
    */
   FixTelemetryLeaksInCode = "FixTelemetryLeaksInCode",
+  /*
+   * A data type of the company's own (#10371) - a policy number, a customer
+   * number - found in the fields scans could not place, drafted by
+   * OneUptime AI and proven on the stores that keep it. It is for the
+   * project, never one issue or store: Add Data Type opens the data type
+   * form filled in, and the type a person saves there is what it adds.
+   */
+  AddDataType = "AddDataType",
 }
 
 // The kinds of change that fix a group of issues' cause, for the group alone (#10370).
@@ -522,6 +538,15 @@ export const DATA_SECURITY_AI_PROPOSAL_KINDS: Readonly<
     kind: DataSecurityAiProposalKind.FixTelemetryLeaksInCode,
     work: DataSecurityAiWork.Fix,
     safety: DataSecurityAiChangeSafety.OpensPullRequest,
+  },
+  /*
+   * That a shape is sensitive data is a judgement, taken back by deleting
+   * the type. It never runs without asking: a person saves the form.
+   */
+  [DataSecurityAiProposalKind.AddDataType]: {
+    kind: DataSecurityAiProposalKind.AddDataType,
+    work: DataSecurityAiWork.Judge,
+    safety: DataSecurityAiChangeSafety.RecordsJudgement,
   },
 };
 

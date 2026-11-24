@@ -184,7 +184,7 @@ pipeline:
 
 ## 用 HTTP 输出发送
 
-Fluent Bit 的 [HTTP 输出](https://docs.fluentbit.io/manual/pipeline/outputs/http)也可以发送到 OneUptime 的 Fluentd 端点，它会按照 [Fluentd 页面](/docs/telemetry/fluentd)所说的方式读取每条记录。把 `format` 设为 `json_lines`（如下所示）或 `json`：OneUptime 两者都能读取，无论是否用 `compress: gzip` 压缩。Fluent Bit 的默认格式 `msgpack` 会被拒绝。
+Fluent Bit 的 [HTTP 输出](https://docs.fluentbit.io/manual/pipeline/outputs/http)也可以发送到 OneUptime 的 Fluentd 端点，它会按照 [Fluentd 页面](/docs/telemetry/fluentd)所说的方式读取每条记录。把 `format` 设为 `json_lines`（如下所示）、`json` 或 `json_stream`：OneUptime 三者都能读取，无论是否用 `compress: gzip` 压缩。Fluent Bit 的默认格式 `msgpack` 会被拒绝。
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

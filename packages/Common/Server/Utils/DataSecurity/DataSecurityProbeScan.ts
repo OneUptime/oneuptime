@@ -13,6 +13,15 @@ import {
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
 import { MAX_MASKED_SAMPLES } from "../../../Utils/DataSecurity/FindingTally";
 import { MAX_MASKED_SAMPLE_LENGTH } from "../../../Utils/DataSecurity/Masking";
+import {
+  compileShadowDetectors,
+  isShadowKey,
+  MAX_SHADOW_DETECTORS,
+  readShadowCounts,
+  ShadowCounts,
+  ShadowDraft,
+  toShadowDefinition,
+} from "../../../Utils/DataSecurity/ShadowCount";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
 import { readUnplacedFields } from "../../../Utils/DataSecurity/UnplacedFields";
 import type { DatabaseEngine } from "./Content/DatabaseSampler";
@@ -131,6 +140,12 @@ export interface DataSecurityProbeStoreWork {
    * the project's other stores'. Handed only to the project's own probe.
    */
   fingerprintKey: string;
+  /*
+   * The data types OneUptime AI drafted from this store's fields, run in
+   * shadow (#10371): counted, never found. A probe older than them leaves
+   * them out, and its store is proven by the others of the group.
+   */
+  shadowDataTypes?: Array<ShadowDraft> | undefined;
 }
 
 export interface DataSecurityProbeWorkResponse {
@@ -174,6 +189,28 @@ function readWholeNumber(
   return typeof value === "number" && Number.isFinite(value) && value >= 0
     ? Math.min(Math.floor(value), max)
     : fallback;
+}
+
+// A draft run in shadow, as the server hands it: a key and how it is found.
+function readShadowDataType(value: unknown): ShadowDraft | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const draft: JSONObject = value as JSONObject;
+  const definition: CustomDataTypeDefinition | null = readCustomDataType({
+    ...((draft["definition"] as JSONObject | undefined) || {}),
+    dataTypeId: "custom:shadow",
+  });
+
+  if (!isShadowKey(draft["key"]) || !definition?.pattern) {
+    return null;
+  }
+
+  return {
+    key: draft["key"] as string,
+    definition: toShadowDefinition(definition),
+  };
 }
 
 function readCustomDataType(value: unknown): CustomDataTypeDefinition | null {
@@ -281,6 +318,15 @@ export function readProbeStoreWork(
       typeof work["fingerprintKey"] === "string"
         ? (work["fingerprintKey"] as string)
         : "",
+    shadowDataTypes: (Array.isArray(work["shadowDataTypes"])
+      ? (work["shadowDataTypes"] as Array<unknown>)
+      : []
+    )
+      .slice(0, MAX_SHADOW_DETECTORS)
+      .map(readShadowDataType)
+      .filter((draft: ShadowDraft | null): draft is ShadowDraft => {
+        return draft !== null;
+      }),
   };
 }
 
@@ -371,6 +417,7 @@ export function buildProbeScanOptions(
     allowedValues: normalizeAllowedValues(work.allowedValues),
     exclusions: work.exclusions,
     fingerprintKey: work.fingerprintKey,
+    shadowDetectors: compileShadowDetectors(work.shadowDataTypes || []),
   };
 }
 
@@ -448,6 +495,10 @@ function readClassification(
 export function readProbeScanResult(
   value: unknown,
   isKnownDataType: (dataTypeId: string) => boolean,
+  // The drafts the probe was handed to run in shadow: only their counts are kept.
+  isExpectedShadowKey: (key: string) => boolean = (): boolean => {
+    return false;
+  },
 ): ContentScanResult | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -554,5 +605,16 @@ export function readProbeScanResult(
         return LOCATION_KINDS.has(kind);
       },
     ),
+    ...readProbeShadowCounts(raw["shadowCounts"], isExpectedShadowKey),
   };
+}
+
+// A probe's shadow counts (#10371): counts only, of the drafts it was handed.
+function readProbeShadowCounts(
+  value: unknown,
+  isExpectedShadowKey: (key: string) => boolean,
+): { shadowCounts?: ShadowCounts } {
+  const counts: ShadowCounts = readShadowCounts(value, isExpectedShadowKey);
+
+  return Object.keys(counts).length > 0 ? { shadowCounts: counts } : {};
 }

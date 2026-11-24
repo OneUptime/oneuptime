@@ -188,6 +188,45 @@ export function normalizeExceptionText(text: string): string {
   return normalized;
 }
 
+/*
+ * GROUPING V3'S FOLDS (#10620).
+ *
+ * normalizeExceptionText takes out runs of seven or more digits, but not the
+ * numbers people write with separators: a card number in groups ("card
+ * 4111-1111-1111-1234 declined"), a US Social Security number ("Invalid SSN
+ * 123-45-6789"), a phone number ("call 555-123-4567"). An exception grouped
+ * by a message that holds one became one exception per value, each setting
+ * off New Exception. These are the values Data Security's Credit Card, SSN
+ * and Phone Number scrub rules find, and they are found the same way: the
+ * card and SSN patterns are frozen copies of SCRUB_RULE_BUILT_IN_PATTERNS'
+ * (Types/Telemetry/ScrubRule.ts) as they were when grouping v3 shipped, so a
+ * change there never regroups an exception. The phone pattern finds the
+ * numbers the Phone Number rule finds, written as people write them, and
+ * takes an area code in parentheses whole: the rule's cannot begin at "(",
+ * and "(555) 222-3333" folded to "(<PHONE>" would be grouped apart from
+ * "555-123-4567".
+ *
+ * Read over text normalizeExceptionText already normalized, so the values it
+ * folds (UUIDs, hex ids, timestamps) are placeholders by then and no fold
+ * here reads a piece of one. Like normalizeExceptionText, this MUST stay byte
+ * for byte stable: every exception grouping v3 makes is found by its output.
+ */
+const GROUPED_CARD_NUMBER_PATTERN: RegExp = /\b(?:\d{4}[-\s]?){3}\d{4}\b/g;
+const SOCIAL_SECURITY_NUMBER_PATTERN: RegExp = /\b\d{3}-\d{2}-\d{4}\b/g;
+const PHONE_NUMBER_PATTERN: RegExp =
+  /(?<![\w+(])(?:\+?1[-.\s]?)?(?:\(\d{3}\)[-.\s]?|\d{3}[-.\s]?)\d{3}[-.\s]?\d{4}(?!\w)/g;
+
+export function foldSeparatedNumbers(normalizedText: string): string {
+  if (!normalizedText) {
+    return "";
+  }
+
+  return normalizedText
+    .replace(GROUPED_CARD_NUMBER_PATTERN, "<CARD>")
+    .replace(SOCIAL_SECURITY_NUMBER_PATTERN, "<SSN>")
+    .replace(PHONE_NUMBER_PATTERN, "<PHONE>");
+}
+
 /**
  * Sanitize an exception message for surfaces that leave the platform:
  * LLM prompts, pull-request titles/bodies, and commit messages.

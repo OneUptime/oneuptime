@@ -63,13 +63,36 @@ describe("which reads leave merged exceptions out", () => {
       expect(isNullOperator(hidden["mergedIntoTelemetryExceptionId"])).toBe(
         true,
       );
+      // Nor a row that only keeps an exception's former fingerprint (#10619).
+      expect(
+        isNullOperator(hidden["formerFingerprintOfTelemetryExceptionId"]),
+      ).toBe(true);
       // The rest of the query is kept, and the caller's own is not changed.
-      expect({ ...hidden, mergedIntoTelemetryExceptionId: undefined }).toEqual({
+      expect({
+        ...hidden,
+        mergedIntoTelemetryExceptionId: undefined,
+        formerFingerprintOfTelemetryExceptionId: undefined,
+      }).toEqual({
         ...query,
         mergedIntoTelemetryExceptionId: undefined,
+        formerFingerprintOfTelemetryExceptionId: undefined,
       });
       expect(query).not.toHaveProperty("mergedIntoTelemetryExceptionId");
+      expect(query).not.toHaveProperty(
+        "formerFingerprintOfTelemetryExceptionId",
+      );
     }
+  });
+
+  test("a read of an exception's former fingerprints does not: they are read by that column", () => {
+    const query: Record<string, unknown> = {
+      projectId,
+      formerFingerprintOfTelemetryExceptionId: ObjectID.generate(),
+    };
+
+    expect(TelemetryExceptionServiceClass.hideMergedExceptions(query)).toBe(
+      query,
+    );
   });
 
   test("a read by id does not: a merged exception's own page opens", () => {

@@ -1,4 +1,5 @@
 import DashboardVariable from "../../Types/Dashboard/DashboardVariable";
+import DataSourceType from "../../Types/DataSource/DataSourceType";
 import { ProjectMetricsDataSourceUtil } from "../../Types/DataSource/ProjectMetricsDataSource";
 import DashboardVariableInterpolation, {
   ResolvedVariableValue,
@@ -219,16 +220,25 @@ export default class DataSourceQueryText {
 
   /*
    * The variables filled into a widget's query the way its source reads
-   * them: PromQL over the project's own metrics as Grafana's Prometheus
-   * data source fills its variables (applyVariablesToPromQL), any other
-   * source as applyVariables does.
+   * them: PromQL - over the project's own metrics, or over an outside
+   * Prometheus data source (Prometheus, Thanos, Mimir, VictoriaMetrics;
+   * issue #10326) - as Grafana's Prometheus data source fills its variables
+   * (applyVariablesToPromQL), so a dashboard brought over from Grafana reads
+   * the same whichever Prometheus it points at; any other source as
+   * applyVariables does. `dataSourceType` is the outside source's type,
+   * when the caller knows it: without it, an outside source is filled as
+   * text.
    */
   public static applyVariablesForSource(data: {
     dataSourceId: string | undefined;
+    dataSourceType?: DataSourceType | undefined;
     queryText: string;
     variables: Array<DashboardVariable> | undefined;
   }): string {
-    if (ProjectMetricsDataSourceUtil.isProjectMetrics(data.dataSourceId)) {
+    if (
+      ProjectMetricsDataSourceUtil.isProjectMetrics(data.dataSourceId) ||
+      data.dataSourceType === DataSourceType.Prometheus
+    ) {
       return DataSourceQueryText.applyVariablesToPromQL(
         data.queryText,
         data.variables,

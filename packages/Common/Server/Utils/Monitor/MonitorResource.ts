@@ -79,6 +79,7 @@ import MonitorResourceContextUtil, {
 } from "./MonitorResourceContext";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import MonitorStoredCheck from "./MonitorStoredCheck";
+import MonitorCheckSecretValues from "./MonitorCheckSecretValues";
 import LatestIncomingRequest, {
   LatestIncomingRequestColumns,
 } from "./LatestIncomingRequest";
@@ -801,6 +802,26 @@ export default class MonitorResourceUtil {
         return response;
       }
 
+      /*
+       * The values of the monitor secrets the server filled into the
+       * monitor's steps, hidden wherever a probe's check says them back - a
+       * script's error and log lines, a response that echoes the request -
+       * before anything below reads the check: its criteria, the probe's
+       * latest check, the monitor's logs and summary, an incident's root
+       * cause (MonitorCheckSecretValues, #10825). Here rather than as the
+       * queue takes the check in, so it costs no read of the monitor of its
+       * own: a monitor whose steps name no secret costs nothing more.
+       */
+      if (
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+      ) {
+        dataToProcess = await MonitorCheckSecretValues.hideInMonitorCheck({
+          check: dataToProcess as ProbeMonitorResponse,
+          monitor: monitor,
+        });
+      }
+
       // What a heartbeat sweep compares with (MonitorHeartbeatState).
       const monitorStatusIdFound: ObjectID | undefined =
         monitor.currentMonitorStatusId;
@@ -1240,6 +1261,13 @@ export default class MonitorResourceUtil {
         `${dataToProcess.monitorId.toString()} - Saving monitor metrics`,
       );
 
+      /*
+       * When this check's rows begin to be written: a criteria that compares
+       * the check with the previous one reads the newest row before it, so
+       * the check's own rows are never read as its previous check (#10821).
+       */
+      const checkWrittenAt: Date = OneUptimeDate.getCurrentDate();
+
       try {
         await MonitorMetricUtil.saveMonitorMetrics({
           monitorId: monitor.id!,
@@ -1443,6 +1471,7 @@ export default class MonitorResourceUtil {
          * below re-reads other probes' stored checks and records nothing.
          */
         recordMatchHistory: true,
+        checkWrittenAt: checkWrittenAt,
         matchHistoryReads: matchHistoryReads,
         criteriaInEffect: criteriaInEffect,
         seriesBehindStatus: seriesBehindStatus,

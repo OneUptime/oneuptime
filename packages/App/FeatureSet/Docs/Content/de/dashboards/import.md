@@ -19,12 +19,12 @@ flowchart TB
     R --> P["Die Vorschau: jedes<br/>Element und was<br/>daraus wird"]
     P --> A["OneUptime AI, wenn Sie<br/>fragen: eine Abfrage<br/>nach der anderen"]
     A --> P
-    P --> C["Ein Dashboard oder<br/>Metrics-Monitore"]
+    P --> C["Ein Dashboard oder<br/>Monitore"]
 ```
 
 ## Bevor Sie beginnen
 
-- Die importierten Widgets und Monitore lesen die eigenen Metriken dieses Projekts mit PromQL. Senden Sie sie mit Prometheus Remote Write, OpenTelemetry oder dem Datadog Agent; sie behalten die Namen, die sie dort haben.
+- Die importierten Widgets und Monitore lesen die eigenen Metriken und Logs dieses Projekts. Senden Sie sie mit OpenTelemetry oder dem Datadog Agent, oder mit Prometheus Remote Write für Metriken und der Push-API von Loki für Logs; sie behalten die Namen, die sie dort haben.
 - Ein Dashboard zu importieren erfordert eine Rolle, die Dashboards erstellen darf, und Warnungsregeln zu importieren eine Rolle, die Monitore erstellen darf.
 - Eine Datei darf bis zu 10 MB groß sein, und bis zu 500 ihrer Panels oder Regeln werden gelesen.
 
@@ -44,7 +44,7 @@ Kopieren Sie in Grafana das JSON-Modell aus den Einstellungen des Dashboards. Ex
 Prüfen Sie, was aus jedem Panel und jeder Variable wird, geben Sie dem Dashboard einen Namen und wählen Sie **Dashboard erstellen**. Das neue Dashboard öffnet sich.
 :::
 
-Das PromQL von Grafana bleibt, wie es geschrieben ist: OneUptime setzt `$__interval`, `$__rate_interval` und `$__range` so ein, wie Grafana es tut, und eine Variable auf All passt auf jeden Wert. Eine Datadog-Abfrage wird zu PromQL über die Metriken, die der Datadog Agent gesendet hat: `avg:system.cpu.user{host:web-1}` liest `system_cpu_user{host="web-1"}`.
+Das PromQL von Grafana bleibt, wie es geschrieben ist: OneUptime setzt `$__interval`, `$__rate_interval` und `$__range` so ein, wie Grafana es tut, und eine Variable auf All passt auf jeden Wert. Eine Datadog-Abfrage wird zu PromQL über die Metriken, die der Datadog Agent gesendet hat: `avg:system.cpu.user{host:web-1}` liest `system_cpu_user{resource_host_name="web-1"}`, und `.as_count()` macht aus einer Zählung, die der Agent als Rate gesendet hat, wieder die Anzahl, die in jedem Intervall gezählt wurde. Ein Datadog-Widget, das Logs auflistet, wird zu einem **Protokoll-Stream** und eine Zeitreihe, die sie zählt, zu einem **Protokolldiagramm**, beide über die Logs, die der Datadog Agent gesendet hat, und nach der Suche von Datadog gefiltert.
 
 ## Warnungsregeln importieren
 
@@ -64,6 +64,8 @@ Entfernen Sie das Häkchen bei jeder Regel, die Sie nicht möchten, wählen Sie 
 
 Jede Regel wird zu einem Metrics-Monitor mit einer PromQL-Abfrage, der Bedingung der Regel und ihrem Zeitfenster. Er öffnet eine Warnung oder einen Vorfall für jede Serie, die den Grenzwert überschreitet, und löst die Warnung oder den Vorfall auf, wenn sich die Serie erholt. Titel und Beschreibung stammen aus der Zusammenfassung oder Nachricht der Regel, mit den Labels der Serie eingesetzt.
 
+Ein Anomalie- oder Prognose-Monitor von Datadog wird zu einem Metrics-Monitor mit der Anomalie- oder Prognosebedingung von OneUptime, und ein Log-Monitor von Datadog zu einem Logs-Monitor, der die Logs zählt, auf die seine Suche passt.
+
 ## Wie jedes Element umgewandelt wird
 
 | Status | Was er bedeutet |
@@ -72,7 +74,7 @@ Jede Regel wird zu einem Metrics-Monitor mit einer PromQL-Abfrage, der Bedingung
 | **Converted approximately** | Es wird erstellt, und seine Hinweise sagen, was abweicht. |
 | **Not converted** | Dafür wird nichts erstellt, und seine Hinweise sagen, warum. |
 
-Aufzeichnungsregeln, Warnungsregeln über Logs, Datadog-Widgets, die Logs, Traces oder Ereignisse lesen, und die Anomalie-, Ausreißer- und Prognose-Monitore von Datadog werden nicht umgewandelt.
+Aufzeichnungsregeln, Warnungsregeln von Prometheus und Grafana über Logs, Datadog-Widgets, die Traces oder Ereignisse lesen, die Ausreißer- und Änderungs-Monitore von Datadog und seine Monitore für alles außer Metriken und Logs werden nicht umgewandelt.
 
 ## Eine Abfrage mit OneUptime AI umwandeln
 

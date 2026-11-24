@@ -317,6 +317,8 @@ GenAI-målinger som `gen_ai.client.token.usage` og `gen_ai.client.operation.dura
 
 AI-kall lagres som trace-spans, så traces' **Scrub-regler** og **Drop-filtre** gjelder for dem: masker et attributt, eller dropp et span, før det lagres. Du finner begge under **Spor → Innstillinger**. Den ansattes e-postkolonne maskeres sammen med attributtet den ble lest fra, så en regel som maskerer e-poster, dekker den også.
 
+En person som en rensingsregel skjulte, vises aldri som en person. **Samtaler** og **Kall** viser id-en til et kall når en regel skjulte e-posten, men lot id-en være, og **Skjult av en rensingsregel** når en regel skjulte alle navnene kallet har, enten regelen sladdet, maskerte eller hashet dem. **Kall** viser et team som en regel skjulte, på samme måte.
+
 Prompter og svar sendt som logghendelser lagres som logger, så det er loggenes **Scrub-regler** og **Drop-filtre** som gjelder for dem, under **Logger → Innstillinger**: en regel som maskerer e-poster i traces, maskerer dem ikke i logghendelser. En samtale viser dem bare til den som også kan lese appens logger, og den kan også finne dem på siden **Logger**.
 
 Uansett leser en regel hver tekst i en liste eller en strukturert verdi, som meldinger en instrumentering sender som en liste i stedet for som JSON-tekst, og beholder verdiens form: en e-postadresse i en prompt maskeres uansett hvor den står. Se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data).

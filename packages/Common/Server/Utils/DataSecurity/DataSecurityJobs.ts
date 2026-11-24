@@ -45,6 +45,10 @@ export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
 export const DATA_SECURITY_JUDGE_FINDINGS_JOB: string =
   "DataSecurity:JudgeFindings";
 export const DATA_SECURITY_TUNE_SCANS_JOB: string = "DataSecurity:TuneScans";
+export const DATA_SECURITY_DRAFT_RECORDS_JOB: string =
+  "DataSecurity:DraftRecords";
+export const DATA_SECURITY_DISCOVER_DATA_TYPES_JOB: string =
+  "DataSecurity:DiscoverDataTypes";
 export const DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB: string =
   "DataSecurity:ProposeTelemetryFixes";
 
@@ -83,6 +87,13 @@ export const JUDGE_FINDINGS_DELAY_IN_MS: number = 2 * 60 * 1000;
  * all of them proposes what they say of the scans.
  */
 export const TUNE_SCANS_DELAY_IN_MS: number = 3 * 60 * 1000;
+
+/*
+ * How long the data type discovery waits after a scan that kept fields no
+ * detector placed (#10371): a project's stores are scanned one after
+ * another, and one look after them groups what all of them kept.
+ */
+export const DATA_TYPE_DISCOVERY_DELAY_IN_MS: number = 10 * 60 * 1000;
 
 // Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
@@ -326,6 +337,22 @@ export async function queueDataStoreOwnerProposals(data: {
 }
 
 /*
+ * Has OneUptime AI draft the record of processing of a project's stores
+ * with personal data (Server/Utils/AI/DataSecurity/
+ * RecordOfProcessingDraftRun, #10375): one job per project a day.
+ */
+export async function queueDataSecurityRecordDrafts(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DRAFT_RECORDS_JOB,
+    key: `data-security-record-drafts-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's record of processing drafts for project ${projectId.toString()}`,
+  });
+}
+
+/*
  * Has OneUptime AI propose the owner rules the project's proposed owners
  * share (Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals): a few
  * minutes after a store's owners are proposed, once for all of them.
@@ -414,6 +441,24 @@ export async function queueDataSecurityScanTuning(
     payload: { projectId: projectId.toString() },
     description: `OneUptime AI's tuning of the scans of project ${projectId.toString()}`,
     delayInMs: TUNE_SCANS_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI find the project's own data types in the fields its
+ * scans could not place, and decides the drafts being proven
+ * (Server/Utils/AI/DataSecurity/DataTypeDiscovery, #10371): a little after
+ * a scan that kept such fields, once for all of the project's stores.
+ */
+export async function queueDataTypeDiscovery(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+    key: `data-security-data-types-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's data types for project ${projectId.toString()}`,
+    delayInMs: DATA_TYPE_DISCOVERY_DELAY_IN_MS,
   });
 }
 

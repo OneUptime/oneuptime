@@ -26,7 +26,9 @@ import path from "path";
  *      through ModelForm (dropdownModal.sort), not through a list of their
  *      own;
  *   5. the monitor criteria and monitor recommendation pickers fetch their
- *      statuses and severities with their colours;
+ *      statuses and severities with their colours, and the criteria's label
+ *      picker reads a label it searches for or already holds with its
+ *      colour;
  *   6. the "Change state to" menu in an event's header shows each state's
  *      colour.
  */
@@ -509,7 +511,7 @@ describe("5. the monitor criteria and recommendations show status and severity c
     "Components/Form/Monitor/MonitorSteps.tsx",
   );
 
-  test.each(["MonitorStatus", "IncidentSeverity", "AlertSeverity", "Label"])(
+  test.each(["MonitorStatus", "IncidentSeverity", "AlertSeverity"])(
     "the criteria fetch every %s with its colour",
     (model: string) => {
       const selects: Array<string> = listSelectsFor(criteriaSteps, model);
@@ -526,7 +528,6 @@ describe("5. the monitor criteria and recommendations show status and severity c
     "setMonitorStatusDropdownOptions",
     "setIncidentSeverityDropdownOptions",
     "setAlertSeverityDropdownOptions",
-    "setLabelDropdownOptions",
   ])("%s gets options built from the rows", (setter: string) => {
     const index: number = criteriaSteps.indexOf(`${setter}(`);
 
@@ -541,6 +542,76 @@ describe("5. the monitor criteria and recommendations show status and severity c
 
     expect(call).toContain("ArchivedValuePicker.getPickerOptions(");
     expect(call).toContain("DropdownUtil.getDropdownOptionsFromEntityArray(");
+  });
+
+  /*
+   * The labels a criteria sets on what it opens are not read here: their
+   * picker searches the server and reads the ones the criteria hold by their
+   * ids (CriteriaRecordPicker, #10690). Both reads must carry the colour, or
+   * a saved label's chip loses its dot the next time the form opens.
+   */
+  const readEntityDropdownSource: (file: string) => string = (
+    file: string,
+  ): string => {
+    return fs.readFileSync(
+      path.join(PACKAGES, "Common", "UI", "Components", "EntityDropdown", file),
+      "utf8",
+    );
+  };
+
+  test("the criteria's labels are picked from the server, which reads their colour", () => {
+    const picker: string = readDashboardSource(
+      "Components/Form/Monitor/CriteriaRecordPicker.tsx",
+    );
+    const entityDropdown: string =
+      readEntityDropdownSource("EntityDropdown.tsx");
+
+    expect(criteriaSteps).not.toMatch(/modelType:\s*Label\b/);
+    expect(picker).toContain("<EntityDropdown");
+    // Its search reads the model's colour column (Label.color) with the name.
+    expect(entityDropdown).toContain("getFirstColorColumn()");
+    expect(entityDropdown).toMatch(/baseSelect\[colorField\]\s*=\s*true/);
+  });
+
+  /*
+   * MonitorCriteriaRecordsPastTheCap (Common) draws a saved label's chip and
+   * checks its dot; this keeps the read that gives it one.
+   */
+  test("a label the criteria already hold is read with its colour", () => {
+    const picker: string = readDashboardSource(
+      "Components/Form/Monitor/CriteriaRecordPicker.tsx",
+    );
+    const heldValues: string = readEntityDropdownSource("HeldValueOptions.ts");
+    const heldIndex: number = picker.indexOf("useHeldValueOptions(");
+
+    expect(heldIndex).toBeGreaterThan(-1);
+
+    const held: string = picker.slice(
+      heldIndex,
+      matchingBracket(picker, picker.indexOf("(", heldIndex)) + 1,
+    );
+
+    /*
+     * No select or colour field of its own: the held read's default asks for
+     * the model's colour column and draws it.
+     */
+    expect(held).not.toMatch(/\bselect\s*:/);
+    expect(held).not.toMatch(/\bcolorField\s*:/);
+
+    const selectIndex: number = heldValues.indexOf(
+      "export const getHeldValueSelect",
+    );
+    const select: string = heldValues.slice(
+      selectIndex,
+      heldValues.indexOf("\n};", selectIndex),
+    );
+
+    expect(heldValues).toContain("new modelType().getFirstColorColumn()");
+    expect(select).toContain("getHeldValueColorField(modelType)");
+    expect(select).toMatch(/\[colorField\]:\s*true/);
+    expect(heldValues).toMatch(
+      /toHeldValueOption\(\s*record,\s*data\.colorField \|\| getHeldValueColorField\(data\.modelType\),?\s*\)/,
+    );
   });
 
   test.each(["IncidentSeverity", "AlertSeverity"])(

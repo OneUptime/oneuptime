@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nullable column of its own, with no default, so adding it rewrites no
  * row; its index is built online in the migration after this one.
  */
-export class AddDataSecurityIssueCodeFixTask1809187530367
+export class AddDataSecurityIssueCodeFixTask1809187560367
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityIssueCodeFixTask1809187530367";
+  public name: string = "AddDataSecurityIssueCodeFixTask1809187560367";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -35,11 +35,13 @@ En policy reagerer på en deteksjon idet den registreres i saken sin, noen sekun
 
 | Policy | Reagerer på | Gjør | Første blokkering |
 | --- | --- | --- | --- |
-| **Skannere** | Nettskanninger og utnyttelsesforsøk (ATT&CK T1595, T1190): forsøk på SQL-injeksjon, path traversal og Log4Shell, og mange treff på administrerte Cloudflare-regler fra én adresse, så lenge alle forespørslene fra adressen ble avvist | Utfordring | 1 time |
+| **Skannere** | Nettskanninger og utnyttelsesforsøk (ATT&CK T1595, T1190): forsøk på SQL-injeksjon, path traversal og Log4Shell, skanning etter sensitive filer som `/.env`, `/.git/config` og `/wp-admin`, og mange treff på administrerte Cloudflare-regler fra én adresse, så lenge alle forespørslene fra adressen ble avvist | Utfordring | 1 time |
 | **Passordgjetting** | Brute force og passordspraying (ATT&CK T1110): mislykkede pålogginger fra én adresse, og mislykkede pålogginger etterfulgt av en vellykket fra samme adresse | Blokker | 1 time |
 | **Kjente ondsinnede adresser** | Enhver deteksjon om en adresse som [trusselsinformasjonen](/docs/telemetry/threat-intelligence) din lister opp | Blokker | 24 timer |
 
 Mennesker består en utfordring, skript og boter gjør det ikke. Skannere utfordrer bare en adresse så lenge ingen av forespørslene dens har nådd appen din: en adresse der forespørsler kom gjennom, er en sak for en person.
+
+Skanning etter sensitive filer teller bare forespørsler som nettstedet ditt avviste, eller som ber om noe det ikke har, og bare når én adresse ber om tre eller flere forskjellige filer eller administrasjonssider innen fem minutter. En side som nettstedet ditt leverer, teller aldri med, så et WordPress-nettsteds egne administratorer kan laste inn `/wp-admin` og `/wp-login.php` så ofte de vil.
 
 Når du slår på Skannere eller Passordgjetting, i prøveperioden eller helt, kjører reglene fra **Regelbibliotek** som policyen reagerer på, i sanntid, og reglene prosjektet ditt mangler, legges til: en sanntidsregel utløses sekunder etter at hendelsene kommer, mens en planlagt regel leser minutter etter. En regel som noen har slått av, forblir av. Et prosjekt kjører høyst 50 regler i sanntid: utover det blir en regel værende på tidsplanen sin, og kortet til policyen viser **Etter en tidsplan** ved siden av.
 
@@ -66,7 +68,7 @@ For å slå på en policy uten uken med prøveperiode åpner du **Flere innstill
 - **Aldri dine egne eller beskyttede adresser.** Oppføringene i **Beskyttede entiteter**, og alt OneUptime beskytter av seg selv: vertene, skyressursene og sondene dine, områdene som ikke er på internett, og kanten foran appen din. Se [Blokkeringsliste](/docs/telemetry/security-cases#blokkeringsliste).
 - **Aldri en adresse som en pålogget bruker har brukt de siste 30 dagene.** Nettverket til et kontor, proxyen til en kunde eller hjemmet til en person: OneUptime ser etter adressen i påloggingene hos identitetsleverandøren din og i forespørslene appen din besvarte for en pålogget bruker, de med en bruker-ID i sporene eller loggene. En adresse den ikke kan sjekke, fordi de hendelsene ikke kunne leses eller fordi scrub-reglene dine skjuler adresser på en måte den ikke kan sammenligne, overlates til en person.
 - **Lengre blokkeringer for en adresse som kommer tilbake.** Den første blokkeringen varer 1 time, så 24 timer, så 7 dager for en adresse som blokkeres igjen innen 30 dager. Kjente ondsinnede adresser starter på 24 timer.
-- **Høyst 50 automatiske blokkeringer i timen.** Utover det slutter policyene dine å blokkere og varsler sikkerhetsansvarlige: et så stort angrep trenger en person. Siden sier det så lenge det varer.
+- **Høyst 50 automatiske blokkeringer i timen, eller grensen du setter.** Utover det slutter policyene dine å blokkere og varsler sikkerhetsansvarlige: et så stort angrep trenger en person. Siden sier det så lenge det varer. En Sikkerhetsadministrator, Prosjektadministrator eller Prosjekteier kan sette grensen til en verdi fra 1 til 500 under **Flere innstillinger** nederst på siden: **Timegrense**. En ny grense gjelder fra og med neste deteksjon.
 - **Angre ved tvil.** Når en pålogget bruker blir sett fra en adresse som en policy blokkerte, opphever policyen blokkeringen og gir sikkerhetsansvarlige beskjed.
 
 Sikkerhetsansvarlige er Sikkerhetsadministratorene i prosjektet ditt, eller Prosjekteierne når det ikke har noen. Hver adresse som en sikkerhetsramme lot være, står i saken sin med årsaken.
@@ -101,7 +103,7 @@ Se på tidslinjen til saken: en policy som lot en adresse være, sier hvorfor, f
 :::
 
 :::details Siden sier at timens automatiske blokkeringer er brukt opp
-Policyene dine laget 50 automatiske blokkeringer den siste timen og varslet sikkerhetsansvarlige. De fortsetter igjen etter hvert som timens blokkeringer blir eldre. Se på sakene fra angrepet, og blokker et område fra **Blokkeringsliste** hvis det kommer fra ett nettverk.
+Policyene dine nådde timegrensen din for automatiske blokkeringer, 50 med mindre noen har endret den, og varslet sikkerhetsansvarlige. De fortsetter igjen etter hvert som timens blokkeringer blir eldre. Se på sakene fra angrepet, og blokker et område fra **Blokkeringsliste** hvis det kommer fra ett nettverk. Blir prosjektet ditt ofte utsatt for så mange skannere, klikker du på **Endre grense** ved siden av meldingen og øker grensen.
 :::
 
 ## Neste trinn

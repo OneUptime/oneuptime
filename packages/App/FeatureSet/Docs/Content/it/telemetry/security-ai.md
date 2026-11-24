@@ -136,7 +136,7 @@ Sotto, ogni passaggio che ha eseguito, chiesto o lasciato, dal più recente, cia
 
 ### Un caso che valuta come innocuo o falso positivo
 
-**Rispondi con l'IA** su un caso che la classificazione ha letto come Probabilmente innocuo o Probabile falso positivo lo chiude come Positivo benigno o Falso positivo, nei limiti di **Chiudi il caso**. Una volta chiuso, OneUptime AI revoca i blocchi creati dal caso, sempre nei limiti di **Chiudi il caso**, e propone per la regola del caso un'eccezione per il valore che l'ha attivata. L'eccezione attende sempre una persona: **Approva** la aggiunge, a tuo nome.
+**Rispondi con l'IA** su un caso che la classificazione ha letto come Probabilmente innocuo o Probabile falso positivo lo chiude come Positivo benigno o Falso positivo, nei limiti di **Chiudi il caso**. Una volta chiuso, OneUptime AI revoca i blocchi creati dal caso, sempre nei limiti di **Chiudi il caso**, e propone per la regola del caso un'eccezione per il valore che l'ha attivata. L'eccezione attende sempre una persona: **Approva** la aggiunge, a tuo nome. Una persona che riapre il caso o ne prende il controllo prima impedisce entrambe le cose, e finché il prodotto Eventi di sicurezza è disattivato OneUptime AI le lascia entrambe a una persona.
 
 ## Cosa può fare OneUptime AI su un caso
 

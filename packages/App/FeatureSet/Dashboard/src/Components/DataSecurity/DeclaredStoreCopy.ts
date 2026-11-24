@@ -4,7 +4,10 @@ import {
   DeclaredStoreRetentionBasis,
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import { DataSecurityDeclaredStore } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  isDeclaredDataStoreKind,
+} from "Common/Types/DataSecurity/DataStoreKind";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import {
   PluralTemplate,
@@ -14,8 +17,8 @@ import {
 
 /*
  * THE WORDS FOR THE STORES ONEUPTIME DECLARES (#10398): Security Events,
- * Network Flows and Security Address Vault, which hold IP addresses by
- * design. Each is an en.json key, looked up where it is drawn: the stores
+ * Network Flows, Security Address Vault and Security User Vault (#10632),
+ * which hold IP addresses and user ids by design. Each is an en.json key, looked up where it is drawn: the stores
  * list's mark, a declared store's Overview and Settings, and the record of
  * processing on Compliance.
  *
@@ -38,6 +41,7 @@ export const DECLARED_STORE_KIND_NAMES: ReadonlyArray<string> = [
   translationKey("Security Events"),
   translationKey("Network Flows"),
   translationKey("Security Address Vault"),
+  translationKey("Security User Vault"),
 ];
 
 // The server's English purpose, as the reader's language says it.
@@ -55,6 +59,12 @@ export const RETENTION_AFTER_LAST_SEEN: PluralTemplate = {
   other: "{{count}} days after an address was last seen",
 };
 
+// The user vault's (#10632).
+export const RETENTION_AFTER_USER_LAST_SEEN: PluralTemplate = {
+  one: "{{count}} day after a user was last seen",
+  other: "{{count}} days after a user was last seen",
+};
+
 // Under OneUptime's retention: where it comes from.
 export const RETENTION_FOLLOWS_SETTINGS: string = translationKey(
   "Follows Telemetry Data Retention in your project's Settings.",
@@ -66,6 +76,10 @@ export const RETENTION_FROM_ARRIVAL: string = translationKey(
 
 export const RETENTION_FROM_LAST_SEEN: string = translationKey(
   "Every address is kept this long after it was last seen.",
+);
+
+export const RETENTION_FROM_USER_LAST_SEEN: string = translationKey(
+  "Every user is kept this long after they were last seen.",
 );
 
 // Whose words a purpose or a retention is.
@@ -86,6 +100,20 @@ export const READ_BY_SCANS_ONLY: string = translationKey(
 export const DECLARED_STORE_DESCRIPTION: string = translationKey(
   "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.",
 );
+
+// The user vault's, which holds users rather than addresses (#10632).
+export const DECLARED_USER_VAULT_DESCRIPTION: string = translationKey(
+  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these users never raise an issue: holding them is its purpose.",
+);
+
+// What a declared store's Overview says it is, by its kind.
+export function getDeclaredStoreDescription(
+  kind: string | undefined | null,
+): string {
+  return kind === DataStoreKind.SecurityUserVault
+    ? DECLARED_USER_VAULT_DESCRIPTION
+    : DECLARED_STORE_DESCRIPTION;
+}
 
 export const WHAT_IT_HOLDS: string = translationKey("What It Holds");
 
@@ -160,7 +188,9 @@ export function getDeclaredRetentionText(
   return translator.translatePlural(
     data.declared.retentionBasis === DeclaredStoreRetentionBasis.AddressVault
       ? RETENTION_AFTER_LAST_SEEN
-      : RETENTION_IN_DAYS,
+      : data.declared.retentionBasis === DeclaredStoreRetentionBasis.UserVault
+        ? RETENTION_AFTER_USER_LAST_SEEN
+        : RETENTION_IN_DAYS,
     data.declared.retentionInDays,
   );
 }
@@ -174,6 +204,8 @@ export function getDeclaredRetentionHint(
       return RETENTION_FOLLOWS_SETTINGS;
     case DeclaredStoreRetentionBasis.NetworkFlows:
       return RETENTION_FROM_ARRIVAL;
+    case DeclaredStoreRetentionBasis.UserVault:
+      return RETENTION_FROM_USER_LAST_SEEN;
     default:
       return RETENTION_FROM_LAST_SEEN;
   }
@@ -181,7 +213,7 @@ export function getDeclaredRetentionHint(
 
 /*
  * Who can read a declared store, in the reader's words: its roles' names,
- * or, for the vault, that only Security Events' scans can.
+ * or, for a vault, that only Security Events' scans can.
  */
 export function getDeclaredReaderNames(
   declared: DataSecurityDeclaredStore,

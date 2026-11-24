@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62857,
+    "keys": 63263,
     "untranslated": 4746
   },
   "sameAsEnglish": [
@@ -439,6 +439,7 @@
     "Pages",
     "Parent",
     "Passthrough",
+    "Patients",
     "Perf",
     "Phase",
     "Ping",
@@ -471,6 +472,7 @@
     "Production",
     "PromQL",
     "Prompt",
+    "Prospects",
     "Public",
     "Pull request",
     "Pull requests",

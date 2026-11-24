@@ -143,7 +143,7 @@ Las macros SQL se escriben en UTC, así que ejecuta las sesiones de tu base de d
 
 ### Variables del panel
 
-Escribe `{{name}}` en cualquier parte de una consulta, y el widget pone ahí el valor de la variable antes de enviar la consulta. Los distintos valores de una variable de selección múltiple se unen con `|`, que es lo que necesita un selector de expresión regular de PromQL o LogQL: `job=~"{{job}}"`. Una variable sin nada elegido deja el marcador tal como está escrito, así que el error lo nombra. [Variables y filtros del panel](/docs/dashboards/variables) explica cómo añadir una.
+Escribe `{{name}}` en cualquier parte de una consulta, y el widget pone ahí el valor de la variable antes de enviar la consulta. Una consulta sobre las métricas de este proyecto o sobre un Prometheus se completa como la completa la fuente de datos Prometheus de Grafana: en `job=~"{{job}}"`, los distintos valores de una variable de selección múltiple coinciden con cualquiera de ellos, cada uno tal como está escrito, y una variable sin nada elegido coincide con todos los valores. En cualquier otra consulta, los distintos valores se unen con `|`, que es lo que necesita un selector de expresión regular de LogQL, y una variable sin nada elegido deja el marcador tal como está escrito, así que el error lo nombra. [Variables y filtros del panel](/docs/dashboards/variables) explica cómo añadir una.
 
 ## Límites
 

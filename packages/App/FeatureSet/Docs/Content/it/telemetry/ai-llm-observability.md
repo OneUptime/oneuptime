@@ -317,6 +317,8 @@ Le metriche GenAI come `gen_ai.client.token.usage` e `gen_ai.client.operation.du
 
 Le chiamate di IA vengono salvate come span di traccia, quindi le **Regole di mascheramento** e i **Filtri di scarto** delle tracce si applicano anche a loro: maschera un attributo, o scarta uno span, prima che venga salvato. Li trovi entrambi in **Tracce → Impostazioni**. La colonna dell'email del dipendente viene mascherata insieme all'attributo da cui è stata letta, quindi una regola che maschera le email copre anche questa.
 
+Una persona nascosta da una regola di pulizia non viene mai mostrata come tale. **Conversazioni** e **Chiamate** mostrano l'id di una chiamata quando una regola ne ha nascosto l'email ma ha lasciato intatto l'id, e **Nascosto da una regola di pulizia** quando una regola ha nascosto tutti i nomi della chiamata, che li abbia oscurati, mascherati o sottoposti a hash. **Chiamate** mostra allo stesso modo un team nascosto da una regola.
+
 Prompt e risposte inviati come eventi di log vengono salvati come log, quindi si applicano a loro le **Regole di mascheramento** e i **Filtri di scarto** dei log, in **Log → Impostazioni**: una regola che maschera le email nelle tracce non le maschera negli eventi di log. Una conversazione li mostra solo a chi può leggere anche i log di quell'app, e chi può leggerli li trova anche nella pagina **Log**.
 
 In entrambi i casi, una regola legge ogni testo dentro una lista o un valore strutturato, come i messaggi che una strumentazione invia come lista invece che come testo JSON, e mantiene la forma del valore: un indirizzo email in un prompt viene mascherato ovunque si trovi. Vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili).

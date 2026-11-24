@@ -116,16 +116,27 @@ afterEach(() => {
 });
 
 describe("the library's upgrades", () => {
-  test("each names a library rule, and was its wording before: it is not its wording now", () => {
+  test("each names a library rule, and was its wording or its grouping before: it is not that now", () => {
     expect(DETECTION_RULE_LIBRARY_UPGRADES.length).toBeGreaterThan(0);
 
     for (const upgrade of DETECTION_RULE_LIBRARY_UPGRADES) {
       const entry: DetectionRuleLibraryEntry = libraryEntry(upgrade.id);
 
       expect(entry).toBeDefined();
-      expect(
-        isSameRuleYaml(entry.sigmaRuleYaml, upgrade.previousSigmaRuleYaml),
-      ).toBe(false);
+
+      const isYamlFixed: boolean = !isSameRuleYaml(
+        entry.sigmaRuleYaml,
+        upgrade.previousSigmaRuleYaml,
+      );
+      // A fix that moved the field it groups by (#10773) may leave its YAML as it was.
+      const isGroupByFixed: boolean =
+        upgrade.previousGroupByField !== undefined &&
+        upgrade.previousGroupByField !== (entry.groupByField || "");
+
+      expect({ id: upgrade.id, fixed: isYamlFixed || isGroupByFixed }).toEqual({
+        id: upgrade.id,
+        fixed: true,
+      });
       expect(upgrade.previousSigmaRuleYaml).toContain(`id: ${upgrade.id}\n`);
       expect(upgrade.why.length).toBeGreaterThan(0);
     }
@@ -276,6 +287,7 @@ describe("DetectionRuleLibraryUpgradeCopies", () => {
       _id: true,
       sigmaRuleYaml: true,
       description: true,
+      groupByField: true,
     });
     expect(read["props"]).toEqual({ isRoot: true });
     expect(read["sort"]).toEqual({ createdAt: SortOrder.Ascending });
@@ -339,7 +351,7 @@ describe("DetectionRuleLibraryUpgradeCopies", () => {
     expect(error).toHaveBeenCalled();
   });
 
-  test("an upgrade of a rule the library no longer has, or whose wording is the library's now, does nothing", async () => {
+  test("an upgrade of a rule the library no longer has, or whose wording and grouping are the library's now, does nothing", async () => {
     const installed: Installed = install([rule(1, previous)]);
 
     expect(
@@ -357,5 +369,224 @@ describe("DetectionRuleLibraryUpgradeCopies", () => {
       }),
     ).toBe(0);
     expect(installed.reads).toEqual([]);
+  });
+});
+
+/*
+ * #10773: the two OpenStack rules that count per address count per
+ * principalIp - which names the address behind a Hash rule's token - not
+ * the parser's own openstack.audit.initiator_address, which holds real
+ * addresses only. A project's copy still the library's gets the same: the
+ * burst, its YAML unchanged, is grouped by principalIp when it is still
+ * grouped by the old field; the admin rule, its first-seen field in its
+ * YAML, gets the library's YAML. A copy anyone changed is theirs.
+ */
+describe("the OpenStack rules that count per address (#10773)", () => {
+  const OPENSTACK_BURST: string = "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10";
+  const ADMIN_FROM_NEW_ADDRESS: string = "c94e1b77-8a26-4d57-b2f1-0ea3f6d81c22";
+  const OLD_FIELD: string = "openstack.audit.initiator_address";
+
+  function copy(
+    index: number,
+    data: { yaml: string; groupByField?: string; description?: string },
+  ): DetectionRule {
+    const model: DetectionRule = rule(
+      index,
+      data.yaml,
+      data.description ?? libraryEntry(OPENSTACK_BURST).description,
+    );
+
+    if (data.groupByField !== undefined) {
+      model.groupByField = data.groupByField;
+    }
+
+    return model;
+  }
+
+  test("the burst was grouped by the parser's attribute, and is by principalIp now, its YAML as it was", () => {
+    const upgrade: DetectionRuleLibraryUpgrade = upgradeOf(OPENSTACK_BURST);
+    const entry: DetectionRuleLibraryEntry = libraryEntry(OPENSTACK_BURST);
+
+    expect(upgrade.previousGroupByField).toBe(OLD_FIELD);
+    expect(entry.groupByField).toBe("principalIp");
+    expect(
+      isSameRuleYaml(entry.sigmaRuleYaml, upgrade.previousSigmaRuleYaml),
+    ).toBe(true);
+    expect(upgrade.previousDescription).toBe(entry.description);
+  });
+
+  test("the admin rule read the parser's attribute as its new value, and principalIp now - nothing else changed", () => {
+    const upgrade: DetectionRuleLibraryUpgrade = upgradeOf(
+      ADMIN_FROM_NEW_ADDRESS,
+    );
+    const entry: DetectionRuleLibraryEntry = libraryEntry(
+      ADMIN_FROM_NEW_ADDRESS,
+    );
+
+    expect(upgrade.previousGroupByField).toBeUndefined();
+    expect(upgrade.previousSigmaRuleYaml).toContain(
+      `    field: ${OLD_FIELD}\n`,
+    );
+    expect(entry.sigmaRuleYaml).toContain("    field: principalIp\n");
+    expect(
+      isSameRuleYaml(
+        upgrade.previousSigmaRuleYaml.replace(
+          `    field: ${OLD_FIELD}\n`,
+          "    field: principalIp\n",
+        ),
+        entry.sigmaRuleYaml,
+      ),
+    ).toBe(true);
+    expect(upgrade.previousDescription).toBe(entry.description);
+  });
+
+  test("a burst copy still grouped by the parser's attribute is grouped by principalIp, and nothing else of it changes", async () => {
+    const installed: Installed = install([
+      copy(1, {
+        yaml: upgradeOf(OPENSTACK_BURST).previousSigmaRuleYaml,
+        groupByField: OLD_FIELD,
+      }),
+    ]);
+
+    expect(
+      await DetectionRuleLibraryUpgradeCopies.upgradeCopiesOf(
+        upgradeOf(OPENSTACK_BURST),
+      ),
+    ).toBe(1);
+    expect(installed.updates).toEqual([
+      {
+        id: "0192f1a0-0000-7000-8000-000000000001",
+        data: { groupByField: "principalIp" },
+      },
+    ]);
+  });
+
+  test("a burst copy grouped by a field someone chose, or by none, is theirs", async () => {
+    const installed: Installed = install([
+      copy(1, {
+        yaml: upgradeOf(OPENSTACK_BURST).previousSigmaRuleYaml,
+        groupByField: "principalUser",
+      }),
+      copy(2, {
+        yaml: upgradeOf(OPENSTACK_BURST).previousSigmaRuleYaml,
+        groupByField: "",
+      }),
+    ]);
+
+    expect(
+      await DetectionRuleLibraryUpgradeCopies.upgradeCopiesOf(
+        upgradeOf(OPENSTACK_BURST),
+      ),
+    ).toBe(0);
+    expect(installed.updates).toEqual([]);
+  });
+
+  test("a burst copy whose YAML someone edited is theirs, whatever it is grouped by", async () => {
+    const installed: Installed = install([
+      copy(1, {
+        yaml: upgradeOf(OPENSTACK_BURST).previousSigmaRuleYaml.replace(
+          "level: medium",
+          "level: high",
+        ),
+        groupByField: OLD_FIELD,
+      }),
+    ]);
+
+    expect(
+      await DetectionRuleLibraryUpgradeCopies.upgradeCopiesOf(
+        upgradeOf(OPENSTACK_BURST),
+      ),
+    ).toBe(0);
+    expect(installed.updates).toEqual([]);
+  });
+
+  test("an admin rule copy as it was added gets the library's YAML; one someone edited is theirs", async () => {
+    const previous: string = upgradeOf(
+      ADMIN_FROM_NEW_ADDRESS,
+    ).previousSigmaRuleYaml;
+    const installed: Installed = install([
+      copy(1, {
+        yaml: previous,
+        description: libraryEntry(ADMIN_FROM_NEW_ADDRESS).description,
+      }),
+      copy(2, {
+        yaml: previous.replace(
+          "      - admin\n",
+          "      - admin\n      - ops-admin\n",
+        ),
+      }),
+    ]);
+
+    expect(
+      await DetectionRuleLibraryUpgradeCopies.upgradeCopiesOf(
+        upgradeOf(ADMIN_FROM_NEW_ADDRESS),
+      ),
+    ).toBe(1);
+    expect(installed.updates).toEqual([
+      {
+        id: "0192f1a0-0000-7000-8000-000000000001",
+        data: {
+          sigmaRuleYaml: libraryEntry(ADMIN_FROM_NEW_ADDRESS).sigmaRuleYaml,
+          description: libraryEntry(ADMIN_FROM_NEW_ADDRESS).description,
+        },
+      },
+    ]);
+  });
+
+  test("run twice, the second changes nothing", async () => {
+    const rules: Array<DetectionRule> = [
+      copy(1, {
+        yaml: upgradeOf(OPENSTACK_BURST).previousSigmaRuleYaml,
+        groupByField: OLD_FIELD,
+      }),
+      copy(2, {
+        yaml: upgradeOf(ADMIN_FROM_NEW_ADDRESS).previousSigmaRuleYaml,
+      }),
+    ];
+    const installed: Installed = install(rules);
+
+    expect(await DetectionRuleLibraryUpgradeCopies.upgradeAll()).toBe(2);
+
+    // The store, as the first run left it.
+    for (const update of installed.updates) {
+      const saved: DetectionRule = rules.find(
+        (model: DetectionRule): boolean => {
+          return model.id!.toString() === update.id;
+        },
+      )!;
+
+      if (update.data["groupByField"] !== undefined) {
+        saved.groupByField = update.data["groupByField"] as string;
+      }
+
+      if (update.data["sigmaRuleYaml"] !== undefined) {
+        saved.sigmaRuleYaml = update.data["sigmaRuleYaml"] as string;
+      }
+    }
+
+    installed.updates.length = 0;
+
+    expect(await DetectionRuleLibraryUpgradeCopies.upgradeAll()).toBe(0);
+    expect(installed.updates).toEqual([]);
+  });
+
+  test("a project's copy of the burst is found by the YAML's id, its group field read beside it", async () => {
+    const installed: Installed = install([]);
+
+    await DetectionRuleLibraryUpgradeCopies.upgradeCopiesOf(
+      upgradeOf(OPENSTACK_BURST),
+    );
+
+    expect(installed.reads).toHaveLength(1);
+    expect(
+      (
+        (installed.reads[0]!["query"] as JSONObject)[
+          "sigmaRuleYaml"
+        ] as Search<string>
+      ).toString(),
+    ).toBe(`id: ${OPENSTACK_BURST}`);
+    expect((installed.reads[0]!["select"] as JSONObject)["groupByField"]).toBe(
+      true,
+    );
   });
 });

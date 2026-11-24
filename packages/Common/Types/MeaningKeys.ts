@@ -137,6 +137,22 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "Missed (target)",
   /*
+   * The record of processing's words for what GDPR Article 30 asks (#10375):
+   * a category of people a store's data is about, and who its data is
+   * disclosed to. The bare "Children" is a span's children in a trace -
+   * Japanese 子, Korean 하위 스팬 - and the bare "Recipients" is who a
+   * message is sent to (受信者, 받는 사람).
+   */
+  "Children (people)",
+  "Recipients (of data)",
+  /*
+   * The button that writes an empty field of a store's record, or a part of
+   * its impact assessment, in a person's own words (#10375). The bare
+   * "Write" is an access level - Russian Запись, Hindi लिखना - as a role's
+   * Read and Write are.
+   */
+  "Write (own words)",
+  /*
    * Notification Settings' columns for phone calls and push notifications,
    * and the names its switches, its tabs' summaries and its "Channels not
    * set up yet" give them (#8887). The bare "Call" is a function call in

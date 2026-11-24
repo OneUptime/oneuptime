@@ -108,10 +108,11 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 | **All Values** | Every check in the window meets the condition. |
 | **Any Value** | At least one check in the window meets the condition. |
 | **Count**, **Percentage**, **Status Changes** | How many checks met the condition, their share, or how often they changed between meeting it and not, compares with the number set under it. |
+| **Previous Check** | This check compared with the probe's previous check, as set under **Change From the Previous Check**: a response time more than 50% above it, say. A filter that is true or false matches on the check that started to meet the condition. |
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
 
-**Is Request Timeout** is not a number OneUptime records, so it records whether the filter matched on each check, and judges the window from that record with **All Values** or **Any Value**, or counts it with **Count**, **Percentage** or **Status Changes**.
+**Is Request Timeout** is not a number OneUptime records, so it records whether the filter matched on each check, and judges the window from that record with **All Values** or **Any Value**, or counts it with **Count**, **Percentage** or **Status Changes**. With **Previous Check**, the filter matches on the check it started to match on.
 
 Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.
 

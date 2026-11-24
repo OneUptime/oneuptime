@@ -97,6 +97,14 @@ function projectKeyOf(projectId: ObjectID | string): Buffer {
   return key;
 }
 
+/*
+ * What the text grouping v1 hashes starts with when it is keyed: grouping
+ * v2's and v3's texts start with their own version line
+ * (ExceptionGrouping.getExceptionGroupingText), v1's with none, so this line
+ * keeps a keyed v1 fingerprint from ever equalling a keyed v2 or v3 one.
+ */
+export const KEYED_V1_TEXT_PREFIX: string = "grouping-v1\n";
+
 export default class KeyedExceptionFingerprint {
   /*
    * The keyed fingerprint of an exception's grouping text in `projectId`:
@@ -111,5 +119,21 @@ export default class KeyedExceptionFingerprint {
       .createHmac("sha256", projectKeyOf(data.projectId))
       .update(data.text, "utf8")
       .digest("hex");
+  }
+
+  /*
+   * The keyed fingerprint of the text grouping v1 hashes (App's
+   * ExceptionUtil.getGroupingTextV1): where an exception made before
+   * grouping v2 is moved when a scrub rule hid part of that text (#10619),
+   * so it keeps exactly the occurrences it had, and gives nothing away.
+   */
+  public static ofFirstGroupingText(data: {
+    projectId: ObjectID | string;
+    text: string;
+  }): string {
+    return KeyedExceptionFingerprint.ofGroupingText({
+      projectId: data.projectId,
+      text: `${KEYED_V1_TEXT_PREFIX}${data.text}`,
+    });
   }
 }

@@ -1173,8 +1173,12 @@ import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSe
 import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
 import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
-import { AddDataSecurityIssueCodeFixTask1809187530367 } from "./1809187530367-AddDataSecurityIssueCodeFixTask";
-import { AddDataSecurityIssueCodeFixTaskIndex1809187530377 } from "./1809187530377-AddDataSecurityIssueCodeFixTaskIndex";
+import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
+import { AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618 } from "./1809187540618-AddTelemetryExceptionFormerFingerprintAndSplitFrom";
+import { AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628 } from "./1809187540628-AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys";
+import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "./1809187550746-AddSecurityAutomaticResponseHourlyLimit";
+import { AddDataSecurityIssueCodeFixTask1809187560367 } from "./1809187560367-AddDataSecurityIssueCodeFixTask";
+import { AddDataSecurityIssueCodeFixTaskIndex1809187560377 } from "./1809187560377-AddDataSecurityIssueCodeFixTaskIndex";
 
 export default [
   InitialMigration,
@@ -2352,6 +2356,10 @@ export default [
   AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
   AddDataSecurityIssueResolution1809187510368,
   AddDataStoreFindingAiVerdicts1809187520372,
-  AddDataSecurityIssueCodeFixTask1809187530367,
-  AddDataSecurityIssueCodeFixTaskIndex1809187530377,
+  AddDataSecurityComplianceDrafts1809187530375,
+  AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618,
+  AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628,
+  AddSecurityAutomaticResponseHourlyLimit1809187550746,
+  AddDataSecurityIssueCodeFixTask1809187560367,
+  AddDataSecurityIssueCodeFixTaskIndex1809187560377,
 ];

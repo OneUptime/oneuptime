@@ -60,6 +60,15 @@ import PULL_REQUEST_EVAL_DIFFS, {
 import FINDING_VERDICT_EVAL_CASES from "./FindingVerdictEvalSet";
 import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
 import { ScrubRuleWriterRuleKind } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import {
+  AUDIT_EVIDENCE_CASES,
+  IMPACT_ASSESSMENT_CASES,
+  RECORD_DRAFT_CASES,
+} from "./DataSecurityPaperworkEvalCases";
+import {
+  DESCRIBE_DATA_TYPE_EVAL_CASES,
+  DRAFT_DATA_TYPE_EVAL_CASES,
+} from "./DataTypeDraftEvalSet";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1773,6 +1782,13 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ISSUE_GROUP_FIX_CASES,
   ...SCRUB_RULE_CASES,
   ...PULL_REQUEST_REVIEW_CASES,
+  // The paperwork (#10375): records, impact assessments and audit evidence.
+  ...RECORD_DRAFT_CASES,
+  ...IMPACT_ASSESSMENT_CASES,
+  ...AUDIT_EVIDENCE_CASES,
+  // The company's own data types (#10371): what each group or sentence should become.
+  ...DRAFT_DATA_TYPE_EVAL_CASES,
+  ...DESCRIBE_DATA_TYPE_EVAL_CASES,
   ...TELEMETRY_LEAK_FIX_CASES,
 ];
 

@@ -85,6 +85,15 @@ Verwijst een monitor naar een geheim dat hij niet mag gebruiken, dan blijft de v
 
 Wanneer de controle van een monitor van het type API, Website of Externe statuspagina mislukt, noemt de fout de URL alleen met schema, host en poort, zoals `https://api.example.com`, dus een geheim in de URL wordt nooit getoond.
 
+Een controle kan de waarde van een geheim ook teruggeven: een browser noemt de URL van een pagina die hij niet kon laden, een script logt wat het bevat, en een server kan de query, de headers of de body teruggeven die hij kreeg. OneUptime verbergt de waarde overal waar die staat in wat de controle meldt: de fout, de logberichten en het resultaat van een script, de body en de headers van een antwoord, en de oorzaak van het mislukken van de controle en van elke poging. Zo staat de waarde niet in de logboeken van de monitor, niet in zijn samenvatting, niet in het resultaat van een monitortest en niet in de hoofdoorzaak van een incident of een waarschuwing. OneUptime schrijft `[REDACTED]` op zijn plaats en houdt de rest, dus een pagina op `https://app.example.com/login?token={{monitorSecrets.Token}}` die niet laadt, wordt gemeld als `https://app.example.com/login?token=[REDACTED]`. De waarde wordt gevonden in hoofd- of kleine letters en hoe de controle die ook schreef: procentgecodeerd, geëscapet in JSON of HTML, of in base64.
+
+OneUptime verbergt niet:
+
+- Een waarde van minder dan 4 tekens, spaties eromheen niet meegeteld. Zo'n korte waarde is deel van gewone tekst, zoals getallen en woorden.
+- Wat een schermafbeelding toont. Een schermafbeelding is een afbeelding, dus een geheim dat de pagina op het scherm toont, staat erin.
+
+Criteria lezen een controle zoals die wordt gemeld. Schrijf een criterium tegen de tekst rond een geheim, zoals `ERR_NAME_NOT_RESOLVED` of `token=`, in plaats van tegen de waarde van het geheim: een criterium is zichtbaar voor iedereen die de monitor kan lezen.
+
 Wanneer u een monitor test voordat u hem opslaat, worden alleen geheimen ingevuld die beschikbaar zijn voor **Alle monitoren**, omdat een nieuwe monitor op geen enkele lijst staat en nog geen labels heeft. Nadat u de monitor hebt opgeslagen, gebruiken tests elk geheim dat de monitor mag gebruiken.
 
 ## Aanmelden met een eenmalige code
@@ -144,6 +153,10 @@ Voordat een monitor is opgeslagen, worden alleen geheimen ingevuld die beschikba
 
 :::details Een veld negeert het geheim
 Alleen de velden in de tabel hierboven accepteren geheimen. In elk ander veld wordt `{{monitorSecrets.NAME}}` verstuurd zoals het is geschreven.
+:::
+
+:::details Een controle toont `[REDACTED]` waar een waarde stond
+De waarde van een geheim stond in wat de controle meldde, en OneUptime heeft die verborgen. De tekst eromheen, zoals `token=[REDACTED]`, laat zien waar het script of het verzoek het geheim gebruikte.
 :::
 
 :::details De site weigert de eenmalige code

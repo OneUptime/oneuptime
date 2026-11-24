@@ -162,7 +162,7 @@ Das Sperren braucht Schreibberechtigungen auf dem API-Token der Verbindung:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Legt seine zwei Listen an und fügt ihre Adressen hinzu oder entfernt sie. |
 | `Zone > Zone WAF > Edit`, auf jeder Zone, in der gesperrt wird | Fügt seine benutzerdefinierten Regeln hinzu und liest die eigenen der Zone. |
-| `Account > Account Firewall Access Rules > Edit` | Fügt IP Access Rules hinzu und entfernt sie, bei einem Tarif ohne freie Liste oder freie benutzerdefinierte Regel. |
+| `Account > Account Firewall Access Rules > Edit` | Fügt IP Access Rules hinzu und entfernt sie: bei einem Tarif ohne freie Liste oder freie benutzerdefinierte Regel, und für ein Netzwerk, das unter **Kampagnen** anhand seiner ASN eine Challenge erhält. |
 
 :::steps
 ### Dem Token Schreibberechtigungen geben
@@ -183,6 +183,7 @@ Solange das Sperren eingeschaltet ist, führt **Verbindung testen** dieselben Pr
 | Die Listen `oneuptime_block` und `oneuptime_challenge` | Zwei IP-Listen im Konto, eine für Sperren und eine für Challenges. Ihre Beschreibung nennt Ihr OneUptime-Projekt. |
 | Eine benutzerdefinierte Regel pro Liste, in jeder Zone | `(ip.src in $oneuptime_block)` mit der Aktion Block und `(ip.src in $oneuptime_challenge)` mit der Aktion Managed Challenge. Ihre Beschreibung sagt, dass OneUptime sie verwaltet. |
 | Ein Listeneintrag pro Sperre | Sein Kommentar nennt den Fall und wann die Sperre endet, etwa `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Eine IP Access Rule pro Netzwerk, das anhand seiner ASN eine Challenge erhält | Ein ganzes Netzwerk, das unter **Kampagnen** eine Challenge erhalten hat, als IP Access Rule mit dem Ziel `asn`, die jeder Tarif hat. Ihre Notiz sagt dasselbe wie der Kommentar eines Listeneintrags. Ohne `Account > Account Firewall Access Rules > Edit` auf dem Token wird die Challenge nicht angewendet, und die **Sperrliste** sagt, welche Berechtigung hinzuzufügen ist. |
 
 Jede Regel steht an erster Stelle der benutzerdefinierten Regeln der Zone und läuft damit vor Ihren: Eine Skip-Regel von Ihnen kann keine gesperrte Adresse an ihr vorbeilassen. Wenn Ihre Skip-Regeln Adressen durchlassen, etwa die Ihrer Monitore oder eines Partners, nennt **Sperrstatus** sie. **Diese Adressen schützen** fügt sie zu **Geschützte Entitäten** hinzu, die niemand sperren kann.
 
