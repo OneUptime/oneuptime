@@ -134,7 +134,11 @@ export function storedServer(data: {
   server.id = new ObjectID(data.id || KUBERNETES_SERVER_ID);
   server.projectId = PROJECT_ID;
   server.name = data.name;
-  server.description = data.description;
+
+  if (data.description) {
+    server.description = data.description;
+  }
+
   server.url = data.url;
   server.authType = ExternalMcpServerAuthType.BearerToken;
   server.bearerToken = data.token ?? SERVER_TOKEN;
@@ -196,8 +200,9 @@ export function installTurnHarness(): TurnHarness {
   jest
     .spyOn(AIRunService, "findOneById")
     .mockResolvedValue(runningRun as never);
-  const runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy> =
-    jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1 as never);
+  const runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy> = jest
+    .spyOn(AIRunService, "updateOneBy")
+    .mockResolvedValue(1 as never);
 
   jest
     .spyOn(AIConversationMessageService, "findBy")
@@ -270,19 +275,18 @@ export function installTurnHarness(): TurnHarness {
       });
     });
 
-  const executeWithLogging: SpyInstance<
-    typeof AIService.executeWithLogging
-  > = jest
-    .spyOn(AIService, "executeWithLogging")
-    .mockImplementation((async () => {
-      const next: ScriptedAnswer | undefined = answers.shift();
+  const executeWithLogging: SpyInstance<typeof AIService.executeWithLogging> =
+    jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockImplementation((async () => {
+        const next: ScriptedAnswer | undefined = answers.shift();
 
-      if (!next) {
-        return finalAnswer("Done.");
-      }
+        if (!next) {
+          return finalAnswer("Done.");
+        }
 
-      return typeof next === "function" ? await next() : next;
-    }) as never);
+        return typeof next === "function" ? await next() : next;
+      }) as never);
 
   return {
     script: (next: Array<ScriptedAnswer>): void => {
