@@ -188,7 +188,7 @@ A página **Guia de configuração**, em **Conexões**, tem esses trechos com o 
 
 ### Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes, ataque web e requisição de arquivo sensível recusada que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes, ataque web e requisição de arquivo sensível que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 Cada tipo chega ao OneUptime como logs comuns:
 
@@ -338,13 +338,24 @@ A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Resu
 
 Um evento lido de uma linha de log escrita dentro de uma requisição rastreada é acompanhado até essa requisição. O painel dele mostra até onde a requisição chegou (**Rejeitado**, **Chegou ao app**, **Com erro** ou **Chegou ao banco de dados**), quem a enviou, e leva ao trace, à exceção, ao replay da sessão e à própria linha de log. Uma linha de log, um trace e uma exceção que fazem parte de um ataque também dizem isso nas próprias páginas.
 
+### Um arquivo sensível que seu site serviu
+
+Uma requisição de um arquivo que guarda segredos, como `/.env`, `/.git/config`, `/.aws/credentials` ou uma cópia de `wp-config.php`, é um vazamento quando seu site a respondeu com o próprio arquivo: quem pediu fica com as senhas, as chaves e os tokens dele. Um app de página única responde a todo caminho que não tem com a própria página e um status 200, então um status 200 sozinho nunca diz isso. O OneUptime lê o que a resposta trouxe:
+
+- Um tipo que não é de página web, como `text/plain` ou `application/octet-stream`: o próprio arquivo.
+- Uma página web, ou JSON para um arquivo que não é JSON: a própria página do seu site.
+- Nada nela: nada foi levado.
+- Um tamanho e nenhum tipo, como registra o log de acesso de um servidor web: o próprio arquivo quando nenhum outro caminho teve esse tamanho e seu site responde 404 para os caminhos que não tem, e a própria página do seu site quando o mesmo tamanho respondeu a dois caminhos diferentes. Quando nada permite saber, a requisição não vira evento.
+
+Um arquivo servido é Crítico, e a regra **Sensitive file served** da biblioteca de regras abre um caso sobre ele, com etapas para tirar o arquivo do ar e fazer a rotação do que ele guarda. Cada uma dessas requisições também conta para **Scanning for sensitive files**, inclusive as de um app de página única. Uma página de administração que seu site serve, como a do WordPress, nunca é uma delas, e um `wp-config.php` que o WordPress executou é a própria página do seu site. Os eventos de firewall da Cloudflare não dizem o que sua origem enviou, então uma requisição que a Cloudflare deixou passar conta só para a varredura. O painel de um evento diz o que seu site enviou em **O que aconteceu depois**.
+
 ### Campaigns
 
 **Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro. Uma linha que sua lista de bloqueio já contém diz até quando ela está bloqueada ou desafiada, e nomeia o intervalo ou a rede que a contém.
 
 Para bloquear vários atacantes de uma vez, selecione as linhas deles e clique em **Bloquear endereços**. Uma única caixa de diálogo lista cada endereço que ela bloqueia e cada um que ela deixa de fora, com o motivo: já bloqueado, um dos seus ou um protegido, um que um usuário conectado usou nos últimos 30 dias, ou um que o OneUptime não conseguiu verificar. Ela bloqueia por 24 horas, a menos que você escolha outra duração, ou desafia com **Desafio em vez disso**, e cada bloqueio vai para a sua [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) como seu.
 
-**Agrupar por rede** coloca os endereços de uma mesma rede em uma única linha: pelo seu ASN quando os eventos da sua conexão da [Cloudflare](/docs/integrations/cloudflare) informam um e, caso contrário, pelo seu /24 no IPv4 ou pelo seu /48 no IPv6. A linha de um ASN lista os intervalos de onde seus endereços enviaram. **Desafiar esta rede** diz o que vai fazer, onde e por quanto tempo antes de fazer: 24 horas, a menos que você escolha outra duração, e o próximo degrau da escada para uma rede já desafiada antes. A Cloudflare guarda um intervalo na sua lista de desafio, e um ASN como uma IP Access Rule, que todo plano tem.
+**Agrupar por rede** coloca os endereços de uma mesma rede em uma única linha: pelo seu ASN quando os eventos da sua conexão da [Cloudflare](/docs/integrations/cloudflare) informam um e, caso contrário, pelo seu /24 no IPv4 ou pelo seu /48 no IPv6. A linha de um ASN lista os intervalos de onde seus endereços enviaram. **Desafiar esta rede** diz o que vai fazer, onde e por quanto tempo antes de fazer: 24 horas, a menos que você escolha outra duração, e o próximo degrau da escada para uma rede já desafiada antes. A Cloudflare guarda um intervalo na sua lista de desafio, e um ASN como uma IP Access Rule, que todo plano tem. **Ver requisições**, na linha de uma rede, abre em **Eventos** as requisições que ela enviou: as de um ASN pelo ASN que os eventos da Cloudflare dele trazem, e as de um intervalo como uma pesquisa pelos endereços dele, por exemplo `ip:203.0.113.*`, que você pode alterar.
 
 - Uma rede que contém um endereço que um usuário conectado usou nos últimos 30 dias, ou um dos seus, nunca é desafiada, e a caixa de diálogo diz quem ou o quê.
 - Um intervalo mais amplo que um /24 (um /48 no IPv6), e um ASN inteiro, exigem um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto. A linha de um ASN também oferece cada um dos seus intervalos, que qualquer pessoa que possa bloquear pode desafiar.

@@ -863,11 +863,12 @@ export default class SecurityPlaybookResponseSteps {
     context: PlaybookStepContext,
   ): Promise<PlaybookStepOutcome> {
     /*
-     * A Data Security case whose issues one mistake made (#10370): the fix
-     * of their cause, once - else the exceptions its requests threw.
+     * A Data Security case: each group's cause fixed once (#10370), and
+     * each issue in no group fixed on its own (#10740), in the code that
+     * declares its store - else the exceptions its requests threw.
      */
     const issueGroupsFix: PlaybookStepOutcome | null =
-      await SecurityPlaybookIssueGroupFix.fixGroupsOfCase(context);
+      await SecurityPlaybookIssueGroupFix.fixIssuesOfCase(context);
 
     if (issueGroupsFix) {
       return issueGroupsFix;

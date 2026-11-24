@@ -1,10 +1,21 @@
 import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import DataSecurityAiProposal from "../../../../../Models/DatabaseModels/DataSecurityAiProposal";
 import {
   FixIssueGroupInCloudAction,
   FixIssueGroupInCodeAction,
+  readStoreActions,
 } from "../../../../../Server/Utils/AI/DataSecurity/Actions/IssueGroupFixActions";
+import DataSecurityIssueGroupTimelines from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines";
+import DataSecurityIssueGroupFix from "../../../../../Server/Utils/DataSecurity/DataSecurityIssueGroupFix";
+import {
+  DataSecurityAiDecisionEntry,
+  DataSecurityAiDecisionReason,
+} from "../../../../../Types/DataSecurity/DataSecurityAiDecision";
+import * as ResponseActionCatalog from "../../../../../Types/DataSecurity/DataSecurityResponseAction";
+import { DataSecurityResponseAction } from "../../../../../Types/DataSecurity/DataSecurityResponseAction";
+import { JSONObject } from "../../../../../Types/JSON";
 import { DataSecurityAiPlannedChange } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiAction";
 import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
 import DataSecurityAiProposals from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiProposals";
@@ -18,6 +29,7 @@ import {
   DataSecurityAiChangeSafety,
   DataSecurityAiProposalKind,
   DataSecurityAiWithoutAskingVerdict,
+  DataSecurityAiWork,
   DataSecurityAiWorkDecision,
 } from "../../../../../Types/DataSecurity/DataSecurityAi";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -408,5 +420,382 @@ describe("approving a group's proposal", () => {
     expect(FixIssueGroupInCodeAction.getUndoRefusal({} as never)).toBeTruthy();
     expect(FixIssueGroupInCloudAction.getUndoRefusal({} as never)).toBeTruthy();
     expect(FixIssueGroupInCodeAction.appliesToCheck("public-read")).toBe(false);
+  });
+});
+
+describe("each issue told when a group's fix waits (#10741)", () => {
+  let told: Array<JSONObject>;
+  let order: Array<string>;
+  let toldAlready: Set<string>;
+
+  // What the store answers for the group's proposal: whether it waits.
+  function proposeAnswers(entry: DataSecurityAiDecisionEntry): void {
+    jest
+      .spyOn(DataSecurityAiProposals, "propose")
+      .mockImplementation((async (data: {
+        action: { kind: DataSecurityAiProposalKind };
+        change: DataSecurityAiPlannedChange;
+        work: DataSecurityAiWorkDecision;
+        verdict: DataSecurityAiWithoutAskingVerdict;
+        group?: { id?: ObjectID } | null;
+      }) => {
+        order.push("propose");
+        proposed.push({
+          kind: data.action.kind,
+          change: data.change,
+          work: data.work,
+          verdict: data.verdict,
+          groupId: data.group?.id?.toString() || "",
+        });
+
+        return entry;
+      }) as never);
+  }
+
+  beforeEach(() => {
+    told = [];
+    order = [];
+    toldAlready = new Set(["10741000-0000-4000-8000-0000000000a9"]);
+    jest
+      .spyOn(DataSecurityIssueGroupTimelines, "readWaitingIssueIds")
+      .mockImplementation((async () => {
+        order.push("read waiting");
+
+        return toldAlready;
+      }) as never);
+    jest
+      .spyOn(DataSecurityIssueGroupTimelines, "onProposed")
+      .mockImplementation((async (data: JSONObject) => {
+        order.push("tell");
+        told.push(data);
+
+        return 0;
+      }) as never);
+  });
+
+  test("a proposal that waits tells each issue, all but those the one it replaced told already", async () => {
+    proposeAnswers({
+      work: DataSecurityAiWork.Fix,
+      reason: DataSecurityAiDecisionReason.Proposed,
+      proposalId: "10741000-0000-4000-8000-0000000000f1",
+    });
+    moduleBuckets(6);
+
+    await groupAndPropose();
+
+    // What was told before is read before the new one replaces it.
+    expect(order).toEqual(["read waiting", "propose", "tell"]);
+    expect(told).toHaveLength(1);
+    expect(told[0]).toMatchObject({
+      proposalId: "10741000-0000-4000-8000-0000000000f1",
+      kind: DataSecurityAiProposalKind.FixIssueGroupInCode,
+      plan: proposed[0]!.change.plan,
+      toldAlready,
+    });
+    expect(String(told[0]!["groupId"])).toBe(world.groups[0]!.id);
+    // The plan lists the issues it is for: what each line is written on.
+    expect(proposed[0]!.change.plan["issueIds"]).toHaveLength(6);
+  });
+
+  test("the one approval that waits tells its issues too", async () => {
+    proposeAnswers({
+      work: DataSecurityAiWork.Fix,
+      reason: DataSecurityAiDecisionReason.Proposed,
+      proposalId: "10741000-0000-4000-8000-0000000000f3",
+    });
+    consoleBuckets(3);
+
+    await groupAndPropose();
+
+    expect(told).toHaveLength(1);
+    expect(told[0]).toMatchObject({
+      kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
+      proposalId: "10741000-0000-4000-8000-0000000000f3",
+    });
+    expect((told[0]!["plan"] as JSONObject)["issueIds"]).toHaveLength(3);
+  });
+
+  test.each([
+    DataSecurityAiDecisionReason.AlreadyProposed,
+    DataSecurityAiDecisionReason.AppliedWithoutAsking,
+    DataSecurityAiDecisionReason.ApplyFailed,
+  ])(
+    "a proposal that does not wait (%s) tells no issue here",
+    async (reason: DataSecurityAiDecisionReason) => {
+      proposeAnswers({
+        work: DataSecurityAiWork.Fix,
+        reason,
+        proposalId: "10741000-0000-4000-8000-0000000000f2",
+      });
+      moduleBuckets(6);
+
+      await groupAndPropose();
+
+      expect(proposed).toHaveLength(1);
+      expect(told).toHaveLength(0);
+    },
+  );
+});
+
+describe("the one approval's proposal, kind by kind (#10742)", () => {
+  const VERSIONING: DataSecurityResponseAction =
+    DataSecurityResponseAction.TurnOnVersioning;
+  const RECOVERY: DataSecurityResponseAction =
+    DataSecurityResponseAction.TurnOnPointInTimeRecovery;
+
+  // A catalog of tomorrow: one check two kinds of one cloud fail, each fixed its own way.
+  function catalogOfTwoKinds(): void {
+    jest
+      .spyOn(ResponseActionCatalog, "getDataSecurityResponseActionForIssue")
+      .mockImplementation(
+        (
+          checkId: string | undefined,
+          kind: string | undefined,
+        ): DataSecurityResponseAction | undefined => {
+          if (checkId !== "deleted-data-not-recoverable") {
+            return undefined;
+          }
+
+          return kind === "AWS DynamoDB Table"
+            ? RECOVERY
+            : kind === "AWS S3 Bucket"
+              ? VERSIONING
+              : undefined;
+        },
+      );
+  }
+
+  function ordersStores(buckets: number, tables: number): void {
+    for (let index: number = 1; index <= buckets + tables; index++) {
+      world.addStoreWithIssue(
+        {
+          name:
+            index <= buckets
+              ? `orders-bucket-${index}`
+              : `orders-table-${index}`,
+          kind: index <= buckets ? "AWS S3 Bucket" : "AWS DynamoDB Table",
+          cloudConnectionId: CONNECTION_ID,
+          cloudTags: { component: "orders" },
+        },
+        { checkId: "deleted-data-not-recoverable", severity: "Medium" },
+      );
+    }
+  }
+
+  test("its preview names each kind's action, what it does and costs, and its stores", async () => {
+    catalogOfTwoKinds();
+    ordersStores(2, 2);
+
+    await groupAndPropose();
+
+    expect(proposed).toHaveLength(1);
+
+    const change: DataSecurityAiPlannedChange = proposed[0]!.change;
+
+    expect(proposed[0]!.kind).toBe(
+      DataSecurityAiProposalKind.FixIssueGroupInCloud,
+    );
+    expect(change.title).toContain(`${RECOVERY} and ${VERSIONING}`);
+    expect(change.title).toContain("4 stores made in the console");
+    expect(change.changeMarkdown).toContain(
+      "One approval makes each kind of store's own change",
+    );
+    expect(change.changeMarkdown).toContain(`**${VERSIONING}**`);
+    expect(change.changeMarkdown).toContain(`**${RECOVERY}**`);
+    // What each costs, as Fix it from here says it.
+    expect(change.changeMarkdown).toContain("billed");
+    expect(change.changeMarkdown).toContain("bills it by the table's size");
+    expect(change.changeMarkdown).toContain("orders-bucket-1");
+    expect(change.changeMarkdown).toContain("orders-table-4");
+    expect(change.reasonMarkdown).toContain(
+      "each kind of store with its own change",
+    );
+    // A setting of the cloud's, never access: it always asks.
+    expect(change.safety).toBe(DataSecurityAiChangeSafety.ChangesCloudSettings);
+    expect(proposed[0]!.verdict.runWithoutAsking).toBe(false);
+  });
+
+  test("its plan says which store and issue takes which action", async () => {
+    catalogOfTwoKinds();
+    ordersStores(2, 2);
+
+    await groupAndPropose();
+
+    const plan: JSONObject = proposed[0]!.change.plan;
+    const actions: Array<JSONObject> = plan["actions"] as Array<JSONObject>;
+    const tables: Array<WorldStore> = world.stores.filter(
+      (store: WorldStore): boolean => {
+        return store.kind === "AWS DynamoDB Table";
+      },
+    );
+
+    expect(actions).toHaveLength(2);
+    expect(actions[0]).toMatchObject({
+      action: RECOVERY,
+      kind: "AWS DynamoDB Table",
+    });
+    expect([...(actions[0]!["storeIds"] as Array<string>)].sort()).toEqual(
+      tables
+        .map((store: WorldStore): string => {
+          return store.id;
+        })
+        .sort(),
+    );
+    expect(actions[0]!["issueIds"]).toHaveLength(2);
+    expect(plan["issueIds"]).toHaveLength(4);
+    expect(plan["storeIds"]).toHaveLength(4);
+    // An approval holds each store to the action it lists.
+    expect(Object.values(readStoreActions(plan)).sort()).toEqual([
+      RECOVERY,
+      RECOVERY,
+      VERSIONING,
+      VERSIONING,
+    ]);
+  });
+
+  test("one action reads as it always did: its key is the one a waiting proposal of before has", async () => {
+    consoleBuckets(3);
+
+    await groupAndPropose();
+
+    const change: DataSecurityAiPlannedChange = proposed[0]!.change;
+
+    expect(change.changeMarkdown).toMatch(
+      /^\*\*Block public access\*\* on each of these stores, through its cloud connection\. Turns on the bucket's four Block Public Access settings/,
+    );
+    expect(change.changeMarkdown).toContain("stops working");
+    expect(change.planKey).toBe(
+      getIssueGroupPlanKey({
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
+        groupId: world.groups[0]!.id,
+        storeIds: change.plan["storeIds"] as Array<string>,
+        extra: DataSecurityResponseAction.BlockPublicAccess,
+      }),
+    );
+    // A change of access, as before.
+    expect(change.safety).toBe(DataSecurityAiChangeSafety.ChangesAccess);
+  });
+
+  test("several actions are a key of their own: the same stores taking one action are another proposal", async () => {
+    catalogOfTwoKinds();
+    ordersStores(1, 1);
+
+    await groupAndPropose();
+
+    const change: DataSecurityAiPlannedChange = proposed[0]!.change;
+
+    expect(change.planKey).not.toBe(
+      getIssueGroupPlanKey({
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
+        groupId: world.groups[0]!.id,
+        storeIds: change.plan["storeIds"] as Array<string>,
+        extra: VERSIONING,
+      }),
+    );
+    expect(change.planKey).toBe(
+      getIssueGroupPlanKey({
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
+        groupId: world.groups[0]!.id,
+        storeIds: change.plan["storeIds"] as Array<string>,
+        extra: [RECOVERY, VERSIONING].sort().join(","),
+      }),
+    );
+  });
+});
+
+describe("approving the one approval (#10742)", () => {
+  const VERSIONING: DataSecurityResponseAction =
+    DataSecurityResponseAction.TurnOnVersioning;
+  const RECOVERY: DataSecurityResponseAction =
+    DataSecurityResponseAction.TurnOnPointInTimeRecovery;
+
+  test("runs each store with the action the proposal listed for it, and keeps what each did", async () => {
+    const bucket: string = "10742000-0000-4000-8000-0000000000b1";
+    const table: string = "10742000-0000-4000-8000-0000000000b2";
+    const proposal: DataSecurityAiProposal = new DataSecurityAiProposal();
+
+    proposal.dataSecurityIssueGroupId = new ObjectID(
+      "10742000-0000-4000-8000-0000000000c1",
+    );
+    proposal.plan = {
+      groupId: "10742000-0000-4000-8000-0000000000c1",
+      action: VERSIONING,
+      actions: [
+        { action: VERSIONING, kind: "AWS S3 Bucket", storeIds: [bucket] },
+        { action: RECOVERY, kind: "AWS DynamoDB Table", storeIds: [table] },
+      ],
+      storeIds: [bucket, table],
+      leftOutStoreIds: [],
+    };
+
+    const run: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataSecurityIssueGroupFix, "run")
+      .mockResolvedValue({
+        leftOut: 0,
+        cloud: {
+          action: VERSIONING,
+          actions: [
+            { action: VERSIONING, changed: 1, unchanged: 0, failed: 0 },
+            { action: RECOVERY, changed: 0, unchanged: 1, failed: 0 },
+          ],
+          changed: 1,
+          unchanged: 1,
+          failed: [],
+          changedIssueIds: ["10742000-0000-4000-8000-0000000000a1"],
+        },
+      } as never);
+    const made: { result: JSONObject; summaryMarkdown: string } =
+      (await FixIssueGroupInCloudAction.apply({
+        projectId: new ObjectID(world.projectId),
+        proposal,
+        actor: { props: { isRoot: true } },
+      })) as { result: JSONObject; summaryMarkdown: string };
+
+    expect(run.mock.calls[0]![0]).toMatchObject({
+      onlyDataStoreIds: [bucket, table],
+      onlyStoreActions: { [bucket]: VERSIONING, [table]: RECOVERY },
+    });
+    expect(made.result).toEqual({
+      action: VERSIONING,
+      actions: [
+        { action: VERSIONING, changed: 1, unchanged: 0, failed: 0 },
+        { action: RECOVERY, changed: 0, unchanged: 1, failed: 0 },
+      ],
+      changed: 1,
+      unchanged: 1,
+      failed: 0,
+      changedIssueIds: ["10742000-0000-4000-8000-0000000000a1"],
+    });
+    expect(made.summaryMarkdown).toContain(`**${VERSIONING}**`);
+    expect(made.summaryMarkdown).toContain(`**${RECOVERY}**`);
+    expect(made.summaryMarkdown).toContain("1 already as they should be");
+  });
+
+  test("a proposal from before it listed its actions holds every store it named to its one action", () => {
+    const storeIds: Array<string> = [
+      "10742000-0000-4000-8000-0000000000b3",
+      "10742000-0000-4000-8000-0000000000b4",
+    ];
+
+    expect(
+      readStoreActions({
+        action: DataSecurityResponseAction.BlockPublicAccess,
+        storeIds,
+      }),
+    ).toEqual({
+      [storeIds[0]!]: DataSecurityResponseAction.BlockPublicAccess,
+      [storeIds[1]!]: DataSecurityResponseAction.BlockPublicAccess,
+    });
+    // Nothing that is not an action, nor any id that is not one.
+    expect(
+      readStoreActions({
+        actions: [
+          { action: "Delete the bucket", storeIds },
+          { action: VERSIONING, storeIds: ["not-an-id"] },
+        ],
+      }),
+    ).toEqual({});
+    expect(readStoreActions(null)).toEqual({});
+    expect(readStoreActions([] as never)).toEqual({});
   });
 });

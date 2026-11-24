@@ -457,7 +457,7 @@ Docker Engine 27 и новее выбирает для сети подсеть I
 ### Другие проблемы
 
 :::details Зонд останавливается сразу после запуска
-Его журнал называет, чего не хватает: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` или `PROBE_ID or REGISTER_PROBE_KEY should be set`. Если все три заданы, но ID и ключ не подходят ни к одному зонду, зонд пытается 10 раз с интервалом 30 секунд, а затем останавливается с `Unable to register probe after 10 attempts`. Скопируйте ID и ключ заново через **Показать ID и ключ**.
+Его журнал называет, чего не хватает: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` или `PROBE_ID is not set`. Если все три заданы, но ID и ключ не подходят ни к одному зонду, зонд пытается 10 раз с интервалом 30 секунд, а затем останавливается с `Unable to register probe after 10 attempts`. Скопируйте ID и ключ заново через **Показать ID и ключ**.
 :::
 
 :::details Зонд работал, пока кто-то не сбросил его ключ

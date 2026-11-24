@@ -132,8 +132,8 @@ Removing someone takes them off every team of the project. They lose access at o
 
 ## Troubleshooting
 
-:::details "This user has already been invited to this team"
-They are on that team already, as a member or with an invitation they have not accepted. Open them on **Users** to see their teams, or invite them to another team.
+:::details "This person has already been invited to this team, or is a member of it"
+They are on that team already, as a member or with an invitation they have not accepted. Open them on **Users** to see their teams, or invite them to another team. If they have not joined yet, **Resend Invitation** in their row menu sends their invitation email again.
 :::
 
 :::details "You have reached the user limit for the free plan"

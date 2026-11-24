@@ -1,3 +1,14 @@
+import { translationKey } from "../../Types/Translator";
+
+/*
+ * The two refusals of an invitation a person meets most (#7271) are keys of
+ * the Dashboard's locales (this file is a "keys" root of its string
+ * extractor: only the words marked translationKey are read), so the invite
+ * dialog says them in the reader's language. The Administration docs quote
+ * each by its first sentence, and the Terraform provider recognises
+ * ALREADY_INVITED by "already been invited" (AlreadyInvitedHint in
+ * Scripts/TerraformProvider/StaticFiles/people.go), so those words stay.
+ */
 export default {
   BillingService: {
     BILLING_NOT_ENABLED: "Billing is not enabled for this server.",
@@ -21,13 +32,16 @@ export default {
       "This subscription has been cancelled. Its trial cannot be extended.",
   },
   TeamMemberService: {
-    ALREADY_INVITED: "This user has already been invited to this team",
+    ALREADY_INVITED: translationKey(
+      "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.",
+    ),
     ONE_MEMBER_REQUIRED:
       "This team should have at least 1 member who has accepted the invitation.",
     LIMIT_REACHED:
       "You have reached the user limit. You cannot invite any more users to this project. Please contact billing@oneuptime.com to increase your user limit.",
-    LIMIT_REACHED_FOR_FREE_PLAN:
-      "You have reached the user limit for the free plan. Please upgrade your plan to Growth to invite more users.",
+    LIMIT_REACHED_FOR_FREE_PLAN: translationKey(
+      "You have reached the user limit for the free plan. To invite more people, change the plan to Growth in Project Settings > Billing and Invoices > Billing.",
+    ),
     REMOVE_FROM_SOME_TEAMS_ONLY:
       "You can remove this person from only some of their teams, so you can't remove them from the project. Remove them from those teams on their Teams page instead.",
   },

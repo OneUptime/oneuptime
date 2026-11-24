@@ -171,10 +171,10 @@ Open in Cloudflare **My Profile → API Tokens**, bewerk het token van de verbin
 
 ### Blokkeren aanzetten
 
-Selecteer op de rij van de verbinding **Adressen blokkeren**. Plak een nieuw token in **Nieuw API-token**, of laat het leeg om het huidige te houden, en laat in **Zones** **Alle zones** staan, of kies de zones waarin geblokkeerd wordt. **Rechten controleren** vraagt Cloudflare of het token elk recht heeft, en verandert niets. **Blokkeren aanzetten** zet blokkeren alleen aan als elke controle slaagt, en OneUptime richt Cloudflare binnen een minuut in.
+Selecteer op de rij van de verbinding **Adressen blokkeren**. Plak een nieuw token in **Nieuw API-token**, of laat het leeg om het huidige te houden, en laat in **Zones** **Alle zones** staan, of kies de zones waarin geblokkeerd wordt. **Rechten controleren** vraagt Cloudflare of het token elk recht heeft, en verandert niets. **Blokkeren aanzetten** zet blokkeren alleen aan als elke controle slaagt, behalve **Challenge a network by its ASN**, die alleen waarschuwt, en OneUptime richt Cloudflare binnen een minuut in.
 :::
 
-Zolang blokkeren aan staat, voert **Verbinding testen** dezelfde controles uit: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** en, waar IP Access Rules worden gebruikt, **Edit IP Access Rules**.
+Zolang blokkeren aan staat, voert **Verbinding testen** dezelfde controles uit: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** en, waar IP Access Rules worden gebruikt, **Edit IP Access Rules**, of anders **Challenge a network by its ASN**.
 
 ### Wat OneUptime aan Cloudflare toevoegt
 
@@ -183,7 +183,7 @@ Zolang blokkeren aan staat, voert **Verbinding testen** dezelfde controles uit: 
 | De lijsten `oneuptime_block` en `oneuptime_challenge` | Twee IP-lijsten in het account, een voor blokkeringen en een voor challenges. Hun beschrijving noemt je OneUptime-project. |
 | Eén aangepaste regel per lijst, in elke zone | `(ip.src in $oneuptime_block)` met de actie Block, en `(ip.src in $oneuptime_challenge)` met de actie Managed Challenge. Hun beschrijving zegt dat OneUptime ze beheert. |
 | Eén lijstitem per blokkering | Het commentaar noemt de zaak en wanneer de blokkering afloopt, zoals `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| Eén IP Access Rule per netwerk dat een challenge krijgt op zijn ASN | Een heel netwerk dat vanuit **Campagnes** een challenge krijgt, als IP Access Rule met als doel `asn`, die elk abonnement heeft. De notitie ervan zegt hetzelfde als het commentaar van een lijstitem. Zonder `Account > Account Firewall Access Rules > Edit` op het token wordt de challenge niet toegepast, en zegt de **Blokkeerlijst** welk recht je moet toevoegen. |
+| Eén IP Access Rule per netwerk dat een challenge krijgt op zijn ASN | Een heel netwerk dat vanuit **Campagnes** een challenge krijgt, als IP Access Rule met als doel `asn`, die elk abonnement heeft. De notitie ervan zegt hetzelfde als het commentaar van een lijstitem. **Rechten controleren** en **Verbinding testen** waarschuwen vooraf, onder **Challenge a network by its ASN**, als het token `Account > Account Firewall Access Rules > Edit` mist: blokkeren werkt zonder dat recht, maar de challenge wordt niet toegepast, en de **Blokkeerlijst** zegt welk recht je moet toevoegen. |
 
 Elke regel komt als eerste van de aangepaste regels van de zone, dus hij loopt vóór die van jou: een Skip-regel van jou kan een geblokkeerd adres er niet langs laten. Als je Skip-regels adressen doorlaten, zoals die van je monitors of van een partner, noemt **Blokkeerstatus** ze. **Deze adressen beschermen** voegt ze toe aan **Beschermde entiteiten**, die niemand kan blokkeren.
 

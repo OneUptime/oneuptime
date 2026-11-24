@@ -457,7 +457,7 @@ En sonde poller opptil `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` nettverksenheter 
 ### Andre problemer
 
 :::details Sonden stopper rett etter at den starter
-Loggen dens nevner hva som mangler: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` eller `PROBE_ID or REGISTER_PROBE_KEY should be set`. Er alle tre satt, men ID og nøkkel passer ikke til noen sonde, prøver sonden 10 ganger med 30 sekunders mellomrom og stopper så med `Unable to register probe after 10 attempts`. Kopier ID og nøkkel på nytt med **Vis ID og nøkkel**.
+Loggen dens nevner hva som mangler: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` eller `PROBE_ID is not set`. Er alle tre satt, men ID og nøkkel passer ikke til noen sonde, prøver sonden 10 ganger med 30 sekunders mellomrom og stopper så med `Unable to register probe after 10 attempts`. Kopier ID og nøkkel på nytt med **Vis ID og nøkkel**.
 :::
 
 :::details Sonden fungerte til noen tilbakestilte nøkkelen

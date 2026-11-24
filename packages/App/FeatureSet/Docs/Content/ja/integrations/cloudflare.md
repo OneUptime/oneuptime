@@ -171,10 +171,10 @@ Cloudflare で **My Profile → API Tokens** を開き、接続のトークン�
 
 ### ブロックをオンにする
 
-接続の行で **アドレスをブロック** を選択します。**新しい API トークン** に新しいトークンを貼り付けるか、空のままにして現在のトークンを使い続け、**ゾーン** は **すべてのゾーン** のままにするか、ブロックするゾーンを選びます。**権限を確認** は、トークンが各権限を持っているかを Cloudflare に問い合わせ、何も変更しません。**ブロックをオンにする** はすべてのチェックに合格したときだけブロックをオンにし、OneUptime は 1 分以内に Cloudflare を設定します。
+接続の行で **アドレスをブロック** を選択します。**新しい API トークン** に新しいトークンを貼り付けるか、空のままにして現在のトークンを使い続け、**ゾーン** は **すべてのゾーン** のままにするか、ブロックするゾーンを選びます。**権限を確認** は、トークンが各権限を持っているかを Cloudflare に問い合わせ、何も変更しません。**ブロックをオンにする** はすべてのチェックに合格したときだけブロックをオンにします。ただし **Challenge a network by its ASN** は警告だけで、ブロックを止めません。OneUptime は 1 分以内に Cloudflare を設定します。
 :::
 
-ブロックがオンの間は、**接続をテスト** も同じチェックを実行します: **How blocking is set up**、**Edit the lists**、**Edit custom rules in each zone**、そして IP Access Rules を使う場合は **Edit IP Access Rules**。
+ブロックがオンの間は、**接続をテスト** も同じチェックを実行します: **How blocking is set up**、**Edit the lists**、**Edit custom rules in each zone**、そして IP Access Rules を使う場合は **Edit IP Access Rules**、使わない場合は **Challenge a network by its ASN**。
 
 ### OneUptime が Cloudflare に追加するもの
 
@@ -183,7 +183,7 @@ Cloudflare で **My Profile → API Tokens** を開き、接続のトークン�
 | リスト `oneuptime_block` と `oneuptime_challenge` | アカウント内の IP リストで、ブロック用とチャレンジ用があります。説明に OneUptime のプロジェクトが記載されます。 |
 | 各ゾーンに、リストごとのカスタムルール | アクション Block の `(ip.src in $oneuptime_block)` と、アクション Managed Challenge の `(ip.src in $oneuptime_challenge)` です。説明には OneUptime が管理していることが記載されます。 |
 | ブロックごとのリスト項目 | コメントにケースとブロックの終了時刻が記載されます。例: `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`。 |
-| ASN 単位でチャレンジしたネットワークごとの IP Access Rule | **キャンペーン** からチャレンジしたネットワーク全体を、ターゲットが `asn` の IP Access Rule として保持します。これはすべてのプランにあります。メモにはリスト項目のコメントと同じ内容が記載されます。トークンに `Account > Account Firewall Access Rules > Edit` がない場合、チャレンジは適用されず、 **ブロックリスト** に追加すべき権限が表示されます。 |
+| ASN 単位でチャレンジしたネットワークごとの IP Access Rule | **キャンペーン** からチャレンジしたネットワーク全体を、ターゲットが `asn` の IP Access Rule として保持します。これはすべてのプランにあります。メモにはリスト項目のコメントと同じ内容が記載されます。トークンに `Account > Account Firewall Access Rules > Edit` がない場合は、**権限を確認** と **接続をテスト** が **Challenge a network by its ASN** で先に警告します。ブロックはこの権限なしでも動きますが、チャレンジは適用されず、 **ブロックリスト** に追加すべき権限が表示されます。 |
 
 各ルールはゾーンのカスタムルールの先頭に置かれるため、あなたのルールより先に実行されます。あなたの Skip ルールが、ブロックされたアドレスを通過させることはできません。モニターやパートナーのアドレスなど、Skip ルールが通過させるアドレスがある場合は、**ブロックのステータス** にそれらが表示されます。**これらのアドレスを保護** でそれらを **保護対象のエンティティ** に追加すると、誰もブロックできなくなります。
 

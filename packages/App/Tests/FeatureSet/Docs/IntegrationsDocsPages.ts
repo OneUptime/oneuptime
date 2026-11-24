@@ -977,6 +977,8 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Edit the lists",
       "Edit custom rules in each zone",
       "Edit IP Access Rules",
+      // Challenge This Network's permission, where every block takes a list (#10894).
+      "Challenge a network by its ASN",
     ],
     // The button that inserts a value into a step's setting: a symbol.
     [DISCORD]: ["{ }"],

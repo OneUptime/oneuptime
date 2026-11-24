@@ -188,7 +188,7 @@ The **Setup Guide** page, under **Connections**, has these snippets with your ow
 
 ### Find security events in your logs
 
-**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and refused request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
 
 Each kind reaches OneUptime as ordinary logs:
 
@@ -338,13 +338,24 @@ The sidebar counts the window's events by **Source**, **Severity**, **Request Ou
 
 An event read from a log line written inside a traced request is followed into that request. Its panel says how far the request got (**Rejected**, **Reached App**, **Errored** or **Reached Database**), who sent it, and links to its trace, its exception, its session replay and the log line itself. A log line, a trace and an exception that are part of an attack say so on their own pages too.
 
+### A sensitive file your site served
+
+A request for a file that holds secrets, such as `/.env`, `/.git/config`, `/.aws/credentials` or a copy of `wp-config.php`, is a leak when your site answered it with the file itself: whoever asked holds its passwords, keys and tokens. A single-page app answers every path it does not have with its own page and a 200, so a 200 alone never says so. OneUptime reads what the answer carried:
+
+- A type that is no web page, such as `text/plain` or `application/octet-stream`: the file itself.
+- A web page, or JSON for a file that is not JSON: your site's own page.
+- Nothing in it: nothing was taken.
+- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. When nothing tells, the request is no event.
+
+A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**.
+
 ### Campaigns
 
 **Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first. A row your blocklist already holds says until when it is blocked or challenged, and names the range or network that holds it.
 
 To block several attackers at once, select their rows and press **Block Addresses**. One dialog lists every address it blocks and every one it leaves out, with why: already blocked, one of your own or a protected one, one a signed-in user used in the last 30 days, or one OneUptime could not check. It blocks for 24 hours unless you choose another length, or challenges with **Challenge Instead**, and each block goes on your [blocklist](/docs/telemetry/security-cases#blocklist) as yours.
 
-**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has.
+**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has. A network's **View requests** opens what it sent in **Events**: an ASN's by the ASN its Cloudflare events carry, and a range's as a search for its addresses, such as `ip:203.0.113.*`, which you can change.
 
 - A network that holds an address a signed-in user used in the last 30 days, or one of your own, is never challenged, and the dialog names who or what.
 - A range wider than a /24 (a /48 for IPv6), and a whole ASN, take a Security Admin, a Project Admin or a Project Owner. An ASN's row also offers each of its ranges, which anyone who can block may challenge.

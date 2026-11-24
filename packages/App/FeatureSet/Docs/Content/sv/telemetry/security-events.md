@@ -188,7 +188,7 @@ Sidan **Installationsguide**, under **Anslutningar**, har de här kodsnuttarna m
 
 ### Hitta säkerhetshändelser i dina loggar
 
-Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost, webbattack och nekad förfrågan efter en känslig fil i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost, webbattack och förfrågan efter en känslig fil i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
 
 Varje typ når OneUptime som vanliga loggar:
 
@@ -338,13 +338,24 @@ Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad*
 
 En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Nådde appen**, **Fel** eller **Nådde databasen**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
 
+### En känslig fil som din webbplats levererade
+
+En förfrågan efter en fil som innehåller hemligheter, till exempel `/.env`, `/.git/config`, `/.aws/credentials` eller en kopia av `wp-config.php`, är en läcka när din webbplats besvarade den med själva filen: den som frågade har nu dess lösenord, nycklar och token. En ensidesapp besvarar varje sökväg den inte har med sin egen sida och en 200, så en 200 säger det aldrig ensam. OneUptime läser vad svaret innehöll:
+
+- En typ som ingen webbsida har, till exempel `text/plain` eller `application/octet-stream`: själva filen.
+- En webbsida, eller JSON för en fil som inte är JSON: din webbplats egen sida.
+- Ingenting i det: inget togs.
+- En storlek och ingen typ, som en webbservers åtkomstlogg registrerar det: själva filen när ingen annan sökväg fick den storleken och din webbplats svarar 404 för de sökvägar den inte har, och din webbplats egen sida när samma storlek besvarade två olika sökvägar. När inget avgör det blir förfrågan ingen händelse.
+
+En levererad fil är kritisk, och regeln **Sensitive file served** i regelbiblioteket öppnar ett ärende om den, med steg för att ta bort filen och byta ut det den innehåller. Var och en av dessa förfrågningar räknas också mot **Scanning for sensitive files**, även en ensidesapps. En administratörssida som din webbplats levererar, till exempel WordPress, är aldrig en sådan, och `wp-config.php` som WordPress körde är din webbplats egen. Cloudflares brandväggshändelser säger inte vad din ursprungsserver skickade, så en förfrågan som Cloudflare släppte igenom räknas bara mot skanning. En händelses panel säger vad din webbplats skickade under **Vad som hände sedan**.
+
 ### Campaigns
 
 **Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först. En rad som din blocklista redan håller säger till när den är blockerad eller utmanad, och nämner intervallet eller nätverket som håller den.
 
 För att blockera flera angripare på en gång markerar du deras rader och trycker på **Blockera adresser**. En enda dialog listar varje adress som den blockerar och varje adress som den utelämnar, med skälet: redan blockerad, en av dina egna eller en skyddad, en som en inloggad användare har använt de senaste 30 dagarna, eller en som OneUptime inte kunde kontrollera. Den blockerar i 24 timmar om du inte väljer en annan längd, eller utmanar med **Utmana i stället**, och varje blockering hamnar på din [blocklista](/docs/telemetry/security-cases#blocklista) som din.
 
-**Gruppera efter nätverk** samlar adresserna från ett nätverk på en rad: efter dess ASN där händelserna från din [Cloudflare](/docs/integrations/cloudflare)-anslutning anger ett, och annars efter dess /24 för IPv4 eller dess /48 för IPv6. Ett ASN:s rad listar intervallen som dess adresser skickade från. **Utmana det här nätverket** säger vad det kommer att göra, var och hur länge, innan det gör det: 24 timmar om du inte väljer en annan längd, och nästa steg på stegen för ett nätverk som har utmanats tidigare. Cloudflare håller ett intervall i sin utmaningslista, och ett ASN som en IP Access Rule, som alla planer har.
+**Gruppera efter nätverk** samlar adresserna från ett nätverk på en rad: efter dess ASN där händelserna från din [Cloudflare](/docs/integrations/cloudflare)-anslutning anger ett, och annars efter dess /24 för IPv4 eller dess /48 för IPv6. Ett ASN:s rad listar intervallen som dess adresser skickade från. **Utmana det här nätverket** säger vad det kommer att göra, var och hur länge, innan det gör det: 24 timmar om du inte väljer en annan längd, och nästa steg på stegen för ett nätverk som har utmanats tidigare. Cloudflare håller ett intervall i sin utmaningslista, och ett ASN som en IP Access Rule, som alla planer har. **Visa begäranden** på ett nätverks rad öppnar det som nätverket skickade i **Händelser**: ett ASN:s efter det ASN som dess Cloudflare-händelser bär, och ett intervalls som en sökning efter dess adresser, till exempel `ip:203.0.113.*`, som du kan ändra.
 
 - Ett nätverk som innehåller en adress som en inloggad användare har använt de senaste 30 dagarna, eller en av dina egna, utmanas aldrig, och dialogen nämner vem eller vad.
 - Ett intervall som är bredare än ett /24 (ett /48 för IPv6), och ett helt ASN, kräver en Säkerhetsadministratör, en Projektadministratör eller en Projektägare. Ett ASN:s rad erbjuder också vart och ett av dess intervall, som alla som får blockera kan utmana.

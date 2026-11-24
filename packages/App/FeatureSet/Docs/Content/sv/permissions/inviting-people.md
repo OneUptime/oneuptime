@@ -132,8 +132,8 @@ Att ta bort någon tar bort personen från alla projektets team. Personen förlo
 
 ## Felsökning
 
-:::details "This user has already been invited to this team"
-Personen är redan med i teamet, som medlem eller med en inbjudan som inte har accepterats. Öppna personen under **Användare** för att se teamen, eller bjud in personen till ett annat team.
+:::details "This person has already been invited to this team, or is a member of it"
+Personen är redan med i teamet, som medlem eller med en inbjudan som inte har accepterats. Öppna personen under **Användare** för att se teamen, eller bjud in personen till ett annat team. Har personen inte gått med än skickar **Skicka inbjudan igen** i personens radmeny inbjudningsmejlet en gång till.
 :::
 
 :::details "You have reached the user limit for the free plan"

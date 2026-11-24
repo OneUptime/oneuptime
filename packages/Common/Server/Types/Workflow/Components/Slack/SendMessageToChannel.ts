@@ -1,4 +1,5 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
+import { getChatMessageNotSent } from "../OtherSystemSaidNothing";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
@@ -100,7 +101,7 @@ export default class SendMessageToChannel extends ComponentCode {
       if (apiResult instanceof HTTPErrorResponse) {
         return Promise.resolve({
           returnValues: {
-            error: apiResult.message || "Server Error.",
+            error: apiResult.message || getChatMessageNotSent("Slack"),
           },
           executePort: errorPort,
         });
@@ -113,7 +114,7 @@ export default class SendMessageToChannel extends ComponentCode {
       if (err instanceof HTTPErrorResponse) {
         return Promise.resolve({
           returnValues: {
-            error: err.message || "Server Error.",
+            error: err.message || getChatMessageNotSent("Slack"),
           },
           executePort: errorPort,
         });

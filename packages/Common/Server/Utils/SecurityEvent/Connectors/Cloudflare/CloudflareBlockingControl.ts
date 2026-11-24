@@ -21,7 +21,9 @@ import { SecurityConnectorSettings } from "../Types";
 import CloudflareBlockDestinations, {
   CloudflareDestinationOptions,
 } from "./CloudflareBlockDestination";
-import CloudflareBlocking from "./CloudflareBlocking";
+import CloudflareBlocking, {
+  isCloudflareBlockingReady,
+} from "./CloudflareBlocking";
 import CloudflareClient from "./CloudflareClient";
 import CloudflareConnector from "./CloudflareConnector";
 
@@ -35,7 +37,8 @@ import CloudflareConnector from "./CloudflareConnector";
  *   check     how blocking would be set up, and whether the token - the
  *             stored one, or one pasted to replace it - holds each write
  *             permission it needs, asked without writing;
- *   turnOn    the same checks first: on only when every one passes. A token
+ *   turnOn    the same checks first: on only when every one passes, an
+ *             advisory one aside, which may warn (#10894). A token
  *             pasted is saved with the connection, the zones chosen kept
  *             (none: every zone the connection reads), and OneUptime sets
  *             Cloudflare up on the reconciler's next pass, queued at once.
@@ -184,12 +187,13 @@ export default class CloudflareBlockingControl {
 
     const { checks } = await blocking.checkWriteAccess();
 
+    /*
+     * Ready when every check passes - but for an advisory one, which may
+     * warn: a token that cannot challenge a network by its ASN still blocks
+     * every address (#10894).
+     */
     return {
-      isReady:
-        checks.length > 0 &&
-        checks.every((check: SecurityConnectorCheck): boolean => {
-          return check.status === "pass";
-        }),
+      isReady: isCloudflareBlockingReady(checks),
       checks,
     };
   }

@@ -21,8 +21,16 @@ import {
   NETWORK_UNCHECKED_ASN,
   NETWORK_UNCHECKED_NEEDS_ADMIN,
   REPEAT_MANY,
+  REPEAT_MANY_NETWORK_BLOCKED,
+  REPEAT_MANY_NETWORK_BLOCKED_NO_CASE,
+  REPEAT_MANY_NETWORK_CHALLENGED,
+  REPEAT_MANY_NETWORK_CHALLENGED_NO_CASE,
   REPEAT_MANY_NO_CASE,
   REPEAT_ONCE,
+  REPEAT_ONCE_NETWORK_BLOCKED,
+  REPEAT_ONCE_NETWORK_BLOCKED_NO_CASE,
+  REPEAT_ONCE_NETWORK_CHALLENGED,
+  REPEAT_ONCE_NETWORK_CHALLENGED_NO_CASE,
   REPEAT_ONCE_NO_CASE,
   REPEAT_TWICE,
   REPEAT_TWICE_NO_CASE,
@@ -41,7 +49,10 @@ import {
 } from "../Blocklist/BlocklistWords";
 import { formatNamesInSentence } from "../../SecurityCase/Response/SecurityCaseBlockStepModel";
 import OneUptimeDate from "Common/Types/Date";
-import { SecurityRepeatOffenderSummary } from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import {
+  SecurityRepeatOffenderSummary,
+  getSecurityRepeatOffenderHoldingNetwork,
+} from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import {
   SECURITY_BLOCK_SENTENCES,
   SecurityBlockAction,
@@ -690,10 +701,16 @@ export function writeNetworkChallengedToast(data: {
 
 /*
  * "Blocked twice before, last on Nov 12 (case CASE-812)." - none for an
- * address never blocked before.
+ * address never blocked before. When the last block held it as part of a
+ * wider network - its whole network by its ASN (#10895), or a range around
+ * it - the line names the network and what was done to it: "Challenged
+ * once before as part of AS14061, on Nov 12 (case CASE-812)."
  */
 export function writeRepeatOffenderLine(data: {
-  summary: Pick<SecurityRepeatOffenderSummary, "offenceCount" | "last">;
+  summary: Pick<
+    SecurityRepeatOffenderSummary,
+    "value" | "offenceCount" | "last"
+  >;
   translator: Translator;
 }): string | null {
   const { summary, translator } = data;
@@ -707,6 +724,39 @@ export function writeRepeatOffenderLine(data: {
     caseNumber: summary.last.caseNumber || "",
   };
   const hasCase: boolean = Boolean(summary.last.caseNumber);
+  const network: string | null =
+    getSecurityRepeatOffenderHoldingNetwork(summary);
+
+  if (network) {
+    const isChallenge: boolean =
+      summary.last.action === SecurityBlockAction.Challenge;
+    const networkValues: Record<string, string> = { ...values, network };
+
+    if (summary.offenceCount === 1) {
+      return translator.translateTemplate(
+        isChallenge
+          ? hasCase
+            ? REPEAT_ONCE_NETWORK_CHALLENGED
+            : REPEAT_ONCE_NETWORK_CHALLENGED_NO_CASE
+          : hasCase
+            ? REPEAT_ONCE_NETWORK_BLOCKED
+            : REPEAT_ONCE_NETWORK_BLOCKED_NO_CASE,
+        networkValues,
+      );
+    }
+
+    return translator.translatePlural(
+      isChallenge
+        ? hasCase
+          ? REPEAT_MANY_NETWORK_CHALLENGED
+          : REPEAT_MANY_NETWORK_CHALLENGED_NO_CASE
+        : hasCase
+          ? REPEAT_MANY_NETWORK_BLOCKED
+          : REPEAT_MANY_NETWORK_BLOCKED_NO_CASE,
+      summary.offenceCount,
+      networkValues,
+    );
+  }
 
   if (summary.offenceCount === 1) {
     return translator.translateTemplate(
