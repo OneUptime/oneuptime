@@ -821,6 +821,19 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
   },
+  // An exception's former fingerprint deleted once no occurrence carries it (#10619).
+  "packages/Common/Server/Utils/Telemetry/FormerExceptionFingerprints.ts": {
+    "FormerExceptionFingerprints.retireUncarried TelemetryException":
+      Why.Bookkeeping,
+  },
+  /*
+   * An exception moved to a private fingerprint by its own next occurrence,
+   * its old one kept beside it (#10619): nobody made the change.
+   */
+  "packages/Common/Server/Utils/Telemetry/TelemetryExceptionRekey.ts": {
+    "TelemetryExceptionRekey.moveInTransaction TelemetryException":
+      Why.Automation,
+  },
   "packages/Common/Server/Utils/Telemetry/ResourceHeartbeat.ts": {
     "ResourceHeartbeat.writeOnce *": Why.Reported,
   },

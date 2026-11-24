@@ -556,10 +556,10 @@ export default class TelemetryExceptionMerge {
    * seen: the one it was split from when they were first seen at once, or
    * either has no first seen.
    */
-  public static olderOf(
-    splitFrom: Pick<TelemetryException, "firstSeenAt">,
-    split: Pick<TelemetryException, "firstSeenAt">,
-  ): typeof splitFrom {
+  public static olderOf<T extends Pick<TelemetryException, "firstSeenAt">>(
+    splitFrom: T,
+    split: T,
+  ): T {
     const splitFromAt: number | null = time(splitFrom.firstSeenAt || null);
     const splitAt: number | null = time(split.firstSeenAt || null);
 
