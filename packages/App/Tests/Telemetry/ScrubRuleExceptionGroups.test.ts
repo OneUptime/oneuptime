@@ -850,7 +850,7 @@ describe("an exception found in a log, before and after a scrub rule", () => {
     test("added to an exception named in a log's attributes: one exception", async () => {
       await ingestLogException(exception, BEFORE);
       const before: StoredException = onlyException();
-      const fingerprints: { v2: string; keyed: string } =
+      const fingerprints: { v3: string; keyedV3: string } =
         fingerprintsOf(exception);
 
       logRules = [rule()];
