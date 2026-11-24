@@ -1189,9 +1189,12 @@ describe("everything still works full screen", () => {
 
     const picker: HTMLElement = screen.getByRole("dialog");
 
-    await press(within(picker).getByRole("radio", { name: "Past 1 Day" }));
-    await press(within(picker).getByRole("button", { name: "Apply" }));
+    expect(view()).toContainElement(picker);
 
+    // A quick range applies at once, and the picker closes.
+    await press(within(picker).getByRole("radio", { name: "Past 1 Day" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(canvas()).toHaveAttribute("data-range", "Past 1 Day");
     expect(isShownFullScreen()).toBe(true);
     // The pick goes in the address, as it does on the page.
