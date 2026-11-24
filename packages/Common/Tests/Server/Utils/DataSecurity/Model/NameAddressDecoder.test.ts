@@ -60,7 +60,7 @@ function build(words: Array<LabelledWord & { glue?: string }>): {
       const probability: number = word.probability ?? 0.9;
 
       row[LABELS.indexOf(label)] = probability;
-      row[0] += 1 - probability;
+      row[0] = (row[0] ?? 0) + 1 - probability;
       tokens.push({
         id: 1000 + index,
         start: pieceStart,
