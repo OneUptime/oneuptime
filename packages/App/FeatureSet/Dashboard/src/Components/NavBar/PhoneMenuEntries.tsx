@@ -14,10 +14,19 @@ import { useTranslation } from "react-i18next";
  * Below 768 pixels (Common's PHONE_MENU_BELOW_WIDTH_IN_PX) the products
  * menu is the phone's menu toggle, and the header leaves out Search, Ask AI
  * and Help to keep its width. So on a phone there was no way to Search, the
- * docs or support at all. The phone's menu now starts with Search and ends
- * with Help, and the header stays as narrow as it was. From 768 up the
- * header draws Search and Help itself (#7037), so each is in exactly one of
- * the two at every width; Ask AI, from 1024 up, is in Search below that.
+ * docs or support at all. The phone's menu now starts with Search, then
+ * Help, and the header stays as narrow as it was. From 768 up the header
+ * draws Search and Help itself (#7037), so each is in exactly one of the
+ * two at every width; Ask AI, from 1024 up, is in Search below that.
+ *
+ * Help sits right under Search, above Home (#7473). It ended the menu, under
+ * User Settings and every product - OpenStack, VMware, Ceph and a dozen
+ * more on a busy project - and people scrolled looking for it, and for Give
+ * feedback inside it. Search and Help are the two ways to find your way, and
+ * the header keeps them side by side; the phone's menu keeps them together
+ * at its top, in view the moment it opens, whatever the project uses. Help
+ * stays one row that folds, as a category does, so its entries push nothing
+ * down until it is opened.
  */
 
 export const PHONE_MENU_SEARCH_TEST_ID: string = "navbar-mobile-search";
@@ -65,11 +74,19 @@ const ROW_CLASS_NAME: string =
   "flex w-full items-center rounded-md py-2 px-3 text-start text-base font-medium text-gray-900 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
- * Help, at the bottom of the phone's menu: one row that folds and opens like
- * a category of products, holding the header's Help entries
- * (useHelpEntries) - the ways to learn first, then the ways to ask - so the
- * two menus never drift. The keyboard shortcuts are left out: a phone has
- * no keys.
+ * The rule under Help sets Search and Help, the ways to find your way, apart
+ * from Home and the products below them, as the rules between the menu's
+ * other groups do. Its entries open above it.
+ */
+export const PHONE_MENU_HELP_CLASS_NAME: string =
+  "block w-full mb-1 border-b border-gray-100 pb-1";
+
+/*
+ * Help, right under Search at the top of the phone's menu (#7473): one row
+ * that folds and opens like a category of products, holding the header's
+ * Help entries (useHelpEntries) - the ways to learn first, then the ways to
+ * ask, Give feedback first among them - so the two menus never drift. The
+ * keyboard shortcuts are left out: a phone has no keys.
  */
 export const PhoneMenuHelp: FunctionComponent<PhoneMenuEntryProps> = (
   props: PhoneMenuEntryProps,
@@ -137,7 +154,7 @@ export const PhoneMenuHelp: FunctionComponent<PhoneMenuEntryProps> = (
       role="group"
       aria-labelledby={headingId}
       data-testid={PHONE_MENU_HELP_TEST_ID}
-      className="block w-full mt-1 border-t border-gray-100 pt-2"
+      className={PHONE_MENU_HELP_CLASS_NAME}
     >
       {/*
        * A row of the menu that folds and opens, as a category of products

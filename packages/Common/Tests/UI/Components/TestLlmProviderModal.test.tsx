@@ -474,7 +474,7 @@ describe("after the test", () => {
     [
       "a project below the plan that sells providers (HTTP 402)",
       PAYMENT_REQUIRED,
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     ],
     ["a server error (HTTP 500)", 500, "Server Error"],
     ["a gateway that gave up waiting (HTTP 504)", 504, "Gateway Timeout"],

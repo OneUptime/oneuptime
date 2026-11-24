@@ -2,8 +2,8 @@
   "Company name associated with this license.": "이 라이선스와 연결된 회사 이름입니다.",
   "Annual contract value (in USD) for this license.": "이 라이선스의 연간 계약 금액(USD)입니다.",
   "Expiration date of this license.": "이 라이선스의 만료일입니다.",
-  "Something went wrong": "문제가 발생했습니다",
-  "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 새로 고치세요",
+  "This page stopped working": "이 페이지가 작동을 멈췄습니다",
+  "Part of this page ran into a problem. Reload the page to continue.": "이 페이지의 일부에 문제가 생겼습니다. 계속하려면 페이지를 새로 고치세요.",
   "Error details": "오류 세부 정보",
   "Still stuck?": "여전히 해결되지 않나요?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "오류 스택, 컴포넌트 스택, 민감 정보를 지운 페이지 URL, 브라우저 정보, OneUptime 빌드가 담긴 로컬 진단 파일을 내려받으세요. 쿠키, 저장된 브라우저 데이터, 양식 내용은 절대 읽지 않습니다. OneUptime 지원팀에 공유하기 전에 검토하세요.",
@@ -497,7 +497,7 @@
       "title": "로그아웃"
     },
     "sendEmail": {
-      "title": "공지 이메일 보내기",
+      "title": "이메일 보내기",
       "testCardTitle": "테스트 이메일 보내기",
       "testCardDescription": "모든 사용자에게 보내기 전에 어떻게 보이는지 미리 보기 위해 단일 이메일 주소로 테스트 공지 이메일을 보냅니다.",
       "allCardTitle": "모든 사용자에게 이메일 보내기",
@@ -514,7 +514,7 @@
       "confirmButton": "예, 모든 사용자에게 보내기"
     },
     "moreEmail": {
-      "title": "공지 이메일 보내기",
+      "title": "이메일 보내기",
       "cardTitle": "공지 이메일 보내기",
       "cardDescription": "모든 등록된 사용자에게 보낼 공지 이메일을 작성하세요. 어떻게 보이는지 미리 보기 위해 먼저 테스트 이메일을 보낼 수 있습니다.",
       "sendTestButton": "테스트 이메일 보내기",
@@ -536,7 +536,7 @@
       "confirmButton": "예, 모든 사용자에게 보내기"
     },
     "settings": {
-      "title": "관리자 설정",
+      "title": "설정",
       "authentication": {
         "signUpCardTitle": "가입",
         "signUpCardDescription": "이 서버에서 계정을 만들 수 있는 사람.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "채널로 테스트 요청을 보내는 중입니다.",
   "Custom Channel": "사용자 지정 채널",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "이 채널을 사용하는 모든 사람의 온콜 규칙이 채널과 함께 삭제됩니다. 누구의 규칙도 바꾸지 않고 전송을 멈추려면 대신 채널을 끄세요.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "{{itemName}}의 {{columnName}}을(를) 설정할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "{{itemName}}의 {{columnName}}을(를) 편집할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "{{itemName}}의 {{columnName}}을(를) 설정할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "{{itemName}}의 {{columnName}}을(를) 편집할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}.",
   "Push Notifications": "푸시 알림",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} {{count}}개 건너뜀",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "{{itemName}} {{count}}개에 대해 '{{action}}'을(를) 실행하시겠습니까?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "워커에 메모리와 CPU를 더 할당하고, 앱 로그에서 계속 실패하는 작업을 확인하세요.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "이 서버는 OneUptime {{current}}을(를) 실행 중입니다. {{latest}}이(가) 출시되었습니다.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "백업한 다음 업데이트하세요. Docker Compose에서는 npm run update, Kubernetes에서는 helm upgrade를 실행합니다.",
-  "Finish it on the Server setup page.": "서버 설정 페이지에서 마무리하세요.",
+  "Finish it on the Server Setup page.": "서버 설정 페이지에서 마무리하세요.",
   "Products on this server": "이 서버의 제품",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "이 서버의 모든 프로젝트에서 제공할 제품을 선택하세요. 꺼진 제품은 모든 프로젝트의 메뉴, 홈, 검색에서 사라지고, 해당 페이지에는 꺼져 있다고 표시됩니다.",
   "Start from": "다음 중 하나로 시작",

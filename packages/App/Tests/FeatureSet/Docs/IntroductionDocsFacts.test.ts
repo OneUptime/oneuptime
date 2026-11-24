@@ -3833,13 +3833,16 @@ describe("Home Page & Shortcuts", () => {
       expect(`${fromTablet} ${fromLaptop}`).not.toContain(always);
     }
 
-    // Below md, the menu button's list starts with Search and ends with Help.
+    /*
+     * Below md, the menu button's list starts with Search and then Help,
+     * above Home and every product (#7473), and nothing is drawn at its end.
+     */
     const navBar: string = oneLine(dashboard("Components/NavBar/NavBar.tsx"));
 
     expect(navBar).toContain(
-      "return <PhoneMenuSearch closeMenu={closeMenu} />;",
+      "mobileMenuTop={(closeMenu: () => void): ReactElement => { return ( <> <PhoneMenuSearch closeMenu={closeMenu} /> <PhoneMenuHelp closeMenu={closeMenu} /> </> ); }}",
     );
-    expect(navBar).toContain("return <PhoneMenuHelp closeMenu={closeMenu} />;");
+    expect(navBar).not.toContain("mobileMenuBottom");
     expect(readSource(COMMON_DIR, "UI/Components/Navbar/NavBar.tsx")).toContain(
       "export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;",
     );
@@ -3850,7 +3853,7 @@ describe("Home Page & Shortcuts", () => {
     ).toContain('title: t("commandPalette.actions.askAi", "Ask AI"),');
 
     expect(HOME).toContain(
-      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.",
+      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move to the top of the menu button's list, **Help** right under **Search**; the bell and your picture stay.",
     );
   });
 
@@ -4024,7 +4027,7 @@ describe("Your Account", () => {
     dashboard("Locales/en.json"),
   ) as { userProfile: Record<string, string> };
 
-  it("lists the user menu as the header draws it: admin settings for master admins, the theme row with its three choices", () => {
+  it("lists the user menu as the header draws it: the Admin Dashboard for master admins, the theme row with its three choices", () => {
     const source: string = dashboard("Components/Header/UserProfile.tsx");
     const keys: Array<string> = Array.from(source.matchAll(USER_MENU_KEY)).map(
       (match: RegExpMatchArray): string => {
@@ -4032,10 +4035,10 @@ describe("Your Account", () => {
       },
     );
 
-    expect(keys).toEqual(["label", "profile", "adminSettings", "signOut"]);
+    expect(keys).toEqual(["label", "profile", "adminDashboard", "signOut"]);
 
     /*
-     * The theme is one row between Admin Settings and Sign Out, which draws
+     * The theme is one row between Admin Dashboard and Sign Out, which draws
      * its own words (Common's ThemeChoiceRow): "Theme", and Light, Dark and
      * System, in that order.
      */
@@ -4043,7 +4046,7 @@ describe("Your Account", () => {
     const themeRow: number = menu.indexOf("<ThemeChoiceRow />");
 
     expect(themeRow).toBeGreaterThan(
-      menu.indexOf('t("userProfile.adminSettings")'),
+      menu.indexOf('t("userProfile.adminDashboard")'),
     );
     expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.signOut")'));
 
@@ -4076,13 +4079,13 @@ describe("Your Account", () => {
       }),
     ).toEqual([
       english.userProfile["profile"] as string,
-      english.userProfile["adminSettings"] as string,
+      english.userProfile["adminDashboard"] as string,
       "Theme",
       english.userProfile["signOut"] as string,
     ]);
 
     expect(menu).toContain(
-      'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminSettings")}',
+      'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminDashboard")}',
     );
     expect((rows[1] as Array<string>)[1]).toContain(
       "Only master admins of a self-hosted installation see it.",

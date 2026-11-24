@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 निचले स्तर की कमांड AWS नीति को निचले स्तर वाली नीति से बदल देती है। **बंद** कुछ नहीं जोड़ता, इसलिए पिछली कमांड ने जो दिया था, उसे तब तक वैसा ही छोड़ देता है जब तक आप उसे हटा न दें: AWS पर `OneUptimeDataSecurity` नीति, `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity` से, और Azure और Google Cloud पर सामग्री स्तर की भूमिकाएँ। दोनों ही स्थितियों में डेटा सुरक्षा तुरंत पढ़ना बंद कर देती है: यह सिर्फ़ वही पढ़ती है जो कनेक्शन का स्तर कहता है। [डेटा सुरक्षा सेट अप करें](/docs/data-security/setup) नीति की हर क्रिया बताता है, और यह भी कि डेटा सुरक्षा जो पढ़ती है उसमें से क्या रखती है।
 
+## सुरक्षा केस जाँच
+
+AWS पर, यही कनेक्शन किसी [सुरक्षा केस](/docs/telemetry/security-cases#oneuptime-किसी-चरण-की-जाँच-कैसे-करता-है) को यह जाँचने दे सकता है कि हमले ने किसी IAM उपयोगकर्ता में जो बदला, वह पलट दिया गया: उसकी बनाई एक्सेस कुंजी, उसका सेट किया कंसोल पासवर्ड, उसकी जोड़ी या लिखी नीतियाँ, वे समूह जिनमें उसने उपयोगकर्ता को जोड़ा, उसका चालू किया MFA डिवाइस और उसका बनाया उपयोगकर्ता। **और फ़ील्ड** के नीचे, **सुरक्षा केस जाँच** तब तक **बंद** रहती है जब तक आप इसे चालू न करें, और फ़ॉर्म जो कमांड दिखाता है, वह इसके साथ बदलती है। हर क्रिया सिर्फ़ पढ़ती है, और कोई भी किसी रहस्य को नहीं पढ़ती: एक्सेस कुंजी का ID और यह कि वह सक्रिय है या नहीं, कुंजी कभी नहीं, और यह कि कंसोल पासवर्ड सेट है, पासवर्ड कभी नहीं।
+
+| केस अपने CloudTrail इवेंट में बताए गए हर उपयोगकर्ता का क्या पढ़ता है | क्रियाएँ |
+| --- | --- |
+| उपयोगकर्ता, या यह कि वह हटा दिया गया | `iam:GetUser` |
+| उसकी एक्सेस कुंजियाँ, और यह कि हर एक सक्रिय है या नहीं | `iam:ListAccessKeys` |
+| उसका कंसोल पासवर्ड है या नहीं, और कब से | `iam:GetLoginProfile` |
+| उसकी प्रबंधित नीतियाँ, और उसकी इनलाइन नीतियों के नाम | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| वे समूह जिनमें वह है | `iam:ListGroupsForUser` |
+| उसके MFA डिवाइस | `iam:ListMFADevices` |
+
+भूमिका की कमांड एक और पंक्ति से अपनी अलग इनलाइन नीति, `OneUptimeSecurityCaseChecks`, जोड़ती है, और किसी संगठन का StackSet उसे हर खाते की भूमिका में रखता है:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+**एक्सेस कुंजी** के साथ नीति उसी नाम के एक समूह, `OneUptimeSecurityCaseChecks`, पर लगती है, जिसमें उपयोगकर्ता शामिल होता है:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+केस कोई बदलाव सिर्फ़ ऐसे कनेक्शन से पढ़ता है जो उस खाते तक पहुँचता है जिसमें बदलाव हुआ, और जिस कनेक्शन में **सुरक्षा केस जाँच** **बंद** हो, उससे IAM के बारे में कुछ नहीं पूछता: वह ऐसे बदलाव आपकी पुष्टि के लिए बताता है, और इसे चालू करने को कहता है। **बंद** कुछ नहीं जोड़ता, इसलिए पिछली कमांड ने जो दिया था, उसे तब तक वैसा ही छोड़ देता है जब तक आप उसे `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` से हटा न दें।
+
 ## OneUptime क्या पढ़ता है
 
 | | AWS | Azure | Google Cloud |

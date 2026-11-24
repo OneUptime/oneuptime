@@ -211,9 +211,9 @@ describe("the people the docs name", () => {
 describe("Users, Teams & Permissions (English)", () => {
   const { balances } = readPermissionsPage("en");
 
-  test("says recharging either balance is billing: an owner or Manage Billing, not a project admin", () => {
+  test("says adding to either balance is billing: an owner or Manage Billing, not a project admin", () => {
     expect(balances).toBe(
-      "Recharging the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a Project Owner or someone with **Manage Billing** can recharge them or change their **Auto Recharge** — a Project Admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Recharge Balance** button or a link to the page.",
+      "Adding to the project's prepaid balances counts as billing too. On OneUptime Cloud, SMS, phone calls, WhatsApp and Telegram are paid from the balance on **Project Settings > Notifications > Notification Channels**, and AI from the AI credits on **Project Settings > AI > AI Credits**. Only a Project Owner or someone with **Manage Billing** can add to them or change their **Auto Recharge** — a Project Admin cannot. A message about a balance that has run low names who can add to it, and only those people get a working **Add to Balance** button or a link to the page.",
     );
   });
 
@@ -258,7 +258,7 @@ describe.each(LANGUAGES)("the %s docs", (lang: string) => {
     expect(balances).toContain(WHO_MAY_ADD[lang]!);
     expect(balances).toContain(MANAGE_BILLING);
     expect(balances).toContain(`**${locale["Auto Recharge"]}**`);
-    expect(balances).toContain(`**${locale["Recharge Balance"]}**`);
+    expect(balances).toContain(`**${locale["Add to Balance"]}**`);
     expect(balances).toContain("WhatsApp");
     expect(balances).toContain("Telegram");
 

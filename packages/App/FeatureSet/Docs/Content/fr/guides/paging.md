@@ -39,7 +39,7 @@ Sous **Comment devons-nous vous joindre ?**, cliquez sur **Obtenir l'application
 
 ![L'étape « Comment devons-nous vous joindre ? », avec « Activer les SMS et les appels » entouré](screen:paging-reach-you)
 
-Dans un nouveau projet, les SMS et les appels téléphoniques sont désactivés. Si vous êtes propriétaire du projet, cliquez sur **Activer les SMS et les appels** ; les autres voient qui peut le faire. Sur OneUptime Cloud, si le solde est de 1.00 USD ou moins, cliquez sur **Ajouter du solde**, saisissez un montant de 20 à 1 000 USD sous **Montant (USD)** et cliquez sur **Recharger**.
+Dans un nouveau projet, les SMS et les appels téléphoniques sont désactivés. Si vous êtes propriétaire du projet, cliquez sur **Activer les SMS et les appels** ; les autres voient qui peut le faire. Sur OneUptime Cloud, si le solde est de 1.00 USD ou moins, cliquez sur **Ajouter au solde**, saisissez un montant de 20 à 1 000 USD sous **Montant (USD)** et cliquez sur **Ajouter au solde**.
 
 ### Ajouter votre numéro de téléphone
 
@@ -86,7 +86,7 @@ Si la politique alerte quelqu'un d'autre, vous pouvez aussi observer l'escalade 
 Les SMS sont désactivés ou ne peuvent pas être envoyés, et l'étape indique pourquoi. Seul un Propriétaire du projet, ou une personne qui gère la facturation, voit **Activer les SMS et les appels**. Sur OneUptime Cloud, un solde de 1.00 USD ou moins masque le champ. Sur un serveur auto-hébergé qui ne peut pas envoyer de SMS, son administrateur principal voit **Configurer les SMS et les appels**, qui ouvre l'Admin Dashboard pour ajouter Twilio, comme le montre [Intégration Twilio](/docs/self-hosted/twilio-integration).
 :::
 
-:::details Ajouter du solde indique qu'aucun moyen de paiement n'a été trouvé
+:::details Ajouter au solde indique qu'aucun moyen de paiement n'a été trouvé
 Le solde ajouté est débité sur la carte du projet. Ajoutez-en une sous **Paramètres du projet → Facturation et factures → Facturation** avec **Ajouter un mode de paiement**, puis ajoutez du solde à nouveau. D'ici là, l'application et l'e-mail vous alertent toujours.
 :::
 

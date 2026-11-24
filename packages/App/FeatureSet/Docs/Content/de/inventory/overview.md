@@ -22,7 +22,7 @@ flowchart TB
     T["Ihre<br/>Telemetrie"] -->|"Erkannt"| I["Inventar: ein Element<br/>pro Ding, mit festem<br/>Identitätsschlüssel"]
     R["Die Poller<br/>von OneUptime"] -->|"Alle 15 Minuten<br/>gespiegelt"| I
     Y["Dinge ohne<br/>Telemetrie"] -->|"Von Ihnen<br/>hinzugefügt"| I
-    I --> L["Alle Elemente, die<br/>Topologiekarte und<br/>die Elementseiten"]
+    I --> L["Alle Elemente,<br/>Topologie und<br/>die Elementseiten"]
     I --> X["Benutzerdefinierte<br/>Felder, CSV-Export<br/>und die API"]
 ```
 
@@ -63,7 +63,7 @@ Eine Beziehung, die OneUptime erkannt hat, wird entfernt, sobald sie 30 Tage lan
 | **Übersicht** | Wie viele Elemente Sie haben, was sie sind, wie viele verstummt sind und was zuletzt hinzugekommen ist. |
 | **Alle Elemente** | Jedes Element. Suchen Sie nach Name, Beschreibung oder Identitätsschlüssel, grenzen Sie die Liste nach Typ, Quelle, Status oder benutzerdefiniertem Feld ein und fügen Sie ein Element von Hand hinzu. |
 | **Verwaltete Geräte** | Ihre Verbindungen zu Geräteverwaltungen – Esper, Microsoft Intune, Workspace ONE UEM und SOTI MobiControl – und jedes Gerät, das sie importieren, mit Status, Gruppe, Modell und Betriebssystem. |
-| **Topologiekarte** | Wie die Elemente verbunden sind: Dienste, was sie aufrufen, und die Hosts, Pods und Geräte, auf denen sie laufen. |
+| **Topologie** | Wie die Elemente verbunden sind: Dienste, was sie aufrufen, und die Hosts, Pods und Geräte, auf denen sie laufen. |
 | **Verstummt** | Die Elemente, von denen seit mehr als einem Tag nichts zu hören war: erkannte Elemente, die keine Telemetrie gesendet haben, und Geräte, die sich nicht mehr bei ihrer Geräteverwaltung melden. |
 | **Nach Quelle** | Die Elemente einer Quelle: **Erkannt**, **Gespiegelt** oder **Von Ihnen hinzugefügt**. |
 | **Einstellungen → Benutzerdefinierte Felder** | Die Felder, die Ihr Projekt an jedem Element führt. |
@@ -271,7 +271,7 @@ Um Elemente zu archivieren, wählen Sie sie in **Alle Elemente** aus und archivi
 
 ## Beziehungen und Topologie
 
-OneUptime verknüpft Elemente mit gerichteten Beziehungen, sobald es sie beobachtet. **Inventar → Topologiekarte** zeichnet sie, und die Seite **Verbindungen** eines Elements listet seine eigenen auf. Siehe [Topologie](/docs/telemetry/topology).
+OneUptime verknüpft Elemente mit gerichteten Beziehungen, sobald es sie beobachtet. **Inventar → Topologie** zeichnet sie, und die Seite **Verbindungen** eines Elements listet seine eigenen auf. Siehe [Topologie](/docs/telemetry/topology).
 
 | Beziehung | Zum Beispiel |
 | --- | --- |

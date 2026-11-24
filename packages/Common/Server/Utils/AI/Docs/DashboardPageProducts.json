@@ -816,6 +816,12 @@
   "/dashboard/:projectId/data-security/compliance": [
     "data-security"
   ],
+  "/dashboard/:projectId/data-security/compliance/review-drafts": [
+    "data-security"
+  ],
+  "/dashboard/:projectId/data-security/compliance/audit-evidence": [
+    "data-security"
+  ],
   "/dashboard/:projectId/data-security/settings/data-types": [
     "data-security"
   ],

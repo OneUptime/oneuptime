@@ -2,8 +2,8 @@
   "Company name associated with this license.": "Nome dell'azienda associata a questa licenza.",
   "Annual contract value (in USD) for this license.": "Valore annuo del contratto (in USD) per questa licenza.",
   "Expiration date of this license.": "Data di scadenza di questa licenza.",
-  "Something went wrong": "Qualcosa è andato storto",
-  "An unexpected error has occurred. Please reload the page to continue": "Si è verificato un errore imprevisto. Ricarica la pagina per continuare",
+  "This page stopped working": "Questa pagina ha smesso di funzionare",
+  "Part of this page ran into a problem. Reload the page to continue.": "Una parte di questa pagina ha avuto un problema. Ricarica la pagina per continuare.",
   "Error details": "Dettagli dell'errore",
   "Still stuck?": "Ancora bloccato?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Scarica un file di diagnostica locale con lo stack dell'errore, lo stack dei componenti, l'URL della pagina ripulito, i dettagli del browser e la build di OneUptime. Non legge mai cookie, dati salvati del browser o contenuti dei moduli. Controllalo prima di condividerlo con il supporto di OneUptime.",
@@ -62,7 +62,7 @@
     "dataRetention": "Conservazione dati",
     "globalLlmProviders": "Fornitori LLM globali",
     "apiKey": "Chiave API",
-    "sendEmail": "Invia e-mail",
+    "sendEmail": "Invia email",
     "signOut": "Esci",
     "telemetryUsage": "Utilizzo della telemetria",
     "ingestionBudgets": "Budget di acquisizione",
@@ -497,7 +497,7 @@
       "title": "Esci"
     },
     "sendEmail": {
-      "title": "Invia e-mail di annuncio",
+      "title": "Invia email",
       "testCardTitle": "Invia e-mail di prova",
       "testCardDescription": "Invia un'e-mail di annuncio di prova a un singolo indirizzo e-mail per visualizzarne l'anteprima prima di inviarla a tutti gli utenti.",
       "allCardTitle": "Invia e-mail a tutti gli utenti",
@@ -514,7 +514,7 @@
       "confirmButton": "Sì, invia a tutti gli utenti"
     },
     "moreEmail": {
-      "title": "Invia e-mail di annuncio",
+      "title": "Invia email",
       "cardTitle": "Invia e-mail di annuncio",
       "cardDescription": "Componi un'e-mail di annuncio da inviare a tutti gli utenti registrati. Puoi inviare prima un'e-mail di prova per visualizzarne l'anteprima.",
       "sendTestButton": "Invia e-mail di prova",
@@ -536,7 +536,7 @@
       "confirmButton": "Sì, invia a tutti gli utenti"
     },
     "settings": {
-      "title": "Impostazioni admin",
+      "title": "Impostazioni",
       "authentication": {
         "signUpCardTitle": "Registrazione",
         "signUpCardDescription": "Chi può creare un account su questo server.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "Invio di una richiesta di test al canale.",
   "Custom Channel": "Canale personalizzato",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "Le regole di reperibilità di tutti che usano questo canale vengono eliminate con esso. Per smettere di inviare senza modificare le regole di nessuno, disattiva invece il canale.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Non hai autorizzazioni sufficienti per impostare {{columnName}} su {{itemName}}. Ti serve una delle seguenti autorizzazioni: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Non hai autorizzazioni sufficienti per modificare {{columnName}} su {{itemName}}. Ti serve una delle seguenti autorizzazioni: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Non hai autorizzazioni sufficienti per impostare {{columnName}} su {{itemName}}. Ti serve una delle seguenti autorizzazioni: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Non hai autorizzazioni sufficienti per modificare {{columnName}} su {{itemName}}. Ti serve una delle seguenti autorizzazioni: {{permissions}}.",
   "Push Notifications": "Notifiche push",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} saltato: {{count}}",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "Sei sicuro di voler applicare «{{action}}» a {{count}} elemento ({{itemName}})?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Dai ai worker più memoria e CPU, e cerca nel log dell'app le attività che continuano a non riuscire.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Questo server esegue OneUptime {{current}}. È disponibile la {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Fai un backup, poi aggiorna: npm run update con Docker Compose, helm upgrade su Kubernetes.",
-  "Finish it on the Server setup page.": "Completalo nella pagina Configurazione del server.",
+  "Finish it on the Server Setup page.": "Completalo nella pagina Configurazione del server.",
   "Products on this server": "Prodotti su questo server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Scegli cosa offre ogni progetto su questo server. Un prodotto disattivato scompare dal menu, dalla Home e dalla Ricerca di ogni progetto, e le sue pagine indicano che è disattivato.",
   "Start from": "Parti da",

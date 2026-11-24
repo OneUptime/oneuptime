@@ -19,6 +19,7 @@ import {
   SecurityBlockSource,
   SecurityBlockState,
   SecurityBlockValue,
+  readSecurityBlockAsn,
   readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
@@ -34,7 +35,12 @@ import { listSecuritySignedInAddresses } from "./SecuritySignedInAddresses";
  * how long the next one lasts (Types/SecurityAutomaticResponse/
  * SecurityRepeatOffenders).
  *
- *   - An address: blocks of it, and of any range around it.
+ *   - An address: blocks of it, and of any range around it - and, when
+ *     the caller knows the networks it sent from (`asns`, which only
+ *     Cloudflare's events name: SecurityRepeatOffenderNetworks), the
+ *     blocks and challenges of those networks by their ASN, which held it
+ *     too (#10895). Each such block keeps the network's value ("AS14061"),
+ *     so the record says which network held it.
  *   - A network: blocks of it, of any range around it or inside it, and of
  *     the addresses inside it - listed one by one for an IPv4 /24 or
  *     narrower, and read among the window's address blocks otherwise.
@@ -95,6 +101,12 @@ export default class SecurityRepeatOffenders {
     projectId: ObjectID;
     value: string;
     now?: Date | undefined;
+    /*
+     * The networks an address sent from, by their ASN as blocks write it
+     * ("AS14061"): their blocks and challenges count too (#10895). Read
+     * for an address only.
+     */
+    asns?: ReadonlyArray<string> | undefined;
   }): Promise<SecurityRepeatOffenderRecord> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
     const since: Date = new Date(
@@ -172,9 +184,51 @@ export default class SecurityRepeatOffenders {
       );
     }
 
-    const found: Map<string, SecurityBlock> = new Map();
+    /*
+     * The networks the address sent from, by their ASN (#10895): a block
+     * of one is matched by its value alone - an address's ASN is none of
+     * its text.
+     */
+    const asns: Array<string> = isNetwork
+      ? []
+      : Array.from(
+          new Set(
+            (data.asns || [])
+              .map((asn: string): string | null => {
+                return readSecurityBlockAsn(asn);
+              })
+              .filter((asn: string | null): asn is string => {
+                return Boolean(asn);
+              }),
+          ),
+        );
+    const networkBlocks: Promise<Array<SecurityBlock>> =
+      asns.length > 0
+        ? SecurityBlockService.findBy({
+            query: {
+              ...inWindow,
+              indicatorType: SecurityBlockIndicatorType.Asn,
+              value: new Includes(asns),
+            },
+            select: BLOCK_SELECT,
+            sort: { createdAt: SortOrder.Descending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          })
+        : Promise.resolve([]);
 
-    for (const blocks of await Promise.all(reads)) {
+    const found: Map<string, SecurityBlock> = new Map();
+    const [ofNetworks, ...ofValue]: Array<Array<SecurityBlock>> =
+      await Promise.all([networkBlocks, ...reads]);
+
+    for (const block of ofNetworks || []) {
+      if (block.id && asns.includes(readSecurityBlockAsn(block.value) || "")) {
+        found.set(block.id.toString(), block);
+      }
+    }
+
+    for (const blocks of ofValue) {
       for (const block of blocks) {
         const other: SecurityBlockValue | null = readSecurityBlockValue(
           block.value || "",

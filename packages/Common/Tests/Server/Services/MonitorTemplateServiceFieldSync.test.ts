@@ -25,7 +25,10 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
-import { MONITOR_NOT_LINKED_REFUSAL } from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
+import {
+  MONITOR_NOT_LINKED_REFUSAL,
+  SYNC_SETTINGS_WITHOUT_TYPE_REFUSAL,
+} from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
@@ -318,7 +321,7 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
 
     await expect(
       service.beforeCreate({ data: template, props: { tenantId: PROJECT_ID } }),
-    ).rejects.toThrow("Monitor type is required");
+    ).rejects.toThrow(SYNC_SETTINGS_WITHOUT_TYPE_REFUSAL);
   });
 
   it("continues accepting unfinished templates without exclusions", async () => {

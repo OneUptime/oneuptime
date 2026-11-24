@@ -3,7 +3,11 @@ import {
   readRefusalValues,
   RefusalWithValues,
 } from "../Exception/RefusalWithValues";
-import { translationKey } from "../Translator";
+import {
+  DEFAULT_LANGUAGE,
+  toSentenceTerm,
+  translationKey,
+} from "../Translator";
 
 /*
  * A NAME THAT IS ONE OF ITS KIND IN A PROJECT, HOWEVER IT IS WRITTEN (#9674).
@@ -192,6 +196,44 @@ export const ON_CALL_SCHEDULES_RENAMED_TOGETHER_REFUSAL: string =
     "Several on-call schedules cannot be given one name. Rename one schedule at a time.",
   );
 
+/*
+ * A NAME ANOTHER RECORD OF ITS KIND HAS, WHILE THE PROJECT REQUIRES UNIQUE
+ * NAMES (#10761): a monitor, a template, a connection or any other kind
+ * marked @UniqueNameWhenRequired (Server/Utils/Database/RequiredUniqueNames).
+ * One sentence words every kind: {{kind}} is the kind's name as the middle
+ * of an English sentence writes it ("monitor", "API key"), and the Dashboard
+ * says it in the reader's word (kindTerms). {{name}} is the other record's
+ * own name where the caller may read that record - the refusal then names
+ * it, and its id goes beside the words (NameTakenException's takenById) -
+ * and the name as it was written otherwise: nothing is said of a record the
+ * caller may not read but that it holds the name.
+ */
+export const REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "Another {{kind}} in this project is already called {{name}}, and the project requires unique names. Pick another name.",
+  ),
+  terms: [],
+  kindTerms: ["kind"],
+};
+
+/*
+ * The same, when only an archived record has the name: archived, it keeps
+ * its name, and unarchived it would be a twin.
+ */
+export const ARCHIVED_REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL: RefusalWithValues = {
+  template: translationKey(
+    "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.",
+  ),
+  terms: [],
+  kindTerms: ["kind"],
+};
+
+// One update that would give several records of one kind one name.
+export const REQUIRED_UNIQUE_NAMES_RENAMED_TOGETHER_REFUSAL: string =
+  translationKey(
+    "One update cannot give several records of one kind the same name while the project requires unique names. Rename them one at a time.",
+  );
+
 // Every refusal of a name another record of the project has.
 export const NAME_TAKEN_REFUSALS: ReadonlyArray<RefusalWithValues> = [
   TEAM_NAME_TAKEN_REFUSAL,
@@ -199,6 +241,8 @@ export const NAME_TAKEN_REFUSALS: ReadonlyArray<RefusalWithValues> = [
   ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
   ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
   ON_CALL_SCHEDULE_NAME_TAKEN_REFUSAL,
+  REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL,
+  ARCHIVED_REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL,
 ];
 
 // Every refusal of one update that would give several records one name.
@@ -207,7 +251,34 @@ export const RENAMED_TOGETHER_REFUSALS: ReadonlyArray<string> = [
   LABELS_RENAMED_TOGETHER_REFUSAL,
   ON_CALL_POLICIES_RENAMED_TOGETHER_REFUSAL,
   ON_CALL_SCHEDULES_RENAMED_TOGETHER_REFUSAL,
+  REQUIRED_UNIQUE_NAMES_RENAMED_TOGETHER_REFUSAL,
 ];
+
+/*
+ * The refusal of a name another record of a kind marked
+ * @UniqueNameWhenRequired has, as the server answers it: `kindLabel` is the
+ * kind's singular name ("API Key"), written into the English sentence as
+ * its middle writes it ("API key"); `name` as it reads.
+ */
+export const getRequiredUniqueNameTakenRefusal: (data: {
+  kindLabel: string;
+  name: unknown;
+  isArchived: boolean;
+}) => string = (data: {
+  kindLabel: string;
+  name: unknown;
+  isArchived: boolean;
+}): string => {
+  return getRefusalText(
+    data.isArchived
+      ? ARCHIVED_REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL
+      : REQUIRED_UNIQUE_NAME_TAKEN_REFUSAL,
+    {
+      kind: toSentenceTerm(data.kindLabel, DEFAULT_LANGUAGE),
+      name: normalizeName(data.name),
+    },
+  );
+};
 
 // A refusal as the server answers it: the name as it reads, never blank.
 export const getNameTakenRefusalText: (

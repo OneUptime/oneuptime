@@ -149,7 +149,7 @@ const PROSE: Record<string, Array<string>> = {
  * userProfile.* keys (Components/Header/UserProfile.tsx), not flat labels.
  */
 const USER_MENU_LABELS: Record<string, string> = {
-  "Admin Settings": "adminSettings",
+  "Admin Dashboard": "adminDashboard",
   "Sign Out": "signOut",
 };
 

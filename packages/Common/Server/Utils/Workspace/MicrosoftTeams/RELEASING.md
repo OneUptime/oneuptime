@@ -144,13 +144,27 @@ the **Growth plan** (paging needs it), an **on-call policy** with an
 steps as a PDF under **Additional certification info** too: it is kept for
 later submissions, and it is what reviewers look for.
 
+**Disconnect the test project before every submission.** Each reviewer
+connects a Microsoft 365 test tenant of their own, and every one of them is
+called "Contoso". A project is connected to one organization, and every
+Microsoft sign-in for it goes there, so a test project left connected to the
+last reviewer's tenant stops the next reviewer on Microsoft's own page:
+"Selected user account does not exist in tenant 'Contoso' and cannot access
+the application" (AADSTS50020). 14.0.91 was blocked that way. Sign in as the
+test account, open **Project Settings** > **Workspace** > **Microsoft
+Teams**, and if the card says **Admin Consent Completed**, choose ⋯ >
+**Uninstall OneUptime from Microsoft Teams**, so the page shows **Grant
+Admin Consent**. The card names the organization a project is connected to,
+and ⋯ > **Connect a Different Organization** moves it to the reviewer's own,
+as step 1 of the template says.
+
 ```text
 >>> TEST ACCOUNT: sign-in email and password for https://oneuptime.com, and the project to use <<<
 
 OneUptime (https://oneuptime.com) is an observability and incident management platform. This Teams app is a bot: it posts incident, alert and scheduled maintenance notifications to the channels and chats a project picks, and lets people act on them from Teams.
 
 How to test:
-1. Sign in to OneUptime with the test account and open Project Settings > Workspace > Microsoft Teams to see the connection. Before an organization is connected, "help" says what the app does and how to get started.
+1. Sign in to OneUptime with the test account and open Project Settings > Workspace > Microsoft Teams. Click Grant Admin Consent and sign in as the Microsoft 365 administrator of your own test tenant, then Connect my account with Microsoft Teams. If the card already says Admin Consent Completed for an organization that is not yours (it names the organization and its domain), choose ... > Connect a Different Organization first: every Microsoft sign-in for the project goes to the organization it is connected to, and Microsoft refuses an account from another one ("Selected user account does not exist in tenant"). Before an organization is connected, "help" says what the app does and how to get started.
 2. Add the OneUptime app to a team and to a personal chat. It can also be added to a shared or private channel.
 3. In the personal chat, type "help" to list the commands, or "home" for the Home card. The first time, the bot shows a Connect button to link your Microsoft Teams account to the OneUptime test account.
 4. In a channel, mention @OneUptime with a command: incident <title>, maintenance <title>, oncall, page @someone <message>, ask <question>, show active incidents, show active alerts, show scheduled maintenance, show ongoing maintenance.
@@ -170,6 +184,7 @@ Changes since the last version:
 | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | 2025-12-05 | 9.1.2   | First listing: 3 RSC permissions, 7 commands.                                                                                                                                                                                                                    | Certified and published 2025-12-09.                              |
 | 2026-10-15 | 14.0.59 | Manifest v1.25 with `supportsChannelFeatures: tier1`; RSC `ChatMessage.Read.Chat`, `ChatMember.Read.Chat`, `ChatSettings.Read.Chat`, `TeamsAppInstallation.Read.Group` added; commands became incident, maintenance, oncall, page, ask, the show lists and help. | Certification failed 2026-10-25: four Must-fix items, see below. |
+| 2026-10-26 | 14.0.91 | Long description: what OneUptime AI does and how to report an answer, and the admin's one-time setup. Bot, commands, scopes and permissions unchanged. Resubmitted before Microsoft approved the fixes in the email thread.                                      | Revalidated 2026-11-23: a Test blocker and one open Must-fix.    |
 
 Add a row for every submission.
 
@@ -186,6 +201,16 @@ and to send any changed manifest there first.
 | 100.14.1 Testing Instructions                    | `ask` said "Please try again later"; no test steps for ask, oncall and page           | Their own new project had no AI credits; the bot checked the AI switch and the daily limits but not the credits, and hid the refusal (WorkspaceAiRefusal). Test steps: the template above.              |
 | 1140.4.1.24 General - App Description            | `ask` names OneUptime AI; nothing described it                                        | The description now says what OneUptime AI does, that answers can be wrong and how to report one; each answer carries Teams' AI label, a "check it" line and feedback buttons (MicrosoftTeamsAiAnswer). |
 | 1140.6.1 Publisher Attestation - M365 Compliance | "OneUptime Sign-in unverified" on a consent screen                                    | That Entra app was never publisher-verified. See [Publisher verification](#publisher-verification).                                                                                                     |
+
+### Certification feedback for 14.0.91
+
+Microsoft revalidated 14.0.91 on 23 November 2026 (same ticket, 5877223).
+Three of the four Must-fix items were closed. Two items were open:
+
+| Item                                                        | What they saw                                                                                                                                                                                                                                               | Root cause and fix                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test blocker 5: unable to validate end-to-end functionality | Signed in as the test account, opened Settings > Workspace > Microsoft Teams and connected their own test tenant with its admin: "Selected user account does not exist in tenant 'Contoso' and cannot access the application '0e5480fd-...' in that tenant" | The test project was still connected to another Microsoft 365 tenant, also called Contoso. Every Microsoft sign-in for a connected project goes to its organization (MicrosoftTeamsSignInAuthority), and Microsoft stops an account from another one on its own page (AADSTS50020) without sending it back, while the page said only "Consent is granted for your Microsoft 365 organization". Fix: admin consent keeps the organization's name and domain (MicrosoftTeamsOrganization); both cards name it; ⋯ > Connect a Different Organization moves a project; and the test project is disconnected before each submission (see the template). |
+| Must-fix 2: how to validate ask, oncall and page            | Waiting on the test blocker                                                                                                                                                                                                                                 | Nothing new to fix: the AI credits refusal and the test steps of 14.0.59's round stand. Reviewers retest once they can connect.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 A 👍 or 👎 on an AI answer reaches the operator's Slack channel set with
 `NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK` (Helm

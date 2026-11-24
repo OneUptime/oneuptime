@@ -8,6 +8,7 @@ import {
   URL_ATTRIBUTE_DESCRIPTION,
 } from "../Core/ProviderWords";
 import { buildFixtureSpec } from "./Fixtures";
+import { getRequiredUniqueNameTakenRefusal } from "Common/Types/Database/UniqueName";
 
 let outputDir: string;
 let monitorDoc: string;
@@ -199,6 +200,38 @@ describe("curation", () => {
     expect(indexDoc).toContain("## Start Here");
     expect(indexDoc).toContain("oneuptime_monitor");
     expect(indexDoc).toContain("./resources/monitor");
+  });
+
+  /*
+   * A project may require unique names (OneUptime/oneuptime#10761): a plan
+   * that creates a monitor with another monitor's name fails at apply with
+   * the server's sentence. The provider page says when, what to do, and
+   * that a lookup by name then finds one.
+   */
+  test("the provider index says when a name must be a record's own, and what to do when it is taken", () => {
+    expect(providerDoc).toContain("## Names another record has");
+    expect(providerDoc).toContain(
+      "**Project Settings → Basic → Project → Unique Names**",
+    );
+    // The server's own words, as it says them.
+    expect(providerDoc).toContain(
+      `\`${getRequiredUniqueNameTakenRefusal({
+        kindLabel: "Monitor",
+        name: "API Health Check",
+        isArchived: false,
+      })}\``,
+    );
+    expect(providerDoc).toContain("`terraform import` the record that has it");
+    expect(providerDoc).toContain(
+      "https://oneuptime.com/docs/terraform/troubleshooting#names-another-record-has",
+    );
+    // After the lookups it makes one-to-one, before the next section.
+    expect(providerDoc.indexOf("## Names another record has")).toBeGreaterThan(
+      providerDoc.indexOf("Every resource has a matching data source"),
+    );
+    expect(providerDoc.indexOf("## Names another record has")).toBeLessThan(
+      providerDoc.indexOf("## IDs inside resources"),
+    );
   });
 
   test("resource pages open with the model's real description", () => {

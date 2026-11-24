@@ -356,6 +356,9 @@ describe("the retired names are told apart from the ordinary words they look lik
       "on **Project Settings** > **Notifications** > **Notification Settings**",
       "Project Settings > Notifications > Notification Settings",
     ],
+    // The products menu's entry for the Ask AI panel, until #7474.
+    ["Open **Products → AI → Chat**.", "Chat"],
+    ["**Products** > **AI** > **Chat**", "Chat"],
   ])('"%s" uses the retired name %s', (text: string, name: string) => {
     expect(
       findRetiredNames(text).map((retired: RetiredName): string => {
@@ -379,6 +382,10 @@ describe("the retired names are told apart from the ordinary words they look lik
     "Project Settings → Notifications → Notification Channels",
     "OnCallDutyPolicy",
     "/dashboard/:projectId/on-call-duty/policies",
+    "Open **Products → AI → Ask AI**.",
+    "Chat with your team in Slack.",
+    "Microsoft Teams → Chat",
+    "/dashboard/:projectId/ai/chat",
   ])('"%s" is an ordinary word, a kept name or an address', (text: string) => {
     expect(findRetiredNames(text)).toEqual([]);
   });

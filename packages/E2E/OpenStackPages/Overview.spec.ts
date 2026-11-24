@@ -940,7 +940,7 @@ test.describe("reads that fail", () => {
     await expect(page.getByTestId("openstack-needs-attention")).toBeVisible();
     await expect(page.getByTestId("openstack-services-card")).toBeVisible();
     await expect(tile(page, "vCPUs allocated")).toContainText("58%");
-    await expect(page.getByText("Something went wrong")).toHaveCount(0);
+    await expect(page.getByText("This page stopped working")).toHaveCount(0);
     expect((await fixtureRecord(page)).aggregateRequests).toEqual([]);
 
     await screenshot(page, "overview-metrics-failed-1280");

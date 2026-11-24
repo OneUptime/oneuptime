@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -327,7 +328,16 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
           action,
         });
 
-        await ModelAPI.create<Monitor>({ model: monitor, modelType: Monitor });
+        /*
+         * Numbered already against the monitors the person can see; one
+         * they cannot see, or a list that did not load, is numbered by the
+         * server rather than refused.
+         */
+        await ModelAPI.create<Monitor>({
+          model: monitor,
+          modelType: Monitor,
+          miscDataProps: getNumbersTakenNameData(),
+        });
         created.add(item.key);
       } catch (err) {
         failed.push({ name, error: API.getFriendlyMessage(err) });

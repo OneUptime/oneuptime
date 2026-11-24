@@ -148,13 +148,13 @@ Zabbix 6.0 从请求正文而不是 `Authorization` 标头中读取 API 令牌�
 
 ### 每个问题一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个问题都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **按负载字段对事件和警报分组**。按下表填写，让每个问题都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **为以下每个值分别打开一个事件…** | `requestBody.event_id` |
+| **表示恢复的字段** | `requestBody.status` |
+| **表示已恢复的值** | `0` |
 
 ### 让监视器恢复在线
 
@@ -321,7 +321,7 @@ Zabbix 以文本形式发送严重程度：`Not classified`、`Information`、`W
 :::details 事件被创建但从未被解决
 - 动作需要 **Recovery operations**，否则 Zabbix 永远不会发送恢复。
 - 使用模板时，打开工作流的 **运行记录** 中恢复的那次运行：它的最后一步会说明原因。对于没有创建事件的问题，恢复不会改变任何东西。
-- 使用监视器时，条件中的事件需要启用 **更多字段** 下的 **自动解决事件**。**Field that signals recovery** 必须是 `requestBody.status`，**Value that means recovered** 必须恰好是 `0`。
+- 使用监视器时，条件中的事件需要启用 **更多字段** 下的 **自动解决事件**。**表示恢复的字段** 必须是 `requestBody.status`，**表示已恢复的值** 必须恰好是 `0`。
 :::
 
 :::details Zabbix 中的问题没有被确认或关闭

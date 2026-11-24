@@ -67,13 +67,14 @@ jest.mock("react-i18next", () => {
  * Notification Settings (SMS, calls, WhatsApp and Telegram) and Project
  * Settings > AI Credits.
  *
- * Only a project owner or someone with Manage Billing may recharge either,
+ * Only a project owner or someone with Manage Billing may add to either,
  * or change its Auto Recharge. The pages used to offer Recharge Balance and
  * Edit Auto Recharge to everyone - a project admin, a member - whose save
  * the server then refused, and told every reader to "Recharge it". Now:
  *
- * - someone who may: asked to recharge it, with the working button and an
- *   Edit Auto Recharge that saves;
+ * - someone who may: asked to add to it, with the working Add to Balance
+ *   button, whose dialog says what the money is for and where it is
+ *   charged (#7475), and an Edit Auto Recharge that saves;
  * - everyone else: told who can, both buttons locked with the reason;
  * - before the permission snapshot arrives: told who can, and offered
  *   nothing - nobody is told they lack a permission they may hold.
@@ -137,8 +138,10 @@ interface BalancePage {
   balance: ProjectBalanceType;
   name: string;
   open: () => void;
-  // The recharge dialog's title, once the button is pressed.
+  // The dialog's title, once the button is pressed.
   rechargeDialogTitle: string;
+  // What the dialog says under its amount: what the money is for (#7475).
+  amountDescription: string;
 }
 
 function renderPage(element: React.ReactElement, path: string): void {
@@ -160,7 +163,9 @@ const PAGES: Array<BalancePage> = [
         `/dashboard/${PROJECT_ID}/settings/notification-settings`,
       );
     },
-    rechargeDialogTitle: "Recharge Balance",
+    rechargeDialogTitle: "Add to Balance",
+    amountDescription:
+      "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.",
   },
   {
     balance: ProjectBalanceType.AI,
@@ -175,7 +180,9 @@ const PAGES: Array<BalancePage> = [
         `/dashboard/${PROJECT_ID}/settings/ai-credits`,
       );
     },
-    rechargeDialogTitle: "Recharge AI Balance",
+    rechargeDialogTitle: "Add to Balance",
+    amountDescription:
+      "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.",
   },
 ];
 
@@ -295,7 +302,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     ["a Project Owner", Permission.ProjectOwner],
     ["someone with Manage Billing", Permission.ManageProjectBilling],
   ])(
-    "%s is asked to recharge it, and may: the button opens the recharge dialog",
+    "%s is asked to add to it, and may: the button opens Add to Balance, which says what the money is for, with one verb",
     async (_who: string, permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       page.open();
@@ -306,7 +313,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
         PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forPeopleWhoMayAdd,
       );
 
-      const recharge: HTMLElement = buttonIn(balanceCard, "Recharge Balance")!;
+      const recharge: HTMLElement = buttonIn(balanceCard, "Add to Balance")!;
 
       expect(recharge).not.toBeNull();
       expect(recharge).not.toBeDisabled();
@@ -321,6 +328,22 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
           { timeout: WAIT_TIMEOUT },
         ),
       ).toBeInTheDocument();
+
+      // What the money is for and what it is charged to, under the amount.
+      const dialog: HTMLElement = screen.getByRole("dialog");
+
+      expect(dialog).toHaveTextContent("Amount (USD)");
+      expect(dialog).toHaveTextContent(page.amountDescription);
+      expect(dialog).not.toHaveTextContent(
+        "Between 20 and 1,000 USD, charged now.",
+      );
+      // The button that adds says what the button that opened it said.
+      expect(
+        within(dialog).getByRole("button", { name: "Add to Balance" }),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).queryByRole("button", { name: "Recharge" }),
+      ).toBeNull();
     },
   );
 
@@ -349,7 +372,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     ["a member", Permission.ProjectMember],
     ["the Billing Admin role", Permission.BillingAdmin],
   ])(
-    "%s is told who can recharge it, and both buttons are locked",
+    "%s is told who can add to it, and both buttons are locked",
     async (_who: string, permission: Permission) => {
       grant([...BASE_PERMISSIONS, permission]);
       page.open();
@@ -360,13 +383,13 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
         PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forEveryoneElse,
       );
       expect(balanceCard).toHaveTextContent(
-        "A Project Owner or someone with Manage Billing can recharge it",
+        "A Project Owner or someone with Manage Billing can add to it",
       );
-      expect(balanceCard).not.toHaveTextContent("Recharge it, or");
+      expect(balanceCard).not.toHaveTextContent("Add to it, or");
 
       const recharge: HTMLElement | null = buttonIn(
         balanceCard,
-        "Recharge Balance",
+        "Add to Balance",
       );
 
       expect(recharge).not.toBeNull();
@@ -401,7 +424,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     expect(balanceCard).toHaveTextContent(
       PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forEveryoneElse,
     );
-    expect(buttonIn(balanceCard, "Recharge Balance")).toBeNull();
+    expect(buttonIn(balanceCard, "Add to Balance")).toBeNull();
 
     const autoRecharge: HTMLElement = await cardOf("Auto Recharge");
 
@@ -412,7 +435,7 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     ["a Project Owner", Permission.ProjectOwner],
     ["someone with Manage Billing", Permission.ManageProjectBilling],
   ])(
-    "Auto Recharge's last charge failed: %s is told first, in red, to check the payment method or recharge now",
+    "Auto Recharge's last charge failed: %s is told first, in red, to check the payment method or add to the balance now",
     async (_who: string, permission: Permission) => {
       autoRechargeState = AutoRechargeState.Failed;
       grant([...BASE_PERMISSIONS, permission]);
@@ -538,16 +561,16 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
     await autoRechargeAsked();
 
     expect(screen.queryByTestId(NOTICE_TEST_ID)).not.toBeInTheDocument();
-    expect(buttonIn(balanceCard, "Recharge Balance")).not.toBeDisabled();
+    expect(buttonIn(balanceCard, "Add to Balance")).not.toBeDisabled();
   });
 
-  test("a master admin may recharge it", async () => {
+  test("a master admin may add to it", async () => {
     grant([], true);
     page.open();
 
     const balanceCard: HTMLElement = await cardOf("Current Balance");
 
-    expect(buttonIn(balanceCard, "Recharge Balance")).not.toBeDisabled();
+    expect(buttonIn(balanceCard, "Add to Balance")).not.toBeDisabled();
     expect(balanceCard).toHaveTextContent(
       PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forPeopleWhoMayAdd,
     );
@@ -556,16 +579,17 @@ describe.each(PAGES)("$name", (page: BalancePage) => {
 
 /*
  * A project a cloud marketplace bills has no card: its balances are still
- * recharged - by hand or by Auto Recharge - and billed through the
+ * added to - by hand or by Auto Recharge - and billed through the
  * marketplace. Each page says so on its Current Balance card, keeps the
- * Recharge button for the people who may, and when Auto Recharge's last
+ * Add to Balance button for the people who may, whose dialog says the money
+ * is billed through the marketplace (#7475), and when Auto Recharge's last
  * charge was refused names the marketplace to check, not the card.
  */
 describe.each(PAGES)(
   "$name on a project a cloud marketplace bills",
   (page: BalancePage) => {
     const BILLED_THROUGH_AWS: string =
-      "Recharges and Auto Recharge are billed through AWS Marketplace, not a card.";
+      "Adding to the balance and Auto Recharge are billed through AWS Marketplace, not a card.";
 
     beforeEach(() => {
       jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(
@@ -576,7 +600,7 @@ describe.each(PAGES)(
       );
     });
 
-    test("someone who may is asked to recharge it, told where it is billed, and may", async () => {
+    test("someone who may is asked to add to it, told where it is billed, and may: the dialog says the money is billed there", async () => {
       grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
       page.open();
 
@@ -587,10 +611,27 @@ describe.each(PAGES)(
       );
       expect(balanceCard).toHaveTextContent(BILLED_THROUGH_AWS);
 
-      const recharge: HTMLElement = buttonIn(balanceCard, "Recharge Balance")!;
+      const recharge: HTMLElement = buttonIn(balanceCard, "Add to Balance")!;
 
       expect(recharge).not.toBeNull();
       expect(recharge).not.toBeDisabled();
+
+      fireEvent.click(recharge);
+      await flush();
+
+      const dialog: HTMLElement = await screen.findByRole(
+        "dialog",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      expect(dialog).toHaveTextContent(
+        page.balance === ProjectBalanceType.AI
+          ? "Between 20 and 1,000 USD, added to this project's AI credits and billed now through AWS Marketplace."
+          : "Between 20 and 1,000 USD, added to this project's balance and billed now through AWS Marketplace.",
+      );
+      // Never the payment method a marketplace-billed project does not have.
+      expect(dialog).not.toHaveTextContent("payment method");
     });
 
     test("everyone else is told who can, and where it is billed", async () => {
@@ -603,7 +644,7 @@ describe.each(PAGES)(
         PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forEveryoneElse,
       );
       expect(balanceCard).toHaveTextContent(BILLED_THROUGH_AWS);
-      expect(buttonIn(balanceCard, "Recharge Balance")).toBeDisabled();
+      expect(buttonIn(balanceCard, "Add to Balance")).toBeDisabled();
     });
 
     test("a refused Auto Recharge names the marketplace to check, not the card", async () => {

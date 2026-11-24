@@ -3985,3 +3985,81 @@ describe.each(TRANSLATED_LANGUAGES)(
     });
   },
 );
+
+/*
+ * ISSUES WITH ONE CAUSE, AFTER ITS FOLLOW-UPS (#10738-#10742): what the
+ * page says of a group's fix, its proof, its timelines and a reader held to
+ * labels is what the code does - its numbers read from the code, its
+ * resolutions the ones the page's own table names.
+ */
+describe("Issues with one cause, after #10738-#10742", () => {
+  function groups(): string {
+    return section(english(CHECKS), "## Issues with one cause");
+  }
+
+  test("a group of more than the code's cap of open issues is not told of its proposal (#10741)", () => {
+    const most: number = constant(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines.ts",
+      "MAX_TIMELINE_ISSUES",
+    );
+
+    expect(most).toBe(200);
+    expect(groups()).toContain(
+      `a group of more than ${most} open issues stays quiet`,
+    );
+    expect(groups()).toContain(
+      "A newer proposal that replaces one still waiting tells only the issues the earlier one did not",
+    );
+    expect(english(AI)).toContain(
+      "is on the timeline of each open issue it is for when it is proposed, dismissed or expires",
+    );
+    // A case's playbook asks a telemetry leak's service fix (#10740 after #10367).
+    expect(english(AI)).toContain(
+      "A security playbook's **Fix the code with AI** step asks for it on a Data Security case about the service's telemetry",
+    );
+  });
+
+  test("a group's fix is proven by the resolutions the page's own table names (#10738)", () => {
+    const named: Array<string> = rows(
+      tables(section(english(CHECKS), "### How it was resolved"))[0],
+    ).map((row: Array<string>): string => {
+      return row[0] || "";
+    });
+
+    for (const resolution of [
+      "**Fixed in infrastructure code**",
+      "**Fixed from here**",
+    ]) {
+      expect(named).toContain(resolution);
+      expect(groups()).toContain(`resolved as ${resolution}`);
+    }
+
+    expect(groups()).toContain(
+      "[AI Results](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing) counts a proven fix among the changes that worked",
+    );
+  });
+
+  test("the one approval lists each kind's own change, as Fix it from here says it (#10742)", () => {
+    expect(groups()).toContain(
+      "the change [Fix it from here](#fix-it-from-here) makes for its kind of store",
+    );
+    expect(groups()).toContain(
+      "The changes are listed kind by kind, each with what it changes, what stops working and what it costs",
+    );
+  });
+
+  test("a reader held to labels sees groups cut down to their stores, and asks for no fix (#10739)", () => {
+    expect(groups()).not.toContain(
+      "Only people who read Data Security issues across the whole project see groups",
+    );
+    expect(groups()).toContain(
+      "sees each group cut down to the stores they may read",
+    );
+    expect(groups()).toContain(
+      "A group of which they may read a single issue is not shown, and that issue stays in their list.",
+    );
+    expect(groups()).toContain(
+      "so it takes a read of Data Security issues across the whole project",
+    );
+  });
+});

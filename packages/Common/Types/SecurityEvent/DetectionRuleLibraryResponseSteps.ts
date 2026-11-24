@@ -668,6 +668,19 @@ const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
     phase: Fix,
     text: "Keep secrets and repositories out of the folders your web server serves, and have it refuse paths that start with a dot.",
   },
+  // A sensitive file the site served (#10912).
+  "check-served-file-answer": {
+    phase: Confirm,
+    text: "Open the request and check what your site sent: its size and type, beside what it sends for a path it does not have. Ask for the file from outside your network to see whether it is still served.",
+  },
+  "take-served-file-down": {
+    phase: Contain,
+    text: "Take the file off your web server now, or have the server refuse its path.",
+  },
+  "rotate-exposed-secrets": {
+    phase: Contain,
+    text: "Rotate every secret the file holds - its passwords, keys and tokens - and check where each was used since it was served.",
+  },
   // ----- At Cloudflare -----
   "check-cloudflare-hits-reached-app": {
     phase: Confirm,
@@ -1248,6 +1261,13 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   "37aac329-ce8b-4ced-9255-4ae49d564451": [
     "check-sensitive-files-served",
     "rotate-served-secrets",
+    "keep-secrets-out-of-web-root",
+  ],
+  // Sensitive file served (#10912)
+  "fe1afb71-1434-444c-8091-baa8f5b83d1f": [
+    "check-served-file-answer",
+    "take-served-file-down",
+    "rotate-exposed-secrets",
     "keep-secrets-out-of-web-root",
   ],
   // Injected SQL reached the database

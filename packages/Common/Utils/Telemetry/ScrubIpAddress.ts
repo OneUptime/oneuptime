@@ -6,6 +6,7 @@ import {
 import { DataTypeDetector } from "../DataSecurity/Detector";
 import { IP_ADDRESS_DETECTORS } from "../DataSecurity/Detectors/ContactDetectors";
 import PercentDecodedText from "../DataSecurity/PercentDecodedText";
+import { findDetectorRanges } from "../DataSecurity/TextReadings";
 import IpCanonicalUtil from "../IpCanonicalUtil";
 
 /*
@@ -48,6 +49,12 @@ import IpCanonicalUtil from "../IpCanonicalUtil";
  * address whole, its first character to its last, and not the escaped
  * brackets around it (#10467). What either reading finds is hidden.
  *
+ * Both readings are read by the one function every rule built on the
+ * detectors finds its matches with (DataSecurity/TextReadings.
+ * findDetectorRanges), and Data Security's scanner reads a window the same
+ * ways: an address right after a key's colon (ip:2a00:..., #10936) is
+ * found and hidden alike, as is any change to the detectors.
+ *
  * In line with the text's length: each detector's pattern is bounded and
  * cannot start inside a longer run of its characters, and the escapes are
  * read in one pass a reading (ScrubIpAddressLinearTime.test.ts reads
@@ -68,47 +75,6 @@ const SCRUB_IP_ADDRESS_SOURCE: string = IP_ADDRESS_DETECTORS.map(
   },
 ).join("|");
 
-// Where one detector's accepted candidates are, as the scanner reads them.
-function acceptedRanges(
-  detector: DataTypeDetector,
-  text: string,
-  ranges: Array<ScrubIpAddressRange>,
-): void {
-  if (
-    detector.quickCheck &&
-    !detector.quickCheck(
-      detector.quickCheckLowerCase ? text.toLowerCase() : text,
-    )
-  ) {
-    return;
-  }
-
-  const pattern: RegExp = detector.pattern;
-
-  pattern.lastIndex = 0;
-
-  for (const match of text.matchAll(pattern)) {
-    const group: number = detector.valueGroup || 0;
-    const value: string | undefined = match[group];
-
-    if (value === undefined || match.index === undefined || value === "") {
-      continue;
-    }
-
-    const offset: number = group === 0 ? 0 : match[0].indexOf(value);
-    const start: number = match.index + Math.max(0, offset);
-    const normalized: string = detector.normalize
-      ? detector.normalize(value)
-      : value;
-
-    if (detector.validate && !detector.validate(normalized, value)) {
-      continue;
-    }
-
-    ranges.push([start, start + value.length]);
-  }
-}
-
 export default class ScrubIpAddress {
   /*
    * Where the IP addresses Data Security counts are in a text: [start, end)
@@ -118,55 +84,7 @@ export default class ScrubIpAddress {
    * share: an address found as it is written and as its escapes read.
    */
   public static findRanges(text: string): Array<ScrubIpAddressRange> {
-    if (!text) {
-      return [];
-    }
-
-    const found: Array<ScrubIpAddressRange> = [];
-
-    for (const detector of IP_ADDRESS_DETECTORS) {
-      acceptedRanges(detector, text, found);
-    }
-
-    // The text with its percent-escapes read: an address in an encoded URL.
-    const decoded: PercentDecodedText | null = PercentDecodedText.read(text);
-
-    if (decoded !== null) {
-      const inReading: Array<ScrubIpAddressRange> = [];
-
-      for (const detector of IP_ADDRESS_DETECTORS) {
-        if (detector.readsPercentEncoded) {
-          acceptedRanges(detector, decoded.readable, inReading);
-        }
-      }
-
-      for (const range of inReading) {
-        found.push(decoded.rangeToWritten(range));
-      }
-    }
-
-    if (found.length < 2) {
-      return found;
-    }
-
-    found.sort((a: ScrubIpAddressRange, b: ScrubIpAddressRange): number => {
-      return a[0] - b[0] || b[1] - a[1];
-    });
-
-    const merged: Array<ScrubIpAddressRange> = [found[0]!];
-
-    for (let index: number = 1; index < found.length; index++) {
-      const range: ScrubIpAddressRange = found[index]!;
-      const last: ScrubIpAddressRange = merged[merged.length - 1]!;
-
-      if (range[0] < last[1]) {
-        last[1] = Math.max(last[1], range[1]);
-      } else {
-        merged.push(range);
-      }
-    }
-
-    return merged;
+    return findDetectorRanges(IP_ADDRESS_DETECTORS, text);
   }
 
   /*

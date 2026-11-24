@@ -19,7 +19,11 @@ import { readString, readValue } from "../NormalizerHelpers";
 import { requestOutcomeFromStatusCode } from "../RequestOutcome";
 import {
   SENSITIVE_FILE_PROBE_WORDS,
-  readSensitiveFileProbe,
+  SensitiveFileAnswer,
+  SensitiveFileRequest,
+  readBodySize,
+  readContentType,
+  readSensitiveFileRequest,
 } from "../SensitiveFileProbe";
 import {
   MAX_SCRUBBED_ADDRESS_LENGTH,
@@ -53,7 +57,9 @@ import {
  * and where to look, never the bare string a rule or a query names) - or
  * a request for a well-known sensitive file or admin page, such as /.env
  * or /wp-admin, that the site refused or does not have (#10745,
- * Utils/SecurityEvent/SensitiveFileProbe): a scanner's first move.
+ * Utils/SecurityEvent/SensitiveFileProbe): a scanner's first move - or a
+ * file that holds secrets the site answered, read for what it sent: the
+ * file itself, a leak and Critical, or its own page (#10912).
  *
  * Common and combined log format lines and JSON access logs (nginx,
  * Caddy, Envoy and the like) are read for the client address, the method,
@@ -103,6 +109,20 @@ export enum WebAttackKind {
  */
 export const WEB_SENSITIVE_FILE_PATH_ATTRIBUTE: string =
   "web.sensitive_file.path";
+
+/*
+ * What the site answered a SensitiveFile request with (#10912,
+ * SensitiveFileAnswer): "refused", "file" - the file itself, which the
+ * Rule Library's "Sensitive file served" rule opens a case on - "own-page"
+ * or "empty". A log line's or a span's "unconfirmed" is decided before the
+ * event is stored, or the event is not stored (SensitiveFileAnswers); only
+ * a Cloudflare firewall event, stored whatever it holds, keeps one.
+ */
+export const WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE: string =
+  "web.sensitive_file.answer";
+
+// A sensitive file the site served, said plainly: what its event's message opens with.
+export const SENSITIVE_FILE_SERVED_LABEL: string = "Sensitive file served";
 
 /*
  * Matched lowercased, as written in requests: raw, and URL-encoded the way
@@ -285,6 +305,14 @@ export interface AccessLogRequest {
   target: string;
   status: number;
   userAgent: string;
+  /*
+   * What the answer carried, when the line records it (#10912): its body's
+   * size in bytes (null when not recorded) and its Content-Type ('' when
+   * not recorded) - what tells a sensitive file the site served from its
+   * own page for a path it does not have.
+   */
+  bodySize?: number | null | undefined;
+  contentType?: string | undefined;
 }
 
 type ClientField = Pick<AccessLogRequest, "clientIp" | "scrubbedClient">;
@@ -383,7 +411,16 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
     }
   }
 
-  const status: number = readStatus(readWord(text, closeQuote + 2));
+  const statusWord: string = readWord(text, closeQuote + 2);
+  const status: number = readStatus(statusWord);
+  /*
+   * The body's size follows the status (%b, $body_bytes_sent: "-" for
+   * none) - what tells a sensitive file the site served from its own page
+   * (#10912). Unread when no status precedes it.
+   */
+  const bodySize: number | null = status
+    ? readBodySize(readWord(text, closeQuote + 2 + statusWord.length + 1))
+    : null;
 
   // The user agent is the last quoted string of a combined format line.
   let userAgent: string = "";
@@ -397,7 +434,7 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
     }
   }
 
-  return { ...client, method, target, status, userAgent };
+  return { ...client, method, target, status, userAgent, bodySize };
 }
 
 /*
@@ -499,6 +536,44 @@ const JSON_AGENT_FIELDS: Array<string> = [
   "userAgent",
   "user_agent.original",
   "request.headers.User-Agent",
+];
+
+/*
+ * The answer's body size, as JSON access logs record it (#10912): nginx's
+ * $body_bytes_sent, Caddy's size, ECS's and OpenTelemetry's names,
+ * Traefik's, and last nginx's $bytes_sent, which counts the headers too -
+ * still the same for the same page, which is what it is compared by.
+ */
+export const JSON_BODY_SIZE_FIELDS: ReadonlyArray<string> = [
+  "body_bytes_sent",
+  "size",
+  "response_size",
+  "resp_body_size",
+  "responseSize",
+  "response_bytes",
+  "http.response.body.bytes",
+  "http.response.body.size",
+  "response.bytes",
+  "DownstreamContentSize",
+  "bytes_sent",
+];
+
+/*
+ * The answer's Content-Type, as JSON access logs record it: nginx's
+ * $sent_http_content_type (never $content_type, which is the request's),
+ * Caddy's and Traefik's response headers, ECS's and OpenTelemetry's names.
+ */
+export const JSON_CONTENT_TYPE_FIELDS: ReadonlyArray<string> = [
+  "sent_http_content_type",
+  "resp_content_type",
+  "response_content_type",
+  "resp_headers.Content-Type",
+  "resp_headers.content-type",
+  "response.headers.Content-Type",
+  "response.headers.content-type",
+  "downstream_Content-Type",
+  "http.response.mime_type",
+  "http.response.header.content-type",
 ];
 
 /*
@@ -641,6 +716,10 @@ export function readJsonAccessLog(text: string): AccessLogRequest | null {
     target,
     status: readStatus(readFirstField(record, JSON_STATUS_FIELDS)),
     userAgent: readFirstField(record, JSON_AGENT_FIELDS),
+    bodySize: readBodySize(readFirstField(record, JSON_BODY_SIZE_FIELDS)),
+    contentType: readContentType(
+      readFirstField(record, JSON_CONTENT_TYPE_FIELDS),
+    ),
   };
 }
 
@@ -1179,6 +1258,23 @@ export function getSqlInjectionMarkers(): Array<string> {
 }
 
 /*
+ * Where OpenTelemetry writes an answer's body size and its Content-Type
+ * (#10912): the semantic conventions' names, and the older ones
+ * instrumentation still writes. Shared by a log line's attributes and a
+ * span's (TraceSignals).
+ */
+export const RESPONSE_SIZE_KEYS: ReadonlyArray<string> = [
+  "http.response.body.size",
+  "http.response_content_length",
+  "http.response_content_length_uncompressed",
+];
+
+export const RESPONSE_CONTENT_TYPE_KEYS: ReadonlyArray<string> = [
+  "http.response.header.content-type",
+  "http.response.header.content_type",
+];
+
+/*
  * The request as the line's own attributes describe it - OpenTelemetry's
  * names, and the older ones instrumentation still writes: what an
  * application's log line carries when it was written inside a request.
@@ -1227,6 +1323,11 @@ export function readRequestFromAttributes(
       "user_agent.original",
       "http.user_agent",
     ]),
+    // What the answer carried, by OpenTelemetry's names old and new (#10912).
+    bodySize: readBodySize(readAttribute(attributes, [...RESPONSE_SIZE_KEYS])),
+    contentType: readContentType(
+      readAttribute(attributes, [...RESPONSE_CONTENT_TYPE_KEYS]),
+    ),
   };
 }
 
@@ -1382,6 +1483,8 @@ export function buildWebAttackMessage(data: {
   target?: string | undefined;
   statusCode?: number | undefined;
   payload?: string | undefined;
+  // A sensitive file the site served (#10912): said as what it is.
+  isServed?: boolean | undefined;
 }): string {
   const target: string = cutText(
     (data.target || "").trim(),
@@ -1393,10 +1496,12 @@ export function buildWebAttackMessage(data: {
       return Boolean(part);
     })
     .join(" ");
+  const label: string =
+    data.isServed && data.kind === WebAttackKind.SensitiveFile
+      ? SENSITIVE_FILE_SERVED_LABEL
+      : WEB_ATTACK_LABELS[data.kind];
 
-  let message: string = request
-    ? `${WEB_ATTACK_LABELS[data.kind]}: ${request}`
-    : WEB_ATTACK_LABELS[data.kind];
+  let message: string = request ? `${label}: ${request}` : label;
 
   if (data.statusCode) {
     message = `${message} → ${data.statusCode}`;
@@ -1477,16 +1582,19 @@ export default class WebAttackLogParser {
     );
 
     /*
-     * No attack string: a request for a sensitive file the site refused or
-     * does not have (#10745), read from the request the line records -
-     * its path and its status - or nothing.
+     * No attack string: a request for a sensitive file, read from the
+     * request the line records - its path and its status, and what the
+     * answer carried (#10912): refused or not there (#10745), or for a
+     * file that holds secrets, what the site sent - or nothing.
      */
-    const sensitivePath: string | null = attackKind
+    const sensitive: SensitiveFileRequest | null = attackKind
       ? null
-      : readSensitiveFileProbe({
+      : readSensitiveFileRequest({
           target: accessLog?.target || fromAttributes.target,
           statusCode: accessLog?.status || fromAttributes.status,
+          ...readLineResponse(accessLog, fromAttributes),
         });
+    const sensitivePath: string | null = sensitive?.path || null;
 
     if (!attackKind && !sensitivePath) {
       return [];
@@ -1531,8 +1639,12 @@ export default class WebAttackLogParser {
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
     };
 
-    if (sensitivePath) {
-      attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitivePath;
+    if (sensitive) {
+      markSensitiveFileRequest(
+        attributes,
+        sensitive,
+        readLineResponse(accessLog, fromAttributes),
+      );
     }
 
     // A scrub rule hid the client's address: the event says so, and names none.
@@ -1581,23 +1693,117 @@ export default class WebAttackLogParser {
       classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
       activityName: method,
       statusName,
-      severity: severityForWebAttack(kind, outcome),
+      severity: sensitive
+        ? severityForSensitiveFile(sensitive.answer)
+        : severityForWebAttack(kind, outcome),
       message: buildWebAttackMessage({
         kind,
         method,
         target: url || target,
         statusCode,
         payload,
+        isServed: sensitive?.answer === SensitiveFileAnswer.File,
       }),
       principalIp: client.ip,
       targetResource: cutText(target, 2000),
       attributes,
     });
 
-    if (outcome) {
-      event.requestOutcome = outcome;
+    const requestOutcome: SecurityEventRequestOutcome | undefined = sensitive
+      ? outcomeForSensitiveFile(sensitive.answer, outcome)
+      : outcome;
+
+    if (requestOutcome) {
+      event.requestOutcome = requestOutcome;
     }
 
     return [event];
   }
+}
+
+/*
+ * What a line's answer carried: what the access log records, else what the
+ * line's own attributes say (#10912).
+ */
+function readLineResponse(
+  accessLog: AccessLogRequest | null,
+  fromAttributes: AccessLogRequest,
+): { bodySize: number | null; contentType: string } {
+  return {
+    bodySize: accessLog?.bodySize ?? fromAttributes.bodySize ?? null,
+    contentType: accessLog?.contentType || fromAttributes.contentType || "",
+  };
+}
+
+/*
+ * A SensitiveFile event's facts (#10912): the path as it is counted, what
+ * the site answered, and what the answer carried when the source recorded
+ * it - its body's size and its type - so a person reads why it was judged
+ * so, and the store can compare it with what the same site answered other
+ * paths (SensitiveFileAnswers).
+ */
+export function markSensitiveFileRequest(
+  attributes: JSONObject,
+  sensitive: SensitiveFileRequest,
+  response: { bodySize: number | null; contentType: string },
+): void {
+  attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitive.path;
+  attributes[WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE] = sensitive.answer;
+
+  // A refusal carried nothing the judgement reads.
+  if (sensitive.answer === SensitiveFileAnswer.Refused) {
+    return;
+  }
+
+  if (response.bodySize !== null) {
+    attributes[SECURITY_REQUEST_ATTRIBUTES.responseBodySize] = String(
+      response.bodySize,
+    );
+  }
+
+  if (response.contentType) {
+    attributes[SECURITY_REQUEST_ATTRIBUTES.responseContentType] =
+      response.contentType;
+  }
+}
+
+/*
+ * How serious a request for a sensitive file is, by what the site sent
+ * (#10912): the file itself is a leak - its secrets are the asker's now -
+ * and Critical, as injected SQL that ran is; what is not yet decided reads
+ * as any request that reached the app; everything else is a probe that
+ * found nothing, as one turned away is.
+ */
+export function severityForSensitiveFile(
+  answer: SensitiveFileAnswer,
+): OcsfSeverity {
+  switch (answer) {
+    case SensitiveFileAnswer.File:
+      return OcsfSeverity.Critical;
+    case SensitiveFileAnswer.Unconfirmed:
+      return OcsfSeverity.Medium;
+    default:
+      return OcsfSeverity.Low;
+  }
+}
+
+/*
+ * How far a request for a sensitive file got (#10912): one the site
+ * answered with its own page, or with nothing, was turned away - the site
+ * does not have the file - however its status reads, so a single-page
+ * app's scanner never reads as getting through. Anything else is as its
+ * status says.
+ */
+export function outcomeForSensitiveFile(
+  answer: SensitiveFileAnswer,
+  outcome: SecurityEventRequestOutcome | undefined,
+): SecurityEventRequestOutcome | undefined {
+  if (
+    answer === SensitiveFileAnswer.OwnPage ||
+    answer === SensitiveFileAnswer.Empty
+  ) {
+    return SecurityEventRequestOutcome.Rejected;
+  }
+
+  return outcome;
 }

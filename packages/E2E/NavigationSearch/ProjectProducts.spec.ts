@@ -606,12 +606,12 @@ test.describe("products the project hides", () => {
       cardOf(page, "Monitors").getByTestId("navbar-menu-not-set-up"),
     ).toHaveCount(0);
 
-    // AI Insights is called Insights in the menu.
+    // AI Insights, as its page names it, is still found by "insights" (#7474).
     await productsMenu(page)
       .getByRole("combobox", { name: "Search products" })
       .fill("insights");
     await expect(
-      cardOf(page, "Insights").getByTestId("navbar-menu-plan"),
+      cardOf(page, "AI Insights").getByTestId("navbar-menu-plan"),
     ).toHaveText("Growth Plan");
   });
 

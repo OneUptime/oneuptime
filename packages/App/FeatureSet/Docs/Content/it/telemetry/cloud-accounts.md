@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 Il comando di un livello inferiore sostituisce la policy AWS con quella del livello inferiore. **Disattivato** non aggiunge nulla, quindi lascia ciò che ha concesso un comando precedente finché non lo elimini: la policy `OneUptimeDataSecurity` su AWS, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, e i ruoli del livello del contenuto su Azure e Google Cloud. In ogni caso Sicurezza dei dati smette subito di leggere: legge solo ciò che indica il livello della connessione. [Configurare Sicurezza dei dati](/docs/data-security/setup) elenca ogni azione della policy, e cosa conserva Sicurezza dei dati di ciò che legge.
 
+## Controlli dei casi di sicurezza
+
+Su AWS, la stessa connessione può permettere a un [caso di sicurezza](/docs/telemetry/security-cases#come-oneuptime-controlla-un-passaggio) di controllare che sia stato annullato ciò che un attacco ha cambiato su un utente IAM: la chiave di accesso che ha creato, la password della console che ha impostato, le policy che ha collegato o scritto, i gruppi a cui ha aggiunto l'utente, il dispositivo MFA che ha attivato e l'utente che ha creato. In **Altri campi**, **Controlli dei casi di sicurezza** è **Disattivato** finché non lo attivi, e il comando che mostra il modulo cambia di conseguenza. Ogni azione legge soltanto, e nessuna legge un segreto: l'ID di una chiave di accesso e se è attiva, mai la chiave, e che una password della console è impostata, mai la password.
+
+| Cosa legge il caso di ogni utente nominato dai suoi eventi CloudTrail | Azioni |
+| --- | --- |
+| L'utente, o che non esiste più | `iam:GetUser` |
+| Le sue chiavi di accesso, e se ognuna è attiva | `iam:ListAccessKeys` |
+| Se ha una password della console, e da quando | `iam:GetLoginProfile` |
+| Le sue policy gestite, e i nomi delle sue policy inline | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| I gruppi di cui fa parte | `iam:ListGroupsForUser` |
+| I suoi dispositivi MFA | `iam:ListMFADevices` |
+
+Il comando del ruolo aggiunge una propria policy inline, `OneUptimeSecurityCaseChecks`, con una riga in più, e lo StackSet di un'organizzazione la mette nel ruolo di ogni account:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+Con una **Chiave di accesso**, la policy va su un gruppo con lo stesso nome, `OneUptimeSecurityCaseChecks`, a cui viene aggiunto l'utente:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Un caso rilegge una modifica solo tramite una connessione che raggiunge l'account in cui è stata fatta, e non chiede nulla a IAM tramite una connessione con **Controlli dei casi di sicurezza** su **Disattivato**: nomina quelle modifiche perché tu le confermi, e dice di attivarlo. **Disattivato** non aggiunge nulla, quindi lascia ciò che ha concesso un comando precedente finché non lo elimini, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+
 ## Cosa legge OneUptime
 
 | | AWS | Azure | Google Cloud |

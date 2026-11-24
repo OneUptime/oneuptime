@@ -151,7 +151,7 @@ describe("the plan a schedule with people to take turns needs", () => {
 
     await expect(attempt).rejects.toThrow(PaymentRequiredException);
     await expect(attempt).rejects.toThrow(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
 
     expect(created).toEqual([]);

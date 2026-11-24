@@ -87,7 +87,9 @@ import React, {
  *     zone the connection reads) and paste a new token or keep the current
  *     one once they have added the permissions to it; Check Permissions asks
  *     without writing, and Turn On Blocking turns it on only when every
- *     check passes, showing what failed otherwise;
+ *     check passes, showing what failed otherwise - a check that only
+ *     warns (Challenge This Network's permission, #10894) turns it on and
+ *     stays in view;
  *   - on, it says how blocking stands (CloudflareBlockingStatusView): each
  *     action's mechanism and why, how many addresses Cloudflare holds of how
  *     many, a zone whose rule was turned off, deleted or changed at
@@ -279,6 +281,17 @@ const CloudflareBlockingModal: FunctionComponent<ComponentProps> = (
       }
 
       setApiToken("");
+      /*
+       * On, with a check that only warns - a token that cannot challenge a
+       * network by its ASN (#10894): it stays in view under how blocking
+       * stands, so the person learns it before Challenge This Network fails.
+       */
+      const warnings: Array<SecurityConnectorCheck> = answer.checks.filter(
+        (one: SecurityConnectorCheck): boolean => {
+          return one.status !== "pass";
+        },
+      );
+      setChecks(warnings.length > 0 ? warnings : null);
       const said: string = wasOn ? ZONES_SAVED_TOAST : TURNED_ON_TOAST;
       Toast.success(translator.translateText(said) || said);
       props.onChanged();

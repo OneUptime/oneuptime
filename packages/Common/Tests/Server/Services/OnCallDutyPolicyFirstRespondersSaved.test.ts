@@ -21,6 +21,7 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserNotificationSettingService from "../../../Server/Services/UserNotificationSettingService";
 import UserService from "../../../Server/Services/UserService";
+import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import logger from "../../../Server/Utils/Logger";
 import OnDutyPoliciesCache from "../../../Server/Utils/OnCall/OnDutyPoliciesCache";
@@ -189,6 +190,11 @@ beforeEach(() => {
   inMemory(UserService, [
     { _id: PERSON_ID, name: "Ada Lovelace", email: "ada@acme.com" },
   ]);
+  /*
+   * The project has connected no Slack, Microsoft Teams or Mattermost
+   * workspace: the policy's feed lines are written for none (#10970).
+   */
+  inMemory(WorkspaceProjectAuthTokenService, []);
 
   /*
    * A service made on the spot for a table (the on-call checks read the

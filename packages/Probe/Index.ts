@@ -39,6 +39,7 @@ import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
 import ProcessTreeMemory from "./Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
+import { ProbeStartupMessages } from "Common/Types/Probe/ProbeConnectionRefusals";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
@@ -226,7 +227,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       await Register.reportIfOffline();
     } catch (err) {
-      logger.error("Register probe failed");
+      logger.error(ProbeStartupMessages.couldNotConnect);
       logger.error(err);
       throw err;
     }

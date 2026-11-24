@@ -148,13 +148,13 @@ I steget **Kriterier** öppnar du det första kriteriet, det som markerar monito
 
 ### Skapa en incident per problem
 
-Öppna **Inställningar** i samma kriterium och slå på **Group incidents and alerts by a payload field**. Fyll i det som nedan, så att varje problem får sin egen incident och återhämtningen från det löser den:
+Öppna **Inställningar** i samma kriterium och slå på **Gruppera incidenter och larm efter ett fält i nyttolasten**. Fyll i det som nedan, så att varje problem får sin egen incident och återhämtningen från det löser den:
 
 | Fält | Värde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Öppna en separat incident för varje…** | `requestBody.event_id` |
+| **Fält som signalerar återhämtning** | `requestBody.status` |
+| **Värde som betyder återhämtad** | `0` |
 
 ### Ta monitorn online igen
 
@@ -321,7 +321,7 @@ Zabbix skickar allvarlighetsgraden som text: `Not classified`, `Information`, `W
 :::details Incidenter skapas men löses aldrig
 - Åtgärden behöver **Recovery operations**, annars skickar Zabbix aldrig återhämtningen.
 - Med mallen öppnar du arbetsflödets **Körningar** och återhämtningens körning: dess sista steg säger varför. En återhämtning för ett problem som inte skapade någon incident ändrar ingenting.
-- Med monitorn behöver kriteriets incident **Lös incident automatiskt**, under **Fler fält**. **Field that signals recovery** måste vara `requestBody.status`, och **Value that means recovered** exakt `0`.
+- Med monitorn behöver kriteriets incident **Lös incident automatiskt**, under **Fler fält**. **Fält som signalerar återhämtning** måste vara `requestBody.status`, och **Värde som betyder återhämtad** exakt `0`.
 :::
 
 :::details Zabbix-problemet bekräftas eller stängs inte

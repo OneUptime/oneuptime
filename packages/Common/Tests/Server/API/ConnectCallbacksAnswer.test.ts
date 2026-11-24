@@ -575,8 +575,10 @@ describe("Every connect callback answers on the page it came from", () => {
       const grantType: string = request.data["grant_type"];
 
       if (grantType === "authorization_code" && request.data["scope"]) {
-        const isAdminConsentSignIn: boolean =
-          request.data["scope"] === "openid profile";
+        // The admin-consent sign-in asks for openid first (an ID token).
+        const isAdminConsentSignIn: boolean = String(
+          request.data["scope"],
+        ).startsWith("openid profile");
 
         if (isAdminConsentSignIn) {
           if (options?.signInTokenFails) {

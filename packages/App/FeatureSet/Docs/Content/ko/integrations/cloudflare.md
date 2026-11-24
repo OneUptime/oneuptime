@@ -171,10 +171,10 @@ Cloudflare에서 **My Profile → API Tokens**를 열고, 연결의 토큰을 �
 
 ### 차단 켜기
 
-연결의 행에서 **주소 차단**을 선택합니다. **새 API 토큰**에 새 토큰을 붙여 넣거나 비워 두어 현재 토큰을 그대로 쓰고, **영역**은 **모든 영역**으로 두거나 차단할 영역을 고릅니다. **권한 확인**은 토큰에 각 권한이 있는지 Cloudflare에 묻고, 아무것도 바꾸지 않습니다. **차단 켜기**는 모든 확인을 통과할 때만 차단을 켜며, OneUptime이 1분 안에 Cloudflare를 설정합니다.
+연결의 행에서 **주소 차단**을 선택합니다. **새 API 토큰**에 새 토큰을 붙여 넣거나 비워 두어 현재 토큰을 그대로 쓰고, **영역**은 **모든 영역**으로 두거나 차단할 영역을 고릅니다. **권한 확인**은 토큰에 각 권한이 있는지 Cloudflare에 묻고, 아무것도 바꾸지 않습니다. **차단 켜기**는 모든 확인을 통과할 때만 차단을 켭니다. 단, **Challenge a network by its ASN**는 경고만 하며 차단을 막지 않습니다. OneUptime이 1분 안에 Cloudflare를 설정합니다.
 :::
 
-차단이 켜져 있는 동안 **연결 테스트**도 같은 확인을 실행합니다: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone**, 그리고 IP Access Rules를 쓰는 경우 **Edit IP Access Rules**.
+차단이 켜져 있는 동안 **연결 테스트**도 같은 확인을 실행합니다: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone**, 그리고 IP Access Rules를 쓰는 경우 **Edit IP Access Rules**, 쓰지 않는 경우 **Challenge a network by its ASN**.
 
 ### OneUptime이 Cloudflare에 추가하는 것
 
@@ -183,7 +183,7 @@ Cloudflare에서 **My Profile → API Tokens**를 열고, 연결의 토큰을 �
 | 목록 `oneuptime_block`과 `oneuptime_challenge` | 계정의 IP 목록 두 개로, 하나는 차단용이고 하나는 챌린지용입니다. 설명에 OneUptime 프로젝트가 적혀 있습니다. |
 | 각 영역에 목록마다 사용자 지정 규칙 하나 | 작업 Block인 `(ip.src in $oneuptime_block)`과 작업 Managed Challenge인 `(ip.src in $oneuptime_challenge)`입니다. 설명에 OneUptime이 관리한다고 적혀 있습니다. |
 | 차단마다 목록 항목 하나 | 주석에 케이스와 차단이 끝나는 시각이 적힙니다. 예: `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| ASN으로 챌린지를 적용한 네트워크마다 IP Access Rule 하나 | **캠페인** 에서 챌린지를 적용한 네트워크 전체를, 대상이 `asn`인 IP Access Rule로 보관합니다. 모든 요금제에 있습니다. 메모에는 목록 항목의 주석과 같은 내용이 적힙니다. 토큰에 `Account > Account Firewall Access Rules > Edit` 권한이 없으면 챌린지가 적용되지 않으며, **차단 목록** 에 추가할 권한이 표시됩니다. |
+| ASN으로 챌린지를 적용한 네트워크마다 IP Access Rule 하나 | **캠페인** 에서 챌린지를 적용한 네트워크 전체를, 대상이 `asn`인 IP Access Rule로 보관합니다. 모든 요금제에 있습니다. 메모에는 목록 항목의 주석과 같은 내용이 적힙니다. 토큰에 `Account > Account Firewall Access Rules > Edit` 권한이 없으면 **권한 확인**과 **연결 테스트**가 **Challenge a network by its ASN**에서 먼저 경고합니다. 차단은 이 권한 없이도 동작하지만 챌린지는 적용되지 않으며, **차단 목록** 에 추가할 권한이 표시됩니다. |
 
 각 규칙은 영역의 사용자 지정 규칙 중 맨 앞에 놓이므로 사용자의 규칙보다 먼저 실행됩니다. 사용자의 Skip 규칙은 차단된 주소를 통과시킬 수 없습니다. 모니터나 파트너의 주소처럼 Skip 규칙이 통과시키는 주소가 있으면 **차단 상태**에 표시됩니다. **이 주소 보호**는 이 주소를 **보호 대상 엔티티**에 추가하며, 여기에 있는 주소는 아무도 차단할 수 없습니다.
 

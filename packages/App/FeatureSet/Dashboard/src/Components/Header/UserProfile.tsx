@@ -86,6 +86,11 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
         }}
       >
         <IconDropdownMenu>
+          {/*
+           * Each entry says the name of the page it opens (#7474): User
+           * Profile, where it said Profile, and the Admin Dashboard, which
+           * it called Admin Settings.
+           */}
           <IconDropdownItem
             title={t("userProfile.profile")}
             onClick={() => {
@@ -97,7 +102,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
           {User.isMasterAdmin() ? (
             <IconDropdownItem
-              title={t("userProfile.adminSettings")}
+              title={t("userProfile.adminDashboard")}
               onClick={() => {
                 setIsDropdownVisible(false);
                 Navigation.navigate(ADMIN_DASHBOARD_URL);

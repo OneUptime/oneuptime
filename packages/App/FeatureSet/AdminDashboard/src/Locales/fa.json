@@ -2,8 +2,8 @@
   "Company name associated with this license.": "نام شرکت مرتبط با این پروانه.",
   "Annual contract value (in USD) for this license.": "ارزش سالانه قرارداد (به دلار آمریکا) برای این پروانه.",
   "Expiration date of this license.": "تاریخ انقضای این پروانه.",
-  "Something went wrong": "مشکلی پیش آمد",
-  "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
+  "This page stopped working": "این صفحه از کار افتاد",
+  "Part of this page ran into a problem. Reload the page to continue.": "بخشی از این صفحه با مشکلی روبه‌رو شد. برای ادامه، صفحه را دوباره بارگذاری کنید.",
   "Error details": "جزئیات خطا",
   "Still stuck?": "هنوز مشکل دارید؟",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "یک فایل عیب‌یابی محلی با پشته خطا، پشته اجزا، نشانی پاک‌سازی‌شده صفحه، جزئیات مرورگر و نسخه ساخت OneUptime دانلود کنید. این فایل هرگز کوکی‌ها، داده‌های ذخیره‌شده مرورگر یا محتوای فرم‌ها را نمی‌خواند. پیش از اشتراک با پشتیبانی OneUptime آن را بررسی کنید.",
@@ -497,7 +497,7 @@
       "title": "خروج از حساب"
     },
     "sendEmail": {
-      "title": "ارسال ایمیل اطلاع‌رسانی",
+      "title": "ارسال ایمیل",
       "testCardTitle": "ارسال ایمیل آزمایشی",
       "testCardDescription": "یک ایمیل اطلاع‌رسانی آزمایشی به یک آدرس ایمیل بفرستید تا پیش از ارسال به همه کاربران، ظاهر آن را ببینید.",
       "allCardTitle": "ارسال ایمیل به همه کاربران",
@@ -514,7 +514,7 @@
       "confirmButton": "بله، به همه کاربران فرستاده شود"
     },
     "moreEmail": {
-      "title": "ارسال ایمیل اطلاع‌رسانی",
+      "title": "ارسال ایمیل",
       "cardTitle": "ارسال ایمیل اطلاع‌رسانی",
       "cardDescription": "یک ایمیل اطلاع‌رسانی برای ارسال به همه کاربران ثبت‌نام‌شده بنویسید. می‌توانید ابتدا یک ایمیل آزمایشی بفرستید تا ظاهر آن را ببینید.",
       "sendTestButton": "ارسال ایمیل آزمایشی",
@@ -536,7 +536,7 @@
       "confirmButton": "بله، به همه کاربران فرستاده شود"
     },
     "settings": {
-      "title": "تنظیمات مدیریت",
+      "title": "تنظیمات",
       "authentication": {
         "signUpCardTitle": "ثبت‌نام",
         "signUpCardDescription": "چه کسانی می‌توانند در این سرور حساب بسازند.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "در حال ارسال یک درخواست آزمایشی به کانال.",
   "Custom Channel": "کانال سفارشی",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "قواعد آنکال همهٔ کسانی که از این کانال استفاده می‌کنند همراه آن حذف می‌شوند. برای توقف ارسال بدون تغییر قواعد کسی، به‌جای آن کانال را خاموش کنید.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "مجوز کافی برای تعیین {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "مجوز کافی برای ویرایش {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "مجوز کافی برای تعیین {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "مجوز کافی برای ویرایش {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}.",
   "Push Notifications": "اعلان‌های پوش",
   "{{count}} {{itemsName}} skipped_one": "{{count}} مورد نادیده گرفته شد ({{itemName}})",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "مطمئنید می‌خواهید «{{action}}» را روی {{count}} مورد ({{itemName}}) انجام دهید؟",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "به پردازشگرها حافظه و CPU بیشتری بدهید و در گزارش برنامه دنبال کارهایی بگردید که مدام ناموفق می‌شوند.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "این سرور OneUptime {{current}} را اجرا می‌کند. نسخهٔ {{latest}} منتشر شده است.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "اول پشتیبان بگیرید، بعد به‌روزرسانی کنید: در Docker Compose با npm run update و در Kubernetes با helm upgrade.",
-  "Finish it on the Server setup page.": "آن را در صفحهٔ «راه‌اندازی سرور» تمام کنید.",
+  "Finish it on the Server Setup page.": "آن را در صفحهٔ «راه‌اندازی سرور» تمام کنید.",
   "Products on this server": "محصولات این سرور",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "انتخاب کنید هر پروژه در این سرور چه چیزهایی ارائه دهد. محصولی که خاموش است از منو، خانه و جستجوی همهٔ پروژه‌ها حذف می‌شود و صفحه‌هایش می‌گویند که خاموش شده است.",
   "Start from": "شروع از",

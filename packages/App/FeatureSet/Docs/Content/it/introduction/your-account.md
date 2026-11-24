@@ -23,8 +23,8 @@ Fai clic sulla tua foto in alto a destra nella dashboard.
 
 | Voce | Cosa fa |
 | --- | --- |
-| **Profilo** | Apre **Profilo utente**: il tuo nome, la tua e-mail, il fuso orario, la lingua, la foto e la sicurezza dell'accesso. |
-| **Impostazioni admin** | Apre l'Admin Dashboard. La vedono solo gli amministratori principali di un'installazione self-hosted. |
+| **Profilo utente** | Apre **Profilo utente**: il tuo nome, la tua e-mail, il fuso orario, la lingua, la foto e la sicurezza dell'accesso. |
+| **Pannello amministratore** | Apre l'Admin Dashboard. La vedono solo gli amministratori principali di un'installazione self-hosted. |
 | **Tema** | Imposta il tema della dashboard: **Chiaro**, **Scuro** o **Sistema**, che è chiaro o scuro in base all'impostazione del tuo dispositivo. |
 | **Esci** | Ti disconnette, subito su ogni server OneUptime. Dove il tuo amministratore l'ha configurato, ti disconnette anche dal tuo provider di identità. |
 
@@ -35,7 +35,7 @@ Fai clic sulla tua foto in alto a destra nella dashboard.
 :::steps
 ### Aprire il tuo profilo
 
-Fai clic sulla tua foto in alto a destra e scegli **Profilo**. La pagina **Panoramica** si apre sulla scheda **Informazioni di base**: il tuo nome, la tua e-mail, il tuo fuso orario e la tua lingua.
+Fai clic sulla tua foto in alto a destra e scegli **Profilo utente**. La pagina **Panoramica** si apre sulla scheda **Informazioni di base**: il tuo nome, la tua e-mail, il tuo fuso orario e la tua lingua.
 
 ### Modificare i tuoi dati
 

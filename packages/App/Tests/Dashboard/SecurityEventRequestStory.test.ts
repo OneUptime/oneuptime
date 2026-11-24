@@ -32,7 +32,10 @@ import {
   NOT_FOLLOWED_WITH_TRACE,
   REACHED_APP_IN,
   REJECTED_IN,
+  SENSITIVE_FILE_SENT_AS,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventRequestCopy";
+import { WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE } from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { SensitiveFileAnswer } from "Common/Utils/SecurityEvent/SensitiveFileProbe";
 
 /*
  * What happened next, as the event panel says it: the facts a followed
@@ -71,6 +74,9 @@ function facts(
     databaseSystem: "",
     databaseStatement: "",
     requestedDelaySeconds: 0,
+    sensitiveFileAnswer: null,
+    responseBodySize: null,
+    responseContentType: "",
     ...overrides,
   };
 }
@@ -406,5 +412,222 @@ describe("describeWhatHappenedNext", () => {
     ).toBe("Abgewiesen: 404 Not Found nach 3 ms.");
     expect(asked).toContain(REJECTED_IN);
     expect(asked).not.toContain(REACHED_APP_IN);
+  });
+});
+
+/*
+ * A REQUEST FOR A FILE THAT HOLDS SECRETS (#10912): the panel says what the
+ * site sent - the file itself and why OneUptime says so, its own page,
+ * nothing, or what the record cannot say - where it says what happened
+ * next.
+ */
+describe("what a site sent for a request for a file that holds secrets", () => {
+  function say(overrides: Partial<SecurityEventRequestFacts>): string {
+    return describeWhatHappenedNext({
+      facts: facts(overrides),
+      hasTrace: false,
+      translator: ENGLISH,
+    });
+  }
+
+  test("reads what the event says of it", () => {
+    const read: SecurityEventRequestFacts = readSecurityEventRequestFacts(
+      event({
+        requestOutcome: SecurityEventRequestOutcome.ReachedApp,
+        attributes: {
+          [WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE]: SensitiveFileAnswer.File,
+          [SECURITY_REQUEST_ATTRIBUTES.responseBodySize]: "412",
+          [SECURITY_REQUEST_ATTRIBUTES.responseContentType]: "text/plain",
+          [SECURITY_REQUEST_ATTRIBUTES.statusCode]: "200",
+        },
+      }),
+    );
+
+    expect(read.sensitiveFileAnswer).toBe(SensitiveFileAnswer.File);
+    expect(read.responseBodySize).toBe(412);
+    expect(read.responseContentType).toBe("text/plain");
+  });
+
+  test("an answer that is none, and an event of no such request, read as none", () => {
+    const read: SecurityEventRequestFacts = readSecurityEventRequestFacts(
+      event({
+        attributes: { [WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE]: "maybe" },
+      }),
+    );
+
+    expect(read.sensitiveFileAnswer).toBeNull();
+    expect(read.responseBodySize).toBeNull();
+    expect(read.responseContentType).toBe("");
+    expect(
+      readSecurityEventRequestFacts(event({})).sensitiveFileAnswer,
+    ).toBeNull();
+  });
+
+  test("the file itself, by its type", () => {
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.ReachedApp,
+        statusCode: 200,
+        sensitiveFileAnswer: SensitiveFileAnswer.File,
+        responseBodySize: 412,
+        responseContentType: "text/plain",
+      }),
+    ).toBe(
+      "Your site sent the file itself: it answered 200 OK with text/plain, not a web page.",
+    );
+  });
+
+  test("the file itself, by its size beside the 404s of the paths the site doesn't have", () => {
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.ReachedApp,
+        statusCode: 200,
+        sensitiveFileAnswer: SensitiveFileAnswer.File,
+        responseBodySize: 412,
+      }),
+    ).toBe(
+      "Your site sent the file itself: it answered 200 OK with 412 bytes, while it answers 404 for the paths it doesn't have.",
+    );
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.ReachedApp,
+        statusCode: 206,
+        sensitiveFileAnswer: SensitiveFileAnswer.File,
+        responseBodySize: 1,
+      }),
+    ).toBe(
+      "Your site sent the file itself: it answered 206 with 1 byte, while it answers 404 for the paths it doesn't have.",
+    );
+  });
+
+  test("the site's own page: it doesn't have the file - never 'turned away' after a 200", () => {
+    const sentence: string = say({
+      outcome: SecurityEventRequestOutcome.Rejected,
+      statusCode: 200,
+      sensitiveFileAnswer: SensitiveFileAnswer.OwnPage,
+      responseBodySize: 1789,
+      responseContentType: "text/html",
+    });
+
+    expect(sentence).toBe(
+      "Your site doesn't have the file: it answered 200 OK with a page of its own, as it does for any path it doesn't have.",
+    );
+    expect(sentence).not.toContain("turned it away");
+  });
+
+  test("nothing sent", () => {
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.Rejected,
+        statusCode: 200,
+        sensitiveFileAnswer: SensitiveFileAnswer.Empty,
+        responseBodySize: 0,
+      }),
+    ).toBe("Your site sent nothing: it answered 200 OK with an empty body.");
+  });
+
+  test("a firewall event that cannot say what the origin sent", () => {
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.ReachedApp,
+        statusCode: 200,
+        sensitiveFileAnswer: SensitiveFileAnswer.Unconfirmed,
+      }),
+    ).toBe(
+      "OneUptime can't tell whether your site sent the file: it answered 200 OK, and the record says nothing of what it sent.",
+    );
+  });
+
+  test("a refusal reads as any request turned away", () => {
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.Rejected,
+        statusCode: 404,
+        sensitiveFileAnswer: SensitiveFileAnswer.Refused,
+      }),
+    ).toBe("The app turned it away: it answered 404 Not Found.");
+  });
+
+  test("a request that broke something says that, which says more", () => {
+    expect(
+      say({
+        outcome: SecurityEventRequestOutcome.Errored,
+        statusCode: 200,
+        exceptionType: "TypeError",
+        sensitiveFileAnswer: SensitiveFileAnswer.OwnPage,
+      }),
+    ).toBe("It broke something: the app answered 200 OK and threw TypeError.");
+  });
+
+  test("a fresh read of the trace never turns the site's own page into reaching the app, nor drops what was sent", () => {
+    for (const answer of [
+      SensitiveFileAnswer.OwnPage,
+      SensitiveFileAnswer.Empty,
+    ]) {
+      const merged: SecurityEventRequestFacts = mergeAssessment(
+        facts({
+          outcome: SecurityEventRequestOutcome.Rejected,
+          statusCode: 200,
+          sensitiveFileAnswer: answer,
+          responseBodySize: 1789,
+        }),
+        assessment({ outcome: SecurityEventRequestOutcome.ReachedApp }),
+      );
+
+      expect(merged.outcome).toBe(SecurityEventRequestOutcome.Rejected);
+      expect(merged.sensitiveFileAnswer).toBe(answer);
+      expect(merged.responseBodySize).toBe(1789);
+    }
+
+    // ...but one that broke something does say so.
+    expect(
+      mergeAssessment(
+        facts({
+          outcome: SecurityEventRequestOutcome.Rejected,
+          sensitiveFileAnswer: SensitiveFileAnswer.OwnPage,
+        }),
+        assessment({ outcome: SecurityEventRequestOutcome.Errored }),
+      ).outcome,
+    ).toBe(SecurityEventRequestOutcome.Errored);
+
+    // The file itself, read again, reached the app.
+    expect(
+      mergeAssessment(
+        facts({
+          outcome: SecurityEventRequestOutcome.Rejected,
+          sensitiveFileAnswer: SensitiveFileAnswer.File,
+        }),
+        assessment({ outcome: SecurityEventRequestOutcome.ReachedApp }),
+      ).outcome,
+    ).toBe(SecurityEventRequestOutcome.ReachedApp);
+  });
+
+  test("each sentence is looked up whole, the type as written", () => {
+    const asked: Array<string> = [];
+    const recording: Translator = createTranslator(
+      (key: string): string | undefined => {
+        asked.push(key);
+        return key === SENSITIVE_FILE_SENT_AS
+          ? "Ihre Website hat die Datei selbst gesendet: {{status}} als {{type}}."
+          : undefined;
+      },
+      "de",
+    );
+
+    expect(
+      describeWhatHappenedNext({
+        facts: facts({
+          outcome: SecurityEventRequestOutcome.ReachedApp,
+          statusCode: 200,
+          sensitiveFileAnswer: SensitiveFileAnswer.File,
+          responseContentType: "text/plain",
+        }),
+        hasTrace: false,
+        translator: recording,
+      }),
+    ).toBe(
+      "Ihre Website hat die Datei selbst gesendet: 200 OK als text/plain.",
+    );
+    expect(asked).toContain(SENSITIVE_FILE_SENT_AS);
   });
 });

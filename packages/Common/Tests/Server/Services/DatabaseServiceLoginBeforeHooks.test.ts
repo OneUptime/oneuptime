@@ -676,7 +676,11 @@ describe("DatabaseService runs the login check before its hooks", () => {
               Permission.ProjectOwner,
             ]),
           }),
-        ).rejects.toThrow(new BadDataException("Delete not allowed"));
+        ).rejects.toThrow(
+          new BadDataException(
+            "Monitor records cannot be deleted: OneUptime keeps them.",
+          ),
+        );
 
         expect(hooks.onBeforeDelete).not.toHaveBeenCalled();
       },

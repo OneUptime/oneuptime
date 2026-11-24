@@ -728,7 +728,7 @@ describe("the step's plan and permissions still decide", () => {
 
     expect(error).toBeInstanceOf(PaymentRequiredException);
     expect((error as Error).message).toContain(
-      "Please upgrade your plan to Growth",
+      "This feature needs the Growth plan",
     );
     expect(templateFind).not.toHaveBeenCalled();
     expect(counter).not.toHaveBeenCalled();
@@ -1024,7 +1024,7 @@ describe("the Create One Incident step's Incident Template setting", () => {
     expect(step.result.executePort?.id).toBe("error");
     expect(refusals(step.lines)).toEqual([
       expect.stringContaining(
-        "because of this project's plan: Please upgrade your plan to Growth",
+        "because of this project's plan: This feature needs the Growth plan",
       ),
     ]);
     expect(inserted).toBeUndefined();

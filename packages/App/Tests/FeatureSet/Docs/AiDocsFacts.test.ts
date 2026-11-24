@@ -243,7 +243,7 @@ describe("Ask AI", () => {
   });
 
   /*
-   * Products → AI → Chat, and a conversation's own address, open the panel
+   * Products → AI → Ask AI, and a conversation's own address, open the panel
    * beside the page the person was on (Pages/AICopilot passes the browser
    * back to it), not a second, full-page design.
    */
@@ -253,7 +253,7 @@ describe("Ask AI", () => {
     const address: string = dashboardSource("Pages/AICopilot/AICopilot.tsx");
 
     expect(flat(items)).toContain(
-      'title: t("navbar.items.aiChatTitle", "Chat")',
+      'title: t("navbar.items.aiChatTitle", "Ask AI")',
     );
     expect(items).toContain('t("navbar.categories.ai", "AI")');
     expect(routes).toContain(
@@ -262,7 +262,7 @@ describe("Ask AI", () => {
     expect(address).toContain("openAskAi({");
     expect(address).toContain("Navigation.goBack();");
     expect(rowStartingWith(open, "The products menu")[1]).toContain(
-      `Open ${bold("Products → AI → Chat")}. Ask AI opens beside the page you were on. Each conversation has its own address`,
+      `Open ${bold("Products → AI → Ask AI")}. Ask AI opens beside the page you were on. Each conversation has its own address`,
     );
   });
 

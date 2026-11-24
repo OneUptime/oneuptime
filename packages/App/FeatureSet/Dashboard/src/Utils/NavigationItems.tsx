@@ -499,12 +499,17 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: securityCategory,
       isCategoryTranslated: true,
     },
-    // AI
+    /*
+     * AI. Ask AI opens the Ask AI panel, as the header's button does: the
+     * menu said "Chat", so a person looked for a Chat page and found the
+     * panel over Home (#7474). Chat stays a keyword, and the glossary's
+     * "Also called".
+     */
     {
       key: ProductKey.AIChat,
-      title: t("navbar.items.aiChatTitle", "Chat"),
+      title: t("navbar.items.aiChatTitle", "Ask AI"),
       isTitleTranslated: true,
-      keywords: ["ai chat", "copilot", "assistant", "ask ai"],
+      keywords: ["chat", "ai chat", "copilot", "assistant", "ask ai"],
       description: t(
         "navbar.items.aiChatDescription",
         "Chat with AI — it answers from your logs, traces, metrics, incidents, alerts and monitors, and cites every query.",
@@ -519,11 +524,17 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: aiCategory,
       isCategoryTranslated: true,
     },
+    /*
+     * AI Insights, as its page and its trail name it: the menu said
+     * "Insights" over a page titled AI Insights (#7474). Insights stays a
+     * keyword, and the glossary's "Also called".
+     */
     {
       key: ProductKey.AIInsights,
-      title: t("navbar.items.sentinelInsightsTitle", "Insights"),
+      title: t("navbar.items.sentinelInsightsTitle", "AI Insights"),
       isTitleTranslated: true,
       keywords: [
+        "insights",
         "sentinel",
         "anomalies",
         "root cause analysis",

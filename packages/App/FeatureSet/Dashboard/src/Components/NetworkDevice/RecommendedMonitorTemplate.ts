@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -80,6 +81,8 @@ export async function findOrCreateRecommendedTemplate(data: {
       offlineMonitorStatusId: data.seedIds.offlineMonitorStatusId,
     }),
     modelType: MonitorTemplate,
+    // A name OneUptime picked: numbered, not refused, if it is taken.
+    miscDataProps: getNumbersTakenNameData(),
   });
 
   const createdTemplateId: ObjectID | undefined =

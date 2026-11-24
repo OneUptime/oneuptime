@@ -2,11 +2,13 @@ import DataSecurityIssueGrouper from "../../../../Server/Utils/DataSecurity/Data
 import DataSecurityIssueGroupFix, {
   CLOUD_FIX_REFUSED_MESSAGE,
   GROUP_FIX_CHANGED_MESSAGE,
+  GROUP_FIX_HELD_READER_MESSAGE,
   GROUP_FIX_NOTHING_TO_DO_MESSAGE,
   GROUP_NOT_FOUND_MESSAGE,
   GROUP_PULL_REQUEST_REFUSED_MESSAGE,
   getWhatTheFixBreaks,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityIssueGroupFix";
+import * as ResponseActionCatalog from "../../../../Types/DataSecurity/DataSecurityResponseAction";
 import DataSecurityIssueGroups from "../../../../Server/Utils/DataSecurity/DataSecurityIssueGroups";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { readDataSecurityIssueAnalysis } from "../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
@@ -399,7 +401,7 @@ describe("who may make each part", () => {
     ]);
   });
 
-  test("a permission held on some labels only reads no group, and makes no part", async () => {
+  test("a permission held on labels none of the group's stores carry reads no group, and makes no part (#10739)", async () => {
     setUp();
     mixedGroup();
 
@@ -411,6 +413,7 @@ describe("who may make each part", () => {
     );
 
     expect(DataSecurityIssueGroups.canRead(labelled)).toBe(false);
+    expect(DataSecurityIssueGroups.canReadAny(labelled)).toBe(true);
     expect(
       (
         await DataSecurityIssueGroups.list({
@@ -419,14 +422,64 @@ describe("who may make each part", () => {
         })
       ).groups,
     ).toEqual([]);
+    // Not found, as a group that does not exist: nothing says it is there.
+    await expect(planFor(group, labelled)).rejects.toThrow(
+      GROUP_NOT_FOUND_MESSAGE,
+    );
+    await expect(
+      DataSecurityIssueGroupFix.run({
+        projectId: new ObjectID(world.projectId),
+        groupId: group.id,
+        props: labelled,
+      }),
+    ).rejects.toThrow(GROUP_FIX_HELD_READER_MESSAGE);
+    expect(calls.queued).toHaveLength(0);
+    expect(calls.responses).toHaveLength(0);
+  });
 
-    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(
+  test("a permission held on the labels of all of a group's stores reads it whole, and asks for no part (#10739)", async () => {
+    setUp();
+
+    const label: string = makeId();
+
+    mixedGroup();
+    for (const store of world.stores) {
+      store.labelIds = [label];
+    }
+
+    const group: WorldGroup = await groupOne();
+    // Who may change issues and stores everywhere, but read issues of one label only.
+    const held: DatabaseCommonInteractionProps = personWith(world.projectId, [
+      Permission.EditDataSecurityIssue,
+      Permission.EditDataStore,
+    ]);
+
+    held.userTenantAccessPermission![world.projectId]!.permissions.push({
+      _type: "UserPermission",
+      permission: Permission.ReadDataSecurityIssue,
+      labelIds: [new ObjectID(label)],
+      isBlockPermission: false,
+    });
+
+    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(group, held);
+    const whole: DataSecurityIssueGroupFixPlanJSON = await planFor(
       group,
-      labelled,
+      admin(),
     );
 
-    expect(plan.pullRequest?.refusal).toBe(GROUP_PULL_REQUEST_REFUSED_MESSAGE);
-    expect(plan.cloud?.refusal).toBe(CLOUD_FIX_REFUSED_MESSAGE);
+    // Every store theirs: the plan the whole project reads...
+    expect(plan.planFingerprint).toBe(whole.planFingerprint);
+    // ...each part asked for by a reader of the whole project.
+    expect(plan.pullRequest?.refusal).toBe(GROUP_FIX_HELD_READER_MESSAGE);
+    expect(plan.cloud?.refusal).toBe(GROUP_FIX_HELD_READER_MESSAGE);
+    await expect(
+      DataSecurityIssueGroupFix.run({
+        projectId: new ObjectID(world.projectId),
+        groupId: group.id,
+        props: held,
+      }),
+    ).rejects.toThrow(GROUP_FIX_HELD_READER_MESSAGE);
+    expect(calls.queued).toHaveLength(0);
   });
 
   test("the pull request is refused while the server has Code switched off, or its gate says why", async () => {
@@ -524,5 +577,339 @@ describe("what the fix would break", () => {
       [],
     );
     expect(getWhatTheFixBreaks(null)).toEqual([]);
+  });
+});
+
+describe("the one approval, kind by kind (#10742)", () => {
+  const VERSIONING: DataSecurityResponseAction =
+    DataSecurityResponseAction.TurnOnVersioning;
+  const RECOVERY: DataSecurityResponseAction =
+    DataSecurityResponseAction.TurnOnPointInTimeRecovery;
+
+  /*
+   * A check two kinds of store of one cloud both fail, each fixed by an
+   * action of its own: OneUptime's catalog has none such today, so the
+   * catalog is read as a future one that does - an S3 bucket turns on
+   * versioning, a DynamoDB table point-in-time recovery.
+   */
+  function catalogOfTwoKinds(): void {
+    jest
+      .spyOn(ResponseActionCatalog, "getDataSecurityResponseActionForIssue")
+      .mockImplementation(
+        (
+          checkId: string | undefined,
+          kind: string | undefined,
+        ): DataSecurityResponseAction | undefined => {
+          if (checkId !== "deleted-data-not-recoverable") {
+            return undefined;
+          }
+
+          return kind === "AWS DynamoDB Table"
+            ? RECOVERY
+            : kind === "AWS S3 Bucket"
+              ? VERSIONING
+              : undefined;
+        },
+      );
+  }
+
+  // Stores of one component, made in its console: S3 buckets and DynamoDB tables.
+  function componentStores(
+    buckets: number,
+    tables: number,
+  ): Array<{ store: WorldStore; issue: WorldIssue }> {
+    const made: Array<{ store: WorldStore; issue: WorldIssue }> = [];
+
+    for (let index: number = 1; index <= buckets + tables; index++) {
+      made.push(
+        bucket(
+          index <= buckets ? `orders-bucket-${index}` : `orders-table-${index}`,
+          {
+            kind: index <= buckets ? "AWS S3 Bucket" : "AWS DynamoDB Table",
+            cloudTags: { component: "orders" },
+          },
+          { checkId: "deleted-data-not-recoverable", severity: "Medium" },
+        ),
+      );
+    }
+
+    return made;
+  }
+
+  test("each kind of store takes its own action: one approval, listed kind by kind", async () => {
+    setUp();
+    catalogOfTwoKinds();
+    componentStores(3, 2);
+
+    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(
+      await groupOne(),
+      admin(),
+    );
+
+    expect(plan.cloud?.action).toBe(VERSIONING);
+    expect(
+      plan.cloud?.actions.map((entry: { action: string; kind: string }) => {
+        return [entry.action, entry.kind];
+      }),
+    ).toEqual([
+      [VERSIONING, "AWS S3 Bucket"],
+      [RECOVERY, "AWS DynamoDB Table"],
+    ]);
+    expect(plan.cloud?.actions[0]!.stores).toHaveLength(3);
+    expect(plan.cloud?.actions[1]!.stores).toHaveLength(2);
+    expect(plan.cloud?.stores).toHaveLength(5);
+    // No kind is left out as one Data Security cannot change.
+    expect(plan.leftOut).toEqual([]);
+
+    for (const store of plan.cloud?.stores || []) {
+      expect(store.action).toBe(
+        store.kind === "AWS DynamoDB Table" ? RECOVERY : VERSIONING,
+      );
+    }
+  });
+
+  test("one press runs each store's own action, and counts each action on its own", async () => {
+    setUp();
+    catalogOfTwoKinds();
+
+    const made: Array<{ store: WorldStore; issue: WorldIssue }> =
+      componentStores(2, 2);
+    const group: WorldGroup = await groupOne();
+    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(
+      group,
+      admin(),
+    );
+    const result: DataSecurityIssueGroupFixResultJSON =
+      await DataSecurityIssueGroupFix.run({
+        projectId: new ObjectID(world.projectId),
+        groupId: group.id,
+        props: admin(),
+        expectedPlanFingerprint: plan.planFingerprint,
+      });
+
+    expect(
+      calls.responses
+        .map((response: { dataStoreId: string; action: string }) => {
+          return `${response.dataStoreId}:${response.action}`;
+        })
+        .sort(),
+    ).toEqual(
+      made
+        .map((entry: { store: WorldStore }) => {
+          return `${entry.store.id}:${entry.store.kind === "AWS DynamoDB Table" ? RECOVERY : VERSIONING}`;
+        })
+        .sort(),
+    );
+    expect(result.cloud?.changed).toBe(4);
+    expect(
+      [...(result.cloud?.actions || [])].sort(
+        (left: { action: string }, right: { action: string }) => {
+          return left.action.localeCompare(right.action);
+        },
+      ),
+    ).toEqual([
+      { action: RECOVERY, changed: 2, unchanged: 0, failed: 0 },
+      { action: VERSIONING, changed: 2, unchanged: 0, failed: 0 },
+    ]);
+    // The issues whose store changed: what proves the fix (#10738).
+    expect([...(result.cloud?.changedIssueIds || [])].sort()).toEqual(
+      made
+        .map((entry: { issue: WorldIssue }) => {
+          return entry.issue.id;
+        })
+        .sort(),
+    );
+  });
+
+  test("a store already as it should be, or that fails, is counted by its own action, and proves nothing", async () => {
+    world = new IssueGroupsWorld();
+    world.install();
+
+    const made: Array<{ store: WorldStore; issue: WorldIssue }> =
+      componentStores(2, 2);
+
+    calls = installGroupFixStubs({
+      connections: [{ id: ON }],
+      unchangedStoreIds: [made[0]!.store.id],
+      failingStoreIds: [made[3]!.store.id],
+    });
+    catalogOfTwoKinds();
+
+    const group: WorldGroup = await groupOne();
+    const result: DataSecurityIssueGroupFixResultJSON =
+      await DataSecurityIssueGroupFix.run({
+        projectId: new ObjectID(world.projectId),
+        groupId: group.id,
+        props: admin(),
+      });
+    const byAction: Map<
+      string,
+      { changed: number; unchanged: number; failed: number }
+    > = new Map(
+      (result.cloud?.actions || []).map(
+        (outcome: {
+          action: string;
+          changed: number;
+          unchanged: number;
+          failed: number;
+        }): [
+          string,
+          { changed: number; unchanged: number; failed: number },
+        ] => {
+          return [outcome.action, outcome];
+        },
+      ),
+    );
+
+    expect(byAction.get(VERSIONING)).toEqual(
+      expect.objectContaining({ changed: 1, unchanged: 1, failed: 0 }),
+    );
+    expect(byAction.get(RECOVERY)).toEqual(
+      expect.objectContaining({ changed: 1, unchanged: 0, failed: 1 }),
+    );
+    expect(result.cloud?.failed).toEqual([
+      expect.objectContaining({ dataStoreId: made[3]!.store.id }),
+    ]);
+    expect([...(result.cloud?.changedIssueIds || [])].sort()).toEqual(
+      [made[1]!.issue.id, made[2]!.issue.id].sort(),
+    );
+  });
+
+  test("a store the fix would break carries its own action, and runs it once ticked in", async () => {
+    setUp();
+    catalogOfTwoKinds();
+
+    const made: Array<{ store: WorldStore; issue: WorldIssue }> =
+      componentStores(2, 2);
+
+    made[3]!.issue.aiAnalysis = analysisThatBreaks("role/orders-reader");
+
+    const group: WorldGroup = await groupOne();
+    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(
+      group,
+      admin(),
+    );
+
+    expect(plan.leftOut).toEqual([
+      expect.objectContaining({
+        dataStoreId: made[3]!.store.id,
+        reason: DataSecurityIssueGroupLeftOutReason.FixWouldBreak,
+        canInclude: true,
+        action: RECOVERY,
+      }),
+    ]);
+
+    await DataSecurityIssueGroupFix.run({
+      projectId: new ObjectID(world.projectId),
+      groupId: group.id,
+      props: admin(),
+      includeDataStoreIds: [made[3]!.store.id],
+      expectedPlanFingerprint: plan.planFingerprint,
+    });
+
+    expect(calls.responses).toContainEqual({
+      dataStoreId: made[3]!.store.id,
+      action: RECOVERY,
+    });
+    expect(calls.responses).toHaveLength(4);
+  });
+
+  test("an approved proposal changes a store only with the action it listed for it", async () => {
+    setUp();
+    catalogOfTwoKinds();
+
+    const made: Array<{ store: WorldStore; issue: WorldIssue }> =
+      componentStores(1, 1);
+    const group: WorldGroup = await groupOne();
+
+    await DataSecurityIssueGroupFix.run({
+      projectId: new ObjectID(world.projectId),
+      groupId: group.id,
+      props: admin(),
+      parts: [DataSecurityIssueGroupFixPart.Cloud],
+      onlyDataStoreIds: [made[0]!.store.id, made[1]!.store.id],
+      // The table was approved for versioning: it takes another action now.
+      onlyStoreActions: {
+        [made[0]!.store.id.toUpperCase()]: VERSIONING,
+        [made[1]!.store.id]: VERSIONING,
+      },
+    });
+
+    expect(calls.responses).toEqual([
+      { dataStoreId: made[0]!.store.id, action: VERSIONING },
+    ]);
+  });
+
+  test("with today's catalog, a kind that takes no action for the check stays left out, and says why", async () => {
+    setUp();
+    componentStores(2, 1);
+
+    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(
+      await groupOne(),
+      admin(),
+    );
+
+    expect(plan.cloud?.actions).toEqual([
+      expect.objectContaining({
+        action: VERSIONING,
+        kind: "AWS S3 Bucket",
+      }),
+    ]);
+    expect(plan.leftOut).toEqual([
+      expect.objectContaining({
+        kind: "AWS DynamoDB Table",
+        reason: DataSecurityIssueGroupLeftOutReason.NothingToRun,
+      }),
+    ]);
+    expect(plan.leftOut[0]!.action).toBeUndefined();
+  });
+
+  test("one action on two kinds - a snapshot and a database - runs on both, listed as two", async () => {
+    setUp();
+    bucket(
+      "orders-db",
+      { kind: "AWS RDS Instance", cloudTags: { component: "orders" } },
+      { checkId: "snapshot-public" },
+    );
+    bucket(
+      "orders-db-nightly",
+      { kind: "AWS RDS Snapshot", cloudTags: { component: "orders" } },
+      { checkId: "snapshot-public" },
+    );
+    bucket(
+      "orders-db-weekly",
+      { kind: "AWS RDS Snapshot", cloudTags: { component: "orders" } },
+      { checkId: "snapshot-public" },
+    );
+
+    const group: WorldGroup = await groupOne();
+    const plan: DataSecurityIssueGroupFixPlanJSON = await planFor(
+      group,
+      admin(),
+    );
+
+    expect(
+      plan.cloud?.actions.map((entry: { action: string; kind: string }) => {
+        return [entry.action, entry.kind];
+      }),
+    ).toEqual([
+      [DataSecurityResponseAction.RevokeSharing, "AWS RDS Snapshot"],
+      [DataSecurityResponseAction.RevokeSharing, "AWS RDS Instance"],
+    ]);
+
+    await DataSecurityIssueGroupFix.run({
+      projectId: new ObjectID(world.projectId),
+      groupId: group.id,
+      props: admin(),
+    });
+
+    expect(calls.responses).toHaveLength(3);
+    expect(
+      new Set(
+        calls.responses.map((response: { action: string }) => {
+          return response.action;
+        }),
+      ),
+    ).toEqual(new Set([DataSecurityResponseAction.RevokeSharing]));
   });
 });

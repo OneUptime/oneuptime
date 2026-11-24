@@ -22,7 +22,7 @@ flowchart TB
     T["Din<br/>telemetri"] -->|"Discovered"| I["Inventarie: ett objekt<br/>per sak, med en<br/>stabil identitetsnyckel"]
     R["OneUptimes<br/>pollare"] -->|"Speglat var<br/>15:e minut"| I
     Y["Saker utan<br/>telemetri"] -->|"Tillagt av dig"| I
-    I --> L["All Items, topologi-<br/>kartan och objektsidorna"]
+    I --> L["All Items, Topologi<br/>och objektsidorna"]
     I --> X["Anpassade fält,<br/>CSV-exporten och API:t"]
 ```
 
@@ -63,7 +63,7 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 | **Översikt** | Hur många objekt du har, vad de är, hur många som har tystnat och vad som lades till senast. |
 | **Alla objekt** | Alla objekt. Sök på namn, beskrivning eller identitetsnyckel, avgränsa listan efter typ, källa, status eller anpassat fält, och lägg till ett objekt manuellt. |
 | **Hanterade enheter** | Dina MDM-anslutningar – Esper, Microsoft Intune, Workspace ONE UEM och SOTI MobiControl – och varje enhet som de importerar, med dess status, grupp, modell och operativsystem. |
-| **Topologikarta** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
+| **Topologi** | Hur objekten hänger ihop: tjänster, vad de anropar, och de värdar, poddar och enheter de körs på. |
 | **Tystnat** | De objekt som inget har hörts från på mer än ett dygn: upptäckta objekt som inte har skickat någon telemetri och enheter som har slutat checka in hos sin MDM. |
 | **Efter källa** | Objekten från en källa: **Upptäckt**, **Speglat** eller **Tillagt av dig**. |
 | **Inställningar → Anpassade fält** | De fält ditt projekt för på varje objekt. |
@@ -271,7 +271,7 @@ För att arkivera objekt markerar du dem i **Alla objekt** och arkiverar dem på
 
 ## Relationer och topologi
 
-OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topologikarta** ritar dem, och ett objekts sida **Anslutningar** listar dess egna. Se [Topologi](/docs/telemetry/topology).
+OneUptime kopplar ihop objekt med riktade relationer när det observerar dem. **Inventarie → Topologi** ritar dem, och ett objekts sida **Anslutningar** listar dess egna. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | Till exempel |
 | --- | --- |

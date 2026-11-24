@@ -71,6 +71,12 @@ const SCREEN_SINGULAR_NAMES: Readonly<Record<string, string>> = {
   "Scheduled Maintenance Event": "Maintenance Event",
   "Scheduled Event Internal Note": "Maintenance Event Internal Note",
   "Scheduled Event Public Note": "Maintenance Event Public Note",
+  // #7474: Docker Swarm, in two words, as its products menu and pages say it.
+  "DockerSwarm Cluster": "Docker Swarm Cluster",
+  "DockerSwarm Cluster User Owner": "Docker Swarm Cluster User Owner",
+  "DockerSwarm Cluster Team Owner": "Docker Swarm Cluster Team Owner",
+  "DockerSwarm Cluster Label Rule": "Docker Swarm Cluster Label Rule",
+  "DockerSwarm Cluster Owner Rule": "Docker Swarm Cluster Owner Rule",
 };
 
 // The kept singular names this table knows, for its test.

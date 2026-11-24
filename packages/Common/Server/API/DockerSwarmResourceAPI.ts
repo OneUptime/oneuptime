@@ -95,7 +95,7 @@ export default class DockerSwarmResourceAPI extends BaseAPI<
       });
 
     if (!cluster || !cluster.projectId) {
-      throw new NotFoundException("DockerSwarm Cluster not found");
+      throw new NotFoundException("Docker Swarm Cluster not found");
     }
 
     return {

@@ -2,8 +2,8 @@
   "Company name associated with this license.": "Firmanavn, der er knyttet til denne licens.",
   "Annual contract value (in USD) for this license.": "Årlig kontraktværdi (i USD) for denne licens.",
   "Expiration date of this license.": "Udløbsdato for denne licens.",
-  "Something went wrong": "Noget gik galt",
-  "An unexpected error has occurred. Please reload the page to continue": "Der opstod en uventet fejl. Genindlæs siden for at fortsætte",
+  "This page stopped working": "Denne side holdt op med at virke",
+  "Part of this page ran into a problem. Reload the page to continue.": "En del af denne side stødte på et problem. Genindlæs siden for at fortsætte.",
   "Error details": "Fejldetaljer",
   "Still stuck?": "Sidder du stadig fast?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Hent en lokal diagnosefil med fejlstakken, komponentstakken, den rensede side-URL, browseroplysninger og OneUptime-buildet. Den læser aldrig cookies, gemte browserdata eller formularindhold. Gennemgå den, før du deler den med OneUptime Support.",
@@ -497,7 +497,7 @@
       "title": "Log ud"
     },
     "sendEmail": {
-      "title": "Send meddelelses-e-mail",
+      "title": "Send e-mail",
       "testCardTitle": "Send test-e-mail",
       "testCardDescription": "Send en test-meddelelses-e-mail til en enkelt e-mailadresse for at se et eksempel, før du sender til alle brugere.",
       "allCardTitle": "Send e-mail til alle brugere",
@@ -514,7 +514,7 @@
       "confirmButton": "Ja, send til alle brugere"
     },
     "moreEmail": {
-      "title": "Send meddelelses-e-mail",
+      "title": "Send e-mail",
       "cardTitle": "Send meddelelses-e-mail",
       "cardDescription": "Skriv en meddelelses-e-mail, der skal sendes til alle registrerede brugere. Du kan sende en test-e-mail først for at se et eksempel.",
       "sendTestButton": "Send test-e-mail",
@@ -536,7 +536,7 @@
       "confirmButton": "Ja, send til alle brugere"
     },
     "settings": {
-      "title": "Admin-indstillinger",
+      "title": "Indstillinger",
       "authentication": {
         "signUpCardTitle": "Tilmelding",
         "signUpCardDescription": "Hvem der kan oprette en konto på denne server.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "Sender en testanmodning til kanalen.",
   "Custom Channel": "Brugerdefineret kanal",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "Alles vagtregler, der bruger denne kanal, slettes sammen med den. Slå i stedet kanalen fra for at stoppe afsendelsen uden at ændre nogens regler.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Du har ikke tilstrækkelige tilladelser til at angive {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Du har ikke tilstrækkelige tilladelser til at redigere {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Du har ikke tilstrækkelige tilladelser til at angive {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Du har ikke tilstrækkelige tilladelser til at redigere {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}.",
   "Push Notifications": "Push-notifikationer",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} sprunget over",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "Er du sikker på, at du vil udføre \"{{action}}\" for {{count}} {{itemName}}?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Giv workerne mere hukommelse og CPU, og led i appens log efter job, der bliver ved med at fejle.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Denne server kører OneUptime {{current}}. {{latest}} er udkommet.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Tag en backup, og opdater så: npm run update på Docker Compose, helm upgrade på Kubernetes.",
-  "Finish it on the Server setup page.": "Gør det færdigt på siden Serveropsætning.",
+  "Finish it on the Server Setup page.": "Gør det færdigt på siden Serveropsætning.",
   "Products on this server": "Produkter på denne server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Vælg, hvad hvert projekt på denne server tilbyder. Et produkt, der er slået fra, forsvinder fra hvert projekts menu, Hjem og Søg, og dets sider oplyser, at det er slået fra.",
   "Start from": "Start med",
