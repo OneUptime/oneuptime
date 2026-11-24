@@ -59,7 +59,7 @@ const ALLOWED: ReadonlyArray<Allowed> = [
   {
     file: "Pages/AppPlatforms/View/Overview.tsx",
     count: 1,
-    why: "Still to move: an App Platform's section titles were being reworked by another change when #8044 landed (follow-up issue).",
+    why: "Still to move (#10922): an App Platform's section titles were being reworked by another change when #8044 landed.",
   },
 ];
 
