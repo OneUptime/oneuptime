@@ -964,10 +964,35 @@ what was further down.
   picker for "feed" finds every one, and a refusal names the same thing the permission does. They
   read "Scheduled Maintenance Log" until #8451. Enforced by
   [FeedPermissionTitles](../../packages/Common/Tests/Types/FeedPermissionTitles.test.ts).
-- **At most three words on a page are marked as defined terms, each the first time it is met.** A
-  `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
-  Enforced by
-  [GlossaryTermsPerPage](../../packages/App/Tests/Dashboard/GlossaryTermsPerPage.test.ts).
+- **A word gets a definition where a newcomer first meets it: once a page, three words at most.** A
+  defined term (`DefinedTerm`) draws the word with a dotted line and shows its Glossary entry on
+  hover, focus or tap. A word earns one when it is OneUptime's own, has an entry in the
+  [Glossary](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md), and people
+  starting a core job trip on it: "Criteria", "Probe", "Monitor status", "Subscriber", never
+  "Email" or "Settings". Mark it where the page first uses it - a field's title (`glossaryTerm`),
+  a card's or a list's title (`titleGlossaryTerm`), a line of help - and never in a sentence that
+  already says what it means: the Notification Methods page marks nothing, because its first line
+  says what a method is. A page full of dotted lines is worse than none, so a word is marked once
+  a page and a page marks three words at most. The page counts what it draws (`GlossaryMarks`):
+  two components that each marked "Probe" marked it twice (#7020), so a later word of a term, or
+  a fourth term, is drawn as plain words, and a dialog or a side panel is a page of its own. The
+  definition is the Glossary's, in the reader's language, a sentence or two (three at most); a
+  word with no entry gets one first, in every docs language (#6819 did so for Layer). Which
+  definitions people open is counted where product analytics is set up
+  ([`glossary/definition_opened`](../analytics/activation.md), #7019), so a word that still
+  confuses people shows. Enforced by
+  [GlossaryTermsPerPage](../../packages/App/Tests/Dashboard/GlossaryTermsPerPage.test.ts) and
+  [GlossaryMarksPerPageGuard](../../packages/Common/Tests/UI/Components/Glossary/GlossaryMarksPerPageGuard.test.tsx).
+- **A defined word is never inside a button, a link or a tab, and its definition is never drawn
+  inside a heading, a header cell, a button, a link or a tab.** The word is a button of its own,
+  and a control cannot hold another: a screen reader never reaches the word, and the tab or the
+  link around it never hears its press. A facet's defined title sits beside its fold button, not
+  in it. The definition is a dialog named by its word: drawn inside an element named by its own
+  words, it made that name say the word twice while it showed - "Criteria Criteria" for a card's
+  heading (#7594) and a field's title for its field (#7561) - so it is drawn on the page's body
+  (`TooltipLayer`, #9863) and a heading or a header cell may hold the word. In a test, either
+  fails the test that drew it, naming the fix (`DefinedTermPlace`, #7618). Enforced by
+  [DefinedTermPlaceGuard](../../packages/Common/Tests/UI/Components/Glossary/DefinedTermPlaceGuard.test.tsx).
 - **A rule's words are its records' words.** A condition is "Incident Title", not "Incident Title
   Pattern", and a rule asks "All incidents" or "Only incidents that match conditions". Enforced by
   [RuleCriteriaNamesGuard](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaNamesGuard.test.ts)
@@ -1676,8 +1701,6 @@ in the section where it belongs:
 
 - **A guided setup's shape** (#6804 and the setups after it): under
   [A product's first page](#a-products-first-page).
-- **When a word gets a definition** (#6819): under [Names](#names), beside
-  [GlossaryTermsPerPage](../../packages/App/Tests/Dashboard/GlossaryTermsPerPage.test.ts).
 - **A new journey budget** (#6831): in the journeys' README, linked from
   [Journey budgets](#journey-budgets).
 
