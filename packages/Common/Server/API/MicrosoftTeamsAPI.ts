@@ -74,6 +74,9 @@ import MicrosoftTeamsSignInAuthorityUtil, {
   MicrosoftTeamsSignInAuthority,
 } from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
 import MicrosoftTeamsHosts from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHosts";
+import MicrosoftTeamsOrganization, {
+  MicrosoftTeamsOrganizationName,
+} from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsOrganization";
 import { MicrosoftTeamsCloudHosts } from "../../Types/Workspace/MicrosoftTeamsCloud";
 
 /*
@@ -96,8 +99,17 @@ const getUserSignInScopes: () => string = (): string => {
   ).join(" ");
 };
 
-// The admin-consent sign-in only needs an ID token, to learn the tenant.
-const ADMIN_CONSENT_SIGN_IN_SCOPES: string = "openid profile";
+/*
+ * The admin-consent sign-in: an ID token, which proves the tenant, and
+ * User.Read on this cloud's Graph, whose token reads the organization's
+ * name and domain for the settings page (MicrosoftTeamsOrganization).
+ * User.Read is one of the delegated permissions "sign in with Microsoft
+ * Teams" asks for, so the admin consent just granted covers it, and nobody
+ * is asked again. Authorize and token requests must agree.
+ */
+const getAdminConsentSignInScopes: () => string = (): string => {
+  return `openid profile ${MicrosoftTeamsHosts.getGraphScope("User.Read")}`;
+};
 
 export default class MicrosoftTeamsAPI {
   /*
@@ -595,7 +607,7 @@ export default class MicrosoftTeamsAPI {
     )}&response_type=code&redirect_uri=${encodeURIComponent(
       MicrosoftTeamsAPI.getAdminConsentRedirectUri(),
     )}&response_mode=query&scope=${encodeURIComponent(
-      ADMIN_CONSENT_SIGN_IN_SCOPES,
+      getAdminConsentSignInScopes(),
     )}&state=${encodeURIComponent(state)}&nonce=${encodeURIComponent(
       oidcNonce || "",
     )}`;
@@ -639,7 +651,7 @@ export default class MicrosoftTeamsAPI {
           client_id: credentials.clientId,
           client_secret: credentials.clientSecret,
           redirect_uri: MicrosoftTeamsAPI.getAdminConsentRedirectUri(),
-          scope: ADMIN_CONSENT_SIGN_IN_SCOPES,
+          scope: getAdminConsentSignInScopes(),
         },
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
@@ -656,6 +668,21 @@ export default class MicrosoftTeamsAPI {
       expectedTenantId: record.tenantId,
       expectedNonce: record.oidcNonce,
     });
+
+    /*
+     * The organization's name and domain, read with the admin's own token
+     * (not logged), so the settings page can say which organization the
+     * project is connected to. Best effort: null when Graph does not say.
+     */
+    const signInAccessToken: unknown = signInTokenResponse.data["access_token"];
+
+    const organization: MicrosoftTeamsOrganizationName | null =
+      typeof signInAccessToken === "string" && signInAccessToken
+        ? await MicrosoftTeamsOrganization.read({
+            accessToken: signInAccessToken,
+            tenantId: tenantId,
+          })
+        : null;
 
     // Fetch any existing project auth to merge
     const existingAuth: WorkspaceProjectAuthToken | null =
@@ -768,6 +795,16 @@ export default class MicrosoftTeamsAPI {
     const mergedMiscData: MicrosoftTeamsMiscData = {
       ...(existingAuth?.miscData as any),
       tenantId: tenantId,
+      /*
+       * Consent granted again for the same organization keeps the name it
+       * had when Graph does not say this time.
+       */
+      ...(organization
+        ? {
+            organizationName: organization.name,
+            organizationDomain: organization.domain,
+          }
+        : {}),
       adminConsentGranted: true,
       adminConsentGrantedAt: new Date().toISOString(),
       adminConsentGrantedBy: userId.toString(),
