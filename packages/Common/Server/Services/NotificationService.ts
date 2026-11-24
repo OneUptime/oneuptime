@@ -75,7 +75,11 @@ const smsOrCallRechargeGuard: BalanceRechargeGuard = new BalanceRechargeGuard({
   failureNamespace: SMS_OR_CALL_AUTO_RECHARGE_FAILED_NAMESPACE,
 });
 
-// A change to Auto Recharge that is not written yet (ProjectService).
+/*
+ * A change to Auto Recharge that is not written yet: somebody saving it
+ * (ProjectService). The card it tries is tried for them, and what fails is
+ * theirs, read where they saved it, as for a recharge by hand (#11090).
+ */
 export interface SmsOrCallAutoRechargeChange {
   enableAutoRechargeSmsOrCallBalance: boolean;
   autoRechargeSmsOrCallByBalanceInUSD?: number | undefined;
@@ -227,8 +231,11 @@ export class NotificationService extends BaseService {
    * After a failed charge it waits SMS_OR_CALL_AUTO_RECHARGE_RETRY_AFTER_IN
    * _SECONDS before trying the card again.
    *
-   * A charge that fails throws, after telling the owners (once a day); the
-   * senders log it and go on with the balance that is there.
+   * A charge that fails throws. Auto Recharge's own, when a message found
+   * the balance low, tells the owners first (once a day), and the senders
+   * log it and go on with the balance that is there. One somebody saving
+   * Auto Recharge made tells nobody else: they read why where they saved,
+   * and the save is refused (#11090).
    */
   @CaptureSpan()
   public async rechargeIfBalanceIsLow(
@@ -295,7 +302,17 @@ export class NotificationService extends BaseService {
         projectId,
         amountInUSD: this.getAutoRechargeSettings(project, change)
           .rechargeByInUSD,
-        isAutomatic: true,
+        /*
+         * Only a message that found the balance low is Auto Recharge's own
+         * try. Somebody saving Auto Recharge (`change`) tries the card
+         * themselves, and reads what failed in the dialog they saved from,
+         * while the refusal leaves Auto Recharge as it was - so the try is
+         * theirs, as a recharge by hand is (#11090): no owner is emailed
+         * about an Auto Recharge that was never turned on, the day's notice
+         * window is left to Auto Recharge's own failures, and Auto Recharge
+         * does not wait an hour for it.
+         */
+        isAutomatic: change === undefined,
         /*
          * This runs inline on SMS, call, WhatsApp and Telegram attempts, so
          * a success email here is one message to every owner per recharge,
@@ -348,18 +365,21 @@ export class NotificationService extends BaseService {
    *
    * Who hears of a charge that fails depends on who asked for it (#11052):
    *
-   * - Auto Recharge (isAutomatic): nobody pressed anything, so the owners
-   *   are emailed ACTION REQUIRED - once a day per project, failing open
-   *   when the shared cache is down (BillingFailureNoticeThrottle) - and
-   *   Auto Recharge waits before it tries the card again.
-   * - A recharge by hand: the person who pressed Add to Balance is told in
-   *   its dialog, by what this throws - a declined card in the payment
-   *   provider's words, with where to put the payment method right
-   *   (PaymentProviderRefusal). The owners are not emailed: every one of
-   *   them was told "We have tried to recharge your SMS and Call balance and
-   *   failed", as if OneUptime had tried on its own. Nor is the day's
-   *   notice window claimed, so a failure of Auto Recharge's own later that
-   *   day still reaches them.
+   * - Auto Recharge (isAutomatic), when a message found the balance low:
+   *   nobody pressed anything, so the owners are emailed ACTION REQUIRED -
+   *   once a day per project, failing open when the shared cache is down
+   *   (BillingFailureNoticeThrottle) - and Auto Recharge waits before it
+   *   tries the card again.
+   * - Somebody who asked - pressing Add to Balance, or saving Auto Recharge
+   *   while the balance is below its threshold (#11090): they are told in
+   *   the dialog they asked from, by what this throws - a declined card in
+   *   the payment provider's words, with where to put the payment method
+   *   right (PaymentProviderRefusal). The owners are not emailed: every one
+   *   of them was told "We have tried to recharge your SMS and Call balance
+   *   and failed", as if OneUptime had tried on its own - and, for a save,
+   *   about an Auto Recharge the refusal left off. Nor is the day's notice
+   *   window claimed, so a failure of Auto Recharge's own later that day
+   *   still reaches them, nor does Auto Recharge wait for it.
    */
   private async chargeAndCredit(data: {
     projectId: ObjectID;
@@ -500,9 +520,9 @@ export class NotificationService extends BaseService {
       } as LogAttributes);
 
       /*
-       * By hand, the dialog shows what this throws: a declined card in the
-       * payment provider's words, with where to put the payment method
-       * right, rather than a failure nobody explained.
+       * By hand, or saving Auto Recharge, the dialog shows what this throws:
+       * a declined card in the payment provider's words, with where to put
+       * the payment method right, rather than a failure nobody explained.
        */
       throw data.isAutomatic ? err : toPaymentRefusalForWhoAsked(err);
     }
@@ -573,8 +593,9 @@ export class NotificationService extends BaseService {
   /*
    * Tells the project's owners that Auto Recharge could not charge the
    * balance, with what to put right (`body`) - at most once a day per
-   * project. Only Auto Recharge asks: a recharge by hand is told to the
-   * person who asked, in its dialog (#11052).
+   * project. Only Auto Recharge asks: a recharge by hand (#11052), or the
+   * one saving Auto Recharge makes (#11090), is told to the person who
+   * asked, in their dialog.
    *
    * This used to write failedCallAndSMSBalanceChargeNotificationSentToOwners
    * and then send WITHOUT ever reading it, so a project with a declined card
