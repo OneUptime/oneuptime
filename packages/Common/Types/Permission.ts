@@ -2943,13 +2943,6 @@ export const PRODUCT_LEVEL_PERMISSIONS: ReadonlyArray<ProductLevelPermissions> =
       viewer: Permission.ProxmoxViewer,
     },
     {
-      product: ProductKey.XcpNg,
-      roleName: "XCP-ng",
-      admin: Permission.XcpNgAdmin,
-      member: Permission.XcpNgMember,
-      viewer: Permission.XcpNgViewer,
-    },
-    {
       product: ProductKey.OpenStack,
       roleName: "OpenStack",
       admin: Permission.OpenStackAdmin,
@@ -2962,6 +2955,13 @@ export const PRODUCT_LEVEL_PERMISSIONS: ReadonlyArray<ProductLevelPermissions> =
       admin: Permission.VMwareAdmin,
       member: Permission.VMwareMember,
       viewer: Permission.VMwareViewer,
+    },
+    {
+      product: ProductKey.XcpNg,
+      roleName: "XCP-ng",
+      admin: Permission.XcpNgAdmin,
+      member: Permission.XcpNgMember,
+      viewer: Permission.XcpNgViewer,
     },
     {
       product: ProductKey.Ceph,
