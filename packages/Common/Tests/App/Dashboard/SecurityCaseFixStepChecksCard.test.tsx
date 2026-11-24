@@ -76,7 +76,9 @@ jest.mock(
 
 import SecurityCaseResponsePlanCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
 import { SECURITY_CASE_RESPONSE_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
-import { writeCheckTime } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseChecks";
+import { writeCheckMoment } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseChecks";
+import { createTranslator } from "../../../Types/Translator";
+import { MomentRole, wordMoment } from "../../../Utils/MomentPhrases";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseStepCheck from "../../../Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
@@ -182,7 +184,24 @@ async function openHowWeKnow(step: HTMLElement): Promise<HTMLElement> {
 
 // A moment of the evidence as the card writes it, on the reader's clock.
 function at(time: string): string {
-  return writeCheckTime(new Date(time));
+  return phrase(MomentRole.At, time);
+}
+
+// Until a moment, as the card words it.
+function until(time: string): string {
+  return phrase(MomentRole.Until, time);
+}
+
+/*
+ * A moment brings its own words (#10622): "at 20:40" today, "on 17 Nov at
+ * 20:40" on another day, on the reader's clock.
+ */
+function phrase(role: MomentRole, time: string): string {
+  return wordMoment({
+    role,
+    moment: writeCheckMoment(new Date(time)),
+    translator: createTranslator(undefined),
+  });
 }
 
 beforeEach(() => {
@@ -264,7 +283,7 @@ describe("the route's fix, in each state", () => {
     // "Since v2.4.1 shipped at 14:10, all 18 attack requests to /api/search were turned away."
     expect(
       within(step).getByText(
-        `Since v2.4.1 shipped at ${at(FIX_SHIPPED_AT)}, all 18 attack requests to ${FIX_ROUTE} were turned away.`,
+        `Since v2.4.1 shipped ${at(FIX_SHIPPED_AT)}, all 18 attack requests to ${FIX_ROUTE} were turned away.`,
       ),
     ).toBeInTheDocument();
 
@@ -298,7 +317,7 @@ describe("the route's fix, in each state", () => {
     ).toHaveTextContent("Looks Done");
     expect(
       within(step).getByText(
-        `No attempts on ${FIX_ROUTE} since v2.4.1 shipped at ${at(FIX_SHIPPED_AT)}.`,
+        `No attempts on ${FIX_ROUTE} since v2.4.1 shipped ${at(FIX_SHIPPED_AT)}.`,
       ),
     ).toBeInTheDocument();
     expect(step).not.toHaveTextContent(/verified|Checked by OneUptime/);
@@ -307,7 +326,7 @@ describe("the route's fix, in each state", () => {
 
     // How much evidence counts as proof, said where it is used.
     expect(panel).toHaveTextContent(
-      `Watching ${FIX_ROUTE} until ${at("2026-11-24T20:00:00.000Z")}: verified once 11 attack requests are kept out of the database.`,
+      `Watching ${FIX_ROUTE} ${until("2026-11-24T20:00:00.000Z")}: verified once 11 attack requests are kept out of the database.`,
     );
     expect(
       within(step).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.confirm),
@@ -325,7 +344,7 @@ describe("the route's fix, in each state", () => {
     ).toHaveTextContent("Not Done Yet");
     expect(
       within(step).getByText(
-        `3 of the 5 attack requests to ${FIX_ROUTE} since v2.4.1 shipped at ${at(FIX_SHIPPED_AT)} reached the database.`,
+        `3 of the 5 attack requests to ${FIX_ROUTE} since v2.4.1 shipped ${at(FIX_SHIPPED_AT)} reached the database.`,
       ),
     ).toBeInTheDocument();
 
@@ -343,7 +362,7 @@ describe("the route's fix, in each state", () => {
     expect(
       screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.regressed),
     ).toHaveTextContent(
-      `An attack request to ${FIX_ROUTE} reached the database at ${at("2026-11-17T20:40:00.000Z")}, after v2.4.1 shipped: the fix is not holding.`,
+      `An attack request to ${FIX_ROUTE} reached the database ${at("2026-11-17T20:40:00.000Z")}, after v2.4.1 shipped: the fix is not holding.`,
     );
     expect(
       within(stepOf(ROUTE_KEY)).getByTestId(
@@ -384,7 +403,7 @@ describe("the accounts' fixes", () => {
     ).toHaveTextContent("Checked by OneUptime");
     expect(
       within(stepOf("fix:credentials")).getByText(
-        `${FIX_USER}'s password was changed in Okta at ${at("2026-11-17T20:05:00.000Z")}, and their sessions were ended at ${at("2026-11-17T20:06:00.000Z")}.`,
+        `${FIX_USER}'s password was changed in Okta ${at("2026-11-17T20:05:00.000Z")}, and their sessions were ended ${at("2026-11-17T20:06:00.000Z")}.`,
       ),
     ).toBeInTheDocument();
 
