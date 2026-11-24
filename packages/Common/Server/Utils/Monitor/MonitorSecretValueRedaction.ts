@@ -496,6 +496,24 @@ export default class MonitorSecretValueRedaction {
     );
   }
 
+  /*
+   * Any value - a text, or the JSON of an object or an array, such as a
+   * log line's - with every value hidden wherever it stands in it: in each
+   * text, in each object's keys, and as a number or true/false that is one,
+   * as the monitored system's own data is read. A copy, made only where
+   * something changes: what holds no value is the very value it was.
+   */
+  public static redactAnyValue(
+    value: JSONValue,
+    values: HiddenSecretValues | null,
+  ): JSONValue {
+    if (!values) {
+      return value;
+    }
+
+    return MonitorSecretValueRedaction.redactValue(value, values, true, 0);
+  }
+
   // A script's run: its returned data read as a body is, the rest as text.
   private static redactScriptResponse(
     value: JSONValue,
