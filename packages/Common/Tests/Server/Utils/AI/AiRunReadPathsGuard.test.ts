@@ -148,8 +148,12 @@ const API_READERS: Record<string, Classification> = {
   "packages/Common/Server/API/CodeTaskAPI.ts": {
     kind: "asksTheRule",
     mustContain: [
-      // Code's first page and a repository's: their totals.
-      "CodeTaskStats.getRepositoryStats({ projectId, repositoryIds, reader: props, })",
+      /*
+       * Code's first page and a repository's: their totals - a page of the
+       * repositories, read for the reader (toRepositoryListItems, #10764).
+       */
+      "CodeTaskStats.getRepositoryStats({ projectId: data.projectId,",
+      "return repository.id!; }, ), reader: data.props, }),",
       "CodeTaskStats.countTasksWithoutRepository({ projectId, reader: props, })",
       "repositoryIds: [repositoryId], reader: props,",
       // A list: its SQL, and its own read.
