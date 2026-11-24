@@ -11,8 +11,11 @@ import {
 import CallVoiceSample from "Common/UI/Components/CallVoice/CallVoiceSample";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { translationKey } from "Common/Types/Translator";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  CALL_VOICE_CARD_COPY,
+  CALL_VOICE_CARD_TEST_ID,
+} from "./CallVoiceCardCopy";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -34,22 +37,6 @@ import React, { FunctionComponent, ReactElement } from "react";
  * set the account, and then the account's card is read-only. A project's
  * own Twilio config has a voice of its own.
  */
-
-export const CALL_VOICE_CARD_TEST_ID: string = "call-voice-card";
-
-export const CALL_VOICE_CARD_COPY: {
-  title: string;
-  description: string;
-  button: string;
-  fieldTitle: string;
-} = {
-  title: translationKey("Call Voice"),
-  description: translationKey(
-    "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.",
-  ),
-  button: translationKey("Choose Voice"),
-  fieldTitle: translationKey("Voice"),
-};
 
 export interface ComponentProps {
   // The voice was saved: the page reads again where SMS and calls stand.

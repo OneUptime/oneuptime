@@ -44,7 +44,9 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-Der Anruf nennt Ihr Projekt. Ein Anruf, der zu keinem Projekt gehört, etwa ein Verifizierungscode, nennt OneUptime oder den Namen, unter dem Ihre selbst gehostete Installation läuft. Ein Titel mit mehr als etwa 100 Zeichen wird nach einem ganzen Wort gekürzt, und OneUptime bewahrt den vollständigen Titel. Die Buchstaben einer Nummer wie `INC-42` werden einzeln gesprochen, damit die Stimme sie nie als Wort liest. Anrufe sind immer auf Englisch.
+Drücken Sie eine Taste, die der Anruf nicht angeboten hat, etwa 3, # oder *, sagt der Anruf „That key does nothing.“ und fragt erneut nach einer Taste. Das geschieht höchstens zweimal, so oft, wie er die Tasten nennt, wenn Sie keine drücken; danach beendet eine falsche Taste den Anruf, und der Alarm bleibt unbestätigt. Die Tasten 1 und 2 funktionieren wie bisher.
+
+Der Anruf nennt Ihr Projekt. Ein Anruf, der zu keinem Projekt gehört, etwa ein Verifizierungscode, nennt OneUptime oder den Namen, unter dem Ihre selbst gehostete Installation läuft. Ein Titel mit mehr als etwa 100 Zeichen wird nach einem ganzen Wort gekürzt, und OneUptime bewahrt den vollständigen Titel. Die Buchstaben einer Nummer wie `INC-42` werden einzeln gesprochen, damit die Stimme sie nie als Wort liest. Anrufe sind immer auf Englisch, mit der Stimme, die Ihr Twilio-Konto standardmäßig verwendet, es sei denn, ein Administrator wählt eine andere: siehe [Die Stimme, mit der Anrufe sprechen](/docs/self-hosted/twilio-integration#die-stimme-mit-der-anrufe-sprechen).
 
 ## Ein Ablauf für alles
 
