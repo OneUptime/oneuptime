@@ -16,6 +16,7 @@ import {
   SERVER_TEST_SEND_WORDS,
   ServerTestSendAnswer,
   ServerTestSendResult,
+  ServerTestSendSentence,
   toServerTestSendMessage,
 } from "../../../Types/ServerSetup/ServerTestSend";
 import {
@@ -109,18 +110,58 @@ describe("what an answer says", () => {
     );
   });
 
-  test("refused says what the provider said", () => {
-    const refused: { template: string; values: Record<string, string> } =
-      getServerTestSendSentence(
-        answer({
-          result: ServerTestSendResult.Refused,
-          message: "535 5.7.8 Username and Password not accepted",
-        }),
-      );
+  /*
+   * What did not happen and what to check, in OneUptime's words; the
+   * provider's own words are the details, which the dialog folds under
+   * Details (#7268). It read "smtp.example.com refused it: 535 ...".
+   */
+  test("refused says what did not happen and what to check, the provider's words apart as its details", () => {
+    const refused: ServerTestSendSentence = getServerTestSendSentence(
+      answer({
+        result: ServerTestSendResult.Refused,
+        message: "535 5.7.8 Username and Password not accepted",
+      }),
+    );
 
     expect(fillTemplate(refused.template, refused.values)).toBe(
-      "smtp.example.com refused it: 535 5.7.8 Username and Password not accepted",
+      "smtp.example.com did not take the test email to ada@example.com. Check the server's email settings, then send the test again.",
     );
+    expect(refused.details).toBe(
+      "535 5.7.8 Username and Password not accepted",
+    );
+  });
+
+  test("a refused SMS and a refused call each say what did not happen, with Twilio's words as their details", () => {
+    const words: string =
+      "The 'From' phone number +14155550100 is not a valid, SMS-capable inbound phone number.";
+
+    const sms: ServerTestSendSentence = getServerTestSendSentence(
+      answer({
+        channel: ServerSendingChannel.SMS,
+        to: "+14155550123",
+        sentThrough: "Twilio",
+        result: ServerTestSendResult.Refused,
+        message: words,
+      }),
+    );
+    const call: ServerTestSendSentence = getServerTestSendSentence(
+      answer({
+        channel: ServerSendingChannel.Call,
+        to: "+14155550123",
+        sentThrough: "Twilio",
+        result: ServerTestSendResult.Refused,
+        message: words,
+      }),
+    );
+
+    expect(fillTemplate(sms.template, sms.values)).toBe(
+      "Twilio did not take the test SMS to +14155550123. Check the server's call and SMS settings, then send the test again.",
+    );
+    expect(fillTemplate(call.template, call.values)).toBe(
+      "Twilio did not place the test call to +14155550123. Check the server's call and SMS settings, then send the test again.",
+    );
+    expect(sms.details).toBe(words);
+    expect(call.details).toBe(words);
   });
 
   test("not set up says nothing was sent, and what is missing", () => {
@@ -149,8 +190,10 @@ describe("what an answer says", () => {
       );
 
     expect(fillTemplate(refused.template, refused.values)).toBe(
-      "The provider refused it: No reason was given.",
+      "The provider did not take the test email to ada@example.com. Check the server's email settings, then send the test again.",
     );
+    // No words of the provider's: nothing to fold under Details.
+    expect(refused.details).toBeUndefined();
   });
 
   test("every sentence fills exactly the values it is handed", () => {

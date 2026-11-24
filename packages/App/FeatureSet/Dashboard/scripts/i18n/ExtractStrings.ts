@@ -453,6 +453,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Email/AmazonSesRoleWords.ts",
     kind: "keys",
   },
+  /*
+   * Why Send Test Email did not send (#7268): what happened and what to
+   * check, which the dialog says in the reader's language above the mail
+   * server's own answer, folded under Details. Only the words the file
+   * marks are read: the two halves each message is made of stay English.
+   */
+  {
+    directory: "packages/Common/Types/Email/SmtpTestFailure.ts",
+    kind: "keys",
+  },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*

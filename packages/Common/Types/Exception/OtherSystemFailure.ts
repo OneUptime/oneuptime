@@ -32,6 +32,20 @@ export interface OtherSystemFailure {
   details?: string | undefined;
 }
 
+/*
+ * OneUptime's words for one kind of failure, kept where they are written:
+ * the two sentences, and the message they make (getOtherSystemFailureMessage),
+ * written out whole and marked with translationKey() so the Dashboard's
+ * extractor makes it a key of its locales - the page says it in the reader's
+ * language. Each file of such words has a test that the message is the two
+ * sentences, word for word.
+ */
+export interface OtherSystemFailureWords {
+  whatHappened: string;
+  whatToDo: string;
+  message: string;
+}
+
 // The field of an error answer that carries the other system's own words.
 export const OTHER_SYSTEM_DETAILS_FIELD: string = "otherSystemDetails";
 

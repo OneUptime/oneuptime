@@ -18,6 +18,11 @@ import MailTransportType from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
+import OtherSystemFailureException from "Common/Types/Exception/OtherSystemFailureException";
+import { getErrorDetails } from "Common/Types/Exception/BadDataExceptionWithDetails";
+import { meetsErrorMessageRule } from "Common/Types/Exception/ErrorMessageRule";
+import { getOtherSystemFailureMessage } from "Common/Types/Exception/OtherSystemFailure";
+import { SMTP_TEST_FAILURES } from "Common/Types/Email/SmtpTestFailure";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import NotAuthenticatedException from "Common/Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
@@ -572,7 +577,28 @@ describe("POST /smtp-config/test", () => {
       );
     });
 
-    test("passes the provider's message through for Microsoft Graph", async () => {
+    /*
+     * What happened and what to check in OneUptime's words, the mail
+     * server's own answer beside them for the dialog's Details (#7268).
+     */
+    const expectFailure: (
+      result: RouteCallResult,
+      message: string,
+    ) => void = (result: RouteCallResult, message: string): void => {
+      const error: Exception = result.thrownToNext as Exception;
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error).toBeInstanceOf(OtherSystemFailureException);
+      expect(error.message).toBe(message);
+      expect(meetsErrorMessageRule(error.message)).toBe(true);
+      // The server's answer is not glued to the sentence: it is beside it.
+      expect(error.message).not.toContain("535");
+      expect(getErrorDetails(error)).toEqual({
+        otherSystemDetails: "535 Incorrect authentication data",
+      });
+    };
+
+    test("says Microsoft Graph did not take it, with Graph's answer under Details", async () => {
       toEmailServerSpy.mockReturnValue(
         buildEmailServer({
           configId: configId,
@@ -585,13 +611,7 @@ describe("POST /smtp-config/test", () => {
         toEmail: TO_EMAIL,
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-      expect((result.thrownToNext as Exception).message).toContain(
-        "Microsoft Graph send failed",
-      );
-      expect((result.thrownToNext as Exception).message).toContain(
-        "535 Incorrect authentication data",
-      );
+      expectFailure(result, SMTP_TEST_FAILURES.microsoftGraph.message);
     });
 
     test("explains the OAuth checklist for OAuth SMTP", async () => {
@@ -608,16 +628,10 @@ describe("POST /smtp-config/test", () => {
         toEmail: TO_EMAIL,
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-      expect((result.thrownToNext as Exception).message).toContain(
-        "OAuth authentication",
-      );
-      expect((result.thrownToNext as Exception).message).toContain(
-        "535 Incorrect authentication data",
-      );
+      expectFailure(result, SMTP_TEST_FAILURES.oauth.message);
     });
 
-    test("falls back to the SMTP checklist for username/password", async () => {
+    test("says the SMTP server did not take it, with the server's answer it kept to itself before", async () => {
       toEmailServerSpy.mockReturnValue(
         buildEmailServer({
           configId: configId,
@@ -631,10 +645,14 @@ describe("POST /smtp-config/test", () => {
         toEmail: TO_EMAIL,
       });
 
-      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-      expect((result.thrownToNext as Exception).message).toContain(
-        "Cannot send email",
-      );
+      expectFailure(result, SMTP_TEST_FAILURES.smtp.message);
+    });
+
+    test("each message is its two sentences, word for word, and names no Gmail", () => {
+      for (const words of Object.values(SMTP_TEST_FAILURES)) {
+        expect(getOtherSystemFailureMessage(words)).toBe(words.message);
+        expect(words.message).not.toContain("Gmail");
+      }
     });
 
     test("does not answer success", async () => {

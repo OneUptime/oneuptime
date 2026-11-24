@@ -9,6 +9,8 @@ import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import OtherSystemDetails from "Common/UI/Components/ErrorMessage/OtherSystemDetails";
+import { readOtherSystemDetails } from "Common/Types/Exception/OtherSystemFailure";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
@@ -108,6 +110,11 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [showSMTPTestModal, setShowSMTPTestModal] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * The mail server's own answer to a test it did not take, folded under
+   * Details beneath what happened (#7268).
+   */
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [currentSMTPTestConfig, setCurrentSMTPTestConfig] =
     useState<ProjectSmtpConfig | null>(null);
   const [isSMTPTestLoading, setIsSMTPTestLoading] = useState<boolean>(false);
@@ -119,6 +126,7 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     setError("");
+    setErrorDetails(null);
   }, [showSMTPTestModal]);
 
   return (
@@ -265,8 +273,21 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
         <BasicFormModal
           title={`Send Test Email`}
           description={`Send a test email through this config, to check it works.`}
+          /*
+           * What happened, at the top of the dialog, and the mail server's
+           * own answer folded under it, above the address to try again.
+           */
+          error={error || undefined}
+          beforeFormElement={
+            error && errorDetails ? (
+              <OtherSystemDetails
+                details={errorDetails}
+                className=""
+                dataTestId="smtp-test-details"
+              />
+            ) : undefined
+          }
           formProps={{
-            error: error,
             fields: [
               {
                 field: {
@@ -286,12 +307,14 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
           onClose={() => {
             setShowSMTPTestModal(false);
             setError("");
+            setErrorDetails(null);
           }}
           isLoading={isSMTPTestLoading}
           onSubmit={async (values: JSONObject) => {
             try {
               setIsSMTPTestLoading(true);
               setError("");
+              setErrorDetails(null);
 
               // test SMTP config
               const response:
@@ -337,6 +360,7 @@ const CustomSMTPTable: FunctionComponent<ComponentProps> = (
               }
             } catch (err) {
               setError(API.getFriendlyMessage(err));
+              setErrorDetails(readOtherSystemDetails(err));
               setIsSMTPTestLoading(false);
             }
           }}

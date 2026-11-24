@@ -18,7 +18,14 @@ export default class OtherSystemFailureException extends BadDataExceptionWithDet
   // The other system's words, as kept: none when it gave none.
   public readonly otherSystemDetails: string | undefined;
 
-  public constructor(failure: OtherSystemFailure) {
+  /*
+   * `details` may be what the other system threw or answered as it came -
+   * an Error, its text, an answer's body - and is kept as text
+   * (toOtherSystemDetails).
+   */
+  public constructor(
+    failure: Omit<OtherSystemFailure, "details"> & { details?: unknown },
+  ) {
     const message: string = getOtherSystemFailureMessage(failure);
     const details: string | undefined = toOtherSystemDetails(
       failure.details,

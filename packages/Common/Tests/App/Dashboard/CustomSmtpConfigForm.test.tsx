@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { SMTP_TEST_FAILURES } from "../../../Types/Email/SmtpTestFailure";
 import {
   afterEach,
   beforeEach,
@@ -1703,6 +1705,86 @@ describe("Send Test Email", () => {
       toEmail: SIGNED_IN_EMAIL,
       smtpConfigId: CONFIG_ID,
     });
+  });
+
+  /*
+   * A mail server that did not take the test: what happened and what to
+   * check at the top of the dialog, and the server's own answer folded
+   * under Details beneath it, a press away, as the server gave it (#7268).
+   */
+  test("a server that did not take it: OneUptime's words first, the server's answer folded under Details", async () => {
+    const answer: string =
+      "Invalid login: 535-5.7.8 Username and Password not accepted.";
+
+    getJestSpyOn(API, "post").mockImplementation(() => {
+      return Promise.resolve(
+        new HTTPErrorResponse(
+          400,
+          {
+            message: SMTP_TEST_FAILURES.smtp.message,
+            otherSystemDetails: answer,
+          },
+          {},
+        ),
+      );
+    });
+
+    await renderPage();
+
+    const config: ProjectSmtpConfig = new ProjectSmtpConfig();
+    config._id = CONFIG_ID;
+
+    await act(async (): Promise<void> => {
+      sendTestAction().onClick(
+        config,
+        () => {},
+        () => {},
+      );
+    });
+    await settle();
+
+    const testDialog: () => HTMLElement = (): HTMLElement => {
+      return screen
+        .getAllByTestId("modal")
+        .find((modal: HTMLElement): boolean => {
+          return (
+            within(modal).queryByRole("heading", {
+              name: "Send Test Email",
+            }) !== null
+          );
+        })!;
+    };
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(testDialog()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(within(testDialog()).getByTestId("modal-error")).toHaveTextContent(
+        SMTP_TEST_FAILURES.smtp.message,
+      );
+    });
+
+    const error: HTMLElement = within(testDialog()).getByTestId("modal-error");
+    const toggle: HTMLElement = within(testDialog()).getByTestId(
+      "smtp-test-details-toggle",
+    );
+
+    expect(error).not.toHaveTextContent("535");
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // Under what happened, above the address to try again.
+    expect(
+      error.compareDocumentPosition(toggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(toggle);
+
+    expect(
+      within(testDialog()).getByTestId("smtp-test-details-words").textContent,
+    ).toBe(answer);
   });
 });
 

@@ -734,9 +734,10 @@ const ANSWERS: Array<{
   },
   {
     answer: "refused",
-    email: `${MAIL_SERVER} refused it: 535 5.7.8 Username and Password not accepted`,
-    sms: "Twilio refused it: The 'From' phone number +14155550100 is not a valid, SMS-capable inbound phone number.",
-    call: "Twilio refused it: The 'From' phone number +14155550100 is not a valid, voice-capable inbound phone number.",
+    // What did not happen; the provider's words are folded under Details (#7268).
+    email: `${MAIL_SERVER} did not take the test email to ${ADMIN_EMAIL}. Check the server's email settings, then send the test again.`,
+    sms: "Twilio did not take the test SMS to +14155550100. Check the server's call and SMS settings, then send the test again.",
+    call: "Twilio did not place the test call to +14155550100. Check the server's call and SMS settings, then send the test again.",
     push: "None of your devices took the test push: Chrome on Linux: 410 Gone",
   },
   {
