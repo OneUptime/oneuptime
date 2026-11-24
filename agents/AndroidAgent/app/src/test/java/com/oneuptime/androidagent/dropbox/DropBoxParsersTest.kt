@@ -99,6 +99,20 @@ class DropBoxParsersTest {
     }
 
     @Test
+    fun `a thread's header is read alike on a device and here, whatever script its name is in`() {
+        val body =
+            "\"主线程\" prio=5 tid=1 Native\n  at a.B.c(B.java:1)\n\n" +
+                "\"worker\" prio=5 utid=7 Native\n  at d.E.f(E.java:2)\n\n" +
+                "\"x\" prio=5 线程tid=9 Native\n  at g.H.i(H.java:3)\n"
+
+        assertTrue(ThreadTraceParser.thread(body, "主线程", 1024)!!.startsWith("\"主线程\" prio=5 tid=1 Native"))
+        // An ASCII letter runs into "tid=": no thread's id.
+        assertNull(ThreadTraceParser.thread(body, "worker", 1024))
+        // A letter of another script does not, as on the JVM: Android's own \b once said it did (#10835).
+        assertTrue(ThreadTraceParser.thread(body, "x", 1024)!!.contains("at g.H.i(H.java:3)"))
+    }
+
+    @Test
     fun `a native crash's signal, cause and the crashing thread's backtrace`() {
         val crash: NativeCrash = TombstoneParser.parse(DropBoxFixtures.NATIVE_CRASH)!!
 
