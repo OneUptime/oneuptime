@@ -411,8 +411,15 @@ const splitOnPrefixedNumbers: (
   const pieces: Array<SentencePiece> = [];
   let from: number = 0;
 
-  for (const match of text.matchAll(pattern)) {
-    const start: number = (match.index || 0) + (match[1] || "").length;
+  // A global pattern: from the start of this text, each match in turn.
+  pattern.lastIndex = 0;
+
+  for (
+    let match: RegExpExecArray | null = pattern.exec(text);
+    match !== null;
+    match = pattern.exec(text)
+  ) {
+    const start: number = match.index + (match[1] || "").length;
     const number: string = match[2] || "";
 
     pieces.push({ text: text.slice(from, start) });
