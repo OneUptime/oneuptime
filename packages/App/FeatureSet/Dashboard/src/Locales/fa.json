@@ -63655,5 +63655,14 @@
   "since {{clock}}": "از ساعت {{clock}}",
   "since {{day}} at {{clock}}": "از {{day}} ساعت {{clock}}",
   "until {{clock}}": "تا ساعت {{clock}}",
-  "until {{day}} at {{clock}}": "تا {{day}} ساعت {{clock}}"
+  "until {{day}} at {{clock}}": "تا {{day}} ساعت {{clock}}",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "پراب سفارشی‌ای که مالکش هستید نسخه‌ای را اجرا می‌کند که یک نسخهٔ اصلی یا بیشتر از OneUptime قدیمی‌تر است. برای هر نسخهٔ اصلی یک بار فرستاده می‌شود، همراه با آنچه پراب تا به‌روزرسانی ندارد.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "یک هم‌تیمی یا یک تیم بیفزایید تا هنگام تغییر وضعیت این پراب یا عقب افتادن آن به اندازهٔ یک نسخهٔ اصلی به آن‌ها هشدار داده شود. تا آن زمان به مالکان پروژه هشدار داده می‌شود.",
+  "Check-In Address": "نشانی اعلام حضور",
+  "Interface Addresses": "نشانی‌های رابط‌ها",
+  "Major Version Behind Notified For": "اعلام عقب‌ماندگی نسخهٔ اصلی برای",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "افراد و تیم‌هایی که مالک این پراب هستند. هنگام تغییر وضعیت آن، و یک بار وقتی یک نسخهٔ اصلی از OneUptime عقب بیفتد، به آن‌ها هشدار داده می‌شود.",
+  "Probe a major release behind": "پراب یک نسخهٔ اصلی عقب است",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند."
 }

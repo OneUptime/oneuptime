@@ -63655,5 +63655,14 @@
   "since {{clock}}": "sinds {{clock}}",
   "since {{day}} at {{clock}}": "sinds {{day}} om {{clock}}",
   "until {{clock}}": "tot {{clock}}",
-  "until {{day}} at {{clock}}": "tot {{day}} om {{clock}}"
+  "until {{day}} at {{clock}}": "tot {{day}} om {{clock}}",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Een aangepaste sonde waarvan u eigenaar bent, draait een versie die een hoofdversie of meer ouder is dan OneUptime. Eén keer per hoofdversie verzonden, met wat de sonde mist totdat deze is bijgewerkt.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Voeg een teamgenoot of een team toe zodat zij worden gewaarschuwd wanneer de status van deze sonde verandert of deze een hoofdversie achterraakt. Tot die tijd worden de projecteigenaren gewaarschuwd.",
+  "Check-In Address": "Meldadres",
+  "Interface Addresses": "Interface-adressen",
+  "Major Version Behind Notified For": "Gemeld voor achterstand op hoofdversie",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personen en teams die eigenaar zijn van deze sonde. Zij worden gewaarschuwd wanneer de status ervan verandert, en één keer wanneer deze een hoofdversie achter OneUptime raakt.",
+  "Probe a major release behind": "Sonde een hoofdversie achter",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "De adressen op de netwerkinterfaces van deze sonde, en die van de host wanneer die aan de sonde worden doorgegeven, zoals de sonde ze bij elke melding opsomt. Beveiligingsgebeurtenissen zet de eigen polls, detecties en monitorcontroles van de sonde vanaf deze adressen apart, en de blokkeerlijst blokkeert ze nooit.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Het adres van waaruit OneUptime deze sonde ziet melden. De blokkeerlijst blokkeert het nooit."
 }

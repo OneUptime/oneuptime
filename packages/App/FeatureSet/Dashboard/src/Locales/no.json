@@ -63655,5 +63655,14 @@
   "since {{clock}}": "siden kl. {{clock}}",
   "since {{day}} at {{clock}}": "siden {{day}} kl. {{clock}}",
   "until {{clock}}": "til kl. {{clock}}",
-  "until {{day}} at {{clock}}": "til {{day}} kl. {{clock}}"
+  "until {{day}} at {{clock}}": "til {{day}} kl. {{clock}}",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "En egendefinert sonde du eier, kjører en versjon som er én hovedversjon eller mer eldre enn OneUptime. Sendes én gang for hver hovedversjon, med det sonden mangler til den blir oppdatert.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Legg til en kollega eller et team slik at de varsles når statusen til denne sonden endres eller den kommer én hovedversjon på etterskudd. Inntil da varsles prosjekteierne.",
+  "Check-In Address": "Meldeadresse",
+  "Interface Addresses": "Grensesnittadresser",
+  "Major Version Behind Notified For": "Varslet om hovedversjon på etterskudd for",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personer og team som eier denne sonden. De varsles når statusen endres, og én gang når den kommer én hovedversjon bak OneUptime.",
+  "Probe a major release behind": "Sonde én hovedversjon bak",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adressene på nettverksgrensesnittene til denne sonden, og vertens når den får dem oppgitt, slik sonden lister dem hver gang den sender livstegn. Sikkerhetshendelser legger sondens egne avspørringer, oppdagelser og monitorsjekker fra disse adressene til side, og blokkeringslisten blokkerer dem aldri.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen OneUptime ser at denne sonden sender livstegn fra. Blokkeringslisten blokkerer den aldri."
 }

@@ -63655,5 +63655,14 @@
   "since {{clock}}": "depuis {{clock}}",
   "since {{day}} at {{clock}}": "depuis le {{day}} à {{clock}}",
   "until {{clock}}": "jusqu'à {{clock}}",
-  "until {{day}} at {{clock}}": "jusqu'au {{day}} à {{clock}}"
+  "until {{day}} at {{clock}}": "jusqu'au {{day}} à {{clock}}",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Une sonde personnalisée dont vous êtes propriétaire exécute une version antérieure d'une version majeure ou plus à celle de OneUptime. Envoyé une fois par version majeure, avec ce qui manque à la sonde tant qu'elle n'est pas mise à jour.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Ajoutez un membre de l'équipe ou une équipe pour qu'ils soient alertés lorsque le statut de cette sonde change ou qu'elle prend une version majeure de retard. En attendant, les propriétaires du projet sont alertés.",
+  "Check-In Address": "Adresse de signalement",
+  "Interface Addresses": "Adresses des interfaces",
+  "Major Version Behind Notified For": "Retard de version majeure signalé pour",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personnes et équipes propriétaires de cette sonde. Elles sont alertées lorsque son statut change, et une fois lorsqu'elle prend une version majeure de retard sur OneUptime.",
+  "Probe a major release behind": "Sonde en retard d'une version majeure",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Les adresses des interfaces réseau de cette sonde, et celles de son hôte lorsqu'elles lui sont indiquées, telles que la sonde les liste chaque fois qu'elle se signale. Événements de sécurité met de côté les interrogations, découvertes et vérifications de moniteurs de la sonde qui partent de ces adresses, et la liste de blocage ne les bloque jamais.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "L'adresse depuis laquelle OneUptime voit cette sonde se signaler. La liste de blocage ne la bloque jamais."
 }

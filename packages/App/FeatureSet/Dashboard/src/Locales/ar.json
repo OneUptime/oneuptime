@@ -63655,5 +63655,14 @@
   "since {{clock}}": "منذ الساعة {{clock}}",
   "since {{day}} at {{clock}}": "منذ {{day}} الساعة {{clock}}",
   "until {{clock}}": "حتى الساعة {{clock}}",
-  "until {{day}} at {{clock}}": "حتى {{day}} الساعة {{clock}}"
+  "until {{day}} at {{clock}}": "حتى {{day}} الساعة {{clock}}",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "يشغّل مسبار مخصص تملكه إصدارًا أقدم من OneUptime بإصدار رئيسي واحد أو أكثر. يُرسَل مرة واحدة لكل إصدار رئيسي، مع ما ينقص المسبار إلى أن يُحدَّث.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "أضف زميلًا أو فريقًا ليُنبَّهوا عندما تتغير حالة هذا المسبار أو يتأخر بإصدار رئيسي. وحتى ذلك الحين، يُنبَّه مالكو المشروع.",
+  "Check-In Address": "عنوان الاتصال",
+  "Interface Addresses": "عناوين الواجهات",
+  "Major Version Behind Notified For": "الإصدار الرئيسي الذي نُبِّه إلى التأخر عنه",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "الأشخاص والفرق الذين يملكون هذا المسبار. يُنبَّهون عند تغير حالته، ومرة واحدة عندما يتأخر عن OneUptime بإصدار رئيسي.",
+  "Probe a major release behind": "مسبار متأخر بإصدار رئيسي",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا."
 }

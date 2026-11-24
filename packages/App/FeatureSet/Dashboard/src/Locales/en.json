@@ -63655,5 +63655,14 @@
   "since {{clock}}": "since {{clock}}",
   "since {{day}} at {{clock}}": "since {{day}} at {{clock}}",
   "until {{clock}}": "until {{clock}}",
-  "until {{day}} at {{clock}}": "until {{day}} at {{clock}}"
+  "until {{day}} at {{clock}}": "until {{day}} at {{clock}}",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.",
+  "Check-In Address": "Check-In Address",
+  "Interface Addresses": "Interface Addresses",
+  "Major Version Behind Notified For": "Major Version Behind Notified For",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.",
+  "Probe a major release behind": "Probe a major release behind",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it."
 }

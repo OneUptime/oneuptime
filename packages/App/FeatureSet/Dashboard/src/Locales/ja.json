@@ -63655,5 +63655,14 @@
   "since {{clock}}": "{{clock}} から",
   "since {{day}} at {{clock}}": "{{day}} {{clock}} から",
   "until {{clock}}": "{{clock}} まで",
-  "until {{day}} at {{clock}}": "{{day}} {{clock}} まで"
+  "until {{day}} at {{clock}}": "{{day}} {{clock}} まで",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "自分が所有するカスタムプローブが、OneUptime より 1 つ以上前のメジャーリリースのバージョンで動作しています。メジャーリリースごとに 1 回、更新されるまでプローブに足りないものと一緒に送信されます。",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "このプローブのステータスが変わったときやメジャーリリース 1 つ分遅れたときにアラートを受け取れるよう、メンバーまたはチームを追加してください。追加するまでは、プロジェクト所有者にアラートが送られます。",
+  "Check-In Address": "チェックイン元アドレス",
+  "Interface Addresses": "インターフェースのアドレス",
+  "Major Version Behind Notified For": "メジャーリリースの遅れを通知した対象",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "このプローブを所有するユーザーとチーム。ステータスが変わったとき、および OneUptime よりメジャーリリース 1 つ分遅れたときに 1 回、アラートが送られます。",
+  "Probe a major release behind": "プローブがメジャーリリース 1 つ分遅れている",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。"
 }
