@@ -2110,9 +2110,11 @@ export default class CriteriaFilterUtil {
           return option.value === filterType;
         });
       })
-      .filter((option: DropdownOption | undefined): option is DropdownOption => {
-        return Boolean(option);
-      });
+      .filter(
+        (option: DropdownOption | undefined): option is DropdownOption => {
+          return Boolean(option);
+        },
+      );
   }
 
   /*

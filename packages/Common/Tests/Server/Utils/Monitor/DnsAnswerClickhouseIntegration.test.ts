@@ -291,9 +291,10 @@ async function answerRowsOf(monitor: Monitor): Promise<Array<JSONObject>> {
 
 async function createMetricTable(): Promise<void> {
   const model: Metric = new Metric();
-  const generator: StatementGenerator<Metric> = new StatementGenerator<Metric>(
-    { modelType: Metric, database: clickhouse },
-  );
+  const generator: StatementGenerator<Metric> = new StatementGenerator<Metric>({
+    modelType: Metric,
+    database: clickhouse,
+  });
 
   const columns: Statement = generator.toColumnsCreateStatement(
     model.tableColumns,
@@ -620,7 +621,9 @@ integration(
               monitor,
               step,
               minute: 22,
-              records: [{ type: DnsRecordType.CNAME, value: "cdn.example.org" }],
+              records: [
+                { type: DnsRecordType.CNAME, value: "cdn.example.org" },
+              ],
             })
           ).criteriaMet,
         ).toBe("Answer changed");
@@ -706,7 +709,9 @@ integration(
                 monitor,
                 step: mail,
                 minute,
-                records: [{ type: DnsRecordType.MX, value: "10 mx.example.com" }],
+                records: [
+                  { type: DnsRecordType.MX, value: "10 mx.example.com" },
+                ],
               })
             ).criteriaMet,
           ).toBeNull();
@@ -718,7 +723,9 @@ integration(
               monitor,
               step: mail,
               minute: 43,
-              records: [{ type: DnsRecordType.MX, value: "10 mx2.example.com" }],
+              records: [
+                { type: DnsRecordType.MX, value: "10 mx2.example.com" },
+              ],
             })
           ).criteriaMet,
         ).toBe("Mail answer changed");
@@ -768,12 +775,24 @@ integration(
         const monitor: Monitor = monitorWith([step]);
 
         expect(
-          (await check({ monitor, step, minute: 70, records: [a("192.0.2.1")] }))
-            .criteriaMet,
+          (
+            await check({
+              monitor,
+              step,
+              minute: 70,
+              records: [a("192.0.2.1")],
+            })
+          ).criteriaMet,
         ).toBe("Answer changed");
         expect(
-          (await check({ monitor, step, minute: 71, records: [a("192.0.2.1")] }))
-            .criteriaMet,
+          (
+            await check({
+              monitor,
+              step,
+              minute: 71,
+              records: [a("192.0.2.1")],
+            })
+          ).criteriaMet,
         ).toBeNull();
       });
     });
@@ -786,20 +805,44 @@ integration(
         const monitor: Monitor = monitorWith([step]);
 
         expect(
-          (await check({ monitor, step, minute: 80, records: [a("192.0.2.1")] }))
-            .criteriaMet,
+          (
+            await check({
+              monitor,
+              step,
+              minute: 80,
+              records: [a("192.0.2.1")],
+            })
+          ).criteriaMet,
         ).toBeNull();
         expect(
-          (await check({ monitor, step, minute: 81, records: [a("192.0.2.1")] }))
-            .criteriaMet,
+          (
+            await check({
+              monitor,
+              step,
+              minute: 81,
+              records: [a("192.0.2.1")],
+            })
+          ).criteriaMet,
         ).toBe("Answer steady");
         expect(
-          (await check({ monitor, step, minute: 82, records: [a("192.0.2.9")] }))
-            .criteriaMet,
+          (
+            await check({
+              monitor,
+              step,
+              minute: 82,
+              records: [a("192.0.2.9")],
+            })
+          ).criteriaMet,
         ).toBeNull();
         expect(
-          (await check({ monitor, step, minute: 83, records: [a("192.0.2.9")] }))
-            .criteriaMet,
+          (
+            await check({
+              monitor,
+              step,
+              minute: 83,
+              records: [a("192.0.2.9")],
+            })
+          ).criteriaMet,
         ).toBe("Answer steady");
       });
     });
