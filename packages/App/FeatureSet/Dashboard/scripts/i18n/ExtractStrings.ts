@@ -943,6 +943,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Billing/PlanRequiredRefusal.ts",
     kind: "keys",
   },
+  /*
+   * Why a project's plan was not changed (#11059): Billing's Change Plan
+   * says them in the reader's language. Only the words the file marks are
+   * read: the refusals a job or an API client reads stay English.
+   */
+  {
+    directory: "packages/Common/Types/Billing/ProjectBillingRefusals.ts",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Database/UniqueValueTaken.ts",
     kind: "keys",

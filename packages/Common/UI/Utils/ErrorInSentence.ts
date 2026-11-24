@@ -30,6 +30,7 @@ import { PULL_REQUEST_LINK_REFUSALS } from "../../Types/SecurityCase/SecurityCas
 import { ISSUE_PULL_REQUEST_ALREADY_LINKED } from "../../Types/DataSecurity/DataSecurityIssuePullRequestLink";
 import { PLAN_REQUIRED_REFUSAL } from "../../Types/Billing/PlanRequiredRefusal";
 import { UNIQUE_VALUE_TAKEN_REFUSAL } from "../../Types/Database/UniqueValueTaken";
+import { PROJECT_BILLING_REFUSALS_WITH_VALUES } from "../../Types/Billing/ProjectBillingRefusals";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -170,6 +171,12 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
    * with the column's title and the value (#7276).
    */
   UNIQUE_VALUE_TAKEN_REFUSAL,
+  /*
+   * Why a project's plan, trial or balance was not changed, with the
+   * project, the plans to choose from or the amounts (#11059): Billing's
+   * Change Plan and the Admin Dashboard's project page meet them.
+   */
+  ...PROJECT_BILLING_REFUSALS_WITH_VALUES,
 ];
 
 /*

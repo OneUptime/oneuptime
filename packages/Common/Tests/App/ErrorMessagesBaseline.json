@@ -318,7 +318,6 @@
   "packages/Common/Server/Services/ProbeService.ts": 6,
   "packages/Common/Server/Services/ProjectCallSMSConfigService.ts": 5,
   "packages/Common/Server/Services/ProjectOnCallCalendarFeedService.ts": 1,
-  "packages/Common/Server/Services/ProjectService.ts": 43,
   "packages/Common/Server/Services/ProjectSmtpConfigService.ts": 17,
   "packages/Common/Server/Services/ProxmoxClusterFeedService.ts": 4,
   "packages/Common/Server/Services/ResourceAiAgentJobService.ts": 1,

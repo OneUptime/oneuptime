@@ -132,7 +132,9 @@ describe("Extend trial when billing is disabled", () => {
           projectId: ObjectID.generate(),
           trialEndsAt: OneUptimeDate.getSomeDaysAfter(30),
         }),
-      ).rejects.toThrow("Billing is not enabled for this server");
+      ).rejects.toThrow(
+        "This server does not bill for projects, so there is no plan or trial to change.",
+      );
     });
   });
 });

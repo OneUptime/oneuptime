@@ -569,7 +569,7 @@ describe("ProjectService.changePlan", () => {
           projectId: PROJECT_ID,
           paymentProviderPlanId: NEW_PLAN_ID,
         }),
-      ).rejects.toThrow("Project not found");
+      ).rejects.toThrow("is not on this server any more, so nothing was changed or charged.");
     });
 
     it("should throw when the customer has no payment method", async () => {
@@ -597,7 +597,9 @@ describe("ProjectService.changePlan", () => {
           projectId: PROJECT_ID,
           paymentProviderPlanId: "not_a_plan",
         }),
-      ).rejects.toThrow("Invalid plan");
+      ).rejects.toThrow(
+        "That plan is not one this server offers, so nothing was changed or charged. Choose one of these plans:",
+      );
 
       expect(spies.changePlan).not.toHaveBeenCalled();
     });
@@ -612,7 +614,9 @@ describe("ProjectService.changePlan", () => {
           projectId: PROJECT_ID,
           paymentProviderPlanId: NEW_PLAN_ID,
         }),
-      ).rejects.toThrow("Payment Provider subscription not found");
+      ).rejects.toThrow(
+        "This project has no subscription with the payment provider, so nothing was changed or charged. Contact support to set up the project's billing.",
+      );
 
       expect(spies.changePlan).not.toHaveBeenCalled();
     });
@@ -629,7 +633,9 @@ describe("ProjectService.changePlan", () => {
           projectId: PROJECT_ID,
           paymentProviderPlanId: NEW_PLAN_ID,
         }),
-      ).rejects.toThrow("Payment Provider metered subscription not found");
+      ).rejects.toThrow(
+        "This project has no usage subscription with the payment provider, so nothing was changed or charged. Contact support to set up the project's billing.",
+      );
 
       expect(spies.changePlan).not.toHaveBeenCalled();
     });

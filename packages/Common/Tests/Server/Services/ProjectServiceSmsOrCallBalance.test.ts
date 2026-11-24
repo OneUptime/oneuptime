@@ -109,7 +109,7 @@ describe("ProjectService.creditSmsOrCallBalanceInUSDCents", () => {
         projectId: PROJECT_ID,
         amountInUSDCents: 2000,
       }),
-    ).rejects.toThrow("Project not found");
+    ).rejects.toThrow("is not on this server any more, so nothing was changed or charged.");
   });
 
   test.each([
