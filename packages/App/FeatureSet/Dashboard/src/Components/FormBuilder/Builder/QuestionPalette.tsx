@@ -3,7 +3,10 @@ import {
   getLockedPartClassName,
 } from "Common/UI/Components/Button/ButtonStates";
 import { FormPaletteState } from "../FormBuilderState";
-import FormsCopy, { FORM_QUESTION_TYPE_TEXT } from "../FormsCopy";
+import FormsCopy, {
+  FORM_QUESTION_TYPE_TEXT,
+  getFormQuestionTypeDescription,
+} from "../FormsCopy";
 import { FORM_ANSWER_TYPE_ICONS } from "./QuestionInputPreview";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -136,7 +139,7 @@ const PaletteGroup: FunctionComponent<GroupProps> = (
 const QuestionPalette: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, translatePlural } = useTranslateValue();
 
   const tx: (text: string) => string = (text: string): string => {
     return translateString(text) || text;
@@ -173,7 +176,15 @@ const QuestionPalette: FunctionComponent<ComponentProps> = (
               key={type}
               icon={FORM_ANSWER_TYPE_ICONS[type]}
               title={tx(FORM_QUESTION_TYPE_TEXT[type].title)}
-              description={tx(FORM_QUESTION_TYPE_TEXT[type].description)}
+              /*
+               * A Multiple Files question's says how many files every such
+               * question takes, in the reader's digits and plural forms.
+               */
+              description={getFormQuestionTypeDescription({
+                type: type,
+                translateText: tx,
+                translatePlural: translatePlural,
+              })}
               isAdded={false}
               isDisabled={isFull}
               dataTestId={`form-palette-question-${type}`}
