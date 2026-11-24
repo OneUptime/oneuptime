@@ -358,10 +358,22 @@ describe("an account's costs on every basis", () => {
   });
 
   test("a net request that stops at its page limit leaves the read incomplete", async () => {
-    const api: FakeProviderApi = costExplorer({
-      filtered: [json({ ResultsByTime: [] })],
-      unfiltered: [json({ ResultsByTime: [], NextPageToken: "more" }), json({ ResultsByTime: [], NextPageToken: "more-2" })],
-    });
+    let page: number = 0;
+    const api: FakeProviderApi = createFakeProviderApi([
+      {
+        path: "/",
+        host: "ce.us-east-1.amazonaws.com",
+        respond: (request: DataSourceHttpRequest): FakeResponse => {
+          // The filtered request ends at once; the net one has a new page every time.
+          if (bodyOf(request)["Filter"]) {
+            return json({ ResultsByTime: [] });
+          }
+
+          page++;
+          return json({ ResultsByTime: [], NextPageToken: `more-${page}` });
+        },
+      },
+    ]);
 
     const read: { records: Array<CloudCostRecord>; complete: boolean } =
       await readAwsCostAndUsage({

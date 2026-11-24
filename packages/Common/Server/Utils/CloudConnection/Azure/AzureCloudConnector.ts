@@ -88,6 +88,7 @@ import {
 import {
   AZURE_COST_MAX_PAGES,
   describeAzureCostFailure,
+  getAzureCostWindowQpu,
   isAzureActualCostDue,
   mergeAzureCostRecords,
   readAzureAdvisor,
@@ -1841,9 +1842,17 @@ export default class AzureCloudConnector implements CloudConnector {
           continue;
         }
 
-        // One the connection has never read in full goes back as far as a first read.
+        const lastActualReadAt: string | undefined =
+          actualReadAt[subscriptionId.toLowerCase()];
+
+        /*
+         * One the connection has never read in full - its actual cost too,
+         * which a subscription read before costs were kept three ways never
+         * had - goes back as far as a first read.
+         */
         const window: { start: Date; end: Date } =
-          options.firstReadWindow && !readAt[subscriptionId.toLowerCase()]
+          options.firstReadWindow &&
+          (!readAt[subscriptionId.toLowerCase()] || !lastActualReadAt)
             ? options.firstReadWindow
             : { start: options.start, end: options.end };
 
@@ -1853,9 +1862,31 @@ export default class AzureCloudConnector implements CloudConnector {
          * query units.
          */
         const isActualDue: boolean = isAzureActualCostDue({
-          lastReadAt: actualReadAt[subscriptionId.toLowerCase()],
+          lastReadAt: lastActualReadAt,
           now: readNow,
         });
+
+        /*
+         * Read twice over, a subscription is read whole or put off whole:
+         * one whose two queries would not both fit the tenant's quotas
+         * before the read's time is up waits for the next read, rather than
+         * spending its amortized query for nothing.
+         */
+        if (isActualDue) {
+          const fitsAtMs: number = costs.whenFits({
+            qpu: 2 * getAzureCostWindowQpu(window),
+            scope: `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+          });
+
+          if (fitsAtMs > costs.getDeadlineMs()) {
+            putOffUntil = new Date(fitsAtMs);
+            result.accounts.push(
+              getAzureQueuedCostOutcome(subscriptionId, putOffUntil),
+            );
+            queued++;
+            continue;
+          }
+        }
 
         try {
           const amortized: {

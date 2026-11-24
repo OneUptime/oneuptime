@@ -1493,7 +1493,6 @@ export function getAzureSetupCommand(
     `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "${AZURE_READ_ONLY_ROLE}" --scopes "$SCOPE")`,
     `APP=$(echo "$OUT" | jq -r .appId)`,
     `az role assignment create --assignee "$APP" --role "${AZURE_COST_ROLE}" --scope "$SCOPE" > /dev/null`,
-    ...getAzureCommitmentRoleLines(),
     ...(dataSecurity === "content"
       ? [
           `az role assignment create --assignee "$APP" --role "${AZURE_DATA_SECURITY_CONTENT_ROLE}" --scope "$SCOPE" > /dev/null`,
@@ -1505,6 +1504,8 @@ export function getAzureSetupCommand(
     ...(isCloudConnectionWafBlocklistOn(wafBlocklist)
       ? getAzureWafBlocklistRoleLines()
       : []),
+    // Last of the roles: the two only a Global Administrator may grant, which may be refused.
+    ...getAzureCommitmentRoleLines(),
     `END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)`,
     `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
   ].join("\n");

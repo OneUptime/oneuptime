@@ -16,7 +16,7 @@ import {
 } from "../../LlmObservability/LlmProviderHttp";
 import { CloudCostRecord, CloudSavingRecord } from "../CloudConnectorTypes";
 import AzureArm from "./AzureArm";
-import { AzureCostReader } from "./AzureCostManagement";
+import { AzureCostReader, getAzureCostQueryQpu } from "./AzureCostManagement";
 
 /*
  * WHAT AN AZURE SUBSCRIPTION COSTS, AND HOW TO SPEND LESS IN IT.
@@ -160,6 +160,24 @@ export function mergeAzureCostRecords(data: {
   return Array.from(merged.values());
 }
 
+// The period a query of the days from start to before end asks for.
+export function getAzureCostPeriod(data: { start: Date; end: Date }): {
+  from: string;
+  to: string;
+} {
+  const lastDay: Date = new Date(data.end.getTime() - 1000);
+
+  return {
+    from: `${toCloudCostDay(data.start)}T00:00:00Z`,
+    to: `${toCloudCostDay(lastDay)}T23:59:59Z`,
+  };
+}
+
+// The query units a query of those days costs: one for each month it touches.
+export function getAzureCostWindowQpu(data: { start: Date; end: Date }): number {
+  return getAzureCostQueryQpu({ timePeriod: getAzureCostPeriod(data) });
+}
+
 export async function readAzureCosts(data: {
   costs: AzureCostReader;
   subscriptionId: string;
@@ -171,14 +189,10 @@ export async function readAzureCosts(data: {
   type?: AzureCostType | undefined;
 }): Promise<{ records: Array<CloudCostRecord>; complete: boolean }> {
   const records: Array<CloudCostRecord> = [];
-  const lastDay: Date = new Date(data.end.getTime() - 1000);
   const body: JSONObject = {
     type: data.type || "ActualCost",
     timeframe: "Custom",
-    timePeriod: {
-      from: `${toCloudCostDay(data.start)}T00:00:00Z`,
-      to: `${toCloudCostDay(lastDay)}T23:59:59Z`,
-    },
+    timePeriod: getAzureCostPeriod(data),
     dataset: {
       granularity: "Daily",
       aggregation: { totalCost: { name: "Cost", function: "Sum" } },

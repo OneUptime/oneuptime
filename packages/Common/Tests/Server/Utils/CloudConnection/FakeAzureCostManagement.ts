@@ -78,6 +78,8 @@ export interface FakeCostQuery {
   // What its headers said, as sent.
   headers: Dictionary<string>;
   clientType: string;
+  // The cost asked for: AmortizedCost, or ActualCost.
+  type: string;
 }
 
 // A QPU for each calendar month a period's days touch, as Azure deducts it.
@@ -176,18 +178,25 @@ export class FakeAzureCostManagement {
     });
   }
 
-  // The subscriptions answered in full, each with the days it was read over.
-  public answeredSubscriptions(): Map<string, Array<{ from: string }>> {
-    const answered: Map<string, Array<{ from: string }>> = new Map();
+  /*
+   * The subscriptions answered in full, each with the days it was read
+   * over and the cost it was asked for.
+   */
+  public answeredSubscriptions(): Map<
+    string,
+    Array<{ from: string; type: string }>
+  > {
+    const answered: Map<string, Array<{ from: string; type: string }>> =
+      new Map();
 
     for (const query of this.queries) {
       if (query.status !== 200) {
         continue;
       }
 
-      const list: Array<{ from: string }> =
+      const list: Array<{ from: string; type: string }> =
         answered.get(query.subscriptionId) || [];
-      list.push({ from: query.from });
+      list.push({ from: query.from, type: query.type });
       answered.set(query.subscriptionId, list);
     }
 
@@ -294,6 +303,7 @@ export class FakeAzureCostManagement {
       status: 200,
       headers: {},
       clientType: String((data.request.headers || {})["ClientType"] || ""),
+      type: String(body["type"] || ""),
     };
 
     this.queries.push(record);

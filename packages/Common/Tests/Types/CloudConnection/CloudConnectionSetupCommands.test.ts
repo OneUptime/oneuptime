@@ -8,6 +8,7 @@ import {
   isAwsActionGranted,
   AWS_READ_ONLY_ACTION_GROUPS,
   AWS_SCOPED_READ_RESOURCES,
+  AZURE_COMMITMENT_READER_ROLES,
   AZURE_COST_ROLE,
   AZURE_READ_ONLY_ROLE,
   CLOUD_CONNECTION_READ_ONLY_NAME,
@@ -201,20 +202,23 @@ describe("AWS", () => {
     ]);
   });
 
-  test("no action is one no reader calls: of billing, only the daily costs, each resource's, the commitments' coverage and use, and the ways to spend less; no health entities", () => {
+  test("no action is one no reader calls: of billing, only Cost Explorer's reads, the Savings Plans bought, and the ways to spend less; no health entities", () => {
     /*
-     * The costs lane reads Cost Explorer's daily costs (each resource's
-     * too, for a connection with Costs per resource on), the savings lane
-     * how much of them the Savings Plans and Reserved Instances cover and
-     * how much of those is used, and Cost Optimization Hub's
-     * recommendations - and nothing else of billing: no budgets, no
-     * invoices, no payment details (aws-portal).
+     * The costs lane reads Cost Explorer's daily costs, billed, amortized
+     * and net (each resource's too, for a connection with Costs per
+     * resource on), the savings lane how much of them the Savings Plans
+     * and Reserved Instances cover and how much of those is used, each
+     * plan and reservation with its own use, the Savings Plans bought, and
+     * Cost Optimization Hub's recommendations with what each commitment
+     * would buy - and nothing else of billing: no budgets, no invoices, no
+     * payment details (aws-portal), nothing that buys or returns a plan.
      */
     const billing: Array<string> = AWS_READ_ONLY_ACTIONS.filter(
       (action: string): boolean => {
         return (
           action.startsWith("ce:") ||
           action.startsWith("cost-optimization-hub:") ||
+          action.startsWith("savingsplans:") ||
           action.startsWith("aws-portal:") ||
           action.startsWith("budgets:") ||
           action.startsWith("billing:")
@@ -223,20 +227,35 @@ describe("AWS", () => {
     );
 
     expect(billing).toEqual([
-      "ce:GetCostAndUsage",
-      "ce:GetCostAndUsageWithResources",
-      "ce:GetSavingsPlansCoverage",
-      "ce:GetSavingsPlansUtilization",
-      "ce:GetReservationCoverage",
-      "ce:GetReservationUtilization",
+      "ce:GetCostAndUsage*",
+      "ce:GetSavingsPlans*",
+      "ce:GetReservation*",
+      "savingsplans:DescribeSavingsPlans",
       "cost-optimization-hub:ListRecommendations",
+      "cost-optimization-hub:GetRecommendation",
     ]);
 
-    // Each Cost Explorer action is one a reader sends, as its target.
+    // Cost Explorer's families are its reads, and none of its writes.
+    for (const write of [
+      "ce:CreateAnomalyMonitor",
+      "ce:UpdateCostAllocationTagsStatus",
+      "ce:StartSavingsPlansPurchaseRecommendationGeneration",
+      "ce:DeleteAnomalySubscription",
+      "savingsplans:CreateSavingsPlan",
+      "savingsplans:ReturnSavingsPlan",
+      "savingsplans:DeleteQueuedSavingsPlan",
+    ]) {
+      expect({ write, granted: isAwsActionGranted(write) }).toEqual({
+        write,
+        granted: false,
+      });
+    }
+
     const readers: string = [
       "Aws/AwsCosts.ts",
       "Aws/AwsResourceCosts.ts",
       "Aws/AwsCommitments.ts",
+      "Aws/AwsCommitmentInventory.ts",
     ]
       .map((file: string): string => {
         return fs.readFileSync(
@@ -245,17 +264,37 @@ describe("AWS", () => {
         );
       })
       .join("\n");
+    const sent: Array<string> = Array.from(
+      readers.matchAll(/"AWSInsightsIndexService\.([A-Za-z]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return `ce:${match[1]!}`;
+    });
 
-    for (const action of billing.filter((entry: string): boolean => {
+    // Every Cost Explorer call a reader sends is granted...
+    expect(sent.length).toBeGreaterThanOrEqual(8);
+    for (const action of sent) {
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: true,
+      });
+    }
+
+    // ...and every family granted is one a reader calls.
+    for (const family of billing.filter((entry: string): boolean => {
       return entry.startsWith("ce:");
     })) {
       expect({
-        action,
-        sent: readers.includes(
-          `"AWSInsightsIndexService.${action.slice("ce:".length)}"`,
-        ),
-      }).toEqual({ action, sent: true });
+        family,
+        called: sent.some((action: string): boolean => {
+          return isAwsActionGranted(action, [family]);
+        }),
+      }).toEqual({ family, called: true });
     }
+
+    // The Savings Plans API's one read, and Cost Optimization Hub's two.
+    expect(readers).toContain('path: "/DescribeSavingsPlans"');
+    expect(readers).toContain('"CostOptimizationHubService.ListRecommendations"');
+    expect(readers).toContain('"CostOptimizationHubService.GetRecommendation"');
     expect(
       AWS_READ_ONLY_ACTION_GROUPS.map((group: { purpose: string }): string => {
         return group.purpose;
@@ -428,12 +467,24 @@ describe("AWS", () => {
     expect(isAwsActionGranted("a:z", ["a:z*z"])).toBe(false);
   });
 
-  test("the only wildcards are Elastic Load Balancing's Describe, which reads how load balancers are set up, and AWS Health's events", () => {
+  test("the only wildcards are Elastic Load Balancing's Describe, AWS Health's events and Cost Explorer's three read families", () => {
+    /*
+     * Each reads and nothing else: how load balancers are set up, AWS's
+     * events for the account, and Cost Explorer's costs, Savings Plans
+     * and reservations - one entry a family, so the access key's user's
+     * policy fits IAM's 2,048 characters.
+     */
     expect(
       AWS_READ_ONLY_ACTIONS.filter((action: string): boolean => {
         return action.includes("*");
       }),
-    ).toEqual(["elasticloadbalancing:Describe*", "health:DescribeEvent*"]);
+    ).toEqual([
+      "elasticloadbalancing:Describe*",
+      "health:DescribeEvent*",
+      "ce:GetCostAndUsage*",
+      "ce:GetSavingsPlans*",
+      "ce:GetReservation*",
+    ]);
   });
 
   test("the account's Elastic IPs are read, for the addresses its traffic leaves from (#10504)", () => {
@@ -684,14 +735,32 @@ describe("Azure", () => {
       'APP=$(echo "$OUT" | jq -r .appId)',
       // What the subscription costs, read-only, on the same scope.
       'az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null',
+      /*
+       * The tenant's reservations and savings plans (#11011), read-only,
+       * where Azure lists them: only a Global Administrator with elevated
+       * access may grant these, so a refusal says so and the command goes on.
+       */
+      'az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2',
+      'az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2',
       'END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)',
       `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
     ]);
     expect(AZURE_READ_ONLY_ROLE).toBe("Monitoring Reader");
     expect(AZURE_COST_ROLE).toBe("Cost Management Reader");
-    // Of billing, the reader of costs only: never a contributor.
-    expect(getAzureSetupCommand()).not.toContain("Cost Management Contributor");
-    expect(getAzureSetupCommand()).not.toContain("Billing");
+    // Of billing, the readers of costs and commitments only: never a contributor.
+    expect(getAzureSetupCommand()).not.toContain("Contributor");
+    expect(getAzureSetupCommand()).not.toContain("Administrator\" --scope");
+    expect(
+      AZURE_COMMITMENT_READER_ROLES.every(
+        (entry: { role: string }): boolean => {
+          return entry.role.endsWith(" Reader");
+        },
+      ),
+    ).toBe(true);
+    // No billing account's role: the savings plans' provider scope is the only billing word.
+    expect(
+      getAzureSetupCommand().replace(/\/providers\/Microsoft\.BillingBenefits/g, ""),
+    ).not.toContain("Billing");
   });
 
   test("for every subscription, the same on the tenant's root management group", () => {

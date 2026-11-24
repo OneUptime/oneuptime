@@ -1,10 +1,12 @@
 import { generateKeyPairSync } from "crypto";
 import AwsCloudConnector from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudConnector";
+import { AWS_RESERVATION_INVENTORY_SERVICES } from "../../../../Server/Utils/CloudConnection/Aws/AwsCommitmentInventory";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
 import AzureCloudConnector from "../../../../Server/Utils/CloudConnection/Azure/AzureCloudConnector";
 import GcpCloudConnector from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
 import {
+  CloudCommitmentRecord,
   CloudConnectionPullState,
   CloudConnectionSettings,
   CloudCostAccountOutcome,
@@ -19,6 +21,7 @@ import {
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import { CloudCostState } from "../../../../Types/Cloud/CloudCost";
 import { CloudCommitmentKind } from "../../../../Types/Cloud/CloudCommitments";
+import { CloudCommitmentState } from "../../../../Types/Cloud/CloudCommitmentInventory";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import {
   CloudConnectionAuthMethod,
@@ -423,7 +426,7 @@ describe("AWS: commitments, read with the ways to spend less", () => {
     },
   };
 
-  test("one account's, on its own row, four requests to Cost Explorer", async () => {
+  test("one account's, on its own row: four requests to Cost Explorer for the summary, then the list of each commitment", async () => {
     const fake: FakeAws = createFakeAws({
       regions: {},
       commitmentAnswers: COMMITMENTS,
@@ -466,6 +469,134 @@ describe("AWS: commitments, read with the ways to spend less", () => {
       "GetSavingsPlansUtilization",
       "GetReservationCoverage",
       "GetReservationUtilization",
+      /*
+       * The list (AwsCommitmentInventory): the plans' 30 days, then each
+       * reserving service's - none of them with any, so no week is asked.
+       */
+      "GetSavingsPlansUtilizationDetails",
+      ...AWS_RESERVATION_INVENTORY_SERVICES.map((): string => {
+        return "GetReservationUtilization";
+      }),
+    ]);
+    // And the plans as bought, from the Savings Plans API: none.
+    expect(
+      fake.costCalls.filter((call: { service: string }): boolean => {
+        return call.service === "savingsplans";
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        action: "DescribeSavingsPlans",
+        body: expect.objectContaining({
+          states: ["active", "queued", "payment-pending"],
+        }),
+      }),
+    ]);
+    expect(read.commitmentInventory).toEqual({
+      records: [],
+      complete: true,
+      state: CloudCostState.Reading,
+    });
+  });
+
+  test("its Savings Plans and Reserved Instances listed one by one, a plan queued to renew one among them", async () => {
+    const PLAN_ARN: string =
+      "arn:aws:savingsplans::123456789012:savingsplan/plan-1";
+    const fake: FakeAws = createFakeAws({
+      regions: {},
+      commitmentAnswers: {
+        ...COMMITMENTS,
+        GetSavingsPlansUtilizationDetails: {
+          SavingsPlansUtilizationDetails: [
+            {
+              SavingsPlanArn: PLAN_ARN,
+              Attributes: {
+                AccountId: "123456789012",
+                EndDateTime: "2026-12-01T00:00:00.000Z",
+                PaymentOption: "No Upfront",
+                PurchaseTerm: "1yr",
+                SavingsPlansType: "ComputeSavingsPlans",
+                RecurringHourlyFee: "0.83",
+                UpfrontFee: "0",
+              },
+              Utilization: {
+                TotalCommitment: "600",
+                UsedCommitment: "582",
+                UnusedCommitment: "18",
+                UtilizationPercentage: "97",
+              },
+              Savings: { NetSavings: "40", OnDemandCostEquivalent: "640" },
+            },
+          ],
+        },
+      },
+      savingsPlansDescribed: [
+        {
+          savingsPlanArn: PLAN_ARN,
+          savingsPlanId: "plan-1",
+          state: "active",
+          start: "2025-12-01T00:00:00.000Z",
+          end: "2026-12-01T00:00:00.000Z",
+          commitment: "0.83",
+          paymentOption: "No Upfront",
+          termDurationInSeconds: 31536000,
+          savingsPlanType: "Compute",
+          currency: "USD",
+        },
+        {
+          savingsPlanArn:
+            "arn:aws:savingsplans::123456789012:savingsplan/plan-2",
+          savingsPlanId: "plan-2",
+          state: "queued",
+          start: "2026-12-01T00:00:00.000Z",
+          end: "2027-12-01T00:00:00.000Z",
+          commitment: "0.9",
+          paymentOption: "No Upfront",
+          termDurationInSeconds: 31536000,
+          savingsPlanType: "Compute",
+          currency: "USD",
+        },
+      ],
+    });
+
+    const read: CloudSavingsResult = await aws.readSavings(
+      awsSettings(),
+      savingsOptions(fake.transport),
+    );
+
+    expect(read.commitmentInventory!.state).toBe(CloudCostState.Reading);
+    expect(
+      read.commitmentInventory!.records.map((record: CloudCommitmentRecord) => {
+        return [record.name, record.state, record.hourlyCommitment];
+      }),
+    ).toEqual([
+      ["plan-1", CloudCommitmentState.Active, 0.83],
+      ["plan-2", CloudCommitmentState.Queued, 0.9],
+    ]);
+    expect(read.commitmentInventory!.records[0]!.utilizationPercent).toBe(97);
+  });
+
+  test("a Savings Plans API that refuses the credential Cost Explorer took still lists the rest", async () => {
+    const fake: FakeAws = createFakeAws({
+      regions: {},
+      commitmentAnswers: COMMITMENTS,
+      savingsPlansDescribeError: {
+        status: 403,
+        body: {
+          __type: "UnrecognizedClientException",
+          message: "The security token included in the request is invalid.",
+        },
+      },
+    });
+
+    const read: CloudSavingsResult = await aws.readSavings(
+      awsSettings(),
+      savingsOptions(fake.transport),
+    );
+
+    expect(read.commitments![0]!.summary.state).toBe(CloudCostState.Reading);
+    expect(read.commitmentInventory!.state).toBe(CloudCostState.Reading);
+    expect(read.warnings).toEqual([
+      expect.stringContaining("The Savings Plans API could not be read"),
     ]);
   });
 

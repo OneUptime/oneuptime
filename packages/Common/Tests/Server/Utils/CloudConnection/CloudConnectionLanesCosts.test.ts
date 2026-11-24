@@ -11,6 +11,7 @@ import CloudAccount from "../../../../Models/DatabaseModels/CloudAccount";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudBudgetEvaluator from "../../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import CloudConnectionLanes, {
+  CLOUD_COSTS_READ_VERSION,
   CLOUD_COSTS_RETRY_MS,
   CloudCostsLaneOutcome,
   CloudSavingsLaneOutcome,
@@ -781,7 +782,7 @@ describe("the costs lane, carrying on where a read stopped", () => {
       costsReadAt: new Date(
         NOW.getTime() - CLOUD_COSTS_INTERVAL_MS - 1000,
       ).toISOString(),
-      costsVersion: 2,
+      costsVersion: CLOUD_COSTS_READ_VERSION,
     };
 
     const outcome: CloudCostsLaneOutcome = await CloudConnectionLanes.runCosts(
@@ -853,7 +854,7 @@ describe("the costs lane, carrying on where a read stopped", () => {
     ).toISOString();
     const state: CloudConnectionPullState = {
       costsReadAt: readAt,
-      costsVersion: 2,
+      costsVersion: CLOUD_COSTS_READ_VERSION,
       costsPending: { accounts: [SUB_C, SUB_D], at: RETRY_AT },
     };
 
@@ -909,7 +910,7 @@ describe("the costs lane, carrying on where a read stopped", () => {
     ).toISOString();
     const state: CloudConnectionPullState = {
       costsReadAt: readAt,
-      costsVersion: 2,
+      costsVersion: CLOUD_COSTS_READ_VERSION,
       costsPending: { accounts: [SUB_C], at: "2026-11-20T11:59:00.000Z" },
     };
 

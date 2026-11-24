@@ -31,6 +31,8 @@ import { getAwsCommitmentWindow } from "./AwsCommitments";
 import {
   AwsCredentials,
   awsErrorCodeOf,
+  getAwsHost,
+  getAwsPartition,
   sendAwsRequest,
   sendAwsRestRequest,
 } from "./AwsApi";
@@ -385,6 +387,26 @@ export const AWS_DESCRIBED_SAVINGS_PLAN_STATES: ReadonlyArray<string> = [
 ];
 
 /*
+ * Where the Savings Plans API answers, as its endpoint rules (botocore's
+ * savingsplans 2019-06-28 rule set) say: one global endpoint, signed for
+ * us-east-1, for the commercial partition; the Region's own elsewhere -
+ * China's at savingsplans.cn-northwest-1.amazonaws.com.cn.
+ */
+export function getAwsSavingsPlansEndpoint(costRegion: string): {
+  host: string;
+  region: string;
+} {
+  if (getAwsPartition(costRegion) === "aws") {
+    return { host: "savingsplans.amazonaws.com", region: "us-east-1" };
+  }
+
+  return {
+    host: getAwsHost("savingsplans", costRegion),
+    region: costRegion.trim(),
+  };
+}
+
+/*
  * The calling account's own Savings Plans, as bought - active, queued and
  * awaiting payment. Free; read in pages of 1,000.
  */
@@ -392,6 +414,8 @@ export async function describeAwsSavingsPlans(
   call: InventoryCall,
 ): Promise<Array<AwsDescribedSavingsPlan>> {
   const plans: Array<AwsDescribedSavingsPlan> = [];
+  const endpoint: { host: string; region: string } =
+    getAwsSavingsPlansEndpoint(call.region);
   let token: string = "";
 
   for (let page: number = 0; page < AWS_COMMITMENT_INVENTORY_MAX_PAGES; page++) {
@@ -408,8 +432,8 @@ export async function describeAwsSavingsPlans(
       transport: call.options.transport,
       credentials: call.credentials,
       service: "savingsplans",
-      region: "us-east-1",
-      host: "savingsplans.amazonaws.com",
+      region: endpoint.region,
+      host: endpoint.host,
       method: "POST",
       path: "/DescribeSavingsPlans",
       body: JSON.stringify(body),
@@ -934,26 +958,30 @@ export async function readAwsCommitmentInventory(
       }
     }
 
-    // The plans as bought: optional - a role that may not read them still lists the rest.
+    /*
+     * The plans as bought: optional - Cost Explorer has listed every plan
+     * that ran, so whatever the Savings Plans API answers (a role that may
+     * not call it, or a partition it is not in, refusing the credential
+     * Cost Explorer just took), the rest is still listed.
+     */
     let described: Array<AwsDescribedSavingsPlan> = [];
     let message: string | undefined;
 
     try {
       described = await describeAwsSavingsPlans(call);
     } catch (error) {
-      if (
-        error instanceof LlmProviderError &&
-        error.kind === CloudConnectionFailureKind.Authentication
-      ) {
-        throw error;
-      }
-
       if (error instanceof CloudReadBudgetSpent) {
         throw error;
       }
 
       message =
-        "The role may not read the Savings Plans API (savingsplans:DescribeSavingsPlans), so plans queued to start are not listed. Run the setup command again to allow it.";
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Permission
+          ? "The role may not read the Savings Plans API (savingsplans:DescribeSavingsPlans), so plans queued to start are not listed. Run the setup command again to allow it."
+          : `The Savings Plans API could not be read, so plans queued to start are not listed: ${(error instanceof Error
+              ? error.message
+              : String(error)
+            ).slice(0, 400)}`;
     }
 
     return {
