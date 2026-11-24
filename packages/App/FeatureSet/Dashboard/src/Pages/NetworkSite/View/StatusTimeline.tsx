@@ -33,7 +33,7 @@ import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
 } from "Common/UI/Components/StateTimeline/StateTimelineColumns";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -270,11 +270,12 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
            * The paragraph below says why the strip exists; the (i) is the
            * legend — what each colour, and the hollow outline, means.
            */}
-          <div className="mb-1 flex items-center gap-1 text-base font-medium text-gray-900">
-            <span>{DAILY_UPTIME_TITLE}</span>
-            <InfoTooltip
+          <div className="mb-1 flex text-base font-medium text-gray-900">
+            <WordsWithInfoTooltip
+              className="min-w-0"
+              text={DAILY_UPTIME_TITLE}
               label={DAILY_UPTIME_TITLE}
-              text={NETWORK_SITE_METRIC_DESCRIPTIONS.dailyUptime}
+              description={NETWORK_SITE_METRIC_DESCRIPTIONS.dailyUptime}
             />
           </div>
           <p className="mb-4 text-sm text-gray-500">

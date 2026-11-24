@@ -97,6 +97,7 @@ import ResourceHealthPill, {
 } from "../../../Components/ResourcePart/ResourceHealthPill";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import React, {
@@ -242,10 +243,11 @@ export const StorageArrayMetricTitle: FunctionComponent<
   const title: string = translator.translateText(props.title) as string;
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      {title}
-      <InfoTooltip label={title} text={props.description} />
-    </span>
+    <WordsWithInfoTooltip
+      text={title}
+      label={title}
+      description={props.description}
+    />
   );
 };
 

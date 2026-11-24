@@ -38,7 +38,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -474,12 +474,14 @@ const KubernetesClusterNodeDetail: FunctionComponent<
               return (
                 <div className="group/zoomhint mt-4">
                   <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                    <span>
-                      {translator.translateText("Network Throughput")}
-                    </span>
-                    <InfoTooltip
-                      label="Network Throughput"
+                    <WordsWithInfoTooltip
+                      className="min-w-0"
                       text={
+                        translator.translateText("Network Throughput") ||
+                        "Network Throughput"
+                      }
+                      label="Network Throughput"
+                      description={
                         KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeNetworkThroughput
                       }
                     />

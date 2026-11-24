@@ -262,16 +262,33 @@ describe.each([
       expect(countOf(source, "<CephRateChart")).toBe(2);
       expect(countOf(source, HINT)).toBe(2);
 
+      const sections: Array<string> = source
+        .split('<div className="group/zoomhint">')
+        .slice(1)
+        .map((part: string): string => {
+          return part.slice(0, part.indexOf("<CephRateChart"));
+        });
+
       for (const title of ["Client IOPS", "Client Throughput"]) {
-        const section: string = between(
-          source,
-          `<div className="group/zoomhint"> <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700"> {translator.translateText("${title}")} <InfoTooltip`,
-          "<CephRateChart",
-        );
-        expect([title, section.includes(`/> ${HINT} </div> `)]).toEqual([
+        const section: string =
+          sections.find((part: string): boolean => {
+            return part.includes(`label="${title}"`);
+          }) || "";
+
+        /*
+         * The heading's words in the reader's language, its (i) after the
+         * last of them (WordsWithInfoTooltip, #8044), then the hint.
+         */
+        expect([
           title,
-          true,
-        ]);
+          section.startsWith(
+            ' <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700"> <WordsWithInfoTooltip ',
+          ),
+          section.includes(
+            `translator.translateText("${title}") || "${title}"`,
+          ),
+          section.includes(`/> ${HINT} </div> `),
+        ]).toEqual([title, true, true, true]);
       }
     });
   },

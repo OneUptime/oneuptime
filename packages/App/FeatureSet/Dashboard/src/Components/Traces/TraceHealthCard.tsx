@@ -19,7 +19,7 @@ import {
 } from "Common/Types/Telemetry/TraceHealth";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -168,15 +168,12 @@ const TraceHealthCard: FunctionComponent<ComponentProps> = (
     <div data-testid="trace-health-card">
       <Card
         title={
-          <span className="inline-flex items-center gap-1.5">
-            {title}
-            <InfoTooltip
-              label={TRACE_HEALTH_TITLE}
-              text={describeTraceHealthSample(report, translator)}
-              iconClassName="h-4 w-4"
-              dataTestId="trace-health-sample"
-            />
-          </span>
+          <WordsWithInfoTooltip
+            text={title}
+            label={TRACE_HEALTH_TITLE}
+            description={describeTraceHealthSample(report, translator)}
+            infoDataTestId="trace-health-sample"
+          />
         }
         titleText={TRACE_HEALTH_TITLE}
         description={TRACE_HEALTH_DESCRIPTION}
