@@ -341,12 +341,14 @@ export default class DeclaredDataStores {
     const hashing: {
       projectId: ObjectID;
       isEnabled: true;
-      patternType: NotEqual;
+      patternType: NotEqual<LogScrubPatternType>;
       scrubAction: LogScrubAction;
     } = {
       projectId,
       isEnabled: true,
-      patternType: new NotEqual(LogScrubPatternType.IPAddress),
+      patternType: new NotEqual<LogScrubPatternType>(
+        LogScrubPatternType.IPAddress,
+      ),
       scrubAction: LogScrubAction.Hash,
     };
 
