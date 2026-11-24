@@ -67,6 +67,16 @@ export const CLOUD_HOST_VM_TYPES: Readonly<Record<CloudProvider, string>> = {
   [CloudProvider.Azure]: "Microsoft.Compute/virtualMachines",
 };
 
+// Whether a resource of this provider and type is a VM a host can be.
+export function isCloudHostVmType(
+  provider: string | null | undefined,
+  type: string | null | undefined,
+): boolean {
+  const cloud: CloudProvider | null = readCloudHostProvider(provider);
+
+  return Boolean(cloud && (type || "").trim() === CLOUD_HOST_VM_TYPES[cloud]);
+}
+
 // A Compute Engine instance's numeric ID, as its telemetry stores it.
 export const GCE_INSTANCE_ID_ATTRIBUTE: string = "resource.instance_id";
 

@@ -902,6 +902,18 @@ export interface CloudUsageObservation {
   memorySource?: CloudMemorySource | undefined;
   // The host it came from, when from a host.
   memoryHost?: CloudMemoryHost | undefined;
+  /*
+   * The host the VM is, when it has read too little of its memory to size
+   * it yet (a collector installed this week): said instead of asking for
+   * the collector it already has.
+   */
+  memoryHostPending?: CloudMemoryHostPending | undefined;
+}
+
+// A host whose memory readings are too few yet, and for how many days it has read.
+export interface CloudMemoryHostPending {
+  host: CloudMemoryHost;
+  observedDays: number;
 }
 
 /*
@@ -998,6 +1010,21 @@ export function withCloudMemoryReading(data: {
     cloud,
     host: data.host,
   });
+  /*
+   * A host that read some of its memory, too little yet: said, so the VM
+   * is not asked to install the collector it already runs.
+   */
+  const pending: CloudMemoryHostPending | undefined =
+    data.host?.host &&
+    !isCloudMemoryReadingUsable(data.host) &&
+    chosen?.source !== CloudMemorySource.Host
+      ? {
+          host: data.host.host,
+          observedDays: Math.floor(
+            Math.max(0, Number(data.host.observedHours) || 0) / 24,
+          ),
+        }
+      : undefined;
 
   if (!chosen) {
     return {
@@ -1005,6 +1032,7 @@ export function withCloudMemoryReading(data: {
       memoryPeakPercent: null,
       memorySource: undefined,
       memoryHost: undefined,
+      memoryHostPending: pending,
     };
   }
 
@@ -1015,6 +1043,7 @@ export function withCloudMemoryReading(data: {
     memorySource: chosen.source,
     memoryHost:
       chosen.source === CloudMemorySource.Host ? chosen.host : undefined,
+    memoryHostPending: pending,
   };
 }
 
@@ -1053,6 +1082,11 @@ export interface CloudRightSizing {
    * a sizing by CPU alone, with how to install the collector.
    */
   canHostReadMemory: boolean;
+  /*
+   * Sized by CPU alone while the host it is has read too little of its
+   * memory yet: who, and for how many days.
+   */
+  memoryHostPending?: CloudMemoryHostPending | undefined;
   observedDays: number;
   samples: number;
   // The readings at the recommended size.
@@ -1181,6 +1215,10 @@ export function buildCloudRightSizing(data: {
         ? data.observation.memoryHost
         : undefined,
     canHostReadMemory: isCloudHostVmProfile(data.profile),
+    memoryHostPending:
+      memoryPeak === null && isCloudHostVmProfile(data.profile)
+        ? data.observation.memoryHostPending
+        : undefined,
     observedDays: Math.floor(observedHours / 24),
     samples,
     projectedCpuP95Percent: null,
