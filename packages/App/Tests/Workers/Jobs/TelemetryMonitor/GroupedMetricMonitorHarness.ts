@@ -225,6 +225,8 @@ export interface EvaluationRun {
   written: {
     statusChangeLogs: Array<JSONObject>;
     monitorLogBodies: Array<JSONObject>;
+    // The check each alert opened keeps (createdStateLog), in their order.
+    createdAlertStateLogs: Array<JSONObject>;
   };
 }
 
@@ -1688,6 +1690,11 @@ export async function runFleetEvaluation(
       monitorLogBodies: stubs.monitorLogRows.map(
         (row: JSONObject): JSONObject => {
           return (row["logBody"] as JSONObject) || {};
+        },
+      ),
+      createdAlertStateLogs: stubs.createdAlerts.map(
+        (alert: Alert): JSONObject => {
+          return (alert.createdStateLog as JSONObject) || {};
         },
       ),
     },

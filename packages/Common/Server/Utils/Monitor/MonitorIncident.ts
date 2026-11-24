@@ -52,6 +52,7 @@ import MonitorDependencyRule from "../../../Utils/Monitor/MonitorDependencyRule"
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
+import EvaluationEventSeries from "./EvaluationEventSeries";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -238,6 +239,7 @@ export default class MonitorIncident {
 
         input.evaluationSummary?.events.push({
           type: "incident-resolved",
+          ...EvaluationEventSeries.of(openIncident.seriesFingerprint),
           ...EvaluationEventText.from({
             title: translatableSentence("Incident resolved: {{title}}", {
               title: String(openIncident.title || openIncident.id?.toString()),
@@ -400,6 +402,7 @@ export default class MonitorIncident {
         if (input.noteLeftOpen) {
           input.evaluationSummary?.events.push({
             type: "incident-skipped",
+            ...EvaluationEventSeries.of(fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Incident left open: {{title}}", {
                 title: String(
@@ -442,6 +445,7 @@ export default class MonitorIncident {
 
       input.evaluationSummary?.events.push({
         type: "incident-resolved",
+        ...EvaluationEventSeries.of(fingerprint),
         ...EvaluationEventText.from({
           title: translatableSentence("Incident resolved: {{title}}", {
             title: String(openIncident.title || openIncident.id?.toString()),
@@ -820,6 +824,7 @@ export default class MonitorIncident {
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Incident suppressed by scheduled maintenance",
@@ -846,6 +851,7 @@ export default class MonitorIncident {
           ) {
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Incident suppressed by monitor dependency",
@@ -928,6 +934,7 @@ export default class MonitorIncident {
 
             input.evaluationSummary?.events.push({
               type: "incident-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Incident already active: {{title}}",
@@ -1067,6 +1074,7 @@ export default class MonitorIncident {
 
               input.evaluationSummary?.events.push({
                 type: "incident-skipped",
+                ...EvaluationEventSeries.of(seriesFingerprint),
                 ...EvaluationEventText.from({
                   title: translatableSentence("Incident creation skipped"),
                   message: translatableSentence(
@@ -1472,6 +1480,7 @@ export default class MonitorIncident {
 
           input.evaluationSummary?.events.push({
             type: "incident-created",
+            ...EvaluationEventSeries.of(seriesFingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Incident created: {{title}}", {
                 title: String(createdIncident.title || criteriaIncident.title),
@@ -1516,6 +1525,7 @@ export default class MonitorIncident {
 
           input.evaluationSummary?.events.push({
             type: "incident-skipped",
+            ...EvaluationEventSeries.of(seriesMatch?.fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Incident creation failed"),
               message: seriesMatch?.fingerprint

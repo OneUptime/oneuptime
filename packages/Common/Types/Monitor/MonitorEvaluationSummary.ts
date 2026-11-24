@@ -130,6 +130,13 @@ export interface MonitorEvaluationEvent {
   relatedAlertCreatedAt?: Date | undefined;
   // When this action occurred, distinct from an already-active entity's creation.
   at?: Date | undefined;
+  /*
+   * The series of a grouped monitor the event is about - its alert or
+   * incident opened, left open, resolved or skipped - so a record about
+   * another series leaves it out (EvaluationEventSeries, #10841). None for
+   * an event about the whole monitor.
+   */
+  seriesFingerprint?: string | undefined;
   // A "grouping" event's note, for the Dashboard to word (see above).
   grouping?: MonitorEvaluationGroupingNote | undefined;
 }

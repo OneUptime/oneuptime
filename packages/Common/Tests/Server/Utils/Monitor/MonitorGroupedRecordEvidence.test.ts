@@ -13,8 +13,12 @@ import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import SeriesResourceLinker from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
+import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorEvaluationSummary, {
+  MonitorEvaluationEvent,
+} from "../../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
@@ -348,5 +352,112 @@ describe("a grouped metric monitor's records keep their own series", () => {
 
     expect(bytes(log)).toBeLessThanOrEqual(STORED_CHECK_MAX_SIZE_IN_BYTES);
     expect(log["isEvidenceTruncated"]).toBe(true);
+  });
+
+  /*
+   * #10841: each record kept the events of every record the check opened
+   * before it, so the k-th alert of a fleet-wide problem redacted, measured
+   * and stored k-1 "Alert created" events about other series. A record now
+   * keeps the whole monitor's events and its own series'.
+   */
+  it("each record keeps the whole monitor's events and its own series', never those of the records opened before it (#10841)", async () => {
+    const opened: Array<number> = Array.from(
+      { length: 40 },
+      (_: unknown, index: number): number => {
+        return index * 7;
+      },
+    );
+    const monitorWide: MonitorEvaluationEvent = {
+      type: "criteria-met",
+      title: "Criteria met: Restarted",
+    };
+    const summary: MonitorEvaluationSummary = {
+      evaluatedAt: new Date(),
+      criteriaResults: [],
+      events: [monitorWide],
+    };
+    const check: DataToProcess = {
+      ...fleet.check,
+      evaluationSummary: summary,
+    } as unknown as DataToProcess;
+    const perSeries: Array<PerSeriesCriteriaMatch> = opened.map(
+      (index: number): PerSeriesCriteriaMatch => {
+        return {
+          criteriaMetId: "criteria-1",
+          fingerprint: fingerprintOf(index),
+          labels: seriesLabels(index),
+          rootCause: `Series ${index} restarted.`,
+          metricContext: undefined,
+        };
+      },
+    );
+
+    // As MonitorResource runs them for a criteria: its incidents, then its alerts.
+    await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: check,
+      rootCause: "Containers restarted.",
+      autoResolveCriteriaInstanceIdIncidentIdsDictionary: {},
+      evaluationSummary: summary,
+      monitorSummary: null,
+      props: {},
+      matchesPerSeries: perSeries,
+    });
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: check,
+      rootCause: "Containers restarted.",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: {},
+      evaluationSummary: summary,
+      monitorSummary: null,
+      props: {},
+      matchesPerSeries: perSeries,
+    });
+
+    expect(createdIncidents).toHaveLength(opened.length);
+    expect(createdAlerts).toHaveLength(opened.length);
+
+    // Every event a record added names the series it is about.
+    const added: Array<MonitorEvaluationEvent> = summary.events.slice(1);
+    expect(added).toHaveLength(2 * opened.length);
+    for (const event of added) {
+      expect(event.seriesFingerprint).toBeTruthy();
+    }
+
+    const eventsOf: (log: JSONObject) => Array<JSONObject> = (
+      log: JSONObject,
+    ): Array<JSONObject> => {
+      return (log["evaluationSummary"] as JSONObject)[
+        "events"
+      ] as Array<JSONObject>;
+    };
+
+    // An incident is opened before its own creation is told: the whole monitor's event alone.
+    createdIncidents.forEach((incident: Incident) => {
+      expect(eventsOf(incident.createdStateLog!)).toEqual([monitorWide]);
+    });
+
+    // An alert keeps, besides, its own series' incident, opened just before it.
+    createdAlerts.forEach((alert: Alert, i: number) => {
+      const events: Array<JSONObject> = eventsOf(alert.createdStateLog!);
+
+      expect(events).toHaveLength(2);
+      expect(events[0]).toEqual(monitorWide);
+      expect(events[1]!["type"]).toBe("incident-created");
+      expect(events[1]!["seriesFingerprint"]).toBe(fingerprintOf(opened[i]!));
+    });
+
+    /*
+     * So the work of each does not grow with the records opened before it:
+     * one series' check differs from another's by a few hundred bytes of
+     * digits, where the 40th alert kept tens of kilobytes of the events of
+     * the 78 records opened before it.
+     */
+    const sizes: Array<number> = createdAlerts.map((alert: Alert): number => {
+      return bytes(alert.createdStateLog);
+    });
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThan(1024);
   });
 });

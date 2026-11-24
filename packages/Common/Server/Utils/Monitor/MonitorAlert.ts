@@ -63,6 +63,7 @@ import DataAlertCause, {
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
+import EvaluationEventSeries from "./EvaluationEventSeries";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -218,6 +219,7 @@ export default class MonitorAlert {
 
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
+          ...EvaluationEventSeries.of(openAlert.seriesFingerprint),
           ...EvaluationEventText.from({
             title: translatableSentence("Alert resolved: {{title}}", {
               title: String(openAlert.title || openAlert.id?.toString()),
@@ -367,6 +369,7 @@ export default class MonitorAlert {
         if (input.noteLeftOpen) {
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
+            ...EvaluationEventSeries.of(fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Alert left open: {{title}}", {
                 title: String(openAlert.title || openAlert.id?.toString()),
@@ -405,6 +408,7 @@ export default class MonitorAlert {
 
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
+        ...EvaluationEventSeries.of(fingerprint),
         ...EvaluationEventText.from({
           title: translatableSentence("Alert resolved: {{title}}", {
             title: String(openAlert.title || openAlert.id?.toString()),
@@ -754,6 +758,7 @@ export default class MonitorAlert {
 
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Alert suppressed by scheduled maintenance",
@@ -780,6 +785,7 @@ export default class MonitorAlert {
           ) {
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Alert suppressed by monitor dependency",
@@ -838,6 +844,7 @@ export default class MonitorAlert {
 
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence("Alert already active: {{title}}", {
                   title: String(renderedAlertTitle),
@@ -974,6 +981,7 @@ export default class MonitorAlert {
 
               input.evaluationSummary?.events.push({
                 type: "alert-skipped",
+                ...EvaluationEventSeries.of(seriesFingerprint),
                 ...EvaluationEventText.from({
                   title: translatableSentence("Alert creation skipped"),
                   message: translatableSentence(
@@ -1344,6 +1352,7 @@ export default class MonitorAlert {
 
           input.evaluationSummary?.events.push({
             type: "alert-created",
+            ...EvaluationEventSeries.of(seriesFingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Alert created: {{title}}", {
                 title: String(createdAlert.title || criteriaAlert.title),
@@ -1387,6 +1396,7 @@ export default class MonitorAlert {
 
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
+            ...EvaluationEventSeries.of(seriesMatch?.fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Alert creation failed"),
               message: seriesMatch?.fingerprint
