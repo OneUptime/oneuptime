@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * and takes no lock a reader or a writer waits behind: an existing store
  * has nothing drafted until OneUptime AI drafts it.
  */
-export class AddDataSecurityComplianceDrafts1809187510375
+export class AddDataSecurityComplianceDrafts1809187530375
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityComplianceDrafts1809187510375";
+  public name: string = "AddDataSecurityComplianceDrafts1809187530375";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
