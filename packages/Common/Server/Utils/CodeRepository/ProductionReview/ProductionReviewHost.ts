@@ -49,7 +49,10 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * Everything else a review does - what production shows of the change,
  * OneUptime AI's read, the comment's words - is the same on every host
- * (ProductionReviewRunner).
+ * (ProductionReviewRunner). A leak's suggested change goes on its line in
+ * each host's own review comments (#10777): a GitHub review, a GitLab diff
+ * discussion, a Forgejo or Gitea review - as a block its author can apply
+ * where the host applies one, else as a diff.
  *
  * GitLab, Forgejo and Gitea send OneUptime no webhooks: their pull
  * requests are found by the poll (ProductionReviewPoller), which also asks
@@ -809,7 +812,12 @@ export default class ProductionReviewHosts {
           });
         });
       },
-      // One review of the head the review read, its comments each on its line.
+      /*
+       * One review of the head the review read, its comments each on its
+       * line. Forgejo and Gitea take a comment on any line, unchecked
+       * against the diff (as read from Forgejo 11 and Gitea 1.24): pinned
+       * to that head, each stays on the line the review read it on.
+       */
       writeSuggestions: async (args: {
         pullRequest: Pick<CodeHostPullRequestDetails, "number" | "headSha">;
         body: string;

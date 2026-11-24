@@ -1368,24 +1368,27 @@ describe("the Sensitive data section (#10376)", () => {
       DataStoreExposure.OtherAccounts,
       "Accounts outside yours can reach that store, so they could reach the new column too.",
     ],
-  ])("a store %s says so in its words", (exposure: DataStoreExposure, words: string) => {
-    drawReview(
-      report({
-        sensitiveData: sectionOf([
-          column({
-            production: {
-              ...column().production,
-              store: { ...column().production!.store!, exposure },
-            },
-          }),
-        ]),
-      }),
-    );
+  ])(
+    "a store %s says so in its words",
+    (exposure: DataStoreExposure, words: string) => {
+      drawReview(
+        report({
+          sensitiveData: sectionOf([
+            column({
+              production: {
+                ...column().production,
+                store: { ...column().production!.store!, exposure },
+              },
+            }),
+          ]),
+        }),
+      );
 
-    expect(
-      screen.getByTestId("production-review-sensitive-data-exposure"),
-    ).toHaveTextContent(words);
-  });
+      expect(
+        screen.getByTestId("production-review-sensitive-data-exposure"),
+      ).toHaveTextContent(words);
+    },
+  );
 
   test("a reader who may not read Data Security: the migration's point as the diff says it, none of its table", () => {
     drawReview(
