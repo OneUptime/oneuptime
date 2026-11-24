@@ -586,7 +586,7 @@ const storageRepositorySlowTemplate: XcpNgAlertTemplate = {
   id: "xcp-ng-sr-slow",
   name: "Storage Repository Slow",
   summary:
-    "A host's reads and writes to a storage repository take more than 50 ms for 15 minutes.",
+    "A host's I/O to a storage repository takes more than 50 ms for 15 minutes.",
   description:
     "Alert when a host's I/O to a storage repository takes more than 50 ms on average for 15 minutes (xcp_host_disk_latency_seconds > 0.05). Every VM with a disk on it feels it. One incident per host and storage repository.",
   category: "Storage",
