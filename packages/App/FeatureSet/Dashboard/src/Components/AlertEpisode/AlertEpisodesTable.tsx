@@ -49,7 +49,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
@@ -67,6 +67,11 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in English (a key), said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
 
   /*
@@ -185,6 +190,9 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           });
         setAlertStates(result.data);
       } catch (err) {
+        setErrorWhatFailed(
+          translationKey("The alert states could not be loaded."),
+        );
         setError(API.getFriendlyMessage(err));
       }
     };
@@ -526,6 +534,11 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={
+            errorWhatFailed
+              ? translator.translateText(errorWhatFailed) || errorWhatFailed
+              : undefined
+          }
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");

@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "模板同步设置需要模板的监视器类型。请先选择监视器类型，然后重新选择同步设置。",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "此监视器模板在此项目中不存在，或者您无权访问。请重新加载页面，然后重试。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此监视器模板没有监视器类型，因此无法同步其监视器。请使用监视器类型重新创建该模板。",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此监视器模板不属于任何项目，因此无法将监视器关联到它。请在此项目中重新创建该模板。"
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此监视器模板不属于任何项目，因此无法将监视器关联到它。请在此项目中重新创建该模板。",
+  "The alert states could not be loaded.": "无法加载警报状态。",
+  "The announcement templates could not be loaded.": "无法加载公告模板。",
+  "The incident states could not be loaded.": "无法加载事件状态。",
+  "The incident templates could not be loaded.": "无法加载事件模板。",
+  "The scheduled maintenance states could not be loaded.": "无法加载计划维护状态。",
+  "The scheduled maintenance templates could not be loaded.": "无法加载计划维护模板。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未删除。",
+  "“{{action}}” did not finish.": "“{{action}}”操作未完成。"
 }

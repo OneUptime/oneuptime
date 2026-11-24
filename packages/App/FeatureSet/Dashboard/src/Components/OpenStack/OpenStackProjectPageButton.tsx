@@ -10,6 +10,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   OpenStackProjectPagePlanAnswer,
@@ -107,6 +108,15 @@ const OpenStackProjectPageButton: FunctionComponent<ComponentProps> = (
           submitButtonText={translationKey("Create")}
           isLoading={isBusy}
           error={error || undefined}
+          /*
+           * What failed is the Create Private Page the person pressed, as its
+           * button names it: the title names no action (#7680).
+           */
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Create Private Page") ||
+              "Create Private Page",
+          )}
           disableSubmitButton={!plan.isProjectInCloud || plan.rows.length === 0}
           onClose={() => {
             setPlan(null);

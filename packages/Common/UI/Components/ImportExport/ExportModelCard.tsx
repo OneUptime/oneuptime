@@ -13,6 +13,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -92,6 +93,14 @@ const ExportModelCard: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={error}
           title={`Export Error`}
+          // What failed is the Export the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translateNamedAction(translator, {
+              template: "Export {{itemName}}",
+              itemName: singularName,
+            }),
+          )}
           onSubmit={() => {
             setError("");
           }}

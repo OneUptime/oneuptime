@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Le impostazioni di sincronizzazione del modello richiedono il tipo di monitor del modello. Scegli prima il tipo di monitor, poi scegli di nuovo le impostazioni di sincronizzazione.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Questo modello di monitor non esiste in questo progetto o non hai accesso. Ricarica la pagina, poi riprova.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Questo modello di monitor non ha un tipo di monitor, quindi i suoi monitor non possono essere sincronizzati. Crea di nuovo il modello con un tipo di monitor.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Questo modello di monitor non appartiene a nessun progetto, quindi nessun monitor può esservi collegato. Crea di nuovo il modello in questo progetto."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Questo modello di monitor non appartiene a nessun progetto, quindi nessun monitor può esservi collegato. Crea di nuovo il modello in questo progetto.",
+  "The alert states could not be loaded.": "Caricamento non riuscito: stati avviso.",
+  "The announcement templates could not be loaded.": "Caricamento non riuscito: modelli di annunci.",
+  "The incident states could not be loaded.": "Caricamento non riuscito: stati incidente.",
+  "The incident templates could not be loaded.": "Caricamento non riuscito: modelli di incidenti.",
+  "The scheduled maintenance states could not be loaded.": "Caricamento non riuscito: stati della manutenzione programmata.",
+  "The scheduled maintenance templates could not be loaded.": "Caricamento non riuscito: modelli di manutenzione programmata.",
+  "The {{itemName}} was not deleted.": "Eliminazione non riuscita: {{itemName}}.",
+  "“{{action}}” did not finish.": "L'operazione «{{action}}» non è stata completata."
 }

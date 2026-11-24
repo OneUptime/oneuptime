@@ -642,6 +642,8 @@
   "The {{itemName}} was not created.": "{{itemName}} blev ikke oprettet.",
   "The {{itemName}} was not saved.": "{{itemName}} blev ikke gemt.",
   "This did not finish.": "Handlingen blev ikke fuldført.",
+  "The {{itemName}} was not deleted.": "{{itemName}} blev ikke slettet.",
+  "“{{action}}” did not finish.": "Handlingen \"{{action}}\" blev ikke fuldført.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Denne side stødte på et problem, så handlingen blev ikke fuldført. Genindlæs siden, og prøv så igen.",
   "This page ran into a problem.": "Denne side stødte på et problem.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Kør npm run doctor -- --logs i serverens oneuptime-mappe, og søg efter denne reference for at se, hvad der fejlede.",

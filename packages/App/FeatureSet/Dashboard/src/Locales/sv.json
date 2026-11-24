@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Inställningarna för mallsynkronisering behöver mallens monitortyp. Välj monitortypen först och välj sedan synkroniseringsinställningarna igen.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Den här monitormallen finns inte i det här projektet, eller så har du inte åtkomst till den. Läs in sidan igen och försök sedan igen.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Den här monitormallen har ingen monitortyp, så dess monitorer kan inte synkroniseras. Skapa mallen igen med en monitortyp.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Den här monitormallen hör inte till något projekt, så ingen monitor kan kopplas till den. Skapa mallen igen i det här projektet."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Den här monitormallen hör inte till något projekt, så ingen monitor kan kopplas till den. Skapa mallen igen i det här projektet.",
+  "The alert states could not be loaded.": "Larmstatusarna kunde inte läsas in.",
+  "The announcement templates could not be loaded.": "Meddelandemallarna kunde inte läsas in.",
+  "The incident states could not be loaded.": "Incidentstatusarna kunde inte läsas in.",
+  "The incident templates could not be loaded.": "Incidentmallarna kunde inte läsas in.",
+  "The scheduled maintenance states could not be loaded.": "Tillstånden för schemalagt underhåll kunde inte läsas in.",
+  "The scheduled maintenance templates could not be loaded.": "Mallarna för schemalagt underhåll kunde inte läsas in.",
+  "The {{itemName}} was not deleted.": "{{itemName}} togs inte bort.",
+  "“{{action}}” did not finish.": "Åtgärden ”{{action}}” slutfördes inte."
 }

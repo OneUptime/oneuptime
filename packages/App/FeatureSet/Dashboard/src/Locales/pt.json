@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "As configurações de sincronização do modelo precisam do tipo de monitor do modelo. Escolha primeiro o tipo de monitor e depois escolha as configurações de sincronização novamente.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Este modelo de monitor não existe neste projeto ou você não tem acesso a ele. Recarregue a página e tente novamente.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Este modelo de monitor não tem tipo de monitor, então os monitores dele não podem ser sincronizados. Crie o modelo novamente com um tipo de monitor.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Este modelo de monitor não pertence a nenhum projeto, então nenhum monitor pode ser vinculado a ele. Crie o modelo novamente neste projeto."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Este modelo de monitor não pertence a nenhum projeto, então nenhum monitor pode ser vinculado a ele. Crie o modelo novamente neste projeto.",
+  "The alert states could not be loaded.": "Não foi possível carregar os estados do alerta.",
+  "The announcement templates could not be loaded.": "Não foi possível carregar os modelos de anúncios.",
+  "The incident states could not be loaded.": "Não foi possível carregar os estados do incidente.",
+  "The incident templates could not be loaded.": "Não foi possível carregar os modelos de incidentes.",
+  "The scheduled maintenance states could not be loaded.": "Não foi possível carregar os estados da manutenção programada.",
+  "The scheduled maintenance templates could not be loaded.": "Não foi possível carregar os modelos de manutenção programada.",
+  "The {{itemName}} was not deleted.": "Não foi excluído: {{itemName}}.",
+  "“{{action}}” did not finish.": "A operação \"{{action}}\" não terminou."
 }

@@ -771,6 +771,16 @@ work out, starts from a default for everything else, and folds what most people 
   [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **A dialog that fails says what failed.** A failure nobody explained opens with what failed, and
+  every dialog but the notes' opened with "This did not finish." - over Rotate Verification Code,
+  over the Error dialog a failed delete opened, over Test Failed (#7680). A dialog names itself by
+  its title, the action the person chose ("“Rotate Verification Code” did not finish.", which Modal
+  says for it), or says it in words of its own (`errorWhatFailed`: "The monitor was not deleted.").
+  An Error dialog, whose description is the error and whose title ("Error", "Test Failed") names no
+  action, always says it itself, or marks a title that says it already ("Could not start runbook",
+  `titleSaysWhatFailed`). Enforced by
+  [DialogsSayWhatFailedGuard](../../packages/Common/Tests/UI/DialogsSayWhatFailedGuard.test.ts) and
+  [DialogWhatFailedInReadersLanguage](../../packages/Common/Tests/UI/Components/Modal/DialogWhatFailedInReadersLanguage.test.tsx).
 - **An action that changes something says it worked, without blocking the page.** A save, a
   create, a delete or a test that went out says so in a toast (`Toast.success`,
   `Common/UI/Utils/Toast`), which goes by itself; a failure says so in an error toast or a dialog,

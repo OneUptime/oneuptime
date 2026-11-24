@@ -118,6 +118,13 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import WorkflowPlanNotice, {
   doesCurrentPlanRunWorkflows,
 } from "../../../Components/Workflow/WorkflowPlanNotice";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getDialogWhatFailed,
+  getLoadWhatFailed,
+  getSaveWhatFailed,
+} from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -177,7 +184,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [nodes, setNodes] = useState<Array<Node>>([]);
   const [edges, setEdges] = useState<Array<Edge>>([]);
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in the reader's words, said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   /*
    * An archived workflow does not run, from any trigger, whatever its
    * Enabled switch says. The banner above every one of its pages says so and
@@ -257,6 +270,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
     },
     onError: (message: string): void => {
+      setErrorWhatFailed(getSaveWhatFailed(translator, "Workflow"));
       setError(message);
     },
   });
@@ -400,6 +414,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return API.getFriendlyMessage(error);
     },
     onSaveFailed: (message: string): void => {
+      setErrorWhatFailed(getSaveWhatFailed(translator, "Workflow"));
       setError(message);
     },
     onError: (message: string): void => {
@@ -606,6 +621,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setError("Workflow not found");
       }
     } catch (err) {
+      setErrorWhatFailed(getLoadWhatFailed(translator, "Workflow"));
       setError(API.getFriendlyMessage(err));
     }
 
@@ -709,6 +725,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         revision,
       );
     } catch (err) {
+      setErrorWhatFailed(getLoadWhatFailed(translator, "Workflow"));
       setError(API.getFriendlyMessage(err));
     }
   };
@@ -845,6 +862,12 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     try {
       await send();
     } catch (err) {
+      setErrorWhatFailed(
+        getDialogWhatFailed(
+          translator,
+          translator.translateText("Run Workflow") || "Run Workflow",
+        ),
+      );
       setError(API.getFriendlyMessage(err));
     }
   };
@@ -1196,6 +1219,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <ConfirmModal
             title={`Error`}
             description={`${error}`}
+            errorWhatFailed={errorWhatFailed || undefined}
             submitButtonText={"Close"}
             onSubmit={() => {
               setError("");

@@ -3,6 +3,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1482,6 +1483,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Test Failed`}
           error={testError}
+          // What failed is the Test Rule the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Test Rule") || "Test Rule",
+          )}
           description={translator.translateTemplate(
             "Fix the problem above, then test the rule again.",
           )}

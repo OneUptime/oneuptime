@@ -17,6 +17,7 @@ import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence
 import User from "Common/Models/DatabaseModels/User";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -225,6 +226,11 @@ const DeleteAccount: FunctionComponent<
         <ConfirmModal
           description={deleteError}
           title="Delete Error"
+          // What failed is the Delete Account the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Delete Account") || "Delete Account",
+          )}
           onSubmit={() => {
             setShowDeleteErrorModal(false);
             setDeleteError("");

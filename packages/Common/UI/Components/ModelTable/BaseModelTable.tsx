@@ -20,6 +20,11 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  getDeleteWhatFailed,
+  getDialogWhatFailed,
+  getLoadWhatFailed,
+} from "../../Utils/DialogWhatFailed";
 import Toast, {
   CHANGES_SAVED,
   getItemCreatedTemplate,
@@ -2741,6 +2746,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [isFilterFetchLoading, setIsFilterFetchLoading] = useState(false);
 
   const [errorModalText, setErrorModalText] = useState<string>("");
+  /*
+   * What the Error dialog's failure was, said first when nobody explained
+   * it (#7680): its title, "Error", names nothing.
+   */
+  const [errorModalWhatFailed, setErrorModalWhatFailed] = useState<string>("");
 
   useEffect(() => {
     const currentQuery: Query<TBaseModel> = propsQueryRef.current;
@@ -2862,6 +2872,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
       await fetchItems();
     } catch (err) {
+      setErrorModalWhatFailed(
+        getDeleteWhatFailed(
+          translator,
+          getDeleteLabel(props.singularName, model.singularName),
+        ),
+      );
       setErrorModalText(API.getFriendlyMessage(err));
     }
 
@@ -4446,6 +4462,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
       )
       .catch((err: Error) => {
+        setErrorModalWhatFailed(
+          getLoadWhatFailed(
+            translator,
+            getDeleteLabel(props.singularName, model.singularName),
+          ),
+        );
         setErrorModalText(API.getFriendlyMessage(err));
       });
   };
@@ -7180,6 +7202,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           isLoading={isDeleteAlternativeRunning}
           error={deleteAlternativeError || undefined}
+          /*
+           * What failed is the alternative ("Archive instead"), named as its
+           * button is: the dialog's title names the delete it was offered
+           * in place of (#7680).
+           */
+          errorWhatFailed={
+            deleteConfirmation?.alternative
+              ? getDialogWhatFailed(
+                  translator,
+                  translateString(deleteConfirmation.alternative.title) ||
+                    deleteConfirmation.alternative.title,
+                )
+              : undefined
+          }
           title={
             deleteConfirmation?.title
               ? translator.translateText(deleteConfirmation.title) ||
@@ -7300,6 +7336,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={`Error`}
           description={`${errorModalText}`}
+          errorWhatFailed={errorModalWhatFailed || undefined}
           submitButtonText={"Close"}
           onSubmit={() => {
             setErrorModalText("");

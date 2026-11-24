@@ -207,6 +207,9 @@ export const UnexplainedErrorWords: {
   createFailed: string;
   saveFailed: string;
   loadFailed: string;
+  deleteFailed: string;
+  // A dialog named by its title, where it says nothing more of what it did.
+  dialogDidNotFinish: string;
   pageDidNotLoadTitle: string;
 } = {
   didNotFinish: translationKey("This did not finish."),
@@ -265,6 +268,13 @@ export const UnexplainedErrorWords: {
   createFailed: translationKey("The {{itemName}} was not created."),
   saveFailed: translationKey("The {{itemName}} was not saved."),
   loadFailed: translationKey("The {{itemName}} could not be loaded."),
+  deleteFailed: translationKey("The {{itemName}} was not deleted."),
+  /*
+   * A dialog's first line, naming the dialog by the title the person chose
+   * it by (Common/UI/Utils/DialogWhatFailed, #7680): "“Rotate Verification
+   * Code” did not finish." rather than "This did not finish."
+   */
+  dialogDidNotFinish: translationKey("“{{action}}” did not finish."),
   pageDidNotLoadTitle: translationKey("Page Did Not Load"),
 };
 

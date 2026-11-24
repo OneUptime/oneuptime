@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "範本同步設定需要範本的監測器類型。請先選擇監測器類型，然後重新選擇同步設定。",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "此監測器範本在此專案中不存在，或您沒有存取權。請重新載入頁面，然後再試一次。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此監測器範本沒有監測器類型，因此無法同步其監測器。請使用監測器類型重新建立該範本。",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此監測器範本不屬於任何專案，因此無法將監測器連結到它。請在此專案中重新建立該範本。"
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此監測器範本不屬於任何專案，因此無法將監測器連結到它。請在此專案中重新建立該範本。",
+  "The alert states could not be loaded.": "無法載入警示狀態。",
+  "The announcement templates could not be loaded.": "無法載入公告範本。",
+  "The incident states could not be loaded.": "無法載入事件狀態。",
+  "The incident templates could not be loaded.": "無法載入事件範本。",
+  "The scheduled maintenance states could not be loaded.": "無法載入排定維護狀態。",
+  "The scheduled maintenance templates could not be loaded.": "無法載入排定維護範本。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未刪除。",
+  "“{{action}}” did not finish.": "「{{action}}」操作未完成。"
 }

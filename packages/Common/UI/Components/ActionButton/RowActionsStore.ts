@@ -60,6 +60,12 @@ export interface RowActionQuestion<T extends GenericObject>
 export interface RowActionError extends RowActionDialogBase {
   kind: RowActionDialogKind.Error;
   message: string;
+  /*
+   * The action's title, in English as its button is given it ("Assign to
+   * Me"): what failed, said first when nobody explained why (#7680). The
+   * Error dialog's own title names no action.
+   */
+  actionTitle?: string | undefined;
 }
 
 export type RowActionDialog<T extends GenericObject> =
@@ -128,6 +134,7 @@ export default class RowActionsStore<T extends GenericObject> {
   public openError(data: {
     rowKey: string;
     message: string;
+    actionTitle?: string | undefined;
     openedFrom: RowActionOpener;
   }): void {
     this.setDialogs([
@@ -137,6 +144,7 @@ export default class RowActionsStore<T extends GenericObject> {
         id: this.takeDialogId(),
         rowKey: data.rowKey,
         message: data.message,
+        actionTitle: data.actionTitle,
         openedFrom: data.openedFrom,
       },
     ]);

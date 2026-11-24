@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Die Einstellungen für die Vorlagensynchronisierung brauchen den Monitortyp der Vorlage. Wählen Sie zuerst den Monitortyp und dann die Synchronisierungseinstellungen erneut.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Diese Monitorvorlage existiert in diesem Projekt nicht, oder Sie haben keinen Zugriff darauf. Laden Sie die Seite neu und versuchen Sie es dann erneut.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Diese Monitorvorlage hat keinen Monitortyp, daher können ihre Monitore nicht synchronisiert werden. Erstellen Sie die Vorlage mit einem Monitortyp neu.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Diese Monitorvorlage gehört zu keinem Projekt, daher kann kein Monitor mit ihr verknüpft werden. Erstellen Sie die Vorlage in diesem Projekt neu."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Diese Monitorvorlage gehört zu keinem Projekt, daher kann kein Monitor mit ihr verknüpft werden. Erstellen Sie die Vorlage in diesem Projekt neu.",
+  "The alert states could not be loaded.": "Die Warnungsstatus konnten nicht geladen werden.",
+  "The announcement templates could not be loaded.": "Die Ankündigungs-Vorlagen konnten nicht geladen werden.",
+  "The incident states could not be loaded.": "Die Vorfallsstatus konnten nicht geladen werden.",
+  "The incident templates could not be loaded.": "Die Vorfall-Vorlagen konnten nicht geladen werden.",
+  "The scheduled maintenance states could not be loaded.": "Die Status der geplanten Wartung konnten nicht geladen werden.",
+  "The scheduled maintenance templates could not be loaded.": "Die Vorlagen für geplante Wartung konnten nicht geladen werden.",
+  "The {{itemName}} was not deleted.": "{{itemName}} wurde nicht gelöscht.",
+  "“{{action}}” did not finish.": "Der Vorgang „{{action}}“ wurde nicht abgeschlossen."
 }

@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "تحتاج إعدادات مزامنة القالب إلى نوع المراقبة الخاص بالقالب. اختر نوع المراقبة أولًا، ثم اختر إعدادات المزامنة مرة أخرى.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "قالب المراقبة هذا غير موجود في هذا المشروع، أو ليس لديك صلاحية الوصول إليه. أعد تحميل الصفحة، ثم حاول مرة أخرى.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "ليس لقالب المراقبة هذا نوع مراقبة، لذا لا يمكن مزامنة مراقباته. أنشئ القالب مرة أخرى بنوع مراقبة.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "قالب المراقبة هذا لا ينتمي إلى أي مشروع، لذا لا يمكن ربط أي مراقبة به. أنشئ القالب مرة أخرى في هذا المشروع."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "قالب المراقبة هذا لا ينتمي إلى أي مشروع، لذا لا يمكن ربط أي مراقبة به. أنشئ القالب مرة أخرى في هذا المشروع.",
+  "The alert states could not be loaded.": "تعذّر تحميل حالات التنبيهات.",
+  "The announcement templates could not be loaded.": "تعذّر تحميل قوالب الإعلانات.",
+  "The incident states could not be loaded.": "تعذّر تحميل حالات الحوادث.",
+  "The incident templates could not be loaded.": "تعذّر تحميل قوالب الحوادث.",
+  "The scheduled maintenance states could not be loaded.": "تعذّر تحميل حالات الصيانة المجدولة.",
+  "The scheduled maintenance templates could not be loaded.": "تعذّر تحميل قوالب الصيانة المجدولة.",
+  "The {{itemName}} was not deleted.": "لم يتم حذف {{itemName}}.",
+  "“{{action}}” did not finish.": "لم تكتمل عملية «{{action}}»."
 }

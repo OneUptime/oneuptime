@@ -20,6 +20,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -119,6 +120,11 @@ const IncidentPostmortem: FunctionComponent<
   const postmortemStatuses: PostmortemStatusesState = usePostmortemStatuses();
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in the reader's words, said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
   /*
    * Whether the incident has a postmortem note, once it is read: what the
@@ -220,6 +226,13 @@ const IncidentPostmortem: FunctionComponent<
         // Refresh the data to show updated status
         refresh();
       } catch (err) {
+        setErrorWhatFailed(
+          getDialogWhatFailed(
+            translator,
+            translator.translateText("Resend notification") ||
+              "Resend notification",
+          ) || "",
+        );
         setError(API.getFriendlyMessage(err));
       }
     };
@@ -570,6 +583,7 @@ const IncidentPostmortem: FunctionComponent<
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={errorWhatFailed || undefined}
           submitButtonText={"Close"}
           onSubmit={() => {
             setError("");

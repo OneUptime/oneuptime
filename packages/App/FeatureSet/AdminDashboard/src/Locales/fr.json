@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "Échec de la création : {{itemName}}.",
   "The {{itemName}} was not saved.": "Échec de l'enregistrement : {{itemName}}.",
   "This did not finish.": "L'opération n'a pas abouti.",
+  "The {{itemName}} was not deleted.": "Échec de la suppression : {{itemName}}.",
+  "“{{action}}” did not finish.": "L'opération « {{action}} » n'a pas abouti.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Cette page a rencontré un problème, l'opération n'a donc pas abouti. Rechargez la page, puis réessayez.",
   "This page ran into a problem.": "Cette page a rencontré un problème.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Pour voir ce qui a échoué, lancez npm run doctor -- --logs dans le dossier oneuptime du serveur et cherchez cette référence.",

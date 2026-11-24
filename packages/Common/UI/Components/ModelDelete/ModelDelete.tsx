@@ -35,6 +35,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getDeleteWhatFailed } from "../../Utils/DialogWhatFailed";
 import Toast, { ITEM_DELETED } from "../../Utils/Toast";
 import React, { ReactElement, useEffect, useState } from "react";
 
@@ -382,6 +383,8 @@ const ModelDelete: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={error}
           title={`Delete Error`}
+          // "The monitor was not deleted.", where nobody explained why (#7680).
+          errorWhatFailed={getDeleteWhatFailed(translator, typeLabel)}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

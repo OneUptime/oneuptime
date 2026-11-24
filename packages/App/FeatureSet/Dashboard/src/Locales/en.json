@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.",
+  "The alert states could not be loaded.": "The alert states could not be loaded.",
+  "The announcement templates could not be loaded.": "The announcement templates could not be loaded.",
+  "The incident states could not be loaded.": "The incident states could not be loaded.",
+  "The incident templates could not be loaded.": "The incident templates could not be loaded.",
+  "The scheduled maintenance states could not be loaded.": "The scheduled maintenance states could not be loaded.",
+  "The scheduled maintenance templates could not be loaded.": "The scheduled maintenance templates could not be loaded.",
+  "The {{itemName}} was not deleted.": "The {{itemName}} was not deleted.",
+  "“{{action}}” did not finish.": "“{{action}}” did not finish."
 }

@@ -64203,5 +64203,13 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Innstillingene for malsynkronisering trenger malens monitortype. Velg monitortypen først, og velg så synkroniseringsinnstillingene på nytt.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Denne monitormalen finnes ikke i dette prosjektet, eller du har ikke tilgang til den. Last inn siden på nytt, og prøv så igjen.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Denne monitormalen har ingen monitortype, så monitorene dens kan ikke synkroniseres. Opprett malen på nytt med en monitortype.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Denne monitormalen hører ikke til noe prosjekt, så ingen monitor kan kobles til den. Opprett malen på nytt i dette prosjektet."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Denne monitormalen hører ikke til noe prosjekt, så ingen monitor kan kobles til den. Opprett malen på nytt i dette prosjektet.",
+  "The alert states could not be loaded.": "Varselsstatusene kunne ikke lastes inn.",
+  "The announcement templates could not be loaded.": "Kunngjøringsmalene kunne ikke lastes inn.",
+  "The incident states could not be loaded.": "Hendelsesstatusene kunne ikke lastes inn.",
+  "The incident templates could not be loaded.": "Hendelsesmalene kunne ikke lastes inn.",
+  "The scheduled maintenance states could not be loaded.": "Tilstandene for planlagt vedlikehold kunne ikke lastes inn.",
+  "The scheduled maintenance templates could not be loaded.": "Malene for planlagt vedlikehold kunne ikke lastes inn.",
+  "The {{itemName}} was not deleted.": "{{itemName}} ble ikke slettet.",
+  "“{{action}}” did not finish.": "Handlingen «{{action}}» ble ikke fullført."
 }

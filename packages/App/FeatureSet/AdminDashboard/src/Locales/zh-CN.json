@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "{{itemName}}未创建。",
   "The {{itemName}} was not saved.": "{{itemName}}未保存。",
   "This did not finish.": "操作未完成。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未删除。",
+  "“{{action}}” did not finish.": "“{{action}}”操作未完成。",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "此页面遇到了问题，因此操作未完成。请重新加载页面，然后重试。",
   "This page ran into a problem.": "此页面遇到了问题。",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "要查看失败原因，请在服务器的 oneuptime 文件夹中运行 npm run doctor -- --logs，并查找这个参考编号。",
