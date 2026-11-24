@@ -317,13 +317,13 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 
 你的其他任何东西都不会被自动信任：不包括你的主机、Kubernetes 节点、探测器或虚拟机、NAT 网关，以及 Network、Gateway 或 Azure 负载均衡器。它们不转发任何人，或者原样传递请求，所以其上运行的任何东西都可能冒称任何客户端：监控带着自己的标头发出的请求、一个 Pod、网关后面的一台笔记本电脑。如果其中一个是你的代理，请把它添加到 **受信任的代理**。Kubernetes 入口会作为它实际所是的负载均衡器受到信任：GKE 入口是 Google Cloud Application Load Balancer，AKS 的 Application Gateway 入口是 Application Gateway，类为 `alb` 的 EKS 入口是 AWS Application Load Balancer。集群内的入口控制器从私有地址转发，私有地址始终受信任。
 
-对其中任何一项的更改会在一分钟内到达扫描，新的负载均衡器会在五分钟内到达。
+对其中任何一项的更改会在一分钟内生效，新的负载均衡器会在五分钟内受到信任。
 
 #### 以 X-Forwarded-For 结尾的访问日志
 
 在负载均衡器之后，许多 Web 服务器会把转发的地址记录在最后，就像 nginx 自己的 `main` 格式那样：
 
-```
+```nginx
 log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                 '$status $body_bytes_sent "$http_referer" '
                 '"$http_user_agent" "$http_x_forwarded_for"';

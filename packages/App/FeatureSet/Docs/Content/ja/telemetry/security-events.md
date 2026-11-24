@@ -313,17 +313,17 @@ OneUptime 14.0.84 より前に保存されたイベントでは、プロセス�
 
 **セキュリティイベント → 接続 → その他の設定** には、あなたが書く一覧の **信頼済みプロキシ** と、それ以外とその理由を示す **自動で信頼** があります。アドレスが公開されていて、ほかのどれにも信頼されていないプロキシは、**信頼済みプロキシ** に 1 行に 1 つのアドレスか範囲で登録してください。接続していない CDN、インターネット経由でアプリに届くロードバランサー、公開アドレスを持つサーバー上でアプリの前に置いた nginx などのリバースプロキシがこれに当たります。登録するまで、それを経由した攻撃はすべてプロキシのものとされます。Google Cloud のグローバル外部アプリケーション ロードバランサーの背後では、アプリへの接続は Google のフロントエンドから届くので、`35.191.0.0/16` と `130.211.0.0/22` を登録してください。
 
-自社のアプリケーション ロードバランサーとは、[接続したクラウド アカウント](/docs/telemetry/cloud-accounts) が一覧に挙げるもので、AWS Application Load Balancer、すべてのリスナーが HTTP か HTTPS の AWS Classic Load Balancer、Google Cloud Application Load Balancer、Azure Application Gateway の公開アドレスです。それぞれが転送するクライアントを `X-Forwarded-For` に追加します。Google Cloud のロードバランサーはクライアントのアドレスの後ろに自分のアドレスを追加し、Application Gateway は公開バックエンドに自分のアドレスから接続するので、これがなければそれを経由した攻撃はすべてロードバランサーのものとされてしまいます。**自動で信頼** の **ロードバランサー** がそれらを一覧表示し、プロジェクトオーナー、プロジェクト管理者、セキュリティ管理者がオフにできます。
+自社のアプリケーション ロードバランサーとは、[接続したクラウド アカウント](/docs/telemetry/cloud-accounts) が一覧に挙げるもので、AWS Application Load Balancer、すべてのリスナーが HTTP か HTTPS の AWS Classic Load Balancer、Google Cloud Application Load Balancer、Azure Application Gateway の公開アドレスです。それぞれが転送するクライアントを `X-Forwarded-For` に追加します。Google Cloud のロードバランサーはクライアントのアドレスの後ろに自分のアドレスを追加し、Application Gateway は公開バックエンドに自分のアドレスから接続するので、これがなければそれを経由した攻撃はすべてロードバランサーのものとされてしまいます。**自動で信頼** の **ロードバランサー** がそれらを一覧表示し、プロジェクト所有者、プロジェクト管理者、セキュリティ管理者がオフにできます。
 
 それ以外に自動で信頼されるものはありません。ホスト、Kubernetes ノード、プローブ、仮想マシン、NAT ゲートウェイ、Network・Gateway・Azure のロードバランサーは信頼されません。これらは誰も転送しないか、リクエストを届いたまま渡すだけなので、その上で動くものは何でも、どんなクライアントでも名乗れてしまいます。独自のヘッダーを付けてモニターが送るリクエスト、Pod、ゲートウェイの背後のノート PC などです。そのいずれかがプロキシなら、**信頼済みプロキシ** に追加してください。Kubernetes のイングレスは、それが実際にあたるロードバランサーとして信頼されます。GKE のイングレスは Google Cloud Application Load Balancer、AKS の Application Gateway イングレスは Application Gateway、クラス `alb` の EKS イングレスは AWS Application Load Balancer です。クラスター内のイングレス コントローラーはプライベートアドレスから転送するので、常に信頼されます。
 
-これらへの変更は 1 分以内に、新しいロードバランサーは 5 分以内にスキャンへ反映されます。
+これらへの変更は 1 分以内に反映され、新しいロードバランサーは 5 分以内に信頼されます。
 
 #### 末尾が X-Forwarded-For のアクセスログ
 
 ロードバランサーの背後では、nginx 自身の `main` 形式のように、転送されたアドレスを最後に記録する Web サーバーが多くあります。
 
-```
+```nginx
 log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                 '$status $body_bytes_sent "$http_referer" '
                 '"$http_user_agent" "$http_x_forwarded_for"';

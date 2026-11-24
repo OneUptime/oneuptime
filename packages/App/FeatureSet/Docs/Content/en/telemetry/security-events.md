@@ -317,13 +317,13 @@ Your own application load balancers are the ones your [connected cloud accounts]
 
 Nothing else of yours is trusted automatically: not your hosts, Kubernetes nodes, probes or virtual machines, a NAT gateway, or a Network, Gateway or Azure load balancer. They forward nobody, or pass a request on as it came, so whatever runs on them could name any client: a request a monitor sends with headers of its own, a pod, a laptop behind the gateway. If one of them is your proxy, add it to **Trusted Proxies**. A Kubernetes ingress is trusted as the load balancer it is: a GKE ingress is a Google Cloud Application Load Balancer, an AKS Application Gateway ingress an Application Gateway, and an EKS ingress of class `alb` an AWS Application Load Balancer. An ingress controller inside your cluster forwards from a private address, which is always trusted.
 
-A change to any of these reaches the scans within a minute, and a new load balancer within five.
+A change to any of these takes effect within a minute, and a new load balancer is trusted within five.
 
 #### Access logs that end with X-Forwarded-For
 
 Behind a load balancer, many web servers log the forwarded address last, as nginx's own `main` format does:
 
-```
+```nginx
 log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                 '$status $body_bytes_sent "$http_referer" '
                 '"$http_user_agent" "$http_x_forwarded_for"';

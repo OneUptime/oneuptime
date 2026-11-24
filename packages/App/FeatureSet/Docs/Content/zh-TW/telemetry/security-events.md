@@ -317,13 +317,13 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 
 你的其他任何東西都不會被自動信任：不包括你的主機、Kubernetes 節點、探測器或虛擬機器、NAT 閘道，以及 Network、Gateway 或 Azure 負載平衡器。它們不轉送任何人，或者原樣傳遞請求，所以在上面執行的任何東西都可能冒稱任何用戶端：監控帶著自己的標頭發出的請求、一個 Pod、閘道後面的一台筆記型電腦。如果其中一個是你的代理伺服器，請把它加入 **受信任的代理伺服器**。Kubernetes 入口會作為它實際所是的負載平衡器受到信任：GKE 入口是 Google Cloud Application Load Balancer，AKS 的 Application Gateway 入口是 Application Gateway，類別為 `alb` 的 EKS 入口是 AWS Application Load Balancer。叢集內的入口控制器從私有位址轉送，私有位址一律受信任。
 
-對其中任何一項的變更會在一分鐘內到達掃描，新的負載平衡器會在五分鐘內到達。
+對其中任何一項的變更會在一分鐘內生效，新的負載平衡器會在五分鐘內受到信任。
 
 #### 以 X-Forwarded-For 結尾的存取日誌
 
 在負載平衡器之後，許多 Web 伺服器會把轉送的位址記錄在最後，就像 nginx 自己的 `main` 格式那樣：
 
-```
+```nginx
 log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                 '$status $body_bytes_sent "$http_referer" '
                 '"$http_user_agent" "$http_x_forwarded_for"';

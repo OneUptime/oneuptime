@@ -317,13 +317,13 @@ OneUptime 14.0.84 이전에 저장된 이벤트는 프로세스 필드가 비어
 
 그 밖에 자동으로 신뢰하는 것은 없습니다. 호스트, Kubernetes 노드, 프로브, 가상 머신, NAT 게이트웨이, Network·Gateway·Azure 로드 밸런서는 신뢰하지 않습니다. 이들은 아무도 전달하지 않거나 요청을 들어온 그대로 넘기므로, 그 위에서 실행되는 것은 무엇이든 아무 클라이언트나 지목할 수 있습니다. 자체 헤더를 붙여 모니터가 보내는 요청, Pod, 게이트웨이 뒤의 노트북 등입니다. 이 중 하나가 프록시라면 **신뢰할 수 있는 프록시** 에 추가하세요. Kubernetes 인그레스는 실제 로드 밸런서로서 신뢰합니다. GKE 인그레스는 Google Cloud Application Load Balancer, AKS의 Application Gateway 인그레스는 Application Gateway, 클래스가 `alb` 인 EKS 인그레스는 AWS Application Load Balancer입니다. 클러스터 안의 인그레스 컨트롤러는 사설 주소에서 전달하므로 항상 신뢰합니다.
 
-이 중 무엇이 바뀌든 1분 안에, 새 로드 밸런서는 5분 안에 스캔에 반영됩니다.
+이 중 무엇이 바뀌든 1분 안에 적용되고, 새 로드 밸런서는 5분 안에 신뢰됩니다.
 
 #### X-Forwarded-For로 끝나는 액세스 로그
 
 로드 밸런서 뒤에서는 nginx 자체의 `main` 형식처럼 전달된 주소를 마지막에 기록하는 웹 서버가 많습니다.
 
-```
+```nginx
 log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                 '$status $body_bytes_sent "$http_referer" '
                 '"$http_user_agent" "$http_x_forwarded_for"';
