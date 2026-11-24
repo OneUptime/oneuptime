@@ -1537,6 +1537,23 @@ describe("MetricBaselineService", () => {
         expect(second.series).toEqual(first.series);
       });
 
+      /*
+       * Whether a series that cannot say is judged by the cell is kept with
+       * its baselines: a query that may and one that may not never share them.
+       */
+      test("a query that reads only its own rows is kept apart from one that may read the cell", async () => {
+        answerWith({ cell: [CELL], days: TWO_WEEKS, points: POINTS });
+
+        await readOne({ attributes: { monitorStepId: "step-1" } });
+        await readOne(
+          { attributes: { monitorStepId: "step-1" } },
+          { readsOnlyItsOwnRows: true },
+        );
+
+        expect(pointReads()).toBe(2);
+        expect(cached.size).toBe(2);
+      });
+
       test("a check still reads and judges when the cache is away", async () => {
         answerWith({ cell: [CELL], days: TWO_WEEKS, points: POINTS });
 
@@ -1598,6 +1615,44 @@ describe("MetricBaselineService", () => {
           ),
         ).toBeNull();
       });
+
+      /*
+       * A step of a monitor with several (#10985): the cell holds every
+       * step's samples, so a read of the step's own rows that fails leaves
+       * it with no baseline rather than another step's.
+       */
+      test("leaves a query that reads only its own rows with no baseline, and reads no cell", async () => {
+        answerWith({
+          cell: [CELL],
+          days: TWO_WEEKS,
+          points: POINTS,
+          failsPoints: true,
+        });
+
+        expect(
+          await readOne(
+            { attributes: { monitorStepId: "step-1" } },
+            { aggregationType: AggregationType.Max, readsOnlyItsOwnRows: true },
+          ),
+        ).toBeNull();
+        expect(cellQueries()).toHaveLength(0);
+      });
+
+      test("a query that may read the cell is still judged by it, the maximum as the average", async () => {
+        answerWith({
+          cell: [CELL],
+          days: TWO_WEEKS,
+          points: POINTS,
+          failsPoints: true,
+        });
+
+        expect(
+          await readOne(
+            { attributes: { monitorStepId: "step-1" } },
+            { aggregationType: AggregationType.Max },
+          ),
+        ).toMatchObject({ mean: 100 });
+      });
     });
 
     /*
@@ -1648,6 +1703,77 @@ describe("MetricBaselineService", () => {
         answerWith({ cell: [CELL], days: TWO_WEEKS, points: [] });
 
         expect(await readOne({ attributes: { state: "idle" } })).toBeNull();
+      });
+
+      /*
+       * The same rows, for a query whose cell holds samples it must not be
+       * judged by: a step of a monitor with several steps (#10985). It keeps
+       * learning, as a Sum does, and the cell is never read.
+       */
+      test("an average kept too briefly that reads only its own rows keeps learning, and reads no cell", async () => {
+        answerWith({ cell: [CELL], days: TWO_WEEKS, points: WEEK_KEPT });
+
+        expect(
+          await readOne(
+            { attributes: { monitorStepId: "step-1" } },
+            { readsOnlyItsOwnRows: true },
+          ),
+        ).toMatchObject({ mean: 40, isReliable: false });
+        expect(cellQueries()).toHaveLength(0);
+      });
+
+      test("one that reads only its own rows is judged by them once they hold two weeks", async () => {
+        answerWith({ cell: [CELL], days: TWO_WEEKS, points: POINTS });
+
+        expect(
+          await readOne(
+            { attributes: { monitorStepId: "step-1" } },
+            { readsOnlyItsOwnRows: true },
+          ),
+        ).toMatchObject({ mean: 40, isReliable: true });
+        expect(cellQueries()).toHaveLength(0);
+      });
+
+      test("one that reads only its own rows, with none at all, has no baseline", async () => {
+        answerWith({ cell: [CELL], days: TWO_WEEKS, points: [] });
+
+        expect(
+          await readOne(
+            { attributes: { monitorStepId: "step-1" } },
+            { readsOnlyItsOwnRows: true },
+          ),
+        ).toBeNull();
+        expect(cellQueries()).toHaveLength(0);
+      });
+
+      test("a series kept too briefly of a query split into series that reads only its own rows has no fallback", async () => {
+        answerWith({
+          cell: [CELL],
+          days: TWO_WEEKS,
+          points: [
+            pointRow({
+              day: "2026-11-23",
+              series: ["b"],
+              keptUntil: "2026-11-30 09:30:00",
+            }),
+          ],
+        });
+
+        const baselines: MetricSeriesBaselines = await readSeries(
+          { groupByAttributeKeys: ["host"] },
+          { readsOnlyItsOwnRows: true },
+        );
+
+        expect(baselines.fallback).toBeNull();
+        expect(cellQueries()).toHaveLength(0);
+        expect(
+          MetricBaselineServiceClass.getSeriesBaseline({
+            baselines,
+            seriesFingerprint: MetricSeriesFingerprint.computeFingerprint({
+              host: "b",
+            }),
+          }),
+        ).toMatchObject({ isReliable: false });
       });
 
       test("the cell is read for a series kept too briefly, and for no other", async () => {
@@ -1701,6 +1827,26 @@ describe("MetricBaselineService", () => {
           },
         }),
       ).toMatchObject({ mean: 100 });
+    });
+
+    test("what narrows a query that cannot name it, and reads only its own rows, has no baseline", async () => {
+      answerWith({ cell: [CELL], days: TWO_WEEKS, pointType: "Gauge" });
+
+      expect(
+        await MetricBaselineService.getBaseline({
+          projectId,
+          metricName: "cpu.usage",
+          hourOfWeek: HOUR,
+          judgedAt,
+          query: {
+            aggregationType: AggregationType.Avg,
+            isNarrowedByAttributes: true,
+            interval: AggregationInterval.Minute,
+            readsOnlyItsOwnRows: true,
+          },
+        }),
+      ).toBeNull();
+      expect(cellQueries()).toHaveLength(0);
     });
   });
 

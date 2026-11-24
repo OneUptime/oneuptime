@@ -21,14 +21,27 @@ import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUt
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
-import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
+import MonitorStepSeries, {
+  MonitorStepSeriesScope,
+} from "../../../../Types/Monitor/MonitorStepSeries";
+import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import Dictionary from "../../../../Types/Dictionary";
 import MetricBaselineService, {
   BaselineBand,
   BaselineSummary,
+  MetricBaselineQuery,
   MetricBaselineService as MetricBaselineServiceClass,
 } from "../../../Services/MetricBaselineService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
+
+/*
+ * The attribute an interface's rows name it by: the name the walk gave it, as
+ * MonitorMetricUtil writes it on every interface series.
+ */
+export const SNMP_INTERFACE_NAME_ATTRIBUTE: string = "interfaceName";
 
 export default class SnmpMonitorCriteria {
   /*
@@ -106,19 +119,93 @@ export default class SnmpMonitorCriteria {
   }
 
   /*
-   * Anomaly path for interface utilization: compares the busiest in-scope
-   * interface's current utilization to this monitor's same-hour-of-week
-   * baseline of the oneuptime.monitor.snmp.interface.utilization.percent
-   * metric. MonitorMetricUtil writes that metric every check with the
-   * monitorId as the metric's primaryEntityId, so the MetricBaselineHourly
-   * MV already keys a per-monitor baseline — this reuses it via
-   * MetricBaselineService exactly like MetricMonitorCriteria does.
+   * WHAT AN INTERFACE'S UTILIZATION IS JUDGED AGAINST (#10985).
    *
-   * Note the baseline aggregates every interface sample the monitor
-   * emitted (interfaces are attributes, not part of the baseline key)
-   * while the observed value is the busiest in-scope interface — the same
-   * "worst interface vs device-wide history" trade-off the static
-   * threshold path already makes.
+   * The anomaly condition compares the busiest in-scope interface's
+   * utilization with the same hour of the week on earlier days. That used to
+   * be the hourly rollup's cell (MetricBaselineHourly), which keys on the
+   * monitor alone: a monitor with two steps - a core switch and an access
+   * switch - judged each step against both steps' samples, and every device
+   * against all of its ports at once, so a busy uplink was "anomalously high"
+   * against a fleet of idle ports on every check.
+   *
+   * So the baseline is read from the rows the step's own checks wrote
+   * (MonitorMetricUtil names the step and the interface on each), the way a
+   * step's windows read them (MonitorStepSeries): the step's rows, and the
+   * in-scope interfaces' when the criteria names some, one interface for an
+   * Interface Name of "*" fanned out per interface. Each minute's data point
+   * is the busiest of them, as the check takes the busiest: like is judged
+   * against like.
+   *
+   * Rows written before rows named their step are read only by a monitor with
+   * one step, whose rows they all are. A monitor with several leaves them out
+   * and learns again from its steps' own rows: until two earlier weeks of the
+   * hour are there, the condition does not fire. The rollup, kept 90 days, is
+   * the step's own only on a monitor with one step, so only such a monitor
+   * falls back on it when its rows are kept too briefly to hold two weeks
+   * (a monitor metric retention under 14 days), as it was judged before.
+   */
+  public static getUtilizationBaselineQuery(data: {
+    stepScope: MonitorStepSeriesScope | undefined;
+    criteriaFilter: CriteriaFilter;
+    // The interfaces in scope on this check (scopeInterfaces).
+    interfaces: Array<SnmpInterface>;
+  }): MetricBaselineQuery | undefined {
+    const attributes: Dictionary<unknown> = data.stepScope
+      ? MonitorStepSeries.toQueryAttributes(data.stepScope)
+      : {};
+
+    const scope: string = (
+      data.criteriaFilter.snmpMonitorOptions?.interfaceName || ""
+    ).trim();
+
+    /*
+     * Empty and "*" are every interface: the busiest of all of them. A name
+     * is the interfaces it matched on this check - by name or alias, in any
+     * case - as their rows name them: by the name the walk gave them. One the
+     * walk gave no name is written with none, and read as "" (a missing key
+     * of the attributes map). There is always one: the check judges none
+     * when nothing is in scope, and an empty list would read every row.
+     */
+    if (
+      scope &&
+      !PerEntityCriteriaFanOut.isWildcard(scope) &&
+      data.interfaces.length > 0
+    ) {
+      const names: Array<string> = Array.from(
+        new Set<string>(
+          data.interfaces.map((snmpInterface: SnmpInterface): string => {
+            return snmpInterface.name || "";
+          }),
+        ),
+      ).sort();
+
+      attributes[SNMP_INTERFACE_NAME_ATTRIBUTE] =
+        names.length === 1 ? names[0]! : new Includes(names);
+    }
+
+    // Nothing narrows it, with no step to read: the monitor's cell, as before.
+    if (Object.keys(attributes).length === 0) {
+      return undefined;
+    }
+
+    return {
+      aggregationType: AggregationType.Max,
+      isNarrowedByAttributes: true,
+      interval: AggregationInterval.Minute,
+      scope: { attributes: attributes, groupByAttributeKeys: [] },
+      readsOnlyItsOwnRows: data.stepScope
+        ? !data.stepScope.readsRowsWithoutStep
+        : false,
+    };
+  }
+
+  /*
+   * Anomaly path for interface utilization: compares the busiest in-scope
+   * interface's current utilization to the same hour of the week of the
+   * step's own checks (getUtilizationBaselineQuery), read through
+   * MetricBaselineService as MetricMonitorCriteria reads a query's own data
+   * points.
    *
    * Missing or unreliable baselines mean the rule is still learning —
    * never alert from a thin baseline. Zero-variance baselines are skipped
@@ -129,6 +216,8 @@ export default class SnmpMonitorCriteria {
     monitorId: ObjectID;
     criteriaFilter: CriteriaFilter;
     observedUtilizationPercent: number;
+    stepScope: MonitorStepSeriesScope | undefined;
+    interfaces: Array<SnmpInterface>;
   }): Promise<string | null> {
     const sensitivity: AnomalyDetectionSensitivity =
       (input.criteriaFilter.metricMonitorOptions?.anomalyDetection
@@ -152,6 +241,11 @@ export default class SnmpMonitorCriteria {
         minSamples:
           input.criteriaFilter.metricMonitorOptions?.anomalyDetection
             ?.minSamples,
+        query: SnmpMonitorCriteria.getUtilizationBaselineQuery({
+          stepScope: input.stepScope,
+          criteriaFilter: input.criteriaFilter,
+          interfaces: input.interfaces,
+        }),
       });
     } catch (err) {
       logger.error(
@@ -513,10 +607,12 @@ export default class SnmpMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceUtilizationPercent
     ) {
-      const utilizations: Array<number> = SnmpMonitorCriteria.scopeInterfaces(
+      const inScope: Array<SnmpInterface> = SnmpMonitorCriteria.scopeInterfaces(
         snmpResponse?.interfaces || [],
         input.criteriaFilter,
-      )
+      );
+
+      const utilizations: Array<number> = inScope
         .map((snmpInterface: SnmpInterface) => {
           return snmpInterface.utilizationPercent;
         })
@@ -530,8 +626,8 @@ export default class SnmpMonitorCriteria {
 
       /*
        * Anomaly filters skip the static threshold entirely: the busiest
-       * in-scope interface's utilization is compared to this monitor's
-       * same-hour-of-week utilization baseline instead.
+       * in-scope interface's utilization is compared to the same hour of the
+       * week of this step's own checks of those interfaces instead (#10985).
        */
       if (
         CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
@@ -541,6 +637,8 @@ export default class SnmpMonitorCriteria {
           monitorId: input.dataToProcess.monitorId!,
           criteriaFilter: input.criteriaFilter,
           observedUtilizationPercent: Math.max(...utilizations),
+          stepScope: input.stepScope,
+          interfaces: inScope,
         });
       }
 
