@@ -130,6 +130,7 @@ jest.mock(
 import TracesViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TracesViewer";
 import Host from "../../../Models/DatabaseModels/Host";
 import Service from "../../../Models/DatabaseModels/Service";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -302,12 +303,22 @@ describe("TracesViewer — a facet for every resource type", () => {
     facetsResponse = null;
     TelemetryEntityNameResolver.clearCache();
     getCurrentProjectIdMock.mockReturnValue(new ObjectID(PROJECT_ID));
+    /*
+     * Each table answers only for the ids it is asked for: the explorer read
+     * the project's first 10,000 services and hosts instead, and named
+     * nothing past them (#10921).
+     */
     getListMock.mockImplementation(async (args: any) => {
-      const hasIdQuery: boolean = Boolean(args?.query?._id);
-      if (!hasIdQuery && args.modelType === Service) {
+      const ids: Array<string> =
+        args?.query?._id instanceof Includes
+          ? (args.query._id as Includes).values.map((value: unknown) => {
+              return String(value).toLowerCase();
+            })
+          : [];
+      if (args.modelType === Service && ids.includes(SERVICE_ID)) {
         return { data: [buildService()], count: 1 };
       }
-      if (!hasIdQuery && args.modelType === Host) {
+      if (args.modelType === Host && ids.includes(HOST_ID)) {
         return { data: [buildHost()], count: 1 };
       }
       return { data: [], count: 0 };
@@ -440,17 +451,25 @@ describe("TracesViewer — a facet for every resource type", () => {
     }
   });
 
-  test("the preloaded Host list still names Host facet values", async () => {
+  test("no resource list is read: the server names every facet value, a host past the first 10,000 too", async () => {
+    facetsResponse = {
+      hostId: [{ value: HOST_ID, count: 2, displayName: "web-01" }],
+    };
+
     await renderViewer();
+    await waitForFacetData("hostId");
 
-    await waitFor(() => {
-      expect(facetConfigFor("hostId")!.valueDisplayMap).toEqual({
-        [HOST_ID]: "web-01",
-      });
-    });
-
-    // Types without a preloaded list lean on the server's displayName.
+    expect(facetConfigFor("hostId")!.valueDisplayMap).toBeUndefined();
     expect(facetConfigFor("proxmoxClusterId")!.valueDisplayMap).toBeUndefined();
+
+    // Every service or host read is by the ids the page holds.
+    for (const call of getListMock.mock.calls) {
+      const args: any = call[0];
+
+      if (args.modelType === Service || args.modelType === Host) {
+        expect(args.query._id).toBeInstanceOf(Includes);
+      }
+    }
   });
 
   test("REGRESSION: a Proxmox cluster picked in the sidebar reads 'Proxmox Cluster: <name>' and filters by resourceFilters", async () => {

@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
@@ -650,7 +651,7 @@ describe("LlmUsageBreakdown - spend a scrub rule hid the person of", () => {
 });
 
 describe("LlmUsageBreakdown - services and providers", () => {
-  test("service ids read as names; the project's id is the Unknown Service; a deleted one its id", async () => {
+  test("service ids read as names; the project's id is the Unknown Service; a deleted one says so, its id in its title", async () => {
     getListMock.mockResolvedValue({
       data: [namedService(CHECKOUT_SERVICE_ID, "checkout-api")],
     } as never);
@@ -681,11 +682,20 @@ describe("LlmUsageBreakdown - services and providers", () => {
     await renderBreakdown();
     await pick("Application / Service");
 
+    // Read by the ids the rows name, a moment after the table lands (#10921).
+    await waitFor(() => {
+      expect(renderedRows()[0]![1]).toBe("checkout-api");
+    });
+
     const rows: Array<Array<string>> = renderedRows();
 
-    expect(rows[0]![1]).toBe("checkout-api");
     expect(rows[1]![1]).toBe("Unknown Service");
-    expect(rows[2]![1]).toBe("44444444-4444-4444-8444-444444444444");
+    // Read by its id, and no service answered: never a bare id.
+    expect(rows[2]![1]).toBe("No longer available");
+    expect(screen.getByTestId("llm-usage-service-not-found")).toHaveAttribute(
+      "title",
+      "44444444-4444-4444-8444-444444444444",
+    );
   });
 
   test("providers are named the product's way", async () => {

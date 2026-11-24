@@ -840,16 +840,28 @@ export default class DataSecurityIssueGroupFix {
       );
     const best: DeclaredCodeOwnerCandidate | null =
       DeclaredCodeOwner.getBest(candidates);
-    const canAsk: Array<boolean> = await Promise.all(
-      candidates.map(
-        (candidate: DeclaredCodeOwnerCandidate): Promise<boolean> => {
-          return CodeTaskAccess.canAskInRepository({
+    /*
+     * Which of them the reader may ask OneUptime AI to work in: one read a
+     * batch for every candidate (#10921). Every repository AI can work in is
+     * a candidate, and asking canAskInRepository of each in turn took three
+     * reads a repository.
+     */
+    const askable: Set<string> =
+      candidates.length === 0
+        ? new Set<string>()
+        : await CodeTaskAccess.listAskableRepositoryIds({
             props: data.props,
             projectId: data.projectId,
-            repositoryId: new ObjectID(candidate.repository.id),
+            repositoryIds: candidates.map(
+              (candidate: DeclaredCodeOwnerCandidate): string => {
+                return candidate.repository.id;
+              },
+            ),
           });
-        },
-      ),
+    const canAsk: Array<boolean> = candidates.map(
+      (candidate: DeclaredCodeOwnerCandidate): boolean => {
+        return askable.has(candidate.repository.id.toLowerCase());
+      },
     );
 
     return candidates.map(

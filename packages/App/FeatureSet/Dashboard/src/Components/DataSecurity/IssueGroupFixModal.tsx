@@ -2,7 +2,11 @@ import {
   DECLARED_CODE_REASON_WORDS,
   getStartingRepositoryId,
 } from "../AutoRemediation/DeclaredCodeChangeWords";
+import CodeRepositorySearchField, {
+  toCodeRepositoryOption,
+} from "../Code/CodeRepositorySearchField";
 import DataSecurityApi from "./DataSecurityApi";
+import { NO_ASKABLE_REPOSITORY } from "./IssueModals";
 import {
   RESPONSE_ACTION_TITLES,
   getResponseActionIcon,
@@ -52,16 +56,15 @@ import {
   describeDataSecurityResponseAction,
   isDataSecurityResponseAction,
 } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import { CodeRepositoryListGroup } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DeclaredCodeChangeState,
   DeclaredCodeOwnerCandidateJSON,
+  DeclaredCodeOwnerReason,
 } from "Common/Utils/AiRemediation/DeclaredCodeChange";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -98,9 +101,57 @@ import React, {
  * A part the reader may not make says why, and is not made. With both
  * parts offered, each can be left out. The press is refused when the group
  * changed since it was shown.
+ *
+ * The repository is picked with the repository search the rest of Fix with
+ * AI uses (CodeRepositorySearchField, #10921): the ranked repositories
+ * something points to come first - the one the grouping found picked
+ * already, with why under it - and the server searches every other
+ * connected repository the reader may ask OneUptime AI to work in. Every
+ * repository AI can work in is a candidate, so the dialog listed all of
+ * them, one very long list in a project of thousands.
  */
 
 export const ISSUE_GROUP_FIX_TEST_ID: string = "data-security-issue-group-fix";
+
+// The label the repository picker is named by.
+const REPOSITORY_LABEL_ID: string = `${ISSUE_GROUP_FIX_TEST_ID}-repository-label`;
+
+/*
+ * The ranked repositories the picker offers first: those the reader may ask
+ * in that something points to - a tag, a file named after the stores, code
+ * of their kind, being the only one - and the one the grouping found, in
+ * the server's order. One nothing points to is found by the search.
+ */
+export function getOfferedCandidates(data: {
+  candidates: ReadonlyArray<DeclaredCodeOwnerCandidateJSON>;
+  foundRepositoryId?: string | null | undefined;
+}): Array<DeclaredCodeOwnerCandidateJSON> {
+  const found: string = (data.foundRepositoryId || "").toLowerCase();
+
+  return data.candidates.filter(
+    (candidate: DeclaredCodeOwnerCandidateJSON): boolean => {
+      return (
+        candidate.canAsk &&
+        (candidate.reason !== DeclaredCodeOwnerReason.NoEvidence ||
+          (Boolean(found) && candidate.repositoryId.toLowerCase() === found))
+      );
+    },
+  );
+}
+
+// A ranked repository as the picker lists it: its name, its organization/name under it.
+function toCandidateOption(
+  candidate: DeclaredCodeOwnerCandidateJSON,
+): DropdownOption {
+  const [organizationName, ...rest] = (candidate.fullName || "").split("/");
+
+  return toCodeRepositoryOption({
+    id: candidate.repositoryId,
+    name: candidate.name || candidate.fullName || candidate.repositoryId,
+    organizationName: rest.length > 0 ? organizationName : undefined,
+    repositoryName: rest.length > 0 ? rest.join("/") : undefined,
+  });
+}
 
 // The action as the issue's page names it ("Block Public Access"), in the reader's language.
 function getActionTitle(action: string, translator: Translator): string {
@@ -423,9 +474,21 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
   ).filter((candidate: DeclaredCodeOwnerCandidateJSON): boolean => {
     return candidate.canAsk;
   });
+  // The ranked ones the picker offers first, beside its search.
+  const candidateOptions: Array<DropdownOption> = getOfferedCandidates({
+    candidates: askableCandidates,
+    foundRepositoryId: pullRequest?.location?.repositoryId,
+  }).map(toCandidateOption);
+  /*
+   * The pick, when it is one of the ranked repositories: why it is offered
+   * goes under it. A repository picked from the search says nothing.
+   */
   const chosen: DeclaredCodeOwnerCandidateJSON | undefined =
     askableCandidates.find((candidate: DeclaredCodeOwnerCandidateJSON) => {
-      return candidate.repositoryId === repositoryId;
+      return (
+        Boolean(repositoryId) &&
+        candidate.repositoryId.toLowerCase() === repositoryId.toLowerCase()
+      );
     });
   const isPullRequestIncluded: boolean = parts.includes(
     DataSecurityIssueGroupFixPart.PullRequest,
@@ -436,7 +499,9 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
   const canPress: boolean =
     Boolean(plan) &&
     parts.length > 0 &&
-    (!isPullRequestIncluded || isPullRequestOnItsWay || Boolean(chosen)) &&
+    (!isPullRequestIncluded ||
+      isPullRequestOnItsWay ||
+      Boolean(repositoryId)) &&
     (plan
       ? countIssueGroupFixStores(
           {
@@ -481,8 +546,8 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
           parts,
           planFingerprint: plan.planFingerprint,
           codeRepositoryId:
-            isPullRequestIncluded && !isPullRequestOnItsWay
-              ? chosen?.repositoryId
+            isPullRequestIncluded && !isPullRequestOnItsWay && repositoryId
+              ? repositoryId
               : undefined,
           includeDataStoreIds: isCloudIncluded ? ticked : [],
         });
@@ -644,43 +709,25 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
               </p>
             ) : isPullRequestIncluded ? (
               <div className="mt-3">
-                <label
+                <p
                   className="block text-xs font-medium text-gray-700"
-                  htmlFor={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
+                  id={REPOSITORY_LABEL_ID}
                 >
                   {translator.translateText(PULL_REQUEST_REPOSITORY)}
-                </label>
+                </p>
                 <div className="mt-1">
-                  <Dropdown
-                    inputId={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
-                    dataTestId={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
+                  <CodeRepositorySearchField
+                    value={repositoryId || null}
+                    options={candidateOptions}
+                    group={CodeRepositoryListGroup.Connected}
+                    isAskableOnly={true}
+                    isClearable={false}
                     placeholder={PULL_REQUEST_PICK_REPOSITORY}
-                    options={askableCandidates.map(
-                      (
-                        candidate: DeclaredCodeOwnerCandidateJSON,
-                      ): DropdownOption => {
-                        return {
-                          value: candidate.repositoryId,
-                          label: candidate.fullName || candidate.name,
-                          isUserContent: true,
-                        };
-                      },
-                    )}
-                    value={
-                      chosen
-                        ? {
-                            value: chosen.repositoryId,
-                            label: chosen.fullName || chosen.name,
-                            isUserContent: true,
-                          }
-                        : undefined
-                    }
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      setRepositoryId(
-                        typeof value === "string" ? value : String(value || ""),
-                      );
+                    emptyListText={NO_ASKABLE_REPOSITORY}
+                    ariaLabelledby={REPOSITORY_LABEL_ID}
+                    dataTestId={`${ISSUE_GROUP_FIX_TEST_ID}-repository`}
+                    onChange={(picked: string | null) => {
+                      setRepositoryId(picked || "");
                     }}
                   />
                 </div>
