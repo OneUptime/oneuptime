@@ -162,13 +162,16 @@ afterEach(() => {
 
 describe("readChatTestAnswer", () => {
   test("a test that was not sent is not sent, with its reason", () => {
-    expect(
-      readChatTestAnswer({ ok: false, statusMessage: REASON }, "Sent."),
-    ).toEqual<ChatTestAnswer>({ isSent: false, message: REASON });
+    const answer: ChatTestAnswer = readChatTestAnswer(
+      { ok: false, statusMessage: REASON },
+      "Sent.",
+    );
+
+    expect(answer).toEqual({ isSent: false, message: REASON });
   });
 
   test("a test that was not sent and gave no reason says the server's sentence", () => {
-    expect(readChatTestAnswer({ ok: false }, "Sent.")).toEqual<ChatTestAnswer>({
+    expect(readChatTestAnswer({ ok: false }, "Sent.")).toEqual({
       isSent: false,
       message: UNEXPLAINED_ERROR_MESSAGES.server,
     });
@@ -177,17 +180,17 @@ describe("readChatTestAnswer", () => {
   test("a test that went out is sent, in the server's words or the page's", () => {
     expect(
       readChatTestAnswer({ ok: true, statusMessage: "On its way." }, "Sent."),
-    ).toEqual<ChatTestAnswer>({ isSent: true, message: "On its way." });
-    expect(readChatTestAnswer({ ok: true }, "Sent.")).toEqual<ChatTestAnswer>({
+    ).toEqual({ isSent: true, message: "On its way." });
+    expect(readChatTestAnswer({ ok: true }, "Sent.")).toEqual({
       isSent: true,
       message: "Sent.",
     });
     // An older server that never said ok.
-    expect(readChatTestAnswer({}, "Sent.")).toEqual<ChatTestAnswer>({
+    expect(readChatTestAnswer({}, "Sent.")).toEqual({
       isSent: true,
       message: "Sent.",
     });
-    expect(readChatTestAnswer(undefined, "Sent.")).toEqual<ChatTestAnswer>({
+    expect(readChatTestAnswer(undefined, "Sent.")).toEqual({
       isSent: true,
       message: "Sent.",
     });
