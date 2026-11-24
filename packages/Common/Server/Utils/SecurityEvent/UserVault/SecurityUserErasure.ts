@@ -2,7 +2,6 @@ import SecurityUserErasureRequest from "../../../../Models/DatabaseModels/Securi
 import ProjectService from "../../../Services/ProjectService";
 import SecurityUserErasureRequestService, {
   SecurityUserErasureCounts,
-  getErasureTokens,
   readErasureRequestTokens,
 } from "../../../Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService, {
@@ -18,6 +17,7 @@ import {
 import { ErasedName } from "../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ScrubHashToken from "../../Telemetry/ScrubHashToken";
 import { ERASED_TOKENS_CACHE_TTL_MS } from "./SecurityUserErasedTokens";
 import SecurityUserErasureEvents, {
   SecurityUserErasurePair,
@@ -259,13 +259,15 @@ export default class SecurityUserErasure {
   }): Promise<Array<ErasedName>> {
     const names: Array<ErasedName> = [];
 
+    // Each spelling with its own token: the one a Hash rule makes of exactly it.
     for (const spelling of getErasureSpellings(data.userToErase || "")) {
-      for (const token of getErasureTokens({
-        projectId: data.projectId,
-        user: spelling,
-      })) {
-        names.push({ named: spelling, hashed: token });
-      }
+      names.push({
+        named: spelling,
+        hashed: ScrubHashToken.ofValue({
+          projectId: data.projectId,
+          value: spelling,
+        }),
+      });
     }
 
     const entries: Array<SecurityUserVaultEntry> =
