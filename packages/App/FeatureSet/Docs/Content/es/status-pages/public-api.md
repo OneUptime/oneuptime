@@ -70,6 +70,8 @@ Los endpoints siguen los propios ajustes de la página, en la tarjeta **Lo que m
 
 **Qué incidentes devuelve una página.** El endpoint de incidentes devuelve los incidentes de los monitores de la página, menos los limitados a otras páginas de estado, y menos cada incidente no limitado a esta página si la página solo muestra los incidentes limitados a ella (consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience)). A qué páginas está limitado un incidente nunca forma parte de la respuesta.
 
+**Cómo organiza una página sus incidentes.** La vista general y las listas de incidentes y de episodios indican el modo de la página en `incidentListMode`: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly`, o `None` en la vista general de una página que no muestra ni incidentes ni episodios. Mientras la página muestra tanto incidentes como episodios, cada episodio de `episodes` y `activeEpisodes` incluye `incidents`: aquellos de sus incidentes que muestra la página, del más reciente al más antiguo, cada uno con su `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` y `monitors`. Un incidente leído por su ID incluye entonces `partOfEpisodes`: cada episodio del que forma parte, con su `_id` y su `title`. En el modo agrupado por episodio, con **Mostrar incidentes agrupados por episodio** activado, la página dibuja un episodio como una sola tarjeta y deja sus incidentes fuera de las tarjetas de incidentes, y un episodio del que la página no muestra ningún incidente se queda fuera de las listas; `incidents` y `activeIncidents` siguen conteniendo todos los incidentes que muestra la página, así que quien ignore los episodios no se pierde ninguno. Siempre que un incidente o un episodio nombra sus `monitors`, son solo los de la página.
+
 ## Leer la vista general
 
 La vista general es una sola solicitud para toda la página. Son los mismos datos que dibuja la página de estado, y tienen como mucho 15 segundos de antigüedad.
@@ -140,7 +142,9 @@ El estado global es el peor estado actual de los monitores y grupos de monitores
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | A partir de qué se dibujan las barras de disponibilidad, y las reglas de color de las barras de la página. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Los incidentes sin resolver que muestra la página, sus notas públicas y cambios de estado, y los estados de incidente del proyecto. |
 | `timelineIncidents` | Los incidentes dentro de la ventana de las barras de disponibilidad, incluidos los resueltos, para las descripciones emergentes de las barras. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo mismo para los episodios de incidentes. |
+| `timelineEpisodes` | En una página que muestra episodios pero no incidentes, lo que listan en su lugar las descripciones emergentes de las barras de disponibilidad y el diálogo de cada día: cada episodio detrás de un incidente dentro de la ventana de las barras y, de cada uno de sus incidentes que la página mostraría por separado, solo su `declaredAt` y los `monitors` de la página. Vacío en cualquier otra página. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo mismo para los episodios de incidentes. Cada episodio incluye `monitors`, los monitores de la página afectados por sus incidentes mostrados, y, mientras la página muestra también incidentes, `incidents`. |
+| `incidentListMode` | Cómo organiza la página sus incidentes y episodios: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` o `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Los eventos de mantenimiento que están por llegar o en curso, sus notas públicas y cambios de estado. |
 | `timelineScheduledMaintenanceEvents` | Los eventos de mantenimiento dentro de la ventana de las barras de disponibilidad que ya han empezado, en curso o pasados, para las descripciones emergentes de las barras y el diálogo de cada día: los que muestra la página y que incluyen alguno de sus monitores, cada uno solo con los monitores de la página. |
 | `activeAnnouncements` | Los anuncios que se muestran ahora: empezados y sin terminar. |
@@ -195,7 +199,7 @@ La respuesta:
 | --- | -------------- |
 | `overallStatus` | El estado general de la página, como lo muestra su banner: `name`, `color` e `isOperational`. `null` cuando la página muestra todos sus recursos como **No monitoreado**. |
 | `resources` | Cada recurso que muestra la página, en su orden: su `name` en la página, su `groupName` con los grupos que tiene encima, su `currentStatus`, `isMonitored` e `isUnderMaintenance`. |
-| `activeIncidents` | Los incidentes sin resolver que muestra la página, cada uno con los `affectedResourceIds` de los recursos a los que afecta. |
+| `activeIncidents` | Los incidentes sin resolver que muestra la página, cada uno con los `affectedResourceIds` de los recursos a los que afecta. En una página que muestra episodios pero no incidentes, sus episodios activos, que su vista general enumera como sus incidentes activos. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Los eventos de mantenimiento en curso y por venir, cada uno con sus `affectedResourceIds`. |
 
 El `currentStatus` de un recurso es `null` cuando la página no lo muestra, y cuando `isMonitored` es `false`: nada comprueba el recurso, porque el monitoreo de su monitor está desactivado o todos los monitores de su grupo de monitores lo tienen desactivado, así que la página lo muestra como **No monitoreado**, o nada lo ha comprobado todavía, así que la página lo muestra como **Aún no monitoreado**. `isUnderMaintenance` es `true` mientras un evento en curso nombra uno de los monitores del recurso, o un monitor de su grupo de monitores, sea cual sea el estado de esos monitores.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | Endpoint | Claves de la respuesta |
 | -------- | -------------------- |
-| Incidentes | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Episodios | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Incidentes | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| Episodios | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | Eventos de mantenimiento | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Anuncios | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ Un error responde con un código de estado y un cuerpo JSON que explica el motiv
 
 ## Otras formas de leer una página de estado
 
-- **RSS.** Cada página de estado sirve `/rss`, un feed de sus incidentes, anuncios y eventos de mantenimiento, cada uno con la fecha que le da la página. Consulta [La insignia incrustable y el feed RSS](/docs/status-pages/index#la-insignia-incrustable-y-el-feed-rss).
+- **RSS.** Cada página de estado sirve `/rss`, un feed de sus incidentes y episodios, anuncios y eventos de mantenimiento, cada uno con la fecha que le da la página, y con sus incidentes organizados como los organiza la página. Consulta [La insignia incrustable y el feed RSS](/docs/status-pages/index#la-insignia-incrustable-y-el-feed-rss).
 - **llms.txt.** Junto a `/rss`, cada página de estado sirve `/llms.txt`, que dirige a los agentes de IA al feed RSS y al JSON de la vista general.
 - **MCP.** Los agentes de IA pueden leer la página a través del servidor MCP de OneUptime en `https://oneuptime.com/mcp`, sin clave de API, pasando el ID o el dominio de la página como `statusPageIdOrDomain`. Está activado de forma predeterminada; desactívalo con **Habilitar servidor MCP** en **Avanzado → MCP**, en el menú lateral de la página. Consulta [Servidor MCP](/docs/ai/mcp-server).
 - **La API REST.** Para crear o cambiar páginas de estado, recursos, suscriptores y anuncios, usa la [API de OneUptime](/docs/api-reference/api-reference) con una clave de API.
