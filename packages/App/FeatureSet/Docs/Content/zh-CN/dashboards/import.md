@@ -19,12 +19,12 @@ flowchart TB
     R --> P["预览：每一项<br/>及其会变成什么"]
     P --> A["OneUptime AI<br/>（按你的要求，<br/>每次一个查询）"]
     A --> P
-    P --> C["一个仪表板，或<br/>Metrics 监视器"]
+    P --> C["一个仪表板，或<br/>监视器"]
 ```
 
 ## 开始之前
 
-- 导入的小部件和监视器用 PromQL 读取本项目自己的指标。通过 Prometheus remote write、OpenTelemetry 或 Datadog Agent 发送它们，它们会保留在那里的名称。
+- 导入的小部件和监视器读取本项目自己的指标和日志。通过 OpenTelemetry 或 Datadog Agent 发送它们，或者用 Prometheus remote write 发送指标、用 Loki 的推送 API 发送日志，它们会保留在那里的名称。
 - 导入仪表板需要能创建仪表板的角色，导入警报规则需要能创建监视器的角色。
 - 文件最大 10 MB，其中最多读取 500 个面板或规则。
 
@@ -44,7 +44,7 @@ flowchart TB
 检查每个面板和每个变量会变成什么，为仪表板命名，然后选择 **创建仪表板** 。新的仪表板随即打开。
 :::
 
-Grafana 的 PromQL 保持原样：OneUptime 会像 Grafana 一样填入 `$__interval`、`$__rate_interval` 和 `$__range`，设为 All 的变量匹配所有值。Datadog 查询会变成针对 Datadog Agent 所发送指标的 PromQL：`avg:system.cpu.user{host:web-1}` 读取 `system_cpu_user{host="web-1"}`。
+Grafana 的 PromQL 保持原样：OneUptime 会像 Grafana 一样填入 `$__interval`、`$__rate_interval` 和 `$__range`，设为 All 的变量匹配所有值。Datadog 查询会变成针对 Datadog Agent 所发送指标的 PromQL：`avg:system.cpu.user{host:web-1}` 读取 `system_cpu_user{resource_host_name="web-1"}`，`.as_count()` 会把 Agent 以速率发送的计数还原为每个间隔内计到的数量。列出日志的 Datadog 小部件会变成 **日志流**，计数日志的时间序列会变成 **日志图表**，两者都读取 Datadog Agent 发送的日志，并按 Datadog 的搜索过滤。
 
 ## 导入警报规则
 
@@ -64,6 +64,8 @@ Grafana 的 PromQL 保持原样：OneUptime 会像 Grafana 一样填入 `$__inte
 
 每条规则都会变成一个 Metrics 监视器，带有一个 PromQL 查询、规则的条件和它的时间窗口。它会为每个越过阈值的序列打开一个警报或事件，并在序列恢复时解决它。标题和描述来自规则的摘要或消息，并填入序列的标签。
 
+Datadog 的异常检测或预测监视器会变成带有 OneUptime 异常检测或预测条件的 Metrics 监视器，Datadog 的日志监视器会变成一个 Logs 监视器，统计与其搜索匹配的日志。
+
 ## 每一项如何转换
 
 | 状态 | 含义 |
@@ -72,7 +74,7 @@ Grafana 的 PromQL 保持原样：OneUptime 会像 Grafana 一样填入 `$__inte
 | **Converted approximately** | 它会被创建，其备注会说明有何不同。 |
 | **Not converted** | 不会为它创建任何东西，其备注会说明原因。 |
 
-记录规则、针对日志的警报规则、读取日志、追踪或事件的 Datadog 小部件，以及 Datadog 的异常、离群值和预测监视器都不会被转换。
+记录规则、Prometheus 和 Grafana 针对日志的警报规则、读取追踪或事件的 Datadog 小部件、Datadog 的离群值和变化监视器，以及它读取指标和日志以外数据的监视器，都不会被转换。
 
 ## 用 OneUptime AI 转换查询
 
