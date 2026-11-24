@@ -173,7 +173,7 @@ class OnDeviceParsersTest {
         assertEquals("البريد[email]", Redactor.redact("البريدjane@example.com"))
         assertEquals("номер[card number]отклонён", Redactor.redact("номер4111111111111111отклонён"))
         assertEquals("ключBasic [credential]", Redactor.redact("ключBasic dXNlcjpwYXNzd29yZA=="))
-        assertEquals("บ\u0E31ตร[card number]", Redactor.redact("บ\u0E31ตร378282246310005"))
+        assertEquals("บัตร[card number]", Redactor.redact("บัตร378282246310005"))
         // A zero-width space, a joiner and a combining mark, which Android's \b looked past, and digits of other scripts.
         assertEquals("x\u200B[token]", Redactor.redact("x\u200B$JWT"))
         assertEquals("x\u200BBearer [credential]", Redactor.redact("x\u200BBearer abcdefghijklmnop"))

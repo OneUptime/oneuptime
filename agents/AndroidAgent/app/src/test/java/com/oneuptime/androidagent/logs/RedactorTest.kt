@@ -64,8 +64,8 @@ class RedactorTest {
         assertEquals("номер[card number]отклонён", Redactor.redact("номер4111111111111111отклонён"))
         assertEquals("ключBasic [credential]", Redactor.redact("ключBasic dXNlcjpwYXNzd29yZA=="))
         assertEquals("токен[token]", Redactor.redact("токен$JWT"))
-        assertEquals("บ\u0E31ตร[card number]", Redactor.redact("บ\u0E31ตร378282246310005"))
-        assertEquals("क\u093Eर\u094Dड[card number]", Redactor.redact("क\u093Eर\u094Dड4111111111111111"))
+        assertEquals("บัตร[card number]", Redactor.redact("บัตร378282246310005"))
+        assertEquals("कार्ड[card number]", Redactor.redact("कार्ड4111111111111111"))
         // A secret's value after a long run of another script's letters: Android counted them into a 40-character name.
         assertEquals("中".repeat(41) + "password=[redacted]", Redactor.redact("中".repeat(41) + "password=hunter2"))
     }
