@@ -184,7 +184,7 @@ describe("what OneUptime AI sees", () => {
       "Fix leaks in the code",
     ]);
     expect(kept).toContain(
-      "The coding agent behind Fix with AI, Fix the cause and Fix leaks in the code, and Ask AI's chat, still keep a failed call's provider error in its row.",
+      "The coding agent behind Fix with AI and Fix the cause, and Ask AI's chat, still keep a failed call's provider error in its row. So does the coding agent behind Fix leaks in the code.",
     );
     expect(kept).toContain(
       "the analysis and the field suggestions keep no word of the provider's error",

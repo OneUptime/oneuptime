@@ -9,6 +9,7 @@ Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, o
 - [Hur en skanning tar prov](#hur-en-skanning-tar-prov): De nyaste posterna för varje tjänst, varje timme.
 - [Rensa](#rensa): Dölj ett fynd vid intaget, i tjänsten där det hittades.
 - [Begränsat på egen hand](#begränsat-på-egen-hand): En hemlighet dold utan att någon trycker på något, där det är bevisat säkert.
+- [Åtgärda det i koden](#åtgärda-det-i-koden): En pull request som får en tjänst att sluta skriva alla sina läckor.
 - [Kassera det här mätvärdet](#kassera-det-här-mätvärdet): Sluta lagra de mätvärden vars namn innehåller känsliga data.
 - [Vad som räknas som rensat](#vad-som-räknas-som-rensat): När en rensningsregel redan täcker ett fynd.
 :::
@@ -99,7 +100,7 @@ Klicka på **Rensa**. En dialogruta säger vad regeln skulle göra innan något 
 
 ### Åtgärda koden också
 
-Regeln döljer nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet.
+Regeln döljer nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet. **Åtgärda med AI** på problemet öppnar en pull request för varje läcka i tjänsten: se [Åtgärda det i koden](#åtgärda-det-i-koden).
 :::
 
 Regeln namnges efter det den döljer, till exempel ”Data Security: Email address in log attributes of checkout”, eller ”Data Security: Password or secret in db.password of checkout” för en regel som namnger sitt attribut, och listas bland dina andra rensningsregler (se [Kasseringsfilter och rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). Den är den smalaste regel som döljer fyndets data, den första av dessa som passar:
@@ -155,6 +156,48 @@ En ändring som OneUptime AI gjorde på egen hand:
 - **Säger att en hemlighet ska roteras.** Att dölja en hemlighet stoppar bara nya kopior: Hemligheten fungerar fortfarande, och posterna som lagrades före regeln behåller den tills deras lagringstid löper ut. Tidslinjen och e-postmeddelandet säger var den sågs.
 
 Nya fynd i en tjänst vars problem redan är öppet begränsas på samma sätt så snart skanningen varje timme hittar dem.
+
+## Åtgärda det i koden
+
+En scrub-regel döljer ny data vid inmatning, men koden skriver den fortfarande. **Åtgärda med AI** på ett telemetriproblem ber OneUptime AI om en pull request som får tjänsten att sluta skriva varje läcka som OneUptime fortfarande ser i dess telemetri: det här problemets och tjänstens andra, även de som begränsats vid inmatning. En dialog visar vad pull requesten kommer att göra innan något startar, och **Öppna pull request** ber om exakt det.
+
+:::steps
+### Hitta var varje läcka skrivs
+
+Innan OneUptime AI börjar läser Datasäkerhet om posterna som varje läcka setts i, inne i OneUptime, och behåller bara var koden skrev dem:
+
+- **Ett span eller ett AI-anrop**: filen, raden och funktionen som dess attribut `code.*` nämner, och spannets namn.
+- **Ett undantag**: dess egna översta ramar, de i tjänstens kod.
+- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`.
+- **Ett mätvärde**: mätvärdets namn.
+- **Varje läcka**: dess attributnyckel, till exempel `user.email`, som koden oftast skriver som den är.
+
+### Välj arkivet
+
+Pull requesten går till det arkiv som innehåller filerna som posterna nämner, matchade som filerna i en stackspårning. En läcka vars poster inte nämner någon fil går dit där tjänstens andra läckor finns, annars till det arkiv som heter som tjänsten, eller till projektets enda. I ett arkiv med flera tjänster arbetar OneUptime AI i tjänstens mapp: den som filerna delar, annars den som tjänstens produktionsgranskningar använder. När inget avgör väljer du själv, bland de arkiv där du får be OneUptime AI arbeta.
+
+### Öppna pull requesten
+
+Dialogen säger hur koden kommer att ändras, listar varje läcka med var den skrivs och namnger arkivet, varför det är det, och filerna som OneUptime AI börjar från. **Öppna pull request** ber om exakt den planen: om en läcka har hittats eller åtgärdats sedan du öppnade den startar inget, och planen visas igen.
+:::
+
+Hur koden ändras beror på hur många ställen som skriver datan:
+
+| Var datan skrivs | Vad pull requesten gör |
+| --- | --- |
+| På tre ställen eller färre | Ändrar koden på varje ställe: utelämnar värdet, eller maskerar eller hashar det innan det skickas |
+| På fler än tre ställen | Lägger till ett redigeringssteg med ett test där tjänsten konfigurerar sin telemetri, i stället för att ändra varje ställe |
+| Där dina scrub-regler redan döljer den vid inmatning | Lägger till redigeringssteget även för de nycklarna, så att koden gör det som inmatningen gör |
+
+En pull request åtgärdar en tjänst i ett arkiv: en tjänst vars läckor skrivs i två arkiv får en i vart och ett. Medan den skrivs pekar **Åtgärda med AI** på vilket som helst av tjänstens problem på den, och ingen ny startas.
+
+OneUptime AI får ställena, nycklarna, datatyperna och mallarna, aldrig ett värde ur din data, ett maskerat exempel eller en post, och kodagenten läser ingenting av din telemetri medan den arbetar. Pull requestens beskrivning listar läckorna och länkar till problemen den åtgärdar, och citerar aldrig en post.
+
+Varje problem som pull requesten åtgärdar behåller den: kortet **Så åtgärdar du det** visar om den skrivs, är öppen, sammanfogad eller stängd, med länkar till pull requesten och uppgiften, och när den sammanfogats, vad produktionen visade. Problemets tidslinje visar när den öppnades. Problemet löses som **Åtgärdat i koden** så snart tjänstens nya version inte längre skriver datan (se [Vad som händer med ett problem](/docs/data-security/checks-and-issues#vad-som-händer-med-ett-problem)).
+
+En hemlighet behöver mer än en kodändring: koden stoppar bara nya kopior, och hemligheten fungerar fortfarande. Pull requesten, problemets tidslinje och kortet **Så åtgärdar du det** säger att den ska roteras, och kortet listar var den setts.
+
+Med **Arbeta med nya problem** påslaget föreslår OneUptime AI också på egen hand varje tjänsts åtgärd, den mest riskfyllda tjänsten först, under **Datasäkerhet → AI** och på tjänstens mest riskfyllda problem. Som standard väntar den på dig. En AI-regel i Datasäkerhet som sätter **Åtgärd** till **Automatiskt** för tjänstens mest riskfyllda problem öppnar pull requesten utan att fråga, i ett arkiv som något har avgjort. Arkivets **Max antal öppna pull requests med korrigeringar** begränsar båda: vid gränsen väntar en pull request som en regel skulle öppna på dig, och ingen ny pull request med korrigeringar öppnas förrän en har sammanfogats eller stängts.
 
 ## Kassera det här mätvärdet
 

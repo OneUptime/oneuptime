@@ -9,6 +9,7 @@ No hay nada que configurar: la telemetría de cada servicio se escanea cada hora
 - [Cómo muestrea un escaneo](#cómo-muestrea-un-escaneo): Las entradas más recientes de cada servicio, cada hora.
 - [Depurar](#depurar): Oculta un hallazgo en la ingesta, en el servicio donde se encontró.
 - [Contenido por su cuenta](#contenido-por-su-cuenta): Un secreto oculto sin que nadie pulse nada, donde está demostrado que es seguro.
+- [Corregirlo en el código](#corregirlo-en-el-código): Una sola pull request que evita que un servicio escriba todas sus fugas.
 - [Descartar esta métrica](#descartar-esta-métrica): Deja de almacenar las métricas cuyos nombres contienen datos sensibles.
 - [Qué cuenta como depurado](#qué-cuenta-como-depurado): Cuándo una regla de depuración ya cubre un hallazgo.
 :::
@@ -99,7 +100,7 @@ Haz clic en **Depurar**. Un diálogo dice qué haría la regla antes de crear na
 
 ### Corrige también el código
 
-La regla oculta los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo.
+La regla oculta los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo. **Corregir con IA** en el problema abre una sola pull request para todas las fugas del servicio: consulta [Corregirlo en el código](#corregirlo-en-el-código).
 :::
 
 La regla se nombra por lo que oculta, como «Data Security: Email address in log attributes of checkout», o «Data Security: Password or secret in db.password of checkout» para una regla que nombra su atributo, y aparece junto a tus demás reglas de depuración (consulta [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Es la regla más estrecha que oculta los datos del hallazgo, la primera de estas que encaja:
@@ -155,6 +156,48 @@ Un cambio que la IA de OneUptime hizo por su cuenta:
 - **Dice que hay que rotar un secreto.** Ocultar un secreto solo detiene las copias nuevas: el secreto sigue funcionando, y las entradas guardadas antes de la regla lo conservan hasta que termina su retención. La cronología y el correo electrónico dicen dónde se vio.
 
 Los hallazgos nuevos en un servicio cuyo problema ya está abierto se contienen de la misma forma, en cuanto el escaneo de cada hora los encuentra.
+
+## Corregirlo en el código
+
+Una regla de depuración oculta los datos nuevos en la ingesta, pero el código los sigue escribiendo. **Corregir con IA** en un problema de telemetría pide a OneUptime AI una sola pull request que evita que el servicio escriba todas las fugas que OneUptime aún ve en su telemetría: la de este problema y las demás del servicio, incluidas las contenidas en la ingesta. Un diálogo muestra lo que hará la pull request antes de que empiece nada, y **Abrir pull request** pide exactamente eso.
+
+:::steps
+### Encontrar dónde se escribe cada fuga
+
+Antes de que OneUptime AI empiece, Seguridad de datos vuelve a leer, dentro de OneUptime, los registros en los que se vio cada fuga, y conserva solo dónde los escribió el código:
+
+- **Un span o una llamada de IA**: el archivo, la línea y la función que nombran sus atributos `code.*`, y el nombre del span.
+- **Una excepción**: sus propios frames superiores, los del código del servicio.
+- **Una línea de registro**: el archivo, la línea y la función que nombran sus atributos, si los tiene, su logger, y la línea como plantilla, con cada valor sustituido por el nombre de su tipo, como `User <Email address> signed up`.
+- **Una métrica**: el nombre de la métrica.
+- **Cualquier fuga**: su clave de atributo, como `user.email`, que el código suele escribir tal cual.
+
+### Elegir el repositorio
+
+La pull request va al repositorio que contiene los archivos que nombran los registros, buscados como los archivos de un stack trace. Una fuga cuyos registros no nombran ningún archivo va adonde están las demás fugas del servicio, si no al repositorio que se llama como el servicio, o al único del proyecto. En un repositorio con varios servicios, OneUptime AI trabaja en la carpeta del servicio: la que comparten esos archivos, si no la que usan las revisiones de producción del servicio. Cuando nada lo decide, eliges tú, entre los repositorios en los que puedes pedir a OneUptime AI que trabaje.
+
+### Abrir la pull request
+
+El diálogo dice cómo cambiará el código, enumera cada fuga con dónde se escribe y nombra el repositorio, por qué es ese, y los archivos por los que empieza OneUptime AI. **Abrir pull request** pide exactamente ese plan: si se encontró o corrigió una fuga desde que lo abriste, no empieza nada y el plan se vuelve a mostrar.
+:::
+
+Cómo cambia el código depende de cuántos lugares escriben los datos:
+
+| Dónde se escriben los datos | Qué hace la pull request |
+| --- | --- |
+| En tres lugares o menos | Cambia el código en cada lugar: omite el valor, o lo enmascara o lo resume con hash antes de enviarlo |
+| En más de tres lugares | Añade un paso de redacción, con una prueba, donde el servicio configura su telemetría, en lugar de cambiar cada lugar |
+| Donde tus reglas de depuración ya los ocultan en la ingesta | Añade también ese paso de redacción para esas claves, para que el código haga lo que hace la ingesta |
+
+Una pull request corrige un servicio en un repositorio: un servicio cuyas fugas se escriben en dos repositorios recibe una en cada uno. Mientras se escribe, **Corregir con IA** en cualquier problema del servicio lleva a ella, y no se inicia una segunda.
+
+OneUptime AI recibe los lugares, las claves, los tipos de datos y las plantillas, nunca un valor de tus datos, una muestra enmascarada ni un registro, y el agente de código no lee nada de tu telemetría mientras trabaja. La descripción de la pull request enumera las fugas y enlaza los problemas que corrige, y nunca cita un registro.
+
+Cada problema que corrige la pull request la conserva: su tarjeta **Cómo corregirlo** dice si se está escribiendo, si está abierta, fusionada o cerrada, con enlaces a la pull request y a la tarea, y, una vez fusionada, lo que mostró producción. La línea de tiempo del problema dice cuándo se abrió. El problema se resuelve como **Corregido en el código** en cuanto la nueva versión del servicio deja de escribir los datos (consulta [Qué le pasa a un problema](/docs/data-security/checks-and-issues#qué-le-pasa-a-un-problema)).
+
+Un secreto necesita más que una corrección en el código: el código solo detiene las copias nuevas, y el secreto sigue funcionando. La pull request, la línea de tiempo del problema y su tarjeta **Cómo corregirlo** dicen que hay que rotarlo, y la tarjeta enumera dónde se vio.
+
+Con **Trabajar en los problemas nuevos** activado, OneUptime AI también propone por su cuenta la corrección de cada servicio, primero el servicio más arriesgado, en **Seguridad de datos → IA** y en el problema más arriesgado del servicio. De forma predeterminada, te espera. Una regla de IA de Seguridad de datos que pone **Corrección** en **Automáticamente** para el problema más arriesgado del servicio abre la pull request sin preguntar, en un repositorio que algo decidió. **Máximo de pull requests de corrección abiertas** del repositorio limita ambas cosas: en el límite, una pull request que abriría una regla te espera, y no se abre ninguna pull request de corrección nueva hasta que una se fusione o se cierre.
 
 ## Descartar esta métrica
 

@@ -9,6 +9,7 @@ Il n'y a rien à configurer : la télémétrie de chaque service est analysée t
 - [Comment une analyse échantillonne](#comment-une-analyse-échantillonne): Les enregistrements les plus récents de chaque service, toutes les heures.
 - [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, dans le service où elle a été trouvée.
 - [Confiné de lui-même](#confiné-de-lui-même): Un secret masqué sans que personne n'appuie sur quoi que ce soit, là où c'est prouvé sûr.
+- [Le corriger dans le code](#le-corriger-dans-le-code): Une seule pull request qui empêche un service d'écrire toutes ses fuites.
 - [Abandonner cette métrique](#abandonner-cette-métrique): Ne plus stocker les métriques dont le nom contient des données sensibles.
 - [Ce qui compte comme nettoyé](#ce-qui-compte-comme-nettoyé): Quand une règle de nettoyage couvre déjà une détection.
 :::
@@ -99,7 +100,7 @@ Cliquez sur **Nettoyer**. Une boîte de dialogue dit ce que ferait la règle ava
 
 ### Corriger aussi le code
 
-La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut.
+La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut. **Corriger avec l'IA** sur le problème ouvre une seule pull request pour toutes les fuites du service : voir [Le corriger dans le code](#le-corriger-dans-le-code).
 :::
 
 La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in log attributes of checkout », ou « Data Security: Password or secret in db.password of checkout » pour une règle qui nomme son attribut, et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est la règle la plus étroite qui masque les données de la détection, la première de celles-ci qui convient :
@@ -155,6 +156,48 @@ Une modification qu'OneUptime AI a faite de lui-même :
 - **Dit de renouveler un secret.** Masquer un secret n'arrête que les nouvelles copies : le secret fonctionne toujours, et les enregistrements stockés avant la règle le gardent jusqu'à la fin de leur conservation. La chronologie et l'e-mail disent où il a été vu.
 
 Les nouvelles détections dans un service dont le problème est déjà ouvert sont confinées de la même façon, dès que l'analyse horaire les trouve.
+
+## Le corriger dans le code
+
+Une règle de masquage cache les nouvelles données à l'ingestion, mais le code les écrit toujours. **Corriger avec l'IA** sur un problème de télémétrie demande à OneUptime AI une seule pull request qui empêche le service d'écrire toutes les fuites que OneUptime voit encore dans sa télémétrie : celle de ce problème et les autres du service, y compris celles confinées à l'ingestion. Une boîte de dialogue montre ce que fera la pull request avant que quoi que ce soit ne démarre, et **Ouvrir la pull request** demande exactement cela.
+
+:::steps
+### Trouver où chaque fuite est écrite
+
+Avant que OneUptime AI ne commence, la Sécurité des données relit, dans OneUptime, les enregistrements où chaque fuite a été vue, et ne garde que l'endroit où le code les a écrits :
+
+- **Un span ou un appel d'IA** : le fichier, la ligne et la fonction que nomment ses attributs `code.*`, et le nom du span.
+- **Une exception** : ses propres frames du haut de la pile, celles du code du service.
+- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`.
+- **Une métrique** : le nom de la métrique.
+- **Toute fuite** : sa clé d'attribut, par exemple `user.email`, que le code écrit généralement telle quelle.
+
+### Choisir le dépôt
+
+La pull request va au dépôt qui contient les fichiers que nomment les enregistrements, trouvés comme les fichiers d'une trace de pile. Une fuite dont les enregistrements ne nomment aucun fichier va là où sont les autres fuites du service, sinon au dépôt qui porte le nom du service, ou au seul dépôt du projet. Dans un dépôt qui contient plusieurs services, OneUptime AI travaille dans le dossier du service : celui que partagent ces fichiers, sinon celui qu'utilisent les revues de production du service. Quand rien ne décide, c'est vous qui choisissez, parmi les dépôts où vous pouvez faire travailler OneUptime AI.
+
+### Ouvrir la pull request
+
+La boîte de dialogue dit comment le code va changer, liste chaque fuite avec l'endroit où elle est écrite, et nomme le dépôt, pourquoi c'est celui-là, et les fichiers par lesquels OneUptime AI commence. **Ouvrir la pull request** demande exactement ce plan : si une fuite a été trouvée ou corrigée depuis que vous l'avez ouverte, rien ne démarre, et le plan est montré à nouveau.
+:::
+
+La façon dont le code change dépend du nombre d'endroits qui écrivent les données :
+
+| Où les données sont écrites | Ce que fait la pull request |
+| --- | --- |
+| À trois endroits ou moins | Modifie le code à chaque endroit : retire la valeur, ou la masque ou la hache avant qu'elle ne soit envoyée |
+| À plus de trois endroits | Ajoute une étape de masquage, avec un test, là où le service configure sa télémétrie, au lieu de modifier chaque endroit |
+| Là où vos règles de masquage les cachent déjà à l'ingestion | Ajoute aussi cette étape de masquage pour ces clés, afin que le code fasse ce que fait l'ingestion |
+
+Une pull request corrige un service dans un dépôt : un service dont les fuites sont écrites dans deux dépôts en reçoit une dans chacun. Pendant qu'elle est rédigée, **Corriger avec l'IA** sur n'importe quel problème du service y renvoie, et aucune deuxième n'est lancée.
+
+OneUptime AI reçoit les endroits, les clés, les types de données et les modèles, jamais une valeur de vos données, un échantillon masqué ou un enregistrement, et l'agent de code ne lit rien de votre télémétrie pendant qu'il travaille. La description de la pull request liste les fuites et renvoie aux problèmes qu'elle corrige, sans jamais citer un enregistrement.
+
+Chaque problème que la pull request corrige la garde : sa carte **Comment corriger** dit si elle est en cours de rédaction, ouverte, fusionnée ou fermée, avec des liens vers la pull request et la tâche, et une fois fusionnée, ce que la production a montré. La chronologie du problème dit quand elle a été ouverte. Le problème est résolu comme **Corrigé dans le code** dès que la nouvelle version du service n'écrit plus les données (voir [Ce qu'il advient d'un problème](/docs/data-security/checks-and-issues#ce-quil-advient-dun-problème)).
+
+Un secret demande plus qu'une correction du code : le code n'empêche que les nouvelles copies, et le secret fonctionne toujours. La pull request, la chronologie du problème et sa carte **Comment corriger** disent de le faire tourner, et la carte liste où il a été vu.
+
+Avec **Travailler sur les nouveaux problèmes** activé, OneUptime AI propose aussi de lui-même la correction de chaque service, le service le plus risqué d'abord, dans **Sécurité des données → IA** et sur le problème le plus risqué du service. Par défaut, elle vous attend. Une règle d'IA de la Sécurité des données qui règle **Correction** sur **Automatiquement** pour le problème le plus risqué du service ouvre la pull request sans demander, dans un dépôt que quelque chose a décidé. **Nombre max de demandes de tirage de correctifs ouvertes** du dépôt plafonne les deux : au plafond, une pull request qu'une règle ouvrirait vous attend, et aucune nouvelle pull request de correction ne s'ouvre avant qu'une ne soit fusionnée ou fermée.
 
 ## Abandonner cette métrique
 

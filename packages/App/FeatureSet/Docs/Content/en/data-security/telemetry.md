@@ -9,6 +9,7 @@ There is nothing to set up: each service's telemetry is scanned every hour, unle
 - [How a scan samples](#how-a-scan-samples): The newest records of each service, every hour.
 - [Scrub It](#scrub-it): Hide a finding at ingest, in the service it was found in.
 - [Contained on its own](#contained-on-its-own): A secret hidden with nobody pressing anything, where that is proven safe.
+- [Fix it in the code](#fix-it-in-the-code): One pull request that stops a service writing all of its leaks.
 - [Drop This Metric](#drop-this-metric): Stop storing the metrics whose names hold sensitive data.
 - [What counts as scrubbed](#what-counts-as-scrubbed): When a scrub rule already covers a finding.
 :::
@@ -99,7 +100,7 @@ Click **Scrub It**. A dialog says what the rule would do before anything is made
 
 ### Fix the code too
 
-The rule hides new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
+The rule hides new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)). **Fix with AI** on the issue opens one pull request for every leak of the service: see [Fix it in the code](#fix-it-in-the-code).
 :::
 
 The rule is named for what it hides, such as "Data Security: Email address in log attributes of checkout", or "Data Security: Password or secret in db.password of checkout" for a rule that names its attribute, and is listed with your other scrub rules (see [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). It is the narrowest rule that hides the finding's data, the first of these that fits:
@@ -155,6 +156,48 @@ A change OneUptime AI made on its own:
 - **Says to rotate a secret.** Hiding a secret stops new copies only: the secret still works, and the records stored before the rule keep it until their retention ends. The timeline and the email say where it was seen.
 
 New findings in a service whose issue is open already are contained the same way, once the hourly scan finds them.
+
+## Fix it in the code
+
+A scrub rule hides new data at ingest, but the code still writes it. **Fix with AI** on a telemetry issue asks OneUptime AI for one pull request that stops the service writing every leak OneUptime still sees in its telemetry: this issue's and the service's others, those contained at ingest included. A dialog shows what the pull request will do before anything starts, and **Open Pull Request** asks for exactly that.
+
+:::steps
+### Find where each leak is written
+
+Before OneUptime AI starts, Data Security reads the records each leak was seen in again, inside OneUptime, and keeps only where the code wrote them:
+
+- **A span or an AI call**: the file, line and function its `code.*` attributes name, and the span's name.
+- **An exception**: its own top frames, those in the service's code.
+- **A log line**: the file, line and function its attributes name, when it has them, its logger, and the line as a template, each value replaced by its type's name, such as `User <Email address> signed up`.
+- **A metric**: the metric's name.
+- **Any leak**: its attribute key, such as `user.email`, which code usually writes as it is.
+
+### Choose the repository
+
+The pull request goes to the repository that holds the files the records name, matched as a stack trace's files are. A leak whose records name no file goes where the service's other leaks are, else to the repository named like the service, or to the project's only one. In a repository that holds several services, OneUptime AI works in the service's folder: the one those files share, else the one the service's production reviews use. When nothing decides, you pick, from the repositories you may ask OneUptime AI to work in.
+
+### Open the pull request
+
+The dialog says how the code will change, lists each leak with where it is written, and names the repository, why it is the one, and the files OneUptime AI starts from. **Open Pull Request** asks for that plan: when a leak was found or fixed since you opened it, nothing starts, and the plan is shown again.
+:::
+
+How the code changes depends on how many places write the data:
+
+| Where the data is written | What the pull request does |
+| --- | --- |
+| In three places or fewer | Changes the code at each place: leaves the value out, or masks or hashes it before it is sent |
+| In more than three places | Adds one redaction step where the service sets up its telemetry, with a test, instead of an edit at every place |
+| Where your scrub rules already hide it at ingest | Adds that redaction step for those keys too, so the code does what ingest does |
+
+One pull request fixes one service in one repository: a service whose leaks are written in two repositories gets one in each. While it is being written, **Fix with AI** on any of the service's issues points to it, and no second one is started.
+
+OneUptime AI is sent the places, keys, data types and templates, never a value of your data, a masked sample or a record, and the coding agent reads none of your telemetry while it works. The pull request's description lists the leaks and links the issues it fixes, and never quotes a record.
+
+Each issue the pull request fixes keeps it: its **How to Fix** card says whether it is being written, open, merged or closed, with links to the pull request and the task, and once it merged, what production showed. The issue's timeline says when it opened. The issue resolves as **Fixed in code** once the service's new version no longer writes the data (see [What happens to an issue](/docs/data-security/checks-and-issues#what-happens-to-an-issue)).
+
+A secret needs more than a code fix: the code stops new copies only, and the secret still works. The pull request, the issue's timeline and its **How to Fix** card say to rotate it, and the card lists where it was seen.
+
+With **Work on new issues** on, OneUptime AI also proposes each service's fix on its own, the riskiest service first, on **Data Security → AI** and on the service's riskiest issue. Out of the box it waits for you. A Data Security AI rule that sets **Fix** to **Automatically** for the service's riskiest issue opens the pull request without asking, in a repository something decided. The repository's **Max Open Fix Pull Requests** caps both: at the cap, a pull request a rule would open waits for you, and no new fix pull request opens until one is merged or closed.
 
 ## Drop This Metric
 
