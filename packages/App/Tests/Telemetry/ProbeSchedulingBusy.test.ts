@@ -12,6 +12,7 @@ import ProbeSchedulingLimiterInstance, {
   probeSchedulingLimits,
 } from "Common/Server/Utils/Probe/ProbeSchedulingLimiter";
 import { KeyedConcurrencyRelease } from "Common/Server/Utils/KeyedConcurrencyLimiter";
+import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -777,5 +778,119 @@ describe("the probe scheduling endpoints when the server is busy", () => {
 
       expect(next).toHaveBeenCalledWith(failure);
     });
+  });
+});
+
+/*
+ * Test Monitor runs have a lane of their own (issue #10819): a probe's test
+ * fetch used to wait in the same queue as every monitor fetch of the same
+ * probe, and a fleet catching up had it answered busy again and again, so a
+ * test was created and never run.
+ */
+describe("the lane each scheduling endpoint asks for", () => {
+  const ROUTES: Array<{ uri: string; lane: ProbeSchedulingLane }> = [
+    { uri: "/monitor/list", lane: ProbeSchedulingLane.Work },
+    { uri: "/monitor-test/list", lane: ProbeSchedulingLane.MonitorTests },
+    { uri: "/probe/network-device/list", lane: ProbeSchedulingLane.Work },
+  ];
+
+  for (const route of ROUTES) {
+    test(`POST ${route.uri} asks for a slot of the ${route.lane} lane`, async () => {
+      const acquire: AnyMock = jest
+        .spyOn(ProbeSchedulingLimiterInstance, "acquire")
+        .mockRejectedValue(
+          new ProbeSchedulingBusyError() as never,
+        ) as unknown as AnyMock;
+
+      await (
+        mockRouter.match("post", route.uri)
+          .middlewares[1] as ProbeSchedulingMiddlewareFunction
+      )(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        asExpress(new FakeResponse()),
+        jest.fn() as NextFunction,
+      );
+
+      expect(acquire).toHaveBeenCalledTimes(1);
+      const options: { lane?: ProbeSchedulingLane } = acquire.mock
+        .calls[0]![1] as { lane?: ProbeSchedulingLane };
+      expect(options.lane || ProbeSchedulingLane.Work).toBe(route.lane);
+    });
+  }
+
+  test("a Test Monitor fetch goes on to its handler while every work slot is held and the work queue is full", async () => {
+    const work: number = ProbeSchedulingLimiterInstance.limits.maxRunning;
+    const waiting: number = ProbeSchedulingLimiterInstance.limits.maxWaitingPerKey;
+    const held: Array<KeyedConcurrencyRelease> = [];
+    const queued: Array<Promise<KeyedConcurrencyRelease>> = [];
+
+    for (let slot: number = 0; slot < work; slot++) {
+      held.push(await ProbeSchedulingLimiterInstance.acquire(PROBE_ID.toString()));
+    }
+
+    for (let place: number = 0; place < waiting; place++) {
+      queued.push(
+        ProbeSchedulingLimiterInstance.acquire(PROBE_ID.toString()).catch(
+          (): KeyedConcurrencyRelease => {
+            return (): void => {
+              return undefined;
+            };
+          },
+        ),
+      );
+    }
+
+    try {
+      await settle();
+      // A monitor fetch of the same probe is answered busy now.
+      const monitorRes: FakeResponse = new FakeResponse();
+      const monitorNext: AnyMock = jest.fn() as unknown as AnyMock;
+      await (
+        mockRouter.match("post", "/monitor/list")
+          .middlewares[1] as ProbeSchedulingMiddlewareFunction
+      )(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        asExpress(monitorRes),
+        monitorNext as NextFunction,
+      );
+      expect(monitorRes.statusCode).toBe(429);
+      expect(monitorNext).not.toHaveBeenCalled();
+
+      // Its Test Monitor fetch goes on at once.
+      const testRes: FakeResponse = new FakeResponse();
+      const testNext: AnyMock = jest.fn() as unknown as AnyMock;
+      await (
+        mockRouter.match("post", "/monitor-test/list")
+          .middlewares[1] as ProbeSchedulingMiddlewareFunction
+      )(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        asExpress(testRes),
+        testNext as NextFunction,
+      );
+      expect(testNext).toHaveBeenCalledWith();
+      expect(
+        ProbeSchedulingLimiterInstance.runningCount(
+          PROBE_ID.toString(),
+          ProbeSchedulingLane.MonitorTests,
+        ),
+      ).toBe(1);
+
+      testRes.send([]);
+      expect(
+        ProbeSchedulingLimiterInstance.runningCount(
+          undefined,
+          ProbeSchedulingLane.MonitorTests,
+        ),
+      ).toBe(0);
+    } finally {
+      for (const release of held) {
+        release();
+      }
+      for (const waiter of queued) {
+        (await waiter)();
+      }
+    }
+
+    expect(ProbeSchedulingLimiterInstance.runningCount()).toBe(0);
   });
 });
