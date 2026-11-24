@@ -2,11 +2,14 @@ import MetricPipelineRule from "../../../Models/DatabaseModels/MetricPipelineRul
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import MetricPipelineRuleFilterCondition, {
+  isMetricFilterPatternType,
   MetricPipelineRuleFilterCheckOn,
   MetricPipelineRuleFilterConditionType,
 } from "../../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import MetricPipelineRuleType from "../../../Types/Metrics/MetricPipelineRuleType";
+import { ScrubRegExp } from "../../../Types/Telemetry/ScrubRule";
 import LinearRegExp from "../../../Utils/LinearRegExp/LinearRegExp";
+import { compileBuiltInScrubPattern } from "../../../Utils/Telemetry/ScrubBuiltInPatterns";
 import { getLinearRegExp } from "../../../Utils/LinearRegExp/PatternCache";
 import { PatternWorkLimitError } from "../../../Utils/LinearRegExp/PatternProblem";
 import { patternWorkRefusesQuestions } from "../../../Utils/LinearRegExp/PatternWork";
@@ -53,6 +56,12 @@ import PatternWorkScope from "../PatternWorkScope";
 const REGEX_MEMO_MAX_ENTRIES: number = 1000;
 const REGEX_MEMO_MAX_KEY_LENGTH: number = 1000;
 const warnedInvalidPatterns: Set<string> = new Set<string>();
+
+// Each built-in pattern a Matches Pattern Type filter names, compiled once: five at most.
+const compiledPatternTypes: Map<string, ScrubRegExp | null> = new Map<
+  string,
+  ScrubRegExp | null
+>();
 
 // What the memo keeps a pattern by: itself, or its length and beginning.
 function warnedPatternKey(pattern: string): string {
@@ -454,9 +463,39 @@ export default class MetricPipelineEngine {
           ? matched
           : !matched;
       }
+      case MetricPipelineRuleFilterConditionType.MatchesPatternType:
+        return MetricPipelineEngine.holdsPatternType(actual, expectedValue);
       default:
         return false;
     }
+  }
+
+  /*
+   * Whether a value holds what a built-in Pattern Type finds - the very
+   * pattern a log or trace scrub rule of that type runs
+   * (Utils/Telemetry/ScrubBuiltInPatterns): what Data Security calls an IP
+   * address, an email address or a card number, found by its own detectors
+   * in every reading they read (#10934, #10935, #10936, #10960). A value
+   * that names no pattern type matches nothing, as an invalid regex does.
+   * OneUptime's own patterns, each bounded: no work allowance is asked.
+   */
+  private static holdsPatternType(
+    actual: string,
+    patternType: string,
+  ): boolean {
+    if (!actual || !isMetricFilterPatternType(patternType)) {
+      return false;
+    }
+
+    let pattern: ScrubRegExp | null | undefined =
+      compiledPatternTypes.get(patternType);
+
+    if (pattern === undefined) {
+      pattern = compileBuiltInScrubPattern(patternType);
+      compiledPatternTypes.set(patternType, pattern);
+    }
+
+    return pattern !== null && pattern.test(actual);
   }
 
   public static getAttributes(row: MutableMetricRow): JSONObject {
