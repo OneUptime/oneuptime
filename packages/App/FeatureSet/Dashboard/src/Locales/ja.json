@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは最大 {{count}} 個です。",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは 1 個です。",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "自分が所有するカスタムプローブが、OneUptime より 1 つ以上前のメジャーリリースのバージョンで動作しています。メジャーリリースごとに 1 回、更新されるまでプローブに足りないものと一緒に送信されます。",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "このプローブのステータスが変わったときやメジャーリリース 1 つ分遅れたときにアラートを受け取れるよう、メンバーまたはチームを追加してください。追加するまでは、プロジェクト所有者にアラートが送られます。",
   "Check-In Address": "チェックイン元アドレス",
   "Interface Addresses": "インターフェースのアドレス",
   "Major Version Behind Notified For": "メジャーリリースの遅れを通知した対象",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "このプローブを所有するユーザーとチーム。ステータスが変わったとき、および OneUptime よりメジャーリリース 1 つ分遅れたときに 1 回、アラートが送られます。",
   "Probe a major release behind": "プローブがメジャーリリース 1 つ分遅れている",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "このフィールドに入れられるファイルは最大 {{count}} 個のため、次のファイルは追加されませんでした: {{fileNames}}。",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "このフィールドに入れられるファイルは 1 個のため、次のファイルは追加されませんでした: {{fileNames}}。",
   "Up to {{count}} files, such as screenshots and logs.": "最大 {{count}} 個のファイル（スクリーンショットやログなど）。",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "問題の修正が未適用",
   "Issue Fix Regressed": "問題が修正後に再発",
   "Issue Fix Verified": "問題の修正を検証済み",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "このプローブのステータスが変わったときやメジャーリリース 1 つ分遅れたときにアラートを受け取れるよう、メンバーまたはチームを追加してください。追加するまでは、プロジェクト所有者にアラートが送られます。",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "このプローブがチェックインのたびに一覧で送るアドレスです。セキュリティイベントはこれらのアドレスでプローブ自身のチェックを見分け、ブロックリストはこれらを決してブロックしません。",
   "What it is (store identity)": "基本情報"
 }

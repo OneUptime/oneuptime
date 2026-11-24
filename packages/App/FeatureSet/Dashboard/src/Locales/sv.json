@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" lades inte till: det här fältet rymmer upp till {{count}} filer.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" lades inte till: det här fältet rymmer en fil.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "En anpassad sond som du äger kör en version som är en huvudversion eller mer äldre än OneUptime. Skickas en gång för varje huvudversion, med det sonden saknar tills den uppdateras.",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Lägg till en kollega eller ett team så att de meddelas när status för den här sonden ändras eller den hamnar en huvudversion efter. Till dess meddelas projektägarna.",
   "Check-In Address": "Rapportadress",
   "Interface Addresses": "Gränssnittsadresser",
   "Major Version Behind Notified For": "Meddelad om huvudversion efter för",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personer och team som äger den här sonden. De meddelas när dess status ändras, och en gång när den hamnar en huvudversion efter OneUptime.",
   "Probe a major release behind": "Sond en huvudversion efter",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserna på den här sondens nätverksgränssnitt, och värdens när den får dem, så som sonden listar dem varje gång den hör av sig. Säkerhetshändelser lägger sondens egna avfrågningar, upptäckter och monitorkontroller från dessa adresser åt sidan, och blocklistan blockerar dem aldrig.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "De här filerna lades inte till, eftersom det här fältet rymmer upp till {{count}} filer: {{fileNames}}.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "De här filerna lades inte till, eftersom det här fältet rymmer en fil: {{fileNames}}.",
   "Up to {{count}} files, such as screenshots and logs.": "Upp till {{count}} filer, till exempel skärmbilder och loggar.",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "Åtgärd av ett problem inte tillämpad",
   "Issue Fix Regressed": "Regression efter åtgärden av ett problem",
   "Issue Fix Verified": "Åtgärd av ett problem verifierad",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "Lägg till en kollega eller ett team så att de meddelas när status för den här sonden ändras eller den hamnar en huvudversion efter. Till dess meddelas projektägarna.",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "Adresserna som sonden listar varje gång den hör av sig. Säkerhetshändelser känner igen sondens egna kontroller på dem, och blocklistan blockerar dem aldrig.",
   "What it is (store identity)": "Vad det är"
 }

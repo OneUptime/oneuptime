@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" 파일은 추가되지 않았습니다. 이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있습니다.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" 파일은 추가되지 않았습니다. 이 필드에는 파일을 1개만 넣을 수 있습니다.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "소유한 사용자 지정 프로브가 OneUptime보다 메이저 릴리스 하나 이상 오래된 버전으로 실행되고 있습니다. 메이저 릴리스마다 한 번, 업데이트될 때까지 프로브에 없는 기능과 함께 전송됩니다.",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "이 프로브의 상태가 변경되거나 메이저 릴리스 하나만큼 뒤처질 때 경고를 받을 수 있도록 팀원이나 팀을 추가하세요. 그때까지는 프로젝트 소유자가 경고를 받습니다.",
   "Check-In Address": "체크인 주소",
   "Interface Addresses": "인터페이스 주소",
   "Major Version Behind Notified For": "메이저 릴리스 뒤처짐 알림 대상",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "이 프로브를 소유한 사람과 팀입니다. 상태가 변경되면 경고를 받고, OneUptime보다 메이저 릴리스 하나만큼 뒤처지면 한 번 경고를 받습니다.",
   "Probe a major release behind": "프로브가 메이저 릴리스 하나 뒤처짐",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있어 다음 파일은 추가되지 않았습니다: {{fileNames}}.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "이 필드에는 파일을 1개만 넣을 수 있어 다음 파일은 추가되지 않았습니다: {{fileNames}}.",
   "Up to {{count}} files, such as screenshots and logs.": "스크린샷이나 로그 같은 파일 최대 {{count}}개.",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "이슈 수정 적용되지 않음",
   "Issue Fix Regressed": "이슈 수정 후 재발",
   "Issue Fix Verified": "이슈 수정 검증됨",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "이 프로브의 상태가 변경되거나 메이저 릴리스 하나만큼 뒤처질 때 경고를 받을 수 있도록 팀원이나 팀을 추가하세요. 그때까지는 프로젝트 소유자가 경고를 받습니다.",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "이 프로브가 체크인할 때마다 나열하는 주소입니다. 보안 이벤트는 이 주소로 프로브 자체의 검사를 알아보며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "What it is (store identity)": "기본 정보"
 }

@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "«{{fileName}}» افزوده نشد: این فیلد حداکثر {{count}} فایل می‌پذیرد.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "«{{fileName}}» افزوده نشد: این فیلد یک فایل می‌پذیرد.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "پراب سفارشی‌ای که مالکش هستید نسخه‌ای را اجرا می‌کند که یک نسخهٔ اصلی یا بیشتر از OneUptime قدیمی‌تر است. برای هر نسخهٔ اصلی یک بار فرستاده می‌شود، همراه با آنچه پراب تا به‌روزرسانی ندارد.",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "یک هم‌تیمی یا یک تیم بیفزایید تا هنگام تغییر وضعیت این پراب یا عقب افتادن آن به اندازهٔ یک نسخهٔ اصلی به آن‌ها هشدار داده شود. تا آن زمان به مالکان پروژه هشدار داده می‌شود.",
   "Check-In Address": "نشانی اعلام حضور",
   "Interface Addresses": "نشانی‌های رابط‌ها",
   "Major Version Behind Notified For": "اعلام عقب‌ماندگی نسخهٔ اصلی برای",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "افراد و تیم‌هایی که مالک این پراب هستند. هنگام تغییر وضعیت آن، و یک بار وقتی یک نسخهٔ اصلی از OneUptime عقب بیفتد، به آن‌ها هشدار داده می‌شود.",
   "Probe a major release behind": "پراب یک نسخهٔ اصلی عقب است",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "این فایل‌ها افزوده نشدند، چون این فیلد حداکثر {{count}} فایل می‌پذیرد: {{fileNames}}.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "این فایل‌ها افزوده نشدند، چون این فیلد یک فایل می‌پذیرد: {{fileNames}}.",
   "Up to {{count}} files, such as screenshots and logs.": "حداکثر {{count}} فایل، مانند تصویر صفحه و لاگ.",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "اصلاح مسئله اعمال نشد",
   "Issue Fix Regressed": "مسئله پس از اصلاح دوباره رخ داد",
   "Issue Fix Verified": "اصلاح مسئله راستی‌آزمایی شد",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "یک هم‌تیمی یا یک تیم بیفزایید تا هنگام تغییر وضعیت این پراب یا عقب افتادن آن به اندازهٔ یک نسخهٔ اصلی به آن‌ها هشدار داده شود. تا آن زمان به مالکان پروژه هشدار داده می‌شود.",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "نشانی‌هایی که این پراب هر بار هنگام اعلام حضور فهرست می‌کند. رویدادهای امنیتی بررسی‌های خود پراب را با آن‌ها می‌شناسد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
   "What it is (store identity)": "چه چیزی است"
 }

@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" नहीं जोड़ी गई: इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं।",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" नहीं जोड़ी गई: इस फ़ील्ड में एक ही फ़ाइल रखी जा सकती है।",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "आपके स्वामित्व वाला कोई कस्टम प्रोब ऐसा रिलीज़ चला रहा है जो OneUptime से एक या अधिक मेजर रिलीज़ पुराना है। हर मेजर रिलीज़ के लिए एक बार भेजा जाता है, साथ में यह भी कि अपडेट होने तक प्रोब में क्या नहीं है।",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "कोई साथी या टीम जोड़ें ताकि इस प्रोब की स्थिति बदलने पर या इसके एक मेजर रिलीज़ पीछे रह जाने पर उन्हें अलर्ट किया जाए। तब तक प्रोजेक्ट स्वामियों को अलर्ट किया जाता है।",
   "Check-In Address": "चेक-इन पता",
   "Interface Addresses": "इंटरफ़ेस पते",
   "Major Version Behind Notified For": "मेजर रिलीज़ पीछे होने की सूचना किसके लिए दी गई",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "वे लोग और टीमें जो इस प्रोब के स्वामी हैं। इसकी स्थिति बदलने पर उन्हें अलर्ट किया जाता है, और एक बार तब, जब यह OneUptime से एक मेजर रिलीज़ पीछे रह जाता है।",
   "Probe a major release behind": "प्रोब एक मेजर रिलीज़ पीछे",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "इस प्रोब के नेटवर्क इंटरफ़ेस के पते, और बताए जाने पर इसके होस्ट के पते, जैसे प्रोब हर बार चेक-इन करते समय उन्हें सूचीबद्ध करता है। सुरक्षा इवेंट इन पतों से आने वाली प्रोब की अपनी पोलिंग, डिस्कवरी और मॉनिटर जाँचों को अलग रख देते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "ये फ़ाइलें नहीं जोड़ी गईं, क्योंकि इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं: {{fileNames}}।",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "ये फ़ाइलें नहीं जोड़ी गईं, क्योंकि इस फ़ील्ड में एक ही फ़ाइल रखी जा सकती है: {{fileNames}}।",
   "Up to {{count}} files, such as screenshots and logs.": "अधिकतम {{count}} फ़ाइलें, जैसे स्क्रीनशॉट और लॉग।",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "समस्या का सुधार लागू नहीं हुआ",
   "Issue Fix Regressed": "समस्या सुधार के बाद फिर हुई",
   "Issue Fix Verified": "समस्या का सुधार सत्यापित हुआ",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "कोई साथी या टीम जोड़ें ताकि इस प्रोब की स्थिति बदलने पर या इसके एक मेजर रिलीज़ पीछे रह जाने पर उन्हें अलर्ट किया जाए। तब तक प्रोजेक्ट स्वामियों को अलर्ट किया जाता है।",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "वे पते जिन्हें यह प्रोब हर बार चेक-इन करते समय सूचीबद्ध करता है। सुरक्षा इवेंट इनसे प्रोब की अपनी जाँचों को पहचानते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
   "What it is (store identity)": "यह क्या है"
 }

@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "«{{fileName}}» no se añadió: este campo admite hasta {{count}} archivos.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "«{{fileName}}» no se añadió: este campo admite un archivo.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Una sonda personalizada de tu propiedad ejecuta una versión que es una versión principal o más anterior a la de OneUptime. Se envía una vez por cada versión principal, con lo que le falta a la sonda hasta que se actualice.",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Añade a un compañero o a un equipo para que reciban una alerta cuando cambie el estado de esta sonda o se quede una versión principal atrás. Mientras tanto, se alerta a los propietarios del proyecto.",
   "Check-In Address": "Dirección de comunicación",
   "Interface Addresses": "Direcciones de las interfaces",
   "Major Version Behind Notified For": "Retraso de versión principal notificado para",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personas y equipos propietarios de esta sonda. Se les alerta cuando cambia su estado, y una vez cuando se queda una versión principal por detrás de OneUptime.",
   "Probe a major release behind": "Sonda una versión principal atrás",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Las direcciones de las interfaces de red de esta sonda, y las de su host cuando se le indican, tal como la sonda las enumera cada vez que se comunica. Eventos de seguridad aparta los sondeos, las detecciones y las comprobaciones de monitores propios de la sonda que salen de ellas, y la lista de bloqueo nunca las bloquea.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "Estos archivos no se añadieron, porque este campo admite hasta {{count}} archivos: {{fileNames}}.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "Estos archivos no se añadieron, porque este campo admite un archivo: {{fileNames}}.",
   "Up to {{count}} files, such as screenshots and logs.": "Hasta {{count}} archivos, como capturas de pantalla y registros.",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "Corrección de un problema no aplicada",
   "Issue Fix Regressed": "Regresión tras la corrección de un problema",
   "Issue Fix Verified": "Corrección de un problema verificada",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "Añade a un compañero o a un equipo para que reciban una alerta cuando cambie el estado de esta sonda o se quede una versión principal atrás. Mientras tanto, se alerta a los propietarios del proyecto.",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "Las direcciones que esta sonda enumera cada vez que se comunica. Eventos de seguridad reconoce por ellas las comprobaciones propias de la sonda, y la lista de bloqueo nunca las bloquea.",
   "What it is (store identity)": "Qué es"
 }

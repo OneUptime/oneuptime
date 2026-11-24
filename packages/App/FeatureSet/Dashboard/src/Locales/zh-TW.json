@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」未新增：此欄位最多可包含 {{count}} 個檔案。",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」未新增：此欄位只能包含一個檔案。",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "您擁有的自訂探測器所執行的版本比 OneUptime 落後一個或更多主要版本。每個主要版本傳送一次，並說明探測器在更新前缺少什麼。",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "新增一位成員或一個團隊，以便在此探測器狀態變更或落後一個主要版本時向他們發出警示。在此之前，警示會發給專案擁有者。",
   "Check-In Address": "回報位址",
   "Interface Addresses": "介面位址",
   "Major Version Behind Notified For": "已通知落後的主要版本",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "擁有此探測器的人員和團隊。當其狀態變更時，以及當它落後 OneUptime 一個主要版本時（一次），他們會收到警示。",
   "Probe a major release behind": "探測器落後一個主要版本",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探測器網路介面上的位址，以及在告知它時其主機的位址，即探測器每次回報時列出的位址。安全事件會將探測器自身從這些位址發出的輪詢、探索與監控檢查另行擱置，封鎖清單也從不封鎖它們。",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "此欄位最多可包含 {{count}} 個檔案，因此以下檔案未新增：{{fileNames}}。",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "此欄位只能包含一個檔案，因此以下檔案未新增：{{fileNames}}。",
   "Up to {{count}} files, such as screenshots and logs.": "最多 {{count}} 個檔案，例如螢幕截圖和日誌。",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "問題修正未套用",
   "Issue Fix Regressed": "問題修正後再次發生",
   "Issue Fix Verified": "問題修正已驗證",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "新增一位成員或一個團隊，以便在此探測器狀態變更或落後一個主要版本時向他們發出警示。在此之前，警示會發給專案擁有者。",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "此探測器每次回報時列出的位址。安全事件據此識別探測器自身的檢查，封鎖清單也從不封鎖它們。",
   "What it is (store identity)": "它是什麼"
 }

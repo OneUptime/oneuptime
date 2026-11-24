@@ -63787,13 +63787,11 @@
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "„{{fileName}}“ wurde nicht hinzugefügt: Dieses Feld fasst bis zu {{count}} Dateien.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "„{{fileName}}“ wurde nicht hinzugefügt: Dieses Feld fasst eine Datei.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Eine benutzerdefinierte Sonde, die Ihnen gehört, läuft mit einer Version, die eine Hauptversion oder mehr älter ist als OneUptime. Wird einmal pro Hauptversion gesendet, mit dem, was der Sonde bis zu ihrer Aktualisierung fehlt.",
-  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Fügen Sie ein Teammitglied oder ein Team hinzu, damit diese benachrichtigt werden, wenn sich der Status dieser Sonde ändert oder sie eine Hauptversion zurückfällt. Bis dahin werden die Projektinhaber benachrichtigt.",
   "Check-In Address": "Meldeadresse",
   "Interface Addresses": "Schnittstellenadressen",
   "Major Version Behind Notified For": "Benachrichtigt für Rückstand auf Hauptversion",
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personen und Teams, die Eigentümer dieser Sonde sind. Sie werden benachrichtigt, wenn sich ihr Status ändert, und einmal, wenn sie eine Hauptversion hinter OneUptime zurückfällt.",
   "Probe a major release behind": "Sonde eine Hauptversion zurück",
-  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "Diese Dateien wurden nicht hinzugefügt, da dieses Feld bis zu {{count}} Dateien fasst: {{fileNames}}.",
   "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "Diese Dateien wurden nicht hinzugefügt, da dieses Feld eine Datei fasst: {{fileNames}}.",
   "Up to {{count}} files, such as screenshots and logs.": "Bis zu {{count}} Dateien, etwa Screenshots und Logs.",
@@ -64247,5 +64245,7 @@
   "Issue Fix Not Applied": "Korrektur eines Problems nicht angewendet",
   "Issue Fix Regressed": "Problem nach der Korrektur erneut aufgetreten",
   "Issue Fix Verified": "Korrektur eines Problems verifiziert",
+  "Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted.": "Fügen Sie ein Teammitglied oder ein Team hinzu, damit diese benachrichtigt werden, wenn sich der Status dieser Sonde ändert oder sie eine Hauptversion zurückfällt. Bis dahin werden die Projektinhaber benachrichtigt.",
+  "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.": "Die Adressen, die diese Sonde bei jeder Meldung auflistet. Sicherheitsereignisse erkennt an ihnen die eigenen Prüfungen der Sonde, und die Sperrliste sperrt sie nie.",
   "What it is (store identity)": "Was es ist"
 }
