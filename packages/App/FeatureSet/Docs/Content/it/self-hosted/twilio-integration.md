@@ -147,6 +147,21 @@ Ciò che nessuna configurazione predefinita invia parte come partirebbe senza co
 
 Le pagine di stato propongono solo le configurazioni che inviano SMS, e **Invia SMS di prova** e **Invia chiamata di prova** compaiono solo per ciò che una configurazione invia. Ogni configurazione esistente è impostata su **Chiamate e SMS**, come prima. Tramite l'API e Terraform, la scelta è il campo `usedFor`, e una configurazione senza i numeri che la sua scelta richiede viene rifiutata.
 
+### La voce con cui parlano le chiamate
+
+Le chiamate parlano con la voce che il tuo account Twilio usa per impostazione predefinita: la voce Basic gratuita di Twilio, a meno che tu non ne abbia scelta un'altra nella Twilio Console. Secondo Twilio, le sue voci Basic non sono pensate per l'uso in produzione, quindi ogni account può invece parlare con una di queste voci neurali. Scegli quella dell'account dell'intera installazione nella scheda **Voce delle chiamate** di **Admin Dashboard > Impostazioni > Chiamate e SMS**, e quella di una configurazione di progetto in **Voce delle chiamate**, in **Altri campi**.
+
+| Voce | Fornitore | Come suona |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Inglese americano, voce femminile |
+| `Polly.Matthew-Neural` | Amazon Polly | Inglese americano, voce maschile |
+| `Polly.Amy-Neural` | Amazon Polly | Inglese britannico, voce femminile |
+| `Polly.Brian-Neural` | Amazon Polly | Inglese britannico, voce maschile |
+| `Google.en-US-Neural2-F` | Google | Inglese americano, voce femminile |
+| `Google.en-US-Neural2-J` | Google | Inglese americano, voce maschile |
+
+Ogni chiamata fatta tramite l'account parla con quella voce: le chiamate di reperibilità e la risposta al tasto che premi, il messaggio lasciato in segreteria, i codici di verifica, **Invia chiamata di prova** e i saluti di una policy delle chiamate in arrivo. Con queste voci, un numero come `INC-42` viene compitato tramite SSML, il che suona più naturale delle lettere separate da spazi che ricevono le altre voci. Twilio addebita queste voci all'account che effettua la chiamata: $0.0032 ogni 100 caratteri a novembre 2026, meno di 2 centesimi di dollaro per una chiamata di reperibilità. Vedi [i prezzi delle chiamate vocali di Twilio](https://www.twilio.com/en-us/voice/pricing/us). Lascia vuoto **Voce delle chiamate** per mantenere la voce predefinita dell'account. Tramite l'API e Terraform, la voce è il campo `twilioCallVoice`, e una voce che non è nella tabella viene rifiutata.
+
 ### Segreteria telefonica nelle chiamate di reperibilità
 
 Per Twilio, una chiamata a cui risponde la segreteria telefonica ha avuto risposta, come una a cui risponde una persona. Per questo ogni chiamata di reperibilità chiede a Twilio, in background, se ha risposto una persona o la segreteria, con il [rilevamento della segreteria](https://www.twilio.com/docs/voice/answering-machine-detection): chi risponde sente subito l'avviso. Una chiamata a cui risponde la segreteria conta come senza risposta, come una che squilla a vuoto, e l'avviso prosegue come per una chiamata persa. Appena finisce il messaggio di benvenuto, OneUptime lascia un breve messaggio con ciò che diceva la chiamata. Il log della chiamata dice se è stato lasciato un messaggio, e così il feed dell'incidente: «Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left.»

@@ -12,17 +12,17 @@ import ObjectID from "../../../Types/ObjectID";
 import { pullRequestShippedMarkdown } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityCasePullRequestService from "../../Services/SecurityCasePullRequestService";
-import FixProductionVerifier, {
-  FixDeploy,
-  VerifierRun,
-} from "../AI/CodeFix/FixProductionVerifier";
+import { JSONObject } from "../../../Types/JSON";
+import { FixDeploy, VerifierRun } from "../AI/CodeFix/FixProductionVerifier";
 import {
   FIX_PRODUCTION_THRESHOLDS,
   describeDeploy,
 } from "../AI/CodeFix/FixProductionVerdict";
 import { CODE_HOST_REPOSITORY_SELECT } from "../CodeRepository/CodeHost/CodeHostAccess";
-import { CodeHostPullRequestState } from "../CodeRepository/CodeHost/CodeHostTypes";
-import LinkedPullRequestReader from "../CodeRepository/LinkedPullRequests/LinkedPullRequestReader";
+import LinkedPullRequestFollower, {
+  LinkedPullRequestKind,
+  PullRequestFollowed,
+} from "../CodeRepository/LinkedPullRequests/LinkedPullRequestFollower";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityCaseStepChecks from "./StepChecks/SecurityCaseStepChecks";
@@ -46,6 +46,10 @@ import SecurityCaseStepChecks from "./StepChecks/SecurityCaseStepChecks";
  * proves the fix by the attack being turned away after that deploy. Each
  * link is followed in isolation: one host that does not answer never stops
  * the others, and is read again next time.
+ *
+ * The loop is the one follower of every linked pull request
+ * (LinkedPullRequestFollower), which follows a Data Security issue's own
+ * fixes too (#10831); a case's links are one kind of it.
  */
 
 // The most links one run follows, of each kind: open ones, merged ones waiting for a deploy.
@@ -82,25 +86,21 @@ const FOLLOW_SELECT: {
 };
 
 // What following one link changed: written on its row, said on the case.
-export interface PullRequestFollowed {
-  isChanged: boolean;
-  isShipped: boolean;
-}
+export type { PullRequestFollowed };
 
-export default class SecurityCasePullRequestFollower {
-  // Every link still to follow, the longest-waiting first. Never throws.
-  @CaptureSpan()
-  public static async followAll(
-    now: Date = OneUptimeDate.getCurrentDate(),
-  ): Promise<number> {
-    const run: VerifierRun = {
-      now,
-      tokens: new Map<string, string | null>(),
-      failedCompares: new Set<string>(),
-    };
-    let rows: Array<SecurityCasePullRequest> = [];
-
-    try {
+/*
+ * A case's links, as the one follower of linked pull requests follows them
+ * (LinkedPullRequestFollower): open ones, and merged ones waiting for a
+ * deploy as long as an AI fix's is waited for; the deploy found here; the
+ * case's steps checked once anything changed.
+ */
+export const SECURITY_CASE_PULL_REQUESTS: LinkedPullRequestKind<SecurityCasePullRequest> =
+  {
+    name: "security case pull request",
+    findsDeploy: true,
+    readToFollow: async (
+      now: Date,
+    ): Promise<Array<SecurityCasePullRequest>> => {
       const [open, merged]: [
         Array<SecurityCasePullRequest>,
         Array<SecurityCasePullRequest>,
@@ -133,20 +133,50 @@ export default class SecurityCasePullRequestFollower {
         }),
       ]);
 
-      rows = [...open, ...merged];
-    } catch (error) {
-      logger.error(
-        "SecurityCasePullRequestFollower: could not read the linked pull requests to follow:",
-      );
-      logger.error(error);
-      return 0;
-    }
+      return [...open, ...merged];
+    },
+    write: async (data: {
+      row: SecurityCasePullRequest;
+      update: JSONObject;
+      isChanged: boolean;
+    }): Promise<void> => {
+      await SecurityCasePullRequestService.updateColumnsByIdWithoutHooks({
+        id: data.row.id!,
+        data: data.update as PartialEntity<SecurityCasePullRequest>,
+        skipUpdateDateColumn: !data.isChanged,
+      });
+    },
+    onShipped: async (data: {
+      row: SecurityCasePullRequest;
+      deploy: FixDeploy;
+    }): Promise<void> => {
+      await SecurityCasePullRequestFollower.sayShipped(data);
+    },
+    // The Fix step reads the case's fixes: OneUptime looks at it now.
+    afterChange: async (data: {
+      row: SecurityCasePullRequest;
+    }): Promise<void> => {
+      if (!data.row.projectId || !data.row.securityCaseId) {
+        return;
+      }
 
-    for (const row of rows) {
-      await SecurityCasePullRequestFollower.followOne({ row, run });
-    }
+      await SecurityCaseStepChecks.requestCheck({
+        projectId: data.row.projectId,
+        securityCaseId: data.row.securityCaseId,
+      });
+    },
+  };
 
-    return rows.length;
+export default class SecurityCasePullRequestFollower {
+  // Every link still to follow, the longest-waiting first. Never throws.
+  @CaptureSpan()
+  public static async followAll(
+    now: Date = OneUptimeDate.getCurrentDate(),
+  ): Promise<number> {
+    return await LinkedPullRequestFollower.followAll({
+      kind: SECURITY_CASE_PULL_REQUESTS,
+      now,
+    });
   }
 
   // One link, now: one just linked that merged already. Never throws.
@@ -169,11 +199,7 @@ export default class SecurityCasePullRequestFollower {
 
     return await SecurityCasePullRequestFollower.followOne({
       row,
-      run: {
-        now: data.now || OneUptimeDate.getCurrentDate(),
-        tokens: new Map<string, string | null>(),
-        failedCompares: new Set<string>(),
-      },
+      run: LinkedPullRequestFollower.newRun(data.now),
     });
   }
 
@@ -186,111 +212,23 @@ export default class SecurityCasePullRequestFollower {
     row: SecurityCasePullRequest;
     run: VerifierRun;
   }): Promise<PullRequestFollowed> {
-    const { row, run } = data;
-    const followed: PullRequestFollowed = {
-      isChanged: false,
-      isShipped: false,
-    };
-
-    if (!row.id || !row.projectId || !row.securityCaseId) {
-      return followed;
+    if (!data.row.securityCaseId) {
+      return { isChanged: false, isShipped: false };
     }
 
-    const update: PartialEntity<SecurityCasePullRequest> = {
-      followedAt: run.now,
-    } as PartialEntity<SecurityCasePullRequest>;
-
-    try {
-      if (
-        row.pullRequestState === PullRequestState.Open &&
-        row.codeRepository &&
-        row.pullRequestNumber
-      ) {
-        const read: CodeHostPullRequestState =
-          await LinkedPullRequestReader.readState({
-            repository: row.codeRepository,
-            number: row.pullRequestNumber,
-          });
-
-        if (read.state !== PullRequestState.Open) {
-          Object.assign(update, { pullRequestState: read.state });
-          row.pullRequestState = read.state;
-          followed.isChanged = true;
-        }
-
-        if (read.state === PullRequestState.Merged) {
-          const mergedAt: Date = read.mergedAt || run.now;
-
-          Object.assign(update, {
-            mergedAt,
-            ...(read.mergeCommitSha
-              ? { mergeCommitSha: read.mergeCommitSha }
-              : {}),
-          });
-          row.mergedAt = mergedAt;
-
-          if (read.mergeCommitSha) {
-            row.mergeCommitSha = read.mergeCommitSha;
-          }
-        }
-      }
-
-      if (
-        row.pullRequestState === PullRequestState.Merged &&
-        !row.deployedAt &&
-        row.mergeCommitSha
-      ) {
-        const deploy: FixDeploy | null =
-          await FixProductionVerifier.findDeployContainingFix({
-            fix: row,
-            mergedAt: row.mergedAt ? new Date(row.mergedAt) : run.now,
-            run,
-          });
-
-        if (deploy) {
-          Object.assign(update, {
-            deployedAt: deploy.time,
-            ...(deploy.version ? { deployedVersion: deploy.version } : {}),
-            deployedCommitSha: deploy.commitSha,
-          });
-          followed.isChanged = true;
-          followed.isShipped = true;
-
-          await SecurityCasePullRequestFollower.sayShipped({ row, deploy });
-        }
-      }
-    } catch (error) {
-      logger.debug(
-        `SecurityCasePullRequestFollower: could not follow linked pull request ${row.id.toString()}; it is followed again next time: ${String(error)}`,
-      );
-    }
-
-    try {
-      await SecurityCasePullRequestService.updateColumnsByIdWithoutHooks({
-        id: row.id,
-        data: update,
-        skipUpdateDateColumn: !followed.isChanged,
+    const followed: PullRequestFollowed =
+      await LinkedPullRequestFollower.followOne({
+        kind: SECURITY_CASE_PULL_REQUESTS,
+        row: data.row,
+        run: data.run,
       });
 
-      // The Fix step reads the case's fixes: OneUptime looks at it now.
-      if (followed.isChanged) {
-        await SecurityCaseStepChecks.requestCheck({
-          projectId: row.projectId,
-          securityCaseId: row.securityCaseId,
-        });
-      }
-    } catch (error) {
-      logger.error(
-        `SecurityCasePullRequestFollower: could not write what it found of linked pull request ${row.id.toString()}:`,
-      );
-      logger.error(error);
-    }
-
-    return followed;
+    // What changed for the case: written, and shipped.
+    return { isChanged: followed.isChanged, isShipped: followed.isShipped };
   }
 
   // The deploy that shipped it, on the case's timeline.
-  private static async sayShipped(data: {
+  public static async sayShipped(data: {
     row: SecurityCasePullRequest;
     deploy: FixDeploy;
   }): Promise<void> {

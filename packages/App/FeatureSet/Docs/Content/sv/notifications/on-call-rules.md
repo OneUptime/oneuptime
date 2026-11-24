@@ -44,7 +44,9 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-Samtalet nämner ditt projekt. Ett samtal som inte hör till ett projekt, till exempel en verifieringskod, nämner OneUptime eller det namn som din självhostade installation använder. En titel på mer än ungefär 100 tecken kortas efter ett helt ord, och OneUptime sparar hela titeln. Bokstäverna i ett nummer som `INC-42` sägs en i taget, så att rösten aldrig läser dem som ett ord. Samtal är alltid på engelska.
+Trycker du på en knapp som samtalet inte erbjöd, till exempel 3, # eller *, säger samtalet "That key does nothing." och ber dig trycka igen. Det frågar igen högst två gånger, lika många gånger som det säger knapparna när du inte trycker på någon; därefter avslutar ett tryck på fel knapp samtalet, och larmet förblir obekräftat. Knapparna 1 och 2 fungerar som de alltid har gjort.
+
+Samtalet nämner ditt projekt. Ett samtal som inte hör till ett projekt, till exempel en verifieringskod, nämner OneUptime eller det namn som din självhostade installation använder. En titel på mer än ungefär 100 tecken kortas efter ett helt ord, och OneUptime sparar hela titeln. Bokstäverna i ett nummer som `INC-42` sägs en i taget, så att rösten aldrig läser dem som ett ord. Samtal är alltid på engelska, med den röst som ditt Twilio-konto använder som standard om inte en administratör väljer en annan: se [Rösten som samtalen använder](/docs/self-hosted/twilio-integration#rösten-som-samtalen-använder).
 
 ## En ordning för allt
 

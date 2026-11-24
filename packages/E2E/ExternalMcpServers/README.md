@@ -2,7 +2,7 @@
 
 An offline harness for Project Settings → AI → External MCP Servers: the MCP
 servers outside OneUptime (AWS, Azure, GitHub, a team's own) whose tools
-OneUptime AI may use while it investigates and fixes. The pages
+OneUptime AI may use in Ask AI and while it investigates and fixes. The pages
 (`packages/App/FeatureSet/Dashboard/src/Pages/Settings/ExternalMcpServers.tsx`
 and `Pages/Settings/ExternalMcpServerView.tsx`), the create and edit form
 (`Components/ExternalMcpServer/ExternalMcpServerFormFields.tsx`), the Test

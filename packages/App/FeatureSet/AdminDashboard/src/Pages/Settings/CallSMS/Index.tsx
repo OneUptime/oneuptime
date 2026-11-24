@@ -2,6 +2,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
+import CallVoiceCard from "./CallVoiceCard";
 import ServerTwilioEnvironmentCard, {
   ServerTwilioEnvironmentLoadingCard,
   ServerTwilioEnvironmentUnusedAlert,
@@ -427,6 +428,12 @@ const Settings: FunctionComponent = (): ReactElement => {
           {getSavedAccountCard()}
         </>
       )}
+
+      {/*
+       * The voice the account's calls speak with (#10948): chosen here
+       * however the account is set, by this page or by the environment.
+       */}
+      <CallVoiceCard onSaveSuccess={onSettingsSaved} />
     </Page>
   );
 };

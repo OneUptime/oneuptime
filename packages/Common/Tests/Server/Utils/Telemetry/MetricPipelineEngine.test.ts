@@ -645,6 +645,43 @@ describe("a Matches Pattern Type filter", () => {
     expect(leftOf(redactWhere("ssn", "ssn"), "ssn", "none")).toBe("none");
   });
 
+  // #11025, #11030: what Data Security finds, as a log or trace rule hides it.
+  test.each([
+    ["an international number", "+44 20 8123 4567"],
+    ["one in its calling code's parentheses", "(+44) 20 8123 4567"],
+    ["one in an encoded URL", "/callback?phone=%2B49%2030%2081234567"],
+    ["one in Arabic-Indic digits", "+٤٩ ٣٠ ٨١٢٣٤٥٦٧"],
+    ["a North American one in fullwidth digits", "(４１５) ３２１-８７３１"],
+  ])("phoneNumber redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("caller", "phoneNumber"), "caller", value)).toBe(
+      "[REDACTED]",
+    );
+  });
+
+  test.each([
+    ["a decimal", "+51.507217"],
+    ["a time zone beside a date", "UTC +1 2026-11-24"],
+    ["a version", "v1.2.3+build.5"],
+  ])("phoneNumber keeps %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("caller", "phoneNumber"), "caller", value)).toBe(
+      value,
+    );
+  });
+
+  test.each([
+    ["one set apart by dots", "536.22.8731"],
+    ["one set apart by spaces", "536 22 8731"],
+    ["one in Arabic-Indic digits", "٥٣٦-٢٢-٨٧٣١"],
+  ])("ssn redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("ssn", "ssn"), "ssn", value)).toBe("[REDACTED]");
+  });
+
+  test("ssn keeps an area no one is issued, and a longer chain of groups", () => {
+    for (const value of ["666.22.8731", "536.22.8731.01"]) {
+      expect(leftOf(redactWhere("ssn", "ssn"), "ssn", value)).toBe(value);
+    }
+  });
+
   test("a value that names no pattern type matches nothing", () => {
     for (const patternType of ["", "custom", "sensitiveKeys", "constructor"]) {
       expect(

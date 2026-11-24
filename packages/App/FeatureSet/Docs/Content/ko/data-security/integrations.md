@@ -158,7 +158,7 @@ OneUptime AI는 AI 규칙이 허용하는 대로 새 이슈마다 스스로도 �
 | 레코드 | API 경로 |
 | --- | --- |
 | 데이터 저장소, 그 타임라인과 발견 사항, 접근할 수 있는 대상과 각 ID | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| 이슈, 그 타임라인, 데이터 흐름 | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| 이슈, 그 타임라인, 연결된 풀 리퀘스트, 데이터 흐름 | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | 스캔 | `/data-security-scan` |
 | 사용자 지정 데이터 유형, 검사 설정, 규정 준수 설정, 데이터 상주 규칙 | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | 프로젝트의 설정 | `/data-security-setting` |

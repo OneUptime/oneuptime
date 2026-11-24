@@ -158,7 +158,7 @@ Allt som Datasäkerhet sparar är en post i OneUptimes API, som läses med samma
 | Poster | API-sökväg |
 | --- | --- |
 | Datalager, deras tidslinjer, deras fynd, vem som kan nå dem och varje identitet som kan det | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problem, deras tidslinjer och dataflöden | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problem, deras tidslinjer, deras länkade pull requests och dataflöden | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Skanningar | `/data-security-scan` |
 | Anpassade datatyper, kontrollinställningar, efterlevnadsinställningar och hemvistregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets inställningar | `/data-security-setting` |

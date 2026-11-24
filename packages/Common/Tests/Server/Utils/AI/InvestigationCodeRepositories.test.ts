@@ -30,7 +30,10 @@ import type { SpyInstance } from "jest-mock";
  *   - no enabled rule that investigates: every connected repository;
  *   - a matching rule that names none: every connected repository;
  *   - matching rules that name some: the ones any of them names;
- *   - rules set up, none matching: none (nothing would have started a run);
+ *   - rules set up, none matching: every connected repository - only a
+ *     person starts that investigation (Investigate, Ask AI's
+ *     start_investigation), and no rule speaks to it; it used to get none,
+ *     as its external MCP servers did (issue #10879);
  *   - rules that cannot be read: none - a rule might have kept one out.
  *
  * InvestigationCodeRepositories reads the incident (or alert) the way the
@@ -237,7 +240,7 @@ describe("InvestigationRules.getIncidentCodeRepositoryAllowance", () => {
     ).toEqual(only(CHECKOUT_REPO));
   });
 
-  test("rules set up, none matching: no repository", async () => {
+  test("rules set up, none matching - an investigation started by hand: every connected repository", async () => {
     expect(
       await allowanceFor([
         rule({
@@ -245,7 +248,7 @@ describe("InvestigationRules.getIncidentCodeRepositoryAllowance", () => {
           codeRepositories: repositories(SEARCH_REPO),
         }),
       ]),
-    ).toEqual(NO_CODE_REPOSITORY);
+    ).toEqual(EVERY_CODE_REPOSITORY);
   });
 
   test("rules that cannot be read: no repository, never all of them", async () => {
@@ -300,6 +303,22 @@ describe("InvestigationRules.getAlertCodeRepositoryAllowance", () => {
         alert: alert(),
       }),
     ).toEqual(NO_CODE_REPOSITORY);
+  });
+
+  test("alert rules set up, none matching - an investigation started by hand: every connected repository", async () => {
+    mockRules([
+      rule({
+        alertSeverities: [ref(AlertSeverity, SEVERITY_HIGH)],
+        codeRepositories: repositories(SEARCH_REPO),
+      }),
+    ]);
+
+    expect(
+      await InvestigationRules.getAlertCodeRepositoryAllowance({
+        projectId: PROJECT_ID,
+        alert: alert(),
+      }),
+    ).toEqual(EVERY_CODE_REPOSITORY);
   });
 });
 

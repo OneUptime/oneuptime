@@ -28,8 +28,9 @@ import ScrubHashToken from "./ScrubHashToken";
  *    #10393), anything else its first and last characters;
  *  - Hash: the project's token for it ("[HASHED:" and 16 hex characters),
  *    an IP address in one spelling for every way it is written, and an
- *    email address percent-encoded or a card in another script's digits as
- *    the value it reads as (asItReads), so each has the token of the value
+ *    email address or a phone number percent-encoded, or a card, a phone
+ *    number or a Social Security number in another script's digits, as the
+ *    value it reads as (asItReads), so each has the token of the value
  *    written plainly; Mask reads them so too. An IP
  *    Address rule's token and address are also told to the recorder a
  *    batch of logs or traces Security Events reads passes in
@@ -171,17 +172,22 @@ export default class ScrubAction {
   /*
    * A match as the value it reads as, for its token and its mask: an email
    * address written in a percent-encoded URL with its escapes read
-   * (jane.doe%40acmecorp.io is jane.doe@acmecorp.io, #10935), and a card
-   * in another script's digits in ASCII ones (４１１１ １１１１ … is
-   * 4111 1111 …, #10960) - so it makes the token the value written plainly
-   * makes. Anything else, and a value written plainly, as it is.
+   * (jane.doe%40acmecorp.io is jane.doe@acmecorp.io, #10935), a card in
+   * another script's digits in ASCII ones (４１１１ １１１１ … is
+   * 4111 1111 …, #10960), and a phone number both ways and a Social
+   * Security number in ASCII digits (#11030) - so it makes the token the
+   * value written plainly makes. Anything else, and a value written
+   * plainly, as it is.
    */
   public static asItReads(match: string, patternType: string): string {
     switch (patternType) {
       case LogScrubPatternType.Email:
         return PercentDecodedText.readableOf(match);
       case LogScrubPatternType.CreditCard:
+      case LogScrubPatternType.SSN:
         return foldDigits(match);
+      case LogScrubPatternType.PhoneNumber:
+        return foldDigits(PercentDecodedText.readableOf(match));
       default:
         return match;
     }
@@ -219,12 +225,27 @@ export default class ScrubAction {
         return "****-****-****-****";
       }
 
-      case LogScrubPatternType.SSN:
-        return "***-**-" + value.substring(value.length - 4);
+      case LogScrubPatternType.SSN: {
+        // The last 4 digits only, in ASCII whatever their script.
+        const ssnDigits: string = digitsOnly(
+          ScrubAction.asItReads(value, patternType),
+        );
+
+        if (ssnDigits.length >= 4) {
+          return "***-**-" + ssnDigits.substring(ssnDigits.length - 4);
+        }
+
+        return "***-**-****";
+      }
 
       case LogScrubPatternType.PhoneNumber: {
-        // The last 4 digits only.
-        const phoneDigits: string = value.replace(/[^0-9]/g, "");
+        /*
+         * The last 4 digits only, as the number reads: its escapes read,
+         * its digits in ASCII whatever their script.
+         */
+        const phoneDigits: string = digitsOnly(
+          ScrubAction.asItReads(value, patternType),
+        );
 
         if (phoneDigits.length >= 4) {
           return "***-***-" + phoneDigits.substring(phoneDigits.length - 4);

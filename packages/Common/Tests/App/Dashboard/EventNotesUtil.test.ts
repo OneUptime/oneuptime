@@ -51,6 +51,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 import StatusPageSubscriberNotificationStatus from "../../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 /*
  * The notes feed's decisions that need no React: where a note is filed in
@@ -169,6 +173,40 @@ describe("groupNotesByDay", () => {
       { label: "Yesterday", notes: ["c"] },
       { label: "Sep 10, 2026", notes: ["d"] },
     ]);
+  });
+
+  /*
+   * The feed looks a day's label up where it draws it, and "Yesterday" and
+   * "Date unknown" were in no locale: a Persian or a German feed headed the
+   * notes of the day before "YESTERDAY", in English.
+   */
+  test("labels days with words every Dashboard language has", () => {
+    const labels: Array<string> = [
+      ...group([
+        dated("today", ago(MINUTE)),
+        dated("yesterday", ago(DAY)),
+        dated("undated", undefined),
+      ]).map((day: { label: string }): string => {
+        return day.label;
+      }),
+    ];
+
+    expect(labels).toEqual(["Today", "Yesterday", "Date unknown"]);
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const label of labels) {
+        expect([language, label, typeof words[label]]).toEqual([
+          language,
+          label,
+          "string",
+        ]);
+
+        // Its own word for it, never the English left in place.
+        expect([language, words[label]]).not.toEqual([language, label]);
+      }
+    }
   });
 
   test("keeps the order it was given, oldest first included", () => {

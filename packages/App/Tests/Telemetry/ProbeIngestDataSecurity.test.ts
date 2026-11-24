@@ -554,6 +554,8 @@ describe("POST /probe/data-security/work", () => {
       disabledDataTypeIds: ["phone-number"],
       allowedValues: ["support@acme-corp.com"],
       fingerprintKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+      // The project's names-and-addresses switch, on unless turned off (#10373).
+      findNamesAndAddresses: true,
       // No data type is being proven on it.
       shadowDataTypes: [],
     });

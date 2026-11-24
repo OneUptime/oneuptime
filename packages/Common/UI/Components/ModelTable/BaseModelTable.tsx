@@ -20,6 +20,11 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  getDeleteWhatFailed,
+  getDialogWhatFailed,
+  getLoadWhatFailed,
+} from "../../Utils/DialogWhatFailed";
 import Toast, {
   CHANGES_SAVED,
   getItemCreatedTemplate,
@@ -259,6 +264,7 @@ import UserPreferences, {
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import { ARCHIVED_COLUMN } from "../../../Utils/ArchivableValues";
 import {
   SharedNameFacts,
   SharedNameMark,
@@ -1195,6 +1201,38 @@ const toRecordFilterOption: (
 };
 
 /*
+ * Whether an entity filter marks the archived records it offers or holds,
+ * past the archivable values every filter marks: what the filter says, or
+ * - unsaid - whether its model's records carry an archive switch of their
+ * own (a monitor, a service, a host: ArchivedValuePicker
+ * .hasRecordArchiveSwitch) the reader may read. A resource filter listed an
+ * archived monitor unmarked beside a live one of the same name unless it
+ * opted in (#10921). A reader who may not read the switch is never asked
+ * for it: the server refuses a whole read that selects a column it may not
+ * read.
+ */
+export const isMarkingArchivedRecords: (filter: Filter<any>) => boolean = (
+  filter: Filter<any>,
+): boolean => {
+  if (filter.marksArchivedRecords !== undefined) {
+    return filter.marksArchivedRecords;
+  }
+
+  if (!(filter.filterEntityType?.prototype instanceof BaseModel)) {
+    return false;
+  }
+
+  const modelType: DatabaseBaseModelType =
+    filter.filterEntityType as DatabaseBaseModelType;
+
+  if (!ArchivedValuePicker.hasRecordArchiveSwitch(modelType)) {
+    return false;
+  }
+
+  return PermissionGate.canReadColumn(new modelType(), ARCHIVED_COLUMN);
+};
+
+/*
  * What an entity filter reads of each record it offers or holds: its name
  * and value, its colour, whether it is archived (a filter lists archived
  * values too - the records that have one stay findable by it - and marks
@@ -1229,9 +1267,9 @@ const getEntityFilterSelect: (filter: Filter<any>) => Dictionary<unknown> = (
     ArchivedValuePicker.isArchivableValueModel(
       filter.filterEntityType as DatabaseBaseModelType,
     ) ||
-    filter.marksArchivedRecords
+    isMarkingArchivedRecords(filter)
   ) {
-    select["isArchived"] = true;
+    select[ARCHIVED_COLUMN] = true;
   }
 
   if (filter.filterDropdownField!.label === "name") {
@@ -1290,8 +1328,8 @@ const toEntityFilterOption: (
     (ArchivedValuePicker.isArchivableValueModel(
       filter.filterEntityType as DatabaseBaseModelType,
     ) ||
-      filter.marksArchivedRecords) &&
-    item.getColumnValue("isArchived") === true
+      isMarkingArchivedRecords(filter)) &&
+    item.getColumnValue(ARCHIVED_COLUMN) === true
   ) {
     option.isArchived = true;
   }
@@ -2751,6 +2789,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [isFilterFetchLoading, setIsFilterFetchLoading] = useState(false);
 
   const [errorModalText, setErrorModalText] = useState<string>("");
+  /*
+   * What the Error dialog's failure was, said first when nobody explained
+   * it (#7680): its title, "Error", names nothing.
+   */
+  const [errorModalWhatFailed, setErrorModalWhatFailed] = useState<string>("");
 
   useEffect(() => {
     const currentQuery: Query<TBaseModel> = propsQueryRef.current;
@@ -2872,6 +2915,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
       await fetchItems();
     } catch (err) {
+      setErrorModalWhatFailed(
+        getDeleteWhatFailed(
+          translator,
+          getDeleteLabel(props.singularName, model.singularName),
+        ),
+      );
       setErrorModalText(API.getFriendlyMessage(err));
     }
 
@@ -3106,7 +3155,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               query: (filter.filterQuery || {}) as Record<string, unknown>,
               modelAPI: tableModelAPI,
               notFoundLabel: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
-              marksArchivedRecords: filter.marksArchivedRecords,
+              marksArchivedRecords: isMarkingArchivedRecords(filter),
             });
             continue;
           }
@@ -4456,6 +4505,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
       )
       .catch((err: Error) => {
+        setErrorModalWhatFailed(
+          getLoadWhatFailed(
+            translator,
+            getDeleteLabel(props.singularName, model.singularName),
+          ),
+        );
         setErrorModalText(API.getFriendlyMessage(err));
       });
   };
@@ -7190,6 +7245,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           isLoading={isDeleteAlternativeRunning}
           error={deleteAlternativeError || undefined}
+          /*
+           * What failed is the alternative ("Archive instead"), named as its
+           * button is: the dialog's title names the delete it was offered
+           * in place of (#7680).
+           */
+          errorWhatFailed={
+            deleteConfirmation?.alternative
+              ? getDialogWhatFailed(
+                  translator,
+                  translateString(deleteConfirmation.alternative.title) ||
+                    deleteConfirmation.alternative.title,
+                )
+              : undefined
+          }
           title={
             deleteConfirmation?.title
               ? translator.translateText(deleteConfirmation.title) ||
@@ -7310,6 +7379,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={`Error`}
           description={`${errorModalText}`}
+          errorWhatFailed={errorModalWhatFailed || undefined}
           submitButtonText={"Close"}
           onSubmit={() => {
             setErrorModalText("");

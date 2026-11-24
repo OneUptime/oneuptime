@@ -147,6 +147,21 @@ Wat geen standaard verstuurt, gaat zoals het zonder configuratie zou gaan: zolan
 
 Statuspagina's bieden alleen de configuraties aan die sms versturen, en **Test-sms verzenden** en **Testoproep verzenden** verschijnen alleen voor wat een configuratie verstuurt. Elke bestaande configuratie staat, zoals voorheen, op **Oproepen en sms**. Via de API en Terraform is de keuze het veld `usedFor`, en een configuratie zonder de nummers die haar keuze nodig heeft, wordt geweigerd.
 
+### De stem waarmee oproepen spreken
+
+Oproepen spreken met de stem die uw Twilio-account standaard gebruikt: de gratis Basic-stem van Twilio, tenzij u in de Twilio Console een andere hebt gekozen. Volgens Twilio zijn de Basic-stemmen niet bedoeld voor productie, dus elk account kan in plaats daarvan met een van deze neurale stemmen spreken. Kies die van het account voor de hele installatie in de kaart **Stem voor oproepen** op **Admin Dashboard > Instellingen > Oproep en sms**, en die van een projectconfiguratie bij **Stem voor oproepen** onder **Meer velden**.
+
+| Stem | Gemaakt door | Klinkt als |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikaans-Engels, vrouwelijke stem |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikaans-Engels, mannelijke stem |
+| `Polly.Amy-Neural` | Amazon Polly | Brits-Engels, vrouwelijke stem |
+| `Polly.Brian-Neural` | Amazon Polly | Brits-Engels, mannelijke stem |
+| `Google.en-US-Neural2-F` | Google | Amerikaans-Engels, vrouwelijke stem |
+| `Google.en-US-Neural2-J` | Google | Amerikaans-Engels, mannelijke stem |
+
+Elke oproep via het account spreekt met die stem: on-call-meldingen en het antwoord op de toets die u indrukt, het bericht dat op de voicemail wordt ingesproken, verificatiecodes, **Testoproep verzenden** en de begroetingen van een beleid voor inkomende oproepen. Met deze stemmen wordt een nummer als `INC-42` met SSML gespeld, wat natuurlijker klinkt dan de losse letters die andere stemmen krijgen. Twilio rekent deze stemmen aan op het account dat de oproep plaatst: $0.0032 per 100 tekens in november 2026, minder dan 2 Amerikaanse cent per oproep voor een melding. Zie [de spraakprijzen van Twilio](https://www.twilio.com/en-us/voice/pricing/us). Laat **Stem voor oproepen** leeg om de standaardstem van het account te houden. Via de API en Terraform is de stem het veld `twilioCallVoice`, en een stem die niet in de tabel staat, wordt geweigerd.
+
 ### Voicemail bij oproepen voor dienst
 
 Voor Twilio is een oproep die de voicemail aanneemt, beantwoord, net als een oproep die een persoon aanneemt. Daarom vraagt elke oproep voor dienst Twilio op de achtergrond of een persoon of de voicemail opnam, met [antwoordapparaatdetectie](https://www.twilio.com/docs/voice/answering-machine-detection): wie opneemt, hoort de melding meteen. Een oproep die de voicemail aanneemt, telt als niet beantwoord, net als een oproep die onbeantwoord blijft, en de melding gaat verder zoals bij een gemiste oproep. Zodra de begroeting eindigt, spreekt OneUptime een kort bericht in met wat de oproep zei. Het log van de oproep zegt of er een bericht is ingesproken, en de feed van het incident ook: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

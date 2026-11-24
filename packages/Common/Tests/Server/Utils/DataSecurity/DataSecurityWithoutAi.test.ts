@@ -345,7 +345,7 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
       uses: [
         "CodeTaskAccess.listReadableRepositoriesByIds",
-        "CodeTaskAccess.canAskInRepository",
+        "CodeTaskAccess.listAskableRepositoryIds",
         "CodeTaskAccess.findReadableRepository",
       ],
     },

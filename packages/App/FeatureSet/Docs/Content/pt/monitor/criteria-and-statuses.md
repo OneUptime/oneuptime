@@ -111,7 +111,7 @@ No segundo, ative **Recuperar apenas quando uma condição própria for atendida
 
 ### Comparar uma verificação com a anterior
 
-**Verificação anterior** compara cada verificação com a verificação anterior da mesma sonda, e do mesmo disco para o uso de um disco. **No último período de** diz há quanto tempo essa verificação pode ter sido feita, então defina um período maior que o intervalo de monitoramento. Ele é oferecido para os mesmos filtros que **Contagem**.
+**Verificação anterior** compara cada verificação com a verificação anterior da mesma sonda, e do mesmo disco para o uso de um disco. **No último período de** diz há quanto tempo essa verificação pode ter sido feita, então defina um período maior que o intervalo de monitoramento. Ele é oferecido para os mesmos filtros que **Contagem**. Ele também é oferecido para **Valor do registro DNS**, em que compara a resposta DNS inteira com a da verificação anterior, com **Diferente de** ou **Igual a**: veja [Quando a resposta DNS muda](/docs/monitor/dns-monitor#quando-a-resposta-dns-muda).
 
 Um valor medido, como um tempo de resposta, corresponde quando fica acima da verificação anterior por mais que a variação definida em **Variação em relação à verificação anterior**, com **Maior que**, ou abaixo dela por mais que essa variação, com **Menor que**. A variação é um **Valor na unidade da verificação**, como 200 ms, ou um **Percentual da verificação anterior**, como 50%, e 0 corresponde a qualquer alta ou queda. **Igual a** e **Diferente de** comparam com o próprio valor anterior.
 

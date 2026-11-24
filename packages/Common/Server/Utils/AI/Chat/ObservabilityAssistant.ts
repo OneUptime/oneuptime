@@ -312,6 +312,14 @@ export interface ObservabilityAssistantExtraTool {
  */
 export interface ExtraToolCall {
   runDeadlineAtMs?: number | undefined;
+  /*
+   * Set by Ask AI's turn when it runs a call a person approved on its card
+   * (ChatAgentRunner.executeResume), and never otherwise: a tool that must
+   * never run without a person's approval - a call of an external MCP
+   * server's tool that may change something (issue #10879) - refuses a
+   * call without it, whatever the conversation's permission mode.
+   */
+  isApprovedByPerson?: boolean | undefined;
 }
 
 export interface ObservabilityAssistantResult {

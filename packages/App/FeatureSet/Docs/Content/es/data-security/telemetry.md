@@ -201,6 +201,15 @@ Un secreto necesita más que una corrección en el código: el código solo deti
 
 Con **Trabajar en los problemas nuevos** activado, OneUptime AI también propone por su cuenta la corrección de cada servicio, primero el servicio más arriesgado, en **Seguridad de datos → IA** y en el problema más arriesgado del servicio. De forma predeterminada, te espera. Una regla de IA de Seguridad de datos que pone **Corrección** en **Automáticamente** para el problema más arriesgado del servicio abre la pull request sin preguntar, en un repositorio que algo decidió. **Máximo de pull requests de corrección abiertas** del repositorio limita ambas cosas: en el límite, una pull request que abriría una regla te espera, y no se abre ninguna pull request de corrección nueva hasta que una se fusione o se cierre.
 
+### El front-end de una aplicación RUM
+
+**Corregir con IA** en un problema de reproducción de sesiones hace lo mismo para una aplicación RUM: una sola pull request que hace que su código front-end deje de enviar cada fuga que OneUptime aún ve en sus registros del navegador, sus spans del navegador y los detalles de sus sesiones. Dónde se escribe cada fuga sale de los registros en que se vio, leídos dentro de OneUptime:
+
+- **Un registro o un span del navegador**: el archivo, la línea y la función a los que se resuelve su pila de JavaScript mediante los source maps que subieron tus builds (consulta [Source Maps](/docs/telemetry/source-maps)); si no, sus atributos `code.*`; la línea del registro o el nombre del span como plantilla; y la página en que se escribió, solo por su ruta, con cada ID y cada valor enmascarados.
+- **Los detalles de usuario de una sesión**: la llamada `identify()` del grabador de sesiones que los dio, y la página en que empezó la sesión.
+
+La pull request va al repositorio que contiene esos archivos; si no, al que contiene la mayoría de los archivos que nombran los source maps de la versión más reciente; si no, al repositorio con el nombre del **Identificador de la aplicación**, o al único del proyecto; cuando nada decide, eliges tú. Cambia el código del navegador en cada lugar, donde el usuario de una sesión se identifica con un ID opaco y nunca con un correo, o añade un paso de redacción donde la aplicación configura su telemetría del navegador. La grabación de una sesión nunca se lee, y el agente de código no lee nada de tu telemetría. Cada problema se resuelve como **Corregido en el código** en cuanto la nueva versión de la aplicación deja de enviar los datos. OneUptime AI aún no propone por sí solo la corrección de una aplicación: pídela con **Corregir con IA**.
+
 ## Descartar esta métrica
 
 Ninguna regla saca los datos del nombre de una métrica, así que hasta que se corrija el código que nombra la métrica, los datos siguen llegando. **Descartar esta métrica** en un hallazgo en el nombre de una métrica deja de almacenar las métricas cuyos nombres los contienen, a costa de sus datos, así que solo ocurre cuando lo pides:

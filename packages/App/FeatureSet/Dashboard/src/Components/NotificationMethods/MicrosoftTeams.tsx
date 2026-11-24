@@ -209,6 +209,8 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Microsoft Teams`}
           description={addError}
+          // Its title says what failed: the explanation does not again (#7680).
+          titleSaysWhatFailed={true}
           submitButtonText={"Open Microsoft Teams Settings"}
           closeButtonText={"Close"}
           onClose={() => {

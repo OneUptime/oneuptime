@@ -47,6 +47,7 @@ const CHECKOUT_VIEW: ExceptionsListViewState = {
   status: "resolved",
   classScope: "all",
   assignedToMe: true,
+  splitByScrubRule: true,
   sort: ExceptionListSort.MostEvents,
 };
 
@@ -81,7 +82,7 @@ describe("saving the list and applying the view", () => {
     expect(comparable(applied)).toEqual(comparable(CHECKOUT_VIEW));
   });
 
-  test("it keeps the status, what counts as an issue, Assigned to me and the order", () => {
+  test("it keeps the status, what counts as an issue, Assigned to me, Split by a scrub rule and the order", () => {
     expect(captureExceptionsSavedViewState(CHECKOUT_VIEW)).toEqual({
       search: "type:TypeError",
       filters: [
@@ -93,8 +94,16 @@ describe("saving the list and applying the view", () => {
       exceptionStatus: "resolved",
       exceptionClassScope: "all",
       exceptionAssignedToMe: true,
+      exceptionSplitByScrubRule: true,
       exceptionSort: "most-events",
     });
+    // Off is kept as off, as Assigned to me is.
+    expect(
+      captureExceptionsSavedViewState({
+        ...CHECKOUT_VIEW,
+        splitByScrubRule: false,
+      }).exceptionSplitByScrubRule,
+    ).toBe(false);
   });
 
   test("a rolling window stays rolling, and a custom one keeps its dates", () => {
@@ -139,10 +148,29 @@ describe("saving the list and applying the view", () => {
       status: "unresolved",
       classScope: "issues",
       assignedToMe: false,
+      splitByScrubRule: false,
       sort: DEFAULT_EXCEPTION_LIST_SORT,
     });
     expect(readExceptionsSavedViewState(null, DEFAULTS)).toEqual(
       readExceptionsSavedViewState({}, DEFAULTS),
+    );
+  });
+
+  test("a view saved before Split by a scrub rule existed opens with it off", () => {
+    const savedBefore: TelemetrySavedViewState = throughStorage(
+      captureExceptionsSavedViewState(CHECKOUT_VIEW),
+    );
+    delete savedBefore.exceptionSplitByScrubRule;
+
+    const applied: ExceptionsListViewState = readExceptionsSavedViewState(
+      savedBefore,
+      DEFAULTS,
+    );
+
+    expect(applied.splitByScrubRule).toBe(false);
+    // And everything else it kept, as saved.
+    expect(comparable(applied)).toEqual(
+      comparable({ ...CHECKOUT_VIEW, splitByScrubRule: false }),
     );
   });
 
@@ -182,6 +210,7 @@ describe("saving the list and applying the view", () => {
         exceptionStatus: "deleted",
         exceptionClassScope: "bugs",
         exceptionAssignedToMe: "yes",
+        exceptionSplitByScrubRule: 1,
         exceptionSort: "random",
       } as unknown as TelemetrySavedViewState,
       DEFAULTS,
@@ -210,7 +239,7 @@ describe("saving the list and applying the view", () => {
     expect(applied.filters).toEqual([["resource.service.name", "checkout"]]);
   });
 
-  test("every status, lens and order a view can hold comes back as saved", () => {
+  test("every status, lens, order, Assigned to me and Split by a scrub rule a view can hold comes back as saved", () => {
     const statuses: Array<ExceptionsSavedViewStatus> = [
       "unresolved",
       "resolved",
@@ -227,22 +256,25 @@ describe("saving the list and applying the view", () => {
       for (const classScope of scopes) {
         for (const sort of Object.values(ExceptionListSort)) {
           for (const assignedToMe of [true, false]) {
-            const view: ExceptionsListViewState = {
-              ...CHECKOUT_VIEW,
-              status,
-              classScope,
-              sort,
-              assignedToMe,
-            };
+            for (const splitByScrubRule of [true, false]) {
+              const view: ExceptionsListViewState = {
+                ...CHECKOUT_VIEW,
+                status,
+                classScope,
+                sort,
+                assignedToMe,
+                splitByScrubRule,
+              };
 
-            expect(
-              comparable(
-                readExceptionsSavedViewState(
-                  throughStorage(captureExceptionsSavedViewState(view)),
-                  DEFAULTS,
+              expect(
+                comparable(
+                  readExceptionsSavedViewState(
+                    throughStorage(captureExceptionsSavedViewState(view)),
+                    DEFAULTS,
+                  ),
                 ),
-              ),
-            ).toEqual(comparable(view));
+              ).toEqual(comparable(view));
+            }
           }
         }
       }
@@ -259,6 +291,7 @@ describe("a link that names a view", () => {
     status: null,
     classScope: null,
     assignedToMe: false,
+    splitByScrubRule: false,
     sort: DEFAULT_EXCEPTION_LIST_SORT,
   };
 
@@ -305,8 +338,27 @@ describe("a link that names a view", () => {
     expect(view.filters).toEqual(CHECKOUT_VIEW.filters);
     expect(view.classScope).toBe("all");
     expect(view.assignedToMe).toBe(true);
+    expect(view.splitByScrubRule).toBe(true);
     expect(view.sort).toBe(ExceptionListSort.MostEvents);
     expect(view.pageSize).toBe(50);
+  });
+
+  test("a link that asks for Split by a scrub rule turns it on over a view without it, and one that does not leaves the view's", () => {
+    const withoutIt: TelemetrySavedViewState = throughStorage(
+      captureExceptionsSavedViewState({
+        ...CHECKOUT_VIEW,
+        splitByScrubRule: false,
+      }),
+    );
+    const overrides: Partial<TelemetrySavedViewState> | undefined =
+      buildExceptionsUrlScopeOverrides({ ...NOTHING, splitByScrubRule: true });
+
+    expect(
+      readExceptionsSavedViewState({ ...withoutIt, ...overrides }, DEFAULTS)
+        .splitByScrubRule,
+    ).toBe(true);
+    // A link off its default only: it never turns the view's off.
+    expect(opened(undefined).splitByScrubRule).toBe(true);
   });
 
   test("a window the link fell back to is not the link's", () => {
@@ -319,13 +371,16 @@ describe("a link that names a view", () => {
     ).toBeUndefined();
   });
 
-  test("the lens, Assigned to me and the order, each on its own", () => {
+  test("the lens, Assigned to me, Split by a scrub rule and the order, each on its own", () => {
     expect(
       buildExceptionsUrlScopeOverrides({ ...NOTHING, classScope: "issues" }),
     ).toEqual({ exceptionClassScope: "issues" });
     expect(
       buildExceptionsUrlScopeOverrides({ ...NOTHING, assignedToMe: true }),
     ).toEqual({ exceptionAssignedToMe: true });
+    expect(
+      buildExceptionsUrlScopeOverrides({ ...NOTHING, splitByScrubRule: true }),
+    ).toEqual({ exceptionSplitByScrubRule: true });
     expect(
       buildExceptionsUrlScopeOverrides({
         ...NOTHING,
@@ -403,6 +458,7 @@ describe("a link that names a view", () => {
         status: pick(statuses),
         classScope: pick(scopes),
         assignedToMe: random(2) === 1,
+        splitByScrubRule: random(2) === 1,
         sort: pick(sorts),
       };
 
@@ -414,6 +470,7 @@ describe("a link that names a view", () => {
         status: random(2) === 1 ? pick(statuses) : null,
         classScope: random(2) === 1 ? pick(scopes) : null,
         assignedToMe: random(2) === 1,
+        splitByScrubRule: random(2) === 1,
         sort: pick(sorts),
       };
 
@@ -436,6 +493,7 @@ describe("a link that names a view", () => {
           status: link.status || view.status,
           classScope: link.classScope || view.classScope,
           assignedToMe: link.assignedToMe || view.assignedToMe,
+          splitByScrubRule: link.splitByScrubRule || view.splitByScrubRule,
           sort:
             link.sort !== DEFAULT_EXCEPTION_LIST_SORT ? link.sort : view.sort,
         }),

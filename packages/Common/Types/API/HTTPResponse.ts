@@ -121,6 +121,18 @@ export default class HTTPResponse<
     this._isCountCapped = v;
   }
 
+  /*
+   * Whether the body came as text rather than JSON: a page a proxy or a
+   * captive portal answered with, or a body that was not JSON at all. It is
+   * kept under `data` ({ data: "<html>..." }), so a read that wants a
+   * record or rows asks this rather than taking that object for one
+   * (AnswerReader, #8413).
+   */
+  private _isText: boolean = false;
+  public get isText(): boolean {
+    return this._isText;
+  }
+
   public constructor(
     statusCode: number,
     data: JSONObject | Array<JSONObject>,
@@ -146,6 +158,7 @@ export default class HTTPResponse<
     } else if (Array.isArray(data)) {
       this.jsonData = JSONFunctions.deserializeArray(data as JSONArray);
     } else if (Typeof.String === typeof data) {
+      this._isText = true;
       this.jsonData = {
         data,
       };

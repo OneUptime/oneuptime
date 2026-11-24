@@ -12,6 +12,7 @@ import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
   MAX_CALL_SITE_PLACES,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakHandling,
   TelemetryLeakPlace,
@@ -39,6 +40,11 @@ import {
  * Once asked, the issue keeps its fix (IssueCodeFix): the pull request's
  * state - being written, open, merged or closed - and what production
  * showed once it merged; for a secret, where it was seen.
+ *
+ * A RUM application's issue is planned the same way, for its front-end
+ * code (#10933): the dialog names the application, says the data leaves
+ * the browser, and shows each place's page and the session recorder call
+ * that gave a session its user.
  *
  * Kept free of React, so a test reads every word and every rule without
  * drawing them.
@@ -69,6 +75,31 @@ export function isServiceTelemetryFix(data: {
   );
 }
 
+/*
+ * Whether Fix with AI on an issue shows a telemetry fix's plan first: a
+ * service's (isServiceTelemetryFix), or a RUM application's session replay
+ * issue, fixed in its front-end code (#10933). The server decides the same
+ * way (TelemetryLeakFix.ownerOfIssue).
+ */
+export function isTelemetryCodeFix(data: {
+  isTelemetryCheck: boolean;
+  storeKind?: DataStoreKind | string | undefined;
+  serviceId?: unknown;
+}): boolean {
+  return (
+    isServiceTelemetryFix(data) ||
+    (data.isTelemetryCheck &&
+      data.storeKind === DataStoreKind.TelemetrySessionReplays)
+  );
+}
+
+// Whether a plan is a RUM application's, in its front-end code (#10933).
+export function isApplicationTelemetryFix(
+  plan: Pick<DataSecurityTelemetryFixPlanJSON, "ownerKind"> | null | undefined,
+): boolean {
+  return plan?.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
+}
+
 // ---- The dialog ------------------------------------------------------------------
 
 export const TELEMETRY_FIX_TITLE: string = translationKey("Fix with AI");
@@ -80,6 +111,14 @@ export const TELEMETRY_FIX_DESCRIPTION: string = translationKey(
 export const TELEMETRY_FIX_ISSUES: PluralTemplate = {
   one: "It fixes {{count}} issue of this service, this one among them.",
   other: "It fixes {{count}} issues of this service, this one among them.",
+};
+// A RUM application's (#10933): its front-end code, the browser it leaves.
+export const TELEMETRY_FIX_DESCRIPTION_APPLICATION: string = translationKey(
+  "One pull request stops {{application}} sending sensitive data from the browser.",
+);
+export const TELEMETRY_FIX_ISSUES_OF_APPLICATION: PluralTemplate = {
+  one: "It fixes {{count}} issue of this application, this one among them.",
+  other: "It fixes {{count}} issues of this application, this one among them.",
 };
 export const TELEMETRY_FIX_NOT_LOADED: string = translationKey(
   "What this fix would change could not be loaded.",
@@ -98,6 +137,9 @@ export const CALL_SITES_SENTENCE: PluralTemplate = {
 };
 export const REDACTION_STEP_SENTENCE: string = translationKey(
   "OneUptime AI adds one redaction step, with a test, that removes the data before the service sends it.",
+);
+export const REDACTION_STEP_SENTENCE_APPLICATION: string = translationKey(
+  "OneUptime AI adds one redaction step, with a test, that removes the data before the browser sends it.",
 );
 /*
  * Said without a count: the places are those the records read name, each
@@ -126,7 +168,10 @@ export interface TelemetryFixStrategyWords {
 
 // How the plan changes the code, in its words.
 export function getTelemetryFixStrategyWords(
-  plan: Pick<DataSecurityTelemetryFixPlanJSON, "strategy" | "placeCount">,
+  plan: Pick<
+    DataSecurityTelemetryFixPlanJSON,
+    "strategy" | "placeCount" | "ownerKind"
+  >,
 ): TelemetryFixStrategyWords {
   if (plan.strategy === TelemetryLeakFixStrategy.CallSites) {
     return { sentence: CALL_SITES_SENTENCE, count: plan.placeCount };
@@ -137,7 +182,9 @@ export function getTelemetryFixStrategyWords(
   }
 
   return {
-    sentence: REDACTION_STEP_SENTENCE,
+    sentence: isApplicationTelemetryFix(plan)
+      ? REDACTION_STEP_SENTENCE_APPLICATION
+      : REDACTION_STEP_SENTENCE,
     why:
       plan.placeCount > MAX_CALL_SITE_PLACES
         ? { sentence: REDACTION_WHY_MANY_PLACES }
@@ -161,6 +208,10 @@ export const TELEMETRY_LEAK_SIGNAL_LABELS: Readonly<
   [TelemetryLeakSignal.Exceptions]: DataStoreKind.TelemetryExceptions,
   [TelemetryLeakSignal.AiCalls]: DataStoreKind.TelemetryAiConversations,
   [TelemetryLeakSignal.Metrics]: DataStoreKind.TelemetryMetrics,
+  // A RUM application's (#10933): its browser's logs and spans, and its sessions' details.
+  [TelemetryLeakSignal.RumLogs]: translationKey("Browser Logs"),
+  [TelemetryLeakSignal.RumSpans]: translationKey("Browser Spans"),
+  [TelemetryLeakSignal.RumSessions]: translationKey("Sessions"),
 };
 
 // Said of each leak only when the plan does both.
@@ -188,6 +239,9 @@ export enum TelemetryLeakPlaceKind {
   Metric = "Metric",
   Exception = "Exception",
   Logger = "Logger",
+  // A RUM application's (#10933): the session recorder call that gave a session its user, the page.
+  RecorderCall = "RecorderCall",
+  Page = "Page",
   Key = "Key",
 }
 
@@ -199,8 +253,15 @@ export const TELEMETRY_LEAK_PLACE_WORDS: Readonly<
   [TelemetryLeakPlaceKind.Metric]: translationKey("Metric {{name}}"),
   [TelemetryLeakPlaceKind.Exception]: translationKey("Exception {{name}}"),
   [TelemetryLeakPlaceKind.Logger]: translationKey("Logger {{name}}"),
+  [TelemetryLeakPlaceKind.RecorderCall]: translationKey(
+    "Session recorder call {{name}}",
+  ),
+  [TelemetryLeakPlaceKind.Page]: translationKey("Page {{name}}"),
   [TelemetryLeakPlaceKind.Key]: translationKey("Found by its key {{name}}"),
 };
+
+// The page a RUM application's place was written on, beside what else names it (#10933).
+export const PLACE_PAGE: string = translationKey("On {{page}}");
 
 export const PLACE_RECORDS: PluralTemplate = {
   one: "Seen in {{count}} record",
@@ -220,6 +281,8 @@ export interface TelemetryLeakPlaceShown {
   name: string;
   // The function, beside a file and line.
   functionName?: string | undefined;
+  // A RUM application's: the page it was written on, beside a place named otherwise.
+  page?: string | undefined;
   recordCount: number;
 }
 
@@ -254,11 +317,17 @@ export function getTelemetryLeakPlaceShown(
       ? place.frames[0]
       : undefined;
 
+  // A RUM application's page, said beside whatever else names the place.
+  const page: Partial<TelemetryLeakPlaceShown> = place.page
+    ? { page: place.page }
+    : {};
+
   if (frame) {
     return {
       kind: TelemetryLeakPlaceKind.File,
       name: getTelemetryLeakFileLine(frame),
       ...(frame.functionName ? { functionName: frame.functionName } : {}),
+      ...page,
       recordCount,
     };
   }
@@ -269,12 +338,25 @@ export function getTelemetryLeakPlaceShown(
     [TelemetryLeakPlaceKind.Metric, place.metricName],
     [TelemetryLeakPlaceKind.Exception, place.exceptionType],
     [TelemetryLeakPlaceKind.Logger, place.scopeName],
+    [
+      TelemetryLeakPlaceKind.RecorderCall,
+      place.recorderCall ? `${place.recorderCall}()` : undefined,
+    ],
   ];
 
   for (const [kind, name] of named) {
     if (name) {
-      return { kind, name, recordCount };
+      return { kind, name, ...page, recordCount };
     }
+  }
+
+  // A page alone names the place.
+  if (place.page) {
+    return {
+      kind: TelemetryLeakPlaceKind.Page,
+      name: place.page,
+      recordCount,
+    };
   }
 
   return { kind: TelemetryLeakPlaceKind.Key, name: "", recordCount };
@@ -325,6 +407,9 @@ export const REPOSITORY_LINE: string = translationKey(
 export const REPOSITORY_LINE_IN_FOLDER: string = translationKey(
   "OneUptime AI opens it in {{repository}}, in the service's folder {{folder}}.",
 );
+export const REPOSITORY_LINE_IN_FOLDER_APPLICATION: string = translationKey(
+  "OneUptime AI opens it in {{repository}}, in the application's folder {{folder}}.",
+);
 // Why that repository (TelemetryLeakRepositories), when something decided it.
 export const REPOSITORY_CHOICE_WORDS: Readonly<
   Record<DataSecurityTelemetryFixRepositoryChoice, string>
@@ -342,13 +427,45 @@ export const REPOSITORY_CHOICE_WORDS: Readonly<
     "The service's other leaks are written there.",
   ),
   [DataSecurityTelemetryFixRepositoryChoice.Picked]: "",
+  [DataSecurityTelemetryFixRepositoryChoice.SourceMaps]: translationKey(
+    "The files its source maps name are there.",
+  ),
 };
+
+// A RUM application's (#10933): the choices that name whose code it is, said of the application.
+export const REPOSITORY_CHOICE_WORDS_APPLICATION: Readonly<
+  Partial<Record<DataSecurityTelemetryFixRepositoryChoice, string>>
+> = {
+  [DataSecurityTelemetryFixRepositoryChoice.NameMatch]: translationKey(
+    "Its name matches the application's.",
+  ),
+  [DataSecurityTelemetryFixRepositoryChoice.ServiceLeaks]: translationKey(
+    "The application's other leaks are written there.",
+  ),
+};
+
+// Why the plan's repository was chosen, in the words of whose code it is.
+export function getRepositoryChoiceWords(
+  plan: Pick<DataSecurityTelemetryFixPlanJSON, "ownerKind">,
+  choice: DataSecurityTelemetryFixRepositoryChoice,
+): string {
+  return (
+    (isApplicationTelemetryFix(plan)
+      ? REPOSITORY_CHOICE_WORDS_APPLICATION[choice]
+      : undefined) ||
+    REPOSITORY_CHOICE_WORDS[choice] ||
+    ""
+  );
+}
 export const PICK_REPOSITORY_LABEL: string = translationKey("Repository");
 export const PICK_REPOSITORY_PLACEHOLDER: string = translationKey(
   "Choose a repository",
 );
 export const PICK_REPOSITORY_HINT: string = translationKey(
   "Pick the repository that holds this service's code. OneUptime AI opens a pull request there.",
+);
+export const PICK_REPOSITORY_HINT_APPLICATION: string = translationKey(
+  "Pick the repository that holds this application's front-end code. OneUptime AI opens a pull request there.",
 );
 export const START_FILES: string = translationKey(
   "OneUptime AI starts from {{files}}.",
@@ -397,8 +514,14 @@ export function isTelemetryFixOnItsWay(
 export const NO_REPOSITORY_TO_PICK: string = translationKey(
   "Connect the repository that holds this service's code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it.",
 );
+export const NO_REPOSITORY_TO_PICK_APPLICATION: string = translationKey(
+  "Connect the repository that holds this application's front-end code under Code, then ask again. If it is connected already, asking OneUptime AI to change it takes permission to edit it in Code - ask a Project Admin for it.",
+);
 export const TELEMETRY_FIX_STARTED: string = translationKey(
   "OneUptime AI is working on one pull request for the service's leaks. It will appear under Code, and on each issue it fixes.",
+);
+export const TELEMETRY_FIX_STARTED_APPLICATION: string = translationKey(
+  "OneUptime AI is working on one pull request for the application's leaks. It will appear under Code, and on each issue it fixes.",
 );
 export const TELEMETRY_FIX_SERVER_SENTENCES: ReadonlyArray<string> = [
   translationKey(
@@ -416,6 +539,15 @@ export const TELEMETRY_FIX_SERVER_SENTENCES: ReadonlyArray<string> = [
   translationKey("Choose the repository that holds this service's code."),
   NO_REPOSITORY_TO_PICK,
   TELEMETRY_FIX_STARTED,
+  // A RUM application's (#10933).
+  TELEMETRY_FIX_STARTED_APPLICATION,
+  translationKey(
+    "This application sends no sensitive data from the browser that OneUptime still sees, so there is nothing to fix in its code.",
+  ),
+  translationKey(
+    "Choose the repository that holds this application's front-end code.",
+  ),
+  NO_REPOSITORY_TO_PICK_APPLICATION,
 ];
 
 // ---- Where the issue's fix in code stands ------------------------------------

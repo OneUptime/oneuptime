@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "{{itemName}} ساخته نشد.",
   "The {{itemName}} was not saved.": "{{itemName}} ذخیره نشد.",
   "This did not finish.": "این کار تمام نشد.",
+  "The {{itemName}} was not deleted.": "{{itemName}} حذف نشد.",
+  "“{{action}}” did not finish.": "کار «{{action}}» تمام نشد.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "این صفحه با مشکلی روبه‌رو شد، بنابراین این کار تمام نشد. صفحه را دوباره بارگیری کنید و سپس دوباره امتحان کنید.",
   "This page ran into a problem.": "این صفحه با مشکلی روبه‌رو شد.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "برای دیدن اینکه چه چیزی شکست خورد، npm run doctor -- --logs را در پوشهٔ oneuptime سرور اجرا کنید و این شناسه را پیدا کنید.",
@@ -4575,5 +4577,18 @@
   "The server did not answer with its help and support settings.": "سرور تنظیمات راهنما و پشتیبانی خود را برنگرداند.",
   "Keyboard shortcuts": "میان‌برهای صفحه‌کلید",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "یک فایل عیب‌یابی محلی با پشته خطا، پشته اجزا، نشانی پاک‌سازی‌شده صفحه، جزئیات مرورگر و نسخه ساخت OneUptime دانلود کنید. این فایل هرگز کوکی‌ها، داده‌های ذخیره‌شده مرورگر یا محتوای فرم‌ها را نمی‌خواند. پیش از اشتراک‌گذاری آن را بررسی کنید.",
-  "Chat on Slack": "گفتگو در Slack"
+  "Chat on Slack": "گفتگو در Slack",
+  "Your Twilio account's default voice": "صدای پیش‌فرض حساب Twilio شما",
+  "US English, female voice": "انگلیسی آمریکایی، صدای زن",
+  "US English, male voice": "انگلیسی آمریکایی، صدای مرد",
+  "British English, female voice": "انگلیسی بریتانیایی، صدای زن",
+  "British English, male voice": "انگلیسی بریتانیایی، صدای مرد",
+  "A page's call starts like this, always in English:": "تماس یک فراخوان این‌گونه آغاز می‌شود، همیشه به انگلیسی:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio برای این صدا هزینهٔ اضافه می‌گیرد: کمتر از ۲ سنت دلار آمریکا برای تماس هر فراخوان.",
+  "Free. Twilio says its Basic voices are not meant for production.": "رایگان. به گفتهٔ Twilio، صداهای Basic آن برای استفادهٔ تولیدی در نظر گرفته نشده‌اند.",
+  "Save, then send a test call to hear it.": "ذخیره کنید، سپس یک تماس آزمایشی ارسال کنید تا آن را بشنوید.",
+  "Call Voice": "صدای تماس‌ها",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "صدایی که تماس‌های تلفنی OneUptime با آن صحبت می‌کنند، وقتی از طریق حساب Twilio این سرور برقرار می‌شوند.",
+  "Choose Voice": "انتخاب صدا",
+  "Voice": "صدا"
 }

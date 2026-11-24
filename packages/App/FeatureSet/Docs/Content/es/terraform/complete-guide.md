@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-En cambio, un ajuste que alguien añade en OneUptime a los pasos de un monitor, y que su configuración no escribe, sí es una diferencia: el siguiente plan muestra que `monitor_steps` cambia, y el apply que le sigue quita el ajuste, como dice el plan. Para conservarlo, escríbalo también en su configuración.
+En cambio, un ajuste que alguien añade en OneUptime a los pasos de un monitor, y que su configuración no escribe, sí es una diferencia: el siguiente plan muestra que `monitor_steps` cambia, y el apply que le sigue quita el ajuste, como dice el plan. Para conservarlo, escríbalo también en su configuración. Un ajuste para el que el proveedor no tiene atributo, y una clave que OneUptime guarda dentro de un ajuste que usted escribe con `jsonencode()`, no son una diferencia, y un apply los conserva: consulte [Pasos del monitor](/docs/terraform/monitor-steps).
 
 ## Etiquetas y otras listas a las que OneUptime también añade
 

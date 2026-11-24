@@ -22,6 +22,7 @@ import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurity
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import ObjectID from "../../../../Types/ObjectID";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { SecurityPlaybookStepStatus } from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
@@ -242,6 +243,32 @@ describe("a case whose issue is in no group", () => {
     // Never a change through the cloud connection, and never the exceptions' path.
     expect(calls.responses).toHaveLength(0);
     expect(findRequests).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The files its declared code is in are listed each as written, joined
+   * with FeedMarkdown.join: one with a Markdown sign in its name is
+   * escaped once, never a second time as part of a joined string
+   * (FeedAndChatPlainTextEscapedGuard, rule C).
+   */
+  test("names each file its store is declared in, each escaped once", async () => {
+    const made: { store: WorldStore; issue: WorldIssue } =
+      declaredStore("customer-exports");
+    const paths: Array<string> = [
+      "buckets/customer-exports.tf",
+      "modules/[legacy]_exports/main.tf",
+    ];
+
+    declared.set(made.store.id, { repositoryName: "acme/infra", paths });
+
+    const summary: string = (await runStep()).summary.toString();
+    const escapedOnce: Array<string> = paths.map((file: string): string => {
+      return mdText`${file}`.toString();
+    });
+
+    expect(escapedOnce[1]).not.toBe(paths[1]);
+    expect(summary).toContain(`(${escapedOnce.join(", ")})`);
+    expect(summary).not.toContain(mdText`${escapedOnce[1]!}`.toString());
   });
 
   test("a store made in the console has no code to fix: it waits for a person, and nothing is changed through its cloud", async () => {

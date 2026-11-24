@@ -29,4 +29,11 @@ export default interface TwilioConfig {
   secondaryPhoneNumbers: Phone[];
   // The numbers every SMS goes out from, when there are any.
   smsPhoneNumbers?: Phone[] | undefined;
+  /*
+   * The voice its calls speak with, from OneUptime's list
+   * (Types/Call/CallVoice): "Polly.Joanna-Neural". None - as every config
+   * was before voices could be chosen (#10948) - is the account's default
+   * voice in the Twilio Console.
+   */
+  callVoice?: string | undefined;
 }

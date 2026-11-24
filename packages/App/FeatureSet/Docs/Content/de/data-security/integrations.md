@@ -158,7 +158,7 @@ Alles, was Datensicherheit aufbewahrt, ist ein Datensatz der OneUptime-API, gele
 | Datensätze | API-Pfad |
 | --- | --- |
 | Datenspeicher, ihre Zeitachsen, ihre Funde, wer sie erreichen kann und jede Identität, die das tut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Probleme, ihre Zeitachsen und Datenflüsse | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Probleme, ihre Zeitachsen, ihre verknüpften Pull Requests und Datenflüsse | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Benutzerdefinierte Datentypen, Prüfungseinstellungen, Compliance-Einstellungen und Residenzregeln | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Die Einstellungen des Projekts | `/data-security-setting` |

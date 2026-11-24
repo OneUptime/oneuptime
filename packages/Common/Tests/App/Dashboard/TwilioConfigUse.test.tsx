@@ -248,6 +248,10 @@ jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
+      // The project the config is for: the call voice's sample names it (#10948).
+      getCurrentProject: (): unknown => {
+        return { name: "Acme Payments" };
+      },
       getCurrentProjectId: (): unknown => {
         const ObjectIDClass: any = (
           jest.requireActual("../../../Types/ObjectID") as any
@@ -287,6 +291,8 @@ import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 const PRIMARY: string = "Twilio Primary Phone Number";
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
 const SECONDARY: string = "Twilio Secondary Phone Numbers";
+// The voice a config's calls speak with (#10948): for an account that makes calls.
+const VOICE: string = "Call Voice";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -512,6 +518,8 @@ describe("an account used for SMS only", () => {
     ).toBeVisible();
     expect(hasLabel(PRIMARY)).toBe(false);
     expect(hasLabel(SECONDARY)).toBe(false);
+    // An account that makes no calls has no voice to choose.
+    expect(hasLabel(VOICE)).toBe(false);
     // Nothing is folded: there is nothing more for it.
     expect(moreFieldsHeader()).toBeNull();
   });
@@ -605,7 +613,8 @@ describe("an account used for calls only", () => {
         TwilioConfigNumbersCopy.primaryPhoneNumberDescription,
       ),
     ).toBeNull();
-    expect(listedNames(moreFieldsHeader())).toEqual([SECONDARY]);
+    // The secondary numbers, and the voice its calls speak with.
+    expect(listedNames(moreFieldsHeader())).toEqual([SECONDARY, VOICE]);
     expect(hasLabel(SMS_NUMBERS)).toBe(false);
   });
 
@@ -665,7 +674,11 @@ describe("an account used for calls and SMS", () => {
         TwilioConfigNumbersCopy.primaryPhoneNumberDescription,
       ),
     ).toBeVisible();
-    expect(listedNames(moreFieldsHeader())).toEqual([SMS_NUMBERS, SECONDARY]);
+    expect(listedNames(moreFieldsHeader())).toEqual([
+      SMS_NUMBERS,
+      SECONDARY,
+      VOICE,
+    ]);
     expect(
       within(dialog()).getByText(
         TwilioConfigDefaultCopy.defaultSwitchDescription,
@@ -707,6 +720,7 @@ describe("an account used for calls and SMS", () => {
     expect(listedNames(moreFieldsHeader())).toEqual([
       `${SMS_NUMBERS}: ${SG_MOBILE}`,
       SECONDARY,
+      VOICE,
     ]);
   });
 });
@@ -922,6 +936,7 @@ describe("the table's Used For column", () => {
       "Used For",
       "Phone Numbers",
       "Project Default",
+      VOICE,
       "Twilio Account SID",
     ]);
     expect(columnOf("usedFor").isHiddenByDefault).toBeFalsy();
@@ -1009,7 +1024,10 @@ describe("the table's Used For column", () => {
     expect(lastTableProps()["userPreferencesKey"]).toBe("call-sms-table");
     expect(lastTableProps()["disableColumnCustomization"]).toBeFalsy();
 
-    // Every other column is shown.
+    /*
+     * Every other column is shown, but the voice calls speak with (#10948),
+     * which most configs leave at the account's default.
+     */
     expect(
       columns()
         .filter((column: Column<ProjectCallSMSConfig>): boolean => {
@@ -1018,7 +1036,7 @@ describe("the table's Used For column", () => {
         .map((column: Column<ProjectCallSMSConfig>): string => {
           return column.title;
         }),
-    ).toEqual(["Twilio Account SID"]);
+    ).toEqual([VOICE, "Twilio Account SID"]);
   });
 });
 
