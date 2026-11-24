@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import DeviceSnmpTrapRefusals from "../../../Components/NetworkDevice/DeviceSnmpTrapRefusals";
 import {
   buildSavedViewScope,
   SavedViewScopeKind,
@@ -115,6 +116,11 @@ const NetworkDeviceLogs: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Its SNMPv3 traps the probe refused (#11005): why they are not in
+       * the list below, and what to change.
+       */}
+      <DeviceSnmpTrapRefusals modelId={modelId} />
       <DashboardLogsViewer
         id={`network-device-logs-${modelId.toString()}`}
         savedViewScope={buildSavedViewScope(
@@ -149,6 +155,11 @@ const NetworkDeviceLogs: FunctionComponent<
             <p className="text-gray-500">
               {translator.translateText(
                 "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the address they come from: its hostname, or one of its Other Addresses.",
+              )}
+            </p>
+            <p className="text-gray-500">
+              {translator.translateText(
+                "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. A device that sends SNMPv3 informs may also need the probe's SNMPv3 engine ID, shown on the probe's page.",
               )}
             </p>
             <p className="text-gray-500">
