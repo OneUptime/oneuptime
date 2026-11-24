@@ -121,7 +121,7 @@ const XcpNgPoolLogs: FunctionComponent<
         )}
         logQuery={logQuery}
         attributeFilterDisplayKeys={{
-          "resource.xcp_ng.pool.id": "Pool",
+          "resource.xcp_ng.pool.id": "XCP-ng Pool",
         }}
         attributeFilterDisplayValues={{
           "resource.xcp_ng.pool.id": pool.name || pool.poolIdentifier!,
@@ -138,7 +138,7 @@ const XcpNgPoolLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="The XCP-ng Agent sends no logs yet: it reads Xen Orchestra's metrics only. Logs appear here when you send OpenTelemetry logs with this pool's xcp_ng.pool.id resource attribute."
+        noLogsMessage="The XCP-ng Agent sends no logs yet, only metrics. Logs appear here when you send OpenTelemetry logs with this pool's xcp_ng.pool.id resource attribute."
       />
     </Fragment>
   );

@@ -9,16 +9,21 @@ import Link from "Common/Types/Link";
  * fails by name when one is missing, and
  * Common/Tests/App/Dashboard/EveryPageHasATrail does for every product.
  *
- * The product is "XCP-ng", one pool is "View Pool", and a pool's parts are
- * named as its side menu names them: Hosts, VMs and Storage (its storage
- * repositories).
+ * The product is "XCP-ng", its list "XCP-ng Pools" (the list's own title),
+ * one pool "View Pool", and a pool's parts are named as its side menu names
+ * them: Hosts, VMs and Storage (its storage repositories), and each row's
+ * page in its list's word - Host Detail, VM Detail, Storage Detail - so no
+ * language names one thing in two words.
+ * Never the bare "Pools" or "Pool": those keys are Ceph's storage pools,
+ * worded so in every language (存储池), while an XCP-ng pool is a pool of
+ * hosts (资源池).
  */
 export function getXcpNgBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOLS, [
       "Project",
       "XCP-ng",
-      "Pools",
+      "XCP-ng Pools",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOL_VIEW, [
       "Project",
@@ -62,7 +67,7 @@ export function getXcpNgBreadcrumbs(path: string): Array<Link> | undefined {
       "XCP-ng",
       "View Pool",
       "Storage",
-      "Storage Repository Detail",
+      "Storage Detail",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_POOL_VIEW_TOPOLOGY, [
       "Project",

@@ -18,9 +18,10 @@ const XCP_NG_POOL_SHOWCASE: ResourceShowcase = {
   description: translationKey(
     "Run one agent next to Xen Orchestra and every pool it manages shows up here, with its hosts, VMs and storage repositories. It reads Xen Orchestra's OpenMetrics plugin, so no root password ever reaches OneUptime.",
   ),
+  // How setup goes, in its order: the plugin, then the agent beside it.
   highlights: [
+    translationKey("Turn on Xen Orchestra's OpenMetrics plugin"),
     translationKey("One agent per Xen Orchestra"),
-    translationKey("Xen Orchestra's OpenMetrics plugin"),
     translationKey("Nothing to install on your hosts"),
   ],
   features: [

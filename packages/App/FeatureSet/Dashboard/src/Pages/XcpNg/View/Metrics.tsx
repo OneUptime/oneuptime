@@ -94,7 +94,7 @@ const XcpNgPoolMetrics: FunctionComponent<
           "resource.xcp_ng.pool.id": pool.poolIdentifier,
         }}
         attributeFilterDisplayKeys={{
-          "resource.xcp_ng.pool.id": "Pool",
+          "resource.xcp_ng.pool.id": "XCP-ng Pool",
         }}
         attributeFilterDisplayValues={{
           "resource.xcp_ng.pool.id": pool.name || pool.poolIdentifier,

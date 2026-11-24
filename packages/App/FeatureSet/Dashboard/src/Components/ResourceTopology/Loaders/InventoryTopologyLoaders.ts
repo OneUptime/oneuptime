@@ -286,6 +286,14 @@ export async function loadXcpNgTopology(
       latestDiskPercent: true,
       metricsUpdatedAt: true,
       lastSeenAt: true,
+      /*
+       * What the builder colours by: a storage repository allocated past
+       * its size, a VM halted or paused after running in the last day, and
+       * an ISO library, which is no VM's storage.
+       */
+      virtualAllocationBytes: true,
+      lastRunningAt: true,
+      contentType: true,
     },
     relation: "xcpNgPools",
     kind: "xcp_ng.pool",

@@ -442,16 +442,13 @@ describe("every navigable page has breadcrumbs", () => {
     readSource("Utils", "Breadcrumbs", "XcpNgBreadcrumbs.ts"),
   );
 
-  test.each(NAVIGABLE_PAGE_KEYS)(
-    "%s has a breadcrumb trail",
-    (key: string) => {
-      expect(breadcrumbs).toContain(`PageMap.${key},`);
-    },
-  );
+  test.each(NAVIGABLE_PAGE_KEYS)("%s has a breadcrumb trail", (key: string) => {
+    expect(breadcrumbs).toContain(`PageMap.${key},`);
+  });
 
-  test("the list's trail reads Project > XCP-ng > Pools", () => {
+  test("the list's trail reads Project > XCP-ng > XCP-ng Pools, never Ceph's bare Pools", () => {
     expect(dense(breadcrumbs)).toContain(
-      'PageMap.XCP_NG_POOLS,["Project","XCP-ng","Pools",]',
+      'PageMap.XCP_NG_POOLS,["Project","XCP-ng","XCP-ngPools",]',
     );
   });
 
@@ -469,7 +466,7 @@ describe("every navigable page has breadcrumbs", () => {
       'PageMap.XCP_NG_POOL_VIEW_HOST_DETAIL,["Project","XCP-ng","ViewPool","Hosts","HostDetail",]',
     );
     expect(dense(breadcrumbs)).toContain(
-      'PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL,["Project","XCP-ng","ViewPool","Storage","StorageRepositoryDetail",]',
+      'PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL,["Project","XCP-ng","ViewPool","Storage","StorageDetail",]',
     );
   });
 
@@ -557,9 +554,7 @@ describe("the side menus reach the whole product", () => {
     );
     expect(dense(viewSideMenu)).toContain("badge={counts.hosts}");
     expect(dense(viewSideMenu)).toContain("badge={counts.vms}");
-    expect(dense(viewSideMenu)).toContain(
-      "badge={counts.storageRepositories}",
-    );
+    expect(dense(viewSideMenu)).toContain("badge={counts.storageRepositories}");
   });
 
   test("the pool's count columns are the ones the model has", () => {
@@ -648,7 +643,11 @@ describe("the record tabs carry the pool into what they create", () => {
     }
     expect(
       dense(
-        readSource("Components", "CreateFromRecord", "useRecordToCreateFrom.ts"),
+        readSource(
+          "Components",
+          "CreateFromRecord",
+          "useRecordToCreateFrom.ts",
+        ),
       ),
     ).toContain("[CreateFromRecordKind.XcpNgPool]:XcpNgPool,");
   });
@@ -659,9 +658,7 @@ describe("the navbar link exists and is not commented out", () => {
   const navBar: string = squash(navBarRaw);
 
   test("there is a live XCP-ng entry", () => {
-    expect(dense(navBarRaw)).toContain(
-      't("navbar.items.xcpNgTitle","XCP-ng")',
-    );
+    expect(dense(navBarRaw)).toContain('t("navbar.items.xcpNgTitle","XCP-ng")');
     expect(dense(navBarRaw)).toContain('t("navbar.items.xcpNgDescription",');
   });
 
@@ -857,8 +854,11 @@ describe("no other product's concept leaked into the XCP-ng pages", () => {
       expect(source).toContain('attributeKey:"resource.xcp_ng.pool.id"');
       expect(source).toContain("attributeValue:pool.poolIdentifier");
       expect(source).not.toContain("attributeValue:pool.name");
-      // The locked chip names the pool, not its UUID.
-      expect(source).toContain('"resource.xcp_ng.pool.id":"Pool"');
+      /*
+       * The locked chip names the pool, not its UUID, under the kind's own
+       * name: the bare "Pool" is Ceph's storage pool in every language.
+       */
+      expect(source).toContain('"resource.xcp_ng.pool.id":"XCP-ngPool"');
       expect(source).toContain(
         '"resource.xcp_ng.pool.id":pool.name||pool.poolIdentifier',
       );
@@ -941,7 +941,9 @@ describe("the pools list shows what each pool is", () => {
   });
 
   test("the archive asks for archiving rather than deleting, as every resource list", () => {
-    expect(list).toContain("deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}");
+    expect(list).toContain(
+      "deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}",
+    );
     expect(list).toContain("actionButtons={[...archiveRowActions]}");
   });
 });
@@ -972,5 +974,110 @@ describe("a pool's Settings", () => {
     expect(retention).toBeGreaterThan(settings.indexOf("<ResourceDetailsCard"));
     expect(archive).toBeGreaterThan(retention);
     expect(settings).toContain('resourceName="XCP-ngpool"');
+  });
+});
+
+/*
+ * The pool's Topology page: the loader reads the pool's XcpNgResource rows
+ * and the builder (Builders/XcpNgTopology, D2's) decides what each part
+ * shows. A column the builder reads but the loader does not select arrives
+ * undefined, and the map quietly draws every part as healthy - an
+ * over-allocated storage repository, a VM stopped after running, an ISO
+ * library taken for VM storage - with no error anywhere.
+ */
+describe("the pool's map reads what its builder draws", () => {
+  const loaders: string = stripComments(
+    readSource(
+      "Components",
+      "ResourceTopology",
+      "Loaders",
+      "InventoryTopologyLoaders.ts",
+    ),
+  );
+  const start: number = loaders.indexOf(
+    "export async function loadXcpNgTopology(",
+  );
+  const next: number = loaders.indexOf("export async function", start + 1);
+  const loader: string = dense(
+    loaders.slice(start, next === -1 ? undefined : next),
+  );
+  const selectStart: number = loader.indexOf("rowSelect:{");
+  const rowSelect: string = loader.slice(
+    selectStart,
+    loader.indexOf("}", selectStart),
+  );
+
+  const builder: string = stripComments(
+    readSource(
+      "Components",
+      "ResourceTopology",
+      "Builders",
+      "XcpNgTopology.ts",
+    ),
+  );
+  const model: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "Common",
+      "Models",
+      "DatabaseModels",
+      "XcpNgResource.ts",
+    ),
+    "utf8",
+  );
+
+  // Every column the builder reads of a row itself.
+  const readByBuilder: Array<string> = Array.from(
+    new Set(
+      Array.from(builder.matchAll(/\brow\.([a-zA-Z]+)\b/g)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1]!;
+        },
+      ),
+    ),
+  ).sort();
+
+  /*
+   * And the ones Pages/XcpNg/Utils/XcpNgHealth's assessments read for it:
+   * how much of a storage repository is allocated, when a VM last ran, and
+   * what a storage repository holds (an ISO library is no VM's storage).
+   */
+  const READ_FOR_THE_BUILDER: ReadonlyArray<string> = [
+    "virtualAllocationBytes",
+    "lastRunningAt",
+    "contentType",
+  ];
+
+  test("the loader, its select and the builder's reads are found", () => {
+    expect(start).toBeGreaterThan(-1);
+    expect(loader).toContain("rowType:XcpNgResource,");
+    expect(loader).toContain('relation:"xcpNgPools",');
+    expect(selectStart).toBeGreaterThan(-1);
+    expect(readByBuilder).toEqual(
+      expect.arrayContaining(["externalId", "kind", "powerState"]),
+    );
+  });
+
+  test.each(
+    Array.from(new Set([...readByBuilder, ...READ_FOR_THE_BUILDER])).map(
+      (column: string): [string] => {
+        return [column];
+      },
+    ),
+  )("%s is selected, and is a column of XcpNgResource", (column: string) => {
+    expect(rowSelect).toContain(`${column}:true,`);
+    expect(model).toContain(`public ${column}?:`);
+  });
+
+  test("the master Topology knows the pool by its UUID, never its name", () => {
+    expect(loader).toContain(
+      "keyForXcpNgPool(loaded.projectId.toString(),poolIdentifier)",
+    );
+    expect(loader).toContain(
+      "resourceSelect:{name:true,poolIdentifier:true,lastSeenAt:true}",
+    );
   });
 });
