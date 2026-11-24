@@ -5,6 +5,7 @@ Project Settings holds what applies to the whole project: its name, the tools it
 :::cards
 - [Find a setting](#find-a-setting): What each section of the side menu holds.
 - [The project's details](#the-projects-details): Its name, its ID and support access.
+- [Unique names](#unique-names): Whether two records of one kind may share a name.
 - [Products](#products): The products this project shows, and the ones it hides.
 - [Labels](#labels): Tags for resources, permissions and rules.
 - [Delete the project](#delete-the-project): What it takes, and what goes with it.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Section | Pages | Where to read more |
 | --- | --- | --- |
-| **Basic** | **Project**, **Products**, **Labels** | [The project's details](#the-projects-details), [Products](#products), [Labels](#labels) |
+| **Basic** | **Project**, **Products**, **Labels** | [The project's details](#the-projects-details), [Unique names](#unique-names), [Products](#products), [Labels](#labels) |
 | **Workspace** | **Slack**, **Microsoft Teams**, **Mattermost**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Video Calls](/docs/workspace-connections/video-calls) |
 | **Telemetry & APM** | **Ingestion Keys**, **Data Retention**, **Usage** | [Ingestion Keys](/docs/telemetry/ingestion-keys), [Data Retention](/docs/telemetry/data-retention), [Telemetry Usage](/docs/telemetry/usage) |
 | **Notifications** | **Notification Channels**, **Notification Logs**, **Mobile Apps** | [Notifications](#notifications) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## The project's details
 
-**Project Settings → Basic → Project** holds two cards.
+**Project Settings → Basic → Project** holds the project's cards: **Project Details**, **Unique Names** and, on OneUptime Cloud, **Customer Support Access**.
 
 **Project Details** shows the project's name and its ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Data Residency**: on OneUptime Cloud, where your project's data is meant to be kept, when OneUptime has recorded it. Only OneUptime sets it.
 
 **Customer Support Access**, on OneUptime Cloud, decides whether OneUptime's support team may open the project. Turn on **Let OneUptime support access this project** when you want their help: OneUptime asks first, because support can then see and change everything in the project, and you click **Let support in**. Turn it off once they have finished: it saves at once. Project Owners and Project Admins change it.
+
+## Unique names
+
+**Unique Names**, on **Project Settings → Basic → Project**, decides whether two records of one kind may share a name in the project. While **Require Unique Names** is on, OneUptime refuses a name another record of the same kind has, whether it is typed here, sent through the API or set in Terraform, and whatever its case or spacing: `API Health Check` and `api health check` are one name. The switch saves when you flip it. Project Owners and Project Admins change it.
+
+It is on in a new project. A project that existed before it came keeps it off, because the project's API clients and Terraform configurations may rely on names that repeat: turn it on when you are ready.
+
+Under the switch, the card lists each name the project already holds more than once, kind by kind, with a link to each record and the day it was made. Turning the switch on refuses nothing that exists: those records keep working until someone renames them, and only a new record or a rename needs a name of its own. Saving a record with its own name again, in any case, is no rename.
+
+Whatever the switch says, a form warns as you type a name another record of its kind has, and links to that record. While the switch is on, the warning also says that saving would be refused.
+
+The switch holds the kinds you name and pick by name: monitors, monitor groups, probes, SLOs, the incident, alert, maintenance and status page templates, API keys, ingestion keys, custom roles, LLM providers, pipelines, budgets and connections. Events and records repeat their names by design and are left out: incidents, alerts, episodes, maintenance events and status page announcements, and so is what OneUptime discovers, such as hosts and pods. Teams, labels, on-call policies, on-call schedules, status pages, workflows and some other kinds have a name of their own in every project, whatever the switch says.
+
+When OneUptime names a record for you, such as a monitor made from a recommendation or an imported one, and the name is taken, it adds a number instead of refusing it: `API Health Check 2`.
 
 ## Products
 
@@ -145,6 +160,10 @@ Renaming the project takes a Project Owner, or permission to edit the project or
 
 :::details Delete Project stays locked in the dialog
 Type the project's name exactly as the dialog shows it: letter case counts.
+:::
+
+:::details A name is refused because the project requires unique names
+Another record of the same kind has the name, whatever its case or spacing. Pick another name, or rename the other record first: **Unique Names**, on **Project Settings → Basic → Project**, lists the names the project holds more than once, with a link to each record. If only an archived record has the name, unarchive that record or pick another name.
 :::
 
 ## Next steps

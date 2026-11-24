@@ -268,6 +268,14 @@ Naast de melding bevat elke zulke weigering een `refusalCode` die zegt wat de na
 
 Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen, maar nooit de naam van een ander record. Voor teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `label`, `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden. Gearchiveerde labels en gearchiveerd bereikbaarheidsbeleid tellen niet mee.
 
+Een project dat unieke namen vereist, zoals een nieuw project doet, houdt de meeste andere soorten die u een naam geeft aan dezelfde regel, waaronder monitoren, monitorgroepen, sondes, sjablonen, API-sleutels en pipelines, met dezelfde codes. De `requireUniqueNames` van het project zegt of het dat doet, en een Projecteigenaar of Projectbeheerder wijzigt het in de projectinstellingen in het dashboard:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Zo'n weigering bevat ook `takenById`, de ID van het record dat de naam heeft, als uw sleutel het mag lezen. Records die een naam deelden voordat het project unieke namen vereiste, houden die tot ze worden hernoemd, en één update kan meerdere records van hetzelfde soort niet dezelfde naam geven. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwoordt of een naam bezet is voordat u hem verstuurt, en `GET /api/unique-names/duplicates` toont de namen die het project meer dan eens heeft, soort voor soort.
+
 #### Waarden die een ander record al heeft
 
 Ook sommige waarden die geen naam zijn, horen bij één record elk: het domein van een statuspagina, een dashboard of een formulier, een projectdomein, de identificatie van een host of een Kubernetes-cluster, de aanmeld-URL van een SSO-provider en de machtiging van een API-sleutel, onder andere. Aanmaken, of een update die er een wijzigt, naar een waarde die een ander record al heeft, wordt geweigerd met een `400` die dat zegt:

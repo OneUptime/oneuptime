@@ -1,5 +1,7 @@
 import App from "./App";
 import getRecordHistoryRoute from "./Components/AuditLogs/RecordHistoryRoute";
+import { getRecordPageRoute } from "./Components/UniqueNames/RecordPages";
+import RecordPageContext from "Common/UI/Components/RecordPage/RecordPageContext";
 import { sendPushConfigurationToRegisteredServiceWorker } from "./Components/NotificationMethods/BrowserPushRegistration";
 import { i18nReady } from "./Utils/i18n";
 import reportSignUpFromSignIn from "./Utils/ReportSignUpFromSignIn";
@@ -175,7 +177,14 @@ i18nReady
            * with ("History", #10290).
            */}
           <RecordHistoryContext.Provider value={getRecordHistoryRoute}>
-            <App />
+            {/*
+             * Where each record is opened, for a form that warns its name
+             * is another record's and the names a project holds twice
+             * (#10761).
+             */}
+            <RecordPageContext.Provider value={getRecordPageRoute}>
+              <App />
+            </RecordPageContext.Provider>
           </RecordHistoryContext.Provider>
         </BrowserRouter>
         <NewVersionNotice />

@@ -268,6 +268,14 @@ Accanto al messaggio, ognuno di questi rifiuti contiene un `refusalCode` che dic
 
 Un aggiornamento che invia di nuovo a un record il suo stesso nome, in maiuscolo o minuscolo, non è una ridenominazione, quindi i record che prima condividevano un nome si possono ancora modificare, e rinominare per distinguerli, ma mai con il nome di un altro record. Per team, etichette, policy di reperibilità e pianificazioni di reperibilità, `GET /api/shared-names/team` (o `label`, `on-call-policy`, `on-call-schedule`) risponde quali condividono un nome: `{"groups": [["<id>", "<id>"]]}`, ogni gruppo con gli ID, che la tua chiave può leggere, dei record i cui nomi si leggono allo stesso modo. Le etichette e le policy di reperibilità archiviate sono escluse.
 
+Un progetto che richiede nomi univoci, come fa un nuovo progetto, applica la stessa regola alla maggior parte degli altri tipi a cui dai un nome, tra cui monitor, gruppi di monitor, sonde, modelli, chiavi API e pipeline, con gli stessi codici. Il `requireUniqueNames` del progetto dice se lo fa, e un Proprietario del progetto o un Amministratore del progetto lo modifica nelle impostazioni del progetto, nella dashboard:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Un rifiuto del genere contiene anche `takenById`, l'ID del record che ha il nome, quando la tua chiave può leggerlo. I record che condividevano un nome prima che il progetto richiedesse nomi univoci lo mantengono finché non vengono rinominati, e un solo aggiornamento non può dare lo stesso nome a più record dello stesso tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` risponde se un nome è già preso prima che tu lo invii, e `GET /api/unique-names/duplicates` elenca i nomi che il progetto ha più di una volta, tipo per tipo.
+
 #### Valori che un altro record ha già
 
 Anche alcuni valori che non sono un nome appartengono a un solo record ciascuno: il dominio di una pagina di stato, di una dashboard o di un modulo, un dominio del progetto, l'identificatore di un host o di un cluster Kubernetes, l'URL di accesso di un provider SSO e il permesso di una chiave API, tra gli altri. Una creazione, o un aggiornamento che ne cambia uno, verso un valore che ha già un altro record viene rifiutata con un `400` che lo dice:

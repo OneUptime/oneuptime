@@ -1,5 +1,6 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
@@ -615,10 +616,17 @@ export default class CloudAccountRecommendationPlan {
     defaults: CloudAccountRecommendationDefaults;
     notificationSettings: MonitorRecommendationNotificationSettings;
   }): Array<CloudAccountRecommendationPlanItem> {
-    const miscDataProps: JSONObject =
-      MonitorRecommendationCreateUtil.buildMiscDataProps(
+    /*
+     * The owners, and that each monitor's name is OneUptime's: where the
+     * project requires unique names, a taken one is numbered rather than
+     * refused - two regions' "web" each get a monitor.
+     */
+    const miscDataProps: JSONObject = {
+      ...MonitorRecommendationCreateUtil.buildMiscDataProps(
         data.notificationSettings,
-      );
+      ),
+      ...getNumbersTakenNameData(),
+    };
 
     const plan: Array<CloudAccountRecommendationPlanItem> = [];
 

@@ -1,3 +1,5 @@
+import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import Project from "./Project";
 import SecurityCasePriority from "./SecurityCasePriority";
 import User from "./User";
@@ -94,6 +96,18 @@ const editableColumnAccess: {
   update: updatePermissions,
 })
 @CrudApiEndpoint(new Route("/security-playbook"))
+/*
+ * Serves the lookup of a name the project requires to be one of its kind
+ * (RequiredUniqueNames, #10761): the project and the name as it reads, an
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
+ * that @Index() cannot express. Declared here only so the schema builder
+ * leaves it alone (UNSYNCHRONIZED_INDEX).
+ */
+@Index(
+  "IDX_SECURITYPLAYBOOK_PROJECT_NAME_KEY",
+  ["projectId", "name"],
+  UNSYNCHRONIZED_INDEX,
+)
 @Entity({
   name: "SecurityPlaybook",
 })
@@ -154,6 +168,7 @@ export default class SecurityPlaybook extends BaseModel {
   public projectId?: ObjectID = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
+  @UniqueNameWhenRequired()
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,

@@ -2179,6 +2179,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
+import UniqueNamesAPI from "Common/Server/API/UniqueNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
@@ -6943,6 +6944,15 @@ const BaseAPIFeatureSet: FeatureSet = {
      * for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
+
+    /*
+     * Names that repeat in a project (UniqueNamesAPI, #10761): whether a
+     * name a form takes is another record's, for the form to warn, and the
+     * names a project holds twice, for Project Settings to list beside
+     * Require Unique Names. A bare router for the same reason as
+     * OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UniqueNamesAPI);
 
     /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member

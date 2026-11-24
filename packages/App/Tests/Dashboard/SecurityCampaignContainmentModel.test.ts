@@ -21,6 +21,7 @@ import {
   Translator,
   createTranslator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { WrittenMoment, writeReaderMoment } from "Common/Utils/MomentPhrases";
 import type * as ModelModuleType from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/Campaigns/CampaignContainmentModel";
 
 /*
@@ -220,6 +221,138 @@ describe("the pill of the block that holds a row", () => {
       });
 
     expect(pill).toEqual({ text: "Challenged", tone: PillTone.Info });
+  });
+
+  /*
+   * The moment brings its own words (#10932): the time alone today, its day
+   * and its time on another day, never the two written whole after a
+   * sentence's own "until". The times are chosen to fall on the same local
+   * day, and two days apart, in every time zone.
+   */
+  test("a block that ends today names its time alone, and one that ends another day its day and its time", () => {
+    const now: Date = new Date("2026-11-23T12:00:00.000Z");
+    const today: Date = new Date("2026-11-23T12:30:00.000Z");
+    const later: Date = new Date("2026-11-25T12:00:00.000Z");
+    const pillFor: (expiresAt: Date, action: SecurityBlockAction) => string = (
+      expiresAt: Date,
+      action: SecurityBlockAction,
+    ): string => {
+      return Model.writeRowBlockPill({
+        block: {
+          value: "35.205.11.131",
+          action,
+          expiresAt: expiresAt.toISOString(),
+        },
+        value: "35.205.11.131",
+        translator: ENGLISH,
+        now,
+      }).text;
+    };
+    const todayMoment: WrittenMoment = writeReaderMoment(today, now);
+    const laterMoment: WrittenMoment = writeReaderMoment(later, now);
+
+    expect(todayMoment.date).toBeNull();
+    expect(laterMoment.date).not.toBeNull();
+
+    expect(pillFor(today, SecurityBlockAction.Block)).toBe(
+      `Blocked until ${todayMoment.time}`,
+    );
+    expect(pillFor(today, SecurityBlockAction.Challenge)).toBe(
+      `Challenged until ${todayMoment.time}`,
+    );
+    expect(pillFor(later, SecurityBlockAction.Block)).toBe(
+      `Blocked until ${laterMoment.date} at ${laterMoment.time}`,
+    );
+    expect(pillFor(later, SecurityBlockAction.Challenge)).toBe(
+      `Challenged until ${laterMoment.date} at ${laterMoment.time}`,
+    );
+    expect(pillFor(later, SecurityBlockAction.Block)).not.toContain(
+      laterMoment.whole,
+    );
+  });
+
+  test("an end that is no date reads as a block lifted by hand", () => {
+    expect(
+      Model.writeRowBlockPill({
+        block: {
+          value: "35.205.11.131",
+          action: SecurityBlockAction.Block,
+          expiresAt: "not a date",
+        },
+        value: "35.205.11.131",
+        translator: ENGLISH,
+      }).text,
+    ).toBe("Blocked");
+  });
+});
+
+describe("what Challenge This Network says once it is done (#10932)", () => {
+  const now: Date = new Date("2026-11-23T12:00:00.000Z");
+
+  test("a challenge that ends today names its network and its time", () => {
+    const expiresAt: Date = new Date("2026-11-23T12:30:00.000Z");
+
+    expect(
+      Model.writeNetworkChallengedToast({
+        challenged: { value: "203.0.113.0/24", expiresAt },
+        translator: ENGLISH,
+        now,
+      }),
+    ).toBe(
+      `Challenged 203.0.113.0/24 until ${writeReaderMoment(expiresAt, now).time}.`,
+    );
+  });
+
+  test("one that ends another day names its day and its time", () => {
+    const expiresAt: Date = new Date("2026-11-25T12:00:00.000Z");
+    const moment: WrittenMoment = writeReaderMoment(expiresAt, now);
+
+    expect(
+      Model.writeNetworkChallengedToast({
+        challenged: { value: "AS14061", expiresAt },
+        translator: ENGLISH,
+        now,
+      }),
+    ).toBe(`Challenged AS14061 until ${moment.date} at ${moment.time}.`);
+  });
+
+  test("one lifted by hand names its network alone, never an until with nothing after it", () => {
+    for (const expiresAt of [null, new Date("not a date")]) {
+      expect(
+        Model.writeNetworkChallengedToast({
+          challenged: { value: "203.0.113.0/24", expiresAt },
+          translator: ENGLISH,
+          now,
+        }),
+      ).toBe("Challenged 203.0.113.0/24.");
+    }
+  });
+
+  test("a language that words the sentence words its moment too", () => {
+    const spanish: Translator = createTranslator(
+      (key: string): string | undefined => {
+        return (
+          {
+            "Challenged {{network}} {{until}}.":
+              "Se sometió {{network}} a desafío {{until}}.",
+            "until {{clock}}": "hasta las {{clock}}",
+            "until {{clock}}_one": "hasta la {{clock}}",
+          } as Record<string, string>
+        )[key];
+      },
+      "es",
+    );
+
+    expect(
+      Model.writeNetworkChallengedToast({
+        challenged: {
+          value: "203.0.113.0/24",
+          expiresAt: new Date("2026-11-23T12:30:00.000Z"),
+        },
+        translator: spanish,
+        now,
+      }),
+    ).toMatch(/^Se sometió 203\.0\.113\.0\/24 a desafío hasta las? \d.*\.$/);
   });
 });
 

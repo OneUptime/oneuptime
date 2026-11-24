@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 Kommandot för en lägre nivå ersätter AWS-policyn med den lägre nivåns policy. **Av** lägger inte till något, så det som ett tidigare kommando beviljade finns kvar tills du tar bort det: policyn `OneUptimeDataSecurity` på AWS, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, och innehållsnivåns roller på Azure och Google Cloud. Datasäkerhet slutar läsa direkt i båda fallen: den läser bara det som anslutningens nivå anger. [Konfigurera Datasäkerhet](/docs/data-security/setup) listar varje åtgärd i policyn, och vad Datasäkerhet sparar av det den läser.
 
+## Kontroller för säkerhetsärenden
+
+På AWS kan samma anslutning låta ett [säkerhetsärende](/docs/telemetry/security-cases#så-kontrollerar-oneuptime-ett-steg) kontrollera att det som en attack ändrade på en IAM-användare har ångrats: åtkomstnyckeln den skapade, konsollösenordet den satte, policyerna den kopplade eller skrev, grupperna den lade till användaren i, MFA-enheten den aktiverade och användaren den skapade. Under **Fler fält** står **Kontroller för säkerhetsärenden** på **Av** tills du slår på dem, och kommandot som formuläret visar ändras med det. Varje åtgärd läser bara, och ingen läser en hemlighet: en åtkomstnyckels ID och om den är aktiv, aldrig nyckeln, och att ett konsollösenord är satt, aldrig lösenordet.
+
+| Vad ärendet läser om varje användare som dess CloudTrail-händelser nämner | Åtgärder |
+| --- | --- |
+| Användaren, eller att den inte finns längre | `iam:GetUser` |
+| Dess åtkomstnycklar, och om var och en är aktiv | `iam:ListAccessKeys` |
+| Om den har ett konsollösenord, och sedan när | `iam:GetLoginProfile` |
+| Dess hanterade policyer, och namnen på dess inbäddade policyer | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| Grupperna den är med i | `iam:ListGroupsForUser` |
+| Dess MFA-enheter | `iam:ListMFADevices` |
+
+Rollens kommando lägger till en egen inbäddad policy, `OneUptimeSecurityCaseChecks`, med en rad till, och en organisations StackSet lägger den i varje kontos roll:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+Med en **Åtkomstnyckel** läggs policyn på en grupp med samma namn, `OneUptimeSecurityCaseChecks`, som användaren går med i:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Ett ärende läser en ändring bara via en anslutning som når kontot där ändringen gjordes, och frågar inte IAM om något via en anslutning vars **Kontroller för säkerhetsärenden** står på **Av**: det nämner de ändringarna så att du kan bekräfta dem, och säger att du ska slå på inställningen. **Av** lägger inte till något, så det som ett tidigare kommando beviljade finns kvar tills du tar bort det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+
 ## Vad OneUptime läser
 
 | | AWS | Azure | Google Cloud |

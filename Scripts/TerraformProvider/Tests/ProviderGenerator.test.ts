@@ -32,12 +32,13 @@ import {
   URL_ATTRIBUTE_DESCRIPTION,
 } from "../Core/ProviderWords";
 import { buildFixtureSpec } from "./Fixtures";
-import {
+import NameTakenException, {
   NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODES,
   REFUSAL_CODE_FIELD,
 } from "Common/Types/Exception/NameTakenException";
+import { getRequiredUniqueNameTakenRefusal } from "Common/Types/Database/UniqueName";
 import {
   VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   VALUE_TAKEN_REFUSAL_CODE,
@@ -502,6 +503,53 @@ describe("a name another record has", () => {
       'return fmt.Sprintf("The name was still taken after asking again for %s. %s", describeWait(c.nameTakenRetry.window), advice)',
     );
     expect(advice).toContain("if c.nameTakenRetry.window <= 0 {");
+  });
+
+  /*
+   * A project that requires unique names (#10761) refuses a monitor's, a
+   * template's or an API key's taken name with the codes a kind unique
+   * always does, beside the server's sentence - so an apply that creates a
+   * monitor with another monitor's name is asked again, then fails with
+   * that sentence and the advice, and one onto an archived monitor's name
+   * fails at once with the sentence alone.
+   */
+  test("a project's required unique name is refused with the codes the client asks again on and advises on", () => {
+    const taken: NameTakenException = new NameTakenException(
+      getRequiredUniqueNameTakenRefusal({
+        kindLabel: "Monitor",
+        name: "API Health Check",
+        isArchived: false,
+      }),
+      { id: "7f0b1d7e-0000-4000-8000-000000010761" },
+    );
+    const archived: NameTakenException = new NameTakenException(
+      getRequiredUniqueNameTakenRefusal({
+        kindLabel: "Monitor",
+        name: "API Health Check",
+        isArchived: true,
+      }),
+      { isArchived: true },
+    );
+
+    expect(taken.message).toBe(
+      "Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.",
+    );
+    expect(taken.details[REFUSAL_CODE_FIELD]).toBe(NAME_TAKEN_REFUSAL_CODE);
+    expect(archived.details[REFUSAL_CODE_FIELD]).toBe(
+      NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    );
+
+    // The client asks again, and advises, on exactly that code.
+    expect(goFunction("func isNameTakenRefusal(")).toContain(
+      "return refusalCodeOf(body) == nameTakenRefusalCode",
+    );
+    expect(goFunction("func isTakenByArchivedRefusalCode(")).toContain(
+      "code == nameTakenByArchivedRefusalCode",
+    );
+    // The apply fails with the server's own sentence first.
+    expect(goFunction("func apiErrorMessage(")).toContain(
+      'for _, key := range []string{"message", "error", "errorMessage"} {',
+    );
   });
 
   test("adds nothing to a name an archived record has: the server's sentence says to unarchive it", () => {

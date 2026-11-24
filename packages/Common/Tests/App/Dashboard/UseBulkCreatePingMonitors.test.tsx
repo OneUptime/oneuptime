@@ -674,8 +674,9 @@ describe("useBulkCreatePingMonitors", () => {
       await submitAndWaitForEnd();
 
       expect(createMock).toHaveBeenCalledTimes(1);
+      // No probes key; only that its name is OneUptime's (#10761).
       expect((createMock.mock.calls[0] as Array<any>)[0].miscDataProps).toEqual(
-        {},
+        { numbersTakenName: true },
       );
     });
   });
@@ -748,7 +749,7 @@ describe("useBulkCreatePingMonitors", () => {
        * selection as "attach nothing", which would create a monitor nothing
        * ever evaluates.
        */
-      expect(createRequest.miscDataProps).toEqual({});
+      expect(createRequest.miscDataProps).toEqual({ numbersTakenName: true });
 
       const monitor: Monitor = createRequest.model as Monitor;
       expect(monitor.name).toBe("Ping rack-pdu");
@@ -782,6 +783,7 @@ describe("useBulkCreatePingMonitors", () => {
       expect((createMock.mock.calls[0] as Array<any>)[0].miscDataProps).toEqual(
         {
           probes: [PROBE_A_ID],
+          numbersTakenName: true,
         },
       );
     });
