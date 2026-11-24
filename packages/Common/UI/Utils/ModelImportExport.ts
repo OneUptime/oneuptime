@@ -2,6 +2,8 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { getNumbersTakenNameData } from "../../Types/Database/RequiredUniqueNames";
+import { isNameTakenRefusal } from "../../Types/Database/UniqueName";
 import ModelImportExport from "../../Utils/ModelImportExport";
 import API from "./API/API";
 import ModelAPI from "./ModelAPI/ModelAPI";
@@ -157,14 +159,25 @@ export default class ModelImportExportUtil {
           await modelAPI.create<TBaseModel>({
             model: item,
             modelType: data.modelType,
+            /*
+             * The file's names, which a project that requires unique names
+             * may hold already: numbered by the server ("API 2"), not
+             * refused, for a kind it holds (Types/Database/RequiredUniqueNames).
+             */
+            miscDataProps: getNumbersTakenNameData(),
           });
 
           result.successCount += 1;
         } catch (err) {
           const errorMessage: string = API.getFriendlyMessage(err);
 
+          // Another record has the name, in any kind's words.
+          const isNameTaken: boolean =
+            errorMessage.toLowerCase().includes("already exists") ||
+            isNameTakenRefusal(errorMessage);
+
           const canRetryWithNewName: boolean = Boolean(
-            errorMessage.toLowerCase().includes("already exists") &&
+            isNameTaken &&
               displayNameColumn &&
               typeof item.getValue(displayNameColumn) === "string",
           );
@@ -178,6 +191,7 @@ export default class ModelImportExportUtil {
             await modelAPI.create<TBaseModel>({
               model: item,
               modelType: data.modelType,
+              miscDataProps: getNumbersTakenNameData(),
             });
 
             result.successCount += 1;

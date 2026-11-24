@@ -78,6 +78,12 @@ enum LeftOut {
    * address or a subnet, and several subnets of one office carry one name.
    */
   NameOfSomethingElse = "a name for something else, shared on purpose",
+  /*
+   * Unique already within the record it belongs to, by an index of its
+   * own: a data check's name is one table's (an index on the table and the
+   * name), and "id is unique" is a fine name for a check of every table.
+   */
+  UniqueWithinItsRecord = "unique already within the record it belongs to",
 }
 
 const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
@@ -266,6 +272,9 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
 
   // A name for something else.
   NetworkAddressName: LeftOut.NameOfSomethingElse,
+
+  // Unique already within its record, by an index of its own.
+  DataCheck: LeftOut.UniqueWithinItsRecord,
 };
 
 /*
@@ -289,7 +298,6 @@ const HELD_BY_THE_SETTING: Readonly<Record<string, string>> = {
   CloudBudget: "name",
   OpenStackBudget: "name",
   DataBiConnection: "name",
-  DataCheck: "name",
   DataProduct: "name",
   DataReconciliation: "name",
   DataSecurityCustomDataType: "name",

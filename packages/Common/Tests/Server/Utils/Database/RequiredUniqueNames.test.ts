@@ -1,7 +1,9 @@
+import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import ProjectService from "../../../../Server/Services/ProjectService";
 import IncidentTemplateService from "../../../../Server/Services/IncidentTemplateService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import CreateBy from "../../../../Server/Types/Database/CreateBy";
@@ -15,12 +17,16 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import {
+  getNumbersTakenNameData,
+  isNumbersTakenName,
   MAX_DUPLICATE_GROUPS_PER_KIND,
   MAX_DUPLICATE_RECORDS_PER_GROUP,
+  NUMBERS_TAKEN_NAME_KEY,
   UniqueNameCheckAnswer,
   DuplicateNamesOfKind,
 } from "../../../../Types/Database/RequiredUniqueNames";
 import {
+  FREE_NAME_ATTEMPTS,
   NAME_WHITE_SPACE_RUN_PATTERN,
   REQUIRED_UNIQUE_NAMES_RENAMED_TOGETHER_REFUSAL,
 } from "../../../../Types/Database/UniqueName";
@@ -475,6 +481,271 @@ describe("a new record of a kind the setting holds", () => {
     );
     expect(finds[0]!.query["templateName"]).toBeDefined();
     expect(finds[0]!.query["name"]).toBeUndefined();
+  });
+});
+
+describe("a name OneUptime picked for the person", () => {
+  /*
+   * The records that hold names, by the name as it reads: the clash read
+   * answers the one whose name it asks for.
+   */
+  function stubHoldersByName(
+    holders: Record<string, Monitor>,
+  ): Array<string> {
+    const asked: Array<string> = [];
+
+    getJestSpyOn(MonitorService, "findOneBy").mockImplementation(
+      async (findOneBy: RecordedFind): Promise<Monitor | null> => {
+        if (findOneBy.props["isRoot"] !== true) {
+          return monitor({ id: HOLDER_ID, name: "whoever" });
+        }
+
+        const name: string = String(
+          Object.values(
+            (findOneBy.query["name"] as RawOperator).objectLiteralParameters,
+          )[0],
+        );
+
+        asked.push(name);
+
+        return holders[name.toLowerCase().trim()] || null;
+      },
+    );
+
+    return asked;
+  }
+
+  function createNamedByOneUptime(name: string): {
+    model: Monitor;
+    hold: Promise<SemaphoreMutex | null>;
+  } {
+    const model: Monitor = new Monitor();
+    model.name = name;
+    model.projectId = PROJECT_ID;
+
+    return {
+      model: model,
+      hold: RequiredUniqueNames.holdNameOnCreate({
+        service: MonitorService,
+        createBy: {
+          data: model,
+          miscDataProps: getNumbersTakenNameData(),
+          props: MEMBER_PROPS,
+        } as CreateBy<Monitor>,
+      }),
+    };
+  }
+
+  test("takes the next free number instead of being refused, and holds that name", async () => {
+    const asked: Array<string> = stubHoldersByName({
+      "web - high cpu": monitor({ id: HOLDER_ID, name: "web - High CPU" }),
+      "web - high cpu 2": monitor({
+        id: SECOND_MONITOR_ID,
+        name: "web - High CPU 2",
+      }),
+    });
+
+    const create: { model: Monitor; hold: Promise<SemaphoreMutex | null> } =
+      createNamedByOneUptime("web - High CPU");
+
+    await expect(create.hold).resolves.toBe(MUTEX);
+
+    expect(create.model.name).toBe("web - High CPU 3");
+    expect(asked).toEqual([
+      "web - High CPU",
+      "web - High CPU 2",
+      "web - High CPU 3",
+    ]);
+
+    // Each name was held while it was looked for; the taken ones given back.
+    expect(lockTaken.map((lock: { key: string }) => lock.key)).toEqual(
+      ["web - High CPU", "web - High CPU 2", "web - High CPU 3"].map(
+        (name: string): string => {
+          return RequiredUniqueNames.getLockKey({
+            tableName: "Monitor",
+            projectId: PROJECT_ID,
+            name: name,
+          });
+        },
+      ),
+    );
+    expect(released).toHaveLength(2);
+  });
+
+  test("keeps its own name when nothing has it", async () => {
+    stubHoldersByName({});
+
+    const create: { model: Monitor; hold: Promise<SemaphoreMutex | null> } =
+      createNamedByOneUptime("example.com");
+
+    await expect(create.hold).resolves.toBe(MUTEX);
+    expect(create.model.name).toBe("example.com");
+  });
+
+  test("is refused once every number it tries is taken", async () => {
+    const holders: Record<string, Monitor> = {
+      x: monitor({ id: HOLDER_ID, name: "x" }),
+    };
+
+    for (let number: number = 2; number <= FREE_NAME_ATTEMPTS; number++) {
+      holders[`x ${number}`] = monitor({ id: HOLDER_ID, name: `x ${number}` });
+    }
+
+    const asked: Array<string> = stubHoldersByName(holders);
+
+    const create: { model: Monitor; hold: Promise<SemaphoreMutex | null> } =
+      createNamedByOneUptime("x");
+
+    await expect(create.hold).rejects.toBeInstanceOf(NameTakenException);
+    expect(asked).toHaveLength(FREE_NAME_ATTEMPTS);
+    expect(released).toHaveLength(FREE_NAME_ATTEMPTS);
+  });
+
+  test("numbered, keeps to its column's length and its number", async () => {
+    const long: string = "a".repeat(100);
+
+    stubHoldersByName({ [long]: monitor({ id: HOLDER_ID, name: long }) });
+
+    const create: { model: Monitor; hold: Promise<SemaphoreMutex | null> } =
+      createNamedByOneUptime(long);
+
+    await create.hold;
+
+    expect(create.model.name).toBe(`${"a".repeat(98)} 2`);
+    expect(create.model.name!.length).toBe(100);
+  });
+
+  test("of a rename takes the next free number too", async () => {
+    stubRowsWritten([monitor({ id: MONITOR_ID, name: "Old Name" })]);
+    stubHoldersByName({
+      "web - high cpu": monitor({ id: HOLDER_ID, name: "web - High CPU" }),
+    });
+
+    const data: Record<string, unknown> = { name: "web - High CPU" };
+
+    await expect(
+      RequiredUniqueNames.holdNameOnRename({
+        service: MonitorService,
+        updateBy: {
+          query: { _id: MONITOR_ID.toString() },
+          data: data,
+          miscDataProps: getNumbersTakenNameData(),
+          props: MEMBER_PROPS,
+          limit: 1,
+          skip: 0,
+        } as unknown as UpdateBy<Monitor>,
+      }),
+    ).resolves.toBe(MUTEX);
+
+    expect(data["name"]).toBe("web - High CPU 2");
+  });
+
+  test("a name a person typed is never numbered: it is refused", async () => {
+    stubHoldersByName({
+      "web - high cpu": monitor({ id: HOLDER_ID, name: "web - High CPU" }),
+    });
+
+    await refusalOf(
+      createMonitor({ name: "web - High CPU", projectId: PROJECT_ID }),
+    );
+  });
+
+  test("a create its service named - left empty, named after its provider - is marked so", () => {
+    const createBy: CreateBy<Monitor> = {
+      data: new Monitor(),
+      miscDataProps: { ownerUsers: ["x"] },
+      props: MEMBER_PROPS,
+    } as CreateBy<Monitor>;
+
+    RequiredUniqueNames.numberTakenNameOf(createBy);
+
+    expect(createBy.miscDataProps).toEqual({
+      ownerUsers: ["x"],
+      [NUMBERS_TAKEN_NAME_KEY]: true,
+    });
+    expect(isNumbersTakenName(createBy.miscDataProps)).toBe(true);
+  });
+
+  test("the misc data that asks for it, and nothing else, does", () => {
+    expect(getNumbersTakenNameData()).toEqual({ numbersTakenName: true });
+    expect(isNumbersTakenName({ numbersTakenName: true })).toBe(true);
+    expect(isNumbersTakenName({ numbersTakenName: "true" })).toBe(false);
+    expect(isNumbersTakenName({})).toBe(false);
+    expect(isNumbersTakenName(undefined)).toBe(false);
+    expect(isNumbersTakenName("numbersTakenName")).toBe(false);
+  });
+});
+
+describe("a project's setting, read by the server", () => {
+  beforeEach(() => {
+    // The real read, not the stand-in every other test uses.
+    jest.restoreAllMocks();
+  });
+
+  test("is read as OneUptime, the one column it needs", async () => {
+    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+    const read: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ProjectService,
+      "findOneById",
+    ).mockResolvedValue({ requireUniqueNames: true } as never);
+
+    expect(await RequiredUniqueNames.isRequiredInProject(PROJECT_ID)).toBe(
+      true,
+    );
+    expect(read).toHaveBeenCalledWith({
+      id: PROJECT_ID,
+      select: { requireUniqueNames: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test("lets names repeat where it is off, or the project is not there", async () => {
+    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+    const read: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ProjectService,
+      "findOneById",
+    );
+
+    read.mockResolvedValue({ requireUniqueNames: false } as never);
+    expect(await RequiredUniqueNames.isRequiredInProject(PROJECT_ID)).toBe(
+      false,
+    );
+
+    read.mockResolvedValue(null as never);
+    expect(await RequiredUniqueNames.isRequiredInProject(PROJECT_ID)).toBe(
+      false,
+    );
+  });
+
+  test("never fails a write it cannot read the setting for: names repeat, and the failure is logged", async () => {
+    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+    getJestSpyOn(ProjectService, "findOneById").mockRejectedValue(
+      new Error("connection reset"),
+    );
+    const logged: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      logger,
+      "error",
+    ).mockImplementation(() => {
+      return undefined as never;
+    });
+
+    expect(await RequiredUniqueNames.isRequiredInProject(PROJECT_ID)).toBe(
+      false,
+    );
+    expect(logged).toHaveBeenCalled();
+  });
+
+  test("reads nothing without a database", async () => {
+    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(false);
+    const read: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ProjectService,
+      "findOneById",
+    );
+
+    expect(await RequiredUniqueNames.isRequiredInProject(PROJECT_ID)).toBe(
+      false,
+    );
+    expect(read).not.toHaveBeenCalled();
   });
 });
 

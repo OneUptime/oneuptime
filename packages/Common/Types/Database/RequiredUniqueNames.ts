@@ -104,6 +104,37 @@ export interface DuplicateNamesAnswer {
   kinds: Array<DuplicateNamesOfKind>;
 }
 
+/*
+ * A NAME ONEUPTIME PICKED FOR THE PERSON, NUMBERED RATHER THAN REFUSED.
+ *
+ * Many writes name a record for the person, who cannot pick another where
+ * it is written: a guided setup's monitor named after its address, a
+ * recommendation's "web - High CPU", a data product's monitor, a hunt or a
+ * playbook from a library, an import. While the project requires unique
+ * names, such a write says so in its misc data - `{ "numbersTakenName":
+ * true }` - and a taken name is then numbered as Duplicate numbers a copy
+ * ("web - High CPU 2", getNumberedName) instead of refused. A name a
+ * person typed, Terraform's and the API's, is never numbered: it is
+ * refused, and they pick another.
+ */
+export const NUMBERS_TAKEN_NAME_KEY: string = "numbersTakenName";
+
+// The misc data of a write whose name OneUptime picked for the person.
+export const getNumbersTakenNameData: () => JSONObject = (): JSONObject => {
+  return { [NUMBERS_TAKEN_NAME_KEY]: true };
+};
+
+// Whether a write's misc data asks for a taken name to be numbered.
+export const isNumbersTakenName: (miscData: unknown) => boolean = (
+  miscData: unknown,
+): boolean => {
+  return Boolean(
+    miscData &&
+      typeof miscData === "object" &&
+      (miscData as Record<string, unknown>)[NUMBERS_TAKEN_NAME_KEY] === true,
+  );
+};
+
 // How many names of one kind the answer lists; groupCount says how many there are.
 export const MAX_DUPLICATE_GROUPS_PER_KIND: number = 50;
 

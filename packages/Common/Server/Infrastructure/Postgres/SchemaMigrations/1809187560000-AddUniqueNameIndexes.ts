@@ -143,10 +143,6 @@ export class AddUniqueNameIndexes1809187560000 implements MigrationInterface {
     );
     await OnlineDdl.createIndex(
       queryRunner,
-      `CREATE INDEX "IDX_DATACHECK_PROJECT_NAME_KEY" ON "DataCheck" ("projectId", LOWER(BTRIM(REGEXP_REPLACE("name", '${NAME_WHITE_SPACE_RUN}', ' ', 'g')))) WHERE "deletedAt" IS NULL`,
-    );
-    await OnlineDdl.createIndex(
-      queryRunner,
       `CREATE INDEX "IDX_DATAPRODUCT_PROJECT_NAME_KEY" ON "DataProduct" ("projectId", LOWER(BTRIM(REGEXP_REPLACE("name", '${NAME_WHITE_SPACE_RUN}', ' ', 'g')))) WHERE "deletedAt" IS NULL`,
     );
     await OnlineDdl.createIndex(
@@ -387,10 +383,6 @@ export class AddUniqueNameIndexes1809187560000 implements MigrationInterface {
     await OnlineDdl.dropIndex(
       queryRunner,
       `DROP INDEX "public"."IDX_DATAPRODUCT_PROJECT_NAME_KEY"`,
-    );
-    await OnlineDdl.dropIndex(
-      queryRunner,
-      `DROP INDEX "public"."IDX_DATACHECK_PROJECT_NAME_KEY"`,
     );
     await OnlineDdl.dropIndex(
       queryRunner,

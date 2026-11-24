@@ -1,5 +1,6 @@
 import type DatabaseService from "../../Services/DatabaseService";
 import type ProjectServiceType from "../../Services/ProjectService";
+import PostgresAppInstance from "../../Infrastructure/PostgresDatabase";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import CreateBy from "../../Types/Database/CreateBy";
 import Query from "../../Types/Database/Query";
@@ -19,13 +20,19 @@ import {
   DuplicateNameGroup,
   DuplicateNameRecord,
   DuplicateNamesOfKind,
+  getNumbersTakenNameData,
+  isNumbersTakenName,
   MAX_DUPLICATE_GROUPS_PER_KIND,
   MAX_DUPLICATE_RECORDS_PER_GROUP,
   UniqueNameCheckAnswer,
 } from "../../../Types/Database/RequiredUniqueNames";
+import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnLength";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import {
+  FREE_NAME_ATTEMPTS,
   getNameKey,
   getNameKeySql,
+  getNumberedName,
   getRequiredUniqueNameTakenRefusal,
   NAME_WHITE_SPACE_RUN_PATTERN,
   normalizeName,
@@ -69,7 +76,13 @@ import crypto from "crypto";
  * renaming that record away (Scripts/TerraformProvider ProviderGenerator).
  *
  * OneUptime's own writes are trusted (isRoot), as UniqueNameInProject
- * trusts them: an import, a guided setup's server side, telemetry.
+ * trusts them: telemetry, a discovery import, a rule's run. A write made
+ * for a person with a name OneUptime picked - a guided setup's monitor named
+ * after its address, a recommendation's "web - High CPU", a data product's
+ * monitor, a library's hunt - says so in its misc data
+ * (NUMBERS_TAKEN_NAME_KEY), and takes the next free numbered name ("web -
+ * High CPU 2") instead of being refused: the person cannot pick another
+ * where it is written. A name a person typed is never numbered.
  *
  * TWO WRITES OF ONE NAME AT ONE MOMENT - two parallel Terraform creates, a
  * double-clicked Save - cannot both pass. The check and the write are held
@@ -145,7 +158,25 @@ export default class RequiredUniqueNames {
     return getUniqueNameWhenRequiredColumn(service.getModel());
   }
 
-  // Whether the project requires unique names now.
+  /*
+   * Marks a create whose name its service filled in - left empty, and named
+   * after its provider, organization or firewall - as one whose taken name
+   * is numbered rather than refused: nobody typed it.
+   */
+  public static numberTakenNameOf<TBaseModel extends BaseModel>(
+    createBy: CreateBy<TBaseModel>,
+  ): void {
+    createBy.miscDataProps = {
+      ...(createBy.miscDataProps || {}),
+      ...getNumbersTakenNameData(),
+    };
+  }
+
+  /*
+   * Whether the project requires unique names now. A project whose setting
+   * cannot be read lets names repeat, as one that never turned it on does:
+   * the rule is a project's tidiness, and never the reason a write fails.
+   */
   public static async isRequiredInProject(
     projectId: ObjectID,
   ): Promise<boolean> {
@@ -158,17 +189,30 @@ export default class RequiredUniqueNames {
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       require("../../Services/ProjectService").default;
 
-    const project: Project | null = await projectService.findOneById({
-      id: projectId,
-      select: {
-        requireUniqueNames: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    // No database to read it from: nothing is held to it.
+    if (!PostgresAppInstance.isConnected()) {
+      return false;
+    }
 
-    return project?.requireUniqueNames === true;
+    try {
+      const project: Project | null = await projectService.findOneById({
+        id: projectId,
+        select: {
+          requireUniqueNames: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return project?.requireUniqueNames === true;
+    } catch (err) {
+      logger.error(err, {
+        projectId: projectId.toString(),
+      } as LogAttributes);
+
+      return false;
+    }
   }
 
   /*
@@ -214,6 +258,10 @@ export default class RequiredUniqueNames {
       name: name as string,
       exceptId: null,
       props: data.createBy.props,
+      numbersTakenName: isNumbersTakenName(data.createBy.miscDataProps),
+      writeName: (numbered: string): void => {
+        (data.createBy.data as unknown as JSONObject)[column] = numbered;
+      },
     });
   }
 
@@ -304,6 +352,10 @@ export default class RequiredUniqueNames {
       name: name as string,
       exceptId: row.id || null,
       props: data.updateBy.props,
+      numbersTakenName: isNumbersTakenName(data.updateBy.miscDataProps),
+      writeName: (numbered: string): void => {
+        (data.updateBy.data as unknown as JSONObject)[column] = numbered;
+      },
     });
   }
 
@@ -662,6 +714,13 @@ export default class RequiredUniqueNames {
    * The name's lock, then the refusal if another record has the name; the
    * lock is handed back to hold until the write is done, and given back at
    * once when the name is refused.
+   *
+   * A name OneUptime picked for the person (numbersTakenName) is numbered
+   * rather than refused: "web - High CPU", then "web - High CPU 2" and on,
+   * each held and looked for in turn, the first that is free written into
+   * the write (writeName) - up to FREE_NAME_ATTEMPTS of them, then refused
+   * as any taken name is. Numbered, a name keeps to its column's length and
+   * gives up the end of its words, never its number.
    */
   private static async holdAndRefuseIfTaken<TBaseModel extends BaseModel>(data: {
     service: DatabaseService<TBaseModel>;
@@ -670,23 +729,52 @@ export default class RequiredUniqueNames {
     name: string;
     exceptId: ObjectID | null;
     props: DatabaseCommonInteractionProps;
+    numbersTakenName?: boolean | undefined;
+    writeName?: ((name: string) => void) | undefined;
   }): Promise<UniqueNameHold> {
-    const hold: UniqueNameHold = await RequiredUniqueNames.takeLock({
-      tableName: data.service.getModel().tableName || "",
-      projectId: data.projectId,
-      name: data.name,
-    });
+    const attempts: number = data.numbersTakenName ? FREE_NAME_ATTEMPTS : 1;
 
-    try {
-      await RequiredUniqueNames.refuseIfTaken(data);
-    } catch (error) {
-      await RequiredUniqueNames.giveBack(hold, {
-        projectId: data.projectId.toString(),
-      } as LogAttributes);
-      throw error;
+    const columnType: TableColumnType | undefined = data.service
+      .getModel()
+      .getTableColumnMetadata(data.column)?.type;
+
+    const maxLength: number | undefined = columnType
+      ? getMaxLengthFromTableColumnType(columnType)
+      : undefined;
+
+    for (let number: number = 1; ; number++) {
+      const name: string = getNumberedName({
+        name: data.name,
+        number: number,
+        maxLength: maxLength,
+      });
+
+      const hold: UniqueNameHold = await RequiredUniqueNames.takeLock({
+        tableName: data.service.getModel().tableName || "",
+        projectId: data.projectId,
+        name: name,
+      });
+
+      try {
+        await RequiredUniqueNames.refuseIfTaken({ ...data, name: name });
+      } catch (error) {
+        await RequiredUniqueNames.giveBack(hold, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+
+        if (number >= attempts || !(error instanceof NameTakenException)) {
+          throw error;
+        }
+
+        continue;
+      }
+
+      if (number > 1) {
+        data.writeName?.(name);
+      }
+
+      return hold;
     }
-
-    return hold;
   }
 
   /*

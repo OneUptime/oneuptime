@@ -1,5 +1,3 @@
-import UniqueNameWhenRequired from "../../Types/Database/UniqueNameWhenRequired";
-import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import { JSONObject } from "../../Types/JSON";
 import DataAsset from "./DataAsset";
 import Monitor from "./Monitor";
@@ -137,18 +135,6 @@ const hiddenColumnAccess: {
 })
 @CrudApiEndpoint(new Route("/data-check"))
 @OwnedThrough("dataAssetId", DataAsset)
-/*
- * Serves the lookup of a name the project requires to be one of its kind
- * (RequiredUniqueNames, #10761): the project and the name as it reads, an
- * expression index built by migration 1809187560000-AddUniqueNameIndexes
- * that @Index() cannot express. Declared here only so the schema builder
- * leaves it alone (UNSYNCHRONIZED_INDEX).
- */
-@Index(
-  "IDX_DATACHECK_PROJECT_NAME_KEY",
-  ["projectId", "name"],
-  UNSYNCHRONIZED_INDEX,
-)
 @Entity({
   name: "DataCheck",
 })
@@ -259,7 +245,6 @@ export default class DataCheck extends BaseModel {
   public dataStoreId?: ObjectID = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
-  @UniqueNameWhenRequired()
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,

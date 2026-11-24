@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../../Types/Database/RequiredUniqueNames";
 import AlertOnCallRule from "../../../../Models/DatabaseModels/AlertOnCallRule";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -1262,9 +1263,14 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
     });
     monitor.projectId = ctx.projectId;
 
-    // Created as the person: their permissions, the plan's limits, their ownership.
+    /*
+     * Created as the person: their permissions, the plan's limits, their
+     * ownership. Its name is the address's: numbered, not refused, where
+     * the project requires unique names and another monitor has it.
+     */
     const created: Monitor = await MonitorService.create({
       data: monitor,
+      miscDataProps: getNumbersTakenNameData(),
       props: ctx.props,
     });
 
