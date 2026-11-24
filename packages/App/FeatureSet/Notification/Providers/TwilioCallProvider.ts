@@ -21,7 +21,6 @@ import {
 } from "Common/Server/Utils/TwilioWebhookSignature";
 import { toTwimlText } from "Common/Utils/Call/CallSpeech";
 import { CallVoice, getCallVoice } from "Common/Types/Call/CallVoice";
-import { getSayAttributes } from "Common/Server/Utils/Call/CallTwimlSpeech";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 
 /*
@@ -210,7 +209,13 @@ export default class TwilioCallProvider implements ICallProvider {
       };
     }
 
-    return getSayAttributes(voice);
+    // As every <Say> of a call names a voice (Common's CallTwimlSpeech).
+    return {
+      voice: voice.value as NonNullable<VoiceResponse.SayAttributes["voice"]>,
+      language: voice.language as NonNullable<
+        VoiceResponse.SayAttributes["language"]
+      >,
+    };
   }
 
   public generateGreetingResponse(message: string): string {

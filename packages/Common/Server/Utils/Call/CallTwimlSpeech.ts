@@ -94,9 +94,10 @@ export function getSayAttributes(
  * One sentence into the TwiML, as `say` has its texts: a <Say> - or
  * nothing, for a sentence with no words. For a voice that reads SSML, its
  * record's number is a <say-as interpret-as="characters">; for any other -
- * the account's default voice among them - it is spelled with spaces.
- * Every text is put in characters TwiML can carry, and the builder escapes
- * it.
+ * the account's default voice among them - it is spelled with spaces. A
+ * sentence with no number to spell is plain text in any voice: SSML goes
+ * only where it spells a number. Every text is put in characters TwiML can
+ * carry, and the builder escapes it.
  */
 export function sayInto(
   parent: SayParent,
@@ -112,7 +113,12 @@ export function sayInto(
 
   const attributes: VoiceResponse.SayAttributes = getSayAttributes(voice);
 
+  const spellsANumber: boolean = parts.some((part: SpeechPart): boolean => {
+    return "characters" in part;
+  });
+
   if (
+    !spellsANumber ||
     speech.isSsmlAllowed === false ||
     !isSsmlVoice(voice ? voice.value : undefined)
   ) {
