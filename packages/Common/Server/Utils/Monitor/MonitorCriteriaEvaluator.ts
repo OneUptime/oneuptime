@@ -204,10 +204,10 @@ import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStack
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
-import { StorageSystemUtil } from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
@@ -7620,39 +7620,20 @@ ${incomingRequestGrouping.rootCauseNote}
 
   /*
    * The kind of object the `name` label of a storage array metric names,
-   * from the metric's family: purefa_volume_* series name volumes,
-   * purefb_file_systems_* file systems, and so on. Null for a family whose
-   * `name` is no inventory object (purefa_volume_group_* names a volume
-   * group) or that OneUptime does not know.
+   * from the metric's family on its platform
+   * (StorageArrayPlatform.metricFamilies): a volume family's series name
+   * volumes, a file system family's file systems, and so on. Null for a
+   * family whose `name` is no inventory object (a volume group) or that
+   * no platform describes.
    */
   private static getStorageArrayObjectKind(
     metricName: string,
+    storageSystem?: string | null | undefined,
   ): StorageArrayResourceKind | null {
-    if (metricName.startsWith("purefa_volume_group_")) {
-      return null;
-    }
-
-    const families: Array<[string, StorageArrayResourceKind]> = [
-      ["purefa_volume_", StorageArrayResourceKind.Volume],
-      ["purefa_host_", StorageArrayResourceKind.Host],
-      ["purefa_pod_", StorageArrayResourceKind.Pod],
-      ["purefa_hw_controller_", StorageArrayResourceKind.Controller],
-      ["purefa_hw_", StorageArrayResourceKind.Hardware],
-      ["purefa_drive_", StorageArrayResourceKind.Drive],
-      ["purefa_network_interface_", StorageArrayResourceKind.NetworkInterface],
-      ["purefa_directory_", StorageArrayResourceKind.Directory],
-      ["purefb_file_systems_", StorageArrayResourceKind.FileSystem],
-      ["purefb_buckets_", StorageArrayResourceKind.Bucket],
-      ["purefb_hardware_", StorageArrayResourceKind.Hardware],
-    ];
-
-    for (const [prefix, kind] of families) {
-      if (metricName.startsWith(prefix)) {
-        return kind;
-      }
-    }
-
-    return null;
+    return StorageArrayPlatformRegistry.getObjectKindForMetricName(
+      metricName,
+      storageSystem,
+    ) as StorageArrayResourceKind | null;
   }
 
   /*
@@ -7832,9 +7813,9 @@ ${incomingRequestGrouping.rootCauseNote}
 
     /*
      * Keep the rows that satisfy the criteria that just matched, worst
-     * first, top 10 — NOT simply the non-zero rows. A FlashBlade component
-     * that stops reporting healthy fires on purefb_hardware_health `< 1`,
-     * so its zero rows are the whole point of the incident.
+     * first, top 10 — NOT simply the non-zero rows. A component whose
+     * health series reads 1 while healthy fires on `< 1` (a FlashBlade's
+     * hardware), so its zero rows are the whole point of the incident.
      */
     const rows: Array<
       PlatformAffectedRow<StorageArrayResourceIdentity>
@@ -7866,7 +7847,7 @@ ${incomingRequestGrouping.rootCauseNote}
 
     /*
      * Skip the list when no row carries any object label (array-wide
-     * series like purefa_array_space_utilization) — it would add nothing.
+     * series like the array's capacity used) — it would add nothing.
      */
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<StorageArrayResourceIdentity>) => {

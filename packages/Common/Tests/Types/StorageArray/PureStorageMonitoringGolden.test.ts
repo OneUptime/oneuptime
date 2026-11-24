@@ -1,9 +1,7 @@
-import StorageSystem, {
-  StorageSystemUtil,
-} from "../../../Types/StorageArray/StorageSystem";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
 import {
   StorageArrayMetricCategory,
   StorageArrayMetricDefinition,
