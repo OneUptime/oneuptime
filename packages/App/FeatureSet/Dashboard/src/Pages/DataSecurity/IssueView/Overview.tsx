@@ -58,10 +58,7 @@ import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  DataSecurityFixRepository,
-  DataSecurityFixResult,
-} from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { DataSecurityFixResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   DataSecurityCheckInfo,
   FrameworkRequirementRef,
@@ -257,10 +254,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const [draftReason, setDraftReason] = useState<string>("");
   const [isFixing, setIsFixing] = useState<boolean>(false);
   const [fixNotice, setFixNotice] = useState<FixNotice | null>(null);
-  // The repositories Fix with AI may be asked in, when there is a choice.
-  const [repositoryChoices, setRepositoryChoices] = useState<
-    Array<DataSecurityFixRepository>
-  >([]);
 
   const check: DataSecurityCheckInfo | undefined = issue.checkId
     ? getDataSecurityCheck(issue.checkId)
@@ -321,7 +314,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
    * when something stands in the way - AI is off, no Runner is online, no
    * repository the person may change is connected - and says what to fix;
    * or, when the person may ask in several repositories, lists them to
-   * choose from (#10362).
+   * choose from (#10362). The dialog then searches them on the server, as
+   * the person types (#10921): the list says only that there is a choice.
    */
   const askForFix: (
     codeRepositoryId?: ObjectID | undefined,
@@ -340,7 +334,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     }
 
     if (!codeRepositoryId && (result.repositories || []).length > 0) {
-      setRepositoryChoices(result.repositories || []);
       setDialog("repository");
       return false;
     }
@@ -1046,7 +1039,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
 
       {dialog === "repository" ? (
         <IssueRepositoryModal
-          repositories={repositoryChoices}
           isTelemetry={isTelemetryFindingCheck(issue.checkId)}
           onClose={() => {
             setDialog(null);

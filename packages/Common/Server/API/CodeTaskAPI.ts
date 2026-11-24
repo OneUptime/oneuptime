@@ -35,6 +35,7 @@ import CodeTaskPresenter from "../Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskRepositoryList, {
   CodeRepositoryListPage,
   CodeRepositoryListRequest,
+  CodeRepositoryListScope,
 } from "../Utils/AI/CodeTask/CodeTaskRepositoryList";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../Utils/AI/CodeTask/CodeTaskStats";
@@ -125,7 +126,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *                                         glance: searched, in one of the
  *                                         two lists or both, by name or by
  *                                         activity - over every repository
- *                                         the caller may read (#10764)
+ *                                         the caller may read (#10764), or
+ *                                         only those a Fix with AI picker
+ *                                         offers (#10921)
  *   POST /code-task/repositories-by-id    some repositories, at a glance,
  *                                         read by their ids
  *   POST /code-task/repository/:id        one repository, and whether AI can
@@ -398,10 +401,15 @@ export default class CodeTaskAPI {
    * (CodeTaskRepositoryList). Body (all optional): { search, group
    * (CodeRepositoryListGroup), order (CodeRepositoryListOrder, by name
    * unless said), skip, limit (at most MAX_CODE_REPOSITORIES_PER_PAGE, and
-   * that many unless said) }. Answers the page, how many the search finds in
-   * the list asked for (count), what is true of all the caller's
-   * repositories (facts), how many of each list the search finds (matches)
-   * and how many tasks have no repository.
+   * that many unless said), askableOnly, codeReadableOnly }. Answers the
+   * page, how many the search finds in the list asked for (count), what is
+   * true of all the caller's repositories (facts), how many of each list the
+   * search finds (matches) and how many tasks have no repository.
+   *
+   * askableOnly (true) holds the read to the repositories the caller may ask
+   * OneUptime AI to work in, and codeReadableOnly (true) to those whose code
+   * OneUptime reads: what a Fix with AI picker offers (#10921). The page,
+   * the count, the facts and the matches then describe only those.
    */
   private async listRepositories(
     req: ExpressRequest,
@@ -410,6 +418,7 @@ export default class CodeTaskAPI {
   ): Promise<JSONObject> {
     const body: JSONObject = (req.body as JSONObject) || {};
     const request: CodeRepositoryListRequest = {
+      ...CodeTaskAPI.readRepositoryListScope(body),
       search: readCodeRepositorySearch(body["search"]),
       group: CodeTaskAPI.readRepositoryListGroup(body["group"]),
       order:
@@ -461,9 +470,11 @@ export default class CodeTaskAPI {
    * by their ids - what a page holds (the repository the request box picked
    * last, a picker's value) named however far past any first page it is
    * (#10764). An id of another project, of no repository, or of one the
-   * caller may not read is left out, as a repository that is not there.
-   * Body: { repositoryIds: Array<string> } (at most
-   * MAX_CODE_TASKS_PER_REQUEST).
+   * caller may not read is left out, as a repository that is not there -
+   * and so is one the read is not held to (askableOnly, codeReadableOnly:
+   * as POST /code-task/repositories reads them). Body: { repositoryIds:
+   * Array<string> (at most MAX_CODE_TASKS_PER_REQUEST), askableOnly?,
+   * codeReadableOnly? }.
    */
   private async getRepositoriesById(
     req: ExpressRequest,
@@ -484,7 +495,7 @@ export default class CodeTaskAPI {
       return { repositories: [] };
     }
 
-    const repositories: Array<CodeRepository> =
+    const readable: Array<CodeRepository> =
       await CodeTaskAccess.listReadableRepositoriesByIds({
         props,
         projectId,
@@ -494,11 +505,18 @@ export default class CodeTaskAPI {
     const connections: Map<string, CodeHostConnectionSummary> =
       await CodeHostAccess.getConnectionSummaries({
         projectId,
-        repositoryIds: repositories.map(
-          (repository: CodeRepository): ObjectID => {
-            return repository.id!;
-          },
-        ),
+        repositoryIds: readable.map((repository: CodeRepository): ObjectID => {
+          return repository.id!;
+        }),
+      });
+
+    const repositories: Array<CodeRepository> =
+      await CodeTaskRepositoryList.keepHeldTo({
+        props,
+        projectId,
+        repositories: readable,
+        summaries: connections,
+        scope: CodeTaskAPI.readRepositoryListScope(body),
       });
 
     return {
@@ -508,6 +526,20 @@ export default class CodeTaskAPI {
         repositories,
         connections,
       })) as unknown as Array<JSONObject>,
+    };
+  }
+
+  /*
+   * What a body holds a read of repositories to (CodeRepositoryListScope):
+   * each only when it says true, so a body that names neither reads every
+   * repository the caller may read, as before.
+   */
+  private static readRepositoryListScope(
+    body: JSONObject,
+  ): CodeRepositoryListScope {
+    return {
+      ...(body["askableOnly"] === true ? { askableOnly: true } : {}),
+      ...(body["codeReadableOnly"] === true ? { codeReadableOnly: true } : {}),
     };
   }
 
