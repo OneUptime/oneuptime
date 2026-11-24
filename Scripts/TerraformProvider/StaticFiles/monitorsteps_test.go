@@ -160,7 +160,51 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 			"evaluate_over_time_type":           types.StringValue("Average"),
 			"evaluate_over_time_no_data_policy": types.StringValue("Trigger"),
 		}),
+		// More than 12.5% above the previous check (#10821).
+		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+			"check_on":                        types.StringValue("Response Time (in ms)"),
+			"filter_type":                     types.StringValue("Greater Than"),
+			"evaluate_over_time":              types.BoolValue(true),
+			"evaluate_over_time_minutes":      types.Int64Value(10),
+			"evaluate_over_time_type":         types.StringValue("Previous Check"),
+			"evaluate_over_time_change_type":  types.StringValue("Percentage"),
+			"evaluate_over_time_change_value": types.Float64Value(12.5),
+		}),
 	)
+
+	// Recovers once steady for an hour, or fast again at p99 (#10355, #10822).
+	recoveryFilters := monitorStepsTestObjList(t, monitorStepsFilterAttrTypes(),
+		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+			"check_on":                             types.StringValue("Is Online"),
+			"filter_type":                          types.StringValue("False"),
+			"evaluate_over_time":                   types.BoolValue(true),
+			"evaluate_over_time_minutes":           types.Int64Value(60),
+			"evaluate_over_time_type":              types.StringValue("Status Changes"),
+			"evaluate_over_time_count_filter_type": types.StringValue("Less Than Or Equal To"),
+			"evaluate_over_time_count_value":       types.Int64Value(1),
+		}),
+		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+			"check_on":                      types.StringValue("Response Time (in ms)"),
+			"filter_type":                   types.StringValue("Less Than"),
+			"value":                         types.StringValue("300"),
+			"evaluate_over_time":            types.BoolValue(true),
+			"evaluate_over_time_minutes":    types.Int64Value(10),
+			"evaluate_over_time_type":       types.StringValue("Percentile"),
+			"evaluate_over_time_percentile": types.Int64Value(99),
+		}),
+	)
+
+	weekdays, d := types.ListValue(types.Int64Type, []attr.Value{
+		types.Int64Value(0), types.Int64Value(1), types.Int64Value(2), types.Int64Value(3), types.Int64Value(4),
+	})
+	if d.HasError() {
+		t.Fatalf("ListValue diagnostics: %v", d)
+	}
+	officeHours := monitorStepsTestObj(t, monitorStepsActiveHoursAttrTypes(), map[string]attr.Value{
+		"days": weekdays,
+		"from": types.StringValue("08:00"),
+		"to":   types.StringValue("18:00"),
+	})
 
 	offlineFilters := monitorStepsTestObjList(t, monitorStepsFilterAttrTypes(),
 		monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
@@ -229,19 +273,23 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 	})
 
 	offlineCriteria := monitorStepsTestObj(t, monitorStepsCriteriaAttrTypes(), map[string]attr.Value{
-		"name":                  types.StringValue("Offline"),
-		"description":           types.StringValue("Website is unreachable."),
-		"filter_condition":      types.StringValue("Any"),
-		"monitor_status_id":     types.StringValue("status-offline"),
-		"change_monitor_status": types.BoolValue(true),
-		"create_incidents":      types.BoolValue(true),
-		"create_alerts":         types.BoolValue(true),
-		"is_enabled":            types.BoolValue(true),
-		"open_for_every_email":  types.BoolValue(true),
-		"incident_grouping":     types.StringValue(`{"groupByJSONPath":"requestBody.alerts[*].labels.alertname"}`),
-		"filters":               offlineFilters,
-		"incidents":             monitorStepsTestObjList(t, monitorStepsIncidentAttrTypes(), incident),
-		"alerts":                monitorStepsTestObjList(t, monitorStepsAlertAttrTypes(), alert),
+		"name":                      types.StringValue("Offline"),
+		"description":               types.StringValue("Website is unreachable."),
+		"filter_condition":          types.StringValue("Any"),
+		"monitor_status_id":         types.StringValue("status-offline"),
+		"change_monitor_status":     types.BoolValue(true),
+		"create_incidents":          types.BoolValue(true),
+		"create_alerts":             types.BoolValue(true),
+		"is_enabled":                types.BoolValue(true),
+		"open_for_every_email":      types.BoolValue(true),
+		"incident_grouping":         types.StringValue(`{"groupByJSONPath":"requestBody.alerts[*].labels.alertname"}`),
+		"filters":                   offlineFilters,
+		"recovery_filters":          recoveryFilters,
+		"recovery_filter_condition": types.StringValue("Any"),
+		"active_hours":              officeHours,
+		"active_hours_timezone":     types.StringValue("Europe/Oslo"),
+		"incidents":                 monitorStepsTestObjList(t, monitorStepsIncidentAttrTypes(), incident),
+		"alerts":                    monitorStepsTestObjList(t, monitorStepsAlertAttrTypes(), alert),
 	})
 
 	stepOverrides := map[string]attr.Value{
@@ -400,6 +448,12 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                        "value": "200",
 	                        "evaluateOverTime": true,
 	                        "evaluateOverTimeOptions": {"timeValueInMinutes": 5, "evaluateOverTimeType": "Average", "onNoDataPolicy": "Trigger"}
+	                      },
+	                      {
+	                        "checkOn": "Response Time (in ms)",
+	                        "filterType": "Greater Than",
+	                        "evaluateOverTime": true,
+	                        "evaluateOverTimeOptions": {"timeValueInMinutes": 10, "evaluateOverTimeType": "Previous Check", "changeType": "Percentage", "changeValue": 12.5}
 	                      }
 	                    ]
 	                  }
@@ -440,6 +494,37 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                        "customCodeMonitorOptions": {"resultValuePath": "data.items[0].status"}
 	                      }
 	                    ],
+	                    "recoveryFilters": [
+	                      {
+	                        "checkOn": "Is Online",
+	                        "filterType": "False",
+	                        "evaluateOverTime": true,
+	                        "evaluateOverTimeOptions": {"timeValueInMinutes": 60, "evaluateOverTimeType": "Status Changes", "countFilterType": "Less Than Or Equal To", "countValue": 1}
+	                      },
+	                      {
+	                        "checkOn": "Response Time (in ms)",
+	                        "filterType": "Less Than",
+	                        "value": "300",
+	                        "evaluateOverTime": true,
+	                        "evaluateOverTimeOptions": {"timeValueInMinutes": 10, "evaluateOverTimeType": "Percentile", "percentile": 99}
+	                      }
+	                    ],
+	                    "recoveryFilterCondition": "Any",
+	                    "activeHours": {
+	                      "_type": "RestrictionTimes",
+	                      "value": {
+	                        "restictionType": "Weekly",
+	                        "dayRestrictionTimes": null,
+	                        "weeklyRestrictionTimes": [
+	                          {"startDay": "Monday", "endDay": "Monday", "startTime": {"_type": "DateTime", "value": "2026-01-12T07:00:00.000Z"}, "endTime": {"_type": "DateTime", "value": "2026-01-12T17:00:00.000Z"}},
+	                          {"startDay": "Tuesday", "endDay": "Tuesday", "startTime": {"_type": "DateTime", "value": "2026-01-13T07:00:00.000Z"}, "endTime": {"_type": "DateTime", "value": "2026-01-13T17:00:00.000Z"}},
+	                          {"startDay": "Wednesday", "endDay": "Wednesday", "startTime": {"_type": "DateTime", "value": "2026-01-14T07:00:00.000Z"}, "endTime": {"_type": "DateTime", "value": "2026-01-14T17:00:00.000Z"}},
+	                          {"startDay": "Thursday", "endDay": "Thursday", "startTime": {"_type": "DateTime", "value": "2026-01-15T07:00:00.000Z"}, "endTime": {"_type": "DateTime", "value": "2026-01-15T17:00:00.000Z"}},
+	                          {"startDay": "Friday", "endDay": "Friday", "startTime": {"_type": "DateTime", "value": "2026-01-16T07:00:00.000Z"}, "endTime": {"_type": "DateTime", "value": "2026-01-16T17:00:00.000Z"}}
+	                        ]
+	                      }
+	                    },
+	                    "activeHoursTimezone": "Europe/Oslo",
 	                    "incidents": [
 	                      {
 	                        "title": "Site is down",
@@ -1416,6 +1501,12 @@ func TestMonitorStepsFullUserListSetsEveryAttribute(t *testing.T) {
 			for _, filter := range objects(criteriaAttrs["filters"]) {
 				mark("filter", filter)
 			}
+			for _, filter := range objects(criteriaAttrs["recovery_filters"]) {
+				mark("filter", filter)
+			}
+			if hours, ok := criteriaAttrs["active_hours"].(types.Object); ok && !hours.IsNull() {
+				mark("active hours", hours)
+			}
 			for _, incident := range objects(criteriaAttrs["incidents"]) {
 				mark("incident", incident)
 			}
@@ -1432,6 +1523,7 @@ func TestMonitorStepsFullUserListSetsEveryAttribute(t *testing.T) {
 		{"step", monitorStepsStepAttrTypes()},
 		{"criteria", monitorStepsCriteriaAttrTypes()},
 		{"filter", monitorStepsFilterAttrTypes()},
+		{"active hours", monitorStepsActiveHoursAttrTypes()},
 		{"incident", monitorStepsIncidentAttrTypes()},
 		{"alert", monitorStepsAlertAttrTypes()},
 	}

@@ -238,6 +238,10 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `description` | string | 仪表板显示的描述。 |
 | `filter_condition` | string（必填） | `All`：所有筛选器都必须匹配。`Any`：匹配一个即可。 |
 | `filters` | list（必填） | 判定条件，至少一个：参见 [筛选器参考](#筛选器参考)。 |
+| `recovery_filters` | list | 与 `filters` 相同形式的过滤器：条件要等这些过滤器匹配后才停止起作用，而不是在其 `filters` 不再匹配时立即停止。 |
+| `recovery_filter_condition` | string | `recovery_filters` 的组合方式：`All`（默认）或 `Any`。 |
+| `active_hours` | object | 只在这些 `days`（星期一为 `0`，星期日为 `6`）从 `from` 到 `to`（`"08:00"`）判定该条件；其余时间会像已停用的条件一样跳过。 |
+| `active_hours_timezone` | string | 读取 `active_hours` 所用的时区，例如 `Europe/Oslo`。与 `active_hours` 一起设置。 |
 | `change_monitor_status` | bool | 匹配时是否更改监视器的状态。 |
 | `monitor_status_id` | string | 要切换到的 `oneuptime_monitor_status` 的 ID。当 `change_monitor_status` 为 `true` 时设置。 |
 | `create_incidents` | bool | 匹配时是否创建事件。 |
@@ -284,15 +288,87 @@ criteria = [
 ]
 ```
 
+### 何时恢复，何时判定
+
+这个条件只在奥斯陆的工作时间（星期一至星期五）判定网站，并让网站保持 offline，直到它在 10 分钟内每次检查都有响应：
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## 筛选器参考
 
 筛选器有 `check_on`（查看什么）、`filter_type`（如何比较）和 `value`（与什么比较，写成字符串；对于 `True`、`False` 这类真假检查则省略）。
 
-筛选器也可以判定一个时间窗口，而不是最近一次检查：设置 `evaluate_over_time = true`，在 `evaluate_over_time_minutes` 中设置窗口长度，并在 `evaluate_over_time_type` 中设置如何读取窗口：`Average`、`Sum`、`Maximum Value`、`Minimum Value`、`Percentile`、`All Values`、`Any Value`、`Count`、`Percentage` 或 `Status Changes`。`Percentile` 将 `evaluate_over_time_percentile` 中的百分位数与过滤器的值比较（未设置时为 95）。`Count`、`Percentage` 和 `Status Changes` 按探测器统计窗口内满足条件的检查数、其所占百分比，或在满足与不满足之间变化的次数，并按 `evaluate_over_time_count_filter_type` 的设置将该数字与 `evaluate_over_time_count_value` 比较（未设置时为 `Greater Than` 0）。
+筛选器也可以判定一个时间窗口，而不是最近一次检查：设置 `evaluate_over_time = true`，在 `evaluate_over_time_minutes` 中设置窗口长度，并在 `evaluate_over_time_type` 中设置如何读取窗口：`Average`、`Sum`、`Maximum Value`、`Minimum Value`、`Percentile`、`All Values`、`Any Value`、`Count`、`Percentage`、`Status Changes` 或 `Previous Check`。`Percentile` 将 `evaluate_over_time_percentile` 中的百分位数与过滤器的值比较（未设置时为 95）。`Count`、`Percentage` 和 `Status Changes` 按探测器统计窗口内满足条件的检查数、其所占百分比，或在满足与不满足之间变化的次数，并按 `evaluate_over_time_count_filter_type` 的设置将该数字与 `evaluate_over_time_count_value` 比较（未设置时为 `Greater Than` 0）。
 
 `All Values` 表示窗口中的每次检查都违反了规则，因此只有当窗口被数据覆盖时它才会匹配：刚创建的监视器会等待窗口填满，而不是在第一次检查时就匹配。窗口至少应为监视器 `monitoring_interval` 的两倍；否则窗口中只有一次检查，“所有值”就和“任意值”意思相同。`Any Value` 在一次违反规则的检查时就会匹配，这是有意设计的。
 
 `evaluate_over_time_no_data_policy` 规定窗口中数据不足时筛选器的行为：`Ignore`（默认）不匹配，`Trigger` 像 heartbeat 那样把缺失的数据视为故障，`Treat As Zero` 则把窗口当作单个零值进行比较。
+
+`Previous Check` 将每次检查与同一探测器在 `evaluate_over_time_minutes` 以内做的上一次检查比较。测量值不使用 `value`：`filter_type` 将它与按 `evaluate_over_time_change_value` 移动后的上一次值比较，`Greater Than` 向上移动，`Less Than` 向下移动；按 `evaluate_over_time_change_type` 的设置，这一变化是按检查自身单位的 `Amount`，或上一次值的 `Percentage`（未设置时为 `Amount` 0：任何上升或下降）。真或假的过滤器会在开始满足条件的那次检查上匹配。没有上一次检查时，由 `evaluate_over_time_no_data_policy` 决定。
+
+当一次检查耗时超过上一次的两倍时，这个条件会打开一个警报：
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### 筛选器可以检查什么
 

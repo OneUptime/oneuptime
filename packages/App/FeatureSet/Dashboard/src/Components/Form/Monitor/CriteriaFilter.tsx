@@ -2,6 +2,11 @@ import CriteriaFilterUiUtil, {
   COUNTED_WINDOW_FIELDS,
   PERCENTILE_FIELD_DESCRIPTION,
   PERCENTILE_FIELD_TITLE,
+  NO_DATA_DESCRIPTION,
+  PREVIOUS_CHECK_CHANGE_FIELD,
+  PREVIOUS_CHECK_NO_DATA_DESCRIPTION,
+  PREVIOUS_CHECK_WINDOW_DESCRIPTION,
+  WINDOW_DESCRIPTION,
 } from "../../../Utils/Form/Monitor/CriteriaFilter";
 import { CRITERIA_FILTER_BOX_CLASS_NAME } from "./CriteriaEditorLayout";
 import Route from "Common/Types/API/Route";
@@ -18,6 +23,7 @@ import {
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
+  PreviousCheckChangeType,
 } from "Common/Types/Monitor/CriteriaFilter";
 import {
   DatabaseMetricCategory,
@@ -315,6 +321,29 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
   const percentileOptions: Array<DropdownOption> =
     CriteriaFilterUiUtil.getPercentileOptions();
+
+  /*
+   * Compared with the previous check (#10821): a measured value takes how
+   * far from it, and no value of its own; a yes or no check neither.
+   */
+  const isPreviousCheck: boolean =
+    effectiveOverTimeType === EvaluateOverTimeType.PreviousCheck;
+  const comparesValueWithPreviousCheck: boolean =
+    CriteriaFilterUtil.comparesValueWithPreviousCheck(
+      criteriaFilter,
+      props.monitorType,
+    );
+  const previousCheckChange: {
+    type: PreviousCheckChangeType;
+    value: number;
+  } = CriteriaFilterUtil.getPreviousCheckChange(criteriaFilter);
+  const previousCheckChangeTypeOptions: Array<DropdownOption> =
+    CriteriaFilterUiUtil.getPreviousCheckChangeTypeOptions();
+  const isPreviousCheckChangeShown: boolean =
+    comparesValueWithPreviousCheck &&
+    CriteriaFilterUtil.isPreviousCheckChangeComparison(
+      criteriaFilter?.filterType,
+    );
 
   const metricAggregationValue: DropdownOption | undefined =
     metricAggregationOptions.find((i: DropdownOption) => {
@@ -1289,6 +1318,8 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               checkOn: criteriaFilter?.checkOn,
               filterType: criteriaFilter?.filterType,
             }) &&
+            // Its threshold comes from the previous check (#10821).
+            !comparesValueWithPreviousCheck &&
             !CriteriaFilterUiUtil.isDropdownValueField({
               checkOn: criteriaFilter?.checkOn,
             }) && (
@@ -1366,6 +1397,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               checkOn: criteriaFilter?.checkOn,
               filterType: criteriaFilter?.filterType,
             }) &&
+            !comparesValueWithPreviousCheck &&
             CriteriaFilterUiUtil.isDropdownValueField({
               checkOn: criteriaFilter?.checkOn,
             }) && (
@@ -1453,6 +1485,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                             criteriaFilter: criteriaFilter,
                             evaluateOverTimeType:
                               value?.toString() as EvaluateOverTimeType,
+                            monitorType: props.monitorType,
                           }),
                         );
                       }}
@@ -1542,6 +1575,82 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     </div>
                   )}
 
+                  {/*
+                   * How far from the previous check a measured value must be
+                   * (#10821): "50 Percentage" above it for Greater Than, below
+                   * it for Less Than. Equal To and Not Equal To compare with
+                   * the previous value itself, and take none.
+                   */}
+                  {isPreviousCheckChangeShown && (
+                    <div
+                      className="mt-1"
+                      data-testid="criteria-filter-over-time-previous-check-change"
+                    >
+                      <FieldLabelElement
+                        title={PREVIOUS_CHECK_CHANGE_FIELD.title}
+                        description={PREVIOUS_CHECK_CHANGE_FIELD.description}
+                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="w-28">
+                          <Input
+                            type={InputType.NUMBER}
+                            dataTestId="criteria-filter-over-time-previous-check-change-value"
+                            ariaLabel={PREVIOUS_CHECK_CHANGE_FIELD.title}
+                            value={String(previousCheckChange.value)}
+                            onChange={(value: string) => {
+                              const change: number = Number(value);
+
+                              props.onChange?.(
+                                CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                                  criteriaFilter: criteriaFilter,
+                                  change: {
+                                    // A number, as the API and Terraform send it.
+                                    changeValue:
+                                      value.trim() !== "" &&
+                                      Number.isFinite(change) &&
+                                      change >= 0
+                                        ? change
+                                        : 0,
+                                  },
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-[12rem] flex-1">
+                          <FilterDropdown
+                            value={previousCheckChangeTypeOptions.find(
+                              (option: DropdownOption): boolean => {
+                                return (
+                                  option.value === previousCheckChange.type
+                                );
+                              },
+                            )}
+                            options={previousCheckChangeTypeOptions}
+                            ariaLabel={PREVIOUS_CHECK_CHANGE_FIELD.title}
+                            isClearable={false}
+                            onChange={(
+                              value:
+                                | DropdownValue
+                                | Array<DropdownValue>
+                                | null,
+                            ) => {
+                              props.onChange?.(
+                                CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                                  criteriaFilter: criteriaFilter,
+                                  change: {
+                                    changeType:
+                                      value?.toString() as PreviousCheckChangeType,
+                                  },
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {effectiveOverTimeType ===
                     EvaluateOverTimeType.Percentile && (
                     <div
@@ -1581,7 +1690,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                   <div className="mt-1">
                     <FieldLabelElement
                       title="For the last"
-                      description="Make it longer than the monitoring interval, so the window holds several checks."
+                      description={
+                        isPreviousCheck
+                          ? PREVIOUS_CHECK_WINDOW_DESCRIPTION
+                          : WINDOW_DESCRIPTION
+                      }
                     />
                     <FilterDropdown
                       value={evaluateOverTimeMinutesValue}
@@ -1608,7 +1721,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                     <FieldLabelElement
                       title="If No Data"
                       description={
-                        "What happens while the window does not have enough data yet, such as just after the monitor starts."
+                        isPreviousCheck
+                          ? PREVIOUS_CHECK_NO_DATA_DESCRIPTION
+                          : NO_DATA_DESCRIPTION
                       }
                     />
                     <FilterDropdown

@@ -3194,11 +3194,20 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       return "Disk Path is required for Disk Usage Percent";
     }
 
+    /*
+     * A measured value compared with the previous check takes its threshold
+     * from that check (#10821): the change says how far from it, so the
+     * filter's own value is not read.
+     */
     if (
       CriteriaFilterUtil.hasValueField({
         checkOn: filter.checkOn,
         filterType: filter.filterType,
-      })
+      }) &&
+      !CriteriaFilterUtil.comparesValueWithPreviousCheck(
+        filter,
+        input.monitorType,
+      )
     ) {
       if (!filter.value && filter.value !== 0) {
         return `Value is required for ${where} on filter type: ${filter.checkOn}`;
@@ -3248,6 +3257,10 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       }
 
       return null;
+    }
+
+    if (type === EvaluateOverTimeType.PreviousCheck) {
+      return MonitorCriteriaInstance.getPreviousCheckValidationError(input);
     }
 
     if (!CriteriaFilterUtil.isCountedWindowType(type)) {
@@ -3303,6 +3316,69 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     if (type === EvaluateOverTimeType.Percentage && countValue > 100) {
       return `Percentage of ${input.where} on filter type ${filter.checkOn} is a share of the checks, from 0 to 100.`;
+    }
+
+    return null;
+  }
+
+  /*
+   * What is wrong with a comparison with the previous check (#10821), or
+   * null: its window - how long ago the previous check may be - is some
+   * minutes, at most a week; a measured value is compared by a comparison
+   * of numbers; and a change from the previous check is 0 or more.
+   */
+  private static getPreviousCheckValidationError(input: {
+    filter: CriteriaFilter;
+    where: string;
+    monitorType: MonitorType | undefined;
+  }): string | null {
+    const filter: CriteriaFilter = input.filter;
+    const name: string = `Previous Check of ${input.where} on filter type ${filter.checkOn}`;
+    const minutes: number =
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(filter);
+
+    if (minutes <= 0) {
+      return `${name} needs a window: how many minutes ago the previous check may be.`;
+    }
+
+    if (minutes > MAX_COUNTED_WINDOW_IN_MINUTES) {
+      return `${name} looks back at most ${MAX_COUNTED_WINDOW_IN_MINUTES}\u00A0minutes (7\u00A0days) for the previous check.`;
+    }
+
+    /*
+     * A yes or no check is compared by whether it met its condition, and a
+     * check with no record to read is judged as All Values, as a count on
+     * it is (getEffectiveEvaluateOverTimeType): neither takes a change.
+     */
+    if (
+      !CriteriaFilterUtil.comparesValueWithPreviousCheck(
+        filter,
+        input.monitorType,
+      )
+    ) {
+      return null;
+    }
+
+    if (!CriteriaFilterUtil.isCountComparison(filter.filterType)) {
+      return `${name} compares a number with the previous check's, with Greater Than, Greater Than Or Equal To, Less Than, Less Than Or Equal To, Equal To or Not Equal To, not ${filter.filterType}.`;
+    }
+
+    // A number, or a number written as text. None at all is read as 0.
+    const writtenChange: unknown = filter.evaluateOverTimeOptions?.changeValue;
+
+    if (writtenChange === undefined || writtenChange === null) {
+      return null;
+    }
+
+    const change: number =
+      typeof writtenChange === "number"
+        ? writtenChange
+        : typeof writtenChange === "string" && writtenChange.trim() !== ""
+          ? Number(writtenChange)
+          : NaN;
+
+    if (!Number.isFinite(change) || change < 0) {
+      return `${name} needs a change of 0 or more: how far above or below the previous check this one must be.`;
     }
 
     return null;
