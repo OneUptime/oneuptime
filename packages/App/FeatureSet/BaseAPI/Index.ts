@@ -222,6 +222,7 @@ import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import StorageArrayResourceAPI from "Common/Server/API/StorageArrayResourceAPI";
+import XcpNgResourceAPI from "Common/Server/API/XcpNgResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -510,6 +511,12 @@ import StorageArrayOwnerRuleService, {
 import StorageArrayLabelRuleService, {
   Service as StorageArrayLabelRuleServiceType,
 } from "Common/Server/Services/StorageArrayLabelRuleService";
+import XcpNgPoolOwnerRuleService, {
+  Service as XcpNgPoolOwnerRuleServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerRuleService";
+import XcpNgPoolLabelRuleService, {
+  Service as XcpNgPoolLabelRuleServiceType,
+} from "Common/Server/Services/XcpNgPoolLabelRuleService";
 
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
@@ -1097,6 +1104,9 @@ import CephClusterService, {
 import StorageArrayService, {
   Service as StorageArrayServiceType,
 } from "Common/Server/Services/StorageArrayService";
+import XcpNgPoolService, {
+  Service as XcpNgPoolServiceType,
+} from "Common/Server/Services/XcpNgPoolService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -1139,6 +1149,12 @@ import StorageArrayOwnerTeamService, {
 import StorageArrayOwnerUserService, {
   Service as StorageArrayOwnerUserServiceType,
 } from "Common/Server/Services/StorageArrayOwnerUserService";
+import XcpNgPoolOwnerTeamService, {
+  Service as XcpNgPoolOwnerTeamServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService, {
+  Service as XcpNgPoolOwnerUserServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerUserService";
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
@@ -1705,6 +1721,8 @@ import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerR
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import StorageArrayOwnerRule from "Common/Models/DatabaseModels/StorageArrayOwnerRule";
 import StorageArrayLabelRule from "Common/Models/DatabaseModels/StorageArrayLabelRule";
+import XcpNgPoolOwnerRule from "Common/Models/DatabaseModels/XcpNgPoolOwnerRule";
+import XcpNgPoolLabelRule from "Common/Models/DatabaseModels/XcpNgPoolLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -1824,6 +1842,9 @@ import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerU
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import XcpNgPoolOwnerTeam from "Common/Models/DatabaseModels/XcpNgPoolOwnerTeam";
+import XcpNgPoolOwnerUser from "Common/Models/DatabaseModels/XcpNgPoolOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
@@ -2120,6 +2141,10 @@ import StorageArrayFeed from "Common/Models/DatabaseModels/StorageArrayFeed";
 import StorageArrayFeedService, {
   Service as StorageArrayFeedServiceType,
 } from "Common/Server/Services/StorageArrayFeedService";
+import XcpNgPoolFeed from "Common/Models/DatabaseModels/XcpNgPoolFeed";
+import XcpNgPoolFeedService, {
+  Service as XcpNgPoolFeedServiceType,
+} from "Common/Server/Services/XcpNgPoolFeedService";
 import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
 import DatabaseServerFeedService, {
   Service as DatabaseServerFeedServiceType,
@@ -2860,6 +2885,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArrayFeed, StorageArrayFeedServiceType>(
         StorageArrayFeed,
         StorageArrayFeedService,
+      ).getRouter(),
+    );
+
+    // XCP-ng pool feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolFeed, XcpNgPoolFeedServiceType>(
+        XcpNgPoolFeed,
+        XcpNgPoolFeedService,
       ).getRouter(),
     );
 
@@ -3702,6 +3736,22 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerRule, XcpNgPoolOwnerRuleServiceType>(
+        XcpNgPoolOwnerRule,
+        XcpNgPoolOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolLabelRule, XcpNgPoolLabelRuleServiceType>(
+        XcpNgPoolLabelRule,
+        XcpNgPoolLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DatabaseServerOwnerRule, DatabaseServerOwnerRuleServiceType>(
         DatabaseServerOwnerRule,
         DatabaseServerOwnerRuleService,
@@ -4182,6 +4232,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StorageArrayResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new XcpNgResourceAPI().getRouter(),
     );
 
     app.use(
@@ -6599,6 +6654,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArrayOwnerUser, StorageArrayOwnerUserServiceType>(
         StorageArrayOwnerUser,
         StorageArrayOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPool, XcpNgPoolServiceType>(
+        XcpNgPool,
+        XcpNgPoolService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerTeam, XcpNgPoolOwnerTeamServiceType>(
+        XcpNgPoolOwnerTeam,
+        XcpNgPoolOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerUser, XcpNgPoolOwnerUserServiceType>(
+        XcpNgPoolOwnerUser,
+        XcpNgPoolOwnerUserService,
       ).getRouter(),
     );
 
