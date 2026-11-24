@@ -130,9 +130,9 @@ const SRS = [
     content: "user",
     host: null,
     size: 2048 * GiB,
-    // 92.5% full in scrape 1, 93.0% in scrape 2.
-    usage: { 1: 1894.4 * GiB, 2: 1904.64 * GiB },
-    virtual: 2662.4 * GiB,
+    // 92.5% full in scrape 1, 93.0% in scrape 2 (XAPI counts whole bytes).
+    usage: { 1: Math.round(1894.4 * GiB), 2: Math.round(1904.64 * GiB) },
+    virtual: Math.round(2662.4 * GiB),
     tags: ["shared-storage"],
   },
   {
