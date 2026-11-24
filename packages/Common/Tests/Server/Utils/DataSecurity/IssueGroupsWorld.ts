@@ -4,9 +4,11 @@ import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataSecurityIssueGroupService from "../../../../Server/Services/DataSecurityIssueGroupService";
 import DataSecurityIssueService from "../../../../Server/Services/DataSecurityIssueService";
 import DataStoreService from "../../../../Server/Services/DataStoreService";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { UserPermission } from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { jest } from "@jest/globals";
 import { FindOperator } from "typeorm";
@@ -32,6 +34,10 @@ export interface WorldIssue {
   aiAnalysis?: JSONObject | null;
   aiVerdict?: string | null;
   securityCaseId?: string | null;
+  // How it resolved (#10368), and when: what proves a group's fix (#10738).
+  resolution?: string | null;
+  resolutionDetails?: JSONObject | null;
+  resolvedAt?: string | null;
 }
 
 export interface WorldStore {
@@ -49,6 +55,11 @@ export interface WorldStore {
   cloudConnectionId?: string | undefined;
   isArchived?: boolean | undefined;
   isPublicByDesign?: boolean | undefined;
+  /*
+   * Its labels: a reader whose read of issues is held to labels reads the
+   * issues of a store carrying one of theirs (#10739).
+   */
+  labelIds?: Array<string> | undefined;
 }
 
 export interface WorldGroup extends JSONObject {
@@ -242,6 +253,56 @@ function asModel<T>(make: () => T, row: Record<string, unknown>): T {
   return model;
 }
 
+// Who reads Data Security issues: the issue's own read list.
+const ISSUE_READ_PERMISSIONS: Array<string> = new DataSecurityIssue()
+  .readRecordPermissions as Array<string>;
+
+/*
+ * The labels a reader's read of issues is held to, as the CRUD path holds
+ * it (#10739): null for a read of the whole project (or OneUptime's), an
+ * empty set for none. An issue carries its store's labels
+ * (ReadPermission.getGrantedLabelsCondition).
+ */
+export function getReaderLabelIds(
+  projectId: string,
+  props: unknown,
+): Set<string> | null {
+  const reader: DatabaseCommonInteractionProps | undefined = props as
+    | DatabaseCommonInteractionProps
+    | undefined;
+
+  if (!reader || reader.isRoot || reader.isMasterAdmin) {
+    return null;
+  }
+
+  const rows: Array<UserPermission> =
+    reader.userTenantAccessPermission?.[projectId]?.permissions || [];
+  const reading: Array<UserPermission> = rows.filter(
+    (row: UserPermission): boolean => {
+      return (
+        !row.isBlockPermission &&
+        ISSUE_READ_PERMISSIONS.includes(row.permission as string)
+      );
+    },
+  );
+
+  if (
+    reading.some((row: UserPermission): boolean => {
+      return !row.labelIds || row.labelIds.length === 0;
+    })
+  ) {
+    return null;
+  }
+
+  return new Set(
+    reading.flatMap((row: UserPermission): Array<string> => {
+      return (row.labelIds || []).map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      });
+    }),
+  );
+}
+
 function written(value: unknown): unknown {
   if (value instanceof ObjectID) {
     return value.toString().toLowerCase();
@@ -331,6 +392,28 @@ export default class IssueGroupsWorld {
     this.issueById(issue.id)!.status = DataSecurityIssueStatus.Resolved;
   }
 
+  // Whether a reader may read an issue: held to labels, its store must carry one (#10739).
+  public isReadableBy(issue: WorldIssue, props: unknown): boolean {
+    const labels: Set<string> | null = getReaderLabelIds(
+      this.projectId,
+      props,
+    );
+
+    if (labels === null) {
+      return true;
+    }
+
+    const store: WorldStore | undefined = this.stores.find(
+      (candidate: WorldStore): boolean => {
+        return candidate.id === issue.dataStoreId;
+      },
+    );
+
+    return (store?.labelIds || []).some((id: string): boolean => {
+      return labels.has(id.toLowerCase());
+    });
+  }
+
   // Answers the services' reads and writes from the world.
   public install(): void {
     jest
@@ -339,12 +422,16 @@ export default class IssueGroupsWorld {
         query: JSONObject;
         skip?: number;
         limit?: number;
+        props?: unknown;
       }) => {
         const rows: Array<WorldIssue> = this.issues.filter(
           (issue: WorldIssue) => {
-            return matchesQuery(
-              issue as unknown as Record<string, unknown>,
-              findBy.query,
+            return (
+              this.isReadableBy(issue, findBy.props) &&
+              matchesQuery(
+                issue as unknown as Record<string, unknown>,
+                findBy.query,
+              )
             );
           },
         );
@@ -363,12 +450,18 @@ export default class IssueGroupsWorld {
 
     jest
       .spyOn(DataSecurityIssueService, "findOneBy")
-      .mockImplementation((async (findOneBy: { query: JSONObject }) => {
+      .mockImplementation((async (findOneBy: {
+        query: JSONObject;
+        props?: unknown;
+      }) => {
         const row: WorldIssue | undefined = this.issues.find(
           (issue: WorldIssue) => {
-            return matchesQuery(
-              issue as unknown as Record<string, unknown>,
-              findOneBy.query,
+            return (
+              this.isReadableBy(issue, findOneBy.props) &&
+              matchesQuery(
+                issue as unknown as Record<string, unknown>,
+                findOneBy.query,
+              )
             );
           },
         );
@@ -385,12 +478,18 @@ export default class IssueGroupsWorld {
 
     jest
       .spyOn(DataSecurityIssueService, "countBy")
-      .mockImplementation((async (countBy: { query: JSONObject }) => {
+      .mockImplementation((async (countBy: {
+        query: JSONObject;
+        props?: unknown;
+      }) => {
         return new PositiveNumber(
           this.issues.filter((issue: WorldIssue) => {
-            return matchesQuery(
-              issue as unknown as Record<string, unknown>,
-              countBy.query,
+            return (
+              this.isReadableBy(issue, countBy.props) &&
+              matchesQuery(
+                issue as unknown as Record<string, unknown>,
+                countBy.query,
+              )
             );
           }).length,
         );
