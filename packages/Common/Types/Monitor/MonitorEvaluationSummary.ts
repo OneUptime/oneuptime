@@ -130,6 +130,13 @@ export interface MonitorEvaluationEvent {
   relatedAlertCreatedAt?: Date | undefined;
   // When this action occurred, distinct from an already-active entity's creation.
   at?: Date | undefined;
+  /*
+   * The series of a grouped monitor the event is about - its alert or
+   * incident opened, left open, resolved or skipped - so a record about
+   * another series leaves it out (EvaluationEventSeries, #10841). None for
+   * an event about the whole monitor.
+   */
+  seriesFingerprint?: string | undefined;
   // A "grouping" event's note, for the Dashboard to word (see above).
   grouping?: MonitorEvaluationGroupingNote | undefined;
 }
@@ -204,4 +211,23 @@ export default interface MonitorEvaluationSummary {
    * not judge series on its own.
    */
   series?: MonitorEvaluationSeries | undefined;
+  /*
+   * How long the evaluation took, in milliseconds of wall-clock time: from
+   * when it began - a telemetry check's first read - until its monitor log
+   * entry was written (#10317). Absent from a summary captured before the
+   * evaluation ended (an incident's or an alert's), and from older ones.
+   */
+  durationInMs?: number | undefined;
+  /*
+   * How many series its criteria judged: every series of a grouped check,
+   * those that read no data among them (MonitorStoredCheck.countSeries).
+   * Absent for a check that is not split into series.
+   */
+  seriesJudged?: number | undefined;
+  /*
+   * How often its monitor is evaluated, in milliseconds, when it runs on a
+   * schedule: what durationInMs is weighed against
+   * (MonitorEvaluationTime.isSlow).
+   */
+  intervalInMs?: number | undefined;
 }
