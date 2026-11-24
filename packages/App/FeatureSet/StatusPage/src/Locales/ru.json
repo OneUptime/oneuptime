@@ -61,7 +61,8 @@
     "subGroupCount": "групп: {{total}}",
     "noResourcesTitle": "Пока нечего показать",
     "noResourcesDescription": "На этой странице пока нет сервисов.",
-    "noResourcesPreviewDescription": "Посетители видят это, пока вы не добавите ресурсы. Добавьте мониторы или группы на эту страницу статуса в разделе «Ресурсы» на панели."
+    "noResourcesPreviewDescription": "Посетители видят это, пока вы не добавите ресурсы.",
+    "noResourcesPreviewLink": "Добавить ресурсы на панели"
   },
   "eventItem": {
     "affectedResources": "Затронутые ресурсы",
