@@ -417,6 +417,9 @@ test.describe("a telemetry issue's page", () => {
     await expect(
       dialog.getByTestId("data-security-scrub-it-fields-words"),
     ).toHaveText("Fields to Scrub: Attributes Only");
+    await expect(dialog.getByTestId("data-security-scrub-it-proof")).toHaveText(
+      "Proven on 64 records the data was seen in: it hid the data in all 50 values that held it, and changed 0 of the 14 other values there.",
+    );
     await expect(
       dialog.getByTestId("data-security-scrub-it-stored"),
     ).toHaveText(
