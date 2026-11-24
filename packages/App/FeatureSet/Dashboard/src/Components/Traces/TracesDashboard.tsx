@@ -19,7 +19,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil, {
   UNKNOWN_RESOURCE_LABEL,
-  UNKNOWN_SERVICE_NAME,
 } from "Common/UI/Utils/TelemetryService";
 import {
   TranslatableTerm,
@@ -33,9 +32,11 @@ import API from "Common/UI/Utils/API/API";
 import { CARD_ROW_COLUMN_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import AnalyticsModelAPI, {
+  ListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import RecordsById from "Common/UI/Utils/RecordsById";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -53,10 +54,7 @@ import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/compo
 import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import TelemetryServiceScopePicker from "../Telemetry/TelemetryServiceScopePicker";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Navigation from "Common/UI/Utils/Navigation";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -269,55 +267,38 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         const startDate: Date = dateRange.startValue;
         const endDate: Date = dateRange.endValue;
 
-        const [servicesResult, spansResult] = await Promise.all([
-          ModelAPI.getList({
-            modelType: Service,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            select: {
-              serviceColor: true,
-              name: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-          AnalyticsModelAPI.getList({
-            modelType: Span,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-              startTime: new InBetween(startDate, endDate),
-              /*
-               * The service scope carried from the Viewer tab. Applied to
-               * the span fetch rather than filtered client-side: the fetch
-               * is capped, so filtering after it would leave the numbers
-               * describing whichever 5000 spans came back rather than the
-               * services the user selected.
-               */
-              ...(selectedServiceIds.length > 0
-                ? { primaryEntityId: new Includes(selectedServiceIds) }
-                : {}),
-            } as Query<Span>,
-            select: {
-              traceId: true,
-              spanId: true,
-              parentSpanId: true,
-              primaryEntityId: true,
-              name: true,
-              startTime: true,
-              statusCode: true,
-              durationUnixNano: true,
-            },
-            limit: 5000,
-            skip: 0,
-            sort: {
-              startTime: SortOrder.Descending,
-            },
-          }),
-        ]);
+        const spansResult: ListResult<Span> = await AnalyticsModelAPI.getList({
+          modelType: Span,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+            startTime: new InBetween(startDate, endDate),
+            /*
+             * The service scope carried from the Viewer tab. Applied to
+             * the span fetch rather than filtered client-side: the fetch
+             * is capped, so filtering after it would leave the numbers
+             * describing whichever 5000 spans came back rather than the
+             * services the user selected.
+             */
+            ...(selectedServiceIds.length > 0
+              ? { primaryEntityId: new Includes(selectedServiceIds) }
+              : {}),
+          } as Query<Span>,
+          select: {
+            traceId: true,
+            spanId: true,
+            parentSpanId: true,
+            primaryEntityId: true,
+            name: true,
+            startTime: true,
+            statusCode: true,
+            durationUnixNano: true,
+          },
+          limit: 5000,
+          skip: 0,
+          sort: {
+            startTime: SortOrder.Descending,
+          },
+        });
 
         const allSpans: Array<Span> = spansResult.data || [];
 
@@ -336,9 +317,36 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
               return Boolean(id);
             }),
         );
+
+        /*
+         * The services the spans name, read by their ids: a service whose
+         * name sorts past the project's first 10,000 has its row of the
+         * health table - one the page is scoped to too - where a read of
+         * the first 10,000 by name left it out, and its traces with it
+         * (#10764). An id that is no service (a RUM application, a host,
+         * the project's own) is not found, as before.
+         */
+        const servicesOfSpans: Array<Service> = await RecordsById.read<Service>(
+          {
+            modelType: Service,
+            ids: Array.from(referencedServiceIds).filter(
+              (id: string): boolean => {
+                return !TelemetryServiceUtil.isUnknownServiceId(
+                  id,
+                  ProjectUtil.getCurrentProjectId(),
+                );
+              },
+            ),
+            select: {
+              serviceColor: true,
+              name: true,
+            },
+          },
+        );
+
         const loadedServices: Array<Service> =
           TelemetryServiceUtil.withUnknownServiceIfReferenced({
-            services: servicesResult.data || [],
+            services: servicesOfSpans,
             referencedServiceIds,
             projectId: ProjectUtil.getCurrentProjectId()!,
           });
@@ -632,25 +640,11 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     translator.language,
   ]);
 
-  const serviceOptions: Array<DropdownOption> = useMemo(() => {
-    return services.map((service: Service): DropdownOption => {
-      return {
-        value: service.id?.toString() || "",
-        label: TelemetryServiceUtil.getServiceDisplayName(
-          service.name?.toString() || UNKNOWN_SERVICE_NAME,
-          translator,
-        ) as string,
-        // What a person's telemetry calls a service stays as written.
-        isUserContent: true,
-      };
-    });
-  }, [services, translator.language]);
-
   /*
-   * Entity ids on this page the Service list does not name: a carried scope
-   * id (a RUM application or host id handed over from its own traces tab, or
-   * a service not in the list yet) and the entity behind a recent trace row.
-   * Resolved so the scope pill and the rows read as names, not UUIDs.
+   * Entity ids on this page the services of its spans do not name: the
+   * entity behind a recent trace row that is no service (a RUM application,
+   * a host). Resolved so the rows read as names, not UUIDs. The scope's own
+   * ids are named by its picker (TelemetryServiceScopePicker).
    */
   const unnamedEntityIds: Array<string> = useMemo(() => {
     const knownIds: Set<string> = new Set<string>(
@@ -661,7 +655,6 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
 
     return Array.from(
       new Set<string>([
-        ...selectedServiceIds,
         ...recentErrorTraces.map((trace: RecentTrace): string => {
           return trace.primaryEntityId;
         }),
@@ -672,34 +665,23 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     ).filter((id: string): boolean => {
       return Boolean(id) && ObjectID.isValidUUID(id) && !knownIds.has(id);
     });
-  }, [services, selectedServiceIds, recentErrorTraces, recentSlowTraces]);
+  }, [services, recentErrorTraces, recentSlowTraces]);
 
   const entityNames: TelemetryEntityNameMap =
     useTelemetryEntityNames(unnamedEntityIds);
 
-  const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
-    return selectedServiceIds.map((serviceId: string): DropdownOption => {
-      /*
-       * A carried selection has to render even before the service list has
-       * loaded — and even for a service that stopped reporting — or the user
-       * would have a filter they can see the effect of but not remove. The
-       * entity lookup names it meanwhile (and names a non-Service entity at
-       * all); the id is the last resort.
-       */
-      return (
-        serviceOptions.find((option: DropdownOption): boolean => {
-          return option.value === serviceId;
-        }) || {
-          value: serviceId,
-          label: getTraceEntityOptionLabel({
-            id: serviceId,
-            entityNames,
-          }),
-          isUserContent: true,
-        }
+  /*
+   * "Unknown Service" is offered in the scope picker while the spans name
+   * it: telemetry that named no service is tagged with the project's id.
+   */
+  const offersUnknownService: boolean = services.some(
+    (service: Service): boolean => {
+      return TelemetryServiceUtil.isUnknownServiceId(
+        service.id?.toString(),
+        ProjectUtil.getCurrentProjectId(),
       );
-    });
-  }, [selectedServiceIds, serviceOptions, entityNames]);
+    },
+  );
 
   /*
    * Editing the scope by hand means it is no longer the saved view's scope,
@@ -808,33 +790,14 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-[16rem]">
-          <Dropdown
-            options={serviceOptions}
-            value={selectedServiceOptions}
-            isMultiSelect={true}
+          <TelemetryServiceScopePicker
+            serviceIds={selectedServiceIds}
+            offersUnknownService={offersUnknownService}
             placeholder="All services"
             ariaLabel="Scope insights to a service"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              if (!value) {
-                applyServiceSelection([]);
-                return;
-              }
-
-              const values: Array<DropdownValue> = Array.isArray(value)
-                ? value
-                : [value];
-
-              applyServiceSelection(
-                values
-                  .map((item: DropdownValue): string => {
-                    return String(item);
-                  })
-                  .filter((item: string): boolean => {
-                    return item.length > 0;
-                  }),
-              );
+            dataTestId="traces-insights-service-scope"
+            onChange={(serviceIds: Array<string>): void => {
+              applyServiceSelection(serviceIds);
             }}
           />
         </div>

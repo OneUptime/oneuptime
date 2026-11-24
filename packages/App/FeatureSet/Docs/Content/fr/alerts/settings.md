@@ -99,7 +99,7 @@ Une règle peut appartenir à des équipes. **Équipes responsables**, sous **Pl
 
 ## Règles d'incident
 
-**Alertes → Règles → Règles d'incident** transforme d'elles-mêmes des alertes en incidents. La première règle qui correspond à une nouvelle alerte, du haut de la liste vers le bas, en déclare un incident, comme le ferait **Déclarer un incident** sur la page de l'alerte, et y lie l'alerte.
+**Alertes → Règles → Règles d'incident** transforme d'elles-mêmes des alertes en incidents. La première règle qui correspond à une nouvelle alerte, du haut de la liste vers le bas, en déclare un incident, comme le ferait **Déclarer un incident** sur la page de l'alerte, et y lie l'alerte. L'incident démarre avec les propriétaires de l'alerte comme propriétaires, qui en sont informés une seule fois, par sa notification **Incident créé**.
 
 :::steps
 ### Choisir les alertes concernées

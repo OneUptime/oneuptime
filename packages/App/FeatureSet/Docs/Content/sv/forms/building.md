@@ -66,7 +66,7 @@ Logotypen behåller höjden på den OneUptime-logotyp den ersätter, och en bred
 
 ## Vad du kan lägga till
 
-**Lägg till en fråga** visar fyra grupper: formulärets egna **Frågor**, **Incidentfält** eller **Fält för schemalagt underhåll** för det formuläret skapar, **Anpassade fält** och **Inlämnare**.
+**Lägg till en fråga** visar fyra grupper: formulärets egna **Frågor**, **Incidentfält**, **Larmfält** eller **Fält för schemalagt underhåll** för det formuläret skapar, **Anpassade fält** och **Inlämnare**.
 
 ### Formulärets egna frågor
 
@@ -92,7 +92,7 @@ En fråga av typen **Fil** eller **Flera filer** tar filer från inlämnarens da
 
 ### Fält på det formuläret skapar
 
-Fälten på en incident, eller på en underhållshändelse, som en inlämnare kan besvara. Svaret blir fältets värde.
+Fälten på en incident, ett larm eller en underhållshändelse som en inlämnare kan besvara. Svaret blir fältets värde.
 
 | Incidentfält | Besvaras med |
 | --- | --- |
@@ -100,6 +100,15 @@ Fälten på en incident, eller på en underhållshändelse, som en inlämnare ka
 | **Beskrivning** | Formaterad text, upp till 20 000 tecken. |
 | **Allvarlighetsgrad** | En av dina allvarlighetsgrader för incidenter. |
 | **Monitorer** | Vilka som helst av de monitorer du erbjuder — incidentens berörda monitorer. |
+| **Etiketter** | Vilka som helst av de etiketter du erbjuder. |
+| **Påverkan började** | Ett datum och en tid: när problemet började, som inlämnaren minns det. |
+
+| Larmfält | Besvaras med |
+| --- | --- |
+| **Titel** | En rad, upp till 500 tecken. |
+| **Beskrivning** | Formaterad text, upp till 20 000 tecken. |
+| **Allvarlighetsgrad** | En av dina allvarlighetsgrader för larm. |
+| **Monitor** | En av de monitorer du erbjuder — larmets monitor. Ett larm gäller en enda monitor. |
 | **Etiketter** | Vilka som helst av de etiketter du erbjuder. |
 | **Påverkan började** | Ett datum och en tid: när problemet började, som inlämnaren minns det. |
 
@@ -115,11 +124,11 @@ Fälten på en incident, eller på en underhållshändelse, som en inlämnare ka
 
 Varje fält kan bara efterfrågas en gång; listan markerar de som redan finns på formuläret med **Tillagd**. Ett fält som formuläret inte frågar efter — eller som lämnas tomt — fylls i från formulärets [inställningar Vid inlämning](/docs/forms/on-submit).
 
-**Erbjudna val.** En offentlig sida får inte visa hela ditt projekt för främlingar, så ett fält som besvaras genom att välja poster erbjuder bara de som du väljer. **Monitorer**, **Etiketter** och **Statussidor** visar exakt de val som du erbjuder, och efterfrågas inte förrän du erbjuder minst ett. **Allvarlighetsgrad** erbjuder alla allvarlighetsgrader för incidenter om du inte begränsar det, eftersom allvarlighetsgrader inte är hemliga. Svar utanför de erbjudna valen avvisas.
+**Erbjudna val.** En offentlig sida får inte visa hela ditt projekt för främlingar, så ett fält som besvaras genom att välja poster erbjuder bara de som du väljer. **Monitorer**, **Monitor**, **Etiketter** och **Statussidor** visar exakt de val som du erbjuder, och efterfrågas inte förrän du erbjuder minst ett. **Allvarlighetsgrad** erbjuder alla allvarlighetsgrader för incidenter, eller alla allvarlighetsgrader för larm i ett larmformulär, om du inte begränsar det, eftersom allvarlighetsgrader inte är hemliga. Svar utanför de erbjudna valen avvisas.
 
 ### Anpassade fält
 
-Dina anpassade fält för incidenter — eller för schemalagt underhåll, i ett underhållsformulär — var och en en fråga vars svar blir fältets värde. Frågan tar sin typ och sina alternativ från det anpassade fältet, och börjar med dess namn som fråga och dess beskrivning som hjälptext, som du kan ändra. Ett anpassat fält av typen **Fil** eller **Flera filer** ställs som en filfråga, och dess filer hamnar i fältet.
+Dina anpassade fält för incidenter — eller för larm, i ett larmformulär, och för schemalagt underhåll, i ett underhållsformulär — var och en en fråga vars svar blir fältets värde. Frågan tar sin typ och sina alternativ från det anpassade fältet, och börjar med dess namn som fråga och dess beskrivning som hjälptext, som du kan ändra. Ett anpassat fält av typen **Fil** eller **Flera filer** ställs som en filfråga, och dess filer hamnar i fältet.
 
 Ett formulär frågar bara efter de anpassade fält som du lägger till i det, vad **Visa vid skapande** än säger: varje fält som ett formulär frågar efter visar sitt namn, sin beskrivning och sina alternativ för alla med länken. När ett anpassat fält tas bort ligger dess fråga kvar på formuläret men efterfrågas inte längre, och dess kort säger det — ta bort frågan. Ett fält som skapas igen med samma namn är ett nytt fält: lägg till det igen.
 
@@ -231,6 +240,7 @@ Efter inlämningen säger sidan "Tack — ditt svar har skickats." och anger num
 | Svar | Gräns |
 | --- | --- |
 | En incidents **Titel** | 500 tecken, utan att räkna mellanslag i början och slutet. |
+| Ett larms **Titel** | 500 tecken, utan att räkna mellanslag i början och slutet. |
 | En underhållshändelses **Titel** | 100 tecken. |
 | **Beskrivning** | 20 000 tecken. |
 | Vilket annat textsvar som helst | 10 000 tecken. |

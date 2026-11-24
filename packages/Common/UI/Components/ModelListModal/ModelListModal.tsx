@@ -12,6 +12,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   titleField: string;
   isSearchEnabled?: boolean | undefined;
+  // Searched on the server as the person types (ModelList's searchesServer).
+  searchesServer?: boolean | undefined;
   descriptionField?: string | undefined;
   selectMultiple?: boolean | undefined;
   select: Select<TBaseModel>;

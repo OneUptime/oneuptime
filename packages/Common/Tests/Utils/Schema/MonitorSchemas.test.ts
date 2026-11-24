@@ -94,6 +94,8 @@ const PAIRS: Array<InterfaceSchemaPair> = [
     notInTheApi: {
       totpSecrets:
         "the TOTP secrets the server hands a probe with the step, for its one-time codes; never set by users and never stored (MonitorStep.toDatabaseJSON)",
+      secretValuesToHide:
+        "the values of the Text secrets the server filled into the step, which it hands a probe to hide in its log (#10875); never set by users and never stored (MonitorStep.toDatabaseJSON)",
     },
   },
   {

@@ -75,6 +75,31 @@ describe("a note as it is kept and shown", () => {
     );
   });
 
+  test("has a card in another script's digits, an address in another script and a credential after another space taken out", () => {
+    // The agent's redaction, as the device reads it (#10876, #10877, #10878).
+    expect(
+      HostLogSessionNote.prepare(
+        "カード番号：４１１１ １１１１ １１１１ １１１１ を確認",
+      ),
+    ).toEqual({ note: "カード番号：[card number] を確認" });
+    expect(
+      HostLogSessionNote.prepare("Ask 张伟@example.com or josé.garcia@例え.jp"),
+    ).toEqual({ note: "Ask [email] or [email]" });
+    expect(
+      HostLogSessionNote.prepare("令牌：Bearer\u3000abcdefgh12345678 fails"),
+    ).toEqual({ note: "令牌：Bearer [credential] fails" });
+  });
+
+  test("turns a zero-width no-break space and a next-line character into a space before redaction, so a credential after one is taken out", () => {
+    // The redaction reads U+FEFF as no space, as the device does not (#10876), where JavaScript's \s did: the note is cleaned first.
+    expect(
+      HostLogSessionNote.prepare("Bearer\ufeffabcdefgh12345678 fails"),
+    ).toEqual({ note: "Bearer [credential] fails" });
+    expect(
+      HostLogSessionNote.prepare("Bearer\u0085abcdefgh12345678 fails"),
+    ).toEqual({ note: "Bearer [credential] fails" });
+  });
+
   test("keeps what is no secret in a fleet tool: a store, a till, a time", () => {
     expect(
       HostLogSessionNote.prepare("Store 0412, till 3, since 18:05 (job 1234)"),

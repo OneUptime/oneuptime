@@ -106,6 +106,15 @@ export interface DataTypeDetector {
    * holding "123".
    */
   fieldValuePattern?: RegExp | undefined;
+
+  /*
+   * Whether the text is also read with its percent-escapes read
+   * (PercentDecodedText.ts): an IP address in a URL's query string has its
+   * colons written %3A (#10467). A candidate found so is validated as it
+   * reads and placed on the characters it is written with, so the finding -
+   * and what a scrub rule hides - is the encoded value whole.
+   */
+  readsPercentEncoded?: boolean | undefined;
 }
 
 // How far around a candidate its context words are looked for.

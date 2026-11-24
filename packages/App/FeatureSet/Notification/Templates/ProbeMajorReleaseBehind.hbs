@@ -1,0 +1,54 @@
+{{!--
+  A custom probe runs a release a major release or more behind the
+  OneUptime it reports to (#9977; Workers Probe:NotifyMajorReleaseBehind).
+  Sent once for each major release of OneUptime to the probe's owners - the
+  project's owners when it has none - under their "Probe a major release
+  behind" notification setting. The words are made by
+  Common/Server/Utils/Probe/ProbeMajorReleaseNotification: every value is
+  a plain value, escaped where it is shown, and none names the release a
+  feature first shipped in - it says to update to the latest release, which
+  has every feature a release has shipped. Every sentence that names the
+  product names it as the installation goes by ((brandName)), so the
+  builder hands the pieces and the template writes them. missedFeatures
+  lists what the probe cannot do until it is updated, in the probe page's
+  words; it is empty when it misses nothing a release added.
+--}}
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=(concat probeName " is " majorReleasesLabel " behind " (brandName)) }}
+
+{{> InfoBlock plainInfo=(concat "Probe " probeName " runs " probeVersionPhrase ", " majorReleasesLabel " behind " (brandName) " " serverRelease ", which it reports to. Update it to get the latest checks and fixes.") }}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Probe Name:" plainText=probeName }}
+{{> DetailBoxField title="Probe Description:" plainText=probeDescription }}
+{{> DetailBoxField title="Probe Version:" plainText=probeRelease }}
+{{> DetailBoxField title=(concat (brandName) " Version:") plainText=serverRelease }}
+{{> DetailBoxField title="Project:" plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+{{#if hasMissedFeatures}}
+{{> TitleBlock title="Until it is updated"}}
+{{#each missedFeatures}}
+{{> InfoBlock plainInfo=this }}
+{{/each}}
+{{/if}}
+
+{{> InfoBlock plainInfo=(concat "Update the probe to the latest " (brandName) " release: start it again from the newest image, with the same probe ID and key.") }}
+
+{{> ButtonBlock buttonUrl=updateProbeDocsUrl buttonText="How to Update a Probe"}}
+
+{{> LinkBlock linkUrl=viewProbeLink linkLabel="See the probe's version and what it misses on its page:"}}
+
+{{> InfoBlock plainInfo=(concat "You are told once for each major release of " (brandName) " this probe falls behind.") }}
+
+{{> OwnerInfo this }}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

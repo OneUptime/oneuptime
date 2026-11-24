@@ -210,6 +210,7 @@ import IncidentAlertService, {
 import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY,
 } from "../../Types/Incident/IncidentAlertLink";
 import OnCallNotRunOnCreate from "../Utils/OnCall/OnCallNotRunOnCreate";
@@ -364,6 +365,13 @@ type IncidentCreateCarryForward =
        * (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY). Null otherwise.
        */
       declaredByAlertIncidentRuleName: string | null;
+      /*
+       * Whether the owners of the alerts it is declared from become its
+       * owners (INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY): true for one
+       * declared from alerts, unless the caller - the dashboard, whose
+       * Owners field holds them already - said false. False without alerts.
+       */
+      carryOverAlertOwners: boolean;
     })
   | null;
 
@@ -2958,6 +2966,17 @@ export class Service extends ProjectReferencesService<Model> {
         props: createBy.props,
       });
 
+    /*
+     * And whether the alerts' owners become its owners, so a value that is
+     * not true or false, or true without alerts, is refused here too.
+     */
+    const carryOverAlertOwners: boolean =
+      IncidentAlertService.readCarryOverAlertOwnersForNewIncident({
+        carryOverAlertOwners:
+          createBy.miscDataProps?.[INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY],
+        alertIds: validatedAlertIds,
+      });
+
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
     } else {
@@ -3463,6 +3482,7 @@ export class Service extends ProjectReferencesService<Model> {
         createBy: createBy,
         alertIdsToLink: validatedAlertIds,
       }),
+      carryOverAlertOwners: carryOverAlertOwners,
     };
 
     /*
@@ -3840,19 +3860,26 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         /*
-         * A private incident declared from alerts - private from the form or
-         * made private by a privacy rule above - gets the alerts' owners as
-         * its owners, so the people who could see the alerts can see the
-         * incident. Here rather than before the request returns: the owners'
-         * own hooks invite them to the incident's Slack / Microsoft Teams
-         * channels, which exist only from the workspace step above, and their
-         * "owner added" entries belong after "Incident Created".
+         * An incident declared from alerts gets the alerts' owners as its
+         * owners (#10867), private or not - unless the declaration said
+         * otherwise: the dashboard's Owners field holds them already, as
+         * the declarer left them (INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY).
+         * For a private one - private from the form or made private by a
+         * privacy rule above - it is also what lets the people who could
+         * see the alerts see the incident. Here rather than before the
+         * request returns: the owners' own hooks invite them to the
+         * incident's Slack / Microsoft Teams channels, which exist only
+         * from the workspace step above, and their "owner added" entries
+         * belong after "Incident Created". And before the owner rules and
+         * the release of the held "Incident Created" notification below
+         * (CreatedNotificationHold), so they are told of the incident once,
+         * by it, as every owner it starts with is.
          */
         try {
           const alertIds: Array<ObjectID> =
             this.getAlertIdsDeclaredWith(onCreate);
 
-          if (alertIds.length > 0 && createdItem.isPrivate === true) {
+          if (alertIds.length > 0 && this.carriesOverAlertOwners(onCreate)) {
             await IncidentAlertService.copyAlertOwnersToIncident({
               projectId: createdItem.projectId!,
               incidentId: createdItem.id!,
@@ -3861,7 +3888,7 @@ export class Service extends ProjectReferencesService<Model> {
           }
         } catch (error) {
           logger.error(
-            `Adding the owners of the alerts a private incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+            `Adding the owners of the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),
@@ -4345,6 +4372,18 @@ export class Service extends ProjectReferencesService<Model> {
       (onCreate.carryForward as IncidentCreateCarryForward) || null;
 
     return carryForward?.alertIdsToLink || [];
+  }
+
+  /*
+   * Whether the owners of the alerts the incident is declared from become
+   * its owners: unless the declaration said false
+   * (INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY). Only ever asked with alerts.
+   */
+  private carriesOverAlertOwners(onCreate: OnCreate<Model>): boolean {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.carryOverAlertOwners !== false;
   }
 
   /*

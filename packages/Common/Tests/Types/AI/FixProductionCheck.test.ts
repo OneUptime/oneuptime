@@ -43,6 +43,14 @@ describe("FixProductionCheckHelper.forTaskType", () => {
     ).toBe(FixProductionCheck.StoreConfiguration);
   });
 
+  test("a service's one pull request for its telemetry leaks is watched as a telemetry leak (#10367)", () => {
+    expect(
+      FixProductionCheckHelper.forTaskType(
+        CodeFixTaskType.FixSensitiveDataInTelemetry,
+      ),
+    ).toBe(FixProductionCheck.TelemetryLeak);
+  });
+
   test("the rest are not watched", () => {
     const watched: Array<CodeFixTaskType> = [
       CodeFixTaskType.FixException,
@@ -52,6 +60,7 @@ describe("FixProductionCheckHelper.forTaskType", () => {
       CodeFixTaskType.ImproveLogging,
       CodeFixTaskType.ImproveTracing,
       CodeFixTaskType.FixInfrastructureCode,
+      CodeFixTaskType.FixSensitiveDataInTelemetry,
     ];
 
     for (const taskType of Object.values(CodeFixTaskType)) {

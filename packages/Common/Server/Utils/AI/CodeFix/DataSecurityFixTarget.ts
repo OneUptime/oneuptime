@@ -4,6 +4,8 @@ import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import {
   InfrastructureFixTaskContext,
   getInfrastructureFixTaskContext,
+  getTelemetryLeakFixIssueIds,
+  getTelemetryLeakFixTaskContext,
 } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
@@ -31,11 +33,12 @@ import DataStoreService from "../../../Services/DataStoreService";
  *   - A group's one pull request (#10370): CodeFixTaskType
  *     .FixInfrastructureCode, whose context lists the stores and issues it
  *     fixes (AIRun.taskContext.infrastructureFix).
- *   - A service's leaks fixed in one pull request (#10367, not built yet):
- *     HOOK - its recipe (FixSensitiveDataInTelemetry) and its context item
- *     for Data Security issues name the issues it is for. Read them in
- *     issueIdsOfTask below and it is followed as every fix here is: a
- *     telemetry issue's fix with the TelemetryLeak check.
+ *   - A service's leaks fixed in one pull request (#10367): CodeFixTaskType
+ *     .FixSensitiveDataInTelemetry, whose context lists every leak and
+ *     issue it fixes (AIRun.taskContext.telemetryLeakFix) - each of those
+ *     issues keeps the task too (DataSecurityIssue.codeFixTaskId). It is
+ *     followed as every fix here is: a telemetry issue's, with the
+ *     TelemetryLeak check.
  *
  * Which check follows it comes from the issues' stores: a telemetry
  * store's issue is a leak in the code that writes it (TelemetryLeak), any
@@ -104,10 +107,14 @@ export default class DataSecurityFixTarget {
       }
     }
 
-    /*
-     * #10367: a service's leaks fixed in one pull request names its issues
-     * in its own context item. Add them here when its recipe lands.
-     */
+    // A service's leaks fixed in one pull request (#10367): every issue it lists.
+    if (taskType === CodeFixTaskType.FixSensitiveDataInTelemetry) {
+      ids.push(
+        ...getTelemetryLeakFixIssueIds(
+          getTelemetryLeakFixTaskContext(task.taskContext?.telemetryLeakFix),
+        ),
+      );
+    }
 
     return Array.from(
       new Set<string>(

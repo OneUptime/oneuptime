@@ -1,9 +1,11 @@
 import {
   LOG_SCRUB_RULE_FORM_OPTIONS,
+  LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
   LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   TRACE_SCRUB_RULE_DEFAULTS_SUMMARY,
   TRACE_SCRUB_RULE_FORM_OPTIONS,
+  TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
 } from "../../FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleForm";
 import {
   ExtractedString,
@@ -147,6 +149,74 @@ describe("what a scrub rule reads, in every language", () => {
           text.includes("JSON"),
         ]);
       }
+    },
+  );
+});
+
+/*
+ * #10751: Only in These Attributes, the attributes a pattern rule reads -
+ * its title, what it says on each signal, and the key its placeholder
+ * shows. Each in every language, its code (db.password) kept as written.
+ */
+describe("what a narrowed pattern rule reads, in every language", () => {
+  const ONLY_IN_WORDS: ReadonlyArray<string> = [
+    "Only in These Attributes",
+    LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
+    TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
+    "e.g. db.password",
+  ];
+
+  test("are the field's title, its help on each signal and its placeholder", () => {
+    expect(ONLY_IN_WORDS).toEqual([
+      "Only in These Attributes",
+      "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.",
+      "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.",
+      "e.g. db.password",
+    ]);
+    expect(LOG_SCRUB_RULE_FORM_OPTIONS.onlyInAttributesHelp).toBe(
+      LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
+    );
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.onlyInAttributesHelp).toBe(
+      TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
+    );
+  });
+
+  test("en.json maps every one of them to itself, and the extractor finds them in the form", () => {
+    const found: Set<string> = new Set<string>(
+      scanSourceRoots([
+        {
+          directory:
+            "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleForm.ts",
+          kind: "ui",
+        },
+      ]).strings.map((entry: ExtractedString): string => {
+        return entry.text;
+      }),
+    );
+
+    for (const text of ONLY_IN_WORDS) {
+      expect([text, ENGLISH[text]]).toEqual([text, text]);
+      expect([text, found.has(text)]).toEqual([text, true]);
+    }
+  });
+
+  test.each(TRANSLATED_LOCALES)(
+    "%s has its own words for every one of them, the key kept as written",
+    (language: string) => {
+      const locale: Record<string, unknown> = readLocale(language);
+
+      for (const text of ONLY_IN_WORDS) {
+        const value: unknown = locale[text];
+
+        expect([text, typeof value]).toEqual([text, "string"]);
+        expect([text, (value as string).trim().length > 0]).toEqual([
+          text,
+          true,
+        ]);
+        expect([text, value]).not.toEqual([text, text]);
+      }
+
+      expect(locale["e.g. db.password"] as string).toContain("db.password");
     },
   );
 });

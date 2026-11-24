@@ -82,6 +82,8 @@ I en rutenettgruppe ber dialogen også om raden og kolonnen monitoren skal stå 
 > [!TIP]
 > For å vise flere sjekker som én rad legger du til en [monitorgruppe](/docs/monitor/monitor-groups). Med bryteren **Monitorgrupper** slått på (**Prosjektinnstillinger** > **Grunnleggende** > **Produkter**, som lagres så snart du slår den om) står det en lenke under nedtrekkslisten: **Legg heller til en monitorgruppe.** Klikk på den, så blir **Monitor** til **Monitorgruppe** (**Velg monitorgruppe**); **Legg heller til en monitor.** bytter tilbake.
 
+**Rediger ressurs**, blyanten på en rad, åpner på det raden viser: en monitorgruppes rad på **Monitorgruppe**, med gruppen valgt, og en monitors rad på **Monitor**. Med bryteren **Monitorgrupper** slått på lyder lenken under nedtrekkslisten **Vis heller en monitor.** på en gruppes rad og **Vis heller en monitorgruppe.** på en monitors. Den bytter nedtrekkslisten bare i den dialogen, og når du lagrer, viser raden det du valgte i stedet. **Visningsnavn** følger det nye valget så lenge det fortsatt er navnet på det raden viste, og blir som det er når du har gitt raden nytt navn. I listen sier en gruppes rad, der visningsnavnet er gruppens eget, **Samme som navnet på monitorgruppen**.
+
 ### Legg til flere på én gang
 
 **Legg til flere** (også **Legg til flere monitorer** i menyen **Flere handlinger**) åpner **Legg til flere monitorer**. Den er også én side: en flervalgsliste **Monitorer**, deretter de samme sammenslåtte **Flere felt**, der visningsalternativene gjelder for hver monitor du velger. Hver ressurs får visningsnavn og beskrivelse fra monitoren sin, og **Legg til monitorer** legger til alle. Det er den raskeste måten å fylle en ny side på.
@@ -97,6 +99,8 @@ En statusside viser en monitor én gang. Tillegg er idempotent, så når du velg
 Sammendraget etter tillegget av flere sier det samme: monitorer som ble lagt til, står under **Lagt til**, og de som allerede var der, under **Allerede lagt til**. Ingenting rapporteres som en feil, og ingenting skrives for dem.
 
 Den samme regelen gjelder overalt ellers der en ressurs opprettes. Å legge til en monitor som allerede er på siden, fra skjemaet for én monitor, eller å la en eksisterende ressurs peke på den fra redigeringsskjemaet, avvises med *"This monitor is already added to this status page"*, også når den eksisterende ressursen står i en annen gruppe, for en besøkende ville fortsatt sett monitoren to ganger. For å vise en monitor i en annen gruppe sletter du ressursen den allerede har, og legger den til der du vil ha den.
+
+En ressurs viser én monitor eller én monitorgruppe, aldri begge og aldri ingen av dem. Å rette en ressurs mot den ene tømmer den andre, så å flytte en rad fra en monitor til en monitorgruppe er én endring. Gjennom API-et avvises en ressurs som nevner begge med *"A status page resource shows a monitor or a monitor group, not both. Send one of them."*, og en som ikke nevner noen av dem, eller en endring som ville la den stå uten noen av dem, med *"A status page resource needs a monitor or a monitor group to show"*.
 
 ## Visningsalternativer for en ressurs
 
@@ -280,6 +284,10 @@ Importen oppretter grupper, ikke ressurser: legg til monitorer etterpå med **Le
 
 :::details "This monitor is already added to this status page"
 En side viser hver monitor én gang, også på tvers av grupper. Monitoren har allerede en ressurs, kanskje i en annen gruppe eller lagt til av en monitorregel. Søk etter den i navigatoren, slett den ressursen, og legg til monitoren der du vil ha den.
+:::
+
+:::details "A status page resource needs a monitor or a monitor group to show"
+API-et, Terraform eller et skript sendte en ressurs uten monitor og uten monitorgruppe, eller en endring som tømmer det den viser. Send `monitorId` eller `monitorGroupId`, en av de to. For å rette en ressurs mot den andre typen sender du den nye i samme endring: den gamle tømmes. Ressurser som ikke viste noen av dem før denne regelen, ble aldri vist til besøkende, og en oppgradering sletter dem.
 :::
 
 :::details En monitor jeg la til, vises ikke på statussiden

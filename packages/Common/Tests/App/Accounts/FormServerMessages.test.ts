@@ -18,6 +18,7 @@ import {
   FORM_SUBMIT_FAILED_MESSAGE,
 } from "../../../Server/Services/FormService";
 import { FORM_NO_SEVERITY_MESSAGE } from "../../../Server/Utils/Form/IncidentFormTarget";
+import { FORM_NO_ALERT_SEVERITY_MESSAGE } from "../../../Server/Utils/Form/AlertFormTarget";
 import { MALWARE_SCAN_UNAVAILABLE_MESSAGE } from "../../../Server/Utils/MalwareScan/MalwareScanner";
 import FormMessage from "../../../../App/FeatureSet/Accounts/src/Utils/FormMessage";
 
@@ -52,6 +53,11 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
       "a form with no severity (400)",
       FormMessage.NoSeverity,
       FORM_NO_SEVERITY_MESSAGE,
+    ],
+    [
+      "an alert form with no severity (400)",
+      FormMessage.NoAlertSeverity,
+      FORM_NO_ALERT_SEVERITY_MESSAGE,
     ],
     [
       "a record that could not be created (500)",
@@ -127,6 +133,7 @@ describe("each sentence the page knows is the server's, byte for byte", () => {
         FORM_NOT_AVAILABLE_MESSAGE,
         FORM_NETWORK_NOT_ALLOWED_MESSAGE,
         FORM_NO_SEVERITY_MESSAGE,
+        FORM_NO_ALERT_SEVERITY_MESSAGE,
         FORM_SUBMIT_FAILED_MESSAGE,
         FORM_READ_RATE_LIMIT_MESSAGE,
         FORM_SUBMIT_RATE_LIMIT_MESSAGE,

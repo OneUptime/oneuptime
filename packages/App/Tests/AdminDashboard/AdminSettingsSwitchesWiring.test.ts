@@ -408,8 +408,16 @@ describe("what the Edit dialogs used is gone", () => {
     "Restrict Project Creation to Admins Only",
     "When enabled, only master admin users can create new projects.",
     "Enable to give this user full access to the entire platform.",
-    "Master Admin",
   ];
+
+  /*
+   * The Edit dialog's title for a user's Master Admin switch. The locales
+   * keep the words since #10676: a record's created and modified lines
+   * (DetailRecordLine, #10423) name a change the master admin made "Master
+   * Admin", in the Admin Dashboard's language. The settings pages still
+   * never ask for them.
+   */
+  const retiredFromPages: Array<string> = ["Master Admin"];
 
   test.each(ALL_LOCALES)("%s has none of their keys", (locale: string) => {
     const entries: Locale = readLocale(locale);
@@ -437,7 +445,7 @@ describe("what the Edit dialogs used is gone", () => {
         expect(code).not.toContain(key);
       }
 
-      for (const text of retiredFlat) {
+      for (const text of [...retiredFlat, ...retiredFromPages]) {
         expect(code).not.toContain(`"${text}"`);
       }
     }

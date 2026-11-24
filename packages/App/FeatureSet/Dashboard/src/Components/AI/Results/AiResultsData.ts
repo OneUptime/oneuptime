@@ -1604,6 +1604,10 @@ export const DATA_SECURITY_KIND_LABELS: Record<
   ),
   [DataSecurityAiProposalKind.AddScanExclusion]:
     translationKey("Scan exclusions"),
+  // A service's telemetry leaks, fixed in its code in one pull request (#10367).
+  [DataSecurityAiProposalKind.FixTelemetryLeaksInCode]: translationKey(
+    "Pull requests for telemetry leaks",
+  ),
   // A data type of the project's own, found in its stores (#10371).
   [DataSecurityAiProposalKind.AddDataType]: translationKey("Data types added"),
 };

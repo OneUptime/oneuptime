@@ -6,8 +6,10 @@ import { FindingSampleRecord } from "../../../../Types/DataSecurity/FindingSampl
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
 import { isScrubPlaceholder } from "../../../../Types/Telemetry/ScrubRule";
 import {
+  getMetricScrubRuleFingerprint,
   getScrubRuleFingerprint,
   ScrubRuleProof,
   ScrubRuleProofPlace,
@@ -25,8 +27,13 @@ import {
   CompiledScrubRule,
   ScrubEngineRule,
 } from "../../Telemetry/ScrubEngine/CompiledScrubRule";
+import MetricPipelineEngine, {
+  MutableMetricRow,
+} from "../../Telemetry/MetricPipelineEngine";
 import LogScrubEngine from "../../Telemetry/ScrubEngine/LogScrubEngine";
-import TraceScrubEngine from "../../Telemetry/ScrubEngine/TraceScrubEngine";
+import TraceScrubEngine, {
+  ExceptionContent,
+} from "../../Telemetry/ScrubEngine/TraceScrubEngine";
 import { ContentScanOptions } from "../DataSecurityScanTypes";
 import {
   capsOf,
@@ -37,6 +44,7 @@ import {
   readPairs,
   ReadEvent,
   readTelemetryRecordValues,
+  readText,
   SourceDefinition,
   TelemetryRecordValue,
   TelemetrySampleCaps,
@@ -81,16 +89,24 @@ import {
  * effect elsewhere is what the readers lookup asks about. Nothing it reads
  * leaves this function: the proof holds counts only.
  *
- * Logs, spans and AI calls are proven here. Exceptions, session replays
- * and metrics are not, so their rules are never proven - Scrub It still
- * makes them, as before, and OneUptime AI only proposes them.
+ * Logs, spans, AI calls and exceptions are proven here, and a metric
+ * attribute's Redact Attribute rule too (proveMetricScrubRule, #10753): an
+ * exception is read from the exceptions the finding was seen in - its
+ * message, stack trace and attributes - and a trace rule is run on it as
+ * ingest runs it on a span's exception event
+ * (TraceScrubEngine.scrubExceptionContent); a metric rule is run on the
+ * finding's data points through the one engine ingest runs metric rules
+ * with (Telemetry/MetricPipelineEngine). Session replays are not proven, so
+ * their rules never are - Scrub It still makes them, and OneUptime AI only
+ * proposes them.
  */
 
-// The records of each store kind this proves rules on: the records a log or trace rule scrubs.
+// The records of each store kind this proves log and trace rules on: the records such a rule scrubs.
 const PROVABLE_SOURCES: ReadonlySet<TelemetrySampleSource> = new Set([
   TelemetrySampleSource.Logs,
   TelemetrySampleSource.Traces,
   TelemetrySampleSource.AiConversations,
+  TelemetrySampleSource.Exceptions,
 ]);
 
 // What a proof is asked about: one finding's place, and the records to read it in.
@@ -195,14 +211,14 @@ export function readEachStatementOnce(
 }
 
 function emptyProof(data: {
-  rule: ScrubProofRule;
+  fingerprint: string;
   places: Array<ScrubRuleProofPlace>;
   now: Date;
 }): ScrubRuleProof {
   return {
     version: SCRUB_RULE_PROOF_VERSION,
     provenAt: data.now.toISOString(),
-    fingerprint: getScrubRuleFingerprint(data.rule),
+    fingerprint: data.fingerprint,
     places: data.places,
     findingRecordsRead: 0,
     recordsRead: 0,
@@ -268,6 +284,14 @@ function toEngineRecord(data: {
     return record;
   }
 
+  // An exception: the texts it keeps apart, and its attributes.
+  if (data.source === TelemetrySampleSource.Exceptions) {
+    record["message"] = readText(data.row["readMessage"]);
+    record["stackTrace"] = readText(data.row["readStackTrace"]);
+
+    return record;
+  }
+
   record["events"] = readEvents(data.row["readEvents"]).map(
     (event: ReadEvent): JSONObject => {
       return { name: event.name, attributes: eventAttributesOf(event) };
@@ -298,6 +322,20 @@ function toReadRow(data: {
   if (data.source === TelemetrySampleSource.Logs) {
     if (typeof data.record["body"] === "string") {
       read["readBody"] = data.record["body"];
+    }
+
+    return read;
+  }
+
+  // An exception's texts, where the read held them.
+  if (data.source === TelemetrySampleSource.Exceptions) {
+    for (const [column, part] of [
+      ["readMessage", "message"],
+      ["readStackTrace", "stackTrace"],
+    ] as Array<[string, string]>) {
+      if (typeof data.row[column] === "string") {
+        read[column] = readText(data.record[part]);
+      }
     }
 
     return read;
@@ -456,81 +494,75 @@ function scrubCopy(data: {
   record: JSONObject;
   compiled: CompiledScrubRule<ScrubEngineRule>;
   signal: "log" | "trace";
+  source: TelemetrySampleSource;
 }): JSONObject {
   const copy: JSONObject = JSON.parse(JSON.stringify(data.record));
 
-  return data.signal === "log"
-    ? LogScrubEngine.scrubLog(copy, [data.compiled], null, {
-        countValues: false,
-      })
-    : TraceScrubEngine.scrubSpan(copy, [data.compiled], null, {
-        countValues: false,
-      });
+  if (data.signal === "log") {
+    return LogScrubEngine.scrubLog(copy, [data.compiled], null, {
+      countValues: false,
+    });
+  }
+
+  /*
+   * An exception is a copy of its span's exception event: a trace rule
+   * scrubs it as ingest does, with the rules that scrub events (#10753).
+   * It counts nothing: its span counted it.
+   */
+  if (data.source === TelemetrySampleSource.Exceptions) {
+    const scrubbed: ExceptionContent = TraceScrubEngine.scrubExceptionContent(
+      {
+        message: readText(copy["message"]),
+        stackTrace: readText(copy["stackTrace"]),
+        attributes: (copy["attributes"] as JSONObject) || {},
+      },
+      [data.compiled],
+      copy["primaryEntityId"],
+    );
+
+    return {
+      ...copy,
+      message: scrubbed.message,
+      stackTrace: scrubbed.stackTrace,
+      attributes: scrubbed.attributes,
+    };
+  }
+
+  return TraceScrubEngine.scrubSpan(copy, [data.compiled], null, {
+    countValues: false,
+  });
 }
 
 /*
- * Prove a rule on a finding's place: the counts of what it hid and what
- * else it changed, kept as the rule's proof. Never throws: records that
- * cannot be read, or a place no rule of this kind is proven on, prove
- * nothing, and say why.
+ * The rows of a place, each as a rule leaves it, counted into a proof:
+ * the values that held the data and still do, and the others it changed.
+ * Shared by every kind of rule a proof runs - a log's or a span's, an
+ * exception's, a metric's - so each is proven the same way.
  */
-export async function proveScrubRule(data: {
+async function countAtPlace(data: {
   projectId: ObjectID;
-  rule: ScrubProofRule;
   finding: ScrubProofFinding;
-  // The project's scan setup: its own data types, hints and allowed values.
   options: ContentScanOptions;
-  now?: Date | undefined;
-  // Stands in for the database in a test.
-  readRows?: ScrubProofRowReader | undefined;
+  plan: OccurrencePlan;
+  serviceId: string;
+  proof: ScrubRuleProof;
+  now: Date;
+  readRows: ScrubProofRowReader;
+  // A row of the read, as the rule leaves it, in the shape the scanner reads.
+  scrubRow: (row: JSONObject) => JSONObject;
 }): Promise<ScrubProofOutcome> {
-  const now: Date = data.now || OneUptimeDate.getCurrentDate();
-  const place: ScrubRuleProofPlace = {
-    dataTypeId: data.finding.dataTypeId,
-    location: data.finding.location,
-    kind: data.finding.kind,
-    ...(data.finding.findingId ? { findingId: data.finding.findingId } : {}),
-  };
-  const proof: ScrubRuleProof = emptyProof({
-    rule: data.rule,
-    places: [place],
-    now,
-  });
-  const plan: OccurrencePlan | null = planOccurrenceRead(
-    data.finding.kind,
-    data.finding.location,
-  );
-
-  if (!plan || !PROVABLE_SOURCES.has(plan.source)) {
-    return failed(proof, ScrubProofFailure.NotProvable);
-  }
-
-  const compiled: CompiledScrubRule<ScrubEngineRule> | null = compileScrubRule({
-    _id: "00000000-0000-4000-8000-000000000000",
-    projectId: data.projectId,
-    patternType: data.rule.patternType,
-    customRegex: data.rule.customRegex,
-    attributeKeys: data.rule.attributeKeys,
-    scrubAction: data.rule.scrubAction,
-    fieldsToScrub: data.rule.fieldsToScrub,
-    serviceId: data.rule.serviceId,
-  });
-
-  if (!compiled) {
-    return failed(proof, ScrubProofFailure.RuleScrubsNothing);
-  }
-
-  const source: SourceDefinition = getTelemetrySource(plan.source);
+  const source: SourceDefinition = getTelemetrySource(data.plan.source);
   const caps: TelemetrySampleCaps = capsOf(source, data.options);
   const read: ReadRows | null = await readRows({
     projectId: data.projectId,
-    plan,
-    serviceId: data.rule.serviceId,
+    plan: data.plan,
+    serviceId: data.serviceId,
     finding: data.finding,
     caps,
-    now,
-    readRows: data.readRows || readRowsWithRunner,
+    now: data.now,
+    readRows: data.readRows,
   });
+  const proof: ScrubRuleProof = data.proof;
 
   if (!read) {
     return failed(proof, ScrubProofFailure.CouldNotRead);
@@ -557,7 +589,7 @@ export async function proveScrubRule(data: {
   for (const row of read.rows) {
     const before: Array<string> = valuesAt({
       row,
-      source: plan.source,
+      source: data.plan.source,
       caps,
       location: data.finding.location,
     });
@@ -566,18 +598,9 @@ export async function proveScrubRule(data: {
       continue;
     }
 
-    const scrubbed: JSONObject = scrubCopy({
-      record: toEngineRecord({
-        row,
-        source: plan.source,
-        serviceId: data.rule.serviceId,
-      }),
-      compiled,
-      signal: data.rule.signal,
-    });
     const after: Array<string> = valuesAt({
-      row: toReadRow({ row, record: scrubbed, source: plan.source }),
-      source: plan.source,
+      row: data.scrubRow(row),
+      source: data.plan.source,
       caps,
       location: data.finding.location,
     });
@@ -620,6 +643,189 @@ export async function proveScrubRule(data: {
     overreach:
       proof.otherValues > 0 ? proof.otherValuesChanged / proof.otherValues : 0,
   };
+}
+
+function placeOf(finding: ScrubProofFinding): ScrubRuleProofPlace {
+  return {
+    dataTypeId: finding.dataTypeId,
+    location: finding.location,
+    kind: finding.kind,
+    ...(finding.findingId ? { findingId: finding.findingId } : {}),
+  };
+}
+
+/*
+ * Prove a rule on a finding's place: the counts of what it hid and what
+ * else it changed, kept as the rule's proof. Never throws: records that
+ * cannot be read, or a place no rule of this kind is proven on, prove
+ * nothing, and say why.
+ */
+export async function proveScrubRule(data: {
+  projectId: ObjectID;
+  rule: ScrubProofRule;
+  finding: ScrubProofFinding;
+  // The project's scan setup: its own data types, hints and allowed values.
+  options: ContentScanOptions;
+  now?: Date | undefined;
+  // Stands in for the database in a test.
+  readRows?: ScrubProofRowReader | undefined;
+}): Promise<ScrubProofOutcome> {
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const proof: ScrubRuleProof = emptyProof({
+    fingerprint: getScrubRuleFingerprint(data.rule),
+    places: [placeOf(data.finding)],
+    now,
+  });
+  const plan: OccurrencePlan | null = planOccurrenceRead(
+    data.finding.kind,
+    data.finding.location,
+  );
+
+  if (!plan || !PROVABLE_SOURCES.has(plan.source)) {
+    return failed(proof, ScrubProofFailure.NotProvable);
+  }
+
+  const compiled: CompiledScrubRule<ScrubEngineRule> | null = compileScrubRule({
+    _id: "00000000-0000-4000-8000-000000000000",
+    projectId: data.projectId,
+    patternType: data.rule.patternType,
+    customRegex: data.rule.customRegex,
+    attributeKeys: data.rule.attributeKeys,
+    scrubAction: data.rule.scrubAction,
+    fieldsToScrub: data.rule.fieldsToScrub,
+    serviceId: data.rule.serviceId,
+  });
+
+  if (!compiled) {
+    return failed(proof, ScrubProofFailure.RuleScrubsNothing);
+  }
+
+  return await countAtPlace({
+    projectId: data.projectId,
+    finding: data.finding,
+    options: data.options,
+    plan,
+    serviceId: data.rule.serviceId,
+    proof,
+    now,
+    readRows: data.readRows || readRowsWithRunner,
+    scrubRow: (row: JSONObject): JSONObject => {
+      return toReadRow({
+        row,
+        record: scrubCopy({
+          record: toEngineRecord({
+            row,
+            source: plan.source,
+            serviceId: data.rule.serviceId,
+          }),
+          compiled,
+          signal: data.rule.signal,
+          source: plan.source,
+        }),
+        source: plan.source,
+      });
+    },
+  });
+}
+
+/*
+ * A metric data point of the read as the metric engine takes a row - its
+ * metric's name and its attributes - left by the rule, and read back in
+ * the shape the scanner reads.
+ */
+function scrubMetricRow(row: JSONObject, rule: MetricPipelineRule): JSONObject {
+  const attributes: JSONObject = {};
+
+  for (const [key, value] of readPairs(row["readAttributes"])) {
+    attributes[key] = value;
+  }
+
+  const metricRow: MutableMetricRow = {
+    name: readText(row["readMetricName"]),
+    attributes,
+  };
+  const left: MutableMetricRow | null = MetricPipelineEngine.applyRules(
+    metricRow,
+    [rule],
+    [],
+  );
+  const leftAttributes: JSONObject = left
+    ? MetricPipelineEngine.getAttributes(left)
+    : {};
+
+  return {
+    ...row,
+    readAttributes: Object.keys(leftAttributes).map(
+      (key: string): Array<string> => {
+        const value: unknown = leftAttributes[key];
+
+        return [key, typeof value === "string" ? value : JSON.stringify(value)];
+      },
+    ),
+  };
+}
+
+/*
+ * Prove a metric attribute's rule - the Redact Attribute metric pipeline
+ * rule Scrub It makes (TelemetryScrubCoverage.buildMetricScrubRule) - on
+ * the finding's data points and the newest of its service with a value at
+ * the place, through the one engine ingest runs metric rules with
+ * (Telemetry/MetricPipelineEngine, #10753): every value that held the
+ * data hidden, and how many of the attribute's other values it changed.
+ * Never throws, as proveScrubRule.
+ */
+export async function proveMetricScrubRule(data: {
+  projectId: ObjectID;
+  rule: MetricPipelineRule;
+  finding: ScrubProofFinding;
+  options: ContentScanOptions;
+  now?: Date | undefined;
+  readRows?: ScrubProofRowReader | undefined;
+}): Promise<ScrubProofOutcome> {
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const serviceId: string = data.rule.serviceId?.toString() || "";
+  const proof: ScrubRuleProof = emptyProof({
+    fingerprint: getMetricScrubRuleFingerprint({
+      serviceId,
+      attributeKey: data.rule.addAttributeKey,
+      filters: data.rule.filters,
+      filterCondition: data.rule.filterCondition,
+      redactReplacement: data.rule.redactReplacement,
+    }),
+    places: [placeOf(data.finding)],
+    now,
+  });
+  const plan: OccurrencePlan | null = planOccurrenceRead(
+    data.finding.kind,
+    data.finding.location,
+  );
+
+  // A metric's attribute, and nothing else: a name is never scrubbed by a rule.
+  if (
+    !plan ||
+    plan.source !== TelemetrySampleSource.Metrics ||
+    plan.read.kind !== "pairs"
+  ) {
+    return failed(proof, ScrubProofFailure.NotProvable);
+  }
+
+  if (!data.rule.addAttributeKey || !ObjectID.isValidUUID(serviceId)) {
+    return failed(proof, ScrubProofFailure.RuleScrubsNothing);
+  }
+
+  return await countAtPlace({
+    projectId: data.projectId,
+    finding: data.finding,
+    options: data.options,
+    plan,
+    serviceId,
+    proof,
+    now,
+    readRows: data.readRows || readRowsWithRunner,
+    scrubRow: (row: JSONObject): JSONObject => {
+      return scrubMetricRow(row, data.rule);
+    },
+  });
 }
 
 /*

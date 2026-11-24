@@ -2,7 +2,7 @@
 
 Una interrupción rara vez dispara una sola alerta. Cuando cae la base de datos principal, se dispara el monitor de retraso de replicación, se dispara el monitor de tasa de errores de la API, y el SLO de latencia del pago empieza a consumir su presupuesto: tres alertas, un problema. Vincular esas alertas al incidente lo dice: el incidente es donde ocurre la respuesta, y cada alerta muestra qué incidente la explica.
 
-Un vínculo es solo un vínculo. La alerta conserva su propio estado, sus propietarios, sus políticas de guardia, sus notas y su feed; el incidente conserva los suyos. Vincular no fusiona ni copia nada, y por sí solo nunca reconoce, resuelve ni silencia una alerta. (Declarar un incidente nuevo a partir de alertas es distinto: el nuevo incidente se rellena a partir de ellas, como se [describe más abajo](#declarar-un-incidente-a-partir-de-alertas), y salvo que desmarques la casilla del formulario, las alertas se reconocen al declararlo, lo que detiene su escalado; consulta [Reconocer las alertas al declarar](#reconocer-las-alertas-al-declarar)). Dos interruptores del proyecto, activados en los proyectos nuevos, hacen que las alertas vinculadas acompañen al incidente cuando se reconoce y se resuelve; consulta [más abajo](#mantener-los-estados-de-las-alertas-sincronizados-con-el-incidente).
+Un vínculo es solo un vínculo. La alerta conserva su propio estado, sus propietarios, sus políticas de guardia, sus notas y su feed; el incidente conserva los suyos. Vincular no fusiona ni copia nada, y por sí solo nunca reconoce, resuelve ni silencia una alerta. (Declarar un incidente nuevo a partir de alertas es distinto: el nuevo incidente se rellena a partir de ellas y empieza con sus propietarios, como se [describe más abajo](#declarar-un-incidente-a-partir-de-alertas), y salvo que desmarques la casilla del formulario, las alertas se reconocen al declararlo, lo que detiene su escalado; consulta [Reconocer las alertas al declarar](#reconocer-las-alertas-al-declarar)). Dos interruptores del proyecto, activados en los proyectos nuevos, hacen que las alertas vinculadas acompañen al incidente cuando se reconoce y se resuelve; consulta [más abajo](#mantener-los-estados-de-las-alertas-sincronizados-con-el-incidente).
 
 :::cards
 - [Vincular alertas a un incidente](#vincular-alertas-desde-un-incidente): Desde el incidente, desde una alerta, o muchas a la vez.
@@ -119,11 +119,12 @@ Uses la que uses, llegas al formulario habitual **Declarar nuevo incidente**, co
 | **Gravedad del incidente** | La gravedad de la alerta más grave, traducida a una gravedad de incidente. Gana una gravedad de incidente con el mismo nombre, sin distinguir mayúsculas. Si no, OneUptime toma la gravedad de incidente que está en la misma posición del orden de gravedades, o la última si tienes menos gravedades de incidente. |
 | **Recursos afectados**     | Todos los monitores, hosts, clústeres de Kubernetes, hosts de Docker, hosts de Podman y servicios de las alertas seleccionadas, combinados. Los monitores van en **Monitores** y el resto en **Otros recursos afectados**. Otros recursos, como los SLO o los clústeres de VMware, Proxmox y Ceph, no se copian: añádelos tú si el incidente los afecta. |
 | **Etiquetas**              | Todas las etiquetas de todas las alertas seleccionadas.                                                                                                                                                                                                                                |
-| **Incidente privado**      | Activado si alguna de las alertas es privada. El formulario lo dice, y los propietarios de las alertas pasan a ser propietarios del incidente; consulta más abajo.                                                                                                                    |
+| **Propietarios**           | Cada persona y cada equipo propietario de alguna de las alertas, una sola vez, pero no una persona que ha dejado el proyecto. El aviso los nombra. Consulta [Los propietarios de las alertas son propietarios del incidente](#los-propietarios-de-las-alertas-son-propietarios-del-incidente). |
+| **Incidente privado**      | Activado si alguna de las alertas es privada. El formulario lo dice; consulta más abajo.                                                                                                                                                                                               |
 
 «La más grave» sigue el orden de tus gravedades de alerta: la primera gravedad de alerta de la lista es la más grave. Con las gravedades con las que empieza todo proyecto, una alerta **Alta** se convierte en un **Incidente crítico** y una alerta **Baja** en un **Incidente mayor**.
 
-Todo se puede editar antes de enviar. **Etiquetas** e **Incidente privado** están en **Más campos** en el primer paso del formulario, cuya cabecera plegada muestra cualquiera de los dos mientras está definido.
+Todo se puede editar antes de enviar. **Etiquetas**, **Incidente privado** y **Propietarios** están en **Más campos** en el primer paso del formulario, cuya cabecera plegada muestra cada uno de ellos mientras está definido.
 
 **Se señala una alerta que ya tiene un incidente.** Con **Declarar incidente** en la página de cada alerta, dos respondedores avisados por la misma interrupción podrían declararla cada uno. Por eso el aviso que lista las alertas marca cada alerta que ya está vinculada a un incidente —«(already linked to Incident INC-42)», con un enlace a ese incidente— y añade una nota, redactada según cuántas de las alertas están vinculadas:
 
@@ -137,7 +138,7 @@ Los enlaces a los incidentes se abren en una pestaña nueva, para que puedas rev
 
 **Los monitores de las alertas se rellenan como monitores afectados.** Como en cualquier incidente declarado a mano, el monitoreo activo de los monitores del incidente se pausa hasta que se resuelve el incidente. Quita un monitor de **Monitores** en el paso **Recursos afectados** antes de enviar si debe seguir comprobándose.
 
-**Una alerta privada da un incidente privado.** Si alguna de las alertas es privada, **Incidente privado** empieza activado, y el aviso que lista las alertas lo dice. Un incidente privado solo es visible para sus propietarios, los Propietarios del proyecto y los Administradores del proyecto, así que OneUptime se asegura de que quienes podían ver las alertas puedan ver el incidente: una vez declarado, los propietarios de cada alerta declarada —tanto usuarios como equipos— se añaden como propietarios del incidente, sin recibir notificación. Se añaden justo después de que se creen los canales de Slack y Microsoft Teams del incidente, así que se les invita a esos canales como a cualquier otro propietario. Tú también eres propietario, como en cualquier incidente que declares. Lo mismo ocurre cuando una regla de privacidad de incidentes hace privado el nuevo incidente. Si desactivas **Incidente privado** antes de enviar y no se aplica ninguna regla de privacidad, el incidente no es privado y no se copia ningún propietario.
+**Una alerta privada da un incidente privado.** Si alguna de las alertas es privada, **Incidente privado** empieza activado, y el aviso que lista las alertas lo dice. Un incidente privado solo es visible para sus propietarios, los Propietarios del proyecto y los Administradores del proyecto, y los propietarios de las alertas empiezan siendo sus propietarios, así que quienes podían ver las alertas pueden ver el incidente, salvo que los quites. Tú también eres propietario, como en cualquier incidente que declares.
 
 ```mermaid title="Qué ocurre cuando declaras a partir de alertas"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 Cuando envías, el servidor comprueba las alertas antes de crear nada: como mucho 50, cada una una alerta de este proyecto que tienes permiso para ver, y debes tener permiso para vincular alertas a incidentes. Si alguna comprobación falla, la solicitud se rechaza y no se crea ningún incidente, así que un id de alerta incorrecto nunca gasta un número de incidente. Una vez que existe el incidente —y una vez ejecutadas sus reglas de privacidad, para que los vínculos sepan si es privado—, cada alerta se vincula antes de que la solicitud responda, así que la página **Alertas vinculadas** del incidente ya las lista. Si falla un único vínculo —porque la alerta se eliminó un momento antes, por ejemplo—, el incidente se declara igualmente y las demás alertas se vinculan igualmente.
 
 El feed del incidente recibe una sola entrada **Alerta vinculada** que lista las alertas, escrita después de **Incidente creado**, en lugar de una por alerta; consulta [El feed, Slack y Microsoft Teams](#el-feed-slack-y-microsoft-teams).
+
+### Los propietarios de las alertas son propietarios del incidente
+
+Quienes trabajan en las alertas son quienes trabajan en el incidente, así que el incidente empieza con ellos. El campo **Propietarios**, en **Más campos**, empieza con cada persona y cada equipo propietario de alguna de las alertas —una sola vez cada uno, después de los propietarios de una plantilla de incidente si declaras a partir de una plantilla—, y el aviso que lista las alertas los nombra: "Los propietarios de la alerta también son propietarios del incidente. Cámbialos en Más campos antes de declararlo." Quita cualquiera de ellos, o añade otros, antes de enviar; los propietarios del incidente son entonces exactamente lo que contiene el campo, sea o no un incidente privado. El resumen los lista junto con las reglas de propietario que añadirán más.
+
+- **Una persona que ha dejado el proyecto no pasa al incidente**, ni tampoco una cuya invitación nunca se aceptó. Un equipo eliminado ya no es propietario de la alerta, así que tampoco pasa al incidente.
+- **Se les avisa una sola vez.** Los propietarios de las alertas se añaden como todo propietario con el que empieza un incidente —justo después de que se creen sus canales de Slack y Microsoft Teams, de modo que se les invita a esos canales, y antes de que salga su notificación **Incidente creado**—, así que se enteran del incidente por esa notificación, según sus propias reglas de notificación, y no reciben además un aviso de «añadido como propietario». Un propietario que también añade una regla de propietario, o que se elige dos veces, se añade una sola vez.
+- **Si no puedes añadir propietarios de incidentes**, aun así puedes declarar el incidente: el campo se queda como estaba, OneUptime añade él mismo los propietarios de las alertas al declararlo, y el aviso dice "Los propietarios de la alerta también son propietarios del incidente, una vez declarado." Dice lo mismo, sin nombrarlos, cuando no puedes ver quiénes son los propietarios de las alertas.
+- **Las alertas sin propietarios** no añaden a nadie, y el aviso no dice nada sobre propietarios.
+
+Un incidente declarado a partir de alertas de cualquier otra forma también recibe los propietarios de las alertas: por la API (consulta [Declarar por la API](#declarar-por-la-api)), mediante una [regla de incidentes](/docs/alerts/settings#reglas-de-incidentes) y con `/oneuptime incident` en el canal de [Slack](/docs/workspace-connections/slack) o de [Microsoft Teams](/docs/workspace-connections/microsoft-teams) de una alerta. Vincular una alerta a un incidente que ya existe no copia ningún propietario.
 
 ### Reconocer las alertas al declarar
 
@@ -180,7 +192,7 @@ Las alertas se reconocen en segundo plano, justo después de vincularse, unas po
 
 ### Declarar por la API
 
-`POST /api/incident` acepta los ids de las alertas que vincular en `miscDataProps`, en `alertIdsToLink`, y si reconocer esas alertas en `acknowledgeAlertsToLink`:
+`POST /api/incident` acepta los ids de las alertas que vincular en `miscDataProps`, en `alertIdsToLink`, si reconocer esas alertas en `acknowledgeAlertsToLink`, y si sus propietarios pasan a ser los del incidente en `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - la clave de API no puede reconocer cada alerta que aún no está reconocida: eso requiere **Create Alert State Timeline**, con etiquetas y alcance de propietarios que lleguen a cada una de esas alertas, como al reconocer cada una de ellas.
 
 Una clave de API no es un usuario, así que las alertas reconocidas con ella no se atribuyen a nadie, igual que sus vínculos no tienen **Vinculado por**.
+
+`carryOverAlertOwners` es opcional, y está activado salvo que envíes `false`: cada persona y cada equipo propietario de alguna de las alertas pasa a ser propietario del incidente en cuanto existe, como en el formulario —una persona que ha dejado el proyecto se omite—, y se le avisa una sola vez, con su notificación **Incidente creado**. Los añade OneUptime, así que la clave de API no necesita permiso para añadir propietarios para ellos. Envía `false` para elegir tú los propietarios, en `ownerUsers` y `ownerTeams`. Se rechaza con un 400 cuando es cualquier cosa distinta de `true` o `false`, y cuando es `true` sin `alertIdsToLink`.
 
 ## Vincular y desvincular por la API
 

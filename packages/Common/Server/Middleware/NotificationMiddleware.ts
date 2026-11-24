@@ -12,13 +12,16 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import JSONFunctions from "../../Types/JSONFunctions";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { toSpokenText } from "../../Utils/Call/CallSpeech";
 
 export default class NotificationMiddleware {
   /*
    * Answers a key the person pressed during a call: with what the call
    * itself said that key would answer (its signed token), or - when what
    * happened decides the answer, as for passing a page on - with
-   * `sayMessage`.
+   * `sayMessage`. In characters TwiML can carry (CallSpeech): a name in the
+   * answer with a control character in it no longer fails the TwiML builder,
+   * and with it the answer.
    */
   @CaptureSpan()
   public static async sendResponse(
@@ -30,11 +33,13 @@ export default class NotificationMiddleware {
     const response: VoiceResponse = new VoiceResponse();
 
     if (sayMessage) {
-      response.say(sayMessage);
+      response.say(toSpokenText(sayMessage));
     } else if (onCallInputRequest[req.body["Digits"]]) {
-      response.say(onCallInputRequest[req.body["Digits"]]!.sayMessage);
+      response.say(
+        toSpokenText(onCallInputRequest[req.body["Digits"]]!.sayMessage),
+      );
     } else {
-      response.say(onCallInputRequest["default"]!.sayMessage);
+      response.say(toSpokenText(onCallInputRequest["default"]!.sayMessage));
     }
 
     return Response.sendXmlResponse(req, res, response.toString());

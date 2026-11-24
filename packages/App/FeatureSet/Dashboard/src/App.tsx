@@ -164,6 +164,12 @@ const ConnectReturn: React.LazyExoticComponent<
   return import("./Pages/ConnectReturn/ConnectReturn");
 });
 
+const OpenStatusPageResources: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/StatusPages/OpenStatusPageResources");
+});
+
 const LogsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/LogsRoutes");
 });
@@ -1260,6 +1266,26 @@ const App: () => JSX.Element = () => {
                     pageRoute={RouteMap[PageMap.CONNECT_RETURN] as Route}
                     projects={projects}
                     isLoading={isLoading}
+                  />
+                }
+              />
+
+              {/*
+               * A status page's Resources by the page's id alone, from its
+               * preview's note for a page with nothing on it: opened in the
+               * project the page is in (#9180).
+               */}
+              <PageRoute
+                path={
+                  RouteMap[PageMap.STATUS_PAGE_RESOURCES_BY_ID]?.toString() ||
+                  ""
+                }
+                element={
+                  <OpenStatusPageResources
+                    {...commonPageProps}
+                    pageRoute={
+                      RouteMap[PageMap.STATUS_PAGE_RESOURCES_BY_ID] as Route
+                    }
                   />
                 }
               />

@@ -777,18 +777,45 @@ describe("call", () => {
         return (item as { sayMessage: string }).sayMessage;
       });
 
-    expect(says[0]).toBe(
-      "This is a test page from OneUptime. Nothing is wrong.",
-    );
-    expect(says[1]).toBe(
+    // Who calls, as every page's call says it; then that it is a test (#10762).
+    expect(says).toEqual([
+      "This is a call from Acme.",
+      "This is a test page. Nothing is wrong.",
       "This tests how Acme pages you for an incident of severity Critical.",
-    );
+    ]);
+
+    // Said again with the prompt, what it tests after the prompt the first time.
+    expect(
+      callRequest.data
+        .filter((item: unknown): boolean => {
+          return Boolean((item as { sayMessage?: string }).sayMessage);
+        })
+        .map((item: unknown) => {
+          const said: { afterPrompt?: boolean; repeated?: boolean } = item as {
+            afterPrompt?: boolean;
+            repeated?: boolean;
+          };
+
+          return {
+            afterPrompt: Boolean(said.afterPrompt),
+            repeated: Boolean(said.repeated),
+          };
+        }),
+    ).toEqual([
+      { afterPrompt: false, repeated: false },
+      { afterPrompt: false, repeated: true },
+      { afterPrompt: true, repeated: true },
+    ]);
 
     const gather: GatherInput = callRequest.data.find((item: unknown) => {
       return Boolean((item as GatherInput).onInputCallRequest);
     }) as GatherInput;
 
     expect(gather.introMessage).toBe("To acknowledge this test page, press 1.");
+    expect(gather.noInputMessage).toBe(
+      "You did not press a key, so this test page is not acknowledged. Good bye.",
+    );
+    expect(gather.timeoutInSeconds).toBe(10);
     expect(gather.responseUrl.toString()).toBe(CALL_RESPONSE_URL);
     expect(
       (gather.onInputCallRequest["1"] as { sayMessage: string }).sayMessage,

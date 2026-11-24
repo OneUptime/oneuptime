@@ -529,7 +529,7 @@ describe("a delivery writes each channel in the language of the person it pages"
 
     // The call is spoken in English, and WhatsApp's template is Meta's.
     expect(sayMessages(delivered.call)[1]).toBe(
-      "A new incident has been created",
+      "A new Sev 1 incident has been created: INC-42.",
     );
     expect(delivered.whatsApp.templateLanguageCode).toBe(
       WhatsAppTemplateLanguage[WhatsAppTemplateIds.IncidentCreated],
@@ -598,7 +598,7 @@ describe("a delivery writes each channel in the language of the person it pages"
 
     // The call is spoken in English, as every page's call is.
     expect(sayMessages(delivered.call)[1]).toBe(
-      "A new incident has been created",
+      "A new Sev 1 incident has been created: INC-42.",
     );
   });
 
@@ -625,7 +625,7 @@ describe("a delivery writes each channel in the language of the person it pages"
     );
     // The call says so in English, as a call always has.
     expect(sayMessages(delivered.call)[1]).toBe(
-      "An incident is still not resolved 30 minutes after it was acknowledged",
+      "An incident is still not resolved 30 minutes after it was acknowledged: Sev 1 incident INC-42.",
     );
   });
 
@@ -1535,7 +1535,7 @@ describe("an observer's page, in the language of the person it pages", () => {
       );
 
     expect(sayMessages(call)[1]).toBe(
-      "You are paged as an observer about an incident",
+      "You are paged as an observer about an incident: Sev 1 incident INC-42.",
     );
   });
 });

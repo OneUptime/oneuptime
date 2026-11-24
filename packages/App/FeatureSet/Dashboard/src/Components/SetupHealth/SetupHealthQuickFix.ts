@@ -10,8 +10,8 @@ import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule"
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { withPlainSpaces } from "Common/Types/NoBreakSpaces";
 import ObjectID from "Common/Types/ObjectID";
 import { RULE_NAME_MAX_LENGTH } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
@@ -302,6 +302,12 @@ export interface SetupHealthPolicyChoice {
   sharedName?: SharedNameFacts | undefined;
 }
 
+/*
+ * How many policies the quick fix offers at a time: the first by name as
+ * the dialog opens, and the ones a search finds (#10764).
+ */
+export const SETUP_HEALTH_POLICIES_READ_AT_ONCE: number = 50;
+
 function currentProjectId(): ObjectID {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
@@ -331,19 +337,51 @@ export default class SetupHealthQuickFixApi {
     ProjectNotificationChannelsStore.recordChannel(projectId, channel, true);
   }
 
-  // The on-call policies a rule may page: the ones in service, by name.
+  /*
+   * The on-call policies a rule may page: the first ones in service by name
+   * (#10764). The dialog read the first 10,000 and offered those alone, so a
+   * policy past them could not be paged; its picker searches the server for
+   * the rest as it is typed in (searchPolicies).
+   */
   public static async getPolicies(): Promise<Array<SetupHealthPolicyChoice>> {
+    return await SetupHealthQuickFixApi.readPolicies("");
+  }
+
+  /*
+   * The policies in service whose name holds what is typed into the
+   * dialog's picker, searched on the server (#10764). Nothing is asked for
+   * an empty box.
+   */
+  public static async searchPolicies(
+    search: string,
+  ): Promise<Array<SetupHealthPolicyChoice>> {
+    if (!search.trim()) {
+      return [];
+    }
+
+    return await SetupHealthQuickFixApi.readPolicies(search);
+  }
+
+  // Policies in service whose name holds `search` (all for none), by name.
+  private static async readPolicies(
+    search: string,
+  ): Promise<Array<SetupHealthPolicyChoice>> {
+    const trimmed: string = search.trim();
+
     const result: ListResult<OnCallDutyPolicy> =
       await ModelAPI.getList<OnCallDutyPolicy>({
         modelType: OnCallDutyPolicy,
-        query: { isArchived: false },
+        query: {
+          isArchived: false,
+          ...(trimmed ? { name: new Search(trimmed) } : {}),
+        },
         select: {
           _id: true,
           name: true,
           ...getSharedNameSelect(OnCallDutyPolicy),
         },
         sort: { name: SortOrder.Ascending },
-        limit: LIMIT_PER_PROJECT,
+        limit: SETUP_HEALTH_POLICIES_READ_AT_ONCE,
         skip: 0,
       });
 
