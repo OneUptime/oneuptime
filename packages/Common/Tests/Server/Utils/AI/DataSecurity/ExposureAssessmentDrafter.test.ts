@@ -389,8 +389,11 @@ describe("the EU emails bucket, open nine days with reads not logged", () => {
     expect(view.reads.outsideAccountsUsedInWindow).toBe(1);
 
     // Whose data.
-    expect(view.whose.dataTypes.map((type: { name: string }) => type.name))
-      .toEqual(["Email address", "Person name"]);
+    expect(
+      view.whose.dataTypes.map((type: { name: string }) => {
+        return type.name;
+      }),
+    ).toEqual(["Email address", "Person name"]);
     expect(view.whose.countriesFromData).toEqual(["DE", "FR", "NL"]);
     expect(view.whose.places).toEqual([BreachPlace.Eea]);
     expect(view.whose.records).toBe(48000);
@@ -560,9 +563,7 @@ describe("the window, from recorded timelines", () => {
     const answer: DataSecurityExposureAssessmentResponse = await assess();
 
     expect(answer.view!.window!.start).toBe(opened.toISOString());
-    expect(answer.view!.window!.startKind).toBe(
-      ExposureWindowStartKind.Change,
-    );
+    expect(answer.view!.window!.startKind).toBe(ExposureWindowStartKind.Change);
     expect(answer.view!.window!.startOperation).toBe(
       "s3:DeleteBucketPublicAccessBlock",
     );
@@ -671,7 +672,9 @@ describe("who read it, with and without logs", () => {
 
 describe("who sees it: the case's readers who may read the store and its findings", () => {
   beforeEach(async () => {
-    useTables({ cases: [caseRow({ exposureAssessment: startedAssessment() })] });
+    useTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
   });
 
   test.each([
@@ -941,7 +944,9 @@ describe("assessing a case", () => {
 
   test("a case about no data store has nothing to assess", async () => {
     useTables({
-      cases: [caseRow({ entities: [{ type: "IP Address", value: "1.2.3.4" }] })],
+      cases: [
+        caseRow({ entities: [{ type: "IP Address", value: "1.2.3.4" }] }),
+      ],
     });
 
     expect((await read()).stores).toEqual([]);
@@ -974,7 +979,9 @@ describe("assessing a case", () => {
       startedBy: ExposureAssessmentStarter.DataSecurity,
     });
     expect(kept()!.startedByUserId).toBeUndefined();
-    expect(timelineLines()[0]).toContain("Data Security assessed this exposure");
+    expect(timelineLines()[0]).toContain(
+      "Data Security assessed this exposure",
+    );
 
     expect(
       await ExposureAssessmentDrafter.startOnItsOwn({
@@ -1000,9 +1007,11 @@ describe("assessing a case", () => {
 
     const answer: DataSecurityExposureAssessmentResponse = await read();
 
-    expect(answer.stores.map((store: { dataStoreId: string }) => {
-      return store.dataStoreId;
-    })).toEqual([STORE_ID]);
+    expect(
+      answer.stores.map((store: { dataStoreId: string }) => {
+        return store.dataStoreId;
+      }),
+    ).toEqual([STORE_ID]);
     expect(answer.view!.window!.days).toBe(9);
   });
 });
@@ -1080,7 +1089,9 @@ describe("where the people live", () => {
 
 describe("OneUptime AI's write-up, when a person asks", () => {
   beforeEach(() => {
-    useTables({ cases: [caseRow({ exposureAssessment: startedAssessment() })] });
+    useTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
   });
 
   async function factsNow(): Promise<Array<ComplianceFact>> {
@@ -1157,8 +1168,9 @@ describe("OneUptime AI's write-up, when a person asks", () => {
     const answer: DataSecurityExposureAssessmentResponse =
       await draftForPerson();
 
-    expect(answer.assessment!.sections[ExposureDraftPart.PeopleNotice])
-      .toBeUndefined();
+    expect(
+      answer.assessment!.sections[ExposureDraftPart.PeopleNotice],
+    ).toBeUndefined();
     expect(
       answer.assessment!.sections[ExposureDraftPart.RegulatorNotice],
     ).toBeDefined();
@@ -1180,8 +1192,9 @@ describe("OneUptime AI's write-up, when a person asks", () => {
     expect(
       answer.assessment!.sections[ExposureDraftPart.RegulatorNotice],
     ).toBeUndefined();
-    expect(answer.assessment!.sections[ExposureDraftPart.Explanation])
-      .toBeDefined();
+    expect(
+      answer.assessment!.sections[ExposureDraftPart.Explanation],
+    ).toBeDefined();
   });
 
   test("an answer that is not one, or holds nothing, keeps nothing and says so", async () => {
@@ -1291,8 +1304,9 @@ describe("OneUptime AI's write-up, when a person asks", () => {
       await draftForPerson();
 
     expect(answer.assessment!.startedBy).toBe(ExposureAssessmentStarter.Person);
-    expect(answer.assessment!.sections[ExposureDraftPart.Explanation])
-      .toBeDefined();
+    expect(
+      answer.assessment!.sections[ExposureDraftPart.Explanation],
+    ).toBeDefined();
   });
 
   test("an answer to a part it was not asked is left out", async () => {
@@ -1322,7 +1336,9 @@ describe("OneUptime AI's write-up, when a person asks", () => {
 
 describe("a person's own words", () => {
   beforeEach(() => {
-    useTables({ cases: [caseRow({ exposureAssessment: startedAssessment() })] });
+    useTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
   });
 
   async function edit(
@@ -1372,7 +1388,10 @@ describe("a person's own words", () => {
     useTables();
 
     const refusal: Error = await refusalOf(() => {
-      return edit(ExposureDraftPart.PeopleNotice, "Our own words to the people.");
+      return edit(
+        ExposureDraftPart.PeopleNotice,
+        "Our own words to the people.",
+      );
     });
 
     expect(refusal.message).toBe(NOT_ASSESSED_MESSAGE);
@@ -1381,7 +1400,9 @@ describe("a person's own words", () => {
 
 describe("OneUptime AI's write-up on its own", () => {
   beforeEach(() => {
-    useTables({ cases: [caseRow({ exposureAssessment: startedAssessment() })] });
+    useTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
   });
 
   async function draftOnItsOwn(
@@ -1516,7 +1537,9 @@ describe("OneUptime AI's write-up on its own", () => {
 
 describe("the write-up goes stale when the facts change", () => {
   test("a draft written before the people's places were said is stale after", async () => {
-    useTables({ cases: [caseRow({ exposureAssessment: startedAssessment() })] });
+    useTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
 
     const facts: Array<ComplianceFact> = (await read()).facts;
 

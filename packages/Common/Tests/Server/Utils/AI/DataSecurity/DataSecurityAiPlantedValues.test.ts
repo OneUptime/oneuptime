@@ -118,7 +118,6 @@ import SecurityCaseService from "../../../../../Server/Services/SecurityCaseServ
 import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCaseFeedService";
 import SecurityCaseTaskService from "../../../../../Server/Services/SecurityCaseTaskService";
 import DataStoreFeedService from "../../../../../Server/Services/DataStoreFeedService";
-import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import {
   ExposureAssessmentStarter,
   startExposureAssessment,

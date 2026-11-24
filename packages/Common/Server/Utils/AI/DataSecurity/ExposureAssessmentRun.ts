@@ -202,7 +202,11 @@ export default class ExposureAssessmentRun {
   }): Promise<{ aiSkipped: ExposureRunAiSkip | null; llmProviderId: string }> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
-      select: { _id: true, enableAi: true, enableAutomaticDataSecurityAi: true },
+      select: {
+        _id: true,
+        enableAi: true,
+        enableAutomaticDataSecurityAi: true,
+      },
       props: { isRoot: true },
     });
 
@@ -240,7 +244,10 @@ export default class ExposureAssessmentRun {
     });
 
     if (!rules) {
-      return { aiSkipped: ExposureRunAiSkip.RulesUnreadable, llmProviderId: "" };
+      return {
+        aiSkipped: ExposureRunAiSkip.RulesUnreadable,
+        llmProviderId: "",
+      };
     }
 
     if (plan.skip) {

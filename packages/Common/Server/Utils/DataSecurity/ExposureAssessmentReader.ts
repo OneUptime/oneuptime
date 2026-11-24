@@ -421,11 +421,13 @@ export default class ExposureAssessmentReader {
         securityCaseId: data.securityCaseId,
         dataStoreId: store.id,
       });
-    const timelines: Map<string, Array<ExposureIssueEntry>> =
-      await ExposureAssessmentReader.readIssueTimelines({
-        projectId: data.projectId,
-        issues,
-      });
+    const timelines: Map<
+      string,
+      Array<ExposureIssueEntry>
+    > = await ExposureAssessmentReader.readIssueTimelines({
+      projectId: data.projectId,
+      issues,
+    });
     const issueFacts: Array<ExposureIssueFacts> = issues.map(
       (issue: DataSecurityIssue): ExposureIssueFacts => {
         const id: string = issue.id!.toString();
@@ -689,7 +691,9 @@ export default class ExposureAssessmentReader {
         };
       })
       .filter(
-        (entry: ExposureResponseEntry | null): entry is ExposureResponseEntry => {
+        (
+          entry: ExposureResponseEntry | null,
+        ): entry is ExposureResponseEntry => {
           return entry !== null;
         },
       );
@@ -867,7 +871,8 @@ export default class ExposureAssessmentReader {
         return {
           id,
           name: namer.nameOf(id),
-          category: getBuiltInDataType(id)?.category || categories.get(id) || "",
+          category:
+            getBuiltInDataType(id)?.category || categories.get(id) || "",
         };
       },
     );

@@ -441,8 +441,7 @@ export const COMPLIANCE_FACT_KIND_WORDS: Readonly<
   [ComplianceFactKind.TurnedOff]: "a resource that turned it off",
   [ComplianceFactKind.ExposureIssue]:
     "an issue that found the store exposed, and when it was open",
-  [ComplianceFactKind.ExposureWindow]:
-    "how long the store was exposed, in UTC",
+  [ComplianceFactKind.ExposureWindow]: "how long the store was exposed, in UTC",
   [ComplianceFactKind.ExposureReads]:
     "whether reads of the store were logged, and who could read it",
   [ComplianceFactKind.SecretFound]:
@@ -1295,9 +1294,15 @@ export function describeComplianceFact(fact: ComplianceFact): string {
       }${fact.resolvedAt ? `, closed ${fact.resolvedAt}` : ""})`;
     case ComplianceFactKind.ExposureWindow:
       return `Exposed ${
-        fact.startIsExact ? `from ${fact.start}` : `at least since ${fact.start}`
+        fact.startIsExact
+          ? `from ${fact.start}`
+          : `at least since ${fact.start}`
       }${
-        fact.isStillOpen ? ", and still open" : fact.end ? ` to ${fact.end}` : ""
+        fact.isStillOpen
+          ? ", and still open"
+          : fact.end
+            ? ` to ${fact.end}`
+            : ""
       }: ${days(fact.days)} (${fact.hours} hours). Found ${fact.foundAt}`;
     case ComplianceFactKind.ExposureReads:
       return [

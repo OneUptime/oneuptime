@@ -8,6 +8,19 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
+import {
+  ASSESS_EXPOSURE,
+  READS_NOT_LOGGED,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
+import {
+  BREACH_LAW_RULES,
+  BreachLawFamily,
+  BreachLawRule,
+} from "Common/Types/DataSecurity/BreachLaws";
+import {
+  ASSESSED_ON_ITS_OWN_SENSITIVITIES,
+  EXPOSING_CHANGE_LOOKBACK_IN_DAYS,
+} from "Common/Types/DataSecurity/ExposureAssessment";
 import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -3131,7 +3144,80 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.approveAiProposal("<id>"),
       DATA_SECURITY_API_ROUTES.dismissAiProposal("<id>"),
       DATA_SECURITY_API_ROUTES.undoAiProposal("<id>"),
+      DATA_SECURITY_API_ROUTES.exposureAssessment("<id>"),
+      DATA_SECURITY_API_ROUTES.assessExposure("<id>"),
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment("<id>"),
+      DATA_SECURITY_API_ROUTES.editExposureAssessment("<id>"),
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces("<id>"),
     ]);
+  });
+
+  /*
+   * Was it a breach? (#10377): which exposures are assessed on their own,
+   * how far back the window's change is looked for, the line on reads, the
+   * laws the table covers, and that nothing is sent and none of it is legal
+   * advice - as the code has them.
+   */
+  it("says how an exposure is assessed, as the assessment works it out", () => {
+    const breach: string = section(page, "## Was it a breach?").replace(
+      /\s+/g,
+      " ",
+    );
+
+    // Assessed on its own: Critical exposures of Restricted or Confidential data.
+    expect(
+      ASSESSED_ON_ITS_OWN_SENSITIVITIES.map((sensitivity: string): string => {
+        return `**${sensitivity}**`;
+      }),
+    ).toEqual(["**Restricted**", "**Confidential**"]);
+    expect(breach).toContain(
+      "A Critical exposure of a store with **Restricted** or **Confidential** data",
+    );
+    expect(breach).toContain(`**${ASSESS_EXPOSURE}**`);
+    expect(breach).toContain(
+      `when one was logged in the ${EXPOSING_CHANGE_LOOKBACK_IN_DAYS} days before it was found`,
+    );
+    // The reads line, word for word as the card draws it.
+    expect(breach).toContain(`"${READS_NOT_LOGGED}"`);
+
+    // Every family of the table is named, and nothing the table does not hold.
+    const named: Record<BreachLawFamily, string> = {
+      [BreachLawFamily.Gdpr]: "GDPR Articles 33 and 34",
+      [BreachLawFamily.UkGdpr]: "UK GDPR Articles 33 and 34",
+      [BreachLawFamily.Hipaa]: "HIPAA's Breach Notification Rule",
+      [BreachLawFamily.PciDss]: "PCI DSS requirement 12.10.1",
+      [BreachLawFamily.Lgpd]: "Brazil's LGPD",
+      [BreachLawFamily.Dpdp]: "India's DPDP Rules",
+      [BreachLawFamily.CertIn]: "CERT-In directions",
+      [BreachLawFamily.California]: "California",
+      [BreachLawFamily.Colorado]: "Colorado",
+      [BreachLawFamily.Florida]: "Florida",
+      [BreachLawFamily.NewYork]: "New York",
+      [BreachLawFamily.Texas]: "Texas",
+      [BreachLawFamily.Washington]: "Washington",
+    };
+    const families: Array<string> = [
+      ...new Set(
+        BREACH_LAW_RULES.map((rule: BreachLawRule): string => {
+          return rule.family;
+        }),
+      ),
+    ].sort();
+
+    expect(Object.keys(named).sort()).toEqual(families);
+
+    for (const words of Object.values(named)) {
+      expect({ words, said: breach.includes(words) }).toEqual({
+        words,
+        said: true,
+      });
+    }
+
+    expect(breach).toContain("Nothing is sent anywhere");
+    expect(breach).toContain("not legal advice");
+    expect(breach).toContain(
+      "](/docs/telemetry/security-cases#was-it-a-breach)",
+    );
   });
 
   it("names the records the MCP server has tools for, and a Terraform resource, by their models' names", () => {

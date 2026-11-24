@@ -19,7 +19,10 @@ import {
   getExposureEvalFacts,
   getExposureEvalView,
 } from "./DataSecurityExposureEvalSet";
-import { PaperworkEvalCall, PaperworkEvalScore } from "./DataSecurityPaperworkEval";
+import {
+  PaperworkEvalCall,
+  PaperworkEvalScore,
+} from "./DataSecurityPaperworkEval";
 
 /*
  * AN EXPOSURE'S WRITE-UP, ASKED AND SCORED AS THE PRODUCT ASKS AND HOLDS IT

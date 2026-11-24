@@ -57,9 +57,13 @@ export const STORE_ID: string = "10377000-0000-4000-8000-0000000000b1";
 export const OTHER_STORE_ID: string = "10377000-0000-4000-8000-0000000000b2";
 export const ISSUE_ID: string = "10377000-0000-4000-8000-0000000000a1";
 export const CLOUD_RESOURCE_ID: string = "10377000-0000-4000-8000-0000000000e1";
-export const USER_ID: ObjectID = new ObjectID("10377000-0000-4000-8000-0000000000f1");
-export const STORE_KEY: string = "cloud:aws:AWS S3 Bucket:arn:aws:s3:::eu-customer-exports";
-export const OTHER_STORE_KEY: string = "cloud:aws:AWS S3 Bucket:arn:aws:s3:::eu-invoices";
+export const USER_ID: ObjectID = new ObjectID(
+  "10377000-0000-4000-8000-0000000000f1",
+);
+export const STORE_KEY: string =
+  "cloud:aws:AWS S3 Bucket:arn:aws:s3:::eu-customer-exports";
+export const OTHER_STORE_KEY: string =
+  "cloud:aws:AWS S3 Bucket:arn:aws:s3:::eu-invoices";
 
 export const FOUND: Date = new Date("2026-11-02T09:00:00.000Z");
 export const CLOSED: Date = new Date("2026-11-11T09:00:00.000Z");
@@ -100,7 +104,9 @@ export function caller(
   };
 }
 
-export const OWNER: DatabaseCommonInteractionProps = caller([Permission.ProjectOwner]);
+export const OWNER: DatabaseCommonInteractionProps = caller([
+  Permission.ProjectOwner,
+]);
 export const SECURITY_VIEWER: DatabaseCommonInteractionProps = caller([
   Permission.SecurityViewer,
 ]);
@@ -369,15 +375,17 @@ export interface ExposureTables {
   tasks: InMemoryTable;
 }
 
-export function useExposureTables(data: {
-  cases?: Array<StoredRow>;
-  stores?: Array<StoredRow>;
-  issues?: Array<StoredRow>;
-  issueFeed?: Array<StoredRow>;
-  storeFeed?: Array<StoredRow>;
-  findings?: Array<StoredRow>;
-  tasks?: Array<StoredRow>;
-} = {}): ExposureTables {
+export function useExposureTables(
+  data: {
+    cases?: Array<StoredRow>;
+    stores?: Array<StoredRow>;
+    issues?: Array<StoredRow>;
+    issueFeed?: Array<StoredRow>;
+    storeFeed?: Array<StoredRow>;
+    findings?: Array<StoredRow>;
+    tasks?: Array<StoredRow>;
+  } = {},
+): ExposureTables {
   const cases: InMemoryTable = useInMemoryTable(
     asService(SecurityCaseService),
     data.cases || [caseRow()],

@@ -13,6 +13,7 @@ import {
   BreachObligationStatus,
   ExposureAssessmentView,
   ExposureDraftPart,
+  ExposureSecret,
   isAssessedOnItsOwn,
   UncoveredLawKind,
 } from "../../../../../../Types/DataSecurity/ExposureAssessment";
@@ -33,7 +34,10 @@ import {
 import { PaperworkEvalCall } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityPaperworkEval";
 import DataSensitivity from "../../../../../../Types/DataSecurity/DataSensitivity";
 import { describe, expect, test } from "@jest/globals";
-import { getExposureFactIds, getGoodExposureAnswer } from "./ExposureEvalAnswers";
+import {
+  getExposureFactIds,
+  getGoodExposureAnswer,
+} from "./ExposureEvalAnswers";
 
 /*
  * THE EXPOSURE EVAL SET (#10377): EACH MADE-UP EXPOSURE LISTS THE
@@ -186,9 +190,11 @@ describe("every exposure of the eval set lists the obligations it should", () =>
     // Both ways reads go: logged, not logged and not known.
     expect(
       new Set(
-        EXPOSURE_EVAL_EXPOSURES.map((exposure: ExposureEvalExposure): string => {
-          return getExposureEvalView(exposure).reads.logged;
-        }),
+        EXPOSURE_EVAL_EXPOSURES.map(
+          (exposure: ExposureEvalExposure): string => {
+            return getExposureEvalView(exposure).reads.logged;
+          },
+        ),
       ),
     ).toEqual(new Set(["Logged", "NotLogged", "Unknown"]));
   });
@@ -211,10 +217,11 @@ describe("every exposure of the eval set lists the obligations it should", () =>
       getExposureEvalExposure("secrets-only-bucket"),
     );
 
-    expect(view.secretsToRotate.map((secret) => secret.location)).toEqual([
-      "deploy/env.sh",
-      "keys/*.pem",
-    ]);
+    expect(
+      view.secretsToRotate.map((secret: ExposureSecret): string => {
+        return secret.location;
+      }),
+    ).toEqual(["deploy/env.sh", "keys/*.pem"]);
     expect(view.mostUrgent).toBeNull();
   });
 });
@@ -254,9 +261,7 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
     expect(call.messages).toHaveLength(2);
     expect(call.messages[0]!.role).toBe("system");
     expect(call.messages[0]!.content).toContain("not legal advice");
-    expect(call.messages[0]!.content).toContain(
-      "never say nobody read it",
-    );
+    expect(call.messages[0]!.content).toContain("never say nobody read it");
     expect(call.temperature).toBe(0);
 
     const data: {
@@ -294,11 +299,14 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
     EXPOSURE_ASSESSMENT_CASES.map((testCase: ExposureAssessmentEvalCase) => {
       return [testCase.id, testCase];
     }),
-  )("%s: a right answer passes", (_id: string, testCase: ExposureAssessmentEvalCase) => {
-    expect(
-      scoreExposureAssessment(testCase, getGoodExposureAnswer(testCase)),
-    ).toEqual({ passed: true, notes: [] });
-  });
+  )(
+    "%s: a right answer passes",
+    (_id: string, testCase: ExposureAssessmentEvalCase) => {
+      expect(
+        scoreExposureAssessment(testCase, getGoodExposureAnswer(testCase)),
+      ).toEqual({ passed: true, notes: [] });
+    },
+  );
 
   test("an answer that is not one, or says nothing, fails", () => {
     const testCase: ExposureAssessmentEvalCase = EXPOSURE_ASSESSMENT_CASES[0]!;
@@ -322,9 +330,9 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
       facts: good[ExposureDraftPart.PeopleNotice]!.facts,
     };
 
-    expect(scoreExposureAssessment(testCase, JSON.stringify(good)).notes).toEqual(
-      expect.arrayContaining(['says "nobody read"']),
-    );
+    expect(
+      scoreExposureAssessment(testCase, JSON.stringify(good)).notes,
+    ).toEqual(expect.arrayContaining(['says "nobody read"']));
   });
 
   test("a notice with a number the facts do not hold is dropped, and so fails", () => {
@@ -338,10 +346,10 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
       facts: good[ExposureDraftPart.RegulatorNotice]!.facts,
     };
 
-    expect(scoreExposureAssessment(testCase, JSON.stringify(good)).notes).toEqual(
-      expect.arrayContaining([
-        "regulatorNotice was dropped: UnfoundedNumber",
-      ]),
+    expect(
+      scoreExposureAssessment(testCase, JSON.stringify(good)).notes,
+    ).toEqual(
+      expect.arrayContaining(["regulatorNotice was dropped: UnfoundedNumber"]),
     );
   });
 
@@ -359,7 +367,9 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
       ]),
     };
 
-    expect(scoreExposureAssessment(testCase, JSON.stringify(good)).notes).toEqual(
+    expect(
+      scoreExposureAssessment(testCase, JSON.stringify(good)).notes,
+    ).toEqual(
       expect.arrayContaining(["regulatorNotice was dropped: UnfoundedLaw"]),
     );
   });
@@ -375,7 +385,9 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
       facts: good[ExposureDraftPart.Explanation]!.facts,
     };
 
-    expect(scoreExposureAssessment(testCase, JSON.stringify(good)).notes).toEqual(
+    expect(
+      scoreExposureAssessment(testCase, JSON.stringify(good)).notes,
+    ).toEqual(
       expect.arrayContaining([
         "explanation does not say 72",
         "explanation does not say GDPR",

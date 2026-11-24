@@ -4,6 +4,7 @@ Datasikkerhet har ingen egen personsøking eller egen sikkerhetskø. Den gir det
 
 :::cards
 - [Security Operations](#security-operations): En sikkerhetssak for hvert datalager med et kritisk problem.
+- [Var det et sikkerhetsbrudd?](#var-det-et-sikkerhetsbrudd): Hver kritisk eksponering vurdert: hvor lenge, hvem som kunne lese det, hvem dataene tilhørte, og lovene om sikkerhetsbrudd som kan gjelde.
 - [Varsler og vakt](#varsler-og-vakt): Varsle vakthavende når et kritisk problem åpnes.
 - [Hendelser](#hendelser): Erklær en hendelse for et sikkerhetsbrudd som hendelsesprosessen din bør håndtere.
 - [Eiere](#eiere): Hvem som eier hvert datalager, angitt manuelt eller av regler, og e-posten de får.
@@ -45,6 +46,22 @@ Hvert datalager er en egen entitet i Security Operations, av typen **Datalager**
 Derfra behandles saken som alle andre: den tildeles, får notater, lukkes og besvares av prosjektets playbooks. Deteksjonene for datalageret teller med i risikoen på [Entitetsrisiko](/docs/telemetry/security-entity-risk), slik deteksjonene for enhver entitet gjør. Se [Sikkerhetssaker og playbooks](/docs/telemetry/security-cases).
 
 Enhver sikkerhetssak, uansett hva som åpnet den, viser data i fare under **Påvirkning**: datalagrene med sensitive data saken gjelder, og hvert datalager brukerne og rollene dens kan nå, det mest sensitive først, med hva hvert inneholder, omtrent hvor mange poster, hvor eksponert det er og hvor mange identiteter som kan nå det. En påtatt rolleøkt som saken nevner, teller som rollen sin, og en e-postadresse som skybrukerne den hører til. Det leses med leserens egne tillatelser, så en rolle som ikke kan lese Datasikkerhet, ser at denne delen er utelatt.
+
+## Var det et sikkerhetsbrudd?
+
+En kritisk eksponering av et datalager med data klassifisert som **Begrenset** eller **Konfidensiell** – åpent for alle på internett, delt med kontoer utenfor deres egne, eller et øyeblikksbilde andre kan gjenopprette – får saken sin vurdert av seg selv når saken åpnes. Alle andre saker om et datalager vurderes når en person trykker på **Vurder denne eksponeringen** på sakens **Oversikt**. Vanlig kode utleder vurderingen av det OneUptime har registrert, og utleder den på nytt hver gang den leses:
+
+- **Hvor lenge det var åpent**: fra endringen i loggen til skyen din som eksponerte datalageret, når en slik ble logget i løpet av de 30 dagene før eksponeringen ble funnet, ellers minst fra Datasikkerhet fant den; til Datasikkerhets egen respons lukket den, en endring lukket den, eller en kontroll fant at den var lukket.
+- **Hvem som kunne lese det**: om datalageret logget lesinger. Der det ikke gjorde det, sier vurderingen «Lesinger ble ikke logget. Gå ut fra at dataene er lest.» Den teller kontoene utenfor bedriften din som kunne lese datalageret, og hvor mange av dem som brukte tilgangen sin mens det var åpent, uten noen gang å nevne dem ved navn.
+- **Hvem dataene tilhørte**: hva datalageret inneholder, omtrent hvor mange poster, hvem de gjelder, og hvor de registrerte bor, slik dataene viser og slik en person oppgir.
+- **Hemmelighetene som må roteres**: hver hemmelighet som ble funnet i datalageret mens det var åpent, etter type og hvor den ble funnet, aldri verdien.
+- **Lovene om sikkerhetsbrudd som kan gjelde**: hver rad i OneUptimes tabell over lover om sikkerhetsbrudd, med hva den krever, av hvem, fristen regnet fra da Datasikkerhet fant eksponeringen, og hva en person fortsatt sjekker før den gjelder.
+
+Tabellen dekker GDPR artikkel 33 og 34, UK GDPR artikkel 33 og 34, HIPAAs Breach Notification Rule, PCI DSS krav 12.10.1, Brasils LGPD, Indias DPDP Rules og CERT-In-direktiver, og lovene om sikkerhetsbrudd i California, Colorado, Florida, New York, Texas og Washington. Hver rad lenker til lovens egen tekst, kilden, og oppgir dagen den sist ble kontrollert mot den. Det tabellen ikke dekker – et annet land, en annen amerikansk delstat, hvor organisasjonen din er etablert, kontraktene deres – sier vurderingen med enkle ord.
+
+OneUptime AI skriver ut vurderingen slik AI-reglene dine for Datasikkerhet tillater, eller når en person ber om det: hva det betyr, en melding til myndigheten, en underretning til de berørte registrerte og et internt sammendrag (se [OneUptime AI i Datasikkerhet](/docs/data-security/ai)). Hvert utkast holdes opp mot fakta i vurderingen: et tall eller en lov som ingen av dem inneholder, gjør at utkastet forkastes. Ingenting sendes noe sted: en melding er tekst en person redigerer og kopierer, og vurderingen og hvert utkast sier at de ikke er juridisk rådgivning.
+
+Sakens lesere som også kan lese datalageret og funnene i det, ser vurderingen, siden den nevner hva datalageret inneholder. Å vurdere, skrive utkast, redigere en melding og angi hvor de registrerte bor krever i tillegg tillatelse til å redigere saken. Se [Var det et sikkerhetsbrudd?](/docs/telemetry/security-cases#var-det-et-sikkerhetsbrudd) for sakens kort.
 
 ## Varsler og vakt
 
@@ -132,7 +149,7 @@ To endringer lukker eksponeringen til et datalager i skyen, hver gjennom datalag
 
 En person kjører en av dem fra et åpent problem den retter, med **Fiks det herfra** (se [Kontroller og problemer i Datasikkerhet](/docs/data-security/checks-and-issues#fiks-det-herfra)). En playbook i Security Operations kjører dem som steg i kategorien **Begrens**, **Blokker offentlig tilgang til datalagre** og **Tilbakekall deling av datalager**: på hvert datalager saken gjelder, høyst 10, hvert et steg som starter med **Krever godkjenning** slått på. Et datalager merket **Offentlig med vilje** blokkeres aldri. Uansett sier datalagerets feed hva som ble gjort, og datalageret kontrolleres på nytt med en gang, så problemet løses når endringen har fått virkning.
 
-Playbook-malen **Lukk en dataeksponering** svarer på sakene Datasikkerhet åpner: den sender e-post til eierne av datalageret, blokkerer offentlig tilgang og tilbakekaller deling når et menneske har godkjent hvert steg, og legger responsens sjekkliste til saken som oppgaver – hvem som leste dataene mens de var eksponert, om det er et brudd du må melde, hvilke hemmeligheter som må roteres, og hva som skal skrives når saken lukkes. Legg den til fra **Opprett fra mal** under prosjektets playbooks.
+Playbook-malen **Lukk en dataeksponering** svarer på sakene Datasikkerhet åpner: den sender e-post til eierne av datalageret, blokkerer offentlig tilgang og tilbakekaller deling når et menneske har godkjent hvert steg, og legger responsens sjekkliste til saken som oppgaver – hvem som leste dataene mens de var eksponert, om det er et brudd du må melde, hvilke hemmeligheter som må roteres, og hva som skal skrives når saken lukkes. Sakens kort **Var det et sikkerhetsbrudd?** svarer på hver av disse oppgavene (se [Var det et sikkerhetsbrudd?](#var-det-et-sikkerhetsbrudd)). Legg den til fra **Opprett fra mal** under prosjektets playbooks.
 
 ## API, Terraform og MCP
 
@@ -171,6 +188,11 @@ Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er e
 | `/data-security-ai-proposal/<id>/approve` | **Godkjenn** på en endring OneUptime AI foreslår, som gjøres med dine egne tillatelser. Tar `expectedPlanFingerprint` for forslaget du ble vist, og avviser et som har endret seg siden |
 | `/data-security-ai-proposal/<id>/dismiss` | **Avvis forslaget**, med `{"reason": "..."}`, som legges på problemets tidslinje |
 | `/data-security-ai-proposal/<id>/undo` | **Angre** på en endring OneUptime AI gjorde: den trekkes tilbake, og datalageret kontrolleres på nytt |
+| `/security-case/<id>/exposure-assessment` | Eksponeringsvurderingen for en sikkerhetssak, slik du kan lese den: det vanlig kode utleder om datalageret saken gjelder, og teksten fra OneUptime AI |
+| `/security-case/<id>/exposure-assessment/assess` | **Vurder denne eksponeringen**: starter sakens vurdering, av datalageret `{"dataStoreId": "..."}` angir når saken gjelder mer enn ett |
+| `/security-case/<id>/exposure-assessment/draft` | **Skriv utkast med OneUptime AI**: OneUptime AI skriver utkast til hver del ingen person har redigert. Ingenting sendes |
+| `/security-case/<id>/exposure-assessment/edit` | En del med en persons egne ord, for eksempel `{"part": "regulatorNotice", "markdown": "..."}`, som aldri får et nytt utkast |
+| `/security-case/<id>/exposure-assessment/people` | Hvor de registrerte som dataene gjelder, bor, for eksempel `{"places": ["EEA", "GB"]}`; en tom liste trekker svaret tilbake |
 
 [Terraform-provideren](/docs/terraform/index) har en ressurs for hver type post du oppretter – datalagre du legger til selv, egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger, residensregler, eier- og etikettregler – oppkalt etter posten, for eksempel `oneuptime_residency_rule`.
 

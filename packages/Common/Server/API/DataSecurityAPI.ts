@@ -754,7 +754,8 @@ export default class DataSecurityAPI extends BaseAPI<
         if (
           dataStoreId !== undefined &&
           dataStoreId !== null &&
-          (typeof dataStoreId !== "string" || !ObjectID.isValidUUID(dataStoreId))
+          (typeof dataStoreId !== "string" ||
+            !ObjectID.isValidUUID(dataStoreId))
         ) {
           throw new BadDataException(
             "Say which data store to assess by its ID.",

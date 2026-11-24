@@ -34,7 +34,9 @@ import {
   ExposureAssessmentView,
   ExposureChangeDirection,
   ExposureDraftDropReason,
+  ExposureDataType,
   ExposureDraftPart,
+  ExposureDraftSection,
   ExposureIssueEvent,
   ExposureIssueFacts,
   ExposureReads,
@@ -526,14 +528,18 @@ describe("the window, from recorded timelines", () => {
 
   test("which way each operation of the log moves who can reach a store", () => {
     expect(
-      getExposureChangeDirection({ operation: "s3:DeleteBucketPublicAccessBlock" }),
+      getExposureChangeDirection({
+        operation: "s3:DeleteBucketPublicAccessBlock",
+      }),
     ).toBe(ExposureChangeDirection.Opens);
     expect(
-      getExposureChangeDirection({ operation: "s3:PutBucketPublicAccessBlock" }),
+      getExposureChangeDirection({
+        operation: "s3:PutBucketPublicAccessBlock",
+      }),
     ).toBe(ExposureChangeDirection.Closes);
-    expect(getExposureChangeDirection({ operation: "s3:PutBucketPolicy" })).toBe(
-      ExposureChangeDirection.Either,
-    );
+    expect(
+      getExposureChangeDirection({ operation: "s3:PutBucketPolicy" }),
+    ).toBe(ExposureChangeDirection.Either);
     expect(
       getExposureChangeDirection({
         operation: "rds:ModifyDBSnapshotAttribute",
@@ -547,7 +553,9 @@ describe("the window, from recorded timelines", () => {
       }),
     ).toBe(ExposureChangeDirection.Closes);
     expect(
-      getExposureChangeDirection({ operation: "rds:ModifyDBSnapshotAttribute" }),
+      getExposureChangeDirection({
+        operation: "rds:ModifyDBSnapshotAttribute",
+      }),
     ).toBe(ExposureChangeDirection.Either);
     expect(
       getExposureChangeDirection({ operation: "s3:PutBucketVersioning" }),
@@ -968,7 +976,9 @@ describe("what the law may ask", () => {
     };
 
     expect(
-      getUncoveredLaws(whose({ dataTypeIds: ["jp-my-number"], countries: ["JP"] })),
+      getUncoveredLaws(
+        whose({ dataTypeIds: ["jp-my-number"], countries: ["JP"] }),
+      ),
     ).toEqual(
       expect.arrayContaining([
         { kind: UncoveredLawKind.OtherCountries, countries: ["JP"] },
@@ -976,7 +986,10 @@ describe("what the law may ask", () => {
     );
     expect(
       kinds(
-        whose({ dataTypeIds: ["email-address"], places: [BreachPlace.Elsewhere] }),
+        whose({
+          dataTypeIds: ["email-address"],
+          places: [BreachPlace.Elsewhere],
+        }),
       ),
     ).toContain(UncoveredLawKind.PeopleElsewhere);
     // Nobody said where they live: other states may still be involved.
@@ -987,7 +1000,9 @@ describe("what the law may ask", () => {
     ]);
     // A person said only the EU: no US state to warn of.
     expect(
-      kinds(whose({ dataTypeIds: ["email-address"], places: [BreachPlace.Eea] })),
+      kinds(
+        whose({ dataTypeIds: ["email-address"], places: [BreachPlace.Eea] }),
+      ),
     ).toEqual([
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
@@ -997,9 +1012,17 @@ describe("what the law may ask", () => {
 
 describe("the playbook's checklist, answered", () => {
   test("the template writes its tasks from the checklist, in its order", () => {
-    const steps: Array<SecurityPlaybookStep> = getSecurityPlaybookTemplateDefinition(
-      DATA_EXPOSURE_TEMPLATE_KEY,
-    )!.getSteps({ priorityId: () => "", statusId: () => "" });
+    const steps: Array<SecurityPlaybookStep> =
+      getSecurityPlaybookTemplateDefinition(
+        DATA_EXPOSURE_TEMPLATE_KEY,
+      )!.getSteps({
+        priorityId: () => {
+          return "";
+        },
+        statusId: () => {
+          return "";
+        },
+      });
     const tasks: SecurityPlaybookStep | undefined = steps.find(
       (step: SecurityPlaybookStep): boolean => {
         return step.action === SecurityPlaybookActionType.AddCaseTasks;
@@ -1032,38 +1055,43 @@ describe("the playbook's checklist, answered", () => {
         ),
       }),
     ).toBe(ExposureChecklistItem.MustReport);
-    expect(getExposureChecklistItemOfTask({ title: "Reset the password" })).toBe(
-      null,
-    );
+    expect(
+      getExposureChecklistItemOfTask({ title: "Reset the password" }),
+    ).toBe(null);
     expect(getExposureChecklistItemOfTask({})).toBe(null);
   });
 
   test("each line is answered with the case's task, done or not, when the case has it", () => {
-    const answers: Array<ExposureChecklistAnswer> = getExposureChecklistAnswers([
-      {
-        id: "t1",
-        title: DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.WhoReadIt],
-        isDone: true,
-      },
-      {
-        id: "t2",
-        title: DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.MustReport],
-        isDone: null,
-      },
-      { id: "t3", title: "Something else" },
-    ]);
+    const answers: Array<ExposureChecklistAnswer> = getExposureChecklistAnswers(
+      [
+        {
+          id: "t1",
+          title: DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.WhoReadIt],
+          isDone: true,
+        },
+        {
+          id: "t2",
+          title:
+            DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.MustReport],
+          isDone: null,
+        },
+        { id: "t3", title: "Something else" },
+      ],
+    );
 
     expect(answers).toEqual([
       {
         item: ExposureChecklistItem.WhoReadIt,
         taskId: "t1",
-        taskTitle: DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.WhoReadIt],
+        taskTitle:
+          DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.WhoReadIt],
         isDone: true,
       },
       {
         item: ExposureChecklistItem.MustReport,
         taskId: "t2",
-        taskTitle: DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.MustReport],
+        taskTitle:
+          DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.MustReport],
         isDone: false,
       },
       { item: ExposureChecklistItem.RotateSecrets },
@@ -1161,7 +1189,8 @@ describe("OneUptime AI's drafts, held to the facts", () => {
       ExposureDraftPart.Explanation,
       "The store holding about 48,000 email addresses was open for 9 days (F1, F2). Under GDPR Article 33 the supervisory authority is due within 72 hours [F3].",
     );
-    const section = held.sections[ExposureDraftPart.Explanation]!;
+    const section: ExposureDraftSection =
+      held.sections[ExposureDraftPart.Explanation]!;
 
     expect(section.markdown).toBe(
       "The store holding about 48,000 email addresses was open for 9 days. Under GDPR Article 33 the supervisory authority is due within 72 hours.",
@@ -1185,7 +1214,10 @@ describe("OneUptime AI's drafts, held to the facts", () => {
       "It was exposed from 1 November 2026 and the authority must be told within 72 hours.",
       "The supervisory authority must be told within 48 hours of finding it, under GDPR.",
     ]) {
-      const held: HeldExposureDrafts = hold(ExposureDraftPart.RegulatorNotice, text);
+      const held: HeldExposureDrafts = hold(
+        ExposureDraftPart.RegulatorNotice,
+        text,
+      );
 
       expect({ text, kept: Boolean(held.sections.regulatorNotice) }).toEqual({
         text,
@@ -1213,7 +1245,8 @@ describe("OneUptime AI's drafts, held to the facts", () => {
       "Texas residents must be told: the store held about 48,000 email addresses.",
     ]) {
       expect(hold(ExposureDraftPart.InternalSummary, text).dropped).toEqual({
-        [ExposureDraftPart.InternalSummary]: ExposureDraftDropReason.UnfoundedLaw,
+        [ExposureDraftPart.InternalSummary]:
+          ExposureDraftDropReason.UnfoundedLaw,
       });
     }
   });
@@ -1248,15 +1281,24 @@ describe("OneUptime AI's drafts, held to the facts", () => {
     ];
 
     expect(
-      getUnfoundedLaws({ text: "Under UK GDPR, tell the Commission.", facts: ukOnly }),
+      getUnfoundedLaws({
+        text: "Under UK GDPR, tell the Commission.",
+        facts: ukOnly,
+      }),
     ).toEqual([]);
     expect(
-      getUnfoundedLaws({ text: "Under GDPR, tell the authority.", facts: ukOnly }),
+      getUnfoundedLaws({
+        text: "Under GDPR, tell the authority.",
+        facts: ukOnly,
+      }),
     ).toEqual(["GDPR"]);
     expect(
       getUnfoundedLaws({
         text: "Under UK-GDPR, tell the Commission.",
-        facts: [HOLDS, obligationFact({ id: "F3", family: BreachLawFamily.Gdpr })],
+        facts: [
+          HOLDS,
+          obligationFact({ id: "F3", family: BreachLawFamily.Gdpr }),
+        ],
       }),
     ).toEqual(["UK-GDPR"]);
   });
@@ -1319,9 +1361,9 @@ describe("the assessment a case keeps", () => {
   test("starts with nothing drafted, and reads back as it was written", () => {
     expect(started.sections).toEqual({});
     expect(started.facts).toEqual([]);
-    expect(readStoredExposureAssessment(toStoredExposureAssessmentJson(started))).toEqual(
-      started,
-    );
+    expect(
+      readStoredExposureAssessment(toStoredExposureAssessmentJson(started)),
+    ).toEqual(started);
   });
 
   test("what this build cannot read is no assessment", () => {
@@ -1342,7 +1384,8 @@ describe("the assessment a case keeps", () => {
       },
       sections: {
         regulatorNotice: {
-          markdown: "Dear authority, the store held about 48,000 email addresses.",
+          markdown:
+            "Dear authority, the store held about 48,000 email addresses.",
           source: "Edited",
           factKeys: ["store:holds", 9],
           editedAt: "2026-11-03T00:00:00.000Z",
@@ -1389,11 +1432,13 @@ describe("the assessment a case keeps", () => {
     const drafted: HeldExposureDrafts = holdExposureDraftsToFacts({
       answer: {
         regulatorNotice: {
-          markdown: "A drafted notice: the store held about 48,000 email addresses.",
+          markdown:
+            "A drafted notice: the store held about 48,000 email addresses.",
           facts: ["F1"],
         },
         explanation: {
-          markdown: "The store held about 48,000 email addresses and was open for 9 days.",
+          markdown:
+            "The store held about 48,000 email addresses and was open for 9 days.",
           facts: ["F1", "F2"],
         },
       },
@@ -1493,9 +1538,9 @@ describe("the assessment a case keeps", () => {
       now: NOW,
     });
 
-    expect(getStaleExposureDraftParts({ assessment: drafted, facts: FACTS })).toEqual(
-      [],
-    );
+    expect(
+      getStaleExposureDraftParts({ assessment: drafted, facts: FACTS }),
+    ).toEqual([]);
 
     const reopened: Array<ComplianceFact> = FACTS.map(
       (fact: ComplianceFact): ComplianceFact => {
@@ -1521,9 +1566,9 @@ describe("the assessment a case keeps", () => {
     expect(
       getStaleExposureDraftParts({ assessment: drafted, facts: otherChanged }),
     ).toEqual([]);
-    expect(getStaleExposureDraftParts({ assessment: null, facts: FACTS })).toEqual(
-      [],
-    );
+    expect(
+      getStaleExposureDraftParts({ assessment: null, facts: FACTS }),
+    ).toEqual([]);
   });
 
   test("where the people live: said, each place once, and taken back with none", () => {
@@ -1609,14 +1654,18 @@ describe("the assessment plain code works out", () => {
     expect(view.window!.startKind).toBe(ExposureWindowStartKind.FirstSeen);
     expect(view.reads.isTreatedAsRead).toBe(true);
     expect(view.whose.countriesFromData).toEqual(["DE", "FR", "NL"]);
-    expect(view.whose.dataTypes.map((type) => type.name)).toEqual([
-      "Email address",
-    ]);
+    expect(
+      view.whose.dataTypes.map((type: ExposureDataType): string => {
+        return type.name;
+      }),
+    ).toEqual(["Email address"]);
     expect(view.mostUrgent!.ruleId).toBe(BreachLawId.GdprAuthority);
     // 72 hours counted from when it was found: overdue by now.
     expect(view.mostUrgent!.foundAt).toBe(iso("2026-11-02T09:00:00Z"));
     expect(view.mostUrgent!.dueAt).toBe(
-      new Date(new Date("2026-11-02T09:00:00Z").getTime() + 72 * HOUR).toISOString(),
+      new Date(
+        new Date("2026-11-02T09:00:00Z").getTime() + 72 * HOUR,
+      ).toISOString(),
     );
     expect(view.isPlaceUnknown).toBe(false);
     expect(view.now).toBe(now.toISOString());

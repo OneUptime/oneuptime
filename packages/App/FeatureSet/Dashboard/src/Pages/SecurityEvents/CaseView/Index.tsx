@@ -7,6 +7,7 @@ import useSecurityCaseMatches, {
   SecurityCaseMatchesState,
 } from "../../../Components/SecurityCase/Matches/useSecurityCaseMatches";
 import SecurityCaseResponsePlanCard from "../../../Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
+import SecurityCaseExposureAssessment from "../../../Components/SecurityCase/Exposure/SecurityCaseExposureAssessment";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
 import SecurityCaseAiHoldNotice from "../../../Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice";
 import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
@@ -65,6 +66,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  *                             counts, the events it matched - each with the
  *                             log line, request and trace it came from -
  *                             and where to look next;
+ *   Was It a Breach?          for a case about a data store (#10377): the
+ *                             breach law due first and its deadline, whether
+ *                             reads were logged, how long the store was
+ *                             open, whose data it was, the secrets to rotate
+ *                             and every law that may apply - and, under it,
+ *                             the Breach Notices OneUptime AI drafted, each
+ *                             folded until opened. Not drawn for any other
+ *                             case, or for a reader who may not read the
+ *                             store's findings;
  *   Response Plan             what to do about it now: confirm it, contain
  *                             it, fix what let it happen, close it - each
  *                             step concrete to the case, one click where
@@ -262,6 +272,12 @@ const SecurityCaseOverviewPage: FunctionComponent<
       />
 
       <SecurityCaseWhyOpenedCard caseId={view.caseId} state={matches} />
+
+      <SecurityCaseExposureAssessment
+        caseId={view.caseId}
+        entities={securityCase.entities}
+        refreshToggle={view.refreshToggle}
+      />
 
       <SecurityCaseResponsePlanCard
         caseId={view.caseId}

@@ -73,6 +73,22 @@ export interface CompliancePaperSectionProps {
   onSave: (words: string) => Promise<void>;
   // Whether a person is mid-edit here, for the page to ask before it is left.
   onEditingChange?: ((isEditing: boolean) => void) | undefined;
+  /*
+   * Folded until opened (#10377): a breach notice is read when a person
+   * opens it, so a page of three of them stays short. Its heading, byline
+   * and aside stay in sight, with the toggle that opens and closes it; left
+   * out, the part is never folded.
+   */
+  fold?:
+    | {
+        isOpenAtFirst: boolean;
+        // "Show Notice", "Hide Notice": keys, looked up here.
+        showLabel: string;
+        hideLabel: string;
+      }
+    | undefined;
+  // A line above its words, in English - "A draft, not legal advice." - looked up here.
+  noteAboveWords?: string | undefined;
 }
 
 export const CompliancePaperSection: FunctionComponent<
@@ -83,7 +99,12 @@ export const CompliancePaperSection: FunctionComponent<
   const [words, setWords] = useState<string>(props.words);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [isOpen, setIsOpen] = useState<boolean>(
+    props.fold ? props.fold.isOpenAtFirst : true,
+  );
   const hasWords: boolean = props.words.trim().length > 0;
+  // A folded part shows its words, and its editor, only once it is opened.
+  const isBodyShown: boolean = isOpen || isEditing;
 
   useEffect(() => {
     props.onEditingChange?.(isEditing && words !== props.words);
@@ -153,7 +174,24 @@ export const CompliancePaperSection: FunctionComponent<
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {props.aside}
-          {props.canEdit && !isEditing ? (
+          {props.fold ? (
+            <Button
+              title={isBodyShown ? props.fold.hideLabel : props.fold.showLabel}
+              icon={isBodyShown ? IconProp.ChevronUp : IconProp.ChevronDown}
+              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonSize={ButtonSize.Small}
+              ariaExpanded={isBodyShown}
+              ariaControls={`${props.id}-body`}
+              disabled={isEditing}
+              dataTestId={`${props.id}-fold`}
+              onClick={() => {
+                setIsOpen(!isOpen);
+              }}
+            />
+          ) : (
+            <></>
+          )}
+          {props.canEdit && !isEditing && isBodyShown ? (
             <Button
               title={hasWords ? EDIT : WRITE}
               icon={IconProp.Edit}
@@ -171,86 +209,104 @@ export const CompliancePaperSection: FunctionComponent<
           )}
         </div>
       </div>
-      {props.isStale && hasWords && !isEditing ? (
-        <p
-          className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900"
-          data-testid={`${props.id}-stale`}
-        >
-          <Icon
-            icon={IconProp.ExclaimationCircle}
-            className="mt-0.5 h-4 w-4 flex-none"
-          />
-          <span>{translator.translateText(FACTS_CHANGED)}</span>
-        </p>
-      ) : (
+      {!isBodyShown ? (
         <></>
-      )}
-      {isEditing ? (
-        <div className="space-y-3">
-          {props.isMarkdown ? (
-            <LazyMarkdownEditor
-              initialValue={props.words}
-              allowImageUpload={false}
-              dataTestId={`${props.id}-editor`}
-              onChange={(value: string) => {
-                setWords(value);
-              }}
-            />
-          ) : (
-            <TextArea
-              initialValue={props.words}
-              autoFocus={true}
-              ariaLabelledby={`${props.id}-heading`}
-              dataTestId={`${props.id}-editor`}
-              onChange={(value: string) => {
-                setWords(value);
-              }}
-            />
-          )}
-          {error ? <ErrorLine message={error} /> : <></>}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              title={SAVE}
-              buttonStyle={ButtonStyleType.NORMAL}
-              buttonSize={ButtonSize.Small}
-              isLoading={isSaving}
-              dataTestId={`${props.id}-save`}
-              onClick={() => {
-                void save();
-              }}
-            />
-            <Button
-              title={CANCEL}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              buttonSize={ButtonSize.Small}
-              dataTestId={`${props.id}-cancel`}
-              onClick={() => {
-                setIsEditing(false);
-                setError("");
-              }}
-            />
-          </div>
-        </div>
-      ) : hasWords ? (
-        <div className="max-w-3xl text-sm leading-6 text-gray-800">
-          {props.isMarkdown ? (
-            <LazyMarkdownViewer text={props.words} safeMode={true} />
-          ) : (
-            <p className="whitespace-pre-line [overflow-wrap:anywhere]">
-              <IsolatedText text={props.words} />
+      ) : (
+        <div className="space-y-3" id={`${props.id}-body`}>
+          {props.noteAboveWords && hasWords && !isEditing ? (
+            <p
+              className="text-xs text-gray-600"
+              data-testid={`${props.id}-note`}
+            >
+              {translator.translateText(props.noteAboveWords)}
             </p>
+          ) : (
+            <></>
+          )}
+          {props.isStale && hasWords && !isEditing ? (
+            <p
+              className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900"
+              data-testid={`${props.id}-stale`}
+            >
+              <Icon
+                icon={IconProp.ExclaimationCircle}
+                className="mt-0.5 h-4 w-4 flex-none"
+              />
+              <span>{translator.translateText(FACTS_CHANGED)}</span>
+            </p>
+          ) : (
+            <></>
+          )}
+          {isEditing ? (
+            <div className="space-y-3">
+              {props.isMarkdown ? (
+                <LazyMarkdownEditor
+                  initialValue={props.words}
+                  allowImageUpload={false}
+                  dataTestId={`${props.id}-editor`}
+                  onChange={(value: string) => {
+                    setWords(value);
+                  }}
+                />
+              ) : (
+                <TextArea
+                  initialValue={props.words}
+                  autoFocus={true}
+                  ariaLabelledby={`${props.id}-heading`}
+                  dataTestId={`${props.id}-editor`}
+                  onChange={(value: string) => {
+                    setWords(value);
+                  }}
+                />
+              )}
+              {error ? <ErrorLine message={error} /> : <></>}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  title={SAVE}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  isLoading={isSaving}
+                  dataTestId={`${props.id}-save`}
+                  onClick={() => {
+                    void save();
+                  }}
+                />
+                <Button
+                  title={CANCEL}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId={`${props.id}-cancel`}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setError("");
+                  }}
+                />
+              </div>
+            </div>
+          ) : hasWords ? (
+            <div className="max-w-3xl text-sm leading-6 text-gray-800">
+              {props.isMarkdown ? (
+                <LazyMarkdownViewer text={props.words} safeMode={true} />
+              ) : (
+                <p className="whitespace-pre-line [overflow-wrap:anywhere]">
+                  <IsolatedText text={props.words} />
+                </p>
+              )}
+            </div>
+          ) : (
+            props.emptyElement
+          )}
+          {!isEditing &&
+          hasWords &&
+          (props.areFactsEvidence || !props.isEdited) ? (
+            <ComplianceFactsToggle
+              facts={props.facts}
+              dataTestId={`${props.id}-facts`}
+            />
+          ) : (
+            <></>
           )}
         </div>
-      ) : (
-        props.emptyElement
-      )}
-      {!isEditing && hasWords && (props.areFactsEvidence || !props.isEdited) ? (
-        <ComplianceFactsToggle
-          facts={props.facts}
-          dataTestId={`${props.id}-facts`}
-        />
-      ) : (
-        <></>
       )}
     </section>
   );

@@ -317,7 +317,9 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
       mayApplyKnown: [BreachLawId.LgpdAuthority, BreachLawId.LgpdPeople],
       mayApplyIfPlace: [
         ...PERSONAL_DATA_IF_PLACE.filter((id: BreachLawId): boolean => {
-          return id !== BreachLawId.LgpdAuthority && id !== BreachLawId.LgpdPeople;
+          return (
+            id !== BreachLawId.LgpdAuthority && id !== BreachLawId.LgpdPeople
+          );
         }),
         ...OTHER_GOVERNMENT_ID_STATES,
       ],
@@ -512,7 +514,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
   },
   {
     id: "secrets-only-bucket",
-    title: "A public bucket of build artifacts holding cloud keys, nothing personal",
+    title:
+      "A public bucket of build artifacts holding cloud keys, nothing personal",
     store: store({
       name: "ci-artifacts",
       region: "us-east-1",
@@ -594,7 +597,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
   },
   {
     id: "colorado-and-florida-licenses",
-    title: "Driver's license numbers with names, about people in Colorado and Florida",
+    title:
+      "Driver's license numbers with names, about people in Colorado and Florida",
     store: store({
       name: "drivers-onboarding",
       region: "us-west-2",
@@ -632,7 +636,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
   },
   {
     id: "washington-dates-of-birth",
-    title: "Members' names and dates of birth, about people in Washington, logged",
+    title:
+      "Members' names and dates of birth, about people in Washington, logged",
     store: store({
       name: "members-profile-export",
       region: "us-west-2",
@@ -695,7 +700,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
   },
   {
     id: "japan-my-number",
-    title: "Japanese My Number IDs shared outside: a country the table does not cover",
+    title:
+      "Japanese My Number IDs shared outside: a country the table does not cover",
     store: store({
       name: "jp-payroll",
       region: "ap-northeast-1",
@@ -718,7 +724,10 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
     expect: {
       isAssessedOnItsOwn: true,
       mayApplyKnown: [],
-      mayApplyIfPlace: [...PERSONAL_DATA_IF_PLACE, ...OTHER_GOVERNMENT_ID_STATES],
+      mayApplyIfPlace: [
+        ...PERSONAL_DATA_IF_PLACE,
+        ...OTHER_GOVERNMENT_ID_STATES,
+      ],
       notYetInForce: NOT_YET,
       mostUrgent: null,
       readsTreatedAsRead: true,

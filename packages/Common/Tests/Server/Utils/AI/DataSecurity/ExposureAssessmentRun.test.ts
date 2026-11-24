@@ -184,9 +184,9 @@ describe("which exposures are assessed on their own", () => {
 
     const call: JSONObject = asked.mock.calls[0]![0] as unknown as JSONObject;
 
-    expect(
-      (call["prompt"] as unknown as DataSecurityAiPrompt).feature,
-    ).toBe(DataSecurityAiFeature.DraftExposureAssessment);
+    expect((call["prompt"] as unknown as DataSecurityAiPrompt).feature).toBe(
+      DataSecurityAiFeature.DraftExposureAssessment,
+    );
     expect(call["protectRequestParameters"]).toBe(true);
 
     // What the model was sent carries no value the tables keep.
@@ -252,7 +252,9 @@ describe("which exposures are assessed on their own", () => {
 
   test("a store a person said is Restricted is assessed by what they said", async () => {
     tables = useExposureTables({
-      stores: [storeRow({ sensitivity: "Public", sensitivityOverride: "Restricted" })],
+      stores: [
+        storeRow({ sensitivity: "Public", sensitivityOverride: "Restricted" }),
+      ],
       issues: [issueRow({ status: "Open", resolvedAt: null })],
     });
 
@@ -304,7 +306,10 @@ describe("which exposures are assessed on their own", () => {
 describe("whether OneUptime AI writes it up on its own", () => {
   test.each([
     ["Enable AI off", { enableAi: false }],
-    ["Work on new Data Security issues off", { enableAutomaticDataSecurityAi: false }],
+    [
+      "Work on new Data Security issues off",
+      { enableAutomaticDataSecurityAi: false },
+    ],
   ])(
     "with %s, it is assessed and not written up",
     async (_what: string, switches: JSONObject) => {

@@ -480,7 +480,8 @@ export function getExposureWindow(data: {
         return (
           change.direction !== ExposureChangeDirection.Closes &&
           change.time <= foundAt &&
-          change.time >= foundAt - EXPOSING_CHANGE_LOOKBACK_IN_DAYS * DAY_IN_MS &&
+          change.time >=
+            foundAt - EXPOSING_CHANGE_LOOKBACK_IN_DAYS * DAY_IN_MS &&
           (previousEnd === null || change.time > previousEnd) &&
           firstSeenAt !== null &&
           firstSeenAt < change.time
@@ -757,6 +758,9 @@ export function getPlacesOfCountries(
 
 export const CHILDREN_PEOPLE: string = "Children";
 
+// A country by its two-letter ISO code.
+const COUNTRY_CODE: RegExp = /^[A-Za-z]{2}$/;
+
 export function getWhoseData(data: {
   dataTypes: ReadonlyArray<ExposureDataType>;
   categoryOf?: ReadonlyMap<string, string> | undefined;
@@ -781,7 +785,7 @@ export function getWhoseData(data: {
     ...new Set(
       data.subjectCountries
         .filter((country: string): boolean => {
-          return /^[A-Za-z]{2}$/.test(country);
+          return COUNTRY_CODE.test(country);
         })
         .map((country: string): string => {
           return country.toUpperCase();
@@ -1611,8 +1615,7 @@ export function readStoredExposureAssessment(
     return null;
   }
 
-  const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> =
-    {};
+  const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> = {};
   const keptSections: Record<string, unknown> = isRecord(value["sections"])
     ? value["sections"]
     : {};
@@ -1804,8 +1807,7 @@ export function holdExposureDraftsToFacts(data: {
   facts: ReadonlyArray<ComplianceFact>;
   now: Date;
 }): HeldExposureDrafts {
-  const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> =
-    {};
+  const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> = {};
   const dropped: Partial<Record<ExposureDraftPart, ExposureDraftDropReason>> =
     {};
 
@@ -1889,8 +1891,7 @@ export function mergeExposureDrafts(data: {
   language: string;
   now: Date;
 }): StoredExposureAssessment {
-  const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> =
-    {};
+  const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> = {};
 
   for (const part of EXPOSURE_DRAFT_PARTS) {
     const previous: ExposureDraftSection | undefined =
@@ -2093,9 +2094,7 @@ export function buildExposureAssessmentView(data: {
   hasMoreSecrets: boolean;
   now: Date;
 }): ExposureAssessmentView {
-  const foundAt: Date = data.window
-    ? new Date(data.window.foundAt)
-    : data.now;
+  const foundAt: Date = data.window ? new Date(data.window.foundAt) : data.now;
   const obligations: Array<BreachObligation> = applyBreachLaws({
     whose: data.whose,
     reads: data.reads,

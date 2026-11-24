@@ -135,9 +135,8 @@ export default class ExposureAssessmentDrafter {
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
   }): Promise<DataSecurityExposureAssessmentResponse> {
-    const scope: ExposureCaseScope = await ExposureAssessmentReader.readScope(
-      data,
-    );
+    const scope: ExposureCaseScope =
+      await ExposureAssessmentReader.readScope(data);
 
     if (!scope.stored) {
       return await this.toResponse({
@@ -179,9 +178,8 @@ export default class ExposureAssessmentDrafter {
     }
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
-    const scope: ExposureCaseScope = await ExposureAssessmentReader.readScope(
-      data,
-    );
+    const scope: ExposureCaseScope =
+      await ExposureAssessmentReader.readScope(data);
     const dataStoreId: string = this.pickStore(scope, data.dataStoreId);
 
     if (scope.stored?.dataStoreId !== dataStoreId) {
@@ -454,9 +452,8 @@ export default class ExposureAssessmentDrafter {
     }
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
-    const scope: ExposureCaseScope = await ExposureAssessmentReader.readScope(
-      data,
-    );
+    const scope: ExposureCaseScope =
+      await ExposureAssessmentReader.readScope(data);
 
     if (!scope.stored) {
       throw new BadDataException(NOT_ASSESSED_MESSAGE);
@@ -524,9 +521,8 @@ export default class ExposureAssessmentDrafter {
     }
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
-    const scope: ExposureCaseScope = await ExposureAssessmentReader.readScope(
-      data,
-    );
+    const scope: ExposureCaseScope =
+      await ExposureAssessmentReader.readScope(data);
 
     if (!scope.stored) {
       throw new BadDataException(NOT_ASSESSED_MESSAGE);

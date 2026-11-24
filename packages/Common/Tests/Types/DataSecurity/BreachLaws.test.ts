@@ -157,7 +157,11 @@ describe("every row of the table", () => {
     }
   });
 
-  test.each(BREACH_LAW_RULES.map((rule: BreachLawRule) => [rule.id, rule]))(
+  test.each(
+    BREACH_LAW_RULES.map((rule: BreachLawRule) => {
+      return [rule.id, rule];
+    }),
+  )(
     "%s names its primary source, as a URL, and the day it was checked",
     (_id: string, rule: BreachLawRule) => {
       expect(rule.sourceUrl).toMatch(/^https?:\/\/[a-z0-9.-]+\.[a-z]{2,}\//);
@@ -175,7 +179,11 @@ describe("every row of the table", () => {
     expect(BREACH_LAWS_CHECKED_ON).toBe("2026-11-24");
   });
 
-  test.each(BREACH_LAW_RULES.map((rule: BreachLawRule) => [rule.id, rule]))(
+  test.each(
+    BREACH_LAW_RULES.map((rule: BreachLawRule) => {
+      return [rule.id, rule];
+    }),
+  )(
     "%s says who must be told, what to do and a deadline that holds together",
     (_id: string, rule: BreachLawRule) => {
       expect(rule.action.trim().length).toBeGreaterThan(5);
@@ -307,7 +315,9 @@ describe("GDPR Article 33: the supervisory authority within 72 hours", () => {
     expect(rule.conditions).toEqual([BreachCondition.RiskToPeople]);
     expect(rule.recipient).toContain("supervisory authority");
     expect(rule.deadlineNote).toContain("weekends and holidays included");
-    expect(rule.sourceUrl).toBe("https://eur-lex.europa.eu/eli/reg/2016/679/oj");
+    expect(rule.sourceUrl).toBe(
+      "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+    );
   });
 
   test("may apply to EU people's emails, due 72 hours after it was found", () => {
@@ -503,10 +513,14 @@ describe("HIPAA 164.406: the media, for more than 500 residents of a state", () 
 
 describe("HIPAA 164.408(b): the Secretary with the notice, for 500 or more", () => {
   test("says what 45 CFR 164.408(b) says", () => {
-    const rule: BreachLawRule = getBreachLawRule(BreachLawId.HipaaSecretaryLarge);
+    const rule: BreachLawRule = getBreachLawRule(
+      BreachLawId.HipaaSecretaryLarge,
+    );
 
     expect(rule.minimumPeople).toEqual({ count: 500, isMoreThan: false });
-    expect(rule.deadlineNote).toContain("same time as the notice to the people");
+    expect(rule.deadlineNote).toContain(
+      "same time as the notice to the people",
+    );
     expect(
       apply(BreachLawId.HipaaSecretaryLarge, {
         dataTypeIds: ["diagnosis-code"],
@@ -517,7 +531,9 @@ describe("HIPAA 164.408(b): the Secretary with the notice, for 500 or more", () 
 
 describe("HIPAA 164.408(c): the Secretary yearly, for fewer than 500", () => {
   test("is due 60 days after the end of the calendar year it was found in", () => {
-    const rule: BreachLawRule = getBreachLawRule(BreachLawId.HipaaSecretarySmall);
+    const rule: BreachLawRule = getBreachLawRule(
+      BreachLawId.HipaaSecretarySmall,
+    );
 
     expect(rule.fewerPeopleThan).toBe(500);
     expect(rule.deadline).toEqual({
@@ -526,9 +542,12 @@ describe("HIPAA 164.408(c): the Secretary yearly, for fewer than 500", () => {
       start: BreachDeadlineStart.EndOfCalendarYear,
     });
 
-    const obligation: BreachObligation = apply(BreachLawId.HipaaSecretarySmall, {
-      dataTypeIds: ["drug-code"],
-    });
+    const obligation: BreachObligation = apply(
+      BreachLawId.HipaaSecretarySmall,
+      {
+        dataTypeIds: ["drug-code"],
+      },
+    );
 
     // 2027 is no leap year: the 60th day after 31 December 2026 is 1 March 2027.
     expect(obligation.dueAt).toBe("2027-03-01T23:59:00.000Z");
@@ -568,7 +587,9 @@ describe("California Civil Code 1798.82(a): residents within 30 calendar days", 
       start: BreachDeadlineStart.Found,
     });
     expect(rule.needsName).toBe(true);
-    expect(rule.nameFreeElements).toEqual([BreachDataElement.OnlineCredentials]);
+    expect(rule.nameFreeElements).toEqual([
+      BreachDataElement.OnlineCredentials,
+    ]);
     expect(rule.note).toContain("SB 446");
     expect(rule.inForceFrom).toBe("2026-01-01");
     expect(rule.dataElements).toEqual(
@@ -589,10 +610,13 @@ describe("California Civil Code 1798.82(a): residents within 30 calendar days", 
   });
 
   test("may apply to Californians' Social Security numbers held with names", () => {
-    const obligation: BreachObligation = apply(BreachLawId.CaliforniaResidents, {
-      dataTypeIds: ["us-ssn", "person-name"],
-      places: [BreachPlace.California],
-    });
+    const obligation: BreachObligation = apply(
+      BreachLawId.CaliforniaResidents,
+      {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.California],
+      },
+    );
 
     expect(obligation.status).toBe(BreachObligationStatus.MayApply);
     expect(obligation.dueAt).toBe(after(30 * DAY));
@@ -659,7 +683,10 @@ describe("California Civil Code 1798.82(f): the attorney general's sample, 15 da
     const residentsDue: Date = new Date(after(30 * DAY));
     const obligation: BreachObligation = apply(
       BreachLawId.CaliforniaAttorneyGeneral,
-      { dataTypeIds: ["us-ssn", "person-name"], places: [BreachPlace.California] },
+      {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.California],
+      },
       undefined,
       new Map([[BreachLawId.CaliforniaResidents, residentsDue]]),
     );
@@ -828,7 +855,9 @@ describe("Texas 521.053: individuals within 60 days, the attorney general within
       { dataTypeIds: ["medical-record-number"], places: [BreachPlace.Texas] },
     );
 
-    expect(checkKinds(individuals)).not.toContain(BreachCheckKind.HeldWithNames);
+    expect(checkKinds(individuals)).not.toContain(
+      BreachCheckKind.HeldWithNames,
+    );
     expect(individuals.dueAt).toBe(after(60 * DAY));
     expect(attorneyGeneral.dueAt).toBe(after(30 * DAY));
   });
@@ -853,10 +882,13 @@ describe("Washington 19.255.010: consumers and the attorney general within 30 da
   });
 
   test("covers dates of birth, with or without names", () => {
-    const obligation: BreachObligation = apply(BreachLawId.WashingtonConsumers, {
-      dataTypeIds: ["date-of-birth"],
-      places: [BreachPlace.Washington],
-    });
+    const obligation: BreachObligation = apply(
+      BreachLawId.WashingtonConsumers,
+      {
+        dataTypeIds: ["date-of-birth"],
+        places: [BreachPlace.Washington],
+      },
+    );
 
     expect(obligation.status).toBe(BreachObligationStatus.MayApply);
     expect(obligation.dueAt).toBe(after(30 * DAY));
@@ -866,7 +898,9 @@ describe("Washington 19.255.010: consumers and the attorney general within 30 da
 
 describe("LGPD and ANPD Resolution 15: the ANPD and the people within 3 business days", () => {
   test("says what Article 48 and Resolution 15's Articles 6 and 9 say", () => {
-    const authority: BreachLawRule = getBreachLawRule(BreachLawId.LgpdAuthority);
+    const authority: BreachLawRule = getBreachLawRule(
+      BreachLawId.LgpdAuthority,
+    );
     const people: BreachLawRule = getBreachLawRule(BreachLawId.LgpdPeople);
 
     for (const rule of [authority, people]) {
@@ -985,7 +1019,8 @@ describe("PCI DSS 12.10.1: the acquirer and the card brands, as their rules say"
 
   test("is not triggered by a bank account number", () => {
     expect(
-      apply(BreachLawId.PciDss, { dataTypeIds: ["bank-account-number"] }).status,
+      apply(BreachLawId.PciDss, { dataTypeIds: ["bank-account-number"] })
+        .status,
     ).toBe(BreachObligationStatus.NotTriggered);
   });
 });

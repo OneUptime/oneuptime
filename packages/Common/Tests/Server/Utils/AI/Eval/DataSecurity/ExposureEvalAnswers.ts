@@ -21,8 +21,7 @@ export function getGoodExposureAnswer(
       return fact.id;
     },
   );
-  const answer: Record<string, { markdown: string; facts: Array<string> }> =
-    {};
+  const answer: Record<string, { markdown: string; facts: Array<string> }> = {};
 
   for (const [part, groups] of Object.entries(testCase.expect.parts) as Array<
     [ExposureDraftPart, Array<Array<string>>]

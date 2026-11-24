@@ -4,6 +4,7 @@ A Segurança de dados não tem um sistema de acionamento nem uma fila de seguran
 
 :::cards
 - [Security Operations](#security-operations): Um caso de segurança para cada repositório com um problema Crítico.
+- [Foi uma violação de dados?](#foi-uma-violação-de-dados): Cada exposição Crítica avaliada: por quanto tempo, quem podia lê-la, de quem eram os dados e as leis sobre violações de dados que podem se aplicar.
 - [Alertas e plantão](#alertas-e-plantão): Acione quem estiver de plantão quando um problema Crítico abrir.
 - [Incidentes](#incidentes): Declare um incidente para uma violação que o seu processo de incidentes deve tratar.
 - [Proprietários](#proprietários): Quem é proprietário de cada repositório, definido manualmente ou por regras, e o e-mail que recebem.
@@ -45,6 +46,22 @@ Todo repositório é uma entidade própria no Security Operations, do tipo **Rep
 A partir daí o caso é tratado como qualquer outro: atribuído, anotado, fechado e respondido pelos playbooks do projeto. As detecções do repositório contam para o risco dele em [Risco de entidades](/docs/telemetry/security-entity-risk), como as de qualquer entidade. Veja [Casos de segurança e playbooks](/docs/telemetry/security-cases).
 
 Qualquer caso de segurança, seja lá o que o tenha aberto, mostra os dados em risco no seu **Impacto**: os repositórios com dados sensíveis de que o caso trata, e cada repositório que os usuários e funções dele podem alcançar, o mais sensível primeiro, com o que cada um contém, cerca de quantos registros, o quão exposto está e quantas identidades podem alcançá-lo. Uma sessão de função assumida que o caso nomeia conta como a função dela, e um endereço de e-mail como os usuários de nuvem a que ele pertence. A leitura usa as próprias permissões de quem lê, então uma função que não pode ler a Segurança de dados vê que essa parte ficou de fora.
+
+## Foi uma violação de dados?
+
+Uma exposição Crítica de um repositório com dados de sensibilidade **Restrito** ou **Confidencial** - aberto a qualquer pessoa na internet, compartilhado com contas de fora da sua, ou um snapshot que outros podem restaurar - tem o seu caso avaliado por conta própria, assim que o caso é aberto. Qualquer outro caso sobre um repositório de dados é avaliado quando uma pessoa aciona **Avaliar esta exposição** na **Visão geral** dele. Código simples calcula a avaliação a partir do que o OneUptime registrou, e a calcula de novo cada vez que ela é lida:
+
+- **Por quanto tempo ficou aberto**: desde a mudança no log da sua nuvem que expôs o repositório, quando uma foi registrada nos 30 dias antes de a exposição ser encontrada, ou, caso contrário, pelo menos desde que a Segurança de dados a encontrou; até quando a própria resposta da Segurança de dados a fechou, uma mudança a fechou ou uma verificação a encontrou fechada.
+- **Quem podia lê-lo**: se o repositório registrava as leituras. Onde não registrava, a avaliação diz "As leituras não foram registradas. Considere que os dados foram lidos." Ela conta as contas de fora da sua empresa que podiam ler o repositório, e quantas delas usaram o próprio acesso enquanto ele estava aberto, sem nunca nomeá-las.
+- **De quem eram os dados**: o que o repositório contém, cerca de quantos registros, a quem eles se referem e onde moram os titulares, segundo os dados e segundo o que uma pessoa informa.
+- **Os segredos a trocar**: cada segredo encontrado no repositório enquanto ele estava aberto, pelo tipo e pelo local onde foi encontrado, nunca o valor dele.
+- **As leis sobre violações de dados que podem se aplicar**: cada linha da tabela de leis sobre violações de dados do OneUptime, com o que ela exige, de quem, o prazo dela contado a partir de quando a Segurança de dados encontrou a exposição, e o que uma pessoa ainda verifica antes que ela se aplique.
+
+A tabela cobre os artigos 33 e 34 do GDPR, os artigos 33 e 34 do UK GDPR, a Breach Notification Rule da HIPAA, o requisito 12.10.1 do PCI DSS, a LGPD do Brasil, as DPDP Rules e as diretivas do CERT-In da Índia, e as leis sobre violações de dados da Califórnia, do Colorado, da Flórida, de Nova York, do Texas e de Washington. Cada linha tem um link para o texto da própria lei, a sua fonte, e diz o dia em que foi verificada com base nele pela última vez. O que a tabela não cobre - outro país, outro estado dos EUA, onde a sua organização está estabelecida, os seus contratos - a avaliação diz em palavras simples.
+
+O OneUptime AI redige a avaliação conforme as suas regras de IA da Segurança de dados permitem, ou quando uma pessoa pede: o que isso significa, uma notificação ao órgão regulador, uma notificação aos titulares afetados e um resumo interno (veja [OneUptime AI na Segurança de dados](/docs/data-security/ai)). Cada rascunho é confrontado com os fatos da avaliação: um número ou uma lei que nenhum deles contém o descarta. Nada é enviado a lugar nenhum: uma notificação é um texto que uma pessoa edita e copia, e a avaliação e cada rascunho dizem que não são aconselhamento jurídico.
+
+Os leitores do caso que também podem ler o repositório e as descobertas dele veem a avaliação, já que ela nomeia o que o repositório contém. Avaliar, redigir, editar uma notificação e informar onde moram os titulares também exigem permissão para editar o caso. Veja [Foi uma violação de dados?](/docs/telemetry/security-cases#foi-uma-violação-de-dados) para os cartões do caso.
 
 ## Alertas e plantão
 
@@ -132,7 +149,7 @@ Duas mudanças fecham a exposição de um repositório de nuvem, cada uma pela c
 
 Uma pessoa executa uma delas a partir de um problema aberto que ela corrige, com **Corrigir daqui** (veja [Verificações e problemas da Segurança de dados](/docs/data-security/checks-and-issues#corrigir-daqui)). Um playbook do Security Operations as executa como etapas da categoria **Conter**, **Bloquear o acesso público a repositórios de dados** e **Revogar o compartilhamento do repositório de dados**: em cada repositório de dados de que o caso trata, no máximo 10, cada uma uma etapa que começa com **Requer aprovação** ativado. Um repositório marcado como **Público por design** nunca é bloqueado. De qualquer forma, o feed do repositório diz o que foi feito, e o repositório é verificado de novo na hora, então o problema se resolve quando a mudança surte efeito.
 
-O modelo de playbook **Fechar uma exposição de dados** responde aos casos que a Segurança de dados abre: ele envia e-mail aos proprietários do repositório, bloqueia o acesso público e revoga o compartilhamento depois que uma pessoa aprova cada etapa, e adiciona ao caso a checklist da resposta como tarefas - quem leu os dados enquanto estavam expostos, se é uma violação que você precisa notificar, quais segredos trocar e o que escrever quando o caso for fechado. Adicione-o em **Criar a partir de modelo** nos playbooks do projeto.
+O modelo de playbook **Fechar uma exposição de dados** responde aos casos que a Segurança de dados abre: ele envia e-mail aos proprietários do repositório, bloqueia o acesso público e revoga o compartilhamento depois que uma pessoa aprova cada etapa, e adiciona ao caso a checklist da resposta como tarefas - quem leu os dados enquanto estavam expostos, se é uma violação que você precisa notificar, quais segredos trocar e o que escrever quando o caso for fechado. O cartão **Foi uma violação de dados?** do caso responde a cada uma dessas tarefas (veja [Foi uma violação de dados?](#foi-uma-violação-de-dados)). Adicione-o em **Criar a partir de modelo** nos playbooks do projeto.
 
 ## API, Terraform e MCP
 
@@ -171,6 +188,11 @@ Algumas respostas são calculadas no momento do pedido, em vez de armazenadas. C
 | `/data-security-ai-proposal/<id>/approve` | **Aprovar** em uma mudança que o OneUptime AI propõe, que a faz com as suas próprias permissões. Recebe o `expectedPlanFingerprint` da proposta que foi mostrada a você e recusa uma que mudou desde então |
 | `/data-security-ai-proposal/<id>/dismiss` | **Dispensar proposta**, com `{"reason": "..."}`, que vai para a linha do tempo do problema |
 | `/data-security-ai-proposal/<id>/undo` | **Desfazer** em uma mudança que o OneUptime AI fez: ela é revertida, e o repositório é verificado de novo |
+| `/security-case/<id>/exposure-assessment` | A avaliação da exposição de um caso de segurança, como você pode lê-la: o que o código simples calcula sobre o repositório de que o caso trata, e o texto redigido pelo OneUptime AI |
+| `/security-case/<id>/exposure-assessment/assess` | **Avaliar esta exposição**: inicia a avaliação do caso, do repositório que `{"dataStoreId": "..."}` indica quando o caso trata de mais de um |
+| `/security-case/<id>/exposure-assessment/draft` | **Redigir com o OneUptime AI**: o OneUptime AI redige cada parte que nenhuma pessoa editou. Nada é enviado |
+| `/security-case/<id>/exposure-assessment/edit` | Uma parte nas palavras de uma pessoa, como `{"part": "regulatorNotice", "markdown": "..."}`, que nunca é redigida de novo |
+| `/security-case/<id>/exposure-assessment/people` | Onde moram os titulares dos dados, como `{"places": ["EEA", "GB"]}`; uma lista vazia desfaz a resposta |
 
 O [provedor do Terraform](/docs/terraform/index) tem um recurso para cada tipo de registro que você cria - repositórios de dados que você mesmo adiciona, tipos de dados personalizados, configurações das verificações, configurações de conformidade, regras de residência, regras de proprietário e de rótulos - com o nome do registro, como `oneuptime_residency_rule`.
 

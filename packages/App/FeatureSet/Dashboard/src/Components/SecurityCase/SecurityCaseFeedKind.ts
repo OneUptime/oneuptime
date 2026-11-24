@@ -67,9 +67,6 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
      */
     case SecurityCaseFeedEventType.AiResponse:
       return { icon: IconProp.Sparkles, tone: FeedTone.AI };
-    // A step OneUptime saw done that stopped holding (#10340), in the color the server chose.
-    case SecurityCaseFeedEventType.StepCheck:
-      return { icon: IconProp.ShieldExclamation, tone: FeedTone.Record };
     // The exposure assessment (#10377): started, written up, edited.
     case SecurityCaseFeedEventType.ExposureAssessment:
       return { icon: IconProp.Scale, tone: FeedTone.Record };

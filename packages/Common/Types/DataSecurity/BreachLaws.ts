@@ -236,9 +236,7 @@ export const BREACH_DATA_ELEMENT_WORDS: Readonly<
     "bank account or card numbers",
   ),
   [BreachDataElement.CardData]: translationKey("payment card data"),
-  [BreachDataElement.MedicalInformation]: translationKey(
-    "medical information",
-  ),
+  [BreachDataElement.MedicalInformation]: translationKey("medical information"),
   [BreachDataElement.HealthInsurance]: translationKey(
     "health insurance numbers",
   ),
@@ -339,40 +337,39 @@ export enum BreachCondition {
   CertInEntity = "CertInEntity",
 }
 
-export const BREACH_CONDITION_WORDS: Readonly<
-  Record<BreachCondition, string>
-> = {
-  [BreachCondition.RiskToPeople]: translationKey(
-    "Unless the breach is unlikely to result in a risk to the people's rights and freedoms.",
-  ),
-  [BreachCondition.HighRiskToPeople]: translationKey(
-    "If the breach is likely to result in a high risk to the people's rights and freedoms.",
-  ),
-  [BreachCondition.RelevantRiskToPeople]: translationKey(
-    "If the incident may cause relevant risk or damage to the people, as ANPD Resolution 15 Article 5 sets out.",
-  ),
-  [BreachCondition.RiskOfHarm]: translationKey(
-    "Unless the breach is not reasonably likely to subject the people to a risk of harm.",
-  ),
-  [BreachCondition.LikelyMisuse]: translationKey(
-    "Unless an investigation finds the data was not misused and is not reasonably likely to be.",
-  ),
-  [BreachCondition.IdentityTheftOrFinancialHarm]: translationKey(
-    "Unless you determine, in writing, that it will not likely result in identity theft or financial harm.",
-  ),
-  [BreachCondition.HipaaCoveredEntity]: translationKey(
-    "If your organization is a HIPAA covered entity and the data is protected health information.",
-  ),
-  [BreachCondition.HipaaBusinessAssociate]: translationKey(
-    "If your organization is a business associate of a HIPAA covered entity.",
-  ),
-  [BreachCondition.HandlesCardData]: translationKey(
-    "If your organization stores, processes or transmits payment card data.",
-  ),
-  [BreachCondition.CertInEntity]: translationKey(
-    "If your organization is a service provider, intermediary, data centre, body corporate or government organisation CERT-In's directions cover.",
-  ),
-};
+export const BREACH_CONDITION_WORDS: Readonly<Record<BreachCondition, string>> =
+  {
+    [BreachCondition.RiskToPeople]: translationKey(
+      "Unless the breach is unlikely to result in a risk to the people's rights and freedoms.",
+    ),
+    [BreachCondition.HighRiskToPeople]: translationKey(
+      "If the breach is likely to result in a high risk to the people's rights and freedoms.",
+    ),
+    [BreachCondition.RelevantRiskToPeople]: translationKey(
+      "If the incident may cause relevant risk or damage to the people, as ANPD Resolution 15 Article 5 sets out.",
+    ),
+    [BreachCondition.RiskOfHarm]: translationKey(
+      "Unless the breach is not reasonably likely to subject the people to a risk of harm.",
+    ),
+    [BreachCondition.LikelyMisuse]: translationKey(
+      "Unless an investigation finds the data was not misused and is not reasonably likely to be.",
+    ),
+    [BreachCondition.IdentityTheftOrFinancialHarm]: translationKey(
+      "Unless you determine, in writing, that it will not likely result in identity theft or financial harm.",
+    ),
+    [BreachCondition.HipaaCoveredEntity]: translationKey(
+      "If your organization is a HIPAA covered entity and the data is protected health information.",
+    ),
+    [BreachCondition.HipaaBusinessAssociate]: translationKey(
+      "If your organization is a business associate of a HIPAA covered entity.",
+    ),
+    [BreachCondition.HandlesCardData]: translationKey(
+      "If your organization stores, processes or transmits payment card data.",
+    ),
+    [BreachCondition.CertInEntity]: translationKey(
+      "If your organization is a service provider, intermediary, data centre, body corporate or government organisation CERT-In's directions cover.",
+    ),
+  };
 
 export enum BreachDeadlineUnit {
   Hours = "Hours",
@@ -507,7 +504,8 @@ const HIPAA_SOURCE: string =
   "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-D";
 const CALIFORNIA_SOURCE: string =
   "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=CIV&sectionNum=1798.82";
-const COLORADO_SOURCE: string = "https://coag.gov/resources/data-protection-laws/";
+const COLORADO_SOURCE: string =
+  "https://coag.gov/resources/data-protection-laws/";
 const FLORIDA_SOURCE: string =
   "http://www.leg.state.fl.us/statutes/index.cfm?App_mode=Display_Statute&URL=0500-0599/0501/Sections/0501.171.html";
 const NEW_YORK_SOURCE: string =
@@ -721,7 +719,9 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     nameFreeElements: [],
     conditions: [BreachCondition.HipaaCoveredEntity],
     action: TELL_THE_PEOPLE,
-    recipient: translationKey("Each person whose health information was exposed"),
+    recipient: translationKey(
+      "Each person whose health information was exposed",
+    ),
     deadline: {
       unit: BreachDeadlineUnit.CalendarDays,
       amount: 60,

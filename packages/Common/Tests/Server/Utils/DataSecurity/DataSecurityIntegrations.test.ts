@@ -999,17 +999,20 @@ describe("onIssuesOpened: an exposure's case is assessed", () => {
     "snapshot-public",
     "snapshot-shared-externally",
     "shared-with-external-accounts",
-  ])("the exposure check %s is assessed on its own", async (checkId: string) => {
-    const issue: OpenedIssueForIntegrations = issueOf({
-      severity: SecuritySeverity.Critical,
-      checkId,
-    });
+  ])(
+    "the exposure check %s is assessed on its own",
+    async (checkId: string) => {
+      const issue: OpenedIssueForIntegrations = issueOf({
+        severity: SecuritySeverity.Critical,
+        checkId,
+      });
 
-    inCase([issue], ObjectID.generate());
-    await opened([issue]);
+      inCase([issue], ObjectID.generate());
+      await opened([issue]);
 
-    expect(queued()).toHaveLength(1);
-  });
+      expect(queued()).toHaveLength(1);
+    },
+  );
 
   test("the website images bucket - Public data, open to anyone - gets no assessment of its own", async () => {
     const issue: OpenedIssueForIntegrations = issueOf({
@@ -1086,9 +1089,14 @@ describe("onIssuesOpened: an exposure's case is assessed", () => {
     await opened([publicRead, publicWrite, elsewhere]);
 
     expect(
-      queued().map((job: { securityCaseId: ObjectID; dataSecurityIssueId: ObjectID }) => {
-        return [job.securityCaseId.toString(), job.dataSecurityIssueId.toString()];
-      }),
+      queued().map(
+        (job: { securityCaseId: ObjectID; dataSecurityIssueId: ObjectID }) => {
+          return [
+            job.securityCaseId.toString(),
+            job.dataSecurityIssueId.toString(),
+          ];
+        },
+      ),
     ).toEqual([
       [caseA.toString(), publicRead.issueId.toString()],
       [caseB.toString(), elsewhere.issueId.toString()],

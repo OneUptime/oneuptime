@@ -79,12 +79,16 @@ on:
       - packages/Common/Server/Utils/AI/DataSecurity/AuditEvidencePrompt.ts
       - packages/Common/Server/Utils/AI/DataSecurity/AuditEvidenceDrafter.ts
       - packages/Common/Types/DataSecurity/AuditEvidence.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter.ts
+      - packages/Common/Types/DataSecurity/ExposureAssessment.ts
+      - packages/Common/Types/DataSecurity/BreachLaws.ts
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests, DraftRecord, DraftRecordOnRequest, DraftImpactAssessment, DraftAuditEvidence. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests, DraftRecord, DraftRecordOnRequest, DraftImpactAssessment, DraftAuditEvidence, DraftExposureAssessment, DraftExposureAssessmentOnRequest. Empty: all of them."
         required: false
         default: ""
       cases:

@@ -75,13 +75,15 @@ export const EXPOSURE_ASSESSMENT_CASES: Array<ExposureAssessmentEvalCase> = [
   },
   {
     id: "exposure-brazil-cpf",
-    title:
-      "Brazilian CPF numbers, public: the ANPD within three business days",
+    title: "Brazilian CPF numbers, public: the ANPD within three business days",
     feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
     exposure: getExposureEvalExposure("brazil-cpf-emails"),
     expect: {
       parts: {
-        [ExposureDraftPart.Explanation]: [["ANPD", "LGPD"], ["3", "three"]],
+        [ExposureDraftPart.Explanation]: [
+          ["ANPD", "LGPD"],
+          ["3", "three"],
+        ],
         [ExposureDraftPart.RegulatorNotice]: [["CPF"]],
       },
       never: NEVER_UNREAD,
@@ -115,10 +117,7 @@ export const EXPOSURE_ASSESSMENT_CASES: Array<ExposureAssessmentEvalCase> = [
     expect: {
       parts: {
         [ExposureDraftPart.Explanation]: [["rotate"], ["key"]],
-        [ExposureDraftPart.InternalSummary]: [
-          ["deploy/env.sh"],
-          ["rotate"],
-        ],
+        [ExposureDraftPart.InternalSummary]: [["deploy/env.sh"], ["rotate"]],
       },
       never: NEVER_UNREAD,
     },
