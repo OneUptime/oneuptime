@@ -108,10 +108,11 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 | **Comptage**, **Pourcentage**, **Changements d'état** | Le nombre de vérifications qui ont rempli la condition, leur part, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, est comparé au nombre défini en dessous. |
+| **Vérification précédente** | Cette vérification, comparée à la vérification précédente de la sonde comme réglé sous **Écart par rapport à la vérification précédente** : un temps de réponse supérieur de plus de 50 % à celle-ci, par exemple. Un filtre vrai ou faux correspond à la vérification qui a commencé à remplir la condition. |
 
 L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-**Délai de la requête dépassé** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. OneUptime peut aussi le compter avec **Comptage**, **Pourcentage** ou **Changements d'état**.
+**Délai de la requête dépassé** n'est pas un nombre qu'OneUptime enregistre : OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. OneUptime peut aussi le compter avec **Comptage**, **Pourcentage** ou **Changements d'état**. Avec **Vérification précédente**, le filtre correspond à la vérification où il a commencé à correspondre.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 

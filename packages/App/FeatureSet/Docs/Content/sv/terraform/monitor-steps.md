@@ -238,6 +238,10 @@ Grupperade metrikmonitorer är det enda undantaget. När en metrikmonitors fråg
 | `description` | string | Beskrivningen som instrumentpanelen visar. |
 | `filter_condition` | string (obligatorisk) | `All`: varje filter måste stämma. `Any`: ett räcker. |
 | `filters` | list (obligatorisk) | Villkoren, minst ett: se [Filterreferens](#filterreferens). |
+| `recovery_filters` | list | Filter som de i `filters` som måste matcha innan kriteriet slutar verka, i stället för så snart dess `filters` slutar matcha. |
+| `recovery_filter_condition` | string | Hur `recovery_filters` kombineras: `All` (standard) eller `Any`. |
+| `active_hours` | object | Bedöm kriteriet bara under dessa `days` (måndag är `0`, söndag `6`), från `from` till `to` (`"08:00"`); utanför dem hoppas det över som ett inaktiverat kriterium. |
+| `active_hours_timezone` | string | Tidszonen som `active_hours` läses i, till exempel `Europe/Oslo`. Ange den tillsammans med `active_hours`. |
 | `change_monitor_status` | bool | Om en träff ändrar monitorns status. |
 | `monitor_status_id` | string | ID:t för den `oneuptime_monitor_status` som ska bytas till. Ange det när `change_monitor_status` är `true`. |
 | `create_incidents` | bool | Om en träff öppnar incidenter. |
@@ -284,15 +288,87 @@ criteria = [
 ]
 ```
 
+### När det återställs och när det bedöms
+
+Det här kriteriet bedömer webbplatsen bara under kontorstid i Oslo, måndag till fredag, och håller den offline tills den har svarat vid varje kontroll i 10 minuter:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## Filterreferens
 
 Ett filter har `check_on` (vad det tittar på), `filter_type` (hur det jämför) och `value` (vad det jämför med, som en sträng; utelämna det för sant-eller-falskt-kontroller som `True` och `False`).
 
-Ett filter kan också bedöma ett tidsfönster i stället för den senaste kontrollen: ange `evaluate_over_time = true`, fönstrets längd i `evaluate_over_time_minutes` och i `evaluate_over_time_type` hur fönstret läses: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` eller `Status Changes`. `Percentile` jämför percentilen i `evaluate_over_time_percentile` med filtrets värde (95 om den inte anges). `Count`, `Percentage` och `Status Changes` räknar per sond fönstrets kontroller som uppfyllde villkoret, deras andel i procent, eller hur ofta de växlade mellan att uppfylla det och inte, och jämför talet med `evaluate_over_time_count_value` som `evaluate_over_time_count_filter_type` anger (`Greater Than` 0 om den inte anges).
+Ett filter kan också bedöma ett tidsfönster i stället för den senaste kontrollen: ange `evaluate_over_time = true`, fönstrets längd i `evaluate_over_time_minutes` och i `evaluate_over_time_type` hur fönstret läses: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` eller `Previous Check`. `Percentile` jämför percentilen i `evaluate_over_time_percentile` med filtrets värde (95 om den inte anges). `Count`, `Percentage` och `Status Changes` räknar per sond fönstrets kontroller som uppfyllde villkoret, deras andel i procent, eller hur ofta de växlade mellan att uppfylla det och inte, och jämför talet med `evaluate_over_time_count_value` som `evaluate_over_time_count_filter_type` anger (`Greater Than` 0 om den inte anges).
 
 `All Values` betyder att varje kontroll i fönstret bröt mot regeln, så det stämmer först när fönstret är täckt av data: en monitor som just har skapats väntar på att fönstret fylls i stället för att stämma vid sin första kontroll. Ge den ett fönster på minst dubbla monitorns `monitoring_interval`; annars rymmer fönstret en kontroll, och "alla värden" betyder samma sak som "vilket värde som helst". `Any Value` stämmer med avsikt vid en kontroll som bryter mot regeln.
 
 `evaluate_over_time_no_data_policy` säger vad filtret gör medan fönstret inte rymmer tillräckligt med data: `Ignore` (standard) stämmer inte, `Trigger` behandlar de saknade data som felet, så som ett heartbeat gör, och `Treat As Zero` jämför fönstret som en enda nolla.
+
+`Previous Check` jämför varje kontroll med samma sonds föregående kontroll, gjord högst `evaluate_over_time_minutes` före den. Ett uppmätt värde tar inget `value`: `filter_type` jämför det med det föregående värdet förskjutet med `evaluate_over_time_change_value`, uppåt vid `Greater Than` och nedåt vid `Less Than`, som ett `Amount` i kontrollens egen enhet eller en `Percentage` av det föregående värdet, som `evaluate_over_time_change_type` anger (`Amount` 0 om den inte anges: varje ökning eller minskning). Ett filter som är sant eller falskt matchar vid den kontroll som började uppfylla villkoret. Utan någon föregående kontroll avgör `evaluate_over_time_no_data_policy`.
+
+Det här kriteriet öppnar ett larm när en kontroll tar mer än dubbelt så lång tid som den före:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### Vad ett filter kan kontrollera
 

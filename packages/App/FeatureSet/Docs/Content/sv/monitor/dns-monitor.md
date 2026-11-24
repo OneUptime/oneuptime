@@ -126,6 +126,7 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 | **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
 | **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
 | **Antal**, **Procentandel**, **Statusbyten** | Hur många kontroller som uppfyllde villkoret, deras andel eller hur ofta de växlade mellan att uppfylla det och inte, jämförs med talet som anges under. |
+| **Föregående kontroll** | Den här kontrollen jämförd med sondens föregående kontroll, som angivet under **Förändring från föregående kontroll**: till exempel en svarstid som ligger mer än 50 % över den. Ett filter som är sant eller falskt matchar vid den kontroll som började uppfylla villkoret. |
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
