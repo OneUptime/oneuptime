@@ -333,7 +333,16 @@ Un événement lu dans une ligne de journal écrite au sein d'une requête trac�
 
 ### Campaigns
 
-**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier.
+**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier. Une ligne que votre liste de blocage contient déjà indique jusqu'à quand elle est bloquée ou soumise à un défi, et nomme la plage ou le réseau qui la contient.
+
+Pour bloquer plusieurs attaquants à la fois, sélectionnez leurs lignes et cliquez sur **Bloquer des adresses**. Une seule boîte de dialogue liste chaque adresse qu'elle bloque et chaque adresse qu'elle exclut, avec la raison : déjà bloquée, l'une des vôtres ou une adresse protégée, une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou une adresse que OneUptime n'a pas pu vérifier. Elle bloque pendant 24 heures sauf si vous choisissez une autre durée, ou soumet à un défi avec **Défi à la place**, et chaque blocage rejoint votre [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) en votre nom.
+
+**Regrouper par réseau** place les adresses d'un même réseau sur une seule ligne : par son ASN quand les événements de votre connexion [Cloudflare](/docs/integrations/cloudflare) en nomment un, et sinon par son /24 en IPv4 ou son /48 en IPv6. La ligne d'un ASN liste les plages depuis lesquelles ses adresses ont envoyé des requêtes. **Soumettre ce réseau à un défi** indique ce qu'il va faire, où et pendant combien de temps avant de le faire : 24 heures sauf si vous choisissez une autre durée, et l'échelon suivant de l'échelle pour un réseau déjà soumis à un défi. Cloudflare garde une plage dans sa liste de défis, et un ASN sous forme d'IP Access Rule, que chaque forfait possède.
+
+- Un réseau qui contient une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou l'une des vôtres, n'est jamais soumis à un défi, et la boîte de dialogue nomme qui ou quoi.
+- Une plage plus large qu'un /24 (un /48 en IPv6), et un ASN entier, demandent un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet. La ligne d'un ASN propose aussi chacune de ses plages, que toute personne qui peut bloquer peut soumettre à un défi.
+- Quand OneUptime ne peut pas savoir qui utilise un réseau, parce que c'est un ASN entier ou qu'une règle de masquage cache les adresses des clients, seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut le soumettre à un défi, après avoir coché qu'il le sait.
+- Rien n'est bloqué ni soumis à un défi tant que les Événements de sécurité sont désactivés sur le serveur.
 
 ### Corréler
 

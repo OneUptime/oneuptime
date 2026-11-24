@@ -333,7 +333,16 @@ An event read from a log line written inside a traced request is followed into t
 
 ### Campaigns
 
-**Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first.
+**Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first. A row your blocklist already holds says until when it is blocked or challenged, and names the range or network that holds it.
+
+To block several attackers at once, select their rows and press **Block Addresses**. One dialog lists every address it blocks and every one it leaves out, with why: already blocked, one of your own or a protected one, one a signed-in user used in the last 30 days, or one OneUptime could not check. It blocks for 24 hours unless you choose another length, or challenges with **Challenge Instead**, and each block goes on your [blocklist](/docs/telemetry/security-cases#blocklist) as yours.
+
+**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has.
+
+- A network that holds an address a signed-in user used in the last 30 days, or one of your own, is never challenged, and the dialog names who or what.
+- A range wider than a /24 (a /48 for IPv6), and a whole ASN, take a Security Admin, a Project Admin or a Project Owner. An ASN's row also offers each of its ranges, which anyone who can block may challenge.
+- When OneUptime cannot tell who uses a network, because it is a whole ASN or a scrub rule hides client addresses, only a Security Admin, a Project Admin or a Project Owner can challenge it, once they tick that they know.
+- Nothing is blocked or challenged while Security Events is switched off on the server.
 
 ### Correlate
 

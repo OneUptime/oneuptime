@@ -333,7 +333,16 @@ Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, 
 
 ### Campaigns
 
-**Campagnes** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan.
+**Campagnes** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan. Een rij die je blokkeerlijst al bevat, zegt tot wanneer het adres geblokkeerd is of een challenge heeft, en noemt het bereik of netwerk dat het bevat.
+
+Om meerdere aanvallers tegelijk te blokkeren, selecteer je hun rijen en druk je op **Adressen blokkeren**. Eén dialoogvenster toont elk adres dat het blokkeert en elk adres dat het weglaat, met de reden: al geblokkeerd, een van je eigen adressen of een beschermd adres, een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of een adres dat OneUptime niet kon controleren. Het blokkeert voor 24 uur, tenzij je een andere duur kiest, of geeft een challenge met **In plaats daarvan challenge**, en elke blokkering komt als de jouwe op je [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst).
+
+**Groeperen op netwerk** zet de adressen van één netwerk op één rij: op zijn ASN waar de gebeurtenissen van je [Cloudflare](/docs/integrations/cloudflare)-verbinding er een noemen, en anders op zijn /24 bij IPv4 of zijn /48 bij IPv6. De rij van een ASN toont de bereiken van waaruit zijn adressen stuurden. **Dit netwerk een challenge geven** zegt wat het gaat doen, waar en hoe lang, voordat het dat doet: 24 uur, tenzij je een andere duur kiest, en de volgende trede van de ladder voor een netwerk dat al eerder een challenge kreeg. Cloudflare houdt een bereik in zijn challengelijst, en een ASN als IP Access Rule, die elk abonnement heeft.
+
+- Een netwerk met een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of met een van je eigen adressen, krijgt nooit een challenge, en het dialoogvenster noemt wie of wat.
+- Een bereik dat breder is dan een /24 (een /48 bij IPv6), en een hele ASN, vragen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar. De rij van een ASN biedt ook elk van zijn bereiken aan, die iedereen die mag blokkeren een challenge kan geven.
+- Als OneUptime niet kan zien wie een netwerk gebruikt, omdat het een hele ASN is of omdat een scrub-regel clientadressen verbergt, kan alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar het een challenge geven, nadat die heeft aangevinkt dat hij dat weet.
+- Er wordt niets geblokkeerd of een challenge gegeven zolang Beveiligingsgebeurtenissen op de server uitgeschakeld is.
 
 ### Correleren
 

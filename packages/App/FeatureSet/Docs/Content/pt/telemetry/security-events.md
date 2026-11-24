@@ -333,7 +333,16 @@ Um evento lido de uma linha de log escrita dentro de uma requisição rastreada 
 
 ### Campaigns
 
-**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
+**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro. Uma linha que sua lista de bloqueio já contém diz até quando ela está bloqueada ou desafiada, e nomeia o intervalo ou a rede que a contém.
+
+Para bloquear vários atacantes de uma vez, selecione as linhas deles e clique em **Bloquear endereços**. Uma única caixa de diálogo lista cada endereço que ela bloqueia e cada um que ela deixa de fora, com o motivo: já bloqueado, um dos seus ou um protegido, um que um usuário conectado usou nos últimos 30 dias, ou um que o OneUptime não conseguiu verificar. Ela bloqueia por 24 horas, a menos que você escolha outra duração, ou desafia com **Desafio em vez disso**, e cada bloqueio vai para a sua [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) como seu.
+
+**Agrupar por rede** coloca os endereços de uma mesma rede em uma única linha: pelo seu ASN quando os eventos da sua conexão da [Cloudflare](/docs/integrations/cloudflare) informam um e, caso contrário, pelo seu /24 no IPv4 ou pelo seu /48 no IPv6. A linha de um ASN lista os intervalos de onde seus endereços enviaram. **Desafiar esta rede** diz o que vai fazer, onde e por quanto tempo antes de fazer: 24 horas, a menos que você escolha outra duração, e o próximo degrau da escada para uma rede já desafiada antes. A Cloudflare guarda um intervalo na sua lista de desafio, e um ASN como uma IP Access Rule, que todo plano tem.
+
+- Uma rede que contém um endereço que um usuário conectado usou nos últimos 30 dias, ou um dos seus, nunca é desafiada, e a caixa de diálogo diz quem ou o quê.
+- Um intervalo mais amplo que um /24 (um /48 no IPv6), e um ASN inteiro, exigem um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto. A linha de um ASN também oferece cada um dos seus intervalos, que qualquer pessoa que possa bloquear pode desafiar.
+- Quando o OneUptime não consegue saber quem usa uma rede, porque ela é um ASN inteiro ou porque uma regra de mascaramento oculta os endereços dos clientes, somente um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto pode desafiá-la, depois de marcar que está ciente disso.
+- Nada é bloqueado nem desafiado enquanto Eventos de segurança estiver desativado no servidor.
 
 ### Correlacionar
 

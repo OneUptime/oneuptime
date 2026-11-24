@@ -333,7 +333,16 @@ En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel,
 
 ### Campaigns
 
-**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
+**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først. En rad som blokkeringslisten din allerede holder, sier til når den er blokkert eller utfordret, og nevner området eller nettverket som holder den.
+
+For å blokkere flere angripere samtidig velger du radene deres og trykker på **Blokker adresser**. Én dialog viser hver adresse den blokkerer og hver adresse den utelater, med grunnen: allerede blokkert, en av dine egne eller en beskyttet, en som en pålogget bruker har brukt de siste 30 dagene, eller en som OneUptime ikke kunne kontrollere. Den blokkerer i 24 timer med mindre du velger en annen varighet, eller utfordrer med **Utfordre i stedet**, og hver blokkering havner på [blokkeringslisten](/docs/telemetry/security-cases#blokkeringsliste) din som din.
+
+**Grupper etter nettverk** samler adressene fra ett nettverk på én rad: etter ASN-en der hendelsene fra [Cloudflare](/docs/integrations/cloudflare)-tilkoblingen din oppgir en, og ellers etter /24 for IPv4 eller /48 for IPv6. Raden til en ASN viser områdene adressene sendte fra. **Utfordre dette nettverket** sier hva det vil gjøre, hvor og hvor lenge, før det gjør det: 24 timer med mindre du velger en annen varighet, og neste trinn på stigen for et nettverk som er utfordret før. Cloudflare holder et område i utfordringslisten sin, og en ASN som en IP Access Rule, som alle planer har.
+
+- Et nettverk som inneholder en adresse en pålogget bruker har brukt de siste 30 dagene, eller en av dine egne, blir aldri utfordret, og dialogen nevner hvem eller hva.
+- Et område som er bredere enn et /24 (et /48 for IPv6), og en hel ASN, krever en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier. Raden til en ASN tilbyr også hvert av områdene, som alle som kan blokkere, kan utfordre.
+- Når OneUptime ikke kan se hvem som bruker et nettverk, fordi det er en hel ASN eller fordi en scrub-regel skjuler klientadresser, kan bare en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier utfordre det, etter å ha krysset av for at de vet det.
+- Ingenting blir blokkert eller utfordret så lenge Sikkerhetshendelser er slått av på serveren.
 
 ### Korreler
 

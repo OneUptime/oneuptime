@@ -333,7 +333,16 @@ Un evento letto da una riga di log scritta all'interno di una richiesta tracciat
 
 ### Campaigns
 
-**Campagne** elenca ogni indirizzo che ha inviato richieste di attacco come una sola riga, con i tipi di attacco, gli strumenti e le richieste che ha inviato, e quante sono passate. Prima vengono gli indirizzi le cui richieste hanno raggiunto la tua app.
+**Campagne** elenca ogni indirizzo che ha inviato richieste di attacco come una sola riga, con i tipi di attacco, gli strumenti e le richieste che ha inviato, e quante sono passate. Prima vengono gli indirizzi le cui richieste hanno raggiunto la tua app. Una riga che la tua blocklist contiene già dice fino a quando è bloccata o sottoposta a verifica, e nomina l'intervallo o la rete che la contiene.
+
+Per bloccare più attaccanti insieme, seleziona le loro righe e premi **Blocca indirizzi**. Un'unica finestra elenca ogni indirizzo che blocca e ognuno che esclude, con il motivo: già bloccato, uno dei tuoi o uno protetto, uno che un utente con accesso effettuato ha usato negli ultimi 30 giorni, o uno che OneUptime non ha potuto verificare. Blocca per 24 ore a meno che tu non scelga un'altra durata, oppure sottopone a verifica con **Verifica invece**, e ogni blocco finisce nella tua [blocklist](/docs/telemetry/security-cases#blocklist) come tuo.
+
+**Raggruppa per rete** mette gli indirizzi di una stessa rete su una sola riga: per il suo ASN dove gli eventi della tua connessione [Cloudflare](/docs/integrations/cloudflare) ne indicano uno, altrimenti per il suo /24 in IPv4 o il suo /48 in IPv6. La riga di un ASN elenca gli intervalli da cui hanno inviato i suoi indirizzi. **Sottoponi questa rete a verifica** dice cosa farà, dove e per quanto tempo prima di farlo: 24 ore a meno che tu non scelga un'altra durata, e il gradino successivo della scala per una rete già sottoposta a verifica in precedenza. Cloudflare tiene un intervallo nella sua lista di verifica, e un ASN come IP Access Rule, che ogni piano ha.
+
+- Una rete che contiene un indirizzo che un utente con accesso effettuato ha usato negli ultimi 30 giorni, o uno dei tuoi, non viene mai sottoposta a verifica, e la finestra dice chi o cosa.
+- Un intervallo più ampio di un /24 (un /48 per IPv6), e un intero ASN, richiedono un Amministratore della sicurezza, un Amministratore del progetto o un Proprietario del progetto. La riga di un ASN offre anche ciascuno dei suoi intervalli, che chiunque possa bloccare può sottoporre a verifica.
+- Quando OneUptime non può sapere chi usa una rete, perché è un intero ASN o perché una regola di mascheramento nasconde gli indirizzi dei client, solo un Amministratore della sicurezza, un Amministratore del progetto o un Proprietario del progetto può sottoporla a verifica, dopo aver spuntato di esserne consapevole.
+- Nulla viene bloccato o sottoposto a verifica finché Eventi di sicurezza è disattivato sul server.
 
 ### Correla
 
