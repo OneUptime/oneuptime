@@ -102,6 +102,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Daemon",
     "Dashboard",
     "Data stream",

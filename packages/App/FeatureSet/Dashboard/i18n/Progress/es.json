@@ -143,6 +143,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Daemon",
     "Daemons",
     "DeploymentConfigs",
