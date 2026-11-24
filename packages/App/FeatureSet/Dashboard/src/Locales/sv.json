@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produkten Säkerhetshändelser är avstängd på den här servern, så OneUptime AI slutade arbeta med ärendet.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produkten Säkerhetshändelser är avstängd på den här servern. En serveradministratör kan slå på den under Admin-instrumentpanel > Inställningar > Produkter.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} markerade",
-  "Change Failed At": "Ändring misslyckades"
+  "Change Failed At": "Ändring misslyckades",
+  "Add to Authenticator App": "Lägg till i autentiseringsapp"
 }

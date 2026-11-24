@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।",
   "{{ticked}} of {{total}} ticked": "{{total}} में से {{ticked}} पर निशान लगा है",
-  "Change Failed At": "बदलाव विफल होने का समय"
+  "Change Failed At": "बदलाव विफल होने का समय",
+  "Add to Authenticator App": "प्रमाणक ऐप में जोड़ें"
 }

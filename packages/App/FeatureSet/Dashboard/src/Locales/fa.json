@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "رویدادهای امنیتی در این سرور خاموش شده است، بنابراین OneUptime AI رسیدگی به پرونده را متوقف کرد.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "رویدادهای امنیتی در این سرور خاموش شده است. یک مدیر سرور می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} از {{total}} تیک‌خورده",
-  "Change Failed At": "زمان شکست تغییر"
+  "Change Failed At": "زمان شکست تغییر",
+  "Add to Authenticator App": "افزودن به اپلیکیشن احراز هویت"
 }

@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم، لذا توقّف OneUptime AI عن العمل على الحالة.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم. ويمكن لأحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} من {{total}} محددة",
-  "Change Failed At": "وقت إخفاق التغيير"
+  "Change Failed At": "وقت إخفاق التغيير",
+  "Add to Authenticator App": "إضافة إلى تطبيق المصادقة"
 }

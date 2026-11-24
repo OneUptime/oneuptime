@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Il prodotto Eventi di sicurezza è disattivato su questo server, quindi OneUptime AI ha smesso di gestire il caso.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Il prodotto Eventi di sicurezza è disattivato su questo server. Un amministratore del server può attivarlo in Dashboard amministratore > Impostazioni > Prodotti.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} di {{total}} selezionati",
-  "Change Failed At": "Modifica non riuscita il"
+  "Change Failed At": "Modifica non riuscita il",
+  "Add to Authenticator App": "Aggiungi all'app di autenticazione"
 }
