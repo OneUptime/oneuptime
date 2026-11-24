@@ -457,7 +457,7 @@ OneUptime サーバー側でも、応答の遅かったプローブのリクエ�
 ### その他の問題
 
 :::details プローブが起動直後に停止する
-ログに足りないものが示されます: `PROBE_KEY is not set`、 `PROBE_INGEST_URL or ONEUPTIME_URL is not set`、または `PROBE_ID or REGISTER_PROBE_KEY should be set`。3 つとも設定されていても ID とキーがどのプローブとも一致しない場合、プローブは 30 秒間隔で 10 回試してから、 `Unable to register probe after 10 attempts` で停止します。 **ID とキーを表示** で ID とキーをもう一度コピーしてください。
+ログに足りないものが示されます: `PROBE_KEY is not set`、 `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set`、または `PROBE_ID is not set`。3 つとも設定されていても ID とキーがどのプローブとも一致しない場合、プローブは 30 秒間隔で 10 回試してから、 `Unable to register probe after 10 attempts` で停止します。 **ID とキーを表示** で ID とキーをもう一度コピーしてください。
 :::
 
 :::details 誰かがキーをリセットするまでプローブは動いていた

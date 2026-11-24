@@ -64057,5 +64057,6 @@
   "{{count}} secrets to rotate._one": "रोटेट करने के लिए {{count}} सीक्रेट।",
   "{{count}} secrets_one": "{{count}} सीक्रेट",
   "{{law}} may apply first: {{due}}.": "{{law}} सबसे पहले लागू हो सकता है: {{due}}।",
-  "{{name}} said the people live in {{places}}.": "{{name}} ने बताया कि लोग {{places}} में रहते हैं।"
+  "{{name}} said the people live in {{places}}.": "{{name}} ने बताया कि लोग {{places}} में रहते हैं।",
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "जांचें कि इसका कंटेनर इस प्रोब के PROBE_ID और PROBE_KEY के साथ चल रहा है।"
 }

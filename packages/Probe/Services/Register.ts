@@ -26,6 +26,7 @@ import {
 } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
+import { ProbeStartupMessages } from "Common/Types/Probe/ProbeConnectionRefusals";
 
 /*
  * Said, before any request, by a probe holding a key the OneUptime
@@ -236,7 +237,7 @@ export default class Register {
     } else {
       // validate probe.
       if (!PROBE_ID) {
-        logger.error("PROBE_ID or REGISTER_PROBE_KEY should be set");
+        logger.error(ProbeStartupMessages.noProbeId);
         return process.exit(1);
       }
 

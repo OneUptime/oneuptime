@@ -82,6 +82,13 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/StatusPageResourceService.ts",
   "packages/Common/Server/Services/TelemetryIngestionKeyService.ts",
   "packages/Common/Server/Middleware/TelemetryIngest.ts",
+  // A probe that registers, checks in and reports, and the probe itself (#7273).
+  "packages/App/FeatureSet/Telemetry/Middleware/ProbeAuthorization.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Probe.ts",
+  "packages/Probe/Config.ts",
+  "packages/Probe/Services/Register.ts",
+  "packages/Probe/Index.ts",
 ];
 
 /*

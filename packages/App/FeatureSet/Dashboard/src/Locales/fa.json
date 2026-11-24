@@ -64057,5 +64057,6 @@
   "{{count}} secrets to rotate._one": "{{count}} راز برای چرخاندن.",
   "{{count}} secrets_one": "{{count}} راز",
   "{{law}} may apply first: {{due}}.": "{{law}} ممکن است نخست اعمال شود: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} گفت این افراد در {{places}} زندگی می‌کنند."
+  "{{name}} said the people live in {{places}}.": "{{name}} گفت این افراد در {{places}} زندگی می‌کنند.",
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "بررسی کنید کانتینر آن با PROBE_ID و PROBE_KEY همین پراب در حال اجرا باشد."
 }

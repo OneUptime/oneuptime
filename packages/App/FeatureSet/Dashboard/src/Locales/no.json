@@ -64057,5 +64057,6 @@
   "{{count}} secrets to rotate._one": "{{count}} hemmelighet som må roteres.",
   "{{count}} secrets_one": "{{count}} hemmelighet",
   "{{law}} may apply first: {{due}}.": "{{law}} kan gjelde først – {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} har sagt at de registrerte bor i {{places}}."
+  "{{name}} said the people live in {{places}}.": "{{name}} har sagt at de registrerte bor i {{places}}.",
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "Sjekk at containeren kjører, med PROBE_ID og PROBE_KEY for denne sonden."
 }

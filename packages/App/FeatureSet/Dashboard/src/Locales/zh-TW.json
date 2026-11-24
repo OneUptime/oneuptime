@@ -64057,5 +64057,6 @@
   "{{count}} secrets to rotate._one": "需要輪替 {{count}} 個密鑰。",
   "{{count}} secrets_one": "{{count}} 個密鑰",
   "{{law}} may apply first: {{due}}.": "{{law}} 可能最先適用：{{due}}。",
-  "{{name}} said the people live in {{places}}.": "{{name}} 表示這些人住在 {{places}}。"
+  "{{name}} said the people live in {{places}}.": "{{name}} 表示這些人住在 {{places}}。",
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "請檢查其容器是否正在執行，且使用的是此探測器的 PROBE_ID 和 PROBE_KEY。"
 }

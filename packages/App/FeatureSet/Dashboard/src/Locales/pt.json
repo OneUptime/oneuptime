@@ -64057,5 +64057,6 @@
   "{{count}} secrets to rotate._one": "{{count}} segredo a trocar.",
   "{{count}} secrets_one": "{{count}} segredo",
   "{{law}} may apply first: {{due}}.": "{{law}} pode se aplicar primeiro — {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} informou que os titulares moram nestes locais: {{places}}."
+  "{{name}} said the people live in {{places}}.": "{{name}} informou que os titulares moram nestes locais: {{places}}.",
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "Verifique se o contêiner dela está em execução, com o PROBE_ID e a PROBE_KEY desta sonda."
 }

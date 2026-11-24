@@ -64057,5 +64057,6 @@
   "{{count}} secrets to rotate._one": "교체할 시크릿 {{count}}개.",
   "{{count}} secrets_one": "시크릿 {{count}}개",
   "{{law}} may apply first: {{due}}.": "{{law}}이(가) 가장 먼저 적용될 수 있습니다: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다."
+  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다.",
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "컨테이너가 이 프로브의 PROBE_ID와 PROBE_KEY로 실행 중인지 확인하세요."
 }
