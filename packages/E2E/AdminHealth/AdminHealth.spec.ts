@@ -62,7 +62,7 @@ const WORDS: {
   title: "What needs attention",
   allRight: "Everything looks right.",
   loadFailed: "What needs attention could not be read.",
-  setupFix: "Finish it on the Server setup page.",
+  setupFix: "Finish it on the Server Setup page.",
   readTheGuide: "Read the guide",
   emailNotSetUp:
     "Not set up yet: OneUptime cannot send invitations, password resets or alerts by email.",

@@ -497,7 +497,7 @@
       "title": "Afmelden"
     },
     "sendEmail": {
-      "title": "Aankondigings-e-mail verzenden",
+      "title": "E-mail verzenden",
       "testCardTitle": "Test-e-mail verzenden",
       "testCardDescription": "Verzend een test-aankondigings-e-mail naar één e-mailadres om een voorbeeld te zien voordat u deze naar alle gebruikers verzendt.",
       "allCardTitle": "E-mail naar alle gebruikers verzenden",
@@ -514,7 +514,7 @@
       "confirmButton": "Ja, verzenden naar alle gebruikers"
     },
     "moreEmail": {
-      "title": "Aankondigings-e-mail verzenden",
+      "title": "E-mail verzenden",
       "cardTitle": "Aankondigings-e-mail verzenden",
       "cardDescription": "Stel een aankondigings-e-mail op om naar alle geregistreerde gebruikers te verzenden. U kunt eerst een test-e-mail verzenden om een voorbeeld te zien.",
       "sendTestButton": "Test-e-mail verzenden",
@@ -536,7 +536,7 @@
       "confirmButton": "Ja, verzenden naar alle gebruikers"
     },
     "settings": {
-      "title": "Admin-instellingen",
+      "title": "Instellingen",
       "authentication": {
         "signUpCardTitle": "Registratie",
         "signUpCardDescription": "Wie een account kan aanmaken op deze server.",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Geef de workers meer geheugen en CPU, en zoek in het log van de app naar taken die steeds mislukken.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Deze server draait OneUptime {{current}}. {{latest}} is uit.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Maak een back-up en werk daarna bij: npm run update op Docker Compose, helm upgrade op Kubernetes.",
-  "Finish it on the Server setup page.": "Rond het af op de pagina Serverinstelling.",
+  "Finish it on the Server Setup page.": "Rond het af op de pagina Serverinstelling.",
   "Products on this server": "Producten op deze server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Kies wat elk project op deze server biedt. Een product dat uit staat, verdwijnt uit het menu, Start en Zoeken van elk project, en de pagina's ervan melden dat het is uitgeschakeld.",
   "Start from": "Begin met",

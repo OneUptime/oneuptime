@@ -560,9 +560,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "rename project",
               "project id",
               "data residency",
+              // Require Unique Names (#10761), by what people ask for.
+              "duplicate names",
+              "same name",
             ],
             settings: [
               "Project Details",
+              "Unique Names",
+              "Require Unique Names",
               {
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
@@ -3453,9 +3458,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.TOPOLOGY,
-            title: "Topology Map",
+            title: "Topology",
             icon: IconProp.FlowDiagram,
-            keywords: ["dependency map", "service map"],
+            // "Topology Map", the Inventory menu's old name for it, still finds it (#7474).
+            keywords: ["topology map", "dependency map", "service map"],
           },
           {
             page: PageMap.INVENTORY_ITEMS,

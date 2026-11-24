@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../Types/Database/RequiredUniqueNames";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
@@ -949,6 +950,8 @@ export default class SecuritySetup {
             priorities: values.priorities,
             statuses: values.statuses,
           }),
+          // The template's name: numbered, not refused, if it is taken.
+          miscDataProps: getNumbersTakenNameData(),
           props,
         });
         result.playbookAdded = true;

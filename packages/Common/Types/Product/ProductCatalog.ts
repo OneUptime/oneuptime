@@ -12,8 +12,8 @@ import ProductKey, { PRODUCT_KEYS } from "./ProductKey";
  * switch off. These are the menu's English words (Tests/Types/Product/
  * ProductCatalog pins them to the Dashboard's en.json), so a product has
  * one name wherever it is read - in the names #6817 decided: On-Call (not
- * On-Call Duty), Profiles, AI Insights and Ask AI, ahead of the menu while
- * #6817 renames it.
+ * On-Call Duty), Profiles, and AI Insights and Ask AI, which the menu says
+ * too since #7474.
  *
  * Pure: the server, the Admin Dashboard and their tests read it.
  */

@@ -196,7 +196,7 @@ Alerts for payments:
 | `requestMethod` | HTTP 메서드(예: `POST`). | `string` |
 | `incomingRequestReceivedAt` | 요청을 받은 시각(ISO 8601 타임스탬프). | `string` |
 
-기준에서 **Group incidents and alerts by a payload field** 를 켜면 그룹화 키도 변수가 되며, 그 이름은 그룹화 경로의 **마지막 세그먼트** 를 따릅니다. `requestBody.alerts[*].labels.alertname` 으로 그룹화하면 `{{alertname}}` 이, `requestBody.alerts[*].fingerprint` 로 그룹화하면 `{{fingerprint}}` 가 생깁니다. 그 옆에는 `requestBody` 전체도 그대로 있습니다.
+기준에서 **페이로드 필드로 인시던트와 경고 그룹화** 를 켜면 그룹화 키도 변수가 되며, 그 이름은 그룹화 경로의 **마지막 세그먼트** 를 따릅니다. `requestBody.alerts[*].labels.alertname` 으로 그룹화하면 `{{alertname}}` 이, `requestBody.alerts[*].fingerprint` 로 그룹화하면 `{{fingerprint}}` 가 생깁니다. 그 옆에는 `requestBody` 전체도 그대로 있습니다.
 
 > [!NOTE]
 > `[*]` 는 그룹화 경로 필드에서만 동작합니다. 템플릿 안에서는 아무것도 읽지 않으므로 자리표시자가 작성한 그대로 남습니다. `{{requestBody.alerts[0].annotations.summary}}` 는 인시던트가 열린 대상 경고가 아니라 항상 페이로드의 첫 번째 경고를 읽습니다. 그룹화 변수와 `commonLabels`, `commonAnnotations` 같은 페이로드의 공통 필드를 사용하세요. [수신 요청 모니터](/docs/monitor/incoming-request-monitor)를 참고하세요.

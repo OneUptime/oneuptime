@@ -58,13 +58,13 @@ Nel passaggio **Criteri**, apri il primo criterio, quello che segna il monitor c
 
 ### Aprire un incidente per avviso
 
-Nello stesso criterio, apri **Impostazioni** e attiva **Group incidents and alerts by a payload field**. Compilalo come sotto, così ogni avviso ha il proprio incidente e il suo rientro lo risolve:
+Nello stesso criterio, apri **Impostazioni** e attiva **Raggruppa incidenti e avvisi per un campo del payload**. Compilalo come sotto, così ogni avviso ha il proprio incidente e il suo rientro lo risolve:
 
 | Campo | Valore |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Apri un incidente separato per ogni…** | `requestBody.alerts[*].fingerprint` |
+| **Campo che segnala il ripristino** | `requestBody.alerts[*].status` |
+| **Valore che indica il ripristino** | `resolved` |
 
 ### Riportare il monitor online
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Un'installazione self-hosted ha il proprio host al posto di `oneuptime.com`.
 :::
 
-`[*]` legge ogni avviso di una notifica, quindi una notifica di tre avvisi può aprire tre incidenti, fino a **Max incidents per request** (`100` se non lo cambi). Lo `status` di ciascun avviso decide cosa succede al suo incidente: quando un avviso di una notifica si risolve e due scattano ancora, si chiude solo l'incidente dell'avviso risolto. Vedi [Ricevere avvisi da un altro sistema](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema) per cosa fa ogni impostazione.
+`[*]` legge ogni avviso di una notifica, quindi una notifica di tre avvisi può aprire tre incidenti, fino a **Numero massimo di incidenti per richiesta** (`100` se non lo cambi). Lo `status` di ciascun avviso decide cosa succede al suo incidente: quando un avviso di una notifica si risolve e due scattano ancora, si chiude solo l'incidente dell'avviso risolto. Vedi [Ricevere avvisi da un altro sistema](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema) per cosa fa ogni impostazione.
 
 > [!WARNING]
 > Raggruppa per un valore che cambia da un avviso all'altro all'interno di una notifica. Il `fingerprint` di Alertmanager è un hash dell'intero insieme di etichette di un avviso, quindi cambia sempre. Un'etichetta nel `group_by` della tua route non cambia mai: è ciò che mette gli avvisi in una stessa notifica. Raggruppare per `requestBody.alerts[*].labels.alertname` con la route qui sotto riunisce ogni avviso di una notifica in un solo incidente, che prende lo stato del primo avviso.
@@ -264,8 +264,8 @@ Quando l'avviso watchdog non arriva da dieci minuti, il monitor watchdog va offl
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - Verifica che nessun ricevitore imposti `send_resolved: false`: in quel caso Alertmanager non invia mai un rientro.
 - L'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**.
-- **Field that signals recovery** deve essere `requestBody.alerts[*].status`, e **Value that means recovered** esattamente `resolved`. Il confronto distingue maiuscole e minuscole.
-- Gli avvisi di una notifica oltre **Max incidents per request** non vengono letti affatto, quindi anche i loro rientri vanno persi.
+- **Campo che segnala il ripristino** deve essere `requestBody.alerts[*].status`, e **Valore che indica il ripristino** esattamente `resolved`. Il confronto distingue maiuscole e minuscole.
+- Gli avvisi di una notifica oltre **Numero massimo di incidenti per richiesta** non vengono letti affatto, quindi anche i loro rientri vanno persi.
 - Un rientro saltato perché troppe notifiche erano in attesa (vedi sotto) lascia il suo incidente aperto per sempre: Alertmanager ripete gli avvisi che scattano, ma mai un rientro. Risolvi quell'incidente a mano.
 :::
 
@@ -282,7 +282,7 @@ Un riferimento a un campo che la notifica non ha viene lasciato com'è scritto, 
 :::
 
 :::details Troppi incidenti
-Raggruppa la tua route per meno etichette, o aumenta `group_interval`, così Alertmanager invia insieme gli avvisi correlati. Abbassare **Max incidents per request** limita gli incidenti di una notifica, ma gli avvisi oltre il limite non vengono letti, quindi anche i loro rientri vanno persi.
+Raggruppa la tua route per meno etichette, o aumenta `group_interval`, così Alertmanager invia insieme gli avvisi correlati. Abbassare **Numero massimo di incidenti per richiesta** limita gli incidenti di una notifica, ma gli avvisi oltre il limite non vengono letti, quindi anche i loro rientri vanno persi.
 :::
 
 :::details Una raffica di notifiche

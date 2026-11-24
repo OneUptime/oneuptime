@@ -1,5 +1,6 @@
 import IsolatedText from "../../IsolatedText/IsolatedText";
 import { getTranslatedLineDirection } from "../../../Utils/LineDirection";
+import { sayErrorMessage } from "../../../Utils/ErrorInSentence";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -85,8 +86,13 @@ const FieldError: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const message: string =
-    translator.translateText(props.message) ?? props.message;
+  /*
+   * Looked up in the reader's language - and a server refusal with a value
+   * in it, such as a name another record has ("There is already a team
+   * called Tenants..."), read back and said with its value (sayErrorMessage):
+   * looked up whole, it stayed English under a German form's Name field.
+   */
+  const message: string = sayErrorMessage(props.message, translator);
   const announce: "alert" | "polite" | "none" = props.announce || "alert";
 
   return (

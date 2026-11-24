@@ -27,7 +27,7 @@ Se [SSO](/docs/identity/sso) for et enkelt projekts egen udbyder.
 :::steps
 ### Åbn listen over udbydere
 
-Log ind som master-admin, og åbn Admin Dashboard med **Admin-indstillinger** i din brugermenu. Gå derefter til **Indstillinger** > **Single sign-on**. Siden viser instansens SAML-udbydere, derefter dens OpenID Connect-udbydere og til sidst kortet **Kræv SSO**.
+Log ind som master-admin, og vælg **Admin-dashboard** i din brugermenu. Gå derefter til **Indstillinger** > **Single sign-on**. Siden viser instansens SAML-udbydere, derefter dens OpenID Connect-udbydere og til sidst kortet **Kræv SSO**.
 
 ### Opret udbyderen
 

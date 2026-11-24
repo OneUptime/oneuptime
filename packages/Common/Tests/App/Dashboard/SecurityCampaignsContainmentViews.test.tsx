@@ -474,6 +474,109 @@ describe("Group by network and Challenge This Network", () => {
     ).toBeNull();
   });
 
+  // A network row's View requests (#10896).
+  function requestsLinkOf(row: HTMLElement): HTMLElement | null {
+    return within(row).queryByTestId(
+      SECURITY_CAMPAIGN_TEST_IDS.networkRequests,
+    );
+  }
+
+  function queryOfLink(link: HTMLElement): URLSearchParams {
+    const href: string = link.getAttribute("href") || "";
+
+    return new URLSearchParams(href.slice(href.indexOf("?") + 1));
+  }
+
+  test("an ASN row's View requests opens what the network sent: its web attacks with its ASN, over the page's window", async () => {
+    await groupByNetwork();
+
+    const link: HTMLElement | null = requestsLinkOf(networkRowOf("AS14061"));
+
+    expect(link).not.toBeNull();
+    expect(link).toHaveTextContent("View requests");
+    expect(link!.getAttribute("href")!.split("?")[0]).toContain(
+      "/security-events",
+    );
+
+    const query: URLSearchParams = queryOfLink(link!);
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["className", "HTTP Activity"],
+      ["attributes.cloudflare.client.asn", "14061"],
+      ["attributes.cloudflare.client.asn", "AS14061"],
+    ]);
+    expect(query.get("start")).toBe("2026-11-16T12:00:00.000Z");
+    expect(query.get("end")).toBe("2026-11-23T12:00:00.000Z");
+  });
+
+  test("a range row's View requests opens its addresses' web attacks, in a search the person sees - a private one's too", async () => {
+    await groupByNetwork();
+
+    // A private range is never challenged, but what it sent can still be read.
+    const link: HTMLElement | null = requestsLinkOf(
+      networkRowOf("10.0.4.0/24"),
+    );
+
+    expect(link).not.toBeNull();
+    expect(queryOfLink(link!).get("search")).toBe("ip:10.0.4.*");
+    expect(JSON.parse(queryOfLink(link!).get("filters")!)).toEqual([
+      ["className", "HTTP Activity"],
+    ]);
+  });
+
+  test("View requests stays on a row the Blocklist already holds, where Challenge This Network is gone", async () => {
+    getAttackNetworksMock.mockResolvedValue({
+      ...networks(),
+      networks: [
+        network({
+          block: {
+            value: "AS14061",
+            action: SecurityBlockAction.Challenge,
+            expiresAt: "2026-11-24T10:42:00.000Z",
+          },
+        }),
+      ],
+    } as never);
+
+    await groupByNetwork();
+
+    const row: HTMLElement = networkRowOf("AS14061");
+
+    expect(
+      within(row).queryByTestId(SECURITY_CAMPAIGN_TEST_IDS.challengeNetwork),
+    ).toBeNull();
+    expect(requestsLinkOf(row)).not.toBeNull();
+  });
+
+  test("the row of requests whose address nobody knew has no View requests: there is no network to read them by", async () => {
+    getAttackNetworksMock.mockResolvedValue({
+      ...networks(),
+      networks: [
+        ...networks().networks,
+        network({
+          network: "",
+          kind: "",
+          asnName: undefined,
+          addressCount: 0,
+          addresses: [],
+          ranges: [],
+          hiddenAddressCount: 4,
+        }),
+      ],
+    } as never);
+
+    await groupByNetwork();
+
+    expect(
+      screen.getAllByTestId(SECURITY_CAMPAIGN_TEST_IDS.networkRow),
+    ).toHaveLength(3);
+    expect(requestsLinkOf(networkRowOf(""))).toBeNull();
+    // Every other row has one.
+    expect(
+      screen.getAllByTestId(SECURITY_CAMPAIGN_TEST_IDS.networkRequests),
+    ).toHaveLength(2);
+  });
+
   test("says what it will do and for how long, and challenges the range a Security Member may", async () => {
     checkNetworkChallengeMock.mockResolvedValue(challengeCheck({}) as never);
     challengeNetworkMock.mockResolvedValue({

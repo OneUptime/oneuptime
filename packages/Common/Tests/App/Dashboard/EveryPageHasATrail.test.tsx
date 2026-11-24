@@ -128,7 +128,7 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   TracesRoutePath: getTracesBreadcrumbs,
   ProfilesRoutePath: getProfilesBreadcrumbs,
   InventoryRoutePath: getInventoryBreadcrumbs,
-  // The Topology Map is drawn in the Inventory layout, under its trail.
+  // Topology is drawn in the Inventory layout, under its trail.
   TopologyRoutePath: getInventoryBreadcrumbs,
   ExceptionsRoutePath: getExceptionsBreadcrumbs,
   LlmRoutePath: getLlmBreadcrumbs,
@@ -154,8 +154,8 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
 
 /*
  * Route tables drawn without a trail of their own, and why. None today:
- * the last, Topology's, gained its trail ("Project > Inventory > Topology
- * Map", as the Inventory menu it is drawn beside names it).
+ * the last, Topology's, gained its trail ("Project > Inventory >
+ * Topology", as the Inventory menu it is drawn beside names it).
  */
 const TABLES_WITHOUT_TRAILS: Dictionary<string> = {};
 

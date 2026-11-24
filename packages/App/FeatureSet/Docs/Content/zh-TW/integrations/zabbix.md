@@ -148,13 +148,13 @@ Zabbix 6.0 從請求本文而不是 `Authorization` 標頭中讀取 API 權杖�
 
 ### 每個問題一個事件
 
-在同一個條件中，開啟 **設定** 並開啟 **Group incidents and alerts by a payload field**。按下表填寫，讓每個問題都有自己的事件，並由它的恢復來解決：
+在同一個條件中，開啟 **設定** 並開啟 **依酬載欄位將事件和警示分組**。按下表填寫，讓每個問題都有自己的事件，並由它的恢復來解決：
 
 | 欄位 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **為以下每個值分別開啟一個事件…** | `requestBody.event_id` |
+| **表示恢復的欄位** | `requestBody.status` |
+| **表示已恢復的值** | `0` |
 
 ### 讓監測器恢復線上
 
@@ -321,7 +321,7 @@ Zabbix 以文字形式傳送嚴重程度：`Not classified`、`Information`、`W
 :::details 事件被建立但從未被解決
 - 動作需要 **Recovery operations**，否則 Zabbix 永遠不會發送恢復。
 - 使用範本時，開啟工作流程的 **執行記錄** 中恢復的那次執行：它的最後一步會說明原因。對於沒有建立事件的問題，恢復不會改變任何東西。
-- 使用監測器時，條件中的事件需要啟用 **更多欄位** 下的 **自動解決事件**。**Field that signals recovery** 必須是 `requestBody.status`，**Value that means recovered** 必須恰好是 `0`。
+- 使用監測器時，條件中的事件需要啟用 **更多欄位** 下的 **自動解決事件**。**表示恢復的欄位** 必須是 `requestBody.status`，**表示已恢復的值** 必須恰好是 `0`。
 :::
 
 :::details Zabbix 中的問題沒有被確認或關閉

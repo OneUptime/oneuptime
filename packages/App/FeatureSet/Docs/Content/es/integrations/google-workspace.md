@@ -45,6 +45,7 @@ La conexión inicia sesión con la clave de una cuenta de servicio y la [delegac
 1. En la [consola de administración de Google](https://admin.google.com), como superadministrador, abre **Security → Access and data control → API controls → Manage domain-wide delegation** y selecciona **Add new**.
 2. Introduce el **Unique ID** de la cuenta de servicio como **Client ID**, y `https://www.googleapis.com/auth/admin.reports.audit.readonly` como **OAuth scope**. Selecciona **Authorize**. Google puede tardar unos minutos en aplicarlo.
 3. Para que los playbooks puedan suspender, reactivar y cerrar la sesión de usuarios (consulta [Contención](/docs/telemetry/security-cases#contención)), añade `https://www.googleapis.com/auth/admin.directory.user` y `https://www.googleapis.com/auth/admin.directory.user.security` a los ámbitos del mismo cliente, separados por comas. El administrador como el que actúa la conexión debe entonces gestionar a esos usuarios.
+4. Para que un [caso de seguridad](/docs/telemetry/security-cases#cómo-comprueba-oneuptime-un-paso) compruebe que una cuenta que un ataque añadió a un grupo se sacó de él, añade `https://www.googleapis.com/auth/admin.directory.group.member.readonly` de la misma forma. Este ámbito solo lee los miembros de un grupo, para un administrador que pueda leer grupos. Sin él, el caso nombra cada uno de esos cambios para que lo confirmes, y dice qué ámbito añadir.
 
 ### Añadir la conexión en OneUptime
 

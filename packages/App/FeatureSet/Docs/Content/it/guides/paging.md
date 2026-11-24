@@ -39,7 +39,7 @@ In **Come dobbiamo raggiungerti?**, fai clic su **Scarica l'app**, inquadra il c
 
 ![Il passaggio «Come dobbiamo raggiungerti?», con «Attiva SMS e chiamate» evidenziato](screen:paging-reach-you)
 
-Nei nuovi progetti, SMS e chiamate sono disattivati. Se sei il proprietario del progetto, fai clic su **Attiva SMS e chiamate**; agli altri viene detto chi può farlo. Su OneUptime Cloud, se il credito è di 1.00 USD o meno, fai clic su **Aggiungi credito**, inserisci da 20 a 1.000 USD in **Importo (USD)** e fai clic su **Ricarica**.
+Nei nuovi progetti, SMS e chiamate sono disattivati. Se sei il proprietario del progetto, fai clic su **Attiva SMS e chiamate**; agli altri viene detto chi può farlo. Su OneUptime Cloud, se il credito è di 1.00 USD o meno, fai clic su **Aggiungi al saldo**, inserisci da 20 a 1.000 USD in **Importo (USD)** e fai clic su **Aggiungi al saldo**.
 
 ### Aggiungere il tuo numero di telefono
 
@@ -86,7 +86,7 @@ Se la policy avvisa qualcun altro, puoi guardare anche l'escalation: fai clic su
 Gli SMS sono disattivati, o non si possono inviare, e il passaggio dice perché. Solo un Proprietario del progetto, o chi gestisce la fatturazione, vede **Attiva SMS e chiamate**. Su OneUptime Cloud, un credito di 1.00 USD o meno nasconde il campo. Su un server self-hosted che non può inviare SMS, il suo amministratore principale vede **Configura SMS e chiamate**, che apre l'Admin Dashboard per aggiungere Twilio, come mostra [Integrazione Twilio](/docs/self-hosted/twilio-integration).
 :::
 
-:::details Aggiungi credito dice che non è stato trovato alcun metodo di pagamento
+:::details Aggiungi al saldo dice che non è stato trovato alcun metodo di pagamento
 Il credito aggiunto viene addebitato sulla carta del progetto. Aggiungine una in **Impostazioni del progetto → Fatturazione e fatture → Fatturazione** con **Aggiungi metodo di pagamento**, poi aggiungi di nuovo credito. Fino ad allora, l'app e l'email continuano ad avvisarti.
 :::
 

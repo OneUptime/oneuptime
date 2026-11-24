@@ -497,7 +497,7 @@
       "title": "Выйти"
     },
     "sendEmail": {
-      "title": "Отправить email-объявление",
+      "title": "Отправить email",
       "testCardTitle": "Отправить тестовое письмо",
       "testCardDescription": "Отправьте тестовое email-объявление на один email-адрес, чтобы увидеть предварительный просмотр перед отправкой всем пользователям.",
       "allCardTitle": "Отправить email всем пользователям",
@@ -514,7 +514,7 @@
       "confirmButton": "Да, отправить всем пользователям"
     },
     "moreEmail": {
-      "title": "Отправить email-объявление",
+      "title": "Отправить email",
       "cardTitle": "Отправить email-объявление",
       "cardDescription": "Составьте email-объявление для отправки всем зарегистрированным пользователям. Вы можете сначала отправить тестовое письмо для предварительного просмотра.",
       "sendTestButton": "Отправить тестовое письмо",
@@ -536,7 +536,7 @@
       "confirmButton": "Да, отправить всем пользователям"
     },
     "settings": {
-      "title": "Настройки администратора",
+      "title": "Настройки",
       "authentication": {
         "signUpCardTitle": "Регистрация",
         "signUpCardDescription": "Кто может создать учётную запись на этом сервере.",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Выделите обработчикам больше памяти и CPU и найдите в журнале приложения задачи, которые постоянно завершаются ошибкой.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "На этом сервере работает OneUptime {{current}}. Вышла версия {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Сделайте резервную копию, затем обновитесь: npm run update в Docker Compose, helm upgrade в Kubernetes.",
-  "Finish it on the Server setup page.": "Завершите на странице «Настройка сервера».",
+  "Finish it on the Server Setup page.": "Завершите на странице «Настройка сервера».",
   "Products on this server": "Продукты на этом сервере",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Выберите, что предлагает каждый проект на этом сервере. Отключённый продукт исчезает из меню, главной страницы и поиска каждого проекта, а его страницы сообщают, что он отключён.",
   "Start from": "Начать с",

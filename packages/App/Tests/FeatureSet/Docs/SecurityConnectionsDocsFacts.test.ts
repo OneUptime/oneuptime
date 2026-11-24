@@ -828,7 +828,7 @@ describe("Cloudflare's blocking", () => {
     ]);
   });
 
-  it("names the checks blocking adds to a test as the test report does, in the order they run", () => {
+  it("names the checks blocking adds to a test as the test report does, in the order they run: IP Access Rules' own where they are used, else the ASN challenge's (#10894)", () => {
     expect(
       boldIn(
         lineStartingWith(
@@ -842,7 +842,24 @@ describe("Cloudflare's blocking", () => {
       CLOUDFLARE_BLOCKING_CHECK_NAMES.lists,
       CLOUDFLARE_BLOCKING_CHECK_NAMES.rules,
       CLOUDFLARE_BLOCKING_CHECK_NAMES.accessRules,
+      CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges,
     ]);
+  });
+
+  it("says the ASN challenge's check only warns, so Turn On Blocking still turns blocking on (#10894)", () => {
+    const section: string = englishSection(CLOUDFLARE, BLOCKING);
+
+    expect(
+      lineStartingWith(
+        section,
+        `On the connection's row, select ${bold("Block Addresses")}.`,
+      ),
+    ).toContain(
+      `${bold("Turn On Blocking")} turns blocking on only when every check passes, but for ${bold(CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges)}, which only warns`,
+    );
+    expect(section).toContain(
+      `${bold("Check Permissions")} and ${bold("Test connection")} warn first, under ${bold(CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges)}, when the token lacks \`${CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION}\``,
+    );
   });
 });
 

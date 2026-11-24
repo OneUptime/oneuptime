@@ -552,6 +552,12 @@ services:
       AI_INVESTIGATION_CONCURRENCY: ${AI_INVESTIGATION_CONCURRENCY:-}
       # Telemetry ingestion settings (merged from telemetry service)
       TELEMETRY_CONCURRENCY: ${TELEMETRY_CONCURRENCY}
+      # What a grouped Incoming Request monitor keeps waiting to be
+      # evaluated, and how many requests one job evaluates — see
+      # config.example.env. Empty falls back to the code defaults.
+      INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR: ${INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR:-}
+      INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR: ${INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR:-}
+      INCOMING_REQUEST_MAX_REQUESTS_PER_JOB: ${INCOMING_REQUEST_MAX_REQUESTS_PER_JOB:-}
       # Network device polling throughput — see config.example.env for docs.
       # Empty falls back to the code default.
       NETWORK_DEVICE_POLL_FETCH_LIMIT: ${NETWORK_DEVICE_POLL_FETCH_LIMIT:-}

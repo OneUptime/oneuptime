@@ -6,59 +6,63 @@ import Link from "Common/Types/Link";
 export function getServerlessBreadcrumbs(
   path: string,
 ): Array<Link> | undefined {
+  /*
+   * The product's step says Serverless, as its products menu entry and its
+   * page's title do: it said "Serverless Functions" (#7474).
+   */
   const breadcrumpLinksMap: Dictionary<Link[]> = {
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTIONS, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "View Function",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_FUNCTION_VIEW_RECOMMENDATIONS,
-      ["Project", "Serverless Functions", "View Function", "Recommendations"],
+      ["Project", "Serverless", "View Function", "Recommendations"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_SETTINGS, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "View Function",
       "Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_METRICS, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "View Function",
       "Metrics",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_LOGS, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "View Function",
       "Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_FUNCTION_VIEW_SECURITY_EVENTS,
-      ["Project", "Serverless Functions", "View Function", "Security Events"],
+      ["Project", "Serverless", "View Function", "Security Events"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_TRACES, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "View Function",
       "Traces",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_FUNCTION_VIEW_DOCUMENTATION,
-      ["Project", "Serverless Functions", "View Function", "Documentation"],
+      ["Project", "Serverless", "View Function", "Documentation"],
     ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_FUNCTION_VIEW_AUDIT_LOGS,
-      ["Project", "Serverless Functions", "View Function", "Audit Logs"],
+      ["Project", "Serverless", "View Function", "Audit Logs"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_FUNCTION_VIEW_DELETE, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "View Function",
       "Delete Function",
     ]),
@@ -69,43 +73,31 @@ export function getServerlessBreadcrumbs(
      */
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES,
-      ["Project", "Serverless Functions", "View Function", "Instances"],
+      ["Project", "Serverless", "View Function", "Instances"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_SETTINGS_OWNER_RULES, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "Settings",
       "Owner Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_SETTINGS_OWNER_RULE_VIEW,
-      [
-        "Project",
-        "Serverless Functions",
-        "Settings",
-        "Owner Rules",
-        "View Rule",
-      ],
+      ["Project", "Serverless", "Settings", "Owner Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_SETTINGS_LABEL_RULES, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "Settings",
       "Label Rules",
     ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.SERVERLESS_SETTINGS_LABEL_RULE_VIEW,
-      [
-        "Project",
-        "Serverless Functions",
-        "Settings",
-        "Label Rules",
-        "View Rule",
-      ],
+      ["Project", "Serverless", "Settings", "Label Rules", "View Rule"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.SERVERLESS_ARCHIVED, [
       "Project",
-      "Serverless Functions",
+      "Serverless",
       "Archived",
     ]),
   };

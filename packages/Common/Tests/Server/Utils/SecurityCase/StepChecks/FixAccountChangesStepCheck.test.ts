@@ -1,6 +1,8 @@
 import FixAccountChangesStepCheck, {
+  confirmReasons,
   decideAccountChanges,
   describeAccountChange,
+  orderAccountChangeFacts,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/FixAccountChangesStepCheck";
 import {
   AccountChangeAnswer,
@@ -24,7 +26,13 @@ import {
   SecurityCaseMatchBasis,
   SecurityCaseMatchesJson,
 } from "../../../../../Types/SecurityCase/SecurityCaseMatches";
-import { SecurityCaseStepCheckSentence } from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import {
+  STEP_CHECK_MAX_FACTS,
+  SecurityCaseStepCheckSentence,
+  StepCheckFactMark,
+  readStepCheckEvidence,
+  readStepCheckSentence,
+} from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState from "../../../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import {
   AccountChange,
@@ -41,8 +49,10 @@ import {
   CHECK_ACCOUNT_CHANGES_BACK,
   CHECK_ACCOUNT_CHANGES_CANNOT_READ,
   CHECK_ACCOUNT_CHANGES_CONFIRM_REST,
-  CHECK_ACCOUNT_CHANGES_FACT_AWS,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_NONE_FOUND,
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
@@ -51,6 +61,12 @@ import {
   CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
   CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_MFA_UNDONE,
+  CHECK_ACCOUNT_CHANGE_PASSWORD_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_PASSWORD_STILL,
+  CHECK_ACCOUNT_CHANGE_PASSWORD_UNDONE,
+  CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_STILL,
   CHECK_COULD_NOT_CHECK,
@@ -82,6 +98,8 @@ function change(data: Partial<AccountChange>): AccountChange {
     objectName: "Admins",
     detailId: "",
     ownerType: "",
+    cloudAccountId: "",
+    cloudConnectionId: "",
     eventName: "group.user_membership.add",
     eventUid: "event-1",
     time: "2026-11-17T19:30:00.000Z",
@@ -107,8 +125,10 @@ const AWS_KEY: AccountChange = change({
   kind: AccountChangeKind.Key,
   account: "deploy-bot",
   accountId: "",
-  objectId: "",
+  objectId: "AKIAEXAMPLE",
   objectName: "AKIAEXAMPLE",
+  cloudAccountId: "123456789012",
+  eventName: "CreateAccessKey",
   eventUid: "event-4",
 });
 
@@ -239,14 +259,17 @@ describe("what the attack changed, read back", () => {
       values: {},
       count: 2,
     });
-    // What to confirm first, with why, then what is undone.
+    // What to confirm first, with why and how to let OneUptime read it, then what is undone.
     expect(templates(result.evidence.facts)).toEqual([
       CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
       CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
       CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
-      CHECK_ACCOUNT_CHANGES_FACT_AWS,
+      CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
       CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
     ]);
+    expect(result.evidence.facts[3]!.values).toEqual({
+      cloudAccount: "123456789012",
+    });
     expect(result.evidence.facts[1]!.values).toEqual({
       account: "deploy-bot",
       object: "AKIAEXAMPLE",
@@ -256,7 +279,7 @@ describe("what the attack changed, read back", () => {
     expect(result.evidence.data["toConfirm"]).toBe(2);
   });
 
-  test("a change still there: not done, naming it first, with the rest after", () => {
+  test("a change still there: not done, naming it first, then what to confirm and how to let OneUptime read it, then what is undone", () => {
     const result: StepCheckResult = decide([
       answer(GROUP, { facts: facts(AccountChangeState.Undone) }),
       answer(ROLE, { facts: facts(AccountChangeState.StillThere) }),
@@ -271,8 +294,9 @@ describe("what the attack changed, read back", () => {
     });
     expect(templates(result.evidence.facts)).toEqual([
       CHECK_ACCOUNT_CHANGE_ROLE_STILL,
-      CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
       CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
+      CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+      CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
     ]);
     expect(result.evidence.data).toMatchObject({ stillThere: 1, undone: 1 });
   });
@@ -369,7 +393,7 @@ describe("what the attack changed, read back", () => {
     expect(templates(result.evidence.facts)).toEqual([
       CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
       CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
-      CHECK_ACCOUNT_CHANGES_FACT_AWS,
+      CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
       CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
     ]);
     expect(result.evidence.facts[3]!.values).toEqual({ provider: "Okta" });
@@ -402,6 +426,327 @@ describe("what the attack changed, read back", () => {
         SecurityCaseStepCheckState.Verified,
       );
     }
+  });
+});
+
+describe("each line marked by what it says (#10900, #10901)", () => {
+  test("still there, undone, to confirm, and how to let OneUptime read the rest", () => {
+    const result: StepCheckResult = decide([
+      answer(GROUP, { facts: facts(AccountChangeState.Undone) }),
+      answer(ROLE, { facts: facts(AccountChangeState.StillThere) }),
+      answer(AWS_KEY, { hasConnection: false }),
+    ]);
+
+    expect(
+      result.evidence.facts.map(
+        (fact: SecurityCaseStepCheckSentence): unknown => {
+          return [fact.template, fact.mark];
+        },
+      ),
+    ).toEqual([
+      [CHECK_ACCOUNT_CHANGE_ROLE_STILL, StepCheckFactMark.NotDone],
+      [CHECK_ACCOUNT_CHANGE_KEY_CONFIRM, StepCheckFactMark.Confirm],
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+        StepCheckFactMark.HowToCheck,
+      ],
+      [CHECK_ACCOUNT_CHANGE_GROUP_UNDONE, StepCheckFactMark.Done],
+    ]);
+  });
+
+  test("the marks are kept as the check is stored and read back; one the card does not know is dropped", () => {
+    const result: StepCheckResult = decide([
+      answer(GROUP, { facts: facts(AccountChangeState.Undone) }),
+      answer(AWS_KEY, { hasConnection: false }),
+    ]);
+    const stored: unknown = JSON.parse(JSON.stringify(result.evidence));
+
+    expect(readStepCheckEvidence(stored)?.facts).toEqual(result.evidence.facts);
+    expect(
+      readStepCheckSentence({
+        template: CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
+        values: {},
+        mark: "Sparkly",
+      }),
+    ).toEqual({ template: CHECK_ACCOUNT_CHANGE_GROUP_UNDONE, values: {} });
+  });
+});
+
+describe("what a person is told to grant, so OneUptime reads the change back", () => {
+  test("an AWS connection that reaches the account with its Security case checks off: what to turn on, once an account", () => {
+    const notGranted: Partial<AccountChangeAnswer> = {
+      facts: {
+        provider: "AWS",
+        state: AccountChangeState.Unknown,
+        reason: AccountChangeUnknownReason.NotGranted,
+      },
+    };
+    const otherAccount: AccountChange = change({
+      ...AWS_KEY,
+      objectId: "AKIAOTHER",
+      cloudAccountId: "210987654321",
+      eventUid: "event-5",
+    });
+    const result: StepCheckResult = decide([
+      answer(GROUP, { facts: facts(AccountChangeState.Undone) }),
+      answer(AWS_KEY, notGranted),
+      answer(
+        change({ ...AWS_KEY, objectId: "AKIA2", eventUid: "e6" }),
+        notGranted,
+      ),
+      answer(otherAccount, notGranted),
+    ]);
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.LooksDone);
+    expect(
+      result.evidence.facts
+        .filter((fact: SecurityCaseStepCheckSentence): boolean => {
+          return fact.mark === StepCheckFactMark.HowToCheck;
+        })
+        .map((fact: SecurityCaseStepCheckSentence): unknown => {
+          return [fact.template, fact.values];
+        }),
+    ).toEqual([
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+        { cloudAccount: "123456789012" },
+      ],
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+        { cloudAccount: "210987654321" },
+      ],
+    ]);
+    // And the docs, which say how.
+    expect(result.evidence.docsPath).toBe(
+      "/telemetry/security-cases#how-oneuptime-checks-a-step",
+    );
+  });
+
+  test("a Google Workspace delegation without the group member scope: the scope to add, word for word", () => {
+    const group: AccountChange = change({
+      provider: AccountChangeProvider.GoogleWorkspace,
+      account: "alice@example.com",
+      objectId: "",
+      objectName: "finance@example.com",
+      eventName: "ADD_GROUP_MEMBER",
+    });
+    const result: StepCheckResult = decide([
+      answer(group, {
+        facts: {
+          provider: "Google Workspace",
+          state: AccountChangeState.Unknown,
+          reason: AccountChangeUnknownReason.NotGranted,
+        },
+      }),
+    ]);
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.CannotTell);
+    expect(
+      result.evidence.facts.map(
+        (fact: SecurityCaseStepCheckSentence): unknown => {
+          return [fact.template, fact.values, fact.mark];
+        },
+      ),
+    ).toEqual([
+      [
+        CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
+        {
+          account: "alice@example.com",
+          object: "finance@example.com",
+          provider: "Google Workspace",
+        },
+        StepCheckFactMark.Confirm,
+      ],
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+        {
+          scope:
+            "https://www.googleapis.com/auth/admin.directory.group.member.readonly",
+        },
+        StepCheckFactMark.HowToCheck,
+      ],
+    ]);
+  });
+
+  test("an AWS change whose event names no account: no connection to AWS, said as for any product", () => {
+    const unnamed: AccountChange = change({ ...AWS_KEY, cloudAccountId: "" });
+
+    expect(
+      confirmReasons([
+        { change: unnamed, facts: null, hasConnection: false },
+      ]).map((fact: SecurityCaseStepCheckSentence): unknown => {
+        return [fact.template, fact.values];
+      }),
+    ).toEqual([
+      [CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION, { provider: "AWS" }],
+    ]);
+  });
+
+  test("a change a product does not tell apart, or one it read, needs no line of how to grant", () => {
+    expect(
+      confirmReasons([
+        {
+          change: AWS_KEY,
+          facts: {
+            provider: "AWS",
+            state: AccountChangeState.Unknown,
+            reason: AccountChangeUnknownReason.NotNamed,
+          },
+          hasConnection: true,
+        },
+      ]),
+    ).toEqual([]);
+  });
+});
+
+describe("an AWS policy and console password read as what they are (#10900)", () => {
+  const POLICY: AccountChange = change({
+    ...AWS_KEY,
+    kind: AccountChangeKind.Policy,
+    objectId: "arn:aws:iam::aws:policy/AdministratorAccess",
+    objectName: "AdministratorAccess",
+    eventName: "AttachUserPolicy",
+  });
+  const PASSWORD: AccountChange = change({
+    ...AWS_KEY,
+    kind: AccountChangeKind.Password,
+    objectId: "",
+    objectName: "",
+    eventName: "CreateLoginProfile",
+  });
+
+  test.each([
+    [
+      "Still",
+      CHECK_ACCOUNT_CHANGE_POLICY_STILL,
+      CHECK_ACCOUNT_CHANGE_PASSWORD_STILL,
+    ],
+    [
+      "Undone",
+      CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
+      CHECK_ACCOUNT_CHANGE_PASSWORD_UNDONE,
+    ],
+    [
+      "Confirm",
+      CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM,
+      CHECK_ACCOUNT_CHANGE_PASSWORD_CONFIRM,
+    ],
+  ])("%s", (outcome: string, policy: string, password: string) => {
+    expect(
+      describeAccountChange({
+        change: POLICY,
+        outcome: outcome as never,
+        facts: null,
+      }),
+    ).toMatchObject({
+      template: policy,
+      values: {
+        account: "deploy-bot",
+        object: "AdministratorAccess",
+        provider: "AWS",
+      },
+    });
+    expect(
+      describeAccountChange({
+        change: PASSWORD,
+        outcome: outcome as never,
+        facts: null,
+      }).template,
+    ).toBe(password);
+  });
+});
+
+describe("the most a check keeps", () => {
+  function many(
+    count: number,
+    data: Partial<AccountChange>,
+    answered: Partial<AccountChangeAnswer>,
+  ): Array<AccountChangeAnswer> {
+    const answers: Array<AccountChangeAnswer> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      answers.push(
+        answer(
+          change({
+            ...data,
+            objectId: `${index}`,
+            eventUid: `${data.eventUid}-${index}`,
+          }),
+          answered,
+        ),
+      );
+    }
+
+    return answers;
+  }
+
+  test("past it, what is undone goes first, then what to confirm: never what is still there, nor how to let OneUptime read the rest", () => {
+    const result: StepCheckResult = decide([
+      ...many(
+        4,
+        { eventUid: "still" },
+        { facts: facts(AccountChangeState.StillThere) },
+      ),
+      ...many(16, { ...AWS_KEY, eventUid: "aws" }, { hasConnection: false }),
+      ...many(
+        10,
+        { eventUid: "undone" },
+        { facts: facts(AccountChangeState.Undone) },
+      ),
+    ]);
+    const marks: Array<StepCheckFactMark | undefined> =
+      result.evidence.facts.map(
+        (
+          fact: SecurityCaseStepCheckSentence,
+        ): StepCheckFactMark | undefined => {
+          return fact.mark;
+        },
+      );
+
+    expect(result.evidence.facts).toHaveLength(STEP_CHECK_MAX_FACTS);
+    expect(
+      marks.filter((mark: StepCheckFactMark | undefined): boolean => {
+        return mark === StepCheckFactMark.NotDone;
+      }),
+    ).toHaveLength(4);
+    expect(marks).toContain(StepCheckFactMark.HowToCheck);
+    expect(
+      marks.filter((mark: StepCheckFactMark | undefined): boolean => {
+        return mark === StepCheckFactMark.Confirm;
+      }),
+    ).toHaveLength(16);
+    // The rest of the room goes to what is undone: 24 - 4 - 1 - 16.
+    expect(
+      marks.filter((mark: StepCheckFactMark | undefined): boolean => {
+        return mark === StepCheckFactMark.Done;
+      }),
+    ).toHaveLength(3);
+    // In the order the card draws them.
+    expect(marks.indexOf(StepCheckFactMark.HowToCheck)).toBe(20);
+  });
+
+  test("orders a check's facts whatever their number, within the room", () => {
+    const line: (mark: StepCheckFactMark) => SecurityCaseStepCheckSentence = (
+      mark: StepCheckFactMark,
+    ): SecurityCaseStepCheckSentence => {
+      return { template: "x", values: {}, mark };
+    };
+
+    expect(
+      orderAccountChangeFacts({
+        still: [line(StepCheckFactMark.NotDone)],
+        confirm: [line(StepCheckFactMark.Confirm)],
+        howToCheck: [line(StepCheckFactMark.HowToCheck)],
+        undone: [line(StepCheckFactMark.Done)],
+      }).map((fact: SecurityCaseStepCheckSentence) => {
+        return fact.mark;
+      }),
+    ).toEqual([
+      StepCheckFactMark.NotDone,
+      StepCheckFactMark.Confirm,
+      StepCheckFactMark.HowToCheck,
+      StepCheckFactMark.Done,
+    ]);
   });
 });
 

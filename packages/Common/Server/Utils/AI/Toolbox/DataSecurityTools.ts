@@ -33,7 +33,14 @@ import DataStoreService from "../../../Services/DataStoreService";
 import QueryPermission from "../../../Types/Database/Permissions/QueryPermission";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
-import DataSecurityAiInput from "../DataSecurity/DataSecurityAiInput";
+import DataSecurityAiInput, {
+  AiIssueGroupRecord,
+} from "../DataSecurity/DataSecurityAiInput";
+import DataSecurityIssueGroups from "../../DataSecurity/DataSecurityIssueGroups";
+import {
+  DataSecurityIssueGroupJSON,
+  describeIssueGroupCause,
+} from "../../../../Types/DataSecurity/DataSecurityIssueGroup";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
@@ -835,10 +842,31 @@ const STATUS_FILTERS: Readonly<
   all: null,
 };
 
+/*
+ * An issue's group of issues one mistake made, as a row says it (#10370):
+ * as the asker may read it - DataSecurityIssueGroups answers a reader held
+ * to labels each group cut down to their stores, with no OneUptime AI name
+ * (#10739) - so its cause and counts are theirs alone.
+ */
+export function toAiIssueGroup(
+  group: DataSecurityIssueGroupJSON | null | undefined,
+): AiIssueGroupRecord | null {
+  if (!group) {
+    return null;
+  }
+
+  return {
+    cause: group.name || describeIssueGroupCause(group.facts),
+    issueCount: group.issueCount,
+    openIssueCount: group.openIssueCount,
+    fixedIssueCount: group.fixedIssueCount,
+  };
+}
+
 export const QueryDataSecurityIssuesTool: ObservabilityTool = {
   name: "query_data_security_issues",
   description:
-    'Data Security issues: what is wrong with how a data store keeps its data - a public bucket, a database open to the internet, no encryption or backups, secrets or plaintext passwords in a store, sensitive data in logs, data outside its allowed regions - each with a severity and a risk score from 0 to 100. Pass dataSecurityIssueId for one issue with its evidence, why it matters and how to fix it on the store\'s cloud (console steps, the CLI command and Terraform). Without it, list issues riskiest first: status (open by default, accepted, resolved, not-an-issue or all), severity (Critical, High, Medium, Low), dataStoreId or checkId. Answers "what should we fix first".',
+    'Data Security issues: what is wrong with how a data store keeps its data - a public bucket, a database open to the internet, no encryption or backups, secrets or plaintext passwords in a store, sensitive data in logs, data outside its allowed regions - each with a severity and a risk score from 0 to 100. Pass dataSecurityIssueId for one issue with its evidence, why it matters and how to fix it on the store\'s cloud (console steps, the CLI command and Terraform). Without it, list issues riskiest first: status (open by default, accepted, resolved, not-an-issue or all), severity (Critical, High, Medium, Low), dataStoreId or checkId. An issue one mistake made together with others says so: issueGroup is the cause they share (a module, a stack, a tag, who created them or a name pattern), with how many issues the group holds, open and fixed - Fix the Cause on Data Security > Issues fixes every one at once. Answers "what should we fix first".',
   inputSchema: {
     type: "object",
     properties: {
@@ -957,6 +985,7 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
           status: true,
           firstDetectedAt: true,
           dataStoreId: true,
+          dataSecurityIssueGroupId: true,
           dataStore: { name: true, kind: true },
         },
         sort: { riskScore: SortOrder.Descending },
@@ -964,10 +993,22 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
         limit,
         props: ctx.props,
       });
+    // Each issue's group of issues one mistake made, as the asker may read it (#10739).
+    const groups: Map<string, DataSecurityIssueGroupJSON> =
+      await DataSecurityIssueGroups.forIssues({
+        projectId: ctx.projectId,
+        issues,
+        props: ctx.props,
+      });
 
     const rows: Array<JSONObject> = issues.map(
       (issue: DataSecurityIssue): JSONObject => {
-        return DataSecurityAiInput.issueListRow(issue);
+        return DataSecurityAiInput.issueListRow(
+          issue,
+          toAiIssueGroup(
+            groups.get((issue.id || issue._id)?.toString().toLowerCase() || ""),
+          ),
+        );
       },
     );
     const serialized: SerializedResult =
@@ -1047,6 +1088,8 @@ export const ONE_ISSUE_SELECT: Select<DataSecurityIssue> = {
   alertId: true,
   incidentId: true,
   dataStoreId: true,
+  // Its group of issues one mistake made, read as the asker may read it (#10739).
+  dataSecurityIssueGroupId: true,
   dataStore: {
     name: true,
     kind: true,
@@ -1084,10 +1127,21 @@ export async function readOneIssue(
     );
   }
 
-  // What its check saw, its store, and the fix: the allow-list's row.
+  /*
+   * What its check saw, its store, and the fix: the allow-list's row - with
+   * the group of issues one mistake made it is one of, as the asker may read
+   * it (#10739): a reader held to labels hears only of their own stores.
+   */
+  const groups: Map<string, DataSecurityIssueGroupJSON> =
+    await DataSecurityIssueGroups.forIssues({
+      projectId: ctx.projectId,
+      issues: [issue],
+      props: ctx.props,
+    });
   const row: JSONObject = DataSecurityAiInput.issueRow(
     issue,
     await getToolDataTypeNames(ctx).namerFor(issue.dataTypeIds || []),
+    toAiIssueGroup(groups.get(issue.id.toString().toLowerCase())),
   );
   const serialized: SerializedResult = ToolResultSerializer.serializeRows([
     row,

@@ -5,6 +5,7 @@ Prosjektinnstillinger inneholder det som gjelder for hele prosjektet: navnet, ve
 :::cards
 - [Finn en innstilling](#finn-en-innstilling): Hva hver seksjon i sidemenyen inneholder.
 - [Prosjektets detaljer](#prosjektets-detaljer): Navnet, ID-en og tilgang for støtte.
+- [Unike navn](#unike-navn): Om to poster av samme slag kan dele et navn.
 - [Produkter](#produkter): Produktene dette prosjektet viser, og dem det skjuler.
 - [Etiketter](#etiketter): Merker for ressurser, tillatelser og regler.
 - [Slett prosjektet](#slett-prosjektet): Hva det krever, og hva som forsvinner med det.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Seksjon | Sider | Hvor du leser mer |
 | --- | --- | --- |
-| **Grunnleggende** | **Prosjekt**, **Produkter**, **Etiketter** | [Prosjektets detaljer](#prosjektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
+| **Grunnleggende** | **Prosjekt**, **Produkter**, **Etiketter** | [Prosjektets detaljer](#prosjektets-detaljer), [Unike navn](#unike-navn), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbeidsområde** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtaler** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtaler](/docs/workspace-connections/video-calls) |
 | **Telemetri og APM** | **Inntaksnøkler**, **Dataoppbevaring**, **Forbruk** | [Inntaksnøkler](/docs/telemetry/ingestion-keys), [Dataoppbevaring](/docs/telemetry/data-retention), [Telemetriforbruk](/docs/telemetry/usage) |
 | **Varslinger** | **Varslingskanaler**, **Varslingslogger**, **Mobilapper** | [Varslinger](#varslinger) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## Prosjektets detaljer
 
-**Prosjektinnstillinger → Grunnleggende → Prosjekt** har to kort.
+**Prosjektinnstillinger → Grunnleggende → Prosjekt** har prosjektets kort: **Prosjektdetaljer**, **Unike navn** og, i OneUptime Cloud, **Tilgang for kundestøtte**.
 
 **Prosjektdetaljer** viser prosjektets navn og ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Data Residency**: i OneUptime Cloud, hvor prosjektets data skal ligge, når OneUptime har registrert det. Bare OneUptime angir det.
 
 **Tilgang for kundestøtte** avgjør i OneUptime Cloud om OneUptimes støtteteam kan åpne prosjektet. Slå på **Gi OneUptime-støtte tilgang til dette prosjektet** når du vil ha hjelp: OneUptime spør først, fordi støtte da kan se og endre alt i prosjektet, og du klikker på **Gi støtte tilgang**. Slå det av når de er ferdige: det lagres med en gang. Prosjekteiere og Prosjektadministratorer endrer det.
+
+## Unike navn
+
+**Unike navn**, under **Prosjektinnstillinger → Grunnleggende → Prosjekt**, avgjør om to poster av samme slag kan dele et navn i prosjektet. Så lenge **Krev unike navn** er slått på, avviser OneUptime et navn som en annen post av samme slag allerede har, enten det skrives her, sendes via API-et eller angis i Terraform, og uansett store og små bokstaver og mellomrom: `API Health Check` og `api health check` er ett navn. Bryteren lagrer når du slår den om. Prosjekteiere og Prosjektadministratorer endrer det.
+
+Den er slått på i et nytt prosjekt. Et prosjekt som fantes fra før, beholder den slått av, fordi prosjektets API-klienter og Terraform-konfigurasjoner kan regne med navn som gjentar seg: slå den på når du er klar.
+
+Under bryteren viser kortet hvert navn prosjektet allerede har mer enn én gang, slag for slag, med en lenke til hver post og dagen den ble laget. Å slå bryteren på avviser ingenting som finnes: de postene fortsetter å virke til noen gir dem nytt navn, og bare en ny post eller en navneendring trenger et eget navn. Å lagre en post med sitt eget navn igjen, uansett store og små bokstaver, er ingen navneendring.
+
+Uansett hva bryteren sier, varsler et skjema mens du skriver et navn som en annen post av samme slag allerede har, og lenker til den posten. Så lenge bryteren er slått på, sier varselet også at lagringen ville blitt avvist.
+
+Bryteren gjelder slagene du gir navn og velger etter navn: monitorer, monitorgrupper, sonder, SLO-er, malene for hendelser, varsler, vedlikehold og statussider, API-nøkler, inntaksnøkler, egendefinerte roller, LLM-leverandører, pipelines, budsjetter og tilkoblinger. Hendelser og registreringer av det som skjedde gjentar navnene sine med vilje og er utelatt: hendelser, varsler, episoder, vedlikeholdshendelser og kunngjøringer på statussider, og det samme gjelder det OneUptime oppdager, som verter og pods. Team, etiketter, vaktpolicyer, vaktplaner, statussider, arbeidsflyter og noen andre slag har et eget navn i hvert prosjekt, uansett hva bryteren sier.
+
+Når OneUptime gir en post navn for deg, som en monitor laget fra en anbefaling eller en importert, og navnet er tatt, legger det til et tall i stedet for å avvise det: `API Health Check 2`.
 
 ## Produkter
 
@@ -145,6 +160,10 @@ Alle seksjoner unntatt **Grunnleggende** er slått sammen fra start. Klikk på t
 
 :::details Slett Prosjekt forblir låst i dialogen
 Skriv prosjektets navn nøyaktig slik dialogen viser det: store og små bokstaver teller.
+:::
+
+:::details Et navn avvises fordi prosjektet krever unike navn
+En annen post av samme slag har navnet, uansett store og små bokstaver og mellomrom. Velg et annet navn, eller gi den andre posten nytt navn først: **Unike navn**, under **Prosjektinnstillinger → Grunnleggende → Prosjekt**, viser navnene prosjektet har mer enn én gang, med en lenke til hver post. Hvis bare en arkivert post har navnet, fjern den fra arkivet eller velg et annet navn.
 :::
 
 ## Neste steg

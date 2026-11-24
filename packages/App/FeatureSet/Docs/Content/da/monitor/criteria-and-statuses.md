@@ -44,7 +44,7 @@ Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontroll
 | **Kriterienavn** | Navnet i listen over kriterier og i grundårsagen til hver hændelse og advarsel, som kriteriet åbner. **Tilføj kriterier** navngiver et nyt kriterium efter dets filtre, og navnet følger dem, indtil du skriver dit eget. |
 | **Filtre** | Hvad kontrollen skal vise, som et eller flere filtre. Kubernetes- og metrikmonitorer kalder dem **Advarselsregler**. |
 | **Handlinger** | Hvad der sker, når filtrene matcher: skift status, opret en advarsel, erklær en hændelse eller en kombination. |
-| **Indstillinger** | **Aktivér disse kriterier**, en valgfri **Beskrivelse**, hvornår det gendannes, og hvornår det evalueres, og, på monitorer for indgående forespørgsler, **Group incidents and alerts by a payload field**. |
+| **Indstillinger** | **Aktivér disse kriterier**, en valgfri **Beskrivelse**, hvornår det gendannes, og hvornår det evalueres, og, på monitorer for indgående forespørgsler, **Gruppér hændelser og advarsler efter et felt i payloaden**. |
 
 ### Filtre
 
@@ -70,7 +70,7 @@ En hændelse eller en advarsel beder om en titel, en **Alvorlighed** og, sammenk
 
 **Aktivér disse kriterier** er slået til for hvert nyt kriterium. Slå det fra for at beholde et kriterium uden at bruge det: det springes over ved hver kontrol, ændrer ingen status, åbner intet, og dets overskrift viser **Deaktiveret**.
 
-**Group incidents and alerts by a payload field** åbner én hændelse pr. værdi fundet i en indgående anmodning, så én webhook-adresse kan holde flere hændelser åbne. Se [Slå hændelsesgruppering til](/docs/monitor/incoming-request-monitor#slå-gruppering-af-hændelser-til).
+**Gruppér hændelser og advarsler efter et felt i payloaden** åbner én hændelse pr. værdi fundet i en indgående anmodning, så én webhook-adresse kan holde flere hændelser åbne. Se [Slå hændelsesgruppering til](/docs/monitor/incoming-request-monitor#slå-gruppering-af-hændelser-til).
 
 **Gendan kun, når en egen betingelse er opfyldt** og **Evaluér kun disse kriterier på bestemte dage og tidspunkter** er slået fra for et nyt kriterium. Se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes) og [Kun på bestemte dage og tidspunkter](#kun-på-bestemte-dage-og-tidspunkter).
 
@@ -218,6 +218,8 @@ Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Aut
 ## Hvor lang tid hver kontrol tager
 
 Evalueringsoversigten for hver kontrol, under **Vis oversigt** i monitorens **Overvågningslogs** og for den seneste kontrol på dens **Oversigt**, fortæller, hvornår kontrollen blev evalueret, hvor lang tid evalueringen tog og, for en monitor, der vurderer hver vært, container eller gruppe for sig, hvor mange serier den vurderede. Tiden løber fra det øjeblik, OneUptime begyndte at læse de data, kontrollen vurderer, til den skrev kontrollens log: læsningen af dataene, vurderingen af kriterierne og åbningen af hændelser og advarsler.
+
+I **Overvågningslogs** viser kolonnen **Kontrollens varighed**, hvor lang tid hver kontrol tog, og markerer langsomme kontroller. En tankestreg betyder, at kontrollens varighed ikke blev registreret.
 
 Når en evaluering tager for lang tid for sin monitor, advarer dens oversigt dig. For lang tid er mere end en tiendedel af tiden mellem monitorens kontroller, aldrig under 5 sekunder og aldrig over et minut:
 

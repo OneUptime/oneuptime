@@ -86,6 +86,9 @@ import RetiredColumns, {
   RetiredColumnsQuery,
 } from "../Utils/Database/RetiredColumns";
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import RequiredUniqueNames, {
+  UniqueNameHold,
+} from "../Utils/Database/RequiredUniqueNames";
 import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
@@ -554,6 +557,12 @@ interface CreateHandedBack<TBaseModel extends BaseModel> {
   onCreate: OnCreate<TBaseModel> | undefined;
   // Whether a failure came from the INSERT itself (see WriteProgress).
   progress: WriteProgress;
+  /*
+   * The lock that holds the record's name while its project requires
+   * unique names (RequiredUniqueNames), from its check until its INSERT has
+   * committed - or until the create fails, wherever it does.
+   */
+  uniqueNameHold?: UniqueNameHold | undefined;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -7426,6 +7435,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
+      // The name a refused or failed create held is free again.
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
+
       await this.onCreateError(
         error as Exception,
         handedBack.onCreate,
@@ -7807,6 +7819,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     await this.checkUniqueColumnsTogether(createBy.data);
 
+    /*
+     * A name its project requires to be one of its kind (Require Unique
+     * Names, #10761): refused when another record has it, and held from
+     * here until the INSERT has committed, so two creates of one name at
+     * the same moment cannot both pass. See RequiredUniqueNames.
+     */
+    handedBack.uniqueNameHold = await RequiredUniqueNames.holdNameOnCreate({
+      service: this,
+      createBy: createBy,
+    });
+
     // What OneUptime records about a create it has let through. See the hook.
     if (!createBy.props.ignoreHooks) {
       await this.onCreatePermitted(onCreate);
@@ -7876,6 +7899,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       isRowWritten = true;
+
+      // Its name is the record's now: the next write of it sees the row.
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
 
       // The presented keys as written, not as stored. See the helper.
       this.restorePresentedKeys(createBy.data, presentedKeysAsGiven);
@@ -8072,6 +8098,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       createdItem: createBy.data,
       props: createBy.props,
     });
+  }
+
+  /*
+   * Gives back the name a create held (RequiredUniqueNames), once: after
+   * its INSERT committed, or when it failed before.
+   */
+  private async giveBackUniqueNameOfCreate(
+    handedBack: CreateHandedBack<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    const hold: UniqueNameHold | undefined = handedBack.uniqueNameHold;
+
+    handedBack.uniqueNameHold = null;
+
+    await RequiredUniqueNames.giveBack(hold, {
+      projectId: props?.tenantId?.toString(),
+    } as LogAttributes);
   }
 
   // The project of a record created: the create's own, or the record's.
@@ -12220,6 +12263,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     let rowsOfWrite: Array<TBaseModel> = [];
     let writtenData: unknown = undefined;
 
+    /*
+     * The lock that holds a rename's name while its project requires unique
+     * names (RequiredUniqueNames), until its row is written or the update
+     * fails.
+     */
+    let uniqueNameHold: UniqueNameHold = null;
+
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
@@ -12462,6 +12512,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // Then what a create is held to: @UniqueColumnBy. See the helper.
         await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);
+
+        /*
+         * And a name its project requires to be one of its kind (#10761),
+         * held until the row is written. See RequiredUniqueNames.
+         */
+        uniqueNameHold = await RequiredUniqueNames.holdNameOnRename({
+          service: this,
+          updateBy: beforeUpdateBy,
+        });
 
         await this.onUpdatePermitted(beforeUpdateBy);
       }
@@ -13108,6 +13167,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      // The renamed row is written: its name is the row's now.
+      await RequiredUniqueNames.giveBack(uniqueNameHold, {
+        projectId: updateBy.props.tenantId?.toString(),
+      } as LogAttributes);
+      uniqueNameHold = null;
+
       /*
        * Cant Update relations.
        * https://github.com/typeorm/typeorm/issues/2821
@@ -13248,6 +13313,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
       throw this.getException(error as Exception);
     } finally {
+      // A rename that failed before its row was written holds its name no more.
+      await RequiredUniqueNames.giveBack(uniqueNameHold, {
+        projectId: updateBy.props.tenantId?.toString(),
+      } as LogAttributes);
+
       /*
        * Every process reads the rules the update changed again
        * (RuleSetCache): last, once its hooks wrote what they write too, so

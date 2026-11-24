@@ -5,6 +5,7 @@ Los ajustes del proyecto contienen lo que se aplica al proyecto entero: su nombr
 :::cards
 - [Encontrar un ajuste](#encontrar-un-ajuste): Qué contiene cada sección del menú lateral.
 - [Los detalles del proyecto](#los-detalles-del-proyecto): Su nombre, su ID y el acceso del soporte.
+- [Nombres únicos](#nombres-únicos): Si dos registros del mismo tipo pueden compartir un nombre.
 - [Productos](#productos): Los productos que este proyecto muestra y los que oculta.
 - [Etiquetas](#etiquetas): Marcas para recursos, permisos y reglas.
 - [Eliminar el proyecto](#eliminar-el-proyecto): Qué se necesita y qué se va con él.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Sección | Páginas | Dónde leer más |
 | --- | --- | --- |
-| **Básico** | **Proyecto**, **Productos**, **Etiquetas** | [Los detalles del proyecto](#los-detalles-del-proyecto), [Productos](#productos), [Etiquetas](#etiquetas) |
+| **Básico** | **Proyecto**, **Productos**, **Etiquetas** | [Los detalles del proyecto](#los-detalles-del-proyecto), [Nombres únicos](#nombres-únicos), [Productos](#productos), [Etiquetas](#etiquetas) |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videollamadas** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videollamadas](/docs/workspace-connections/video-calls) |
 | **Telemetría y APM** | **Claves de ingesta**, **Retención de datos**, **Uso** | [Claves de ingesta](/docs/telemetry/ingestion-keys), [Retención de datos](/docs/telemetry/data-retention), [Uso de telemetría](/docs/telemetry/usage) |
 | **Notificaciones** | **Canales de notificación**, **Registros de notificación**, **Aplicaciones móviles** | [Notificaciones](#notificaciones) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## Los detalles del proyecto
 
-**Ajustes del proyecto → Básico → Proyecto** contiene dos tarjetas.
+**Ajustes del proyecto → Básico → Proyecto** contiene las tarjetas del proyecto: **Detalles del proyecto**, **Nombres únicos** y, en OneUptime Cloud, **Acceso del soporte al cliente**.
 
 **Detalles del proyecto** muestra el nombre del proyecto y su ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Residencia de datos**: en OneUptime Cloud, dónde deben guardarse los datos de su proyecto, cuando OneUptime lo ha registrado. Solo OneUptime lo establece.
 
 **Acceso del soporte al cliente**, en OneUptime Cloud, decide si el equipo de soporte de OneUptime puede abrir el proyecto. Active **Permitir que el soporte de OneUptime acceda a este proyecto** cuando quiera su ayuda: OneUptime pregunta antes, porque entonces el soporte puede ver y cambiar todo en el proyecto, y usted hace clic en **Dejar entrar al soporte**. Desactívelo cuando terminen: se guarda al instante. Los Propietarios del proyecto y los Administradores del proyecto lo cambian.
+
+## Nombres únicos
+
+**Nombres únicos**, en **Ajustes del proyecto → Básico → Proyecto**, decide si dos registros del mismo tipo pueden compartir un nombre en el proyecto. Mientras **Exigir nombres únicos** está activado, OneUptime rechaza un nombre que ya tiene otro registro del mismo tipo, tanto si se escribe aquí como si se envía por la API o se define en Terraform, y sin importar mayúsculas ni espacios: `API Health Check` y `api health check` son un mismo nombre. El interruptor se guarda en cuanto lo cambia. Los Propietarios del proyecto y los Administradores del proyecto lo cambian.
+
+Está activado en un proyecto nuevo. Un proyecto que ya existía antes lo mantiene desactivado, porque los clientes de la API y las configuraciones de Terraform del proyecto pueden depender de nombres que se repiten: actívelo cuando esté listo.
+
+Debajo del interruptor, la tarjeta enumera cada nombre que el proyecto ya tiene más de una vez, tipo por tipo, con un enlace a cada registro y el día en que se creó. Activar el interruptor no rechaza nada de lo que existe: esos registros siguen funcionando hasta que alguien les cambie el nombre, y solo un registro nuevo o un cambio de nombre necesita un nombre propio. Guardar un registro de nuevo con su propio nombre, con cualquier combinación de mayúsculas, no es un cambio de nombre.
+
+Diga lo que diga el interruptor, un formulario avisa mientras escribe un nombre que ya tiene otro registro de su tipo, y enlaza a ese registro. Mientras el interruptor está activado, el aviso también dice que guardar se rechazaría.
+
+El interruptor se aplica a los tipos que usted nombra y elige por su nombre: monitores, grupos de monitores, sondas, SLO, las plantillas de incidentes, alertas, mantenimientos y páginas de estado, claves de API, claves de ingesta, roles personalizados, proveedores de LLM, pipelines, presupuestos y conexiones. Los eventos y los registros de lo que ocurrió repiten sus nombres a propósito y quedan fuera: incidentes, alertas, episodios, eventos de mantenimiento y anuncios de páginas de estado, y también lo que OneUptime descubre, como hosts y pods. Los equipos, las etiquetas, las políticas de guardia, los calendarios de guardia, las páginas de estado, los flujos de trabajo y algunos otros tipos tienen un nombre propio en todo proyecto, diga lo que diga el interruptor.
+
+Cuando OneUptime nombra un registro por usted, como un monitor creado a partir de una recomendación o uno importado, y el nombre está ocupado, le añade un número en lugar de rechazarlo: `API Health Check 2`.
 
 ## Productos
 
@@ -145,6 +160,10 @@ Cambiar el nombre del proyecto requiere un Propietario del proyecto, o el permis
 
 :::details Eliminar proyecto sigue bloqueado en el diálogo
 Escriba el nombre del proyecto exactamente como lo muestra el diálogo: las mayúsculas y minúsculas cuentan.
+:::
+
+:::details Se rechaza un nombre porque el proyecto exige nombres únicos
+Otro registro del mismo tipo tiene ese nombre, sin importar mayúsculas ni espacios. Elija otro nombre, o cambie primero el nombre del otro registro: **Nombres únicos**, en **Ajustes del proyecto → Básico → Proyecto**, enumera los nombres que el proyecto tiene más de una vez, con un enlace a cada registro. Si solo un registro archivado tiene el nombre, desarchive ese registro o elija otro nombre.
 :::
 
 ## Próximos pasos

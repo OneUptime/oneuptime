@@ -39,7 +39,7 @@ Klik onder **Hoe moeten we je bereiken?** op **Download de app**, scan de code m
 
 ![De stap "Hoe moeten we je bereiken?", met "Sms en oproepen aanzetten" omcirkeld](screen:paging-reach-you)
 
-In nieuwe projecten staan sms en telefoonoproepen uit. Bent u eigenaar van het project, klik dan op **Sms en oproepen aanzetten**; ieder ander ziet wie dat kan. Is het saldo bij OneUptime Cloud 1.00 USD of minder, klik dan op **Tegoed toevoegen**, voer onder **Bedrag (USD)** 20 tot 1.000 USD in en klik op **Bijvullen**.
+In nieuwe projecten staan sms en telefoonoproepen uit. Bent u eigenaar van het project, klik dan op **Sms en oproepen aanzetten**; ieder ander ziet wie dat kan. Is het saldo bij OneUptime Cloud 1.00 USD of minder, klik dan op **Aan saldo toevoegen**, voer onder **Bedrag (USD)** 20 tot 1.000 USD in en klik op **Aan saldo toevoegen**.
 
 ### Uw telefoonnummer toevoegen
 
@@ -86,7 +86,7 @@ Roept het beleid nog iemand anders op, dan kunt u de escalatie ook zien gebeuren
 Sms staat uit of kan niet worden verstuurd, en de stap zegt waarom. Alleen een Projecteigenaar, of iemand die de facturering beheert, ziet **Sms en oproepen aanzetten**. Bij OneUptime Cloud verbergt een saldo van 1.00 USD of minder het veld. Op een zelf gehoste server die geen sms kan versturen, ziet de hoofdbeheerder **Sms en oproepen inrichten**; dat opent het Admin Dashboard om Twilio toe te voegen, zoals [Twilio-integratie](/docs/self-hosted/twilio-integration) laat zien.
 :::
 
-:::details "Tegoed toevoegen" meldt dat er geen betaalmethode is gevonden
+:::details "Aan saldo toevoegen" meldt dat er geen betaalmethode is gevonden
 Tegoed toevoegen belast de kaart van het project. Voeg er een toe onder **Projectinstellingen → Facturering en facturen → Facturering** met **Betaalmethode toevoegen**, en voeg daarna opnieuw tegoed toe. Tot die tijd wordt u nog steeds via de app en per e-mail opgeroepen.
 :::
 

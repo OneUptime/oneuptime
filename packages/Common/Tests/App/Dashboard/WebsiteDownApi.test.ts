@@ -216,7 +216,11 @@ describe("the monitor", () => {
     const created: Monitor = call.model as Monitor;
 
     expect(call.modelType).toBe(Monitor);
-    expect(call.miscDataProps).toBeUndefined();
+    /*
+     * Nothing but that its name is the address's: numbered rather than
+     * refused where the project requires unique names (#10761).
+     */
+    expect(call.miscDataProps).toEqual({ numbersTakenName: true });
     expect(created.name).toBe("acme.example");
     expect(created.monitorType).toBe(MonitorType.Website);
     expect(created.monitorSteps?.data?.defaultMonitorStatusId?.toString()).toBe(

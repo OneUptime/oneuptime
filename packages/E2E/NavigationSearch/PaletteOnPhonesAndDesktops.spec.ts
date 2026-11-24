@@ -17,8 +17,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * it (HeaderFixture.js), with production's CSS, fonts and themes:
  *
  *   - a phone's menu has Search at the top, which opens Search, and Help
- *     folded at the bottom, which opens How OneUptime works; a laptop's
- *     header has Help, and Cmd/Ctrl+K opens Search;
+ *     folded right under it, in view as the menu opens (#7473), which
+ *     opens How OneUptime works; a laptop's header has Help, and
+ *     Cmd/Ctrl+K opens Search;
  *   - Search finds a Glossary term by its name in the reader's language and
  *     opens it on the Glossary page in a new tab, and offers Ask AI a
  *     question nothing answers;
@@ -309,12 +310,14 @@ test.describe("Search and Help, on a phone and a laptop", () => {
       await open(page, combination);
 
       if (combination.width < 768) {
-        // The phone's menu: Search at the top, Help folded at the bottom.
+        // The phone's menu: Search at the top, Help folded right under it.
         await page.getByTestId("mobile-nav-toggle").click();
         const searchRow: Locator = page.getByTestId("navbar-mobile-search");
         const help: Locator = page.getByTestId("navbar-mobile-help");
         await expect(searchRow).toBeVisible();
         await expect(help).toBeVisible();
+        // Reached without scrolling the menu, under every product (#7473).
+        await expect(help).toBeInViewport();
 
         const [searchBox, helpBox]: Array<FrameBox> = await boxesInOneFrame([
           searchRow,

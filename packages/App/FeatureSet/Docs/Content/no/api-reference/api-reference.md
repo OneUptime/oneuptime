@@ -268,6 +268,14 @@ I tillegg til meldingen inneholder hvert slikt avslag en `refusalCode` som sier 
 
 En oppdatering som sender en posts eget navn på nytt, med store eller små bokstaver, er ikke et navnebytte, så poster som delte et navn før, kan fortsatt endres og få hvert sitt navn, men aldri navnet til en annen post. For team, etiketter, vaktpolicyer og vaktplaner svarer `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på hvilke som deler et navn: `{"groups": [["<id>", "<id>"]]}`, der hver gruppe er ID-ene nøkkelen din kan lese, for postene med navn som leses likt. Arkiverte etiketter og vaktpolicyer er utelatt.
 
+Et prosjekt som krever unike navn, slik et nytt prosjekt gjør, holder de fleste andre slag du gir navn til samme regel, blant dem monitorer, monitorgrupper, sonder, maler, API-nøkler og pipelines, med de samme kodene. Prosjektets `requireUniqueNames` sier om det gjør det, og en Prosjekteier eller Prosjektadministrator endrer det under prosjektinnstillingene i dashbordet:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+En slik avvisning har også `takenById`, ID-en til posten som har navnet, når nøkkelen din kan lese den. Poster som delte et navn før prosjektet krevde unike navn, beholder det til de får nytt navn, og én oppdatering kan ikke gi flere poster av samme slag samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på om et navn er tatt før du sender det, og `GET /api/unique-names/duplicates` viser navnene prosjektet har mer enn én gang, slag for slag.
+
 #### Verdier som en annen post allerede har
 
 Også noen verdier som ikke er et navn, hører til én post hver: domenet til en statusside, et dashbord eller et skjema, et prosjektdomene, identifikatoren til en vert eller en Kubernetes-klynge, påloggings-URL-en til en SSO-leverandør og tillatelsen til en API-nøkkel, blant andre. En oppretting, eller en oppdatering som endrer en av dem, til en verdi som en annen post har, avvises med en `400` som sier det:

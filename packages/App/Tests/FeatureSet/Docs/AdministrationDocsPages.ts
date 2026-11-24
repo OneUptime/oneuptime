@@ -282,5 +282,5 @@ export const BILLING_ACCESS_ROWS: ReadonlyArray<string> = [
   "Turn SMS, calls, WhatsApp or Telegram on or off",
   "Add a payment method",
   "Pay an invoice",
-  "Change the plan, recharge a balance or change Auto Recharge",
+  "Change the plan, add to a balance or change Auto Recharge",
 ];

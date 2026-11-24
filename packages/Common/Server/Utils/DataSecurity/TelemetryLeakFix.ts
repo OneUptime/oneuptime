@@ -709,6 +709,8 @@ export default class TelemetryLeakFix {
     // The repository the person picked, or the proposal named.
     requestedRepositoryId?: unknown;
     llmProviderId?: ObjectID | undefined;
+    // The security case whose playbook asked (#10740): the task is kept on it.
+    triggeredBySecurityCaseId?: ObjectID | undefined;
   }): Promise<DataSecurityFixResult & { wasAlreadyAsked?: boolean }> {
     const requested: string =
       typeof data.requestedRepositoryId === "string" &&
@@ -749,6 +751,7 @@ export default class TelemetryLeakFix {
           plan: data.plan,
         }),
         llmProviderId: data.llmProviderId,
+        triggeredBySecurityCaseId: data.triggeredBySecurityCaseId,
         buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
           return TelemetryLeakFix.buildRequest(data.plan);
         },

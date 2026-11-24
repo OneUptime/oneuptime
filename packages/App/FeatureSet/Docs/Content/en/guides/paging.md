@@ -39,7 +39,7 @@ Under **How should we reach you?**, click **Get the app**, scan the code with yo
 
 ![The step "How should we reach you?", with "Turn on SMS and phone calls" ringed](screen:paging-reach-you)
 
-New projects start with SMS and phone calls off. If you own the project, click **Turn on SMS and phone calls**; anyone else is told who can. On OneUptime Cloud, if the balance is 1.00 USD or less, click **Add balance**, enter 20 to 1,000 USD under **Amount (USD)** and click **Recharge**.
+New projects start with SMS and phone calls off. If you own the project, click **Turn on SMS and phone calls**; anyone else is told who can. On OneUptime Cloud, if the balance is 1.00 USD or less, click **Add to Balance**, enter 20 to 1,000 USD under **Amount (USD)** and click **Add to Balance**.
 
 ### Add your phone number
 
@@ -86,7 +86,7 @@ If the policy pages someone else, you can watch the escalation too: click **Open
 SMS is off, or cannot be sent, and the step says why. Only a Project Owner, or someone who manages billing, sees **Turn on SMS and phone calls**. On OneUptime Cloud, a balance of 1.00 USD or less hides the field. On a self-hosted server that cannot send SMS, its master admin sees **Set up SMS and calls**, which opens the Admin Dashboard to add Twilio, as [Twilio Integration](/docs/self-hosted/twilio-integration) shows.
 :::
 
-:::details Add balance says no payment method was found
+:::details Add to Balance says no payment method was found
 Adding balance charges the project's card. Add one under **Project Settings → Billing and Invoices → Billing** with **Add Payment Method**, then add balance again. Until then, the app and email still page you.
 :::
 

@@ -1188,6 +1188,8 @@ import { AddDataSecurityIssueCodeFixTaskIndex1809187580377 } from "./18091875803
 import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
 import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
 import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
+import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 
 export default [
   InitialMigration,
@@ -2380,4 +2382,6 @@ export default [
   AddSecurityCaseExposureAssessment1809187590377,
   AddHelpAndSupport1809187600000,
   AddGroupIncidentsByEpisodeToStatusPage1809187610767,
+  AddProjectRequireUniqueNames1809187640000,
+  AddUniqueNameIndexes1809187640010,
 ];

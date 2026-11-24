@@ -1018,10 +1018,15 @@ describe("keeping a Power BI tool's monitor in step with its switch", () => {
       props: props as never,
     });
 
-    // Only the name: its steps, owners and on-call policies are the person's own now.
+    /*
+     * Only the name: its steps, owners and on-call policies are the
+     * person's own now. A name OneUptime picked, numbered rather than
+     * refused where the project requires unique names (#10761).
+     */
     expect(update.mock.calls[0]![0]).toEqual({
       id: monitorId,
       data: { name: "Finance Power BI - Failed Refreshes" },
+      miscDataProps: { numbersTakenName: true },
       props,
     });
   });

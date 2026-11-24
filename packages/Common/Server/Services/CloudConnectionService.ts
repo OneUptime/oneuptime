@@ -1,4 +1,5 @@
 import DatabaseService from "./DatabaseService";
+import RequiredUniqueNames from "../Utils/Database/RequiredUniqueNames";
 import AuditLogService from "./AuditLogService";
 import ServiceService from "./ServiceService";
 import SecurityBlockCloudWafService from "./SecurityBlockCloudWafService";
@@ -369,6 +370,8 @@ export class Service extends DatabaseService<Model> {
 
     if (!createBy.data.name || !createBy.data.name.trim()) {
       createBy.data.name = Service.getDefaultName(settings);
+      // Nobody typed it: numbered, not refused, if it is taken.
+      RequiredUniqueNames.numberTakenNameOf(createBy);
     }
 
     createBy.data.config = settings.config;

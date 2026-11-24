@@ -275,7 +275,7 @@
       "SMS è disattivato in questo progetto, quindi gli avvisi che lo usano non vengono inviati.",
       "Chiamata telefonica è disattivato in questo progetto, quindi gli avvisi che lo usano non vengono inviati.",
       "SMS e chiamate sono pagati con il credito di questo progetto, che è di 0.00 USD. Aggiungere un numero invia un SMS, quindi il credito deve superare 1.00 USD.",
-      "Aggiungi credito",
+      "Aggiungi al saldo",
       "Attiva SMS e chiamate",
       "App mobile o browser",
       "Non configurato.",
@@ -286,15 +286,15 @@
       "Ricontrolla"
     ],
     "outline": [
-      "button: Aggiungi credito",
+      "button: Aggiungi al saldo",
       "button: Attiva SMS e chiamate",
       "button: Usa questo browser",
       "button: Scarica l'app",
       "button: Continua",
       "button: Ricontrolla"
     ],
-    "width": 768,
-    "height": 658
+    "width": 784,
+    "height": 687
   },
   "paging-phone": {
     "text": [

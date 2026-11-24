@@ -62,7 +62,7 @@
     "dataRetention": "数据保留",
     "globalLlmProviders": "全局 LLM 提供商",
     "apiKey": "API 密钥",
-    "sendEmail": "发送电子邮件",
+    "sendEmail": "发送邮件",
     "signOut": "退出登录",
     "telemetryUsage": "遥测用量",
     "ingestionBudgets": "摄取预算",
@@ -497,7 +497,7 @@
       "title": "退出登录"
     },
     "sendEmail": {
-      "title": "发送公告电子邮件",
+      "title": "发送邮件",
       "testCardTitle": "发送测试电子邮件",
       "testCardDescription": "在发送给所有用户之前,向单个电子邮件地址发送测试公告电子邮件以预览其外观。",
       "allCardTitle": "向所有用户发送电子邮件",
@@ -514,7 +514,7 @@
       "confirmButton": "是,发送给所有用户"
     },
     "moreEmail": {
-      "title": "发送公告电子邮件",
+      "title": "发送邮件",
       "cardTitle": "发送公告电子邮件",
       "cardDescription": "撰写公告电子邮件以发送给所有注册用户。您可以先发送一封测试电子邮件以预览其外观。",
       "sendTestButton": "发送测试电子邮件",
@@ -536,7 +536,7 @@
       "confirmButton": "是,发送给所有用户"
     },
     "settings": {
-      "title": "管理员设置",
+      "title": "设置",
       "authentication": {
         "signUpCardTitle": "注册",
         "signUpCardDescription": "谁可以在此服务器上创建帐户。",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "为工作进程分配更多内存和 CPU，并在应用的日志中查找反复失败的任务。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此服务器运行的是 OneUptime {{current}}。{{latest}} 已发布。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "先备份，再更新：Docker Compose 上运行 npm run update，Kubernetes 上运行 helm upgrade。",
-  "Finish it on the Server setup page.": "请在“服务器设置”页面完成。",
+  "Finish it on the Server Setup page.": "请在“服务器设置”页面完成。",
   "Products on this server": "此服务器上的产品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "选择此服务器上每个项目提供的内容。关闭的产品会从每个项目的菜单、首页和搜索中消失，其页面会说明它已关闭。",
   "Start from": "从以下方案开始",
