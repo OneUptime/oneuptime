@@ -70,10 +70,18 @@ import ts from "typescript";
  *     DataSecurityIssueGroupProposals.test); the rest it uses ranks the
  *     repositories that declare the stores and reads their tags
  *     (DeclaredCodeOwner, CloudAiTargets.getManagedAsCode), and asks no
- *     model;
+ *     model; it proves the group fixes OneUptime AI made
+ *     (DataSecurityIssueGroupFixProof.proveForProject, #10738), which reads
+ *     the issues those fixes closed and asks no model, and tells each issue
+ *     a group's waiting proposal expired
+ *     (DataSecurityIssueGroupTimelines.expireWaitingForGroup, #10741),
+ *     which writes a timeline line of fixed words and asks no model;
  *   - the list of groups (DataSecurityIssueGroups) asks
  *     AIService.isProjectAIEnabled, and with AI off shows no name OneUptime
- *     AI gave a group: each goes by its cause's own words;
+ *     AI gave a group: each goes by its cause's own words. For a reader held
+ *     to labels (#10739) it reads which issues a group's pull request lists
+ *     (DataSecurityFixTarget.readTask, issueIdsOfTask) and how a store's
+ *     tags declare it (CloudAiTargets.getManagedAsCode), and asks no model;
  *   - the daily drafts of the record of processing (#10375) run
  *     RecordOfProcessingDraftRun.run, which reads Enable AI and Work on new
  *     issues first and asks nothing, and writes nothing, with either off;
@@ -205,10 +213,25 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     },
   ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper.ts": [
+    // A group fix proven by its issues' checks (#10738): reads, and asks no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupFixProof",
+      uses: ["DataSecurityIssueGroupFixProof.proveForProject"],
+    },
     {
       module:
         "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming",
       uses: ["DataSecurityIssueGroupNaming.nameGroups"],
+    },
+    // A waiting proposal expired, on each issue's timeline (#10741): fixed words, no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines",
+      uses: [
+        "GroupProposalExpiry",
+        "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
+      ],
     },
     {
       module:
@@ -234,6 +257,18 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module: "Common/Server/Services/AIService",
       uses: ["AIService.isProjectAIEnabled"],
     },
+    // A cut-down group's pull request, for a reader held to labels (#10739): reads only.
+    {
+      module: "Common/Server/Utils/AI/CodeFix/DataSecurityFixTarget",
+      uses: [
+        "DataSecurityFixTarget.readTask",
+        "DataSecurityFixTarget.issueIdsOfTask",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
+    },
   ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueGroupFix.ts": [
     {
@@ -256,6 +291,15 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module:
         "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt",
       uses: ["buildIssueGroupFixRequest"],
+    },
+    // The waiting proposals a fix asked another way expires (#10741): fixed words, no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines",
+      uses: [
+        "GroupProposalExpiry",
+        "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
+      ],
     },
     {
       module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",

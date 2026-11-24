@@ -1088,6 +1088,8 @@ export const ONE_ISSUE_SELECT: Select<DataSecurityIssue> = {
   alertId: true,
   incidentId: true,
   dataStoreId: true,
+  // Its group of issues one mistake made, read as the asker may read it (#10739).
+  dataSecurityIssueGroupId: true,
   dataStore: {
     name: true,
     kind: true,
@@ -1130,16 +1132,16 @@ export async function readOneIssue(
    * the group of issues one mistake made it is one of, as the asker may read
    * it (#10739): a reader held to labels hears only of their own stores.
    */
+  const groups: Map<string, DataSecurityIssueGroupJSON> =
+    await DataSecurityIssueGroups.forIssues({
+      projectId: ctx.projectId,
+      issues: [issue],
+      props: ctx.props,
+    });
   const row: JSONObject = DataSecurityAiInput.issueRow(
     issue,
     await getToolDataTypeNames(ctx).namerFor(issue.dataTypeIds || []),
-    toAiIssueGroup(
-      await DataSecurityIssueGroups.forIssue({
-        projectId: ctx.projectId,
-        issueId: issue.id,
-        props: ctx.props,
-      }),
-    ),
+    toAiIssueGroup(groups.get(issue.id.toString().toLowerCase())),
   );
   const serialized: SerializedResult = ToolResultSerializer.serializeRows([
     row,
