@@ -7,10 +7,11 @@ import {
   test,
 } from "@jest/globals";
 import crypto from "crypto";
+import dgram from "dgram";
 import dns from "dns";
 import http, { IncomingMessage, Server, ServerResponse } from "http";
 import net, { AddressInfo } from "net";
-import { chromium, firefox } from "playwright";
+import { LaunchOptions, chromium, firefox } from "playwright";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticBrowser, {
@@ -155,6 +156,7 @@ describe.each(BROWSERS)(
     async function check(
       code: string,
       policy: MonitorEgressPolicy = HOSTED_GLOBAL_PROBE,
+      extraArgs: Record<string, number> = {},
     ): Promise<SandboxExecutionResult> {
       const session: SyntheticBrowserSession = await SyntheticBrowser.start({
         config: {
@@ -178,7 +180,7 @@ describe.each(BROWSERS)(
           code,
           browserType,
           screenSizeType: ScreenSizeType.Desktop,
-          args: { site: sitePort, loopback: loopbackPort },
+          args: { site: sitePort, loopback: loopbackPort, ...extraArgs },
           timeoutInMs: 60_000,
           egress: session.egress,
         });
@@ -246,33 +248,37 @@ describe.each(BROWSERS)(
     test("cannot load a loopback page, by address, name or IPv6, over http or https", async () => {
       const before: number = loopbackConnections;
 
+      // The script is told why, in the egress proxy's words, as axios tells it.
       const result: SandboxExecutionResult = await check(`
         const port = args.loopback;
-        const out = {};
-        const plain = await page.goto("http://127.0.0.1:" + port + "/secret");
-        out.plain = plain.status();
-        out.plainBody = await page.textContent("body");
-        out.localhost = (await page.goto("http://localhost:" + port + "/secret")).status();
-        out.ipv6 = (await page.goto("http://[::1]:" + port + "/secret")).status();
-        out.mapped = (await page.goto("http://[::ffff:127.0.0.1]:" + port + "/secret")).status();
-        try {
-          await page.goto("https://127.0.0.1:" + port + "/secret");
-          out.https = "loaded";
-        } catch (error) {
-          out.https = "failed";
-        }
-        return { data: out };
+        const attempt = async (url) => {
+          try {
+            return "loaded " + (await page.goto(url)).status();
+          } catch (error) {
+            return error.message;
+          }
+        };
+        return { data: {
+          plain: await attempt("http://127.0.0.1:" + port + "/secret"),
+          localhost: await attempt("http://localhost:" + port + "/secret"),
+          ipv6: await attempt("http://[::1]:" + port + "/secret"),
+          mapped: await attempt("http://[::ffff:127.0.0.1]:" + port + "/secret"),
+          // Last: see the redirect test below.
+          https: await attempt("https://127.0.0.1:" + port + "/secret"),
+        } };
       `);
 
       expect(result.scriptError).toBeUndefined();
       expect(result.returnValue).toEqual({
         data: {
-          plain: 403,
-          plainBody: `Monitor target host 127.0.0.1 is not allowed: loopback address.`,
-          localhost: 502,
-          ipv6: 403,
-          mapped: 403,
-          https: "failed",
+          plain:
+            "Monitor target host 127.0.0.1 is not allowed: loopback address.",
+          localhost: "Monitor target host localhost could not be reached.",
+          ipv6: "Monitor target host ::1 is not allowed: loopback address.",
+          mapped:
+            "Monitor target host ::ffff:7f00:1 is not allowed: loopback address.",
+          https:
+            "Monitor target host 127.0.0.1 is not allowed: loopback address.",
         },
       });
       expect(JSON.stringify(result)).not.toContain("loopback-sentinel");
@@ -285,29 +291,31 @@ describe.each(BROWSERS)(
 
     test("cannot read the cloud metadata endpoint, with the headers it asks for or not", async () => {
       const result: SandboxExecutionResult = await check(`
+        const attempt = async (url) => {
+          try {
+            return "loaded " + (await page.goto(url)).status();
+          } catch (error) {
+            return error.message;
+          }
+        };
         await page.setExtraHTTPHeaders({ "Metadata-Flavor": "Google" });
-        const gcp = await page.goto(
-          "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"
-        );
-        const gcpBody = await page.textContent("body");
-        const azure = await page.goto("http://169.254.169.254/metadata/instance?api-version=2021-02-01");
-        const alibaba = await page.goto("http://100.100.100.200/latest/meta-data/");
         return { data: {
-          gcp: gcp.status(),
-          gcpBody,
-          azure: azure.status(),
-          alibaba: alibaba.status(),
+          gcp: await attempt(
+            "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"
+          ),
+          azure: await attempt("http://169.254.169.254/metadata/instance?api-version=2021-02-01"),
+          alibaba: await attempt("http://100.100.100.200/latest/meta-data/"),
         } };
       `);
 
       expect(result.scriptError).toBeUndefined();
       expect(result.returnValue).toEqual({
         data: {
-          gcp: 403,
-          gcpBody:
+          gcp: "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
+          azure:
             "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
-          azure: 403,
-          alibaba: 403,
+          alibaba:
+            "Monitor target host 100.100.100.200 is not allowed: cloud metadata address.",
         },
       });
       expect(
@@ -373,11 +381,17 @@ describe.each(BROWSERS)(
 
       const result: SandboxExecutionResult = await check(`
         const site = "http://${PUBLIC_SITE}:" + args.site;
-        const toLoopback = await page.goto(
+        const attempt = async (url) => {
+          try {
+            return "loaded " + (await page.goto(url)).status();
+          } catch (error) {
+            return error.message;
+          }
+        };
+        const toLoopback = await attempt(
           site + "/redirect?to=" + encodeURIComponent("http://127.0.0.1:" + args.loopback + "/secret")
         );
-        const loopbackBody = await page.textContent("body");
-        const toMetadata = await page.goto(
+        const toMetadata = await attempt(
           site + "/redirect?to=" + encodeURIComponent("http://169.254.169.254/latest/meta-data/")
         );
         const fetched = await page.evaluate(async (url) => {
@@ -390,10 +404,18 @@ describe.each(BROWSERS)(
         } catch (error) {
           viaAxios = error.message;
         }
+        /*
+         * Last: Chromium commits its error page for a failed navigation a
+         * moment after reporting the failure, and a navigation started in
+         * that moment is interrupted by it, whatever proxy is in use.
+         */
+        const toLoopbackOverHttps = await attempt(
+          site + "/redirect?to=" + encodeURIComponent("https://127.0.0.1:" + args.loopback + "/secret")
+        );
         return { data: {
-          toLoopback: toLoopback.status(),
-          loopbackBody,
-          toMetadata: toMetadata.status(),
+          toLoopback,
+          toLoopbackOverHttps,
+          toMetadata,
           fetched,
           viaAxios,
         } };
@@ -402,10 +424,12 @@ describe.each(BROWSERS)(
       expect(result.scriptError).toBeUndefined();
       expect(result.returnValue).toEqual({
         data: {
-          toLoopback: 403,
-          loopbackBody:
+          toLoopback:
             "Monitor target host 127.0.0.1 is not allowed: loopback address.",
-          toMetadata: 403,
+          toLoopbackOverHttps:
+            "Monitor target host 127.0.0.1 is not allowed: loopback address.",
+          toMetadata:
+            "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
           // The proxy's refusal carries no CORS header: the page reads nothing.
           fetched: "failed",
           viaAxios:
@@ -433,14 +457,25 @@ describe.each(BROWSERS)(
 
       try {
         const result: SandboxExecutionResult = await check(`
-          const response = await page.goto("http://kubernetes.default.svc:" + args.site + "/api");
-          return { data: { status: response.status(), body: await page.textContent("body") } };
+          const attempt = async (url) => {
+            try {
+              return "loaded " + (await page.goto(url)).status();
+            } catch (error) {
+              return error.message;
+            }
+          };
+          return { data: {
+            http: await attempt("http://kubernetes.default.svc:" + args.site + "/api"),
+            https: await attempt("https://kubernetes.default.svc/api"),
+          } };
         `);
 
+        // The same words as for a name that does not exist at all.
         expect(result.returnValue).toEqual({
           data: {
-            status: 502,
-            body: "Monitor target host kubernetes.default.svc could not be reached.",
+            http: "Monitor target host kubernetes.default.svc could not be reached.",
+            https:
+              "Monitor target host kubernetes.default.svc could not be reached.",
           },
         });
         expect(
@@ -549,15 +584,22 @@ describe.each(BROWSERS)(
 
       const result: SandboxExecutionResult = await check(
         `
+          const attempt = async (url) => {
+            try {
+              return "loaded " + (await page.goto(url)).status();
+            } catch (error) {
+              return error.message;
+            }
+          };
           const internal = await page.goto("http://${PRIVATE_SITE}:" + args.site + "/");
           const internalTitle = await page.title();
-          const loopbackStatus = (await page.goto("http://127.0.0.1:" + args.loopback + "/")).status();
-          const metadataStatus = (await page.goto("http://169.254.169.254/")).status();
+          const loopback = await attempt("http://127.0.0.1:" + args.loopback + "/");
+          const metadata = await attempt("http://169.254.169.254/");
           return { data: {
             internal: internal.status(),
             internalTitle,
-            loopbackStatus,
-            metadataStatus,
+            loopback,
+            metadata,
           } };
         `,
         CUSTOM_PROBE_WITH_PRIVATE_ACCESS,
@@ -568,8 +610,10 @@ describe.each(BROWSERS)(
         data: {
           internal: 200,
           internalTitle: "Public site",
-          loopbackStatus: 403,
-          metadataStatus: 403,
+          loopback:
+            "Monitor target host 127.0.0.1 is not allowed: loopback address.",
+          metadata:
+            "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
         },
       });
       expect(loopbackConnections).toBe(before);
@@ -577,16 +621,239 @@ describe.each(BROWSERS)(
 
     test("refuses a private address on a global probe, saying where a private one can be deployed", async () => {
       const result: SandboxExecutionResult = await check(`
-        const response = await page.goto("http://${PRIVATE_SITE}:" + args.site + "/");
-        return { data: { status: response.status(), body: await page.textContent("body") } };
+        await page.goto("http://${PRIVATE_SITE}:" + args.site + "/");
+        return { data: "loaded" };
       `);
 
-      expect(result.returnValue).toEqual({
-        data: {
-          status: 403,
-          body: `Monitor target host ${PRIVATE_SITE} is not allowed: private network address. Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.`,
+      // Not caught: the check fails with the probe's reason as its error.
+      expect(result.returnValue).toBeUndefined();
+      expect(result.scriptError).toBe(
+        `Monitor target host ${PRIVATE_SITE} is not allowed: private network address. Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.`,
+      );
+    });
+
+    /*
+     * WebRTC is the one way a page opens UDP, which no HTTP proxy carries.
+     * A page's STUN and TURN servers, and a remote peer's host candidate,
+     * are all on loopback here; the listeners count what reaches them. In
+     * the full Chrome for Testing build the probe runs, the switch spelled
+     * for chrome-headless-shell alone left about a hundred datagrams going
+     * to them in six seconds.
+     */
+    test("sends no WebRTC traffic around the proxy: STUN and TURN servers and a peer on loopback get nothing", async () => {
+      let datagrams: number = 0;
+      let tcpConnections: number = 0;
+      const udp: dgram.Socket = dgram.createSocket("udp4");
+      udp.on("message", (): void => {
+        datagrams++;
+      });
+      await new Promise<void>((resolve: () => void): void => {
+        udp.bind(0, "127.0.0.1", resolve);
+      });
+      const tcp: Server = http.createServer();
+      tcp.on("connection", (socket: net.Socket): void => {
+        tcpConnections++;
+        socket.destroy();
+      });
+      const tcpPort: number = await listen(tcp);
+
+      try {
+        const result: SandboxExecutionResult = await check(
+          `
+            const outcome = await page.evaluate(async ({ udpPort, tcpPort }) => {
+              const caller = new RTCPeerConnection({
+                iceServers: [
+                  { urls: "stun:127.0.0.1:" + udpPort },
+                  { urls: "turn:127.0.0.1:" + udpPort + "?transport=udp", username: "u", credential: "p" },
+                  { urls: "turn:127.0.0.1:" + tcpPort + "?transport=tcp", username: "u", credential: "p" },
+                ],
+              });
+              const callee = new RTCPeerConnection();
+              caller.createDataChannel("probe");
+              const offer = await caller.createOffer();
+              await caller.setLocalDescription(offer);
+              await callee.setRemoteDescription(offer);
+              const answer = await callee.createAnswer();
+              await callee.setLocalDescription(answer);
+              await caller.setRemoteDescription(answer);
+              for (const candidate of [
+                "candidate:1 1 udp 2122260223 127.0.0.1 " + udpPort + " typ host",
+                "candidate:2 1 tcp 1518280447 127.0.0.1 " + tcpPort + " typ host tcptype passive",
+              ]) {
+                try {
+                  await caller.addIceCandidate({ candidate, sdpMid: "0", sdpMLineIndex: 0 });
+                } catch (error) {
+                  // A candidate the browser refuses to take sends nothing either.
+                }
+              }
+              await new Promise((resolve) => setTimeout(resolve, 6000));
+              caller.close();
+              callee.close();
+              return "settled";
+            }, { udpPort: args.udp, tcpPort: args.tcp });
+            return { data: outcome };
+          `,
+          HOSTED_GLOBAL_PROBE,
+          { udp: (udp.address() as AddressInfo).port, tcp: tcpPort },
+        );
+
+        expect(result.scriptError).toBeUndefined();
+        expect(result.returnValue).toEqual({ data: "settled" });
+        expect({ datagrams, tcpConnections }).toEqual({
+          datagrams: 0,
+          tcpConnections: 0,
+        });
+      } finally {
+        udp.close();
+        await close(tcp);
+      }
+    });
+
+    /*
+     * Firefox reads a bypass entry as a bare suffix (Juggler's
+     * host.endsWith(entry)) and resolves a bypassed name itself, so with the
+     * runtime's controller host on its list, any name ending in it that the
+     * probe's resolver answers for - a search-domain wildcard, /etc/hosts -
+     * went straight there. network.dns.localDomains stands in for such a
+     * resolver here, answering the look-alike name with loopback.
+     */
+    test("sends a host that only ends in the runtime's own name through the egress proxy", async () => {
+      const before: number = loopbackConnections;
+      const lookAlike: string = "x.synthetic-runtime.oneuptime.invalid";
+      const launchFirefox: typeof firefox.launch = firefox.launch.bind(firefox);
+      const launch: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(firefox, "launch")
+        .mockImplementation((async (options?: LaunchOptions) => {
+          return await launchFirefox({
+            ...options,
+            firefoxUserPrefs: {
+              ...options?.firefoxUserPrefs,
+              "network.dns.localDomains": lookAlike,
+            },
+          });
+        }) as never);
+
+      try {
+        const result: SandboxExecutionResult = await check(`
+          try {
+            const response = await page.goto("http://${lookAlike}:" + args.loopback + "/secret");
+            return { data: "loaded " + response.status() + " " + (await page.textContent("body")) };
+          } catch (error) {
+            return { data: error.message };
+          }
+        `);
+
+        expect(result.returnValue).toEqual({
+          data: `Monitor target host ${lookAlike} could not be reached.`,
+        });
+        expect(loopbackConnections).toBe(before);
+      } finally {
+        launch.mockRestore();
+      }
+    });
+
+    /*
+     * Every request goes to one proxy, so a browser's limit on connections
+     * to a proxy is a limit on the whole page. Firefox's default (32) left 60
+     * slow requests to 60 hosts taking twice as long as in Chromium.
+     */
+    test("opens as many connections at once as the page has hosts to reach", async () => {
+      const hosts: number = 48;
+      let inFlight: number = 0;
+      let mostInFlight: number = 0;
+      const slow: Server = http.createServer(
+        (_request: IncomingMessage, response: ServerResponse): void => {
+          inFlight++;
+          mostInFlight = Math.max(mostInFlight, inFlight);
+          setTimeout((): void => {
+            inFlight--;
+            response.writeHead(200, {
+              "Content-Type": "text/plain",
+              "Access-Control-Allow-Origin": "*",
+            });
+            response.end("ok");
+          }, 2_000);
+        },
+      );
+      const slowPort: number = await listen(slow);
+
+      for (let index: number = 1; index <= hosts; index++) {
+        fakeInternet.route(`93.184.216.${index}`, slowPort, slowPort);
+      }
+
+      try {
+        const result: SandboxExecutionResult = await check(
+          `
+            await page.setContent("<!doctype html><title>Many hosts</title>");
+            const answers = await page.evaluate(async ({ hosts, port }) => {
+              const all = [];
+              for (let index = 1; index <= hosts; index++) {
+                all.push(
+                  fetch("http://93.184.216." + index + ":" + port + "/slow")
+                    .then((answer) => answer.text(), () => "failed"),
+                );
+              }
+              return await Promise.all(all);
+            }, { hosts: args.hosts, port: args.slow });
+            return { data: answers.filter((answer) => answer === "ok").length };
+          `,
+          HOSTED_GLOBAL_PROBE,
+          { hosts, slow: slowPort },
+        );
+
+        expect(result.scriptError).toBeUndefined();
+        expect(result.returnValue).toEqual({ data: hosts });
+        expect(mostInFlight).toBe(hosts);
+      } finally {
+        await close(slow);
+      }
+    });
+
+    test("never falls back to a direct connection once the egress proxy is gone", async () => {
+      const before: number = loopbackConnections;
+      const session: SyntheticBrowserSession = await SyntheticBrowser.start({
+        config: {
+          code: "",
+          browserType,
+          screenSizeType: ScreenSizeType.Desktop,
+          executablePath: executablePath(),
+          viewport: { width: 800, height: 600 },
+          timeoutInMs: 60_000,
+          chromiumSandboxEnabled: false,
+          egressPolicy: HOSTED_GLOBAL_PROBE,
+          args: {},
         },
       });
+
+      try {
+        await session.egress.close();
+
+        const answers: Array<string> = await session.page.evaluate(
+          async (port: number): Promise<Array<string>> => {
+            const results: Array<string> = [];
+            for (const url of [
+              `http://127.0.0.1:${port}/direct`,
+              `http://localhost:${port}/direct`,
+            ]) {
+              try {
+                results.push(await (await fetch(url)).text());
+              } catch {
+                results.push("failed");
+              }
+            }
+            return results;
+          },
+          loopbackPort,
+        );
+
+        expect(answers).toEqual(["failed", "failed"]);
+        expect(loopbackConnections).toBe(before);
+      } finally {
+        await SyntheticBrowser.close({
+          browser: session.browser,
+          egress: session.egress,
+        });
+      }
     });
   },
 );

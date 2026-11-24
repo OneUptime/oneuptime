@@ -16,7 +16,6 @@ import SyntheticBrowser, {
   CHROMIUM_PROXY_BYPASS,
   FIREFOX_EGRESS_PREFERENCES,
   FIREFOX_NO_SYNC_LIBRARY_PATH,
-  FIREFOX_PROXY_BYPASS,
   SYNTHETIC_BROWSER_CLOSE_TIMEOUT_IN_MS,
   SyntheticBrowserSession,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticBrowser";
@@ -274,10 +273,8 @@ describe("SyntheticBrowser.start", () => {
 
     expect(launchOptionsOf(mockFirefox)).toStrictEqual({
       executablePath: FIREFOX_EXECUTABLE_PATH,
-      proxy: {
-        server: expect.stringMatching(EGRESS_PROXY_SERVER),
-        bypass: FIREFOX_PROXY_BYPASS,
-      },
+      // No bypass list: Firefox reads its entries as bare host suffixes.
+      proxy: { server: expect.stringMatching(EGRESS_PROXY_SERVER) },
       firefoxUserPrefs: { ...FIREFOX_EGRESS_PREFERENCES },
     });
     expect(mockFirefox.launchPersistentContext).not.toHaveBeenCalled();
@@ -422,13 +419,14 @@ describe("SyntheticBrowser.start", () => {
         });
 
         const proxy: LaunchOptions["proxy"] = launchOptionsOf(launcher).proxy;
-        expect(proxy).toStrictEqual({
-          server: session.egress.getProxyServer(),
-          bypass:
-            browserType === BrowserType.Chromium
-              ? CHROMIUM_PROXY_BYPASS
-              : FIREFOX_PROXY_BYPASS,
-        });
+        expect(proxy).toStrictEqual(
+          browserType === BrowserType.Chromium
+            ? {
+                server: session.egress.getProxyServer(),
+                bypass: CHROMIUM_PROXY_BYPASS,
+              }
+            : { server: session.egress.getProxyServer() },
+        );
         expect(JSON.stringify(launchOptionsOf(launcher))).not.toContain(
           "proxy.internal",
         );
@@ -442,23 +440,18 @@ describe("SyntheticBrowser.start", () => {
       },
     );
 
-    test("bypasses the egress proxy for the runtime's own unresolvable host alone, and proxies Chromium's loopback", () => {
-      expect(FIREFOX_PROXY_BYPASS).toBe("synthetic-runtime.oneuptime.invalid");
-      expect(CHROMIUM_PROXY_BYPASS).toBe(
-        "synthetic-runtime.oneuptime.invalid,<-loopback>",
-      );
-      // Chromium resolves no name itself; the proxy at 127.0.0.1 stays reachable.
-      expect(CHROMIUM_EGRESS_ARGUMENTS).toContain(
-        "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
-      );
-      expect(CHROMIUM_EGRESS_ARGUMENTS).toContain(
-        "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
-      );
-      expect(FIREFOX_EGRESS_PREFERENCES).toMatchObject({
-        "network.proxy.allow_hijacking_localhost": true,
-        "network.proxy.failover_direct": false,
-        "media.peerconnection.ice.proxy_only": true,
-      });
+    /*
+     * Chromium reads each entry as an exact host, never a suffix, and an
+     * empty one would match nothing; the controller host is the one name it
+     * may reach without the egress proxy, and Chromium resolves no name
+     * itself. What the browsers actually send past the proxy - WebRTC UDP,
+     * look-alike hosts - is tested in real browsers (SyntheticEgressBrowser).
+     */
+    test("lets Chromium past the egress proxy for the runtime's own host alone, and proxies its loopback", () => {
+      expect(CHROMIUM_PROXY_BYPASS.split(",")).toEqual([
+        "synthetic-runtime.oneuptime.invalid",
+        "<-loopback>",
+      ]);
     });
 
     test.each([
@@ -584,6 +577,41 @@ describe("SyntheticBrowser.start", () => {
 
       expect(close).toHaveBeenCalledTimes(1);
     });
+
+    /*
+     * The worker's config check reads only the scheme; a URL past it that
+     * still cannot be parsed used to leave the egress proxy with no outbound
+     * proxy, and the check went direct, around the operator's proxy.
+     */
+    test.each([
+      "http://[not-an-address/",
+      "http://proxy.internal:99999",
+      "http://probe:s3cret@proxy internal:3128",
+    ])(
+      "is the probe's fault, and starts no browser, when the outbound proxy %s cannot be read",
+      async (server: string) => {
+        const start: ReturnType<typeof jest.spyOn> = jest.spyOn(
+          SyntheticEgressProxy.prototype,
+          "start",
+        );
+
+        const fault: SyntheticRuntimeFault = await startExpectingFailure(
+          createConfig({ proxy: { server } }),
+        );
+
+        expect(isSyntheticRuntimeFault(fault)).toBe(true);
+        expect(fault.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+        expect(fault.message).toBe(
+          "Synthetic monitor could not start on this probe: the probe's outbound proxy setting could not be read. The monitored page was never opened, so this does not reflect the health of the monitored site.",
+        );
+        // The setting itself, which may hold the proxy's password, is not repeated.
+        expect(
+          `${fault.message} ${String(fault.internalDetail)}`,
+        ).not.toContain("s3cret");
+        expect(start).not.toHaveBeenCalled();
+        expect(mockChromium.launch).not.toHaveBeenCalled();
+      },
+    );
   });
 
   test("opens the tenant page in an ephemeral context that refuses downloads", async () => {

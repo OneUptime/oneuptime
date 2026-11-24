@@ -53,20 +53,25 @@ export const FIREFOX_NO_SYNC_LIBRARY_PATH: string =
   "/usr/lib/oneuptime-probe/libsynthetic-no-sync.so";
 
 /*
- * The browser sends everything through the check's egress proxy
- * (SyntheticEgressProxy) but the runtime's own controller document, whose
- * navigation page.route fulfils from memory. Its host is reserved (.invalid)
- * and never resolves - Chromium resolves no name at all - so the browser
- * reaches nothing by it; without it, Chromium opens a speculative tunnel for
- * that navigation, which the egress proxy would refuse and report.
- */
-export const FIREFOX_PROXY_BYPASS: string = SYNTHETIC_RUNTIME_CONTROLLER_HOST;
-
-/*
+ * What Chromium sends past the check's egress proxy (SyntheticEgressProxy):
+ * the runtime's own controller document alone, whose navigation page.route
+ * fulfils from memory. Without the entry, Chromium opens a speculative
+ * tunnel for that navigation, which the egress proxy would refuse and
+ * report. Chromium matches a host entry exactly, never as a suffix, and
+ * resolves no name itself (CHROMIUM_EGRESS_ARGUMENTS), so the entry reaches
+ * nothing even where a resolver would answer for the reserved name.
+ *
  * Chromium also connects to localhost, 127.0.0.0/8 and [::1] directly by
  * default, past any proxy: "<-loopback>" takes that exception away.
  * Playwright adds it on its own today; naming it here keeps that so whatever
  * Playwright does.
+ *
+ * Firefox gets no bypass list at all. Its entries are host suffixes with no
+ * dot boundary (Juggler's host.endsWith(entry)), and Firefox resolves the
+ * names it bypasses itself, so any name ending in the controller host that a
+ * probe's resolver answers for - a search-domain wildcard, /etc/hosts - would
+ * go direct, wherever it points. page.route fulfils the controller document
+ * before Firefox would ask the proxy for it.
  */
 export const CHROMIUM_PROXY_BYPASS: string = `${SYNTHETIC_RUNTIME_CONTROLLER_HOST},<-loopback>`;
 
@@ -77,15 +82,30 @@ export const CHROMIUM_PROXY_BYPASS: string = `${SYNTHETIC_RUNTIME_CONTROLLER_HOS
  *     somehow does not go through the proxy cannot reach a named host either
  *     (the proxy is at 127.0.0.1, which stays reachable);
  *   - WebRTC's UDP, which no HTTP proxy carries, stays off: WebRTC may only
- *     use TCP through the proxy (a TURN server it approves);
+ *     use TCP through the proxy (a TURN server it approves). The switch has
+ *     two names: --webrtc-ip-handling-policy in the full Chrome for Testing
+ *     build the probe launches, --force-webrtc-ip-handling-policy in
+ *     chrome-headless-shell. Each build ignores the other's, and with the
+ *     wrong one alone a page's STUN and TURN servers and remote candidates
+ *     were sent UDP directly, loopback included;
  *   - QUIC (HTTP/3), also UDP, stays off: every request is HTTP/1.1 or
  *     HTTP/2 through the proxy.
  */
 export const CHROMIUM_EGRESS_ARGUMENTS: ReadonlyArray<string> = [
   "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+  "--webrtc-ip-handling-policy=disable_non_proxied_udp",
   "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
   "--disable-quic",
 ];
+
+/*
+ * Connections Firefox opens to one proxy at once. Every request of a check
+ * goes to the egress proxy, so Firefox's default for a proxy (32) is in
+ * effect a cap on the whole page: 60 slow requests to 60 hosts took twice as
+ * long as in Chromium. The egress proxy holds up to 1,024 sockets, both
+ * sides counted.
+ */
+const FIREFOX_CONNECTIONS_PER_PROXY: number = 256;
 
 /*
  * The same, for Firefox:
@@ -95,17 +115,21 @@ export const CHROMIUM_EGRESS_ARGUMENTS: ReadonlyArray<string> = [
  *   - a request the proxy does not answer is never retried directly;
  *   - WebRTC's ICE only through the proxy, never directly to a peer;
  *   - no HTTP/3 or WebTransport, which are QUIC (UDP) and never proxied;
- *   - no DNS prefetching of a page's links by the browser itself.
+ *   - no DNS prefetching of a page's links by the browser itself;
+ *   - as many connections to the egress proxy as a page has to its hosts.
  */
-export const FIREFOX_EGRESS_PREFERENCES: Readonly<Record<string, boolean>> =
-  Object.freeze({
-    "network.proxy.allow_hijacking_localhost": true,
-    "network.proxy.failover_direct": false,
-    "media.peerconnection.ice.proxy_only": true,
-    "network.http.http3.enable": false,
-    "network.webtransport.enabled": false,
-    "network.dns.disablePrefetch": true,
-  });
+export const FIREFOX_EGRESS_PREFERENCES: Readonly<
+  Record<string, boolean | number>
+> = Object.freeze({
+  "network.proxy.allow_hijacking_localhost": true,
+  "network.proxy.failover_direct": false,
+  "media.peerconnection.ice.proxy_only": true,
+  "network.http.http3.enable": false,
+  "network.webtransport.enabled": false,
+  "network.dns.disablePrefetch": true,
+  "network.http.max-persistent-connections-per-proxy":
+    FIREFOX_CONNECTIONS_PER_PROXY,
+});
 
 export interface SyntheticBrowserSession {
   browser: Browser;
@@ -167,10 +191,24 @@ export default class SyntheticBrowser {
     const config: SyntheticMonitorWorkerConfig = data.config;
     const browserLauncher: PlaywrightBrowserType =
       config.browserType === BrowserType.Chromium ? chromium : firefox;
-    const egress: SyntheticEgressProxy = new SyntheticEgressProxy({
-      policy: config.egressPolicy,
-      upstreamProxy: config.proxy,
-    });
+    let egress: SyntheticEgressProxy;
+
+    try {
+      egress = new SyntheticEgressProxy({
+        policy: config.egressPolicy,
+        upstreamProxy: config.proxy,
+      });
+    } catch (error: unknown) {
+      /*
+       * An outbound proxy the egress proxy cannot read is the operator's
+       * setting, not the tenant's script, and never a reason to go direct.
+       */
+      throw new SyntheticRuntimeFault({
+        message:
+          "Synthetic monitor could not start on this probe: the probe's outbound proxy setting could not be read. The monitored page was never opened, so this does not reflect the health of the monitored site.",
+        internalDetail: error,
+      });
+    }
 
     try {
       await egress.start();
@@ -250,7 +288,8 @@ export default class SyntheticBrowser {
 
     return {
       executablePath: config.executablePath,
-      proxy: { server: egressProxyServer, bypass: FIREFOX_PROXY_BYPASS },
+      // No bypass: see CHROMIUM_PROXY_BYPASS.
+      proxy: { server: egressProxyServer },
       firefoxUserPrefs: { ...FIREFOX_EGRESS_PREFERENCES },
       ...this.getFirefoxEnvironmentOptions(),
     };
