@@ -392,6 +392,9 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
    * waits in its lane (the text of its plan keys before the ":") expires.
    * A lane is "tleak-", then ids and dashes, so it holds nothing LIKE reads.
    */
+  // A lane as getTelemetryLeakFixLane writes it: lower-case letters, digits and dashes.
+  private static readonly LANE_PATTERN: RegExp = /^[a-z0-9-]+$/;
+
   @CaptureSpan()
   public async expireWaitingInLane(data: {
     projectId: ObjectID;
@@ -399,7 +402,7 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
     lane: string;
     at: Date;
   }): Promise<number> {
-    if (!/^[a-z0-9-]+$/.test(data.lane)) {
+    if (!Service.LANE_PATTERN.test(data.lane)) {
       return 0;
     }
 

@@ -477,6 +477,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       // A pull request's sensitive data: the repository's pick for its reviews.
       DataSecurityAiModelSource.ProductionReview,
+      // A service's telemetry leaks (#10367): the coding agent, as Fix with AI's.
+      DataSecurityAiModelSource.CodeAgent,
     ]);
   });
 });

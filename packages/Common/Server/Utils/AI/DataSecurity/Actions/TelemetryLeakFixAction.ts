@@ -190,7 +190,9 @@ export const TelemetryLeakFixAction: DataSecurityAiAction = {
         plan,
         props: data.actor.props,
         requestedRepositoryId: repositoryId,
-        ...(llmProviderId ? { llmProviderId: new ObjectID(llmProviderId) } : {}),
+        ...(llmProviderId
+          ? { llmProviderId: new ObjectID(llmProviderId) }
+          : {}),
       });
 
     if (!result.aiRunId) {

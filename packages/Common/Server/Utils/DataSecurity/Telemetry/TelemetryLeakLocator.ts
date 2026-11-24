@@ -311,7 +311,10 @@ export function buildLeakRecordStatement(data: {
   statement.append(" LIMIT ");
   appendNumber(
     statement,
-    Math.min(MAX_LEAK_ROWS_PER_READ, data.records.length * LEAK_ROWS_PER_RECORD),
+    Math.min(
+      MAX_LEAK_ROWS_PER_READ,
+      data.records.length * LEAK_ROWS_PER_RECORD,
+    ),
   );
   statement.append(
     getQuerySettings({
@@ -363,16 +366,18 @@ export default class TelemetryLeakLocator {
       });
 
     return found.occurrences
-      .map((occurrence: DataSecurityFindingOccurrences["occurrences"][number]) => {
-        return toFindingSampleRecord({
-          time: occurrence.time,
-          traceId: occurrence.traceId,
-          spanId: occurrence.spanId,
-          sessionId: occurrence.sessionId,
-          logId: occurrence.logId,
-          metricName: occurrence.metricName,
-        });
-      })
+      .map(
+        (occurrence: DataSecurityFindingOccurrences["occurrences"][number]) => {
+          return toFindingSampleRecord({
+            time: occurrence.time,
+            traceId: occurrence.traceId,
+            spanId: occurrence.spanId,
+            sessionId: occurrence.sessionId,
+            logId: occurrence.logId,
+            metricName: occurrence.metricName,
+          });
+        },
+      )
       .filter(
         (record: FindingSampleRecord | null): record is FindingSampleRecord => {
           return record !== null;

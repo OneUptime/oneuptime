@@ -143,13 +143,12 @@ export default class DataSecurityIssueCodeFix {
     const result: DataSecurityIssueCodeFixResult = { fix };
 
     if (issue.checkId === SECRETS_IN_TELEMETRY_CHECK_ID && issue.dataStoreId) {
-      result.secretSightings = await DataSecurityIssueCodeFix.readSecretSightings(
-        {
+      result.secretSightings =
+        await DataSecurityIssueCodeFix.readSecretSightings({
           projectId: data.projectId,
           dataStoreId: issue.dataStoreId,
           props: data.props,
-        },
-      );
+        });
     }
 
     return result;

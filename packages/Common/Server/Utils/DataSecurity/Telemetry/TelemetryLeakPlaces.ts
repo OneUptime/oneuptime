@@ -94,10 +94,14 @@ function readLineNumber(value: string): number | undefined {
     : undefined;
 }
 
+// What no name keeps: the C0 controls and DEL.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS: RegExp = /[\u0000-\u001f\u007f]/g;
+
 // A name the code gave a function or a scope, on one line, held to its length.
 function readName(value: string): string {
   return value
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(CONTROL_CHARACTERS, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, MAX_TELEMETRY_LEAK_NAME_LENGTH);

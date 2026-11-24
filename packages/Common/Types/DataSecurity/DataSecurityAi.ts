@@ -458,9 +458,7 @@ export function isDataSecurityAiFindingProposalKind(
   kind: DataSecurityAiProposalKind | string | undefined,
 ): boolean {
   return (
-    DATA_SECURITY_AI_FINDING_PROPOSAL_KINDS as ReadonlyArray<
-      string | undefined
-    >
+    DATA_SECURITY_AI_FINDING_PROPOSAL_KINDS as ReadonlyArray<string | undefined>
   ).includes(kind);
 }
 

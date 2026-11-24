@@ -281,6 +281,8 @@ describe("CodeFixTaskTypeHelper", () => {
         CodeFixTaskType.FixFromIncident,
         // The cause of a group of Data Security issues, fixed once (#10370).
         CodeFixTaskType.FixInfrastructureCode,
+        // A service's telemetry leaks, fixed in its code in one pull request (#10367).
+        CodeFixTaskType.FixSensitiveDataInTelemetry,
       ]);
     });
 

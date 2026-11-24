@@ -22,12 +22,15 @@ import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
  *   3. a structured line keeps its message and the names of its fields,
  *      never their values: {"msg":"signup","email":<value>} - in JSON and
  *      in key=value form;
- *   4. what still looks like a value after all that is masked again, and the
+ *   4. what still looks like a value after all that is masked again - by
+ *      the detectors, and anything shaped like an address (name@host.tld)
+ *      or a masked value (j***) whatever no detector named - and the
  *      template is held to MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH;
  *   5. templates of one line of code (the same file and line) read from
  *      several records are aligned (alignTelemetryLeakTemplates): a word
  *      that differs between them is a value, whatever a detector made of
- *      it.
+ *      it - and of two that cannot be lined up word for word, only the
+ *      words both start and end with are kept.
  *
  * Pure: run inside OneUptime, by the locator that reads the records
  * (Server/Utils/DataSecurity/Telemetry/TelemetryLeakLocator). What it
@@ -36,6 +39,15 @@ import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
 
 // The most of a text a template is made from.
 export const MAX_TEMPLATE_SOURCE_LENGTH: number = 4_096;
+
+/*
+ * What still reads as an address or a masked value once every detector
+ * ran, whatever no detector named: "j***@e******.com", "****-4242". The
+ * characters a structured line separates its fields with end one.
+ */
+const ADDRESS_LIKE: RegExp =
+  /[^\s@"'<>(){}[\],;=]+@[^\s@"'<>(){}[\],;=]+\.[^\s@"'<>(){}[\],;=]+/g;
+const MASKED_LIKE: RegExp = /[^\s"'<>(){}[\],;=]*\*{2,}[^\s"'<>(){}[\],;=]*/g;
 
 // A type's name as a placeholder holds it: one line, no brackets, short.
 const MAX_PLACEHOLDER_NAME_LENGTH: number = 60;
@@ -72,6 +84,17 @@ const MESSAGE_FIELDS: ReadonlySet<string> = new Set([
 const SLOT_START: string = "\uE000";
 const SLOT_END: string = "\uE001";
 const SLOT_PATTERN: RegExp = /\uE000([a-z]+)\uE001/g;
+// A whole word that is a placeholder, or a slot a value was taken from.
+const PLACEHOLDER_WORD: RegExp = /^<[^<>]+>$/;
+const SLOT_WORD: RegExp = /^\uE000[a-z]+\uE001$/;
+// What no template keeps: the C0 controls and DEL.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTERS: RegExp = /[\u0000-\u001f\u007f]/g;
+// Two letters in a row: a word of the code's to find the line by.
+const CODE_WORD: RegExp = /[A-Za-z]{2,}/;
+// The punctuation around a word, kept when the word is masked.
+const LEADING_PUNCTUATION: RegExp = /^[("'[{]*/;
+const TRAILING_PUNCTUATION: RegExp = /[)"'\]},.:;!?]*$/;
 
 function slotName(index: number): string {
   let name: string = "";
@@ -155,7 +178,7 @@ function slotValues(
 }
 
 function isPlaceholder(text: string): boolean {
-  return /^<[^<>]+>$/.test(text.trim()) || /^\uE000[a-z]+\uE001$/.test(text);
+  return PLACEHOLDER_WORD.test(text.trim()) || SLOT_WORD.test(text);
 }
 
 // A JSON value, its message fields kept (already slotted) and every other value masked.
@@ -261,19 +284,21 @@ export function buildTelemetryLeakTemplate(
   template = template.replace(/[\uE000\uE001][a-z]*/g, VALUE_PLACEHOLDER);
 
   // Anything that still reads as a value, masked again.
-  const again: { text: string; placeholders: Map<string, string> } =
-    slotValues(template, options);
-
-  template = again.text.replace(
-    SLOT_PATTERN,
-    (_whole: string, name: string): string => {
-      return again.placeholders.get(name) || VALUE_PLACEHOLDER;
-    },
+  const again: { text: string; placeholders: Map<string, string> } = slotValues(
+    template,
+    options,
   );
+
+  template = again.text
+    .replace(SLOT_PATTERN, (_whole: string, name: string): string => {
+      return again.placeholders.get(name) || VALUE_PLACEHOLDER;
+    })
+    .replace(ADDRESS_LIKE, VALUE_PLACEHOLDER)
+    .replace(MASKED_LIKE, VALUE_PLACEHOLDER);
 
   // Control characters out, one line, held to its length.
   template = template
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(CONTROL_CHARACTERS, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -282,26 +307,35 @@ export function buildTelemetryLeakTemplate(
   }
 
   // Nothing but placeholders and punctuation: no words of the code to find it by.
-  return /[A-Za-z]{2,}/.test(template.replace(/<[^<>]*>/g, " "))
-    ? template
-    : "";
+  return CODE_WORD.test(template.replace(/<[^<>]*>/g, " ")) ? template : "";
 }
 
 /*
- * A template's words, a placeholder ("<Email address>") one word whatever
- * spaces are in it.
+ * A template's words, as spaces part them: a placeholder ("<Email
+ * address>") is part of one word whatever spaces are in it, and so is what
+ * touches it ("id-<hex>" is one word).
  */
 export function splitTemplateWords(template: string): Array<string> {
-  return template.match(/<[^<>]*>|[^\s<]+|</g) || [];
+  return template.match(/(?:<[^<>]*>|[^\s<]|<)+/g) || [];
+}
+
+// How a word of one read of a line is kept.
+enum WordMask {
+  Kept = 0,
+  // A value in a word of its own: masked, its punctuation kept.
+  Word = 1,
+  // Part of a stretch that differs between two reads: the stretch is one value.
+  Stretch = 2,
 }
 
 /*
  * Templates of ONE line of code - the records of one place, the same file
  * and line - read with different values, aligned: of two with as many
  * words, each word that differs between them is a value (a name no
- * detector knows, an account number) and is masked in both. Templates of
- * different lengths cannot be lined up, and stay as they are. Each
- * template given, to what it became.
+ * detector knows, an account number) and is masked in both. Of two that
+ * cannot be lined up word for word - a value with a space in it - the
+ * words both start and end with are the code's, and what lies between is
+ * masked as one value in each. Each template given, to what it became.
  */
 export function alignTelemetryLeakTemplates(
   templates: ReadonlyArray<string>,
@@ -315,9 +349,11 @@ export function alignTelemetryLeakTemplates(
   }
 
   const words: Array<Array<string>> = distinct.map(splitTemplateWords);
-  const masked: Array<Array<string>> = words.map(
-    (parts: Array<string>): Array<string> => {
-      return [...parts];
+  const masks: Array<Array<WordMask>> = words.map(
+    (parts: Array<string>): Array<WordMask> => {
+      return parts.map((): WordMask => {
+        return WordMask.Kept;
+      });
     },
   );
 
@@ -326,29 +362,79 @@ export function alignTelemetryLeakTemplates(
       const a: Array<string> = words[left]!;
       const b: Array<string> = words[right]!;
 
-      if (a.length !== b.length) {
+      if (a.length === b.length) {
+        a.forEach((word: string, index: number): void => {
+          if (word !== b[index]) {
+            masks[left]![index] = Math.max(masks[left]![index]!, WordMask.Word);
+            masks[right]![index] = Math.max(
+              masks[right]![index]!,
+              WordMask.Word,
+            );
+          }
+        });
         continue;
       }
 
-      a.forEach((word: string, index: number): void => {
-        if (word !== b[index]) {
-          masked[left]![index] = maskWord(word);
-          masked[right]![index] = maskWord(b[index]!);
-        }
-      });
+      let prefix: number = 0;
+
+      while (
+        prefix < a.length &&
+        prefix < b.length &&
+        a[prefix] === b[prefix]
+      ) {
+        prefix++;
+      }
+
+      let suffix: number = 0;
+
+      while (
+        suffix < a.length - prefix &&
+        suffix < b.length - prefix &&
+        a[a.length - 1 - suffix] === b[b.length - 1 - suffix]
+      ) {
+        suffix++;
+      }
+
+      for (let index: number = prefix; index < a.length - suffix; index++) {
+        masks[left]![index] = WordMask.Stretch;
+      }
+
+      for (let index: number = prefix; index < b.length - suffix; index++) {
+        masks[right]![index] = WordMask.Stretch;
+      }
     }
   }
 
   const aligned: Map<string, string> = new Map();
 
   distinct.forEach((template: string, index: number): void => {
-    const changed: boolean = masked[index]!.some(
-      (word: string, at: number): boolean => {
-        return word !== words[index]![at];
-      },
-    );
+    const parts: Array<string> = words[index]!;
+    const mask: Array<WordMask> = masks[index]!;
 
-    aligned.set(template, changed ? masked[index]!.join(" ") : template);
+    if (
+      mask.every((each: WordMask): boolean => {
+        return each === WordMask.Kept;
+      })
+    ) {
+      aligned.set(template, template);
+      return;
+    }
+
+    const kept: Array<string> = [];
+
+    parts.forEach((word: string, at: number): void => {
+      if (mask[at] === WordMask.Stretch) {
+        // A stretch is one value, however many words it held.
+        if (mask[at - 1] !== WordMask.Stretch) {
+          kept.push(VALUE_PLACEHOLDER);
+        }
+        return;
+      }
+
+      kept.push(mask[at] === WordMask.Word ? maskWord(word) : word);
+    });
+
+    aligned.set(template, kept.join(" "));
   });
 
   return aligned;
@@ -360,8 +446,8 @@ function maskWord(word: string): string {
     return word;
   }
 
-  const lead: string = /^[("'[{]*/.exec(word)?.[0] || "";
-  const tail: string = /[)"'\]},.:;!?]*$/.exec(word)?.[0] || "";
+  const lead: string = LEADING_PUNCTUATION.exec(word)?.[0] || "";
+  const tail: string = TRAILING_PUNCTUATION.exec(word)?.[0] || "";
 
   return `${lead}${VALUE_PLACEHOLDER}${tail}`;
 }

@@ -210,7 +210,9 @@ export async function chooseTelemetryLeakRepositories(data: {
   serviceName: string;
   repositories: ReadonlyArray<ResolvableRepository>;
   getTreePaths: (repository: ResolvableRepository) => Promise<Array<string>>;
-  getServiceFolder: (repository: ResolvableRepository) => Promise<string | null>;
+  getServiceFolder: (
+    repository: ResolvableRepository,
+  ) => Promise<string | null>;
 }): Promise<Array<TelemetryLeakRepositoryGroup>> {
   if (data.leaks.length === 0) {
     return [];
@@ -301,8 +303,7 @@ export async function chooseTelemetryLeakRepositories(data: {
     },
   );
   const mostLeaks: string | null =
-    ranked.length > 0 &&
-    (ranked.length === 1 || ranked[0]![1] > ranked[1]![1])
+    ranked.length > 0 && (ranked.length === 1 || ranked[0]![1] > ranked[1]![1])
       ? ranked[0]![0]
       : null;
 
@@ -315,7 +316,8 @@ export async function chooseTelemetryLeakRepositories(data: {
         })
       : null;
 
-  const fallbackId: string | null = mostLeaks || byName?.codeRepositoryId || null;
+  const fallbackId: string | null =
+    mostLeaks || byName?.codeRepositoryId || null;
   const fallbackChoice: DataSecurityTelemetryFixRepositoryChoice | null =
     mostLeaks
       ? DataSecurityTelemetryFixRepositoryChoice.ServiceLeaks

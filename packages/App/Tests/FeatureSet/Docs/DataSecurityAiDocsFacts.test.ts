@@ -176,9 +176,15 @@ describe("what OneUptime AI sees", () => {
       return info.title;
     });
 
-    expect(keeping).toEqual(["Fix with AI", "Ask AI", "Fix the cause"]);
+    expect(keeping).toEqual([
+      "Fix with AI",
+      "Ask AI",
+      "Fix the cause",
+      // A service's telemetry leaks, fixed by the coding agent too (#10367).
+      "Fix leaks in the code",
+    ]);
     expect(kept).toContain(
-      "The coding agent behind Fix with AI and Fix the cause, and Ask AI's chat, still keep a failed call's provider error in its row.",
+      "The coding agent behind Fix with AI, Fix the cause and Fix leaks in the code, and Ask AI's chat, still keep a failed call's provider error in its row.",
     );
     expect(kept).toContain(
       "the analysis and the field suggestions keep no word of the provider's error",

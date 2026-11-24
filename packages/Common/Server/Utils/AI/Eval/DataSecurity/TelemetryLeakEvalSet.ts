@@ -27,6 +27,7 @@ import {
 import { TelemetrySampleSource } from "../../../DataSecurity/Telemetry/TelemetrySampleSource";
 import { DataSecurityAiCodeRequest } from "../../DataSecurity/DataSecurityAiInput";
 import { buildTelemetryLeakFixRequest } from "../../DataSecurity/DataSecurityTelemetryFixPrompt";
+import escapeRegExp from "../../../../../Utils/RegExpEscape";
 import { FixEvalFileCheck } from "./DataSecurityEvalCase";
 
 /*
@@ -59,6 +60,9 @@ import { FixEvalFileCheck } from "./DataSecurityEvalCase";
  * No value here is a customer's, and no secret is written as one: a key
  * is put together where it is used (fakeKey), so no scanner reads one here.
  */
+
+// Two letters in a row: a template's word of the code's.
+const CODE_WORD: RegExp = /[A-Za-z]{2,}/;
 
 // A made-up key, put together where it is used: never written whole.
 export function fakeStripeLiveKey(): string {
@@ -920,7 +924,8 @@ const TEMPLATE_ONLY: TelemetryLeakEvalCase = {
         {
           recordTime: at(500),
           readScope: "accounts",
-          readBody: "Password reset requested for ada@example.com from 10.1.2.3",
+          readBody:
+            "Password reset requested for ada@example.com from 10.1.2.3",
         },
         {
           recordTime: at(501),
@@ -976,14 +981,15 @@ export const TELEMETRY_LEAK_EVAL_SET: ReadonlyArray<TelemetryLeakEvalCase> = [
 ];
 
 // The source a telemetry store's records are read from: what the locator reads a row as.
-const SOURCE_OF_SIGNAL: Readonly<Record<TelemetryLeakSignal, TelemetrySampleSource>> =
-  {
-    [TelemetryLeakSignal.Logs]: TelemetrySampleSource.Logs,
-    [TelemetryLeakSignal.Spans]: TelemetrySampleSource.Traces,
-    [TelemetryLeakSignal.Exceptions]: TelemetrySampleSource.Exceptions,
-    [TelemetryLeakSignal.AiCalls]: TelemetrySampleSource.AiConversations,
-    [TelemetryLeakSignal.Metrics]: TelemetrySampleSource.Metrics,
-  };
+const SOURCE_OF_SIGNAL: Readonly<
+  Record<TelemetryLeakSignal, TelemetrySampleSource>
+> = {
+  [TelemetryLeakSignal.Logs]: TelemetrySampleSource.Logs,
+  [TelemetryLeakSignal.Spans]: TelemetrySampleSource.Traces,
+  [TelemetryLeakSignal.Exceptions]: TelemetrySampleSource.Exceptions,
+  [TelemetryLeakSignal.AiCalls]: TelemetrySampleSource.AiConversations,
+  [TelemetryLeakSignal.Metrics]: TelemetrySampleSource.Metrics,
+};
 
 export interface LocatedTelemetryLeakEvalCase {
   group: TelemetryLeakRepositoryGroup;
@@ -1127,18 +1133,20 @@ export function buildTelemetryLeakEvalRequest(
   ).map((leak: TelemetryLeakToPlace): TelemetryLeakToPlace => {
     return {
       ...leak,
-      places: leak.places.map((place: TelemetryLeakPlace): TelemetryLeakPlace => {
-        return place.filePath
-          ? {
-              ...place,
-              filePath: toRepositoryPath({
-                filePath: place.filePath,
-                tree,
-                folder: null,
-              }),
-            }
-          : place;
-      }),
+      places: leak.places.map(
+        (place: TelemetryLeakPlace): TelemetryLeakPlace => {
+          return place.filePath
+            ? {
+                ...place,
+                filePath: toRepositoryPath({
+                  filePath: place.filePath,
+                  tree,
+                  folder: null,
+                }),
+              }
+            : place;
+        },
+      ),
     };
   });
   const decision: TelemetryLeakFixDecision = decideTelemetryLeakFix(leaks);
@@ -1180,12 +1188,12 @@ export function findPlaceInFiles(data: {
         return part.trim();
       })
       .filter((part: string): boolean => {
-        return /[A-Za-z]{2,}/.test(part);
+        return CODE_WORD.test(part);
       });
     const pattern: RegExp = new RegExp(
       words
         .map((word: string): string => {
-          return word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          return escapeRegExp(word);
         })
         .join(".*"),
     );

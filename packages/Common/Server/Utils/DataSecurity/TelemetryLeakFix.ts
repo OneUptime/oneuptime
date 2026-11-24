@@ -312,7 +312,10 @@ export default class TelemetryLeakFix {
           isSuppressed: false,
           fixedAt: QueryHelper.isNull(),
           lastSeenAt: QueryHelper.greaterThanEqualTo(
-            OneUptimeDate.addRemoveDurationInDays(now, -FINDING_FRESHNESS_IN_DAYS),
+            OneUptimeDate.addRemoveDurationInDays(
+              now,
+              -FINDING_FRESHNESS_IN_DAYS,
+            ),
           ),
         },
         select: {
@@ -398,9 +401,8 @@ export default class TelemetryLeakFix {
     serviceId: ObjectID;
     now?: Date | undefined;
   }): Promise<Array<TelemetryLeakFixPlan>> {
-    const leaks: ServiceLeaks | null = await TelemetryLeakFix.readServiceLeaks(
-      data,
-    );
+    const leaks: ServiceLeaks | null =
+      await TelemetryLeakFix.readServiceLeaks(data);
 
     if (!leaks || leaks.findings.length === 0) {
       return [];
@@ -545,7 +547,9 @@ export default class TelemetryLeakFix {
           : null;
       })
       .filter(
-        (issue: TelemetryLeakFixIssue | null): issue is TelemetryLeakFixIssue => {
+        (
+          issue: TelemetryLeakFixIssue | null,
+        ): issue is TelemetryLeakFixIssue => {
           return issue !== null;
         },
       )
@@ -875,7 +879,10 @@ export default class TelemetryLeakFix {
     projectId: ObjectID;
     issue: Pick<DataSecurityIssue, "checkId" | "dataStoreId">;
   }): Promise<ObjectID | null> {
-    if (!isTelemetryFindingCheck(data.issue.checkId) || !data.issue.dataStoreId) {
+    if (
+      !isTelemetryFindingCheck(data.issue.checkId) ||
+      !data.issue.dataStoreId
+    ) {
       return null;
     }
 

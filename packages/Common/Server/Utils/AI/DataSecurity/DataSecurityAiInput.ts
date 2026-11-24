@@ -3479,8 +3479,10 @@ export function buildFixTelemetryLeaksRequest(data: {
 
   let leakCount: number = listed.length;
   let placeCount: number = MAX_PLACES_PER_TELEMETRY_LEAK;
-  let request: { text: string; facts: JSONObject; marks: AiInputMarks } =
-    build(leakCount, placeCount);
+  let request: { text: string; facts: JSONObject; marks: AiInputMarks } = build(
+    leakCount,
+    placeCount,
+  );
 
   // Fewer places a leak first, then fewer leaks: the first ones always go.
   while (request.text.length > data.maxLength && placeCount > 1) {

@@ -105,7 +105,9 @@ function idOf(record: { id?: ObjectID | null; _id?: unknown }): string {
 }
 
 // Where a place is, in a few words: its file and line, else its names.
-export function describeTelemetryLeakPlace(place: TelemetryLeakPlace): MarkdownText {
+export function describeTelemetryLeakPlace(
+  place: TelemetryLeakPlace,
+): MarkdownText {
   const parts: Array<MarkdownText> = [];
 
   if (place.filePath) {
@@ -288,7 +290,9 @@ export default class TelemetryLeakFixProposals {
    * issue - or one contained at ingest - and its store, the riskiest
    * service first.
    */
-  public static async findServicesWithLeaks(projectId: ObjectID): Promise<
+  public static async findServicesWithLeaks(
+    projectId: ObjectID,
+  ): Promise<
     Array<{ serviceId: string; issue: DataSecurityIssue; store: DataStore }>
   > {
     const issues: Array<DataSecurityIssue> =
