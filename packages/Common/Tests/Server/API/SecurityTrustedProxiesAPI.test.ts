@@ -59,6 +59,7 @@ import {
   readAutomaticTrustedProxies,
 } from "../../../Types/SecurityEvent/AutomaticTrustedProxies";
 import { OwnLoadBalancerKind } from "../../../Utils/SecurityEvent/OwnLoadBalancers";
+import { getJestSpyOn } from "../../Spy";
 
 type RouterFunction = (
   req: ExpressRequest,
@@ -107,7 +108,7 @@ async function ask(): Promise<{ thrown: unknown; sent: unknown }> {
   };
 }
 
-let readLoadBalancers: jest.SpiedFunction<typeof SecurityOwnLoadBalancers.read>;
+let readLoadBalancers: ReturnType<typeof getJestSpyOn>;
 
 beforeEach(() => {
   jest.restoreAllMocks();
@@ -125,9 +126,10 @@ beforeEach(() => {
   jest
     .spyOn(SecurityEdgeRanges, "getRanges")
     .mockResolvedValue(["173.245.48.0/20", "104.16.0.0/13"] as never);
-  readLoadBalancers = jest
-    .spyOn(SecurityOwnLoadBalancers, "read")
-    .mockResolvedValue({ loadBalancers: [GATEWAY], isComplete: true });
+  readLoadBalancers = getJestSpyOn(
+    SecurityOwnLoadBalancers,
+    "read",
+  ).mockResolvedValue({ loadBalancers: [GATEWAY], isComplete: true });
 });
 
 afterEach(() => {

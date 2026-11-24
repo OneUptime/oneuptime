@@ -38,7 +38,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
  * #10547: A DETECTION RULE SAYS, WHERE IT IS LISTED, WHAT IT COULD NOT

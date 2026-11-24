@@ -49,7 +49,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+
+type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
 /*
  * #10546: THE PROJECT'S OWN LOAD BALANCERS ARE TRUSTED AS PROXIES - AND
