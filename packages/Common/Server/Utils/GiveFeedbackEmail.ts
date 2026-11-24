@@ -26,6 +26,7 @@ import {
   ProductFeedbackSubmission,
   getGiveFeedbackDestination,
   isGiveFeedbackEmailed,
+  isGiveFeedbackOffered,
   toGiveFeedbackCategory,
 } from "../../Types/ProductFeedback/ProductFeedback";
 import SafeHtml from "../../Types/SafeHtml";
@@ -43,7 +44,12 @@ import SafeHtml from "../../Types/SafeHtml";
  *     the server's own mail settings. Never to OneUptime: a self-hosted
  *     server's people, projects and words are its own;
  *   - nobody, on a self-hosted server with no Admin Notification Email: the
- *     answer is in Admin Dashboard > Feedback, as every answer is.
+ *     answer is in Admin Dashboard > Feedback, as every answer is;
+ *   - an address of the server's own, where a master admin sent Give
+ *     feedback there (Admin Dashboard > Settings > Help and Support,
+ *     #10865), through the server's own mail settings, while the server can
+ *     send email - Help offers no Give feedback while it cannot. Where it
+ *     opens a page of the server's own, or is hidden, nothing is emailed.
  *
  * The person is copied (Cc) and a reply goes to them (Reply-To), so the
  * team's answer reaches them, not the server's no-reply address - only at
@@ -210,7 +216,13 @@ export class GiveFeedbackEmail {
       1,
     );
 
-  // Where Give feedback goes on this server (GiveFeedbackDestination).
+  /*
+   * Where Give feedback goes on this server (GiveFeedbackDestination), and
+   * the address it is emailed to: nowhere at all where it is not offered -
+   * hidden, or sent to an address of the server's own the server cannot
+   * send email to (isGiveFeedbackOffered) - so nothing is promised that
+   * cannot be kept.
+   */
   public getDestination(settings: ServerFeedbackSettings): {
     destination: GiveFeedbackDestination;
     to: string | null;
@@ -218,19 +230,34 @@ export class GiveFeedbackEmail {
     const destination: GiveFeedbackDestination = getGiveFeedbackDestination({
       isOneUptimeCloud: this.isOneUptimeCloud(),
       adminNotificationEmail: settings.adminNotificationEmail,
+      giveFeedback: settings.giveFeedback,
     });
 
-    if (destination === GiveFeedbackDestination.OneUptimeTeam) {
-      return { destination, to: ONEUPTIME_SUPPORT_EMAIL };
+    if (
+      !isGiveFeedbackOffered({
+        giveFeedback: settings.giveFeedback,
+        canSendEmail: settings.canSendEmail,
+      })
+    ) {
+      return { destination, to: null };
     }
 
-    return {
-      destination,
-      to:
-        destination === GiveFeedbackDestination.ServerAdminsByEmail
-          ? toMailboxAddress(settings.adminNotificationEmail)
-          : null,
-    };
+    switch (destination) {
+      case GiveFeedbackDestination.OneUptimeTeam:
+        return { destination, to: ONEUPTIME_SUPPORT_EMAIL };
+      case GiveFeedbackDestination.ServerAdminsByEmail:
+        return {
+          destination,
+          to: toMailboxAddress(settings.adminNotificationEmail),
+        };
+      case GiveFeedbackDestination.SupportTeamByEmail:
+        return {
+          destination,
+          to: toMailboxAddress(settings.giveFeedback?.value),
+        };
+      default:
+        return { destination, to: null };
+    }
   }
 
   /*

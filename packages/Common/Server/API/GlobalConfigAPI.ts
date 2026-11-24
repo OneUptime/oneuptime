@@ -86,6 +86,22 @@ import {
   readResolvedRecordRetentionMaximumInDays,
 } from "../../Types/Retention/ResolvedRecordRetention";
 import { RESOLVED_RECORD_RETENTION_PROJECTS_REACHED_ROUTE } from "../../Types/Retention/ResolvedRecordRetentionAnswers";
+import CommonAPI from "./CommonAPI";
+import HelpAndSupportServerSettings from "../Utils/HelpAndSupport/HelpAndSupportServerSettings";
+import {
+  HELP_AND_SUPPORT_LINKS_ITEMS,
+  HELP_AND_SUPPORT_LINKS_ROUTE,
+  HELP_AND_SUPPORT_SETTINGS_ROUTE,
+  HelpItemChange,
+  readHelpAndSupportSettings,
+  readHelpItemChange,
+  toHelpAndSupportJSON,
+} from "../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  HelpAndSupportAnswer,
+  toHelpAndSupportAnswerJSON,
+} from "../../Types/HelpAndSupport/HelpAndSupportAnswer";
+import ProductBrandingUtil from "../../Types/Branding/ProductBranding";
 
 /*
  * Who is asking for the license state, which decides how much of it they get.
@@ -571,6 +587,113 @@ export default class GlobalConfigAPI extends BaseAPI<
     );
 
     /*
+     * GET /global-config/help-and-support/links - where this server sends
+     * its people for help, as a signed-in person sees it (Types/
+     * HelpAndSupport, #10864-#10866): each place's choice, and the link or
+     * address of the server's own. env.js carries every choice, but holds
+     * back a chat link - often an invitation into the server's own workspace
+     * - and the mobile app's page: anybody can read env.js, and only
+     * signed-in people read this. A signed-in person, never an API key.
+     */
+    this.router.get(
+      HELP_AND_SUPPORT_LINKS_ROUTE,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          CommonAPI.assertAuthenticatedUser(
+            await CommonAPI.getDatabaseCommonInteractionProps(req),
+            "Sign in to OneUptime as yourself to see where to get help.",
+          );
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toHelpAndSupportJSON(
+              await HelpAndSupportServerSettings.getSettings(),
+              HELP_AND_SUPPORT_LINKS_ITEMS,
+            ),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * GET /global-config/help-and-support - Admin Dashboard > Settings >
+     * Help and Support (#10864-#10866): every place that offers help, on
+     * OneUptime's default, the server's own address or link, or hidden, and
+     * what the page needs to say what each default does (Types/
+     * HelpAndSupport/HelpAndSupportAnswer). Read fresh, not from the copy
+     * pages are served from. Master admins, or the server's master API key
+     * (read-only), as Settings > Products.
+     */
+    this.router.get(
+      HELP_AND_SUPPORT_SETTINGS_ROUTE,
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toHelpAndSupportAnswerJSON(
+              await GlobalConfigAPI.getHelpAndSupportAnswer(),
+            ),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/help-and-support - a master admin changing one
+     * place ({ item, choice, value }): back to OneUptime's default, to an
+     * address or link of the server's own, to the server's own words, or
+     * hidden. Every value is checked here, whatever the page checked:
+     * links take https, http and mailto only, an address must be one valid
+     * address, and the sign-in screen's message is plain text
+     * (readHelpItemChange). Answers the page as it now stands.
+     */
+    this.router.post(
+      HELP_AND_SUPPORT_SETTINGS_ROUTE,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const change: HelpItemChange | string = readHelpItemChange(
+            req.body,
+          );
+
+          if (typeof change === "string") {
+            throw new BadDataException(change);
+          }
+
+          await HelpAndSupportServerSettings.save(change);
+
+          logger.info(
+            `A master admin set where this server sends people for help: ${change.item} is now ${change.setting.choice}.`,
+          );
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toHelpAndSupportAnswerJSON(
+              await GlobalConfigAPI.getHelpAndSupportAnswer(),
+            ),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
      * GET /global-config/resolved-record-retention/projects-reached?kind=
      * Incident&maximumInDays=365 - Admin Dashboard > Settings > Data
      * Retention (issue #6941): how many live projects that server maximum
@@ -913,6 +1036,39 @@ export default class GlobalConfigAPI extends BaseAPI<
        * told to master admins only (GET /global-config/sending-status).
        */
       canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(globalConfig),
+    };
+  }
+
+  /*
+   * What Admin Dashboard > Settings > Help and Support is told: the settings
+   * as they are stored, read fresh, and what its defaults and its choices
+   * do on this server.
+   */
+  public static async getHelpAndSupportAnswer(): Promise<HelpAndSupportAnswer> {
+    const config: GlobalConfig | null = await GlobalConfigService.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: {
+        helpAndSupport: true,
+        adminNotificationEmail: true,
+        // Whether the server can send email: read, never sent on.
+        ...SERVER_CHANNEL_SETUP_SELECT,
+        serverSendingHealth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      settings: readHelpAndSupportSettings(config?.helpAndSupport),
+      isOneUptimeCloud: IsBillingEnabled,
+      adminNotificationEmail: config?.adminNotificationEmail
+        ? config.adminNotificationEmail.toString()
+        : null,
+      canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(config),
+      isProductRenamed: ProductBrandingUtil.isRenamed(
+        EnterpriseEdition.getProductBranding(),
+      ),
     };
   }
 

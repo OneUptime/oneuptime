@@ -143,6 +143,14 @@ export const DEFAULT_NO_PROJECT_MESSAGE: string =
   "You are not a member of any project on this OneUptime instance. Please contact your administrator to be invited.";
 
 /*
+ * The two screens' titles, which stay as they are whatever the message
+ * says. The screens are drawn by the server in English, so the settings
+ * page's preview shows them as they read.
+ */
+export const SSO_INVITE_SCREEN_TITLE: string = "You need to be invited.";
+export const SSO_NO_PROJECT_SCREEN_TITLE: string = "No project access.";
+
+/*
  * The longest link: room for a help desk's address with a query, far more
  * than a link anyone types needs.
  */
@@ -362,6 +370,30 @@ export const isSafeHelpLink: (value: unknown) => value is string = (
   value: unknown,
 ): value is string => {
   return getHelpLinkProblem(value) === null;
+};
+
+/*
+ * A link of the server's own, named the way a person recognizes it: an
+ * https or http link by its host ("help.example.com"), a mailto: link by
+ * its address ("it-help@example.com"). Read as written in every language,
+ * so a page names it without a sentence of its own.
+ */
+export const getHelpLinkLabel: (link: string) => string = (
+  link: string,
+): string => {
+  const trimmed: string = link.trim();
+
+  if (trimmed.toLowerCase().startsWith("mailto:")) {
+    const addresses: Array<string> | null = getMailtoAddresses(trimmed);
+
+    return addresses ? addresses.join(", ") : trimmed;
+  }
+
+  try {
+    return new URL(trimmed).hostname || trimmed;
+  } catch {
+    return trimmed;
+  }
 };
 
 /*
