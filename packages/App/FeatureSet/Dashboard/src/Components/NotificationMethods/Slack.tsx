@@ -26,6 +26,8 @@ import {
 } from "./NotificationMethod";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 import { ChatTestAnswer, readChatTestAnswer } from "./ChatTestAnswer";
+import OtherSystemDetails from "Common/UI/Components/ErrorMessage/OtherSystemDetails";
+import { readOtherSystemDetails } from "Common/Types/Exception/OtherSystemFailure";
 
 /*
  * Unlike phone-style methods there is nothing to type and nothing to verify
@@ -47,6 +49,8 @@ const Slack: () => JSX.Element = (): ReactElement => {
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [addError, setAddError] = useState<string>("");
   const [testResult, setTestResult] = useState<string>("");
+  // The tool's own answer to a test not sent, folded under Details (#7268).
+  const [testDetails, setTestDetails] = useState<string | null>(null);
   const [isTestLoading, setIsTestLoading] = useState<boolean>(false);
 
   const deleteGuard: NotificationMethodDeleteGuard<UserSlack> =
@@ -100,6 +104,7 @@ const Slack: () => JSX.Element = (): ReactElement => {
 
       if (response.isFailure()) {
         setTestResult(API.getFriendlyMessage(response));
+        setTestDetails(readOtherSystemDetails(response));
       } else {
         /*
          * Said in the corner: a dialog to click away said it worked
@@ -117,10 +122,12 @@ const Slack: () => JSX.Element = (): ReactElement => {
           Toast.success(answer.message);
         } else {
           setTestResult(answer.message);
+          setTestDetails(answer.details);
         }
       }
     } catch (err) {
       setTestResult(API.getFriendlyMessage(err));
+      setTestDetails(readOtherSystemDetails(err));
     }
 
     setIsTestLoading(false);
@@ -237,8 +244,13 @@ const Slack: () => JSX.Element = (): ReactElement => {
           isLoading={isTestLoading}
           onSubmit={() => {
             setTestResult("");
+            setTestDetails(null);
           }}
-        />
+        >
+          {testDetails ? (
+            <OtherSystemDetails details={testDetails} className="" />
+          ) : undefined}
+        </ConfirmModal>
       ) : null}
     </>
   );

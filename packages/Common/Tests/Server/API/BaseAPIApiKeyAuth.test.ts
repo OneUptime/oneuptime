@@ -632,10 +632,10 @@ describe("BaseAPI CRUD auth contract for the ApiKey header (issue #3004)", () =>
       expect(outcome.error).toBeInstanceOf(NotAuthorizedException);
       expect(outcome.error?.code).toBe(422);
       expect(outcome.error?.message).toContain(
-        "You do not have permissions to read Log Pipeline",
+        "You do not have permission to read log pipelines",
       );
       expect(outcome.error?.message).toContain(
-        "You need one of these permissions:",
+        "Ask a Project Owner or Project Admin to give you one of these permissions:",
       );
       expect(outcome.error?.message).toContain("Telemetry Admin");
       expect(Response.sendEntityArrayResponse).not.toHaveBeenCalled();

@@ -1,3 +1,7 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
@@ -126,7 +130,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -140,7 +144,10 @@ router.post(
           req,
           res,
           new BadDataException(
-            "packetCaptureCapability must be an object with isEnabled true or false",
+            getUnreadableProbeReport({
+              report: "what it can capture",
+              problem: "packetCaptureCapability is not an object with isEnabled true or false",
+            }),
           ),
         );
       }
@@ -209,7 +216,7 @@ async function recordRunningCaptures(
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Probe not found"),
+        new BadDataException(ProbeConnectionRefusals.unknownProbe),
       );
     }
 
@@ -326,7 +333,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -340,7 +347,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("packetCaptureId is not a valid id"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a packet capture's result",
+              problem: "packetCaptureId is not an ID",
+            }),
+          ),
         );
       }
 
@@ -354,7 +366,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("statusMessage must be a string"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a packet capture's result",
+              problem: "statusMessage is not text",
+            }),
+          ),
         );
       }
 
@@ -381,7 +398,10 @@ router.post(
               req,
               res,
               new BadDataException(
-                "pcapBase64 must be the capture file as base64, within the capture's size limit",
+                getUnreadableProbeReport({
+                  report: "a packet capture's result",
+                  problem: "pcapBase64 is not the capture file as base64 within the capture's size limit",
+                }),
               ),
             );
           }
@@ -393,7 +413,12 @@ router.post(
               return Response.sendErrorResponse(
                 req,
                 res,
-                new BadDataException("pcapBase64 is not base64"),
+                new BadDataException(
+                  getUnreadableProbeReport({
+                    report: "a packet capture's result",
+                    problem: "pcapBase64 is not base64",
+                  }),
+                ),
               );
             }
           }
@@ -415,7 +440,10 @@ router.post(
           req,
           res,
           new BadDataException(
-            `status must be "${PacketCaptureStatus.Completed}" or "${PacketCaptureStatus.Failed}"`,
+            getUnreadableProbeReport({
+              report: "a packet capture's result",
+              problem: `status is neither "${PacketCaptureStatus.Completed}" nor "${PacketCaptureStatus.Failed}"`,
+            }),
           ),
         );
       }

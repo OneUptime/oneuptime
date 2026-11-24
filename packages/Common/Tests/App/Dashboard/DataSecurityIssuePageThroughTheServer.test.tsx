@@ -773,7 +773,7 @@ describe("a data security issue's page, through the server", () => {
       await waitFor(() => {
         expect(
           screen.getByText(
-            "You do not have permissions to read Data Security Issue. You need one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Security Viewer, Read Data Security Issue",
+            "You do not have permission to read data security issues. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Security Viewer, Read Data Security Issue.",
           ),
         ).toBeInTheDocument();
       });

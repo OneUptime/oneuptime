@@ -225,7 +225,7 @@ terraform destroy
 OneUptime Cloud에서 프로젝트의 API 키는 Growth 플랜 이상에서만 작동합니다. **프로젝트 설정 → 결제 및 청구서 → 결제**에서 프로젝트를 업그레이드하면 같은 키가 다시 작동합니다.
 :::
 
-:::details 메시지 “the OneUptime API returned status 422: You do not have permissions to create Monitor”
+:::details 메시지 “the OneUptime API returned status 422: You do not have permission to create monitors”
 키에 그 종류의 레코드에 대한 권한이 없습니다. 키 페이지에서 **프로젝트 관리자**나 메시지에 나온 권한을 부여하세요.
 :::
 

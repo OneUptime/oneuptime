@@ -225,7 +225,7 @@ La chiave è scritta male, scaduta o eliminata, oppure appartiene a un'istanza O
 Su OneUptime Cloud, le chiavi API di un progetto funzionano solo con il piano Growth o superiore. Passa il progetto a un piano superiore in **Impostazioni del progetto → Fatturazione e fatture → Fatturazione**, e la stessa chiave torna a funzionare.
 :::
 
-:::details Messaggio «the OneUptime API returned status 422: You do not have permissions to create Monitor»
+:::details Messaggio «the OneUptime API returned status 422: You do not have permission to create monitors»
 La chiave non ha alcuna autorizzazione per quel tipo di record. Nella pagina della chiave, assegnale **Amministratore del progetto**, oppure l'autorizzazione che nomina il messaggio.
 :::
 

@@ -10,6 +10,11 @@ import MailTransportType, {
 } from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import OtherSystemFailureException from "Common/Types/Exception/OtherSystemFailureException";
+import {
+  SMTP_TEST_FAILURES,
+  SMTP_TEST_REFUSALS,
+} from "Common/Types/Email/SmtpTestFailure";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectSMTPConfigService from "Common/Server/Services/ProjectSmtpConfigService";
@@ -151,9 +156,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "smtp-config not found for id" + smtpConfigId.toString(),
-          ),
+          new BadDataException(SMTP_TEST_REFUSALS.configGone),
         );
       }
 
@@ -168,7 +171,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("toEmail is required"),
+          new BadDataException(SMTP_TEST_REFUSALS.noAddress),
         );
       }
 
@@ -192,9 +195,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException(
-            "smtp-config could not be converted to mail server config",
-          ),
+          new BadDataException(SMTP_TEST_REFUSALS.configIncomplete),
         );
       }
 
@@ -238,14 +239,16 @@ router.post(
         logger.error(err, getLogAttributesFromRequest(req as RequestLike));
 
         /*
-         * Microsoft Graph errors already include actionable text from the
-         * provider — just pass them through.
+         * What happened and what to check, in OneUptime's words and the
+         * reader's language (SmtpTestFailure); the mail server's or
+         * Microsoft Graph's own answer goes beside them, for the dialog to
+         * fold under Details (#7268).
          */
         if (transportType === MailTransportType.MicrosoftGraph) {
-          throw new BadDataException(
-            "Microsoft Graph send failed: " +
-              (err instanceof Error ? err.message : String(err)),
-          );
+          throw new OtherSystemFailureException({
+            ...SMTP_TEST_FAILURES.microsoftGraph,
+            details: err,
+          });
         }
 
         /*
@@ -263,15 +266,16 @@ router.post(
         }
 
         if (authType === SMTPAuthenticationType.OAuth) {
-          throw new BadDataException(
-            "Cannot send email with OAuth authentication. Please verify: 1) Your Client ID, Client Secret, Token URL, and Scope are correct, 2) Your OAuth application has the required permissions, 3) Admin consent has been granted if required by your provider. If your Microsoft 365 tenant has SMTP AUTH disabled, switch Transport to 'Microsoft Graph' instead. Error: " +
-              (err instanceof Error ? err.message : String(err)),
-          );
+          throw new OtherSystemFailureException({
+            ...SMTP_TEST_FAILURES.oauth,
+            details: err,
+          });
         }
 
-        throw new BadDataException(
-          "Cannot send email. Please check your SMTP config. If you are using Google or Gmail, please dont since it does not support machine access to their mail servers. If you are still having issues, please uncheck SSL/TLS toggle and try again. We recommend using SendGrid or Mailgun or any large volume mail provider for SMTP.",
-        );
+        throw new OtherSystemFailureException({
+          ...SMTP_TEST_FAILURES.smtp,
+          details: err,
+        });
       }
 
       return Response.sendEmptySuccessResponse(req, res);

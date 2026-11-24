@@ -102,7 +102,7 @@ describe("ProjectService.extendTrial", () => {
           projectId: PROJECT_ID,
           trialEndsAt: newTrialEndDate,
         }),
-      ).rejects.toThrow("Project not found");
+      ).rejects.toThrow("is not on this server any more, so nothing was changed or charged.");
 
       expect(spies.extendTrial).not.toHaveBeenCalled();
       expect(spies.updateOneById).not.toHaveBeenCalled();
@@ -118,7 +118,9 @@ describe("ProjectService.extendTrial", () => {
           projectId: PROJECT_ID,
           trialEndsAt: newTrialEndDate,
         }),
-      ).rejects.toThrow("Payment Provider subscription not found");
+      ).rejects.toThrow(
+        "This project has no subscription with the payment provider, so nothing was changed or charged. Contact support to set up the project's billing.",
+      );
 
       expect(spies.extendTrial).not.toHaveBeenCalled();
     });
@@ -140,7 +142,9 @@ describe("ProjectService.extendTrial", () => {
           projectId: PROJECT_ID,
           trialEndsAt: newTrialEndDate,
         }),
-      ).rejects.toThrow("Payment Provider metered subscription not found");
+      ).rejects.toThrow(
+        "This project has no usage subscription with the payment provider, so nothing was changed or charged. Contact support to set up the project's billing.",
+      );
 
       expect(spies.extendTrial).not.toHaveBeenCalled();
       expect(spies.updateOneById).not.toHaveBeenCalled();
@@ -521,7 +525,9 @@ describe("ProjectService.reactiveSubscription", () => {
 
         await expect(
           ProjectService.reactiveSubscription(PROJECT_ID),
-        ).rejects.toThrow("Payment Provider subscription seats not found");
+        ).rejects.toThrow(
+          "This project's subscription does not say how many seats it has, so nothing was changed or charged. Contact support to set up the project's billing.",
+        );
 
         expect(spies.changePlan).not.toHaveBeenCalled();
         expect(spies.updateOneById).not.toHaveBeenCalled();
@@ -537,7 +543,9 @@ describe("ProjectService.reactiveSubscription", () => {
 
       await expect(
         ProjectService.reactiveSubscription(PROJECT_ID),
-      ).rejects.toThrow("Payment Provider subscription seats not found");
+      ).rejects.toThrow(
+          "This project's subscription does not say how many seats it has, so nothing was changed or charged. Contact support to set up the project's billing.",
+        );
 
       expect(spies.getUniqueTeamMemberCountInProject).not.toHaveBeenCalled();
       expect(spies.changePlan).not.toHaveBeenCalled();

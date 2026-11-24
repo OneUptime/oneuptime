@@ -1,3 +1,4 @@
+import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import { DEFAULT_MONITORING_INTERVAL } from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitoringIntervalDefault";
 import {
@@ -2533,12 +2534,19 @@ describe("the quick start", () => {
     expect(
       readRepoFile("packages/Common/Types/Billing/PlanCutoffCredentials.ts"),
     ).toContain("return `API keys need the ${planName} plan.");
+    // The table's refusal, as the server words it (#11058).
     expect(
       readRepoFile(
         "packages/Common/Server/Types/Database/Permissions/TablePermission.ts",
       ),
-    ).toContain("`You do not have permissions to ${type} ${");
-    expect(new Monitor().singularName).toBe("Monitor");
+    ).toContain("HeldPermissionsUtil.getMissingPermissionRefusal({");
+    expect(
+      HeldPermissionsUtil.getMissingPermissionRefusal({
+        operation: "create",
+        records: HeldPermissionsUtil.getRecordsInSentence(new Monitor()),
+        permissions: new Monitor().createRecordPermissions,
+      }),
+    ).toMatch(/^You do not have permission to create monitors\. Ask /);
     expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
       '"Not Found", fmt.Sprintf("No ${label} matches %s.", DescribeLookup(filterNames))',
     );
@@ -2547,7 +2555,7 @@ describe("the quick start", () => {
       "Missing API Key",
       "The OneUptime API returned status 400: Invalid API Key",
       "The OneUptime API returned status 402: API keys need the Growth plan",
-      "The OneUptime API returned status 422: You do not have permissions to create Monitor",
+      "The OneUptime API returned status 422: You do not have permission to create monitors",
       'No monitor status matches {name = "Offline"}',
     ]);
   });

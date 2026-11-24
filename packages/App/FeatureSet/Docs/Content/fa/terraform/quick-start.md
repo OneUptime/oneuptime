@@ -225,7 +225,7 @@ terraform destroy
 در OneUptime Cloud، کلیدهای API یک پروژه فقط در طرح Growth یا بالاتر کار می‌کنند. پروژه را در **تنظیمات پروژه** > **صورت‌حساب و فاکتورها** > **صورت‌حساب** ارتقا دهید، و همان کلید دوباره کار می‌کند.
 :::
 
-:::details پیام «the OneUptime API returned status 422: You do not have permissions to create Monitor»
+:::details پیام «the OneUptime API returned status 422: You do not have permission to create monitors»
 کلید هیچ دسترسی‌ای برای آن نوع رکورد ندارد. در صفحهٔ کلید به آن **مدیر پروژه** را بدهید، یا دسترسی‌ای را که پیام نام می‌برد.
 :::
 

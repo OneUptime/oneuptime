@@ -447,7 +447,9 @@ describe("ProjectService tells OneUptime Cloud's billing about a marketplace-bil
         projectId: MARKETPLACE_PROJECT_ID,
         paymentProviderPlanId: "growth_monthly",
       }),
-    ).rejects.toThrow("Billing is not enabled for this server");
+    ).rejects.toThrow(
+      "This server does not bill for projects, so there is no plan or trial to change.",
+    );
 
     expect(hooks.afterMarketplacePlanChange).not.toHaveBeenCalled();
   });

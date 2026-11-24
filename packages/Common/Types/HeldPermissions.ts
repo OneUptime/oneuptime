@@ -1,6 +1,7 @@
 import PermissionScope from "./Database/AccessControl/PermissionScope";
 import ObjectID from "./ObjectID";
 import Permission, { PermissionHelper, UserPermission } from "./Permission";
+import { toSentenceTerm } from "./Translator";
 
 /*
  * WHAT A CALLER HOLDS: the one rule behind every "may they do this?" check,
@@ -636,6 +637,11 @@ export default class HeldPermissionsUtil {
       wildcard: Permission | null | undefined;
       // The record's name, as the refusal names it (the model's singularName).
       recordName: string | null | undefined;
+      /*
+       * The records, as a sentence that names them all writes them
+       * (getRecordsInSentence): "workflows". The record's name otherwise.
+       */
+      recordsName?: string | undefined;
       // The write: "create", "update", "delete".
       operation: string;
     },
@@ -667,13 +673,77 @@ export default class HeldPermissionsUtil {
       )} by anyone, because nobody may read them.`;
     }
 
-    return `You do not have permissions to ${data.operation} ${
-      data.recordName
-    }: ${
-      data.operation === "create" ? "creating" : "changing or deleting"
-    } a record needs permission to read it too. You need one of these permissions: ${titles.join(
-      ", ",
-    )}`;
+    return HeldPermissionsUtil.getMissingPermissionRefusal({
+      operation: data.operation,
+      records: data.recordsName || data.recordName || "these records",
+      permissions: data.readPermissions,
+      because: `${
+        data.operation === "create" ? "creating" : "changing or deleting"
+      } a record needs permission to read it too`,
+    });
+  }
+
+  /*
+   * A MISSING PERMISSION, AS A REFUSAL SAYS IT (#11058): what the caller
+   * may not do, then who can give them a permission that allows it, and
+   * which. It read "You do not have permissions to read Workflow. You need
+   * one of these permissions: Project Owner, Project Admin, Read Workflow",
+   * with no full stop, "permissions" where one is meant, and nothing about
+   * who can give one. The database models (TablePermission), the analytics
+   * models (AnalyticsDatabase/ModelPermission) and a write that needs a read
+   * (getReadForWriteRefusal) refuse in these words.
+   *
+   * Who: a Project Owner gives any permission; a Project Admin only those
+   * it holds itself, Project Admin among them (the grant ceiling,
+   * TeamPermissionService.assertCanGrantPermission). So a list that holds
+   * Project Admin - most do - names both, and one that does not names the
+   * owner alone. "You", not "your team": an API key's permissions are given
+   * on the key, a person's on their team.
+   */
+  public static getMissingPermissionRefusal(data: {
+    // "read", "create", "update", "delete".
+    operation: string;
+    /*
+     * The records, as the middle of a sentence writes them: "workflows",
+     * "API keys" (getRecordsInSentence).
+     */
+    records: string;
+    // The permissions any one of which allows it.
+    permissions: ReadonlyArray<Permission>;
+    // Why these permissions, after a colon: "creating a record needs ...".
+    because?: string | undefined;
+  }): string {
+    const titles: Array<string> = PermissionHelper.getPermissionTitles([
+      ...data.permissions,
+    ]);
+
+    const who: string = data.permissions.includes(Permission.ProjectAdmin)
+      ? "a Project Owner or Project Admin"
+      : "a Project Owner";
+
+    const ask: string =
+      titles.length === 1
+        ? `Ask ${who} to give you this permission: ${titles[0]}.`
+        : `Ask ${who} to give you one of these permissions: ${titles.join(", ")}.`;
+
+    return `You do not have permission to ${data.operation} ${data.records}${
+      data.because ? `: ${data.because}` : ""
+    }. ${ask}`;
+  }
+
+  /*
+   * A model's records as the middle of a sentence names them, in English:
+   * its plural name, lowered where English lowers it ("Workflows" is
+   * "workflows", "API Keys" is "API keys", "On-Call Policies" is "on-call
+   * policies").
+   */
+  public static getRecordsInSentence(model: {
+    pluralName?: string | undefined;
+    singularName?: string | undefined;
+  }): string {
+    const name: string = model.pluralName || model.singularName || "";
+
+    return name ? toSentenceTerm(name) : "these records";
   }
 
   // An operation as a refusal says it was not done: "created", "updated".

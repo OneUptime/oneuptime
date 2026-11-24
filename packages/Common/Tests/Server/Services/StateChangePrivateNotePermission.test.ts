@@ -144,7 +144,7 @@ const ALERT_CASE: TimelineCase = {
   noteModelType: AlertInternalNote,
   eventColumn: "alertId",
   noteRefusal:
-    "You do not have permissions to create Alert Internal Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert Internal Note.",
+    "You do not have permission to create alert internal notes. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert Internal Note.",
   buildStateChange: (): BaseModel => {
     const timeline: AlertStateTimeline = new AlertStateTimeline();
     timeline.projectId = PROJECT_ID;
@@ -233,7 +233,7 @@ const ALERT_EPISODE_CASE: TimelineCase = {
   noteModelType: AlertEpisodeInternalNote,
   eventColumn: "alertEpisodeId",
   noteRefusal:
-    "You do not have permissions to create Alert Episode Internal Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert Episode Internal Note.",
+    "You do not have permission to create alert episode internal notes. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert Episode Internal Note.",
   buildStateChange: (): BaseModel => {
     const timeline: AlertEpisodeStateTimeline = new AlertEpisodeStateTimeline();
     timeline.projectId = PROJECT_ID;
@@ -322,7 +322,7 @@ const INCIDENT_EPISODE_CASE: TimelineCase = {
   noteModelType: IncidentEpisodeInternalNote,
   eventColumn: "incidentEpisodeId",
   noteRefusal:
-    "You do not have permissions to create Incident Episode Internal Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Episode Internal Note.",
+    "You do not have permission to create incident episode internal notes. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Episode Internal Note.",
   buildStateChange: (): BaseModel => {
     const timeline: IncidentEpisodeStateTimeline =
       new IncidentEpisodeStateTimeline();
@@ -419,7 +419,7 @@ const INCIDENT_CASE: TimelineCase = {
   noteModelType: IncidentInternalNote,
   eventColumn: "incidentId",
   noteRefusal:
-    "You do not have permissions to create Incident Internal Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Internal Note.",
+    "You do not have permission to create incident internal notes. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Internal Note.",
   buildStateChange: (): BaseModel => {
     const timeline: IncidentStateTimeline = new IncidentStateTimeline();
     timeline.projectId = PROJECT_ID;
@@ -640,10 +640,10 @@ describe("StateChangeNote: the private note and its refusal", () => {
     expect(
       StateChangeNote.getRefusalMessage(
         StateChangeNoteType.Private,
-        "You do not have permissions to create Alert Internal Note.",
+        "You do not have permission to create alert internal notes.",
       ),
     ).toBe(
-      "The state was not changed: it comes with a private note, which you may not post. You do not have permissions to create Alert Internal Note. To change the state, leave the private note out.",
+      "The state was not changed: it comes with a private note, which you may not post. You do not have permission to create alert internal notes. To change the state, leave the private note out.",
     );
   });
 

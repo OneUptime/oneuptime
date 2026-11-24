@@ -29,6 +29,7 @@ import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import OtherSystemDetails from "Common/UI/Components/ErrorMessage/OtherSystemDetails";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -334,8 +335,8 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
 
   /*
    * Why a read failed, in the words a test uses for the same failure - what
-   * went wrong and what to do - with the cloud's own answer under them, and
-   * the cloud's step-by-step guide.
+   * went wrong and what to do - with the cloud's own answer folded under
+   * them (OtherSystemDetails), and the cloud's step-by-step guide.
    */
   const renderLastError: (item: CloudConnection) => ReactElement = (
     item: CloudConnection,
@@ -367,19 +368,17 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div>
-          <div className="text-xs font-medium text-gray-500">
-            {translator.translateText("Details")}
-          </div>
-          <pre
-            aria-label={translator.translateText("Full error message")}
-            tabIndex={0}
-            className="mt-1 max-h-72 overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-gray-50 p-4 text-sm text-gray-800"
-            data-testid="cloud-connection-error"
-          >
-            {drawCloudFailureDetails(translator, item.lastError || "")}
-          </pre>
-        </div>
+        {/*
+         * The cloud's own answer, folded under Details with its copy
+         * button (#7268): open when no words of OneUptime's say what it
+         * means, as it is then all there is to read.
+         */}
+        <OtherSystemDetails
+          details={drawCloudFailureDetails(translator, item.lastError || "")}
+          isOpenByDefault={!words}
+          className=""
+          dataTestId="cloud-connection-error-details"
+        />
 
         {definition ? (
           <a

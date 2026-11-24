@@ -518,7 +518,7 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
     );
 
     await expect(refusal).rejects.toThrow(
-      "You do not have permission to acknowledge this incident. You do not have permissions to read Incident. You need one of these permissions:",
+      "You do not have permission to acknowledge this incident. You do not have permission to read incidents. Ask a Project Owner or Project Admin to give you one of these permissions:",
     );
     await expect(refusal).rejects.not.toThrow("not found");
   });

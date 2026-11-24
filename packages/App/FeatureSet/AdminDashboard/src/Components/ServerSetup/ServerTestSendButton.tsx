@@ -27,6 +27,7 @@ import {
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IconProp from "Common/Types/Icon/IconProp";
+import OtherSystemDetails from "Common/UI/Components/ErrorMessage/OtherSystemDetails";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -127,6 +128,11 @@ const ServerTestSendButton: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * What the provider said when it refused the test, folded under Details
+   * beneath what happened (#7268).
+   */
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   const title: string = getServerTestSendTitle(props.channel);
   const fieldName: "toEmail" | "toPhone" = getServerTestSendFieldName(
@@ -142,6 +148,7 @@ const ServerTestSendButton: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     setIsSending(true);
     setError("");
+    setErrorDetails(null);
 
     try {
       const answer: ServerTestSendAnswer = await sendServerTest({
@@ -155,6 +162,7 @@ const ServerTestSendButton: FunctionComponent<ComponentProps> = (
         setIsOpen(false);
       } else {
         setError(describeServerTestSend(translator, answer));
+        setErrorDetails(getServerTestSendSentence(answer).details || null);
       }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -166,6 +174,7 @@ const ServerTestSendButton: FunctionComponent<ComponentProps> = (
   const onClose: () => void = (): void => {
     setIsOpen(false);
     setError("");
+    setErrorDetails(null);
   };
 
   return (
@@ -212,9 +221,22 @@ const ServerTestSendButton: FunctionComponent<ComponentProps> = (
           submitButtonText={title}
           isLoading={isSending}
           onClose={onClose}
+          /*
+           * What happened, at the top of the dialog, and what the provider
+           * said folded under it, above the address to try again.
+           */
+          error={error || undefined}
+          beforeFormElement={
+            error && errorDetails ? (
+              <OtherSystemDetails
+                details={errorDetails}
+                className=""
+                dataTestId={`${testId}-details`}
+              />
+            ) : undefined
+          }
           formProps={{
             name: testId,
-            error: error,
             fields: [
               {
                 field: {

@@ -673,7 +673,7 @@ describe("TeamPermissionService grant ceiling", () => {
           callerPermission: callerPermission,
         }),
       ).rejects.toThrow(
-        "You do not have permissions to update Team Permission. You need one of these permissions: Project Owner, Project Admin, Edit Team Permissions",
+        "You do not have permission to update team permissions. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Edit Team Permissions.",
       );
     });
 

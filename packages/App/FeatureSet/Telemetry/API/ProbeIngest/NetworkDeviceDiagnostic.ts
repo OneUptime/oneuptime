@@ -1,3 +1,8 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+  getNotThisProbesJob,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
@@ -355,7 +360,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -554,7 +559,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -570,7 +575,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("networkDeviceDiagnosticId not found"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: "networkDeviceDiagnosticId is missing",
+            }),
+          ),
         );
       }
 
@@ -583,7 +593,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("networkDeviceDiagnosticId is not a valid id"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: "networkDeviceDiagnosticId is not an ID",
+            }),
+          ),
         );
       }
 
@@ -598,7 +613,10 @@ router.post(
           req,
           res,
           new BadDataException(
-            `status must be "${NetworkDeviceDiagnosticStatus.Completed}" or "${NetworkDeviceDiagnosticStatus.Failed}"`,
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: `status is neither "${NetworkDeviceDiagnosticStatus.Completed}" nor "${NetworkDeviceDiagnosticStatus.Failed}"`,
+            }),
           ),
         );
       }
@@ -613,7 +631,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("statusMessage must be a string"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: "statusMessage is not text",
+            }),
+          ),
         );
       }
 
@@ -632,7 +655,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("pingResult must be an object"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: "pingResult is not an object",
+            }),
+          ),
         );
       }
 
@@ -646,7 +674,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("traceRouteResult must be an object"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: "traceRouteResult is not an object",
+            }),
+          ),
         );
       }
 
@@ -665,7 +698,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("snmpWalkResult must be an object"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a diagnostic's result",
+              problem: "snmpWalkResult is not an object",
+            }),
+          ),
         );
       }
 
@@ -696,7 +734,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Diagnostic not found for this probe"),
+          new BadDataException(getNotThisProbesJob("diagnostic")),
         );
       }
 

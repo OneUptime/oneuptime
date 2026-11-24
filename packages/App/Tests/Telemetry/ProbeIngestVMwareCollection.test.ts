@@ -1,3 +1,6 @@
+import {
+  ProbeConnectionRefusals,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import VMwareVCenterConnectionTestService from "Common/Server/Services/VMwareVCenterConnectionTestService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
@@ -342,7 +345,7 @@ describe("wiring", () => {
     async (uri: string) => {
       await call(uri, makeRequest({ probeId: null }));
 
-      expect(refusal()).toBe("Probe not found");
+      expect(refusal()).toBe(ProbeConnectionRefusals.unknownProbe);
     },
   );
 

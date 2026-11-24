@@ -1,3 +1,4 @@
+import HeldPermissionsUtil from "Common/Types/HeldPermissions";
 import {
   DEVELOPER_DOCS_IMPORT_LIMIT,
   DeveloperDocsGuide,
@@ -583,17 +584,23 @@ describe("the troubleshooting page", () => {
       'throw new BadDataException("ProjectId required to create monitor.");',
     );
 
-    // "You do not have permissions to create Monitor", a 422.
+    // "You do not have permission to create monitors", a 422 (#11058).
     expect(tablePermission).toContain(
-      "`You do not have permissions to ${type} ${",
+      "HeldPermissionsUtil.getMissingPermissionRefusal({",
     );
     expect(tablePermission).toContain("throw new NotAuthorizedException(");
-    expect(new Monitor().singularName).toBe("Monitor");
+    expect(
+      HeldPermissionsUtil.getMissingPermissionRefusal({
+        operation: "create",
+        records: HeldPermissionsUtil.getRecordsInSentence(new Monitor()),
+        permissions: new Monitor().createRecordPermissions,
+      }),
+    ).toMatch(/^You do not have permission to create monitors\. Ask /);
     expect(ExceptionCode.NotAuthorizedException).toBe(422);
     expect(
       englishSection(TROUBLESHOOTING, "### The key lacks a permission"),
     ).toContain(
-      "`You do not have permissions to create Monitor` and messages like it come with status `422`",
+      "`You do not have permission to create monitors` and messages like it come with status `422`",
     );
 
     // Below Growth, a 402 that names the plan.

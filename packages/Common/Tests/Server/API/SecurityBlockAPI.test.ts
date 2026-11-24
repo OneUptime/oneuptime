@@ -296,7 +296,7 @@ describe("blocking an address", () => {
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect(refusal?.message).toBe(
-      "You do not have permissions to create Block. You need one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Create Security Block",
+      "You do not have permission to create blocks. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Create Security Block.",
     );
     expect(table.rows).toHaveLength(1);
     expect(reconcile).not.toHaveBeenCalled();
@@ -403,7 +403,7 @@ describe("reading the blocklist", () => {
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect(refusal?.message).toBe(
-      "You do not have permissions to read Block. You need one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Security Viewer, Read Security Block",
+      "You do not have permission to read blocks. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Security Viewer, Read Security Block.",
     );
     expect(sendEntityArrayResponseMock).not.toHaveBeenCalled();
   });
@@ -464,7 +464,7 @@ describe("lifting and extending a block", () => {
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect(refusal?.message).toBe(
-      "You do not have permissions to update Block. You need one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Edit Security Block",
+      "You do not have permission to update blocks. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Security Admin, Security Member, Edit Security Block.",
     );
     expect(table.get(BLOCK_ID)!["state"]).toBe(SecurityBlockState.Active);
   });

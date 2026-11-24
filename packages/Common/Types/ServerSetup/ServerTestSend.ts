@@ -29,8 +29,10 @@ import ServerSetUpProblem, {
  *
  *   - accepted    the provider took it (smtp.example.com, Twilio): accepted
  *                 is not delivered, and the words say so for email;
- *   - refused     the provider, or the way to it, refused it, and what it
- *                 said;
+ *   - refused     the provider, or the way to it, refused it: in
+ *                 OneUptime's words, with what to check, and what the
+ *                 provider said beside them, folded under Details in the
+ *                 dialog (#7268);
  *   - not-set-up  nothing went out: what the settings are missing.
  *
  * Pure, with no Node or browser APIs: the Notification service, the Admin
@@ -123,7 +125,9 @@ export const SERVER_TEST_SEND_WORDS: {
   smsAccepted: string;
   callAccepted: string;
   pushAccepted: string;
-  refused: string;
+  emailRefused: string;
+  smsRefused: string;
+  callRefused: string;
   pushRefused: string;
   notSetUp: string;
 } = {
@@ -146,7 +150,21 @@ export const SERVER_TEST_SEND_WORDS: {
   pushAccepted: translationKey(
     "The test push was accepted for {{to}}. If it does not show, look at the notification settings of that phone or browser.",
   ),
-  refused: translationKey("{{sentThrough}} refused it: {{reason}}"),
+  /*
+   * What the provider did not do, and what to check (#7268): its own words
+   * are the details, which the dialog folds under Details. It read
+   * "smtp.example.com refused it: 535 5.7.8 Username and Password not
+   * accepted", the provider's words standing for what to do.
+   */
+  emailRefused: translationKey(
+    "{{sentThrough}} did not take the test email to {{to}}. Check the server's email settings, then send the test again.",
+  ),
+  smsRefused: translationKey(
+    "{{sentThrough}} did not take the test SMS to {{to}}. Check the server's call and SMS settings, then send the test again.",
+  ),
+  callRefused: translationKey(
+    "{{sentThrough}} did not place the test call to {{to}}. Check the server's call and SMS settings, then send the test again.",
+  ),
   pushRefused: translationKey(
     "None of your devices took the test push: {{reason}}",
   ),
@@ -171,14 +189,22 @@ export const getServerTestSendTitle: (
 
 /*
  * What an answer says, in English with its placeholders, and the values to
- * fill them with: the dialog translates it, a command line fills it.
+ * fill them with: the dialog translates it, a command line fills it. A
+ * refusal's own words - the provider's - are its details, apart from the
+ * sentence (#7268): the dialog folds them under Details.
  */
-export const getServerTestSendSentence: (answer: ServerTestSendAnswer) => {
+export interface ServerTestSendSentence {
   template: string;
   values: Record<string, string>;
-} = (
+  // What the provider said when it refused: shown as written, under Details.
+  details?: string | undefined;
+}
+
+export const getServerTestSendSentence: (
   answer: ServerTestSendAnswer,
-): { template: string; values: Record<string, string> } => {
+) => ServerTestSendSentence = (
+  answer: ServerTestSendAnswer,
+): ServerTestSendSentence => {
   const sentThrough: string = answer.sentThrough || "The provider";
   const reason: string = answer.message || "No reason was given.";
   const isPush: boolean = answer.channel === ServerSendingChannel.Push;
@@ -211,8 +237,14 @@ export const getServerTestSendSentence: (answer: ServerTestSendAnswer) => {
       }
 
       return {
-        template: SERVER_TEST_SEND_WORDS.refused,
-        values: { sentThrough: sentThrough, reason: reason },
+        template:
+          answer.channel === ServerSendingChannel.SMS
+            ? SERVER_TEST_SEND_WORDS.smsRefused
+            : answer.channel === ServerSendingChannel.Call
+              ? SERVER_TEST_SEND_WORDS.callRefused
+              : SERVER_TEST_SEND_WORDS.emailRefused,
+        values: { sentThrough: sentThrough, to: answer.to },
+        ...(answer.message ? { details: answer.message } : {}),
       };
     default:
       return {

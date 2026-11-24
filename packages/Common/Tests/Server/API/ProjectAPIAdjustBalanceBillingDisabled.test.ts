@@ -146,7 +146,9 @@ describe("Adjust balance when billing is disabled", () => {
           amountInUSDCents: 2000,
           reason: "Goodwill credit",
         }),
-      ).rejects.toThrow("Billing is not enabled for this server");
+      ).rejects.toThrow(
+        "This server does not bill for projects, so there is no balance to adjust.",
+      );
     });
 
     it("refuses before it reads the project", async () => {
@@ -169,7 +171,9 @@ describe("Adjust balance when billing is disabled", () => {
           amountInUSDCents: 0,
           reason: "Zeroing out",
         }),
-      ).rejects.toThrow("Billing is not enabled for this server");
+      ).rejects.toThrow(
+        "This server does not bill for projects, so there is no balance to adjust.",
+      );
 
       expect(findOneById).not.toHaveBeenCalled();
     });

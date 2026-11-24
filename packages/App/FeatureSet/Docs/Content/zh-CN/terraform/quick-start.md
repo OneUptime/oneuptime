@@ -225,7 +225,7 @@ terraform destroy
 在 OneUptime Cloud 上，项目的 API 密钥只在 Growth 或更高套餐上有效。在 **项目设置 → 账单和发票 → 账单** 中升级项目后，同一个密钥即可重新使用。
 :::
 
-:::details 消息“the OneUptime API returned status 422: You do not have permissions to create Monitor”
+:::details 消息“the OneUptime API returned status 422: You do not have permission to create monitors”
 密钥没有该类记录的权限。在密钥页面上授予它 **项目管理员**，或消息中提到的权限。
 :::
 

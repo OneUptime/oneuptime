@@ -1,3 +1,7 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
 import ProbeRequest from "../../Utils/ProbeRequest";
@@ -41,7 +45,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("flowRecords not found in request body"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "network flow records",
+              problem: "flowRecords is missing or empty",
+            }),
+          ),
         );
       }
 
@@ -50,7 +59,10 @@ router.post(
           req,
           res,
           new BadDataException(
-            `A request carries at most ${MAX_RECORDS_PER_REQUEST} flow records`,
+            getUnreadableProbeReport({
+              report: "network flow records",
+              problem: `more than ${MAX_RECORDS_PER_REQUEST} flow records in one request`,
+            }),
           ),
         );
       }
@@ -62,7 +74,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe ID not found on network flow request"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 

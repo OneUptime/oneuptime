@@ -16,7 +16,7 @@
 | `Missing API Key` | 為提供者提供金鑰：請參閱 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
 | `Invalid API Key` | 檢查金鑰，或重設它以取得一個新金鑰：請參閱 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
 | `ProjectId required` | 使用專案的 API 金鑰，而不是主金鑰：請參閱 [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | 為金鑰授予訊息中提到的權限：請參閱[金鑰缺少權限](#金鑰缺少權限) |
+| `You do not have permission to create monitors` | 為金鑰授予訊息中提到的權限：請參閱[金鑰缺少權限](#金鑰缺少權限) |
 | `API keys need the Growth plan` | 把專案改回 Growth 方案：請參閱[需要付款](#需要付款) |
 | 針對單一資源或單項設定的 `402` | 升級方案，或把該設定保留為預設值：請參閱[需要付款](#需要付款) |
 | `This project has been blocked` | 請主管理員解除專案的封鎖：請參閱[被封鎖的專案](#被封鎖的專案) |
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 金鑰缺少權限
 
-`You do not have permissions to create Monitor` 及類似訊息會隨狀態 `422` 傳回：金鑰不能對該類記錄執行這項操作。訊息會列出允許這項操作的權限。請在 **專案設定 → 進階 → API 金鑰** 下開啟金鑰的頁面，為它授予其中一項權限，或授予 **專案管理員**。匯入只需要讀取權限。
+`You do not have permission to create monitors` 及類似訊息會隨狀態 `422` 傳回：金鑰不能對該類記錄執行這項操作。訊息會列出允許這項操作的權限。請在 **專案設定 → 進階 → API 金鑰** 下開啟金鑰的頁面，為它授予其中一項權限，或授予 **專案管理員**。匯入只需要讀取權限。
 
 ### 需要付款
 

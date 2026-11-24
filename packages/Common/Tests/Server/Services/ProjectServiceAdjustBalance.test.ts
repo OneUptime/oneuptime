@@ -207,7 +207,7 @@ describe("ProjectService.adjustBalance", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Cannot deduct 50.01\u00A0USD - the balance is only 50\u00A0USD",
+        "The balance was not changed: 50.01\u00A0USD is more than the 50\u00A0USD the balance holds. Deduct 50\u00A0USD or less.",
       );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
@@ -229,7 +229,7 @@ describe("ProjectService.adjustBalance", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Cannot deduct 40\u00A0USD - the balance is only 25\u00A0USD",
+        "The balance was not changed: 40\u00A0USD is more than the 25\u00A0USD the balance holds. Deduct 25\u00A0USD or less.",
       );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
@@ -394,7 +394,9 @@ describe("ProjectService.adjustBalance", () => {
           ProjectService.adjustBalance(
             adjustArgs({ amountInUSDCents: amount }),
           ),
-        ).rejects.toThrow("Adjustment amount is not a valid number");
+        ).rejects.toThrow(
+          "The amount is not a number, so the balance was not changed. Enter the amount in US dollars.",
+        );
 
         expect(spies.atomicAdd).not.toHaveBeenCalled();
       },
@@ -409,7 +411,9 @@ describe("ProjectService.adjustBalance", () => {
 
       await expect(
         ProjectService.adjustBalance(adjustArgs({ amountInUSDCents: 10.5 })),
-      ).rejects.toThrow("Adjustment amount must be a whole number of cents");
+      ).rejects.toThrow(
+        "The amount has a fraction of a cent, so the balance was not changed. Enter the amount in whole cents.",
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -428,7 +432,9 @@ describe("ProjectService.adjustBalance", () => {
             amountInUSDCents: -1000,
           }),
         ),
-      ).rejects.toThrow("Adjustment amount cannot be negative");
+      ).rejects.toThrow(
+        "The amount is below zero, so the balance was not changed. Enter a positive amount, and choose Deduct to take it away.",
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -442,7 +448,9 @@ describe("ProjectService.adjustBalance", () => {
           ProjectService.adjustBalance(
             adjustArgs({ adjustmentType, amountInUSDCents: 0 }),
           ),
-        ).rejects.toThrow("Adjustment amount must be greater than zero");
+        ).rejects.toThrow(
+          "The amount is zero, so there is nothing to add or deduct. Enter an amount above zero.",
+        );
 
         expect(spies.atomicAdd).not.toHaveBeenCalled();
       },
@@ -459,7 +467,7 @@ describe("ProjectService.adjustBalance", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Adjustment amount cannot be more than 10000\u00A0USD in a single adjustment",
+        "The balance was not changed: one adjustment can be 10000\u00A0USD at most. Adjust it in steps of 10000\u00A0USD or less.",
       );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
@@ -485,7 +493,7 @@ describe("ProjectService.adjustBalance", () => {
             amountInUSDCents: MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS + 1,
           }),
         ),
-      ).rejects.toThrow("cannot be more than 10000\u00A0USD");
+      ).rejects.toThrow("one adjustment can be 10000\u00A0USD at most");
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -500,7 +508,9 @@ describe("ProjectService.adjustBalance", () => {
 
       await expect(
         ProjectService.adjustBalance(adjustArgs({ reason })),
-      ).rejects.toThrow("A reason is required to adjust the balance");
+      ).rejects.toThrow(
+        "The balance was not changed: say why it is being adjusted. The reason is kept with the adjustment.",
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -512,7 +522,9 @@ describe("ProjectService.adjustBalance", () => {
         ProjectService.adjustBalance(
           adjustArgs({ reason: undefined as unknown as string }),
         ),
-      ).rejects.toThrow("A reason is required to adjust the balance");
+      ).rejects.toThrow(
+        "The balance was not changed: say why it is being adjusted. The reason is kept with the adjustment.",
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -528,7 +540,9 @@ describe("ProjectService.adjustBalance", () => {
             balanceType: "Bitcoin" as unknown as ProjectBalanceType,
           }),
         ),
-      ).rejects.toThrow("Invalid balance type: Bitcoin");
+      ).rejects.toThrow(
+        '"Bitcoin" is not a balance OneUptime keeps, so nothing was changed. Choose one of these: SmsOrCall, AI.',
+      );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();
     });
@@ -539,7 +553,7 @@ describe("ProjectService.adjustBalance", () => {
       const spies: AdjustBalanceSpies = setup({ project: null });
 
       await expect(ProjectService.adjustBalance(adjustArgs())).rejects.toThrow(
-        "Project not found",
+        "is not on this server any more, so nothing was changed or charged.",
       );
 
       expect(spies.atomicAdd).not.toHaveBeenCalled();

@@ -133,7 +133,7 @@ describe("Dashboard access control (issue #3550)", () => {
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain(
-        "You do not have permissions to update Dashboard",
+        "You do not have permission to update dashboards",
       );
       /*
        * The message names the permissions that would work, in their human
@@ -153,7 +153,7 @@ describe("Dashboard access control (issue #3550)", () => {
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain(
-        "You do not have permissions to create Dashboard",
+        "You do not have permission to create dashboards",
       );
     });
 
@@ -165,7 +165,7 @@ describe("Dashboard access control (issue #3550)", () => {
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain(
-        "You do not have permissions to delete Dashboard",
+        "You do not have permission to delete dashboards",
       );
     });
 

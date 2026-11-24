@@ -968,7 +968,7 @@ describe("people, API keys and OneUptime are held as before", () => {
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect(refusal).not.toBeInstanceOf(WorkflowAccessChangeRefusedException);
     expect((refusal as Error).message).toContain(
-      "You do not have permissions to create Team Permission",
+      "You do not have permission to create team permissions",
     );
   });
 

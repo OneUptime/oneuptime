@@ -225,7 +225,7 @@ terraform destroy
 OneUptime Cloud では、プロジェクトの API キーは Growth プラン以上でのみ動作します。**プロジェクト設定 → 請求と請求書 → 請求** でプロジェクトをアップグレードすれば、同じキーがまた使えるようになります。
 :::
 
-:::details メッセージ「the OneUptime API returned status 422: You do not have permissions to create Monitor」
+:::details メッセージ「the OneUptime API returned status 422: You do not have permission to create monitors」
 キーにその種類のレコードの権限がありません。キーのページで **プロジェクト管理者** か、メッセージに書かれた権限を付与してください。
 :::
 

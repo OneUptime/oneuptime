@@ -989,7 +989,7 @@ describe("a master admin whose access was removed, with the session they already
     // Refused by the project's own permission checks, as anyone outside it is.
     expect(result.status).toBe(ExceptionCode.NotAuthorizedException);
     expect(errorMessageOf(result)).toContain(
-      "You do not have permissions to read Label.",
+      "You do not have permission to read labels.",
     );
 
     // Asked only as the person they are now: never as a master admin.

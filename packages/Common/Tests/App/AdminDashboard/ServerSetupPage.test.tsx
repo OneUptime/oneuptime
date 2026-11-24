@@ -390,7 +390,7 @@ describe("a test send", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  test("refused: the dialog stays, in the provider's words, and the page is told too", async () => {
+  test("refused: the dialog stays, says what did not happen, folds the provider's words under Details, and the page is told too", async () => {
     const refused: ServerTestSendAnswer = {
       ...ACCEPTED,
       result: ServerTestSendResult.Refused,
@@ -410,10 +410,24 @@ describe("a test send", () => {
     await submit(dialog);
 
     expect(screen.getByRole("dialog")).toBeVisible();
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "smtp.example.com refused it: 535 5.7.8 Username and Password not accepted",
+    expect(screen.getByTestId("modal-error")).toHaveTextContent(
+      "smtp.example.com did not take the test email to ada@example.com. Check the server's email settings, then send the test again.",
     );
+    expect(screen.getByTestId("modal-error")).not.toHaveTextContent("535");
     expect(onAnswer).toHaveBeenCalledWith(refused);
+
+    // The provider's own words, folded under Details (#7268).
+    const toggle: HTMLElement = screen.getByTestId(
+      "server-test-email-details-toggle",
+    );
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(toggle);
+
+    expect(
+      screen.getByTestId("server-test-email-details-words").textContent,
+    ).toBe("535 5.7.8 Username and Password not accepted");
   });
 
   test("not set up: nothing was sent, and what is missing", async () => {

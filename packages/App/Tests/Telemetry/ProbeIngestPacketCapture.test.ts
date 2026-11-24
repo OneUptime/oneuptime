@@ -1,3 +1,7 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import PacketCaptureService from "Common/Server/Services/PacketCaptureService";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -302,7 +306,7 @@ describe("wiring", () => {
     async (uri: string) => {
       await call(uri, makeRequest({ probeId: null }));
 
-      expect(refusal()).toBe("Probe not found");
+      expect(refusal()).toBe(ProbeConnectionRefusals.unknownProbe);
     },
   );
 
@@ -448,7 +452,11 @@ describe("POST /probe/packet-capture/capability", () => {
     await call(CAPABILITY_URI, makeRequest({ body: body }));
 
     expect(refusal()).toBe(
-      "packetCaptureCapability must be an object with isEnabled true or false",
+      getUnreadableProbeReport({
+        report: "what it can capture",
+        problem:
+          "packetCaptureCapability is not an object with isEnabled true or false",
+      }),
     );
     expect(service.recordProbeCapability).not.toHaveBeenCalled();
   });
@@ -456,7 +464,9 @@ describe("POST /probe/packet-capture/capability", () => {
   test("a body that is not an object is no report", async () => {
     await call(CAPABILITY_URI, makeRequest({ body: ["x"] }));
 
-    expect(refusal()).toContain("packetCaptureCapability must be an object");
+    expect(refusal()).toContain(
+      "packetCaptureCapability is not an object",
+    );
   });
 
   test("a failure of the service is passed on", async () => {
@@ -975,7 +985,12 @@ describe("POST /probe/packet-capture/response/ingest", () => {
       makeRequest({ body: { status: PacketCaptureStatus.Failed, ...body } }),
     );
 
-    expect(refusal()).toBe("packetCaptureId is not a valid id");
+    expect(refusal()).toBe(
+      getUnreadableProbeReport({
+        report: "a packet capture's result",
+        problem: "packetCaptureId is not an ID",
+      }),
+    );
     expect(service.recordFailure).not.toHaveBeenCalled();
   });
 
@@ -991,7 +1006,12 @@ describe("POST /probe/packet-capture/response/ingest", () => {
       }),
     );
 
-    expect(refusal()).toBe("statusMessage must be a string");
+    expect(refusal()).toBe(
+      getUnreadableProbeReport({
+        report: "a packet capture's result",
+        problem: "statusMessage is not text",
+      }),
+    );
   });
 
   test("a status other than Completed or Failed is refused", async () => {
@@ -1008,7 +1028,12 @@ describe("POST /probe/packet-capture/response/ingest", () => {
         makeRequest({ body: { packetCaptureId: CAPTURE_ID, status: status } }),
       );
 
-      expect(refusal()).toBe('status must be "Completed" or "Failed"');
+      expect(refusal()).toBe(
+        getUnreadableProbeReport({
+          report: "a packet capture's result",
+          problem: 'status is neither "Completed" nor "Failed"',
+        }),
+      );
     }
 
     expect(service.recordCompletion).not.toHaveBeenCalled();
@@ -1031,7 +1056,11 @@ describe("POST /probe/packet-capture/response/ingest", () => {
       );
 
       expect(refusal()).toBe(
-        "pcapBase64 must be the capture file as base64, within the capture's size limit",
+        getUnreadableProbeReport({
+          report: "a packet capture's result",
+          problem:
+            "pcapBase64 is not the capture file as base64 within the capture's size limit",
+        }),
       );
     }
 
@@ -1048,7 +1077,12 @@ describe("POST /probe/packet-capture/response/ingest", () => {
       }),
     );
 
-    expect(refusal()).toBe("pcapBase64 is not base64");
+    expect(refusal()).toBe(
+      getUnreadableProbeReport({
+        report: "a packet capture's result",
+        problem: "pcapBase64 is not base64",
+      }),
+    );
     expect(service.recordCompletion).not.toHaveBeenCalled();
   });
 

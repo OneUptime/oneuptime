@@ -225,7 +225,7 @@ The key is mistyped, expired or deleted, or it belongs to another OneUptime than
 On OneUptime Cloud, a project's API keys work only on the Growth plan or above. Upgrade the project in **Project Settings → Billing and Invoices → Billing**, and the same key works again.
 :::
 
-:::details The OneUptime API returned status 422: You do not have permissions to create Monitor
+:::details The OneUptime API returned status 422: You do not have permission to create monitors
 The key has no permission for that kind of record. On the key's page, give it **Project Admin**, or the permission the message names.
 :::
 

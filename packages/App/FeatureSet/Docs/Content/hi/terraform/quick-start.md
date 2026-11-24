@@ -225,7 +225,7 @@ terraform destroy
 OneUptime Cloud पर, प्रोजेक्ट की API कुंजियाँ केवल Growth प्लान या उससे ऊपर काम करती हैं। **प्रोजेक्ट सेटिंग्स → बिलिंग और चालान → बिलिंग** में प्रोजेक्ट को अपग्रेड करें, और वही कुंजी फिर से काम करने लगती है।
 :::
 
-:::details संदेश “the OneUptime API returned status 422: You do not have permissions to create Monitor”
+:::details संदेश “the OneUptime API returned status 422: You do not have permission to create monitors”
 कुंजी के पास उस तरह के रिकॉर्ड की कोई अनुमति नहीं है। कुंजी के पेज पर उसे **प्रोजेक्ट एडमिन** दें, या वह अनुमति जिसका संदेश में नाम है।
 :::
 

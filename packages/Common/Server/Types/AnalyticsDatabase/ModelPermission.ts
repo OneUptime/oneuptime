@@ -291,6 +291,7 @@ export default class ModelPermission {
           operation: DatabaseRequestType.Read,
         }),
         recordName: model.singularName,
+        recordsName: HeldPermissionsUtil.getRecordsInSentence(model),
         operation: type,
       },
     );
@@ -2162,10 +2163,13 @@ export default class ModelPermission {
         );
       }
 
+      // What the caller may not do, and who can give them what allows it (#11058).
       throw new NotAuthorizedException(
-        `You do not have permissions to ${type} ${
-          new modelType().singularName
-        }. You need one of these permissions: ${permissions.join(", ")}`,
+        HeldPermissionsUtil.getMissingPermissionRefusal({
+          operation: type,
+          records: HeldPermissionsUtil.getRecordsInSentence(new modelType()),
+          permissions: modelPermissions,
+        }),
       );
     }
 

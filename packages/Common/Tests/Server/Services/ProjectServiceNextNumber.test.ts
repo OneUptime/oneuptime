@@ -640,7 +640,7 @@ describe("ProjectService: where numbers start", () => {
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as BadDataException).message).toBe(
-        `Could not read incidentCounter for project ${PROJECT_ID.toString()}`,
+        `OneUptime could not read the next number (incidentCounter) of project ${PROJECT_ID.toString()}, so none was taken. Try again.`,
       );
     });
 
@@ -753,7 +753,9 @@ describe("ProjectService: where numbers start", () => {
       );
 
       expect(error).toBeInstanceOf(BadDataException);
-      expect((error as BadDataException).message).toBe("Project not found");
+      expect((error as BadDataException).message).toContain(
+        "is not on this server any more, so nothing was changed or charged.",
+      );
     });
   });
 });

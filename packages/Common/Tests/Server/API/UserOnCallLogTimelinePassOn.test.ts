@@ -7,6 +7,10 @@ jest.mock("isolated-vm", () => {
 });
 
 import { mockRouter } from "./Helpers";
+import {
+  ON_CALL_LINK_INCOMPLETE_TITLE,
+  ON_CALL_LINK_PAGE_NOT_AVAILABLE_TITLE,
+} from "../../../Types/OnCallDutyPolicy/OnCallLinkRefusals";
 import UserNotificationLogTimelineAPI, {
   getPassOnFormLevels,
   readPassOnFormLevel,
@@ -587,6 +591,7 @@ describe("the escalate page", () => {
     }
   });
 
+  // A page that says the link is not complete (#11056), never JSON.
   test("an id that is no id is refused before anything is read", async () => {
     const handler: RouterFunction = mockRouter.match(
       "GET",
@@ -598,11 +603,12 @@ describe("the escalate page", () => {
         params: { itemId: "not-an-id" },
         query: {},
       } as unknown as ExpressRequest,
-      {} as unknown as ExpressResponse,
+      { status: jest.fn() } as unknown as ExpressResponse,
       (() => {}) as unknown as NextFunction,
     );
 
-    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(rendered().variables["title"]).toBe(ON_CALL_LINK_INCOMPLETE_TITLE);
     expect(UserOnCallLogTimelineService.findOneById).not.toHaveBeenCalled();
   });
 
@@ -617,8 +623,15 @@ describe("the escalate page", () => {
       query: { pageToken: VALID_TOKEN() },
     });
 
-    expect(Response.render).not.toHaveBeenCalled();
-    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+    // A page that says it is not available (#11056), and no Escalate.
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(rendered().path).toBe(
+      "/usr/src/Common/Server/Views/ViewMessage.ejs",
+    );
+    expect(rendered().variables["title"]).toBe(
+      ON_CALL_LINK_PAGE_NOT_AVAILABLE_TITLE,
+    );
+    expect(rendered().variables["passOnUrl"]).toBeUndefined();
   });
 });
 

@@ -644,7 +644,7 @@ describe("who can read about a subscription cannot change it with what they read
 
       expect(edit).toBeDefined();
       expect(edit!.message).toContain(
-        "You do not have permissions to update Status Page Subscriber",
+        "You do not have permission to update status page subscribers",
       );
       expect(isCancelled(SUBSCRIBER_ID)).toBe(false);
     },

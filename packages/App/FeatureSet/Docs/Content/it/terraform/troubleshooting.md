@@ -16,7 +16,7 @@ Cerca nella tabella qui sotto il messaggio che Terraform ha stampato, o ciò che
 | `Missing API Key` | Dai al provider la sua chiave: vedi [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
 | `Invalid API Key` | Controlla la chiave, o reimpostala per averne una nuova: vedi [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
 | `ProjectId required` | Usa una chiave API del progetto, non una chiave master: vedi [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Dai alla chiave l'autorizzazione che il messaggio nomina: vedi [Alla chiave manca un'autorizzazione](#alla-chiave-manca-unautorizzazione) |
+| `You do not have permission to create monitors` | Dai alla chiave l'autorizzazione che il messaggio nomina: vedi [Alla chiave manca un'autorizzazione](#alla-chiave-manca-unautorizzazione) |
 | `API keys need the Growth plan` | Riporta il progetto al piano Growth: vedi [Pagamento richiesto](#pagamento-richiesto) |
 | `402` per una risorsa o un'impostazione | Passa a un piano superiore, o lascia l'impostazione al suo valore predefinito: vedi [Pagamento richiesto](#pagamento-richiesto) |
 | `This project has been blocked` | Chiedi a un amministratore principale di sbloccare il progetto: vedi [Un progetto bloccato](#un-progetto-bloccato) |
@@ -72,7 +72,7 @@ Il provider ha bisogno di una chiave API del progetto che gestisce: è da lì ch
 
 ### Alla chiave manca un'autorizzazione
 
-`You do not have permissions to create Monitor` e i messaggi simili arrivano con lo stato `422`: la chiave non può fare quell'operazione con quel tipo di record. Nominano le autorizzazioni che la permetterebbero. Apri la pagina della chiave in **Impostazioni del progetto → Avanzato → Chiavi API** e assegnale una di esse, oppure **Amministratore del progetto**. Un'importazione richiede solo l'autorizzazione di lettura.
+`You do not have permission to create monitors` e i messaggi simili arrivano con lo stato `422`: la chiave non può fare quell'operazione con quel tipo di record. Nominano le autorizzazioni che la permetterebbero. Apri la pagina della chiave in **Impostazioni del progetto → Avanzato → Chiavi API** e assegnale una di esse, oppure **Amministratore del progetto**. Un'importazione richiede solo l'autorizzazione di lettura.
 
 ### Pagamento richiesto
 

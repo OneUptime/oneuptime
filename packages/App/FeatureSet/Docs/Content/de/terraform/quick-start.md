@@ -225,7 +225,7 @@ Der Schlüssel ist falsch geschrieben, abgelaufen oder gelöscht, oder er gehör
 In OneUptime Cloud funktionieren die API-Schlüssel eines Projekts nur mit dem Tarif Growth oder höher. Stufen Sie das Projekt unter **Projekteinstellungen → Abrechnung und Rechnungen → Abrechnung** hoch, und derselbe Schlüssel funktioniert wieder.
 :::
 
-:::details Meldung „the OneUptime API returned status 422: You do not have permissions to create Monitor“
+:::details Meldung „the OneUptime API returned status 422: You do not have permission to create monitors“
 Der Schlüssel hat keine Berechtigung für diese Art von Datensatz. Geben Sie ihm auf der Seite des Schlüssels **Projektadministrator** oder die Berechtigung, die die Meldung nennt.
 :::
 

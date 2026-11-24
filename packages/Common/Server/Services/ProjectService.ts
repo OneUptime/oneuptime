@@ -87,6 +87,14 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  getAdjustmentTooLargeMessage,
+  getDeductMoreThanBalanceMessage,
+  getProjectGoneMessage,
+  getUnknownBalanceTypeMessage,
+  getUnknownPlanMessage,
+  ProjectBillingRefusals,
+} from "../../Types/Billing/ProjectBillingRefusals";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import IconProp from "../../Types/Icon/IconProp";
@@ -2792,7 +2800,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
       );
 
     if (!plan) {
-      throw new BadDataException("Invalid plan");
+      throw new BadDataException(
+        getUnknownPlanMessage(
+          SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
+            (subscriptionPlan: SubscriptionPlan): string => {
+              return subscriptionPlan.getName();
+            },
+          ),
+        ),
+      );
     }
 
     await this.updateOneById({
@@ -2879,7 +2895,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(data.projectId.toString()));
     }
 
     for (const subscriptionId of [
@@ -2982,7 +2998,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     requirePaymentMethod?: boolean | undefined;
   }): Promise<void> {
     if (!IsBillingEnabled) {
-      throw new BadDataException("Billing is not enabled for this server");
+      throw new BadDataException(ProjectBillingRefusals.billingNotEnabled);
     }
 
     const project: Model | null = await this.findOneById({
@@ -3025,7 +3041,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(params.projectId.toString()));
     }
 
     /*
@@ -3042,18 +3058,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     if (!project.paymentProviderSubscriptionId) {
-      throw new BadDataException("Payment Provider subscription not found");
+      throw new BadDataException(ProjectBillingRefusals.noSubscription);
     }
 
     if (!project.paymentProviderMeteredSubscriptionId) {
-      throw new BadDataException(
-        "Payment Provider metered subscription not found",
-      );
+      throw new BadDataException(ProjectBillingRefusals.noUsageSubscription);
     }
 
     // Check if customer has payment methods before attempting to change plan
     if (!project.paymentProviderCustomerId) {
-      throw new BadDataException("Payment Provider customer not found");
+      throw new BadDataException(ProjectBillingRefusals.noCustomer);
     }
 
     const requirePaymentMethod: boolean = params.requirePaymentMethod !== false;
@@ -3075,7 +3089,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
       );
 
     if (!plan) {
-      throw new BadDataException("Invalid plan");
+      throw new BadDataException(
+        getUnknownPlanMessage(
+          SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
+            (subscriptionPlan: SubscriptionPlan): string => {
+              return subscriptionPlan.getName();
+            },
+          ),
+        ),
+      );
     }
 
     let seats: number | undefined = project.paymentProviderSubscriptionSeats;
@@ -3319,7 +3341,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     extendedByUserId?: ObjectID | undefined;
   }): Promise<void> {
     if (!IsBillingEnabled) {
-      throw new BadDataException("Billing is not enabled for this server");
+      throw new BadDataException(ProjectBillingRefusals.billingNotEnabled);
     }
 
     const project: Model | null = await this.findOneById({
@@ -3336,17 +3358,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(params.projectId.toString()));
     }
 
     if (!project.paymentProviderSubscriptionId) {
-      throw new BadDataException("Payment Provider subscription not found");
+      throw new BadDataException(ProjectBillingRefusals.noSubscription);
     }
 
     if (!project.paymentProviderMeteredSubscriptionId) {
-      throw new BadDataException(
-        "Payment Provider metered subscription not found",
-      );
+      throw new BadDataException(ProjectBillingRefusals.noUsageSubscription);
     }
 
     await BillingService.extendTrial({
@@ -3684,7 +3704,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(projectId.toString()));
     }
 
     void OperatorSlackNotice.post({
@@ -4072,7 +4092,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(projectId.toString()));
     }
 
     void OperatorSlackNotice.post({
@@ -5137,7 +5157,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
             if (!project) {
               // Don't cache "not found" — let the caller decide how to handle it.
-              throw new BadDataException("Project not found");
+              throw new BadDataException(getProjectGoneMessage(key));
             }
 
             const rule: ProjectSignInRule = {
@@ -5325,7 +5345,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     permission: Permission,
   ): Promise<Array<User>> {
     if (!projectId) {
-      throw new BadDataException("Project ID is required");
+      throw new BadDataException(
+        "The request did not say which project to read, so nobody was read. Say which project, then try again.",
+      );
     }
 
     // Every team row of the project for Project Owner: allows and blocks.
@@ -5767,12 +5789,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     if (!project) {
       // Don't cache "not found" — let the caller surface a fresh error.
-      throw new BadDataException("Project ID is invalid");
+      throw new BadDataException(getProjectGoneMessage(projectId.toString()));
     }
 
     if (!project.paymentProviderPlanId) {
       // Don't cache "no plan" — the project may be mid-onboarding.
-      throw new BadDataException("Project does not have any plans");
+      throw new BadDataException(ProjectBillingRefusals.noPlanYet);
     }
 
     const plan: PlanType = SubscriptionPlan.getPlanType(
@@ -5958,7 +5980,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (balance === null) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(
+        getProjectGoneMessage(data.projectId.toString()),
+      );
     }
 
     return balance;
@@ -6024,7 +6048,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       amountInUSDCents < 0
     ) {
       throw new BadDataException(
-        `A balance amount must be a whole, non-negative number of cents: ${amountInUSDCents}`,
+        `${amountInUSDCents} is not a whole, non-negative number of cents, so the balance was not changed.`,
       );
     }
   }
@@ -6249,21 +6273,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(projectId.toString()));
     }
 
     if (!project.paymentProviderCustomerId) {
-      throw new BadDataException("Payment Provider customer not found");
+      throw new BadDataException(ProjectBillingRefusals.noCustomer);
     }
 
     if (!project.paymentProviderSubscriptionId) {
-      throw new BadDataException("Payment Provider subscription not found");
+      throw new BadDataException(ProjectBillingRefusals.noSubscription);
     }
 
     if (!project.paymentProviderMeteredSubscriptionId) {
-      throw new BadDataException(
-        "Payment Provider metered subscription not found",
-      );
+      throw new BadDataException(ProjectBillingRefusals.noUsageSubscription);
     }
 
     /*
@@ -6275,13 +6297,11 @@ export class ProjectService extends ProjectReferencesService<Model> {
       (await TeamMemberService.getUniqueTeamMemberCountInProject(projectId));
 
     if (!seats) {
-      throw new BadDataException(
-        "Payment Provider subscription seats not found",
-      );
+      throw new BadDataException(ProjectBillingRefusals.noSeats);
     }
 
     if (!project.paymentProviderPlanId) {
-      throw new BadDataException("Payment Provider plan id not found");
+      throw new BadDataException(ProjectBillingRefusals.noPlan);
     }
 
     const subscriptionPlan: SubscriptionPlan | undefined =
@@ -6291,7 +6311,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
       );
 
     if (!subscriptionPlan) {
-      throw new BadDataException("Subscription plan not found");
+      throw new BadDataException(
+        getUnknownPlanMessage(
+          SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
+            (subscriptionPlan: SubscriptionPlan): string => {
+              return subscriptionPlan.getName();
+            },
+          ),
+        ),
+      );
     }
 
     /*
@@ -6505,14 +6533,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
     adjustedByUserId?: ObjectID | undefined;
   }): Promise<ProjectBalanceAdjustmentResult> {
     if (!IsBillingEnabled) {
-      throw new BadDataException("Billing is not enabled for this server");
+      throw new BadDataException(
+        ProjectBillingRefusals.balanceBillingNotEnabled,
+      );
     }
 
     if (
       typeof data.amountInUSDCents !== "number" ||
       !Number.isFinite(data.amountInUSDCents)
     ) {
-      throw new BadDataException("Adjustment amount is not a valid number");
+      throw new BadDataException(ProjectBillingRefusals.amountNotANumber);
     }
 
     /*
@@ -6520,13 +6550,11 @@ export class ProjectService extends ProjectReferencesService<Model> {
      * balance disagree with the amount the audit log records.
      */
     if (!Number.isInteger(data.amountInUSDCents)) {
-      throw new BadDataException(
-        "Adjustment amount must be a whole number of cents",
-      );
+      throw new BadDataException(ProjectBillingRefusals.amountNotWholeCents);
     }
 
     if (data.amountInUSDCents < 0) {
-      throw new BadDataException("Adjustment amount cannot be negative");
+      throw new BadDataException(ProjectBillingRefusals.amountNegative);
     }
 
     /*
@@ -6537,21 +6565,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
       data.adjustmentType !== BalanceAdjustmentType.Set &&
       data.amountInUSDCents === 0
     ) {
-      throw new BadDataException("Adjustment amount must be greater than zero");
+      throw new BadDataException(ProjectBillingRefusals.amountZero);
     }
 
     if (data.amountInUSDCents > MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS) {
       throw new BadDataException(
-        `Adjustment amount cannot be more than ${
-          MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS / 100
-        }\u00A0USD in a single adjustment`,
+        getAdjustmentTooLargeMessage(MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS),
       );
     }
 
     const reason: string = (data.reason || "").trim();
 
     if (!reason) {
-      throw new BadDataException("A reason is required to adjust the balance");
+      throw new BadDataException(ProjectBillingRefusals.noReason);
     }
 
     const balanceColumnName: ProjectBalanceColumnName =
@@ -6569,7 +6595,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(data.projectId.toString()));
     }
 
     const previousBalanceInUSDCents: number = project[balanceColumnName] || 0;
@@ -6591,9 +6617,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
        */
       if (newBalanceInUSDCents < 0) {
         throw new BadDataException(
-          `Cannot deduct ${data.amountInUSDCents / 100}\u00A0USD - the balance is only ${
-            previousBalanceInUSDCents / 100
-          }\u00A0USD`,
+          getDeductMoreThanBalanceMessage({
+            amountInUSDCents: data.amountInUSDCents,
+            balanceInUSDCents: previousBalanceInUSDCents,
+          }),
         );
       }
     }
@@ -6769,7 +6796,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
       return "aiCurrentBalanceInUSDCents";
     }
 
-    throw new BadDataException(`Invalid balance type: ${balanceType}`);
+    throw new BadDataException(
+      getUnknownBalanceTypeMessage({
+        balanceType: String(balanceType),
+        balanceTypes: Object.values(ProjectBalanceType),
+      }),
+    );
   }
 
   /*
@@ -6796,7 +6828,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
       };
     }
 
-    throw new BadDataException(`Invalid balance type: ${balanceType}`);
+    throw new BadDataException(
+      getUnknownBalanceTypeMessage({
+        balanceType: String(balanceType),
+        balanceTypes: Object.values(ProjectBalanceType),
+      }),
+    );
   }
 
   /*
@@ -6830,7 +6867,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
         metadata.findColumnWithPropertyName(propertyName);
 
       if (!column) {
-        throw new BadDataException(`Unknown Project column: ${propertyName}`);
+        throw new BadDataException(
+          `Projects have no ${propertyName} column, so no number was taken. Report this to OneUptime: it is a fault in OneUptime, not in your project.`,
+        );
       }
 
       return `"${column.databaseName}"`;
@@ -6869,7 +6908,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     if (number === null) {
       throw new BadDataException(
-        `Could not read ${info.counterColumn} for project ${projectId.toString()}`,
+        `OneUptime could not read the next number (${info.counterColumn}) of project ${projectId.toString()}, so none was taken. Try again.`,
       );
     }
 
@@ -6957,7 +6996,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(projectId.toString()));
     }
 
     const row: Record<string, unknown> = project as unknown as Record<
@@ -7036,7 +7075,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
       if (!project || project.aiRunCounter === undefined) {
         throw new BadDataException(
-          `Could not read aiRunCounter for project ${projectId.toString()}`,
+          `OneUptime could not read how many AI runs project ${projectId.toString()} has had, so this run was not numbered. Try again.`,
         );
       }
 
@@ -7061,7 +7100,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(getProjectGoneMessage(projectId.toString()));
     }
 
     return Boolean(project.enableSmsNotifications);

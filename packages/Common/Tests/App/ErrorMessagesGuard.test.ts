@@ -78,6 +78,8 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/OnCallDutyPolicyService.ts",
   "packages/Common/Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
   "packages/Common/Server/Services/OnCallDutyPolicyScheduleService.ts",
+  // The pages an on-call page's Acknowledge and Escalate links open (#11056).
+  "packages/Common/Server/API/UserOnCallLogTimelineAPI.ts",
   "packages/Common/Server/Services/StatusPageService.ts",
   "packages/Common/Server/Services/StatusPageResourceService.ts",
   "packages/Common/Server/Services/TelemetryIngestionKeyService.ts",
@@ -93,6 +95,23 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/UI/Components/Forms/ModelForm.tsx",
   "packages/Common/Server/Services/MonitorTemplateService.ts",
   "packages/Common/Server/API/MonitorTemplateAPI.ts",
+  // The probe's other ingest routes, and the inbound email webhook (#11057).
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/NetworkDeviceDiagnostic.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/NetworkDevicePoll.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/NetworkFlow.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/OpenStackChecks.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/PacketCapture.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts",
+  // A project's Send Test Email (#7268).
+  "packages/App/FeatureSet/Notification/API/SMTPConfig.ts",
+  // A missing table permission, and a project's billing refusals (#11058, #11059).
+  "packages/Common/Server/Types/Database/Permissions/TablePermission.ts",
+  "packages/Common/Server/Services/ProjectService.ts",
 ];
 
 /*

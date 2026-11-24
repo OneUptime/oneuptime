@@ -1,4 +1,6 @@
 import {
+  getNotThisProbesJob,
+  getUnreadableProbeReport,
   PROBE_CREDENTIALS_PLACE,
   ProbeConnectionRefusals,
   ProbeStartupMessages,
@@ -105,6 +107,42 @@ describe("what a probe that cannot connect reads", () => {
   });
 });
 
+describe("a report the server cannot read, and a job that is not the probe's (#11057)", () => {
+  const unreadable: string = getUnreadableProbeReport({
+    report: "a diagnostic's result",
+    problem: "pingResult is not an object",
+  });
+
+  test("says what the probe sent and what is wrong with it, as the probe's code names it, then to update the probe", () => {
+    expect(unreadable).toBe(
+      "This probe sent a diagnostic's result this OneUptime server cannot read (pingResult is not an object). Update the probe to the release this OneUptime server runs, then restart it.",
+    );
+    expect(meetsErrorMessageRule(unreadable)).toBe(true);
+  });
+
+  test("a result for a job the probe was not asked to run says so, the same whoever's it is", () => {
+    const sentence: string = getNotThisProbesJob("discovery scan");
+
+    expect(sentence).toBe(
+      "This discovery scan is not one this probe was asked to run. It may have been cancelled or deleted, so its result was not kept.",
+    );
+    expect(meetsErrorMessageRule(sentence)).toBe(true);
+    // Nothing in it names another probe, a project or an id.
+    expect(sentence).not.toMatch(/another|project|[0-9a-f]{8}-/);
+  });
+
+  test("whatever is named in them, each is a sentence that says what to do next", () => {
+    for (const report of ["syslog messages", "network flow records", "a packet capture's result"]) {
+      for (const problem of ["flowRecords is missing or empty", 'status is neither "Completed" nor "Failed"']) {
+        const sentence: string = getUnreadableProbeReport({ report, problem });
+
+        expect(meetsErrorMessageRule(sentence)).toBe(true);
+        expect(sentence).toContain("Update the probe");
+      }
+    }
+  });
+});
+
 describe("where they are said", () => {
   test("the server's key check refuses with them", () => {
     const authorization: string = readSource(
@@ -125,6 +163,34 @@ describe("where they are said", () => {
     expect(routes).not.toContain('"Probe not found"');
     expect(routes).not.toContain('"ProbeMonitorResponse not found"');
     expect(routes).toContain("ProbeConnectionRefusals.unknownProbe");
+  });
+
+  /*
+   * #11057: the probe's other ingest routes - its monitors, network
+   * devices, flows, syslog, discovery scans, packet captures, VMware and
+   * OpenStack - answered "Probe not found" and "pingResult must be an
+   * object". None does now, and a request no probe was told apart in is
+   * answered as Probe.ts answers it.
+   */
+  test.each([
+    "Monitor.ts",
+    "NetworkDeviceDiagnostic.ts",
+    "NetworkDevicePoll.ts",
+    "NetworkFlow.ts",
+    "Syslog.ts",
+    "DiscoveryScan.ts",
+    "PacketCapture.ts",
+    "VMwareCollection.ts",
+    "OpenStackCollection.ts",
+    "OpenStackChecks.ts",
+  ])("ProbeIngest/%s refuses an unknown probe with them, and in no fragment", (file: string) => {
+    const route: string = readSource(
+      `App/FeatureSet/Telemetry/API/ProbeIngest/${file}`,
+    );
+
+    expect(route).not.toContain('BadDataException("Probe not found")');
+    expect(route).not.toMatch(/BadDataException\(\s*"[a-z][^"]*"\s*\)/);
+    expect(route).toContain("ProbeConnectionRefusals.unknownProbe");
   });
 
   test("the probe logs them before it stops", () => {

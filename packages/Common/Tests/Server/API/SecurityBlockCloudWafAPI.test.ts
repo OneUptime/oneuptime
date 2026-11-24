@@ -365,7 +365,7 @@ describe("picking a web ACL", () => {
 
       expect(refusal).toBeInstanceOf(NotAuthorizedException);
       expect(refusal?.message).toBe(
-        "You do not have permissions to create Cloud WAF. You need one of these permissions: Project Owner, Project Admin, Security Admin",
+        "You do not have permission to create cloud WAFs. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Security Admin.",
       );
       expect(wafs.rows).toHaveLength(0);
     },

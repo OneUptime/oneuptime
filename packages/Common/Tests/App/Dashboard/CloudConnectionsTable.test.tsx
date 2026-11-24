@@ -10,6 +10,7 @@ import {
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -1031,9 +1032,49 @@ describe("its actions", () => {
     ).toHaveTextContent(
       "Signed in, but this access cannot read what OneUptime needs.",
     );
-    expect(screen.getByTestId("cloud-connection-error")).toHaveTextContent(
+    /*
+     * The cloud's own answer is folded under Details (#7268): the test's
+     * words say what it means, and the answer is a press away, as written.
+     */
+    expect(
+      screen.getByTestId("cloud-connection-error-details-toggle"),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByTestId("cloud-connection-error-details-words"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("cloud-connection-error-details-toggle"));
+
+    expect(
+      screen.getByTestId("cloud-connection-error-details-words"),
+    ).toHaveTextContent(
       "AccessDenied: User is not authorized to perform sts:AssumeRole",
     );
+  });
+
+  test("View error of a failure of no known kind shows the cloud's own answer open, as it is all there is to read", async () => {
+    renderTable();
+
+    await act(async () => {
+      await action("View error").onClick(
+        connection({
+          lastError: "Something the cloud said that OneUptime has no words for",
+          lastPulledAt: new Date("2026-10-21T10:00:00Z"),
+          lastPullResult: undefined,
+        }),
+        getJestMockFunction(),
+      );
+    });
+
+    expect(
+      screen.queryByTestId("cloud-connection-error-words"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("cloud-connection-error-details-toggle"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByTestId("cloud-connection-error-details-words").textContent,
+    ).toBe("Something the cloud said that OneUptime has no words for");
   });
 
   /*
@@ -1076,12 +1117,15 @@ describe("its actions", () => {
     );
     expect(words).toHaveTextContent(AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS.advice);
     expect(words).not.toHaveTextContent("A setting is not right.");
-    expect(screen.getByTestId("cloud-connection-error")).toHaveTextContent(
-      condition,
-    );
-    expect(screen.getByTestId("cloud-connection-error").textContent).toBe(
-      refusal,
-    );
+
+    fireEvent.click(screen.getByTestId("cloud-connection-error-details-toggle"));
+
+    expect(
+      screen.getByTestId("cloud-connection-error-details-words"),
+    ).toHaveTextContent(condition);
+    expect(
+      screen.getByTestId("cloud-connection-error-details-words").textContent,
+    ).toBe(refusal);
   });
 
   test("Edit hands the connection to the page's form", async () => {

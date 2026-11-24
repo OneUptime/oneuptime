@@ -1,3 +1,6 @@
+import {
+  ProbeConnectionRefusals,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
@@ -128,7 +131,7 @@ export function createOpenStackCheckRouter(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Probe not found"),
+            new BadDataException(ProbeConnectionRefusals.unknownProbe),
           );
         }
 
@@ -197,7 +200,7 @@ export function createOpenStackCheckRouter(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Probe not found"),
+            new BadDataException(ProbeConnectionRefusals.unknownProbe),
           );
         }
 

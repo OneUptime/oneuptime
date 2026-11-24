@@ -1007,7 +1007,7 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
 
       expect(caught).toBeInstanceOf(NotAuthorizedException);
       expect((caught as NotAuthorizedException).message).toContain(
-        "You do not have permissions to create Project.",
+        "You do not have permission to create projects.",
       );
       expect(onBeforeCreate).not.toHaveBeenCalled();
       expect(getRepository).not.toHaveBeenCalled();

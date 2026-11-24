@@ -1,3 +1,7 @@
+import {
+  ProbeConnectionRefusals,
+  getNotThisProbesJob,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceDiagnosticService from "Common/Server/Services/NetworkDeviceDiagnosticService";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
@@ -261,7 +265,7 @@ describe("POST /probe/network-device-diagnostic/list", () => {
 
     expect(diagnosticService.claimPendingForProbe).not.toHaveBeenCalled();
     expect(diagnosticService.findBy).not.toHaveBeenCalled();
-    expectBadDataResponse("Probe not found");
+    expectBadDataResponse(ProbeConnectionRefusals.unknownProbe);
   });
 
   test("claims for the requesting probe with the default limit, and an empty claim responds {diagnostics: []} without fetching", async () => {
@@ -679,7 +683,7 @@ describe("POST /probe/network-device-diagnostic/response/ingest", () => {
     );
 
     expect(diagnosticService.recordReport).not.toHaveBeenCalled();
-    expectBadDataResponse("Probe not found");
+    expectBadDataResponse(ProbeConnectionRefusals.unknownProbe);
   });
 
   const idCases: Array<[string, unknown]> = [
@@ -724,7 +728,7 @@ describe("POST /probe/network-device-diagnostic/response/ingest", () => {
     );
 
     expect(diagnosticService.recordReport).not.toHaveBeenCalled();
-    expectBadDataResponse("not a valid id");
+    expectBadDataResponse("networkDeviceDiagnosticId is not an ID");
   });
 
   const statusCases: Array<[string, unknown]> = [
@@ -750,7 +754,9 @@ describe("POST /probe/network-device-diagnostic/response/ingest", () => {
       );
 
       expect(diagnosticService.recordReport).not.toHaveBeenCalled();
-      expectBadDataResponse("status must be");
+      expectBadDataResponse(
+        'status is neither "Completed" nor "Failed"',
+      );
     },
   );
 
@@ -939,7 +945,7 @@ describe("POST /probe/network-device-diagnostic/response/ingest", () => {
     );
 
     expect(next).not.toHaveBeenCalled();
-    expectBadDataResponse("Diagnostic not found for this probe");
+    expectBadDataResponse(getNotThisProbesJob("diagnostic"));
   });
 
   test("passes service failures to the error handler", async () => {

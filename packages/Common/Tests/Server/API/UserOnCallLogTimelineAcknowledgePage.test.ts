@@ -49,6 +49,12 @@ import {
   UpdateOneByInput,
   updateNotificationWhileStill,
 } from "../TestingUtils/OnCallTimelineRows";
+import {
+  ON_CALL_LINK_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_LINK_ACKNOWLEDGED_TITLE,
+  ON_CALL_LINK_PAGE_NOT_AVAILABLE_MESSAGE,
+  ON_CALL_LINK_PAGE_NOT_AVAILABLE_TITLE,
+} from "../../../Types/OnCallDutyPolicy/OnCallLinkRefusals";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -127,7 +133,8 @@ const callRoute: CallRoute = async (
       query: isPress ? {} : { pageToken: pageToken },
       body: isPress ? { pageToken: pageToken } : {},
     } as unknown as ExpressRequest,
-    {} as unknown as ExpressResponse,
+    // A link that opens no page sets the page's status (#11056).
+    { status: jest.fn() } as unknown as ExpressResponse,
     (() => {
       throw new Error("the route handler must not fall through to next()");
     }) as unknown as NextFunction,
@@ -498,15 +505,36 @@ describe("the acknowledge page route", () => {
   });
 
   describe("when the timeline row does not exist", () => {
-    test("refuses rather than rendering", async () => {
+    /*
+     * A page that says so and what to do, never the JSON of "Invalid item
+     * Id", and no acknowledge page for a notification that is not there
+     * (#11056).
+     */
+    test("says the page is not available, with what to do, and offers no Acknowledge", async () => {
       jest
         .spyOn(UserOnCallLogTimelineService, "findOneById")
         .mockResolvedValue(null);
+      jest
+        .spyOn(DatabaseConfig, "getHost")
+        .mockResolvedValue(new Hostname("oneuptime.example.com"));
+      jest
+        .spyOn(DatabaseConfig, "getHttpProtocol")
+        .mockResolvedValue(Protocol.HTTPS);
 
       await callRoute(ACKNOWLEDGE_PAGE_ROUTE, ObjectID.generate().toString());
 
-      expect(Response.render).not.toHaveBeenCalled();
-      expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+      expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+      expect(renderedPath()).toBe(
+        "/usr/src/Common/Server/Views/ViewMessage.ejs",
+      );
+
+      const variables: JSONObject = renderedVariables();
+
+      expect(variables["title"]).toBe(ON_CALL_LINK_PAGE_NOT_AVAILABLE_TITLE);
+      expect(variables["message"]).toBe(
+        ON_CALL_LINK_PAGE_NOT_AVAILABLE_MESSAGE,
+      );
+      expect(variables["acknowledgeUrl"]).toBeUndefined();
     });
   });
 });
@@ -763,12 +791,25 @@ describe("the acknowledge route", () => {
     },
   );
 
-  test("refuses a notification that points at nothing", async () => {
-    givenNotification(buildTimelineItem({}));
+  /*
+   * Acknowledged, with no record to open: said so, where it was answered
+   * "Invalid item Id" after the page was acknowledged (#11056).
+   */
+  test("a notification that points at nothing is acknowledged and says so, with nothing to open", async () => {
+    const timelineItem: UserOnCallLogTimeline = buildTimelineItem({});
+    const updateOneBy: jest.Mock = givenNotification(timelineItem);
 
     await callRoute(ACKNOWLEDGE_ROUTE, ObjectID.generate().toString());
 
+    expect(updateOneBy).toHaveBeenCalledTimes(1);
+    expect(timelineItem.isAcknowledged).toBe(true);
     expect(Response.redirect).not.toHaveBeenCalled();
-    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(renderedPath()).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
+    expect(renderedVariables()).toEqual({
+      title: ON_CALL_LINK_ACKNOWLEDGED_TITLE,
+      message: ON_CALL_LINK_ACKNOWLEDGED_MESSAGE,
+      statusIcon: "check",
+    });
   });
 });
