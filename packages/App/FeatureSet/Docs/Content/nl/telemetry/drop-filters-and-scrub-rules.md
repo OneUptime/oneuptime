@@ -111,8 +111,8 @@ Kies onder **Meer velden** de **Opschoonactie** en de **Te wissen velden**, of l
 | --- | --- |
 | **E-mailadres** | E-mailadressen, zoals `jane@example.com`, ook in een ander schrift, zoals `张伟@example.com`, en in een procentgecodeerde URL |
 | **Creditcardnummer** | Kaartnummers, zoals `4111 1111 1111 1111` of een American Express-nummer, ook in de cijfers van een ander schrift, zoals `４１１１ １１１１ １１１１ １１１１`, en willekeurige zestien cijfers in groepen van vier |
-| **SSN (burgerservicenummer)** | Amerikaanse socialezekerheidsnummers, zoals `123-45-6789` |
-| **Telefoonnummer** | Noord-Amerikaanse telefoonnummers, zoals `555-123-4567` |
+| **SSN (burgerservicenummer)** | Amerikaanse socialezekerheidsnummers, zoals `123-45-6789`, ook gescheiden door punten of spaties en in de cijfers van een ander schrift, zoals `１２３-４５-６７８９` |
+| **Telefoonnummer** | Telefoonnummers, zoals `555-123-4567` of `+44 20 7946 0958`, internationale in de groepen waarin mensen ze schrijven, ook in een procentgecodeerde URL en in de cijfers van een ander schrift, maar geen decimaal getal, tijdzoneverschuiving of versie |
 | **IP-adres** | Openbare IPv4- en IPv6-adressen, zoals `203.0.113.7`, `2001:db8::1` of `2001::1`, ook direct na de dubbele punt van een sleutel en in een procentgecodeerde URL, maar geen privé-, loopback- of link-local-adressen |
 | **Gevoelige attribuutsleutels** | De hele waarde van elk attribuut waarvan de sleutel er geheim uitziet, zoals `password`, `token`, `api_key`, `authorization` of `cookie` |
 | **Benoemde attributen** | De hele waarde van de attributen die u noemt, wat die ook bevat, zoals de naam van een persoon onder `customer_name`. Een sleutel noemt ook de attributen die eronder genest zijn: `user` verbergt `user.email` |

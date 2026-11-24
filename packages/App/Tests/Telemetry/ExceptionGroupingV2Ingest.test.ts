@@ -155,6 +155,8 @@ function setupMocks(): void {
   jest.spyOn(logger, "warn").mockImplementation((() => {
     return undefined;
   }) as never);
+  // A failed read is tried again at once (#11027).
+  jest.spyOn(ExceptionUtil, "pauseBeforeLookupRetry").mockResolvedValue();
 }
 
 function tracesRequest(stackTrace: string): TelemetryRequest {
@@ -388,7 +390,7 @@ describe("which fingerprint an occurrence keeps", () => {
     expect(lookups).toHaveLength(2);
   });
 
-  test("a failed read keeps the v1 fingerprint: grouped as before v2, never lost", async () => {
+  test("a read that fails every try never files an occurrence under its v1, which every later one tries first: it goes under v2, and no exception is made for it (#11027)", async () => {
     lookupFails = true;
 
     const chosen: Map<string, string> =
@@ -396,8 +398,22 @@ describe("which fingerprint an occurrence keeps", () => {
         { projectId: "p", v1: "a", v2: "b" },
       ]);
 
-    expect(chosen.get("p|a|b")).toBe("a");
+    expect(chosen.get("p|a|b")).toBe("b");
+    expect(lookups).toHaveLength(3);
     expect(logger.warn).toHaveBeenCalled();
+
+    // Its count is held, not upserted under a guess.
+    const payloads: Array<TelemetryExceptionPayload> =
+      await ExceptionUtil.assignPayloadGroupFingerprints([
+        {
+          fingerprint: "a",
+          fingerprintV2: "b",
+          projectId: PROJECT_ID,
+          primaryEntityId: SERVICE_ID,
+        },
+      ]);
+
+    expect(payloads).toEqual([]);
   });
 
   test("an occurrence without a v2 fingerprint is not looked up", async () => {
@@ -575,13 +591,27 @@ describe("through the OTLP walk", () => {
         expect(rows()[0]!["fingerprint"]).toBe(rows()[1]!["fingerprint"]);
       });
 
-      test("when the read fails, the occurrence is grouped as before v2", async () => {
+      test("when the read fails every try, the occurrence is stored under the fingerprint a new exception is made under, never v1, and its count waits for the next batch (#11027)", async () => {
         lookupFails = true;
 
         await ingest(stack(42));
 
-        expect(rows()[0]!["fingerprint"]).toBe(v1Of(stack(42)));
-        expect(upserted[0]!.fingerprint).toBe(v1Of(stack(42)));
+        expect(rows()[0]!["fingerprint"]).toBe(v2Of(stack(42)));
+        expect(rows()[0]!["fingerprint"]).not.toBe(v1Of(stack(42)));
+        // No exception is made on a guess: the count is held.
+        expect(upserted).toEqual([]);
+
+        // The read works again: the next batch counts the held one with its own.
+        lookupFails = false;
+        await ingest(stack(97));
+
+        expect(
+          upserted.map((payload: TelemetryExceptionPayload): string => {
+            return payload.fingerprint;
+          }),
+        ).toEqual([v2Of(stack(42)), v2Of(stack(97))]);
+        expect(v2Of(stack(42))).toBe(v2Of(stack(97)));
+        expect(rows()[1]!["fingerprint"]).toBe(v2Of(stack(97)));
       });
     },
   );

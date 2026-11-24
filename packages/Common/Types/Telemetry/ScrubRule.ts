@@ -354,13 +354,16 @@ export function scrubRegExpFromRanges(data: {
 /*
  * THE BUILT-IN PATTERNS' VALUE MATCHERS, WRITTEN ONCE (#10433).
  *
- * What an Email, Credit Card, SSN or Phone Number rule finds in a value:
- * the log and trace engines scrub with these (App/FeatureSet/Telemetry/
- * Services/LogScrubRuleService.ts, TraceScrubRuleService.ts), and the
- * lookup of what reads a value a rule would hide asks them of the values a
- * monitor or a saved view looks for (Utils/Telemetry/ScrubRuleFieldReads) -
- * one definition, so the answer is what ingest does. Each is used through
- * scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
+ * What an Email, Credit Card, SSN or Phone Number rule's own pattern finds
+ * in a value. A rule hides these and, beside them, what Data Security's
+ * detectors call that type (Utils/Telemetry/ScrubBuiltInPatterns.ts: #10935
+ * and #10960 for emails and cards, #11025 and #11030 for phone and Social
+ * Security numbers) - the code every place a rule runs compiles it with:
+ * the log and trace engines (App/FeatureSet/Telemetry/Services/
+ * LogScrubRuleService.ts, TraceScrubRuleService.ts), and the lookup of
+ * what reads a value a rule would hide (Utils/Telemetry/
+ * ScrubRuleFieldReads), so the answer is what ingest does. Each is used
+ * through scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
  *
  * IP Address is not here: its matches are what Data Security's own
  * detectors call an IP address (Utils/Telemetry/ScrubIpAddress, #10393).

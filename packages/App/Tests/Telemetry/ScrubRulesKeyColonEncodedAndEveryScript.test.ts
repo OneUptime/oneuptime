@@ -64,7 +64,12 @@ import {
  *     (张伟@acmecorp.io, почта@пример.рф, #10960), by an Email Address rule
  *     - the encoded address as written, and the rest of the URL kept;
  *   - a card in fullwidth, Arabic-Indic or Persian digits, or typed in two
- *     scripts (#10960), by a Credit Card rule.
+ *     scripts (#10960), by a Credit Card rule;
+ *   - an international phone number in the groups people write it in - its
+ *     calling code in parentheses, its trunk prefix, no-break spaces - one
+ *     in a percent-encoded URL, and one in another script's digits (#11025,
+ *     #11030), by a Phone Number rule; and a Social Security number set
+ *     apart by dots or in another script's digits, by an SSN rule.
  *
  * Every place a rule runs compiles its pattern in one place
  * (Common/Utils/Telemetry/ScrubBuiltInPatterns, on Data Security's own
@@ -198,6 +203,88 @@ const WRITTEN: Array<Written> = [
     reads: "4532 0151 1283 0366",
     mask: "****-****-****-0366",
   },
+  // #11025, #11030
+  {
+    label: "an international phone number",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "SMS to ",
+    written: "+49 30 81234567",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "one the US pattern only half hid",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "SMS to ",
+    written: "+44 161 321 4567",
+    reads: "+44 161 321 4567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "one with its calling code in parentheses and its trunk prefix",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "call ",
+    written: "+44 (0)20 8123 4567",
+    reads: "+44 (0)20 8123 4567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "one set apart by no-break spaces",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "call ",
+    written: "+33\u00A06\u00A081\u00A023\u00A045\u00A067",
+    reads: "+33\u00A06\u00A081\u00A023\u00A045\u00A067",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a phone number in a percent-encoded URL",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /callback?phone=",
+    written: "%2B49%2030%2081234567",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a phone number in Arabic-Indic digits",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "رقم الهاتف ",
+    written: "+٤٩ ٣٠ ٨١٢٣٤٥٦٧",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a North American number in fullwidth digits",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "電話：",
+    written: "(４１５) ３２１-８７３１",
+    reads: "(415) 321-8731",
+    mask: "***-***-8731",
+  },
+  {
+    label: "a Social Security number set apart by dots",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "ssn ",
+    written: "536.22.8731",
+    reads: "536.22.8731",
+    mask: "***-**-8731",
+  },
+  {
+    label: "a Social Security number in Arabic-Indic digits",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "SSN: ",
+    written: "٥٣٦-٢٢-٨٧٣١",
+    reads: "536-22-8731",
+    mask: "***-**-8731",
+  },
 ];
 
 const ACTIONS: Array<string> = [
@@ -223,6 +310,16 @@ const KEPT: Array<[string, string]> = [
   [LogScrubPatternType.Email, "@用户 你好"],
   [LogScrubPatternType.CreditCard, "order ４１１１ １１１１"],
   [LogScrubPatternType.CreditCard, "رقم ٤٢"],
+  // What only looks like a phone or Social Security number (#11025, #11030).
+  [LogScrubPatternType.PhoneNumber, "delta +51.507217 out of range"],
+  [LogScrubPatternType.PhoneNumber, "at UTC +1 2026-11-24 10:15:00"],
+  [LogScrubPatternType.PhoneNumber, "build v1.2.3+build.5"],
+  [LogScrubPatternType.PhoneNumber, "counted +1 2 3 4 5 6 7 8"],
+  [LogScrubPatternType.PhoneNumber, "دلتا +٥١.٥٠٧٢١٧"],
+  [LogScrubPatternType.PhoneNumber, "GET /assets/logo%2B2x.png"],
+  [LogScrubPatternType.SSN, "ref 536.22.8731.01"],
+  [LogScrubPatternType.SSN, "ssn 666.22.8731"],
+  [LogScrubPatternType.SSN, "ref ٥٣٦.٢٢.٨٧٣١.٠١"],
 ];
 
 type OtlpAttribute = { key: string; value: { stringValue: string } };
@@ -633,6 +730,8 @@ describe("through log and trace ingest", () => {
           // The exception's group: not what these tests read.
         },
       );
+    // No exceptions table here: its lookup fails at once, tried again at once.
+    jest.spyOn(ExceptionUtil, "pauseBeforeLookupRetry").mockResolvedValue();
     jest.spyOn(TelemetryIngestionDisabled, "isDisabled").mockReturnValue(false);
   }
 
@@ -791,5 +890,145 @@ describe("through log and trace ingest", () => {
     );
     expect(JSON.stringify(row)).not.toContain("2a00:1450");
     expect(JSON.stringify(exceptionRows[0])).not.toContain("٤٥٣٢");
+  });
+
+  test("a log's international, encoded and other-script phone numbers are stored as the token of the number they read as (#11025, #11030)", async () => {
+    setupIngest({
+      logRules: logRules(LogScrubPatternType.PhoneNumber, LogScrubAction.Hash),
+    });
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      request({
+        resourceLogs: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeLogs: [
+              {
+                scope: {},
+                logRecords: [
+                  {
+                    timeUnixNano: `${Date.now()}000000`,
+                    severityNumber: 9,
+                    body: {
+                      stringValue:
+                        "GET /callback?phone=%2B49%2030%2081234567&step=2 200",
+                    },
+                    attributes: [
+                      attribute("user.phone", "+٤٩ ٣٠ ٨١٢٣٤٥٦٧"),
+                      attribute("sms.to", "+49 30 81234567"),
+                      attribute("geo.delta", "+51.507217"),
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(logRows).toHaveLength(1);
+
+    const row: JSONObject = logRows[0]!;
+    const attributes: JSONObject = row["attributes"] as JSONObject;
+    const plain: string = ScrubHashToken.ofValue({
+      projectId: PROJECT_ID,
+      value: "+49 30 81234567",
+    });
+
+    // One token for the number, however it is written.
+    expect(row["body"]).toBe(`GET /callback?phone=${plain}&step=2 200`);
+    expect(attributes["user.phone"]).toBe(plain);
+    expect(attributes["sms.to"]).toBe(plain);
+    // And a decimal is no phone number.
+    expect(attributes["geo.delta"]).toBe("+51.507217");
+    expect(JSON.stringify(row)).not.toContain("81234567");
+    expect(JSON.stringify(row)).not.toContain("٨١٢٣٤٥٦٧");
+  });
+
+  test("a span's and its exception's international phone numbers and Social Security numbers are hidden (#11025, #11030)", async () => {
+    setupIngest({
+      traceRules: [
+        ...(traceRules(
+          LogScrubPatternType.PhoneNumber,
+          LogScrubAction.Redact,
+        ) as unknown as Array<unknown>),
+        ...(traceRules(
+          LogScrubPatternType.SSN,
+          LogScrubAction.Mask,
+        ) as unknown as Array<unknown>),
+      ] as never,
+    });
+
+    const nowNano: string = `${Date.now()}000000`;
+
+    await OtelTracesIngestService.processTracesFromQueue(
+      request({
+        resourceSpans: [
+          {
+            resource: { attributes: [attribute("service.name", SERVICE_NAME)] },
+            scopeSpans: [
+              {
+                scope: {},
+                spans: [
+                  {
+                    traceId: "0af7651916cd43dd8448eb211c80319c",
+                    spanId: "b7ad6b7169203332",
+                    parentSpanId: "",
+                    name: "POST /notify",
+                    kind: 2,
+                    startTimeUnixNano: nowNano,
+                    endTimeUnixNano: nowNano,
+                    status: {
+                      code: 2,
+                      message: "SMS to +44 161 321 4567 failed",
+                    },
+                    attributes: [
+                      attribute("http.request.method", "POST"),
+                      attribute("customer.ssn", "536.22.8731"),
+                    ],
+                    events: [
+                      {
+                        name: "exception",
+                        timeUnixNano: nowNano,
+                        attributes: [
+                          attribute(
+                            "exception.message",
+                            "SMS to +44 (0)20 8123 4567 for ssn ٥٣٦-٢٢-٨٧٣١ failed",
+                          ),
+                          attribute("exception.type", "SmsDeliveryError"),
+                          attribute(
+                            "exception.stacktrace",
+                            "SmsDeliveryError\n    at notify (notify.js:10:5)",
+                          ),
+                        ],
+                      },
+                    ],
+                    links: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(spanRows).toHaveLength(1);
+
+    const row: JSONObject = spanRows[0]!;
+
+    // The whole number, where the US pattern alone hid "161 321 4567".
+    expect(row["statusMessage"]).toBe("SMS to [REDACTED] failed");
+    expect((row["attributes"] as JSONObject)["customer.ssn"]).toBe(
+      "***-**-8731",
+    );
+    expect(exceptionRows).toHaveLength(1);
+    expect(exceptionRows[0]!["message"]).toBe(
+      "SMS to [REDACTED] for ssn ***-**-8731 failed",
+    );
+    expect(JSON.stringify(row)).not.toContain("+44");
+    expect(JSON.stringify(exceptionRows[0])).not.toContain("8123");
+    expect(JSON.stringify(exceptionRows[0])).not.toContain("٥٣٦");
   });
 });

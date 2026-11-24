@@ -111,8 +111,8 @@ Under **Fler fält** väljer du **Rensningsåtgärd** och **Fält att rensa**, e
 | --- | --- |
 | **E-postadress** | E-postadresser, till exempel `jane@example.com`, även i ett annat skriftsystem, till exempel `张伟@example.com`, och i en procentkodad URL |
 | **Kreditkortsnummer** | Kortnummer, till exempel `4111 1111 1111 1111` eller ett American Express-nummer, även i ett annat skriftsystems siffror, till exempel `４１１１ １１１１ １１１１ １１１１`, och godtyckliga sexton siffror i grupper om fyra |
-| **Personnummer (Social Security Number)** | Amerikanska socialförsäkringsnummer, till exempel `123-45-6789` |
-| **Telefonnummer** | Nordamerikanska telefonnummer, till exempel `555-123-4567` |
+| **Personnummer (Social Security Number)** | Amerikanska socialförsäkringsnummer, till exempel `123-45-6789`, även åtskilda av punkter eller mellanslag och i ett annat skriftsystems siffror, till exempel `１２３-４５-６７８９` |
+| **Telefonnummer** | Telefonnummer, till exempel `555-123-4567` eller `+44 20 7946 0958`, internationella i de grupper man skriver dem i, även i en procentkodad URL och i ett annat skriftsystems siffror, men inte ett decimaltal, en tidszons förskjutning eller en version |
 | **IP-adress** | Offentliga IPv4- och IPv6-adresser, till exempel `203.0.113.7`, `2001:db8::1` eller `2001::1`, även direkt efter en nyckels kolon och i en procentkodad URL, men inte privata, loopback- eller länklokala adresser |
 | **Känsliga attributnycklar** | Hela värdet av varje attribut vars nyckel ser hemlig ut, till exempel `password`, `token`, `api_key`, `authorization` eller `cookie` |
 | **Namngivna attribut** | Hela värdet av attributen som du namnger, oavsett vad det innehåller, till exempel en persons namn under `customer_name`. En nyckel namnger också attributen som ligger under den: `user` döljer `user.email` |

@@ -111,8 +111,8 @@ Under **More fields**, pick the **Scrub Action** and the **Fields to Scrub**, or
 | --- | --- |
 | **Email Address** | Email addresses, such as `jane@example.com`, also in another script, such as `张伟@example.com`, and in a percent-encoded URL |
 | **Credit Card Number** | Card numbers, such as `4111 1111 1111 1111` or an American Express number, also in another script's digits, such as `４１１１ １１１１ １１１１ １１１１`, and any sixteen digits in groups of four |
-| **SSN (Social Security Number)** | US Social Security numbers, such as `123-45-6789` |
-| **Phone Number** | North American phone numbers, such as `555-123-4567` |
+| **SSN (Social Security Number)** | US Social Security numbers, such as `123-45-6789`, also set apart by dots or spaces and in another script's digits, such as `１２３-４５-６７８９` |
+| **Phone Number** | Phone numbers, such as `555-123-4567` or `+44 20 7946 0958`, international ones in the groups people write them in, also in a percent-encoded URL and in another script's digits, but not a decimal, a time zone's offset or a version |
 | **IP Address** | Public IPv4 and IPv6 addresses, such as `203.0.113.7`, `2001:db8::1` or `2001::1`, also right after a key's colon and in a percent-encoded URL, but not private, loopback or link-local ones |
 | **Sensitive Attribute Keys** | The whole value of any attribute whose key looks secret, such as `password`, `token`, `api_key`, `authorization` or `cookie` |
 | **Named Attributes** | The whole value of the attributes you name, whatever it holds, such as a person's name under `customer_name`. A key names the attributes nested under it too: `user` hides `user.email` |

@@ -111,8 +111,8 @@ Under **Flere felter** skal du vælge **Maskeringshandling** og **Felter, der sk
 | --- | --- |
 | **E-mailadresse** | E-mailadresser, såsom `jane@example.com`, også i en anden skrift, såsom `张伟@example.com`, og i en procentkodet URL |
 | **Kreditkortnummer** | Kortnumre, såsom `4111 1111 1111 1111` eller et American Express-nummer, også i en anden skrifts cifre, såsom `４１１１ １１１１ １１１１ １１１１`, og vilkårlige seksten cifre i grupper af fire |
-| **SSN (CPR-nummer)** | Amerikanske personnumre (Social Security), såsom `123-45-6789` |
-| **Telefonnummer** | Nordamerikanske telefonnumre, såsom `555-123-4567` |
+| **SSN (CPR-nummer)** | Amerikanske personnumre (Social Security), såsom `123-45-6789`, også adskilt af punktummer eller mellemrum og i en anden skrifts cifre, såsom `１２３-４５-６７８９` |
+| **Telefonnummer** | Telefonnumre, såsom `555-123-4567` eller `+44 20 7946 0958`, internationale numre i de grupper, folk skriver dem i, også i en procentkodet URL og i en anden skrifts cifre, men ikke et decimaltal, en tidszones forskydning eller en version |
 | **IP-adresse** | Offentlige IPv4- og IPv6-adresser, såsom `203.0.113.7`, `2001:db8::1` eller `2001::1`, også lige efter en nøgles kolon og i en procentkodet URL, men ikke private, loopback- eller link-local-adresser |
 | **Følsomme attributnøgler** | Hele værdien af enhver attribut, hvis nøgle ser hemmelig ud, såsom `password`, `token`, `api_key`, `authorization` eller `cookie` |
 | **Navngivne attributter** | Hele værdien af de attributter, du navngiver, uanset hvad den indeholder, såsom en persons navn under `customer_name`. En nøgle navngiver også de attributter, der ligger under den: `user` skjuler `user.email` |
