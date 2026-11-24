@@ -1,7 +1,15 @@
 import MonitorStepMetricMonitor, {
+  MetricMonitorQueryLanguage,
   MonitorStepMetricMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import ViewSwitch, {
+  ViewSwitchOption,
+} from "Common/UI/Components/ViewSwitch/ViewSwitch";
+import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/Types/Translator";
+import { PromQLMonitorComparison } from "Common/Utils/PromQL/PromQLMonitorExpression";
+import PromQLMonitorEditor from "./PromQLMonitorEditor";
 import MetricView from "../../../Metrics/MetricView";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
@@ -35,7 +43,36 @@ export interface ComponentProps {
   onChange: (monitorStepMetricMonitor: MonitorStepMetricMonitor) => void;
   // The monitor's rule, when its criteria are one: its value is drawn.
   previewRule?: TelemetryAlertRule | null | undefined;
+  /*
+   * Moves the comparison a PromQL expression ends in to the rule (issue
+   * #7712). Absent where the criteria are not one rule.
+   */
+  onMoveComparisonToRule?:
+    | ((comparison: PromQLMonitorComparison) => void)
+    | undefined;
 }
+
+export const METRIC_MONITOR_LANGUAGE_SWITCH_TEST_ID: string =
+  "metric-monitor-query-language";
+
+/*
+ * How the metric is written: picked in the Metrics explorer's builder, or
+ * as a PromQL expression, the way an alert rule for Prometheus is written.
+ */
+export const METRIC_MONITOR_LANGUAGE_OPTIONS: ReadonlyArray<
+  ViewSwitchOption<MetricMonitorQueryLanguage>
+> = [
+  {
+    value: MetricMonitorQueryLanguage.Builder,
+    label: translationKey("Query Builder"),
+    icon: IconProp.Filter,
+  },
+  {
+    value: MetricMonitorQueryLanguage.PromQL,
+    label: translationKey("PromQL"),
+    icon: IconProp.Code,
+  },
+];
 
 /*
  * The chart's view of the queries: the rule's value as the critical line of
@@ -218,6 +255,52 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
     return new InBetween<Date>(range.startTime, range.endTime);
   }, [rollingTime]);
 
+  const isPromQL: boolean = MonitorStepMetricMonitorUtil.isPromQL(
+    monitorStepMetricMonitor,
+  );
+
+  const languageSwitch: ReactElement = (
+    <div className="mb-3">
+      <ViewSwitch<MetricMonitorQueryLanguage>
+        options={METRIC_MONITOR_LANGUAGE_OPTIONS}
+        value={
+          isPromQL
+            ? MetricMonitorQueryLanguage.PromQL
+            : MetricMonitorQueryLanguage.Builder
+        }
+        onChange={(value: MetricMonitorQueryLanguage) => {
+          props.onChange({
+            ...monitorStepMetricMonitor,
+            queryLanguage: value,
+          });
+        }}
+        ariaLabel="Write the metric with"
+        dataTestId={METRIC_MONITOR_LANGUAGE_SWITCH_TEST_ID}
+        fillWidthOnPhone={true}
+      />
+    </div>
+  );
+
+  if (isPromQL) {
+    return (
+      <div className="mt-3">
+        {languageSwitch}
+        <PromQLMonitorEditor
+          query={monitorStepMetricMonitor.promQLQuery || ""}
+          onChange={(query: string) => {
+            props.onChange({
+              ...monitorStepMetricMonitor,
+              promQLQuery: query,
+            });
+          }}
+          previewWindow={startAndEndTime}
+          threshold={threshold}
+          onMoveComparisonToRule={props.onMoveComparisonToRule}
+        />
+      </div>
+    );
+  }
+
   const drawn: {
     queryConfigs: Array<MetricQueryConfigData>;
     formulaConfigs: Array<MetricFormulaConfigData>;
@@ -230,6 +313,7 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="mt-3">
+      {languageSwitch}
       <MetricView
         hideStartAndEndDate={true}
         data={{

@@ -29,6 +29,7 @@ import User from "../../../Models/DatabaseModels/User";
 import * as OTPAuth from "otpauth";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * A request the route sends that these tests leave unanswered: the email
@@ -310,6 +311,9 @@ let sideEffectOrder: Array<string>;
 
 describe("POST /user-totp-auth/validate", () => {
   beforeEach(() => {
+    // Every session here has confirmed it's its person's (#10155).
+    confirmEverySession();
+
     jest.clearAllMocks();
 
     mockRouter.routes.length = 0;

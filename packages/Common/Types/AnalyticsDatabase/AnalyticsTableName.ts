@@ -16,6 +16,14 @@ enum AnalyticsTableName {
    */
   ThreatIntelIndicator = "ThreatIntelIndicatorItemV1",
   /*
+   * Security Events' address vault (#10395): the IP address behind each
+   * token an IP Address Hash scrub rule leaves in the logs and traces
+   * Security Events reads, kept 30 days after it was last seen, so a scan
+   * can name the address an attack came from. Read by Security Events'
+   * scans and nothing else: see Models/AnalyticsModels/SecurityAddressVault.
+   */
+  SecurityAddressVault = "SecurityAddressVaultV1",
+  /*
    * Deploy/config-change markers posted by CI/CD, rendered as dashed
    * vertical lines on metric charts. Peer of LogItemV3 in layout (tenant
    * projectId, per-row retentionDate TTL, attributes Map + keys sidecar)

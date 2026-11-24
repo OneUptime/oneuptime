@@ -186,19 +186,19 @@ export const COMPATIBLE_INGEST_GUIDES: Array<CompatibleIngestGuideCopy> = [
     label: "Datadog Agent",
     logo: ProviderLogo.Datadog,
     description: translationKey(
-      "The Datadog Agent you already run: its metrics and logs.",
+      "The Datadog Agent you already run: its metrics, logs and APM traces.",
     ),
-    signals: ["logs", "metrics"],
+    signals: ["logs", "metrics", "traces", "exceptions"],
     endpointLabel: translationKey("Datadog URL"),
     configureDescription: translationKey(
-      "Point the Agent's metrics and logs at OneUptime, with the ingestion key as its API key.",
+      "Point the Agent's metrics, logs and APM traces at OneUptime, with the ingestion key as its API key.",
     ),
     notes: [
       translationKey(
         "Tags become attributes, and the service, env and version tags name the service.",
       ),
       translationKey(
-        "Metrics, distributions, service checks and logs are kept. Turn off APM and process collection, which OneUptime does not read from the Agent yet.",
+        "Metrics, distributions, service checks, logs and APM traces are kept, and errors in a span appear in Exceptions. Turn off process collection, which OneUptime does not read from the Agent yet.",
       ),
     ],
     dataTestId: "compatible-ingest-datadog",
@@ -219,6 +219,9 @@ export const COMPATIBLE_INGEST_GUIDES: Array<CompatibleIngestGuideCopy> = [
       ),
       translationKey(
         "The release's name before the @ names the service: my-service@1.4.2 is my-service.",
+      ),
+      translationKey(
+        "Cron check-ins and user feedback appear in Logs, and profiles in Profiles.",
       ),
     ],
     dataTestId: "compatible-ingest-sentry",
@@ -451,9 +454,10 @@ logs_enabled: true
 logs_config:
   use_http: true
   logs_dd_url: ${hostname}:${port}${isTls ? "" : "\n  logs_no_ssl: true"}
-# Not read from the Agent yet: leave them off.
 apm_config:
-  enabled: false
+  enabled: true
+  apm_dd_url: ${url}
+# Not read from the Agent yet: leave it off.
 process_config:
   process_collection:
     enabled: false`,
@@ -466,7 +470,8 @@ DD_DD_URL=${url}
 DD_LOGS_ENABLED=true
 DD_LOGS_CONFIG_USE_HTTP=true
 DD_LOGS_CONFIG_LOGS_DD_URL=${hostname}:${port}${isTls ? "" : "\nDD_LOGS_CONFIG_LOGS_NO_SSL=true"}
-DD_APM_ENABLED=false
+DD_APM_ENABLED=true
+DD_APM_DD_URL=${url}
 DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED=false`,
         },
       ];

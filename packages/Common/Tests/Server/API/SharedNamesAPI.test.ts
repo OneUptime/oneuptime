@@ -1,6 +1,7 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
 import "../../../Server/API/SharedNamesAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import LabelService from "../../../Server/Services/LabelService";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -27,8 +28,9 @@ import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * GET /shared-names/:kind (#9746): which teams, on-call policies or on-call
- * schedules of the request's project share a name, for their list to mark.
+ * GET /shared-names/:kind (#9746): which teams, labels (#9856), on-call
+ * policies or on-call schedules of the request's project share a name, for
+ * their list to mark.
  *
  * The route asks for an authenticated member of the project, or a project
  * API key, before anything is read; the project is the request's own; the
@@ -168,11 +170,13 @@ describe("GET /shared-names/:kind", () => {
   });
 
   /*
-   * An archived on-call policy is offered in no picker, so policies count
-   * only while in service; a team and a schedule have no archive.
+   * An archived on-call policy or label is offered in no picker, so
+   * policies and labels count only while in service; a team and a schedule
+   * have no archive.
    */
   test.each([
     [SharedNameKind.Team, TeamService, false],
+    [SharedNameKind.Label, LabelService, true],
     [SharedNameKind.OnCallPolicy, OnCallDutyPolicyService, true],
     [SharedNameKind.OnCallSchedule, OnCallDutyPolicyScheduleService, false],
   ])(
@@ -225,12 +229,16 @@ describe("GET /shared-names/:kind", () => {
     expect(findSpy).toHaveBeenCalledTimes(1);
   });
 
-  test.each(["label", "Team", "users", ""])(
+  test.each(["labels", "Label", "Team", "users", ""])(
     "a kind it does not know (%j) is no list, and nothing is read",
     async (kind: string) => {
       const result: RouteCallResult = await callRoute(kind);
 
       expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
+      // It names the kinds there are.
+      expect((result.thrownToNext as Error).message).toBe(
+        "There is no list of records with names of their own by that name. Ask for team, label, on-call-policy or on-call-schedule.",
+      );
       expect(findSpy).not.toHaveBeenCalled();
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     },

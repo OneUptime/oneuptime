@@ -221,6 +221,30 @@ Ne regroupez pas une métrique qui est déjà un scalaire unique pour tout le sy
 
 Les valeurs de l'attribut de regroupement sont aussi disponibles comme [variables de modèle](/docs/monitor/incident-alert-templating) dans le titre, la description et les notes de remédiation de l'alerte ou de l'incident – regrouper par `host.name` permet au titre de dire `Disk almost full on {{host.name}}`.
 
+## Alerter sur une expression PromQL
+
+Une étape peut surveiller une expression PromQL au lieu de requêtes de métriques : le langage de requête de Prometheus, sur les métriques de votre projet, comme sur la page [PromQL](/docs/telemetry/promql). Chaque série que renvoie l'expression est jugée à part, comme celles d'une requête groupée : elle ouvre sa propre alerte ou son propre incident, qui se résout quand cette série se rétablit ou n'est plus renvoyée.
+
+:::steps
+### Passer à PromQL
+
+Dans **Métrique à surveiller**, cliquez sur **PromQL**. **Générateur de requêtes** revient aux requêtes de métriques.
+
+### Écrire l'expression
+
+Saisissez-la, par exemple `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, ou partez de **Ajouter un nom de métrique**. Le graphique en dessous trace chaque série sur la fenêtre de temps et indique ce qui ne va pas dans une expression qui ne s'exécute pas.
+
+### Définir la règle
+
+Dans **Quand alerter**, choisissez dans **Mesuré comme** comment chaque série est mesurée, puis une **Fenêtre de temps**, une **Condition** et une **Valeur**, comme pour les requêtes de métriques. L'expression est évaluée à chaque minute de la fenêtre, donc **Chaque valeur (toute la fenêtre)** sur **Dernières 5 minutes** demande à une série de dépasser pendant cinq minutes, comme `for: 5m` dans une règle d'alerte Prometheus.
+:::
+
+- **Une comparaison dans l'expression** ne garde que les séries pour lesquelles elle est vraie : `rate(errors_total[5m]) > 0.1` renvoie les séries au-dessus de 0.1, et aucune autre. Cliquez sur **Déplacer vers Quand alerter** pour en faire la comparaison de la règle : le graphique montre alors chaque série, et la règle les juge une à une.
+- **Au plus 100 séries par vérification.** Quand l'expression en renvoie davantage, une vérification en juge 100 : d'abord les séries dont une alerte ou un incident est ouvert, puis les autres dans l'ordre de leurs labels. Les autres ne sont pas jugées à cette vérification, rien ne s'ouvre ni ne se résout pour elles, et l'éditeur indique que l'expression en renvoie trop. Agrégez-la avec `sum by (...)`, ou ajoutez des sélecteurs de labels.
+- **Les limites de toute requête PromQL s'appliquent**, sur les métriques des services que nomme le moniteur, ou de tout le projet s'il n'en nomme aucun.
+- **Ses graphiques tracent l'expression.** La carte en haut de la page **Vue d'ensemble** du moniteur trace chaque série que renvoie l'expression, et un incident ou une alerte qu'il ouvre trace la seule série qui l'a déclenché, avec la valeur du critère en ligne et le côté qui alerte ombré. Ils la lisent comme vous pouvez la lire, avec les mêmes limites que la page [PromQL](/docs/telemetry/promql).
+- **Les conditions d'anomalie ne sont pas proposées** : une expression n'a pas d'historique propre auquel se comparer. Les conditions de prévision, si.
+
 ## Dépannage
 
 :::details Le graphique montre un dépassement, mais le moniteur n'a pas alerté

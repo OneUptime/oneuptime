@@ -182,7 +182,9 @@ SDK 偵測器把平台寫成帶點號的 `azure.app_service`；OneUptime 收到�
 
 **網路：** 除非開啟了 **VNet integration** 並啟用 **Route All**，否則 App Service 可以直接連上網際網路。開啟後，VNet 需要 NAT 閘道，或一條通往允許 TCP 443 連到 OneUptime 主機的防火牆的路由。
 
-**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤、回應時間、CPU 時間與記憶體。
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤與用戶端錯誤、回應時間、CPU 時間與記憶體。之後，應用程式的 **執行個體** 分頁會列出 Azure 執行該應用程式的執行個體，**修訂版本** 分頁會列出 Azure 保留的部署。
+
+應用程式的 **設定** 分頁會把這些設定以適用於 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令提供，每個命令中都有應用程式自己的名稱、資源群組與訂用帳戶。若還要查看網站自身的主控台、HTTP 與平台日誌，請在 **雲端 → 連線** 中，在訂用帳戶所在列選擇 **串流指標和日誌**：這些日誌會顯示在應用程式的 **日誌** 分頁中的 **來自 Azure 診斷設定** 下。
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ Node.js 與 .NET 的 App Service 偵測器不會設定 `cloud.account.id`。請�
 :::
 
 :::details App Service 應用程式沒有顯示請求或執行個體
-請求、錯誤率與延遲來自追蹤，因此只傳送日誌或指標的應用程式沒有這些資料：它的 **設定檢查** 會說明需要加入什麼。執行個體來自 Azure 偵測器設定的 `azure.app_service.instance.id` 或 `service.instance.id`：兩者都沒有時，**執行個體** 圖格顯示 **未回報**。若要查看網站的請求（無論應用程式傳送什麼），請連線訂用帳戶：應用程式頁面會多出一個 **Azure Monitor** 區段。
+請求、錯誤率與延遲來自追蹤，因此只傳送日誌或指標的應用程式沒有這些資料：它的 **設定檢查** 會說明需要加入什麼，**設定** 分頁會說明如何加入。執行個體來自 Azure 偵測器設定的 `azure.app_service.instance.id` 或 `service.instance.id`：兩者都沒有時，在連線訂用帳戶之前 **執行個體** 圖格顯示 **未回報**，連線之後則顯示 Azure 執行的執行個體數。若要查看網站的請求（無論應用程式傳送什麼），請連線訂用帳戶：應用程式頁面會多出一個 **Azure Monitor** 區段。
+:::
+
+:::details App Service 應用程式沒有 Azure Monitor 數據
+它的 **設定檢查** 中的 **Azure Monitor 連線** 列會說明原因。OneUptime 透過 App Service 偵測器設定的 `cloud.resource_id` 將應用程式關聯到其網站，否則透過 `cloud.account.id` 指明的訂用帳戶中的 `service.name` 關聯：請將應用程式命名為與網站相同的名稱，或加入 `cloud.resource_id`。**雲端 → 連線** 下的某個 Azure 連線必須讀取該訂用帳戶，並在該訂用帳戶上擁有 Monitoring Reader 角色。部署位置是獨立的資源，OneUptime 尚未讀取它。
 :::
 
 :::details 修改 Container Instances 變數後沒有效果

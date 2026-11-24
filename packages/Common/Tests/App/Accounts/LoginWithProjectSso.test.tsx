@@ -40,6 +40,10 @@ import LoginWithProjectSsoPage, {
   PROJECT_SSO_PROVIDER_TEST_ID,
   PROJECT_SSO_PROVIDERS_TEST_ID,
 } from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithProjectSso";
+import {
+  confirmInvitationSsoSignIn,
+  SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS,
+} from "../../../../App/FeatureSet/Accounts/src/Utils/SignUpInvitation";
 
 /*
  * A PROJECT'S SSO SIGN-IN LINK (/accounts/sso/<project id>, #9918).
@@ -566,6 +570,174 @@ describe("A project's SSO sign-in link", () => {
           namesSso: ssoValue(locale, "notSetUpForDomain").includes("SSO"),
         }).toEqual({ file, namesSso: true });
       }
+    });
+  });
+
+  /*
+   * An invitation opens this page too, for someone who has signed up whose
+   * sign-in the project's single sign-on manages (#10178). On OneUptime
+   * Cloud its link carries a single-use link of the invitation's own:
+   * picking a provider sends it first - the token, the signature and the
+   * project, nothing else - and then starts the provider's sign-in,
+   * whatever the server answers, or if it answers nothing in time.
+   */
+  describe("opened from an invitation, with its single-use link", () => {
+    const TOKEN: string = "66666666-6666-4666-8666-666666666666";
+    const SIGNATURE: string = "ab".repeat(32);
+
+    let posts: Array<{ url: string; data: unknown; at: number }>;
+    let postAnswer: () => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse>;
+    let order: number;
+
+    const renderWithLink: (search: string) => Promise<void> = async (
+      search: string,
+    ): Promise<void> => {
+      await act(async () => {
+        render(
+          <MemoryRouter initialEntries={[`/accounts/sso/${PROJECT}${search}`]}>
+            <Routes>
+              <Route
+                path={PROJECT_SSO_SIGN_IN_PATH}
+                element={<LoginWithProjectSsoPage />}
+              />
+            </Routes>
+          </MemoryRouter>,
+        );
+      });
+    };
+
+    beforeEach(() => {
+      posts = [];
+      order = 0;
+      postAnswer = async () => {
+        return new HTTPResponse<JSONObject>(200, {}, {});
+      };
+
+      jest
+        .spyOn(API, "post")
+        .mockImplementation(
+          async (
+            options: Parameters<typeof API.post>[0],
+          ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+            posts.push({
+              url: options.url?.toString() || "",
+              data: options.data,
+              at: ++order,
+            });
+            return await postAnswer();
+          },
+        );
+
+      navigateSpy.mockImplementation((): void => {
+        order++;
+      });
+    });
+
+    test("picking a provider sends the link first - token, signature and project, nothing else - then starts its sign-in", async () => {
+      await renderWithLink(`?invitation=${TOKEN}&signature=${SIGNATURE}`);
+      await clickButton(signInWith("Okta"));
+
+      expect(posts).toEqual([
+        {
+          url: `${IDENTITY_ORIGIN}/invitation-sso-sign-in`,
+          data: { token: TOKEN, signature: SIGNATURE, projectId: PROJECT },
+          at: 1,
+        },
+      ]);
+      expect(navigatedTo()).toEqual([
+        `${IDENTITY_ORIGIN}/sso/${PROJECT}/${SAML_PROVIDER}`,
+      ]);
+      // The sign-in starts after the link has been sent.
+      expect(order).toBe(2);
+    });
+
+    test("a refusal, or a throw, still starts the sign-in: the provider's answer asks the mailbox as before", async () => {
+      postAnswer = async () => {
+        return new HTTPErrorResponse(500, { message: "No" }, {});
+      };
+
+      await renderWithLink(`?invitation=${TOKEN}&signature=${SIGNATURE}`);
+      await clickButton(signInWith("Okta"));
+
+      expect(navigatedTo()).toHaveLength(1);
+
+      cleanup();
+      navigateSpy.mockClear();
+      postAnswer = async () => {
+        throw new Error("The network is down");
+      };
+
+      await renderWithLink(`?invitation=${TOKEN}&signature=${SIGNATURE}`);
+      await clickButton(signInWith("Okta"));
+
+      expect(navigatedTo()).toHaveLength(1);
+    });
+
+    test.each([
+      ["no link", ""],
+      ["a token without a signature", `?invitation=${TOKEN}`],
+      ["a signature without a token", `?signature=${SIGNATURE}`],
+    ])(
+      "opened with %s, nothing is sent: the sign-in starts as it always did",
+      async (_label: string, search: string) => {
+        await renderWithLink(search);
+        await clickButton(signInWith("Okta"));
+
+        expect(posts).toEqual([]);
+        expect(navigatedTo()).toEqual([
+          `${IDENTITY_ORIGIN}/sso/${PROJECT}/${SAML_PROVIDER}`,
+        ]);
+      },
+    );
+
+    test("the helper never throws, and an answer that never comes is waited for no longer than its timeout", async () => {
+      postAnswer = () => {
+        return new Promise<HTTPResponse<JSONObject>>(() => {});
+      };
+
+      const startedAt: number = Date.now();
+
+      await expect(
+        confirmInvitationSsoSignIn(
+          { token: TOKEN, signature: SIGNATURE, projectId: PROJECT },
+          50,
+        ),
+      ).resolves.toBeUndefined();
+      expect(Date.now() - startedAt).toBeLessThan(5000);
+
+      postAnswer = async () => {
+        throw new Error("The network is down");
+      };
+
+      await expect(
+        confirmInvitationSsoSignIn({
+          token: TOKEN,
+          signature: SIGNATURE,
+          projectId: PROJECT,
+        }),
+      ).resolves.toBeUndefined();
+
+      // As long as the sign-up page's own: long enough for the server's few writes.
+      expect(SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS).toBe(10000);
+    });
+
+    test("the page reads the same either way: the same providers, and no word of the link", async () => {
+      await renderWithLink(`?invitation=${TOKEN}&signature=${SIGNATURE}`);
+
+      const withLink: string =
+        (await screen.findByTestId(PROJECT_SSO_PROVIDERS_TEST_ID))
+          .textContent || "";
+
+      expect(document.body.textContent || "").not.toContain(TOKEN);
+      expect(document.body.textContent || "").not.toContain(SIGNATURE);
+
+      cleanup();
+      await renderAt(PROJECT);
+
+      expect(
+        (await screen.findByTestId(PROJECT_SSO_PROVIDERS_TEST_ID))
+          .textContent || "",
+      ).toBe(withLink);
     });
   });
 

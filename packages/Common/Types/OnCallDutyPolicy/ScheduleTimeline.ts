@@ -91,6 +91,11 @@ export interface ScheduleTimelineTeamJson {
   teamId: string;
   teamName: string;
   isCurrentUserMember: boolean;
+  /*
+   * When the team was made (ISO): tells two owner teams of one name apart
+   * in the team filter (#10314). Missing from a server from before it.
+   */
+  teamCreatedAt?: string | undefined;
 }
 
 export interface ScheduleTimelineResponse {
@@ -305,11 +310,16 @@ export default class ScheduleTimelineUtil {
         continue;
       }
 
+      const teamCreatedAt: string | null = ScheduleTimelineUtil.readString(
+        item["teamCreatedAt"],
+      );
+
       teams.push({
         teamId,
         teamName:
           ScheduleTimelineUtil.readString(item["teamName"]) || "Unnamed team",
         isCurrentUserMember: item["isCurrentUserMember"] === true,
+        ...(teamCreatedAt ? { teamCreatedAt: teamCreatedAt } : {}),
       });
     }
 

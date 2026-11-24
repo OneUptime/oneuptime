@@ -33,6 +33,8 @@ import PublicNoteReachRoute from "./PublicNoteReachRoute";
 import { PublicNoteReachEvent } from "../../Types/StatusPage/PublicNoteReach";
 import PickedStatusPagesReachRoute from "./PickedStatusPagesReachRoute";
 import { SCHEDULED_MAINTENANCE_RECORD } from "../Utils/StatusPage/ScheduledMaintenanceReachBuilder";
+import RecordAccessRoute from "./RecordAccessRoute";
+import { RecordAccessKind } from "../../Types/RecordAccess/RecordAccess";
 
 export default class ScheduledMaintenanceAPI extends BaseAPI<
   ScheduledMaintenance,
@@ -81,6 +83,17 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       answer: PickedStatusPagesReachRoute.answerFor(
         SCHEDULED_MAINTENANCE_RECORD,
       ),
+    });
+
+    /*
+     * What the reader may do on this record and its parts, each operation
+     * allowed or refused with why, by the checks a write runs
+     * (Types/RecordAccess/RecordAccess): what every lock on its page reads.
+     */
+    RecordAccessRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      kind: RecordAccessKind.ScheduledMaintenance,
     });
   }
 

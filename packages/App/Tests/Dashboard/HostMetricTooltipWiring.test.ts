@@ -361,8 +361,18 @@ describe("Host overview", () => {
     );
 
     expect(pill).toContain('testId="host-hero-health"');
-    expect(pill).toContain("items={getAttentionItems(host)}");
+    /*
+     * Its dialog answers "what failed?": a failed systemd unit's row there
+     * adds systemd's result, exit status and lines (isDetailed, #10129).
+     */
+    expect(pill).toContain("items={getAttentionItems(host, true)}");
     expect(pill).toContain('<InfoTooltip label="Host Health"');
+  });
+
+  test("the Needs attention card lists the same rows, without the pill's dialog's detail", () => {
+    expect(code).toContain(
+      '<NeedsAttentionCard testId="host-needs-attention" items={getAttentionItems(host)}',
+    );
   });
 
   test("the Details card says when the host booted, with its caption", () => {

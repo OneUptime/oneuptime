@@ -12,13 +12,23 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../Types/Permission";
+import { isProductLevelPermission } from "../../Types/Product/ProductLevels";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
+import Select from "../../Types/BaseDatabase/Select";
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
+import RelationReadersUtil from "../../Types/Database/RelationReadersUtil";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import PermissionUtil from "./Permission";
 import { getListSeparator } from "./ListSeparator";
 import { joinSentences } from "./SentenceSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import TeamOwnedRuleHeld from "../../Types/TeamOwnedRule/TeamOwnedRuleHeld";
+import {
+  getRecordAccessGateOptions,
+  RecordAccessScope,
+  RecordGateAccess,
+  RecordGateOperation,
+} from "./RecordAccessScope";
 import {
   getGlobalTranslator,
   SentenceOptions,
@@ -148,6 +158,13 @@ export interface PermissionGateResult {
    * button with an empty reason.
    */
   disabledReason?: string | undefined;
+  /*
+   * Refused by what the server says of the record the page is open on
+   * (PermissionGateOptions.recordAccess), not by the reader's own
+   * permissions: they hold what the operation asks, and naming it again
+   * would only puzzle them.
+   */
+  isRefusedOnRecord?: boolean | undefined;
 }
 
 /*
@@ -158,6 +175,11 @@ export interface PermissionGateResult {
  */
 export interface PermissionCheckableModel {
   singularName: string | null;
+  /*
+   * A database model's table, by which the server's answer for the record
+   * a page is open on is read (PermissionGateOptions.recordAccess).
+   */
+  tableName?: string | null | undefined;
   hasCreatePermissions: (permissions: Array<Permission>) => boolean;
   hasReadPermissions: (permissions: Array<Permission>) => boolean;
   hasUpdatePermissions: (permissions: Array<Permission>) => boolean;
@@ -267,6 +289,18 @@ export interface PermissionGateOptions extends HeldPermissionsOptions {
    * allow it, or the team block that refuses it, follow as usual.
    */
   sentence?: string | undefined;
+  /*
+   * What the server says the reader may do on the record the page is open
+   * on and on its parts (RecordAccessScope, #10272), read for the table of
+   * the model asked about - so options a page built for its record serve
+   * the gates of the record's parts too: an operation it refuses is
+   * locked, with its reason after the lock's first sentence, though the
+   * reader's own permissions allow it somewhere in the project - their
+   * grant is limited to labels the record does not carry, to records they
+   * do not own, a team blocks it on the record's labels. While it is read
+   * for a reader it may narrow, nothing of the record is offered.
+   */
+  recordAccess?: RecordAccessScope | undefined;
 }
 
 /*
@@ -392,6 +426,37 @@ export default class PermissionGate {
   }
 
   /*
+   * Whether the reader's permissions may reach some records of the project
+   * and not others: a grant limited to labels or to the records they own,
+   * or a team's block on some labels (HeldPermissionsUtil.fromRows keeps
+   * them apart from what reaches the whole project). Only then can what the
+   * server says of one record (RecordAccessScope) lock what their own
+   * permissions allow, so only then does a record's page hold its changes
+   * back while it asks. A master admin's reach every record; a snapshot
+   * not landed yet may hold anything, and nothing is offered on it anyway.
+   */
+  public static mayReachSomeRecordsOnly(
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin()) {
+      return false;
+    }
+
+    const held: HeldPermissions = this.getHeldPermissions(options);
+
+    if (!this.isLoaded(held)) {
+      return true;
+    }
+
+    return (
+      held.blockedForSomeLabels.length > 0 ||
+      held.allowed.some((permission: Permission): boolean => {
+        return !held.allowedProjectWide.includes(permission);
+      })
+    );
+  }
+
+  /*
    * Whether `held` is a snapshot at all (HeldPermissionsUtil.isLoaded):
    * anything in it, a block included - a member whose every row is a block
    * has a snapshot, and it refuses. An empty one has not landed yet.
@@ -492,7 +557,11 @@ export default class PermissionGate {
      * is standing in front of - nor, with a team's block, looser.
      */
     if (this.snapshotAllows(model, action, { ...options, held: held })) {
-      return { isAllowed: true };
+      return this.weighRecordAccess({
+        model: model,
+        action: action,
+        options: options,
+      });
     }
 
     /*
@@ -530,6 +599,54 @@ export default class PermissionGate {
         permissions: modelPermissions,
         held: held,
       }),
+    };
+  }
+
+  /*
+   * An operation the reader's own permissions allow, weighed against what
+   * the server says of it on the record the page is open on (#10272): held
+   * back - not offered, nothing said - while that answer is read for a
+   * reader it may narrow; locked, with the server's reason after the lock's
+   * first sentence, where it refuses it; allowed otherwise. Only a write is
+   * weighed: whoever opened the record's page reads it.
+   */
+  private static weighRecordAccess(data: {
+    model: PermissionCheckableModel;
+    action: ModelAction;
+    options?: PermissionGateOptions | undefined;
+  }): PermissionGateResult {
+    const access: RecordGateAccess | undefined = getRecordAccessGateOptions(
+      data.options?.recordAccess || null,
+      data.model,
+    );
+
+    if (!access || data.action === ModelAction.Read) {
+      return { isAllowed: true };
+    }
+
+    if (access.isHeldBack) {
+      return { isAllowed: false };
+    }
+
+    const reason: string | undefined =
+      access.refusals[data.action as RecordGateOperation];
+
+    if (!reason) {
+      return { isAllowed: true };
+    }
+
+    return {
+      isAllowed: false,
+      disabledReason: joinSentences([
+        this.buildFirstSentence({
+          singularName:
+            data.options?.singularName || data.model.singularName || "item",
+          verb: (data.options?.verb?.trim() || data.action).toLowerCase(),
+          sentence: data.options?.sentence,
+        }),
+        reason,
+      ]),
+      isRefusedOnRecord: true,
     };
   }
 
@@ -928,8 +1045,13 @@ export default class PermissionGate {
     columnPermissions: Array<Permission>;
     options?: PermissionGateOptions | undefined;
   }): PermissionGateResult {
+    /*
+     * Refused on the record the page is open on, the reader holds what the
+     * column asks: the record's reason stands (weighRecordAccess).
+     */
     if (
       !data.recordGate.disabledReason ||
+      data.recordGate.isRefusedOnRecord ||
       data.columnPermissions.length === 0
     ) {
       return data.recordGate;
@@ -1320,12 +1442,38 @@ export default class PermissionGate {
   }
 
   /*
+   * A permission a lock names as a role: a built-in role, or a product's
+   * level (Cloud Admin, Network Viewer: Types/Product/ProductLevels), which
+   * is a project-wide role kept to one product's records.
+   */
+  private static isNamedAsRole(
+    permissionProps: PermissionProps | undefined,
+  ): boolean {
+    return Boolean(
+      permissionProps &&
+        (permissionProps.isRolePermission ||
+          isProductLevelPermission(permissionProps.permission)),
+    );
+  }
+
+  // A permission of a list's own, which a team or a custom role can be given.
+  private static isOwnPermission(
+    permissionProps: PermissionProps | undefined,
+  ): boolean {
+    return Boolean(
+      permissionProps &&
+        !this.isNamedAsRole(permissionProps) &&
+        permissionProps.isAssignableToTenant,
+    );
+  }
+
+  /*
    * What a lock names of a list of permissions that would allow it, in the
    * list's order (see NEEDS_PERMISSION_TEMPLATE): the permissions of its
-   * own that a team or a custom role can be given; the built-in roles when
-   * it has none; and when it has neither (Public, Logged in User), every
-   * title it has, as before. Unknown permissions are skipped
-   * (getPermissionTitles).
+   * own that a team or a custom role can be given; the built-in roles and
+   * the products' levels when it has none; and when it has neither
+   * (Public, Logged in User), every title it has, as before. Unknown
+   * permissions are skipped (getPermissionTitles).
    */
   public static getPermissionsToName(
     permissions: ReadonlyArray<Permission>,
@@ -1334,13 +1482,7 @@ export default class PermissionGate {
 
     const own: Array<Permission> = permissions.filter(
       (permission: Permission): boolean => {
-        const permissionProps: PermissionProps | undefined = props[permission];
-
-        return Boolean(
-          permissionProps &&
-            !permissionProps.isRolePermission &&
-            permissionProps.isAssignableToTenant,
-        );
+        return this.isOwnPermission(props[permission]);
       },
     );
 
@@ -1350,7 +1492,7 @@ export default class PermissionGate {
 
     const roles: Array<Permission> = permissions.filter(
       (permission: Permission): boolean => {
-        return Boolean(props[permission]?.isRolePermission);
+        return this.isNamedAsRole(props[permission]);
       },
     );
 
@@ -1385,13 +1527,7 @@ export default class PermissionGate {
     const isOwn: (permission: Permission) => boolean = (
       permission: Permission,
     ): boolean => {
-      const permissionProps: PermissionProps | undefined = props[permission];
-
-      return Boolean(
-        permissionProps &&
-          !permissionProps.isRolePermission &&
-          permissionProps.isAssignableToTenant,
-      );
+      return this.isOwnPermission(props[permission]);
     };
 
     const kinds: Set<PermissionProps["group"]> = new Set(
@@ -1666,6 +1802,67 @@ export default class PermissionGate {
         columnPermissions: columnPermissions,
       },
     );
+  }
+
+  /*
+   * Whether the user may read one column of a record a relation reaches -
+   * `{ dataStore: { sensitivity: true } }` on a data asset - as the server
+   * decides a select through the relation (RelationReadersUtil
+   * .mayReadThroughRelation, QueryPermission.checkRelationQueryPermission):
+   * a label every reader of the relation reads; a column held to its own
+   * read only when the user may read it on the related record (#10281); an
+   * id or a time by the related record's read; nothing else. On a person's
+   * own records CurrentUser is never counted, as the server never counts it
+   * through a relation the read is not pinned to them by. A master admin
+   * reads everything.
+   *
+   * Before the snapshot has landed nothing tells a column the user may read
+   * from one they may not, so this answers yes and the server decides, as a
+   * table asks for its secondary fields (BaseModelTable): answering no would
+   * leave the column out of a read for the readers who may read it too,
+   * with nothing to read it again once the snapshot lands.
+   */
+  public static canReadThroughRelation(
+    relatedModel: BaseModel,
+    column: string,
+    options?: PermissionGateOptions | undefined,
+  ): boolean {
+    if (User.isMasterAdmin() || !this.hasPermissionSnapshot(options)) {
+      return true;
+    }
+
+    const isPersonsOwnRecord: boolean =
+      relatedModel.tableName === "User" ||
+      Boolean(relatedModel.getUserColumn());
+
+    return RelationReadersUtil.mayReadThroughRelation({
+      relatedModel: relatedModel,
+      column: column,
+      held: this.getHeldPermissions(options),
+      notCounted: isPersonsOwnRecord ? [Permission.CurrentUser] : [],
+    });
+  }
+
+  /*
+   * A select as this user sends it: every column of a related record that
+   * a relation reads only for those who may read it on the record itself,
+   * and this user may not (canReadThroughRelation), left out - so a page
+   * reads the rest in one request, rather than being refused all of it for
+   * one column (RelationReadersUtil.getSelectReadableThroughRelations,
+   * #10281). The select handed in is never changed.
+   */
+  public static getSelectReadableThroughRelations<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    select: Select<TBaseModel>,
+    options?: PermissionGateOptions | undefined,
+  ): Select<TBaseModel> {
+    return RelationReadersUtil.getSelectReadableThroughRelations<TBaseModel>({
+      model: new modelType(),
+      select: select,
+      mayRead: (relatedModel: BaseModel, column: string): boolean => {
+        return this.canReadThroughRelation(relatedModel, column, options);
+      },
+    });
   }
 
   /*

@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import type { SharedNameFacts } from "Common/UI/Utils/SharedNameOptions";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -62,6 +63,12 @@ export interface FilterChipDropdownOption {
   person?: FilterChipPersonAvatar | undefined;
   /** Optional group key for sectioning options under a heading. */
   group?: string | undefined;
+  /*
+   * A team or a label: what tells it from another of its kind of the same
+   * name (Common/UI/Utils/SharedNameOptions, #10064). The chip's list
+   * marks the ones that share a name, with what sets each apart.
+   */
+  sharedName?: SharedNameFacts | undefined;
 }
 
 export interface FilterChipPersonAvatar {

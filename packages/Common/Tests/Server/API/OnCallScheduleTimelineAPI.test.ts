@@ -753,6 +753,49 @@ describe("buildTimelineResponse", () => {
     ]);
   });
 
+  /*
+   * Two owner teams of one name, named alike before names were held to one
+   * team each, are told apart in the page's team filter (#10314): by when
+   * each was made, the most the timeline sends of a team.
+   */
+  test("each team says when it was made, and one whose day is not known says nothing", () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+    const NOVEMBER: Date = new Date("2026-11-05T09:30:00.000Z");
+
+    const response: ScheduleTimelineResponse = build({
+      ownerTeamIdsBySchedule: new Map([
+        ["s-1", ["t-a", "t-b"]],
+        ["s-2", ["t-c"]],
+      ]),
+      teamNames: new Map([
+        ["t-a", "Platform"],
+        ["t-b", "Platform"],
+        ["t-c", "SRE"],
+      ]),
+      teamCreatedAt: new Map([
+        ["t-a", MARCH],
+        ["t-b", NOVEMBER],
+      ]),
+    });
+
+    expect(response.teams).toEqual([
+      {
+        teamId: "t-a",
+        teamName: "Platform",
+        isCurrentUserMember: false,
+        teamCreatedAt: MARCH.toISOString(),
+      },
+      {
+        teamId: "t-b",
+        teamName: "Platform",
+        isCurrentUserMember: false,
+        teamCreatedAt: NOVEMBER.toISOString(),
+      },
+      { teamId: "t-c", teamName: "SRE", isCurrentUserMember: false },
+    ]);
+    expect(response.teams[2]).not.toHaveProperty("teamCreatedAt");
+  });
+
   test("roster membership is per schedule", () => {
     const response: ScheduleTimelineResponse = build({
       rosterScheduleIds: new Set(["s-2"]),
@@ -1142,6 +1185,12 @@ describe("GET /on-call-schedule-timeline: the gate", () => {
 
     const teamArgs: CapturedFind = captured(teamFindBy);
     expect(teamArgs.props.isRoot).toBe(true);
+    /*
+     * When each was made, which tells two of one name apart (#10314) -
+     * never a description: these are read as OneUptime, for a caller who
+     * may read the schedules but not the teams.
+     */
+    expect(teamArgs.select).toEqual({ _id: true, name: true, createdAt: true });
     expect(teamArgs.query["projectId"]?.toString()).toBe(projectId.toString());
     expect(anyValues(teamArgs.query["_id"]).sort()).toEqual(
       [teamSre.toString(), teamPayments.toString()].sort(),
@@ -1543,6 +1592,33 @@ describe("GET /on-call-schedule-timeline: the payload", () => {
         teamId: teamSre.toString(),
         teamName: "SRE",
         isCurrentUserMember: true,
+      },
+    ]);
+  });
+
+  test("each team the payload names says when it was made, when its row did (#10314)", async () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+
+    teamFindBy.mockResolvedValue([
+      { id: teamSre, name: "SRE", createdAt: MARCH },
+      { id: teamPayments, name: "Payments" },
+    ] as never);
+
+    const payload: ScheduleTimelineResponse = json(
+      await request(timelinePath()),
+    );
+
+    expect(payload.teams).toEqual([
+      {
+        teamId: teamPayments.toString(),
+        teamName: "Payments",
+        isCurrentUserMember: false,
+      },
+      {
+        teamId: teamSre.toString(),
+        teamName: "SRE",
+        isCurrentUserMember: true,
+        teamCreatedAt: MARCH.toISOString(),
       },
     ]);
   });

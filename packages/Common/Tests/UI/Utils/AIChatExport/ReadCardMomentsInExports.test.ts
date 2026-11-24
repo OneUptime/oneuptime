@@ -46,8 +46,8 @@ function scheduleCard(): AIChatWidget {
 }
 
 const EXPORTED: Array<ResourceCardFact> = [
-  { label: "On call since", value: "Oct 26 2026, 14:00 CET" },
-  { label: "Hands off at", value: "Nov 02 2026, 14:00 CET" },
+  { label: "On call since", value: "Oct 26, 2026, 14:00 CET" },
+  { label: "Hands off at", value: "Nov 2, 2026, 14:00 CET" },
   { label: "Next up", value: "Jonas Müller" },
 ];
 
@@ -74,8 +74,8 @@ describe("a read's card's moments in the exports", () => {
   test("the Markdown export writes them so too, never as ISO text", () => {
     const markdown: string = widgetToMarkdown(scheduleCard());
 
-    expect(markdown).toContain("- **On call since:** Oct 26 2026, 14:00 CET");
-    expect(markdown).toContain("- **Hands off at:** Nov 02 2026, 14:00 CET");
+    expect(markdown).toContain("- **On call since:** Oct 26, 2026, 14:00 CET");
+    expect(markdown).toContain("- **Hands off at:** Nov 2, 2026, 14:00 CET");
     expect(markdown).toContain("- **Next up:** Jonas Müller");
     expect(markdown).not.toContain("T13:00");
   });

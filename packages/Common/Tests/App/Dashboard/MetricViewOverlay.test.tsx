@@ -20,7 +20,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * those queries the chart it would join, so the switch can say when its
  * unit cannot be read there, and it sizes its charts per chart drawn: a
  * height per query stretched two overlaid queries' one chart to twice its
- * height, and three to three times.
+ * height, and three to three times. Only charts without cards (a monitor's
+ * form) take that height; charts in cards keep their own (issue #10043).
  *
  * MetricView is the production component; the metrics read, the charts and
  * each query's editor are stand-ins that record what they were handed.
@@ -63,7 +64,7 @@ jest.mock(
 interface EditorProps {
   data: MetricQueryConfigData;
   canOverlayWithPreviousQuery?: boolean | undefined;
-  overlayChartQuery?: MetricQueryConfigData | undefined;
+  overlayChartQueries?: Array<MetricQueryConfigData> | undefined;
 }
 
 let editors: Array<EditorProps> = [];
@@ -224,7 +225,7 @@ describe("every query after the first offers the switch, and knows the chart it 
     ).toEqual([false, true, true]);
   });
 
-  test("each later query is handed the first query of the chart it would join", async () => {
+  test("each later query is handed the chart it would join, its first query first", async () => {
     await drawView(
       dataOf([
         query("a", "mem_used"),
@@ -235,11 +236,16 @@ describe("every query after the first offers the switch, and knows the chart it 
       ]),
     );
 
+    // The chart's queries before each one: its lead, then those overlaid.
     expect(
-      lastEditors(5).map((editor: EditorProps): string | undefined => {
-        return editor.overlayChartQuery?.metricAliasData?.metricVariable;
+      lastEditors(5).map((editor: EditorProps): string => {
+        return (editor.overlayChartQueries || [])
+          .map((queryConfig: MetricQueryConfigData): string => {
+            return queryConfig.metricAliasData?.metricVariable || "";
+          })
+          .join(",");
       }),
-    ).toEqual([undefined, "a", "a", "a", "d"]);
+    ).toEqual(["", "a", "a,b", "a,b,c", "d"]);
   });
 
   test("a metric monitor's form offers it the same way", async () => {
@@ -251,15 +257,28 @@ describe("every query after the first offers the switch, and knows the chart it 
 
     expect(first!.canOverlayWithPreviousQuery).toBe(false);
     expect(second!.canOverlayWithPreviousQuery).toBe(true);
-    expect(second!.overlayChartQuery?.metricAliasData?.metricVariable).toBe(
-      "a",
-    );
+    expect(
+      (second!.overlayChartQueries || []).map(
+        (queryConfig: MetricQueryConfigData): string | undefined => {
+          return queryConfig.metricAliasData?.metricVariable;
+        },
+      ),
+    ).toEqual(["a"]);
   });
 });
 
-describe("the charts are given room per chart drawn, not per query", () => {
+describe("charts without cards are given room per chart drawn, not per query", () => {
+  /*
+   * A metric monitor's form draws its charts without cards, one under
+   * another, so the box they share keeps 20rem for each chart drawn.
+   */
+  const monitorForm: ViewOptions = { isMonitorForm: true };
+
   test("two queries on charts of their own: two charts' height", async () => {
-    await drawView(dataOf([query("a", "mem_used"), query("b", "mem_total")]));
+    await drawView(
+      dataOf([query("a", "mem_used"), query("b", "mem_total")]),
+      monitorForm,
+    );
 
     expect(chartsHeight()).toBe("40rem");
   });
@@ -267,6 +286,7 @@ describe("the charts are given room per chart drawn, not per query", () => {
   test("two queries overlaid: one chart, one chart's height", async () => {
     await drawView(
       dataOf([query("a", "mem_used"), query("b", "mem_total", true)]),
+      monitorForm,
     );
 
     expect(chartsHeight()).toBe("20rem");
@@ -279,6 +299,7 @@ describe("the charts are given room per chart drawn, not per query", () => {
         query("b", "mem_total", true),
         query("c", "mem_free", true),
       ]),
+      monitorForm,
     );
 
     expect(chartsHeight()).toBe("20rem");
@@ -291,6 +312,7 @@ describe("the charts are given room per chart drawn, not per query", () => {
         query("b", "mem_total"),
         query("c", "mem_free", true),
       ]),
+      monitorForm,
     );
 
     expect(chartsHeight()).toBe("40rem");
@@ -302,24 +324,73 @@ describe("the charts are given room per chart drawn, not per query", () => {
         [query("a", "mem_used"), query("b", "mem_total", true)],
         [formula("c")],
       ),
+      monitorForm,
     );
 
     expect(chartsHeight()).toBe("40rem");
   });
 
   test("a first query saved overlaid still draws, and is still counted", async () => {
-    await drawView(dataOf([query("a", "mem_used", true)]));
+    await drawView(dataOf([query("a", "mem_used", true)]), monitorForm);
 
     expect(chartsHeight()).toBe("20rem");
   });
+});
 
-  test("a metric monitor's form sizes its charts the same way", async () => {
+/*
+ * ISSUE #10043: the explorer draws its charts in cards, two to a row from
+ * lg up (ChartGroup), and each card's plot keeps its own 20rem. A height of
+ * 20rem per chart for the box around them counted every chart as a row of
+ * its own: two charts side by side were stretched to 40rem each, three to
+ * 30rem. The box keeps no height of its own now; the cards keep theirs.
+ * The browser's own layout is measured at 1280px, 1024px and 390px by
+ * packages/E2E/ChartTimeZoom/MetricExplorerChartHeights.spec.ts.
+ */
+describe("charts in cards keep their own height, and the box around them none", () => {
+  test("one chart: no height for the box", async () => {
+    await drawView(dataOf([query("a", "mem_used")]));
+
+    expect(chartsHeight()).toBe("");
+  });
+
+  test("two charts side by side: no height that would stretch their row", async () => {
+    await drawView(dataOf([query("a", "mem_used"), query("b", "mem_total")]));
+
+    expect(chartsHeight()).toBe("");
+  });
+
+  test("three charts, and four with a formula's: none either", async () => {
     await drawView(
-      dataOf([query("a", "mem_used"), query("b", "mem_total", true)]),
-      { isMonitorForm: true },
+      dataOf([
+        query("a", "mem_used"),
+        query("b", "mem_total"),
+        query("c", "mem_free"),
+      ]),
     );
 
-    expect(chartsHeight()).toBe("20rem");
+    expect(chartsHeight()).toBe("");
+    cleanup();
+
+    await drawView(
+      dataOf(
+        [
+          query("a", "mem_used"),
+          query("b", "mem_total"),
+          query("c", "mem_free"),
+        ],
+        [formula("d")],
+      ),
+    );
+
+    expect(chartsHeight()).toBe("");
+  });
+
+  test("overlaid queries draw one card, with no height for the box", async () => {
+    await drawView(
+      dataOf([query("a", "mem_used"), query("b", "mem_total", true)]),
+    );
+
+    expect(chartsHeight()).toBe("");
   });
 });
 

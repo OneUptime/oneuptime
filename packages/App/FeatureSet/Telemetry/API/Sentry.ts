@@ -11,6 +11,7 @@ import Express, {
 import CompatibleIngestCredential, {
   CompatibleCredentialScheme,
 } from "../Utils/Compatible/CompatibleIngestCredential";
+import { ingestMetricsMiddleware } from "../Middleware/IngestRequestMetrics";
 import SentryIngestService from "../Services/SentryIngestService";
 
 /*
@@ -28,10 +29,20 @@ const credentials: RequestHandler = CompatibleIngestCredential.middleware([
   CompatibleCredentialScheme.SentryKey,
 ]);
 
+/*
+ * OneUptime's own ingest metrics: an envelope is counted as traces, as its
+ * errors and transactions are, whatever logs it carries too.
+ */
+const ingestMetrics: RequestHandler = ingestMetricsMiddleware(
+  "traces",
+  TelemetryIngestSurface.Sentry,
+);
+
 // Envelopes: every current SDK, errors, transactions and logs together.
 router.post(
   "/sentry/api/:sentryProjectId/envelope",
   TelemetryIngestionDisabled.middleware,
+  ingestMetrics,
   credentials,
   SentryIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Sentry),
@@ -48,6 +59,7 @@ router.post(
 router.post(
   "/sentry/api/:sentryProjectId/store",
   TelemetryIngestionDisabled.middleware,
+  ingestMetrics,
   credentials,
   SentryIngestService.setProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Sentry),

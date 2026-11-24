@@ -79,9 +79,15 @@ export const EXCEPTION_ASSIGNEE_TEST_IDS: {
  * The name as a control: laid out like a person (avatar, gap, name), its
  * avatar lined up with the words of the facts beside it, the whole of it
  * lit on hover and while its list is open, as the empty place is.
+ *
+ * It may be as wide as the box around it and the 0.25rem it reaches back
+ * past that box's start (-ms-1): held to the box alone, as max-w-full held
+ * it, a name that fits was cut 0.25rem short of it and ended in an
+ * ellipsis ("Maya Ch…"), since the box is only as wide as the name less
+ * that margin (#10271) - as the incident header's commander was.
  */
 export const EXCEPTION_ASSIGNEE_CHANGE_CLASS_NAME: string =
-  "-my-0.5 -ms-1 inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full py-0.5 pe-2 ps-1 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+  "-my-0.5 -ms-1 inline-flex min-w-0 max-w-[calc(100%+0.25rem)] items-center gap-1.5 rounded-full py-0.5 pe-2 ps-1 font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 const CHANGE_IDLE_CLASS_NAME: string = "text-gray-900";
 

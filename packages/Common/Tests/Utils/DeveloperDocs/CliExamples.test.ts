@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -16,6 +17,8 @@ import {
   getCliConnectCommands,
   getCliCountExample,
   getCliCreateExample,
+  getCliDeleteChoiceArgs,
+  getCliDeleteChoiceWays,
   getCliDeleteExample,
   getCliFieldsExample,
   getCliGetExample,
@@ -384,5 +387,124 @@ describe("installing and connecting", () => {
     expect(getCliLoginCommand(ORIGIN)).toBe(
       `oneuptime login <api-key> ${ORIGIN}`,
     );
+  });
+});
+
+/*
+ * A DELETE THAT SAYS MORE THAN THE RECORD (#9949, #10031): a custom role
+ * that workflows run as is deleted with what they run as instead, as flags
+ * named for the keys the API reads. The CLI's help and the dashboard's CLI
+ * pages write them from here.
+ */
+describe("a delete's choices, as flags", () => {
+  test("each way a custom role's delete says them, in the order the CLI's help lists its flags", () => {
+    expect(getCliDeleteChoiceWays("CustomRole")).toEqual([
+      ["--workflows-run-as", "Default"],
+      [
+        "--workflows-run-as",
+        "CustomRole",
+        "--workflows-run-as-custom-role-id",
+        "<custom-role-id>",
+      ],
+    ]);
+  });
+
+  test("a table whose delete takes none has none", () => {
+    for (const tableName of ["Incident", "Team", "", null, undefined]) {
+      expect(getCliDeleteChoiceWays(tableName)).toEqual([]);
+    }
+  });
+
+  test("a delete with a choice ends with its flags", () => {
+    expect(
+      getCliDeleteExample({
+        modelType: CustomRole,
+        id: ID,
+        choices: { workflowsRunAs: "Default" },
+      }),
+    ).toEqual({
+      args: ["custom-role", "delete", ID, "--workflows-run-as", "Default"],
+      command: [
+        `oneuptime custom-role delete ${ID} \\`,
+        "  --workflows-run-as Default",
+      ].join("\n"),
+    });
+  });
+
+  test("the other role's ID left to fill in is quoted, so a shell reads it as a word, not a redirection", () => {
+    const [, customRole] = getCliDeleteChoiceWays("CustomRole");
+
+    expect(
+      getCliDeleteExample({
+        modelType: CustomRole,
+        id: ID,
+        choices: {
+          workflowsRunAs: customRole![1]!,
+          workflowsRunAsCustomRoleId: customRole![3]!,
+        },
+      }).command,
+    ).toContain("--workflows-run-as-custom-role-id '<custom-role-id>'");
+  });
+
+  test("a long one goes a flag a line, and reads back as the same words", () => {
+    const example: CliExample = getCliDeleteExample({
+      modelType: CustomRole,
+      id: ID,
+      choices: {
+        workflowsRunAs: "CustomRole",
+        workflowsRunAsCustomRoleId: OTHER,
+      },
+    });
+
+    expect(example.args).toEqual([
+      "custom-role",
+      "delete",
+      ID,
+      "--workflows-run-as",
+      "CustomRole",
+      "--workflows-run-as-custom-role-id",
+      OTHER,
+    ]);
+    expect(example.command).toBe(
+      [
+        `oneuptime custom-role delete ${ID} \\`,
+        "  --workflows-run-as CustomRole \\",
+        `  --workflows-run-as-custom-role-id ${OTHER}`,
+      ].join("\n"),
+    );
+  });
+
+  test("the flags follow the choices' order, whatever order they were given in", () => {
+    expect(
+      getCliDeleteChoiceArgs({
+        tableName: "CustomRole",
+        choices: {
+          workflowsRunAsCustomRoleId: OTHER,
+          workflowsRunAs: "CustomRole",
+        },
+      }),
+    ).toEqual([
+      "--workflows-run-as",
+      "CustomRole",
+      "--workflows-run-as-custom-role-id",
+      OTHER,
+    ]);
+  });
+
+  test("a key that is no choice of the table's, and a choice left empty, have no flag", () => {
+    expect(
+      getCliDeleteChoiceArgs({
+        tableName: "CustomRole",
+        choices: { force: true, workflowsRunAsCustomRoleId: null },
+      }),
+    ).toEqual([]);
+    // Another resource's delete is the delete it always was.
+    expect(
+      getCliDeleteExample({
+        modelType: Incident,
+        id: ID,
+        choices: { workflowsRunAs: "Default" },
+      }).command,
+    ).toBe(`oneuptime incident delete ${ID}`);
   });
 });

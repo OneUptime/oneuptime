@@ -59,7 +59,7 @@ Open **Scheduled Maintenance** from the **Products** menu in the top bar. The li
 | **Rules**     | **Owner Rules**, **Runbook Rules**, **Label Rules**, **Reminder Rules**.                                                             |
 | **Settings**  | **Maintenance State**, **Maintenance Templates**, **Note Templates**, **Public Note Approval**, **Custom Fields**, **Measurements**, **Calendar Settings**, **Numbering**. |
 
-**Overview** is open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **API**, **CLI** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
+**Overview** is open; **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. **Developer** holds **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants**, for managing maintenance from code. Everything about maintenance lives here, not in **Project Settings**.
 
 The list shows **Scheduled Maintenance Number**, **Title**, **Current State**, **Affected Resources**, **Shown on Status Page**, **Starts At**, **Duration**, **Ends At**, **Labels** and **Owners**. Select events to act on several at once: **Mark as {{state}}**, **Change State**, **Assign to Me**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels** or **Delete**. Each event's **⋯** menu, at the end of its row, does the same for that event alone: the **Mark as {{state}}** moves while the event can make them, **Change State**, **Assign to Me** until you own it, and **Add Owner**.
 
@@ -85,7 +85,7 @@ Open an event from the list to see its pages. Its side menu holds:
 | **Overview** | **Overview**, **State Timeline**, **Description**, **Runbooks**, **Owners** |
 | **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the event, and what AI did for it |
 | **Notes**         | **Private Notes** and **Public Notes**                                                         |
-| **Developer**     | **Terraform**, **API**, **CLI** and **AI Assistants**: the event managed from code            |
+| **Developer**     | **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants**: the event managed from code            |
 | **Advanced**      | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Maintenance Event**                 |
 
 **Overview** and **Notes** are open; the other sections start folded until you click them.
@@ -106,7 +106,7 @@ Only the monitors the event names under **Monitors** stop being checked, and onl
 :::
 
 :::details The event is not on my status page
-Check that the event names the page under **Show event on these status pages**, and that **Visible on Status Page** is on in the event's **Settings**. If its header says **Not on status pages yet**, it shows from its **Publish At**: see [Publish it later](/docs/scheduled-maintenance/creating-events#publish-it-later). Then check the status page itself: it must show maintenance events, and an event that started longer ago than the page's history window, 14 days unless you changed it, is no longer listed.
+Check that the event names the page under **Show event on these status pages**, and that **Visible on Status Page** is on in the event's **Settings**. If its header says **Not on status pages yet**, it shows from its **Publish At**: see [Publish it later](/docs/scheduled-maintenance/creating-events#publish-it-later). Then check the status page itself: it must show maintenance events (the event's **Maintenance Details** card says so when none of its status pages does), and an event that started longer ago than the page's history window, 14 days unless you changed it, is no longer listed.
 :::
 
 ## Next steps

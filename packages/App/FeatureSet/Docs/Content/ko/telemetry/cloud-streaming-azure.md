@@ -30,6 +30,7 @@ flowchart TB
 - **연결된 Azure 구독.** 먼저 **클라우드 → 연결**에서 연결하세요. [클라우드 계정 연결](/docs/telemetry/cloud-accounts)을 참고하세요.
 - **프로젝트 소유자 또는 프로젝트 관리자.** 이들만 읽기를 켜고 스트리밍을 중지할 수 있습니다.
 - **Azure Cloud Shell**. 구독의 **Owner**이거나 **User Access Administrator**이기도 한 **Contributor**로 로그인하세요. 명령은 리소스 그룹과 역할 할당을 만들고 진단 설정을 변경합니다.
+- **Microsoft Entra ID의 로그에는 테넌트의 Security Administrator**. 명령이 만드는 리소스 그룹의 **Owner** 또는 **Contributor**이기도 한 사람이어야 합니다. 테넌트의 로그를 이벤트 허브로 보낼 수 있는 사람은 이들뿐입니다.
 - **자체 호스팅 OneUptime이라면 Azure로 나가는 경로.** OneUptime은 각 네임스페이스를 `<namespace>.servicebus.windows.net`의 9093 포트로 읽으며, 네임스페이스는 인터넷에서 오는 연결을 받습니다.
 
 ## 스트리밍 설정
@@ -43,6 +44,8 @@ flowchart TB
 
 **메트릭**은 각 리소스의 핵심 메트릭을 1분 단위로 스트리밍합니다. OneUptime이 각 리소스를 차트로 보여 주고 판단하는 기준이 되는 메트릭이지만, [진단 설정이 보낼 수 없는 메트릭](#도착하는-것)은 제외되며 연결이 계속 읽습니다. **메트릭 및 로그**는 각 리소스 자체의 로그(Azure가 그 리소스에 대해 보관하는 모든 범주)를 더하고, **로그**는 리소스 로그만 스트리밍합니다.
 
+**보안 이벤트용** 아래에서 **각 구독의 활동 로그**를 켜면 명령이 각 구독의 변경, Defender for Cloud 경고, Azure Policy 거부를 첫 번째 지역의 이벤트 허브로 보내고, **Microsoft Entra ID 로그인 및 감사 로그**를 켜면 테넌트의 Security Administrator가 실행할 두 번째 명령이 추가됩니다. [보안 이벤트](/docs/telemetry/security-events#로그에서-보안-이벤트-찾기)가 둘 다 읽습니다.
+
 ### 읽기 켜기
 
 **읽기 켜기**를 선택합니다. OneUptime은 매분 이벤트 허브를 찾고, 명령이 만들 때까지 기다립니다.
@@ -50,6 +53,10 @@ flowchart TB
 ### Azure Cloud Shell에서 명령 실행하기
 
 명령을 복사해 Azure Cloud Shell에서 실행하고 끝날 때까지 기다립니다. 이벤트 허브를 만든 각 지역, 그곳으로 보내는 리소스 수, 제외한 리소스와 Azure가 밝힌 이유가 표시됩니다.
+
+### 선택했다면 Microsoft Entra ID 명령 실행하기
+
+첫 번째 명령이 끝나면 테넌트의 Security Administrator가 두 번째 명령을 Azure Cloud Shell에서 실행합니다. 이 명령은 Microsoft Entra ID의 로그인, 감사, 위험 로그를 첫 번째 지역의 이벤트 허브로 보내는 진단 설정을 테넌트에 추가하며, Azure가 거부하면 Azure가 무엇을 요구했는지 알려 줍니다.
 
 ### 첫 이벤트 기다리기
 
@@ -83,7 +90,13 @@ Service Bus 또는 Event Hubs 네임스페이스는 메트릭을 하나도 스�
 
 로그는 리소스의 ARM ID로 해당 리소스 아래에 보관되며 `cloud.resource_id`로 전달되고, 범주, 작업, 결과, 속성은 `azure.category`처럼 속성으로 남습니다.
 
-가상 머신, 확장 집합, 디스크, 네트워크 인터페이스, 가상 네트워크, 프라이빗 엔드포인트, NAT 게이트웨이, DNS 영역, App Service 계획은 자체 리소스 로그를 보내지 않으므로, 그 페이지에는 **로그** 탭이 없습니다. 스토리지 계정의 로그는 그 서비스들의 로그이고, 컨테이너 앱의 로그는 그 환경의 로그입니다.
+`Administrative`, `Security` 또는 `Policy` 범주의 활동 로그 레코드와 Microsoft Entra ID의 로그인, 감사 또는 위험 레코드는 로그 본문으로 통째로 도착합니다. 리소스가 아니라 리소스 그룹, 구독 또는 테넌트에 관한 레코드도 마찬가지입니다. [로그에서 보안 이벤트 찾기](/docs/telemetry/security-events#로그에서-보안-이벤트-찾기)를 켜면 각 레코드는 로그 파이프라인에서 온 레코드처럼 보안 이벤트로 읽히고, OneUptime에 몇 가지 경로로 도착하든 한 번만 저장됩니다. **각 구독의 활동 로그**를 켜면 명령은 각 구독에 활동 로그를 첫 번째 지역의 이벤트 허브로 보내는 진단 설정을 추가하고, Microsoft Entra ID 명령은 테넌트에 같은 진단 설정을 추가합니다.
+
+Key Vault의 `AuditEvent`, 스토리지 계정의 `StorageRead`, `StorageWrite`, `StorageDelete`, Azure SQL 데이터베이스의 `SQLSecurityAuditEvents`도 통째로 도착해 각각 해당 리소스 아래에 보관되며, 보안 이벤트는 그중 보안에 중요한 것을 읽습니다. [Azure 리소스 자체의 감사 로그](/docs/telemetry/security-events#azure-리소스-자체의-감사-로그)를 참고하세요. Azure SQL 데이터베이스는 감사가 켜져 있고 대상에 Azure Monitor가 포함된 경우에만 감사를 보냅니다.
+
+가상 머신, 확장 집합, 디스크, 네트워크 인터페이스, 가상 네트워크, 프라이빗 엔드포인트, NAT 게이트웨이, DNS 영역, App Service 계획은 자체 리소스 로그를 보내지 않으므로, 그 페이지에는 **로그** 탭이 없습니다. 컨테이너 앱의 로그는 그 환경의 로그입니다.
+
+스토리지 계정의 로그는 그 Blob, 파일, 큐, 테이블 서비스의 로그입니다. 명령은 각 서비스에 별도의 진단 설정을 추가하며, 그 로그는 계정 아래, 계정의 **로그** 탭에 보관됩니다. 계정이 응답하는 모든 요청이 기록되므로, 사용량이 많은 계정은 많은 로그를 보냅니다.
 
 ## 명령이 만드는 것
 
@@ -96,6 +109,9 @@ Service Bus 또는 Event Hubs 네임스페이스는 메트릭을 하나도 스�
 | 각 네임스페이스의 이벤트 허브 `oneuptime`, 파티션 2 | OneUptime이 읽을 때까지 이벤트를 보관합니다 |
 | 연결의 앱에 부여하는 **Azure Event Hubs Data Receiver** 역할, 리소스 그룹에만 적용 | 앱이 이벤트 허브만 읽을 수 있게 합니다 |
 | 각 리소스의 진단 설정 `OneUptime-<suffix>` | 리소스의 메트릭, 로그 또는 둘 다를 해당 지역의 이벤트 허브로 보냅니다 |
+| 로그를 스트리밍할 때 스토리지 계정의 Blob, 파일, 큐, 테이블 서비스마다 추가하는 진단 설정 `OneUptime-<suffix>` | 서비스들의 로그를 계정이 있는 지역의 이벤트 허브로 보냅니다 |
+| **각 구독의 활동 로그**를 켰을 때 각 구독의 진단 설정 `OneUptime-<suffix>` | 구독의 `Administrative`, `Security`, `Policy` 레코드를 첫 번째 지역의 이벤트 허브로 보냅니다 |
+| Microsoft Entra ID 명령을 실행했을 때 테넌트의 진단 설정 `OneUptime-<suffix>` | 테넌트의 로그인, 감사, 위험 로그를 첫 번째 지역의 이벤트 허브로 보냅니다 |
 
 Front Door처럼 전역 지역에 있는 리소스는 첫 번째 지역의 이벤트 허브로 보냅니다. Azure가 메트릭만 또는 로그만 보관하는 리소스는 가진 것으로 설정되며, Azure가 허용하는 최대치인 진단 설정 5개를 이미 가진 리소스는 제외됩니다. Azure는 각 네임스페이스의 처리량 단위를 시간 단위로, 진단 설정이 보내는 이벤트와 함께 청구합니다.
 
@@ -108,20 +124,31 @@ Front Door처럼 전역 지역에 있는 리소스는 첫 번째 지역의 이�
 
 ### 명령이 만든 것 삭제하기
 
-이벤트 허브와 진단 설정은 삭제될 때까지 Azure에 남고, Azure는 그에 대한 요금을 청구합니다. 대화 상자에 명령이 표시됩니다. 이 명령은 각 리소스의 진단 설정을 삭제한 다음, 리소스 그룹이 어느 구독에 있든 그 리소스 그룹을 삭제합니다.
+이벤트 허브와 진단 설정은 삭제될 때까지 Azure에 남고, Azure는 그에 대한 요금을 청구합니다. 대화 상자에 명령이 표시됩니다. 이 명령은 각 리소스, 스토리지 계정의 각 서비스, 각 구독의 진단 설정을 삭제한 다음, 리소스 그룹이 어느 구독에 있든 그 리소스 그룹을 삭제합니다. Microsoft Entra ID의 진단 설정도 삭제할 권한이 있으면 삭제하고, 없으면 누가 삭제할 수 있는지 알려 줍니다.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ Terraform이나 포털로, 명령이 만드는 것을 다음 이름으로 만드
 
 :::details 명령이 리소스를 제외했습니다
 제외한 리소스가 각각 Azure가 밝힌 이유와 함께 표시됩니다. 진단 설정이 없는 유형의 리소스는 아무것도 보내지 않으며, 진단 설정 5개를 이미 가진 리소스는 먼저 그중 하나를 삭제해야 합니다. 그런 다음 명령을 다시 실행하세요.
+:::
+
+:::details 활동 로그 또는 Microsoft Entra ID의 로그가 제외되었습니다
+명령이 Azure가 무엇을 요구했는지 알려 줍니다. 구독의 진단 설정에는 구독에 대한 `Microsoft.Insights/diagnosticSettings/write`가 필요하며, 이는 구독의 Owner, Contributor, Monitoring Contributor에게 있습니다. 테넌트의 진단 설정에는 테넌트의 Security Administrator가 필요합니다. 둘 다 명령이 만드는 리소스 그룹에 대한 `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action`이 필요하며, 이는 그 리소스 그룹의 Owner와 Contributor에게 있습니다. 그런 다음 명령을 다시 실행하세요.
 :::
 
 ## 다음 단계

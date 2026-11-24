@@ -34,6 +34,13 @@ import {
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import SecurityPlaybookService from "../../../../Server/Services/SecurityPlaybookService";
 import ThreatIntelFeedService from "../../../../Server/Services/ThreatIntelFeedService";
+import LogScrubRuleService from "../../../../Server/Services/LogScrubRuleService";
+import TraceScrubRuleService from "../../../../Server/Services/TraceScrubRuleService";
+import LogScrubRule from "../../../../Models/DatabaseModels/LogScrubRule";
+import LogScrubAction from "../../../../Types/Log/LogScrubAction";
+import LogScrubField from "../../../../Types/Log/LogScrubField";
+import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
+import TraceScrubField from "../../../../Types/Trace/TraceScrubField";
 import DetectionRuleEvaluator, {
   DetectionRuleSetupTest,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
@@ -265,6 +272,12 @@ describe("SecuritySetup.getStatus", () => {
     jest
       .spyOn(SecurityEventDestinationService, "countBy")
       .mockResolvedValue(count(1));
+    // Neither the logs nor the traces have a rule that hides addresses.
+    jest
+      .spyOn(SecurityTelemetrySourceService, "findOneBy")
+      .mockResolvedValue({ isEnabled: true } as never);
+    jest.spyOn(LogScrubRuleService, "findBy").mockResolvedValue([]);
+    jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([]);
 
     const status: SecuritySetupStatus = await SecuritySetup.getStatus({
       projectId: PROJECT_ID,
@@ -284,6 +297,7 @@ describe("SecuritySetup.getStatus", () => {
       openCases: 3,
       enabledPlaybooks: 4,
       destinations: 1,
+      addressScrubRules: [],
     });
 
     expect(connections.mock.calls[0]![0]).toEqual(
@@ -327,12 +341,22 @@ describe("SecuritySetup.getStatus", () => {
     jest
       .spyOn(SecurityEventDestinationService, "countBy")
       .mockRejectedValue(new Error("not allowed"));
+    jest
+      .spyOn(SecurityTelemetrySourceService, "findOneBy")
+      .mockRejectedValue(new Error("not allowed"));
+    jest
+      .spyOn(LogScrubRuleService, "findBy")
+      .mockRejectedValue(new Error("not allowed"));
+    jest
+      .spyOn(TraceScrubRuleService, "findBy")
+      .mockRejectedValue(new Error("not allowed"));
 
     const status: SecuritySetupStatus = await SecuritySetup.getStatus({
       projectId: PROJECT_ID,
       props: PROPS,
     });
 
+    expect(status.addressScrubRules).toEqual([]);
     expect(status.openCases).toBe(5);
     expect(status.connections).toBe(0);
     expect(status.logsSourceEnabled).toBe(false);
@@ -341,6 +365,250 @@ describe("SecuritySetup.getStatus", () => {
     expect(status.lastEventAt).toBeNull();
     expect(status.enabledRules).toBe(0);
     expect(status.recommendedRulesOn).toBe(0);
+  });
+});
+
+/*
+ * The setup item of #10397: an enabled IP Address rule that redacts or
+ * masks the logs or the traces Security Events reads keeps it from naming
+ * the address an attack came from, and the setup says which rule.
+ */
+describe("SecuritySetup.getStatus: the scrub rules that hide attackers' addresses", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const LOG_RULE_ID: string = "6ba7b811-9dad-41d1-80b4-00c04fd43501";
+  const TRACE_RULE_ID: string = "6ba7b811-9dad-41d1-80b4-00c04fd43502";
+
+  function scrubRule(data: {
+    id: string;
+    name: string;
+    scrubAction: string;
+    fieldsToScrub: string;
+  }): LogScrubRule {
+    const rule: LogScrubRule = new LogScrubRule();
+    rule.id = new ObjectID(data.id);
+    rule.name = data.name;
+    rule.patternType = LogScrubPatternType.IPAddress;
+    rule.scrubAction = data.scrubAction;
+    rule.fieldsToScrub = data.fieldsToScrub;
+    return rule;
+  }
+
+  // The rest of the pipeline, as figures that do not matter here.
+  function installPipeline(data: {
+    logsOn: boolean;
+    tracesOn: boolean;
+    logRules: Array<LogScrubRule>;
+    traceRules: Array<LogScrubRule>;
+  }): {
+    logRules: ReturnType<typeof jest.spyOn>;
+    traceRules: ReturnType<typeof jest.spyOn>;
+    tracesSource: ReturnType<typeof jest.spyOn>;
+  } {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    jest
+      .spyOn(SecurityEventConnectionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityLogSourceService, "findOneBy")
+      .mockResolvedValue({ isEnabled: data.logsOn } as never);
+    jest
+      .spyOn(SecurityTelemetrySourceService, "countBy")
+      .mockResolvedValue(new PositiveNumber(data.tracesOn ? 1 : 0));
+    jest
+      .spyOn(SecurityEventService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([]);
+    jest.spyOn(DetectionRuleService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(ThreatIntelFeedService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityCaseService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityPlaybookService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(SecurityEventDestinationService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+
+    return {
+      tracesSource: jest
+        .spyOn(SecurityTelemetrySourceService, "findOneBy")
+        .mockResolvedValue(
+          data.tracesOn ? ({ isEnabled: true } as never) : null,
+        ),
+      logRules: jest
+        .spyOn(LogScrubRuleService, "findBy")
+        .mockResolvedValue(data.logRules as never),
+      traceRules: jest
+        .spyOn(TraceScrubRuleService, "findBy")
+        .mockResolvedValue(data.traceRules as never),
+    };
+  }
+
+  test("names the rule that redacts the logs, and the one that masks the traces, Security Events reads", async () => {
+    const reads: {
+      logRules: ReturnType<typeof jest.spyOn>;
+      traceRules: ReturnType<typeof jest.spyOn>;
+      tracesSource: ReturnType<typeof jest.spyOn>;
+    } = installPipeline({
+      logsOn: true,
+      tracesOn: true,
+      logRules: [
+        scrubRule({
+          id: LOG_RULE_ID,
+          name: "Scrub IP addresses",
+          scrubAction: LogScrubAction.Redact,
+          fieldsToScrub: LogScrubField.Body,
+        }),
+      ],
+      traceRules: [
+        scrubRule({
+          id: TRACE_RULE_ID,
+          name: "Mask IPs in spans",
+          scrubAction: LogScrubAction.Mask,
+          fieldsToScrub: TraceScrubField.Attributes,
+        }),
+      ],
+    });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.addressScrubRules).toEqual([
+      {
+        signal: "log",
+        ruleId: LOG_RULE_ID,
+        ruleName: "Scrub IP addresses",
+        scrubAction: LogScrubAction.Redact,
+      },
+      {
+        signal: "trace",
+        ruleId: TRACE_RULE_ID,
+        ruleName: "Mask IPs in spans",
+        scrubAction: LogScrubAction.Mask,
+      },
+    ]);
+
+    // Read as the person, the enabled IP Address rules only.
+    for (const read of [reads.logRules, reads.traceRules]) {
+      expect(read.mock.calls[0]![0]).toEqual(
+        expect.objectContaining({
+          props: PROPS,
+          query: {
+            projectId: PROJECT_ID,
+            isEnabled: true,
+            patternType: LogScrubPatternType.IPAddress,
+          },
+        }),
+      );
+    }
+
+    expect(reads.tracesSource.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        props: PROPS,
+        query: {
+          projectId: PROJECT_ID,
+          kind: SecurityTelemetrySourceKind.Traces,
+          isEnabled: true,
+        },
+      }),
+    );
+  });
+
+  test("says nothing of a Hash rule, whose token the address vault names (#10395)", async () => {
+    installPipeline({
+      logsOn: true,
+      tracesOn: true,
+      logRules: [
+        scrubRule({
+          id: LOG_RULE_ID,
+          name: "Hash IPs",
+          scrubAction: LogScrubAction.Hash,
+          fieldsToScrub: LogScrubField.Both,
+        }),
+      ],
+      traceRules: [
+        scrubRule({
+          id: TRACE_RULE_ID,
+          name: "Hash IPs in spans",
+          scrubAction: LogScrubAction.Hash,
+          fieldsToScrub: TraceScrubField.All,
+        }),
+      ],
+    });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.addressScrubRules).toEqual([]);
+  });
+
+  test("says nothing of the logs or the traces Security Events does not read", async () => {
+    installPipeline({
+      logsOn: false,
+      tracesOn: false,
+      logRules: [
+        scrubRule({
+          id: LOG_RULE_ID,
+          name: "Scrub IP addresses",
+          scrubAction: LogScrubAction.Redact,
+          fieldsToScrub: LogScrubField.Both,
+        }),
+      ],
+      traceRules: [
+        scrubRule({
+          id: TRACE_RULE_ID,
+          name: "Mask IPs in spans",
+          scrubAction: LogScrubAction.Mask,
+          fieldsToScrub: TraceScrubField.All,
+        }),
+      ],
+    });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.addressScrubRules).toEqual([]);
+  });
+
+  test("says nothing of a trace rule that never reaches a span's attributes", async () => {
+    installPipeline({
+      logsOn: false,
+      tracesOn: true,
+      logRules: [],
+      traceRules: [
+        scrubRule({
+          id: TRACE_RULE_ID,
+          name: "Redact IPs in span names",
+          scrubAction: LogScrubAction.Redact,
+          fieldsToScrub: TraceScrubField.Name,
+        }),
+        scrubRule({
+          id: "6ba7b811-9dad-41d1-80b4-00c04fd43503",
+          name: "Redact IPs in events",
+          scrubAction: LogScrubAction.Redact,
+          fieldsToScrub: TraceScrubField.Events,
+        }),
+      ],
+    });
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.addressScrubRules).toEqual([]);
   });
 });
 

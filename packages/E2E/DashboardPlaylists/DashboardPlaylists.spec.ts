@@ -159,7 +159,7 @@ const dialog: (page: Page) => Locator = (page: Page): Locator => {
 // Dashboards' side menu's Playlists - not the breadcrumbs' link of that name.
 const sideMenuPlaylists: (page: Page) => Locator = (page: Page): Locator => {
   return page
-    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("navigation", { name: "Pages in this section" })
     .getByRole("link", { name: "Playlists", exact: true });
 };
 

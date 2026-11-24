@@ -110,6 +110,11 @@ const READABLE_BELOW_PLAN_TABLES: ReadonlyArray<string> = [
   "APIKeyPermission",
   // Exports stop below the plan (the exporter asks it); readable to see what stopped, switch it off and delete it.
   "AuditLogExport",
+  // A private dashboard's and a private form's sign-in providers (#10275, #10447), as a status page's.
+  "DashboardOIDC",
+  "DashboardSSO",
+  "FormOIDC",
+  "FormSSO",
   "OnCallDutyPolicySchedule",
   "ProjectOIDC",
   "ProjectSCIM",
@@ -143,8 +148,12 @@ const RESTRICTION_COLUMN: RegExp = /^is(Block|Deny|Excluded?)/;
  */
 const SWITCHABLE_TABLES: ReadonlyArray<string> = [
   "AuditLogExport",
+  "DashboardOIDC",
+  "DashboardSSO",
   "ExternalMcpServer",
   "Form",
+  "FormOIDC",
+  "FormSSO",
   "OnCallDutyPolicyScheduleCalendarFeed",
   "ProjectOIDC",
   "ProjectOnCallCalendarFeed",
@@ -174,6 +183,9 @@ const OTHER_SWITCH_LIKE_COLUMNS: Record<string, string> = {
    * switch to offer.
    */
   "StatusPagePrivateUserSession.isRevoked": "no API access at all",
+  // A private dashboard's and a private form's viewer sessions (#10275, #10447), as a status page's.
+  "DashboardPrivateUserSession.isRevoked": "no API access at all",
+  "FormPrivateUserSession.isRevoked": "no API access at all",
 };
 
 const SWITCH_LIKE_COLUMN: RegExp =

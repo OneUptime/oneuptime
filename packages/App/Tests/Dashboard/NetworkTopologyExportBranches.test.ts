@@ -93,7 +93,7 @@ function input(
     healthFilterMode: "all",
     projectName: "Acme Retail",
     scopeNames: ["Store 1042"],
-    exportedAtText: "Nov 15 2026, 09:00 CET",
+    exportedAtText: "Nov 15, 2026, 09:00 CET",
     ...overrides,
   };
 }

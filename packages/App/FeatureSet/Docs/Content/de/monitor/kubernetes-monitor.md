@@ -5,7 +5,7 @@ Ein Kubernetes-Monitor warnt anhand der Metriken, die der OneUptime-Kubernetes-A
 :::cards
 - [Den Agent installieren](/docs/monitor/kubernetes-agent): Ein Helm-Befehl bringt den Cluster in OneUptime.
 - [Den Monitor erstellen](#einen-kubernetes-monitor-erstellen): Den Cluster wählen, dann eine Vorlage, eine Metrik oder eine Abfrage.
-- [Warnungsvorlagen](#fertige-warnungsvorlagen): Fünfundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
+- [Warnungsvorlagen](#fertige-warnungsvorlagen): Sechsundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
 - [Kriterien](#überwachungskriterien): Statische Schwellenwerte und Anomalieerkennung.
 :::
 
@@ -88,7 +88,7 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 | --- | --- |
 | Pod | Pod-CPU-Nutzung, Pod-Speichernutzung, Pod-Phase (Code), Pod-Dateisystemnutzung, Volume-Kapazität, Freier Volume-Speicher, Pod-Auslastung des Speicherlimits, Pod-Auslastung des CPU-Limits, Pod-Netzwerk-I/O (kumuliert, beide Richtungen) |
 | Knoten | Knoten-CPU-Nutzung, Zuweisbare CPU des Knotens, Knoten-Speichernutzung, Arbeitsspeicher-Working-Set des Knotens, Knoten-Dateisystemnutzung, Zuweisbarer Arbeitsspeicher des Knotens, Ready-Bedingung des Knotens, MemoryPressure-Bedingung des Knotens, DiskPressure-Bedingung des Knotens, PIDPressure-Bedingung des Knotens, Verfügbares Dateisystem des Knotens, Dateisystemkapazität des Knotens |
-| Container | Container-Neustarts, Container-Neustarts (Zuwachs), CPU-Limit des Containers, CPU-Anforderung des Containers, Speicherlimit des Containers, Speicheranforderung des Containers, Container bereit |
+| Container | Container-Neustarts, Container-Neustarts (Zuwachs), CPU-Limit des Containers, CPU-Anforderung des Containers, Speicherlimit des Containers, Speicheranforderung des Containers, Container bereit, Verfügbares Dateisystem des Containers, Dateisystemkapazität des Containers |
 | Workload | Verfügbare Replikate des Deployments, Gewünschte Replikate des Deployments, Gewünschte Knoten des DaemonSets, Falsch geplante Knoten des DaemonSets, Bereite Knoten des DaemonSets, Gewünschte Replikate des StatefulSets, Bereite Replikate des StatefulSets, Fehlgeschlagene Pods des Jobs, Fehlgeschlagene Pods des Jobs (Zuwachs), Erfolgreiche Pods des Jobs |
 | HPA | Aktuelle Replikate des HPA, Gewünschte Replikate des HPA, Maximale Replikate des HPA, Minimale Replikate des HPA |
 | Steuerungsebene | etcd hat einen Leader, Laufende Anfragen des API-Servers, Ausstehende Pods des Schedulers |
@@ -149,7 +149,8 @@ Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kat
 | etcd No Leader | Steuerungsebene | etcd keinen gewählten Leader hat | Kritisch |
 | API Server Request Saturation | Steuerungsebene | Der API-Server während des gesamten Zeitfensters 200 oder mehr laufende Anfragen hält | Kritisch |
 | Scheduler Backlog | Planung | Die Warteschlange ausstehender Pods des Schedulers 5 Minuten lang nicht leer ist | Warnung |
-| High Node Disk Usage | Speicher | Das Dateisystem eines Knotens zu mehr als 90 % voll ist | Warnung |
+| High Node Disk Usage | Speicher | Das Dateisystem eines Knotens zu mehr als 85 % voll ist | Warnung |
+| Node Image Disk Almost Full | Speicher | Der Datenträger, auf dem ein Knoten seine Container-Images ablegt, zu mehr als 85 % voll ist | Warnung |
 | PVC Almost Full | Speicher | Ein Persistent Volume Claim zu mehr als 90 % voll ist | Warnung |
 | DaemonSet Pods Not Ready | Workload | Ein DaemonSet 15 Minuten lang Knoten ohne einen bereiten Pod von ihm hat | Warnung |
 | DaemonSet Misscheduled Nodes | Workload | Ein DaemonSet Pods auf Knoten ausführt, die nicht mehr zu seinem Node-Selector, seiner Affinität oder seinen Tolerations passen | Warnung |
@@ -167,6 +168,8 @@ Vorlagen auf objektbezogenen Metriken werten jeden Knoten, Pod, jedes Deployment
 Die Kostenvorlagen lesen die Metriken, die OneUptime aus den stündlichen Kostenzeilen des Agents schreibt, einen Punkt pro Stunde, und addieren daher den vergangenen Tag; ihre Budgets sind in der Währung des Clusters angegeben, standardmäßig USD.
 
 **High Node CPU Request Commitment** und **High Node Memory Request Commitment** zählen nur die Requests von Pods, die nicht beendet sind, so wie der Scheduler. Der Cluster meldet die Requests eines Pods, der Succeeded oder Failed ist, etwa eines beendeten Jobs, weiter, bis der Pod gelöscht wird: Diese werden nicht mitgezählt.
+
+**Node Image Disk Almost Full** liest den Datenträger, auf den laut kubelet jeder laufende Container seine eigenen Dateien schreibt, weil der Agent den Image-Datenträger eines Knotens nicht selbst meldet. Bei den üblichen Aufteilungen ist das der Image-Datenträger, aber nicht auf jedem Knoten: Wo ein Knoten seine Images auf seinem Root-Dateisystem ablegt, wie die meisten, ist es das Root-Dateisystem, sodass die Vorlage zusammen mit **High Node Disk Usage** auslöst; mit dem geteilten Image-Dateisystem des kubelet (`KubeletSeparateDiskGC`) ist es der Datenträger, auf den die Container schreiben, nicht der der Images; und ein Knoten ohne laufenden Container meldet nichts. Die Empfehlungen eines Clusters bieten sie an, sobald ein Knoten seine Images auf einem eigenen Datenträger ablegt, was die Knotenliste dann in einer Spalte **Image-Datenträger** zeigt; unter **Worüber benachrichtigt wird** steht sie für jeden Cluster. Standardmäßig löscht das kubelet ungenutzte Images, sobald ein Datenträger mit den Images zu 85 % voll ist, und verdrängt Pods, wenn weniger als 15 % davon frei sind; daher lösen diese Vorlage und **High Node Disk Usage** bei 85 % aus und setzen den Monitor bei 80 % wieder online, dem Stand, auf den die Garbage Collection der Images den Datenträger bringt. Auf einem Knoten, dessen Images einen eigenen Datenträger haben, verdrängt das kubelet Pods nach seinem Root-Dateisystem ab 90 %, sodass **High Node Disk Usage** dort auslöst, bevor die Verdrängung beginnt.
 
 **Cluster Stopped Reporting** löst aus, wenn zehn Minuten lang nichts vom Agent des Clusters eintrifft: Der Agent wurde deinstalliert oder stürzt immer wieder ab, sein API-Schlüssel wurde widerrufen, er hat die Verbindung zu OneUptime verloren, oder der API-Server des Clusters antwortet ihm nicht mehr. Sobald wieder Daten eintreffen, wird sie aufgelöst. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 

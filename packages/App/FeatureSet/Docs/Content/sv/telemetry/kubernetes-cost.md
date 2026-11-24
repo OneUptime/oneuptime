@@ -63,7 +63,7 @@ De första kostnaderna visas efter att den första hela timmen har avslutats, oc
 
 Kostnadsmätvärdena (`node_total_hourly_cost`, `pv_hourly_cost` och resten) är vanliga mätvärden: de finns i mätvärdesutforskaren, på anpassade instrumentpaneler och i mätvärdesmonitorer. För en färdig instrumentpanel går du till **Produkter → Instrumentpaneler**, väljer **Skapa instrumentpanel** och väljer **Kubernetes Cost Dashboard**: trender för nodernas timkostnad, enhetskostnader för CPU och minne, och utgifter för volymer och lastbalanserare.
 
-Under siffrorna visar översikten och sidan **Kostnader** var priserna kommer ifrån: en molnleverantörs listpriser, din prislista eller OpenCosts standardpriser, vilken motor som än prissätter klustret, Kubecost 3 inräknat. En Kubecost som läser din molnfaktura stämmer av sina priser mot fakturan ungefär ett och ett halvt dygn efter varje timme, så raden säger då att siffrorna är dess listpriser före avstämningen. Effektivitet är en och samma siffra överallt, effektivitetsmätvärdet inräknat: hur stor del av den begärda CPU:n och det begärda minnet som användes, där varje containers timme viktas efter vad dess CPU och minne kostar, så att ett billigt jobb som inte använder något inte kan dra ned ett välutnyttjat kluster, och ledig kapacitet räknas inte med.
+Under siffrorna visar översikten och sidan **Kostnader** var priserna kommer ifrån: en molnleverantörs listpriser, din prislista eller OpenCosts standardpriser, vilken motor som än prissätter klustret, Kubecost 3 inräknat. En Kubecost som läser din molnfaktura stämmer av sina priser mot fakturan ungefär två dygn efter varje timme, och OneUptime hämtar in varje avstämd timme, så raden säger hur långt siffrorna är avstämda mot din faktura. Effektivitet är en och samma siffra överallt, effektivitetsmätvärdet inräknat: hur stor del av den begärda CPU:n och det begärda minnet som användes, där varje containers timme viktas efter vad dess CPU och minne kostar, så att ett billigt jobb som inte använder något inte kan dra ned ett välutnyttjat kluster, och ledig kapacitet räknas inte med.
 
 ## Kör du redan Kubecost eller OpenCost?
 
@@ -191,7 +191,7 @@ Läs dess loggar: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-openc
 :::
 
 :::details Översikten säger att den medföljande OpenCost inte behövs
-Klustret kör sin egen Kubecost eller OpenCost, och kostnadsagenten läser den, så den OpenCost som medföljde chartet prissätter ingenting. Uppgradera med `--set cost.engine.url=auto` för att sluta köra den och dess Prometheus, eller sätt `cost.engine.preferExisting=false` för att läsa den medföljande motorn i stället. Med Kubecost 3, som inte läser någon Prometheus, kommer minnesrekommendationerna från den medföljande: ange en annan med `cost.engine.prometheusUrl` i samma uppgradering.
+Klustret kör sin egen Kubecost eller OpenCost, och kostnadsagenten läser den, så den OpenCost som medföljde chartet prissätter ingenting. Uppgradera med `--set cost.engine.url=auto` för att sluta köra den och dess Prometheus, eller sätt `cost.engine.preferExisting=false` för att läsa den medföljande motorn i stället. När minnesrekommendationerna kommer från den medföljande Prometheus, som med Kubecost 3, som inte läser någon, säger meddelandet det: ange en annan med `cost.engine.prometheusUrl` i samma uppgradering, eller behåll den medföljande motorn. Kostnadsagenten stoppar den aldrig själv: den skriver inget till ditt kluster, och den medföljande motorn är dess reserv så länge din inte svarar.
 :::
 
 :::details Kostnadsagenten läser inte din motor
@@ -215,7 +215,7 @@ Ingen minnestopp nådde OneUptime, så minnet lämnades odimensionerat i ställe
 :::
 
 :::details Siffrorna skiljer sig från motorns eget gränssnitt
-OneUptime skickar hela, avslutade timmar, så som motorn prissatte dem när de hade avslutats, dess avstämningsjusteringar inräknade: utgifterna för den pågående timmen visas efter att den har avslutats. En Kubecost som läser din molnfaktura stämmer av varje timme mot den ungefär ett och ett halvt dygn senare, och OneUptime behåller timmen så som den först prissattes.
+OneUptime skickar hela, avslutade timmar, så som motorn prissatte dem när de hade avslutats, dess avstämningsjusteringar inräknade: utgifterna för den pågående timmen visas efter att den har avslutats. En Kubecost som läser din molnfaktura stämmer av varje timme mot den ungefär två dygn senare: OneUptime läser timmen igen 36 timmar, 47 timmar och 4 dygn efter, och hämtar in det som ändrades. Kubecost behåller siffrorna för varje timme i 49 timmar som standard, så en timme som den stämmer av efter det behåller siffran som OneUptime läste senast: behåll dem i 4 dygn för att hämta in varje avstämning (`kubecostAggregator.etlHourlyStoreDurationHours: 96` med Kubecost 2, `aggregator.retention1h: 96` med Kubecost 3).
 :::
 
 :::details Den medföljande Prometheus har startats om

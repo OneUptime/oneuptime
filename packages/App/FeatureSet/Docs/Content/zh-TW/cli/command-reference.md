@@ -6,7 +6,7 @@
 - [全域選項](#全域選項): 每個命令都接受的選項。
 - [登入與情境](#登入與情境): login 和 context 命令。
 - [資源命令](#資源命令): 每個資源的操作、欄位和動作。
-- [其他命令](#其他命令): deploy、dbt upload、data-checks apply、whoami、resources、version 和 help。
+- [其他命令](#其他命令): deploy、dbt upload、dsym upload、data-checks apply、whoami、resources、version 和 help。
 :::
 
 ## 命令總覽
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | 否 | dbt 專案的名稱，僅在不傳送清單時需要 | 清單中的專案 |
 | `--ingestion-key <key>` | 否 | 專案的遙測擷取金鑰 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+在一次建置之後，從 CI 或 Xcode 建置階段傳送 iOS 應用程式的 dSYM，讓 **例外** 中它的當機和卡頓的框架以其函式命名，並在不同版本之間按函式分組。它在你的電腦上讀取每個 dSYM：一個 `.dSYM` 套件、包含它們的資料夾（例如封存的 `dSYMs` 資料夾）、App Store Connect 提供的包含它們的 zip，或 dSYM 的 DWARF 檔案。它只傳送每個二進位檔的 UUID、架構和函式名稱，並使用遙測擷取金鑰寫入，而不是 API 金鑰。函式已被移除的二進位檔會被略過，並發出警告。請參閱 [上傳 dSYM](/docs/rum/mobile-setup#上傳-dsym)。
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| 選項 | 必要 | 說明 | 預設值 |
+| --- | --- | --- | --- |
+| `--app <name>` | 否 | 這些 dSYM 所屬的應用程式，以其 `service.name` 表示，與它們一起保存 | |
+| `--ingestion-key <key>` | 否 | 專案的遙測擷取金鑰 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 讓專案的資料檢查與一個 YAML 檔案一致，因此檢查可以保存在儲存庫中，並像程式碼一樣接受審查。檔案中任何一處有錯誤，就不會套用任何內容，並以錯誤結束。檔案的格式請參閱 [檢查與對帳](/docs/data-observability/checks)。
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | 沒有 `--api-key` 旗標提供金鑰時使用的 API 金鑰 |
 | `ONEUPTIME_URL` | 沒有 `--url` 旗標提供位址時使用的 OneUptime 位址 |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 沒有 `--ingestion-key` 旗標提供金鑰時，`oneuptime deploy` 寫入所用的遙測擷取金鑰 |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 沒有 `--ingestion-key` 旗標提供金鑰時，`oneuptime deploy`、`oneuptime dbt upload` 和 `oneuptime dsym upload` 寫入所用的遙測擷取金鑰 |
 | `NO_COLOR` | 設為任意值即關閉顏色 |
 
 ## 檔案

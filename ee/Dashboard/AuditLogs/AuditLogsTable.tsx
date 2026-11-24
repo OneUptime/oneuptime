@@ -402,8 +402,8 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
     // What a workflow's step ran as, and with whose permissions (#9766).
     workflowRunAs: true,
     workflowRunAsCustomRoleName: true,
-    workflowRunAsGivenByName: true,
-    workflowRunAsGivenByApiKeyId: true,
+    workflowRunAsGiverName: true,
+    workflowRunAsGiverApiKeyId: true,
     changes: true,
   };
 
@@ -622,7 +622,7 @@ const AuditLogsTable: FunctionComponent<ComponentProps> = (
           },
           {
             // Whose permissions it ran with: a person's or an API key's name.
-            field: { workflowRunAsGivenByName: true },
+            field: { workflowRunAsGiverName: true },
             type: FieldType.Text,
             title: "Workflow Permissions Given By",
           },

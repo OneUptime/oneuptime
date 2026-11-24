@@ -14,7 +14,13 @@ import {
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
 import { JSONObject } from "Common/Types/JSON";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission, {
+  PRODUCT_LEVEL_PERMISSIONS,
+  PermissionHelper,
+  ProductLevelPermissions,
+} from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { PRODUCT_RECORD_TABLES } from "Common/Types/Product/ProductRecordTables";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap";
 import ErrorClass from "Common/Types/Telemetry/ErrorClass";
@@ -1273,22 +1279,40 @@ describe("Source Maps", () => {
     expect(page).toContain("A **Server** telemetry ingestion key");
   });
 
-  it("lets only owners, admins and the Read Telemetry Source Map permission read raw map content", () => {
+  it("lets only owners, admins, Services' Admin level and the Read Telemetry Source Map permission read raw map content", () => {
     const access: Array<Permission> =
       new TelemetrySourceMap().getColumnAccessControlFor("content")?.read || [];
 
+    /*
+     * The maps are one of Services' tables, so Services' Admin level reads
+     * them where Project Admin does (#10475), as it may upload them. The
+     * page names it, because a reader of a telemetry page would not look
+     * for it under Services: Telemetry Admin reads none of this.
+     */
     expect([...access].sort()).toEqual(
       [
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ServiceAdmin,
         Permission.ReadTelemetrySourceMap,
       ].sort(),
     );
+    expect(access).not.toContain(Permission.TelemetryAdmin);
+    expect(PRODUCT_RECORD_TABLES[ProductKey.Services]).toContain(
+      "TelemetrySourceMap",
+    );
+    expect(
+      PRODUCT_LEVEL_PERMISSIONS.find(
+        (levels: ProductLevelPermissions): boolean => {
+          return levels.product === ProductKey.Services;
+        },
+      )?.admin,
+    ).toBe(Permission.ServiceAdmin);
     expect(PermissionHelper.getTitle(Permission.ReadTelemetrySourceMap)).toBe(
       "Read Telemetry Source Map",
     );
     expect(page).toContain(
-      "can only be read back by Project Owners and Project Admins, and by anyone given the **Read Telemetry Source Map** permission",
+      "can only be read back by Project Owners and Project Admins, by anyone given Services at the [Admin level](/docs/permissions/index#product-levels) (`ServiceAdmin`), and by anyone given the **Read Telemetry Source Map** permission",
     );
   });
 

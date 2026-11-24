@@ -20,6 +20,7 @@ import CloudResourceGroups from "./CloudResourceGroups";
 import {
   CloudTemplate,
   CloudWords,
+  drawCloudFailureDetails,
   drawCloudTemplate,
   getCloudCostWords,
   getCloudTestWords,
@@ -243,7 +244,7 @@ export const CloudConnectionTestAnswer: FunctionComponent<
             className="mt-1 max-h-40 overflow-y-auto break-words rounded-md bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
             data-testid="cloud-connection-test-details"
           >
-            {words.details}
+            {drawCloudFailureDetails(translator, words.details)}
           </div>
         </div>
       ) : (

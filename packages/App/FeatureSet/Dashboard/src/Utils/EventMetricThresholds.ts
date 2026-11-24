@@ -48,7 +48,9 @@ export interface EventRuleMonitor {
 }
 
 /*
- * What a query compares: its metric, aggregation, grouping and rate. Its
+ * What a query compares: its metric, aggregation, grouping and rate - and,
+ * for a step written in PromQL, its expression (issue #10227): a query that
+ * names no metric is told apart from another by what it evaluates. Its
  * filters are left out, so an event's query (with its own series' filter,
  * and the scope its monitor read it with) matches its monitor's step query.
  */
@@ -61,6 +63,12 @@ export const getQueryIdentity: (
       unknown
     >) || {};
 
+  const promQLQuery: string | null =
+    MonitorStepMetricMonitorUtil.getPromQLQueryOfViewConfig({
+      queryConfigs: [queryConfig],
+      formulaConfigs: [],
+    });
+
   return JSON.stringify({
     metricName: String(filterData["metricName"] || ""),
     aggregationType: String(filterData["aggegationType"] || ""),
@@ -70,6 +78,7 @@ export const getQueryIdentity: (
       .filter(Boolean)
       .sort(),
     transformAsRate: queryConfig.transformAsRate === true,
+    ...(promQLQuery ? { promQLQuery: promQLQuery } : {}),
   });
 };
 
@@ -172,9 +181,13 @@ export function getEventMetricThresholds(input: {
         monitorStep: step,
       });
 
-    // The step's queries as it keeps them, as the event's snapshot keeps them.
+    /*
+     * The step's queries as it is judged with them, as the event's
+     * snapshot keeps them: a PromQL step's expression (issue #10227), else
+     * the queries it keeps.
+     */
     const stepQueries: MetricsViewConfig =
-      MonitorStepMetricMonitorUtil.getMetricViewConfig(
+      MonitorStepMetricMonitorUtil.getEvaluatedViewConfig(
         settings as MonitorStepMetricMonitor | null,
       );
 

@@ -280,9 +280,14 @@ function optionsAt(commands: Array<Command>): Array<Option> {
   return [...byFlags.values()];
 }
 
-// How a reader writes an argument: <name> when required, [name] otherwise.
+/*
+ * How a reader writes an argument: <name> when required, [name] otherwise.
+ * An argument as Commander writes it in a usage: `<paths...>` takes several.
+ */
 function argumentSpec(argument: Argument): string {
-  return argument.required ? `<${argument.name()}>` : `[${argument.name()}]`;
+  const name: string = `${argument.name()}${argument.variadic ? "..." : ""}`;
+
+  return argument.required ? `<${name}>` : `[${name}]`;
 }
 
 function referenceHeadings(): Array<string> {

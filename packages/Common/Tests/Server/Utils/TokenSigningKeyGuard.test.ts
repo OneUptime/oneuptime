@@ -58,6 +58,15 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the stored digest of a password reset token",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
     "keys the stored digest of a status page password reset token",
+  // A dashboard's and a form's private users (#10250, #10249).
+  "packages/Common/Server/Services/PrivateUserServiceBase.ts":
+    "keys the stored digest of a dashboard's or a form's private user's invitation and password reset token",
+  "packages/Common/Server/Services/PrivateUserSessionServiceBase.ts":
+    "keys the stored digests of a dashboard's or a form's private users' refresh tokens and single sign-on codes",
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    "keys the stored digest of a dashboard private user's password reset token",
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts":
+    "keys the stored digest of a form private user's password reset token",
   "packages/Common/Server/Utils/Rules/EpisodeGroupingKey.ts":
     "keys the stored episode grouping keys, which existing episodes match on",
   "packages/Common/Server/Utils/SessionReplay/SessionReplayIdentity.ts":
@@ -74,6 +83,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the stored digests of the master API key and every project's API keys (#7901, #8902), which a request's key is looked up by",
   "packages/Common/Server/Utils/PresentedKey/PresentedKey.ts":
     "keys the stored lookup hashes of the keys presented to OneUptime and the stored hashes of SCIM bearer tokens (#9012), which a request's key or token is looked up by",
+  "packages/Common/Server/Utils/Telemetry/ScrubHashToken.ts":
+    "keys each project's Hash scrub tokens, which telemetry stores in place of a value, so no one without it can hash a guess to compare (#10394)",
 };
 
 /*

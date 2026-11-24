@@ -24,6 +24,7 @@ import {
   ComplianceSettingFramework,
 } from "../../Types/DataSecurity/ComplianceSettingFramework";
 import { DataStoreResourceKind } from "../../Types/DataSecurity/DataStoreResource";
+import { KUBERNETES_COMPLIANCE_OBJECT_KINDS } from "../../Types/Kubernetes/Compliance/KubernetesComplianceFramework";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -44,6 +45,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * Types/Kubernetes/Compliance): a row can turn one of those, or one of their
  * controls, off for the cluster - or, naming a namespace, for that namespace
  * alone, as Pod Security Admission exempts a namespace.
+ *
+ * And a row that names one Kubernetes object - its kind, namespace and name
+ * - accepts that object's failing finding, of one control or of the whole
+ * framework (#9874), as Kyverno's PolicyException does: off while it is
+ * accepted, with why, who accepted it and when, and optionally until when.
+ * The next object that fails the control in that namespace still fails it.
+ * Accepting is turning off, for one object, so it takes the same
+ * permissions, is audited the same way, and revoking it turns it on again.
  *
  * It tunes how Data Security scores what its checks found, as a check
  * setting tunes the checks themselves, so the same permissions read and
@@ -124,7 +133,13 @@ const createOnlyColumnAccess: {
   create: true,
   update: true,
   delete: true,
-  resourceNameColumns: ["framework", "requirement", "namespace"],
+  resourceNameColumns: [
+    "framework",
+    "requirement",
+    "namespace",
+    "objectKind",
+    "objectName",
+  ],
 })
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -279,6 +294,67 @@ export default class DataSecurityComplianceSetting extends BaseModel {
   })
   public namespace?: string = undefined;
 
+  /*
+   * The one Kubernetes object whose finding the setting accepts (#9874): a
+   * workload a pod control fails, or a role, binding, service account or
+   * namespace the CIS benchmark's other controls fail, by its kind and name
+   * - and, for one a namespace holds, the namespace column above. Empty for
+   * a setting about a framework, a control or a namespace.
+   */
+  @ColumnAccessControl(createOnlyColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    allowedValues: [...KUBERNETES_COMPLIANCE_OBJECT_KINDS],
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Object Kind",
+    description:
+      "For an accepted Kubernetes finding, the kind of the object it is accepted for: Deployment, DaemonSet, CronJob, ClusterRoleBinding and the others. Empty for a framework, a control or a namespace.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public objectKind?: string = undefined;
+
+  @ColumnAccessControl(createOnlyColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Object Name",
+    description:
+      "For an accepted Kubernetes finding, the name of the object it is accepted for, as Kubernetes names it. Empty for a framework, a control or a namespace.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public objectName?: string = undefined;
+
+  /*
+   * When an accepted finding fails again (#9874): an exception made for a
+   * while, until a vendor's fix ships. Empty: accepted until revoked. Only
+   * an accepted finding has one.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Expires At",
+    description:
+      "For an accepted Kubernetes finding, when it fails again. Empty: it stays accepted until revoked.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public expiresAt?: Date = undefined;
+
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.Boolean,
@@ -286,7 +362,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Enabled",
     description:
-      "Whether the framework or requirement applies to the resource. Off takes the resource's data stores out of its scope.",
+      "Whether the framework or requirement applies to the resource. Off takes the resource's data stores out of its scope, and for an accepted Kubernetes finding, accepts it.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -303,7 +379,8 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Note",
-    description: "Why it does not apply to the resource.",
+    description:
+      "Why it does not apply to the resource, or why the Kubernetes finding is accepted.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -326,7 +403,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     modelType: User,
     title: "Turned Off By User",
     description:
-      "Relation to the user who last turned the framework or requirement off for the resource.",
+      "Relation to the user who last turned the framework or requirement off for the resource, or accepted the finding.",
   })
   @ManyToOne(
     () => {
@@ -347,7 +424,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Turned Off By User ID",
     description:
-      "ID of the user who last turned the framework or requirement off for the resource. Empty while it applies, or when an API key turned it off.",
+      "ID of the user who last turned the framework or requirement off for the resource, or accepted the finding. Empty while it applies, or when an API key turned it off.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -362,7 +439,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     type: TableColumnType.Date,
     title: "Turned Off At",
     description:
-      "When the framework or requirement was last turned off for the resource. Empty while it applies.",
+      "When the framework or requirement was last turned off for the resource, or the finding accepted. Empty while it applies.",
   })
   @Column({
     type: ColumnType.Date,

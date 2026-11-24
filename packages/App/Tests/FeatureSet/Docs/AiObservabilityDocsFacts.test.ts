@@ -174,6 +174,7 @@ const SOURCES: Record<string, string> = {
   budgets: `${DASHBOARD}/Pages/Llm/Budgets.tsx`,
   pricing: `${DASHBOARD}/Pages/Llm/Pricing.tsx`,
   callsTable: `${DASHBOARD}/Components/AI/LlmCallsTable.tsx`,
+  callsRoute: `${DASHBOARD}/Components/AI/LlmCallsRoute.ts`,
   usageBreakdown: `${DASHBOARD}/Components/AI/LlmUsageBreakdown.tsx`,
   usageTotals: `${DASHBOARD}/Components/AI/LlmUsageTotals.tsx`,
   usageSourceCopy: `${DASHBOARD}/Components/AI/LlmUsageSourceCopy.ts`,
@@ -464,25 +465,87 @@ describe("the AI / LLM Observability page", () => {
     );
   });
 
-  it("lists the Calls tab's filters, and opens a call in the trace viewer", () => {
-    const calls: string = source("callsTable");
+  /*
+   * The Calls tab's filters, as LlmCallsTable draws them, and the page's
+   * word for each: the page lists what the list filters by, in its order,
+   * so a filter added to the list fails here until the page names it. The
+   * Status filter (#9750) was missing from the page (#9958).
+   */
+  const CALLS_FILTER_WORDS: Record<string, string | null> = {
+    Service: "service",
+    Provider: "provider",
+    Model: "model",
+    Operation: "operation",
+    // A person, by either of the two attributes that name one.
+    "User Email": "person",
+    "User ID": "person",
+    Team: "team",
+    "Conversation ID": "conversation",
+    Status: "status",
+    // The list's time range, which every telemetry list has: no word.
+    "Seen At": null,
+  };
 
-    for (const filter of [
-      "Service",
-      "Provider",
-      "Model",
-      "Operation",
-      "User Email",
-      "User ID",
-      "Team",
-      "Conversation ID",
-    ]) {
-      expect(calls).toContain(`title: "${filter}",`);
+  // The titles of the Calls list's filters, in the order the list draws them.
+  function callsFilterTitles(): Array<string> {
+    const calls: string = source("callsTable");
+    const start: number = calls.indexOf("filters={[");
+    const end: number = calls.indexOf("]}", start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    return allMatches(calls.slice(start, end), /title: "([^"]+)",/g, 1);
+  }
+
+  it("lists the Calls tab's filters, as the list draws them, and opens a call in the trace viewer", () => {
+    const titles: Array<string> = callsFilterTitles();
+
+    // Every filter of the list has its word, and no word is a filter it lost.
+    expect([...titles].sort()).toEqual(Object.keys(CALLS_FILTER_WORDS).sort());
+
+    const words: Array<string> = [];
+
+    for (const title of titles) {
+      const word: string | null = CALLS_FILTER_WORDS[title] as string | null;
+
+      if (word && !words.includes(word)) {
+        words.push(word);
+      }
     }
 
-    expect(calls).toContain("RouteMap[PageMap.TRACE_VIEW]");
+    const listed: string = `${words.slice(0, -1).join(", ")} or ${
+      words[words.length - 1] as string
+    }`;
+
+    expect(source("callsTable")).toContain("RouteMap[PageMap.TRACE_VIEW]");
     expect(page).toContain(
-      "Filter by service, provider, model, operation, person, team or conversation; click a call to open it in the trace viewer.",
+      `Filter by ${listed}; a call that failed says its error under its status. Click a call to open it in the trace viewer.`,
+    );
+    expect(listed).toBe(
+      "service, provider, model, operation, person, team, conversation or status",
+    );
+  });
+
+  /*
+   * The Usage tab's AI calls tile says its error rate, which opens Calls on
+   * the calls of its range that failed (#9750, LlmCallsRoute): Status set to
+   * Error, Seen At to the range. The page said nothing of it (#9958).
+   */
+  it("says the Usage tab's error rate opens the calls of its range that failed", () => {
+    const totals: string = source("usageTotals");
+    const route: string = source("callsRoute");
+
+    expect(totals).toContain('label="AI calls"');
+    expect(totals).toContain('"{{rate}} error rate"');
+    expect(totals).toContain("getFailedLlmCallsRoute({");
+    expect(route).toContain('filter["statusCode"] = [SpanStatus.Error];');
+    expect(route).toContain("startTime: new InBetween<Date>(");
+    expect(callsFilterTitles()).toEqual(
+      expect.arrayContaining(["Status", "Seen At"]),
+    );
+    expect(page).toContain(
+      "The error rate under **AI calls** opens **Calls** on the calls of the range that failed, with **Status** set to **Error**.",
     );
   });
 

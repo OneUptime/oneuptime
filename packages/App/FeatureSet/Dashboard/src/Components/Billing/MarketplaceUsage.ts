@@ -1,4 +1,8 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  ReaderDateTimeFormat,
+  getDateLocale,
+  getDateTimeFormat,
+} from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import CloudMarketplace, {
   CloudMarketplaceUtil,
@@ -104,13 +108,18 @@ export const formatMonth: (
     return month;
   }
 
-  try {
-    return new Intl.DateTimeFormat(getNumberLocale(locale), {
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
-  } catch {
-    return month;
-  }
+  /*
+   * A month of the calendar, not an instant: read at UTC, where it starts,
+   * on the Gregorian calendar the bill counts in (a bare "fa" named a month
+   * of the Solar Hijri one).
+   */
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getDateLocale(locale),
+    timezones: ["UTC"],
+    options: { month: "long", year: "numeric" },
+  });
+
+  return format
+    ? format.format(new Date(Date.UTC(year, monthNumber - 1, 1)))
+    : month;
 };

@@ -64,6 +64,7 @@ import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DataSourceQueryConfig from "../../../Types/DataSource/DataSourceQueryConfig";
 import DataSourceType from "../../../Types/DataSource/DataSourceType";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -76,7 +77,7 @@ const POSTGRES_ID: string = "33333333-3333-4333-8333-333333333333";
 
 const LEGEND_PLACEHOLDER: string = "e.g. {{instance}} — errors";
 const LEGEND_LABEL: string = "Legend (optional)";
-const NO_SOURCES_HINT: RegExp = /No data sources connected yet/;
+const NO_SOURCES_HINT: RegExp = /No outside data sources connected yet/;
 
 type BuildDataSourceFunction = (
   id: string,
@@ -351,13 +352,22 @@ describe("DataSourceQueryEditor", () => {
     test("explains where to connect a source when the project has none", async () => {
       getListMock.mockResolvedValue(toListResult([]) as never);
 
-      await renderEditor(
+      const handle: EditorHandle = await renderEditor(
         buildComponent(DashboardComponentType.DataSourceChart, {}),
       );
 
       expect(screen.getByText(NO_SOURCES_HINT)).toBeInTheDocument();
-      // Nothing to point a query at, so adding one would only mislead.
-      expect(queryAddButton()).not.toBeInTheDocument();
+      /*
+       * The project's own metrics are a source every project has (issue
+       * #7713): a query can still be added, and it starts on them.
+       */
+      clickButton("Add Query");
+      expect(lastQueries(handle)).toEqual([
+        expect.objectContaining({
+          dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+          query: "",
+        }),
+      ]);
     });
 
     test("surfaces a load failure instead of the empty-project hint", async () => {
@@ -371,7 +381,8 @@ describe("DataSourceQueryEditor", () => {
 
       expect(screen.getByText("Data sources unreachable")).toBeInTheDocument();
       expect(screen.queryByText(NO_SOURCES_HINT)).not.toBeInTheDocument();
-      expect(queryAddButton()).not.toBeInTheDocument();
+      // The project's own metrics need no list to be read from.
+      expect(queryAddButton()).toBeInTheDocument();
     });
   });
 
@@ -410,7 +421,8 @@ describe("DataSourceQueryEditor", () => {
       expect(lastQueries(handle)[0]!.query).toBe("up");
       expect(lastQueries(handle)[1]).toEqual({
         id: expect.any(String),
-        dataSourceId: "",
+        // A new query starts on the project's own metrics (issue #7713).
+        dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
         query: "",
       });
       // A fresh identity, or React would reuse the first card's editor state.
@@ -564,7 +576,7 @@ describe("DataSourceQueryEditor", () => {
 
         expect(lastQuery(handle)).toEqual({
           id: expect.any(String),
-          dataSourceId: "",
+          dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
           query: "",
         });
         expect(hasKey(handle, "queries")).toBe(false);
@@ -826,6 +838,69 @@ describe("DataSourceQueryEditor", () => {
       expect(
         screen.getByText("Prod Prometheus (Prometheus)"),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("the project's own metrics (issue #7713)", () => {
+    test("come first in the picker, beside the connected sources", async () => {
+      await renderEditor(
+        buildComponent(DashboardComponentType.DataSourceValue, {
+          query: {
+            id: "q1",
+            dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+            query: "sum(up)",
+          } as DataSourceQueryConfig,
+        }),
+      );
+
+      expect(
+        screen.getByText("This project's metrics (PromQL)"),
+      ).toBeInTheDocument();
+    });
+
+    test("are read in PromQL, and the card says where it reads", async () => {
+      await renderEditor(
+        buildComponent(DashboardComponentType.DataSourceChart, {
+          queries: [
+            {
+              id: "q1",
+              dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+              query: "",
+            },
+          ] as Array<DataSourceQueryConfig>,
+        }),
+      );
+
+      expect(screen.getByText("Query (PromQL)")).toBeInTheDocument();
+      expect(
+        screen.getByText(/Runs over this project's metrics/),
+      ).toBeInTheDocument();
+      // A legend names its series by their labels, as for any Prometheus.
+      expect(
+        screen.getByPlaceholderText(LEGEND_PLACEHOLDER),
+      ).toBeInTheDocument();
+      // No SQL macros: PromQL has none.
+      expect(screen.queryByText(/\$__startTime/)).not.toBeInTheDocument();
+    });
+
+    test("a query on them is stored under their id, as any other", async () => {
+      const handle: EditorHandle = await renderEditor(
+        buildComponent(DashboardComponentType.DataSourceTable, {
+          query: {
+            id: "q1",
+            dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+            query: "",
+          } as DataSourceQueryConfig,
+        }),
+      );
+
+      typeQuery(0, "topk(5, system_memory_usage_bytes)");
+
+      expect(lastQuery(handle)).toEqual({
+        id: "q1",
+        dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+        query: "topk(5, system_memory_usage_bytes)",
+      });
     });
   });
 

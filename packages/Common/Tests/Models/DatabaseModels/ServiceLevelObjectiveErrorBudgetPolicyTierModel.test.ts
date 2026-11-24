@@ -25,12 +25,19 @@ import { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataAr
 const model: ServiceLevelObjectiveErrorBudgetPolicyTier =
   new ServiceLevelObjectiveErrorBudgetPolicyTier();
 
+/*
+ * With SLOs' levels (#10289), which follow the project-wide roles: SLO
+ * Viewer reads a tier, SLO Admin makes and changes one as Project Admin.
+ */
 const READERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ProjectMember,
   Permission.Viewer,
   Permission.ReadServiceLevelObjectiveErrorBudgetPolicyTier,
+  Permission.SloAdmin,
+  Permission.SloMember,
+  Permission.SloViewer,
 ];
 
 // Every output column a burn rate rule has, which a tier shares by name.
@@ -87,17 +94,20 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.SloAdmin,
     ]);
     expect(model.readRecordPermissions).toEqual(READERS);
     expect(model.updateRecordPermissions).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.SloAdmin,
     ]);
     expect(model.deleteRecordPermissions).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.DeleteServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.SloAdmin,
     ]);
 
     for (const permission of [
@@ -142,6 +152,7 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
           Permission.ProjectOwner,
           Permission.ProjectAdmin,
           Permission.EditServiceLevelObjectiveErrorBudgetPolicyTier,
+          Permission.SloAdmin,
         ],
       });
     }
@@ -216,6 +227,7 @@ describe("ServiceLevelObjectiveErrorBudgetPolicyTier", () => {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.CreateServiceLevelObjectiveErrorBudgetPolicyTier,
+      Permission.SloAdmin,
     ]);
     // Part of the agreement, not one of the outputs a burn rate rule shares.
     expect(OUTPUT_COLUMNS).not.toContain("freezesDeployments");
@@ -313,6 +325,9 @@ describe("the SLO's current tier", () => {
     Permission.ProjectMember,
     Permission.Viewer,
     Permission.ReadServiceLevelObjective,
+    Permission.SloAdmin,
+    Permission.SloMember,
+    Permission.SloViewer,
   ];
 
   it.each([

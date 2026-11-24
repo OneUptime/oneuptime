@@ -6,7 +6,7 @@
 - [全局选项](#全局选项): 每条命令都接受的选项。
 - [登录与上下文](#登录与上下文): login 和 context 命令。
 - [资源命令](#资源命令): 每个资源的操作、字段和动作。
-- [其他命令](#其他命令): deploy、dbt upload、data-checks apply、whoami、resources、version 和 help。
+- [其他命令](#其他命令): deploy、dbt upload、dsym upload、data-checks apply、whoami、resources、version 和 help。
 :::
 
 ## 命令总览
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | 否 | dbt 项目的名称，仅在不发送清单时需要 | 清单中的项目 |
 | `--ingestion-key <key>` | 否 | 项目的遥测摄取密钥 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+在一次构建之后，从 CI 或 Xcode 构建阶段发送 iOS 应用的 dSYM，让 **异常** 中它的崩溃和卡顿的帧以其函数命名，并在不同版本之间按函数分组。它在你的机器上读取每个 dSYM：一个 `.dSYM` 包、包含它们的文件夹（例如归档的 `dSYMs` 文件夹）、App Store Connect 提供的包含它们的 zip，或 dSYM 的 DWARF 文件。它只发送每个二进制文件的 UUID、架构和函数名，并使用遥测摄取密钥写入，而不是 API 密钥。函数已被剥离的二进制文件会被跳过，并给出警告。参见 [上传 dSYM](/docs/rum/mobile-setup#上传-dsym)。
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| 选项 | 必需 | 说明 | 默认值 |
+| --- | --- | --- | --- |
+| `--app <name>` | 否 | 这些 dSYM 所属的应用，以其 `service.name` 表示，与它们一起保存 | |
+| `--ingestion-key <key>` | 否 | 项目的遥测摄取密钥 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 让项目的数据检查与一个 YAML 文件一致，这样它们就保存在仓库中，并像代码一样接受审查。文件中任何地方出错，都不会应用任何内容，并以错误退出。文件的格式见 [检查与对账](/docs/data-observability/checks)。
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | 没有 `--api-key` 标志提供密钥时使用的 API 密钥 |
 | `ONEUPTIME_URL` | 没有 `--url` 标志提供地址时使用的 OneUptime 地址 |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 没有 `--ingestion-key` 标志提供密钥时，`oneuptime deploy` 写入所用的遥测摄取密钥 |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 没有 `--ingestion-key` 标志提供密钥时，`oneuptime deploy`、`oneuptime dbt upload` 和 `oneuptime dsym upload` 写入所用的遥测摄取密钥 |
 | `NO_COLOR` | 设为任意值即关闭颜色 |
 
 ## 文件

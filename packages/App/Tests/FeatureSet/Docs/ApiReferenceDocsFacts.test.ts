@@ -20,14 +20,33 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
+import UserSMS from "Common/Models/DatabaseModels/UserSMS";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import PendingInviteeProfiles from "Common/Server/Utils/TeamMember/PendingInviteeProfiles";
 import BaseAPI from "Common/Server/API/BaseAPI";
 import { ExpressRequest } from "Common/Server/Utils/Express";
+import getRequestBodyLimit, {
+  ORDINARY_REQUEST_BODY_LIMIT,
+} from "Common/Server/Utils/RequestBodyLimit";
 import ColumnRefusalMessage from "Common/Server/Types/Database/Permissions/ColumnRefusalMessage";
+import ServerOwned from "Common/Types/Database/ServerOwned";
+import ListChangesUtil, {
+  ADD_TO_LIST_KEY,
+  ListChanges,
+  REMOVE_FROM_LIST_KEY,
+} from "Common/Types/Database/ListChanges";
+import FieldsLeftOut, {
+  FIELDS_LEFT_OUT_HEADER,
+} from "Common/Types/API/FieldsLeftOut";
+import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
+import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "Common/Types/HostCollector/HostCollectorRoutes";
 import UUIDColumnFilter, {
   EXAMPLE_UUID,
 } from "Common/Server/Types/Database/UUIDColumnFilter";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OwnedByFilter, {
@@ -49,6 +68,27 @@ import LIMIT_MAX, {
 } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import NameTakenException, {
+  NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODE,
+  NAME_TAKEN_REFUSAL_CODES,
+  REFUSAL_CODE_FIELD,
+} from "Common/Types/Exception/NameTakenException";
+import ValueTakenException, {
+  TAKEN_FIELD_DETAIL,
+  VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODE,
+  VALUE_TAKEN_REFUSAL_CODES,
+} from "Common/Types/Exception/ValueTakenException";
+import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
+import {
+  SharedNameKind,
+  getSharedNamesRoute,
+} from "Common/Types/Database/SharedNames";
+import {
+  ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
+  getNameTakenRefusalText,
+} from "Common/Types/Database/UniqueName";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -123,6 +163,8 @@ const ROUTE_REGISTRATION: RegExp =
 const CURL_BODY: RegExp = /-d '(\{[\s\S]*?\})'/;
 // "If not: 400", in a diagram's label: the status a check answers.
 const DIAGRAM_STATUS: RegExp = /If not:(?: |<br\/>)(\d{3}(?: or \d{3})?)/g;
+// A line that names a refusal's code: - `"refusalCode": "name_taken"`: ...
+const REFUSAL_CODE_LINE: RegExp = /^- `([^`]+)`: /;
 // A card's title in the Access picker: `title: "Viewer",`.
 const OPTION_TITLE: RegExp = /title: "([^"]+)",/g;
 
@@ -329,6 +371,39 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(sentence).toContain(
       "a filter on a field you may not read is refused with a `422` that names it.",
     );
+  });
+
+  it("through a relation, a field only its own person may read is refused to everyone (#9895, #10176)", () => {
+    const sentence: string = lineStartingWith(
+      englishSection(API_REFERENCE, "### Filter, sort and page"),
+      "A field of a record the resource names is filtered under its relation:",
+    );
+
+    expect(sentence).toContain(
+      "Through a relation, a field only its own person may read, such as a user's time zone or their notification methods and on-call logs, is refused to everyone, in a filter and a sort alike, because the relation can name anyone's record.",
+    );
+
+    // A user's time zone, an SMS method's verification, an on-call log's status: only their person reads them.
+    for (const [model, column] of [
+      [new User(), "timezone"],
+      [new UserSMS(), "isVerified"],
+      [new UserOnCallLogTimeline(), "status"],
+    ] as Array<[BaseModel, string]>) {
+      expect(model.getColumnAccessControlFor(column)?.read).toEqual([
+        Permission.CurrentUser,
+      ]);
+      expect(
+        PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(model),
+      ).toEqual([Permission.CurrentUser]);
+    }
+
+    // The rule a filter and a sort through a relation are both held to.
+    expect(readRepoFile(QUERY_PERMISSION)).toContain(
+      "PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(",
+    );
+    expect(
+      readRepoFile("Common/Server/Types/Database/Permissions/SortValidator.ts"),
+    ).toContain("QueryPermission.canFilterOrOrderByRelatedColumn({");
   });
 
   it("filters by who owns a record under owners, as the API reads OwnedBy", () => {
@@ -700,7 +775,7 @@ describe("OneUptime API Reference: a request and its answer", () => {
       rows.map((row: Array<string>): string => {
         return codeIn(row[0] as string)[0] as string;
       }),
-    ).toEqual(["200", "400", "402", "404", "422", "500"]);
+    ).toEqual(["200", "400", "402", "404", "413", "422", "500"]);
     expect(ExceptionCode.BadDataException).toBe(400);
     expect(ExceptionCode.PaymentRequiredException).toBe(402);
     expect(ExceptionCode.NotFoundException).toBe(404);
@@ -733,6 +808,55 @@ describe("OneUptime API Reference: a request and its answer", () => {
     );
   });
 
+  /*
+   * #10183: StartServer holds a body to its route's limit before anything
+   * else is read: 1 MB and 100,000 JSON values on most routes, 50 MB on the
+   * ones that take a file, a dashboard or a status page.
+   */
+  it("says the body limits the server holds a request to, and the settings that raise them", () => {
+    const row: string = rowStartingWith(
+      tableWithHeader(
+        englishSection(API_REFERENCE, "### Status codes"),
+        "Code",
+      ),
+      "`413`",
+    )[1] as string;
+
+    expect(ORDINARY_REQUEST_BODY_LIMIT).toEqual({
+      bytes: 1024 * 1024,
+      values: 100000,
+      objectsArraysAndStrings: 100000,
+    });
+    expect(row).toContain("1 MB holding at most 100,000 JSON values");
+
+    for (const route of [
+      "/api/file",
+      "/api/dashboard/id",
+      "/api/status-page/id",
+    ]) {
+      expect({
+        route,
+        bytes: getRequestBodyLimit(route).bytes,
+      }).toEqual({ route, bytes: 50 * 1024 * 1024 });
+    }
+    expect(row).toContain(
+      "50 MB in one that sends a file, a dashboard or a status page",
+    );
+
+    // The settings that raise the ordinary limit, as EnvironmentConfig reads them.
+    const environment: string = readRepoFile(
+      "Common/Server/EnvironmentConfig.ts",
+    );
+
+    for (const setting of [
+      "REQUEST_BODY_MAX_BYTES",
+      "REQUEST_BODY_MAX_JSON_VALUES",
+    ]) {
+      expect(environment).toContain(`"${setting}"`);
+      expect(row).toContain(`\`${setting}\``);
+    }
+  });
+
   it("draws the checks in the order the server makes them, each with its status", () => {
     const diagram: string = codeBlocks(
       englishSection(API_REFERENCE, "## How a request is answered"),
@@ -751,6 +875,340 @@ describe("OneUptime API Reference: a request and its answer", () => {
       authorization.indexOf("ApiKeyService.findApiKey(apiKey)"),
     ).toBeLessThan(
       authorization.indexOf("PlanCutoffCredentialAccess.getRefusal("),
+    );
+  });
+
+  /*
+   * #9855, #9856, #10065: a name another record has is refused with a code
+   * beside its sentence, which a client reads in its place, for every kind
+   * that has a name of its own. The code says what has the name - a record
+   * in service, which may give it up, or an archived one, which will not -
+   * and the records that share a name are answered for the four kinds the
+   * dashboard marks.
+   */
+  it("names the codes a taken name is refused with, what each means, and every kind the shared names are answered for", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Names another record has",
+    );
+
+    expect(new NameTakenException("x").code).toBe(400);
+    expect(new NameTakenException("x").details).toEqual({
+      [REFUSAL_CODE_FIELD]: NAME_TAKEN_REFUSAL_CODE,
+    });
+    expect(new NameTakenException("x", { isArchived: true }).details).toEqual({
+      [REFUSAL_CODE_FIELD]: NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    });
+    expect(section).toContain(
+      `\`"${REFUSAL_CODE_FIELD}": "${NAME_TAKEN_REFUSAL_CODE}"\``,
+    );
+    expect(section).toContain(
+      `carries a \`${REFUSAL_CODE_FIELD}\` that says what has the name`,
+    );
+
+    // Every code the server sends, a line each, in Common's order.
+    const codeLines: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      });
+
+    expect(
+      codeLines.map((line: string): string | null => {
+        return REFUSAL_CODE_LINE.exec(line)?.[1] || null;
+      }),
+    ).toEqual(
+      NAME_TAKEN_REFUSAL_CODES.map((code: string): string => {
+        return `"${REFUSAL_CODE_FIELD}": "${code}"`;
+      }),
+    );
+    expect(NAME_TAKEN_REFUSAL_CODES).toEqual([
+      NAME_TAKEN_REFUSAL_CODE,
+      NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    ]);
+
+    // A record in service may give the name up: the provider asks again.
+    expect(codeLines[0]).toContain("a record in service has it");
+    expect(codeLines[0]).toContain(
+      "the Terraform provider asks again for up to 30 seconds",
+    );
+    // An archived one will not: nothing asks again.
+    expect(codeLines[1]).toContain("only an archived record has it");
+    expect(codeLines[1]).toContain(
+      "sending the request again does not help, and the Terraform provider does not",
+    );
+
+    /*
+     * The refusals it quotes, word for word: a named kind's, and the one
+     * every other kind with a name of its own answers a create with
+     * (DatabaseService.refuseTakenName).
+     */
+    expect(
+      codeBlocks(section, "text").map((block: string): string => {
+        return block.trim();
+      }),
+    ).toEqual([
+      getNameTakenRefusalText(ON_CALL_POLICY_NAME_TAKEN_REFUSAL, "Primary"),
+      `${new IncidentSeverity().singularName} with the same name already exists.`,
+    ]);
+    expect(readRepoFile(DATABASE_SERVICE)).toContain(
+      "`${this.model.singularName} with the same name already exists.`",
+    );
+
+    // The route, and each kind it answers for, by the name the route takes.
+    expect(section).toContain(
+      `\`GET /api${getSharedNamesRoute(SharedNameKind.Team)}\``,
+    );
+
+    for (const kind of Object.values(SharedNameKind)) {
+      const named: boolean =
+        section.includes(`\`GET /api${getSharedNamesRoute(kind)}\``) ||
+        section.includes(`\`${kind}\``);
+
+      expect({ kind, named }).toEqual({ kind, named: true });
+    }
+  });
+
+  /*
+   * #10318: the other kinds with a name of their own refuse a rename onto a
+   * taken name as they refuse a create, through the update's own check, and
+   * records that shared a name before keep it but are never renamed onto
+   * another's.
+   */
+  it("says the other kinds refuse a rename onto a taken name as they refuse a create", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Names another record has",
+    );
+
+    expect(section).toContain(
+      "refuse a taken name in the same way, on a create and on a rename alike",
+    );
+    expect(section).toContain(
+      "can still be changed, and renamed apart, but never onto another record's name",
+    );
+    expect(readRepoFile(DATABASE_SERVICE)).toContain(
+      "await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);",
+    );
+  });
+
+  /*
+   * #10319: a value that is not a name, but that a record holds alone - a
+   * domain, an identifier, a sign-on URL - is refused with codes of its own
+   * beside its sentence, and the field whose value is taken, which a client
+   * reads in place of the sentence.
+   */
+  it("names the codes a taken value is refused with, what each means, and the field beside them", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Values another record has",
+    );
+
+    expect(new ValueTakenException("x", { field: "fullDomain" }).code).toBe(
+      400,
+    );
+    expect(
+      new ValueTakenException("x", { field: "fullDomain" }).details,
+    ).toEqual({
+      [REFUSAL_CODE_FIELD]: VALUE_TAKEN_REFUSAL_CODE,
+      [TAKEN_FIELD_DETAIL]: "fullDomain",
+    });
+    expect(new ValueTakenException("x", { isArchived: true }).details).toEqual({
+      [REFUSAL_CODE_FIELD]: VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
+    });
+    expect(section).toContain(
+      `carries a \`${REFUSAL_CODE_FIELD}\` that says what has the value, and a \`${TAKEN_FIELD_DETAIL}\` that names the field whose value is taken, such as \`"${TAKEN_FIELD_DETAIL}": "fullDomain"\``,
+    );
+    expect(section).toContain(
+      `A value of several fields together comes without a \`${TAKEN_FIELD_DETAIL}\`.`,
+    );
+
+    // Every code the server sends, a line each, in Common's order.
+    const codeLines: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- ");
+      });
+
+    expect(
+      codeLines.map((line: string): string | null => {
+        return REFUSAL_CODE_LINE.exec(line)?.[1] || null;
+      }),
+    ).toEqual(
+      VALUE_TAKEN_REFUSAL_CODES.map((code: string): string => {
+        return `"${REFUSAL_CODE_FIELD}": "${code}"`;
+      }),
+    );
+    expect(codeLines[0]).toContain("a record in service has it");
+    expect(codeLines[0]).toContain(
+      "the Terraform provider asks again for up to 30 seconds",
+    );
+    expect(codeLines[1]).toContain("only an archived record has it");
+    expect(codeLines[1]).toContain(
+      "sending the request again does not help, and the Terraform provider does not",
+    );
+
+    // The refusal it quotes, word for word (DatabaseService.refuseTakenValue).
+    expect(
+      codeBlocks(section, "text").map((block: string): string => {
+        return block.trim();
+      }),
+    ).toEqual([
+      `${new StatusPageDomain().singularName} with the same fullDomain already exists.`,
+    ]);
+    expect(readRepoFile(DATABASE_SERVICE)).toContain(
+      "`${this.model.singularName} with the same ${data.column} already exists.`",
+    );
+  });
+});
+
+/*
+ * Fields only OneUptime writes (#10053): the refusal the page quotes is the
+ * one the server answers an update with, word for word, and the request
+ * the page names for Try again is the route HostAPI serves.
+ */
+describe("OneUptime API Reference: fields only OneUptime writes", () => {
+  const section: string = englishSection(
+    API_REFERENCE,
+    "### Fields only OneUptime writes",
+  );
+
+  it("quotes the refusal an update that names one is answered with", () => {
+    const quoted: string = (codeBlocks(section, "text")[0] || "").trim();
+
+    expect(quoted).toBe(
+      ColumnRefusalMessage.getWriteRefusal({
+        requestType: "update",
+        column: "telemetryMonitorLastMonitorAt",
+        modelName: new Monitor().singularName,
+        permissions: [],
+      }),
+    );
+    expect(
+      new Monitor().getTableColumnMetadata("telemetryMonitorLastMonitorAt")
+        ?.serverOwned,
+    ).toBe(ServerOwned.Always);
+  });
+
+  it("says a create goes through without them and an update is refused, as DatabaseService does", () => {
+    const writes: string = readRepoFile(
+      "Common/Server/Utils/Database/ColumnsOnlyOneUptimeWrites.ts",
+    );
+
+    expect(section).toContain(
+      "A create that sends one, as a copy of a record you read does, goes through without it",
+    );
+    expect(section).toContain("An update that sends one is refused");
+    expect(writes).toContain("public static takeOut(");
+    expect(writes).toContain("public static refuseOnUpdate(");
+  });
+
+  it("names the request that tries a host's failed collector config again", () => {
+    expect(section).toContain(
+      `\`POST /api/host/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}\``,
+    );
+    expect(readRepoFile("Common/Server/API/HostAPI.ts")).toContain(
+      "/:id/${TRY_COLLECTOR_CONFIG_AGAIN_ROUTE}",
+    );
+  });
+});
+
+/*
+ * A create's fields left out (#10136) and an update's single entries of a
+ * list (#10135): the header, the keys and the refusal the page names are
+ * the server's, word for word, and its example is a body the server takes.
+ */
+describe("OneUptime API Reference: the fields a create left out, and a list's single entries", () => {
+  const fieldsSection: string = englishSection(
+    API_REFERENCE,
+    "### Fields only OneUptime writes",
+  );
+  const listsSection: string = englishSection(
+    API_REFERENCE,
+    "### Adding entries to a list and taking them off",
+  );
+
+  it("names the header a create's answer lists the fields it left out in, and the clients that read it", () => {
+    expect(fieldsSection).toContain(`\`${FIELDS_LEFT_OUT_HEADER}\` header`);
+    expect(fieldsSection).toContain("the fields separated by commas");
+    expect(FieldsLeftOut.toHeaderValue(["depth", "lastRollupAt"])).toBe(
+      "depth, lastRollupAt",
+    );
+    expect(FieldsLeftOut.fromHeaderValue("depth, lastRollupAt")).toEqual([
+      "depth",
+      "lastRollupAt",
+    ]);
+
+    // Only an answer that left something out carries it.
+    expect(fieldsSection).toContain(
+      "an answer with nothing left out has no such header",
+    );
+    expect(readRepoFile(BASE_API)).toContain(
+      "if (createBy.fieldsLeftOut && createBy.fieldsLeftOut.length > 0) {",
+    );
+
+    // The CLI's note, the MCP server's field and the provider's warning.
+    expect(fieldsSection).toContain(
+      "The CLI prints the fields in a note, the MCP server's answer lists them in `fieldsLeftOut`, and the Terraform provider shows them in a warning.",
+    );
+    expect(readRepoFile("CLI/Commands/ResourceCommands.ts")).toContain(
+      "FieldsLeftOut.getNote(",
+    );
+    expect(
+      readRepoFile("App/FeatureSet/MCP/Handlers/ToolHandler.ts"),
+    ).toContain("fieldsLeftOut");
+    expect(
+      readRepoFile("../Scripts/TerraformProvider/StaticFiles/entries.go"),
+    ).toContain("diags.AddWarning(");
+  });
+
+  it("names the keys a change adds and takes off entries with, and its example is a body the server takes", () => {
+    const label: string = "6f1b5f4e-0a43-4f0e-9a6b-5f3b2f0c8d11";
+    const otherLabel: string = "9c2e7a10-3b5d-4c8e-8f61-2d4a6b7c9e02";
+
+    expect(listsSection).toContain(`\`${ADD_TO_LIST_KEY}\``);
+    expect(listsSection).toContain(`\`${REMOVE_FROM_LIST_KEY}\``);
+    expect(listsSection).toContain("Sent to `PUT /api/monitor/<id>`");
+
+    const example: string = (codeBlocks(listsSection, "json")[0] || "")
+      .split("<label-id>")
+      .join(label)
+      .split("<other-label-id>")
+      .join(otherLabel);
+    const body: Record<string, unknown> = JSON.parse(example);
+
+    // The lists the full API reference names under addToList: a monitor's labels among them.
+    const listColumns: Array<string> =
+      ModelSchema.getListsChangedEntryByEntry(Monitor);
+    expect(listColumns).toContain("labels");
+
+    const changes: ListChanges | null = ListChangesUtil.fromRequestBody({
+      body: body as never,
+      listColumns: listColumns,
+      modelName: new Monitor().singularName || "Monitor",
+    });
+
+    expect(changes).toEqual({
+      labels: { add: [label], remove: [otherLabel] },
+    });
+    expect(body["data"]).toEqual({ name: "Checkout API" });
+  });
+
+  it("quotes the refusal of a list sent both whole, in data, and entry by entry", () => {
+    expect((codeBlocks(listsSection, "text")[0] || "").trim()).toBe(
+      ListChangesUtil.getSentWholeAndByEntryMessage("labels"),
+    );
+    expect(readRepoFile("Common/Server/Services/DatabaseService.ts")).toContain(
+      "ListChangesUtil.getSentWholeAndByEntryMessage(column)",
+    );
+  });
+
+  it("links the Terraform guide's section on the lists OneUptime adds to", () => {
+    expect(listsSection).toContain(
+      "(/docs/terraform/complete-guide#labels-and-other-lists-oneuptime-adds-to)",
+    );
+    expect(englishPage("terraform/complete-guide").split("\n")).toContain(
+      "## Labels and other lists OneUptime adds to",
     );
   });
 });

@@ -1,6 +1,7 @@
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import { HeldPermissions, TeamGrants } from "Common/Types/HeldPermissions";
 import UserOverrideTeamAccess, {
+  USER_OVERRIDE_TEAM_AWAY_REFUSAL,
   USER_OVERRIDE_TEAM_DELETE_REFUSAL,
   USER_OVERRIDE_TEAM_EDIT_REFUSAL,
   USER_OVERRIDE_TEAM_PERMISSION,
@@ -27,7 +28,9 @@ import User from "Common/UI/Utils/User";
  *     field what is wrong with a person it holds who is outside them;
  *   - locks Edit, End Now and Delete on an override that names somebody
  *     outside them, on the User Overrides pages and on a schedule's active
- *     overrides card, saying why (getUserOverrideTeamLock).
+ *     overrides card, saying why (getUserOverrideTeamLock);
+ *   - locks "Skip until..." beside somebody outside them on a schedule's
+ *     layers, saying why (getUserOverrideTeamAwayLock, issue #9884).
  *
  * Read from the permission snapshot (PermissionGate), never guessed: on a
  * global override, only a grant over the whole project reaches anyone, so
@@ -180,6 +183,34 @@ export const getUserOverrideTeamLock: (data: {
   return data.action === ModelAction.Update
     ? USER_OVERRIDE_TEAM_EDIT_REFUSAL
     : USER_OVERRIDE_TEAM_DELETE_REFUSAL;
+};
+
+/*
+ * Why the reader may not add time away for `awayUserId` - "Skip until..."
+ * beside them on a schedule's layers (issue #9884) - in English for the
+ * shared components to translate: they are not among the people of the
+ * reader's teams, so the server would refuse the skip with these words.
+ * Null when it is not locked for this reason: the reader is not limited,
+ * or who is in the teams is not known yet (the server decides then).
+ */
+export const getUserOverrideTeamAwayLock: (data: {
+  // The reader's limit for adding an override (ModelAction.Create).
+  limit: UserOverrideTeamLimit | null;
+  // The teams' accepted members, lower-cased user ids; null while not known.
+  memberIds: ReadonlySet<string> | null;
+  awayUserId: string | null | undefined;
+}) => string | null = (data: {
+  limit: UserOverrideTeamLimit | null;
+  memberIds: ReadonlySet<string> | null;
+  awayUserId: string | null | undefined;
+}): string | null => {
+  if (!data.limit || !data.memberIds) {
+    return null;
+  }
+
+  return isOutside(data.awayUserId, data.memberIds)
+    ? USER_OVERRIDE_TEAM_AWAY_REFUSAL
+    : null;
 };
 
 /*

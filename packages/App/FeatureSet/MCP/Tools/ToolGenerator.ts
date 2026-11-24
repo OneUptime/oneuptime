@@ -30,6 +30,7 @@ import {
 } from "./HelperTools";
 import { generatePublicStatusPageTools } from "./PublicStatusPageTools";
 import {
+  isOutsideAddressTable,
   isPublishedTable,
   readOnlyToolAnnotations,
   writeToolAnnotations,
@@ -142,15 +143,19 @@ function buildRecordSortProperty(): JSONSchemaProperty {
 /**
  * Annotations per operation type. Clients use readOnlyHint to auto-approve
  * safe calls and destructiveHint to require confirmation; every write is
- * destructive, and a write to a published resource is open-world (see
- * ToolAnnotations).
+ * destructive. A write to a published resource is open-world, and so is
+ * creating or changing a resource that points OneUptime at an address
+ * outside it, such as a monitor (see ToolAnnotations).
  */
 function getAnnotationsForOperation(
   operation: OneUptimeOperation,
   tableName?: string,
 ): ToolAnnotations {
-  const openWorld: boolean =
+  const published: boolean =
     tableName !== undefined && isPublishedTable(tableName);
+  // Only making or changing one points OneUptime outside: deleting one does not.
+  const pointsOutside: boolean =
+    tableName !== undefined && isOutsideAddressTable(tableName);
 
   switch (operation) {
     case OneUptimeOperation.Read:
@@ -158,13 +163,17 @@ function getAnnotationsForOperation(
     case OneUptimeOperation.Count:
       return readOnlyToolAnnotations();
     case OneUptimeOperation.Create:
-      return writeToolAnnotations({ openWorld });
+      return writeToolAnnotations({ openWorld: published || pointsOutside });
     case OneUptimeOperation.Update:
+      return writeToolAnnotations({
+        idempotent: true,
+        openWorld: published || pointsOutside,
+      });
     case OneUptimeOperation.Delete:
-      return writeToolAnnotations({ idempotent: true, openWorld });
+      return writeToolAnnotations({ idempotent: true, openWorld: published });
     default:
       // An operation this does not know is taken to write.
-      return writeToolAnnotations({ openWorld });
+      return writeToolAnnotations({ openWorld: published || pointsOutside });
   }
 }
 

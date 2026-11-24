@@ -89,7 +89,7 @@ Une liste ou un comptage prend une `query`. Un champ avec une valeur correspond 
 | `Includes` | L'une des valeurs de `value` |
 | `IsNull`, `NotNull` | Aucune valeur, ou n'importe quelle valeur |
 
-Un champ d'un enregistrement que la ressource nomme se filtre sous sa relation : `"user": { "name": { "_type": "Search", "value": "ada" } }` trouve les membres d'équipe dont l'utilisateur a un nom qui contient « ada ». Filtrer sur un champ demande l'autorisation de le lire, à travers une relation comme sur la ressource elle-même : un filtre sur un champ que vous ne pouvez pas lire est refusé avec un `422` qui nomme le champ.
+Un champ d'un enregistrement que la ressource nomme se filtre sous sa relation : `"user": { "name": { "_type": "Search", "value": "ada" } }` trouve les membres d'équipe dont l'utilisateur a un nom qui contient « ada ». Filtrer sur un champ demande l'autorisation de le lire, à travers une relation comme sur la ressource elle-même : un filtre sur un champ que vous ne pouvez pas lire est refusé avec un `422` qui nomme le champ. À travers une relation, un champ que seule la personne elle-même peut lire, comme le fuseau horaire d'un utilisateur ou ses méthodes de notification et ses journaux d'astreinte, est refusé à tout le monde, dans un filtre comme dans un tri, car la relation peut nommer l'enregistrement de n'importe qui.
 
 Une ressource avec des propriétaires - un moniteur, un incident, une stratégie d'astreinte et toute autre ressource avec des propriétaires utilisateurs et équipes - se filtre aussi selon qui la possède, sous `owners` : `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` trouve les enregistrements dont une ou plusieurs de ces personnes et équipes sont propriétaires. `match` vaut `AnyOf` tant que vous ne le fixez pas : `NoneOf` trouve les enregistrements dont aucune d'elles n'est propriétaire, enregistrements sans propriétaire compris, et `AnyOwner` et `NoOwner` trouvent les enregistrements avec au moins un propriétaire ou sans aucun, sans nommer personne. Les membres d'une équipe ne sont pas propriétaires de ce que l'équipe possède. Un filtre nomme au plus 1 000 personnes et équipes au total, une ressource sans propriétaires le refuse avec un `400`, et filtrer par propriétaires sans l'autorisation de les lire est refusé avec un `422`.
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | La requête est incorrecte : la clé API est invalide, une valeur n'est pas autorisée, un champ ne peut pas être écrit, un enregistrement nommé n'est pas à vous, ou elle modifie plusieurs projets à la fois. Le message dit ce qui ne va pas. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
 | `402` | L'offre du projet n'inclut pas ce que la requête utilise. Le message nomme l'offre. | [Fonctionnalités que votre offre n'inclut pas](#fonctionnalités-que-votre-offre-ninclut-pas) |
 | `404` | L'enregistrement n'existe pas, se trouve dans un autre projet, ou vous n'avez pas le droit de le lire : la même réponse dans chaque cas. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
+| `413` | Le corps dépasse ce que OneUptime accepte dans la requête : 1 Mo contenant au plus 100 000 valeurs JSON pour la plupart des requêtes, et 50 Mo pour une requête qui envoie un fichier, un tableau de bord ou une page de statut. Le message indique la limite. Sur un serveur que vous gérez vous-même, `REQUEST_BODY_MAX_BYTES` et `REQUEST_BODY_MAX_JSON_VALUES` relèvent la limite de la plupart des requêtes. | [Requêtes et réponses](#requêtes-et-réponses) |
 | `422` | Vous n'avez pas le droit de faire cela : la clé API n'a aucune autorisation pour ce type d'enregistrement, vous pouvez lire l'enregistrement mais pas le modifier, ou les étiquettes d'une autorisation l'excluent. Le message dit pourquoi. | [Modifier ou supprimer un enregistrement que vous ne pouvez pas lire](#modifier-ou-supprimer-un-enregistrement-que-vous-ne-pouvez-pas-lire) |
 | `500` | Quelque chose a échoué côté serveur. Quand le propriétaire d'un nouvel enregistrement ne peut pas être écrit, l'enregistrement est retiré, donc la création peut être retentée. | [Les enregistrements qu'une requête nomme](#les-enregistrements-quune-requête-nomme) |
 
@@ -254,7 +255,33 @@ Les équipes, les étiquettes, les politiques d'astreinte et les plannings d'ast
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer. Pour les équipes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon.
+Beaucoup d'autres types ont aussi un nom bien à eux, comme les gravités d'incidents, les statuts de moniteur, les pages d'état et les flux de travail, et refusent de la même façon un nom déjà pris, à la création comme au renommage :
+
+```text
+Incident Severity with the same name already exists.
+```
+
+À côté du message, chacun de ces refus contient un `refusalCode` qui dit ce qui porte le nom. Reconnaissez le refus à ce code, pas à la phrase, qui peut être reformulée :
+
+- `"refusalCode": "name_taken"` : un enregistrement en service le porte. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que cet enregistrement abandonne le nom : le fournisseur Terraform redemande pendant 30 secondes au plus.
+- `"refusalCode": "name_taken_by_archived"` : seul un enregistrement archivé le porte. Désarchivez cet enregistrement, ou choisissez un autre nom : renvoyer la requête n'y change rien, et le fournisseur Terraform ne la renvoie pas.
+
+Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer, mais jamais vers le nom d'un autre enregistrement. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
+
+#### Des valeurs qu'un autre enregistrement porte déjà
+
+Certaines valeurs qui ne sont pas un nom appartiennent aussi à un seul enregistrement chacune : le domaine d'une page d'état, d'un tableau de bord ou d'un formulaire, un domaine de projet, l'identifiant d'un hôte ou d'un cluster Kubernetes, l'URL de connexion d'un fournisseur SSO et la permission d'une clé d'API, entre autres. Une création, ou une mise à jour qui change l'une d'elles, vers une valeur que porte déjà un autre enregistrement est refusée par un `400` qui le dit :
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+À côté du message, le refus contient un `refusalCode` qui dit ce qui porte la valeur, et un `field` qui nomme le champ dont la valeur est prise, comme `"field": "fullDomain"`. Une valeur de plusieurs champs ensemble arrive sans `field`. Reconnaissez le refus à ce code, pas à la phrase, qui peut être reformulée :
+
+- `"refusalCode": "value_taken"` : un enregistrement en service la porte. Rien n'a été écrit, si bien que la même requête peut être renvoyée dès que cet enregistrement abandonne la valeur : le fournisseur Terraform redemande pendant 30 secondes au plus.
+- `"refusalCode": "value_taken_by_archived"` : seul un enregistrement archivé la porte. Désarchivez cet enregistrement, ou choisissez une autre valeur : renvoyer la requête n'y change rien, et le fournisseur Terraform ne la renvoie pas.
+
+Une mise à jour qui renvoie à un enregistrement sa propre valeur, quelle que soit la casse, n'est pas un changement : les enregistrements qui partageaient une valeur auparavant peuvent donc toujours être modifiés, et recevoir chacun la leur.
 
 ### Interrupteurs
 
@@ -279,6 +306,40 @@ User is not allowed to create on resellerId column of Project. No permission all
 OneUptime enregistre qui a créé un enregistrement — et qui l'a archivé, résolu, acquitté ou déclenché — à partir de la requête elle-même : la personne connectée, ou personne quand la requête vient avec une clé API ou d'un flux de travail. Ces champs (`createdByUserId` et les autres champs qui se terminent par `ByUserId`, avec leurs relations comme `createdByUser`) sont en lecture seule, tout comme le moment où un enregistrement a été archivé ou résolu (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`) : activer `isArchived` ou `isResolved` enregistre qui l'a fait et quand, et le désactiver efface les deux. Envoyer un interrupteur tel qu'il est déjà conserve qui l'a basculé, et quand.
 
 La référence de l'API marque ces champs en lecture seule. Une valeur qu'une requête envoie pour l'un d'eux à côté d'autres modifications est ignorée, donc le reste de la modification passe ; une mise à jour qui n'envoie rien d'autre est refusée avec un message qui nomme les champs. Les enregistrements que OneUptime crée lui-même au nom de quelqu'un — une note publiée depuis Slack ou Microsoft Teams, un compte créé par une invitation — nomment cette personne.
+
+### Champs que seul OneUptime écrit
+
+Certains champs ne sont écrits que par OneUptime : quand un moniteur de télémétrie s'est exécuté pour la dernière fois et quand il s'exécutera la prochaine fois, ce qu'un agent a signalé en dernier, les échéances d'un SLA, quand un secret client SCIM cesse de fonctionner. La référence de l'API les marque en lecture seule et ne les inclut pas dans les corps de création et de mise à jour. Une création qui en envoie un, comme le fait la copie d'un enregistrement que vous avez lu, passe sans ce champ, et le nouvel enregistrement reçoit la valeur de OneUptime. Une mise à jour qui en envoie un est refusée, et la réponse nomme chacun des champs de ce type qu'elle a envoyés :
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+N'envoyez pas ces champs dans une mise à jour. Les rares qu'une personne modifie ont leur propre requête : renouveler un secret client SCIM fixe le moment où il cesse de fonctionner, et `POST /api/host/:id/try-collector-config-again` renvoie à un hôte la configuration du collecteur qui a échoué sur lui. Un champ que vous et OneUptime modifiez tous les deux, comme les `labels` d'un enregistrement, que les règles d'étiquettes complètent, vous le définissez comme avant.
+
+Une création qui a laissé un champ de côté le nomme dans l'en-tête `X-OneUptime-Fields-Left-Out` de la réponse, les champs séparés par des virgules ; une réponse qui n'a rien laissé de côté n'a pas cet en-tête. La CLI affiche les champs dans une note, la réponse du serveur MCP les liste dans `fieldsLeftOut`, et le fournisseur Terraform les montre dans un avertissement.
+
+### Ajouter des entrées à une liste et les enlever
+
+Une modification peut ajouter des enregistrements à une liste, ou en enlever, sans envoyer la liste entière : `addToList` et `removeFromList` nomment les ID à ajouter et à enlever, liste par liste. Chaque entrée que la modification ne nomme pas reste, y compris une que quelqu'un d'autre ou une règle d'étiquettes ajoute au même moment :
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Envoyé à `PUT /api/monitor/<id>`, ce corps renomme le moniteur, lui ajoute une étiquette et lui en enlève une autre. Laissez `data` de côté quand la modification ne fait qu'ajouter et enlever des entrées. Une entrée est l'ID de l'enregistrement, ou un objet avec son `_id`, comme dans `data`, et ajouter une entrée que la liste contient déjà, ou en enlever une qu'elle ne contient pas, ne change rien.
+
+Les listes qu'une modification peut nommer sont celles que la référence complète de l'API liste sous `addToList` pour la requête `PUT` de la ressource. Une modification faite ainsi est vérifiée comme le serait la liste entière qu'elle laisse, selon les règles ci-dessus : votre autorisation de modifier la liste, chaque enregistrement qu'elle ajoute devant être un de ceux de votre projet que vous pouvez lire, et les étiquettes qu'une autorisation restreinte à des étiquettes conserve. Une liste envoyée à la fois entière, dans `data`, et dans `addToList` ou `removeFromList` est refusée avec un `400` :
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Les fournisseurs Terraform et Crossplane modifient ainsi les étiquettes d'un enregistrement, si bien qu'une étiquette qu'une règle ajoute pendant leur exécution reste : voir [Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi](/docs/terraform/complete-guide#les-étiquettes-et-les-autres-listes-auxquelles-oneuptime-ajoute-aussi).
 
 ## États et épisodes
 

@@ -17,11 +17,14 @@ import {
   ToolContext,
   ToolExecutionResult,
 } from "../../../../Server/Utils/AI/Toolbox/ToolTypes";
+import ToolResultSerializer from "../../../../Server/Utils/AI/Toolbox/Serializer";
 import { buildObservabilityChatSystemPrompt } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
+import DataSecurityCustomDataTypeService from "../../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityIssueService from "../../../../Server/Services/DataSecurityIssueService";
 import DataStoreAccessService from "../../../../Server/Services/DataStoreAccessService";
 import DataStoreFindingService from "../../../../Server/Services/DataStoreFindingService";
 import DataStoreService from "../../../../Server/Services/DataStoreService";
+import DataSecurityCustomDataType from "../../../../Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../../Models/DatabaseModels/DataStoreAccess";
@@ -40,7 +43,10 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
 import SecuritySeverity from "../../../../Types/SecuritySeverity";
+import { customDomainCaller } from "../../API/CustomDomainCallers";
+import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
@@ -535,6 +541,116 @@ describe("query_data_security_issues", () => {
     expect(result.dataForLlm).toContain(alertId.toString());
     expect(result.dataForLlm).toContain(incidentId.toString());
   });
+
+  /*
+   * Read with the caller's own permissions: a store's region, sensitivity
+   * and exposure are read through the issue only by who may read the store
+   * (#10281). The tool asks for them only then, so a custom role that reads
+   * issues and not stores is told the issue, and its store's name and kind,
+   * instead of being refused it.
+   */
+  function callerHolding(permissions: Array<Permission>): ToolContext {
+    return {
+      projectId: PROJECT_ID,
+      props: {
+        ...customDomainCaller({
+          permissions: permissions,
+          projectId: PROJECT_ID,
+        }),
+        ...ON_HIGHEST_PLAN,
+      },
+    };
+  }
+
+  test.each([
+    ["a security viewer", [Permission.SecurityViewer], true],
+    ["a project admin", [Permission.ProjectAdmin], true],
+    [
+      "a custom role that reads issues and not stores",
+      [Permission.ReadDataSecurityIssue],
+      false,
+    ],
+  ] as Array<[string, Array<Permission>, boolean]>)(
+    "one issue, for %s, reads of its store what they may read through it",
+    async (
+      _who: string,
+      permissions: Array<Permission>,
+      readsStore: boolean,
+    ) => {
+      const read: DataSecurityIssue = issue();
+
+      const spy: SpyInstance<typeof DataSecurityIssueService.findOneBy> = jest
+        .spyOn(DataSecurityIssueService, "findOneBy")
+        .mockImplementation(async (findBy: unknown): Promise<never> => {
+          // The store as the database joins it: the columns asked of it.
+          const asked: JSONObject = (findBy as JSONObject)[
+            "select"
+          ] as JSONObject;
+          const joined: DataStore = new DataStore(STORE_A);
+
+          for (const column of Object.keys(
+            (asked["dataStore"] as JSONObject) || {},
+          )) {
+            (joined as unknown as JSONObject)[column] = (
+              CARDS as unknown as JSONObject
+            )[column] as never;
+          }
+
+          read.dataStore = joined;
+          return read as never;
+        });
+
+      const rows: SpyInstance<typeof ToolResultSerializer.serializeRows> =
+        jest.spyOn(ToolResultSerializer, "serializeRows");
+
+      const result: ToolExecutionResult =
+        await QueryDataSecurityIssuesTool.execute(
+          { dataSecurityIssueId: ISSUE_ID.toString() },
+          callerHolding(permissions),
+        );
+      const storeAsked: JSONObject = (
+        (spy.mock.calls[0]![0] as unknown as JSONObject)["select"] as JSONObject
+      )["dataStore"] as JSONObject;
+
+      expect(Object.keys(storeAsked).sort()).toEqual(
+        readsStore
+          ? [
+              "exposure",
+              "kind",
+              "name",
+              "region",
+              "sensitivity",
+              "sensitivityOverride",
+            ]
+          : ["kind", "name"],
+      );
+      expect(result.dataForLlm).toContain("card-exports");
+
+      const row: JSONObject = (rows.mock.calls[0]![0] as Array<JSONObject>)[0]!;
+
+      // Never "Public" for a sensitivity it did not read.
+      expect({
+        store: row["store"],
+        storeSensitivity: row["storeSensitivity"],
+        exposure: row["exposure"],
+        region: row["region"],
+      }).toEqual(
+        readsStore
+          ? {
+              store: "card-exports",
+              storeSensitivity: DataSensitivity.Restricted,
+              exposure: DataStoreExposure.Public,
+              region: "eu-west-1",
+            }
+          : {
+              store: "card-exports",
+              storeSensitivity: "",
+              exposure: "",
+              region: "",
+            },
+      );
+    },
+  );
 });
 
 describe("query_data_store_access", () => {
@@ -651,6 +767,213 @@ describe("query_data_store_access", () => {
         "isExternal"
       ],
     ).toBe(true);
+  });
+});
+
+/*
+ * A PROJECT'S OWN DATA TYPES, BY THEIR NAMES (#10363). "Which stores hold
+ * employee IDs?" listed the type as "custom:9b1c...", and could not find it
+ * by its name at all. The project's types are read once a call, as the
+ * caller may read them, and only when a custom type is in it.
+ */
+describe("the project's own data types in Ask AI", () => {
+  const EMPLOYEE_ROW: string = "10363000-0000-4000-8000-0000000000e1";
+  const GONE_ROW: string = "10363000-0000-4000-8000-0000000000e2";
+  const EMPLOYEE: string = `custom:${EMPLOYEE_ROW}`;
+  const GONE: string = `custom:${GONE_ROW}`;
+
+  const STAFF: DataStore = store({
+    id: STORE_A,
+    name: "hr-exports",
+    sensitivity: DataSensitivity.Confidential,
+    dataTypeIds: ["email-address", EMPLOYEE, GONE],
+    riskScore: 80,
+  });
+
+  function projectTypes(
+    answer: Array<DataSecurityCustomDataType> | Error = [
+      (() => {
+        const row: DataSecurityCustomDataType = new DataSecurityCustomDataType(
+          new ObjectID(EMPLOYEE_ROW),
+        );
+        row.name = "Employee ID";
+        return row;
+      })(),
+    ],
+  ): SpyInstance<typeof DataSecurityCustomDataTypeService.findBy> {
+    return jest
+      .spyOn(DataSecurityCustomDataTypeService, "findBy")
+      .mockImplementation((async () => {
+        if (answer instanceof Error) {
+          throw answer;
+        }
+
+        return answer;
+      }) as never);
+  }
+
+  test("which stores hold employee IDs: found by the type's name, in any case, and named by it", async () => {
+    const types: SpyInstance<typeof DataSecurityCustomDataTypeService.findBy> =
+      projectTypes();
+    jest
+      .spyOn(DataStoreService, "findBy")
+      .mockResolvedValue([STAFF, CARDS, CUSTOMERS] as never);
+
+    const result: ToolExecutionResult = await run(QueryDataStoresTool, {
+      dataType: "employee id",
+    });
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain("hr-exports");
+    expect(result.dataForLlm).toContain("Employee ID");
+    expect(result.dataForLlm).toContain("A deleted data type");
+    expect(result.dataForLlm).not.toContain("custom:");
+    expect(result.citationLabel).toBe(
+      "Data stores (holding Employee ID) - 1 found",
+    );
+    // Read once for the call, with the caller's own permissions.
+    expect(types).toHaveBeenCalledTimes(1);
+    expect((types.mock.calls[0]![0] as unknown as JSONObject)["props"]).toBe(
+      ctx.props,
+    );
+    expect(
+      (types.mock.calls[0]![0] as unknown as JSONObject)["select"],
+    ).toEqual({ _id: true, name: true });
+  });
+
+  test("by its id too, as the tool always took it", async () => {
+    projectTypes();
+    jest
+      .spyOn(DataStoreService, "findBy")
+      .mockResolvedValue([STAFF, CARDS] as never);
+
+    const result: ToolExecutionResult = await run(QueryDataStoresTool, {
+      dataType: EMPLOYEE,
+    });
+
+    expect(result.rowCount).toBe(1);
+    expect(result.citationLabel).toBe(
+      "Data stores (holding Employee ID) - 1 found",
+    );
+  });
+
+  test("a store list names a custom type by its name, and one the project deleted as deleted", async () => {
+    projectTypes();
+    jest.spyOn(DataStoreService, "findBy").mockResolvedValue([STAFF] as never);
+    const rows: SpyInstance<typeof ToolResultSerializer.serializeRows> =
+      jest.spyOn(ToolResultSerializer, "serializeRows");
+
+    await run(QueryDataStoresTool, {});
+
+    expect((rows.mock.calls[0]![0] as Array<JSONObject>)[0]!["dataTypes"]).toBe(
+      "Email address, Employee ID, A deleted data type",
+    );
+  });
+
+  test("one store's findings: the type's name today, else the one its finding kept", async () => {
+    projectTypes();
+    jest.spyOn(DataStoreService, "findOneBy").mockResolvedValue(STAFF as never);
+
+    const renamed: DataStoreFinding = new DataStoreFinding();
+    renamed.dataTypeId = EMPLOYEE;
+    renamed.dataTypeName = "Staff number";
+    renamed.location = "employees.badge";
+    const gone: DataStoreFinding = new DataStoreFinding();
+    gone.dataTypeId = GONE;
+    gone.dataTypeName = "Badge number";
+    gone.location = "employees.old_badge";
+
+    jest
+      .spyOn(DataStoreFindingService, "findBy")
+      .mockResolvedValue([renamed, gone] as never);
+    jest.spyOn(DataStoreAccessService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockResolvedValue([] as never);
+    const rows: SpyInstance<typeof ToolResultSerializer.serializeRows> =
+      jest.spyOn(ToolResultSerializer, "serializeRows");
+
+    const result: ToolExecutionResult = await run(QueryDataStoresTool, {
+      dataStoreId: STORE_A.toString(),
+    });
+    const found: Array<JSONObject> = rows.mock
+      .calls[1]![0] as Array<JSONObject>;
+
+    expect(
+      found.map((row: JSONObject): unknown => {
+        return row["dataType"];
+      }),
+    ).toEqual(["Employee ID", "Badge number"]);
+    expect(result.dataForLlm).not.toContain("Staff number");
+    expect(result.dataForLlm).not.toContain("custom:");
+  });
+
+  test("one issue names the types it found", async () => {
+    projectTypes();
+    const row: DataSecurityIssue = new DataSecurityIssue(ISSUE_ID);
+    row.title = "Anyone on the internet can read it";
+    row.checkId = "public-read";
+    row.dataTypeIds = [EMPLOYEE, "email-address", GONE];
+    row.dataStoreId = STORE_A;
+    row.dataStore = STAFF;
+    jest
+      .spyOn(DataSecurityIssueService, "findOneBy")
+      .mockResolvedValue(row as never);
+    const rows: SpyInstance<typeof ToolResultSerializer.serializeRows> =
+      jest.spyOn(ToolResultSerializer, "serializeRows");
+
+    await run(QueryDataSecurityIssuesTool, {
+      dataSecurityIssueId: ISSUE_ID.toString(),
+    });
+
+    expect((rows.mock.calls[0]![0] as Array<JSONObject>)[0]!["dataTypes"]).toBe(
+      "Employee ID, Email address, A deleted data type",
+    );
+  });
+
+  test("a principal's blast radius names what each store holds", async () => {
+    projectTypes();
+    const entry: DataStoreAccess = new DataStoreAccess();
+    entry.dataStoreId = STORE_A;
+    entry.principal = "role/hr";
+    entry.accessLevel = "Read";
+    jest
+      .spyOn(DataStoreAccessService, "findBy")
+      .mockResolvedValue([entry] as never);
+    jest.spyOn(DataStoreService, "findBy").mockResolvedValue([STAFF] as never);
+
+    const result: ToolExecutionResult = await run(QueryDataStoreAccessTool, {
+      principal: "hr",
+    });
+
+    expect(result.dataForLlm).toContain("Employee ID");
+    expect(result.dataForLlm).not.toContain("custom:");
+  });
+
+  test("a caller who may not read the project's data types sees each as a custom data type, never an id", async () => {
+    projectTypes(new NotAuthorizedException("Read Custom Data Type"));
+    jest.spyOn(DataStoreService, "findBy").mockResolvedValue([STAFF] as never);
+    const rows: SpyInstance<typeof ToolResultSerializer.serializeRows> =
+      jest.spyOn(ToolResultSerializer, "serializeRows");
+
+    const result: ToolExecutionResult = await run(QueryDataStoresTool, {});
+
+    expect((rows.mock.calls[0]![0] as Array<JSONObject>)[0]!["dataTypes"]).toBe(
+      "Email address, Custom data type",
+    );
+    expect(result.dataForLlm).not.toContain("custom:");
+  });
+
+  test("nothing of the project's own in a call: its types are not read", async () => {
+    const types: SpyInstance<typeof DataSecurityCustomDataTypeService.findBy> =
+      projectTypes();
+    jest
+      .spyOn(DataStoreService, "findBy")
+      .mockResolvedValue([CARDS, CUSTOMERS] as never);
+
+    await run(QueryDataStoresTool, { dataType: "Card number" });
+
+    expect(types).not.toHaveBeenCalled();
   });
 });
 

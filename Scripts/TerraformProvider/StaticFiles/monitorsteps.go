@@ -166,6 +166,8 @@ var monitorStepsCheckOnValues = []string{
 	"Exception Increase (in %)",
 	"Sessions With Exceptions (in %)",
 	"Sessions",
+	"Installs With Exceptions (in %)",
+	"Installs",
 	"Profile Count",
 	"Function Share (in %)",
 	"Metric Value",

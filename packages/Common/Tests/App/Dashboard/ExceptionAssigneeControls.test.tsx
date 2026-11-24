@@ -363,6 +363,13 @@ describe("the header's Assignee", () => {
     expect(change).toContainElement(name);
     expect(change.textContent).toContain("PR");
     expect(change).toHaveAttribute("aria-haspopup", "dialog");
+    /*
+     * Lined up with the facts beside it (-ms-1), and as wide as its box and
+     * the 0.25rem it reaches back past it: held to the box alone, a name
+     * that fits ended in an ellipsis (#10271).
+     */
+    expect(change).toHaveClass("-ms-1", "max-w-[calc(100%+0.25rem)]");
+    expect(change).not.toHaveClass("max-w-full");
 
     fireEvent.click(change);
 

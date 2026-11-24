@@ -43,9 +43,33 @@ function isReadAs(token: string, purpose: JsonWebTokenPurpose): boolean {
  * The user a token is read as belonging to, by its kind's own reader:
  * JSONWebToken.decode, or for a browser's sign-out cookies, which name no
  * one's identity and which decode never reads, decodeSessionToSignOut (a
- * dashboard's) and decodeStatusPageSessionToSignOut (a status page's).
+ * dashboard's) and decodeStatusPageSessionToSignOut (a status page's). A
+ * dashboard's or a form's private user (#10250, #10249) is read only by
+ * that kind's own readers, which decode never stands in for.
  */
 function userReadAs(token: string, purpose: JsonWebTokenPurpose): string {
+  if (purpose === JsonWebTokenPurpose.DashboardPrivateUserSession) {
+    return JSONWebToken.decodeDashboardPrivateUserSession(
+      token,
+    ).userId.toString();
+  }
+
+  if (purpose === JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut) {
+    return JSONWebToken.decodeDashboardPrivateUserSessionToSignOut(
+      token,
+    ).userId.toString();
+  }
+
+  if (purpose === JsonWebTokenPurpose.FormPrivateUserSession) {
+    return JSONWebToken.decodeFormPrivateUserSession(token).userId.toString();
+  }
+
+  if (purpose === JsonWebTokenPurpose.FormPrivateUserSessionSignOut) {
+    return JSONWebToken.decodeFormPrivateUserSessionToSignOut(
+      token,
+    ).userId.toString();
+  }
+
   if (purpose === JsonWebTokenPurpose.UserSessionSignOut) {
     return JSONWebToken.decodeSessionToSignOut(token).userId.toString();
   }
@@ -1656,6 +1680,29 @@ describe("a token says what it is for only when this server signed it", () => {
       return {
         ...common,
         statusPageId: ObjectID.generate().toString(),
+        sessionId: ObjectID.generate().toString(),
+      };
+    }
+
+    // A dashboard's or a form's private user names the resource too.
+    if (
+      purpose === JsonWebTokenPurpose.DashboardPrivateUserSession ||
+      purpose === JsonWebTokenPurpose.DashboardPrivateUserSessionSignOut
+    ) {
+      return {
+        ...common,
+        dashboardId: ObjectID.generate().toString(),
+        sessionId: ObjectID.generate().toString(),
+      };
+    }
+
+    if (
+      purpose === JsonWebTokenPurpose.FormPrivateUserSession ||
+      purpose === JsonWebTokenPurpose.FormPrivateUserSessionSignOut
+    ) {
+      return {
+        ...common,
+        formId: ObjectID.generate().toString(),
         sessionId: ObjectID.generate().toString(),
       };
     }

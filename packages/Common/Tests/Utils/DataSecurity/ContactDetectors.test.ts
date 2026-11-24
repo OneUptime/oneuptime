@@ -2,7 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
 import CONTACT_DETECTORS, {
   hasCountryCallingCode,
+  IP_ADDRESS_DETECTORS,
   isDocumentationIpv4,
+  isDocumentationIpv6,
+  isIpv6AddressData,
   isPlausibleBirthDate,
   isPublicIpv4,
   isPublicIpv6,
@@ -504,6 +507,94 @@ describe("ip-address", () => {
     expect(isPublicIpv6("2a00:1:2:3:4:5:6")).toBe(false);
     expect(isPublicIpv6("2a00:12345::1")).toBe(false);
     expect(isPublicIpv6("fe80::1")).toBe(false);
+  });
+
+  /*
+   * #10393: the pattern needed a group before the first colon, so an
+   * address that starts with "::" or ends in an IPv4 address was only ever
+   * found as the IPv4 address inside it - and the validator took the first
+   * group it could read for the address's first group.
+   */
+  test("finds an IPv4 address written as IPv6 whole, judged as the IPv4 address it is", () => {
+    expectFound("client ::ffff:81.2.69.142", [
+      found("ip-address", "::ffff:81.2.69.142", H),
+    ]);
+    expectFound("::ffff:5102:458e", [
+      found("ip-address", "::ffff:5102:458e", M),
+    ]);
+    expectFound("peer ::ffff:203.0.113.7", [
+      found("ip-address", "::ffff:203.0.113.7", M, true),
+    ]);
+    expectNothingOf("ip-address", [
+      "peer ::ffff:10.0.0.1",
+      "peer ::ffff:127.0.0.1",
+      "peer ::ffff:169.254.169.254",
+    ]);
+  });
+
+  test("finds an IPv6 address that ends in an IPv4 address whole", () => {
+    expectFound("upstream 64:ff9b::81.2.69.142", [
+      found("ip-address", "64:ff9b::81.2.69.142", M),
+    ]);
+    expectFound("client 2001:db8::1.2.3.4", [
+      found("ip-address", "2001:db8::1.2.3.4", H, true),
+    ]);
+  });
+
+  test("finds an address in brackets with a port, and one with a zone, without them", () => {
+    expectFound("dial [2a00:1450:4001:81b::200e]:443", [
+      found("ip-address", "2a00:1450:4001:81b::200e", M),
+    ]);
+    expectFound("bound to 2a00:1450:4001:81b::200e%eth0", [
+      found("ip-address", "2a00:1450:4001:81b::200e", M),
+    ]);
+  });
+
+  test("judges an IPv6 address by its own first group", () => {
+    // Under ::/16 - unspecified, loopback, IPv4-compatible - whatever follows.
+    expect(isPublicIpv6("::abcd")).toBe(false);
+    expect(isPublicIpv6("::1:2:3")).toBe(false);
+    expect(isPublicIpv6("::ffff:8.8.8.8")).toBe(false);
+    expect(isPublicIpv6("64:ff9b::8.8.8.8")).toBe(true);
+    expect(isPublicIpv6("2001:4860:4860::8888")).toBe(true);
+    expect(isPublicIpv6("FD00::1")).toBe(false);
+    expect(isPublicIpv6("fe80::1%eth0")).toBe(false);
+    expect(isDocumentationIpv6("2001:db8::")).toBe(true);
+    expect(isDocumentationIpv6("2001:0DB8:85a3::8a2e:370:7334")).toBe(true);
+    expect(isDocumentationIpv6("2001:db9::1")).toBe(false);
+    expect(isDocumentationIpv6("2001::db8:1")).toBe(false);
+    expect(isDocumentationIpv6("::ffff:203.0.113.7")).toBe(false);
+  });
+
+  test("an IPv6 candidate is the type's when public or for documentation, and an IPv4 address in IPv6 by that address", () => {
+    expect(isIpv6AddressData("2001:4860:4860::8888")).toBe(true);
+    expect(isIpv6AddressData("2001:db8::1")).toBe(true);
+    expect(isIpv6AddressData("::ffff:8.8.8.8")).toBe(true);
+    expect(isIpv6AddressData("::ffff:203.0.113.7")).toBe(true);
+    expect(isIpv6AddressData("::ffff:10.0.0.1")).toBe(false);
+    expect(isIpv6AddressData("::1")).toBe(false);
+    expect(isIpv6AddressData("fe80::1")).toBe(false);
+    // A scope of hex letters, a clock: too few groups to be an address.
+    expect(isIpv6AddressData("Abc::Def")).toBe(false);
+    expect(isIpv6AddressData("12:30:45")).toBe(false);
+  });
+
+  test("the type's two detectors are the ones an IP Address scrub rule finds with", () => {
+    expect(
+      IP_ADDRESS_DETECTORS.map((detector: { dataTypeId: string }) => {
+        return detector.dataTypeId;
+      }),
+    ).toEqual(["ip-address", "ip-address"]);
+
+    for (const detector of IP_ADDRESS_DETECTORS) {
+      expect(CONTACT_DETECTORS).toContain(detector);
+    }
+
+    expect(
+      CONTACT_DETECTORS.filter((detector: { dataTypeId: string }) => {
+        return detector.dataTypeId === "ip-address";
+      }),
+    ).toHaveLength(IP_ADDRESS_DETECTORS.length);
   });
 });
 

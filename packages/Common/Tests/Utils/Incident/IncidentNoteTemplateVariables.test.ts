@@ -241,7 +241,7 @@ describe("buildIncidentNoteTemplateVariables: the incident's own values", () => 
 
     // The test environment runs in UTC, which the zone names as UTC or GMT.
     expect(variables["incident.startedAt"]).toMatch(
-      /^Sep 27 2026, \S.* (UTC|GMT)$/,
+      /^Sep 27, 2026, \S.* (UTC|GMT)$/,
     );
   });
 

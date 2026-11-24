@@ -4,6 +4,7 @@ import path from "path";
 import { ResourceGenerator, SchemaFlags } from "../Core/ResourceGenerator";
 import { OpenAPIParser } from "../Core/OpenAPIParser";
 import { TerraformAttribute, TerraformResource } from "../Core/Types";
+import { providerGoFilePath, registrationsOf } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 /*
@@ -46,7 +47,7 @@ beforeAll(async () => {
 
   const read: (file: string) => string = (file: string): string => {
     return fs.readFileSync(
-      path.join(outputDir, "internal/provider", file),
+      path.join(outputDir, providerGoFilePath(file)),
       "utf-8",
     );
   };
@@ -54,7 +55,7 @@ beforeAll(async () => {
   monitorGo = read("resource_monitor.go");
   fleetGo = read("resource_iot_fleet.go");
   monitorStatusGo = read("resource_monitor_status.go");
-  resourcesGo = read("resources.go");
+  resourcesGo = registrationsOf(outputDir, "resources.go");
 });
 
 afterAll(() => {
@@ -81,7 +82,7 @@ describe("a renamed resource", () => {
     expect(fleetGo).toContain(
       "oneuptime_io_t_fleet has been renamed to oneuptime_iot_fleet",
     );
-    expect(resourcesGo).toContain("NewIotFleetLegacyResource,");
+    expect(resourcesGo).toMatch(/New: NewIotFleetLegacyResource\},/);
   });
 
   test("takes state from the old name with a moved block", () => {
@@ -89,7 +90,7 @@ describe("a renamed resource", () => {
       "var _ resource.ResourceWithMoveState = &IotFleetResource{}",
     );
     expect(fleetGo).toContain(
-      'legacyNameStateMover("oneuptime_io_t_fleet", r.schemaDefinition())',
+      'LegacyNameStateMover("oneuptime_io_t_fleet", r.schemaDefinition())',
     );
     // The alias itself offers no moves.
     expect(
@@ -99,7 +100,7 @@ describe("a renamed resource", () => {
 
   test("is listed for the alias tests", () => {
     expect(resourcesGo).toContain(
-      '{Name: "iot_fleet", LegacyName: "io_t_fleet", New: NewIotFleetResource, NewLegacy: NewIotFleetLegacyResource},',
+      'Name: "iot_fleet", LegacyName: "io_t_fleet", New: NewIotFleetResource, NewLegacy: NewIotFleetLegacyResource},',
     );
   });
 
@@ -122,7 +123,7 @@ describe("a renamed resource", () => {
   test("the alias helpers ship with the provider", () => {
     for (const file of ["legacynames.go", "legacynames_test.go"]) {
       expect(
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ).toBe(true);
     }
   });

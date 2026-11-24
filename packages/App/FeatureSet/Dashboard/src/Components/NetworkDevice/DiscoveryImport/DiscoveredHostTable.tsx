@@ -86,6 +86,10 @@ import {
   getMonitorsOfRow,
   loadDeviceMonitors,
 } from "../DeviceMonitorsOfDevices";
+import DiscoveredHostSharedAddressLine, {
+  getSharedAddressDeviceIds,
+} from "./DiscoveredHostSharedAddress";
+import { loadDeviceNames } from "../NetworkDeviceNames";
 
 /*
  * THE HOSTS OF A SCAN, TO CHOOSE FROM (Network > Discovery > Review Results,
@@ -112,7 +116,9 @@ import {
  * A host that is already a device says whether it is monitored too (issue
  * #9509): "Already monitored" and a link to its monitor - or to the
  * device's monitors - read for the page's already-added hosts, or "Already
- * added" when nothing watches it yet or that could not be read.
+ * added" when nothing watches it yet or that could not be read. At an
+ * address more than one device has, it also says which of them it is and
+ * why, or why the scan's probe cannot tell them apart (issue #9905).
  */
 
 export const DISCOVERED_HOSTS_PER_PAGE: number = 50;
@@ -295,6 +301,49 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
         // The hosts stay "Already added", which is still true.
       });
   }, [alreadyAddedOnPage]);
+
+  /*
+   * The names of the devices the page's hosts at shared addresses name in
+   * their lines (issue #9905), read once per page shown and kept as pages
+   * are turned. Best effort: a device whose name is not read is not linked,
+   * and its line still says why.
+   */
+  const [deviceNames, setDeviceNames] = useState<Map<string, string>>(
+    new Map<string, string>(),
+  );
+  const namesRequestRef: React.MutableRefObject<number> = useRef<number>(0);
+  const sharedAddressDevicesOnPage: string = getSharedAddressDeviceIds(
+    pageHosts.map((shown: ShownDiscoveredHost): DiscoveredNetworkDevice => {
+      return shown.host;
+    }),
+  )
+    .filter((deviceId: string): boolean => {
+      return !deviceNames.has(deviceId);
+    })
+    .join(",");
+
+  useEffect(() => {
+    if (!sharedAddressDevicesOnPage) {
+      return;
+    }
+
+    namesRequestRef.current += 1;
+    const request: number = namesRequestRef.current;
+
+    loadDeviceNames(sharedAddressDevicesOnPage.split(","))
+      .then((loaded: Map<string, string>) => {
+        if (request !== namesRequestRef.current || loaded.size === 0) {
+          return;
+        }
+
+        setDeviceNames((current: Map<string, string>) => {
+          return new Map<string, string>([...current, ...loaded]);
+        });
+      })
+      .catch(() => {
+        // The lines say why without naming the devices.
+      });
+  }, [sharedAddressDevicesOnPage]);
 
   const isNarrowed: boolean = isDiscoveredHostQueryNarrowed(query);
 
@@ -628,6 +677,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                         })
                       : undefined
                   }
+                  deviceNames={deviceNames}
                   onCheckedChange={(value: boolean) => {
                     props.onSelectionChange(
                       (current: Record<string, boolean>) => {
@@ -686,7 +736,14 @@ export interface DiscoveredHostRowProps {
    * (issue #9544); the table's own, so the row's box agrees with the counts.
    */
   selectability?: DiscoveredHostSelectability | undefined;
+  /*
+   * The names of the devices a host at a shared address names (issue
+   * #9905), by id (lower case), as far as they were read.
+   */
+  deviceNames?: ReadonlyMap<string, string> | undefined;
 }
+
+const NO_DEVICE_NAMES: ReadonlyMap<string, string> = new Map<string, string>();
 
 /*
  * The name the project's naming rules give a host (issue #6619), under its
@@ -964,6 +1021,14 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
           <DiscoveredHostNamingLine
             naming={props.naming}
             ipAddress={entry.ipAddress}
+          />
+          {/*
+           * At an address more than one device has: which of them the host
+           * is and why, or why the scan's probe cannot tell (issue #9905).
+           */}
+          <DiscoveredHostSharedAddressLine
+            host={entry}
+            deviceNames={props.deviceNames || NO_DEVICE_NAMES}
           />
         </div>
       </div>

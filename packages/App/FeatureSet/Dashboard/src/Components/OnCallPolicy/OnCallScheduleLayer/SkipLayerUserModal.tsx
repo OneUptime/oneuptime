@@ -1,6 +1,7 @@
 import {
   UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
+  getUserOverrideFormTeamLimitKey,
   prepareUserOverrideForCreate,
   readUserOverridePeople,
 } from "../UserOverrides/UserOverrideForm";
@@ -40,6 +41,19 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
+import { useSharedNameFacts } from "Common/UI/Utils/SharedNameFactsReads";
+import {
+  SharedNameFacts,
+  SharedNameMark,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+} from "Common/UI/Utils/SharedNameOptions";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+} from "Common/UI/Components/Dropdown/SharedNameOptionLines";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -204,6 +218,34 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
   const policies: Array<UserOverridePolicy> = props.policies || [];
 
   /*
+   * Policies named alike before names were held to one policy each
+   * (#10314): each wears its list's pill, and what sets it apart under its
+   * name - read on their own, since the policies come by their names alone.
+   */
+  const policyFacts: Map<string, SharedNameFacts> = useSharedNameFacts(
+    OnCallDutyPolicy,
+    policies,
+  );
+  const policyMarks: Map<string, SharedNameMark> = getSharedNameMarks(
+    policies.map((policy: UserOverridePolicy) => {
+      return {
+        value: policy.id,
+        label: policy.name,
+        sharedName: policyFacts.get(policy.id) || {
+          kind: SharedNameKind.OnCallPolicy,
+        },
+      };
+    }),
+    translator,
+  );
+  // What the fields are rebuilt for once what sets each twin apart is read.
+  const policyMarksSignature: string = Array.from(policyMarks.entries())
+    .map(([id, mark]: [string, SharedNameMark]): string => {
+      return `${id}:${mark.detail || ""}`;
+    })
+    .join("|");
+
+  /*
    * The policies a save has added the skip on so far. A save that fails
    * part way says why in place of the form; closed then, the page reads
    * the overrides again, so the ones added show.
@@ -255,15 +297,9 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
       }
     : undefined;
 
-  /*
-   * What the fields are rebuilt for when the team limit is known: its teams,
-   * its hint and how many people it holds, nothing while they are not read.
-   */
-  const teamLimitSignature: string = formTeamLimit
-    ? `${formTeamLimit.teamIds.join(",")}|${formTeamLimit.hint || ""}|${
-        formTeamLimit.memberIds ? formTeamLimit.memberIds.size : ""
-      }`
-    : "";
+  // What the fields are rebuilt for when the team limit is known.
+  const teamLimitSignature: string =
+    getUserOverrideFormTeamLimitKey(formTeamLimit);
 
   const formFields: Array<ModelField<OnCallDutyPolicyUserOverride>> =
     useMemo((): Array<ModelField<OnCallDutyPolicyUserOverride>> => {
@@ -349,9 +385,26 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
           // A policy's name is the project's own: shown as written.
           options: policies.map(
             (policy: UserOverridePolicy): CategoryCheckboxOption => {
+              const mark: SharedNameMark | undefined = policyMarks.get(
+                getSharedNameOptionKey(policy.id),
+              );
+
               return {
                 value: policy.id,
-                label: <span>{policy.name}</span>,
+                label: mark ? (
+                  <span className="inline-flex flex-col">
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      <span>{policy.name}</span>
+                      <SharedNamePill mark={mark} />
+                    </span>
+                    <SharedNameDetail
+                      mark={mark}
+                      className="text-xs font-normal text-gray-500"
+                    />
+                  </span>
+                ) : (
+                  <span>{policy.name}</span>
+                ),
               };
             },
           ),
@@ -364,7 +417,13 @@ const SkipLayerUserModal: FunctionComponent<ComponentProps> = (
       });
 
       return fields;
-    }, [currentUserId, props.userId, props.policies, teamLimitSignature]);
+    }, [
+      currentUserId,
+      props.userId,
+      props.policies,
+      teamLimitSignature,
+      policyMarksSignature,
+    ]);
 
   const skippedName: string | null = getSkippedPersonName({
     awayUserId,

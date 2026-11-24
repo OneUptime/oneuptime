@@ -814,6 +814,7 @@ function fragmentAsSteps(fragment: HclAttribute): HclValue {
 const PROVIDER_ARGUMENTS: ReadonlyArray<string> = [
   "api_key",
   "oneuptime_url",
+  "exclusive_lists",
   "alias",
 ];
 const VARIABLE_ARGUMENTS: ReadonlyArray<string> = [
@@ -2063,9 +2064,11 @@ function menuSectionOf(menu: string, item: string): string | null {
   return itemAt < 0 ? null : found;
 }
 
-// An attribute of the provider block's schema, up to the next attribute.
+// An attribute of the provider block's schema, of any type, up to the next attribute.
 function providerSchemaAttribute(source: string, name: string): string {
-  const start: number = source.indexOf(`"${name}": schema.StringAttribute{`);
+  const start: number = source.search(
+    new RegExp(`"${name}": schema\\.\\w+Attribute\\{`),
+  );
 
   if (start < 0) {
     throw new Error(`The provider's schema has no ${name}`);
@@ -2142,7 +2145,7 @@ describe("the overview", () => {
     expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
       "has been renamed to ${this.providerName}_${resource.name}",
     );
-    expect(readRepoFile(RESOURCE_GENERATOR)).toContain("legacyNameStateMover(");
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain("LegacyNameStateMover(");
   });
 
   it("asks for the versions the generated docs give for import blocks", () => {
@@ -2380,7 +2383,7 @@ describe("the quick start", () => {
     ).toContain("`You do not have permissions to ${type} ${");
     expect(new Monitor().singularName).toBe("Monitor");
     expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
-      '"Not Found", fmt.Sprintf("No ${label} matches %s.", describeLookup(filterNames))',
+      '"Not Found", fmt.Sprintf("No ${label} matches %s.", DescribeLookup(filterNames))',
     );
 
     expect(headings).toEqual([
@@ -2542,6 +2545,59 @@ describe("the complete guide", () => {
       expect(block.code).toContain("terraform plan -input=false -out=tfplan");
       expect(block.code).toContain("terraform apply -input=false tfplan");
     }
+  });
+
+  /*
+   * A list OneUptime adds to as well - a record's labels - is held to the
+   * entries a configuration declares (#10134), and an update adds and takes
+   * off single entries (#10135): the section says what the provider does,
+   * in the words its reference gives such an attribute.
+   */
+  it("says how labels and the other lists OneUptime adds to are held, as the provider holds them", () => {
+    const labels: string = section(
+      COMPLETE_GUIDE,
+      "## Labels and other lists OneUptime adds to",
+    );
+    const entries: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/entries.go",
+    );
+    const parser: string = readRepoFile(
+      "Scripts/TerraformProvider/Core/OpenAPIParser.ts",
+    );
+
+    // The reference's own words for such an attribute.
+    expect(labels).toContain('"OneUptime adds to it too, on its own"');
+    expect(parser).toContain(
+      '"OneUptime adds to it too, on its own: the entries listed here are added and taken off, and every other entry stays. Left out, it keeps the entries OneUptime gives it."',
+    );
+
+    // Held to the declared entries, an update sending single ones.
+    expect(entries).toContain(
+      "func heldEntriesAfterRead(client *Client, declared DeclaredEntries",
+    );
+    expect(entries).toContain('addToListKey      = "addToList"');
+    expect(entries).toContain('removeFromListKey = "removeFromList"');
+    expect(labels).toContain(
+      "An apply adds and takes off single labels, so a label a rule adds while it runs stays too.",
+    );
+
+    // An import adopts what the record has; a state an earlier version wrote declares nothing.
+    expect(entries).toContain("An import adopts the record's entries");
+    expect(entries).toContain(
+      "A state an earlier version wrote declares nothing",
+    );
+
+    // The switch back to earlier versions' lists, a provider setting.
+    expect(labels).toContain("set `exclusive_lists` in the provider block");
+    expect(
+      providerSchemaAttribute(providerSource, "exclusive_lists"),
+    ).toContain("Optional:            true,");
+    expect(providerSource).toContain(
+      '"exclusive_lists": schema.BoolAttribute{',
+    );
+    expect(section(COMPLETE_GUIDE, "## Configure the provider")).toContain(
+      "A third setting, `exclusive_lists`, decides what a configuration's labels hold",
+    );
   });
 
   it("is right that timestamps are compared as instants, and the server's defaults are no drift", () => {
@@ -3493,7 +3549,7 @@ describe("the people and teams page", () => {
     expect(source.attributes.get("user_email")?.personEmailOf).toBe("user_id");
     expect(source.attributes.get("user_id")?.personEmail).toBe("user_email");
     expect(readRepoFile(DATA_SOURCE_GENERATOR)).toContain(
-      "personIDForLookup(ctx, d.client",
+      "PersonIDForLookup(ctx, d.client",
     );
     expect(section).toContain(
       "Other data sources find a record by the address of the person it names, beside their ID.",
@@ -3504,8 +3560,8 @@ describe("the people and teams page", () => {
     const people: string = readRepoFile(
       "Scripts/TerraformProvider/StaticFiles/people.go",
     );
-    const plan: string = goFunction(people, "func planPersonID(");
-    const write: string = goFunction(people, "func personIDForWrite(");
+    const plan: string = goFunction(people, "func PlanPersonID(");
+    const write: string = goFunction(people, "func PersonIDForWrite(");
 
     expect(plan).toContain("resp.Diagnostics.AddAttributeWarning(");
     expect(plan).toContain('" is not in this project yet"');
@@ -3528,7 +3584,7 @@ describe("the people and teams page", () => {
     expect(errors).toContain(
       'ALREADY_INVITED: "This user has already been invited to this team"',
     );
-    expect(goFunction(people, "func alreadyInvitedHint(")).toContain(
+    expect(goFunction(people, "func AlreadyInvitedHint(")).toContain(
       '"already been invited"',
     );
     expect(page).toContain(

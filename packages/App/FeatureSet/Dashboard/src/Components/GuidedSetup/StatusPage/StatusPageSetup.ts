@@ -1,3 +1,4 @@
+import { SharedNameFacts } from "Common/Types/Database/SharedNameMarks";
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
 import PageMap from "../../../Utils/PageMap";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -324,6 +325,11 @@ export interface StatusPageSetupLabel {
   id: string;
   name: string;
   color?: string | undefined;
+  /*
+   * What tells it from another label of its name (#10314): read through
+   * the record's labels, which take no description, so when it was made.
+   */
+  sharedName?: SharedNameFacts | undefined;
 }
 
 export interface StatusPageSetupMonitor {

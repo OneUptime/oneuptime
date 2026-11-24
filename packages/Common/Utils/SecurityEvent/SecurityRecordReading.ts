@@ -27,6 +27,12 @@ export interface SecurityRecordReading {
   time: Date | null;
   // The source's own id for the record; "" when it has none.
   eventUid: string;
+  /*
+   * Ids the same record may have been stored under before (an Azure
+   * Activity Log record's eventDataId, #10032): looked up beside its id so
+   * it is stored once (SecurityEventStoreOnce), never stored themselves.
+   */
+  eventUidAliases?: Array<string> | undefined;
   classUid: number;
   // For a record no OCSF class fits (class 0): what the source calls it.
   className?: string | undefined;
@@ -158,5 +164,8 @@ export function toNormalizedSecurityEvent(data: {
       ...getResourceIdObservables(reading.resourceIds),
     ]),
     attributes: reading.attributes,
+    ...(reading.eventUid && (reading.eventUidAliases || []).length > 0
+      ? { eventUidAliases: reading.eventUidAliases }
+      : {}),
   };
 }

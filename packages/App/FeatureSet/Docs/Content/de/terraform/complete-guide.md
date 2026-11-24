@@ -11,7 +11,7 @@ Diese Anleitung behandelt, was nach Ihrem ersten Apply kommt: wie der Provider s
 
 ## Den Provider konfigurieren
 
-Der Provider nimmt zwei Einstellungen. Jede kommt aus dem Provider-Block oder sonst aus einer Umgebungsvariablen:
+Der Provider verbindet sich mit zwei Einstellungen. Jede kommt aus dem Provider-Block oder sonst aus einer Umgebungsvariablen:
 
 | Einstellung | Umgebungsvariable | Wenn keines gesetzt ist |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` ist die Adresse Ihrer OneUptime-Instanz, ohne `/api`: Der Provider fügt `https://` hinzu, wenn die Adresse kein Schema hat, und `/api` am Ende. `api_key` ist sensibel, daher gibt Terraform den Wert nie aus.
+
+Eine dritte Einstellung, `exclusive_lists`, legt fest, was die Beschriftungen einer Konfiguration enthalten: siehe [Beschriftungen und andere Listen, die OneUptime selbst ergänzt](#beschriftungen-und-andere-listen-die-oneuptime-selbst-ergänzt).
 
 Der Schlüssel muss ein API-Schlüssel des Projekts sein, das Sie verwalten, und jede Art von Datensatz Ihrer Konfiguration anlegen, lesen, ändern und löschen dürfen: siehe [Einen API-Schlüssel des Projekts anlegen](/docs/terraform/quick-start#einen-api-schlüssel-des-projekts-anlegen). Der Master-API-Schlüssel einer selbst gehosteten OneUptime-Instanz gehört zu keinem Projekt, daher scheitert ein Anlegen damit mit `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Beschriftungen und andere Listen, die OneUptime selbst ergänzt
+
+OneUptime ergänzt einige Listen eines Datensatzes selbst: Eine Beschriftungsregel fügt ihre Beschriftungen den Datensätzen hinzu, auf die sie passt, eine Bereitschaftsregel fügt ihre Richtlinien den Vorfällen und Warnungen hinzu, auf die sie passt, und die Monitorregeln eines SLO verknüpfen die Monitore, auf die sie passen. Die Referenz sagt es bei jedem solchen Attribut: "OneUptime adds to it too, on its own". Eine Konfiguration, die eine solche Liste setzt, hält die Einträge, die sie aufführt, und lässt den Rest:
+
+- **Was die Konfiguration aufführt, wird hinzugefügt**, und wieder gesetzt, wenn es jemand entfernt.
+- **Was Sie aus der Konfiguration nehmen, wird entfernt.** `labels = []` entfernt jede Beschriftung, die die Konfiguration aufgeführt hat.
+- **Was OneUptime oder eine Person hinzufügt, bleibt**, und kein Plan zeigt es als Änderung.
+- **Aus der Konfiguration weggelassen**, gehört die Liste OneUptime: Terraform fügt ihr nichts hinzu und entfernt nichts.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+Der State enthält die Beschriftungen, die die Konfiguration aufführt und der Datensatz hat, nicht jede Beschriftung des Datensatzes: Die Datenquelle gleichen Namens liest sie alle. Ein Apply fügt einzelne Beschriftungen hinzu und entfernt einzelne, sodass auch eine Beschriftung bleibt, die eine Regel hinzufügt, während es läuft.
+
+Ein Import übernimmt jede Beschriftung, die der Datensatz hat: Führen Sie alle auf, wie es die Terraform-Seite des Datensatzes im Dashboard tut, sonst zeigt der Plan, dass die weggelassenen entfernt werden. Nach einem Upgrade von einer früheren Version des Providers zeigt der erste Plan einer Konfiguration, die Beschriftungen setzt, dass sie gesetzt werden: Das Apply fügt die hinzu, die dem Datensatz fehlen, und entfernt keine.
+
+Um jede solche Liste genau auf das zu halten, was die Konfiguration aufführt, wie frühere Versionen es taten, setzen Sie `exclusive_lists` im Provider-Block. Terraform entfernt dann bei jedem Apply eine Beschriftung, die eine Regel hinzufügt:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

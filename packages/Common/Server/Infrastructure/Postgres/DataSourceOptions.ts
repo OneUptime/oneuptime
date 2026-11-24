@@ -23,6 +23,7 @@ import {
   ShouldDatabaseSslEnable,
 } from "../../../Server/EnvironmentConfig";
 import CancelOnTimeoutClient from "./CancelOnTimeoutClient";
+import PostgresQueryLogger from "./PostgresQueryLogger";
 import Migrations from "./SchemaMigrations/Index";
 import DatabaseType from "../../../Types/DatabaseType";
 import Entities from "../../../Models/DatabaseModels/Index";
@@ -183,9 +184,14 @@ const dataSourceOptions: DataSourceOptions = {
   /*
    * Log any query slower than the configured threshold so we can find
    * offenders in production. TypeORM emits these via the configured
-   * logger; the default `advanced-console` logger writes to stdout.
+   * logger, which writes to stdout as its `advanced-console` logger does -
+   * and says when a statement was only waiting for this process's blocked
+   * event loop, not for Postgres (PostgresQueryLogger, #10108).
    */
   maxQueryExecutionTime: PostgresSlowQueryLogThresholdMs,
+  logger: new PostgresQueryLogger({
+    slowQueryThresholdMs: PostgresSlowQueryLogThresholdMs,
+  }),
   synchronize: false,
 };
 

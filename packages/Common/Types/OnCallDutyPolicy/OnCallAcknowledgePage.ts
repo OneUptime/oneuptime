@@ -302,6 +302,28 @@ export const ON_CALL_ACKNOWLEDGE_PAGE_ALREADY_SEEN_TITLE: string =
   "Already marked as seen";
 
 /*
+ * The heading over a link that can no longer act on its page - acknowledge
+ * it or escalate it. A page's link lasts a week, longer than any page goes
+ * on, so one past it is why.
+ */
+export const ON_CALL_PAGE_LINK_EXPIRED_TITLE: string = "This link has expired";
+
+/*
+ * Why a link cannot acknowledge its page, under that heading: it carries no
+ * token of the page's, or one that is not valid any more, and was not sent
+ * before links carried one, less than a week ago (OnCallAcknowledgeLink).
+ * The page under it still says what the page is about, and opens it in
+ * OneUptime, where the person can acknowledge it.
+ */
+export function getOnCallAcknowledgeLinkRefusedSentence(data: {
+  isObserverPage: boolean;
+}): string {
+  return data.isObserverPage
+    ? "This link cannot mark the page as seen: it is not valid, or it has expired. Use the link in the newest message you were paged with."
+    : "This link cannot acknowledge the page: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
+}
+
+/*
  * When it was taken, as the page says it, on the reader's own clock: "at
  * 5:28 AM UTC" the same day, "on Oct 17, 2026, 12:10 AM UTC" another - the
  * time the Escalate page words a time with (getOnCallPassOnTime), kept on one

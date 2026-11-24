@@ -1,4 +1,5 @@
 import UNSYNCHRONIZED_INDEX from "../../../Types/Database/UnsynchronizedIndex";
+import Domain from "../../../Models/DatabaseModels/Domain";
 import LlmLog from "../../../Models/DatabaseModels/LlmLog";
 import Service from "../../../Models/DatabaseModels/Service";
 import { describe, expect, test } from "@jest/globals";
@@ -135,6 +136,7 @@ describe("UNSYNCHRONIZED_INDEX", () => {
     test.each([
       ["Service", "IDX_SERVICE_PROJECT_LOWER_NAME", Service],
       ["LlmLog", "IDX_LLM_LOG_PROJECT_CREATED_AT", LlmLog],
+      ["Domain", "IDX_domain_verified_lower_domain", Domain],
     ])(
       "%s declares %s unsynchronized",
       (_model: string, name: string, target: unknown) => {

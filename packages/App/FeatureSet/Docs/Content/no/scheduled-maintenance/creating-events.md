@@ -65,7 +65,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 | **Monitorer**                        | **Berørte ressurser** | Ingen                        | Monitorene som ikke sjekkes mens hendelsen pågår.                                |
 | **Endre monitorstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
-| **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | Statussidene som viser hendelsen og gir abonnentene sine beskjed.                |
+| **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | De eneste statussidene som kan vise hendelsen eller gi abonnentene sine beskjed. |
 | **Varslinger til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |
 
 To ting fyller ut skjemaet for deg underveis:
@@ -104,8 +104,9 @@ Planlegg arbeidet så tidlig du vil, og hold det innenfor teamet til kundene din
 | **Slutter den** for den  | Den slutter                                                           | Over                 |
 
 - **Inntil da hører abonnentene ingenting.** Påminnelser før hendelsen, statusendringer og offentlige notater sendes ikke til dem mens hendelsen venter.
-- **Siden dens sier det.** Toppen viser **Ikke på statussider ennå**, med tidspunktet den vises fra, og **Publiser nå** publiserer den med en gang, etter å ha spurt. **Innstillinger** for den sier det samme, og listen over hendelser viser tidspunktet under statussidene dens.
+- **Siden dens sier det.** Toppen viser **Ikke på statussider ennå**, med tidspunktet den vises fra, og **Publiser nå** publiserer den med en gang, etter å ha spurt. Når ingen av statussidene dens viser vedlikeholdshendelser, sier toppen det i stedet for tidspunktet. **Innstillinger** for den sier det samme, og listen over hendelser viser tidspunktet under statussidene dens.
 - **Endre den, eller publiser med en gang.** Flytt **Publiser den** i trinnet **Statussider** under **Rediger**, eller velg **Med en gang**. Slå av **Synlig på statussiden** i **Innstillinger** for den for å holde den borte fra statussidene sine uansett tidspunkt.
+- **Hva statussidene dens gjør.** I samme trinn sier en merknad under statussidene når de valgte sidene ikke vil vise hendelsen til noen eller ikke vil gi noen beskjed, og hvorfor, og en merknad under **Påminnelser før hendelsen** sier hvilke påminnelser som ikke sendes. Kortet **Detaljer om vedlikehold** sier det under **Vist på statussider** når ingen av dem viser vedlikeholdshendelser.
 
 ## Endre en hendelse senere
 

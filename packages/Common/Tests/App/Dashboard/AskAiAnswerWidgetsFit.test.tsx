@@ -48,6 +48,37 @@ describe("a chart's axis writes each value short enough for one line", () => {
     expect(formatChartValue(42, "%")).toBe("42.00%");
   });
 
+  test("on the axis, each tick to the figures its round step needs (#10117)", () => {
+    const halfSecond: { step: number; largestTick: number } = {
+      step: 500,
+      largestTick: 2500,
+    };
+    const ticks: Array<string> = [0, 500, 1000, 1500, 2000, 2500].map(
+      (value: number): string => {
+        return formatChartValue(value, "ms", halfSecond);
+      },
+    );
+
+    expect(ticks).toEqual(
+      ["0 ms", "500 ms", "1.0 s", "1.5 s", "2.0 s", "2.5 s"].map(
+        (label: string): string => {
+          return label.replace(/ /g, String.fromCharCode(0xa0));
+        },
+      ),
+    );
+  });
+
+  test("a span of time on the axis in units of time, never in decimal hours (#10118)", () => {
+    expect(formatChartValue(5401, "s", { step: 1, largestTick: 5402 })).toBe(
+      "1:30:01",
+    );
+    expect(formatChartValue(5400, "s", { step: 1800, largestTick: 7200 })).toBe(
+      ["1", "h", "30", "min"].join(String.fromCharCode(0xa0)),
+    );
+    // Its own figures, without a step: as before.
+    expect(formatChartValue(5401, "s")).toBe("1.5\u00A0h");
+  });
+
   test.each([
     ["ms", [0, 650, 1300, 1950, 2600, 12500, 95000, 3600000]],
     ["bytes", [0, 512, 64000, 1500000, 7.5e9]],

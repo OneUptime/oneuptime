@@ -171,17 +171,22 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import { EVENT_METRIC_SCOPE_NOTE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/EventMetricInvestigationPanel";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../../Models/DatabaseModels/AlertStateTimeline";
 import Route from "../../../Types/API/Route";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import MetricViewData from "../../../Types/Metrics/MetricViewData";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 
 const ALERT_ID: string = "22222222-2222-4222-8222-222222222222";
 const OTHER_ALERT_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -322,12 +327,41 @@ let mockAlert: AlertData = {};
 const OTHER_ALERT: AlertData = {
   createdAt: OTHER_CREATED_AT,
   telemetryQuery: null,
-  monitor: metricsMonitor("system.memory.utilization"),
+  monitor: { ...metricsMonitor("system.memory.utilization"), _id: "monitor-3" },
   timeline: [["created", OTHER_CREATED_AT]],
 };
 
 function alertFor(id: string): AlertData {
   return id === OTHER_ALERT_ID ? OTHER_ALERT : mockAlert;
+}
+
+/*
+ * The alert's monitor as a read of the alert answers it: which monitor it
+ * is and what kind. No relation reads a monitor's steps (#10309).
+ */
+function monitorThroughTheAlert(
+  monitor: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  return monitor
+    ? { _id: monitor["_id"], monitorType: monitor["monitorType"] }
+    : null;
+}
+
+// The monitors a read of monitors by their ids answers: their steps, whole.
+function monitorsRead(query: {
+  _id?: unknown;
+}): Array<Record<string, unknown>> {
+  const ids: Array<string> = (
+    query._id instanceof Includes ? query._id.values : []
+  ).map((id: unknown): string => {
+    return String(id);
+  });
+
+  return [mockAlert.monitor, OTHER_ALERT.monitor].filter(
+    (monitor: Record<string, unknown> | null | undefined): boolean => {
+      return Boolean(monitor) && ids.includes(String(monitor!["_id"]));
+    },
+  ) as Array<Record<string, unknown>>;
 }
 
 function serve(): void {
@@ -352,16 +386,23 @@ function serve(): void {
           ? metricSnapshot()
           : alert.telemetryQuery,
       seriesLabels: alert.seriesLabels,
-      monitor: alert.monitor === undefined ? null : alert.monitor,
+      monitor: monitorThroughTheAlert(alert.monitor),
     };
   });
 
   getListMock.mockImplementation(async (...args: Array<unknown>) => {
     const request: {
       modelType: unknown;
-      query: { alertId?: ObjectID };
-    } = args[0] as { modelType: unknown; query: { alertId?: ObjectID } };
+      query: { alertId?: ObjectID; _id?: unknown };
+    } = args[0] as {
+      modelType: unknown;
+      query: { alertId?: ObjectID; _id?: unknown };
+    };
     let data: Array<Record<string, unknown>> = [];
+
+    if (request.modelType === Monitor) {
+      data = monitorsRead(request.query);
+    }
 
     if (request.modelType === AlertState) {
       data = [
@@ -696,9 +737,11 @@ describe("Root Cause: the alert's metrics, untouched", () => {
       telemetryQuery: true,
       seriesLabels: true,
       createdCriteriaId: true,
-      monitor: { _id: true, monitorType: true, monitorSteps: true },
+      monitor: { _id: true, monitorType: true },
     });
     expect(cardReads()).toHaveLength(1);
+    // It kept a snapshot: the monitor itself is never read (#10309).
+    expect(readsOf(Monitor)).toBe(0);
 
     // The charts' own read of the rule they draw: this alert's, as on its Overview.
     for (const other of itemReads().slice(1)) {
@@ -1105,6 +1148,90 @@ describe("Root Cause: an alert that kept no metric snapshot", () => {
     });
   });
 
+  test("its monitor's steps are read on the monitor, by the reader's own read, never through the alert (#10309)", async () => {
+    mockAlert = {
+      telemetryQuery: null,
+      monitor: metricsMonitor("system.cpu.utilization"),
+    };
+
+    await renderPage();
+
+    expect(cardReads()[0]!.select["monitor"]).toEqual({
+      _id: true,
+      monitorType: true,
+    });
+
+    const monitorRead: {
+      modelType: unknown;
+      query: { _id: Includes };
+      select: Record<string, unknown>;
+      limit: number;
+    } = getListMock.mock.calls.find((call: Array<unknown>): boolean => {
+      return (call[0] as { modelType: unknown }).modelType === Monitor;
+    })![0] as {
+      modelType: unknown;
+      query: { _id: Includes };
+      select: Record<string, unknown>;
+      limit: number;
+    };
+
+    expect(monitorRead.query._id.values).toEqual(["monitor-1"]);
+    expect(monitorRead.select).toEqual({
+      _id: true,
+      monitorType: true,
+      monitorSteps: true,
+    });
+    expect(monitorRead.limit).toBe(1);
+    expect(readsOf(Monitor)).toBe(1);
+  });
+
+  test("a reader who may not read monitors is not sent the monitor's read, and is shown no card from it", async () => {
+    // An Alert Viewer: reads the alert, and no monitor.
+    PermissionGate.clearPermissionPropsCache();
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.AlertViewer]);
+    mockAlert = {
+      telemetryQuery: null,
+      monitor: metricsMonitor("system.cpu.utilization"),
+    };
+
+    await renderPageWithoutCard();
+
+    expect(screen.getByTestId("root-cause-text")).toBeInTheDocument();
+    expect(readsOf(Alert)).toBe(1);
+    expect(readsOf(Monitor)).toBe(0);
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(fetchResultsMock).not.toHaveBeenCalled();
+  });
+
+  test("a read of the monitor the server refuses shows no card from it, and never an error", async () => {
+    mockAlert = {
+      telemetryQuery: null,
+      monitor: metricsMonitor("system.cpu.utilization"),
+    };
+    const answer: (...args: Array<unknown>) => unknown =
+      getListMock.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => unknown;
+    getListMock.mockImplementation(async (...args: Array<unknown>) => {
+      if ((args[0] as { modelType: unknown }).modelType === Monitor) {
+        throw new Error(
+          "You do not have permissions to read Monitor. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Monitor Admin, Monitor Member, Monitor Viewer, Read Monitor.",
+        );
+      }
+
+      return answer(...args);
+    });
+
+    await renderPageWithoutCard();
+
+    expect(screen.getByTestId("root-cause-text")).toBeInTheDocument();
+    expect(readsOf(Monitor)).toBe(1);
+    expect(screen.queryByText(/You do not have permissions/)).toBeNull();
+    expect(fetchResultsMock).not.toHaveBeenCalled();
+  });
+
   test("a snapshot of logs is no metric snapshot: the alert's metrics monitor is charted", async () => {
     mockAlert = {
       telemetryQuery: {
@@ -1124,10 +1251,12 @@ describe("Root Cause: an alert that kept no metric snapshot", () => {
 
 describe("Root Cause: an alert with no metrics behind it shows no card, and reads nothing more", () => {
   test.each([
-    ["no monitor and no snapshot", { telemetryQuery: null, monitor: null }],
+    ["no monitor and no snapshot", { telemetryQuery: null, monitor: null }, 0],
     [
+      // A website's steps - its URL, headers and body - are never read.
       "a monitor that reads no metrics, and no snapshot",
       { telemetryQuery: null, monitor: WEBSITE_MONITOR },
+      0,
     ],
     [
       "a snapshot of logs, and no monitor",
@@ -1139,12 +1268,15 @@ describe("Root Cause: an alert with no metrics behind it shows no card, and read
         },
         monitor: null,
       },
+      0,
     ],
     [
+      // Its steps, read on the monitor, which name no metric yet.
       "a metrics monitor with no metric picked yet, and no snapshot",
       { telemetryQuery: null, monitor: metricsMonitor("") },
+      1,
     ],
-  ])("%s", async (_name: string, alert: AlertData) => {
+  ])("%s", async (_name: string, alert: AlertData, monitorReads: number) => {
     mockAlert = alert;
 
     await renderPageWithoutCard();
@@ -1154,7 +1286,8 @@ describe("Root Cause: an alert with no metrics behind it shows no card, and read
     // The alert, read once; its moments are read only for a card there is.
     expect(getItemMock).toHaveBeenCalledTimes(1);
     expect(readsOf(Alert)).toBe(1);
-    expect(getListMock).not.toHaveBeenCalled();
+    expect(readsOf(Monitor)).toBe(monitorReads);
+    expect(getListMock).toHaveBeenCalledTimes(monitorReads);
     expect(fetchResultsMock).not.toHaveBeenCalled();
   });
 

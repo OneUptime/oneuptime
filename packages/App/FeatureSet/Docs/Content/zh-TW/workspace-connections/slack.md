@@ -317,7 +317,7 @@ OneUptime 只回答傳給它的內容。
 
 `/oneuptime incident 42` 會在只有您看得到的訊息中顯示事件 42，以及這些按鈕和它的選單。依 OneUptime 顯示的樣子輸入編號： `42`、 `#42` 或 `INC-42`。在事件自己的頻道中，只輸入 `/oneuptime incident` 就會顯示該事件。
 
-- **誰可以使用。** 能在 OneUptime 中做同樣變更的人。 **Change Severity** 和 **Edit Custom Fields** 需要編輯事件的權限： **專案擁有者**、 **專案管理員**、 **專案成員**、 **事件管理員** 和 **事件成員**，或自訂角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，轉移只能由一人擔任的角色還需要 **Delete Incident Member**。 **Page Someone** 需要的權限與 **Execute On-Call Policy** 相同。其他任何人都會被告知原因，並且不會開啟表單。
+- **誰可以使用。** 能在 OneUptime 中做同樣變更的人。 **Change Severity** 和 **Edit Custom Fields** 需要編輯事件的權限： **專案擁有者**、 **專案管理員**、 **專案成員**、 **事件管理員** 和 **事件成員**，或自訂角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，轉移只能由一人擔任的角色還需要 **Edit Incident Member**。 **Page Someone** 需要的權限與 **Execute On-Call Policy** 相同。其他任何人都會被告知原因，並且不會開啟表單。
 - **表單提供的內容。** 您在專案中可以讀取的內容。從事件的監測器複製的自訂欄位不會出現在表單中，因為它會被再次複製；一個表單最多容納 40 個欄位，其餘欄位請在 OneUptime 中編輯。
 - **之後會發生什麼。** 表單會關閉，變更會像在 OneUptime 中一樣以您本人的身分進行：事件的動態，以及隨之而來的事件頻道，會說明變更了什麼，每個自訂欄位都會附上新值。不適合其欄位的值，例如數字欄位中的文字，會在該欄位下方說明，表單保持開啟。 **Page Someone** 會說明呼叫了誰，或為什麼沒有呼叫任何人；已經解決的事件不會呼叫任何人。
 - **選單出現之前張貼的訊息。** 它們保留 **Execute On-Call Policy** 按鈕，並且仍然有效： **Page Someone** 也能呼叫待命策略。警示和片段保留它們自己的按鈕。

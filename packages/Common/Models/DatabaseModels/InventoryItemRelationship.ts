@@ -9,6 +9,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -212,6 +213,7 @@ export default class InventoryItemRelationship extends DatabaseBaseModel {
     title: "First Seen At",
     description: "When this relationship was first observed in telemetry.",
     example: "2025-12-10T08:15:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public firstSeenAt?: Date = undefined;
@@ -229,6 +231,7 @@ export default class InventoryItemRelationship extends DatabaseBaseModel {
     description:
       "Most recent time this relationship was observed (bumped, throttled). Drives staleness pruning.",
     example: "2025-12-12T16:20:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSeenAt?: Date = undefined;
@@ -251,6 +254,7 @@ export default class InventoryItemRelationship extends DatabaseBaseModel {
     description:
       "Calls observed over this edge in the most recent computation window (depends-on edges only).",
     example: "1240",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Number, nullable: true })
   public callCount?: number = undefined;
@@ -267,6 +271,7 @@ export default class InventoryItemRelationship extends DatabaseBaseModel {
     description:
       "Errored calls observed over this edge in the most recent computation window (depends-on edges only).",
     example: "12",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Number, nullable: true })
   public errorCount?: number = undefined;
@@ -283,6 +288,7 @@ export default class InventoryItemRelationship extends DatabaseBaseModel {
     description:
       "Average call duration in milliseconds over this edge in the most recent computation window (depends-on edges only).",
     example: "38",
+    serverOwned: ServerOwned.Always,
   })
   @Column({ type: ColumnType.Number, nullable: true })
   public avgDurationMs?: number = undefined;

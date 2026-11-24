@@ -16,6 +16,13 @@
  */
 
 import { describe, expect, test } from "@jest/globals";
+import Alert from "../../../Models/DatabaseModels/Alert";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "../../../Models/DatabaseModels/Incident";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import { ComponentType } from "../../../Types/Workflow/Component";
@@ -200,6 +207,8 @@ interface DynamicsKind {
   stateIdColumn: string;
   stateRelation: string;
   severityRelation: string;
+  /** Where the record names its monitor: a list on an incident, one on an alert. */
+  monitorRelation: string;
   create: string;
   /** In the order the picker lists them. */
   templateIds: Array<string>;
@@ -223,6 +232,7 @@ const INCIDENT: DynamicsKind = {
   stateIdColumn: "currentIncidentStateId",
   stateRelation: "currentIncidentState",
   severityRelation: "incidentSeverity",
+  monitorRelation: "monitors",
   create: "declare",
   templateIds: [
     "dynamics-create-case-for-incident",
@@ -253,6 +263,7 @@ const ALERT: DynamicsKind = {
   stateIdColumn: "currentAlertStateId",
   stateRelation: "currentAlertState",
   severityRelation: "alertSeverity",
+  monitorRelation: "monitor",
   create: "create",
   templateIds: [
     "dynamics-create-case-for-alert",
@@ -391,7 +402,7 @@ describe("what the Dynamics 365 templates ask for", () => {
     },
   );
 
-  test("only the templates that open cases ask for a customer and the OneUptime URL", () => {
+  test("only the templates that open cases ask for a customer, the OneUptime URL and a configuration item column", () => {
     for (const templateId of ALL_IDS) {
       const names: Array<string> = templateOf(templateId).variables.map(
         (variable: WorkflowTemplateVariable): string => {
@@ -404,18 +415,23 @@ describe("what the Dynamics 365 templates ask for", () => {
       expect({ templateId: templateId, names: names }).toEqual({
         templateId: templateId,
         names: opensCases
-          ? [...SIGN_IN, "dynamicsCustomer", "oneuptimeUrl"]
+          ? [
+              ...SIGN_IN,
+              "dynamicsCustomer",
+              "oneuptimeUrl",
+              "dynamicsConfigurationItemColumn",
+            ]
           : SIGN_IN,
       });
     }
   });
 
-  test("every setting is required, and only the client secret is secret", () => {
+  test("every setting but the configuration item column is required, and only the client secret is secret", () => {
     for (const templateId of ALL_IDS) {
       for (const variable of templateOf(templateId).variables) {
         expect({ name: variable.name, required: variable.required }).toEqual({
           name: variable.name,
-          required: true,
+          required: variable.name !== "dynamicsConfigurationItemColumn",
         });
         expect({ name: variable.name, isSecret: variable.isSecret }).toEqual({
           name: variable.name,
@@ -570,6 +586,54 @@ describe("what the Dynamics 365 templates ask for", () => {
       expect({
         bad: bad,
         accepted: accepts("dynamicsLinkColumn", bad),
+      }).toEqual({ bad: bad, accepted: false });
+    }
+  });
+
+  /*
+   * #9358: a Case table can name one configuration item per case. The
+   * setting is optional, so most leave it blank, and a blank one is written
+   * as empty text: the script reads that as "no column", where a reference
+   * left in place would reach it as braces, with a warning in every run log.
+   */
+  test("the configuration item column is optional, a logical name, and empty text when left blank", () => {
+    for (const kind of [INCIDENT, ALERT]) {
+      const field: WorkflowTemplateVariable | undefined = templateOf(
+        kind.createCase,
+      ).variables.find((variable: WorkflowTemplateVariable) => {
+        return variable.name === "dynamicsConfigurationItemColumn";
+      });
+
+      expect({
+        title: field?.title,
+        required: field?.required,
+        isSecret: field?.isSecret,
+        emptyWhenBlank: field?.emptyWhenBlank,
+      }).toEqual({
+        title: "Configuration Item Column",
+        required: false,
+        isSecret: false,
+        emptyWhenBlank: true,
+      });
+    }
+
+    for (const good of [
+      "new_configurationitem",
+      "cr4f2_ci",
+      "contoso_configuration_item_2",
+    ]) {
+      expect(accepts("dynamicsConfigurationItemColumn", good)).toBe(true);
+    }
+
+    for (const bad of [
+      "Configuration Item",
+      "new_ConfigurationItem",
+      "configurationitem",
+      "msdyn_customerasset@odata.bind",
+    ]) {
+      expect({
+        bad: bad,
+        accepted: accepts("dynamicsConfigurationItemColumn", bad),
       }).toEqual({ bad: bad, accepted: false });
     }
   });
@@ -841,7 +905,69 @@ describe.each(KINDS)(
           remediationNotes: true,
           [kind.severityRelation]: { _id: true, name: true },
           [kind.stateRelation]: { name: true },
+          // The affected resources, as the dashboard's Affected Resources column lists them.
+          [kind.monitorRelation]: { _id: true, name: true },
+          hosts: { _id: true, name: true },
+          networkDevices: { _id: true, name: true },
+          kubernetesClusters: { _id: true, name: true },
+          dockerHosts: { _id: true, name: true },
+          podmanHosts: { _id: true, name: true },
+          proxmoxClusters: { _id: true, name: true },
+          openStackClouds: { _id: true, name: true },
+          vmwareVCenters: { _id: true, name: true },
+          cephClusters: { _id: true, name: true },
+          storageArrays: { _id: true, name: true },
+          dockerSwarmClusters: { _id: true, name: true },
+          iotFleets: { _id: true, name: true },
+          databaseServers: { _id: true, name: true },
+          cloudResources: { _id: true, name: true },
+          services: { _id: true, name: true },
+          serviceLevelObjectives: { _id: true, name: true },
         });
+      });
+
+      /*
+       * The trigger reads the record as its model declares it: a list read
+       * that the model does not have fails the read, and with it every run.
+       */
+      test(`reads only lists the ${kind.noun} has, each of resources with a name`, () => {
+        const trigger: NodeSpec = nodeOf(
+          templateId,
+          `${kind.noun}-on-create-1`,
+        );
+        const record: BaseModel =
+          kind.noun === "incident" ? new Incident() : new Alert();
+        const select: JSONObject = trigger.args?.["select"] as JSONObject;
+
+        for (const [column, value] of Object.entries(select)) {
+          if (
+            value === true ||
+            column === kind.severityRelation ||
+            column === kind.stateRelation
+          ) {
+            continue;
+          }
+
+          const metadata: TableColumnMetadata | undefined =
+            record.getTableColumnMetadata(column);
+          const relatedType: DatabaseBaseModelType | undefined =
+            metadata?.modelType;
+
+          expect({
+            column,
+            type: metadata?.type,
+            named: relatedType
+              ? Boolean(new relatedType().getTableColumnMetadata("name"))
+              : false,
+          }).toEqual({
+            column,
+            type:
+              column === "monitor"
+                ? TableColumnType.Entity
+                : TableColumnType.EntityArray,
+            named: true,
+          });
+        }
       });
 
       test("reads the project's severities to choose a priority, in order", () => {
@@ -866,6 +992,7 @@ describe.each(KINDS)(
           "oneuptimeUrl",
           "linkColumn",
           "customer",
+          "configurationItemColumn",
           "severities",
           kind.noun,
         ]);
@@ -873,6 +1000,8 @@ describe.each(KINDS)(
           oneuptimeUrl: "{{local.variables.oneuptimeUrl}}",
           linkColumn: "{{local.variables.dynamicsLinkColumn}}",
           customer: "{{local.variables.dynamicsCustomer}}",
+          configurationItemColumn:
+            "{{local.variables.dynamicsConfigurationItemColumn}}",
           severities:
             "{{local.components.find-severities-1.returnValues.models}}",
           [kind.noun]: `{{local.components.${kind.noun}-on-create-1.returnValues.model}}`,

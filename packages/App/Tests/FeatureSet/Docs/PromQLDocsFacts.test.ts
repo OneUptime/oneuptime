@@ -24,6 +24,7 @@ import {
   PROMQL_DEFAULT_MAX_ROWS,
   PROMQL_QUERY_TIMEOUT_SECONDS,
 } from "Common/Server/Utils/PromQL/PromQLMetricSeriesSource";
+import { COMPATIBLE_QUERY_DEFAULT_LIMIT_PER_MINUTE } from "Common/Server/Middleware/CompatibleQueryRateLimit";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -43,6 +44,15 @@ const ENGLISH: string = readPage("en", PAGE);
 
 const API_SOURCE: string = fs.readFileSync(
   path.resolve(__dirname, "../../../../Common/Server/API/PrometheusAPI.ts"),
+  "utf8",
+);
+
+// How a Prometheus or Loki client's key is read (#7700).
+const AUTH_SOURCE: string = fs.readFileSync(
+  path.resolve(
+    __dirname,
+    "../../../../Common/Server/Middleware/CompatibleQueryAuthorization.ts",
+  ),
   "utf8",
 );
 
@@ -118,6 +128,10 @@ describe("PromQL docs: the limits are the engine's", () => {
       "A subquery's step, when the query leaves it out",
       `${PROMQL_DEFAULT_SUBQUERY_STEP_MS / 60000} minute`,
     ],
+    [
+      "Queries a project may send each minute",
+      formatCount(COMPATIBLE_QUERY_DEFAULT_LIMIT_PER_MINUTE),
+    ],
   ])("%s: %s", (name: string, value: string) => {
     expect(limitRow(name)).toBe(`| ${name} | ${value} |`);
   });
@@ -156,8 +170,9 @@ describe("PromQL docs: the API is the one the server serves", () => {
   });
 
   test("a key is taken as a bearer token or a basic-auth password, as the page says", () => {
-    expect(API_SOURCE).toContain('scheme.toLowerCase() === "bearer"');
-    expect(API_SOURCE).toContain('scheme.toLowerCase() === "basic"');
+    expect(API_SOURCE).toContain("apiKeyFromAuthorizationHeader,");
+    expect(AUTH_SOURCE).toContain('scheme.toLowerCase() === "bearer"');
+    expect(AUTH_SOURCE).toContain('scheme.toLowerCase() === "basic"');
     expect(ENGLISH).toContain(
       "any user name, with the API key as the password",
     );

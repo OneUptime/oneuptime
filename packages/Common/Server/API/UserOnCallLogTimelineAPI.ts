@@ -40,7 +40,9 @@ import {
 } from "../Utils/OnCall/OnCallNotificationStatus";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import {
+  ON_CALL_PAGE_LINK_EXPIRED_TITLE,
   OnCallAcknowledgePageAnswer,
+  getOnCallAcknowledgeLinkRefusedSentence,
   getOnCallAcknowledgePageAnsweredHeading,
   getOnCallAcknowledgePageAnsweredSentence,
   isOnCallAcknowledgePageOpen,
@@ -65,6 +67,13 @@ import {
 import OnCallPageLinkToken, {
   ON_CALL_PAGE_LINK_TOKEN_PARAM,
 } from "../Utils/OnCall/OnCallPageLinkToken";
+import OnCallAcknowledgeLink, {
+  OnCallAcknowledgeLinkProof,
+} from "../Utils/OnCall/OnCallAcknowledgeLink";
+import OnCallKeypadToken, {
+  OnCallKeypadTokenReading,
+  getOnCallKeypadTokenRefusalSentence,
+} from "../Utils/OnCall/OnCallKeypadToken";
 import {
   CANT_TAKE_IT,
   ESCALATE,
@@ -97,6 +106,7 @@ import {
   TwilioSignatureCheck,
 } from "../Utils/TwilioWebhookSignature";
 import { WebhookRequest } from "../../Types/Call/CallProvider";
+import { OnCallInputRequest } from "../../Types/Call/CallRequest";
 import logger from "../Utils/Logger";
 
 /*
@@ -105,6 +115,12 @@ import logger from "../Utils/Logger";
  */
 const NOTIFICATION_PAGE_SELECT: Select<UserOnCallLogTimeline> = {
   _id: true,
+  /*
+   * When it was sent: a link without the page's token acknowledges a page
+   * sent before the upgrade, for a week after it was sent
+   * (OnCallAcknowledgeLink).
+   */
+  createdAt: true,
   projectId: true,
   userId: true,
   onCallDutyPolicyExecutionLogId: true,
@@ -257,7 +273,8 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             );
           }
 
-          const token: JSONObject = (req as any).callTokenData;
+          // The call token's claims, as NotificationMiddleware verified them.
+          const callTokenClaims: JSONObject = (req as any).callTokenData;
 
           const itemId: ObjectID = new ObjectID(req.params["itemId"]);
 
@@ -319,22 +336,40 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           }
 
           /*
-           * The second key escalates the page - only for a call that offered
-           * it: its address carries the page's own token
-           * (OnCallPageLinks.getCallResponseUrl). A call placed before, with
-           * no "press 2" in it, answers as it always did.
+           * And the key is this call's: its keypad token names the
+           * notification in this address (OnCallKeypadToken). A call placed
+           * before this release - its call token names none - is bound by
+           * the page's link token its address carried instead, while its
+           * call token lasts: a day. Refused like an unsigned request, with
+           * why, and no token in the log.
            */
-          if (
-            req.body["Digits"] === ON_CALL_PAGE_CALL_PASS_ON_DIGIT &&
-            OnCallPageLinkToken.isValid({
-              token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
-              userOnCallLogTimelineId: itemId,
-            })
-          ) {
+          const keypad: OnCallKeypadTokenReading = OnCallKeypadToken.read({
+            claims: callTokenClaims,
+            userOnCallLogTimelineId: itemId,
+            pageToken: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
+          });
+
+          if (!keypad.isAccepted) {
+            logger.warn(
+              `On-call keypad press refused: the keypad callback for on-call notification ${itemId.toString()}. ${getOnCallKeypadTokenRefusalSentence(keypad.refusal)} Nothing was acknowledged or escalated.`,
+            );
+            res.status(403).send("Forbidden");
+            return;
+          }
+
+          const answers: OnCallInputRequest = keypad.answers;
+
+          /*
+           * The second key escalates the page. Every call bound to its page
+           * offers it - this release's by its keypad token, one placed
+           * before by the page's link token in its address
+           * (OnCallPageLinks.getCallResponseUrl).
+           */
+          if (req.body["Digits"] === ON_CALL_PAGE_CALL_PASS_ON_DIGIT) {
             return NotificationMiddleware.sendResponse(
               req,
               res,
-              token as any,
+              answers,
               await this.passOnFromCall({
                 itemId: itemId,
                 timelineItem: timelineItem,
@@ -367,13 +402,13 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               return NotificationMiddleware.sendResponse(
                 req,
                 res,
-                token as any,
+                answers,
                 ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
               );
             }
           }
 
-          return NotificationMiddleware.sendResponse(req, res, token as any);
+          return NotificationMiddleware.sendResponse(req, res, answers);
         } catch (error) {
           return next(error);
         }
@@ -381,9 +416,16 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     );
 
     /*
-     * We have this ack page to show the user a confirmation page before acknowledging the notification.
-     * this is because email clients automatically make a get request to the url in the email and ack the notification automatically which is not what we want.
-     * so we need to create this page for the user to confirm that they want to acknowledge the notification.
+     * The page a message's Acknowledge link opens: what the page is about,
+     * and Acknowledge. Opening it changes nothing - mail scanners and link
+     * previews open every link in a message, and every link on the page it
+     * opens - so the page asks, and only its button, a form they do not
+     * send, acknowledges (POST acknowledge/:itemId). The button sends the
+     * page's token on (OnCallAcknowledgeLink), the proof that the press is
+     * the person's own: a link without a valid one says it cannot
+     * acknowledge the page, and still opens it in the Dashboard. A link sent
+     * before links carried a token still asks, for a page sent before the
+     * upgrade, for a week after it was sent.
      *
      * It offers Acknowledge only while the person's page still waits for an
      * answer (OnCallAcknowledgePage): once they answered it some other way,
@@ -397,288 +439,55 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         ?.toString()}/acknowledge-page/:itemId`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          req = req as OneUptimeRequest;
-
-          if (!req.params["itemId"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item ID is required"),
-            );
-          }
-
-          const itemId: ObjectID = new ObjectID(req.params["itemId"]);
-
-          const timelineItem: UserOnCallLogTimeline | null =
-            await this.readNotification(itemId);
-
-          if (!timelineItem) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid item Id"),
-            );
-          }
-
-          // A test page (OnCallTestPage) is about no record: a page of its own.
-          if (isOnCallTestPage(timelineItem)) {
-            return await this.renderTestPageAcknowledgePage({
-              req: req,
-              res: res,
-              itemId: itemId,
-              timelineItem: timelineItem,
-            });
-          }
-
-          /*
-           * The context read is what puts severity, state, project, monitors
-           * and the time it was raised on the page. It is best effort on
-           * purpose: a deleted resource, or a resource this notification no
-           * longer points at, must still leave a page the engineer can
-           * acknowledge from.
-           */
-          const record: NotificationRecord =
-            await this.readNotificationRecord(timelineItem);
-
-          /*
-           * The run says what kind of page this is - an observer's page
-           * (OnCallObserverPage) is answered by saying they have seen it:
-           * the record is not acknowledged, and there is nothing to
-           * escalate - and whether, and by whom, it was answered.
-           */
-          const run: OnCallDutyPolicyExecutionLog | null =
-            await OnCallAcknowledgePageAnswerReader.readRun(
-              timelineItem.onCallDutyPolicyExecutionLogId,
-            );
-
-          const isObserverPage: boolean = isOnCallObserverPage(run);
-
-          const answer: OnCallAcknowledgePageAnswer =
-            await OnCallAcknowledgePageAnswerReader.read({
-              timelineItem: timelineItem,
-              reference: record.reference,
-              run: run,
-            });
-
-          if (!isOnCallAcknowledgePageOpen(answer)) {
-            return this.renderAcknowledgePageAnswered({
-              req: req,
-              res: res,
-              record: record,
-              answer: answer,
-              isObserverPage: isObserverPage,
-            });
-          }
-
-          const notificationType: string = record.notificationType;
-
-          /*
-           * "Can't take it? Escalate" beside Acknowledge - for a link that
-           * carries the page's own token (OnCallPageLinkToken), while the
-           * page is still the person's to escalate. The texts, the WhatsApp
-           * messages and the chat messages all lead here.
-           */
-          const passOn: JSONObject | null = isObserverPage
-            ? null
-            : await this.getPassOnBlock({
-                token: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
-                itemId: itemId,
-                timelineItem: timelineItem,
-                timezone: record.timezone,
-                recordNoun: notificationType,
-              });
-
-          const recordNoun: string = notificationType.toLowerCase();
-
-          return Response.render(
-            req,
-            res,
-            "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
-            {
-              title: isObserverPage
-                ? `${ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL} - ${record.title}`
-                : `Acknowledge ${notificationType} - ${record.title}`,
-              message: isObserverPage
-                ? `You're paged as an observer: the people responding stay on this ${recordNoun}. Saying you've seen it does not acknowledge the ${recordNoun}.`
-                : `Do you want to acknowledge this ${notificationType}?`,
-              acknowledgeText: isObserverPage
-                ? ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL
-                : `Acknowledge ${notificationType}`,
-              acknowledgeUrl: (
-                await OnCallPageLinks.getAcknowledgeUrl(itemId)
-              ).toString(),
-              // "View Incident": the record in the Dashboard, under Acknowledge.
-              viewDetailsText: record.viewDetailsText,
-              viewDetailsUrl: record.viewDetailsUrl,
-              resourceNumber: record.context?.resourceNumber || "",
-              resourceTitle: record.title,
-              resourceDescription: record.context?.resourceDescription || "",
-              details: detailsToJSON(record.context?.details || []),
-              ...(passOn ? { passOn: passOn } : {}),
-            },
-          );
+          return await this.renderAcknowledgePage({
+            req: req,
+            res: res,
+            pageToken: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
+          });
         } catch (error) {
           return next(error);
         }
       },
     );
 
-    // This is the link that actually acknowledges the notification.
+    /*
+     * The acknowledge page's button, opened rather than sent: an acknowledge
+     * page drawn before this release linked its Acknowledge here, and a
+     * scanner that follows the links on a page lands here too. Opening it
+     * acknowledges nothing: it shows the acknowledge page, whose button
+     * does.
+     */
     this.router.get(
-      `${new this.entityType()
-        .getCrudApiPath()
-        ?.toString()}/acknowledge/:itemId`,
+      `${new this.entityType().getCrudApiPath()?.toString()}/acknowledge/:itemId`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          req = req as OneUptimeRequest;
-
-          if (!req.params["itemId"]) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item ID is required"),
-            );
-          }
-
-          const itemId: ObjectID = new ObjectID(req.params["itemId"]);
-
-          const timelineItem: UserOnCallLogTimeline | null =
-            await this.readNotification(itemId);
-
-          if (!timelineItem) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid item Id"),
-            );
-          }
-
-          /*
-           * A test page (OnCallTestPage): acknowledged here, and the page says
-           * it works - there is no record to send the person to.
-           */
-          if (isOnCallTestPage(timelineItem)) {
-            return await this.acknowledgeTestPage({
-              req: req,
-              res: res,
-              itemId: itemId,
-              timelineItem: timelineItem,
-            });
-          }
-
-          const host: Hostname = await DatabaseConfig.getHost();
-          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-          // Determine the resource type and ID for routing.
-          const reference: OnCallNotificationResourceReference | null =
-            getResourceReference(timelineItem);
-
-          // An observer's page is answered as seen (OnCallObserverPage).
-          const run: OnCallDutyPolicyExecutionLog | null =
-            await OnCallAcknowledgePageAnswerReader.readRun(
-              timelineItem.onCallDutyPolicyExecutionLogId,
-            );
-
-          const isObserverPage: boolean = isOnCallObserverPage(run);
-
-          /*
-           * Asked again as the button is pressed, not only as the page was
-           * drawn: a page left open while a colleague acknowledged the
-           * incident - or after the person answered another of their
-           * messages - says so, and acknowledges nothing a second time.
-           */
-          const answer: OnCallAcknowledgePageAnswer =
-            await OnCallAcknowledgePageAnswerReader.read({
-              timelineItem: timelineItem,
-              reference: reference,
-              run: run,
-            });
-
-          if (!isOnCallAcknowledgePageOpen(answer)) {
-            /*
-             * Same context the acknowledge page shows. Someone who follows the
-             * link twice - or whose colleague got there first - still needs to
-             * know what the page they are looking at is about.
-             */
-            return this.renderAcknowledgePageAnswered({
-              req: req,
-              res: res,
-              record: await this.readNotificationRecord(timelineItem),
-              answer: answer,
-              isObserverPage: isObserverPage,
-            });
-          }
-
-          /*
-           * Written once (OnCallNotificationStatus.recordAcknowledgement): a
-           * second press landing meanwhile - the button pressed twice, the
-           * link opened on two devices - acknowledges nothing again, and is
-           * told what the page says now.
-           */
-          const isAcknowledged: boolean = await recordAcknowledgement({
-            userOnCallLogTimelineId: itemId,
-            statusMessage: isObserverPage
-              ? ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE
-              : ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+          return await this.renderAcknowledgePage({
+            req: req,
+            res: res,
+            pageToken: req.query?.[ON_CALL_PAGE_LINK_TOKEN_PARAM],
           });
+        } catch (error) {
+          return next(error);
+        }
+      },
+    );
 
-          if (!isAcknowledged) {
-            // Read again, as they are now: whose answer it was, and when.
-            const answeredItem: UserOnCallLogTimeline =
-              (await this.readNotification(itemId)) || timelineItem;
-
-            const runNow: OnCallDutyPolicyExecutionLog | null =
-              (await OnCallAcknowledgePageAnswerReader.readRun(
-                answeredItem.onCallDutyPolicyExecutionLogId,
-              )) || run;
-
-            const answerNow: OnCallAcknowledgePageAnswer =
-              await OnCallAcknowledgePageAnswerReader.read({
-                timelineItem: answeredItem,
-                reference: reference,
-                run: runNow,
-              });
-
-            // Not acknowledged, and not answered either: nothing to claim.
-            if (isOnCallAcknowledgePageOpen(answerNow)) {
-              return Response.sendErrorResponse(
-                req,
-                res,
-                new BadDataException(
-                  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
-                ),
-              );
-            }
-
-            return this.renderAcknowledgePageAnswered({
-              req: req,
-              res: res,
-              record: await this.readNotificationRecord(answeredItem),
-              answer: answerNow,
-              isObserverPage: isObserverPage,
-            });
-          }
-
-          // redirect to dashboard to the resource page.
-          if (reference) {
-            const resourceRoute: Route = new Route(
-              DashboardRoute.toString(),
-            ).addRoute(
-              `/${timelineItem.projectId?.toString()}/${reference.dashboardPath}/${reference.resourceId.toString()}`,
-            );
-
-            return Response.redirect(
-              req,
-              res,
-              new URL(httpProtocol, host, resourceRoute),
-            );
-          }
-
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid item Id"),
-          );
+    /*
+     * The Acknowledge button: acknowledges the person's page, with the
+     * page's token its form sends (OnCallAcknowledgeLink), and opens the
+     * record in the Dashboard.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/acknowledge/:itemId`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          return await this.acknowledgeFromLink({
+            req: req,
+            res: res,
+            pageToken: (req.body as JSONObject | undefined)?.[
+              ON_CALL_PAGE_LINK_TOKEN_PARAM
+            ],
+          });
         } catch (error) {
           return next(error);
         }
@@ -858,18 +667,435 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
   }
 
   /*
+   * The acknowledge page, as the link opened it: Acknowledge, while the
+   * page waits for an answer and the link may acknowledge it
+   * (OnCallAcknowledgeLink) - with "Can't take it? Escalate" beside it for a
+   * link with the page's token - or why not. It changes nothing.
+   */
+  private async renderAcknowledgePage(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    // The page's token, as the link carries it.
+    pageToken: unknown;
+  }): Promise<void> {
+    const req: ExpressRequest = data.req;
+    const res: ExpressResponse = data.res;
+
+    const itemId: ObjectID | null = this.readItemId(req);
+
+    if (!itemId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Item ID is required"),
+      );
+    }
+
+    const timelineItem: UserOnCallLogTimeline | null =
+      await this.readNotification(itemId);
+
+    if (!timelineItem) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid item Id"),
+      );
+    }
+
+    // A test page (OnCallTestPage) is about no record: a page of its own.
+    if (isOnCallTestPage(timelineItem)) {
+      return await this.renderTestPageAcknowledgePage({
+        req: req,
+        res: res,
+        itemId: itemId,
+        timelineItem: timelineItem,
+        pageToken: data.pageToken,
+      });
+    }
+
+    /*
+     * The context read is what puts severity, state, project, monitors and
+     * the time it was raised on the page. It is best effort on purpose: a
+     * deleted resource, or a resource this notification no longer points
+     * at, must still leave a page the engineer can acknowledge from.
+     */
+    const record: NotificationRecord =
+      await this.readNotificationRecord(timelineItem);
+
+    /*
+     * The run says what kind of page this is - an observer's page
+     * (OnCallObserverPage) is answered by saying they have seen it: the
+     * record is not acknowledged, and there is nothing to escalate - and
+     * whether, and by whom, it was answered.
+     */
+    const run: OnCallDutyPolicyExecutionLog | null =
+      await OnCallAcknowledgePageAnswerReader.readRun(
+        timelineItem.onCallDutyPolicyExecutionLogId,
+      );
+
+    const isObserverPage: boolean = isOnCallObserverPage(run);
+
+    const answer: OnCallAcknowledgePageAnswer =
+      await OnCallAcknowledgePageAnswerReader.read({
+        timelineItem: timelineItem,
+        reference: record.reference,
+        run: run,
+      });
+
+    if (!isOnCallAcknowledgePageOpen(answer)) {
+      return this.renderAcknowledgePageAnswered({
+        req: req,
+        res: res,
+        record: record,
+        answer: answer,
+        isObserverPage: isObserverPage,
+      });
+    }
+
+    const proof: OnCallAcknowledgeLinkProof =
+      await OnCallAcknowledgeLink.getProof({
+        token: data.pageToken,
+        userOnCallLogTimelineId: itemId,
+        sentAt: timelineItem.createdAt,
+      });
+
+    if (proof === OnCallAcknowledgeLinkProof.None) {
+      return this.renderLinkCannotAcknowledge({
+        req: req,
+        res: res,
+        record: record,
+        isObserverPage: isObserverPage,
+      });
+    }
+
+    const notificationType: string = record.notificationType;
+
+    /*
+     * "Can't take it? Escalate" beside Acknowledge - for a link that
+     * carries the page's own token (OnCallPageLinkToken), while the page is
+     * still the person's to escalate. Every message leads here.
+     */
+    const passOn: JSONObject | null = isObserverPage
+      ? null
+      : await this.getPassOnBlock({
+          token: data.pageToken,
+          itemId: itemId,
+          timelineItem: timelineItem,
+          timezone: record.timezone,
+          recordNoun: notificationType,
+        });
+
+    const recordNoun: string = notificationType.toLowerCase();
+
+    return Response.render(
+      req,
+      res,
+      "/usr/src/Common/Server/Views/AcknowledgeUserOnCallNotification.ejs",
+      {
+        title: isObserverPage
+          ? `${ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL} - ${record.title}`
+          : `Acknowledge ${notificationType} - ${record.title}`,
+        message: isObserverPage
+          ? `You're paged as an observer: the people responding stay on this ${recordNoun}. Saying you've seen it does not acknowledge the ${recordNoun}.`
+          : `Do you want to acknowledge this ${notificationType}?`,
+        acknowledgeText: isObserverPage
+          ? ON_CALL_OBSERVER_PAGE_ACKNOWLEDGE_LABEL
+          : `Acknowledge ${notificationType}`,
+        // Where the button's form goes, with the page's token in it.
+        acknowledgeUrl: (
+          await OnCallPageLinks.getAcknowledgeUrl(itemId)
+        ).toString(),
+        ...this.getAcknowledgeFormToken(proof, data.pageToken),
+        // "View Incident": the record in the Dashboard, under Acknowledge.
+        viewDetailsText: record.viewDetailsText,
+        viewDetailsUrl: record.viewDetailsUrl,
+        resourceNumber: record.context?.resourceNumber || "",
+        resourceTitle: record.title,
+        resourceDescription: record.context?.resourceDescription || "",
+        details: detailsToJSON(record.context?.details || []),
+        ...(passOn ? { passOn: passOn } : {}),
+      },
+    );
+  }
+
+  /*
+   * The Acknowledge button's press: acknowledges the person's page with the
+   * proof its form sends (OnCallAcknowledgeLink), and opens the record in
+   * the Dashboard. A press without one - no token, or one not valid any
+   * more, on a page that is not one sent before the upgrade in the last
+   * week - acknowledges nothing, and says why.
+   */
+  private async acknowledgeFromLink(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    // The page's token, as the form sends it.
+    pageToken: unknown;
+  }): Promise<void> {
+    const req: ExpressRequest = data.req;
+    const res: ExpressResponse = data.res;
+
+    const itemId: ObjectID | null = this.readItemId(req);
+
+    if (!itemId) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Item ID is required"),
+      );
+    }
+
+    const timelineItem: UserOnCallLogTimeline | null =
+      await this.readNotification(itemId);
+
+    if (!timelineItem) {
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new BadDataException("Invalid item Id"),
+      );
+    }
+
+    const proof: OnCallAcknowledgeLinkProof =
+      await OnCallAcknowledgeLink.getProof({
+        token: data.pageToken,
+        userOnCallLogTimelineId: itemId,
+        sentAt: timelineItem.createdAt,
+      });
+
+    if (proof === OnCallAcknowledgeLinkProof.None) {
+      if (isOnCallTestPage(timelineItem)) {
+        return this.renderLinkCannotAcknowledge({
+          req: req,
+          res: res,
+          record: null,
+          isObserverPage: false,
+        });
+      }
+
+      return this.renderLinkCannotAcknowledge({
+        req: req,
+        res: res,
+        record: await this.readNotificationRecord(timelineItem),
+        isObserverPage: isOnCallObserverPage(
+          await OnCallAcknowledgePageAnswerReader.readRun(
+            timelineItem.onCallDutyPolicyExecutionLogId,
+          ),
+        ),
+      });
+    }
+
+    /*
+     * A test page (OnCallTestPage): acknowledged here, and the page says it
+     * works - there is no record to send the person to.
+     */
+    if (isOnCallTestPage(timelineItem)) {
+      return await this.acknowledgeTestPage({
+        req: req,
+        res: res,
+        itemId: itemId,
+        timelineItem: timelineItem,
+      });
+    }
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    // Determine the resource type and ID for routing.
+    const reference: OnCallNotificationResourceReference | null =
+      getResourceReference(timelineItem);
+
+    // An observer's page is answered as seen (OnCallObserverPage).
+    const run: OnCallDutyPolicyExecutionLog | null =
+      await OnCallAcknowledgePageAnswerReader.readRun(
+        timelineItem.onCallDutyPolicyExecutionLogId,
+      );
+
+    const isObserverPage: boolean = isOnCallObserverPage(run);
+
+    /*
+     * Asked again as the button is pressed, not only as the page was
+     * drawn: a page left open while a colleague acknowledged the incident -
+     * or after the person answered another of their messages - says so,
+     * and acknowledges nothing a second time.
+     */
+    const answer: OnCallAcknowledgePageAnswer =
+      await OnCallAcknowledgePageAnswerReader.read({
+        timelineItem: timelineItem,
+        reference: reference,
+        run: run,
+      });
+
+    if (!isOnCallAcknowledgePageOpen(answer)) {
+      /*
+       * Same context the acknowledge page shows. Someone who presses twice
+       * - or whose colleague got there first - still needs to know what
+       * the page they are looking at is about.
+       */
+      return this.renderAcknowledgePageAnswered({
+        req: req,
+        res: res,
+        record: await this.readNotificationRecord(timelineItem),
+        answer: answer,
+        isObserverPage: isObserverPage,
+      });
+    }
+
+    /*
+     * Written once (OnCallNotificationStatus.recordAcknowledgement): a
+     * second press landing meanwhile - the button pressed twice, the link
+     * opened on two devices - acknowledges nothing again, and is told what
+     * the page says now.
+     */
+    const isAcknowledged: boolean = await recordAcknowledgement({
+      userOnCallLogTimelineId: itemId,
+      statusMessage: isObserverPage
+        ? ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE
+        : ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+    });
+
+    if (!isAcknowledged) {
+      // Read again, as they are now: whose answer it was, and when.
+      const answeredItem: UserOnCallLogTimeline =
+        (await this.readNotification(itemId)) || timelineItem;
+
+      const runNow: OnCallDutyPolicyExecutionLog | null =
+        (await OnCallAcknowledgePageAnswerReader.readRun(
+          answeredItem.onCallDutyPolicyExecutionLogId,
+        )) || run;
+
+      const answerNow: OnCallAcknowledgePageAnswer =
+        await OnCallAcknowledgePageAnswerReader.read({
+          timelineItem: answeredItem,
+          reference: reference,
+          run: runNow,
+        });
+
+      // Not acknowledged, and not answered either: nothing to claim.
+      if (isOnCallAcknowledgePageOpen(answerNow)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE),
+        );
+      }
+
+      return this.renderAcknowledgePageAnswered({
+        req: req,
+        res: res,
+        record: await this.readNotificationRecord(answeredItem),
+        answer: answerNow,
+        isObserverPage: isObserverPage,
+      });
+    }
+
+    // redirect to dashboard to the resource page.
+    if (reference) {
+      const resourceRoute: Route = new Route(
+        DashboardRoute.toString(),
+      ).addRoute(
+        `/${timelineItem.projectId?.toString()}/${reference.dashboardPath}/${reference.resourceId.toString()}`,
+      );
+
+      return Response.redirect(
+        req,
+        res,
+        new URL(httpProtocol, host, resourceRoute),
+      );
+    }
+
+    return Response.sendErrorResponse(
+      req,
+      res,
+      new BadDataException("Invalid item Id"),
+    );
+  }
+
+  /*
+   * What the Acknowledge button's form sends besides the press: the page's
+   * token, for a link that carries one. A link sent before links carried a
+   * token sends none, and is taken while it may be (OnCallAcknowledgeLink).
+   */
+  private getAcknowledgeFormToken(
+    proof: OnCallAcknowledgeLinkProof,
+    pageToken: unknown,
+  ): JSONObject {
+    return {
+      pageTokenParam: ON_CALL_PAGE_LINK_TOKEN_PARAM,
+      pageToken:
+        proof === OnCallAcknowledgeLinkProof.PageToken ? String(pageToken) : "",
+    };
+  }
+
+  /*
+   * A link that cannot acknowledge its page (OnCallAcknowledgeLink): why,
+   * under "This link has expired", with what the page is about and the
+   * button that opens it in the Dashboard - where the person can
+   * acknowledge it. A test page has no record: the sentence alone.
+   */
+  private renderLinkCannotAcknowledge(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    record: NotificationRecord | null;
+    isObserverPage: boolean;
+  }): void {
+    const record: NotificationRecord | null = data.record;
+
+    return Response.render(
+      data.req,
+      data.res,
+      "/usr/src/Common/Server/Views/ViewMessage.ejs",
+      {
+        title: record?.title
+          ? `${ON_CALL_PAGE_LINK_EXPIRED_TITLE} - ${record.title}`
+          : ON_CALL_PAGE_LINK_EXPIRED_TITLE,
+        message: getOnCallAcknowledgeLinkRefusedSentence({
+          isObserverPage: data.isObserverPage,
+        }),
+        ...(record
+          ? {
+              viewDetailsText: record.viewDetailsText,
+              viewDetailsUrl: record.viewDetailsUrl,
+              resourceNumber: record.context?.resourceNumber || "",
+              resourceTitle: record.title,
+              resourceDescription: record.context?.resourceDescription || "",
+              details: detailsToJSON(record.context?.details || []),
+            }
+          : {}),
+      },
+    );
+  }
+
+  /*
    * A test page's link: Acknowledge, or that it works once the person
    * acknowledged it - from this message, or another of theirs
    * (OnCallTestPageAcknowledge, the rule the On-Call app's push asks too).
+   * Its button asks for the page's token, as a real page's does.
    */
   private async renderTestPageAcknowledgePage(data: {
     req: ExpressRequest;
     res: ExpressResponse;
     itemId: ObjectID;
     timelineItem: UserOnCallLogTimeline;
+    pageToken: unknown;
   }): Promise<void> {
     if (await OnCallTestPageAcknowledge.isAnswered(data.timelineItem)) {
       return this.renderTestPageAnswered(data.req, data.res);
+    }
+
+    const proof: OnCallAcknowledgeLinkProof =
+      await OnCallAcknowledgeLink.getProof({
+        token: data.pageToken,
+        userOnCallLogTimelineId: data.itemId,
+        sentAt: data.timelineItem.createdAt,
+      });
+
+    if (proof === OnCallAcknowledgeLinkProof.None) {
+      return this.renderLinkCannotAcknowledge({
+        req: data.req,
+        res: data.res,
+        record: null,
+        isObserverPage: false,
+      });
     }
 
     return Response.render(
@@ -883,6 +1109,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         acknowledgeUrl: (
           await OnCallPageLinks.getAcknowledgeUrl(data.itemId)
         ).toString(),
+        ...this.getAcknowledgeFormToken(proof, data.pageToken),
       },
     );
   }
@@ -1270,7 +1497,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
         return ON_CALL_PAGE_ALREADY_ESCALATED_TITLE;
       // A link outlives its page by days at most: one past its week is why.
       case OnCallPassOnRefusal.InvalidLink:
-        return "This link has expired";
+        return ON_CALL_PAGE_LINK_EXPIRED_TITLE;
       case OnCallPassOnRefusal.LevelNotAvailable:
         return ON_CALL_PAGE_NOT_ESCALATED_TITLE;
       case OnCallPassOnRefusal.PageOver:

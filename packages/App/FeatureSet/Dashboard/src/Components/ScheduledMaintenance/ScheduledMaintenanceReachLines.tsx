@@ -10,6 +10,7 @@ import {
   getMaintenanceNotifyOptionsReason,
   getMaintenanceReachQuestion,
   getMaintenanceRemindersReason,
+  getMaintenanceStatusPagesReason,
   getTemplateSubscriberNotificationsFold,
   getTemplateSubscriberNotificationsSummary,
 } from "./ScheduledMaintenanceReach";
@@ -36,6 +37,9 @@ export const MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID: string =
 
 export const MAINTENANCE_REMINDERS_REASON_TEST_ID: string =
   "maintenance-reminders-reason";
+
+export const MAINTENANCE_STATUS_PAGES_REASON_TEST_ID: string =
+  "maintenance-status-pages-reason";
 
 // The answer for the form's pages, asked as the line is drawn.
 const useReachFor: (
@@ -118,6 +122,48 @@ export const MaintenanceNotifyOptionsReason: FunctionComponent<{
     <ScopeNotice
       text={translateString(reason) || reason}
       dataTestId={MAINTENANCE_NOTIFY_OPTIONS_REASON_TEST_ID}
+    />
+  );
+};
+
+/*
+ * Under the status page picker on an event's Edit (#9974): what the pages
+ * picked will do with it when that is nothing - it shows on none of them,
+ * or it shows and tells nobody - and why, in the amber note the form's
+ * other warnings under a field use. Nothing while the server's answer is
+ * not known, and when a page shows the event and notifies.
+ */
+export const MaintenanceStatusPagesReason: FunctionComponent<{
+  values: unknown;
+  record: MaintenanceReachRecord;
+}> = (props: {
+  values: unknown;
+  record: MaintenanceReachRecord;
+}): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const { reach }: ScheduledMaintenanceReachState = useReachFor(
+    props.values,
+    props.record,
+  );
+
+  const sentences: Array<string> = getMaintenanceStatusPagesReason({
+    values: props.values,
+    record: props.record,
+    reach: reach,
+  });
+
+  if (sentences.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <ScopeNotice
+      text={sentences
+        .map((sentence: string): string => {
+          return translateString(sentence) || sentence;
+        })
+        .join(" ")}
+      dataTestId={MAINTENANCE_STATUS_PAGES_REASON_TEST_ID}
     />
   );
 };

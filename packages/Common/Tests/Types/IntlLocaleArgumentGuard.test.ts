@@ -61,13 +61,14 @@ const TEST_FILE: RegExp = /\.test\.tsx?$/;
  * Keyed by the file and the locale argument as written ("" for none), with
  * how many such calls the file may hold.
  */
+/*
+ * The calendar's English fallback and getLocaleClockHourOption's probe of a
+ * language's own clock left with #7651: the calendar writes through
+ * DateLanguage's getDateTimeFormat, and every time is on the reader's clock.
+ */
 const ALLOWED: ReadonlyMap<string, number> = new Map<string, number>([
-  // English, when Intl does not know the reader's language.
-  ["Common/UI/Components/Calendar/Calendar.tsx ENGLISH_LANGUAGE", 2],
   // getDateLocale's own probe of the locale it has just pinned.
   ["Common/Types/DateLanguage.ts locale", 1],
-  // getLocaleClockHourOption's probe of a pinned locale's own clock.
-  ["Common/Types/DateLanguage.ts pinnedLocale", 1],
   // getReaderNumberLocale's read of the runtime's own locale.
   ["Common/Types/DateLanguage.ts ", 1],
   // Whether the browser's clock is a 12-hour one, and that probe's fallback.
@@ -242,14 +243,29 @@ describe("Intl formatters take a pinned locale, never a bare language", () => {
   test("an allowed call is allowed only in its own file", () => {
     expect(
       findBareLocaleCalls(
-        "Common/UI/Components/Calendar/Calendar.tsx",
-        "new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options)",
+        "Common/Types/DateLanguage.ts",
+        "new Intl.DateTimeFormat(locale)",
       ),
     ).toEqual([]);
     expect(
       findBareLocaleCalls(
         "Common/UI/Components/Other.tsx",
+        "new Intl.DateTimeFormat(locale)",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("the calendar's English fallback and a language's own clock are no longer allowed (#7651)", () => {
+    expect(
+      findBareLocaleCalls(
+        "Common/UI/Components/Calendar/Calendar.tsx",
         "new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options)",
+      ),
+    ).toHaveLength(1);
+    expect(
+      findBareLocaleCalls(
+        "Common/Types/DateLanguage.ts",
+        "new Intl.DateTimeFormat(pinnedLocale, { hour: 'numeric' })",
       ),
     ).toHaveLength(1);
   });

@@ -90,7 +90,7 @@ When your services already count their requests as metrics, or send no traces, m
 | **Good At Or Under** | For a histogram: the value a good observation is at or under, in the metric's own unit, such as `0.3` for 300 ms of a histogram in seconds. Use one of its bucket boundaries. |
 | **Metric Filter** | Optional: the series that count, such as `-@http.route:/health`. |
 
-A counter's events are what it grew by in each 5-minute step, the way Prometheus' `increase()` reads one: a counter that restarts counts from zero again, and cumulative and delta counters both count. A histogram's events are its observations, and the good ones are those in the buckets at or under the value. Only the metric's own points count, from the SLO's services: a gauge of the same name counts nothing.
+A counter's events are what it grew by in each 5-minute step, the way Prometheus' `increase()` reads one: a counter that restarts counts from zero again, and cumulative and delta counters both count. A histogram's events are its observations, and the good ones are those in the buckets at or under the value. Only the metric's own points count, from the SLO's services: a gauge of the same name counts nothing. An SLO on a gauge, as every cloud metric is, says so on its page, and so does the metric picker: measure a cloud metric with a metric monitor, and an SLO of that monitor's uptime.
 
 From there a Metric SLO works like a request SLO, with its error budget, burn rate rules and release checks in events. Changing the metric counts its events again from the start.
 

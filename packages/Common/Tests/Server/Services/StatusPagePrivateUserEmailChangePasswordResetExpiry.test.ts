@@ -284,6 +284,12 @@ describe("StatusPagePrivateUserService.onBeforeUpdate — a reset link dies with
       await service().onBeforeUpdate(payload);
 
     expect(result.updateBy).toBe(payload);
-    expect(result.carryForward).toBeNull();
+    /*
+     * What it carries forward is the users whose address the write changes,
+     * for the email to the address they had (#10156,
+     * StatusPagePrivateUserEmailAddressChanged.test.ts): each with their
+     * status page, which these rows leave out, so none here.
+     */
+    expect(result.carryForward).toEqual([]);
   });
 });

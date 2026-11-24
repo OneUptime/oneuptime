@@ -27,6 +27,8 @@ describe("kindFromResourceType", () => {
     expect(kindFromResourceType("daemonsets")).toBe("DaemonSet");
     expect(kindFromResourceType("jobs")).toBe("Job");
     expect(kindFromResourceType("cronjobs")).toBe("CronJob");
+    // A ReplicaSet a collector sends is kept with its pod template (#9880).
+    expect(kindFromResourceType("replicasets")).toBe("ReplicaSet");
     expect(kindFromResourceType("persistentvolumeclaims")).toBe(
       "PersistentVolumeClaim",
     );
@@ -78,7 +80,7 @@ describe("kindFromResourceType", () => {
       expect(kindFromResourceType(resourceType)).not.toBeNull();
     }
     expect(INVENTORIED_RESOURCE_TYPES).toContain("pods");
-    expect(INVENTORIED_RESOURCE_TYPES.length).toBe(23);
+    expect(INVENTORIED_RESOURCE_TYPES.length).toBe(24);
   });
 
   test("maps RBAC, ServiceAccounts and NetworkPolicies, for the cluster's Compliance page", () => {

@@ -59,6 +59,18 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+
+/*
+ * A change to the server's own single sign-on waits until the session confirms it's its
+ * person's (Confirm It's You, #10216): every session here has confirmed.
+ * The check itself, through the same hooks and routes, is pinned by
+ * Tests/Server/Services/AdminReauthenticationGates.test.ts and
+ * Tests/Server/API/AdminReauthenticationRoutes.test.ts.
+ */
+beforeEach(() => {
+  confirmEverySession();
+});
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {

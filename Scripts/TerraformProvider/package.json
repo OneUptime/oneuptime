@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/terraform-provider-generator",
-  "version": "17.1.0",
+  "version": "17.2.0",
   "description": "Generates the OneUptime Terraform provider from the OpenAPI specification",
   "private": true,
   "repository": {

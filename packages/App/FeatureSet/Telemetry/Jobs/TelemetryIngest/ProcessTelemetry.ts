@@ -1,6 +1,7 @@
 import {
   TelemetryIngestJobData,
   TelemetryType,
+  getTelemetryIngestionBudgetSignalForTelemetryType,
   isKnownProbeIngestJobType,
   isKnownTelemetryType,
 } from "../../Services/Queue/TelemetryQueueService";
@@ -49,6 +50,8 @@ import SessionReplayIngestService from "../../Services/SessionReplayIngestServic
 import ProductAnalyticsEventIngestService from "../../Services/ProductAnalyticsEventIngestService";
 import { JSONObject } from "Common/Types/JSON";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
 /*
  * Enforce the ingestion key's pinned `service.name` on a decoded OTLP body,
@@ -124,11 +127,25 @@ function applyPinnedServiceName(
  * Throws if a required field is missing — that indicates a
  * producer bug in TelemetryQueueService and must not be silently
  * swallowed.
+ *
+ * With the decoded body's size: what a budget counts it at (the decode
+ * measures it anyway: raw.length). A body counted against an ingestion
+ * budget at an estimate is settled with it here.
  */
+interface ResolvedOtelBody {
+  body: JSONObject;
+  // The body's size with its content coding undone; null when it was gone.
+  decodedBytes: number | null;
+}
+
 async function resolveOtelBody(
   jobData: TelemetryIngestJobData,
-  options?: { isFirstAttempt?: boolean | undefined },
-): Promise<JSONObject> {
+  options: {
+    isFirstAttempt?: boolean | undefined;
+    // Whether the batch is attributed, and so needs its size.
+    isMeasured: boolean;
+  },
+): Promise<ResolvedOtelBody> {
   if (!jobData.bodyKey || !jobData.bodyFormat || !jobData.productType) {
     throw new Error(
       `ProcessTelemetry: OTel job is missing bodyKey/bodyFormat/productType (type=${jobData.type})`,
@@ -143,31 +160,114 @@ async function resolveOtelBody(
       bodyKey: jobData.bodyKey,
     };
 
-  let body: JSONObject;
+  /*
+   * Only a body counted against an ingestion budget, or attributed to its
+   * resources, needs its inflated size measured; every other job decodes
+   * exactly as it did before budgets existed.
+   */
+  if (!jobData.ingestionBudgetCharge && !options.isMeasured) {
+    const body: JSONObject =
+      await OtelPayloadDecoder.decodeFromQueue(decodeInput);
+
+    applyPinnedServiceName(body, jobData);
+
+    return { body: body, decodedBytes: null };
+  }
+
+  const decoded: OtelDecodedPayload =
+    await OtelPayloadDecoder.decodeFromQueueMeasured(decodeInput);
 
   /*
-   * Only a body counted against an ingestion budget at an estimate carries a
-   * charge to settle, and only that one needs its inflated size measured;
-   * every other job decodes exactly as it did before budgets existed.
+   * Only a body counted at an estimate has a charge to settle (one counted
+   * at its size says so, isExact, and reconcile leaves it).
    */
   if (jobData.ingestionBudgetCharge) {
-    const decoded: OtelDecodedPayload =
-      await OtelPayloadDecoder.decodeFromQueueMeasured(decodeInput);
-
     await settleIngestionBudgetCharge({
       jobData: jobData,
       decodedBytes: decoded.decodedBytes,
-      isFirstAttempt: options?.isFirstAttempt !== false,
+      isFirstAttempt: options.isFirstAttempt !== false,
     });
-
-    body = decoded.body;
-  } else {
-    body = await OtelPayloadDecoder.decodeFromQueue(decodeInput);
   }
 
-  applyPinnedServiceName(body, jobData);
+  applyPinnedServiceName(decoded.body, jobData);
 
-  return body;
+  return { body: decoded.body, decodedBytes: decoded.decodedBytes };
+}
+
+/*
+ * The size a batch is counted at, to share out over its resources
+ * (TelemetryIngestAttribution): an OTLP/gRPC export's protobuf size, which
+ * its job carries, or else its body decoded - what the request path counts
+ * once it settles an estimate. null when there is no body to share.
+ *
+ * Exported for tests.
+ */
+export function getAttributedBatchBytes(data: {
+  jobData: TelemetryIngestJobData;
+  decodedBytes: number | null;
+}): number | null {
+  if (
+    typeof data.jobData.ingestBytes === "number" &&
+    Number.isFinite(data.jobData.ingestBytes) &&
+    data.jobData.ingestBytes > 0
+  ) {
+    return data.jobData.ingestBytes;
+  }
+
+  return data.decodedBytes;
+}
+
+/*
+ * An OTel job's body, and its attribution to the teams, labels and usage of
+ * the resources it is filed under (null when its project needs none). A
+ * retry drops what a used-up budget drops, but counts nothing: the first
+ * attempt counted the batch.
+ *
+ * Exported for tests.
+ */
+export async function resolveAttributedOtelRequest(data: {
+  jobData: TelemetryIngestJobData;
+  isFirstAttempt: boolean;
+}): Promise<{
+  body: JSONObject;
+  attribution: TelemetryIngestAttribution | null;
+}> {
+  const signal: TelemetryIngestionBudgetSignal | null =
+    getTelemetryIngestionBudgetSignalForTelemetryType(data.jobData.type);
+
+  // Two in-process set lookups: most projects need no attribution.
+  const isAttributed: boolean = Boolean(
+    signal &&
+      data.jobData.projectId &&
+      (await TelemetryIngestAttribution.isNeededFor(
+        data.jobData.projectId.toString(),
+      )),
+  );
+
+  const resolved: ResolvedOtelBody = await resolveOtelBody(data.jobData, {
+    isFirstAttempt: data.isFirstAttempt,
+    isMeasured: isAttributed,
+  });
+
+  const attribution: TelemetryIngestAttribution | null =
+    isAttributed && signal && data.jobData.projectId
+      ? await TelemetryIngestAttribution.forBatch({
+          projectId: data.jobData.projectId.toString(),
+          signal: signal,
+          bytes: getAttributedBatchBytes({
+            jobData: data.jobData,
+            decodedBytes: resolved.decodedBytes,
+          }),
+          receivedAt: data.jobData.ingestionTimestamp
+            ? new Date(data.jobData.ingestionTimestamp)
+            : undefined,
+          gateCharge: data.jobData.ingestionBudgetCharge ?? null,
+          // A retry drops what is used up, but counts nothing again.
+          isRetry: !data.isFirstAttempt,
+        })
+      : null;
+
+  return { body: resolved.body, attribution: attribution };
 }
 
 /*
@@ -418,13 +518,18 @@ if (DisableQueueWorkers) {
           // Process based on telemetry type
           switch (jobData.type) {
             case TelemetryType.Logs: {
-              const body: JSONObject = await resolveOtelBody(jobData, {
+              const otel: {
+                body: JSONObject;
+                attribution: TelemetryIngestAttribution | null;
+              } = await resolveAttributedOtelRequest({
+                jobData: jobData,
                 isFirstAttempt: isFirstAttempt,
               });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
-                body,
+                body: otel.body,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: otel.attribution,
               } as TelemetryRequest;
 
               await OtelLogsIngestService.processLogsFromQueue(mockRequest);
@@ -435,13 +540,18 @@ if (DisableQueueWorkers) {
             }
 
             case TelemetryType.Traces: {
-              const body: JSONObject = await resolveOtelBody(jobData, {
+              const otel: {
+                body: JSONObject;
+                attribution: TelemetryIngestAttribution | null;
+              } = await resolveAttributedOtelRequest({
+                jobData: jobData,
                 isFirstAttempt: isFirstAttempt,
               });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
-                body,
+                body: otel.body,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: otel.attribution,
               } as TelemetryRequest;
 
               await OtelTracesIngestService.processTracesFromQueue(mockRequest);
@@ -452,15 +562,20 @@ if (DisableQueueWorkers) {
             }
 
             case TelemetryType.Metrics: {
-              const body: JSONObject = await resolveOtelBody(jobData, {
+              const otel: {
+                body: JSONObject;
+                attribution: TelemetryIngestAttribution | null;
+              } = await resolveAttributedOtelRequest({
+                jobData: jobData,
                 isFirstAttempt: isFirstAttempt,
               });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
-                body,
+                body: otel.body,
                 headers: jobData.requestHeaders!,
                 // When the batch arrived, not when this worker got to it.
                 receivedAt: jobData.ingestionTimestamp,
+                telemetryIngestAttribution: otel.attribution,
               } as TelemetryRequest;
 
               await OtelMetricsIngestService.processMetricsFromQueue(
@@ -473,13 +588,18 @@ if (DisableQueueWorkers) {
             }
 
             case TelemetryType.Profiles: {
-              const body: JSONObject = await resolveOtelBody(jobData, {
+              const otel: {
+                body: JSONObject;
+                attribution: TelemetryIngestAttribution | null;
+              } = await resolveAttributedOtelRequest({
+                jobData: jobData,
                 isFirstAttempt: isFirstAttempt,
               });
               const mockRequest: TelemetryRequest = {
                 projectId: new ObjectID(jobData.projectId!.toString()),
-                body,
+                body: otel.body,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: otel.attribution,
               } as TelemetryRequest;
 
               await OtelProfilesIngestService.processProfilesFromQueue(

@@ -1,4 +1,5 @@
 import type { CorsOptions as ExpressCorsOptions } from "cors";
+import { FIELDS_LEFT_OUT_HEADER } from "../../Types/API/FieldsLeftOut";
 
 /*
  * CORS options for the shared Express app.
@@ -28,6 +29,12 @@ export const CORS_EXPOSED_HEADERS: Array<string> = [
   "x-oneuptime-replay-config-epoch",
   "x-oneuptime-replay-reason",
   "Retry-After",
+  /*
+   * What a create through the API left out because only OneUptime writes
+   * it (Types/API/FieldsLeftOut, #10136), for a page on another origin
+   * that creates records with a project's API key.
+   */
+  FIELDS_LEFT_OUT_HEADER.toLowerCase(),
 ];
 
 /*

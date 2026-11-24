@@ -3,6 +3,7 @@ import DetailListSkeleton from "../Skeleton/DetailListSkeleton";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   readTelemetryIngestionBudgetStatus,
+  TelemetryIngestionBudgetScope,
   TelemetryIngestionBudgetScopeStatus,
   TelemetryIngestionBudgetSignalStatus,
   TelemetryIngestionBudgetState,
@@ -69,6 +70,16 @@ export const KEY_BUDGETS_CARD_TITLE: string = translationKey(
 export const KEY_BUDGETS_CARD_DESCRIPTION: string = translationKey(
   "Ingestion keys with a budget of their own. A key's budget only subdivides the project's.",
 );
+// A team's or a label's budget (#6386), counted as each batch is processed.
+export const TEAM_LABEL_BUDGETS_STATUS_CARD_TITLE: string = translationKey(
+  "Team and Label Budgets Today",
+);
+export const TEAM_LABEL_BUDGETS_STATUS_CARD_DESCRIPTION: string =
+  translationKey(
+    "What the services of each team and label sent today. Once a budget is used up, their telemetry is dropped until {{resetsAt}}, and the rest of the project keeps sending.",
+  );
+export const TEAM_SCOPE_LABEL: string = translationKey("Team");
+export const LABEL_SCOPE_LABEL: string = translationKey("Label");
 export const THIS_KEY_CARD_TITLE: string = translationKey(
   "Today's Budget Usage",
 );
@@ -104,16 +115,63 @@ const getResetsAt: (status: TelemetryIngestionBudgetStatus) => string = (
   });
 };
 
+/*
+ * The name a table lists its scopes by: none (the project's, or one key's
+ * own page), each ingestion key's, or each team's and label's (#6386).
+ */
+export type SignalTableNameColumn = "none" | "ingestionKey" | "teamOrLabel";
+
+// A scope's own id, to key its rows by: the project's has none.
+const getScopeRowKey: (scope: TelemetryIngestionBudgetScopeStatus) => string = (
+  scope: TelemetryIngestionBudgetScopeStatus,
+): string => {
+  return scope.ingestionKeyId || scope.teamId || scope.labelId || "project";
+};
+
+// A team's or a label's name, and which it is, under it.
+const TeamOrLabelName: FunctionComponent<{
+  scope: TelemetryIngestionBudgetScopeStatus;
+}> = (props: { scope: TelemetryIngestionBudgetScopeStatus }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const isLabel: boolean =
+    props.scope.scope === TelemetryIngestionBudgetScope.Label;
+  const name: string | undefined = isLabel
+    ? props.scope.labelName
+    : props.scope.teamName;
+  const kind: string = isLabel ? LABEL_SCOPE_LABEL : TEAM_SCOPE_LABEL;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        {isLabel && props.scope.labelColor ? (
+          <span
+            className="inline-block h-2.5 w-2.5 flex-none rounded-full"
+            style={{ backgroundColor: props.scope.labelColor }}
+            role="presentation"
+          />
+        ) : (
+          <></>
+        )}
+        <bdi>{name || <TableEmptyValue />}</bdi>
+      </div>
+      <div className="text-xs font-normal text-gray-500">
+        {translator.translateText(kind) || kind}
+      </div>
+    </div>
+  );
+};
+
 export const SignalRows: FunctionComponent<{
   scope: TelemetryIngestionBudgetScopeStatus;
-  showKeyName: boolean;
+  nameColumn: SignalTableNameColumn;
 }> = (props: {
   scope: TelemetryIngestionBudgetScopeStatus;
-  showKeyName: boolean;
+  nameColumn: SignalTableNameColumn;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const signals: Array<TelemetryIngestionBudgetSignalStatus> =
     props.scope.signals.filter(isTelemetryIngestionBudgetSignalShown);
+  const rowKey: string = getScopeRowKey(props.scope);
 
   return (
     <Fragment>
@@ -124,15 +182,22 @@ export const SignalRows: FunctionComponent<{
 
           return (
             <tr
-              key={`${props.scope.ingestionKeyId || "project"}-${signal.signal}`}
-              data-testid={`telemetry-ingestion-budget-row-${props.scope.ingestionKeyId || "project"}-${signal.signal}`}
+              key={`${rowKey}-${signal.signal}`}
+              data-testid={`telemetry-ingestion-budget-row-${rowKey}-${signal.signal}`}
               className="border-t border-gray-100"
             >
-              {props.showKeyName ? (
+              {props.nameColumn === "ingestionKey" ? (
                 <td className="py-3 pr-4 align-top text-sm font-medium text-gray-900">
                   <bdi>
                     {props.scope.ingestionKeyName || <TableEmptyValue />}
                   </bdi>
+                </td>
+              ) : (
+                <></>
+              )}
+              {props.nameColumn === "teamOrLabel" ? (
+                <td className="py-3 pr-4 align-top text-sm font-medium text-gray-900">
+                  <TeamOrLabelName scope={props.scope} />
                 </td>
               ) : (
                 <></>
@@ -259,6 +324,7 @@ export const SignalRows: FunctionComponent<{
  */
 type SignalTableColumnId =
   | "ingestionKey"
+  | "teamOrLabel"
   | "signal"
   | "usedToday"
   | "dailyBudget"
@@ -268,12 +334,14 @@ type SignalTableColumnId =
   | "status";
 
 const getSignalTableColumnIds: (
-  showKeyName: boolean,
+  nameColumn: SignalTableNameColumn,
 ) => Array<SignalTableColumnId> = (
-  showKeyName: boolean,
+  nameColumn: SignalTableNameColumn,
 ): Array<SignalTableColumnId> => {
   return [
-    ...(showKeyName ? (["ingestionKey"] as Array<SignalTableColumnId>) : []),
+    ...(nameColumn === "none"
+      ? []
+      : ([nameColumn] as Array<SignalTableColumnId>)),
     "signal",
     "usedToday",
     "dailyBudget",
@@ -286,17 +354,19 @@ const getSignalTableColumnIds: (
 
 export const SignalTable: FunctionComponent<{
   scopes: Array<TelemetryIngestionBudgetScopeStatus>;
-  showKeyName: boolean;
+  nameColumn: SignalTableNameColumn;
   dataTestId: string;
 }> = (props: {
   scopes: Array<TelemetryIngestionBudgetScopeStatus>;
-  showKeyName: boolean;
+  nameColumn: SignalTableNameColumn;
   dataTestId: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
+  const isNamed: boolean = props.nameColumn !== "none";
 
   const titles: Record<SignalTableColumnId, string> = {
     ingestionKey: translator.translateText("Ingestion Key") || "Ingestion Key",
+    teamOrLabel: translator.translateText("Team or Label") || "Team or Label",
     signal: translator.translateText("Signal") || "Signal",
     usedToday: translator.translateText("Used Today") || "Used Today",
     dailyBudget: translator.translateText("Daily Budget") || "Daily Budget",
@@ -314,12 +384,15 @@ export const SignalTable: FunctionComponent<{
    * or a state never.
    */
   const columnIds: Array<SignalTableColumnId> = getSignalTableColumnIds(
-    props.showKeyName,
+    props.nameColumn,
   );
   const columns: ResizableColumns = useResizableColumns({
-    tableKey: props.showKeyName
-      ? "telemetry-ingestion-budget-key-signals"
-      : "telemetry-ingestion-budget-signals",
+    tableKey:
+      props.nameColumn === "ingestionKey"
+        ? "telemetry-ingestion-budget-key-signals"
+        : props.nameColumn === "teamOrLabel"
+          ? "telemetry-ingestion-budget-team-label-signals"
+          : "telemetry-ingestion-budget-signals",
     columns: columnIds.map(
       (id: SignalTableColumnId, index: number): SizedColumn => {
         return { id: id, cellNumber: index + 1 };
@@ -357,9 +430,9 @@ export const SignalTable: FunctionComponent<{
       >
         <thead>
           <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            {props.showKeyName ? (
+            {props.nameColumn !== "none" ? (
               headerCell({
-                id: "ingestionKey",
+                id: props.nameColumn,
                 kind: ColumnWidthKind.Name,
                 className: "pb-2 pr-4 font-medium",
               })
@@ -368,9 +441,7 @@ export const SignalTable: FunctionComponent<{
             )}
             {headerCell({
               id: "signal",
-              kind: props.showKeyName
-                ? ColumnWidthKind.Text
-                : ColumnWidthKind.Name,
+              kind: isNamed ? ColumnWidthKind.Text : ColumnWidthKind.Name,
               className: "pb-2 pr-4 font-medium",
             })}
             {headerCell({
@@ -410,9 +481,9 @@ export const SignalTable: FunctionComponent<{
             (scope: TelemetryIngestionBudgetScopeStatus): ReactElement => {
               return (
                 <SignalRows
-                  key={scope.ingestionKeyId || "project"}
+                  key={`${scope.scope}-${getScopeRowKey(scope)}`}
                   scope={scope}
-                  showKeyName={props.showKeyName}
+                  nameColumn={props.nameColumn}
                 />
               );
             },
@@ -554,7 +625,7 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
         )}
         <SignalTable
           scopes={keyScope ? [keyScope] : [status.project]}
-          showKeyName={false}
+          nameColumn="none"
           dataTestId="telemetry-ingestion-budget-project-table"
         />
       </div>
@@ -569,6 +640,14 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
         },
       )
     : [];
+  const budgetedTeamsAndLabels: Array<TelemetryIngestionBudgetScopeStatus> =
+    status
+      ? (status.teamsAndLabels || []).filter(
+          (scope: TelemetryIngestionBudgetScopeStatus): boolean => {
+            return scope.signals.some(isTelemetryIngestionBudgetSignalShown);
+          },
+        )
+      : [];
 
   return (
     <div data-testid={TELEMETRY_INGESTION_BUDGET_STATUS_TEST_ID}>
@@ -597,8 +676,29 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
         >
           <SignalTable
             scopes={budgetedKeys}
-            showKeyName={true}
+            nameColumn="ingestionKey"
             dataTestId="telemetry-ingestion-budget-key-table"
+          />
+        </Card>
+      ) : (
+        <></>
+      )}
+
+      {!props.ingestionKeyId &&
+      status &&
+      !error &&
+      budgetedTeamsAndLabels.length > 0 ? (
+        <Card
+          title={TEAM_LABEL_BUDGETS_STATUS_CARD_TITLE}
+          description={translator.translateTemplate(
+            TEAM_LABEL_BUDGETS_STATUS_CARD_DESCRIPTION,
+            { resetsAt: resetsAt },
+          )}
+        >
+          <SignalTable
+            scopes={budgetedTeamsAndLabels}
+            nameColumn="teamOrLabel"
+            dataTestId="telemetry-ingestion-budget-team-label-table"
           />
         </Card>
       ) : (

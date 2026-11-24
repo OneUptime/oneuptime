@@ -31,6 +31,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
  * A MEMBERSHIP MADE FOR A PERSON PICKED BY ID EMAILS THEM (#8421).
@@ -65,17 +66,13 @@ const ADMIN_ID: ObjectID = new ObjectID("81000000-0000-4000-8000-000000000004");
 const PERSON_EMAIL: Email = new Email("person@company.com");
 const PROJECT_NAME: string = "Acme Production";
 
-// Calls a protected hook without widening the service's public surface.
+/*
+ * Calls a protected hook without widening the service's public surface -
+ * a membership's onBeforeCreate with the invitation it plans, which its
+ * create sends once the membership is made (runInvitationHooks, #10180).
+ */
 function callHook(name: string, ...args: Array<unknown>): Promise<unknown> {
-  const hooks: Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  > = TeamMemberService as unknown as Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  >;
-
-  return hooks[name]!.apply(TeamMemberService, args);
+  return callTeamMemberHook(TeamMemberService, name, ...args);
 }
 
 // A master admin acting from the Admin Dashboard: Add to Project.
@@ -381,13 +378,19 @@ describe("Add to Project: a person who has not signed up yet is sent their sign-
     expect(UserService.createByEmail).not.toHaveBeenCalled();
   });
 
-  test("a token that cannot be minted fails the membership and gives the count back", async () => {
+  /*
+   * The token is minted once the membership is made, after the request
+   * (#10180): a token that cannot be minted no longer fails the membership,
+   * which stands, and sends nothing - and gives the address its count back.
+   */
+  test("a token that cannot be minted sends nothing and gives the count back, and the membership stands", async () => {
     createTokenSpy.mockRejectedValue(new Error("database away") as never);
 
     await expect(
       callHook("onBeforeCreate", addById({ props: masterAdminProps() })),
-    ).rejects.toThrow("database away");
+    ).resolves.toBeDefined();
 
+    expect(createTokenSpy).toHaveBeenCalledTimes(1);
     expect(sendMailSpy).not.toHaveBeenCalled();
     expect(giveBackSpy).toHaveBeenCalledTimes(1);
   });
@@ -427,8 +430,10 @@ describe("the invitation by id is held to the address's limit", () => {
     await callHook("onBeforeCreate", addById({ props: masterAdminProps() }));
 
     expect(askSpy).toHaveBeenCalledTimes(1);
+    // Counted in the project it is from (#10179).
     expect(askSpy).toHaveBeenCalledWith({
       kind: TeamMessageKind.Invitation,
+      projectId: PROJECT_ID,
       contacts: [PublicMessageRateLimit.forEmail(PERSON_EMAIL)],
     });
   });
@@ -565,19 +570,18 @@ describe("a person named by address is emailed as before, once", () => {
     );
 
     expect(sentMail().toEmail.toString()).toBe(otherAddress.toString());
-    // The by-id path is not asked: the address decides.
-    expect(hasMembershipSpy).not.toHaveBeenCalled();
     /*
-     * The account is read by id only to ask whether it is a master admin,
-     * whom an invitation never sends to SSO (SsoManagedSignIn, #9819):
-     * never for the address and password the by-id path reads.
+     * The by-id path is not asked: the address decides. That path reads the
+     * person for their address and password (getInviteeToEmailById); the
+     * email's own reads of the account by id - whether SSO manages them
+     * (#9819), the language it picked (#9897) - are no part of it.
      */
-    for (const call of findPersonSpy.mock.calls) {
-      expect((call[0] as { select: unknown }).select).toEqual({
-        _id: true,
-        isMasterAdmin: true,
-      });
-    }
+    expect(hasMembershipSpy).not.toHaveBeenCalled();
+    expect(findPersonSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ password: true }),
+      }),
+    );
   });
 
   /*

@@ -9,20 +9,22 @@ import TimezoneAlias from "./TimezoneAlias";
 import { refusedValue } from "../Utils/RefusedValue";
 import {
   DateTextShape,
+  DayNameContext,
   DurationTextPart,
+  ReaderDateTimeFormat,
   formatDateText,
   formatDecimal,
   formatDurationText,
   formatRelativeDate,
-  getDateDisplayLanguage,
-  getDateLocale,
   getDateTimeFormat,
   getHourOption,
-  getNumberLocale,
+  getZoneAbbreviation,
   isEnglishDateLanguage,
   rememberEnglishOf,
+  writeClockInLocale,
   writeDigitsInLocale,
   writeInDateDisplayLanguage,
+  writeStandAloneDayName,
 } from "./DateLanguage";
 import { NO_BREAK_SPACE, withDurationWordsHeld } from "./NoBreakSpaces";
 import { Translator } from "./Translator";
@@ -48,6 +50,8 @@ export const Moment: typeof moment = moment;
  * English's "hh" keeps a 12-hour time's zero ("05:01 PM"), as moment writes
  * it; no other language writes one there ("오후 5:01", "5:01 م"), so the
  * reader's language takes the hour without it (getHourOption, issue #7279).
+ * Nothing OneUptime writes asks for "hh" any more (#7652): a 12-hour time
+ * is "h:mm A", "5:01 PM", in every language.
  */
 const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
   Record<string, Intl.DateTimeFormatOptions>
@@ -68,12 +72,15 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
 
 /*
  * The custom shapes with no words in them that are written as moment writes
- * them, in the reader's digits (inReaderDigits) - the digits "HH:mm" takes:
- * Persian's own, and the Latin ones of every other language of the
- * product, Arabic too. Only the digits change, so the shape is the same in
- * every language; Intl would put a comma before the milliseconds in German
- * ("11:55:59,120") and dots between the hours, minutes and seconds in
- * Danish ("11.55.59,120").
+ * them, with the reader's digits and the mark their language writes
+ * between a time's parts (inReaderClock, DateLanguage's writeClockInLocale):
+ * Persian's own digits and the Latin ones of every other language, Arabic
+ * too; a point between the parts in Danish, as CLDR and Danish write a
+ * time, and a colon in every other language (#7914). The milliseconds keep
+ * moment's point where the parts take a colon, so the shape is the same in
+ * every such language - Intl would put a comma before them in German
+ * ("11:55:59,120") - and take the decimal comma in Danish
+ * ("11.55.59,120"), where a point is the time's own mark.
  */
 const READER_DIGIT_CUSTOM_DATE_FORMATS: ReadonlyArray<string> = [
   // An exception breadcrumb's Clock time: "۱۱:۵۵:۵۹.۱۲۰" on a Persian page.
@@ -265,20 +272,23 @@ export default class OneUptimeDate {
   }
 
   /*
-   * A time moment wrote ("09:05", "14:30:12") in the digits the reader's
-   * language writes: Persian's own on a Persian page, as every date Intl
-   * writes there (DateLanguage's getDateLocale), so a page never mixes
-   * "۲۶ اکتبر" with "21:16". Unchanged in every language that writes Latin
-   * digits, and remembered with its English as every localized date is.
+   * A clock moment wrote ("09:05", "14:30:12", "11:55:59.120") in the
+   * digits the reader's language writes - Persian's own on a Persian page,
+   * as every date Intl writes there, so a page never mixes "۲۶ اکتبر" with
+   * "21:16" - and with the mark their language writes between a time's
+   * parts: "09.05" in Danish, as Intl writes the times beside it
+   * (DateLanguage's writeClockInLocale, #7914). Unchanged in every language
+   * that writes Latin digits and a colon, and remembered with its English
+   * as every localized date is.
    */
-  private static inReaderDigits(write: () => string): string {
+  private static inReaderClock(write: () => string): string {
     return writeInDateDisplayLanguage(
       write,
       (_language: string, locale: string): string | null => {
         const text: string = write();
-        const written: string = writeDigitsInLocale(text, locale);
+        const written: string = writeClockInLocale(text, locale);
 
-        // Latin digits: the English as it is, with nothing to remember.
+        // The colon and Latin digits: the English as it is.
         return written === text ? null : written;
       },
     );
@@ -309,40 +319,99 @@ export default class OneUptimeDate {
     return `${datePart}T${baseTime}.${milliseconds}Z`;
   }
 
-  private static getLocalShortMonthName(date: Date): string {
-    /*
-     * The browser's Intl can be older than the zone name: an engine with
-     * tzdata before 2022b throws a RangeError for "Europe/Kyiv", which is
-     * what getCurrentTimezone reports for a browser that says "Europe/Kiev".
-     * Try the zone's legacy spellings next, which such an engine knows, and
-     * finally moment, which carries its own zone data.
-     */
-    const timezone: Timezone = this.getCurrentTimezone();
-    const language: string = getDateDisplayLanguage();
+  /*
+   * A ClickHouse DateTime or DateTime64 as it writes one -
+   * "2026-11-17 10:04:00" or "2026-11-17 10:04:00.123456789", always UTC,
+   * the shape isUtcDateTimeString checks - read straight into a Date: the
+   * fraction past milliseconds dropped, as normalizeUtcDateTimeString drops
+   * it. Null for anything moment would read differently from its digits - a
+   * month, day, hour, minute or second out of range (hour 24, a leap
+   * second), a year before 1000 - which fromString then hands to moment as
+   * before.
+   *
+   * Every row an aggregate read returns has its bucket read through here: a
+   * grouped monitor's four reads over 16,000 series are 160,000 of them each
+   * evaluation, and moment's parse of each took 1.1 of its seconds (#10108).
+   */
+  private static fromClickhouseDateTimeString(value: string): Date | null {
+    const digitAt: (index: number) => number = (index: number): number => {
+      return value.charCodeAt(index) - 48;
+    };
 
-    /*
-     * In the reader's language once a frontend set one ("Okt."); until then
-     * in the browser's own, as it always was.
-     */
-    const locale: string = isEnglishDateLanguage(language)
-      ? "default"
-      : getDateLocale(language);
+    const year: number =
+      digitAt(0) * 1000 + digitAt(1) * 100 + digitAt(2) * 10 + digitAt(3);
+    const month: number = digitAt(5) * 10 + digitAt(6);
+    const day: number = digitAt(8) * 10 + digitAt(9);
+    const hour: number = digitAt(11) * 10 + digitAt(12);
+    const minute: number = digitAt(14) * 10 + digitAt(15);
+    const second: number = digitAt(17) * 10 + digitAt(18);
 
-    for (const name of [
-      timezone,
-      ...TimezoneAlias.getLegacyNamesOf(timezone),
-    ]) {
-      try {
-        return date.toLocaleString(getNumberLocale(locale), {
-          month: "short",
-          timeZone: name.toString(),
-        });
-      } catch {
-        // Unknown to this engine's Intl; try the next spelling.
+    if (
+      year < 1000 ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > OneUptimeDate.getDaysInUtcMonth(year, month) ||
+      hour > 23 ||
+      minute > 59 ||
+      second > 59
+    ) {
+      return null;
+    }
+
+    // Milliseconds: the fraction's first three digits, as many as there are.
+    let milliseconds: number = 0;
+
+    if (value.length > 20) {
+      for (let index: number = 20; index < 23; index++) {
+        milliseconds =
+          milliseconds * 10 + (index < value.length ? digitAt(index) : 0);
       }
     }
 
-    return this.inCurrentTimezone(date).format("MMM");
+    return new Date(
+      Date.UTC(year, month - 1, day, hour, minute, second, milliseconds),
+    );
+  }
+
+  // How many days a month (1 to 12) of a year has, by the Gregorian calendar.
+  private static getDaysInUtcMonth(year: number, month: number): number {
+    if (month === 2) {
+      const isLeapYear: boolean =
+        (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      return isLeapYear ? 29 : 28;
+    }
+
+    return month === 4 || month === 6 || month === 9 || month === 11 ? 30 : 31;
+  }
+
+  /*
+   * The month `date` falls in on the reader's calendar, short: "Oct" in
+   * English, as moment writes every other English date; "Okt." in German
+   * and every other language, as Intl writes it from the wall clock moment
+   * works out (DateLanguage's getDateTimeFormat, #10038).
+   *
+   * English was the browser's own language: an English page read in a
+   * German browser put "02 Okt." under a chart beside every table's "Oct
+   * 2", and an en-GB one "Sept" beside a tooltip's "Sep".
+   */
+  private static getLocalShortMonthName(date: Date): string {
+    const english: () => string = (): string => {
+      return this.inCurrentTimezone(date).format("MMM");
+    };
+
+    return writeInDateDisplayLanguage(
+      english,
+      (_language: string, locale: string): string | null => {
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getCurrentTimezoneNames(),
+          options: { month: "short" },
+        });
+
+        return format ? format.format(date) : null;
+      },
+    );
   }
 
   /*
@@ -555,52 +624,70 @@ export default class OneUptimeDate {
       use12HourFormat?: boolean | undefined;
     },
   ): string {
-    date = this.fromString(date);
+    return this.writeTimeOfDay({
+      date: this.fromString(date),
+      timezone: this.getCurrentTimezone(),
+      includeMinutes: options?.includeMinutes ?? true,
+      includeSeconds: options?.includeSeconds ?? false,
+      use12HourFormat: options?.use12HourFormat ?? false,
+    });
+  }
 
-    const includeMinutes: boolean = options?.includeMinutes ?? true;
-    const includeSeconds: boolean = options?.includeSeconds ?? false;
-    const use12HourFormat: boolean = options?.use12HourFormat ?? false;
-
+  /*
+   * The wall clock `date` reads at in `timezone`, in the reader's language:
+   * the one writer of a time of day alone.
+   *
+   * A 24-hour time is moment's, in the reader's digits and with their
+   * language's mark between its parts: "14:30", "14.30" in Danish,
+   * "۱۴:۳۰" in Persian (inReaderClock, #7914). A 12-hour clock's half of
+   * the day is in the reader's words, as Intl writes it: "2:30 م",
+   * "午後2:30", "۲:۳۰ ب.ظ.". Written by moment it was English's "PM" on
+   * every page - the one English word in an Arabic monitor's "Refreshed
+   * at" and under a histogram's bars.
+   */
+  private static writeTimeOfDay(data: {
+    date: Date;
+    timezone: Timezone | string;
+    includeMinutes: boolean;
+    includeSeconds: boolean;
+    use12HourFormat: boolean;
+  }): string {
     // "HH" and "h" are the zero-padded 24-hour and the bare 12-hour readings.
-    let timeFormat: string = use12HourFormat ? "h" : "HH";
+    let timeFormat: string = data.use12HourFormat ? "h" : "HH";
 
-    if (includeMinutes) {
+    if (data.includeMinutes) {
       timeFormat += ":mm";
 
-      if (includeSeconds) {
+      if (data.includeSeconds) {
         timeFormat += ":ss";
       }
     }
 
-    if (use12HourFormat) {
+    if (data.use12HourFormat) {
       timeFormat += " A";
     }
 
-    const instant: Date = date;
+    const instant: Date = data.date;
     const english: () => string = (): string => {
-      return this.inCurrentTimezone(instant).format(timeFormat);
+      return moment(instant).tz(data.timezone.toString()).format(timeFormat);
     };
 
-    if (!use12HourFormat) {
-      return this.inReaderDigits(english);
+    if (!data.use12HourFormat) {
+      return this.inReaderClock(english);
     }
 
-    /*
-     * A 12-hour clock's half of the day in the reader's words, as Intl
-     * writes it: "2:30 م", "午後2:30", "۲:۳۰ ب.ظ.". Written by moment it
-     * was English's "PM" on every page - the one English word in an Arabic
-     * monitor's "Refreshed at" and under a histogram's bars.
-     */
     return writeInDateDisplayLanguage(
       english,
       (_language: string, locale: string): string | null => {
-        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
           locale,
-          timezones: this.getCurrentTimezoneNames(),
+          timezones: this.getTimezoneNames(data.timezone),
           options: {
             hour: "numeric",
-            ...(includeMinutes ? { minute: "2-digit" } : {}),
-            ...(includeMinutes && includeSeconds ? { second: "2-digit" } : {}),
+            ...(data.includeMinutes ? { minute: "2-digit" } : {}),
+            ...(data.includeMinutes && data.includeSeconds
+              ? { second: "2-digit" }
+              : {}),
             hour12: true,
           },
         });
@@ -905,7 +992,7 @@ export default class OneUptimeDate {
       },
       (_language: string, locale: string): string | null => {
         // "Okt. 2026", "oct. 2026", "2026年10月".
-        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
           locale,
           timezones: this.getCurrentTimezoneNames(),
           options: { month: "short", year: "numeric" },
@@ -931,7 +1018,7 @@ export default class OneUptimeDate {
         return this.inCurrentTimezone(instant).year().toString();
       },
       (_language: string, locale: string): string | null => {
-        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
           locale,
           timezones: this.getCurrentTimezoneNames(),
           options: { year: "numeric" },
@@ -1001,6 +1088,11 @@ export default class OneUptimeDate {
    * instant AS SEEN IN `timezone`. With no timezone, falls back to the
    * process/browser local wall-clock. Used to show on-call restriction hours in
    * the schedule's timezone rather than the viewer's browser zone (audit F10).
+   *
+   * In the reader's language as every other time of day is
+   * (writeTimeOfDay): a 12-hour time read "5:00 PM" in English on a German
+   * or Arabic page, and a 24-hour one "17:00" on a Danish page whose other
+   * times read "17.00".
    */
   public static getHourAndMinuteInTimezoneString(
     date: Date | string,
@@ -1010,14 +1102,155 @@ export default class OneUptimeDate {
     if (!timezone) {
       return this.getLocalHourAndMinuteFromDate(date);
     }
-    const use12HourFormat: boolean = this.getUserPrefers12HourFormat();
-    const instant: Date = date;
 
-    return this.inReaderDigits((): string => {
-      return moment
-        .tz(instant, timezone)
-        .format(use12HourFormat ? "h:mm A" : "HH:mm");
+    return this.getTimeStringInTimezone(date, { timezone });
+  }
+
+  /*
+   * The wall clock `date` reads at in `timezone` - a schedule's, a
+   * rotation's - in the reader's language and on the clock asked for (the
+   * reader's when left out): "17:00", "5:00 PM", "17.00" in Danish,
+   * "오후 5:00" in Korean.
+   */
+  public static getTimeStringInTimezone(
+    date: Date | string,
+    options: {
+      timezone: string;
+      use12HourFormat?: boolean | undefined;
+      includeSeconds?: boolean | undefined;
+    },
+  ): string {
+    return this.writeTimeOfDay({
+      date: this.fromString(date),
+      timezone: options.timezone,
+      includeMinutes: true,
+      includeSeconds: Boolean(options.includeSeconds),
+      use12HourFormat:
+        options.use12HourFormat ?? this.getUserPrefers12HourFormat(),
     });
+  }
+
+  /*
+   * A clock of the day - working hours' "09:00", a schedule's "9:00 AM" -
+   * that is no instant, in the reader's language and on the clock asked
+   * for (the reader's when left out): "09:00", "9:00 AM", "09.00" in
+   * Danish, "오전 9:00" in Korean, "۰۹:۰۰" in Persian. Hand-written, it was
+   * English's "9:00 AM" and a colon on every page.
+   */
+  public static getClockTimeString(
+    hour: number,
+    minute: number,
+    options?: { use12HourFormat?: boolean | undefined },
+  ): string {
+    return this.writeTimeOfDay({
+      date: new Date(Date.UTC(2024, 0, 1, hour, minute)),
+      timezone: "UTC",
+      includeMinutes: true,
+      includeSeconds: false,
+      use12HourFormat:
+        options?.use12HourFormat ?? this.getUserPrefers12HourFormat(),
+    });
+  }
+
+  /*
+   * THE DAY OF THE WEEK `date` FALLS ON, BY ITS NAME (#7660).
+   *
+   * In `timezone` (the reader's when left out) and in the reader's
+   * language: "Monday", "Mon", "M" in English, as moment writes them; Intl's
+   * words in any other language, cased as that language writes a day's
+   * name standing alone or in a menu (DateLanguage's
+   * writeStandAloneDayName): "Lun" over a Spanish column, "man." over a
+   * Danish one. A narrow name keeps Intl's case: CLDR's capitals are for
+   * every width but the narrow one.
+   */
+  public static getDayOfWeekName(
+    date: Date | string,
+    options: {
+      width: "long" | "short" | "narrow";
+      context: DayNameContext;
+      timezone?: string | undefined;
+    },
+  ): string {
+    const instant: Date = this.fromString(date);
+    const timezone: string = (
+      options.timezone || this.getCurrentTimezone()
+    ).toString();
+    const zoned: () => moment.Moment = (): moment.Moment => {
+      return moment(instant).tz(timezone);
+    };
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        if (options.width === "narrow") {
+          return zoned().format("dd").charAt(0);
+        }
+
+        return zoned().format(options.width === "long" ? "dddd" : "ddd");
+      },
+      (language: string, locale: string): string | null => {
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getTimezoneNames(timezone),
+          options: { weekday: options.width },
+        });
+
+        if (!format) {
+          return null;
+        }
+
+        const name: string = format.format(instant);
+
+        return options.width === "narrow"
+          ? name
+          : writeStandAloneDayName({
+              name: name,
+              language: language,
+              context: options.context,
+            });
+      },
+    );
+  }
+
+  /*
+   * A run of days in `timezone`, as a calendar's title names it: "September
+   * 14 – 20, 2026", "Sep 28 – Oct 4, 2026", "Dec 28, 2026 – Jan 3, 2027"
+   * in English, as moment writes them; in another language as Intl writes
+   * a range of days, what the two share said once: "14.–20. Sept. 2026",
+   * "2026年9月14日～20日". Each end is the day it falls on in the zone.
+   */
+  public static getDayRangeInTimezoneString(data: {
+    start: Date | string;
+    end: Date | string;
+    timezone: string;
+  }): string {
+    const start: Date = this.fromString(data.start);
+    const end: Date = this.fromString(data.end);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const first: moment.Moment = moment(start).tz(data.timezone);
+        const last: moment.Moment = moment(end).tz(data.timezone);
+
+        if (first.year() !== last.year()) {
+          return `${first.format("MMM D, YYYY")} – ${last.format("MMM D, YYYY")}`;
+        }
+
+        if (first.month() !== last.month()) {
+          return `${first.format("MMM D")} – ${last.format("MMM D, YYYY")}`;
+        }
+
+        return `${first.format("MMMM D")} – ${last.format("D, YYYY")}`;
+      },
+      (_language: string, locale: string): string | null => {
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getTimezoneNames(data.timezone),
+          options: { year: "numeric", month: "short", day: "numeric" },
+        });
+
+        return format ? format.formatRange(start, end) : null;
+      },
+    );
   }
 
   /**
@@ -1202,14 +1435,14 @@ export default class OneUptimeDate {
 
     if (!options) {
       return READER_DIGIT_CUSTOM_DATE_FORMATS.includes(data.format)
-        ? this.inReaderDigits(english)
+        ? this.inReaderClock(english)
         : english();
     }
 
     return writeInDateDisplayLanguage(
       english,
       (_language: string, locale: string): string | null => {
-        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+        const format: ReaderDateTimeFormat | null = getDateTimeFormat({
           locale,
           timezones: data.timezone
             ? this.getTimezoneNames(data.timezone)
@@ -2679,6 +2912,17 @@ export default class OneUptimeDate {
     );
   }
 
+  /*
+   * A moment in full, with its zone: getDateAsLocalFormattedString's, on a
+   * 24-hour clock unless the caller asks for a 12-hour one.
+   *
+   * It read the runtime's own wall clock and named the zone the reader
+   * picked, as that zone is today: on a page whose reader picked New York
+   * in a London browser, a January incident read "Jan 15 2026, 14:00 EDT"
+   * - London's 14:00, New York's summer name. Now the wall clock and the
+   * name are both the current timezone's at that moment. On the server,
+   * where no reader picked a zone, that is the process's zone, as before.
+   */
   public static getDateAsFormattedString(
     date: string | Date,
     options?: {
@@ -2687,61 +2931,37 @@ export default class OneUptimeDate {
       use12HourFormat?: boolean;
     },
   ): string {
-    date = this.fromString(date);
-
-    let formatstring: string = "MMM DD YYYY, HH:mm";
-
-    if (options?.use12HourFormat) {
-      formatstring = "MMM DD YYYY, hh:mm A";
-    }
-
-    if (options?.showSeconds) {
-      if (options?.use12HourFormat) {
-        formatstring = "MMM DD YYYY, hh:mm:ss A";
-      } else {
-        formatstring = "MMM DD YYYY, HH:mm:ss";
-      }
-    }
-
-    if (options?.onlyShowDate) {
-      formatstring = "MMM DD, YYYY";
-    }
-
-    const instant: Date = date;
-
-    return writeInDateDisplayLanguage(
-      (): string => {
-        return (
-          moment(instant).format(formatstring) +
-          " " +
-          (options?.onlyShowDate ? "" : this.getCurrentTimezoneString())
-        );
-      },
-      (language: string, locale: string): string | null => {
-        // Read in the runtime's own zone, as moment(date) reads it.
-        const text: string | null = this.getLocalizedDateText({
-          date: instant,
-          language,
-          locale,
-          shape: {
-            onlyShowDate: options?.onlyShowDate,
-            showSeconds: options?.showSeconds,
-            use12HourFormat: options?.use12HourFormat,
-            twoDigitDay: true,
-          },
-          timezones: [],
-        });
-
-        if (!text || options?.onlyShowDate) {
-          return text;
-        }
-
-        return `${text} ${this.getZoneInLocale(
-          this.getCurrentTimezoneString(),
-          locale,
-        )}`.trim();
-      },
+    return this.getDateAsLocalFormattedString(
+      date,
+      options?.onlyShowDate,
+      options?.use12HourFormat,
+      options?.showSeconds,
     );
+  }
+
+  /*
+   * The English of a moment in full, as moment writes it: "Nov 5, 2025,
+   * 5:14 AM", "Nov 5, 2025, 05:14", "Nov 5, 2025" - the short form's shape
+   * with its year (getDateAsLocalShortDateTimeString), so English reads
+   * one way everywhere. It read "Nov 05 2025, 05:14 AM": the day's zero,
+   * and a 12-hour time's, which no short date and no other language
+   * writes (#7652). A 24-hour time keeps its zero: "05:14".
+   */
+  private static getEnglishLongDateFormat(data: {
+    onlyShowDate?: boolean | undefined;
+    use12HourFormat?: boolean | undefined;
+    showSeconds?: boolean | undefined;
+  }): string {
+    if (data.onlyShowDate) {
+      return "MMM D, YYYY";
+    }
+
+    const seconds: string = data.showSeconds ? ":ss" : "";
+    const time: string = data.use12HourFormat
+      ? `h:mm${seconds} A`
+      : `HH:mm${seconds}`;
+
+    return `MMM D, YYYY, ${time}`;
   }
 
   public static getDifferenceInMinutes(date: Date, date2: Date): number {
@@ -3262,15 +3482,10 @@ export default class OneUptimeDate {
 
     date = this.fromString(date);
 
-    let formatstring: string = "MMM DD YYYY, HH:mm";
-
-    if (use12HourFormat) {
-      formatstring = "MMM DD YYYY, hh:mm A";
-    }
-
-    if (onlyShowDate) {
-      formatstring = "MMM DD, YYYY";
-    }
+    const formatstring: string = this.getEnglishLongDateFormat({
+      onlyShowDate,
+      use12HourFormat,
+    });
 
     const timezoneDates: Array<string> = [];
 
@@ -3304,7 +3519,7 @@ export default class OneUptimeDate {
               (onlyShowDate
                 ? ""
                 : this.getZoneAbbrByTimezone(timezone, instant))
-            );
+            ).trim();
           },
           (language: string, locale: string): string | null => {
             const text: string | null = this.getLocalizedDateText({
@@ -3314,7 +3529,6 @@ export default class OneUptimeDate {
               shape: {
                 onlyShowDate,
                 use12HourFormat,
-                twoDigitDay: true,
               },
               timezones: this.getTimezoneNames(timezone),
             });
@@ -3379,27 +3593,30 @@ export default class OneUptimeDate {
     use12HourFormat?: boolean,
     showSeconds?: boolean,
   ): string {
-    date = this.fromString(date);
+    return this.writeLocalLongDate({
+      date: this.fromString(date),
+      onlyShowDate,
+      use12HourFormat,
+      showSeconds,
+      showZone: !onlyShowDate,
+    });
+  }
 
-    let formatstring: string = "MMM DD YYYY, HH:mm";
-
-    if (use12HourFormat) {
-      formatstring = "MMM DD YYYY, hh:mm A";
-    }
-
-    if (showSeconds) {
-      if (use12HourFormat) {
-        formatstring = "MMM DD YYYY, hh:mm:ss A";
-      } else {
-        formatstring = "MMM DD YYYY, HH:mm:ss";
-      }
-    }
-
-    if (onlyShowDate) {
-      formatstring = "MMM DD, YYYY";
-    }
-
-    const instant: Date = date;
+  /*
+   * A moment in full in the current timezone: "Nov 5, 2025, 5:14 AM PST",
+   * "5. Nov. 2025, 05:14 PST", "2025年11月5日 5:14 PST" - the day without a
+   * zero in every language, as English now writes it (#7652) - with the
+   * zone's name at that moment, or without it.
+   */
+  private static writeLocalLongDate(data: {
+    date: Date;
+    onlyShowDate?: boolean | undefined;
+    use12HourFormat?: boolean | undefined;
+    showSeconds?: boolean | undefined;
+    showZone: boolean;
+  }): string {
+    const instant: Date = data.date;
+    const formatstring: string = this.getEnglishLongDateFormat(data);
 
     /*
      * The abbreviation has to describe THIS date's offset, not today's. Asking
@@ -3407,9 +3624,9 @@ export default class OneUptimeDate {
      * summer — a wall clock paired with the wrong zone names a different
      * instant, which is worse than printing no zone at all.
      */
-    const zoneAbbr: string = onlyShowDate
-      ? ""
-      : this.getZoneAbbrByTimezone(this.getCurrentTimezone(), instant);
+    const zoneAbbr: string = data.showZone
+      ? this.getZoneAbbrByTimezone(this.getCurrentTimezone(), instant)
+      : "";
 
     return writeInDateDisplayLanguage(
       (): string => {
@@ -3418,16 +3635,15 @@ export default class OneUptimeDate {
         return (momentDate.format(formatstring) + " " + zoneAbbr).trim();
       },
       (language: string, locale: string): string | null => {
-        // "06. Okt. 2026, 10:05 BST", "2026年10月06日 10:05 BST".
+        // "6. Okt. 2026, 10:05 BST", "2026年10月6日 10:05 BST".
         const text: string | null = this.getLocalizedDateText({
           date: instant,
           language,
           locale,
           shape: {
-            onlyShowDate,
-            showSeconds,
-            use12HourFormat,
-            twoDigitDay: true,
+            onlyShowDate: data.onlyShowDate,
+            showSeconds: data.showSeconds,
+            use12HourFormat: data.use12HourFormat,
           },
         });
 
@@ -3436,6 +3652,104 @@ export default class OneUptimeDate {
           : null;
       },
     );
+  }
+
+  /*
+   * A WINDOW'S TWO ENDS, ITS DAY AND ITS ZONE SAID ONCE (#7281, #7721).
+   *
+   * A window was written as its two ends in full, so one within a day said
+   * its date twice, and a filter's chip its zone twice as well: "Nov 13
+   * 2026, 09:00 GMT+08 and Nov 13 2026, 17:30 GMT+08", three lines on a
+   * phone. When both ends fall on one day of the current timezone, in one
+   * zone name, the end is its time alone: "Nov 5, 2025, 5:14 AM" to "6:14
+   * AM". The day is written once, with the start, and the zone - where the
+   * window shows one - once, after the end: "17:30 GMT+08". Across
+   * midnight, or across a change of the clocks within the day ("1:30 AM
+   * PDT" to "1:30 AM PST"), each end is written whole.
+   *
+   * Each end is written as a single moment is - the language's words,
+   * order, digits and clock - so the end's time reads exactly as the
+   * start's does. Intl's own formatRange was no help: it writes its own
+   * shapes ("2025/11/5 5時14分～6時14分" in Japanese) and drops a 24-hour
+   * time's zero in Spanish and Persian.
+   *
+   * `style` "short" is the time range button's shape (no zone, the year
+   * only with showYear); "long" a sentence's (the year and the zone).
+   */
+  public static getLocalDateTimeRangeEnds(data: {
+    start: Date | string;
+    end: Date | string;
+    style: "short" | "long";
+    showYear?: boolean | undefined;
+    use12HourFormat?: boolean | undefined;
+  }): { start: string; end: string; isWithinOneDay: boolean } {
+    const start: Date = this.fromString(data.start);
+    const end: Date = this.fromString(data.end);
+    const use12HourFormat: boolean =
+      data.use12HourFormat ?? this.getUserPrefers12HourFormat();
+    const isLong: boolean = data.style === "long";
+    const timezone: Timezone = this.getCurrentTimezone();
+
+    const isWithinOneDay: boolean =
+      this.inCurrentTimezone(start).format("YYYY-MM-DD") ===
+        this.inCurrentTimezone(end).format("YYYY-MM-DD") &&
+      (!isLong ||
+        this.getZoneAbbrByTimezone(timezone, start) ===
+          this.getZoneAbbrByTimezone(timezone, end));
+
+    const writeWhole: (date: Date, showZone: boolean) => string = (
+      date: Date,
+      showZone: boolean,
+    ): string => {
+      return isLong
+        ? this.writeLocalLongDate({
+            date: date,
+            use12HourFormat: use12HourFormat,
+            showZone: showZone,
+          })
+        : this.getDateAsLocalShortDateTimeString(date, {
+            use12HourFormat: use12HourFormat,
+            showYear: data.showYear,
+          });
+    };
+
+    if (!isWithinOneDay) {
+      return {
+        start: writeWhole(start, isLong),
+        end: writeWhole(end, isLong),
+        isWithinOneDay: false,
+      };
+    }
+
+    // The end's time, in whichever language it is asked for in.
+    const endTime: () => string = (): string => {
+      return this.getLocalTimeString(end, {
+        use12HourFormat: use12HourFormat,
+      });
+    };
+
+    if (!isLong) {
+      return {
+        start: writeWhole(start, false),
+        end: endTime(),
+        isWithinOneDay: true,
+      };
+    }
+
+    const zoneAbbr: string = this.getZoneAbbrByTimezone(timezone, end);
+
+    return {
+      start: writeWhole(start, false),
+      end: writeInDateDisplayLanguage(
+        (): string => {
+          return `${endTime()} ${zoneAbbr}`;
+        },
+        (_language: string, locale: string): string => {
+          return `${endTime()} ${this.getZoneInLocale(zoneAbbr, locale)}`;
+        },
+      ),
+      isWithinOneDay: true,
+    };
   }
 
   public static getDayInSeconds(days?: number | undefined): number {
@@ -3467,16 +3781,13 @@ export default class OneUptimeDate {
     /*
      * Pass the reference date into moment so the abbreviation reflects DST
      * at that date (e.g. EST in winter, EDT in summer) rather than "now".
+     * The one writer of a zone's name: Intl's formatters name theirs with
+     * it too (DateLanguage's getDateTimeFormat, #10038).
      */
-    let zoneAbbr: string = date
-      ? moment(this.fromString(date)).tz(timezone).zoneAbbr()
-      : moment.tz(timezone).zoneAbbr();
-
-    if (zoneAbbr.startsWith("+") || zoneAbbr.startsWith("-")) {
-      zoneAbbr = "GMT" + zoneAbbr;
-    }
-
-    return zoneAbbr;
+    return getZoneAbbreviation(
+      timezone.toString(),
+      date ? this.fromString(date) : new Date(),
+    );
   }
 
   /**
@@ -3638,9 +3949,10 @@ export default class OneUptimeDate {
       const trimmedDate: string = date.trim();
 
       if (this.isUtcDateTimeString(trimmedDate)) {
-        return moment
-          .utc(this.normalizeUtcDateTimeString(trimmedDate))
-          .toDate();
+        return (
+          this.fromClickhouseDateTimeString(trimmedDate) ||
+          moment.utc(this.normalizeUtcDateTimeString(trimmedDate)).toDate()
+        );
       }
 
       /*

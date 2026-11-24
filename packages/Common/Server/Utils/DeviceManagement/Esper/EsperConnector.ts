@@ -4,6 +4,7 @@ import {
 } from "../../../../Types/DeviceManagement/DeviceManagementConnectionSettings";
 import { DeviceManagementTestResult } from "../../../../Types/DeviceManagement/DeviceManagementConnectionTest";
 import DeviceManagementProvider from "../../../../Types/DeviceManagement/DeviceManagementProvider";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
@@ -16,6 +17,7 @@ import {
   DeviceManagementSessionOptions,
   DeviceManagementSettings,
   ProviderApp,
+  ProviderCheckIn,
   ProviderDevice,
   ProviderGroup,
 } from "../DeviceManagementTypes";
@@ -25,11 +27,13 @@ import EsperApiClient, {
   buildEsperQuery,
 } from "./EsperApiClient";
 import {
+  ESPER_IMPORTED_PLATFORMS,
   cleanText,
   isEsperId,
   newestCheckIns,
   parseEsperApp,
   parseEsperDevice,
+  parseEsperDeviceLastSeen,
   parseEsperGroup,
   parseEsperUserInfo,
 } from "./EsperParsers";
@@ -44,20 +48,29 @@ import {
  *                                           enterprise (profile.enterprise),
  *                                           which the enterprise routes are
  *                                           under, and its role
- *   GET /v2/devices/?platform=ANDROID       the Android devices, 1,000 a page
+ *   GET /v2/devices/?platform=ANDROID,APPLE the Android and Apple devices
+ *                                           (iPhones, iPads, Apple TVs),
+ *                                           1,000 a page; an Apple device's
+ *                                           record says when it last checked
+ *                                           in (last_seen)
  *   GET /enterprise/{eid}/devicegroup/      the groups, and where each sits
- *   GET /v2/heartbeat/?last_seen_gt=&last_seen_lt=
- *                                           when each device last checked in,
- *                                           for the devices that did within
- *                                           the window
+ *   GET /v2/heartbeat/?last_seen_gt=&last_seen_lt=&platform=ANDROID
+ *                                           when each Android device last
+ *                                           checked in, for the devices that
+ *                                           did within the window
  *   GET /device/v0/heartbeat/{id}/          one device's last check-in, for
  *                                           a device no window had
- *   GET /enterprise/{eid}/device/{id}/app/  one device's installed apps (the
- *                                           v2 app routes cover iOS and
- *                                           Windows only)
+ *   GET /enterprise/{eid}/device/{id}/app/  one Android device's installed
+ *                                           apps. An Apple device's apps are
+ *                                           not read: Esper lists them
+ *                                           (/v2/devices/{id}/device-apps/)
+ *                                           only as the IDs of the apps it
+ *                                           pushed, with no name or version.
  *
- * Esper sends nothing on its own - it has no webhooks - so this is read on
- * the connection's schedule.
+ * Esper does not manage Macs (its help center says so), so an Apple device
+ * is an iPhone, an iPad or an Apple TV. Its Windows and Linux devices are
+ * not imported yet. Esper sends nothing on its own - it has no webhooks -
+ * so this is read on the connection's schedule.
  */
 
 // A page of the v2 device list: Esper's largest.
@@ -170,7 +183,7 @@ export class EsperSession implements DeviceManagementSession {
     const deviceList: EsperList = await this.client.getAll(
       "/v2/devices/",
       buildEsperQuery([
-        ["platform", "ANDROID"],
+        ["platform", ESPER_IMPORTED_PLATFORMS.join(",")],
         ["limit", ESPER_DEVICE_PAGE_SIZE],
         ["ordering", "created_at"],
       ]),
@@ -179,8 +192,11 @@ export class EsperSession implements DeviceManagementSession {
       { stopWhenBudgetSpent: true },
     );
 
+    const listedAt: Date = this.now();
     const devices: Array<ProviderDevice> = [];
     const seen: Set<string> = new Set<string>();
+    // An Apple device's record says when it last checked in.
+    const listedCheckIns: Array<ProviderCheckIn> = [];
 
     for (const item of deviceList.items) {
       const device: ProviderDevice | null = parseEsperDevice(item);
@@ -191,6 +207,17 @@ export class EsperSession implements DeviceManagementSession {
 
       seen.add(device.providerDeviceId);
       devices.push(device);
+
+      if (device.platform !== ManagedDevicePlatform.Android) {
+        const lastSeen: Date | null = parseEsperDeviceLastSeen(item, listedAt);
+
+        if (lastSeen) {
+          listedCheckIns.push({
+            providerDeviceId: device.providerDeviceId,
+            lastCheckInAt: lastSeen,
+          });
+        }
+      }
     }
 
     if (deviceList.isTruncated) {
@@ -231,6 +258,10 @@ export class EsperSession implements DeviceManagementSession {
           ? data.checkInSince
           : new Date(now.getTime() - 60 * 1000);
 
+      /*
+       * Android devices only: an Apple device's check-in came with its
+       * record, and the route takes one platform at a time.
+       */
       const checkInList: EsperList = await this.client.getAll(
         "/v2/heartbeat/",
         buildEsperQuery([
@@ -258,7 +289,7 @@ export class EsperSession implements DeviceManagementSession {
       isDeviceListComplete: !deviceList.isTruncated,
       groups: groups,
       isGroupListComplete: isGroupListComplete,
-      checkIns: checkIns,
+      checkIns: [...checkIns, ...listedCheckIns],
       ...(checkInWindowEnd ? { checkInWindowEnd } : {}),
       warnings: warnings,
     };
@@ -301,6 +332,11 @@ export class EsperSession implements DeviceManagementSession {
 
       throw error;
     }
+  }
+
+  // An Android device's apps: Esper lists an Apple device's by ID alone.
+  public readsAppsOf(device: { platform: ManagedDevicePlatform }): boolean {
+    return device.platform === ManagedDevicePlatform.Android;
   }
 
   public async readApps(data: {
@@ -393,7 +429,7 @@ export default class EsperConnector implements DeviceManagementConnector {
       const devices: EsperPage = await client.get(
         "/v2/devices/",
         buildEsperQuery([
-          ["platform", "ANDROID"],
+          ["platform", ESPER_IMPORTED_PLATFORMS.join(",")],
           ["limit", 1],
         ]),
         "device list request",
@@ -419,7 +455,7 @@ export default class EsperConnector implements DeviceManagementConnector {
         message:
           deviceCount === undefined
             ? `Connected to the Esper tenant ${tenant}.`
-            : `Connected to the Esper tenant ${tenant}: ${deviceCount} Android ${deviceCount === 1 ? "device" : "devices"} to import.`,
+            : `Connected to the Esper tenant ${tenant}: ${deviceCount} ${deviceCount === 1 ? "device" : "devices"} to import, Android and Apple.`,
         tenant: tenant,
         ...(role ? { role: role } : {}),
         ...(deviceCount !== undefined ? { deviceCount: deviceCount } : {}),

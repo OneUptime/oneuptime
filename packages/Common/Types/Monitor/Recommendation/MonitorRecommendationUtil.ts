@@ -943,13 +943,17 @@ export default class MonitorRecommendationUtil {
     }
 
     for (const recommendation of data.recommendations) {
-      const fingerprint: string | undefined =
-        this.getSerializedFingerprintForRecommendation({
+      const fingerprints: Array<string> =
+        this.getSerializedFingerprintsForRecommendation({
           recommendation: recommendation,
           args: data.args,
         });
 
-      if (fingerprint && existingFingerprints.has(fingerprint)) {
+      if (
+        fingerprints.some((fingerprint: string): boolean => {
+          return existingFingerprints.has(fingerprint);
+        })
+      ) {
         covered.add(recommendation.recommendationId);
       }
     }
@@ -1043,21 +1047,23 @@ export default class MonitorRecommendationUtil {
     }
 
     for (const recommendation of data.recommendations) {
-      const fingerprint: string | undefined =
-        this.getSerializedFingerprintForRecommendation({
+      /*
+       * Its own step first, then the others a monitor made from it may
+       * have: the monitor it would make now, when there is one.
+       */
+      for (const fingerprint of this.getSerializedFingerprintsForRecommendation(
+        {
           recommendation: recommendation,
           args: data.args,
-        });
+        },
+      )) {
+        const monitorId: ObjectID | undefined =
+          monitorIdByFingerprint.get(fingerprint);
 
-      if (!fingerprint) {
-        continue;
-      }
-
-      const monitorId: ObjectID | undefined =
-        monitorIdByFingerprint.get(fingerprint);
-
-      if (monitorId) {
-        covered.set(recommendation.recommendationId, monitorId);
+        if (monitorId) {
+          covered.set(recommendation.recommendationId, monitorId);
+          break;
+        }
       }
     }
 
@@ -1082,13 +1088,7 @@ export default class MonitorRecommendationUtil {
   }): string | undefined {
     const fingerprint: MonitorRecommendationFingerprint | undefined =
       this.getFingerprintFromMonitorStep(
-        data.recommendation.getMonitorStep({
-          ...data.args,
-          monitorName: this.getTemplateMonitorName({
-            recommendation: data.recommendation,
-            resourceDisplayName: data.args.monitorName,
-          }),
-        }),
+        data.recommendation.getMonitorStep(this.getStepArgs(data)),
       );
 
     if (!fingerprint) {
@@ -1096,6 +1096,53 @@ export default class MonitorRecommendationUtil {
     }
 
     return this.serializeFingerprint(fingerprint);
+  }
+
+  /*
+   * Its own step's fingerprint first, then those of the other steps a
+   * monitor made from it may have and still be it
+   * (MonitorRecommendation.getEquivalentMonitorSteps): a cloud monitor made
+   * before its connection's read interval changed keeps the window it was
+   * made with (CloudAlertTemplates, #10028), and is still the
+   * recommendation - never offered a second time.
+   */
+  private static getSerializedFingerprintsForRecommendation(data: {
+    recommendation: MonitorRecommendation;
+    args: MonitorRecommendationArgs;
+  }): Array<string> {
+    const own: string | undefined =
+      this.getSerializedFingerprintForRecommendation(data);
+    const fingerprints: Array<string> = own ? [own] : [];
+
+    for (const monitorStep of data.recommendation.getEquivalentMonitorSteps?.(
+      this.getStepArgs(data),
+    ) || []) {
+      const fingerprint: MonitorRecommendationFingerprint | undefined =
+        this.getFingerprintFromMonitorStep(monitorStep);
+      const serialized: string | undefined = fingerprint
+        ? this.serializeFingerprint(fingerprint)
+        : undefined;
+
+      if (serialized && !fingerprints.includes(serialized)) {
+        fingerprints.push(serialized);
+      }
+    }
+
+    return fingerprints;
+  }
+
+  // The args its steps are built with, named as the create flow names them.
+  private static getStepArgs(data: {
+    recommendation: MonitorRecommendation;
+    args: MonitorRecommendationArgs;
+  }): MonitorRecommendationArgs {
+    return {
+      ...data.args,
+      monitorName: this.getTemplateMonitorName({
+        recommendation: data.recommendation,
+        resourceDisplayName: data.args.monitorName,
+      }),
+    };
   }
 
   /*

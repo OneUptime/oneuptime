@@ -1,5 +1,6 @@
 import logger from "./Logger";
 import { resolveClientIp } from "./ClientIp";
+import type { RequestBodyLimit } from "./RequestBodyLimit";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import ExpressRouterGate from "./ExpressRouterGate";
 import Dictionary from "../../Types/Dictionary";
@@ -78,6 +79,12 @@ export interface OneUptimeRequest extends express.Request {
     clientName: string;
     isReadOnly: boolean;
   };
+  /*
+   * The body's text as it came, for the routes that check a signature over
+   * it (Slack, Stripe, GitHub, an incoming request monitor's). StartServer
+   * keeps the bytes and decodes them the first time one of these is read,
+   * so a route that never reads them never holds a second copy of its body.
+   */
   rawFormUrlEncodedBody?: string;
   rawBody?: string; // Raw body for signature verification (JSON or URL-encoded)
   /*
@@ -85,6 +92,11 @@ export interface OneUptimeRequest extends express.Request {
    * signature over (WebhookRequestBody: a text, +json or signed body).
    */
   rawBodyBytes?: Buffer;
+  /*
+   * What StartServer held this request's body to, by its path
+   * (RequestBodyLimit): its size, and how many JSON values it may hold.
+   */
+  requestBodyLimit?: RequestBodyLimit;
 }
 
 export interface OneUptimeResponse extends express.Response {

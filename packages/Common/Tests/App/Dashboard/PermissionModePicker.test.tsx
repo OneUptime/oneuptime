@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -12,6 +13,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import PermissionModePicker from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PermissionModePicker";
 import { describePermissionMode } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/InvestigationConversationData";
 import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 
 const COPILOT_WORD: RegExp = /copilot/i;
 
@@ -317,42 +319,54 @@ describe("PermissionModePicker — the menu", () => {
     expect(menu()).toBeNull();
   });
 
-  test("a closed menu listens for nothing", () => {
-    const add: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      document,
-      "addEventListener",
-    );
-    const remove: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      document,
-      "removeEventListener",
-    );
+  test("a closed menu listens for nothing, and stops listening as it closes", () => {
+    const listened: Array<string> = [];
+    const stopped: Array<string> = [];
+    const spies: Array<ReturnType<typeof jest.spyOn>> = [];
+
+    for (const target of [document, window] as Array<EventTarget>) {
+      const name: string = target === document ? "document" : "window";
+
+      spies.push(
+        jest.spyOn(target, "addEventListener").mockImplementation(function (
+          this: EventTarget,
+          ...args: Parameters<EventTarget["addEventListener"]>
+        ): void {
+          if (args[0] === "mousedown" || args[0] === "keydown") {
+            listened.push(`${name} ${args[0]}`);
+          }
+          EventTarget.prototype.addEventListener.apply(this, args);
+        }),
+        jest.spyOn(target, "removeEventListener").mockImplementation(function (
+          this: EventTarget,
+          ...args: Parameters<EventTarget["removeEventListener"]>
+        ): void {
+          if (args[0] === "mousedown" || args[0] === "keydown") {
+            stopped.push(`${name} ${args[0]}`);
+          }
+          EventTarget.prototype.removeEventListener.apply(this, args);
+        }),
+      );
+    }
 
     try {
       renderPicker();
 
-      const listened: (spy: ReturnType<typeof jest.spyOn>) => Array<string> = (
-        spy: ReturnType<typeof jest.spyOn>,
-      ): Array<string> => {
-        return spy.mock.calls
-          .map((call: Array<unknown>): string => {
-            return String(call[0]);
-          })
-          .filter((type: string): boolean => {
-            return type === "mousedown" || type === "keydown";
-          })
-          .sort();
-      };
-
-      expect(listened(add)).toEqual([]);
+      expect(listened).toEqual([]);
 
       open();
-      expect(listened(add)).toEqual(["keydown", "mousedown"]);
+      // The layer's Escape on the window, its press outside on the document.
+      expect(listened).toContain("window keydown");
+      expect(listened).toContain("document mousedown");
 
       fireEvent.keyDown(document, { key: "Escape" });
-      expect(listened(remove)).toEqual(["keydown", "mousedown"]);
+      expect(menu()).toBeNull();
+      // Every listener it added is gone with it.
+      expect([...stopped].sort()).toEqual([...listened].sort());
     } finally {
-      add.mockRestore();
-      remove.mockRestore();
+      for (const spy of spies) {
+        spy.mockRestore();
+      }
     }
   });
 
@@ -369,85 +383,35 @@ describe("PermissionModePicker — the menu", () => {
   });
 });
 
-describe("PermissionModePicker — where the menu opens", () => {
-  test("lines up on the button's right edge by default", () => {
-    renderPicker();
-
-    const opened: HTMLElement = open();
-    expect(opened).toHaveClass("right-2");
-    expect(opened).not.toHaveClass("left-2");
-  });
-
-  test("an explicit right is the same as the default", () => {
-    renderPicker({ menuAlign: "right" });
-
-    expect(open()).toHaveClass("right-2");
-  });
-
-  test("lines up on the button's left edge when asked (Ask AI and the AI Investigation card)", () => {
-    renderPicker({ menuAlign: "left" });
-
-    const opened: HTMLElement = open();
-    expect(opened).toHaveClass("left-2");
-    expect(opened).not.toHaveClass("right-2");
-  });
-
-  test.each([["left"], ["right"]] as Array<["left" | "right"]>)(
-    "opens upwards and never wider than the screen (%s)",
-    (menuAlign: "left" | "right") => {
-      renderPicker({ menuAlign });
-
-      // Above the composer, which sits at the bottom of what holds it.
-      expect(open()).toHaveClass(
-        "absolute",
-        "bottom-full",
-        "w-72",
-        "max-w-full",
-      );
-    },
-  );
-
-  /*
-   * Ask AI's start draws the composer near the top of the dialog, where a
-   * menu opening upwards would be cut off by the dialog's edge.
-   */
-  test("opens downwards when asked (the composer at the top of Ask AI's start)", () => {
-    renderPicker({ menuAlign: "left", menuSide: "bottom" });
-
-    const opened: HTMLElement = open();
-    expect(opened).toHaveClass("top-full", "mt-2", "left-2");
-    expect(opened).not.toHaveClass("bottom-full");
-  });
-
-  test("an explicit top is the same as the default", () => {
-    renderPicker({ menuSide: "top" });
-
-    expect(open()).toHaveClass("bottom-full", "mb-2");
-  });
-});
-
 /*
- * The menu's side is measured, which jsdom does not do: these stub where
- * the button is, how tall the menu is and the box that clips them both
- * (Ask AI's dialog), and put the real methods back after each test.
+ * The menu is placed against the window, on the tooltip layer, which jsdom
+ * does not lay out: these stub the window's size, where the button is and
+ * how tall the menu is, and put the real ones back after each test.
  */
 interface StubbedLayout {
+  // The button's top and bottom, 40px wide from its left (80px).
   button: [number, number];
-  boundary: [number, number];
+  windowHeight: number;
   menuHeight: number;
 }
 
+const WINDOW_WIDTH: number = 1280;
 const restoreLayout: Array<() => void> = [];
 
-function rectOf(top: number, bottom: number): DOMRect {
+function rectOf(
+  top: number,
+  bottom: number,
+  left: number,
+  width: number,
+): DOMRect {
   return {
     top: top,
     bottom: bottom,
-    left: 0,
-    right: 200,
-    width: 200,
+    left: left,
+    right: left + width,
+    width: width,
     height: bottom - top,
-    x: 0,
+    x: left,
     y: top,
     toJSON: () => {
       return {};
@@ -455,60 +419,156 @@ function rectOf(top: number, bottom: number): DOMRect {
   };
 }
 
+function stubProperty(
+  target: HTMLElement,
+  property: string,
+  getter: (this: HTMLElement) => number,
+): void {
+  const original: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(target, property);
+
+  Object.defineProperty(target, property, { configurable: true, get: getter });
+
+  restoreLayout.push(() => {
+    if (original) {
+      Object.defineProperty(target, property, original);
+    } else {
+      Reflect.deleteProperty(target, property);
+    }
+  });
+}
+
 function stubLayout(layout: StubbedLayout): void {
   const originalRect: () => DOMRect =
     HTMLElement.prototype.getBoundingClientRect;
-  const originalOffsetHeight: PropertyDescriptor | undefined =
-    Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
 
   HTMLElement.prototype.getBoundingClientRect = function (
     this: HTMLElement,
   ): DOMRect {
     if (this.getAttribute("aria-haspopup") === "menu") {
-      return rectOf(layout.button[0], layout.button[1]);
-    }
-
-    if (this.hasAttribute("data-boundary")) {
-      return rectOf(layout.boundary[0], layout.boundary[1]);
+      return rectOf(layout.button[0], layout.button[1], 80, 40);
     }
 
     return originalRect.call(this);
   };
-
-  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
-    configurable: true,
-    get(this: HTMLElement): number {
-      return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
-    },
-  });
-
   restoreLayout.push(() => {
     HTMLElement.prototype.getBoundingClientRect = originalRect;
+  });
 
-    if (originalOffsetHeight) {
-      Object.defineProperty(
-        HTMLElement.prototype,
-        "offsetHeight",
-        originalOffsetHeight,
-      );
-    }
+  stubProperty(document.documentElement, "clientHeight", () => {
+    return layout.windowHeight;
+  });
+  stubProperty(document.documentElement, "clientWidth", () => {
+    return WINDOW_WIDTH;
+  });
+  stubProperty(HTMLElement.prototype, "offsetHeight", function () {
+    return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
+  });
+  stubProperty(HTMLElement.prototype, "offsetWidth", function () {
+    return this.getAttribute("role") === "menu" ? 288 : 0;
   });
 }
 
 afterEach(() => {
-  for (const restore of restoreLayout.splice(0)) {
+  for (const restore of restoreLayout.splice(0).reverse()) {
     restore();
   }
+  document.documentElement.removeAttribute("dir");
+});
+
+// The side and the edge the layer placed the open menu on.
+function placementOf(opened: HTMLElement): string | null {
+  const layer: HTMLElement | null = opened.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(layer).not.toBeNull();
+
+  return layer!.getAttribute("data-popper-placement");
+}
+
+// A composer at the foot of a window 800px tall, as Ask AI's conversation is.
+const AT_THE_FOOT: StubbedLayout = {
+  button: [740, 766],
+  windowHeight: 800,
+  menuHeight: 286,
+};
+
+describe("PermissionModePicker — where the menu opens", () => {
+  test("is drawn on the tooltip layer, never inside a box that clips the composer (#9910)", () => {
+    stubLayout(AT_THE_FOOT);
+    render(
+      <div data-testid="dialog" style={{ overflow: "hidden" }}>
+        <PermissionModePicker
+          value={AIChatPermissionMode.AutoRun}
+          onChange={getJestMockFunction()}
+        />
+      </div>,
+    );
+
+    const opened: HTMLElement = open();
+
+    expect(screen.getByTestId("dialog")).not.toContainElement(opened);
+    expect(
+      opened.closest(`.${LAYERED_POPOVER_CLASS_NAME}`)?.parentElement,
+    ).toBe(document.body);
+    // Its own look, no place of its own: the layer places it.
+    expect(opened).toHaveClass("w-72", "max-w-[calc(100vw-1rem)]");
+    expect(opened).not.toHaveClass("absolute", "bottom-full", "right-2");
+  });
+
+  test("lines up on the button's end, above it, by default", () => {
+    stubLayout(AT_THE_FOOT);
+    renderPicker();
+
+    expect(placementOf(open())).toBe("top-end");
+  });
+
+  test("an explicit end is the same as the default", () => {
+    stubLayout(AT_THE_FOOT);
+    renderPicker({ menuAlign: "end" });
+
+    expect(placementOf(open())).toBe("top-end");
+  });
+
+  test("lines up on the button's start when asked (Ask AI and the AI Investigation card)", () => {
+    stubLayout(AT_THE_FOOT);
+    renderPicker({ menuAlign: "start" });
+
+    expect(placementOf(open())).toBe("top-start");
+  });
+
+  test("on a page read right to left, its start is the button's right edge", () => {
+    document.documentElement.setAttribute("dir", "rtl");
+    stubLayout(AT_THE_FOOT);
+    renderPicker({ menuAlign: "start" });
+
+    expect(placementOf(open())).toBe("top-end");
+  });
+
+  test("opens downwards when asked and the window has the room (the composer at the top of Ask AI's start)", () => {
+    stubLayout({ button: [200, 226], windowHeight: 800, menuHeight: 286 });
+    renderPicker({ menuAlign: "start", menuSide: "bottom" });
+
+    expect(placementOf(open())).toBe("bottom-start");
+  });
+
+  test("an explicit top is the same as the default", () => {
+    stubLayout(AT_THE_FOOT);
+    renderPicker({ menuSide: "top" });
+
+    expect(placementOf(open())).toBe("top-end");
+  });
 });
 
 describe("PermissionModePicker — a menu that would not fit", () => {
   function renderInDialog(): void {
     render(
-      <div data-boundary="" style={{ overflowY: "hidden" }}>
+      <div style={{ overflowY: "hidden" }}>
         <PermissionModePicker
           value={AIChatPermissionMode.AskForApproval}
           onChange={getJestMockFunction()}
-          menuAlign="left"
+          menuAlign="start"
           menuSide="bottom"
         />
       </div>,
@@ -517,42 +577,97 @@ describe("PermissionModePicker — a menu that would not fit", () => {
 
   /*
    * Ask AI's start on a laptop window 800 px tall: the composer in the
-   * middle of the dialog, 256 px between its controls and the dialog's
-   * foot, and a menu 286 px tall.
+   * middle of the dialog, and a menu 286 px tall that would run past the
+   * window's foot under it - the UI review of #5349 saw its last choice cut
+   * in half there.
    */
-  test("asked to open down where the dialog would cut it off, it opens up", () => {
-    stubLayout({ button: [486, 512], boundary: [24, 776], menuHeight: 286 });
+  test("asked to open down where the window has no room, it opens up", () => {
+    stubLayout({ button: [486, 512], windowHeight: 800, menuHeight: 286 });
     renderInDialog();
 
-    const opened: HTMLElement = open();
-    expect(opened).toHaveAttribute("data-menu-side", "top");
-    expect(opened).toHaveClass("bottom-full", "mb-2", "left-2");
-    expect(opened).not.toHaveClass("top-full");
+    expect(placementOf(open())).toBe("top-start");
   });
 
   test("with room below, it opens down as asked", () => {
-    stubLayout({ button: [402, 428], boundary: [24, 776], menuHeight: 286 });
+    stubLayout({ button: [402, 428], windowHeight: 800, menuHeight: 286 });
     renderInDialog();
 
-    const opened: HTMLElement = open();
-    expect(opened).toHaveAttribute("data-menu-side", "bottom");
-    expect(opened).toHaveClass("top-full", "mt-2");
+    expect(placementOf(open())).toBe("bottom-start");
   });
 
   test("each opening starts from the side asked for", () => {
-    stubLayout({ button: [486, 512], boundary: [24, 776], menuHeight: 286 });
+    stubLayout({ button: [486, 512], windowHeight: 800, menuHeight: 286 });
     renderInDialog();
 
-    expect(open()).toHaveAttribute("data-menu-side", "top");
+    expect(placementOf(open())).toBe("top-start");
     fireEvent.click(trigger());
     expect(menu()).toBeNull();
 
     // The start scrolled: the controls are higher, with room below now.
-    restoreLayout.splice(0).forEach((restore: () => void) => {
+    for (const restore of restoreLayout.splice(0).reverse()) {
       restore();
-    });
-    stubLayout({ button: [300, 326], boundary: [24, 776], menuHeight: 286 });
+    }
+    stubLayout({ button: [300, 326], windowHeight: 800, menuHeight: 286 });
 
-    expect(open()).toHaveAttribute("data-menu-side", "bottom");
+    expect(placementOf(open())).toBe("bottom-start");
+  });
+
+  test("in a window too short for it either way, it opens on the roomier side, cut to fit and scrolling", () => {
+    stubLayout({ button: [150, 176], windowHeight: 360, menuHeight: 286 });
+    renderInDialog();
+
+    const opened: HTMLElement = open();
+
+    // 360 - 176 - 8 - 8 = 168 below, 150 - 8 - 8 = 134 above.
+    expect(placementOf(opened)).toBe("bottom-start");
+    expect(opened.style.maxHeight).toBe("168px");
+    expect(opened.style.overflowY).toBe("auto");
+  });
+});
+
+describe("PermissionModePicker — the keyboard goes through the menu", () => {
+  test("Tab on the button goes into the menu, through it, and on from the button", () => {
+    renderPicker();
+
+    open();
+    act(() => {
+      trigger().focus();
+    });
+
+    const items: Array<HTMLElement> = screen.getAllByRole("menuitemradio");
+
+    expect(fireEvent.keyDown(trigger(), { key: "Tab" })).toBe(false);
+    expect(items[0]).toHaveFocus();
+    fireEvent.keyDown(items[0]!, { key: "Tab" });
+    expect(items[1]).toHaveFocus();
+    fireEvent.keyDown(items[1]!, { key: "Tab" });
+    expect(items[2]).toHaveFocus();
+
+    // Past the last: back on the button, the browser's own Tab moves on.
+    expect(fireEvent.keyDown(items[2]!, { key: "Tab" })).toBe(true);
+    expect(trigger()).toHaveFocus();
+    expect(menu()).toBeNull();
+  });
+
+  test("the focus leaving it for the page closes it", () => {
+    render(
+      <div>
+        <PermissionModePicker
+          value={AIChatPermissionMode.AutoRun}
+          onChange={getJestMockFunction()}
+        />
+        <button type="button">Send</button>
+      </div>,
+    );
+
+    const opened: HTMLElement = open();
+    act(() => {
+      within(opened).getAllByRole("menuitemradio")[0]!.focus();
+    });
+    act(() => {
+      screen.getByRole("button", { name: "Send" }).focus();
+    });
+
+    expect(menu()).toBeNull();
   });
 });

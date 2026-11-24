@@ -939,6 +939,155 @@ describe("what a workflow runs as, through its writes", () => {
     });
   });
 
+  /*
+   * A reference reaches a hook under its ID column or its relation
+   * (RelationIdUtil, ReferenceNamesReadTogether). The custom role a
+   * workflow runs as is read under either, and kept under its id alone, so
+   * the role the checks read is the role that is stored. An update that
+   * named it by the relation alone used to have it dropped, and the change
+   * was quietly not made.
+   */
+  describe("the custom role, named either way", () => {
+    const OTHER_ROLE_ID: string = "97950000-0000-4000-8000-0000000000c2";
+    const CONFLICT: string =
+      "Conflicting Run As Custom Role references were provided. runAsCustomRoleId and runAsCustomRole are names for the same field and must hold the same value: send only one of them, or the same id in each.";
+
+    test("an update that names it by the relation moves the workflow to that role, stored under its id alone", async () => {
+      givenRole();
+
+      await update(
+        ROLE_WORKFLOW_ID,
+        { runAsCustomRole: { _id: OTHER_ROLE_ID } },
+        OWNER(),
+      );
+
+      expect(
+        String(stored(ROLE_WORKFLOW_ID, "runAsCustomRoleId")).toLowerCase(),
+      ).toBe(OTHER_ROLE_ID);
+      expect(stored(ROLE_WORKFLOW_ID, "runAsCustomRole")).toBeUndefined();
+      // A change of role is a raise like any other: new keys, a new giver.
+      expect(stored(ROLE_WORKFLOW_ID, "webhookSecretKey")).not.toBe(
+        "the-webhook-key",
+      );
+    });
+
+    test("named by the relation, it is held to who may give it: someone who holds less is refused, and nothing changes", async () => {
+      givenRole();
+
+      const error: Error = await refusal(
+        update(
+          DEFAULT_WORKFLOW_ID,
+          {
+            runAs: WorkflowRunAs.CustomRole,
+            runAsCustomRole: { _id: OTHER_ROLE_ID },
+          },
+          member([Permission.EditWorkflow, Permission.ReadWorkflow]),
+        ),
+      );
+
+      expect(error.message).toContain("the role has Incident Admin");
+      expect(stored(DEFAULT_WORKFLOW_ID, "runAs")).toBe(WorkflowRunAs.Default);
+      expect(stored(DEFAULT_WORKFLOW_ID, "runAsCustomRoleId")).toBeUndefined();
+    });
+
+    test("an update whose two names disagree is refused, and the role stays", async () => {
+      givenRole();
+
+      const error: Error = await refusal(
+        update(
+          ROLE_WORKFLOW_ID,
+          {
+            runAs: WorkflowRunAs.CustomRole,
+            runAsCustomRoleId: ROLE_ID,
+            runAsCustomRole: { _id: OTHER_ROLE_ID },
+          },
+          OWNER(),
+        ),
+      );
+
+      expect(error.message).toBe(CONFLICT);
+      expect(stored(ROLE_WORKFLOW_ID, "runAsCustomRoleId")).toBe(
+        ROLE_ID.toString(),
+      );
+    });
+
+    test("the same id under both names is one role", async () => {
+      givenRole();
+
+      await update(
+        ROLE_WORKFLOW_ID,
+        {
+          runAs: WorkflowRunAs.CustomRole,
+          runAsCustomRoleId: new ObjectID(OTHER_ROLE_ID),
+          runAsCustomRole: { _id: OTHER_ROLE_ID.toUpperCase() },
+        },
+        OWNER(),
+      );
+
+      expect(
+        String(stored(ROLE_WORKFLOW_ID, "runAsCustomRoleId")).toLowerCase(),
+      ).toBe(OTHER_ROLE_ID);
+      expect(stored(ROLE_WORKFLOW_ID, "runAsCustomRole")).toBeUndefined();
+    });
+
+    test("a create that names it by the relation gives the workflow that role, by who holds it", async () => {
+      givenRole();
+
+      const holder: DatabaseCommonInteractionProps = member([
+        Permission.IncidentAdmin,
+        Permission.CreateWorkflow,
+        Permission.ReadWorkflow,
+      ]);
+      const inserted: StoredRow = await create(
+        {
+          runAs: WorkflowRunAs.CustomRole,
+          runAsCustomRole: new CustomRole(ROLE_ID),
+        },
+        holder,
+      );
+
+      expect(inserted["runAs"]).toBe(WorkflowRunAs.CustomRole);
+      expect(String(inserted["runAsCustomRoleId"]).toLowerCase()).toBe(
+        ROLE_ID.toString().toLowerCase(),
+      );
+      expect(inserted["runAsCustomRole"]).toBeUndefined();
+      expect(String(inserted["runAsGivenByUserId"]).toLowerCase()).toBe(
+        holder.userId!.toString().toLowerCase(),
+      );
+    });
+
+    test("a create whose two names disagree is refused, and nothing is saved", async () => {
+      givenRole();
+
+      const error: Error = await refusal(
+        create(
+          {
+            runAs: WorkflowRunAs.CustomRole,
+            runAsCustomRoleId: ROLE_ID,
+            runAsCustomRole: new CustomRole(new ObjectID(OTHER_ROLE_ID)),
+          },
+          OWNER(),
+        ),
+      );
+
+      expect(error.message).toBe(CONFLICT);
+      expect(workflows.inserts).toEqual([]);
+    });
+
+    test("a role named by the relation beside any other Run As is dropped, as one named by its id is", async () => {
+      const plain: StoredRow = await create(
+        {
+          runAs: WorkflowRunAs.Default,
+          runAsCustomRole: new CustomRole(ROLE_ID),
+        },
+        member([Permission.ProjectMember]),
+      );
+
+      expect(plain["runAsCustomRoleId"]).toBeNull();
+      expect(plain["runAsCustomRole"]).toBeUndefined();
+    });
+  });
+
   describe("the keys that start a workflow", () => {
     async function readKey(
       id: string,

@@ -5,6 +5,7 @@ Un formulaire est ouvert à toute personne qui a son lien, et chaque soumission 
 :::cards
 - [Partager le lien](#partager-le-lien): Le copier, l'ouvrir et le réinitialiser quand il circule trop.
 - [Un lien pour chaque modèle](#un-lien-pour-chaque-modèle): Un favori par cas, un seul formulaire derrière.
+- [Uniquement les personnes qui se connectent](#uniquement-les-personnes-qui-se-connectent): Invitez les personnes qui peuvent ouvrir le formulaire, ou laissez votre authentification unique les connecter.
 - [Domaines personnalisés](#domaines-personnalisés): Servir le formulaire sur votre propre domaine, avec un certificat gratuit.
 - [Ce qui protège un formulaire](#ce-qui-protège-un-formulaire): Chaque vérification qu'une requête passe, dans l'ordre.
 - [Dépannage](#dépannage): Ce que veut dire chaque message de la page du formulaire, et quoi faire.
@@ -16,6 +17,7 @@ Un formulaire est ouvert à toute personne qui a son lien, et chaque soumission 
 | --- | --- |
 | **Statut** | **Accepte les soumissions** — si le lien du formulaire fonctionne. |
 | **Lien de partage** | Chaque adresse à laquelle le formulaire répond, chacune avec **Copier le lien**, et **Réinitialiser le lien**. |
+| **Qui peut ouvrir ce formulaire** | **Uniquement les personnes qui se connectent** — si seules les personnes que vous choisissez peuvent ouvrir le formulaire, une fois connectées. |
 | **Après la soumission** | Le **Message de remerciement** que les gens voient une fois qu'ils ont soumis, sous le numéro de ce que le formulaire a créé. |
 | **Plus de paramètres** | La **Liste d'autorisation IP**, repliée jusqu'à ce que vous l'ouvriez. |
 
@@ -28,6 +30,8 @@ La carte **Lien de partage** liste chaque adresse à laquelle le formulaire rép
 - **Réinitialiser le lien** donne au formulaire un nouveau lien, après confirmation. L'ancien lien cesse aussitôt de fonctionner et affiche le message d'indisponibilité, donc toutes les personnes avec qui vous l'avez partagé ont besoin du nouveau. Utilisez-le quand un lien a circulé plus loin qu'il ne devrait. Les domaines personnalisés du formulaire ne portent aucune clé, et continuent de fonctionner.
 
 Toute personne qui a le lien peut ouvrir le formulaire et le soumettre, sans compte OneUptime et sans se connecter. Être connecté ne change rien : OneUptime ne sait qui a soumis que par le nom et l'e-mail saisis dans le formulaire. Traitez donc le lien comme un numéro de téléphone de votre équipe d'astreinte. Partagez-le là où les personnes qui doivent l'utiliser le trouveront — une page d'intranet, un runbook de support, un message épinglé dans une discussion — et pas sur un site web public, sauf si vous voulez des soumissions de n'importe qui.
+
+Pour que seules les personnes que vous choisissez ouvrent et soumettent le formulaire, activez **Uniquement les personnes qui se connectent** — voir [Uniquement les personnes qui se connectent](#uniquement-les-personnes-qui-se-connectent).
 
 Le lien porte une clé aléatoire qui lui est propre, pas l'ID du formulaire. Sur une installation auto-hébergée, il est servi depuis votre propre hôte OneUptime, et ne fonctionne qu'à l'adresse que configurent `HTTP_PROTOCOL` et `HOST` : ouvert sous un autre nom du serveur, ou à son adresse IP, les requêtes du formulaire sont refusées comme venant d'un autre site.
 
@@ -48,6 +52,20 @@ Pour ne plus accepter de soumissions sans supprimer le formulaire, désactivez *
 Après une soumission, la page dit "Merci — votre réponse a été envoyée." et donne le numéro de ce qui a été créé, puis votre **Message de remerciement**, en Markdown. Utilisez-le pour dire ce qui se passe ensuite, et où aller quand quelque chose est urgent. Sans lui, la page n'affiche que le message standard.
 
 Une image dans la description ou le message de remerciement du formulaire est montrée à toute personne qui ouvre le lien tant que le formulaire est en **Accepte les soumissions**. Désactivez le formulaire, ou retirez l'image, et l'image redevient privée, sauf si un autre élément visible de tous la contient encore.
+
+## Uniquement les personnes qui se connectent
+
+Activez **Uniquement les personnes qui se connectent**, sous **Qui peut ouvrir ce formulaire** sur la page **Partager** du formulaire, pour que seules les personnes que vous choisissez ouvrent et soumettent le formulaire. L'activer vous demande de confirmer. Dès lors, chaque visiteur arrive d'abord sur une page de connexion, sur le lien du formulaire et sur chaque domaine personnalisé. Elle affiche le nom du formulaire et rien d'autre : ni ses questions, ni ses modèles, ni son logo, ni qui peut se connecter. Une fois connecté, le formulaire indique qui est connecté, avec **Se déconnecter** à côté.
+
+Ouvrez **Utilisateurs privés** dans le menu latéral du formulaire pour ajouter, par e-mail, les personnes qui peuvent se connecter. Chacune reçoit par e-mail une invitation dont le lien lui permet de choisir un mot de passe. Le lien est valable 24 heures, et **Mot de passe oublié ?** sur la page de connexion en envoie un nouveau. Le tableau indique qui est **Inscrit**, quelle invitation est **Invitation envoyée**, et la **Dernière connexion** de chacun. Retirer quelqu'un, ou un nouveau mot de passe, le déconnecte partout à sa prochaine requête.
+
+Ouvrez **Authentification unique** pour que votre fournisseur d'identité connecte les personnes, avec SAML ou OpenID Connect. Chaque fournisseur affiche les valeurs à coller dans votre fournisseur d'identité. Toute personne que votre fournisseur d'identité laisse entrer devient un utilisateur privé à sa première connexion. Désactiver un fournisseur, ou le supprimer, déconnecte tous ceux qu'il a connectés. **Exiger le SSO pour la connexion** désactive la connexion par mot de passe : tout le monde se connecte alors par authentification unique, et toute personne connectée avec un mot de passe est déconnectée à sa prochaine requête.
+
+Une connexion dure jusqu'à ce qu'elle reste inutilisée pendant 30 jours. Ses cookies ne sont envoyés qu'avec les requêtes propres du formulaire, si bien qu'aucun autre site ne peut ouvrir ou soumettre le formulaire avec eux, ni déconnecter qui que ce soit. Les tentatives de connexion sont limitées pour chaque adresse et chaque compte, et les pages de connexion et de mot de passe oublié répondent de la même façon, qu'une adresse puisse se connecter ou non.
+
+Une soumission ne nomme que le nom et l'e-mail saisis dans le formulaire, comme sur tout autre formulaire, et non l'utilisateur privé qui l'a envoyée. Une image de la description ou du message de remerciement du formulaire reste publique à son adresse impossible à deviner tant que le formulaire accepte les soumissions, comme sur une page de statut qui demande à ses visiteurs de se connecter : c'est ainsi que les navigateurs des utilisateurs privés la chargent.
+
+Sur OneUptime Cloud, l'authentification unique et **Exiger le SSO pour la connexion** demandent le plan **Scale**. Dans l'API, les utilisateurs privés et les fournisseurs d'authentification unique sont des enregistrements à part entière : `/form-private-user`, `/form-sso` et `/form-oidc`, chacun avec des permissions portant son nom.
 
 ## Domaines personnalisés
 
@@ -119,13 +137,14 @@ Chaque requête passe ces vérifications, dans cet ordre :
 2. Elle doit respecter les limites de débit.
 3. Le formulaire doit exister, être en **Accepte les soumissions**, et appartenir à un projet dont le plan inclut les formulaires.
 4. Elle doit venir d'une adresse de la **Liste d'autorisation IP**, quand le formulaire en a une.
-5. Une soumission doit réussir le captcha, quand l'instance a activé le captcha.
-6. Chaque réponse doit respecter les limites de taille et convenir à sa question — voir [Créer un formulaire](/docs/forms/building#limites-de-taille).
-7. Ce que les réponses et les paramètres produisent doit pouvoir être créé : un incident a besoin d'une gravité, un événement d'une fin après son début.
-8. Une soumission doit tenir dans le quota horaire du formulaire — voir [Limites de débit](#limites-de-débit).
-9. Ses fichiers doivent tenir dans le quota horaire de fichiers du formulaire, juste avant d'être enregistrés.
+5. Elle doit venir d'un utilisateur privé du formulaire, connecté, quand le formulaire est réglé sur **Uniquement les personnes qui se connectent** — voir [Uniquement les personnes qui se connectent](#uniquement-les-personnes-qui-se-connectent).
+6. Une soumission doit réussir le captcha, quand l'instance a activé le captcha.
+7. Chaque réponse doit respecter les limites de taille et convenir à sa question — voir [Créer un formulaire](/docs/forms/building#limites-de-taille).
+8. Ce que les réponses et les paramètres produisent doit pouvoir être créé : un incident a besoin d'une gravité, un événement d'une fin après son début.
+9. Une soumission doit tenir dans le quota horaire du formulaire — voir [Limites de débit](#limites-de-débit).
+10. Ses fichiers doivent tenir dans le quota horaire de fichiers du formulaire, juste avant d'être enregistrés.
 
-Le logo et le favicon d'un formulaire font partie du formulaire : ils sont envoyés à l'intérieur de la réponse qui l'ouvre, en base64, seulement une fois les quatre premières vérifications passées, et jamais depuis une adresse à eux. Personne ne peut les récupérer sans le formulaire, et aucun fichier ne peut être récupéré par son ID via un formulaire ; les fichiers eux-mêmes restent privés. Un formulaire n'affiche que des images téléversées dans son propre projet : un fichier d'un autre projet est refusé à l'enregistrement du formulaire, et jamais envoyé à sa page.
+Le logo et le favicon d'un formulaire font partie du formulaire : ils sont envoyés à l'intérieur de la réponse qui l'ouvre, en base64, seulement une fois les cinq premières vérifications passées, et jamais depuis une adresse à eux. Personne ne peut les récupérer sans le formulaire, et aucun fichier ne peut être récupéré par son ID via un formulaire ; les fichiers eux-mêmes restent privés. Un formulaire n'affiche que des images téléversées dans son propre projet : un fichier d'un autre projet est refusé à l'enregistrement du formulaire, et jamais envoyé à sa page.
 
 ### Liste d'adresses IP autorisées
 

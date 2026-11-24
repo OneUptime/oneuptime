@@ -6,8 +6,9 @@ import path from "path";
  * ---------------------------------------------------------------------------
  * EVERY SAML REPLY URL HOLDS A RESPONSE TO ITS OWN PROVIDER, AND USES IT ONCE.
  *
- * SamlSignInRoutes.test.ts runs the three SAML Reply URLs that exist today.
- * This guard reads the source, so the rule also holds for the next one:
+ * SamlSignInRoutes.test.ts, DashboardSamlSignIn.test.ts and FormSamlSignIn.test.ts run the SAML
+ * Reply URLs that exist today. This guard reads the source, so the rule also
+ * holds for the next one:
  *
  *   - whatever verifies a SAML response passes SSOUtil.getSamlResponseFromXML
  *     the Entity ID and Reply URL of the provider the route is for, built by
@@ -38,7 +39,15 @@ interface SamlRoute {
   // The route that starts a sign-in, and the one the IdP posts to.
   startRoute: string;
   replyRoute: string;
+  /*
+   * How its refusal of a response from another issuer starts, as the file
+   * writes it: the three older routes say "Issuer URL does not match"; a
+   * new route says what happened in a sentence (ErrorMessagesGuard).
+   */
+  issuerRefusal: string;
 }
+
+const ISSUER_URL_DOES_NOT_MATCH: string = '"Issuer URL does not match"';
 
 const SAML_ROUTES: Array<SamlRoute> = [
   {
@@ -53,6 +62,7 @@ const SAML_ROUTES: Array<SamlRoute> = [
     firstLookup: "ProjectSsoSignInGate.decide(",
     startRoute: '"/sso/:projectId/:projectSsoId"',
     replyRoute: '"/idp-login/:projectId/:projectSsoId"',
+    issuerRefusal: ISSUER_URL_DOES_NOT_MATCH,
   },
   {
     file: "GlobalSSO.ts",
@@ -62,6 +72,7 @@ const SAML_ROUTES: Array<SamlRoute> = [
     firstLookup: "GlobalSSOProjectService.findBy(",
     startRoute: '"/global-sso/:globalSsoId"',
     replyRoute: '"/global-idp-login/:globalSsoId"',
+    issuerRefusal: ISSUER_URL_DOES_NOT_MATCH,
   },
   {
     file: "StatusPageSSO.ts",
@@ -71,6 +82,31 @@ const SAML_ROUTES: Array<SamlRoute> = [
     firstLookup: "StatusPagePrivateUserService.findOneBy(",
     startRoute: '"/status-page-sso/:statusPageId/:statusPageSsoId"',
     replyRoute: '"/status-page-idp-login/:statusPageId/:statusPageSsoId"',
+    issuerRefusal: ISSUER_URL_DOES_NOT_MATCH,
+  },
+  // A dashboard shared with only the people who sign in (#10250).
+  {
+    file: "DashboardSSO.ts",
+    builder: "SamlServiceProviders.forDashboardSso(",
+    providerKind: "SamlProviderKind.DashboardSso",
+    storedProviderId: "dashboardSSO.id!",
+    firstLookup: "DashboardPrivateUserService.findOneBy(",
+    startRoute: '"/dashboard-sso/:dashboardId/:dashboardSsoId"',
+    replyRoute: '"/dashboard-idp-login/:dashboardId/:dashboardSsoId"',
+    issuerRefusal:
+      '"The identity provider that signed this response is not the one this dashboard trusts.',
+  },
+  // A form shared with only the people who sign in (#10249).
+  {
+    file: "FormSSO.ts",
+    builder: "SamlServiceProviders.forFormSso(",
+    providerKind: "SamlProviderKind.FormSso",
+    storedProviderId: "formSSO.id!",
+    firstLookup: "FormPrivateUserService.findOneBy(",
+    startRoute: '"/form-sso/:formId/:formSsoId"',
+    replyRoute: '"/form-idp-login/:formId/:formSsoId"',
+    issuerRefusal:
+      '"The identity provider that signed this response is not the one this form trusts.',
   },
 ];
 
@@ -121,7 +157,7 @@ function between(text: string, start: string, end: string): string {
 }
 
 describe("SAML responses are verified only where this guard knows of", () => {
-  test("getSamlResponseFromXML is called by the three SAML Reply URLs and nothing else", () => {
+  test("getSamlResponseFromXML is called by the five SAML Reply URLs and nothing else", () => {
     const callers: Array<string> = [];
 
     const roots: Array<string> = [
@@ -160,7 +196,7 @@ describe("SAML responses are verified only where this guard knows of", () => {
     );
   });
 
-  test("every route a SAML response is posted to is one of the three", () => {
+  test("every route a SAML response is posted to is one of the five", () => {
     const replyRoutes: Array<string> = [];
 
     for (const file of sourceFiles(API_DIR)) {
@@ -206,7 +242,7 @@ describe.each(SAML_ROUTES)("$file", (route: SamlRoute) => {
       "SSOUtil.getSamlResponseFromXML(",
     );
     const issuerCheckAt: number = source.indexOf(
-      '"Issuer URL does not match"',
+      route.issuerRefusal,
       verifiedAt,
     );
     const claimAt: number = source.indexOf(
@@ -315,6 +351,15 @@ describe("the Dashboards show admins the values a response is held to", () => {
         "const issuerURL: string = `${HTTP_PROTOCOL}${HOST}/global-sso/${modelId.toString()}`;",
       ],
     ],
+    // A dashboard's Single Sign-On page (#10250).
+    [
+      "App/FeatureSet/Dashboard/src/Components/PrivateAccess/PrivateAccessKinds.ts",
+      [
+        "return `${HTTP_PROTOCOL}${HOST}/dashboard-sso/${resourceId.toString()}/${providerId}`;",
+        "`/dashboard-idp-login/${resourceId.toString()}/${providerId}`",
+        "URL.fromString(IDENTITY_URL.toString()).addRoute(",
+      ],
+    ],
   ])("%s", (file: string, expressions: Array<string>) => {
     const screen: string = compact(read(path.join(PACKAGES_DIR, file)));
 
@@ -354,6 +399,8 @@ describe("the Dashboards show admins the values a response is held to", () => {
       "replyUrl: `${SamlServiceProviders.getIdentityAddress()}/status-page-idp-login/${statusPageId}/${statusPageSsoId}`",
       "entityId: `${SamlServiceProviders.getServerAddress()}/global-sso/${globalSsoId}`",
       "replyUrl: `${SamlServiceProviders.getIdentityAddress()}/global-idp-login/${globalSsoId}`",
+      "entityId: `${SamlServiceProviders.getServerAddress()}/dashboard-sso/${dashboardId}/${dashboardSsoId}`",
+      "replyUrl: `${SamlServiceProviders.getIdentityAddress()}/dashboard-idp-login/${dashboardId}/${dashboardSsoId}`",
     ]) {
       expect({ piece, built: builder.includes(piece) }).toEqual({
         piece,

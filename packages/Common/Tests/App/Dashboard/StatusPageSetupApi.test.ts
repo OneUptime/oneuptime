@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import type { SpyInstance } from "jest-mock";
 import StatusPageSetupApi, {
   OWN_STATUS_PAGES_READ_LIMIT,
@@ -541,7 +542,12 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
       await StatusPageSetupApi.loadMonitors();
 
     expect(monitors[0]!.labels).toEqual([
-      { id: id(91).toString(), name: "production", color: "#ef4444" },
+      {
+        id: id(91).toString(),
+        name: "production",
+        color: "#ef4444",
+        sharedName: { kind: SharedNameKind.Label },
+      },
     ]);
     // None carried: none listed.
     expect(monitors[1]!.labels).toBeUndefined();
@@ -549,8 +555,56 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
     const args: Record<string, unknown> = getListSpy.mock
       .calls[0]![0] as unknown as Record<string, unknown>;
     expect(args["select"]).toMatchObject({
-      labels: { _id: true, name: true, color: true },
+      labels: { _id: true, name: true, color: true, createdAt: true },
     });
+  });
+
+  /*
+   * Two labels of one name, named alike before names were held to one label
+   * each, are told apart in the step's label filter (#10314): read through
+   * each monitor's labels, which take no description, each says when it was
+   * made, which the Dropdown marks the twins by.
+   */
+  test("each label says when it was made, which tells two of one name apart", async () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+    const NOVEMBER: Date = new Date("2026-11-05T09:30:00.000Z");
+
+    getListSpy.mockResolvedValue(
+      list([
+        model(Monitor, {
+          _id: id(1).toString(),
+          name: "API",
+          labels: [
+            model(Label, {
+              _id: id(91).toString(),
+              name: "production",
+              createdAt: MARCH,
+            }),
+            model(Label, {
+              _id: id(92).toString(),
+              name: "Production",
+              createdAt: NOVEMBER,
+            }),
+          ],
+        }),
+      ]) as never,
+    );
+
+    const monitors: Array<StatusPageSetupMonitor> =
+      await StatusPageSetupApi.loadMonitors();
+
+    expect(monitors[0]!.labels).toEqual([
+      {
+        id: id(91).toString(),
+        name: "production",
+        sharedName: { kind: SharedNameKind.Label, createdAt: MARCH },
+      },
+      {
+        id: id(92).toString(),
+        name: "Production",
+        sharedName: { kind: SharedNameKind.Label, createdAt: NOVEMBER },
+      },
+    ]);
   });
 
   test("the project's monitor groups, by name, with their labels", async () => {
@@ -571,7 +625,13 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
       {
         id: id(5).toString(),
         name: "Checkout",
-        labels: [{ id: id(91).toString(), name: "production" }],
+        labels: [
+          {
+            id: id(91).toString(),
+            name: "production",
+            sharedName: { kind: SharedNameKind.Label },
+          },
+        ],
       },
     ]);
 
@@ -582,7 +642,7 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
     expect(args["select"]).toEqual({
       _id: true,
       name: true,
-      labels: { _id: true, name: true, color: true },
+      labels: { _id: true, name: true, color: true, createdAt: true },
     });
     expect(args["sort"]).toEqual({ name: "ASC" });
   });

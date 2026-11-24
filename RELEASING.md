@@ -118,6 +118,20 @@ well, so a stale one is found before the merge:
 gh workflow run docs-screens.yml --ref release-14.0.106
 ```
 
+The Data Security AI eval runs on the release pull request only when the
+release changes one of Data Security's AI prompts. Run it on the branch every
+time, so each of Data Security's AI features is measured on its fixed cases
+before it ships (Docs/ai/evals.md):
+
+```bash
+gh workflow run data-security-ai-eval.yml --ref release-14.0.106
+```
+
+Its job fails when a feature scores under its threshold
+(`DATA_SECURITY_EVAL_THRESHOLDS`). Fix the prompt in the release branch; when
+the run says the model had an off night rather than a broken prompt, run it
+again with more runs a case (`-f repeat=3`).
+
 ### 4. Give the release the runners
 
 ```bash

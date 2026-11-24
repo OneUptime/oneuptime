@@ -1,6 +1,8 @@
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import IconProp from "Common/Types/Icon/IconProp";
 import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
+import { AndroidSecurityPatchStatus } from "Common/Types/Host/AndroidSecurityPatch";
+import { AndroidAgentPermissionsStatus } from "Common/Types/Host/AndroidAgentPermissions";
 import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
 import {
   DATE_FACET_OPERATORS,
@@ -41,17 +43,25 @@ export const INVENTORY_TYPE_FACET_KEY: string = "inventoryType";
 export const INVENTORY_SOURCE_FACET_KEY: string = "inventorySource";
 export const INVENTORY_STATUS_FACET_KEY: string = "inventoryStatus";
 export const INVENTORY_LAST_SEEN_FACET_KEY: string = "inventoryLastSeen";
+export const INVENTORY_SECURITY_PATCH_FACET_KEY: string =
+  "inventorySecurityPatch";
+export const INVENTORY_AGENT_PERMISSIONS_FACET_KEY: string =
+  "inventoryAgentPermissions";
 
 export const INVENTORY_FACET_QUERY_FIELDS: {
   type: "entityType";
   source: "source";
   status: "inventoryStatus";
   lastSeen: "lastSeenAt";
+  securityPatch: "securityPatchStatus";
+  agentPermissions: "agentPermissionsStatus";
 } = {
   type: "entityType",
   source: "source",
   status: "inventoryStatus",
   lastSeen: "lastSeenAt",
+  securityPatch: "securityPatchStatus",
+  agentPermissions: "agentPermissionsStatus",
 };
 
 const OPTION_OPERATORS: Array<FilterOperator> = ["is", "is_not"];
@@ -112,6 +122,49 @@ export const INVENTORY_STATUS_FACET_OPTIONS: Array<FilterChipDropdownOption> = [
   },
 ];
 
+/*
+ * Which Android devices are behind on their security patches (#9965): a
+ * patch level more than 90 days old is out of date, as the Security Patch
+ * Out of Date alert says (Common/Types/Host/AndroidSecurityPatch). Read
+ * from the item's virtual securityPatchStatus, so a filtered page and its
+ * count agree. Anything with no patch level is in neither.
+ */
+export const INVENTORY_SECURITY_PATCH_FACET_OPTIONS: Array<FilterChipDropdownOption> =
+  [
+    {
+      value: AndroidSecurityPatchStatus.OutOfDate,
+      label: "Out of Date",
+      sublabel: "Its security patch level is more than 90 days old.",
+    },
+    {
+      value: AndroidSecurityPatchStatus.UpToDate,
+      label: "Up to Date",
+      sublabel: "Its security patch level is 90 days old or newer.",
+    },
+  ];
+
+/*
+ * Which Android devices the OneUptime Android agent still lacks a grant on
+ * (#9967): READ_LOGS, READ_DROPBOX_DATA or usage access, which only adb
+ * grants, so a fleet's are run device by device. Read from the item's
+ * virtual agentPermissionsStatus; anything the agent does not run on is in
+ * neither.
+ */
+export const INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS: Array<FilterChipDropdownOption> =
+  [
+    {
+      value: AndroidAgentPermissionsStatus.Missing,
+      label: "Missing",
+      sublabel:
+        "The Android agent still needs READ_LOGS, READ_DROPBOX_DATA or usage access.",
+    },
+    {
+      value: AndroidAgentPermissionsStatus.Granted,
+      label: "All Granted",
+      sublabel: "The Android agent reads every app's logs and crash stacks.",
+    },
+  ];
+
 const buildMultiOptionQuery: (
   values: Array<string>,
   operator: FilterOperator,
@@ -161,6 +214,29 @@ export const INVENTORY_BASE_FACETS: Array<ResourceFacet> = [
     type: "dateRange",
     supportedOperators: DATE_FACET_OPERATORS,
   },
+  {
+    key: INVENTORY_SECURITY_PATCH_FACET_KEY,
+    queryField: INVENTORY_FACET_QUERY_FIELDS.securityPatch,
+    // The asset detail's own name (InventoryAssetLabels): one name for one thing.
+    label: "Security Patch Level",
+    icon: IconProp.ShieldCheck,
+    isMultiSelect: true,
+    searchPlaceholder: "Search security patch levels...",
+    options: INVENTORY_SECURITY_PATCH_FACET_OPTIONS,
+    supportedOperators: OPTION_OPERATORS,
+    toQueryValue: buildMultiOptionQuery,
+  },
+  {
+    key: INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+    queryField: INVENTORY_FACET_QUERY_FIELDS.agentPermissions,
+    label: "Agent Permissions",
+    icon: IconProp.Lock,
+    isMultiSelect: true,
+    searchPlaceholder: "Search agent permissions...",
+    options: INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
+    supportedOperators: OPTION_OPERATORS,
+    toQueryValue: buildMultiOptionQuery,
+  },
 ];
 
 export interface InventoryFacetLockedQuery {
@@ -168,6 +244,8 @@ export interface InventoryFacetLockedQuery {
   source?: unknown;
   lastSeenAt?: unknown;
   inventoryStatus?: unknown;
+  securityPatchStatus?: unknown;
+  agentPermissionsStatus?: unknown;
   [key: string]: unknown;
 }
 

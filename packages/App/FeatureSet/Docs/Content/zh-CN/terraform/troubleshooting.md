@@ -23,6 +23,8 @@
 | `references records that are not in this project` | 使用你自己项目中记录的 ID：参阅[来自其他项目的 ID](#来自其他项目的-id) |
 | 数据源返回的 `Not Found` 或 `Ambiguous Match` | 修正查找的参数：参阅[找不到或找到多个结果的查找](#找不到或找到多个结果的查找) |
 | `There is already a team called`（标签、值班策略、值班计划） | 改用同类其他记录都没有的名称，或先重命名另一个：参阅[其他记录已在使用的名称](#其他记录已在使用的名称) |
+| `with the same name already exists` | 改用同类其他记录都没有的名称，或导入占用该名称的记录：参阅[其他记录已在使用的名称](#其他记录已在使用的名称) |
+| 域名、主机名或登录 URL 的 `already exists` | 改用其他记录都没有的值，或导入占用该值的记录：参阅[其他记录已在使用的域名和标识符](#其他记录已在使用的域名和标识符) |
 | `Cannot import non-existent remote object` | 检查 ID 和密钥的权限：参阅[导入资源](/docs/terraform/importing-resources#故障排除) |
 | `Provider produced inconsistent result after apply` | 升级提供程序：参阅[apply 之后结果不一致](#apply-之后结果不一致) |
 | 计划创建了一个你没有添加的资源 | 密钥已无法读取它，OneUptime 回答了 `404`：先恢复密钥的读取权限，再用 `terraform import` 导入该资源：参阅[资源离开 state，下一次 apply 又创建了它](#资源离开-state下一次-apply-又创建了它) |
@@ -106,9 +108,21 @@ This network device references records that are not in this project: Network Sit
 
 ### 其他记录已在使用的名称
 
-团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格。创建或重命名时使用同类其他记录已有的名称，会得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 已归档的值班策略会保留其名称：请取消归档，或另选一个名称。此前就同名的记录会保留名称，仪表板中团队、值班策略和值班计划的列表会标记它们。
+团队、标签、值班策略和值班计划在项目中各自拥有独一无二的名称，不区分大小写和空格，许多其他类型也是如此，例如事件严重程度、监视器状态和状态页。创建或重命名时使用同类其他记录已有的名称，会得到 `400`，例如 `There is already an on-call policy called Primary in this project. Pick another name.` 或 `Incident Severity with the same name already exists.` 此前就同名的记录会保留名称，仪表板中团队、标签、值班策略和值班计划的列表会标记它们。
 
-Terraform 会并行执行同一次 apply 中的更改，因此如果重命名为另一个资源在同一次 apply 中让出的名称，在那个资源仍占用该名称时可能会被拒绝：请再次应用，或在接收名称的资源上添加一个指向让出名称的资源的 `depends_on`。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，都无法在一次 apply 中完成：先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
+Terraform 会并行执行同一次 apply 中的更改，因此如果创建或重命名时使用的名称正被另一个资源在同一次 apply 中通过重命名或删除让出，在那个资源仍占用该名称时可能会被拒绝。此时提供程序会在最多 30 秒内再次请求，因此重命名链（例如 A 改为 B，同时 B 改为 C）可以在一次 apply 中完成，接手被该 apply 删除的资源名称的资源也是如此。互换（A 改为 B、B 改为 A），或任何最终回到起点的重命名链，则永远无法完成，配置之外的记录占用的名称也是如此，例如 OneUptime 随项目创建的严重程度：30 秒后 apply 会失败，并显示 `The name was still taken after asking again for 30 seconds.` 请给资源起一个没有人使用的名称，或用 `terraform import` 导入占用该名称的记录。如果是互换，请先把其中一个重命名为没有人使用的名称，应用，然后再完成其余更改。
+
+已归档的记录会保留其名称，apply 对正在使用的记录所做的任何操作都不会让出该名称。创建或重命名为该名称会立即失败，并说明在哪里取消归档该记录：请取消归档，或另选一个名称。
+
+如果使用较旧的提供程序或较旧的 OneUptime，第一次拒绝就会让 apply 失败：请再次应用，或在接收名称的资源上添加一个指向让出名称的资源的 `depends_on`。
+
+### 其他记录已在使用的域名和标识符
+
+状态页面、仪表板或表单的域名、项目域名、主机或 Kubernetes 集群的标识符以及 SSO 提供商的登录 URL 也各自只属于一条记录，不区分大小写。创建或更改为其他记录已有的值时会返回 `400`，例如 `Status Page Domain with the same fullDomain already exists.`
+
+这里提供程序同样会在最多 30 秒内再次请求，因此在同一次 apply 中把一个域名从一个资源移到另一个资源（删除一个并同时创建另一个）可以在一次 apply 中完成。两个值的互换永远无法完成，配置之外的记录占用的值也是如此：30 秒后 apply 会失败，并显示 `The value was still taken after asking again for 30 seconds.` 请给资源一个没有人使用的值，或用 `terraform import` 导入占用该值的记录。如果是互换，请先给其中一个设置临时值，应用，然后再完成其余更改。
+
+只有已归档的记录占用的值，例如已归档主机的主机名，会立即失败，并说明该怎么做：请取消归档这条记录，或另选一个值。
 
 ## 无法稳定的计划
 

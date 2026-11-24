@@ -2,8 +2,8 @@ import {
   KUBERNETES_STORAGE_READING_FRESH_MS,
   KubernetesStorageRow,
   getKubernetesImageFsUsage,
+  getKubernetesNodeRootDiskUsage,
   getKubernetesStorageMeasuredAt,
-  getKubernetesVolumeUsage,
 } from "Common/Types/Kubernetes/KubernetesStorageHealth";
 import { StorageUsage } from "Common/Utils/Storage/StorageUsage";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -16,8 +16,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * keeps its pods' logs and emptyDir volumes, and the disk it evicts pods
  * by - and, on a node whose container images have a disk of their own,
  * that image filesystem. The Nodes list and a node's page read
- * the row here and draw each with the shared StorageUsageBar, at the lines
- * the claims list draws a claim at.
+ * the row here and draw each with the shared StorageUsageBar, at the
+ * kubelet's lines for it (#10057): a disk that holds the images, the image
+ * disk or the root filesystem of a node without one, red from 85%; a root
+ * filesystem that holds none, from 90%, as the claims list draws a claim.
  *
  * React-free, so App tests can read it.
  */
@@ -52,7 +54,7 @@ export function getKubernetesNodeDisk(
 ): KubernetesNodeDisk {
   const nodeRow: KubernetesStorageRow = { ...row, kind: "Node" };
   const measuredAt: Date | null = getKubernetesStorageMeasuredAt(nodeRow);
-  const root: StorageUsage | null = getKubernetesVolumeUsage(nodeRow);
+  const root: StorageUsage | null = getKubernetesNodeRootDiskUsage(nodeRow);
   const image: StorageUsage | null = getKubernetesImageFsUsage(nodeRow);
 
   return {

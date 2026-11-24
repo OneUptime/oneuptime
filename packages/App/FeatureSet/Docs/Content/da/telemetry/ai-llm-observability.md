@@ -28,7 +28,7 @@ flowchart TB
 | Fane | Hvad den viser |
 | --- | --- |
 | **Samtaler** | Hver samtale, din AI har haft, med dem, der kræver opmærksomhed, først. Over listen: samtaler, AI-svar, hvor mange der kræver opmærksomhed, omkostninger og den typiske svartid. |
-| **Kald** | Hvert model-, embedding-, agent- og værktøjskald. Filtrér efter tjeneste, udbyder, model, operation, person, team eller samtale; klik på et kald for at åbne det i trace-fremviseren. |
+| **Kald** | Hvert model-, embedding-, agent- og værktøjskald. Filtrér efter tjeneste, udbyder, model, operation, person, team, samtale eller status; et kald, der fejlede, viser sin fejl under sin status. Klik på et kald for at åbne det i trace-fremviseren. |
 | **Forbrug** | Kald, tokens og omkostninger for et tidsrum, rangeret efter medarbejder, team, model, udbyder eller app; under **Udbyderkonti**, hvad dine forbundne konti blev faktureret. |
 | **Advarsler** | Færdige advarsler for, når AI'en svarer dårligt, og dine AI / LLM-monitorer. |
 | **Budgetter** | Daglige omkostningsgrænser, offentliggjort som metrikker, du kan advare på. |
@@ -239,7 +239,7 @@ En færdig advarsel opretter en advarsel, der løser sig selv, og viser monitore
 
 ## Se, hvem der bruger hvad
 
-Fanen **Forbrug** viser kald, tokens og omkostninger for et tidsrum (de seneste 7 dage, medmindre du vælger et andet) og en tabel over de 25 største i én af fem opdelinger: **Medarbejder**, **Team**, **Model**, **Udbyder** og **Applikation / Tjeneste**. Kald, der ikke nævner nogen, tælles under **Ikke tildelt** og smides aldrig væk.
+Fanen **Forbrug** viser kald, tokens og omkostninger for et tidsrum (de seneste 7 dage, medmindre du vælger et andet) og en tabel over de 25 største i én af fem opdelinger: **Medarbejder**, **Team**, **Model**, **Udbyder** og **Applikation / Tjeneste**. Kald, der ikke nævner nogen, tælles under **Ikke tildelt** og smides aldrig væk. Fejlraten under **AI-kald** åbner **Kald** med tidsrummets kald, der fejlede, med **Status** sat til **Fejl**.
 
 Det er **Dine AI-kald**. Vælg **Udbyderkonti** i stedet for at se, hvad dine forbundne konti hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI og Cursor blev faktureret: se [AI-udbyderkonti](/docs/telemetry/ai-provider-accounts#se-forbruget). De to lægges aldrig sammen.
 

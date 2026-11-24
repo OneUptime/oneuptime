@@ -1,9 +1,13 @@
 import { scrubRegExpFromBuiltIn } from "Common/Types/Telemetry/ScrubRule";
 import { describe, expect, jest, test } from "@jest/globals";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
 import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
+import ScrubIpAddress from "Common/Utils/Telemetry/ScrubIpAddress";
+import crypto from "crypto";
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -29,13 +33,20 @@ import SessionReplayScrubService, {
  * These tests pin the recursion, the key-targeted branch, and both caps.
  */
 
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a40394",
+);
+
 function rule(
   patternType: LogScrubPatternType,
   scrubAction: LogScrubAction,
   regex: RegExp,
+  projectId: ObjectID = PROJECT_ID,
 ): CompiledScrubRule {
   return {
     rule: {
+      projectId: projectId,
       patternType: patternType,
       scrubAction: scrubAction,
     } as unknown as LogScrubRule,
@@ -316,24 +327,103 @@ describe("SessionReplayScrubService.scrubEvents", () => {
     expect(result.skippedOversizedStrings).toBe(1);
   });
 
-  test("hash action produces a stable, non-reversible marker", async () => {
+  test("hash action leaves the project's keyed token: the same in the project, another in each other one (#10394)", async () => {
+    const emailPattern: RegExp =
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
     const hashRule: CompiledScrubRule = rule(
       LogScrubPatternType.Email,
       LogScrubAction.Hash,
-      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+      emailPattern,
+    );
+    const otherProjectId: ObjectID = new ObjectID(
+      "0193b0a1-0000-7000-8000-000000b40394",
+    );
+    const otherProjectRule: CompiledScrubRule = rule(
+      LogScrubPatternType.Email,
+      LogScrubAction.Hash,
+      emailPattern,
+      otherProjectId,
     );
 
     const first: Array<JSONValue> = [{ text: "ada@example.com" }];
     const second: Array<JSONValue> = [{ text: "ada@example.com" }];
+    const otherProject: Array<JSONValue> = [{ text: "ada@example.com" }];
 
     await SessionReplayScrubService.scrubEvents(first, [hashRule]);
     await SessionReplayScrubService.scrubEvents(second, [hashRule]);
+    await SessionReplayScrubService.scrubEvents(otherProject, [
+      otherProjectRule,
+    ]);
 
-    expect((first[0] as JSONObject)["text"]).toEqual(
-      (second[0] as JSONObject)["text"],
+    const hashed: string = String((first[0] as JSONObject)["text"]);
+
+    expect((second[0] as JSONObject)["text"]).toBe(hashed);
+    expect(hashed).toMatch(/^\[HASHED:[0-9a-f]{16}\]$/);
+    // Through the one function every engine hashes with.
+    expect(hashed).toBe(
+      ScrubHashToken.ofValue({
+        projectId: PROJECT_ID,
+        value: "ada@example.com",
+      }),
     );
-    expect(String((first[0] as JSONObject)["text"])).toMatch(
-      /^\[HASHED:[0-9a-f]{8}\]$/,
+    expect((otherProject[0] as JSONObject)["text"]).not.toBe(hashed);
+    // Not the unkeyed SHA-256 a reader could work back to the address from.
+    expect(hashed).not.toContain(
+      crypto
+        .createHash("sha256")
+        .update("ada@example.com")
+        .digest("hex")
+        .slice(0, 8),
+    );
+  });
+
+  test("a hash rule whose project is not known redacts: the value is never stored", async () => {
+    const hashRule: CompiledScrubRule = {
+      rule: {
+        patternType: LogScrubPatternType.Email,
+        scrubAction: LogScrubAction.Hash,
+      } as unknown as LogScrubRule,
+      regex: scrubRegExpFromBuiltIn(
+        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+      ),
+    };
+    const events: Array<JSONValue> = [{ text: "mail ada@example.com" }];
+
+    await SessionReplayScrubService.scrubEvents(events, [hashRule]);
+
+    expect((events[0] as JSONObject)["text"]).toBe("mail [REDACTED]");
+  });
+
+  test("an IP Address rule hides a public address in a recording and keeps a private one (#10393)", async () => {
+    const ipRule: CompiledScrubRule = {
+      rule: {
+        projectId: PROJECT_ID,
+        patternType: LogScrubPatternType.IPAddress,
+        scrubAction: LogScrubAction.Hash,
+      } as unknown as LogScrubRule,
+      regex: ScrubIpAddress.toScrubRegExp(),
+    };
+    const events: Array<JSONValue> = [
+      { text: "Your address: 2001:4860:4860::8888" },
+      { text: "Router: 192.168.0.1, peer ::ffff:8.8.8.8" },
+    ];
+
+    await SessionReplayScrubService.scrubEvents(events, [ipRule]);
+
+    const texts: Array<JSONObject> = events as Array<JSONObject>;
+
+    expect(texts[0]!["text"]).toBe(
+      `Your address: ${ScrubHashToken.ofIpAddress({
+        projectId: PROJECT_ID,
+        address: "2001:4860:4860::8888",
+      })}`,
+    );
+    // An IPv4 address written as IPv6 is the IPv4 address: one token for both.
+    expect(texts[1]!["text"]).toBe(
+      `Router: 192.168.0.1, peer ${ScrubHashToken.ofIpAddress({
+        projectId: PROJECT_ID,
+        address: "8.8.8.8",
+      })}`,
     );
   });
 

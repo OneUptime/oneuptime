@@ -272,6 +272,13 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     bgColor: "bg-cyan-50 border-cyan-100",
     viewRoute: PageMap.TEAM_VIEW,
   },
+  // A custom role, and what rolls up to it: the permissions it gives (#10293).
+  "Custom Role": {
+    icon: IconProp.Identification,
+    color: "text-violet-700",
+    bgColor: "bg-violet-50 border-violet-100",
+    viewRoute: PageMap.TEAM_ROLE_VIEW,
+  },
   Probe: {
     icon: IconProp.Signal,
     color: "text-emerald-700",
@@ -693,16 +700,16 @@ export const getAuditLogWorkflowRanAs: (
     AuditLog,
     | "workflowRunAs"
     | "workflowRunAsCustomRoleName"
-    | "workflowRunAsGivenByName"
-    | "workflowRunAsGivenByApiKeyId"
+    | "workflowRunAsGiverName"
+    | "workflowRunAsGiverApiKeyId"
   >,
 ) => WorkflowRunRanAs | null = (
   entry: Pick<
     AuditLog,
     | "workflowRunAs"
     | "workflowRunAsCustomRoleName"
-    | "workflowRunAsGivenByName"
-    | "workflowRunAsGivenByApiKeyId"
+    | "workflowRunAsGiverName"
+    | "workflowRunAsGiverApiKeyId"
   >,
 ): WorkflowRunRanAs | null => {
   if (!entry.workflowRunAs) {
@@ -722,8 +729,8 @@ export const getAuditLogWorkflowRanAs: (
   return {
     runAs: runAs,
     roleName: entry.workflowRunAsCustomRoleName || null,
-    givenBy: entry.workflowRunAsGivenByName || null,
-    isGivenByApiKey: Boolean(entry.workflowRunAsGivenByApiKeyId),
+    givenBy: entry.workflowRunAsGiverName || null,
+    isGivenByApiKey: Boolean(entry.workflowRunAsGiverApiKeyId),
   };
 };
 

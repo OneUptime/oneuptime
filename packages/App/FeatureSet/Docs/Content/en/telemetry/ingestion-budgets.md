@@ -6,6 +6,7 @@ An ingestion budget caps how much telemetry a project sends in a day, so one noi
 - [How budgets work](#how-budgets-work): Three levels, counted as telemetry arrives.
 - [Set every project's default budgets](#set-every-projects-default-budgets): In the Admin Dashboard's settings.
 - [Give an ingestion key its own budget](#give-an-ingestion-key-its-own-budget): A share of the project's budget.
+- [Give a team or a label its own budget](#give-a-team-or-a-label-its-own-budget): For the services it owns or is on.
 - [Alert on a budget](#alert-on-a-budget): Before it is used up, and when it is.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **For the instance's and a project's budgets, the Admin Dashboard.** On a self-hosted installation, only the instance admin sets them. Project Owners and Project Admins see a project's budgets, but cannot change them.
 - **For a key's own budget, a role that edits ingestion keys.** Project Owner or Project Admin, or a custom role with the Edit Ingestion Key permission.
+- **For a team's or a label's budget, Project Owner or Project Admin.**
 - **To see the budgets, a role that sees the project's usage.** The roles that see the [Telemetry Usage](/docs/telemetry/usage) page see its budgets on it.
 
 ## Set every project's default budgets
@@ -94,6 +96,30 @@ Click **Save Changes**. A key's budget cannot be more than its project's: OneUpt
 - **Both budgets count.** Telemetry sent with the key counts against the key's budget and the project's, and whichever is used up first refuses it.
 - **A lowered project budget holds the key too.** When the project's budget is lowered below a key's, the key is held to the project's.
 
+## Give a team or a label its own budget
+
+A team's or a label's budget is a share of its project's too, for the services the team owns or the label is on: one team's runaway service stops at its team's budget, while the rest of the project keeps sending, even through the same collector and ingestion key.
+
+:::steps
+### Open the Usage page
+
+Go to **Project Settings → Telemetry & APM → Usage**, and open **More settings** at the end of the page.
+
+### Add the budget
+
+On the **Team and Label Budgets** card, click **Create Budget**. Choose the team or the label in **Team or Label**, and enter a number of GB per day in **Logs (GB per day)**. The other signals are under **More fields**. Leave a signal empty for no budget of its own.
+
+### Save the budget
+
+Click **Create Budget**. A team's or a label's budget cannot be more than its project's: OneUptime refuses it and says the most it can be.
+:::
+
+- **What it counts.** The logs, traces, metrics and profiles that the services the team owns, or the services with the label, send over OpenTelemetry (OTLP). Telemetry of hosts and other resources, security events, and logs from Fluent Bit, Fluentd or syslog count against the project's and the key's budgets only.
+- **Once it is used up, the telemetry is dropped.** The services' telemetry of that signal is dropped until the reset, and the sender is not told: it was answered when the telemetry arrived. What is dropped no longer counts against the project's or the key's budget.
+- **Who is told.** The Project Owners get an email when the budget passes the warning threshold, and when it is used up.
+- **A daily budget only.** A team or a label has no rate limit.
+- **Every budget counts.** A service's telemetry counts against the budgets of its teams and its labels, and of the key and the project, and whichever is used up first stops it. When the project's budget is lowered below a team's or a label's, it is held to the project's.
+
 ## What senders see
 
 | When | Over HTTP | Over OTLP/gRPC | What the sender does |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Other HTTP senders get JSON.** Fluent Bit, Fluentd, syslog and the other HTTP endpoints get `error`, `message` and `resetsAt`, and `retryAfterSeconds` from a rate limit.
 - **MQTT and cloud streams cannot be told.** Telemetry that arrives over MQTT or from a cloud provider's stream is dropped once its budget is used up. No rate limit applies to it: it could not be sent again.
+- **Neither can the services of a team or a label.** Once a team's or a label's budget is used up, their telemetry is accepted, then dropped: see [Give a team or a label its own budget](#give-a-team-or-a-label-its-own-budget).
 - **Refusals are counted.** What a used-up budget refuses or drops is counted as dropped, and each request a rate limit refuses as throttled: see [See today's usage and drops](#see-todays-usage-and-drops).
 
 ## The warning and the reset
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## See today's usage and drops
 
-Go to **Project Settings → Telemetry & APM → Usage**. While a budget or a rate limit is set for the project, the page opens with the **Ingestion Budgets** card, and the keys with budgets of their own are on the **Ingestion Key Budgets** card:
+Go to **Project Settings → Telemetry & APM → Usage**. While a budget or a rate limit is set for the project, the page opens with the **Ingestion Budgets** card, the keys with budgets of their own are on the **Ingestion Key Budgets** card, and the teams and labels with budgets of their own on the **Team and Label Budgets Today** card:
 
 | Column | What it shows |
 | --- | --- |
 | **Signal** | The signal the row is for. |
 | **Used Today** | What was counted since the budget day started, and its share of the budget. |
-| **Daily Budget** | The budget in force, and where it was set: **Instance default**, **Set for this project** or **This key's own**. |
+| **Daily Budget** | The budget in force, and where it was set: **Instance default**, **Set for this project**, **This key's own**, **This team's own** or **This label's own**. |
 | **Rate Limit** | The rate limit in force. |
 | **Dropped** | What was refused or dropped because the budget was used up. |
 | **Throttled** | How many requests the rate limit refused. |
 | **Status** | **Within budget**, **Past warning** or **Used up**, **No daily budget** for a signal with only a rate limit, and **Unknown** while the counts cannot be read. |
 
 - **On a key's page**, the **Today's Budget Usage** card shows what the key used of its own budgets.
-- **In the explorers**, a banner above the Logs, Traces, Metrics, Profiles and Security Events data says when that signal's budget is past its warning or used up, with **See budgets** to open the Usage page.
+- **In the explorers**, a banner above the Logs, Traces, Metrics, Profiles and Security Events data says when that signal's budget is past its warning or used up, or a key's, a team's or a label's is used up, with **See budgets** to open the Usage page.
 - **In the Admin Dashboard**, a project's **Ingestion Budgets** page shows the same figures.
 
 ## Alert on a budget
@@ -153,9 +180,13 @@ Each point carries these attributes:
 | --- | --- |
 | `projectId` | The ID of the project. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` or `security-events`. |
-| `scope` | `project`, or `ingestion-key` for a key's own budget. |
+| `scope` | `project`, `ingestion-key` for a key's own budget, or `team` or `label` for a team's or a label's. |
 | `ingestionKeyId` | The ID of the key, for a key's own budget. |
 | `ingestionKeyName` | The name of the key when the point was written, for a key's own budget. |
+| `teamId` | The ID of the team, for a team's budget. |
+| `teamName` | The name of the team when the point was written, for a team's budget. |
+| `labelId` | The ID of the label, for a label's budget. |
+| `labelName` | The name of the label when the point was written, for a label's budget. |
 
 To be told at 90% of the project's logs budget, create a Metrics Monitor on `oneuptime.telemetry.budget.used.percent`, filtered on `signal` `logs` and `scope` `project`, that alerts when the maximum is above 90:
 
@@ -168,6 +199,10 @@ To be told at 90% of the project's logs budget, create a Metrics Monitor on `one
 
 :::details A collector logs 403 for its exports
 The project's or the key's daily budget for that signal is used up, and the collector drops what it cannot send until the budget resets. See **Used Today** on the Usage page. Ask the instance admin to raise the project's budget, or send less: a drop filter does not help here, as it removes telemetry after it is counted.
+:::
+
+:::details A team's telemetry stopped arriving, and no sender logs an error
+The daily budget of the team, or of a label on its services, is used up for that signal, and their telemetry is dropped until the budget resets. See **Used Today** on the **Team and Label Budgets Today** card on the Usage page, and raise the budget under **More settings**.
 :::
 
 :::details A collector logs 429 and retries

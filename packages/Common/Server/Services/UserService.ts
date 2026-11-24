@@ -14,7 +14,6 @@ import OwnerOnlyColumnPermission from "../Types/Database/Permissions/OwnerOnlyCo
 import Attribution, { SignUpAttribution } from "../Utils/Attribution";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
-import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import MailService from "./MailService";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import RequestOriginUtil, {
@@ -48,7 +47,6 @@ import HashedString from "../../Types/HashedString";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Text from "../../Types/Text";
-import EmailVerificationToken from "../../Models/DatabaseModels/EmailVerificationToken";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import Model from "../../Models/DatabaseModels/User";
 import OperatorSlackNotice from "../Utils/OperatorSlackNotice";
@@ -100,20 +98,38 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
-import EmailChangeConfirmation from "../Utils/EmailChange/EmailChangeConfirmation";
+import EmailChangeConfirmation, {
+  EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
+} from "../Utils/EmailChange/EmailChangeConfirmation";
+import EmailAddressChangedNotice from "../Utils/EmailChange/EmailAddressChangedNotice";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
+import { ReauthenticationPurpose } from "../../Types/Accounts/Reauthentication";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  getEmailAddressChanger,
+} from "../../Types/Accounts/EmailAddressChangedEmail";
 import RequestOrigin from "../../Types/RequestOrigin";
 
 /*
  * A person's own change of address, held for the new address to confirm
  * (#9821, Utils/EmailChange/EmailChangeConfirmation): found by
- * onBeforeUpdate, sent for by onUpdateSuccess once the update has been
- * answered. Keyed by the update, which both hooks are handed.
+ * onBeforeUpdate, its link's expiry written by onUpdatePermitted, sent for
+ * by onUpdateSuccess once the update has been answered. Keyed by the update,
+ * which every hook is handed.
  */
 interface PendingEmailChange {
   userId: ObjectID;
   newEmail: Email;
   timezone: Timezone | null | undefined;
+  // The asking account's language: its link is written in it (#10157).
+  language: string | null | undefined;
   origin: RequestOrigin | undefined;
+  /*
+   * When the link stops working (#9908): kept on the account with the
+   * waiting address, for User Profile, and given to the link itself, so the
+   * two end at the same moment.
+   */
+  linkExpires: Date;
 }
 
 const pendingEmailChanges: WeakMap<
@@ -635,6 +651,27 @@ export class Service extends DatabaseService<Model> {
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);
 
     /*
+     * Who is a master admin decides who runs this server: one can change how
+     * anyone signs in, from the Admin Dashboard. So a master admin's session
+     * confirms it's theirs before it makes anyone one, or stops anyone being
+     * one (#10216, Admin Dashboard > Users > Settings) - or whoever held a
+     * master admin's session, without their password, could make an account
+     * of their own a master admin and confirm as that. Only a master admin
+     * may write the column; anyone else is refused by its permissions.
+     * Asked before anything below reads or writes.
+     */
+    if (
+      !updateBy.props.isRoot &&
+      updateBy.props.isMasterAdmin &&
+      updateBy.data.isMasterAdmin !== undefined
+    ) {
+      await Reauthentication.assertConfirmed(
+        updateBy.props,
+        ReauthenticationPurpose.AdminChange,
+      );
+    }
+
+    /*
      * Two factor authentication is switched by its owner alone, outside the
      * Admin Dashboard: this hook runs before row scoping, so the update must
      * name the caller's own account by an exact predicate. A master admin
@@ -674,6 +711,19 @@ export class Service extends DatabaseService<Model> {
 
       if (turnsTwoFactorAuthOn) {
         await this.assertTwoFactorAuthMayBeTurnedOn(updateBy.props.userId!);
+      }
+
+      /*
+       * Turning it off takes the second step out of every sign-in, and out
+       * of the confirmation every other change to how they sign in asks
+       * for: so it waits for one too (#10155). Turning it on gives nobody
+       * anything - it asks for steps already set up - and asks nothing.
+       */
+      if (
+        turnsTwoFactorAuthOff &&
+        (await this.isTwoFactorAuthOn(updateBy.props.userId!))
+      ) {
+        await Reauthentication.assertConfirmed(updateBy.props);
       }
     }
 
@@ -718,6 +768,11 @@ export class Service extends DatabaseService<Model> {
           // "Your password was changed" says when in the owner's own zone.
           timezone: true,
           /*
+           * And the email to the address an account had, once it changed
+           * (#9907), is in the owner's own language.
+           */
+          language: true,
+          /*
            * Whether there was a password to change: an invited account has
            * none until the person signs up, and its first one is no change
            * (onUpdateSuccess, #7472). Read only for a password write.
@@ -728,6 +783,15 @@ export class Service extends DatabaseService<Model> {
 
       carryForward = users;
     }
+
+    /*
+     * A new password or a new address waits until the caller's session has
+     * confirmed it's theirs: for their own account (#10155), and for
+     * anyone else's, which only a master admin may write (#10216). After
+     * the rules a refused value is told (the password's, single sign-on's)
+     * and before anything below counts, sends or writes.
+     */
+    await this.assertSignInChangeIsConfirmed(updateBy, carryForward);
 
     /*
      * A person's own new address waits for the address to confirm it
@@ -746,6 +810,103 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * A SESSION ALONE NO LONGER CHANGES HOW ANYONE SIGNS IN (#10155, #10216).
+   *
+   * A new password, or a new email address, is refused until the caller's
+   * session has confirmed it's its person's (Utils/Reauthentication): the
+   * password, and its second step while two-factor authentication is on; a
+   * passkey; or, for an account with neither, a sign-in that proved its
+   * person was asked. The refusal changes nothing, so the same write goes
+   * through once it has:
+   *
+   *   - for the account the caller is signed in as - asked from the
+   *     profile, PUT /api/user/:id, the mobile app or anything else a
+   *     session reaches (#10155);
+   *   - for anybody else's, which only a master admin may write - Admin
+   *     Dashboard > Users, or PUT /api/user/:id (#10216). Their session's
+   *     own confirmation: whoever holds a master admin's session, without
+   *     their password, can no longer move someone's account to a mailbox
+   *     they read, or set its password. The master API key has no session,
+   *     and is refused (Reauthentication.getSessionOf).
+   *
+   * Only a change: the address an account already has, which every save of
+   * the profile's form sends, asks nothing. A root write is the server's own
+   * - a reset link, the link that confirms an address, SCIM, single sign-on
+   * - and is not asked. `rows` are the rows the write may change, as
+   * onBeforeUpdate read them: only those the caller may write.
+   *
+   * A server that cannot send the email that confirms a person's own new
+   * address refuses that change before asking for anything
+   * (EmailChangeConfirmation): nobody is asked to confirm for a change that
+   * cannot happen.
+   */
+  private async assertSignInChangeIsConfirmed(
+    updateBy: UpdateBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
+    if (updateBy.props.isRoot || !updateBy.props.userId) {
+      return;
+    }
+
+    const callerId: string = updateBy.props.userId.toString().toLowerCase();
+    const changesPassword: boolean = Boolean(updateBy.data.password);
+
+    const changing: Array<Model> = rows.filter((row: Model): boolean => {
+      return (
+        changesPassword ||
+        (Boolean(updateBy.data.email) &&
+          row.email?.toString().toLowerCase() !==
+            String(updateBy.data.email).trim().toLowerCase())
+      );
+    });
+
+    if (changing.length === 0) {
+      return;
+    }
+
+    const changesSomeoneElse: boolean = changing.some((row: Model): boolean => {
+      return row.id?.toString().toLowerCase() !== callerId;
+    });
+
+    if (changesSomeoneElse) {
+      await Reauthentication.assertConfirmed(
+        updateBy.props,
+        ReauthenticationPurpose.AdminChange,
+      );
+      return;
+    }
+
+    // Every row changing is the caller's own here: their account.
+    const own: Model | undefined = changing[0];
+    const changesEmail: boolean =
+      Boolean(updateBy.data.email) &&
+      own?.email?.toString().toLowerCase() !==
+        String(updateBy.data.email).trim().toLowerCase();
+
+    if (changesEmail && !updateBy.props.isMasterAdmin) {
+      await EmailChangeConfirmation.assertCanConfirm();
+    }
+
+    await Reauthentication.assertConfirmed(updateBy.props);
+  }
+
+  // Whether two-factor authentication is on for this account now.
+  private async isTwoFactorAuthOn(userId: ObjectID): Promise<boolean> {
+    const user: Model | null = await this.findOneById({
+      id: userId,
+      select: {
+        _id: true,
+        enableTwoFactorAuth: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return user?.enableTwoFactorAuth === true;
   }
 
   /*
@@ -829,7 +990,11 @@ export class Service extends DatabaseService<Model> {
       userId: own.id,
       newEmail: requested,
       timezone: own.timezone,
+      language: own.language,
       origin: updateBy.props.requestOrigin,
+      linkExpires: OneUptimeDate.getSomeHoursAfter(
+        EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
+      ),
     });
   }
 
@@ -862,9 +1027,10 @@ export class Service extends DatabaseService<Model> {
     pending: PendingEmailChange,
   ): Promise<void> {
     try {
+      // And, for the email that says it is taken, its own person's language.
       const holder: Model | null = await this.findOneBy({
         query: { email: pending.newEmail },
-        select: { _id: true },
+        select: { _id: true, language: true, timezone: true },
         props: { isRoot: true },
       });
 
@@ -874,6 +1040,16 @@ export class Service extends DatabaseService<Model> {
         isTaken: Boolean(holder),
         origin: pending.origin,
         timezone: pending.timezone,
+        language: pending.language,
+        ...(holder
+          ? {
+              holder: {
+                language: holder.language,
+                timezone: holder.timezone,
+              },
+            }
+          : {}),
+        linkExpires: pending.linkExpires,
       });
     } catch (err) {
       logger.error(err, { userId: pending.userId.toString() } as LogAttributes);
@@ -918,6 +1094,8 @@ export class Service extends DatabaseService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
+    this.writePendingEmailLinkExpiry(updateBy);
+
     if (!updateBy.data.password) {
       return;
     }
@@ -926,6 +1104,35 @@ export class Service extends DatabaseService<Model> {
     updateBy.data.resetPasswordExpires = null!;
     updateBy.data.magicLinkToken = null!;
     updateBy.data.magicLinkExpires = null!;
+  }
+
+  /*
+   * When a waiting address's link stops working (#9908), kept beside the
+   * address so User Profile can say it has expired: a held change writes
+   * its link's expiry - the same for a taken address as for a free one, as
+   * the rest of the held write is - and clearing the address (Cancel Change,
+   * the link's own write) clears it. OneUptime's column (update: []), so
+   * written here, once the caller's own columns have passed their check, as
+   * the links' columns above are.
+   */
+  private writePendingEmailLinkExpiry(updateBy: UpdateBy<Model>): void {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+    const pending: PendingEmailChange | undefined =
+      pendingEmailChanges.get(updateBy);
+
+    if (pending) {
+      data["newUnverifiedTemporaryEmailExpires"] = pending.linkExpires;
+      return;
+    }
+
+    const pendingAddress: unknown = data["newUnverifiedTemporaryEmail"];
+
+    if (pendingAddress === null || pendingAddress === "") {
+      data["newUnverifiedTemporaryEmailExpires"] = null;
+    }
   }
 
   /**
@@ -1179,7 +1386,51 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    await this.assertOwnAccountDeleteIsConfirmed(deleteBy, users);
+
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * DELETING YOUR OWN ACCOUNT WAITS UNTIL YOUR SESSION CONFIRMS IT'S YOU
+   * (#10220).
+   *
+   * Danger Zone > Delete Account, or DELETE /api/user/:id, deletes an
+   * account for good once it is in no project: the one change nobody
+   * recovers from. A session could leave each project and then delete the
+   * account; now the delete of the caller's own account is refused until
+   * their session has confirmed it's theirs (Utils/Reauthentication), as a
+   * change to how they sign in is. Asked after the rule that it is in no
+   * project, so nobody confirms for a delete that cannot happen, and before
+   * anything is deleted, so the same delete goes through once they have.
+   * The Dashboard asks and sends it again on its own.
+   *
+   * Root deletes, and a master admin's delete of somebody else's account
+   * (Admin Dashboard > Users > Delete), are as they were. `rows` are the
+   * rows the delete may remove, as onBeforeDelete read them.
+   */
+  private async assertOwnAccountDeleteIsConfirmed(
+    deleteBy: DeleteBy<Model>,
+    rows: Array<Model>,
+  ): Promise<void> {
+    if (deleteBy.props.isRoot || !deleteBy.props.userId) {
+      return;
+    }
+
+    const callerId: string = deleteBy.props.userId.toString().toLowerCase();
+
+    const deletesOwnAccount: boolean = rows.some((row: Model): boolean => {
+      return row.id?.toString().toLowerCase() === callerId;
+    });
+
+    if (!deletesOwnAccount) {
+      return;
+    }
+
+    await Reauthentication.assertConfirmed(
+      deleteBy.props,
+      ReauthenticationPurpose.DeleteAccount,
+    );
   }
 
   @CaptureSpan()
@@ -1420,7 +1671,6 @@ export class Service extends DatabaseService<Model> {
         select: {
           _id: true,
           email: true,
-          name: true,
         },
         props: {
           isRoot: true,
@@ -1429,50 +1679,34 @@ export class Service extends DatabaseService<Model> {
         skip: 0,
       });
 
+      const props: DatabaseCommonInteractionProps = onUpdate.updateBy.props;
+
       for (const user of onUpdate.carryForward) {
         const newUser: Model | undefined = newUsers.find((u: Model) => {
           return u._id?.toString() === user._id.toString();
         });
 
         if (newUser && newUser.email?.toString() !== user.email.toString()) {
-          // password changed, send password changed mail
-          const generatedToken: ObjectID = ObjectID.generate();
-
-          const emailVerificationToken: EmailVerificationToken =
-            new EmailVerificationToken();
-          emailVerificationToken.userId = user.id;
-          emailVerificationToken.email = newUser.email!;
-          emailVerificationToken.token = generatedToken;
-          emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
-
-          await EmailVerificationTokenService.create({
-            data: emailVerificationToken,
-            props: {
-              isRoot: true,
-            },
-          });
-
-          const host: Hostname = await DatabaseConfig.getHost();
-          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-          MailService.sendMail({
-            toEmail: newUser.email!,
-            subject: "You have changed your email. Please verify your email.",
-            isSubjectLiteral: true,
-            templateType: EmailTemplateType.EmailChanged,
-            vars: {
-              name: newUser.name!.toString(),
-              tokenVerifyUrl: new URL(
-                httpProtocol,
-                host,
-                new Route(AccountsRoute.toString()).addRoute(
-                  "/verify-email/" + generatedToken.toString(),
-                ),
-              ).toString(),
-              homeUrl: new URL(httpProtocol, host).toString(),
-            },
-          }).catch((err: Error) => {
-            logger.error(err, { userId: user.id?.toString() } as LogAttributes);
+          /*
+           * The link that proves the new address, saying who made the change
+           * - by role, as the email to the address it left does - and when,
+           * in the account's own language and time zone, as read before the
+           * write (#10157).
+           */
+          await EmailChangeConfirmation.sendVerificationOfNewAddress({
+            userId: user.id!,
+            newEmail: newUser.email!,
+            changedBy: getEmailAddressChanger({
+              isRoot: props.isRoot === true,
+              isMasterAdmin: props.isMasterAdmin === true,
+              callerUserId: props.userId?.toString(),
+              accountUserId: user.id!.toString(),
+              namedChanger:
+                onUpdate.updateBy.miscDataProps?.[EMAIL_ADDRESS_CHANGED_BY_KEY],
+            }),
+            at: OneUptimeDate.getCurrentDate(),
+            language: user.language,
+            timezone: user.timezone,
           });
 
           await this.updateOneBy({
@@ -1491,7 +1725,80 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    if (onUpdate && onUpdate.updateBy.data.email) {
+      this.tellPreviousAddressesOfChange(onUpdate, updatedItemIds);
+    }
+
     return onUpdate;
+  }
+
+  /*
+   * EVERY ADDRESS AN ACCOUNT LEAVES IS TOLD (#9907).
+   *
+   * An account whose address this write changed emails the address it had
+   * (Utils/EmailChange/EmailAddressChangedNotice): that it changed, to which
+   * address (masked), when, from where for the account's own change, and
+   * whom to ask if it was not them. Every way an address changes writes it
+   * here: the link that confirms a person's own change (#9821), a master
+   * admin's change, SCIM, any other write OneUptime makes. Asking for a
+   * change writes no address - it is held for its link (above) - so asking
+   * sends nothing to the old address; the link's write does.
+   *
+   * Once per account the write reached whose address it changed: a write
+   * of the address an account already has - SCIM and single sign-on send
+   * it again with every push and sign-in, the profile's form with every
+   * save - changes nothing and sends nothing, in any case. Who changed it
+   * comes from the write (getEmailAddressChanger): OneUptime's own names
+   * its changer in miscDataProps, which only a root write may.
+   *
+   * Never awaited: the answer does not wait on an email, and the sender
+   * never throws. A write made with `ignoreHooks: true` skips this, as it
+   * skips the links the address change ends (onBeforeUpdate): any new
+   * caller that writes `email` hook-free has to send it itself.
+   */
+  private tellPreviousAddressesOfChange(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): void {
+    const newEmail: Email = new Email(String(onUpdate.updateBy.data.email));
+    const props: DatabaseCommonInteractionProps = onUpdate.updateBy.props;
+    const written: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString().toLowerCase();
+      }),
+    );
+    const rows: Array<Model> = Array.isArray(onUpdate.carryForward)
+      ? (onUpdate.carryForward as Array<Model>)
+      : [];
+
+    for (const row of rows) {
+      if (
+        !row.id ||
+        !row.email ||
+        !written.has(row.id.toString().toLowerCase()) ||
+        row.email.toString().toLowerCase() === newEmail.toString().toLowerCase()
+      ) {
+        continue;
+      }
+
+      void EmailAddressChangedNotice.send({
+        userId: row.id,
+        previousEmail: row.email,
+        newEmail: newEmail,
+        changedBy: getEmailAddressChanger({
+          isRoot: props.isRoot === true,
+          isMasterAdmin: props.isMasterAdmin === true,
+          callerUserId: props.userId?.toString(),
+          accountUserId: row.id.toString(),
+          namedChanger:
+            onUpdate.updateBy.miscDataProps?.[EMAIL_ADDRESS_CHANGED_BY_KEY],
+        }),
+        origin: props.requestOrigin,
+        at: OneUptimeDate.getCurrentDate(),
+        language: row.language,
+        timezone: row.timezone,
+      });
+    }
   }
 
   /**

@@ -21,9 +21,11 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Models from "../../../Models/DatabaseModels/Index";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -426,7 +428,7 @@ describe("Terraform pages that need more care", () => {
     });
   });
 
-  test("a Kubernetes cluster's provider is left out of its configuration, and the page says why", () => {
+  test("a Kubernetes cluster's provider is left out of its configuration: OneUptime keeps it", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
     cluster.name = "production-us-east";
@@ -445,13 +447,40 @@ describe("Terraform pages that need more care", () => {
       }),
     );
 
-    expect(guide.steps[1]?.markdown).not.toMatch(/^\s*provider\s*=/m);
-    expect(guide.steps[1]?.markdown).toContain(
-      "Left out because Terraform reserves the name for its own use: `provider`.",
-    );
+    expect(guide.steps[1]?.markdown).not.toMatch(/^\s*provider(_value)?\s*=/m);
+    expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
   });
 
-  test("an inventory item's list page says why Terraform does not create them, and still imports them", () => {
+  test("a cloud account's configuration sets its provider as provider_value, which Terraform takes", () => {
+    const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+      DeveloperDocsPageType.Terraform,
+      context({
+        resource: getDeveloperDocsResource(CloudAccount),
+        record: {
+          id: "2a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+          displayName: "Production",
+          json: {
+            _id: "2a2b3c4d-1234-4b2c-9d8e-0123456789ab",
+            name: "Production",
+            provider: "aws",
+            accountId: "123456789012",
+          },
+        },
+      }),
+    );
+
+    expect(guide.steps[1]?.markdown).toMatch(/^\s*provider_value\s*= "aws"$/m);
+    expect(guide.steps[1]?.markdown).not.toContain("reserves the name");
+  });
+
+  /*
+   * Since #10020 an inventory item's key and source are OneUptime's alone
+   * (ServerOwned.Always): read only in the provider, so a create sends its
+   * type and name, and OneUptime works out the key from the name. Before,
+   * the key was required and OneUptime replaced it, so the page told people
+   * to create items elsewhere.
+   */
+  test("an inventory item's list page creates one by its type and name, says OneUptime works out its key, and still imports them", () => {
     const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
       DeveloperDocsPageType.Terraform,
       context({
@@ -461,12 +490,23 @@ describe("Terraform pages that need more care", () => {
         totalCount: 1,
       }),
     );
+    const create: string = guide.steps[1]?.markdown || "";
 
     expect(guide.notice).toBeUndefined();
     expect(guide.steps[1]?.title).toBe("Create an inventory item");
-    expect(guide.steps[1]?.markdown).toContain(
-      "OneUptime works out an inventory item's key from its name",
+    expect(create).toContain("OneUptime works out its key from its name.");
+    expect(create).toContain(
+      [
+        'resource "oneuptime_inventory_item" "stripe_payments_api" {',
+        '  display_name = "Stripe payments API"',
+        '  entity_type  = "external.service"',
+        '  description  = "Vendor-managed payments API. Sends no telemetry."',
+        "}",
+      ].join("\n"),
     );
+    // What only OneUptime writes is never written: the provider reads it.
+    expect(create).not.toMatch(/^\s*(entity_key|source)\s*=/m);
+    expect(create).not.toContain("add new ones in the dashboard");
     expect(guide.steps[2]?.markdown).toContain(
       "to = oneuptime_inventory_item.stripe_payments_api",
     );
@@ -664,6 +704,436 @@ describe("an incident's own API page", () => {
 
     expect(text).toContain("ApiKey: $ONEUPTIME_API_KEY");
     expect(text).not.toMatch(/ApiKey: [0-9a-f]{8}-/);
+  });
+
+  test("deletes it with a plain delete: an incident's delete says nothing besides the incident", () => {
+    const deleteStep: DeveloperDocsStep | undefined = guide.steps[3];
+
+    expect(deleteStep?.description).toBe("This deletes the incident for good.");
+    expect(deleteStep?.variants).toBeUndefined();
+    expect(deleteStep?.markdown).toContain(
+      `curl -X DELETE ${ORIGIN}/api/incident/${INCIDENT_ID}`,
+    );
+    expect(deleteStep?.markdown).not.toContain("-d ");
+  });
+});
+
+/*
+ * A custom role's delete says what the workflows that run as it run as
+ * instead (#10031): DeveloperDocsDeleteChoices.test.ts holds the step to
+ * the API, the CLI and every language.
+ */
+describe("a custom role's own API page", () => {
+  const ROLE_ID: string = "5a0e0000-0000-4000-8000-0000000000aa";
+  const guide: DeveloperDocsGuide = getDeveloperDocsGuide(
+    DeveloperDocsPageType.Api,
+    context({
+      resource: getDeveloperDocsResource(CustomRole),
+      record: {
+        id: ROLE_ID,
+        displayName: "Incident Automation",
+        json: { _id: ROLE_ID, name: "Incident Automation" },
+      },
+    }),
+  );
+
+  test("ends with a Delete it step that has a tab for each way, each with its request body", () => {
+    const deleteStep: DeveloperDocsStep | undefined =
+      guide.steps[guide.steps.length - 1];
+
+    expect(deleteStep?.title).toBe("Delete it");
+    expect(variantLabels(deleteStep?.variants)).toEqual([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    expect(deleteStep?.variants?.[0]?.markdown).not.toContain("miscDataProps");
+    expect(deleteStep?.variants?.[1]?.markdown).toContain(
+      '"workflowsRunAs": "Default"',
+    );
+    expect(deleteStep?.variants?.[2]?.markdown).toContain(
+      '"workflowsRunAsCustomRoleId": "<custom-role-id>"',
+    );
+  });
+});
+
+/*
+ * A CUSTOM ROLE'S OWN PAGES (#10139), as its registry entry, its profile
+ * and the shared builders write them. A role is its name and description;
+ * what it gives are rows of their own (CustomRolePermission), and so is
+ * each team given it (TeamCustomRole). What OneUptime keeps - how many
+ * permissions it holds, its slug - is read, never written into a
+ * configuration or a request. It has no labels of its own.
+ */
+describe("a custom role's own pages", () => {
+  const ROLE_ID: string = "5a0e0000-0000-4000-8000-0000000000aa";
+  const PLATFORM_TEAM: string = fixtureRecordId("Team", "Platform");
+
+  function roleJson(): JSONObject {
+    const role: CustomRole = new CustomRole();
+    role._id = ROLE_ID;
+    role.name = "Incident Responder";
+    role.description = "Declares, works and resolves incidents.";
+    role.slug = "incident-responder-5a0e";
+    role.permissionCount = 3;
+    return BaseModel.toJSON(role, CustomRole);
+  }
+
+  function roleGuide(
+    page: DeveloperDocsPageType,
+    overrides: Partial<DeveloperDocsGuideContext> = {},
+  ): DeveloperDocsGuide {
+    return getDeveloperDocsGuide(
+      page,
+      context({
+        resource: getDeveloperDocsResource(CustomRole),
+        record: {
+          id: ROLE_ID,
+          displayName: "Incident Responder",
+          json: roleJson(),
+        },
+        ...overrides,
+      }),
+    );
+  }
+
+  function variantOf(
+    variants: Array<{ label: string; markdown: string }> | undefined,
+    label: string,
+  ): string {
+    const found: { label: string; markdown: string } | undefined = (
+      variants || []
+    ).find((variant: { label: string }): boolean => {
+      return variant.label === label;
+    });
+
+    expect(found).toBeDefined();
+
+    return found!.markdown;
+  }
+
+  describe("Terraform", () => {
+    const guide: DeveloperDocsGuide = roleGuide(
+      DeveloperDocsPageType.Terraform,
+    );
+
+    test("connects, adds the role as it is, and imports it", () => {
+      expect(stepTitles(guide)).toEqual([
+        "Connect Terraform to OneUptime",
+        'Add the custom role "Incident Responder"',
+        "Import it",
+      ]);
+      expect(guide.steps[0]?.markdown).toContain(
+        "permission to manage custom roles",
+      );
+    });
+
+    test("its configuration is its name and description, and an import block by its ID", () => {
+      const markdown: string = guide.steps[1]?.markdown || "";
+
+      expect(markdown).toContain(
+        [
+          'resource "oneuptime_custom_role" "incident_responder" {',
+          '  name        = "Incident Responder"',
+          '  description = "Declares, works and resolves incidents."',
+          "}",
+        ].join("\n"),
+      );
+      expect(markdown).toContain(
+        [
+          "import {",
+          "  to = oneuptime_custom_role.incident_responder",
+          `  id = "${ROLE_ID}"`,
+          "}",
+        ].join("\n"),
+      );
+    });
+
+    test("never writes what OneUptime keeps, nor labels it does not have", () => {
+      const text: string = allText(guide);
+
+      expect(text).not.toContain("permission_count");
+      expect(text).not.toContain("slug");
+      expect(text).not.toContain("incident-responder-5a0e");
+      expect(text).not.toMatch(/\blabels\s*=/);
+      // Nor a delete's choices: no record's state says what its delete sends.
+      expect(guide.steps[1]?.markdown).not.toContain("workflows_run_as");
+    });
+
+    test("builds a permission and a team beside it, each a resource of its own that refers to it", () => {
+      expect(sectionTitles(guide)).toEqual(["Build on it"]);
+      expect(variantLabels(guide.sections[0]?.variants)).toEqual([
+        "Add a permission",
+        "Give it to a team",
+      ]);
+
+      const permission: string = variantOf(
+        guide.sections[0]?.variants,
+        "Add a permission",
+      );
+
+      // A permission's key, as it is: jsonencode() was for a JSON value (#10300).
+      expect(permission).toContain(
+        [
+          'resource "oneuptime_custom_role_permission" "incident_member" {',
+          "  custom_role_id = oneuptime_custom_role.incident_responder.id",
+          '  permission     = "IncidentMember"',
+          '  scope          = "All"',
+          "}",
+        ].join("\n"),
+      );
+      expect(permission).not.toContain("jsonencode");
+      // Who may: only what one could give a team, and never Project Owner.
+      expect(permission).toContain(
+        "You can put in only a permission you could give a team yourself, and never Project Owner.",
+      );
+
+      expect(
+        variantOf(guide.sections[0]?.variants, "Give it to a team"),
+      ).toContain(
+        [
+          'resource "oneuptime_team_custom_role" "team" {',
+          `  team_id        = "${PLATFORM_TEAM}" # Platform`,
+          "  custom_role_id = oneuptime_custom_role.incident_responder.id",
+          "}",
+        ].join("\n"),
+      );
+    });
+
+    test("with no team looked up, the team is a placeholder the recipe says to replace", () => {
+      const empty: DeveloperDocsGuide = roleGuide(
+        DeveloperDocsPageType.Terraform,
+        { live: getEmptyFixtureLiveData() },
+      );
+      const team: string = variantOf(
+        empty.sections[0]?.variants,
+        "Give it to a team",
+      );
+
+      expect(team).toContain(
+        "Replace the values in angle brackets with your own.",
+      );
+      expect(team).toMatch(/team_id\s+= "<[^"]+>"/);
+      expect(team).not.toContain(PLATFORM_TEAM);
+    });
+
+    test("folds the command-line import, the data source and OpenTofu, and links the role's reference", () => {
+      expect(topicTitles(guide)).toEqual([
+        "Import it from the command line instead",
+        "Read it without managing it",
+        "OpenTofu",
+      ]);
+      expect(
+        guide.links.map((link: { title: string }): string => {
+          return link.title;
+        }),
+      ).toContain("oneuptime_custom_role reference");
+    });
+  });
+
+  describe("Crossplane", () => {
+    const guide: DeveloperDocsGuide = roleGuide(
+      DeveloperDocsPageType.Crossplane,
+    );
+
+    test("its manifest is its name and description, taken over by its ID", () => {
+      const markdown: string = guide.steps[1]?.markdown || "";
+
+      expect(guide.steps[1]?.title).toBe(
+        'Add the custom role "Incident Responder"',
+      );
+      expect(markdown).toContain("kind: CustomRole");
+      expect(markdown).toContain(`crossplane.io/external-name: ${ROLE_ID}`);
+      expect(markdown).toContain(
+        [
+          "  forProvider:",
+          "    name: Incident Responder",
+          "    description: Declares, works and resolves incidents.",
+        ].join("\n"),
+      );
+    });
+
+    test("never writes what OneUptime keeps", () => {
+      const text: string = allText(guide);
+
+      expect(text).not.toContain("permissionCount");
+      expect(text).not.toContain("incident-responder-5a0e");
+      expect(text).not.toMatch(/\blabels:/);
+    });
+  });
+
+  describe("API", () => {
+    const guide: DeveloperDocsGuide = roleGuide(DeveloperDocsPageType.Api);
+
+    test("reads it, changes it, deletes it", () => {
+      expect(stepTitles(guide)).toEqual([
+        "Create an API key",
+        "Read it",
+        "Change it",
+        "Delete it",
+      ]);
+    });
+
+    test("reads how many permissions it holds, which OneUptime keeps, and shows it in the answer", () => {
+      const read: string = guide.steps[1]?.markdown || "";
+
+      expect(read).toContain('"permissionCount": true');
+      expect(read).toContain('"permissionCount": 3');
+      expect(read).toContain(
+        '"description": "Declares, works and resolves incidents."',
+      );
+      expect(read).not.toContain("slug");
+    });
+
+    test("changes only what a request may: never what OneUptime keeps", () => {
+      const change: string = guide.steps[2]?.markdown || "";
+
+      expect(change).toContain(
+        `curl -X PUT ${ORIGIN}/api/custom-role/${ROLE_ID}`,
+      );
+      expect(change).toContain(
+        '"description": "Updated with the OneUptime API."',
+      );
+      expect(change).not.toContain("permissionCount");
+    });
+
+    test("its common tasks: its permissions, adding one, and the workflows that run as it", () => {
+      expect(sectionTitles(guide)).toEqual(["Common tasks", "Endpoints"]);
+      expect(variantLabels(guide.sections[0]?.variants)).toEqual([
+        "Its permissions",
+        "Add a permission",
+        "Workflows that run as it",
+      ]);
+
+      const permissions: string = variantOf(
+        guide.sections[0]?.variants,
+        "Its permissions",
+      );
+
+      expect(permissions).toContain(
+        `${ORIGIN}/api/custom-role-permission/get-list?skip=0&limit=10`,
+      );
+      expect(permissions).toContain(`"customRoleId": "${ROLE_ID}"`);
+      expect(permissions).toContain('"permission": true');
+      expect(permissions).toContain('"scope": true');
+
+      const add: string = variantOf(
+        guide.sections[0]?.variants,
+        "Add a permission",
+      );
+
+      expect(add).toContain(
+        `curl -X POST ${ORIGIN}/api/custom-role-permission `,
+      );
+      expect(add).toContain(
+        [
+          '  "data": {',
+          `    "customRoleId": "${ROLE_ID}",`,
+          '    "permission": "IncidentMember",',
+          '    "scope": "All"',
+          "  }",
+        ].join("\n"),
+      );
+
+      const workflows: string = variantOf(
+        guide.sections[0]?.variants,
+        "Workflows that run as it",
+      );
+
+      expect(workflows).toContain(
+        `${ORIGIN}/api/workflow/get-list?skip=0&limit=10`,
+      );
+      expect(workflows).toContain(`"runAsCustomRoleId": "${ROLE_ID}"`);
+      // The step it sends the reader to, by its title.
+      expect(workflows).toContain("as Delete it shows");
+    });
+  });
+
+  describe("CLI", () => {
+    const guide: DeveloperDocsGuide = roleGuide(DeveloperDocsPageType.Cli);
+
+    test("reads it with the fields the API page asks for, and ends with Delete it and its flags", () => {
+      const read: DeveloperDocsStep | undefined = guide.steps.find(
+        (step: DeveloperDocsStep): boolean => {
+          return step.title === "Read it";
+        },
+      );
+
+      expect(read?.markdown).toContain(
+        "--fields name,description,permissionCount,createdAt",
+      );
+
+      const deleteStep: DeveloperDocsStep | undefined =
+        guide.steps[guide.steps.length - 1];
+
+      expect(deleteStep?.title).toBe("Delete it");
+      expect(variantLabels(deleteStep?.variants)).toEqual([
+        "No workflow runs as it",
+        "Default permissions",
+        "Another custom role",
+      ]);
+      expect(variantOf(deleteStep?.variants, "Default permissions")).toContain(
+        "--workflows-run-as Default",
+      );
+    });
+
+    test("writes its common tasks as the CLI's commands", () => {
+      const tasks: DeveloperDocsSection | undefined = guide.sections.find(
+        (section: DeveloperDocsSection): boolean => {
+          return section.title === "Common tasks";
+        },
+      );
+
+      expect(variantLabels(tasks?.variants)).toEqual([
+        "Its permissions",
+        "Add a permission",
+        "Workflows that run as it",
+      ]);
+      expect(variantOf(tasks?.variants, "Its permissions")).toContain(
+        "oneuptime custom-role-permission list",
+      );
+      expect(variantOf(tasks?.variants, "Its permissions")).toContain(
+        `--query '{"customRoleId":"${ROLE_ID}"}'`,
+      );
+      expect(variantOf(tasks?.variants, "Add a permission")).toContain(
+        "oneuptime custom-role-permission create",
+      );
+      expect(variantOf(tasks?.variants, "Add a permission")).toContain(
+        `--custom-role-id ${ROLE_ID}`,
+      );
+      // The key as it is, not the JSON string the flag once took (#10300).
+      expect(variantOf(tasks?.variants, "Add a permission")).toContain(
+        "--permission IncidentMember",
+      );
+      expect(variantOf(tasks?.variants, "Add a permission")).not.toContain(
+        `--permission '"IncidentMember"'`,
+      );
+      expect(variantOf(tasks?.variants, "Workflows that run as it")).toContain(
+        "oneuptime workflow list",
+      );
+      expect(variantOf(tasks?.variants, "Workflows that run as it")).toContain(
+        `"runAsCustomRoleId": "${ROLE_ID}"`,
+      );
+    });
+  });
+
+  describe("AI Assistants", () => {
+    const guide: DeveloperDocsGuide = roleGuide(
+      DeveloperDocsPageType.AiAssistants,
+    );
+
+    test("says the MCP server has no tools for custom roles, and asks about this role by its name and ID", () => {
+      expect(guide.notice).toBe(
+        "OneUptime's MCP server does not have tools for custom roles yet. An assistant that can run commands (Claude Code, Cursor, or GitHub Copilot in agent mode) can still work with this custom role through the REST API.",
+      );
+      expect(stepTitles(guide)).toEqual([
+        "Create an API key",
+        'Ask about the custom role "Incident Responder"',
+      ]);
+      expect(guide.steps[1]?.prompts?.[0]).toContain(
+        `the custom role "Incident Responder" (ID ${ROLE_ID})`,
+      );
+    });
   });
 });
 

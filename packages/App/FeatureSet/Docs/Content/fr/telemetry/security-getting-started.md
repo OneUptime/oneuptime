@@ -62,6 +62,7 @@ La carte **Vos journaux**, en haut de **Connexions**, ne demande aucune installa
 | AWS CloudTrail | Les connexions à la console, les modifications faites dans vos comptes AWS et les appels refusés par AWS |
 | Journaux d'audit Google Cloud | Les modifications faites dans vos projets Google Cloud, les appels refusés par Google, et les connexions Google Workspace partagées avec Google Cloud |
 | Journaux d'activité Azure et d'Entra ID | Les modifications faites dans vos abonnements Azure, les alertes de Defender for Cloud, et les connexions et modifications d'annuaire de Microsoft Entra ID |
+| Journaux Azure Key Vault, Storage et SQL | Secrets de Key Vault lus et modifiés, requêtes de stockage refusées, anonymes ou modifiant des données avec une SAS, et connexions, refus et modifications d'autorisations d'Azure SQL |
 | Piste d'audit OpenStack | Les connexions échouées, les attributions de rôles et les modifications dans Keystone, ce que le filtre d'audit a vu de chaque API, les groupes de sécurité ouverts à tout Internet et les images rendues publiques |
 | CEF | Les menaces, les connexions bloquées et les authentifications des pare-feu, IDS, WAF et autres produits de sécurité qui envoient le Common Event Format |
 | LEEF | La même chose depuis les produits qui envoient le Log Event Extended Format, comme beaucoup le font pour IBM QRadar |

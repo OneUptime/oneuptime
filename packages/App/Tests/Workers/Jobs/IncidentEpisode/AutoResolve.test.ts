@@ -3,6 +3,7 @@ import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingR
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import { EPISODE_RESOLVED_ALL_INCIDENTS_RESOLVED } from "Common/Utils/Monitor/StatusChangeNotes";
 
 /*
  * IncidentEpisode:AutoResolve (the line-for-line twin of
@@ -335,10 +336,15 @@ describe("IncidentEpisode:AutoResolve", () => {
         },
       ],
     ]);
+    /*
+     * As OneUptime, and saying why on the episode's State Timeline: never
+     * "Resolved via API." (#9959).
+     */
     expect(episodeService.resolveEpisode).toHaveBeenCalledWith(
       EPISODE_ID,
       undefined,
       false,
+      EPISODE_RESOLVED_ALL_INCIDENTS_RESOLVED,
     );
   });
 
@@ -363,6 +369,7 @@ describe("IncidentEpisode:AutoResolve", () => {
       EPISODE_ID,
       undefined,
       false,
+      EPISODE_RESOLVED_ALL_INCIDENTS_RESOLVED,
     );
     expect(mockMemberQuery).toHaveBeenCalledTimes(1);
     // THE regressions removed: a member read and an incident read per episode.

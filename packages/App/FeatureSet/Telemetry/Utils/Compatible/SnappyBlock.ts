@@ -39,6 +39,9 @@ const LITERAL: number = 0;
 const COPY_1_BYTE_OFFSET: number = 1;
 const COPY_2_BYTE_OFFSET: number = 2;
 
+// The longest copy an element can write (2- and 4-byte offset copies).
+const MAX_COPY_LENGTH: number = 64;
+
 export default class SnappyBlock {
   /*
    * The uncompressed length a block declares, without decompressing it:
@@ -58,6 +61,21 @@ export default class SnappyBlock {
 
     if (preamble.length > maxOutputBytes) {
       throw new SnappyTooLargeError(preamble.length, maxOutputBytes);
+    }
+
+    /*
+     * Nor is anything allocated for a length the elements that follow
+     * could never write: no element writes more than 64 bytes for every 3
+     * of its own (a copy with a 2-byte offset), so a few bytes that claim
+     * 30 MiB are refused here rather than held for a moment each.
+     */
+    if (
+      preamble.length >
+      Math.ceil((input.length - preamble.next) / 3) * MAX_COPY_LENGTH
+    ) {
+      throw new SnappyDecodeError(
+        "it declares more than its elements can write",
+      );
     }
 
     const output: Buffer = Buffer.allocUnsafe(preamble.length);

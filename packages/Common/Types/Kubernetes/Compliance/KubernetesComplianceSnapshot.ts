@@ -1,9 +1,14 @@
+import { KubernetesNodeBenchmarkBlock } from "../KubernetesNodeBenchmark";
+import { OneUptimeAgentComponent } from "./KubernetesAgentWorkloads";
 import { PodSecurity } from "../KubernetesPodSecurity";
 import {
   KubernetesNetworkPolicySpec,
   KubernetesServiceAccountSpec,
 } from "../KubernetesPolicyObjects";
-import { KubernetesComplianceObject } from "./KubernetesComplianceFinding";
+import {
+  KubernetesComplianceObject,
+  getComplianceObjectKey,
+} from "./KubernetesComplianceFinding";
 import {
   KubernetesComplianceBinding,
   KubernetesComplianceRole,
@@ -28,11 +33,45 @@ export interface KubernetesCompliancePod {
   security: PodSecurity | null;
   // Its containers' images, to tell a policy engine's pods.
   images: Array<string>;
+  // The OneUptime agent's component its workload is, when it is the agent's (#9929).
+  agentComponent?: OneUptimeAgentComponent | undefined;
+}
+
+/*
+ * A workload's pod template (#9880): what the pods it would run say about
+ * their security. Scored only while no pod of the workload runs - a
+ * Deployment or StatefulSet scaled to zero, a CronJob between runs, a
+ * DaemonSet that matches no node - as the pods it runs are what was
+ * admitted, and differ from the template while a rollout is under way.
+ */
+export interface KubernetesComplianceTemplate {
+  /*
+   * The workload: a Deployment, StatefulSet, DaemonSet, ReplicaSet nothing
+   * owns, Job no CronJob runs, CronJob or DeploymentConfig.
+   */
+  workload: KubernetesComplianceObject;
+  // What its pods would say; null for one stored before it was kept.
+  security: PodSecurity | null;
+  // The OneUptime agent's component the workload is, when it is the agent's (#9929).
+  agentComponent?: OneUptimeAgentComponent | undefined;
 }
 
 export interface KubernetesComplianceNamespace {
   name: string;
   labels: Record<string, string>;
+}
+
+/*
+ * One run of kube-bench on one node (#9873): what the pod the chart's
+ * CronJob ran there says it found. A node's earlier runs, kept by the Jobs'
+ * history, are runs too; the scoring takes each node's newest.
+ */
+export interface KubernetesComplianceNodeBenchmarkRun {
+  // The node it ran on.
+  node: string;
+  // The pod that ran it, in the agent's namespace.
+  pod: { namespace: string; name: string };
+  result: KubernetesNodeBenchmarkBlock;
 }
 
 export interface KubernetesComplianceServiceAccount {
@@ -53,6 +92,12 @@ export interface KubernetesComplianceSnapshot {
   // The cluster's platform, as the cluster's page names it: "EKS", "OpenShift"...
   provider: string | null;
   pods: Array<KubernetesCompliancePod>;
+  /*
+   * The cluster's workloads' pod templates (#9880). One whose workload runs
+   * a pod is not scored: its pods are. Absent from a snapshot read before
+   * templates were kept.
+   */
+  templates?: Array<KubernetesComplianceTemplate> | undefined;
   namespaces: Array<KubernetesComplianceNamespace>;
   roles: Array<KubernetesComplianceRole>;
   bindings: Array<KubernetesComplianceBinding>;
@@ -64,6 +109,42 @@ export interface KubernetesComplianceSnapshot {
    * so a cluster whose inventory holds none has an agent that does not.
    */
   hasPolicyObjects: boolean;
+  /*
+   * What kube-bench found on the nodes (#9873), when the chart's
+   * compliance.nodeBenchmark runs it: none, or absent, leaves the CIS
+   * benchmark's node and control plane controls not scored.
+   */
+  nodeBenchmarks?: Array<KubernetesComplianceNodeBenchmarkRun> | undefined;
+}
+
+/*
+ * The pod templates scored (#9880): those of the workloads no pod of the
+ * snapshot belongs to. A workload with pods - read or not yet read - is
+ * scored by its pods: they are what Kubernetes admitted, mutating webhooks
+ * and all, and a rollout under way runs some on the old template.
+ */
+export function getTemplatesToScore(
+  snapshot: Pick<KubernetesComplianceSnapshot, "pods" | "templates">,
+): Array<KubernetesComplianceTemplate> {
+  const running: Set<string> = new Set<string>(
+    snapshot.pods.map((pod: KubernetesCompliancePod): string => {
+      return getComplianceObjectKey(pod.workload);
+    }),
+  );
+  const seen: Set<string> = new Set<string>();
+
+  return (snapshot.templates || []).filter(
+    (template: KubernetesComplianceTemplate): boolean => {
+      const key: string = getComplianceObjectKey(template.workload);
+
+      if (running.has(key) || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    },
+  );
 }
 
 // The namespaces that run pods: the ones the namespace controls look at.

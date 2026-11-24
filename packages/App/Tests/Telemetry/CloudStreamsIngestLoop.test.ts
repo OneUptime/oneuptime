@@ -373,7 +373,8 @@ describe("streamed logs, through the real logs ingest", () => {
     expect(rows).toHaveLength(1);
     // The ingest says each level in its own word.
     expect(rows[0]!["severityText"]).toBe("Information");
-    expect(rows[0]!["body"]).toBe("SecretGet: Success (OK)");
+    // A key vault's own audit log is kept whole, for Your logs to read (#10110).
+    expect(JSON.parse(String(rows[0]!["body"]))).toEqual(vaultAuditRecord());
     expect(rows[0]!["attributes"]).toEqual(
       expect.objectContaining({
         "resource.cloud.resource_id": VAULT_ID,

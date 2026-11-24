@@ -396,6 +396,73 @@ describe("ResourceCommands", () => {
         }
       });
 
+      /*
+       * A create leaves out what only OneUptime writes - as a copy of a
+       * record read before carries it - and names it in its answer's
+       * X-OneUptime-Fields-Left-Out header (#10136): the CLI says so on
+       * standard error, and prints the record alone on standard output.
+       */
+      it("says which fields the create left out, on standard error, and prints only the record", async () => {
+        const errorSpy: jest.SpyInstance = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
+        mockExecuteApiRequest.mockImplementation(
+          async (opts: ApiRequestOptions): Promise<unknown> => {
+            opts.onAnswerHeaders?.({
+              "content-type": "application/json",
+              "x-oneuptime-fields-left-out": "createdByUserId, lastRollupAt",
+            });
+            return { _id: "new-123", name: "Copied" };
+          },
+        );
+
+        const program: Command = createProgramWithResources();
+        await program.parseAsync([
+          "node",
+          "test",
+          "incident",
+          "create",
+          "--data",
+          '{"name":"Copied","createdByUserId":"u1","lastRollupAt":"2026-11-19T10:00:00.000Z"}',
+        ]);
+
+        expect(process.exit).not.toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "OneUptime left out createdByUserId and lastRollupAt: only OneUptime writes them, so the new record has OneUptime's values.",
+          ),
+        );
+        for (const call of consoleLogSpy.mock.calls) {
+          expect(String(call[0])).not.toContain("OneUptime left out");
+        }
+      });
+
+      it("says nothing more when the create left nothing out", async () => {
+        const errorSpy: jest.SpyInstance = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => {});
+        mockExecuteApiRequest.mockImplementation(
+          async (opts: ApiRequestOptions): Promise<unknown> => {
+            opts.onAnswerHeaders?.({ "content-type": "application/json" });
+            return { _id: "new-123" };
+          },
+        );
+
+        const program: Command = createProgramWithResources();
+        await program.parseAsync([
+          "node",
+          "test",
+          "incident",
+          "create",
+          "--data",
+          '{"name":"New Incident"}',
+        ]);
+
+        for (const call of errorSpy.mock.calls) {
+          expect(String(call[0])).not.toContain("OneUptime left out");
+        }
+      });
+
       it("should error when neither --data nor --file is provided", async () => {
         const program: Command = createProgramWithResources();
         await program.parseAsync(["node", "test", "incident", "create"]);

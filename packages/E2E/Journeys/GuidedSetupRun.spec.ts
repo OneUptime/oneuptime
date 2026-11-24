@@ -120,16 +120,8 @@ async function openSetup(page: Page): Promise<void> {
   await expect(page.getByTestId("guided-setup")).toBeVisible();
 }
 
-/*
- * The browser forgets the run, as a private window, another device or
- * cleared site data would; the fixture's server keeps what the run made
- * (its writes live in the tab's sessionStorage). Then the page opens
- * again, on the setup's first step.
- */
-async function loseTheRunAndReload(
-  page: Page,
-  firstStep: string = "check",
-): Promise<void> {
+// The browser forgets its copy of the run, as cleared site data would.
+async function forgetTheBrowsersCopy(page: Page): Promise<void> {
   await page.evaluate((prefix: string) => {
     for (const key of Object.keys(window.localStorage)) {
       if (key.startsWith(prefix)) {
@@ -137,6 +129,26 @@ async function loseTheRunAndReload(
       }
     }
   }, RUN_KEY_PREFIX);
+}
+
+/*
+ * The run is lost everywhere: the browser's copy, and the server's (#7253)
+ * - an older Dashboard's run, kept only in a browser since cleared. The
+ * fixture's server keeps what the run made (its writes live in the tab's
+ * sessionStorage). Then the page opens again, on the setup's first step.
+ */
+async function loseTheRunAndReload(
+  page: Page,
+  firstStep: string = "check",
+): Promise<void> {
+  await forgetTheBrowsersCopy(page);
+  await page.evaluate(() => {
+    (
+      window as unknown as {
+        __journeyFixture: { guidedSetupRuns: { forget: () => void } };
+      }
+    ).__journeyFixture.guidedSetupRuns.forget();
+  });
   await page.reload();
   await expect(page.getByTestId("guided-setup")).toBeVisible();
   await expect
@@ -212,6 +224,46 @@ test("a reload goes back to the step the run was on, and makes nothing twice", a
   await expect(
     page.getByTestId("guided-setup-step-check-done-line"),
   ).toContainText("acme-commerce.example answered 200");
+  expect(await creates(page, "Monitor")).toBe(1);
+});
+
+/*
+ * THE RUN IS KEPT ON THE SERVER (#7253): a browser that lost its copy - a
+ * private window, another device, cleared site data - opens the setup at
+ * the step it was on, not at step 1 with an empty field, and the panel says
+ * what the run made.
+ */
+test("a run this browser lost but the server kept: the page opens at step 2, with what it made", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openSetup(page);
+  await checkAddress(page, "https://acme-commerce.example");
+  await page.getByTestId("guided-setup-check-continue").click();
+  await expect
+    .poll(async () => {
+      return await stepState(page, "who_is_told");
+    })
+    .toBe("open");
+  await expect(page.getByTestId("guided-setup-sync")).toHaveAttribute(
+    "data-sync",
+    "saved",
+  );
+
+  await forgetTheBrowsersCopy(page);
+  await page.reload();
+  await expect(page.getByTestId("guided-setup")).toBeVisible();
+
+  await expect
+    .poll(async () => {
+      return await stepState(page, "who_is_told");
+    })
+    .toBe("open");
+  expect(await stepState(page, "check")).toBe("done");
+  await expect(
+    page.getByTestId("guided-setup-resource-monitor"),
+  ).toHaveAttribute("data-status", "created");
   expect(await creates(page, "Monitor")).toBe(1);
 });
 

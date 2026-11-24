@@ -255,3 +255,53 @@ test("a recovered ship clears the error and stamps the success", async (): Promi
   assert.ok(status.lastShipOkAtMs >= before);
   assert.strictEqual(status.lastShipError, null);
 });
+
+/*
+ * #9969: a later reading of a window shipped before says it is one, on every
+ * chunk, so the server brings what it holds in line with it rather than skip
+ * a window it has.
+ */
+test("a correction says so on every chunk, under an identity of its own", async (): Promise<void> => {
+  const shipper: Shipper = new Shipper();
+
+  await shipper.ship(makeRows(3));
+  const firstId: string | undefined = recorded[0]!.payload.shipmentId;
+  // A first reading never says it is a correction.
+  for (const request of recorded) {
+    assert.strictEqual(request.payload.correction, undefined);
+  }
+
+  recorded = [];
+  await shipper.ship(makeRows(3), undefined, { correction: true });
+
+  assert.strictEqual(recorded.length, 2);
+  for (const request of recorded) {
+    assert.strictEqual(request.payload.correction, true);
+    assert.ok(request.payload.shipmentId);
+    assert.notStrictEqual(request.payload.shipmentId, firstId);
+  }
+  assert.strictEqual(
+    new Set(
+      recorded.map((request: RecordedRequest): string | undefined => {
+        return request.payload.shipmentId;
+      }),
+    ).size,
+    1,
+  );
+  assert.deepStrictEqual(
+    recorded.map((request: RecordedRequest): number | undefined => {
+      return request.payload.shipmentChunk;
+    }),
+    [0, 1],
+  );
+});
+
+test("a correction OneUptime refuses fails the ship, so the poller sends it again", async (): Promise<void> => {
+  statusScript = [500, 500, 500];
+  const shipper: Shipper = new Shipper();
+
+  await assert.rejects(
+    shipper.ship(makeRows(1), undefined, { correction: true }),
+    /HTTP 500/,
+  );
+});

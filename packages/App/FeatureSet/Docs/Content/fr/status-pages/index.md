@@ -98,7 +98,7 @@ Une fois une page de statut ouverte, son propre menu latéral gauche est répart
 | **Abonnés** | **Abonnés** (une seule page, avec un onglet par canal : E-mail, SMS, Slack, Microsoft Teams et Webhook), **Paramètres des abonnés**, **Journaux de notification** — ce qui a été envoyé aux abonnés. |
 | **Image de marque** | **Image de marque** (logo, titre, favicon, liens, pied de page, couleurs et langues, sur une seule page), **Domaines personnalisés**, **HTML, CSS et JavaScript**. |
 | **Sécurité** | **Accès** (qui peut voir la page), **Utilisateurs privés**, **Authentification unique** (un onglet pour SAML et un pour OIDC), **SCIM**. |
-| **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** — la page en tant que code. |
+| **Développeurs** | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistants IA** — la page en tant que code. |
 | **Avancé** | **MCP**, **Statut intégré**, **Rapports**, **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer la page de statut**. |
 
 Seules **Vue d'ensemble** et **Ressources**, ce que la page montre, sont ouvertes au départ. Toutes les autres sections sont repliées au départ, comme les sections peu utilisées de chaque menu de OneUptime : cliquez sur le titre d'une section pour afficher ses pages. Une section s'ouvre d'elle-même dès que vous êtes sur l'une de ses pages, comme **Paramètres** ou **Abonnés**.

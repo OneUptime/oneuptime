@@ -1,0 +1,369 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    },
+    {
+      "name": "DS_LOKI",
+      "label": "Loki",
+      "type": "datasource",
+      "pluginId": "loki",
+      "pluginName": "Loki"
+    }
+  ],
+  "__elements": {
+    "lib-requests": {
+      "name": "Requests per second",
+      "uid": "lib-requests",
+      "kind": 1,
+      "model": {
+        "type": "timeseries",
+        "title": "Requests per second",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by (handler) (rate(http_requests_total{job=\"$job\"}[$__rate_interval]))",
+            "legendFormat": "{{handler}}"
+          }
+        ]
+      }
+    }
+  },
+  "__requires": [
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus" },
+    { "type": "datasource", "id": "loki", "name": "Loki" },
+    { "type": "panel", "id": "timeseries", "name": "Time series" },
+    { "type": "panel", "id": "logs", "name": "Logs" }
+  ],
+  "title": "Checkout service",
+  "description": "Requests, errors and logs of the checkout service.",
+  "uid": "checkout",
+  "schemaVersion": 39,
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "label": "Job",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": { "query": "label_values(up, job)", "refId": "A" },
+        "current": { "text": "checkout", "value": "checkout" },
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(up{job=\"$job\"}, instance)",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "app",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+        "query": "label_values(app)",
+        "current": {},
+        "includeAll": false
+      },
+      {
+        "name": "quantile",
+        "type": "custom",
+        "query": "0.5,0.9,0.99",
+        "current": { "text": "0.99", "value": "0.99" }
+      },
+      {
+        "name": "window",
+        "type": "interval",
+        "query": "1m,5m,10m",
+        "auto": true
+      },
+      {
+        "name": "cluster",
+        "type": "constant",
+        "query": "eu-west-1",
+        "hide": 2
+      },
+      {
+        "name": "filters",
+        "type": "adhoc",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+      },
+      {
+        "name": "search",
+        "type": "textbox",
+        "query": "error"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Traffic",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error ratio",
+      "description": "Share of requests that failed.",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "fillOpacity": 10 }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_requests_total{job=\"$job\",instance=~\"$instance\",code=~\"5..\"}[$__rate_interval])) / sum(rate(http_requests_total{job=\"$job\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "errors"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Requests (last hour)",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "options": { "reduceOptions": { "calcs": ["sum"] } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 1000 },
+              { "color": "red", "value": 5000 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{job=\"$job\"}[1h]))",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "gauge",
+      "title": "p99 latency",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0, "max": 2 },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile($quantile, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"$job\"}[$__rate_interval])))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Requests by handler",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "libraryPanel": { "uid": "lib-requests", "name": "Requests per second" }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Old library panel",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "libraryPanel": { "uid": "lib-gone", "name": "Old library panel" }
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": true,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "panels": [
+        {
+          "id": 8,
+          "type": "logs",
+          "title": "Checkout errors",
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 18 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "{app=\"$app\", env=\"prod\", namespace=~\"shop|checkout\"} |= \"error\" != \"timeout\" | json | level=\"error\""
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "Log volume",
+          "datasource": { "type": "loki", "uid": "${DS_LOKI}" },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (level) (count_over_time({app=\"$app\", env=\"prod\"} |= \"error\" [$__interval]))"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Mixed sources",
+      "datasource": { "type": "datasource", "uid": "-- Mixed --" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "up{job=\"$job\"}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "mysql", "uid": "orders-db" },
+          "rawSql": "SELECT now() AS time, count(*) AS value FROM orders"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "__expr__", "uid": "__expr__" },
+          "type": "math",
+          "expression": "$A * 2"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "heatmap",
+      "title": "Latency heatmap",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (le) (rate(http_request_duration_seconds_bucket[$__rate_interval]))",
+          "format": "heatmap"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "text",
+      "title": "Runbook",
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 36 },
+      "options": {
+        "mode": "markdown",
+        "content": "Page **#checkout-oncall** before restarting pods."
+      }
+    },
+    {
+      "id": 13,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 40 },
+      "options": {
+        "mode": "html",
+        "content": "<b>Owner:</b> payments team"
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "CPU per instance",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "repeat": "instance",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+      "transformations": [{ "id": "organize", "options": {} }],
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(process_cpu_seconds_total{job=\"$job\",instance=~\"$instance\"}[$window])",
+          "legendFormat": "__auto",
+          "interval": "1m"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(process_cpu_seconds_total{job=\"$job\"}[$__rate_interval]) offset ${__from:date}",
+          "hide": false
+        },
+        {
+          "refId": "C",
+          "expr": "up",
+          "hide": true
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Unknown variable",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(errors_total{shard=\"$shard\"}[5m])"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Native histogram",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 52 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_avg(rate(http_request_duration_seconds[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "piechart",
+      "title": "Requests by code",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 52 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (code) (increase(http_requests_total{job=\"$job\"}[$__range]))",
+          "legendFormat": "{{code}}"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "alertlist",
+      "title": "Firing alerts",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 }
+    }
+  ]
+}

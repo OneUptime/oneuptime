@@ -16,19 +16,118 @@ export const DASHBOARD_REQUIRES_MASTER_PASSWORD_STORAGE_KEY: string =
   "dashboardRequiresMasterPassword";
 export const DASHBOARD_MASTER_PASSWORD_VALIDATED_STORAGE_KEY: string =
   "dashboardMasterPasswordValidated";
+/*
+ * Whether the dashboard asks its visitors to sign in (#10250), as its
+ * metadata said: the API client renews the session and sends a 401 to the
+ * sign-in page only then. Who is signed in is never kept: the server says
+ * it with every metadata answer, from the session's HttpOnly cookie.
+ */
+export const DASHBOARD_REQUIRES_SIGN_IN_STORAGE_KEY: string =
+  "dashboardRequiresSignIn";
+
+// The pages a visitor signs in on, after the dashboard's own path.
+export const PUBLIC_DASHBOARD_SIGN_IN_PATH: string = "/sign-in";
+export const PUBLIC_DASHBOARD_FORGOT_PASSWORD_PATH: string = "/forgot-password";
+export const PUBLIC_DASHBOARD_RESET_PASSWORD_PATH: string = "/reset-password";
 
 export default class PublicDashboardUtil {
   private static readonly AUTH_PATHS: Array<string> = [
     "/master-password",
     "/forbidden",
+    PUBLIC_DASHBOARD_SIGN_IN_PATH,
+    PUBLIC_DASHBOARD_FORGOT_PASSWORD_PATH,
+  ];
+
+  // A reset link's page carries its token after the path.
+  private static readonly AUTH_PATH_PREFIXES: Array<string> = [
+    `${PUBLIC_DASHBOARD_RESET_PASSWORD_PATH}/`,
   ];
 
   public static isAuthPath(path: string): boolean {
     const normalizedPath: string = path.toLowerCase().split("?")[0] || "";
 
-    return PublicDashboardUtil.AUTH_PATHS.some((authPath: string) => {
-      return normalizedPath === authPath || normalizedPath.endsWith(authPath);
-    });
+    return (
+      PublicDashboardUtil.AUTH_PATHS.some((authPath: string) => {
+        return normalizedPath === authPath || normalizedPath.endsWith(authPath);
+      }) ||
+      PublicDashboardUtil.AUTH_PATH_PREFIXES.some((prefix: string) => {
+        return normalizedPath.includes(prefix);
+      })
+    );
+  }
+
+  public static setRequiresSignIn(value: boolean): void {
+    PublicDashboardUtil.setDashboardItem(
+      DASHBOARD_REQUIRES_SIGN_IN_STORAGE_KEY,
+      value,
+    );
+  }
+
+  public static requiresSignIn(): boolean {
+    return PublicDashboardUtil.getDashboardItem(
+      DASHBOARD_REQUIRES_SIGN_IN_STORAGE_KEY,
+    );
+  }
+
+  /*
+   * The address of one of the dashboard's own pages, on whichever address
+   * the visitor uses: after /public-dashboard/<id> on OneUptime's own, at
+   * the root of a custom domain - with the link's own theme kept on it.
+   */
+  public static getPagePath(path: string): string {
+    const basePath: string = PublicDashboardUtil.isPreviewPage()
+      ? `/public-dashboard/${PublicDashboardUtil.getDashboardId()?.toString()}`
+      : "";
+
+    // The dashboard itself: the base path alone, or the domain's root.
+    if (path === "/") {
+      return basePath || "/";
+    }
+
+    return `${basePath}${path}`;
+  }
+
+  /*
+   * To the sign-in page, back to the address the visitor came to once they
+   * sign in - its query included, as the password prompt keeps it.
+   */
+  public static navigateToSignInPage(): void {
+    const currentPath: string = Navigation.getCurrentPath().toString();
+
+    if (PublicDashboardUtil.isAuthPath(currentPath)) {
+      return;
+    }
+
+    const currentAddress: string = `${currentPath}${Navigation.getQueryString()}`;
+    const redirectUrl: string = Navigation.isSafeInternalRoute(currentAddress)
+      ? currentAddress
+      : currentPath;
+
+    Navigation.navigate(
+      new Route(
+        PublicDashboardUtil.withLinkTheme(
+          `${PublicDashboardUtil.getPagePath(PUBLIC_DASHBOARD_SIGN_IN_PATH)}?redirectUrl=${encodeURIComponent(
+            redirectUrl,
+          )}`,
+        ),
+      ),
+      { forceNavigate: true },
+    );
+  }
+
+  // Where a visitor goes once they are signed in: where they came from, else the dashboard.
+  public static navigateAfterSignIn(): void {
+    const redirectUrl: string | null = PublicDashboardUtil.getSafeRedirectUrl();
+
+    Navigation.navigate(
+      new Route(
+        redirectUrl ||
+          PublicDashboardUtil.withLinkTheme(
+            PublicDashboardUtil.getPagePath("/") || "/",
+          ),
+      ),
+      { forceNavigate: true },
+    );
   }
 
   /*
@@ -213,6 +312,12 @@ export default class PublicDashboardUtil {
       errorResponse instanceof HTTPErrorResponse &&
       errorResponse.statusCode === 401
     ) {
+      // A dashboard that asks its visitors to sign in: its session ended.
+      if (PublicDashboardUtil.requiresSignIn()) {
+        PublicDashboardUtil.navigateToSignInPage();
+        return;
+      }
+
       if (
         PublicDashboardUtil.requiresMasterPassword() &&
         !PublicDashboardUtil.isMasterPasswordValidated()

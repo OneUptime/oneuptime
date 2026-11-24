@@ -22,7 +22,7 @@ import {
   readText,
 } from "../../LlmObservability/LlmProviderHttp";
 import { CloudReadBudgetSpent } from "../CloudConnectorTypes";
-import AzureArm from "./AzureArm";
+import { AzureCostReader, AzureCostThrottled } from "./AzureCostManagement";
 import {
   AZURE_COST_MANAGEMENT_API_VERSION,
   AZURE_COST_MAX_PAGES,
@@ -119,48 +119,44 @@ export function buildAzureCommitmentQuery(data: {
 /*
  * Every row of a query, followed to its last page, each as its columns
  * name it (lower case): { cost, pricingmodel, servicename, currency }.
+ * Each page is asked at the pace the tenant's quotas allow
+ * (AzureCostManagement).
  */
 export async function queryAzureCostRows(data: {
-  arm: AzureArm;
+  costs: AzureCostReader;
   subscriptionId: string;
   body: JSONObject;
   step: string;
 }): Promise<Array<Record<string, unknown>>> {
   const rows: Array<Record<string, unknown>> = [];
-  let url: string = `${data.arm.getManagementBaseUrl()}/subscriptions/${encodeURIComponent(
-    data.subscriptionId,
-  )}/providers/Microsoft.CostManagement/query?api-version=${AZURE_COST_MANAGEMENT_API_VERSION}`;
 
-  for (let page: number = 0; page < AZURE_COST_MAX_PAGES; page++) {
-    const answer: JSONObject = await data.arm.post(url, data.body, data.step);
-    const properties: JSONObject = readObject(answer["properties"]);
-    const columns: Array<string> = readArray(properties["columns"]).map(
-      (column: unknown): string => {
-        return readText(readObject(column)["name"]).toLowerCase();
-      },
-    );
+  await data.costs.query({
+    scope: `/subscriptions/${encodeURIComponent(data.subscriptionId)}`,
+    apiVersion: AZURE_COST_MANAGEMENT_API_VERSION,
+    body: data.body,
+    step: data.step,
+    maxPages: AZURE_COST_MAX_PAGES,
+    onPage: (properties: JSONObject): void => {
+      const columns: Array<string> = readArray(properties["columns"]).map(
+        (column: unknown): string => {
+          return readText(readObject(column)["name"]).toLowerCase();
+        },
+      );
 
-    for (const rawRow of readArray(properties["rows"])) {
-      const cells: Array<unknown> = Array.isArray(rawRow)
-        ? (rawRow as Array<unknown>)
-        : [];
-      const row: Record<string, unknown> = {};
+      for (const rawRow of readArray(properties["rows"])) {
+        const cells: Array<unknown> = Array.isArray(rawRow)
+          ? (rawRow as Array<unknown>)
+          : [];
+        const row: Record<string, unknown> = {};
 
-      columns.forEach((column: string, index: number): void => {
-        row[column] = cells[index];
-      });
+        columns.forEach((column: string, index: number): void => {
+          row[column] = cells[index];
+        });
 
-      rows.push(row);
-    }
-
-    const next: string = readText(properties["nextLink"]);
-
-    if (!next || next === url) {
-      return rows;
-    }
-
-    url = next;
-  }
+        rows.push(row);
+      }
+    },
+  });
 
   return rows;
 }
@@ -289,10 +285,13 @@ export function summarizeAzureCommitmentRows(data: {
 
 /*
  * A subscription's reservations and savings plans: read, or why not. A
- * refused credential is thrown, as every read throws it.
+ * refused credential is thrown, as every read throws it, and so is a read
+ * put off - Cost Management's limits (AzureCostThrottled), or the read's own
+ * (CloudReadBudgetSpent) - for the caller to stop at and read the rest
+ * first next time, while the subscription keeps the figures it had.
  */
 export async function readAzureCommitments(data: {
-  arm: AzureArm;
+  costs: AzureCostReader;
   subscriptionId: string;
   now: Date;
 }): Promise<CloudCommitmentSummary> {
@@ -304,7 +303,7 @@ export async function readAzureCommitments(data: {
 
   try {
     const usageRows: Array<Record<string, unknown>> = await queryAzureCostRows({
-      arm: data.arm,
+      costs: data.costs,
       subscriptionId: data.subscriptionId,
       body: buildAzureCommitmentQuery({
         window,
@@ -315,7 +314,7 @@ export async function readAzureCommitments(data: {
     });
     const chargeRows: Array<Record<string, unknown>> = await queryAzureCostRows(
       {
-        arm: data.arm,
+        costs: data.costs,
         subscriptionId: data.subscriptionId,
         body: buildAzureCommitmentQuery({
           window,
@@ -345,20 +344,16 @@ export async function readAzureCommitments(data: {
     };
   } catch (error) {
     if (
-      error instanceof LlmProviderError &&
-      error.kind === CloudConnectionFailureKind.Authentication
+      (error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication) ||
+      error instanceof AzureCostThrottled ||
+      error instanceof CloudReadBudgetSpent
     ) {
       throw error;
     }
 
     const failure: { state: CloudCostState; message: string } =
-      error instanceof CloudReadBudgetSpent
-        ? {
-            state: CloudCostState.Failed,
-            message:
-              "The read reached its limit before the commitments: they are read again tomorrow.",
-          }
-        : describeAzureCostFailure({ error, what: "costs" });
+      describeAzureCostFailure({ error, what: "costs" });
 
     return {
       ...base,

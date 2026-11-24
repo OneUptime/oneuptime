@@ -26,28 +26,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// deleteChoice is one choice a delete takes: its key in miscDataProps, the
+// DeleteChoice is one choice a delete takes: its key in miscDataProps, the
 // attribute that holds it, and what state holds.
-type deleteChoice struct {
-	key       string
-	attribute string
-	value     types.String
+type DeleteChoice struct {
+	Key       string
+	Attribute string
+	Value     types.String
 }
 
 // isSet says whether state holds a value for the choice.
-func (c deleteChoice) isSet() bool {
-	return !c.value.IsNull() && !c.value.IsUnknown() && strings.TrimSpace(c.value.ValueString()) != ""
+func (c DeleteChoice) isSet() bool {
+	return !c.Value.IsNull() && !c.Value.IsUnknown() && strings.TrimSpace(c.Value.ValueString()) != ""
 }
 
-// deleteChoicesBody is the DELETE's body for the choices state holds:
+// DeleteChoicesBody is the DELETE's body for the choices state holds:
 // {"miscDataProps": {...}}, or nil when none is set, so the delete is the
 // one it always was.
-func deleteChoicesBody(choices []deleteChoice) map[string]interface{} {
+func DeleteChoicesBody(choices []DeleteChoice) map[string]interface{} {
 	misc := map[string]interface{}{}
 
 	for _, choice := range choices {
 		if choice.isSet() {
-			misc[choice.key] = strings.TrimSpace(choice.value.ValueString())
+			misc[choice.Key] = strings.TrimSpace(choice.Value.ValueString())
 		}
 	}
 
@@ -58,12 +58,12 @@ func deleteChoicesBody(choices []deleteChoice) map[string]interface{} {
 	return map[string]interface{}{"miscDataProps": misc}
 }
 
-// deleteChoicesHint is what to add to a refused delete: `hint`, which says
+// DeleteChoicesHint is what to add to a refused delete: `hint`, which says
 // how to give the choice in Terraform, when OneUptime refused the delete for
 // a choice it needs - its words name miscDataProps.<key> - and the
 // configuration gave none. Empty otherwise: a delete that gave a choice was
 // refused for something the API's own words say.
-func deleteChoicesHint(err error, choices []deleteChoice, hint string) string {
+func DeleteChoicesHint(err error, choices []DeleteChoice, hint string) string {
 	if err == nil || hint == "" {
 		return ""
 	}
@@ -77,7 +77,7 @@ func deleteChoicesHint(err error, choices []deleteChoice, hint string) string {
 	message := err.Error()
 
 	for _, choice := range choices {
-		if strings.Contains(message, "miscDataProps."+choice.key) {
+		if strings.Contains(message, "miscDataProps."+choice.Key) {
 			return "\n\n" + hint
 		}
 	}
@@ -94,8 +94,8 @@ type deleteChoiceWithValidator struct {
 	value     string
 }
 
-// deleteChoiceRequiredWith is that validator.
-func deleteChoiceRequiredWith(attribute string, value string) validator.String {
+// DeleteChoiceRequiredWith is that validator.
+func DeleteChoiceRequiredWith(attribute string, value string) validator.String {
 	return deleteChoiceWithValidator{attribute: attribute, value: value}
 }
 

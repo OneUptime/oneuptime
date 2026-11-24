@@ -107,6 +107,8 @@ Under **Användare** klickar du på personen och sedan på **Team**.
 
 Klicka på **Bjud in**, välj **Team** och klicka på **Bjud in** i dialogen. En medlem är med i det nya teamet direkt. Den som inte har gått med ännu får en inbjudan till, och när den ena accepteras, accepteras båda.
 
+Ditt projekt mejlar en person högst en inbjudan i timmen. En inbjudan inom en timme efter det senaste mejlet, till ett annat team eller efter att du har tagit bort personen, skapas, men inget andra mejl skickas förrän personen accepterar eller avböjer en av dem. **Skicka inbjudan igen** i personens radmeny under **Användare** skickar fortfarande ett mejl.
+
 ### Ta bort personen från ett team
 
 Klicka på **Ta bort** i teamets rad. Om det är det sista teamet personen har gått med i tar borttagningen bort personen från projektet, och dialogen säger det innan något ändras.
@@ -139,7 +141,11 @@ I OneUptime Cloud har ett projekt på Free-planen plats för en person. Byt plan
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-En adress kan få 10 inbjudningar i timmen, till projekt och privata statussidor tillsammans, oavsett vem som skickar dem. Vänta en timme och bjud sedan in personen igen.
+Ditt projekt kan skicka 10 inbjudningar i timmen till en adress, till projektets team och privata statussidor tillsammans. Andra projekts inbjudningar räknas inte. Vänta en timme och bjud sedan in personen igen.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime skickar högst 50 inbjudningar i timmen till en adress från alla projekt tillsammans, och den här skulle gå över det. Inget skapades. Försök igen om en timme.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

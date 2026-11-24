@@ -163,7 +163,8 @@ jobs:
         working-directory: packages/App
         run: node node_modules/.bin/jest Tests/Dashboard/AuditLogScreensWordsExtracted.test.ts Tests/Dashboard/EnterpriseScreensWordsExtracted.test.ts --forceExit
       # App's docs facts that hold a page to code in ee/ as well as in core:
-      # the identity pages to the SCIM server and its pages, the SLO pages to
+      # the identity pages to the SCIM server and its pages, the SCIM guide's
+      # rule for who joins at once to the SCIM account policy, the SLO pages to
       # the audit log settings, the upgrading notes to the enterprise Health
       # dashboards, the licence period claims to ee/README.md, the span
       # metrics page to what ee/ holds, the RUM and Session Replay pages to
@@ -179,7 +180,7 @@ jobs:
       - name: Run App's docs facts that read ee/ with ee/ present
         if: ${{ !cancelled() && steps.install-common.outcome == 'success' && steps.install-app.outcome == 'success' }}
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryExplorersDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryAdminDocsFacts.test.ts Tests/FeatureSet/Docs/AdministrationDocsFacts.test.ts Tests/FeatureSet/Docs/AuditLogExportDocsFacts.test.ts Tests/FeatureSet/Docs/BackupsDocsFacts.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/ScimInvitesAlikeDocs.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryExplorersDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryAdminDocsFacts.test.ts Tests/FeatureSet/Docs/AdministrationDocsFacts.test.ts Tests/FeatureSet/Docs/AuditLogExportDocsFacts.test.ts Tests/FeatureSet/Docs/BackupsDocsFacts.test.ts --forceExit
       # App's guard that only the Builder's Run Workflow and Run just this step
       # hand the workflow queue a person - which is what lets a run start while
       # the workflow is off, as a test run - walks ee/ too, for any other code

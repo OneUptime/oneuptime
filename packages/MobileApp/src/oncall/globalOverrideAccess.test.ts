@@ -202,7 +202,7 @@ function header(data: {
 }
 
 describe("reading the project-permissions header", () => {
-  test("reads each row's permission, labels, scope and whether it blocks", () => {
+  test("reads each row's permission, labels, scope, whether it blocks, and the team it is granted on", () => {
     expect(
       readProjectPermissionRows(
         header({
@@ -231,6 +231,7 @@ describe("reading the project-permissions header", () => {
         labelIds: [{ _type: "ObjectID", value: TEAM_A_LABEL }],
         scope: "Labels",
         isBlockPermission: false,
+        teamId: "team-a",
       },
       {
         permission: "CreateOnCallDutyPolicyUserOverride",
@@ -239,6 +240,32 @@ describe("reading the project-permissions header", () => {
         isBlockPermission: true,
       },
     ]);
+  });
+
+  test("a row's team is read as the server writes it, or as plain text, in lower case; none is none", () => {
+    const rows: Array<ProjectPermissionRow> | null = readProjectPermissionRows(
+      header({
+        permissions: [
+          {
+            permission: "ManageTeamOnCallDutyPolicyUserOverride",
+            teamId: { _type: "ObjectID", value: "TEAM-PAYMENTS" },
+          },
+          {
+            permission: "ManageTeamOnCallDutyPolicyUserOverride",
+            teamId: " team-mobile ",
+          },
+          { permission: "ManageTeamOnCallDutyPolicyUserOverride", teamId: 7 },
+          { permission: "ManageTeamOnCallDutyPolicyUserOverride" },
+        ],
+      }),
+      PROJECT,
+    );
+
+    expect(
+      rows?.map((row: ProjectPermissionRow): string | null | undefined => {
+        return row.teamId;
+      }),
+    ).toEqual(["team-payments", "team-mobile", undefined, undefined]);
   });
 
   test("a row the server wrote without the block flag grants, as the server reads it", () => {

@@ -31,8 +31,37 @@ import OneUptimeDate from "Common/Types/Date";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import HostLogSessions from "../../../Components/Host/HostLogSessions";
+
+/*
+ * The line under the logs list's own "No logs found" (LogsEmptyHintsGuard):
+ * how a host's logs get here - from a log session's device once someone
+ * there allows it, from the Android agent, or from a server's collector.
+ * Keys, looked up where the list draws them.
+ */
+export const HOST_LOG_SESSION_NO_LINES: string = translationKey(
+  "No lines from this log session yet. They arrive within a minute of someone at the device allowing it.",
+);
+
+export const ANDROID_HOST_NO_LOGS: string = translationKey(
+  "The OneUptime Android agent sends this device's logs within a few minutes of starting.",
+);
+
+export const HOST_NO_LOGS: string = translationKey(
+  "Make sure your OTel collector forwards logs with the host.name resource attribute.",
+);
+
+export function getHostNoLogsMessage(
+  isAndroid: boolean,
+  shownSession: HostLogSession | null,
+): string {
+  if (shownSession) {
+    return HOST_LOG_SESSION_NO_LINES;
+  }
+
+  return isAndroid ? ANDROID_HOST_NO_LOGS : HOST_NO_LOGS;
+}
 
 const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
@@ -192,13 +221,7 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage={
-          shownSession
-            ? "No lines from this log session yet. They arrive within a minute of someone at the device allowing it."
-            : isAndroid
-              ? "The OneUptime Android agent sends this device's logs within a few minutes of starting."
-              : "Make sure your OTel collector forwards logs with the host.name resource attribute."
-        }
+        noLogsMessage={getHostNoLogsMessage(isAndroid, shownSession)}
       />
     </Fragment>
   );

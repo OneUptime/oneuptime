@@ -199,8 +199,9 @@ describe("the Go steps", () => {
 
   /*
    * Three of them link the Terraform provider's internal/provider, whose
-   * compile took the compiler to ~15 GB of a 16 GB CI runner without Go's
-   * memory limit (#7559).
+   * compile, as one package, took the compiler to ~15 GB of a 16 GB CI
+   * runner without Go's memory limit (#7559); the limit stays as a guard
+   * rail now that it is split (#7591).
    */
   test("run with the code generators first on PATH, no C library and Go's memory limit", () => {
     expect(

@@ -25,7 +25,9 @@ import { Translator } from "Common/Types/Translator";
  * "Reassigning...", a honeycomb tile's "Click to open" and the SLO chart's
  * "No history ..." notice, drawn in English with its full stop at the left.
  * The code already looked every one of them up; only the words were
- * missing.
+ * missing. The busy "Reassigning..." is drawn no more: since #10237 the
+ * Reassign dialog waits with its button's spinner, the button still saying
+ * "Reassign".
  *
  * Every string those surfaces draw is held here, as the extractor reads it
  * from their files: Persian words each one, or keeps it as written on
@@ -52,15 +54,21 @@ const SURFACE_FILES: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloComponent.tsx",
 ];
 
-// The words the reviews saw in English, by the issue's table.
+const SLO_NOTICE: string =
+  "No history for the selected time range — the SLO is evaluated every few minutes.";
+
+/*
+ * The words the reviews saw in English, by the issue's table, that the
+ * surfaces still draw: the busy Reassign's "Reassigning..." is its button's
+ * spinner now (#10237).
+ */
 const REVIEWED: ReadonlyArray<string> = [
   "Add monitor",
   "{{count}} resources are not on the grid",
   "Shown on the status page as",
   "Reassign",
-  "Reassigning...",
   "Click to open",
-  "No history for the selected time range — the SLO is evaluated every few minutes.",
+  SLO_NOTICE,
 ];
 
 const OFF_GRID: string = "{{count}} resources are not on the grid";
@@ -233,16 +241,17 @@ describe("the surfaces the right-to-left reviews met", () => {
   });
 
   test("the SLO notice is a Persian sentence that names the SLO and ends with its full stop", () => {
-    const notice: string = String(PERSIAN[REVIEWED[6] as string]);
+    const notice: string = String(PERSIAN[SLO_NOTICE]);
 
     expect(notice).toBe(
       "برای بازه زمانی انتخاب‌شده تاریخچه‌ای نیست — SLO هر چند دقیقه یک بار ارزیابی می‌شود.",
     );
   });
 
-  test("the role cards' Reassign button and its busy state say the same verb", () => {
+  test("the role cards' Reassign button says the same verb busy or not, as its dialog does", () => {
     expect(PERSIAN["Reassign"]).toBe("تخصیص دوباره");
-    expect(PERSIAN["Reassigning..."]).toBe("در حال تخصیص دوباره...");
+    // Busy, the dialog's button keeps its Reassign and spins (#10237).
+    expect(SURFACE_KEYS).not.toContain("Reassigning...");
     expect(String(PERSIAN["Reassign Role"])).toContain("تخصیص دوباره");
     expect(String(PERSIAN["Reassign {{role}} from {{member}}"])).toContain(
       "تخصیص دوباره",

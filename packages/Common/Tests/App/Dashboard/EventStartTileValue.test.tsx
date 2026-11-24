@@ -39,7 +39,7 @@ describe("EventStartTileValue", () => {
     );
 
     expect(screen.getByTestId("event-start-tile-value").textContent).toBe(
-      `Sep${NBSP}14, 06:01${NBSP}PM UTC`,
+      `Sep${NBSP}14, 6:01${NBSP}PM UTC`,
     );
 
     const zone: HTMLElement = screen.getByTestId("event-start-tile-zone");
@@ -133,8 +133,9 @@ describe("EventStartTileValue in another language", () => {
   });
 
   /*
-   * English writes the tile's 12-hour time with its zero ("06:01 PM", the
-   * tile's "hh:mm A"); no other language writes one there (issue #7279).
+   * No language writes a 12-hour time with its zero (issue #7279), English
+   * included since #7652: the tile asks for "h:mm A", "6:01 PM", where its
+   * "hh:mm A" wrote "06:01 PM".
    */
   test.each<[string, string]>([
     ["ko", `오후${NBSP}6:01`],
@@ -152,8 +153,11 @@ describe("EventStartTileValue in another language", () => {
     },
   );
 
-  test("English keeps the zero its own pattern writes", () => {
-    expect(valueIn("en")).toContain(`06:01${NBSP}PM`);
+  test("English writes it without the zero too (#7652)", () => {
+    const value: string = valueIn("en");
+
+    expect(value).toContain(`6:01${NBSP}PM`);
+    expect(value).not.toContain("06:01");
   });
 
   test("Persian joins them with the same turned comma", () => {

@@ -24,8 +24,10 @@ import {
  *                                      "content": {"count", "previous",
  *                                      "next", "results"}}, limit and
  *                                      offset, `next` an absolute URL on
- *                                      the tenant's host; platform=ANDROID
- *                                      leaves other platforms out
+ *                                      the tenant's host; platform, a CSV
+ *                                      (ANDROID,APPLE), leaves other
+ *                                      platforms out
+ *   GET /v2/heartbeat/?platform=       one platform's devices only
  *   - GET /enterprise/{eid}/devicegroup/   bare {"count", "next",
  *                                      "previous", "results"}, 20 a page
  *                                      by default
@@ -172,10 +174,19 @@ export function createFakeEsperApi(options: FakeEsperOptions): FakeEsperApi {
     }
 
     if (path === "/api/v2/devices/") {
-      const platform: string | null = url.searchParams.get("platform");
+      // A CSV of platforms, as the v2 list takes it: ANDROID,APPLE.
+      const platforms: Array<string> = (url.searchParams.get("platform") || "")
+        .split(",")
+        .map((platform: string): string => {
+          return platform.trim();
+        })
+        .filter(Boolean);
       const devices: Array<JSONObject> = state.devices.filter(
         (device: JSONObject): boolean => {
-          return !platform || device["platform"] === platform;
+          return (
+            platforms.length === 0 ||
+            platforms.includes(String(device["platform"]))
+          );
         },
       );
       const listed: {
@@ -212,9 +223,26 @@ export function createFakeEsperApi(options: FakeEsperOptions): FakeEsperApi {
       }
 
       const now: number = options.now().getTime();
+      // One platform, as the heartbeat list takes it.
+      const platform: string | null = url.searchParams.get("platform");
+      const platformOf: (deviceId: string) => string = (
+        deviceId: string,
+      ): string => {
+        const device: JSONObject | undefined = state.devices.find(
+          (candidate: JSONObject): boolean => {
+            return candidate["id"] === deviceId;
+          },
+        );
+
+        return String(device?.["platform"] ?? "ANDROID");
+      };
       const results: Array<JSONObject> = Object.entries(state.heartbeats)
-        .filter(([, seenAt]: [string, Date]): boolean => {
-          return seenAt.getTime() > after && seenAt.getTime() < before;
+        .filter(([deviceId, seenAt]: [string, Date]): boolean => {
+          return (
+            seenAt.getTime() > after &&
+            seenAt.getTime() < before &&
+            (!platform || platformOf(deviceId) === platform)
+          );
         })
         .map(([deviceId, seenAt]: [string, Date]): JSONObject => {
           return {

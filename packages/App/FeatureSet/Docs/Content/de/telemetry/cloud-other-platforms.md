@@ -182,7 +182,9 @@ Die SDK-Detektoren schreiben die Plattform `azure.app_service`, mit einem Punkt;
 
 **Netzwerk:** App Service erreicht das Internet direkt, es sei denn, **VNet integration** mit **Route All** ist eingeschaltet. Dann braucht das VNet ein NAT-Gateway oder eine Route zu einer Firewall, die TCP 443 zum OneUptime-Host erlaubt.
 
-**Was die Seite der App zeigt:** Anfragen, Fehlerrate und Latenz kommen aus den Traces der App, daher zeigt eine App, die nur Logs oder Metriken sendet, dort **Keine Traces empfangen**, und ihre **Einrichtungsprüfung** sagt, was hinzuzufügen ist. App Service gibt einer App weder eigene CPU noch eigenen Speicher, und ihre Kacheln für CPU und Speicher sagen das. Verbinden Sie das Abonnement unter **Cloud → Verbinden**, und die **Übersicht** der App erhält einen Abschnitt **Azure Monitor**: die Anfragen, Serverfehler, Antwortzeit, CPU-Zeit und den Speicher der Site, wie Azure sie misst, unabhängig davon, was die App sendet.
+**Was die Seite der App zeigt:** Anfragen, Fehlerrate und Latenz kommen aus den Traces der App, daher zeigt eine App, die nur Logs oder Metriken sendet, dort **Keine Traces empfangen**, und ihre **Einrichtungsprüfung** sagt, was hinzuzufügen ist. App Service gibt einer App weder eigene CPU noch eigenen Speicher, und ihre Kacheln für CPU und Speicher sagen das. Verbinden Sie das Abonnement unter **Cloud → Verbinden**, und die **Übersicht** der App erhält einen Abschnitt **Azure Monitor**: die Anfragen, Server- und Clientfehler, Antwortzeit, CPU-Zeit und den Speicher der Site, wie Azure sie misst, unabhängig davon, was die App sendet. Ihr Tab **Instanzen** listet dann die Instanzen auf, auf denen Azure sie ausführt, und ihr Tab **Revisionen** die Bereitstellungen, die Azure aufbewahrt.
+
+Der Tab **Einrichtung** der App gibt diese Einstellungen als Befehle für Azure Cloud Shell aus, für .NET, Java, Node.js oder Python, mit dem eigenen Namen, der Ressourcengruppe und dem Abonnement der App in jedem Befehl. Für die eigenen Konsolen-, HTTP- und Plattform-Logs der Site wählen Sie zusätzlich **Metriken und Protokolle streamen** in der Zeile des Abonnements unter **Cloud → Verbinden**: Sie erscheinen im Tab **Protokolle** der App unter **Aus Azure-Diagnoseeinstellungen**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ Die App-Service-Detektoren für Node.js und .NET setzen `cloud.account.id` nicht
 :::
 
 :::details Eine App-Service-App zeigt keine Anfragen oder Instanzen
-Anfragen, Fehlerrate und Latenz kommen aus Traces, daher hat eine App, die nur Logs oder Metriken sendet, keine, und ihre **Einrichtungsprüfung** sagt, was hinzuzufügen ist. Instanzen kommen aus `azure.app_service.instance.id` oder `service.instance.id`, die die Azure-Detektoren setzen: Ohne beide zeigt die Kachel **Instanzen** den Wert **Nicht gemeldet**. Um die Anfragen der Site zu sehen, unabhängig davon, was die App sendet, verbinden Sie das Abonnement: Die Seite der App erhält einen Abschnitt **Azure Monitor**.
+Anfragen, Fehlerrate und Latenz kommen aus Traces, daher hat eine App, die nur Logs oder Metriken sendet, keine: Ihre **Einrichtungsprüfung** sagt, was hinzuzufügen ist, und ihr Tab **Einrichtung**, wie. Instanzen kommen aus `azure.app_service.instance.id` oder `service.instance.id`, die die Azure-Detektoren setzen: Ohne beide zeigt die Kachel **Instanzen** den Wert **Nicht gemeldet**, bis das Abonnement verbunden ist, und zählt dann die Instanzen, die Azure ausführt. Um die Anfragen der Site zu sehen, unabhängig davon, was die App sendet, verbinden Sie das Abonnement: Die Seite der App erhält einen Abschnitt **Azure Monitor**.
+:::
+
+:::details Eine App-Service-App hat keine Zahlen von Azure Monitor
+Die Zeile **Azure-Monitor-Verbindung** ihrer **Einrichtungsprüfung** sagt, warum. OneUptime verknüpft die App über `cloud.resource_id`, das die App-Service-Detektoren setzen, mit ihrer Site, sonst über ihren `service.name` in dem Abonnement, das `cloud.account.id` nennt: Benennen Sie die App wie ihre Site, oder fügen Sie `cloud.resource_id` hinzu. Eine Azure-Verbindung unter **Cloud → Verbinden** muss dieses Abonnement lesen, mit der Rolle Monitoring Reader darauf. Ein Bereitstellungsslot ist eine eigene Ressource, die OneUptime noch nicht liest.
 :::
 
 :::details Eine geänderte Variable von Container Instances wirkt nicht

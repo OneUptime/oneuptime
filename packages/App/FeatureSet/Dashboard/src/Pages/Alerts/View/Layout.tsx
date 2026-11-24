@@ -9,6 +9,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import PrivateRecordScopeProvider from "../../../Components/PrivateRecord/PrivateRecordScopeProvider";
+import RecordAccessScopeProvider from "../../../Components/RecordAccess/RecordAccessScopeProvider";
+import { RecordAccessKind } from "Common/Types/RecordAccess/RecordAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -31,16 +33,25 @@ const AlertViewLayout: FunctionComponent<
        * A private alert is changed only with the permissions of the teams
        * that own it: every page of it offers only what the reader may do
        * there (PrivateRecordScopeProvider).
+       *
+       * And what the server says the reader may do on this alert by its
+       * labels, its owners and its privacy: every lock on its pages
+       * reads it (RecordAccessScopeProvider, #10272).
        */}
-      <PrivateRecordScopeProvider
-        modelType={Alert}
+      <RecordAccessScopeProvider
+        kind={RecordAccessKind.Alert}
         modelId={modelId}
-        ownerTeamModelType={AlertOwnerTeam}
-        ownerUserModelType={AlertOwnerUser}
-        ownerKey="alertId"
       >
-        <Outlet />
-      </PrivateRecordScopeProvider>
+        <PrivateRecordScopeProvider
+          modelType={Alert}
+          modelId={modelId}
+          ownerTeamModelType={AlertOwnerTeam}
+          ownerUserModelType={AlertOwnerUser}
+          ownerKey="alertId"
+        >
+          <Outlet />
+        </PrivateRecordScopeProvider>
+      </RecordAccessScopeProvider>
     </ModelPage>
   );
 };

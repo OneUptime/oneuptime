@@ -27,6 +27,7 @@ import {
 import {
   AZURE_FIVE_MINUTE_READING_HOLD_MS,
   AZURE_HOURLY_READING_HOLD_MS,
+  AZURE_SIX_HOURLY_READING_HOLD_MS,
   CLOUD_HEALTH_CHECK_CRITICAL_PERCENT,
   CLOUD_MEMORY_HIGH_PERCENT,
   CLOUD_STORAGE_FULL_PERCENT,
@@ -40,6 +41,7 @@ import {
   CloudAlertTemplate,
   getCloudAlertTemplate,
   getAllCloudAlertTemplates,
+  getCloudAlertWindow,
   getGceSshCommand,
   isCloudAlertTemplateOfOpsAgent,
 } from "Common/Types/Monitor/CloudAlertTemplates";
@@ -52,8 +54,10 @@ import {
 } from "Common/Utils/Metrics/RetiredCloudMetricMoves";
 import { GCP_OPS_AGENT_ASK_EVERY_MS } from "Common/Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CLOUD_MAX_ADDED_METRICS_PER_CONNECTION,
   CLOUD_MAX_ADDED_METRICS_PER_RESOURCE,
+  GCP_SPLIT_LEARN_EVERY_MINUTES,
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import { CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
@@ -150,10 +154,18 @@ import {
   GCP_READ_ONLY_ROLES,
   GCP_RECOMMENDER_ROLE,
   getAwsAccessKeySetupCommand,
+  getAwsExternalIdConditionText,
+  getAwsExternalIdForProject,
+  getAwsRoleSetupCommand,
   getAzureSetupCommand,
   getCloudConnectionSetupCommand,
   getGcpSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  ROLE_CHECK_PASS_MS,
+  ROLE_CHECK_REFUSAL_MS,
+  getRoleWithoutExternalIdMessage,
+} from "Common/Server/Utils/CloudConnection/Aws/AwsSts";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   getAwsInventoryRowTypes,
@@ -225,6 +237,7 @@ const SOURCES: Record<string, string> = {
   gcpCommitments: `${SERVER}/Utils/CloudConnection/Gcp/GcpCosts.ts`,
   cliReadme: "packages/CLI/README.md",
   moreMetrics: `${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics.tsx`,
+  removeMetric: `${DASHBOARD}/Components/Cloud/ResourceMetrics/CloudRemoveMetricModal.tsx`,
   resourceSideMenu: `${DASHBOARD}/Pages/Cloud/View/SideMenu.tsx`,
   monitorActivity: `${DASHBOARD}/Components/Monitor/Overview/MonitorActivityCard.tsx`,
   dataMigrations: "packages/App/FeatureSet/Workers/DataMigrations/Index.ts",
@@ -977,6 +990,40 @@ describe("Connect a Cloud Account", () => {
   });
 
   /*
+   * #10026: an App Service app's file system usage, which Azure Monitor
+   * keeps at six hours, is kept between its reads until it is 19 hours old.
+   */
+  it("says how long a six-hourly reading is kept", () => {
+    const paragraph: string | undefined = section("What OneUptime reads")
+      .split(/\n\s*\n/)
+      .find((block: string): boolean => {
+        return block.startsWith("A few key metrics Azure Monitor keeps");
+      });
+
+    expect(AZURE_SIX_HOURLY_READING_HOLD_MS).toBe(19 * 60 * 60 * 1000);
+    expect(paragraph).toContain(
+      `An App Service app's file system usage, which Azure Monitor keeps at six hours, comes every 6 hours, 12 to 18 hours after the period it measures, and is kept until it is ${AZURE_SIX_HOURLY_READING_HOLD_MS / (60 * 60 * 1000)} hours old.`,
+    );
+  });
+
+  /*
+   * #10028: a recommended monitor's window follows its connection's read
+   * interval - read every hour, a 15-minute window is the past 2 hours -
+   * and a monitor made before keeps its window.
+   */
+  it("says a monitor's window follows how often its connection is read", () => {
+    const window: RollingTime = getCloudAlertWindow({
+      template: getCloudAlertTemplate("cloud-azure-vm-high-cpu")!,
+      readIntervalInMinutes: 60,
+    });
+
+    expect(window).toBe(RollingTime.Past2Hours);
+    expect(PAGE).toContain(
+      `A connection read less often gives each monitor a longer window, enough to judge every reading a read brings: read every hour, the last ${window.replace("Past ", "").toLowerCase()}. A monitor made before the interval changed keeps its window.`,
+    );
+  });
+
+  /*
    * #9981: an App Service app with a health check is offered two monitors,
    * over the 30 minutes a metric Azure Monitor keeps at five minutes needs.
    */
@@ -1026,6 +1073,25 @@ describe("Connect a Cloud Account", () => {
     expect(paragraph).toContain(
       "Project Owners and Project Admins can add and remove them",
     );
+    // A split's cap (#9808), and what Remove says first (#9807).
+    expect(paragraph).toContain(
+      `as a series for each value, up to ${CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES} for each resource`,
+    );
+    expect(paragraph).toContain(
+      "**Remove** first names the monitors, dashboard widgets, SLOs and recording rules that read the metric",
+    );
+    // A Google Cloud split read for its busiest values alone, learned every hour (#10076).
+    expect(GCP_SPLIT_LEARN_EVERY_MINUTES).toBe(60);
+    expect(paragraph).toContain(
+      `On Google Cloud, which bills every time series a read returns, OneUptime asks only for each resource's ${CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES} busiest values, and checks every hour which they are.`,
+    );
+    // A type's addition kept for the resources its readers read (#10078).
+    expect(paragraph).toContain(
+      "For a metric added for every resource of its type, **Remove** can instead keep it for just the resources they read, so the rest stop costing anything.",
+    );
+    expect(source("removeMetric")).toContain(
+      'translationKey("Keep for These Resources")',
+    );
 
     // The tab, the card and its button, as the Dashboard names them.
     expect(source("resourceSideMenu")).toContain('title: "Metrics"');
@@ -1070,6 +1136,52 @@ describe("Connect a Cloud Account", () => {
       expect(identity).toContain(`process.env["${variable}"]`);
       expect(PAGE).toContain(`\`${variable}\``);
     }
+  });
+
+  /*
+   * A role is used only when it requires the project's external id: checked
+   * by signing in once with an id no project has, the pass kept a day and a
+   * refusal an hour (AwsSts, #10405), for every server at once, and a test
+   * of a saved connection kept the same way (#10424). The page says so, and
+   * what the refusal means, in the words the check and its message use.
+   */
+  it("says a role must require the project's external ID, how and how often OneUptime checks it, and what the refusal means", () => {
+    const projectId: string = "11111111-1111-4111-8111-111111111111";
+    const externalId: string = getAwsExternalIdForProject(projectId);
+    const heading: string =
+      ":::details The role lets OneUptime sign in without your project's external ID";
+
+    expect(PAGE).toContain(
+      "OneUptime signs in to a role only when its trust policy requires your project's external ID, with the `sts:ExternalId` condition the command writes.",
+    );
+    // The condition the refusal names is the one the command writes.
+    expect(
+      getAwsRoleSetupCommand({
+        trustedPrincipalArn: "arn:aws:iam::999988887777:root",
+        externalId,
+      }),
+    ).toContain(getAwsExternalIdConditionText(externalId));
+    expect(getRoleWithoutExternalIdMessage(projectId)).toContain(
+      getAwsExternalIdConditionText(externalId),
+    );
+
+    // A pass holds a day, for every server that reads the role.
+    expect(ROLE_CHECK_PASS_MS).toBe(24 * 60 * 60 * 1000);
+    expect(PAGE).toContain(
+      "Before it reads anything through a role, and again each day, it signs in once with an external ID no project has: AWS refusing that sign-in is the pass, so the role's CloudTrail shows an `AccessDenied` from OneUptime about once a day, however many OneUptime servers read it.",
+    );
+    expect(PAGE).not.toContain("for each OneUptime server that reads it");
+    // A refusal holds an hour, unless a test that passes replaces it.
+    expect(ROLE_CHECK_REFUSAL_MS).toBe(60 * 60 * 1000);
+    expect(PAGE).toContain(
+      "A test checks the role again right away, and once it passes, reads use the role straight away; without a test, they check it again within the hour.",
+    );
+
+    // The troubleshooting entry is named after what the refusal says.
+    expect(PAGE).toContain(heading);
+    expect(getRoleWithoutExternalIdMessage(projectId)).toContain(
+      heading.replace(":::details The role", "This role"),
+    );
   });
 
   it("names the form's fields, buttons and menu as the dashboard draws them", () => {

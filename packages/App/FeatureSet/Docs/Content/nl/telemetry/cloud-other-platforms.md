@@ -182,7 +182,9 @@ De SDK-detectors schrijven het platform als `azure.app_service`, met een punt; O
 
 **Netwerk:** App Service bereikt internet rechtstreeks, tenzij **VNet integration** met **Route All** aan staat. Dan heeft het VNet een NAT-gateway nodig, of een route naar een firewall die TCP 443 naar de OneUptime-host toestaat.
 
-**Wat de pagina van de app toont:** aanvragen, foutpercentage en latentie komen uit de traces van de app, dus een app die alleen logboeken of metrieken stuurt, toont daar **Geen traces ontvangen**, en zijn **Configuratiecontrole** zegt wat erbij moet. App Service geeft een app geen eigen CPU of geheugen, en de tegels voor CPU en geheugen zeggen dat. Koppel het abonnement onder **Cloud → Koppelen**, en het **Overzicht** van de app krijgt een sectie **Azure Monitor**: de aanvragen, serverfouten, responstijd, CPU-tijd en het geheugen van de site, zoals Azure ze meet, wat de app ook stuurt.
+**Wat de pagina van de app toont:** aanvragen, foutpercentage en latentie komen uit de traces van de app, dus een app die alleen logboeken of metrieken stuurt, toont daar **Geen traces ontvangen**, en zijn **Configuratiecontrole** zegt wat erbij moet. App Service geeft een app geen eigen CPU of geheugen, en de tegels voor CPU en geheugen zeggen dat. Koppel het abonnement onder **Cloud → Koppelen**, en het **Overzicht** van de app krijgt een sectie **Azure Monitor**: de aanvragen, server- en clientfouten, responstijd, CPU-tijd en het geheugen van de site, zoals Azure ze meet, wat de app ook stuurt. Het tabblad **Instanties** van de app toont dan de instanties waarop Azure hem draait, en het tabblad **Revisies** de implementaties die Azure bewaart.
+
+Het tabblad **Instellen** van de app geeft deze instellingen als Azure Cloud Shell-opdrachten voor .NET, Java, Node.js of Python, met de eigen naam, resourcegroep en het abonnement van de app in elke opdracht. Kies voor de eigen console-, HTTP- en platformlogboeken van de site ook **Metrieken en logboeken streamen** in de rij van het abonnement onder **Cloud → Koppelen**: ze verschijnen op het tabblad **Logboeken** van de app, onder **Uit de diagnostische instellingen van Azure**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ De App Service-detectors voor Node.js en .NET stellen `cloud.account.id` niet in
 :::
 
 :::details Een App Service-app toont geen aanvragen of instanties
-Aanvragen, foutpercentage en latentie komen uit traces, dus een app die alleen logboeken of metrieken stuurt, heeft ze niet: zijn **Configuratiecontrole** zegt wat erbij moet. Instanties komen uit `azure.app_service.instance.id` of `service.instance.id`, die de Azure-detectors instellen: zonder een van beide toont de tegel **Instanties** de waarde **Niet gerapporteerd**. Om de aanvragen van de site te zien, wat de app ook stuurt, koppel je het abonnement: de pagina van de app krijgt een sectie **Azure Monitor**.
+Aanvragen, foutpercentage en latentie komen uit traces, dus een app die alleen logboeken of metrieken stuurt, heeft ze niet: zijn **Configuratiecontrole** zegt wat erbij moet, en zijn tabblad **Instellen** hoe. Instanties komen uit `azure.app_service.instance.id` of `service.instance.id`, die de Azure-detectors instellen: zonder een van beide toont de tegel **Instanties** de waarde **Niet gerapporteerd** tot het abonnement is gekoppeld, en telt daarna de instanties die Azure draait. Om de aanvragen van de site te zien, wat de app ook stuurt, koppel je het abonnement: de pagina van de app krijgt een sectie **Azure Monitor**.
+:::
+
+:::details Een App Service-app heeft geen cijfers van Azure Monitor
+De rij **Azure Monitor-koppeling** van zijn **Configuratiecontrole** zegt waarom. OneUptime koppelt de app aan zijn site via `cloud.resource_id`, dat de App Service-detectors instellen, anders via zijn `service.name` in het abonnement dat `cloud.account.id` noemt: geef de app de naam van zijn site, of voeg `cloud.resource_id` toe. Een Azure-koppeling onder **Cloud → Koppelen** moet dat abonnement lezen, met de rol Monitoring Reader erop. Een implementatieslot is een eigen resource, die OneUptime nog niet leest.
 :::
 
 :::details Een gewijzigde Container Instances-variabele heeft geen effect

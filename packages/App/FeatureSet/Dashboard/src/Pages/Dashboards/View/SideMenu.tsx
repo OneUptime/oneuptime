@@ -62,10 +62,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
       {/*
        * Branding and Custom Domains change only the public link: how it
-       * looks and the address it is served on. A dashboard only people in
-       * the project can view has no public link, so the section says what
-       * it is for and starts folded, and each page says when the dashboard
-       * is not shared publicly (DashboardPublicOnlySettings, #9134).
+       * looks and the address it is served on - and Private Users and
+       * Single Sign-On who signs in to it (#10250). A dashboard only people
+       * in the project can view has no public link, so the section says
+       * what it is for and starts folded, and each page says when the
+       * dashboard is not shared publicly (DashboardPublicOnlySettings,
+       * #9134) or does not ask its visitors to sign in
+       * (DashboardSignInOnlySettings).
        */}
       <SideMenuSection title="Public Link" defaultCollapsed={true}>
         <SideMenuItem
@@ -88,6 +91,35 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Globe}
+        />
+
+        {/*
+         * Who signs in to the public link when only people who sign in can
+         * view the dashboard (#10250): its private users, and its single
+         * sign-on - with the icons a status page's Security section uses for
+         * the same two pages. Each says when the dashboard does not ask its
+         * visitors to sign in (DashboardSignInOnlySettings).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Private Users",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_PRIVATE_USERS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.User}
+        />
+
+        <SideMenuItem
+          link={{
+            title: "Single Sign-On",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Lock}
         />
       </SideMenuSection>
 

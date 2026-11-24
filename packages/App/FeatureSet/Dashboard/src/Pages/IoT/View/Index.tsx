@@ -67,6 +67,8 @@ import {
   fetchIoTInventoryRows,
   routeParamFromExternalId,
 } from "../Utils/IoTDeviceUtils";
+// One rule for the Overview, the Devices list, a device's page and the Fleets list.
+import { isIoTFleetConnected } from "../Utils/IoTFleetConnection";
 import {
   IOT_LOW_BATTERY_PERCENT,
   IoTAtRiskDevice,
@@ -119,18 +121,6 @@ export const IOT_NO_DEVICE_OFFLINE: string = translationKey(
  */
 export const IOT_FLEET_DISCONNECTED: string =
   translationKey("fleet disconnected");
-
-/*
- * Whether the fleet itself reports: its collector, or whatever sends its
- * devices' data, is connected. While it is not, its devices' last states
- * are from before it stopped, and say nothing of them now.
- */
-export function isIoTFleetConnected(
-  status: string | null | undefined,
-): boolean {
-  const word: string = (status || "").toLowerCase();
-  return word === "connected" || word === "active";
-}
 
 /*
  * The pill that opens the devices offline, or none while every device the

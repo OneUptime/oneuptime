@@ -221,6 +221,30 @@ Do not group a metric that is already a single scalar for the whole system — a
 
 The grouping attribute values are also available as [template variables](/docs/monitor/incident-alert-templating) in the alert or incident title, description, and remediation notes — grouping by `host.name` lets the title read `Disk almost full on {{host.name}}`.
 
+## Alert on a PromQL expression
+
+A step can watch a PromQL expression instead of metric queries: the query language of Prometheus, over your project's metrics, as on the [PromQL](/docs/telemetry/promql) page. Each series the expression returns is judged on its own, as a grouped query's are: it opens its own alert or incident, which resolves when that series recovers or is no longer returned.
+
+:::steps
+### Switch to PromQL
+
+In **Metric to watch**, click **PromQL**. **Query Builder** goes back to metric queries.
+
+### Write the expression
+
+Type it, such as `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, or start from **Add a metric name**. The chart under it draws each series over the time window, and says what is wrong with an expression that does not run.
+
+### Set the rule
+
+In **When to alert**, pick how each series is **Measured as**, a **Time window**, a **Condition** and a **Value**, as for metric queries. The expression is evaluated at every minute of the window, so **Every value (the whole window)** over **Last 5 minutes** asks a series to breach for five minutes, as `for: 5m` does in a Prometheus alert rule.
+:::
+
+- **A comparison in the expression** keeps only the series it holds true for: `rate(errors_total[5m]) > 0.1` returns the series above 0.1, and no other. Click **Move to When to alert** to make it the rule's, so the chart shows every series and the rule judges each one.
+- **At most 100 series a check.** When the expression returns more, a check judges 100: first the series with an alert or incident open, then the others in the order of their labels. The rest are not judged on that check, so nothing opens or resolves for them, and the editor says the expression returns too many. Aggregate it with `sum by (...)`, or add label matchers.
+- **The limits of every PromQL query hold**, over the metrics of the services the monitor names, or of the whole project when it names none.
+- **Its charts draw the expression.** The card at the top of the monitor's **Overview** page charts every series the expression returns, and an incident or alert it opens charts the one series that opened it, with the criteria's value as a line and the side that alerts shaded. They read it as you may read it, with the same limits as the [PromQL](/docs/telemetry/promql) page.
+- **The anomaly conditions are not offered**: an expression has no history of its own to compare with. The forecast conditions are.
+
 ## Troubleshooting
 
 :::details The chart shows a breach, but the monitor did not alert

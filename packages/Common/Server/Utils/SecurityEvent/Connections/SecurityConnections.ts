@@ -32,6 +32,7 @@ import {
   SecurityConnectionScheduleJson,
   SecurityConnectionScheduleListJson,
   SecurityConnectionsJson,
+  SecurityLogOwner,
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import {
   SecurityEntity,
@@ -234,6 +235,14 @@ interface CaseConnectionScope {
   entities: Array<SecurityEntity>;
   window: SecurityConnectionWindow;
   logResources: Array<SecurityLogResource>;
+  // The cloud resources and functions whose own logs its events were read from (#10033).
+  logOwners: Array<SecurityLogOwner>;
+}
+
+// What the logs behind the events naming some values say of where they came from.
+interface EventLogSources {
+  resources: Array<SecurityLogResource>;
+  owners: Array<SecurityLogOwner>;
 }
 
 interface RecordFacts {
@@ -421,6 +430,7 @@ export default class SecurityConnections {
       projectId: data.projectId,
       entities: scope.entities,
       logResources: scope.logResources,
+      logOwners: scope.logOwners,
       window: scope.window,
       props: data.props,
     });
@@ -456,6 +466,7 @@ export default class SecurityConnections {
         projectId: data.projectId,
         entities: scope.entities,
         logResources: scope.logResources,
+        logOwners: scope.logOwners,
         props,
       });
 
@@ -482,17 +493,19 @@ export default class SecurityConnections {
     }
 
     const props: DatabaseCommonInteractionProps = { isRoot: true };
+    const sources: EventLogSources = await this.readLogSources({
+      projectId: data.projectId,
+      entities: data.entities,
+      window: data.window,
+      props,
+    });
 
     const resolved: SecurityConnectedRecordsResult =
       await SecurityConnectedRecords.resolve({
         projectId: data.projectId,
         entities: data.entities,
-        logResources: await this.readLogResources({
-          projectId: data.projectId,
-          entities: data.entities,
-          window: data.window,
-          props,
-        }),
+        logResources: sources.resources,
+        logOwners: sources.owners,
         props,
       });
 
@@ -559,22 +572,26 @@ export default class SecurityConnections {
       return null;
     }
 
+    const sources: EventLogSources = await this.readLogSources({
+      projectId: data.projectId,
+      entities: caseWindow.entities,
+      window: caseWindow.window,
+      props: data.props,
+    });
+
     return {
       entities: caseWindow.entities,
       window: caseWindow.window,
-      logResources: await this.readLogResources({
-        projectId: data.projectId,
-        entities: caseWindow.entities,
-        window: caseWindow.window,
-        props: data.props,
-      }),
+      logResources: sources.resources,
+      logOwners: sources.owners,
     };
   }
 
   /*
-   * What an event names - its entities, and the record its log line was
-   * sent under - in the hour around it; or, with no time, what a set of
-   * entities names around now.
+   * What an event names - its entities, the record its log line was sent
+   * under, and the cloud resource or function whose own line or span it
+   * was - in the hour around it; or, with no time, what a set of entities
+   * names around now.
    */
   @CaptureSpan()
   public static async forEntities(data: {
@@ -582,6 +599,8 @@ export default class SecurityConnections {
     entities: Array<SecurityEntity>;
     time?: Date | undefined;
     logResources?: Array<SecurityLogResource> | undefined;
+    // The cloud resource and function whose own logs the event was read from (#10033).
+    logOwners?: Array<SecurityLogOwner> | undefined;
     // Read the log resources behind these entities' events in the window too.
     readLogResources?: boolean | undefined;
     props: DatabaseCommonInteractionProps;
@@ -595,25 +614,92 @@ export default class SecurityConnections {
     const logResources: Array<SecurityLogResource> = [
       ...(data.logResources || []),
     ];
+    const logOwners: Array<SecurityLogOwner> = [...(data.logOwners || [])];
 
     if (data.readLogResources) {
-      logResources.push(
-        ...(await this.readLogResources({
-          projectId: data.projectId,
-          entities: data.entities,
-          window,
-          props: data.props,
-        })),
-      );
+      const sources: EventLogSources = await this.readLogSources({
+        projectId: data.projectId,
+        entities: data.entities,
+        window,
+        props: data.props,
+      });
+
+      logResources.push(...sources.resources);
+      logOwners.push(...sources.owners);
     }
 
     return await this.build({
       projectId: data.projectId,
       entities: data.entities,
       logResources,
+      logOwners,
       window,
       props: data.props,
     });
+  }
+
+  /*
+   * Where the logs behind events naming these entities came from, in the
+   * window: the records they were sent under, and the cloud resources and
+   * functions whose own lines or spans they were (#10033) - read together.
+   */
+  private static async readLogSources(data: {
+    projectId: ObjectID;
+    entities: Array<SecurityEntity>;
+    window: SecurityConnectionWindow;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<EventLogSources> {
+    const [resources, owners]: [
+      Array<SecurityLogResource>,
+      Array<SecurityLogOwner>,
+    ] = await Promise.all([
+      this.readLogResources(data),
+      this.readLogOwners(data),
+    ]);
+
+    return { resources, owners };
+  }
+
+  /*
+   * The cloud resources and serverless functions whose own log lines or
+   * spans the events naming these entities were read from, in the window -
+   * of the events of the sources the reader may read, as readLogResources.
+   * Enrichment: a read that fails, or that the reader may not make, reads as
+   * none.
+   */
+  private static async readLogOwners(data: {
+    projectId: ObjectID;
+    entities: Array<SecurityEntity>;
+    window: SecurityConnectionWindow;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SecurityLogOwner>> {
+    if (data.entities.length === 0) {
+      return [];
+    }
+
+    try {
+      return await SecurityEventService.findLogOwnersNaming({
+        projectId: data.projectId,
+        values: data.entities.map((entity: SecurityEntity): string => {
+          return entity.value;
+        }),
+        startTime: data.window.start,
+        endTime: data.window.end,
+        limit: MAX_LOG_RESOURCES,
+        serviceFilter: await TelemetryReadAccess.getServiceFilter({
+          modelType: SecurityEvent,
+          props: data.props,
+        }),
+      });
+    } catch (error) {
+      if (!isRefusedRead(error)) {
+        logger.error(
+          `Security connections: the cloud resources and functions behind the events could not be read: ${error}`,
+        );
+      }
+
+      return [];
+    }
   }
 
   /*
@@ -663,6 +749,7 @@ export default class SecurityConnections {
     projectId: ObjectID;
     entities: ReadonlyArray<SecurityEntity>;
     logResources: ReadonlyArray<SecurityLogResource>;
+    logOwners?: ReadonlyArray<SecurityLogOwner> | undefined;
     window: SecurityConnectionWindow;
     props: DatabaseCommonInteractionProps;
   }): Promise<SecurityConnectionsJson> {
@@ -671,6 +758,7 @@ export default class SecurityConnections {
         projectId: data.projectId,
         entities: data.entities,
         logResources: data.logResources,
+        logOwners: data.logOwners || [],
         props: data.props,
       });
 

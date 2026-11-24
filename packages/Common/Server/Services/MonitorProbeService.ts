@@ -29,6 +29,7 @@ import {
   SET_ASIDE_ROUNDS_PER_CLAIM,
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../Utils/Probe/ClaimSetAside";
+import MonitorTieOnProbeChange from "../Utils/NetworkDevice/MonitorTieOnProbeChange";
 
 /*
  * How many due rows claimMonitorProbesForProbing reads for each one it may
@@ -1137,7 +1138,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
   }
 
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<MonitorProbe>,
+    onCreate: OnCreate<MonitorProbe>,
     createdItem: MonitorProbe,
   ): Promise<MonitorProbe> {
     /*
@@ -1150,7 +1151,39 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       await this.refreshMonitorStatusSafely(createdItem.monitorId);
     }
 
+    /*
+     * A probe added to a monitor can change which network device it checks
+     * (issue #9904): its tie is worked out again. Not while the monitor is
+     * being created - its tie was worked out from the very probes it is
+     * created with, and one row at a time would read the rows before the
+     * last one as its probes.
+     */
+    if (
+      createdItem.monitorId &&
+      !Service.isCreatedWithItsMonitor(onCreate.createBy)
+    ) {
+      await MonitorTieOnProbeChange.followProbesOf([createdItem.monitorId]);
+    }
+
     return Promise.resolve(createdItem);
+  }
+
+  /*
+   * Marks a create of one of the probes a new monitor is created with
+   * (MonitorService.createMonitorProbes): the tie of a new monitor is worked
+   * out from all of them before it exists, so none of them asks again.
+   * Only OneUptime's own creates are marked.
+   */
+  public static readonly CREATED_WITH_ITS_MONITOR: string =
+    "isCreatedWithItsMonitor";
+
+  public static isCreatedWithItsMonitor(
+    createBy: CreateBy<MonitorProbe>,
+  ): boolean {
+    return (
+      Boolean(createBy.props.isRoot) &&
+      createBy.miscDataProps?.[Service.CREATED_WITH_ITS_MONITOR] === true
+    );
   }
 
   protected override async onUpdateSuccess(
@@ -1260,6 +1293,12 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
 
       await this.refreshMonitorStatusSafely(monitorId);
     }
+
+    /*
+     * A probe taken off a monitor can change which network device it
+     * checks (issue #9904): each monitor's tie is worked out again, once.
+     */
+    await MonitorTieOnProbeChange.followProbesOf(monitorIds);
 
     return onDelete;
   }

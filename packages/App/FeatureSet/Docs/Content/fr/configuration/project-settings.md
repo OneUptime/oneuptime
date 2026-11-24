@@ -96,6 +96,8 @@ Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au l
 
 **Utilisé par**, dans le menu de la ligne d'une étiquette, compte les enregistrements de chaque type qui portent l'étiquette, et les ouvre une page à la fois. Les enregistrements que vous ne pouvez pas ouvrir sont comptés, pas nommés.
 
+Une étiquette qui porte le même nom qu'une autre étiquette, datant d'avant l'obligation de noms distincts, est marquée **Même nom qu'une autre étiquette**, et la liste indique combien il y en a : comparez où chacune est utilisée, avec **Utilisé par**, puis renommez l'une d'elles avec **Renommer** sur sa ligne.
+
 ## Notifications
 
 **Paramètres du projet → Notifications** contient la façon dont le projet envoie ses notifications :

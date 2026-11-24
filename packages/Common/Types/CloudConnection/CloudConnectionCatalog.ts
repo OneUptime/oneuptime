@@ -79,6 +79,14 @@ export interface CloudConnectionField {
    */
   isHidden?: boolean | undefined;
   /*
+   * A setting the setup command is written from (getCloudConnectionCommand
+   * Settings): the form asks it on the command's own step, and the command
+   * shown follows it as it changes, so what a person picks is what the
+   * command they run grants (#10336). What to read is the step's own
+   * question; Data Security's two settings fold under the command.
+   */
+  changesSetupCommand?: boolean | undefined;
+  /*
    * The sign-in methods the field belongs to; every method when absent.
    * A field of another method is neither asked for nor stored.
    */
@@ -181,9 +189,9 @@ export function getCloudConnectionDataSecurityLevel(
 }
 
 /*
- * Folded with the other settings most people leave alone: a connection
- * reads no data store until someone opts in, and the command shown changes
- * with the choice.
+ * Folded under the command, as a setting most people leave alone: a
+ * connection reads no data store until someone opts in, and the command
+ * shown changes with the choice.
  */
 function dataSecurityField(): CloudConnectionField {
   return {
@@ -200,6 +208,7 @@ function dataSecurityField(): CloudConnectionField {
     ],
     defaultValue: "off",
     isAdvanced: true,
+    changesSetupCommand: true,
   };
 }
 
@@ -241,6 +250,7 @@ function dataSecurityResponseField(): CloudConnectionField {
     ],
     defaultValue: "off",
     isAdvanced: true,
+    changesSetupCommand: true,
   };
 }
 
@@ -323,6 +333,7 @@ function readScopeField(data: {
     ],
     defaultValue: "account",
     authMethods: data.authMethods,
+    changesSetupCommand: true,
   };
 }
 

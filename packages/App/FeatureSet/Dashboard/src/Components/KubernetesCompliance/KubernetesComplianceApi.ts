@@ -63,6 +63,7 @@ export default class KubernetesComplianceApi {
       isManagedControlPlane: answer.isManagedControlPlane === true,
       podCount: answer.podCount || 0,
       podsRead: answer.podsRead || 0,
+      templateCount: answer.templateCount || 0,
       hasPolicyObjects: answer.hasPolicyObjects === true,
       policyEngine: answer.policyEngine || null,
       isTruncated: answer.isTruncated === true,

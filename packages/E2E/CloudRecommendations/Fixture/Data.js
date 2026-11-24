@@ -328,6 +328,22 @@ export function buildResources(now) {
   ];
 }
 
+/*
+ * The connection that reads the account: read at AWS's default interval,
+ * every 10 minutes, with no stream, so each recommended monitor's window is
+ * its template's (#10028).
+ */
+export function buildConnection() {
+  return {
+    _id: CONNECTION_ID,
+    projectId: PROJECT_ID,
+    name: "Production",
+    provider: "aws",
+    config: { readIntervalInMinutes: 10 },
+    streamSummary: null,
+  };
+}
+
 export function buildAccount(now) {
   return {
     _id: ACCOUNT_ID,

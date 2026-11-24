@@ -50,7 +50,7 @@ En policy som flera regler lägger till körs en gång. En allvarlighetsgrad kö
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Eskaleringsregler** och **Ägare** |
 | **Loggar** | **Exekveringsloggar** och **Aviseringsloggar** |
-| **Utvecklare** | **Terraform**, **API**, **CLI** och **AI-assistenter** |
+| **Utvecklare** | **Terraform**, **Crossplane**, **API**, **CLI** och **AI-assistenter** |
 | **Avancerad** | **Användaråsidosättningar**, **Anpassade fält**, **Inställningar**, **Granskningsloggar** och **Ta bort policy** |
 
 **Grundläggande** är öppet; de andra avsnitten börjar ihopfällda tills du klickar på dem.

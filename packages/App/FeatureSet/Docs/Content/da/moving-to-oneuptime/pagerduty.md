@@ -55,9 +55,9 @@ Rapporten tæller, hvad der blev oprettet, inviteret og ikke overført, og viser
 | I PagerDuty | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brugere | Projektmedlemmer | Matches på e-mailadresse. Alle, der ikke er i projektet endnu, inviteres til det team, du vælger. |
-| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. |
-| Vagtplaner | Vagtplaner | Hvert lag bliver et lag med de samme personer, den samme start, den samme vagtlængde og de samme begrænsninger, i vagtplanens tidszone, ejet af vagtplanens team. Lagene beholder deres rækkefølge, så et højere lag stadig går forud for lagene under det. |
-| Eskaleringspolitikker | Vagtpolitikker | Hver eskaleringsregel bliver en eskaleringsregel, der tilkalder de samme vagtplaner og brugere og eskalerer efter den samme forsinkelse. Politikkens gentagelser bliver vagtpolitikkens gentagelser. |
+| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. Har to teams samme navn, overføres det andet element med et nummer, fx `Platform 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Vagtplaner | Vagtplaner | Hvert lag bliver et lag med de samme personer, den samme start, den samme vagtlængde og de samme begrænsninger, i vagtplanens tidszone, ejet af vagtplanens team. Lagene beholder deres rækkefølge, så et højere lag stadig går forud for lagene under det. Har to vagtplaner samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Eskaleringspolitikker | Vagtpolitikker | Hver eskaleringsregel bliver en eskaleringsregel, der tilkalder de samme vagtplaner og brugere og eskalerer efter den samme forsinkelse. Politikkens gentagelser bliver vagtpolitikkens gentagelser. Har to eskaleringspolitikker samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
 | Tjenester | Tjenester | Oprettes i tjenestekataloget, ejet af deres team. En tjeneste, der er slået fra i PagerDuty, er ikke markeret fra start. |
 
 En PagerDuty-vagtplan forbliver én OneUptime-vagtplan: Dens lag går forud for hinanden, som de gør i PagerDuty. Et lag, hvis vagter ikke varer et helt antal timer, overføres med vagter afrundet til timen, og forhåndsvisningen siger det.

@@ -421,6 +421,7 @@ export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Case Link Column",
     "Customer for New Cases",
     "OneUptime URL",
+    "Configuration Item Column",
     "Create a Dynamics 365 case when an incident is declared",
     "Declare an incident when a Dynamics 365 case is created",
   ],

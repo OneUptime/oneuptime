@@ -713,7 +713,7 @@ describe("every page of a case", () => {
     await openCase("playbook-runs");
 
     const menu: HTMLElement = screen.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
 
     expect(within(menu).getByText("Investigation")).toBeInTheDocument();
@@ -1358,7 +1358,7 @@ describe("a case there is nothing to show of", () => {
     // No side menu and no header: there is no case to work.
     expect(screen.queryByTestId("security-case-header")).toBeNull();
     expect(
-      screen.queryByRole("navigation", { name: "Main navigation" }),
+      screen.queryByRole("navigation", { name: "Pages in this section" }),
     ).toBeNull();
     expect(screen.queryByTestId("case-page")).toBeNull();
 
@@ -1479,7 +1479,7 @@ describe("a case there is nothing to show of", () => {
     await open(`${PRODUCT}/cases/${CASE_ID}/detections`);
 
     expect(
-      screen.getByRole("navigation", { name: "Main navigation" }),
+      screen.getByRole("navigation", { name: "Pages in this section" }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("security-case-header")).toBeNull();
     expect(screen.queryByTestId("case-page")).toBeNull();

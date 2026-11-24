@@ -2,7 +2,13 @@ import AwsContainerMeteringAPI, {
   AWS_METER_USAGE_MAX_QUANTITY,
   AwsMeterUsageRecord,
 } from "../../../../Server/Marketplace/Reporters/AwsContainerMeteringAPI";
-import AwsWorkloadCredentialsProvider from "../../../../Server/Marketplace/Reporters/AwsWorkloadCredentials";
+import MarketplaceAwsCredentials, {
+  MARKETPLACE_NO_AWS_CREDENTIALS_MESSAGE,
+} from "../../../../Server/Marketplace/Reporters/MarketplaceAwsCredentials";
+import AwsDefaultCredentialChain, {
+  AwsChainHttpRequest,
+  AwsChainHttpResponse,
+} from "Common/Server/Utils/Aws/AwsDefaultCredentialChain";
 import MarketplaceApiError from "../../../../Server/CloudMarketplace/MarketplaceApiError";
 import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import AwsSecurityHubClient from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
@@ -22,13 +28,13 @@ import { describe, expect, it } from "@jest/globals";
 const NOW: Date = new Date("2026-10-17T10:05:00.000Z");
 const PRODUCT_CODE: string = "6w0yyl6ppdh2o9sbu4i1zuqvk";
 
-// A credentials provider whose session is fixed (keys from the environment).
+// The reporter's credential chain, its session fixed (keys from the environment).
 const createCredentials: (
   sessionToken?: string,
-) => AwsWorkloadCredentialsProvider = (
+) => AwsDefaultCredentialChain = (
   sessionToken?: string,
-): AwsWorkloadCredentialsProvider => {
-  return new AwsWorkloadCredentialsProvider({
+): AwsDefaultCredentialChain => {
+  return MarketplaceAwsCredentials.createChain({
     env: {
       AWS_ACCESS_KEY_ID: "ASIAEXAMPLESESSION",
       AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
@@ -39,10 +45,10 @@ const createCredentials: (
 
 const createApi: (
   http: FakeHttpClient,
-  credentials?: AwsWorkloadCredentialsProvider,
+  credentials?: AwsDefaultCredentialChain,
 ) => AwsContainerMeteringAPI = (
   http: FakeHttpClient,
-  credentials?: AwsWorkloadCredentialsProvider,
+  credentials?: AwsDefaultCredentialChain,
 ): AwsContainerMeteringAPI => {
   return new AwsContainerMeteringAPI({
     credentials: credentials || createCredentials(),
@@ -273,7 +279,7 @@ describe("AwsContainerMeteringAPI.meterUsage", () => {
         ),
       },
     ]);
-    const credentials: AwsWorkloadCredentialsProvider = createCredentials();
+    const credentials: AwsDefaultCredentialChain = createCredentials();
     let invalidated: number = 0;
     const originalInvalidate: () => void =
       credentials.invalidate.bind(credentials);
@@ -288,6 +294,59 @@ describe("AwsContainerMeteringAPI.meterUsage", () => {
 
     expect(error.isRetryable).toBe(true);
     expect(invalidated).toBe(1);
+  });
+
+  it("a pod with no credentials is a setup problem in the reporter's words, and nothing is sent", async () => {
+    const http: FakeHttpClient = createFakeHttpClient([]);
+
+    const error: MarketplaceApiError = await expectMarketplaceError(
+      createApi(
+        http,
+        MarketplaceAwsCredentials.createChain({
+          env: {},
+          httpClient: async (): Promise<never> => {
+            throw new Error("the instance metadata service is never asked");
+          },
+        }),
+      ).meterUsage(record()),
+    );
+
+    expect(error.message).toBe(MARKETPLACE_NO_AWS_CREDENTIALS_MESSAGE);
+    expect(error.isRetryable).toBe(false);
+    expect(error.status).toBeNull();
+    expect(AwsContainerMeteringAPI.isSetupError(error)).toBe(false);
+    expect(http.requests).toHaveLength(0);
+  });
+
+  it("a session STS could not give just now is asked again later, its token in no message", async () => {
+    const token: string = "projected.irsa.token.secret";
+    const chain: AwsDefaultCredentialChain =
+      MarketplaceAwsCredentials.createChain({
+        env: {
+          AWS_ROLE_ARN: "arn:aws:iam::111122223333:role/oneuptime-marketplace",
+          AWS_WEB_IDENTITY_TOKEN_FILE: "/var/run/token",
+        },
+        readFile: async (): Promise<string> => {
+          return token;
+        },
+        httpClient: async (
+          request: AwsChainHttpRequest,
+        ): Promise<AwsChainHttpResponse> => {
+          // The pod names no Region: STS is asked in the one usage goes to.
+          expect(request.url).toBe("https://sts.eu-west-1.amazonaws.com/");
+          return {
+            status: 503,
+            bodyText: `<ErrorResponse><Error><Code>ServiceUnavailable</Code><Message>busy ${token}</Message></Error></ErrorResponse>`,
+          };
+        },
+      });
+
+    const error: MarketplaceApiError = await expectMarketplaceError(
+      createApi(createFakeHttpClient([]), chain).meterUsage(record()),
+    );
+
+    expect(error.isRetryable).toBe(true);
+    expect(error.message).not.toContain(token);
   });
 
   it("does not take a success without a metering record ID", async () => {

@@ -75,6 +75,7 @@ To change a data source later, open it from the list. **Edit** on **Data Source 
 
 Edit a dashboard, click **Add Widget** and pick a widget of the External Data Sources group: a **Chart**, a **Value**, a **Gauge** or a **Table**. In its settings:
 
+- **This project's metrics (PromQL)** is the first **Data Source**, and what a new widget starts on: PromQL over the metrics your project sends to OneUptime, read for the services you may read, as on the [PromQL](/docs/telemetry/promql) page. It needs no data source of its own, so it works on every plan.
 - Pick the **Data Source** and write the **Query**. The editor names the query language and shows an example for the type.
 - On a chart, **Add Query** overlays more queries on the same axes, and **Legend (optional)** names each series from its labels: `{{instance}} — errors` writes the series' `instance` label in front.
 - On a value or a gauge, **Reduce** turns the points into one number: the last value (the default), the first, the average, the sum, the minimum or the maximum. **Unit** adds a suffix, and scales the known ones: `Bytes` reads as 1.5 MB, `ms` as 2.4 s.
@@ -164,7 +165,7 @@ Prometheus and Loki range queries ask for about 250 points across the time range
 - **SQL stays read-only.** A query must be one statement that starts with `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` or `DESC`. Words that write or change a session, such as `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` or `SET`, are refused anywhere outside strings and quoted names, so quote a column named after one. Write a quote inside a string as two quotes (`''`): a backslash before a quote is refused. PostgreSQL, MySQL and ClickHouse sessions are read-only as well. SQL Server has no read-only session, so connect it with a read-only login.
 - **Credentials are write-only.** **Password**, **API Token** and **Custom HTTP Headers** are encrypted at rest, and the API never returns them, not even to you.
 - **Addresses are checked.** Loopback, link-local (where cloud metadata lives) and other reserved addresses are refused everywhere. Private addresses are refused on OneUptime Cloud, and allowed on a self-hosted installation unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`: see [Private Network Access](/docs/self-hosted/private-network-access).
-- **Public dashboards never run them.** The External Data Sources widgets are left out of a [public dashboard](/docs/dashboards/sharing), queries and all.
+- **Public dashboards run only what you saved.** A widget on **This project's metrics (PromQL)** shows its data on a [public dashboard](/docs/dashboards/sharing), never its queries: OneUptime runs the queries saved in the widget, never one a visitor sends, over every service in the project and within the limits above. A variable whose values are listed fills them only with one of those values; one whose values are typed in or read from telemetry fills them only inside a label matcher, such as `job="{{job}}"`, and keeps its saved value anywhere else. Widgets on an external data source are left out of a public dashboard, queries and all.
 
 ## Troubleshooting
 

@@ -304,16 +304,17 @@ describe("dashboard header on small screens", () => {
     fireEvent.click(getButton(/User Profile/));
 
     /*
-     * Profile and the theme's choices act on the spot, so they carry the
-     * button role; log out is a real destination and keeps the link role.
+     * The rows of a menu (#7237): Profile and Sign Out are menu items, the
+     * theme's choices menu item radios in a group named Theme. Sign Out is
+     * still a link to its page (its href, below).
      */
     const entries: Array<HTMLElement> = [
-      screen.getByRole("button", { name: "Profile" }),
+      screen.getByRole("menuitem", { name: "Profile" }),
       screen.getByRole("group", { name: "Theme" }),
-      screen.getByRole("button", { name: "Light" }),
-      screen.getByRole("button", { name: "Dark" }),
-      screen.getByRole("button", { name: "System" }),
-      screen.getByRole("link", { name: "Sign Out" }),
+      screen.getByRole("menuitemradio", { name: "Light" }),
+      screen.getByRole("menuitemradio", { name: "Dark" }),
+      screen.getByRole("menuitemradio", { name: "System" }),
+      screen.getByRole("menuitem", { name: "Sign Out" }),
     ];
 
     for (const entry of entries) {
@@ -328,7 +329,7 @@ describe("dashboard header on small screens", () => {
 
     fireEvent.click(getButton(/User Profile/));
 
-    expect(screen.getByRole("link", { name: "Sign Out" })).toHaveAttribute(
+    expect(screen.getByRole("menuitem", { name: "Sign Out" })).toHaveAttribute(
       "href",
       "/dashboard/logout",
     );
@@ -342,7 +343,7 @@ describe("dashboard header on small screens", () => {
     fireEvent.click(getButton(/User Profile/));
 
     expect(
-      screen.getByRole("button", { name: "Admin Settings" }),
+      screen.getByRole("menuitem", { name: "Admin Settings" }),
     ).toBeInTheDocument();
   });
 
@@ -359,16 +360,16 @@ describe("dashboard header on small screens", () => {
 
     fireEvent.click(getButton(/User Profile/));
 
-    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark" }));
 
     expect(document.documentElement).toHaveClass("dark");
     // The menu stays open: the person sees the page in the theme they picked.
-    expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute(
-      "aria-pressed",
+    expect(screen.getByRole("menuitemradio", { name: "Dark" })).toHaveAttribute(
+      "aria-checked",
       "true",
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Light" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Light" }));
 
     expect(document.documentElement).not.toHaveClass("dark");
   });

@@ -122,6 +122,7 @@ const renderAssignment: RenderAssignmentFunction = (
     availableUsers: USERS,
     onAssignMember: async (): Promise<void> => {},
     onUnassignMember: async (): Promise<void> => {},
+    onReassignMember: async (): Promise<void> => {},
     onRefresh: async (): Promise<void> => {},
     ...overrides,
   };
@@ -580,6 +581,7 @@ describe("a role's picker, opened by its Assign", () => {
       availableUsers: USERS,
       onAssignMember: async (): Promise<void> => {},
       onUnassignMember: async (): Promise<void> => {},
+      onReassignMember: async (): Promise<void> => {},
       onRefresh: async (): Promise<void> => {},
       ...overrides,
     };
@@ -766,22 +768,19 @@ describe("who may give a role, or take one off", () => {
     ).toBeDisabled();
   });
 
-  test("Reassign needs both: locked when the reader may not give the role", () => {
-    renderAssignment({ assignGate: ASSIGN_REFUSED, unassignGate: ALLOWED });
+  test("Reassign asks its own gate, not the gate of giving a role: a reader who may hand roles on but not give them keeps it (#10191)", () => {
+    renderAssignment({
+      assignGate: ASSIGN_REFUSED,
+      unassignGate: ALLOWED,
+      reassignGate: ALLOWED,
+    });
 
-    const locked: HTMLElement = screen.getByTestId(
-      "member-role-reassign-locked",
-    );
-
+    expect(screen.queryByTestId("member-role-reassign-locked")).toBeNull();
     expect(
-      within(locked).getByRole("button", {
+      screen.getByRole("button", {
         name: "Reassign Incident Commander from Maya Chen",
       }),
-    ).toBeDisabled();
-    expect(locked).toHaveAttribute(
-      "aria-label",
-      ASSIGN_REFUSED.disabledReason!,
-    );
+    ).toBeEnabled();
 
     // Taking a role off is still open to them.
     expect(
@@ -791,12 +790,13 @@ describe("who may give a role, or take one off", () => {
     ).toBeEnabled();
   });
 
-  test("a reader who may not take a role off finds Remove and Reassign locked, saying why", () => {
+  test("a reader who may not take a role off finds Remove locked, saying why, and Reassign still theirs (#10191)", () => {
     const onUnassignMember: MockFunction = getJestMockFunction();
 
     renderAssignment({
       assignGate: ALLOWED,
       unassignGate: UNASSIGN_REFUSED,
+      reassignGate: ALLOWED,
       onUnassignMember: onUnassignMember as unknown as (
         memberId: ObjectID,
       ) => Promise<void>,
@@ -825,10 +825,17 @@ describe("who may give a role, or take one off", () => {
     ).toBeNull();
     expect(onUnassignMember).not.toHaveBeenCalled();
 
-    expect(screen.getByTestId("member-role-reassign-locked")).toHaveAttribute(
-      "aria-label",
-      UNASSIGN_REFUSED.disabledReason!,
-    );
+    /*
+     * The customer's case: Reassign took the role off its holder first,
+     * which this reader may not do, and was refused behind its dialog. It
+     * is one change of the row now, which they may make.
+     */
+    expect(screen.queryByTestId("member-role-reassign-locked")).toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: "Reassign Incident Commander from Maya Chen",
+      }),
+    ).toBeEnabled();
 
     // Giving a role is still open to them.
     expect(
@@ -837,7 +844,11 @@ describe("who may give a role, or take one off", () => {
   });
 
   test("before the permissions are read, the buttons that need them are left out, not locked", () => {
-    renderAssignment({ assignGate: NOT_READ, unassignGate: NOT_READ });
+    renderAssignment({
+      assignGate: NOT_READ,
+      unassignGate: NOT_READ,
+      reassignGate: NOT_READ,
+    });
 
     expect(within(headerFor("Scribe")).queryByRole("button")).toBeNull();
     expect(screen.queryByTestId("member-role-assign-locked")).toBeNull();
@@ -884,6 +895,322 @@ describe("who may give a role, or take one off", () => {
     for (const name of names) {
       expect(name).toHaveAttribute("dir", "ltr");
     }
+  });
+});
+
+/*
+ * REASSIGN HANDS THE ROLE ON IN ONE CHANGE, AND SAYS A REFUSAL IN ITS
+ * DIALOG (#10191).
+ *
+ * Reassign took the role off its holder and then gave it to the person
+ * picked: two requests, and a refusal of the first - "You do not have
+ * permission to delete this Incident member" - was written to the card's
+ * own error line, behind the dialog, where it read as raw text over the
+ * page's background. The dialog stayed open saying nothing, and the line
+ * stayed once it was closed. Reassign is one call now (onReassignMember),
+ * and what it was refused is said in the dialog, which keeps the pick.
+ */
+describe("Reassign hands the role on in one change, and says a refusal in its dialog", () => {
+  const REFUSAL: string =
+    "You do not have permission to update this Incident Member. You need this permission: Edit Incident Member.";
+
+  const REASSIGN_REFUSED: PermissionGateResult = {
+    isAllowed: false,
+    disabledReason:
+      "You do not have permission to change this incident's roles. You need this permission: Edit Incident Member.",
+  };
+
+  type DialogFunction = () => HTMLElement;
+
+  const dialog: DialogFunction = (): HTMLElement => {
+    return screen.getByRole("dialog");
+  };
+
+  const openReassign: () => void = (): void => {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Reassign Incident Commander from Maya Chen",
+      }),
+    );
+  };
+
+  // Picks `name` in the dialog's picker, as a person does: opened, then chosen.
+  const pickInDialog: (name: string) => void = (name: string): void => {
+    fireEvent.keyDown(within(dialog()).getByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+
+    const option: HTMLElement | undefined = screen
+      .getAllByTestId("dropdown-option-label")
+      .find((label: HTMLElement): boolean => {
+        return label.textContent === name;
+      });
+
+    if (!option) {
+      throw new Error(`No option ${name} in the Reassign dialog's picker`);
+    }
+
+    fireEvent.click(option);
+  };
+
+  const submit: () => HTMLElement = (): HTMLElement => {
+    return within(dialog()).getByRole("button", { name: "Reassign" });
+  };
+
+  test("the role goes to the person picked in one call - never a removal and then an addition", async () => {
+    const onReassignMember: MockFunction = getJestMockFunction();
+    onReassignMember.mockResolvedValue(undefined as never);
+    const onUnassignMember: MockFunction = getJestMockFunction();
+    const onAssignMember: MockFunction = getJestMockFunction();
+
+    renderAssignment({
+      onReassignMember:
+        onReassignMember as unknown as ComponentProps["onReassignMember"],
+      onUnassignMember:
+        onUnassignMember as unknown as ComponentProps["onUnassignMember"],
+      onAssignMember:
+        onAssignMember as unknown as ComponentProps["onAssignMember"],
+    });
+
+    openReassign();
+    pickInDialog("Sam Rivera");
+    fireEvent.click(submit());
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    expect(onReassignMember).toHaveBeenCalledTimes(1);
+    const [member, newUserId] = onReassignMember.mock.calls[0]! as [
+      AssignedMember,
+      ObjectID,
+    ];
+    expect(member.memberId.toString()).toBe(MAYA.memberId.toString());
+    expect(newUserId.toString()).toBe(USERS[2]!.id.toString());
+
+    expect(onUnassignMember).not.toHaveBeenCalled();
+    expect(onAssignMember).not.toHaveBeenCalled();
+  });
+
+  test("the person who holds the role is not offered, and Reassign waits for a pick", () => {
+    renderAssignment();
+
+    openReassign();
+
+    expect(submit()).toBeDisabled();
+
+    fireEvent.keyDown(within(dialog()).getByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+
+    expect(
+      screen
+        .getAllByTestId("dropdown-option-label")
+        .map((label: HTMLElement): string => {
+          return label.textContent || "";
+        }),
+    ).toEqual(["Jordan Patel", "Sam Rivera"]);
+  });
+
+  test("the picker is named by the role it hands on", () => {
+    renderAssignment();
+
+    openReassign();
+
+    expect(
+      within(dialog()).getByRole("combobox", { name: "Incident Commander" }),
+    ).toBeVisible();
+  });
+
+  test("a refusal is said in the dialog, which stays open on the same pick - and never behind it", async () => {
+    const onReassignMember: MockFunction = getJestMockFunction();
+    onReassignMember.mockRejectedValue(new Error(REFUSAL) as never);
+
+    renderAssignment({
+      onReassignMember:
+        onReassignMember as unknown as ComponentProps["onReassignMember"],
+    });
+
+    openReassign();
+    pickInDialog("Sam Rivera");
+    fireEvent.click(submit());
+
+    expect(await within(dialog()).findByText(REFUSAL)).toBeVisible();
+
+    // Said once, in the dialog: the card behind it says nothing.
+    expect(screen.getAllByText(REFUSAL)).toHaveLength(1);
+    expect(dialog()).toContainElement(screen.getByText(REFUSAL));
+
+    // The pick is kept, so trying again is one press.
+    expect(within(dialog()).getByText("Sam Rivera")).toBeVisible();
+    expect(submit()).toBeEnabled();
+    // The role keeps its holder.
+    expect(rowFor("Maya Chen")).toBeVisible();
+  });
+
+  test("closed after a refusal, it leaves nothing behind, and opened again it starts clean", async () => {
+    const onReassignMember: MockFunction = getJestMockFunction();
+    onReassignMember.mockRejectedValue(new Error(REFUSAL) as never);
+
+    renderAssignment({
+      onReassignMember:
+        onReassignMember as unknown as ComponentProps["onReassignMember"],
+    });
+
+    openReassign();
+    pickInDialog("Sam Rivera");
+    fireEvent.click(submit());
+    await within(dialog()).findByText(REFUSAL);
+
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    // Nothing of it in the page's background (#10191).
+    expect(screen.queryByText(REFUSAL)).toBeNull();
+
+    openReassign();
+
+    expect(within(dialog()).queryByText(REFUSAL)).toBeNull();
+    expect(within(dialog()).queryByText("Sam Rivera")).toBeNull();
+    expect(submit()).toBeDisabled();
+  });
+
+  test("another pick takes the refusal away: it was about the last one", async () => {
+    const onReassignMember: MockFunction = getJestMockFunction();
+    onReassignMember.mockRejectedValue(new Error(REFUSAL) as never);
+
+    renderAssignment({
+      onReassignMember:
+        onReassignMember as unknown as ComponentProps["onReassignMember"],
+    });
+
+    openReassign();
+    pickInDialog("Sam Rivera");
+    fireEvent.click(submit());
+    await within(dialog()).findByText(REFUSAL);
+
+    pickInDialog("Jordan Patel");
+
+    expect(within(dialog()).queryByText(REFUSAL)).toBeNull();
+  });
+
+  test("while it is handed on the dialog waits: Reassign is busy, and Cancel cannot close it half way", async () => {
+    let finish: () => void = (): void => {};
+    const onReassignMember: MockFunction = getJestMockFunction();
+    onReassignMember.mockImplementation((): Promise<void> => {
+      return new Promise<void>((resolve: () => void) => {
+        finish = resolve;
+      });
+    });
+
+    renderAssignment({
+      onReassignMember:
+        onReassignMember as unknown as ComponentProps["onReassignMember"],
+    });
+
+    openReassign();
+    pickInDialog("Sam Rivera");
+    fireEvent.click(submit());
+
+    await waitFor(() => {
+      expect(onReassignMember).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      within(dialog()).getByRole("button", { name: "Cancel" }),
+    ).toBeDisabled();
+
+    // A second press sends nothing more.
+    fireEvent.click(submit());
+    expect(onReassignMember).toHaveBeenCalledTimes(1);
+
+    finish();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+  });
+
+  test("a reader who may not hand roles on finds Reassign locked with why, whatever they may do besides, and it opens nothing", () => {
+    const onReassignMember: MockFunction = getJestMockFunction();
+
+    renderAssignment({
+      assignGate: { isAllowed: true },
+      unassignGate: { isAllowed: true },
+      reassignGate: REASSIGN_REFUSED,
+      onReassignMember:
+        onReassignMember as unknown as ComponentProps["onReassignMember"],
+    });
+
+    const locked: HTMLElement = screen.getByTestId(
+      "member-role-reassign-locked",
+    );
+    const button: HTMLElement = within(locked).getByRole("button", {
+      name: "Reassign Incident Commander from Maya Chen",
+    });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveClass("pointer-events-none", "opacity-50");
+    expect(locked).toHaveAttribute(
+      "aria-label",
+      REASSIGN_REFUSED.disabledReason!,
+    );
+    expect(locked).toHaveAttribute("tabindex", "0");
+
+    fireEvent.click(button);
+    fireEvent.click(locked);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(onReassignMember).not.toHaveBeenCalled();
+    // Removing and giving roles are still open to them.
+    expect(
+      screen.getByRole("button", {
+        name: "Remove Jordan Patel from Communications Lead",
+      }),
+    ).toBeEnabled();
+  });
+
+  test("Remove's refusal is said in its confirmation, which stays open - never behind it", async () => {
+    const onUnassignMember: MockFunction = getJestMockFunction();
+    onUnassignMember.mockRejectedValue(
+      new Error(
+        "You do not have permission to delete this Incident Member.",
+      ) as never,
+    );
+
+    renderAssignment({
+      onUnassignMember:
+        onUnassignMember as unknown as ComponentProps["onUnassignMember"],
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Remove Jordan Patel from Communications Lead",
+      }),
+    );
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Remove" }));
+
+    expect(
+      await within(dialog()).findByText(
+        "You do not have permission to delete this Incident Member.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getAllByText(
+        "You do not have permission to delete this Incident Member.",
+      ),
+    ).toHaveLength(1);
+
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.queryByText(
+        "You do not have permission to delete this Incident Member.",
+      ),
+    ).toBeNull();
+    expect(rowFor("Jordan Patel")).toBeVisible();
   });
 });
 

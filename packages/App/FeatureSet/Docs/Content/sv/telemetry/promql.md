@@ -50,7 +50,7 @@ Några frågor att börja med:
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime lagrar mätvärden på OpenTelemetrys sätt. PromQL läser dem med de 
 
 | I OneUptime | I PromQL |
 | --- | --- |
-| En mätare `system.cpu.utilization` | `system_cpu_utilization` |
-| En räknare `http.requests` | `http_requests`, eller `http_requests_total` |
-| Ett histogram `http.server.request.duration` | `http_server_request_duration_bucket` (med `le`), `_count` och `_sum` |
+| En gauge `system.cpu.utilization`, i `1` | `system_cpu_utilization_ratio` eller `system_cpu_utilization` |
+| En gauge `system.memory.usage`, i `By` | `system_memory_usage_bytes` eller `system_memory_usage` |
+| En räknare `http.requests` | `http_requests_total` eller `http_requests` |
+| Ett histogram `http.server.request.duration`, i `s` | `http_server_request_duration_seconds_bucket` (med `le`), `_count` och `_sum`, eller samma utan `_seconds` |
 | En summary `rpc.latency` | `rpc_latency` (med `quantile`), `_count` och `_sum` |
 | Ett attribut `http.route` | Etiketten `http_route` |
 | Ett resursattribut `service.name` | Etiketten `resource_service_name`, och `job` |
 | Ett resursattribut `service.instance.id` | Etiketten `resource_service_instance_id`, och `instance` |
 
 - **Punkter och bindestreck blir understreck** i namn på mätvärden och etiketter. Om du vill ange ett mätvärde eller en etikett exakt som namnet är lagrat sätter du det inom citattecken, som Prometheus 3 gör: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **Enheten är en del av namnet**, så som Prometheus 3 och OpenTelemetry Collector skriver den: `s` lägger till `_seconds`, `By` `_bytes`, `By/s` `_bytes_per_second` och `%` `_percent`; en gauge i `1` slutar på `_ratio` och en räknare på `_total`, och en enhet inom klammerparenteser, som `{request}`, lägger inte till något. Namnet utan enheten hittar också mätvärdet, och **Lägg till ett mätvärdesnamn** listar varje mätvärde med den.
 - **Deltaräknare summeras** från början av frågans tidsintervall, så `rate()` och `increase()` läser dem som vilken annan räknare som helst.
 - **Exponentiella histogram** har `_count` och `_sum`, men inga buckets.
 
@@ -144,6 +146,7 @@ Varje fråga är begränsad, så att en instrumentpanel med många paneler inte 
 | Tid som utvärderingen får ta | 30 sekunder |
 | Hur långt bakåt en selektor letar efter en series senaste sampel | 5 minuter |
 | En underfrågas steg, när frågan utelämnar det | 1 minut |
+| Frågor som ett projekt får skicka varje minut | 1 200 |
 
 ## Felsökning
 
@@ -159,10 +162,15 @@ Dess PromQL-namn har understreck där det lagrade namnet har punkter, och ett hi
 Frågan begär mer än en läsning får hålla. Lägg till etikettmatchare, korta tidsintervallet eller använd ett större steg.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+Projektets instrumentpaneler, Grafana och skript skickade tillsammans fler än 1 200 frågor till API:t den här minuten. Panelerna laddas igen nästa minut; uppdatera instrumentpanelerna mer sällan för att hålla dig under gränsen.
+:::
+
 ## Nästa steg
 
 :::cards
 - [Mätvärdesutforskare](/docs/telemetry/metrics-explorer): Visa mätvärden i diagram utan att skriva en fråga.
-- [Metrikövervakning](/docs/monitor/metrics-monitor): Larma när ett mätvärde passerar en tröskel.
-- [Externa datakällor](/docs/dashboards/data-sources): Visa en extern Prometheus i diagram på dina instrumentpaneler.
+- [Metrikövervakning](/docs/monitor/metrics-monitor): Larma om ett mätvärde eller ett PromQL-uttryck, med en incident per serie.
+- [Externa datakällor](/docs/dashboards/data-sources): Visa PromQL i diagram på dina instrumentpaneler, över det här projektets mätvärden eller en extern Prometheus.
+- [LogQL](/docs/telemetry/logql): Fråga loggar med LogQL, även från Grafanas Loki-datakälla.
 :::

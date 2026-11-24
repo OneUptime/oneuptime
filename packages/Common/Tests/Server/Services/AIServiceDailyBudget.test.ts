@@ -13,6 +13,7 @@ import AIService, {
   AI_REMEDIATION_PLANNING_FEATURE,
   AI_SECURITY_CASE_TRIAGE_FEATURE,
   AI_DETECTION_RULE_DRAFT_FEATURE,
+  AI_IMPORT_QUERY_CONVERSION_FEATURE,
   AI_PRODUCTION_REVIEW_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   RUNBOOK_AI_STEP_FEATURE,
@@ -127,6 +128,20 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
     expect(AI_DETECTION_RULE_DRAFT_FEATURE).toBe("AI Detection Rule Draft");
     expect(AUTONOMOUS_AI_FEATURES).not.toContain(
       AI_DETECTION_RULE_DRAFT_FEATURE,
+    );
+  });
+
+  /*
+   * Converting one query of an import (#7697) is a person's request on the
+   * import's preview, answered while they wait: the project's daily limits
+   * cover it, the autonomous budget does not.
+   */
+  test("converting an imported query is not autonomous work", () => {
+    expect(AI_IMPORT_QUERY_CONVERSION_FEATURE).toBe(
+      "AI Import Query Conversion",
+    );
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_IMPORT_QUERY_CONVERSION_FEATURE,
     );
   });
 

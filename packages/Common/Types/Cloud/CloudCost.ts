@@ -47,13 +47,18 @@ export const CLOUD_COST_DEFAULT_CURRENCY: string = "USD";
  *     command again gives it the permission;
  *   - not-set-up: the cloud has nothing to read until someone sets it up
  *     (Cost Explorer turned on, a billing export to BigQuery chosen);
- *   - failed: the cloud answered with an error; the next read tries again.
+ *   - failed: the cloud answered with an error; the next read tries again;
+ *   - queued: its first figures wait their turn - its cloud limits how fast
+ *     costs are read (Azure Cost Management, a tenant at a time) - and are
+ *     read at nextReadAt. An account that has figures keeps them, and stays
+ *     reading, while its next read waits.
  */
 export enum CloudCostState {
   Reading = "reading",
   NotAllowed = "not-allowed",
   NotSetUp = "not-set-up",
   Failed = "failed",
+  Queued = "queued",
 }
 
 /*
@@ -107,6 +112,12 @@ export interface CloudAccountCostSummary {
    * anyway, or the setting is off.
    */
   resources?: CloudResourceCostsStatus | undefined;
+  /*
+   * Queued: when its costs are read, as an ISO time - its cloud's word for
+   * when it may be asked again, or the connection's next read, whichever is
+   * later.
+   */
+  nextReadAt?: string | undefined;
   // When the costs were last read.
   readAt: string;
 }
@@ -588,6 +599,11 @@ export function readCloudAccountCostSummary(
       : undefined,
     tagKeys: readCloudCostTagKeys(record["tagKeys"]),
     resources: readCloudResourceCostsStatus(record["resources"]),
+    nextReadAt:
+      typeof record["nextReadAt"] === "string" &&
+      Number.isFinite(Date.parse(record["nextReadAt"]))
+        ? record["nextReadAt"]
+        : undefined,
     readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
   };
 }
@@ -680,6 +696,8 @@ export interface CloudCostTotals {
   accountsNotAllowed: number;
   accountsNotSetUp: number;
   accountsFailed: number;
+  // Accounts whose first costs wait their turn: their cloud limits how fast they are read.
+  accountsQueued: number;
 }
 
 export function totalCloudCosts(
@@ -689,6 +707,7 @@ export function totalCloudCosts(
   let accountsNotAllowed: number = 0;
   let accountsNotSetUp: number = 0;
   let accountsFailed: number = 0;
+  let accountsQueued: number = 0;
 
   for (const summary of summaries) {
     if (!summary) {
@@ -701,6 +720,8 @@ export function totalCloudCosts(
       accountsNotAllowed++;
     } else if (summary.state === CloudCostState.NotSetUp) {
       accountsNotSetUp++;
+    } else if (summary.state === CloudCostState.Queued) {
+      accountsQueued++;
     } else {
       accountsFailed++;
     }
@@ -730,6 +751,7 @@ export function totalCloudCosts(
     accountsNotAllowed,
     accountsNotSetUp,
     accountsFailed,
+    accountsQueued,
   };
 
   for (const summary of read) {

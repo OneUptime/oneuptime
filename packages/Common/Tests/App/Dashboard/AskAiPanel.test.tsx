@@ -531,6 +531,14 @@ function homePath(): string {
   return `/dashboard/${PROJECT_ID}/home/`;
 }
 
+/*
+ * A page with no context of its own: Home has one since #7062 (where a
+ * project is set up), so "no page behind it" is the project's Users.
+ */
+function noContextPath(): string {
+  return `/dashboard/${PROJECT_ID}/users`;
+}
+
 function Shell(): ReactElement {
   const location: ReturnType<typeof useLocation> = useLocation();
   Navigation.setLocation(location);
@@ -1103,7 +1111,7 @@ describe("it stays while the page beside it moves", () => {
     );
 
     await act(async () => {
-      navigate(homePath());
+      navigate(noContextPath());
     });
     await settle();
 
@@ -1532,6 +1540,8 @@ describe("what the question is about", () => {
           type: AIChatPageContextType.Incident,
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          // The page on screen, as its route: no id in it (#7062).
+          page: "/dashboard/:projectId/incidents/:id",
         },
       }),
     );
@@ -1567,7 +1577,7 @@ describe("what the question is about", () => {
   });
 
   test("with no page behind it, the start says where answers come from, once", async () => {
-    await renderAt([homePath()]);
+    await renderAt([noContextPath()]);
 
     await toggle();
 
@@ -2476,6 +2486,8 @@ describe("the questions follow the incident on screen", () => {
           type: AIChatPageContextType.Incident,
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          // The page on screen, as its route: no id in it (#7062).
+          page: "/dashboard/:projectId/incidents/:id",
         },
       }),
     );
@@ -2581,7 +2593,7 @@ describe("the questions follow the incident on screen", () => {
       fireEvent.click(screen.getByRole("button", { name: "Close" }));
     });
     await act(async () => {
-      navigate(homePath());
+      navigate(noContextPath());
     });
     await settle();
     await toggle();

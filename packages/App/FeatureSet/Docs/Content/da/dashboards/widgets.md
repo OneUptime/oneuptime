@@ -53,7 +53,7 @@ En tidsserie med en eller flere metrikforespørgsler over dashboardets tidsinter
 
 Hver forespørgsel tegner sit eget diagram, under hinanden i widgetten. Vil du i stedet tegne en forespørgsel i diagrammet for forespørgslen før den, som flere linjer på de samme akser, så slå **Læg oven på forrige forespørgsel** til i dens **Visningsindstillinger**: for eksempel `mem_used` og `mem_total` i ét diagram. Alle forespørgsler efter den første har kontakten, og hver forespørgsel, der har den slået til, kommer med i samme diagram, så tre eller flere forespørgsler kan dele ét. Slå den fra for at give forespørgslen sit eget diagram igen.
 
-Et overlejret diagram tager sin titel, sin diagramtype og sin værdiakse fra sin første forespørgsel, så hver forespørgsel i det aflæses i den forespørgsels enhed. En forespørgsel i en anden enhed af samme slags tegnes i diagrammets enhed, som megabyte i et diagram i gigabyte eller sekunder i et diagram i millisekunder. En enhed af en anden slags kan ikke aflæses på den akse, som bytes i et diagram i procent: forespørgslen tegnes der alligevel, og både diagrammet og kontakten siger, at enhederne er forskellige, så giv sådan en forespørgsel sit eget diagram.
+Et overlejret diagram tager sin titel, sin diagramtype og sin venstre værdiakse fra sin første forespørgsel, så en forespørgsel i det aflæses i den forespørgsels enhed, hvor det kan lade sig gøre. En forespørgsel i en anden enhed af samme slags tegnes i diagrammets enhed, som megabyte i et diagram i gigabyte eller sekunder i et diagram i millisekunder. En forespørgsel i en enhed af en anden slags, som bytes i et diagram i procent, tegnes mod en ekstra værdiakse i diagrammets højre side, i sin egen enhed, og kontakten siger det. Forklaringen under diagrammet nævner hver akses enhed og den akse, hver serie tegnes mod. Kun en tredje slags enhed passer til ingen af akserne: den tegnes på sin egen skala, uden akse, og både diagrammet og kontakten siger det. Aflæs dens værdier i forklaringen og værktøjstippet, eller giv sådan en forespørgsel sit eget diagram for at aflæse den mod en akse.
 
 Brug den, når linjens form fortæller historien: latenstid, fejl, gennemløb eller køens længde.
 
@@ -250,7 +250,7 @@ Gennem API'et og Terraform er rækkefølgen widgettens `arguments.sort`: en kolo
 Et [offentligt dashboard](/docs/dashboards/sharing) tegner de fleste widgets for sine besøgende, og hver viser kun det, den er sat op til at vise. Nogle få kan ikke vises uden en indlogget session:
 
 - **Logdiagram**, **Spordiagram**, **Sportabel**, **Sikkerhedshændelser**, **Flow af sikkerhedshændelser**, **Tragt** og **Fastholdelse af brugere** skriver på deres plads, at de ikke er tilgængelige på offentlige dashboards.
-- Widgets fra Eksterne datakilder udelades helt fra et offentligt dashboard, fordi deres indstillinger er selve forespørgslen.
+- Widgets fra Eksterne datakilder viser deres data, når de læser **Dette projekts metrikker (PromQL)**, aldrig deres forespørgsler. En widget med en ekstern datakilde udelades helt fra et offentligt dashboard.
 
 ## Når en widget ikke kan vises
 

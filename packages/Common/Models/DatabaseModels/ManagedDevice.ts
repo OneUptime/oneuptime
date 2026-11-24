@@ -14,6 +14,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { ManagedDeviceHostMatch } from "../../Types/DeviceManagement/ManagedDeviceIdentity";
+import { ManagedDevicePlatform } from "../../Types/DeviceManagement/ManagedDevicePlatform";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -72,7 +73,7 @@ const READ_PERMISSIONS: Array<Permission> = [
   pluralName: "Managed Devices",
   icon: IconProp.DevicePhoneMobile,
   tableDescription:
-    "Devices a device management service such as Esper enrolls, imported by a device management connection: each device's hardware, Android version, group and last check-in. Written by OneUptime; not user-editable.",
+    "Devices a device management service such as Esper or Microsoft Intune enrolls, imported by a device management connection: each device's hardware, operating system, group and last check-in. Written by OneUptime; not user-editable.",
 })
 @Index(["connectionId", "providerDeviceId"], { unique: true })
 @Index(["projectId", "removedAt"])
@@ -163,7 +164,8 @@ export default class ManagedDevice extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Device ID",
-    description: "The service's own ID for the device: Esper's device UUID.",
+    description:
+      "The service's own ID for the device: Esper's device UUID, or Intune's managed device ID.",
     example: "811a2d27-13fd-4358-8dc3-aed049e73ce7",
   })
   @Column({
@@ -180,7 +182,7 @@ export default class ManagedDevice extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Device Name",
     description:
-      "The name the service gave the device (Esper's generated name, like ESP-ID-AAAAW): the device's host.name in Inventory.",
+      "The name the service gave the device (Esper's generated name, like ESP-ID-AAAAW, or its name in Intune): the device's host.name in Inventory, unless another device of the connection has it too.",
     example: "ESP-ID-AAAAW",
   })
   @Column({
@@ -278,12 +280,37 @@ export default class ManagedDevice extends BaseModel {
   })
   public model?: string = undefined;
 
+  /*
+   * What the device runs (ManagedDevicePlatform): its operating system in
+   * Inventory, and how long it may go without checking in before it is
+   * offline. Empty on a row written before #9837, when every device was an
+   * Esper Android device: read as Android.
+   */
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
-    title: "Android Version",
-    description: "The Android version the device runs.",
+    allowedValues: Object.values(ManagedDevicePlatform),
+    canReadOnRelationQuery: true,
+    title: "Platform",
+    description:
+      "What the device runs: 'android', 'ios', 'ipados', 'tvos', 'macos', 'windows', 'linux' or 'other'. Empty is Android.",
+    example: "ipados",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public platform?: ManagedDevicePlatform = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "OS Version",
+    description:
+      "The version of the operating system the device runs: Android's, iOS's or iPadOS's, Windows' or macOS's.",
     example: "13",
   })
   @Column({
@@ -298,7 +325,7 @@ export default class ManagedDevice extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     title: "Build Number",
-    description: "The Android build the device runs.",
+    description: "The operating system build the device runs.",
     example: "TQ3A.230901.001",
   })
   @Column({
@@ -343,7 +370,7 @@ export default class ManagedDevice extends BaseModel {
     type: TableColumnType.Number,
     title: "Service State",
     description:
-      "The device's state as the service reports it: Esper's state number (1 online, 20 disabled, 60 offline, 70 factory reset in progress, 30 to 200 provisioning steps).",
+      "The device's state as the service reports it: Esper's state number (1 online, 20 disabled, 60 offline, 70 factory reset in progress, 30 to 200 provisioning steps). Empty for Intune, whose status is its last check-in.",
   })
   @Column({
     nullable: true,
@@ -582,7 +609,7 @@ export default class ManagedDevice extends BaseModel {
     allowedValues: Object.values(ManagedDeviceHostMatch),
     title: "Inventory Match",
     description:
-      "How the device's host in Inventory was found: 'name' (the host telemetry names by the device's Esper name), 'serial-number' (the one host whose host.serial_number or host.name is the device's serial number) or 'created' (none was found, so OneUptime made one).",
+      "How the device's host in Inventory was found: 'name' (the host telemetry names by the device's name in the service), 'serial-number' (the one host whose host.serial_number or host.name is the device's serial number) or 'created' (none was found, so OneUptime made one).",
   })
   @Column({
     nullable: true,

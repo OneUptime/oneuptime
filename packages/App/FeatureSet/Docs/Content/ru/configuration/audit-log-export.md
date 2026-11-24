@@ -148,7 +148,7 @@ OneUptime отправляет каждый пакет методом POST на 
 | `mcpOAuthGrantId`, `mcpClientName` | Клиент MCP, через который оно сделано, если есть. |
 | `workflowId`, `workflowName` | Рабочий процесс, который его сделал, если есть. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | В версии 3 — как выполнялся шаг рабочего процесса: `Default`, `ProjectOwner` или `CustomRole`, и тогдашнее имя роли. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | В версии 3 — с чьими разрешениями он выполнялся: id человека или API-ключа проекта и их тогдашнее имя. Каждый из этих пяти ключей равен `null`, если изменение сделал не рабочий процесс. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | В версии 3 — с чьими разрешениями он выполнялся: id человека или API-ключа проекта и их тогдашнее имя. Каждый из этих пяти ключей равен `null`, если изменение сделал не рабочий процесс. |
 | `changes` | Каждое изменённое поле: `field`, с `oldValue` и `newValue`, а в версии 2 и `summary`. |
 
 Файл содержит по одной записи на строку, сжат gzip и раскладывается по часу своей первой записи: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

@@ -4,7 +4,8 @@ import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
-import crypto from "crypto";
+import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -65,8 +66,14 @@ function traceKeysRule(action: string = "redact"): never {
   return keysRule(TraceScrubRuleService, new TraceScrubRule(), action);
 }
 
-function sha8(text: string): string {
-  return crypto.createHash("sha256").update(text).digest("hex").slice(0, 8);
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a60394",
+);
+
+// What a Hash rule of PROJECT_ID leaves of a text (#10394).
+function token(text: string): string {
+  return ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: text });
 }
 
 describe("a log: the attribute its session id was read from is kept", () => {
@@ -171,6 +178,7 @@ describe("a log: the attribute its session id was read from is kept", () => {
     const rule: LogScrubRule = new LogScrubRule();
 
     rule.name = "hex ids";
+    rule.projectId = PROJECT_ID;
     rule.patternType = "custom";
     rule.customRegex = "[0-9a-f]{32}";
     rule.scrubAction = "hash";
@@ -190,7 +198,7 @@ describe("a log: the attribute its session id was read from is kept", () => {
     );
 
     expect((row["attributes"] as JSONObject)["session.id"]).toBe(
-      `[HASHED:${sha8(REPLAY_SESSION)}]`,
+      token(REPLAY_SESSION),
     );
     // The column is the record's session, whatever the rules.
     expect(row["sessionId"]).toBe(REPLAY_SESSION);

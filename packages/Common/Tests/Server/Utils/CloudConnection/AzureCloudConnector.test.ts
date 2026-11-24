@@ -1,7 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
+import { partitionAzureMetricCalls } from "../../../../Server/Utils/CloudConnection/Azure/AzureMetricReads";
 import AzureCloudConnector, {
-  chunkAzureMetricCalls,
+  applyAzureSplits,
+  getAzureSplitOrder,
   withAzureResourceAdditions,
   AZURE_DEFINITION_SAMPLES,
   AZURE_FIVE_MINUTE_CURSOR,
@@ -36,9 +38,11 @@ import {
 } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudKeyMetricGroup } from "../../../../Types/Cloud/CloudKeyMetricGroup";
 import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
   CloudAddedMetric,
   CloudAddedMetricScope,
   getCloudAddedMetricKey,
+  getCloudAddedMetricSplitAttribute,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
 import {
   CloudMonitoredResource,
@@ -116,18 +120,54 @@ interface FakeAzureOptions {
    * own definitions do not list is refused whole, with a 400 that says so.
    */
   refuseUnpublished?: boolean;
+  /*
+   * As Azure Monitor answers a call split by a dimension ($filter=<it> eq
+   * '*'): a series per value, the first `top` of them, each its value in
+   * metadatavalues as Azure writes it, its name lowercased.
+   */
+  splitValues?: Record<string, Array<string>>;
+  // What every metrics:getBatch call is answered with, in place of the metrics.
+  batchError?: FakeResponse;
+  /*
+   * Each metric's own error, by its name, inside an answer that reads the
+   * others - as Azure Monitor answers a metric it is too busy for, or does
+   * not serve with an aggregation the call names.
+   */
+  metricErrors?: Record<
+    string,
+    (data: {
+      resourceId: string;
+      aggregations: Array<string>;
+      attempt: number;
+    }) => { errorCode: string; errorMessage: string } | null
+  >;
 }
+
+/*
+ * A definition as Azure Monitor answers one: most metrics are served with
+ * every aggregation ("None" is Azure's own entry, never asked for).
+ */
+const EVERY_AGGREGATION: Array<string> = [
+  "None",
+  "Average",
+  "Minimum",
+  "Maximum",
+  "Total",
+  "Count",
+];
 
 function definition(
   name: string,
   aggregation: string,
   grains: Array<string>,
   unit: string = "Percent",
+  supported: Array<string> = EVERY_AGGREGATION,
 ): JSONObject {
   return {
     name: { value: name, localizedValue: name },
     unit,
     primaryAggregationType: aggregation,
+    supportedAggregationTypes: supported,
     metricAvailabilities: grains.map((timeGrain: string) => {
       return { timeGrain, retention: "P93D" };
     }),
@@ -160,11 +200,25 @@ function resource(
 }
 
 interface FakeAzure extends FakeProviderApi {
+  /*
+   * Each resource's read, as a call of its own would ask it: a batch's
+   * resources each (via=batch, on the batch's host), so a test reads what
+   * a resource was asked however it was asked.
+   */
   metricCalls: Array<URL>;
+  // The metrics:getBatch calls: each one's URL, and the resources its body named.
+  batchCalls: Array<{ url: URL; resourceIds: Array<string> }>;
 }
+
+// A split call's filter, "<dimension> eq '*'": the dimension it splits by.
+const SPLIT_FILTER: RegExp = /^([A-Za-z0-9]+) eq '\*'$/;
+const BATCH_PATH: RegExp = /^\/subscriptions\/[^/]+\/metrics:getBatch$/;
 
 function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
   const metricCalls: Array<URL> = [];
+  const batchCalls: Array<{ url: URL; resourceIds: Array<string> }> = [];
+  // How many times each resource's metric was asked: a metric's error can change.
+  const attempts: Map<string, number> = new Map();
   // A resource's own definitions: the ones named for it, else its type's.
   const definitionsOf: (resourceId: string) => Array<JSONObject> = (
     resourceId: string,
@@ -175,6 +229,153 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
         ? VM_DEFINITIONS
         : SQL_DEFINITIONS)
     );
+  };
+
+  /*
+   * What Azure Monitor answers of one resource's metrics, as one call or a
+   * batch asks them: each metric's points (a value of every aggregation),
+   * or a series per value of the dimension a call splits by; a metric's
+   * own error where metricErrors says; or the 400 a call naming a metric
+   * the resource does not publish is refused with.
+   */
+  const answerOf: (data: {
+    resourceId: string;
+    url: URL;
+    start: number;
+    splitBy: string;
+  }) => { refusal?: FakeResponse; value?: JSONArray } = (data: {
+    resourceId: string;
+    url: URL;
+    start: number;
+    splitBy: string;
+  }): { refusal?: FakeResponse; value?: JSONArray } => {
+    const names: Array<string> = (
+      data.url.searchParams.get("metricnames") || ""
+    )
+      .split(",")
+      .filter((name: string): boolean => {
+        return Boolean(name);
+      });
+    const aggregations: Array<string> = (
+      data.url.searchParams.get("aggregation") || ""
+    )
+      .split(",")
+      .filter((aggregation: string): boolean => {
+        return Boolean(aggregation);
+      });
+
+    if (options.refuseUnpublished) {
+      const published: Array<string> = definitionsOf(data.resourceId).map(
+        (definition: JSONObject): string => {
+          return String(
+            (definition["name"] as JSONObject)["value"],
+          ).toLowerCase();
+        },
+      );
+      const unpublished: string | undefined = names.find(
+        (name: string): boolean => {
+          return !published.includes(name.toLowerCase());
+        },
+      );
+
+      if (unpublished) {
+        return {
+          refusal: {
+            status: 400,
+            body: JSON.stringify({
+              code: "BadRequest",
+              message: `Failed to find metric configuration for provider: Microsoft.Sql, resource Type: servers/databases, metric: ${unpublished}, Valid metrics: ${published.join(",")}`,
+            }),
+          },
+        };
+      }
+    }
+
+    const values: Array<string> = (
+      options.splitValues?.[data.splitBy] || []
+    ).slice(0, Number(data.url.searchParams.get("top") || 10));
+
+    return {
+      value: names.map((name: string, index: number): JSONObject => {
+        const attemptKey: string = `${data.resourceId.toLowerCase()}|${name.toLowerCase()}`;
+        const attempt: number = attempts.get(attemptKey) || 0;
+        const failure: { errorCode: string; errorMessage: string } | null =
+          options.metricErrors?.[name]?.({
+            resourceId: data.resourceId,
+            aggregations,
+            attempt,
+          }) || null;
+
+        attempts.set(attemptKey, attempt + 1);
+
+        if (failure) {
+          return {
+            name: { value: name, localizedValue: name },
+            unit: "Unspecified",
+            timeseries: [],
+            errorCode: failure.errorCode,
+            errorMessage: failure.errorMessage,
+          };
+        }
+
+        if (values.length > 0) {
+          return {
+            name: { value: name, localizedValue: name },
+            unit: "BytesPerSecond",
+            timeseries: values.map((value: string, valueIndex: number) => {
+              return {
+                metadatavalues: [
+                  {
+                    name: {
+                      value: data.splitBy.toLowerCase(),
+                      localizedValue: data.splitBy,
+                    },
+                    value,
+                  },
+                ],
+                data: [
+                  {
+                    timeStamp: new Date(data.start).toISOString(),
+                    average: 10 + index + valueIndex,
+                    total: 100 + index + valueIndex,
+                  },
+                ],
+              };
+            }),
+            errorCode: "Success",
+          };
+        }
+
+        return {
+          name: { value: name, localizedValue: name },
+          unit: "Percent",
+          timeseries: [
+            {
+              metadatavalues: [],
+              data: [
+                {
+                  timeStamp: new Date(data.start).toISOString(),
+                  average: 10 + index,
+                  total: 100 + index,
+                  maximum: 50 + index,
+                  count: 5 + index,
+                },
+                {
+                  timeStamp: new Date(data.start + 60000).toISOString(),
+                  average: 11 + index,
+                  total: 101 + index,
+                  maximum: 51 + index,
+                  count: 6 + index,
+                },
+                // A minute with no data: no value at all.
+                { timeStamp: new Date(data.start + 120000).toISOString() },
+              ],
+            },
+          ],
+          errorCode: "Success",
+        };
+      }),
+    };
   };
 
   const routes: Array<FakeRoute> = [
@@ -263,74 +464,103 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
           return options.metricsError[resourceId]!;
         }
 
-        const names: Array<string> = (url.searchParams.get("metricnames") || "")
-          .split(",")
-          .filter((name: string): boolean => {
-            return Boolean(name);
-          });
-
-        if (options.refuseUnpublished) {
-          const published: Array<string> = definitionsOf(resourceId).map(
-            (definition: JSONObject): string => {
-              return String(
-                (definition["name"] as JSONObject)["value"],
-              ).toLowerCase();
-            },
-          );
-          const unpublished: string | undefined = names.find(
-            (name: string): boolean => {
-              return !published.includes(name.toLowerCase());
-            },
-          );
-
-          if (unpublished) {
-            return {
-              status: 400,
-              body: JSON.stringify({
-                code: "BadRequest",
-                message: `Failed to find metric configuration for provider: Microsoft.Sql, resource Type: servers/databases, metric: ${unpublished}, Valid metrics: ${published.join(",")}`,
-              }),
-            };
-          }
-        }
-        const start: number = Date.parse(
-          (url.searchParams.get("timespan") || "").split("/")[0]!,
-        );
-
-        return json({
-          value: names.map((name: string, index: number) => {
-            return {
-              name: { value: name, localizedValue: name },
-              unit: "Percent",
-              timeseries: [
-                {
-                  metadatavalues: [],
-                  data: [
-                    {
-                      timeStamp: new Date(start).toISOString(),
-                      average: 10 + index,
-                      total: 100 + index,
-                      maximum: 50 + index,
-                    },
-                    {
-                      timeStamp: new Date(start + 60000).toISOString(),
-                      average: 11 + index,
-                      total: 101 + index,
-                      maximum: 51 + index,
-                    },
-                    // A minute with no data: no value at all.
-                    { timeStamp: new Date(start + 120000).toISOString() },
-                  ],
-                },
-              ],
-            };
-          }),
+        const answer: { refusal?: FakeResponse; value?: JSONArray } = answerOf({
+          resourceId,
+          url,
+          start: Date.parse(
+            (url.searchParams.get("timespan") || "").split("/")[0]!,
+          ),
+          splitBy:
+            SPLIT_FILTER.exec(url.searchParams.get("$filter") || "")?.[1] || "",
         });
+
+        return answer.refusal || json({ value: answer.value || [] });
+      },
+    },
+    {
+      path: BATCH_PATH,
+      method: "POST",
+      respond: (request: DataSourceHttpRequest, url: URL): FakeResponse => {
+        const body: JSONObject = (
+          typeof request.body === "string"
+            ? JSON.parse(request.body)
+            : request.body || {}
+        ) as JSONObject;
+        const resourceIds: Array<string> = (
+          (body["resourceids"] as Array<string> | undefined) || []
+        ).map((resourceId: string): string => {
+          return String(resourceId);
+        });
+
+        batchCalls.push({ url, resourceIds });
+
+        if (options.batchError) {
+          return options.batchError;
+        }
+
+        const values: JSONArray = [];
+
+        for (const resourceId of resourceIds) {
+          // Each resource's read, as its own call would have asked it.
+          const asked: URL = new URL(
+            `https://${url.host}${resourceId}/providers/Microsoft.Insights/metrics`,
+          );
+
+          asked.searchParams.set(
+            "metricnames",
+            url.searchParams.get("metricnames") || "",
+          );
+          asked.searchParams.set(
+            "timespan",
+            `${url.searchParams.get("starttime")}/${url.searchParams.get("endtime")}`,
+          );
+          asked.searchParams.set(
+            "interval",
+            url.searchParams.get("interval") || "",
+          );
+          asked.searchParams.set(
+            "aggregation",
+            url.searchParams.get("aggregation") || "",
+          );
+          asked.searchParams.set("via", "batch");
+          metricCalls.push(asked);
+
+          if (options.metricsError?.[resourceId]) {
+            return options.metricsError[resourceId]!;
+          }
+
+          const answer: { refusal?: FakeResponse; value?: JSONArray } =
+            answerOf({
+              resourceId,
+              url,
+              start: Date.parse(url.searchParams.get("starttime") || ""),
+              splitBy: "",
+            });
+
+          // A batch that names a metric one of its resources does not publish is refused whole.
+          if (answer.refusal) {
+            return answer.refusal;
+          }
+
+          values.push({
+            starttime: url.searchParams.get("starttime") || "",
+            endtime: url.searchParams.get("endtime") || "",
+            interval: url.searchParams.get("interval") || "",
+            namespace: (
+              url.searchParams.get("metricnamespace") || ""
+            ).toLowerCase(),
+            resourceregion: url.host.split(".")[0]!,
+            resourceid: resourceId,
+            value: answer.value || [],
+          });
+        }
+
+        return json({ values });
       },
     },
   ];
 
-  return { ...createFakeProviderApi(routes), metricCalls };
+  return { ...createFakeProviderApi(routes), metricCalls, batchCalls };
 }
 
 const STANDARD_RESOURCES: Record<string, Array<JSONObject>> = {
@@ -790,8 +1020,9 @@ describe("read", () => {
       readOptions(fake),
     );
 
+    // With what Azure answered (its error code redacted, as stored).
     expect(result.warnings).toContain(
-      "Could not read the metrics of 1 resource this time.",
+      'Could not read the metrics of 1 resource this time: Azure metrics request failed with HTTP 400: {"code":"[REDACTED]"}',
     );
     expect(
       datapoints(result).every((point: { stored: JSONObject }): boolean => {
@@ -1198,7 +1429,7 @@ describe("resources of one type that publish different metrics", () => {
 
     expect(metricNamesAsked(fake, SQL)).toHaveLength(1);
     expect(result.warnings).toContain(
-      "Could not read the metrics of 1 resource this time.",
+      'Could not read the metrics of 1 resource this time: Azure metrics request failed with HTTP 400: {"code":"[REDACTED]","message":"Invalid timespan."}',
     );
     expect(result.nextState.azureResourceMetricDefinitions).toEqual({});
   });
@@ -1735,9 +1966,9 @@ describe("a deprecated metric no longer read", () => {
         ),
       ).sort(),
     ).toEqual([
-      // The fake answers no count: TotalRequests writes nothing here.
       "azure_datausagev2_total",
       "azure_serversidelatencydirect_average",
+      "azure_totalrequests_count",
     ]);
     expect(result.warnings).toEqual([]);
   });
@@ -2092,13 +2323,154 @@ describe("metrics a person added to the reads", () => {
       readOptions(fake, {}, { addedMetrics: [ownAddition()] }),
     );
 
+    /*
+     * Which aggregations its own addition is served with is not kept with
+     * it: it is asked with its own alone, beside the key metrics of the
+     * same aggregation, and the others in a call of their own.
+     */
     expect(metricNamesAsked(fake, VM)).toEqual([
-      `${KEY_CALL},Data Disk Read Bytes/sec`,
+      "Percentage CPU,Data Disk Read Bytes/sec",
+      "Network In Total,Disk Read Bytes",
     ]);
     expect(metricNamesAsked(fake, VM_2)).toEqual([KEY_CALL]);
     expect(writtenNamesOf(result, VM_2)).not.toContain(
       "azure_data_disk_read_bytes/sec_average",
     );
+  });
+
+  /*
+   * #9808: an addition split by one of its dimensions is read in a call of
+   * its own, whose filter splits it alone - never the key metrics' call,
+   * which the filter would split too - the busiest 10 values, a series
+   * each, stored with the value as the receiver files it.
+   */
+  test("a split addition is read in a call of its own, split by its dimension, its busiest values, a series each stored with its value", async () => {
+    const fake: FakeAzure = twoVms({
+      splitValues: { LUN: ["0", "1", "2"] },
+    });
+
+    const result: CloudReadResult = await connector.read(
+      settings(),
+      readOptions(fake, {}, { addedMetrics: [added({ splitBy: "LUN" })] }),
+    );
+
+    // The key metrics' call as it was, and one more for the split.
+    expect(metricNamesAsked(fake, VM)).toEqual([
+      KEY_CALL,
+      "Data Disk Read Bytes/sec",
+    ]);
+
+    const calls: Array<URL> = fake.metricCalls.filter((url: URL): boolean => {
+      return url.pathname.startsWith(`${VM}/`);
+    });
+
+    expect(calls[0]!.searchParams.get("$filter")).toBeNull();
+    expect(calls[1]!.searchParams.get("$filter")).toBe("LUN eq '*'");
+    expect(calls[1]!.searchParams.get("top")).toBe(
+      String(CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES),
+    );
+    expect(calls[1]!.searchParams.get("orderby")).toBe("average desc");
+    expect(calls[1]!.searchParams.get("ValidateDimensions")).toBe("false");
+    expect(calls[1]!.searchParams.get("aggregation")).toBe("Average");
+
+    const split: Array<{ stored: JSONObject; value: number }> = datapoints(
+      result,
+    ).filter((point: { metricName: string; stored: JSONObject }): boolean => {
+      return (
+        point.metricName === "azure_data_disk_read_bytes/sec_average" &&
+        point.stored["azuremonitor.resource_id"] === VM
+      );
+    });
+
+    expect(
+      split.map((point: { stored: JSONObject }) => {
+        return point.stored[
+          getCloudAddedMetricSplitAttribute({
+            provider: CloudProvider.Azure,
+            splitBy: "LUN",
+          })
+        ];
+      }),
+    ).toEqual(["0", "1", "2"]);
+    // A split stopped at its cap leaves no namespace's queues unread to warn of.
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a split addition of a total is ordered by its sum; one read whole rides in the key metrics' call as before", async () => {
+    const fake: FakeAzure = twoVms({
+      splitValues: { LUN: ["0"] },
+    });
+
+    await connector.read(
+      settings(),
+      readOptions(
+        fake,
+        {},
+        {
+          addedMetrics: [
+            ownAddition({
+              name: "Data Disk Read Bytes/sec",
+              aggregation: "Total",
+              splitBy: "LUN",
+            }),
+          ],
+        },
+      ),
+    );
+
+    const split: URL | undefined = fake.metricCalls.find((url: URL) => {
+      return (
+        url.pathname.startsWith(`${VM}/`) &&
+        url.searchParams.get("$filter") === "LUN eq '*'"
+      );
+    });
+
+    expect(split?.searchParams.get("orderby")).toBe("sum desc");
+    // The other VM has no addition: its key metrics' call alone.
+    expect(metricNamesAsked(fake, VM_2)).toEqual([KEY_CALL]);
+    expect(getAzureSplitOrder("Maximum")).toBe("maximum desc");
+    expect(getAzureSplitOrder("")).toBe("average desc");
+  });
+
+  test("an addition's split is the one it has now, whatever selection was kept", () => {
+    expect(
+      applyAzureSplits(
+        [
+          {
+            name: "Percentage CPU",
+            aggregation: "Average",
+            grain: "PT1M",
+            unit: "Percent",
+          },
+          {
+            name: "Data Disk Read Bytes/sec",
+            aggregation: "Average",
+            grain: "PT1M",
+            unit: "BytesPerSecond",
+            isAdded: true,
+            splitBy: "Old",
+          },
+        ],
+        [{ name: "data disk read bytes/sec", splitBy: "LUN" }],
+      ).map((metric: { name: string; splitBy?: string | undefined }) => {
+        return `${metric.name}:${metric.splitBy || ""}`;
+      }),
+    ).toEqual(["Percentage CPU:", "Data Disk Read Bytes/sec:LUN"]);
+    expect(
+      applyAzureSplits(
+        [
+          {
+            name: "Data Disk Read Bytes/sec",
+            aggregation: "Average",
+            grain: "PT1M",
+            unit: "BytesPerSecond",
+            isAdded: true,
+            splitBy: "LUN",
+          },
+        ],
+        [{ name: "Data Disk Read Bytes/sec" }],
+      )[0]!.splitBy,
+    ).toBeUndefined();
   });
 
   test("a type's addition its resources do not publish is never asked, so no call is refused", async () => {
@@ -2129,8 +2501,10 @@ describe("metrics a person added to the reads", () => {
       ),
     );
 
+    // Its own addition is asked with its own aggregation alone: one call is refused.
     expect(metricNamesAsked(fake, VM)).toEqual([
-      `${KEY_CALL},Gone Metric`,
+      "Percentage CPU,Gone Metric",
+      "Network In Total,Disk Read Bytes",
       KEY_CALL,
     ]);
     expect(writtenNamesOf(result, VM)).toEqual([
@@ -2323,6 +2697,7 @@ describe("metrics a person added to the reads", () => {
         aggregation: "Maximum",
         grain: "PT1M",
         unit: "BytesPerSecond",
+        supportedAggregations: ["Average", "Maximum"],
         isAdded: true,
       },
       // Total is not offered: its primary aggregation.
@@ -2331,25 +2706,40 @@ describe("metrics a person added to the reads", () => {
         aggregation: "Average",
         grain: "PT1M",
         unit: "Count",
+        supportedAggregations: ["Average"],
         isAdded: true,
       },
     ]);
   });
 
   test("calls of 20 metrics at most, in order", () => {
-    expect(chunkAzureMetricCalls([])).toEqual([]);
-    expect(chunkAzureMetricCalls([1, 2, 3])).toEqual([[1, 2, 3]]);
+    const metricOf: (index: number) => SelectedMetric = (
+      index: number,
+    ): SelectedMetric => {
+      return {
+        name: `metric-${index}`,
+        aggregation: "Average",
+        grain: "PT1M",
+        unit: "Count",
+        supportedAggregations: ["Average", "Total"],
+      };
+    };
 
-    const many: Array<number> = Array.from(
+    expect(partitionAzureMetricCalls([])).toEqual([]);
+    expect(partitionAzureMetricCalls([metricOf(0), metricOf(1)])).toEqual([
+      [metricOf(0), metricOf(1)],
+    ]);
+
+    const many: Array<SelectedMetric> = Array.from(
       { length: 41 },
-      (_: unknown, index: number): number => {
-        return index;
+      (_: unknown, index: number): SelectedMetric => {
+        return metricOf(index);
       },
     );
-    const calls: Array<Array<number>> = chunkAzureMetricCalls(many);
+    const calls: Array<Array<SelectedMetric>> = partitionAzureMetricCalls(many);
 
     expect(
-      calls.map((call: Array<number>): number => {
+      calls.map((call: Array<SelectedMetric>): number => {
         return call.length;
       }),
     ).toEqual([20, 20, 1]);

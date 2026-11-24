@@ -375,7 +375,7 @@ describe("ResourceSecurity.readScope: other records", () => {
     expect(countSpy.mock.calls[0]![0]).toMatchObject({
       attribute: {
         key: SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
-        value: "build-1",
+        values: ["build-1"],
       },
     });
   });
@@ -417,7 +417,14 @@ describe("ResourceSecurity.readScope: other records", () => {
     });
   });
 
-  test("an Azure resource's ID is read in its casings: the Activity Log writes it in capitals or in lower case", async () => {
+  /*
+   * #10034: every event keeps an Azure resource ID by its key, in lower
+   * case, whoever wrote it - so the key is searched for first, through the
+   * observables' bloom index; the ID as written and in capitals still find
+   * what events kept before. The same spellings for the ID its own logs
+   * were stamped with.
+   */
+  test("an Azure resource's ID is read by its key first, then in the casings older events kept it in", async () => {
     const id: string =
       "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod/providers/Microsoft.KeyVault/vaults/kv-payments";
 
@@ -430,10 +437,32 @@ describe("ResourceSecurity.readScope: other records", () => {
     expect(
       (await readScope(SecurityConnectionKind.CloudResource))?.scope,
     ).toEqual({
-      observables: [id, id.toLowerCase(), id.toUpperCase()],
+      observables: [id.toLowerCase(), id, id.toUpperCase()],
       attributeKey: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
-      attributeValues: [id],
+      attributeValues: [id.toLowerCase(), id, id.toUpperCase()],
     });
+  });
+
+  test("an Azure ID its row keeps with a trailing slash is read by its key without one", async () => {
+    const id: string =
+      "/SUBSCRIPTIONS/11111111-2222-3333-4444-555555555555/RESOURCEGROUPS/RG-PROD/PROVIDERS/MICROSOFT.KEYVAULT/VAULTS/KV-PAYMENTS/";
+    const key: string =
+      "/subscriptions/11111111-2222-3333-4444-555555555555/resourcegroups/rg-prod/providers/microsoft.keyvault/vaults/kv-payments";
+
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "kv-payments",
+      providerResourceId: id,
+    } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    expect(scope?.scope.observables[0]).toBe(key);
+    expect(scope?.scope.attributeValues?.[0]).toBe(key);
+    // As written (here in capitals) once, never twice.
+    expect(scope?.scope.observables).toEqual([key, id]);
   });
 
   test("the card and the page of a cloud resource read the same", async () => {
@@ -459,10 +488,42 @@ describe("ResourceSecurity.readScope: other records", () => {
       values: scope?.scope.observables,
       attribute: {
         key: scope?.scope.attributeKey,
-        value: scope?.scope.attributeValues?.[0],
+        values: scope?.scope.attributeValues,
       },
     });
     expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");
+  });
+
+  test("the card and the page of an Azure resource read the same spellings (#10034)", async () => {
+    const id: string =
+      "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod/providers/Microsoft.Storage/storageAccounts/acmeinvoices";
+
+    jest.spyOn(CloudResourceService, "findOneBy").mockResolvedValue({
+      id: DEVICE_ID,
+      name: "acmeinvoices",
+      providerResourceId: id,
+    } as never);
+
+    const scope: ResourceSecurityScopeJson | null = await readScope(
+      SecurityConnectionKind.CloudResource,
+    );
+
+    await ResourceSecurity.read({
+      projectId: PROJECT_ID,
+      kind: SecurityConnectionKind.CloudResource,
+      id: DEVICE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(scope?.scope.observables[0]).toBe(id.toLowerCase());
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      values: scope?.scope.observables,
+      attribute: {
+        key: SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
+        values: scope?.scope.attributeValues,
+      },
+    });
   });
 
   /*
@@ -573,7 +634,7 @@ describe("ResourceSecurity.read: a network device's Security card counts its own
       ],
       attribute: {
         key: NETWORK_DEVICE_ID_ATTRIBUTE,
-        value: DEVICE_ID.toString(),
+        values: [DEVICE_ID.toString()],
       },
       startTime: new Date("2026-10-18T12:00:00.000Z"),
       endTime: NOW,
@@ -599,7 +660,7 @@ describe("ResourceSecurity.read: a network device's Security card counts its own
       values: ["production", "PRODUCTION"],
       attribute: {
         key: SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
-        value: DEVICE_ID.toString(),
+        values: [DEVICE_ID.toString()],
       },
     });
     expect(countSpy.mock.calls[0]![0]).not.toHaveProperty("logResourceId");

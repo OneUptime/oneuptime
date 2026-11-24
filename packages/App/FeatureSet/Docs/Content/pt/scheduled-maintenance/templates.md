@@ -47,7 +47,7 @@ Em **Recursos afetados**, escolha os **Monitores**, o **Alterar status do monito
 
 ### Decidir se ele se repete
 
-Em **Recorrente**, deixe **Evento Recorrente** desativado para um modelo que você usa à mão, ou ative-o e preencha o agendamento. Clique em **Próximo** para conferir a revisão e depois crie o modelo.
+Em **Recorrente**, deixe **Evento Recorrente** desativado para um modelo que você usa à mão, ou ative-o, escolha com que frequência ele se repete e seu **Fuso horário**, e defina os horários do primeiro evento em **Primeiro evento**. Clique em **Próximo** para conferir a revisão e depois crie o modelo.
 :::
 
 Um modelo pergunta **Alterar status do monitor para** mesmo quando não nomeia nenhum monitor: o status também vale para os monitores que você adiciona ao agendar um evento a partir dele. Em **Outros recursos afetados**, um modelo aceita hosts, clusters Kubernetes, hosts Docker, hosts Podman e serviços.
@@ -83,15 +83,18 @@ Quando o projeto ainda não tem nenhum modelo, **Criar a partir de modelo** avis
 
 ## Eventos recorrentes
 
-Um modelo recorrente cria o evento seguindo um agendamento. Você define quando o primeiro evento é criado, quando ele começa e quando termina; cada evento seguinte mantém as mesmas distâncias, um intervalo depois.
+Um modelo recorrente cria o evento seguindo um agendamento. Você define com que frequência ele se repete, o fuso horário que ele mantém, e quando o primeiro evento é criado, quando ele começa e quando termina; cada evento seguinte é o primeiro deslocado em intervalos inteiros no calendário desse fuso horário, nos mesmos horários do dia.
 
 | Campo                                    | O que significa                                                                                     |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Evento Recorrente**                    | Ativa o agendamento.                                                                                |
+| **Com que frequência você gostaria que este evento se repetisse?** | Um número e uma unidade: horas, dias, semanas, meses ou anos.           |
+| **Fuso horário**                         | O fuso horário em que os eventos mantêm seu horário do dia. Um modelo novo começa com o seu.        |
 | **Primeiro evento agendado para**        | Quando o OneUptime cria o primeiro evento, que é quando seus assinantes ficam sabendo que ele foi agendado. |
 | **Primeiro evento começa em**            | Quando o primeiro evento começa.                                                                    |
 | **Primeiro evento termina em**           | Quando o primeiro evento termina.                                                                   |
-| **Com que frequência você gostaria que este evento se repetisse?** | Um número e uma unidade: horas, dias, semanas, meses ou anos.           |
+
+Os três primeiros ficam no passo **Recorrente**. Os horários do primeiro evento ficam no passo **Primeiro evento**, que aparece assim que **Evento Recorrente** está ativado.
 
 Por exemplo, uma janela semanal cujo primeiro evento é criado numa segunda-feira para o sábado seguinte:
 
@@ -100,15 +103,25 @@ Por exemplo, uma janela semanal cujo primeiro evento é criado numa segunda-feir
 | O primeiro   | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | O segundo    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Cada evento mantém os horários do dia do primeiro evento no fuso horário do modelo, inclusive quando os relógios mudam por causa do horário de verão: uma janela das 02:00 às 04:00 em Berlim fica lá das 02:00 às 04:00 no verão e no inverno. Alguns dias funcionam assim:
+
+- **Um dia que o mês não tem.** Um evento mensal no dia 29, 30 ou 31 cai no último dia de um mês mais curto, como 30 de abril ou 28 de fevereiro, e volta ao seu próprio dia nos meses que o têm. Um evento anual em 29 de fevereiro cai em 28 de fevereiro nos outros anos.
+- **A noite em que os relógios são adiantados.** Um horário que não existe nessa noite, como 02:30 quando 02:00 pula para 03:00, avança o tamanho do pulo, para 03:30. Um evento cujo início passa assim do fim mantém a duração do primeiro evento.
+- **A noite em que os relógios são atrasados.** Um horário que acontece duas vezes nessa noite, como 01:30 em Nova York, é o primeiro dos dois.
+- **A cada poucas horas.** As horas são contadas à medida que passam, então um modelo que se repete a cada poucas horas se desloca uma hora no relógio quando ele muda.
+- **Um fuso horário sem horário de verão.** Um fuso horário que não muda mais os relógios, como o da Colúmbia Britânica (America/Vancouver) desde novembro de 2026, mantém o mesmo deslocamento, então nada se move.
+
+Um modelo criado antes de os modelos terem fuso horário mostra **UTC**, o fuso horário em que seus eventos eram calculados até então. Escolha o fuso horário em que seus horários foram pensados e, a partir do próximo evento, cada evento mantém lá o horário do dia do primeiro evento.
+
 Defina **Primeiro evento agendado para** com toda a antecedência com que você quer que seus clientes fiquem sabendo do trabalho. Os três horários precisam estar no futuro quando você cria o modelo, o evento precisa ser criado antes de começar e de terminar, e precisa começar antes de terminar; o formulário diz qual regra um horário viola.
 
-Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próximo horário de um modelo, ela adianta esse horário em um intervalo e cria o evento. A lista de modelos mostra esse horário na coluna **Evento Recorrente**, e **Não** para um modelo que não se repete. Um evento criado pelo agendamento é como qualquer outro: suas regras rodam, seus proprietários são adicionados e seus assinantes ficam sabendo que ele foi agendado.
+Uma tarefa verifica os modelos recorrentes a cada minuto. Quando chega o próximo horário de um modelo, ela cria o evento e adianta esse horário para o próximo evento do agendamento. A lista de modelos mostra esse horário na coluna **Evento Recorrente**, e **Não** para um modelo que não se repete. Um evento criado pelo agendamento é como qualquer outro: suas regras rodam, seus proprietários são adicionados e seus assinantes ficam sabendo que ele foi agendado.
 
 ## Alterar ou parar um modelo
 
 Abra um modelo na lista para ver a página dele:
 
-- **Detalhes do modelo de manutenção programada** mostra com o que os eventos novos começam. O **Editar** dele percorre **Informações do modelo**, **Detalhes da manutenção**, **Páginas de status** e **Recorrente**.
+- **Detalhes do modelo de manutenção programada** mostra com o que os eventos novos começam. O **Editar** dele percorre **Informações do modelo**, **Detalhes da manutenção**, **Páginas de status** e **Recorrente**, e depois **Primeiro evento** para um modelo que se repete.
 - **Recursos afetados** reúne os **Monitores** dele, o **Alterar status do monitor para** desses monitores e os **Outros recursos afetados**, com um **Editar** próprio.
 - **Proprietários** lista as pessoas e equipes donas de cada evento agendado a partir dele.
 
@@ -122,6 +135,10 @@ Os três primeiros horários precisam estar depois do momento atual quando você
 
 :::details Um modelo recorrente não criou nenhum evento
 Confira se **Evento Recorrente** ainda está ativado e veja o horário na coluna **Evento Recorrente** da lista: o evento é criado nesse momento, não no início dele. A tarefa roda a cada minuto, então espere um minuto.
+:::
+
+:::details Os eventos de um modelo recorrente chegam uma hora adiantados ou atrasados depois da mudança de horário
+Abra o modelo e confira o **Fuso horário** dele: seus eventos mantêm o horário do dia do primeiro evento nesse fuso horário. Um modelo criado antes de os modelos terem fuso horário mostra **UTC**: escolha o fuso horário em que seus horários foram pensados. Os eventos já criados mantêm seus horários.
 :::
 
 :::details Falta em um evento criado a partir de um modelo um recurso que eu escolhi

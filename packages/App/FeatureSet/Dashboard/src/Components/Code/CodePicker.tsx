@@ -2,6 +2,7 @@ import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonSta
 import { CODE_PICKER_VALUE_LABEL } from "./CodeTaskCopy";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import LayeredPopover from "Common/UI/Components/Tooltip/LayeredPopover";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -9,7 +10,6 @@ import React, {
   ReactElement,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -72,33 +72,8 @@ const ID_COLONS: RegExp = /:/g;
 export const PICKER_MAX_WIDTH_CLASS_NAME: string =
   "max-w-[11rem] sm:max-w-[16rem]";
 
-// The list's width, and the room it keeps from the edges of the window.
-export const PICKER_MENU_WIDTH_PX: number = 288;
-const WINDOW_MARGIN_PX: number = 12;
-
-/*
- * How far left of its button a list must open to stay inside the window:
- * none while it fits, else the overflow - but never past the window's left
- * edge, on a screen narrower than the list.
- */
-export const getPickerMenuShift: (data: {
-  buttonLeft: number;
-  windowWidth: number;
-  menuWidth: number;
-}) => number = (data: {
-  buttonLeft: number;
-  windowWidth: number;
-  menuWidth: number;
-}): number => {
-  const overflow: number =
-    data.buttonLeft + data.menuWidth - (data.windowWidth - WINDOW_MARGIN_PX);
-
-  if (overflow <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, Math.min(overflow, data.buttonLeft - WINDOW_MARGIN_PX));
-};
+// 6px between the button and the list.
+const PICKER_MENU_GAP_PX: number = 6;
 
 /*
  * A small picker inside Code's request box, the way coding agents pick a
@@ -107,17 +82,20 @@ export const getPickerMenuShift: (data: {
  * asks the server, with onSearch); the arrow keys move through the list,
  * Enter picks, Escape closes and gives the button its focus back, and a
  * click anywhere else closes it. The search box is the list's combobox
- * (aria-activedescendant), so a screen reader follows the keys. The list
- * opens under its button and moves left as far as it must to stay on a
- * phone's screen.
+ * (aria-activedescendant), so a screen reader follows the keys.
+ *
+ * The list is drawn on the tooltip layer (LayeredPopover), placed against
+ * the window, so a request box in a card or a scrolling panel never cuts
+ * it off (#9910): under its button, above it where the window has no room
+ * under it, and slid along to stay on a phone's screen. The layer closes
+ * it on a press outside and on the focus leaving it, and Tab goes from the
+ * search through the list's own buttons and on from the picker's button.
  */
 const CodePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const listId: string = `code-picker-${useId().replace(ID_COLONS, "")}`;
-  const containerRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
   const searchRef: React.RefObject<HTMLInputElement> =
@@ -126,7 +104,6 @@ const CodePicker: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [search, setSearch] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState<number>(0);
-  const [menuShift, setMenuShift] = useState<number>(0);
 
   const shownOptions: Array<CodePickerOption> = useMemo(() => {
     if (props.onSearch) {
@@ -161,46 +138,6 @@ const CodePicker: FunctionComponent<ComponentProps> = (
 
     setActiveIndex(picked >= 0 ? picked : 0);
   }, [isOpen, shownOptions]);
-
-  // Where the list opens: under its button, moved left to stay on screen.
-  useLayoutEffect(() => {
-    if (!isOpen || !buttonRef.current) {
-      return;
-    }
-
-    setMenuShift(
-      getPickerMenuShift({
-        buttonLeft: buttonRef.current.getBoundingClientRect().left,
-        windowWidth: window.innerWidth,
-        menuWidth: PICKER_MENU_WIDTH_PX,
-      }),
-    );
-  }, [isOpen]);
-
-  // A click anywhere else closes the list.
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const onPointerDown: (event: MouseEvent) => void = (
-      event: MouseEvent,
-    ): void => {
-      if (
-        containerRef.current &&
-        event.target instanceof Node &&
-        !containerRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", onPointerDown);
-
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-    };
-  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -253,11 +190,14 @@ const CodePicker: FunctionComponent<ComponentProps> = (
         pick(option);
       }
     } else if (event.key === "Escape") {
+      /*
+       * The search's own while its list is open (aria-expanded): the layer
+       * leaves an open list's Escape to it. With nothing listed the layer
+       * closes the list itself and gives the button its focus back.
+       */
       event.preventDefault();
       event.stopPropagation();
       close(true);
-    } else if (event.key === "Tab") {
-      close(false);
     }
   };
 
@@ -334,9 +274,8 @@ const CodePicker: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      ref={containerRef}
       data-testid={props.dataTestId}
-      className={`relative min-w-0 ${PICKER_MAX_WIDTH_CLASS_NAME}`}
+      className={`min-w-0 ${PICKER_MAX_WIDTH_CLASS_NAME}`}
     >
       <button
         ref={buttonRef}
@@ -386,129 +325,136 @@ const CodePicker: FunctionComponent<ComponentProps> = (
       </button>
 
       {isOpen ? (
-        <div
-          data-testid={`${props.dataTestId}-menu`}
-          style={menuShift ? { left: -menuShift } : undefined}
-          className="absolute left-0 top-full z-50 mt-1.5 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+        <LayeredPopover
+          anchorRef={buttonRef}
+          onClose={() => {
+            close(false);
+          }}
+          gap={PICKER_MENU_GAP_PX}
         >
-          <div className="border-b border-gray-100 p-2">
-            <div className="relative">
-              <Icon
-                icon={IconProp.Search}
-                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                data-unsaved-changes-ignore
-                ref={searchRef}
-                type="text"
-                role="combobox"
-                aria-expanded={hasOptions}
-                aria-controls={listId}
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  hasOptions ? `${listId}-option-${activeIndex}` : undefined
-                }
-                aria-label={props.searchPlaceholder}
-                placeholder={props.searchPlaceholder}
-                value={search}
-                data-testid={`${props.dataTestId}-search`}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  setSearch(event.target.value);
-                  props.onSearch?.(event.target.value);
-                }}
-                onKeyDown={onKeyDown}
-                className="block w-full rounded-lg border-0 bg-gray-50 py-1.5 pl-8 pr-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+          <div
+            data-testid={`${props.dataTestId}-menu`}
+            className="w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+          >
+            <div className="border-b border-gray-100 p-2">
+              <div className="relative">
+                <Icon
+                  icon={IconProp.Search}
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  data-unsaved-changes-ignore
+                  ref={searchRef}
+                  type="text"
+                  role="combobox"
+                  aria-expanded={hasOptions}
+                  aria-controls={listId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    hasOptions ? `${listId}-option-${activeIndex}` : undefined
+                  }
+                  aria-label={props.searchPlaceholder}
+                  placeholder={props.searchPlaceholder}
+                  value={search}
+                  data-testid={`${props.dataTestId}-search`}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearch(event.target.value);
+                    props.onSearch?.(event.target.value);
+                  }}
+                  onKeyDown={onKeyDown}
+                  className="block w-full rounded-lg border-0 bg-gray-50 py-1.5 pl-8 pr-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
             </div>
-          </div>
 
-          {hasOptions ? (
-            <ul
-              id={listId}
-              role="listbox"
-              aria-label={props.label}
-              className="max-h-64 overflow-y-auto overscroll-contain py-1"
-            >
-              {shownOptions.map((option: CodePickerOption, index: number) => {
-                const isPicked: boolean = option.value === props.value;
-                const isActive: boolean = index === activeIndex;
+            {hasOptions ? (
+              <ul
+                id={listId}
+                role="listbox"
+                aria-label={props.label}
+                className="max-h-64 overflow-y-auto overscroll-contain py-1"
+              >
+                {shownOptions.map((option: CodePickerOption, index: number) => {
+                  const isPicked: boolean = option.value === props.value;
+                  const isActive: boolean = index === activeIndex;
 
-                return (
-                  <li
-                    key={option.value}
-                    id={`${listId}-option-${index}`}
-                    role="option"
-                    aria-selected={isPicked}
-                    data-testid={`${props.dataTestId}-option`}
-                    data-value={option.value}
-                    data-active={isActive ? "true" : undefined}
-                    // Picking happens on click; the search box keeps its focus until then.
-                    onMouseDown={(event: React.MouseEvent) => {
-                      event.preventDefault();
-                    }}
-                    onMouseEnter={() => {
-                      setActiveIndex(index);
-                    }}
-                    onClick={() => {
-                      pick(option);
-                    }}
-                    className={`flex cursor-pointer items-start gap-2 px-3 py-2 ${
-                      isActive ? "bg-gray-50" : ""
-                    }`}
-                  >
-                    <span className="flex h-5 w-4 flex-shrink-0 items-center justify-center text-indigo-600">
-                      {isPicked ? (
-                        <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
-                      ) : (
-                        <></>
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={`block truncate text-sm leading-5 ${
-                          props.isMonospace ? "font-mono" : ""
-                        } ${
-                          option.isMuted
-                            ? "text-gray-500"
-                            : "font-medium text-gray-900"
-                        }`}
-                      >
-                        {option.label}
+                  return (
+                    <li
+                      key={option.value}
+                      id={`${listId}-option-${index}`}
+                      role="option"
+                      aria-selected={isPicked}
+                      data-testid={`${props.dataTestId}-option`}
+                      data-value={option.value}
+                      data-active={isActive ? "true" : undefined}
+                      // Picking happens on click; the search box keeps its focus until then.
+                      onMouseDown={(event: React.MouseEvent) => {
+                        event.preventDefault();
+                      }}
+                      onMouseEnter={() => {
+                        setActiveIndex(index);
+                      }}
+                      onClick={() => {
+                        pick(option);
+                      }}
+                      className={`flex cursor-pointer items-start gap-2 px-3 py-2 ${
+                        isActive ? "bg-gray-50" : ""
+                      }`}
+                    >
+                      <span className="flex h-5 w-4 flex-shrink-0 items-center justify-center text-indigo-600">
+                        {isPicked ? (
+                          <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
+                        ) : (
+                          <></>
+                        )}
                       </span>
-                      {option.description ? (
-                        <span className="block truncate text-xs leading-5 text-gray-500">
-                          {option.description}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={`block truncate text-sm leading-5 ${
+                            props.isMonospace ? "font-mono" : ""
+                          } ${
+                            option.isMuted
+                              ? "text-gray-500"
+                              : "font-medium text-gray-900"
+                          }`}
+                        >
+                          {option.label}
+                        </span>
+                        {option.description ? (
+                          <span className="block truncate text-xs leading-5 text-gray-500">
+                            {option.description}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                      </span>
+                      {option.badge ? (
+                        <span className="mt-0.5 flex-shrink-0 whitespace-nowrap rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
+                          {option.badge}
                         </span>
                       ) : (
                         <></>
                       )}
-                    </span>
-                    {option.badge ? (
-                      <span className="mt-0.5 flex-shrink-0 whitespace-nowrap rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600">
-                        {option.badge}
-                      </span>
-                    ) : (
-                      <></>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            renderStatus()
-          )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              renderStatus()
+            )}
 
-          {props.note && hasOptions ? (
-            <p
-              data-testid={`${props.dataTestId}-note`}
-              className="border-t border-gray-100 px-3 py-2 text-xs leading-5 text-gray-500"
-            >
-              {props.note}
-            </p>
-          ) : (
-            <></>
-          )}
-        </div>
+            {props.note && hasOptions ? (
+              <p
+                data-testid={`${props.dataTestId}-note`}
+                className="border-t border-gray-100 px-3 py-2 text-xs leading-5 text-gray-500"
+              >
+                {props.note}
+              </p>
+            ) : (
+              <></>
+            )}
+          </div>
+        </LayeredPopover>
       ) : (
         <></>
       )}

@@ -44,7 +44,7 @@ Si les téléphones des intervenants ne peuvent pas utiliser votre VPN, publiez 
 | --- | --- | --- |
 | GET | `/l/*` | Les liens courts des SMS et des messages WhatsApp et Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | La page qui présente l'objet de l'alerte, avec son bouton **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Le bouton **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Le bouton **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Facultatif : la page qui transmet l'alerte à la personne suivante |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Facultatif : son bouton |
 | GET | `/oneuptime-assets/*` | Les polices, les styles et le logo de ces pages |

@@ -156,6 +156,10 @@ const PROSE: Record<string, Array<string>> = {
  * execution page, an API refusal. RunbookDocsFacts holds each to the code.
  */
 const SERVER_MESSAGES: Record<string, Array<string>> = {
+  // A refused certificate's error, on the execution page (#10277).
+  "runbooks/authoring": [
+    "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent.",
+  ],
   "runbooks/running": [
     "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
     "This step names variables it cannot use, so it was not run:",

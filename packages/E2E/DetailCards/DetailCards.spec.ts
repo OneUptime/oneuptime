@@ -896,7 +896,7 @@ test.describe("values", () => {
     const time: Locator = reports.locator("time");
 
     await expect(time).toHaveAttribute("datetime", "2026-10-01T08:00:00.000Z");
-    await expect(time).toContainText("Oct 01 2026");
+    await expect(time).toContainText("Oct 1, 2026");
     await expect(time).toHaveCSS("font-weight", "400");
     await expect(reports.locator("svg")).toHaveCount(0);
   });

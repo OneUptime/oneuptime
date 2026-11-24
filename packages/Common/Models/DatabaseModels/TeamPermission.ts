@@ -399,7 +399,11 @@ export default class TeamPermission extends BaseModel {
     title: "Permission",
     description:
       "Permission. You can find list of permissions on the Permissions page.",
-    example: "ProjectOwner",
+    /*
+     * The key the API reference and the Terraform reference show, in their
+     * examples (#10300): a role a team is commonly given, not Project Owner.
+     */
+    example: "IncidentMember",
   })
   @Column({
     nullable: false,

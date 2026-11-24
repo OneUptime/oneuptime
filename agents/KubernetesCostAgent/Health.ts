@@ -241,8 +241,9 @@ export const startHealthServer: (args: {
       }
 
       if (req.url === "/" || req.url === "/healthz") {
+        const pollerStatus: PollerStatus = args.poller.status();
         const report: HealthReport = assessHealth({
-          poller: args.poller.status(),
+          poller: pollerStatus,
           shipper: args.shipper.status(),
           nowMs: Date.now(),
         });
@@ -291,6 +292,13 @@ export const startHealthServer: (args: {
               : {}),
             ...(costEngine ? { costEngine } : {}),
             ...report,
+            /*
+             * The hours read again once a Kubecost reconciled them with the
+             * cloud bill (#9969): how many wait, how many were corrected.
+             */
+            ...(pollerStatus.corrections
+              ? { costCorrections: pollerStatus.corrections }
+              : {}),
             ...(prometheus.costPrometheus
               ? { costPrometheus: prometheus.costPrometheus }
               : {}),

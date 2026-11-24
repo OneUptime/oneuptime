@@ -19,6 +19,16 @@ export interface ComponentProps {
 }
 
 /*
+ * What tests and the end-to-end specs find the parts by. The parts used to
+ * carry role="hidden-text" and role="revealed-text" for that, which are no
+ * ARIA roles: a browser ignored them, and accessibility checkers (axe's
+ * aria-roles rule, Lighthouse) flagged both on every page with a secret
+ * (#7964). A person finds the reveal button by its words, "Click to reveal".
+ */
+export const HIDDEN_TEXT_REVEAL_TEST_ID: string = "hidden-text-reveal";
+export const HIDDEN_TEXT_VALUE_TEST_ID: string = "hidden-text-value";
+
+/*
  * A secret (an API key, a client secret) behind "Click to reveal". Its copy
  * button says "Copied!" only once the secret is on the clipboard - it used
  * to say so over an empty clipboard on a plain-http install (issue #5132) -
@@ -101,24 +111,19 @@ const HiddenText: FunctionComponent<ComponentProps> = (
 
   if (!showText) {
     /*
-     * The box keeps role="hidden-text", which tests and the end-to-end specs
-     * find the reveal button by; the button inside is what a person presses,
-     * and its click reaches the box.
+     * A plain box, for the layout and for where the focus is; the button is
+     * what a person presses, and the click is its own.
      */
     return (
-      <div
-        ref={rootRef}
-        role="hidden-text"
-        className="inline-flex max-w-full"
-        onClick={() => {
-          toggle(true);
-        }}
-      >
+      <div ref={rootRef} className="inline-flex max-w-full">
         <button
           ref={revealButtonRef}
           type="button"
           className="inline-flex max-w-full items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-all duration-200 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 group"
-          data-testid="hidden-text-reveal"
+          data-testid={HIDDEN_TEXT_REVEAL_TEST_ID}
+          onClick={() => {
+            toggle(true);
+          }}
         >
           <Icon
             icon={IconProp.Lock}
@@ -157,7 +162,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
       />
       <code
         ref={revealedTextRef}
-        role="revealed-text"
+        data-testid={HIDDEN_TEXT_VALUE_TEST_ID}
         dir="ltr"
         className={`font-mono text-sm break-all ${copied ? "text-green-700" : "text-amber-800"}`}
       >

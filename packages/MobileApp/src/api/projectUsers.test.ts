@@ -1,5 +1,11 @@
 import apiClient from "./client";
-import { fetchProjectUsers } from "./projectUsers";
+import {
+  TEAM_PEOPLE_READ_LIMIT,
+  fetchProjectUsers,
+  fetchTeamNames,
+  fetchTeamPeople,
+  type TeamPeople,
+} from "./projectUsers";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import type { ProjectUserItem } from "./types";
 
@@ -152,5 +158,196 @@ describe("fetchProjectUsers", () => {
     } as never);
 
     await expect(fetchProjectUsers("project-1")).resolves.toEqual([]);
+  });
+});
+
+/*
+ * #9883: the people of the teams someone who manages their own team's
+ * user overrides may name - for the pickers (who), and for the locks on
+ * the overrides naming anybody else (who is in which team).
+ */
+describe("fetchTeamPeople", () => {
+  beforeEach(() => {
+    postSpy().mockClear();
+    postSpy().mockResolvedValue({ data: { data: [] } } as never);
+  });
+
+  function teamMember(
+    teamId: string,
+    userId: string,
+    name: string,
+  ): Record<string, unknown> {
+    return {
+      _id: `member-${teamId}-${userId}`,
+      teamId: teamId,
+      userId: userId,
+      user: {
+        _id: userId,
+        name: { _type: "Name", value: name },
+        email: { _type: "Email", value: `${name.toLowerCase()}@example.com` },
+      },
+    };
+  }
+
+  function lastRequest(): {
+    url: string;
+    body: Record<string, unknown>;
+    config: { headers: Record<string, string> };
+  } {
+    const calls: Array<Array<unknown>> = postSpy().mock.calls;
+    const call: Array<unknown> = calls[calls.length - 1]!;
+
+    return {
+      url: call[0] as string,
+      body: call[1] as Record<string, unknown>,
+      config: call[2] as { headers: Record<string, string> },
+    };
+  }
+
+  test("asks for the accepted members of those teams only, in the project", async () => {
+    await fetchTeamPeople("project-1", ["team-payments", "team-mobile"]);
+
+    const request: ReturnType<typeof lastRequest> = lastRequest();
+
+    expect(request.url).toBe(
+      `/api/team-member/get-list?skip=0&limit=${TEAM_PEOPLE_READ_LIMIT}`,
+    );
+    expect(request.body["query"]).toEqual({
+      teamId: { _type: "Includes", value: ["team-payments", "team-mobile"] },
+      hasAcceptedInvitation: true,
+    });
+    expect(request.body["select"]).toEqual({
+      _id: true,
+      teamId: true,
+      userId: true,
+      user: { _id: true, name: true, email: true },
+    });
+    expect(request.config.headers["tenantid"]).toBe("project-1");
+  });
+
+  test("lists each person once, by name, whatever the case of their id, and says who is in which team", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          teamMember("team-payments", "user-sam", "Sam"),
+          teamMember("team-payments", "user-ada", "Ada"),
+          teamMember("TEAM-MOBILE", "USER-SAM", "Sam"),
+        ],
+        count: 3,
+      },
+    } as never);
+
+    const people: TeamPeople = await fetchTeamPeople("project-1", [
+      "team-payments",
+      "team-mobile",
+    ]);
+
+    expect(
+      people.users.map((user: ProjectUserItem): string => {
+        return user.userId;
+      }),
+    ).toEqual(["user-ada", "user-sam"]);
+    expect(people.membersByTeam).toEqual(
+      new Map<string, Set<string>>([
+        ["team-payments", new Set<string>(["user-sam", "user-ada"])],
+        ["team-mobile", new Set<string>(["user-sam"])],
+      ]),
+    );
+  });
+
+  test("one person in two teams is listed once", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          teamMember("team-payments", "user-sam", "Sam"),
+          teamMember("team-mobile", "user-sam", "Sam"),
+        ],
+        count: 2,
+      },
+    } as never);
+
+    const people: TeamPeople = await fetchTeamPeople("project-1", [
+      "team-payments",
+      "team-mobile",
+    ]);
+
+    expect(people.users).toEqual([
+      { userId: "user-sam", name: "Sam", email: "sam@example.com" },
+    ]);
+  });
+
+  test("a read cut short knows who it listed, but not who is in which team", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [teamMember("team-payments", "user-sam", "Sam")],
+        count: 1500,
+      },
+    } as never);
+
+    const people: TeamPeople = await fetchTeamPeople("project-1", [
+      "team-payments",
+    ]);
+
+    expect(people.users).toHaveLength(1);
+    expect(people.membersByTeam).toBeNull();
+  });
+
+  test("no team to ask about asks nothing, and names nobody", async () => {
+    await expect(fetchTeamPeople("project-1", [])).resolves.toEqual({
+      users: [],
+      membersByTeam: new Map<string, Set<string>>(),
+    });
+    expect(postSpy()).not.toHaveBeenCalled();
+  });
+
+  test("a failed read is thrown, never read as nobody", async () => {
+    postSpy().mockRejectedValue(new Error("Network Error") as never);
+
+    await expect(
+      fetchTeamPeople("project-1", ["team-payments"]),
+    ).rejects.toThrow("Network Error");
+  });
+});
+
+describe("fetchTeamNames", () => {
+  beforeEach(() => {
+    postSpy().mockClear();
+    postSpy().mockResolvedValue({ data: { data: [] } } as never);
+  });
+
+  test("asks for those teams' names, by name, in the project", async () => {
+    postSpy().mockResolvedValue({
+      data: {
+        data: [
+          { _id: "team-mobile", name: "Mobile" },
+          { _id: "team-payments", name: " Payments " },
+          { _id: "team-nameless", name: "" },
+        ],
+      },
+    } as never);
+
+    await expect(
+      fetchTeamNames("project-1", ["team-payments", "team-mobile"]),
+    ).resolves.toEqual(["Mobile", "Payments"]);
+
+    const calls: Array<Array<unknown>> = postSpy().mock.calls;
+    const call: Array<unknown> = calls[calls.length - 1]!;
+
+    expect(call[0]).toBe("/api/team/get-list?skip=0&limit=2");
+    expect(call[1]).toEqual({
+      query: {
+        _id: { _type: "Includes", value: ["team-payments", "team-mobile"] },
+      },
+      select: { _id: true, name: true },
+      sort: { name: "ASC" },
+    });
+    expect((call[2] as { headers: Record<string, string> }).headers).toEqual({
+      tenantid: "project-1",
+    });
+  });
+
+  test("no team names none, and asks nothing", async () => {
+    await expect(fetchTeamNames("project-1", [])).resolves.toEqual([]);
+    expect(postSpy()).not.toHaveBeenCalled();
   });
 });

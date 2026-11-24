@@ -10,6 +10,14 @@ import {
   readV8FrameWithParensNoColumn,
   readV8FrameWithoutParens,
 } from "./StackFrameLines";
+import {
+  AppleCrashFrame,
+  AppleCrashReport,
+  AppleCrashThread,
+  getAttributedAppleThread,
+  isAppleAppFrame,
+  parseAppleCrashReport,
+} from "../../../Utils/Telemetry/AppleCrashReport";
 
 /**
  * Stack trace parser that transforms raw stack trace strings into structured frames.
@@ -273,6 +281,7 @@ export default class StackTraceParser {
 
     // Try each parser and use the one that produces the most frames
     const parsers: Array<(lines: string[]) => StackFrame[]> = [
+      StackTraceParser.parseApple,
       StackTraceParser.parseJavaScript,
       StackTraceParser.parsePython,
       StackTraceParser.parseJava,
@@ -306,6 +315,40 @@ export default class StackTraceParser {
       frames: bestFrames,
       raw: rawStackTrace,
     };
+  }
+
+  /*
+   * An Apple crash report (Utils/Telemetry/AppleCrashReport): an iOS app's
+   * crash or hang, as OneUptime draws MetricKit's call stack tree or as
+   * KSCrash writes its report. Its frames are the thread that crashed or
+   * hung, the innermost first: each named by its function where a dSYM or
+   * the device named it ("CartViewController.checkout()"), else by its
+   * binary and offset ("MyApp + 229796"), with the binary as its file. A
+   * frame is the app's own unless its binary is Apple's.
+   */
+  private static parseApple(lines: string[]): StackFrame[] {
+    const report: AppleCrashReport | null = parseAppleCrashReport(
+      lines.join("\n"),
+    );
+
+    if (!report) {
+      return [];
+    }
+
+    const thread: AppleCrashThread | null = getAttributedAppleThread(report);
+
+    return (thread?.frames || []).map((frame: AppleCrashFrame): StackFrame => {
+      return {
+        functionName:
+          frame.symbol ||
+          (frame.offset === null
+            ? frame.binaryName
+            : `${frame.binaryName} + ${frame.offset}`),
+        fileName: frame.binaryName,
+        lineNumber: 0,
+        inApp: isAppleAppFrame(report, frame),
+      };
+    });
   }
 
   /**

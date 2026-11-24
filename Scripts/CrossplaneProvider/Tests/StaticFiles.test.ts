@@ -6,6 +6,7 @@ import {
   STATIC_FILES_DIR,
 } from "../Core/CrossplaneProviderGenerator";
 import { renderReferencesGo } from "../Core/References";
+import { renderServerOwnedGo } from "../Core/ServerOwned";
 
 const read: (file: string) => string = (file: string): string => {
   return fs.readFileSync(path.join(STATIC_FILES_DIR, file), "utf-8");
@@ -86,6 +87,69 @@ describe("the provider's hand-written Go", () => {
   test("config reads the references the generator writes", () => {
     expect(renderReferencesGo({})).toContain("var generatedReferences =");
     expect(read("config/provider.go")).toContain("range generatedReferences");
+  });
+
+  test("config reads the fields OneUptime keeps that the generator writes", () => {
+    expect(renderServerOwnedGo({})).toContain("var generatedServerOwned =");
+    expect(read("config/lateinit.go")).toContain(
+      "range generatedServerOwned[terraformName]",
+    );
+  });
+
+  /*
+   * #9985: what late initialization and spec.initProvider leave to
+   * OneUptime, a create that records the external name itself, and the
+   * external name of a resource an older provider created, from its status.
+   */
+  test("every resource's defaults configure late initialization, spec.initProvider, creates in the reconcile and the external name", () => {
+    const provider: string = read("config/provider.go");
+    for (const line of [
+      "r.UseAsync = false",
+      "lateInitialization(r)",
+      "r.TerraformConfigurationInjector = initProviderAtCreateOnly(r)",
+      "r.ExternalName.SetIdentifierArgumentFn = identifyByExternalName",
+      "r.InitializerFns = append(r.InitializerFns, NewExternalNameFromStatus)",
+    ]) {
+      expect([line, provider.includes(line)]).toEqual([line, true]);
+    }
+    expect(goFiles).toEqual(
+      expect.arrayContaining([
+        "config/lateinit.go",
+        "config/lateinit_test.go",
+        "config/serverowned_test.go",
+        "config/fakeapi_test.go",
+        "config/externalname.go",
+        "config/externalname_test.go",
+      ]),
+    );
+  });
+
+  /*
+   * #10144: controller-gen names a CRD, and the file it writes it to, by the
+   * kind's plural, and wrote OnCallScheduleLayers' CRD over
+   * OnCallScheduleLayer's, whose plural was the same. internal/kinds gives
+   * OnCallScheduleLayer a plural of its own, as Upjet's Resource.Path; the
+   * generator stops before it writes anything when two kinds' CRDs would
+   * still share a name; and config/crds_test.go holds the configuration and
+   * the package's CRDs to one CRD for each kind.
+   */
+  test("gives every kind a CRD of its own", () => {
+    expect(read("config/provider.go")).toContain("r.Path = kinds.Path(r.Kind)");
+    expect(read("internal/kinds/kinds.go")).toMatch(
+      /^\t"OnCallScheduleLayer": "oncallschedulelayerdefinitions",$/m,
+    );
+
+    const generator: string = read("cmd/generator/main.go");
+    const check: number = generator.indexOf("kinds.Clashes(config.CRDs(pc))");
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(generator.indexOf("runner.Run(pc)"));
+
+    expect(goFiles).toEqual(
+      expect.arrayContaining([
+        "config/crds_test.go",
+        "internal/kinds/kinds_test.go",
+      ]),
+    );
   });
 });
 
@@ -171,6 +235,25 @@ describe("the package", () => {
       "meta.crossplane.io/source: github.com/OneUptime/oneuptime",
     );
     expect(meta).toContain("https://oneuptime.com/docs/crossplane");
+  });
+
+  // What a package catalog, such as the Upbound Marketplace, lists (#6618).
+  test("has the name and the icon a catalog lists it by", () => {
+    expect(meta).toContain(
+      "\n    friendly-name.meta.crossplane.io: Provider OneUptime\n",
+    );
+
+    // The icon the Helm charts show, at the address they show it from.
+    const iconLine: RegExp = /^icon: (\S+)$/m;
+    const chartIcon: string | undefined = iconLine.exec(
+      fs.readFileSync(
+        path.join(REPO_ROOT, "HelmChart", "Public", "oneuptime", "Chart.yaml"),
+        "utf-8",
+      ),
+    )?.[1];
+
+    expect(chartIcon).toMatch(/^https:\/\/oneuptime\.com\/.+\.png$/);
+    expect(meta).toContain(`\n    meta.crossplane.io/iconURI: ${chartIcon}\n`);
   });
 
   test("runs as a user that is not root, on an image with nothing else in it", () => {

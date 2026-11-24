@@ -20,7 +20,10 @@
  * This file imports nothing on purpose:
  * Common/Tests/Types/OnCallDutyPolicy/GlobalUserOverrideAccessMobileParity
  * compiles it as it is and runs it beside the server's rule over thousands
- * of generated permission rows, so neither can change alone.
+ * of generated permission rows, so neither can change alone. How it reads
+ * a row (isBlockRow, hasLabels, isProjectWideRow, readId) is the app's one
+ * copy of the server's: the team rule reads rows with it too
+ * (oncall/overrideTeamAccess, held to the server by its own parity suite).
  */
 
 /*
@@ -62,6 +65,12 @@ export interface ProjectPermissionRow {
   // "All", "Owned" or "Labels"; absent on a legacy row.
   scope?: string | null | undefined;
   isBlockPermission?: boolean | null | undefined;
+  /*
+   * The team the row is granted on, lower-cased; absent on a row no team
+   * grants. A permission that reaches the people of the team it is given
+   * to reads it (oncall/overrideTeamAccess).
+   */
+  teamId?: string | null | undefined;
 }
 
 /*
@@ -83,11 +92,11 @@ export const GLOBAL_OVERRIDE_NOT_ALLOWED_REASON: string =
   "You do not have permission to add user overrides in this project, so cover cannot be arranged in the app.";
 
 // A row that takes its permission away, rather than granting it.
-function isBlockRow(row: ProjectPermissionRow): boolean {
+export function isBlockRow(row: ProjectPermissionRow): boolean {
   return row.isBlockPermission === true;
 }
 
-function hasLabels(row: ProjectPermissionRow): boolean {
+export function hasLabels(row: ProjectPermissionRow): boolean {
   return Boolean(row.labelIds && row.labelIds.length > 0);
 }
 
@@ -107,7 +116,7 @@ function isLimitedToLabels(row: ProjectPermissionRow): boolean {
 }
 
 // HeldPermissionsUtil.isProjectWideRow: one that reaches every policy.
-function isProjectWideRow(row: ProjectPermissionRow): boolean {
+export function isProjectWideRow(row: ProjectPermissionRow): boolean {
   if (row.scope === "Owned") {
     return ROLES_NO_SCOPE_NARROWS.includes(row.permission);
   }
@@ -176,7 +185,7 @@ export function getGlobalOverrideLockReason(
 }
 
 // An id as the header writes one: a string, or an ObjectID as JSON.
-function readId(value: unknown): string {
+export function readId(value: unknown): string {
   if (typeof value === "string") {
     return value.trim().toLowerCase();
   }
@@ -241,11 +250,14 @@ export function readProjectPermissionRows(
       continue;
     }
 
+    const teamId: string = readId(record["teamId"]);
+
     rows.push({
       permission: permission,
       labelIds: Array.isArray(record["labelIds"]) ? record["labelIds"] : [],
       scope: typeof record["scope"] === "string" ? record["scope"] : undefined,
       isBlockPermission: record["isBlockPermission"] === true,
+      ...(teamId ? { teamId: teamId } : {}),
     });
   }
 

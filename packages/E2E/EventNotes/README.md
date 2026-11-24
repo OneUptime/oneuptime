@@ -43,6 +43,11 @@ loads; the spec pins the browser clock.
 - **Where a public note shows** (`POST /<event>/public-note-reach`): #1042, #58 and #12 are each
   on a status page that notifies its subscribers, so the composer says the note is visible on
   the status page and that subscribers will be notified.
+- **What the reader may do on a record** (`GET /<record>/record-access/:id`, asked once by each
+  record's view layout): answered by `SuiteHelpers/RecordAccessAnswers` as the server works it
+  out for the `?role=` reader, whose permissions reach the whole project through no team: what
+  they allow is allowed, the rest refused as a permission not held, and a private record
+  (`?private=1`) refuses every change to anyone but the default master admin.
 
 ## Scenarios
 

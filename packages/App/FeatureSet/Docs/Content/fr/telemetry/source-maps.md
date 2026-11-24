@@ -136,7 +136,7 @@ Les source maps sont conservées 90 jours après leur envoi, puis supprimées au
 ## Sécurité
 
 - Les maps sont envoyées par un point de terminaison authentifié et stockées dans votre projet OneUptime : elles ne sont jamais récupérées depuis votre site, et les source maps cachées restent cachées.
-- Le contenu brut d'une map (qui inclut votre code source d'origine si elle est construite avec `sourcesContent`) ne peut être relu que par les Propriétaires du projet et Administrateurs du projet, et par toute personne ayant l'autorisation **Read Telemetry Source Map**. Les autres membres de l'équipe ne voient que les frames résolues et les quelques lignes de code autour de chaque point de plantage des exceptions auxquelles ils ont déjà accès.
+- Le contenu brut d'une map (qui inclut votre code source d'origine si elle est construite avec `sourcesContent`) ne peut être relu que par les Propriétaires du projet et Administrateurs du projet, par toute personne ayant reçu Services au [niveau Administrateur](/docs/permissions/index#niveaux-de-produit) (`ServiceAdmin`), et par toute personne ayant l'autorisation **Read Telemetry Source Map**. Les autres membres de l'équipe ne voient que les frames résolues et les quelques lignes de code autour de chaque point de plantage des exceptions auxquelles ils ont déjà accès.
 - Supprimer un service supprime ses source maps.
 
 ## Dépannage

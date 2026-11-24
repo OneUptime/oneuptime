@@ -738,8 +738,12 @@ describe("ClockWidgetFormat", () => {
             expect(display.time).toBe("۹:۰۵");
             expect(display.dateText).not.toMatch(LATIN_DIGIT);
           } else {
-            // Latin digits everywhere else, Arabic too.
-            expect(display.time).toBe("9:05");
+            /*
+             * Latin digits everywhere else, Arabic too, and the mark the
+             * language writes between the hour and the minute: Danish's
+             * point, as CLDR and Danish write a time (#7914).
+             */
+            expect(display.time).toBe(language === "da" ? "9.05" : "9:05");
             expect(display.seconds).toBe("07");
             expect(writesOnlyLatinDigits(display.dateText)).toBe(true);
           }

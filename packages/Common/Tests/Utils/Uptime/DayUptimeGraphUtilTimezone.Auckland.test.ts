@@ -34,8 +34,8 @@ describeDayUptimeGraphUtilInProcessTimezone({
     // The second 02:30 on the fall-back date (a 25 hour local day).
     {
       instant: "2026-04-04T14:30:00.000Z",
-      localDayLabel: "Apr 05, 2026",
-      utcDayLabel: "Apr 04, 2026",
+      localDayLabel: "Apr 5, 2026",
+      utcDayLabel: "Apr 4, 2026",
     },
   ],
   utcBarLabels: [

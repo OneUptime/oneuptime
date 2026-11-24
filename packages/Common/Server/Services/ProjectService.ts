@@ -87,6 +87,7 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
@@ -213,6 +214,7 @@ import IncomingRequestSecretService, {
   NO_INCOMING_REQUEST_SECRET_TO_REQUIRE_MESSAGE,
 } from "./IncomingRequestSecretService";
 import TelemetryIngestionBudgetSettings from "../Utils/Telemetry/TelemetryIngestionBudgetSettings";
+import TelemetryIngestAttributionSettings from "../Utils/Telemetry/TelemetryIngestAttributionSettings";
 import TelemetryIngestionBudgetValidation, {
   isTelemetryIngestionBudgetColumnTouched,
 } from "../Utils/Telemetry/TelemetryIngestionBudgetValidation";
@@ -1266,8 +1268,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
       ).toNumber();
     }
 
+    // With the code a program tells a taken name by (#10065).
     if (existingProjectWithSameNameCount > 0) {
-      throw new BadDataException(
+      throw new NameTakenException(
         "You already have a project with the same name. Choose another name.",
       );
     }
@@ -1513,6 +1516,19 @@ export class ProjectService extends ProjectReferencesService<Model> {
     if (isTelemetryIngestionBudgetColumnTouched(updateData)) {
       for (const projectId of updatedItemIds) {
         TelemetryIngestionBudgetSettings.clearProjectCache(projectId);
+        // Its team and label budgets are held to it (#6386).
+        TelemetryIngestAttributionSettings.forgetProject(projectId);
+      }
+    }
+
+    /*
+     * Its usage started or stopped being published as metrics (#6355): this
+     * server's telemetry worker reads it again at once, every other server's
+     * within TelemetryIngestAttributionSettings' minute.
+     */
+    if (updateData["publishTelemetryUsageMetrics"] !== undefined) {
+      for (const projectId of updatedItemIds) {
+        TelemetryIngestAttributionSettings.forgetProject(projectId);
       }
     }
 

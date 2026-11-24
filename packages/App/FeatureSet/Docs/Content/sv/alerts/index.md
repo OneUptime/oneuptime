@@ -138,7 +138,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 | **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärd**, **Runbooks**, **Länkade incidenter**, **Privata anteckningar** |
 | **Team** | **Jourexekveringar** och **Ägare**: vem som larmades för larmet, och vem som äger det |
 | **Aviseringar**           | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om larmet, och allt AI har gjort för det |
-| **Utvecklare**       | **Terraform**, **API**, **CLI** och **AI-assistenter**: larmet hanterat från kod                            |
+| **Utvecklare**       | **Terraform**, **Crossplane**, **API**, **CLI** och **AI-assistenter**: larmet hanterat från kod                            |
 | **Avancerad** | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort larm** |
 
 **Översikt**, **Utredning** och **Team** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.

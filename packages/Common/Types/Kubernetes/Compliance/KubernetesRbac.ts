@@ -91,13 +91,23 @@ export function isBuiltInRbacObject(object: KubernetesRbacObjectMeta): boolean {
  * grants nodes/proxy, which reaches the whole kubelet API, it says why in a
  * label of its own (templates/rbac.yaml): what still needs it, joined by a
  * dot. A chart from before grants nodes/proxy on every cluster and says
- * nothing.
+ * nothing. The add-on's ClusterRole also says it is the add-on (#9928), whose
+ * buyer changes it with the add-on's configuration values, not with Helm.
  */
 export const HELM_CHART_LABEL: string = "helm.sh/chart";
 export const ONEUPTIME_AGENT_CHART_PREFIX: string = "kubernetes-agent-";
 export const PART_OF_LABEL: string = "app.kubernetes.io/part-of";
 export const ONEUPTIME_PART_OF: string = "oneuptime";
 export const NODES_PROXY_REASON_LABEL: string = "oneuptime.com/nodes-proxy";
+export const INSTALLED_AS_LABEL: string = "oneuptime.com/installed-as";
+
+// How the agent was installed, as its chart's installedAs value says.
+export enum OneUptimeAgentInstall {
+  // With Helm: the label is not there, as on a chart from before it.
+  Helm = "helm",
+  // As the Amazon EKS add-on, which sets installedAs to aws-eks-addon.
+  AwsEksAddon = "aws-eks-addon",
+}
 
 // Why the agent's ClusterRole grants nodes/proxy, as its chart names it.
 export enum OneUptimeAgentNodesProxyReason {
@@ -147,6 +157,20 @@ export function getNodesProxyReasons(
       return named.has(reason);
     },
   );
+}
+
+/*
+ * How the agent whose role this is was installed, as its label says: the
+ * Amazon EKS add-on, or Helm for anything else, a role from a chart before
+ * the label among them.
+ */
+export function getOneUptimeAgentInstall(
+  role: KubernetesRbacObjectMeta | null,
+): OneUptimeAgentInstall {
+  return (role?.labels || {})[INSTALLED_AS_LABEL] ===
+    OneUptimeAgentInstall.AwsEksAddon
+    ? OneUptimeAgentInstall.AwsEksAddon
+    : OneUptimeAgentInstall.Helm;
 }
 
 function matchesGroup(rule: KubernetesPolicyRule, group: string): boolean {

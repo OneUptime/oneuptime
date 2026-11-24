@@ -71,6 +71,8 @@ flowchart TB
 
 每筆日誌都會保留其項目精確到奈秒的時間、嚴重性、追蹤和 span，以及採用 OpenTelemetry 語意慣例名稱的 HTTP 請求。當它的受監控資源是 OneUptime 讀取其指標的一種類型時，例如虛擬機器 (`gce_instance`)、Cloud Run 服務 (`cloud_run_revision`) 或 Cloud SQL 執行個體 (`cloudsql_database`)，日誌就會歸檔在該資源下，並以 `cloud.resource_id` 攜帶資源的 ID。外部負載平衡器的請求日誌寫在 `http_load_balancer` 下，但會歸檔在其網址對應，也就是其指標所落的 `https_lb_rule` 下。
 
+稽核日誌的項目會作為其日誌的本文完整抵達：開啟 [在日誌中尋找安全事件](/docs/telemetry/security-events#在日誌中尋找安全性事件) 後，每個項目都會像來自日誌管線的項目一樣被讀取為安全性事件，並且無論透過多少條途徑抵達 OneUptime，都只會儲存一次。
+
 執行個體群組的日誌是其虛擬機器的日誌，因此它的頁面沒有 **日誌** 索引標籤。其他類型的項目照樣會串流，歸在其專案下。
 
 ## 指令建立的內容

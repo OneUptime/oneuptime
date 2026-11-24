@@ -42,6 +42,10 @@ Lokasjoner danner et tre. Hver lokasjon har en **Lokasjonstype** og eventuelt en
 
 En lokasjons type, navn, beskrivelse, forelder og plassering redigeres ett sted: kortet **Site Settings** på lokasjonens side **Innstillinger**. Lokasjonens oversikt viser dem med en lenke **Rediger i Innstillinger**, og listen **Lokasjoner** legger til lokasjoner, men redigerer dem ikke.
 
+Lokasjoner som ikke inneholder noe, går i ett steg: **Slett tomme lokasjoner** i menyen øverst i listen **Lokasjoner** viser hver lokasjon uten enheter (også arkiverte), uten lokasjoner under seg og uten endepunkt, lenke, regel eller vedlikeholdshendelse som bruker den. Den nevner de ti første og sletter, når du bekrefter, nøyaktig de viste lokasjonene: En lokasjon som får en enhet i mellomtiden, beholdes. Den er for alle som kan slette lokasjoner.
+
+Kortet **Hierarchy** øverst på siden **Lokasjoner** tegner treet. Det forblir lukket til du trykker på **Vis hierarki**, og forblir vist neste gang hvis du lar det være vist. Det viser først lokasjonene på øverste nivå, femti om gangen, og de underordnede lokasjonene til en lokasjon når du åpner den. **Søk i lokasjoner etter navn** finner en lokasjon hvor som helst i treet og åpner lokasjonene over den, og **Skjul lokasjoner uten enheter** utelater hver lokasjon uten enheter i seg eller under seg.
+
 Hver enhet knyttes til én lokasjon. En lokasjons undertre er lokasjonen selv pluss hver lokasjon under den, og undertreets enheter er det helsen oppsummeres fra, så en region uten egne enheter har likevel en status, fordi enhetene under den har det.
 
 > [!NOTE]
@@ -79,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` og `siteType` er påkrevd. `siteType` må være en av prosjektets lokasjonstyper.
 - `parentName` navngir den overordnede lokasjonen, som kan ligge i den samme filen: rader uten forelder, eller med en forelder som allerede finnes, går først, deretter barna deres. La det stå tomt for en lokasjon på øverste nivå.
 - En rad der forelderen ikke finnes, hoppes over, og resultatene viser den. **Forhåndsvis import** viser hva filen vil opprette før noe skrives.
+
+## Endre mange lokasjoner samtidig
+
+En import av en Meraki-organisasjon legger til en lokasjon for hvert av nettverkene dens, alle på øverste nivå. Du åpner dem ikke én om gangen: merk dem i listen **Lokasjoner**, ved å krysse av rader eller merke alle lokasjonene filtrene treffer, og åpne **Massehandlinger**.
+
+| Handling | Hva den gjør |
+| --- | --- |
+| **Angi overordnet lokasjon** / **Fjern overordnet lokasjon** | Flytter hver merkede lokasjon under lokasjonen du velger, sammen med alle lokasjonene under den, der den teller i tilstanden til den lokasjonen. **Fjern overordnet lokasjon** flytter dem til øverste nivå. En lokasjon trenger en type for å ligge under en annen, og en lokasjon som en Meraki-import legger til, har ingen: når noen av de merkede lokasjonene ikke har noen type, spør dialogen om typen de får, og de andre beholder sin. |
+| **Angi standardsonde** / **Fjern standardsonde** | Angir [standardsonden](#standardverdier-for-overvåking) for hver merkede lokasjon, for enhetene som legges til senere. Enhetene som allerede er der, beholder sondene sine. |
+| **Legg til etiketter** / **Fjern etiketter** | Etiketter grupperer lokasjoner slik at du kan filtrere og velge dem samlet. De avgjør ikke hvem som kan se en lokasjon. |
+| **Legg til eier** / **Fjern eier** | Eierne av en lokasjon eier varselet den gir når den ikke er feilfri. Lokasjonens egen side **Eiere** viser dem. |
+
+Hver handling er én dialog og én lagring for hele utvalget, og hver lokasjon går gjennom de samme kontrollene som en redigering på sin egen side Innstillinger. Når en handling er ferdig, viser den hvor mange lokasjoner som ble endret, hvilke som feilet og hvorfor (en lokasjon kan ikke legges under seg selv eller en lokasjon under seg, eller under en lokasjon av en type som bare inneholder enheter), og hvilke den ikke endret og hvorfor: en lokasjon som allerede lå under den overordnede lokasjonen, eller lokasjonen som er valgt som overordnet.
 
 ## Kartet
 
@@ -211,7 +228,7 @@ Oppetiden rettes med hendelsens oppgitte start- og sluttidspunkt, ikke med når 
 
 ## Varsling på en lokasjon
 
-Kortet **Alerting** på en lokasjons side **Innstillinger** har **Alert When Unhealthy**: et varsel åpnes når lokasjonens oppsummering går over til en status som ikke er i drift, og løser seg selv når lokasjonen kommer seg. **Varselsalvor** setter alvorlighetsgraden; står den tom, er det prosjektets mest alvorlige.
+Kortet **Alerting** på en lokasjons side **Innstillinger** har **Alert When Unhealthy**: et varsel åpnes når lokasjonens oppsummering går over til en status som ikke er i drift, og løser seg selv når lokasjonen kommer seg. **Varselsalvor** setter alvorlighetsgraden; står den tom, er det prosjektets mest alvorlige. Lokasjonens eiere, på siden **Eiere**, eier varselet.
 
 Den varsler bare om endringen: å slå den på for en lokasjon som allerede er usunn, gjør klar for neste endring i stedet for å varsle om fortiden. Degraded er ikke i drift, så en lokasjon med prosentpolicyen varsler så snart én av de rapporterende enhetene er nede, slik en lokasjon med policyen for verste status gjør; varselet forblir åpent, uten et nytt, mens lokasjonen veksler mellom Degraded og Offline, og tittelen navngir statusen lokasjonen nådde først.
 

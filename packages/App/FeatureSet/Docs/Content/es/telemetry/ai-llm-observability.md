@@ -28,7 +28,7 @@ Abre **Productos → IA / LLM**, bajo **Observabilidad**. El producto tiene siet
 | Pestaña | Qué muestra |
 | --- | --- |
 | **Conversaciones** | Cada conversación que tuvo tu IA, primero las que necesitan atención. Sobre la lista: conversaciones, respuestas de la IA, cuántas necesitan atención, coste y el tiempo de respuesta habitual. |
-| **Llamadas** | Cada llamada a un modelo, de embeddings, de agente y de herramienta. Filtra por servicio, proveedor, modelo, operación, persona, equipo o conversación; haz clic en una llamada para abrirla en el visor de trazas. |
+| **Llamadas** | Cada llamada a un modelo, de embeddings, de agente y de herramienta. Filtra por servicio, proveedor, modelo, operación, persona, equipo, conversación o estado; una llamada que falló muestra su error bajo su estado. Haz clic en una llamada para abrirla en el visor de trazas. |
 | **Uso** | Las llamadas, los tokens y el coste de un periodo, ordenados por empleado, equipo, modelo, proveedor o aplicación; en **Cuentas de proveedor**, lo que se facturó a tus cuentas conectadas. |
 | **Alertas** | Alertas listas para cuando la IA responde mal, y tus monitores de IA / LLM. |
 | **Presupuestos** | Límites de coste diarios, publicados como métricas sobre las que alertar. |
@@ -239,7 +239,7 @@ Una alerta lista lanza una alerta que se resuelve sola, y muestra el monitor com
 
 ## Mira quién gasta qué
 
-La pestaña **Uso** muestra las llamadas, los tokens y el coste de un periodo (los últimos 7 días si no eliges otro), y una tabla de los 25 primeros según uno de cinco desgloses: **Empleado**, **Equipo**, **Modelo**, **Proveedor** y **Aplicación / Servicio**. Las llamadas que no nombran a nadie se cuentan en **Sin atribuir**, nunca se descartan.
+La pestaña **Uso** muestra las llamadas, los tokens y el coste de un periodo (los últimos 7 días si no eliges otro), y una tabla de los 25 primeros según uno de cinco desgloses: **Empleado**, **Equipo**, **Modelo**, **Proveedor** y **Aplicación / Servicio**. Las llamadas que no nombran a nadie se cuentan en **Sin atribuir**, nunca se descartan. La tasa de error bajo **Llamadas de IA** abre **Llamadas** en las llamadas del periodo que fallaron, con **Estado** en **Error**.
 
 Esto son **Tus llamadas de IA**. Elige **Cuentas de proveedor** en su lugar para ver lo que se facturó a tus cuentas conectadas de OpenAI, Anthropic, Azure, Bedrock, Vertex AI y Cursor: consulta [Cuentas de proveedores de IA](/docs/telemetry/ai-provider-accounts#ver-el-uso). Las dos cosas nunca se suman.
 

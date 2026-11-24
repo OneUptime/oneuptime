@@ -2,6 +2,7 @@ import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import {
   TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
   TELEMETRY_INGESTION_BUDGET_SIGNALS,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
   TelemetryIngestionBudgetLimitSource,
   TelemetryIngestionBudgetScope,
   TelemetryIngestionBudgetScopeStatus,
@@ -22,6 +23,8 @@ export const GB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB;
 
 export const KEY_ID: string = "22222222-2222-4222-8222-222222222222";
 export const OTHER_KEY_ID: string = "33333333-3333-4333-8333-333333333333";
+export const TEAM_ID: string = "44444444-4444-4444-8444-444444444444";
+export const LABEL_ID: string = "55555555-5555-4555-8555-555555555555";
 
 // A signal with nothing in force and nothing counted.
 export function unbudgeted(
@@ -81,9 +84,49 @@ export function scope(
   };
 }
 
+/*
+ * A team's or a label's budget (#6386): its four signals, the given ones as
+ * given and the rest unbudgeted.
+ */
+export function teamOrLabel(
+  signals: Array<TelemetryIngestionBudgetSignalStatus>,
+  owner:
+    | { team: { id: string; name: string } }
+    | { label: { id: string; name: string; color?: string } },
+): TelemetryIngestionBudgetScopeStatus {
+  const all: Array<TelemetryIngestionBudgetSignalStatus> =
+    TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.map(
+      (signal: TelemetryIngestionBudgetSignal) => {
+        return (
+          signals.find((each: TelemetryIngestionBudgetSignalStatus) => {
+            return each.signal === signal;
+          }) || unbudgeted(signal)
+        );
+      },
+    );
+
+  if ("team" in owner) {
+    return {
+      scope: TelemetryIngestionBudgetScope.Team,
+      teamId: owner.team.id,
+      teamName: owner.team.name,
+      signals: all,
+    };
+  }
+
+  return {
+    scope: TelemetryIngestionBudgetScope.Label,
+    labelId: owner.label.id,
+    labelName: owner.label.name,
+    ...(owner.label.color ? { labelColor: owner.label.color } : {}),
+    signals: all,
+  };
+}
+
 export function status(data: {
   project?: Array<TelemetryIngestionBudgetSignalStatus>;
   ingestionKeys?: Array<TelemetryIngestionBudgetScopeStatus>;
+  teamsAndLabels?: Array<TelemetryIngestionBudgetScopeStatus>;
   countersAvailable?: boolean;
   timezone?: string;
 }): TelemetryIngestionBudgetStatus {
@@ -96,6 +139,7 @@ export function status(data: {
     countersAvailable: data.countersAvailable ?? true,
     project: scope(data.project || []),
     ingestionKeys: data.ingestionKeys || [],
+    teamsAndLabels: data.teamsAndLabels || [],
   };
 }
 

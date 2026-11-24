@@ -28,6 +28,7 @@ import {
 } from "../../Utils/DeveloperDocs/TerraformSchema";
 import { OpenAPIParser } from "../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import { ResourceGenerator } from "../../../../Scripts/TerraformProvider/Core/ResourceGenerator";
+import { providerGoFilePath } from "../../../../Scripts/TerraformProvider/Core/ProviderShards";
 import {
   OpenAPISpec,
   TerraformAttribute,
@@ -325,7 +326,7 @@ describe("the provider's Go code", () => {
       ).generateResources();
 
       const go: string = fs.readFileSync(
-        path.join(outputDir, "internal/provider/resource_label.go"),
+        path.join(outputDir, providerGoFilePath("resource_label.go")),
         "utf-8",
       );
 

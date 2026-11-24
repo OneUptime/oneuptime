@@ -182,7 +182,9 @@ Les détecteurs des SDK écrivent la plateforme `azure.app_service`, avec un poi
 
 **Réseau :** App Service atteint Internet directement, sauf si **VNet integration** avec **Route All** est activé. Le VNet a alors besoin d'une passerelle NAT, ou d'une route vers un pare-feu qui autorise TCP 443 vers l'hôte OneUptime.
 
-**Ce que montre la page de l'application :** les requêtes, le taux d'erreur et la latence viennent des traces de l'application, donc une application qui n'envoie que des journaux ou des métriques y indique **Aucune trace reçue**, et sa **Vérification de la configuration** dit ce qu'il faut ajouter. App Service ne donne à une application ni CPU ni mémoire propres, et ses tuiles de CPU et de mémoire le disent. Connectez l'abonnement sous **Cloud → Connecter**, et la **Vue d'ensemble** de l'application ajoute une section **Azure Monitor** : les requêtes, les erreurs serveur, le temps de réponse, le temps CPU et la mémoire du site, tels qu'Azure les mesure, quoi que l'application envoie.
+**Ce que montre la page de l'application :** les requêtes, le taux d'erreur et la latence viennent des traces de l'application, donc une application qui n'envoie que des journaux ou des métriques y indique **Aucune trace reçue**, et sa **Vérification de la configuration** dit ce qu'il faut ajouter. App Service ne donne à une application ni CPU ni mémoire propres, et ses tuiles de CPU et de mémoire le disent. Connectez l'abonnement sous **Cloud → Connecter**, et la **Vue d'ensemble** de l'application ajoute une section **Azure Monitor** : les requêtes, les erreurs serveur et client, le temps de réponse, le temps CPU et la mémoire du site, tels qu'Azure les mesure, quoi que l'application envoie. Son onglet **Instances** liste alors les instances sur lesquelles Azure l'exécute, et son onglet **Révisions** les déploiements qu'Azure conserve.
+
+L'onglet **Configuration** de l'application donne ces paramètres sous forme de commandes Azure Cloud Shell pour .NET, Java, Node.js ou Python, avec le nom, le groupe de ressources et l'abonnement de l'application dans chaque commande. Pour les journaux de console, HTTP et de plateforme du site lui-même, choisissez aussi **Diffuser les métriques et les journaux** dans la ligne de l'abonnement sous **Cloud → Connecter** : ils apparaissent dans l'onglet **Journaux** de l'application, sous **Depuis les paramètres de diagnostic Azure**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ Les détecteurs App Service de Node.js et .NET ne définissent pas `cloud.accoun
 :::
 
 :::details Une app App Service n'affiche ni requêtes ni instances
-Les requêtes, le taux d'erreur et la latence viennent des traces, donc une app qui n'envoie que des journaux ou des métriques n'en a pas : sa **Vérification de la configuration** dit ce qu'il faut ajouter. Les instances viennent de `azure.app_service.instance.id` ou de `service.instance.id`, que définissent les détecteurs Azure : sans l'un ni l'autre, la tuile **Instances** indique **Non signalé**. Pour voir les requêtes du site quoi que l'app envoie, connectez l'abonnement : la page de l'app ajoute une section **Azure Monitor**.
+Les requêtes, le taux d'erreur et la latence viennent des traces, donc une app qui n'envoie que des journaux ou des métriques n'en a pas : sa **Vérification de la configuration** dit ce qu'il faut ajouter, et son onglet **Configuration** comment. Les instances viennent de `azure.app_service.instance.id` ou de `service.instance.id`, que définissent les détecteurs Azure : sans l'un ni l'autre, la tuile **Instances** indique **Non signalé** tant que l'abonnement n'est pas connecté, puis compte les instances qu'Azure exécute. Pour voir les requêtes du site quoi que l'app envoie, connectez l'abonnement : la page de l'app ajoute une section **Azure Monitor**.
+:::
+
+:::details Une app App Service n'a aucun chiffre d'Azure Monitor
+La ligne **Connexion Azure Monitor** de sa **Vérification de la configuration** dit pourquoi. OneUptime relie l'app à son site par `cloud.resource_id`, que définissent les détecteurs App Service, sinon par son `service.name` dans l'abonnement que nomme `cloud.account.id` : nommez l'app comme son site, ou ajoutez `cloud.resource_id`. Une connexion Azure sous **Cloud → Connecter** doit lire cet abonnement, avec le rôle Monitoring Reader sur celui-ci. Un emplacement de déploiement est une ressource à part entière, que OneUptime ne lit pas encore.
 :::
 
 :::details Une variable de Container Instances modifiée n'a aucun effet

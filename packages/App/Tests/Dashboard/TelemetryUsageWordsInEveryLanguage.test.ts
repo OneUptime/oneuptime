@@ -50,7 +50,7 @@ const OVERVIEW_STRINGS: ReadonlyArray<string> = [
   // Exceptions apart from the traces they are billed with (issue #6356).
   "Spans. Days counted before exceptions were shown apart include their exceptions too.",
   "Exceptions recorded from spans and logs.",
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.",
   "Profiles, and the samples recorded with them.",
   "Session replays: {{days}}",
   "How long the resource's telemetry is kept, as counted on the newest day of the range.",

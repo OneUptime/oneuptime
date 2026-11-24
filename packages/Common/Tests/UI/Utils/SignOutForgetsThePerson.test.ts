@@ -88,6 +88,12 @@ const THE_BROWSERS_OWN: Record<string, string> = {
   cookiesAccepted: "false",
   // The sign-in page's "More ways to sign in", left open.
   "oneuptime-sign-in-more-ways-open": "true",
+  /*
+   * The project SSO provider this browser last signed in with (#9986): its
+   * kind and the ids of the project's public SSO sign-in link, no address.
+   */
+  "oneuptime-sign-in-sso-last-used":
+    '{"v":1,"type":"ProjectSSO","providerId":"66666666-6666-4666-8666-666666666666","projectId":"77777777-7777-4777-8777-777777777777"}',
 };
 
 const DASHBOARD_ID: string = "11111111-1111-4111-8111-111111111111";

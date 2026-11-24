@@ -19,9 +19,11 @@ import {
  *   - "Click to reveal" on a secret behind HiddenText (an API key, a
  *     token, the license key);
  *   - "Click to copy" on an ID's pill (ObjectIDView);
- *   - the side menu's name, "Main navigation", which a screen reader says
- *     as it reaches the menu, and on a phone the menu's "Navigate to"
- *     above the page it names (or "Navigation" where it names none);
+ *   - the top bar's name, "Main menu", and the side menu's, "Pages in
+ *     this section", which a screen reader says as it lists the page's
+ *     landmarks (#7963: the side menu was "Main navigation" and the bar had
+ *     none), and on a phone the side menu's "Navigate to" above the page it
+ *     names (or "Navigation" where it names none);
  *   - the breadcrumbs' name, "Breadcrumb", which a screen reader says on
  *     every page that has a trail;
  *   - the skip link, "Skip to main content" (MasterPage), the first thing a
@@ -96,9 +98,15 @@ const CHROME_PARTS: ReadonlyArray<ChromePart> = [
     afterAClick: ["Copied!", "Copy failed"],
   },
   {
+    file: "Navbar/NavBar.tsx",
+    what: "the top bar's name",
+    words: ["Main menu"],
+    afterAClick: [],
+  },
+  {
     file: "SideMenu/SideMenu.tsx",
     what: "the side menu's name and its phone summary",
-    words: ["Main navigation", "Navigate to", "Navigation"],
+    words: ["Pages in this section", "Navigate to", "Navigation"],
     afterAClick: [],
   },
   {
@@ -418,6 +426,7 @@ describe("the page's shared words", () => {
       }),
     ).toEqual(
       expect.arrayContaining([
+        "Navbar/NavBar.tsx",
         "SideMenu/SideMenu.tsx",
         "Breadcrumbs/Breadcrumbs.tsx",
       ]),
@@ -562,14 +571,15 @@ describe("the page's shared words", () => {
     const planted: Locale = {
       "Click to reveal": "Zum Anzeigen klicken",
       "Click to copy": "Click to copy",
-      "Main navigation": "",
+      "Pages in this section": "",
       Navigation: "Navigation",
       Breadcrumb: "Navigationspfad",
     };
     const words: Array<string> = [
       "Click to reveal",
       "Click to copy",
-      "Main navigation",
+      "Main menu",
+      "Pages in this section",
       "Navigation",
       "Breadcrumb",
       "Skip to main content",
@@ -577,7 +587,8 @@ describe("the page's shared words", () => {
 
     expect(wordsLeftInEnglish(planted, words, "de")).toEqual([
       "Click to copy (in English)",
-      "Main navigation (missing)",
+      "Main menu (missing)",
+      "Pages in this section (missing)",
       "Skip to main content (missing)",
     ]);
     // Italian words Navigation (Navigazione): English there is left over.

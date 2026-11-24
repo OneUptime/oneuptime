@@ -12,6 +12,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import URL from "../../Types/API/URL";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NameTakenException from "../../Types/Exception/NameTakenException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/CustomNotificationChannel";
 import CustomChannelEdition from "../Utils/Notification/CustomChannelEdition";
@@ -428,8 +429,9 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
+    // With the code a program tells a taken name by (#10065).
     if (taken) {
-      throw new BadDataException(
+      throw new NameTakenException(
         `A custom channel named ${data.name} already exists. Give this one another name, so people can tell them apart.`,
       );
     }

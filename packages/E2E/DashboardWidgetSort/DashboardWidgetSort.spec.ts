@@ -1774,7 +1774,7 @@ const sideMenuLink: (page: Page, name: string) => Locator = (
   name: string,
 ): Locator => {
   return page
-    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("navigation", { name: "Pages in this section" })
     .getByRole("link", { name, exact: true });
 };
 

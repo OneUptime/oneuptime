@@ -5,6 +5,8 @@ import GenericObject from "../GenericObject";
 import { JSONObject } from "../JSON";
 import { getWordOfMeaningKey } from "../MeaningKeys";
 import { ReflectionMetadataType } from "../Reflection";
+import RelationReaders from "./RelationReaders";
+import ServerOwned from "./ServerOwned";
 import TableColumnType from "./TableColumnType";
 import UserAttribution from "./UserAttribution";
 import "reflect-metadata";
@@ -107,6 +109,17 @@ export interface TableColumnMetadata {
   manyToOneRelationColumn?: string;
   type: TableColumnType;
   canReadOnRelationQuery?: boolean;
+  /*
+   * Who reads the column through a relation, when canReadOnRelationQuery
+   * lets a relation read it (RelationReaders): every reader of the relation
+   * (unset: a label on the joined row, a monitor's name on an incident), or
+   * only those who may read the column itself (ColumnReaders: a data
+   * store's sensitivity, which a Viewer of the data assets in the store may
+   * not read, #10281). RelationReadsNoWiderThanTheColumn holds every column
+   * read the first way by more roles than its own read lets in to a reason
+   * written down.
+   */
+  relationReaders?: RelationReaders;
   hideColumnInDocumentation?: boolean;
   modelType?: { new (): BaseModel };
   /*
@@ -152,6 +165,26 @@ export interface TableColumnMetadata {
    * set (Tests/Types/Database/ChangesOnlyWithColumns holds every one to it).
    */
   changesOnlyWith?: string;
+  /*
+   * OneUptime keeps the column's value once the record exists, or changes
+   * it too (ServerOwned): Always - only OneUptime writes it, as a check, a
+   * worker or an agent's report does: a heartbeat's time, a count, a flag
+   * that says an owner was told; the API takes no value for it from a write
+   * that is not OneUptime's own (#10053); AfterCreate - a create may give its
+   * first value, and OneUptime moves it on from there: a monitor's current
+   * status, an incident's current state; Shared - people set it and
+   * OneUptime changes it too: the labels a label rule adds, an exception
+   * OneUptime resolves (#10052). The OpenAPI spec says which
+   * (x-oneuptime-server-owned: ModelSchema) and leaves an Always column out
+   * of the create and update schemas, so the Terraform and Crossplane
+   * providers never fight OneUptime over it (#9985).
+   * Tests/Types/Database/ServerOwnedColumns holds each declaration to its
+   * column's permissions, holds the Shared ones to a list with why (and the
+   * columns label, on-call and privacy rules change to it), and catches a
+   * new column named like one OneUptime keeps (current...Id, last...At,
+   * next...At) that declares nothing.
+   */
+  serverOwned?: ServerOwned;
 }
 
 /*

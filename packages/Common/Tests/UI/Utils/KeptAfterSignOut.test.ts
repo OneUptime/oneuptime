@@ -1,4 +1,5 @@
 import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../../Types/Accounts/MoreWaysToSignIn";
+import { REMEMBERED_SSO_PROVIDER_KEY } from "../../../Types/Accounts/RememberedSsoProvider";
 import { COOKIE_CONSENT_STORAGE_KEY } from "../../../Types/Analytics/CookieConsent";
 import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "../../../Types/Dashboard/DashboardLanguage";
 import { DASHBOARD_VISITOR_THEME_STORAGE_KEY } from "../../../Types/Dashboard/DashboardTheme";
@@ -121,6 +122,26 @@ describe("every key on the list is the key its page reads", () => {
       "LocalStorage.setItem(MORE_WAYS_TO_SIGN_IN_OPEN_KEY",
     );
   });
+
+  test("the SSO provider this browser last signed in with: the Accounts app reads, writes and forgets the key on the list", () => {
+    const remembered: string = featureSet(
+      "Accounts",
+      "src",
+      "Utils",
+      "RememberedSsoProvider.ts",
+    );
+
+    expect(remembered).toContain("REMEMBERED_SSO_PROVIDER_KEY");
+    expect(remembered).toContain(
+      "localStorage.getItem(REMEMBERED_SSO_PROVIDER_KEY)",
+    );
+    expect(remembered).toContain(
+      "localStorage.setItem(REMEMBERED_SSO_PROVIDER_KEY",
+    );
+    expect(remembered).toContain(
+      "localStorage.removeItem(REMEMBERED_SSO_PROVIDER_KEY)",
+    );
+  });
 });
 
 describe("what the list may hold", () => {
@@ -137,6 +158,7 @@ describe("what the list may hold", () => {
         API_REFERENCE_THEME_STORAGE_KEY,
         COOKIE_CONSENT_STORAGE_KEY,
         MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
+        REMEMBERED_SSO_PROVIDER_KEY,
       ].sort(),
     );
   });

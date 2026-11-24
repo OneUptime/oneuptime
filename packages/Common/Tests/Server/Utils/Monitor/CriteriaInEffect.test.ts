@@ -12,6 +12,7 @@ import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import ObjectID from "../../../../Types/ObjectID";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import {
   afterEach,
   beforeEach,
@@ -488,5 +489,154 @@ describe("CriteriaInEffect", () => {
       expect(alertQueries).toEqual([]);
       expect(incidentQueries).toEqual([]);
     });
+  });
+});
+
+/*
+ * THOUSANDS OF SERIES ASKING (issue #10108).
+ *
+ * A grouped monitor asks for every series that waits on its window whether
+ * a criteria is in effect for it: 16,250 of them for the #10108 fleet, and
+ * each ask scanned every open record of the monitor. The open records are
+ * now read into each criteria's open series once, the first time anything
+ * is asked, and each ask is a lookup. Every answer must be the scan's.
+ */
+describe("CriteriaInEffect, asked for thousands of series", () => {
+  const CRITERIA_IDS: Array<string> = [
+    FIRING_ID,
+    "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  ];
+
+  const opening: Array<MonitorCriteriaInstance> = CRITERIA_IDS.map(
+    (id: string): MonitorCriteriaInstance => {
+      return criteria({ id, statusId: OFFLINE_STATUS, createAlerts: true });
+    },
+  );
+
+  // What the scan before #10108 answered.
+  function scanned(input: {
+    records: Array<OpenCriteriaRecord>;
+    criteriaId: string;
+    seriesFingerprint: string | undefined;
+  }): boolean {
+    return input.records.some((record: OpenCriteriaRecord) => {
+      return (
+        record.createdCriteriaId === input.criteriaId &&
+        (record.seriesFingerprint || "") === (input.seriesFingerprint || "")
+      );
+    });
+  }
+
+  test("4,000 open records, 8,000 asks: every answer the scan's, the records read once", async () => {
+    const random: SeededRandom = seededRandom(10108);
+    const records: Array<OpenCriteriaRecord> = [];
+
+    for (let index: number = 0; index < 4_000; index++) {
+      const pick: number = random(10);
+
+      records.push({
+        // Now and then a record no criteria opened.
+        createdCriteriaId:
+          pick === 0 ? undefined : CRITERIA_IDS[random(CRITERIA_IDS.length)],
+        // Now and then one for the whole monitor.
+        seriesFingerprint:
+          pick === 1 ? undefined : pick === 2 ? "" : `series-${random(6_000)}`,
+      });
+    }
+
+    let reads: number = 0;
+    const inEffect: CriteriaInEffect = new CriteriaInEffect({
+      monitor: monitorWithStatus(OFFLINE_STATUS),
+      readOpenRecords: async (): Promise<Array<OpenCriteriaRecord>> => {
+        reads++;
+        return records;
+      },
+    });
+
+    let inEffectCount: number = 0;
+
+    for (let ask: number = 0; ask < 8_000; ask++) {
+      const criteriaIndex: number = random(CRITERIA_IDS.length);
+      const pick: number = random(20);
+      const seriesFingerprint: string | undefined =
+        pick === 0 ? undefined : pick === 1 ? "" : `series-${random(6_000)}`;
+
+      const answer: boolean = await inEffect.isInEffect({
+        criteriaInstance: opening[criteriaIndex]!,
+        seriesFingerprint,
+      });
+
+      expect(answer).toBe(
+        scanned({
+          records,
+          criteriaId: CRITERIA_IDS[criteriaIndex]!,
+          seriesFingerprint,
+        }),
+      );
+
+      if (answer) {
+        inEffectCount++;
+      }
+    }
+
+    // Both answers were given, many times.
+    expect(inEffectCount).toBeGreaterThan(500);
+    expect(inEffectCount).toBeLessThan(7_500);
+    expect(reads).toBe(1);
+  });
+
+  test("series asking at once share the one read", async () => {
+    let reads: number = 0;
+    const inEffect: CriteriaInEffect = new CriteriaInEffect({
+      monitor: monitorWithStatus(OFFLINE_STATUS),
+      readOpenRecords: async (): Promise<Array<OpenCriteriaRecord>> => {
+        reads++;
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 5);
+        });
+        return [
+          { createdCriteriaId: FIRING_ID, seriesFingerprint: "series-7" },
+        ];
+      },
+    });
+
+    const answers: Array<boolean> = await Promise.all(
+      Array.from({ length: 50 }, (_: unknown, index: number) => {
+        return inEffect.isInEffect({
+          criteriaInstance: firing,
+          seriesFingerprint: `series-${index}`,
+        });
+      }),
+    );
+
+    expect(reads).toBe(1);
+    expect(
+      answers
+        .map((answer: boolean, index: number): number => {
+          return answer ? index : -1;
+        })
+        .filter((index: number): boolean => {
+          return index >= 0;
+        }),
+    ).toEqual([7]);
+  });
+
+  test("a read that fails fails every ask, as before", async () => {
+    const inEffect: CriteriaInEffect = new CriteriaInEffect({
+      monitor: monitorWithStatus(OFFLINE_STATUS),
+      readOpenRecords: async (): Promise<Array<OpenCriteriaRecord>> => {
+        throw new Error("Postgres is unreachable");
+      },
+    });
+
+    for (let ask: number = 0; ask < 2; ask++) {
+      await expect(
+        inEffect.isInEffect({
+          criteriaInstance: firing,
+          seriesFingerprint: "series-a",
+        }),
+      ).rejects.toThrow("Postgres is unreachable");
+    }
   });
 });

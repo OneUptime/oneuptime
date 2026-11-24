@@ -20,7 +20,14 @@ import {
   SNS_CONFIRMATION_HEADERS,
   snsSubscriptionConfirmation,
 } from "../../Utils/Monitor/SubscriptionConfirmationFixtures";
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import http from "http";
 import { AddressInfo } from "net";
 import zlib from "zlib";
@@ -92,6 +99,36 @@ describe("the body a text is kept as", () => {
 
   test("a byte order mark is no part of the text", () => {
     expect(WebhookRequestBody.fromText("﻿backup failed")).toBe("backup failed");
+  });
+
+  /*
+   * #10183: a text/plain body was parsed whatever it held, before the
+   * monitor's key was checked: 50 MB of "[]," made 17 million arrays.
+   */
+  test("a text that holds more JSON values than the route reads is kept as the text, never parsed", () => {
+    const bomb: string = `[${"[],".repeat(200)}[]]`;
+    const parse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      expect(
+        WebhookRequestBody.fromText(bomb, {
+          values: 100,
+          objectsArraysAndStrings: 100,
+        }),
+      ).toBe(bomb);
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  test("a text within the route's limit is still kept as its JSON", () => {
+    expect(
+      WebhookRequestBody.fromText('{"Type":"Notification","n":[1,2]}', {
+        values: 7,
+        objectsArraysAndStrings: 7,
+      }),
+    ).toEqual({ Type: "Notification", n: [1, 2] });
   });
 
   test.each([

@@ -12,6 +12,8 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import ProductKey from "../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
 import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAgentConnectionStatus,
@@ -25,7 +27,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, and the
  * CloudAccount of the three cloud types) — the
  * roles every one of their read lists shares, plus each model's own Read
- * permission. The table is polymorphic, so no one list can be "exactly the
+ * permission and its product's levels (Types/Product/ProductLevels: Docker
+ * Viewer reads a Docker host's agent as it reads the host). The table is
+ * polymorphic, so no one list can be "exactly the
  * resource's readers" the way KubernetesAiAgent's is the cluster's: the
  * per-type check (the caller may read THIS resource) is the resource AI
  * access API's, which reads the row as root after loading the resource
@@ -33,25 +37,39 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * agent registers and heartbeats through /resource-ai-agent-ingest, and an
  * admin reset goes through the resource AI access API, both as root.
  */
-const RESOURCE_READERS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.SettingsAdmin,
-  Permission.SettingsMember,
-  Permission.SettingsViewer,
-  Permission.ReadDockerHost,
-  Permission.ReadPodmanHost,
-  Permission.ReadDockerSwarmCluster,
-  Permission.ReadProxmoxCluster,
-  Permission.ReadVMwareVCenter,
-  Permission.ReadCephCluster,
-  Permission.ReadOpenStackCloud,
-  Permission.ReadDatabaseServer,
-  Permission.ReadHost,
-  Permission.ReadCloudResource,
-];
+const RESOURCE_READERS: Array<Permission> = withProductLevelsOf({
+  products: [
+    ProductKey.Docker,
+    ProductKey.Podman,
+    ProductKey.DockerSwarm,
+    ProductKey.Proxmox,
+    ProductKey.VMware,
+    ProductKey.Ceph,
+    ProductKey.OpenStack,
+    ProductKey.Databases,
+    ProductKey.Hosts,
+    ProductKey.Cloud,
+  ],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.SettingsAdmin,
+    Permission.SettingsMember,
+    Permission.SettingsViewer,
+    Permission.ReadDockerHost,
+    Permission.ReadPodmanHost,
+    Permission.ReadDockerSwarmCluster,
+    Permission.ReadProxmoxCluster,
+    Permission.ReadVMwareVCenter,
+    Permission.ReadCephCluster,
+    Permission.ReadOpenStackCloud,
+    Permission.ReadDatabaseServer,
+    Permission.ReadHost,
+    Permission.ReadCloudResource,
+  ],
+});
 
 /*
  * The resource AI agent of one infrastructure resource (a Docker or Podman

@@ -9,7 +9,7 @@ OneUptime Kubernetes-agenten er et Helm-chart, der indsamler din klynges metrikk
 - [Installer agenten](#installer-agenten): Fire trin med Helm.
 - [Installer som Amazon EKS-tilføjelse](#installer-som-amazon-eks-tilføjelse): Fra EKS-konsollen, uden Helm.
 - [OpenShift](#openshift): Presettet, de security context constraints, det opretter, og OpenShifts egne advarsler.
-- [Klyngehærdning](#klyngehærdning): Vurdering efter Pod-sikkerhedsstandarderne og CIS Benchmark samt agentens egne tilladelser.
+- [Klyngehærdning](#klyngehærdning): Vurdering efter Pod-sikkerhedsstandarderne, CIS Benchmark og NSA/CISA Hardening Guide, kube-benchs tjek af noderne samt agentens egne tilladelser.
 - [Konfigurationsmuligheder](#konfigurationsmuligheder): Filtre, sampling, kontrolplan, service mesh, omkostninger og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` til OneUptime AI og rettelser, når du tillader dem.
 - [Send mindre](#reducering-af-den-indsamlede-datamængde): Håndtagene, i rækkefølge efter effekt.
@@ -202,6 +202,7 @@ Sæt dem under **Optional configuration settings** i EKS-konsollen, eller med `-
 - `logs.enabled`, `ebpf.enabled` og `aiAgent.enabled`: pod-logs, eBPF-traces og [Kubernetes-AI-agenten](#kubernetes-ai-agent), alle tre slået til som standard.
 - `kubeStateMetrics.enabled`: kube-state-metrics, slået fra som standard.
 - `cost.enabled`: [omkostningsobservability](/docs/telemetry/kubernetes-cost), `auto` som standard: slået til, undtagen med presettet `eks-fargate`.
+- `kubeletstats.nodesProxy`: om agentens ClusterRole giver `nodes/proxy`, som giver adgang til hele kubelet-API'et og ikke består CIS 5.1.10. `auto`, standarden, giver det på EKS 1.34 og 1.35, hvis noder kan køre kubelets, der er ældre end 1.33. Sæt `false`, når hver node kører 1.33 eller nyere (`kubectl get nodes` viser hver nodes version): en node, hvis kubelet er ældre, sender så ingen af de node-, pod-, container- og volumenmetrikker, som dens kubelet melder.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -316,19 +317,53 @@ Søg i dem under **Protokoller**, eller drop dem, du ikke vil have, med et drop-
 
 ## Klyngehærdning
 
-En klynges side **Overholdelse**, under **Sikkerhed**, vurderer selve klyngen efter tre rammer i sektionen **Klyngehærdning**. Den læser det, agenten allerede sender: klyngens pods og namespaces og, for CIS Benchmark, dens RBAC, tjenestekonti og NetworkPolicies. Klyngens menu viser siden, så snart agenten rapporterer klyngens pods, uanset om klyngen kører en database eller ej.
+En klynges side **Overholdelse**, under **Sikkerhed**, vurderer selve klyngen efter fire rammer i sektionen **Klyngehærdning**. Den læser det, agenten allerede sender: klyngens pods og namespaces og, for CIS Benchmark og NSA/CISA-vejledningen, dens RBAC, tjenestekonti og NetworkPolicies. Med kube-bench slået til vurderer den også det, som kun noderne kan svare på: se [Kontroller for noder og kontrolplan](#kontroller-for-noder-og-kontrolplan). Klyngens menu viser siden, så snart agenten rapporterer klyngens pods, uanset om klyngen kører en database eller ej.
 
 | Ramme | Hvad den vurderer |
 | --- | --- |
 | **Pod-sikkerhedsstandarder: Baseline** | Alle workloads, der kører på klyngen, i forhold til Baseline-politikken for klyngens Kubernetes-version: privilegerede containere, værtens namespaces, porte og stier, tilføjede funktioner og alle andre felter, som politikken nævner, læst fra hver pods specifikation |
 | **Pod-sikkerhedsstandarder: Restricted** | De samme workloads, i forhold til Restricted-politikken: Baselines kontroller og kun de volumentyper, den tillader, kørsel som en anden bruger end root, ingen rettighedseskalering, en seccomp-profil og alle funktioner fjernet |
-| **CIS Kubernetes Benchmark v2.0** | De 27 kontroller i afsnit 5, som Kubernetes-API'et kan svare på: bindinger, der giver cluster-admin, Secrets, `nodes/proxy` og de andre rettigheder, dens kontroller nævner, roller med jokertegn, standardtjenestekonti, Pod Security Admission eller en politikmotor i hvert namespace, NetworkPolicies, og hvad hver pod kører |
+| **CIS Kubernetes Benchmark v2.0** | De 27 kontroller i afsnit 5, som Kubernetes-API'et kan svare på: bindinger, der giver cluster-admin, Secrets, `nodes/proxy` og de andre rettigheder, dens kontroller nævner, roller med jokertegn, standardtjenestekonti, Pod Security Admission eller en politikmotor i hvert namespace, NetworkPolicies, og hvad hver pod kører. Med kube-bench slået til også de kontroller for noder og kontrolplan, som den tjekker på noderne |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | Vejledningens anbefalinger, som OneUptime kan læse: ikke-root-containere, uforanderlige filsystemer, ingen privilegerede containere eller værtens namespaces og ressourcegrænser på hver container, læst fra hver pods specifikation; en default-deny-NetworkPolicy i begge retninger i hvert namespace, der kører pods; mindste privilegium i RBAC; og, med kube-bench slået til, indstillingerne for TLS, autentificering, autorisering og audit for kontrolplanet og kubelets |
 
 Hver rammes felt viser dens score, og hvor mange workloads den har evalueret, og hvor mange der ikke består den. Dens kontroller vises med dem, der fejler, først: hver siger, hvad den finder forkert, og hvordan det rettes, og angiver de workloads, roller, bindinger, tjenestekonti eller namespaces, der ikke består den, hver med et link til sin side, helt ned til containeren eller volumenet og feltet, for eksempel `securityContext.privileged`. Hvor Datasikkerhed scorer de databaser, der kører på klyngen, bliver de stående nedenunder, under **Databaser på denne klynge**.
 
 Pod-sikkerhedsstandarderne vurderes efter klyngens egen Kubernetes-version: versionen af dens nyeste kubelet, dog højst den nyeste version, OneUptime kender. En kontrol, som en senere version har tilføjet, tæller først fra den version, og siden viser, hvilken version der er vurderet efter.
 
-Benchmarkens øvrige 104 kontroller tjekker nodernes filer og kubelet eller kontrolplanets flag, eller de kræver en persons gennemgang. Intet API kan svare på dem, så de vises under **Ikke vurderet her**, grupperet efter årsag, og tæller aldrig som bestået eller fejlet. På et administreret kontrolplan, som hos EKS, GKE eller AKS, siger siden, at de hører under udbyderens benchmark.
+Uden kube-bench tjekker benchmarkens øvrige 104 kontroller nodernes filer og kubelet eller kontrolplanets flag, eller de kræver en persons gennemgang. Intet API kan svare på dem, så de vises under **Ikke vurderet her**, grupperet efter årsag, og tæller aldrig som bestået eller fejlet. På et administreret kontrolplan, som hos EKS, GKE eller AKS, siger siden, at de hører under udbyderens benchmark.
+
+NSA/CISA-vejledningens anbefalinger, som intet af det, OneUptime læser, kan svare på, for eksempel scanning af images for sårbarheder eller kryptering af Secrets ved lagring, vises på samme måde under vejledningens egen **Ikke vurderet her**, hver med sit afsnit i vejledningen. En kontrol, hvis kilde klyngen ikke har sendt, for eksempel en kubelet-indstilling, før kube-bench kører, er *ikke evalueret* og tæller hverken som bestået eller fejlet.
+
+### Kontroller for noder og kontrolplan
+
+Benchmarkens kontroller for noder og kontrolplan, altså flagene for API-serveren, controller manageren, scheduleren, etcd og kubelet og tilladelserne på deres filer, kan kun læses på noderne. Med `compliance.nodeBenchmark.enabled` kører agenten [kube-bench](https://github.com/aquasecurity/kube-bench) dér hver sjette time, og siden vurderer hvert tjek, den udfører, som en kontrol i CIS Benchmark, der angiver hver node, der ikke består den, med de kontakter og den knap **Accepter**, som hver kontrol har. Den er slået fra som standard på grund af det, den kræver:
+
+- Hver kørsels pod kører som root i nodens proces-namespace (`hostPID`), hvilket kube-bench kræver for at læse komponenternes kommandolinjer. Den er ikke privilegeret: den fjerner alle Linux-funktioner undtagen `DAC_OVERRIDE`, forbyder rettighedseskalering og kører på et skrivebeskyttet rodfilsystem.
+- Den monterer nodens Kubernetes-mapper skrivebeskyttet: `/etc/kubernetes`, som på en node i kontrolplanet rummer klyngens CA-nøgle og `admin.conf`, og `/var/lib/kubelet`, som rummer volumenerne for hver pod på den node, deriblandt Secrets.
+- Dens image er Aqua Securitys, ikke OneUptimes. Fastlås det til et digest med `compliance.nodeBenchmark.image.digest`, og spejl det med `compliance.nodeBenchmark.image.repository`.
+- Dens tjenestekonto monterer intet token og er ikke bundet til nogen rolle, og en NetworkPolicy holder kube-benchs pods væk fra netværket. kube-bench skriver hvert tjeks nummer og resultat som sin containers afslutningsbesked, som agentens ressource-snapshots allerede sender.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+For at køre den nu i stedet for ved næste planlagte tidspunkt:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+kube-bench kører benchmarken for klyngens platform, valgt ud fra dens Kubernetes-version: CIS Amazon EKS Benchmark på EKS, CIS GKE Benchmark på GKE og den generiske benchmark andre steder. På AKS skal du tilføje `--set compliance.nodeBenchmark.benchmark=aks-1.8`; hvor en administreret klynge kørte den generiske benchmark, siger siden, hvilken du skal angive. På et administreret kontrolplan vurderer kube-bench worker-noderne, og kontrolplanets kontroller hører fortsat under udbyderen, da ingen pod kan læse dem. Den udelades på GKE Autopilot, EKS Fargate og OpenShift. Chartets README viser alle værdier, og hvad hver platforms benchmark lader stå ukendt.
+
+**Noder læst af kube-bench** viser de noder, kube-bench sidst kørte på, med den benchmark, den kørte, hvornår, og hvorfor en kørsel ikke kunne fuldføres. De tjek, som dens benchmark markerer som manuelle, vises efter nummer under **Ikke vurderet her** til en persons gennemgang.
+
+### Accepter et fund
+
+**Accepter** på et fund, der fejler, spørger hvorfor og tæller derefter objektet som bestået for kontrollen, eller for alle rammens kontroller, indtil accepten udløber, eller du trækker den tilbage med **Tilbagekald**. Hver kontrol viser sine accepterede fund for sig, og **Accepterede fund** viser dem alle med, hvem der accepterede dem, hvornår og hvorfor.
+
+Hvor en workload, der fejler, er agentens egen, dens node-collector, eBPF-instrumentering, profiler eller kube-bench, siger fundet det, hvorfor agenten har brug for det, kontrollen finder forkert, og hvilken værdi der fjerner det. **Accepter med denne begrundelse** åbner dialogen med den begrundelse allerede udfyldt, for alle rammens kontroller.
 
 ### Slå en ramme, en kontrol eller et namespace fra
 
@@ -340,7 +375,7 @@ Slå det fra, der ikke gælder for en klynge. Hver kontakt hører kun til den kl
 
 ### Eksportér en ramme
 
-**Eksportér CSV** og **Eksportér JSON** downloader en rammes rapport: hver kontrol, om den består, hvad der ikke består den, og hvordan det rettes, og den Kubernetes-version, der blev vurderet efter.
+**Eksportér CSV** og **Eksportér JSON** downloader en rammes rapport: hver kontrol, om den består, hvad der ikke består den, og hvordan det rettes, hvad der ikke vurderes og hvorfor, og den Kubernetes-version, der blev vurderet efter. JSON-rapporten for CIS Benchmark indeholder også de noder, kube-bench læste.
 
 ### Hvad agenten læser til det
 
@@ -356,6 +391,8 @@ Agenten læser hver kubelet gennem de underressourcer, som kubelet knytter sine 
 | `cost.prometheus.nodesProxy` | `auto` (standarden) giver tilladelsen kun med presettet `eks-fargate`, hvor ingen pod når en nodes kubelet, og omkostnings-Prometheus læser cAdvisor gennem API-serveren. Alle andre steder læser den hver nodes kubelet på port 10250 |
 
 Hvor agentens egen binding ikke består 5.1.10, siger siden, at bindingen er agentens, hvorfor den giver `nodes/proxy`, og hvilken værdi der fjerner det.
+
+På Amazon EKS-tilføjelsen, som ikke tager imod Helms `--set`, nævner siden i stedet tilføjelsens konfigurationsværdi: `{"kubeletstats": {"nodesProxy": false}}`, når hver node kører 1.33 eller nyere. Tilføjelsen har ingen `cost.prometheus.nodesProxy`: med presettet `eks-fargate` og omkostninger slået til fjerner kun `{"cost": {"enabled": false}}` `nodes/proxy`.
 
 ## Konfigurationsmuligheder
 

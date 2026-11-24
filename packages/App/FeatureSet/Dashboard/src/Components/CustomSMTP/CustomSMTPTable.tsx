@@ -29,6 +29,7 @@ import {
   withoutValuesTransportIgnores,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import EmailProviderSummary from "./EmailProviderSummary";
+import AmazonSesRoleSetupPanel from "./AmazonSesRoleSetupPanel";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { NOTIFICATION_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -59,8 +60,17 @@ import React, {
 const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> =
   getProjectSmtpConfigFormSteps();
 
+/*
+ * Under an Amazon SES config's Role ARN, what to make the role with: this
+ * project's external id and a trust policy to copy, asked of the server
+ * (AmazonSesRoleSetupPanel, #7378).
+ */
 const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> =
-  getProjectSmtpConfigFormFields();
+  getProjectSmtpConfigFormFields({
+    getAmazonSesRoleSetup: (): ReactElement => {
+      return <AmazonSesRoleSetupPanel />;
+    },
+  });
 
 /*
  * The providers, as the table's filter offers them: by the name people

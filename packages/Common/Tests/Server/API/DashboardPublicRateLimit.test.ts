@@ -214,6 +214,16 @@ const buildPublicRoutes: (dashboardId: string) => Array<PublicRoute> = (
       uri: "/dashboard/slo-history-aggregate/:dashboardId",
       params: { dashboardId },
     },
+    /*
+     * A dashboard's PromQL widgets (issue #10226): each request runs a
+     * PromQL query, so its budget is one of its own, per dashboard and
+     * visitor - which the shared read budget below leaves out.
+     */
+    {
+      method: "POST",
+      uri: "/dashboard/promql-query/:dashboardId",
+      params: { dashboardId },
+    },
     {
       method: "POST",
       uri: "/dashboard/master-password/:dashboardId",
@@ -223,6 +233,25 @@ const buildPublicRoutes: (dashboardId: string) => Array<PublicRoute> = (
 };
 
 const MASTER_PASSWORD_URI: string = "/dashboard/master-password/:dashboardId";
+
+const PROMQL_QUERY_URI: string = "/dashboard/promql-query/:dashboardId";
+
+/*
+ * The routes DashboardAPI declares for signed-in people alone: Import's
+ * Convert with OneUptime AI (issue #7697), held to OneUptime AI's daily
+ * budget and kill switch (AIServiceDailyBudget, AIKillSwitchBackstop). Like
+ * the CRUD routes it inherits, each refuses anyone not signed in
+ * (requireUserAuthentication), so none is on the anonymous surface.
+ */
+const SIGNED_IN_ROUTES: Array<string> = [
+  "POST /dashboard/import/convert-query-with-ai",
+];
+
+const isSignedInOnly: (route: {
+  middlewares: Array<unknown>;
+}) => boolean = (route: { middlewares: Array<unknown> }): boolean => {
+  return route.middlewares.includes(UserMiddleware.requireUserAuthentication);
+};
 
 /* The limiter's read window, used to pin the clock below. */
 const READ_WINDOW_SECONDS: number = 60;
@@ -371,7 +400,9 @@ describe("DashboardAPI public rate limiting", () => {
      * the inherited set is derived by registering a plain BaseAPI for the same
      * model and subtracting it, rather than hardcoding a list that would
      * quietly drift. Everything DashboardAPI declares itself is served under
-     * /public-dashboard-api and must be limited.
+     * /public-dashboard-api and must be limited - but for the routes it
+     * declares for signed-in people alone (SIGNED_IN_ROUTES), which are no
+     * more the anonymous surface than the inherited ones.
      */
     it("leaves no custom dashboard route without a limiter in front", () => {
       const declaredRoutes: Array<{
@@ -389,9 +420,26 @@ describe("DashboardAPI public rate limiting", () => {
         }),
       );
 
-      const unlimited: Array<string> = declaredRoutes
-        .filter((route: { method: string; uri: string }) => {
-          return !inheritedRouteKeys.has(`${route.method} ${route.uri}`);
+      const customRoutes: Array<{
+        method: string;
+        uri: string;
+        middlewares: Array<unknown>;
+      }> = declaredRoutes.filter((route: { method: string; uri: string }) => {
+        return !inheritedRouteKeys.has(`${route.method} ${route.uri}`);
+      });
+
+      // Set apart only the routes known to be for signed-in people.
+      expect(
+        customRoutes
+          .filter(isSignedInOnly)
+          .map((route: { method: string; uri: string }) => {
+            return `${route.method} ${route.uri}`;
+          }),
+      ).toEqual(SIGNED_IN_ROUTES);
+
+      const unlimited: Array<string> = customRoutes
+        .filter((route: { middlewares: Array<unknown> }) => {
+          return !isSignedInOnly(route);
         })
         .filter((route: { middlewares: Array<unknown> }) => {
           return (
@@ -411,9 +459,11 @@ describe("DashboardAPI public rate limiting", () => {
      * custom routes really are the public surface this file enumerates.
      */
     it("declares exactly the public routes this suite covers", () => {
-      const declaredRoutes: Array<{ method: string; uri: string }> = [
-        ...mockRouter.routes,
-      ];
+      const declaredRoutes: Array<{
+        method: string;
+        uri: string;
+        middlewares: Array<unknown>;
+      }> = [...mockRouter.routes];
 
       mockRouter.routes.length = 0;
       new BaseAPI(Dashboard, DashboardService);
@@ -427,6 +477,9 @@ describe("DashboardAPI public rate limiting", () => {
       const customRouteKeys: Array<string> = declaredRoutes
         .filter((route: { method: string; uri: string }) => {
           return !inheritedRouteKeys.has(`${route.method} ${route.uri}`);
+        })
+        .filter((route: { middlewares: Array<unknown> }) => {
+          return !isSignedInOnly(route);
         })
         .map((route: { method: string; uri: string }) => {
           return `${route.method} ${route.uri}`;
@@ -499,11 +552,14 @@ describe("DashboardAPI public rate limiting", () => {
        * Every route that names THIS dashboard by id. /dashboard/domain is
        * excluded because it names a dashboard by domain instead, so it
        * legitimately keys into a different bucket and would blur the count.
+       * /promql-query is on a budget of its own (issue #10226), as
+       * /master-password is.
        */
       const readRoutes: Array<PublicRoute> = publicRoutes.filter(
         (route: PublicRoute) => {
           return (
             route.uri !== MASTER_PASSWORD_URI &&
+            route.uri !== PROMQL_QUERY_URI &&
             route.uri !== "/dashboard/domain"
           );
         },

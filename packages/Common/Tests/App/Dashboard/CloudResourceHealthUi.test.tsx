@@ -328,6 +328,8 @@ describe("what a resource's page leads with", () => {
       "healthcheckstatus",
       "memoryworkingset",
       "functionexecutioncount",
+      // What its files take of its plan's storage, every six hours (#10026).
+      "filesystemusage",
     ]);
     // What it stores leads a Cosmos DB account's page (#9740).
     expect(

@@ -148,7 +148,7 @@ Hver oppføring er ett JSON-objekt, med nøklene alltid i denne rekkefølgen:
 | `mcpOAuthGrantId`, `mcpClientName` | MCP-klienten den ble gjort gjennom, hvis noen. |
 | `workflowId`, `workflowName` | Arbeidsflyten som gjorde den, hvis noen. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | I versjon 3, hva trinnet i arbeidsflyten kjørte som: `Default`, `ProjectOwner` eller `CustomRole`, og navnet rollen hadde da. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | I versjon 3, hvems tillatelser det kjørte med: id-en til personen eller API-nøkkelen i prosjektet, og navnet de hadde da. Hver av disse fem nøklene er `null` når ingen arbeidsflyt gjorde endringen. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | I versjon 3, hvems tillatelser det kjørte med: id-en til personen eller API-nøkkelen i prosjektet, og navnet de hadde da. Hver av disse fem nøklene er `null` når ingen arbeidsflyt gjorde endringen. |
 | `changes` | Hvert endret felt: `field`, med `oldValue` og `newValue`, og i versjon 2 `summary`. |
 
 En fil har én oppføring per linje, komprimert med gzip, og arkiveres under timen for den første oppføringen: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

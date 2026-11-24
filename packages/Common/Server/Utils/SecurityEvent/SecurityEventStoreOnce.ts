@@ -8,6 +8,7 @@ import SecurityLogFormat, {
   getSecurityLogFormatDefinition,
 } from "../../../Types/SecurityEvent/SecurityLogFormat";
 import { ENTRA_ID_PRODUCT_NAME } from "../../../Utils/SecurityEvent/Connectors/EntraIdNormalizer";
+import { AZURE_RESOURCE_LOG_PRODUCT_NAMES } from "../../../Utils/SecurityEvent/LogParsers/AzureResourceLogParser";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
 import SecurityEventDedupe from "./SecurityEventDedupe";
@@ -23,8 +24,14 @@ import SecurityEventDedupe from "./SecurityEventDedupe";
  *     by "Your logs" from what an Azure diagnostic setting exported
  *     (EntraIdNormalizer reads both);
  *   - an AWS CloudTrail, Google Cloud or Azure Activity Log audit record,
- *     read by "Your logs" from the logs, and by Cloud audit logs from the
- *     cloud account connected under Cloud (CloudAudit/CloudAuditSecurityEvents).
+ *     read by "Your logs" from the logs - a pipeline's, or the ones the
+ *     account's own stream delivers (#10032) - and by Cloud audit logs from
+ *     the cloud account connected under Cloud
+ *     (CloudAudit/CloudAuditSecurityEvents). CloudTrail's eventID and
+ *     Google's insertId are in every shape of a record; the Azure Activity
+ *     Log's export has no eventDataId, so its records are known by an id
+ *     made of what both of its shapes say (getAzureActivityRecordUid), and
+ *     looked up by the eventDataId they were stored by before as well.
  *
  * Whichever way stores a record second looks its id up first and skips it,
  * under a lock of the record's product that every way takes around its
@@ -34,7 +41,14 @@ import SecurityEventDedupe from "./SecurityEventDedupe";
  * same record in the same second would slip past then.
  */
 
-// The products whose records more than one way stores, by the name they carry.
+/*
+ * The products whose records more than one way stores, by the name they
+ * carry - and an Azure resource's own audit log (#10110): a key vault's,
+ * a storage account's or Azure SQL's record arrives through the account's
+ * stream and a pipeline alike, or twice from an event hub that delivers
+ * at least once, and is known by an id made of what it says of itself
+ * (getAzureResourceLogRecordUid).
+ */
 export const SHARED_RECORD_PRODUCT_NAMES: ReadonlyArray<string> = [
   ENTRA_ID_PRODUCT_NAME,
   ...[
@@ -44,6 +58,7 @@ export const SHARED_RECORD_PRODUCT_NAMES: ReadonlyArray<string> = [
   ].map((format: SecurityLogFormat): string => {
     return getSecurityLogFormatDefinition(format)?.productName || "";
   }),
+  ...AZURE_RESOURCE_LOG_PRODUCT_NAMES,
 ].filter((name: string): boolean => {
   return name.length > 0;
 });
@@ -58,6 +73,20 @@ const PRODUCT_LOCK_ACQUIRE_TIMEOUT_MS: number = 15 * 1000;
 // An event id that is the record's own, not one made up from the log line.
 function hasRecordId(event: NormalizedSecurityEvent): boolean {
   return Boolean(event.eventUid) && !event.eventUid.startsWith("log:");
+}
+
+/*
+ * Every id the record may be stored under: its own, and the ones an older
+ * reading of it stored it by (NormalizedSecurityEvent.eventUidAliases) - an
+ * Azure Activity Log record by its eventDataId (#10032).
+ */
+export function getStoredUidsOf(event: NormalizedSecurityEvent): Array<string> {
+  return [
+    event.eventUid,
+    ...(event.eventUidAliases || []).filter((alias: string): boolean => {
+      return typeof alias === "string" && alias.length > 0;
+    }),
+  ];
 }
 
 export interface SharedRecordGroup {
@@ -201,13 +230,22 @@ export default class SecurityEventStoreOnce {
             projectId: data.projectId,
             vendorName: data.group.vendorName,
             productName: data.group.productName,
-            ids: unique.map((event: NormalizedSecurityEvent): string => {
-              return event.eventUid;
-            }),
+            ids: Array.from(
+              new Set(
+                unique.flatMap(
+                  (event: NormalizedSecurityEvent): Array<string> => {
+                    return getStoredUidsOf(event);
+                  },
+                ),
+              ),
+            ),
           });
+        // A record stored before under any of its ids is stored already.
         const fresh: Array<NormalizedSecurityEvent> = unique.filter(
           (event: NormalizedSecurityEvent): boolean => {
-            return !existing.has(event.eventUid);
+            return !getStoredUidsOf(event).some((uid: string): boolean => {
+              return existing.has(uid);
+            });
           },
         );
 

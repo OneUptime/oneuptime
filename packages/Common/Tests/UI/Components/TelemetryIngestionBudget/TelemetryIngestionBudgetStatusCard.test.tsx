@@ -23,10 +23,13 @@ import {
   GB,
   hostileAnswers,
   KEY_ID,
+  LABEL_ID,
   LOGS,
   OTHER_KEY_ID,
   scope,
   status,
+  TEAM_ID,
+  teamOrLabel,
   TRACES,
 } from "./TelemetryIngestionBudgetFixtures";
 
@@ -131,6 +134,80 @@ describe("the project's budgets", () => {
     expect(keyTable).toHaveTextContent("This key's own");
     expect(keyTable).not.toHaveTextContent("Unbudgeted key");
     expect(screen.getByText("Ingestion Key Budgets")).toBeInTheDocument();
+  });
+
+  // Issue #6386: each team and label with a budget of its own.
+  test("the teams and labels with budgets of their own, in a card of their own, each named and told apart", async () => {
+    const data: TelemetryIngestionBudgetStatus = status({
+      project: [budgeted(LOGS, {})],
+      teamsAndLabels: [
+        teamOrLabel(
+          [
+            budgeted(LOGS, {
+              dailyBudgetBytes: 2 * GB,
+              dailyBudgetSource: TelemetryIngestionBudgetLimitSource.Team,
+              usedBytes: 2 * GB,
+              percentUsed: 100,
+              droppedBytes: GB,
+              state: TelemetryIngestionBudgetState.Exhausted,
+            }),
+          ],
+          { team: { id: TEAM_ID, name: "Payments" } },
+        ),
+        teamOrLabel(
+          [
+            budgeted(TRACES, {
+              dailyBudgetBytes: GB,
+              dailyBudgetSource: TelemetryIngestionBudgetLimitSource.Label,
+            }),
+          ],
+          { label: { id: LABEL_ID, name: "production", color: "#ff0000" } },
+        ),
+        // A team with no budget in force is not listed.
+        teamOrLabel([], {
+          team: { id: "66666666-6666-4666-8666-666666666666", name: "Idle" },
+        }),
+      ],
+    });
+
+    render(
+      <TelemetryIngestionBudgetStatusCard fetchStatus={answering(data)} />,
+    );
+
+    const table: HTMLElement = await screen.findByTestId(
+      "telemetry-ingestion-budget-team-label-table",
+    );
+    expect(
+      screen.getByText("Team and Label Budgets Today"),
+    ).toBeInTheDocument();
+
+    const team: HTMLElement = within(table).getByTestId(
+      `telemetry-ingestion-budget-row-${TEAM_ID}-${LOGS}`,
+    );
+    expect(team).toHaveTextContent("Payments");
+    expect(team).toHaveTextContent("Team");
+    expect(team).toHaveTextContent("This team's own");
+    expect(team).toHaveTextContent("Used up");
+
+    const label: HTMLElement = within(table).getByTestId(
+      `telemetry-ingestion-budget-row-${LABEL_ID}-${TRACES}`,
+    );
+    expect(label).toHaveTextContent("production");
+    expect(label).toHaveTextContent("Label");
+    expect(label).toHaveTextContent("This label's own");
+
+    expect(table).not.toHaveTextContent("Idle");
+  });
+
+  test("no teams-and-labels card while none has a budget of its own", async () => {
+    render(
+      <TelemetryIngestionBudgetStatusCard fetchStatus={answering(BUSY_DAY)} />,
+    );
+
+    await screen.findByTestId("telemetry-ingestion-budget-key-table");
+    expect(
+      screen.queryByTestId("telemetry-ingestion-budget-team-label-table"),
+    ).not.toBeInTheDocument();
   });
 
   test("says when today's counts cannot be read, rather than show zeros", async () => {

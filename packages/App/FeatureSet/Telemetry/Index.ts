@@ -13,6 +13,7 @@ import DbtArtifactsIngestAPI from "./API/DbtArtifactsIngest";
 import SyncWebhooksIngestAPI from "./API/SyncWebhooksIngest";
 import PyroscopeAPI from "./API/Pyroscope";
 import SourceMapIngestAPI from "./API/SourceMapIngest";
+import DsymIngestAPI from "./API/DsymIngest";
 import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import ProductAnalyticsEventIngestAPI from "./API/ProductAnalyticsEventIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
@@ -118,6 +119,8 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SyncWebhooksIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
       app.use(TELEMETRY_PREFIXES, SourceMapIngestAPI);
+      // An iOS app's dSYMs (/dsyms/v1/upload, #9922).
+      app.use(TELEMETRY_PREFIXES, DsymIngestAPI);
       /*
        * The compatible endpoints (Common/Types/Telemetry/CompatibleIngest):
        * the agents and SDKs a team already runs - Prometheus, Loki's

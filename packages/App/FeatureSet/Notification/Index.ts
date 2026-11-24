@@ -10,6 +10,7 @@ import CallAndSmsGatewayAPI from "./API/CallAndSmsGateway";
 import PushRelayAPI from "./API/PushRelay";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import ServerTestSendAPI from "./API/ServerTestSend";
+import ServerAwsIdentityAPI from "./API/ServerAwsIdentity";
 import PhoneNumberAPI from "./API/PhoneNumber";
 import IncomingCallAPI from "./API/IncomingCall";
 import SubscriberNotificationPreviewAPI from "./API/SubscriberNotificationPreview";
@@ -23,6 +24,7 @@ import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSending
 import ServerEmailLogWriter from "Common/Server/Utils/ServerSending/ServerEmailLogWriter";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import { SERVER_TEST_SEND_ROUTE } from "Common/Types/ServerSetup/ServerTestSend";
+import { SERVER_AWS_IDENTITY_ROUTE } from "Common/Types/Email/ServerAwsIdentity";
 import "ejs";
 
 const NotificationFeatureSet: FeatureSet = {
@@ -75,6 +77,14 @@ const NotificationFeatureSet: FeatureSet = {
     app.use(
       [`/${APP_NAME}${SERVER_TEST_SEND_ROUTE}`, SERVER_TEST_SEND_ROUTE],
       ServerTestSendAPI,
+    );
+    /*
+     * Which AWS identity the server's own Amazon SES signs in as (#7380),
+     * for the Admin Dashboard's Amazon SES card: master admins only.
+     */
+    app.use(
+      [`/${APP_NAME}${SERVER_AWS_IDENTITY_ROUTE}`, SERVER_AWS_IDENTITY_ROUTE],
+      ServerAwsIdentityAPI,
     );
     app.use([`/${APP_NAME}/phone-number`, "/phone-number"], PhoneNumberAPI);
     app.use([`/${APP_NAME}/incoming-call`, "/incoming-call"], IncomingCallAPI);

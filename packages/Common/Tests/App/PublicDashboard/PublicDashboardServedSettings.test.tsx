@@ -751,13 +751,23 @@ const HEADING_SETTING: Record<string, string> = {
 };
 
 describe("every widget the public page draws, from the settings its type is served", () => {
+  /*
+   * Not the Data Source widgets: they draw from the public PromQL route
+   * now (issue #10226), where they drew a placeholder before, and their own
+   * suite holds them (DataSourceWidgetFetching).
+   */
   const DRAWN_TYPES: Array<string> = Object.keys(
     PUBLIC_DASHBOARD_WIDGET_SETTINGS,
   ).filter((componentType: string): boolean => {
-    return !isPublicDashboardUndrawnWidgetType(componentType);
+    return (
+      !isPublicDashboardUndrawnWidgetType(componentType) &&
+      !DataSourceComponentTypes.includes(
+        componentType as DashboardComponentType,
+      )
+    );
   });
 
-  test("covers every type but the Data Source widgets and those the page cannot draw", () => {
+  test("covers every type but the Data Source widgets, drawn from the public PromQL route, and those the page cannot draw", () => {
     expect([...DRAWN_TYPES].sort()).toEqual(
       Object.values(DashboardComponentType)
         .filter((componentType: DashboardComponentType): boolean => {

@@ -46,7 +46,8 @@ import FileOwnership, { normalizeFileId } from "./FileOwnership";
  * A status page that asks its visitors to sign in shows the same, to people
  * who are not members of the project; the image routes can serve them only a
  * public image, so its images are public by their unguessable address while
- * it shows them.
+ * it shows them. So does a form that asks its visitors to sign in (#10249),
+ * to its private users.
  *
  * DatabaseService keeps this on every write of these records, whoever makes
  * it - the dashboard, the API, Terraform, a workflow, OneUptime itself: a

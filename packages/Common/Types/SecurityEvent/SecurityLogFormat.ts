@@ -20,6 +20,7 @@ enum SecurityLogFormat {
   AwsCloudTrail = "aws-cloudtrail",
   GoogleCloudAudit = "google-cloud-audit",
   AzureActivity = "azure-activity",
+  AzureResourceLogs = "azure-resource-logs",
   OpenStackAudit = "openstack-audit",
   Cef = "cef",
   Leef = "leef",
@@ -146,6 +147,17 @@ export const SECURITY_LOG_FORMATS: ReadonlyArray<SecurityLogFormatDefinition> =
       productName: "Azure Activity Log",
       example:
         '{"category":"Administrative","operationName":"MICROSOFT.AUTHORIZATION/ROLEASSIGNMENTS/WRITE","resultType":"Success","callerIpAddress":"203.0.113.7","identity":{"claims":{"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn":"alice@example.com"}},"resourceId":"/SUBSCRIPTIONS/00000000-0000-0000-0000-000000000000"}',
+    },
+    {
+      format: SecurityLogFormat.AzureResourceLogs,
+      group: SecurityLogFormatGroup.Cloud,
+      title: "Azure Key Vault, Storage and SQL logs",
+      description:
+        "Key vault secrets read and changed, storage requests refused, anonymous or changing data with a SAS, and Azure SQL sign-ins, refusals and permission changes.",
+      vendorName: "Microsoft",
+      productName: "Azure resource logs",
+      example:
+        '{"category":"AuditEvent","operationName":"SecretGet","resultSignature":"OK","callerIpAddress":"203.0.113.7","identity":{"claim":{"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn":"alice@example.com"}},"properties":{"id":"https://kv-payments.vault.azure.net/secrets/db-password","httpStatusCode":200},"resourceId":"/SUBSCRIPTIONS/00000000-0000-0000-0000-000000000000/RESOURCEGROUPS/PAYMENTS/PROVIDERS/MICROSOFT.KEYVAULT/VAULTS/KV-PAYMENTS"}',
     },
     {
       format: SecurityLogFormat.OpenStackAudit,

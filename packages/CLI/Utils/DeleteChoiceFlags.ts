@@ -7,16 +7,15 @@ import {
   ONEUPTIME_CLI_COMMAND,
   toCommanderAttributeName,
 } from "Common/Utils/DeveloperDocs/CliCommands";
+import { getCliDeleteChoiceWays } from "Common/Utils/DeveloperDocs/CliExamples";
 import {
   CliResource,
   getCliResourceByTableName,
 } from "Common/Utils/DeveloperDocs/CliResources";
 import {
-  DeleteChoice,
   DeleteChoicesOfTable,
-  DeleteChoiceWay,
+  getDeleteChoiceExampleValue,
   getDeleteChoices,
-  getDeleteChoiceWays,
   isRefusedForDeleteChoices,
   readDeleteChoices,
 } from "Common/Utils/DeveloperDocs/DeleteChoices";
@@ -77,42 +76,15 @@ export function getDeleteChoiceFlagHelp(flag: CliDeleteChoiceFlag): string {
     : flag.description;
 }
 
-// What a flag's value is called in an example: <custom-role-id> for an ID of a custom role.
-function exampleValueOf(flag: CliDeleteChoiceFlag): string {
-  const related: string | null = relatedResourceOf(flag);
-
-  return related ? `<${related}-id>` : flag.valueName;
-}
-
-function choiceFlag(
-  flags: Array<CliDeleteChoiceFlag>,
-  choice: DeleteChoice,
-): CliDeleteChoiceFlag | undefined {
-  return flags.find((flag: CliDeleteChoiceFlag): boolean => {
-    return flag.key === choice.key;
-  });
-}
-
 /*
  * Each way of giving the choices, as the flags that say it:
  * "--workflows-run-as Default", "--workflows-run-as CustomRole
- * --workflows-run-as-custom-role-id <custom-role-id>".
+ * --workflows-run-as-custom-role-id <custom-role-id>". Written by Common's
+ * CliExamples, as the dashboard's CLI pages show them (#10031).
  */
 export function getDeleteChoiceFlagWays(tableName: string): Array<string> {
-  const flags: Array<CliDeleteChoiceFlag> = getCliDeleteChoiceFlags(tableName);
-
-  return getDeleteChoiceWays(tableName).map((way: DeleteChoiceWay): string => {
-    return [
-      `${flagOf(way.key)} ${way.value}`,
-      ...way.with.map((companion: DeleteChoice): string => {
-        const flag: CliDeleteChoiceFlag | undefined = choiceFlag(
-          flags,
-          companion,
-        );
-
-        return `${flagOf(companion.key)} ${flag ? exampleValueOf(flag) : "<value>"}`;
-      }),
-    ].join(" ");
+  return getCliDeleteChoiceWays(tableName).map((way: Array<string>): string => {
+    return way.join(" ");
   });
 }
 
@@ -235,7 +207,7 @@ export function getDeleteChoicesRefusalHint(data: {
       return Boolean(relatedResourceOf(flag));
     })
     .map((flag: CliDeleteChoiceFlag): string => {
-      return ` Find ${exampleValueOf(flag)} with \`${ONEUPTIME_CLI_COMMAND} ${relatedResourceOf(flag)} list\`.`;
+      return ` Find ${getDeleteChoiceExampleValue(flag)} with \`${ONEUPTIME_CLI_COMMAND} ${relatedResourceOf(flag)} list\`.`;
     });
 
   return `Run it again with ${ways.join(", or with ")}.${finding.join("")}`;

@@ -89,7 +89,7 @@ OneUptime 儀表板中的每個資源在側邊選單中都有一個 **開發者*
 | `Includes` | `value` 中的任一個值 |
 | `IsNull`、`NotNull` | 沒有值，或有任何值 |
 
-資源所指定記錄的欄位在其關聯下篩選：`"user": { "name": { "_type": "Search", "value": "ada" } }` 會找出其使用者名稱包含「ada」的團隊成員。依某個欄位篩選需要讀取該欄位的權限，經由關聯時與在資源本身上一樣：對你無權讀取的欄位進行篩選會被拒絕，回傳指明該欄位的 `422`。
+資源所指定記錄的欄位在其關聯下篩選：`"user": { "name": { "_type": "Search", "value": "ada" } }` 會找出其使用者名稱包含「ada」的團隊成員。依某個欄位篩選需要讀取該欄位的權限，經由關聯時與在資源本身上一樣：對你無權讀取的欄位進行篩選會被拒絕，回傳指明該欄位的 `422`。經由關聯時，只有本人可以讀取的欄位，例如使用者的時區或其通知方式和待命日誌，無論用於篩選還是排序，對所有人都會被拒絕，因為關聯可以指定任何人的記錄。
 
 有擁有者的資源——監測器、事件、待命策略以及其他任何有使用者和團隊擁有者的資源——也可以在 `owners` 下依擁有者篩選：`"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` 會找出由這些使用者和團隊中任一個或多個擁有的記錄。`match` 未設定時為 `AnyOf`：`NoneOf` 找出不屬於其中任何一個的記錄，包括沒有擁有者的記錄；`AnyOwner` 和 `NoOwner` 不指定任何人，分別找出有擁有者和沒有擁有者的記錄。團隊的成員不是團隊所擁有內容的擁有者。一個篩選條件合計最多指定 1,000 個使用者和團隊；沒有擁有者的資源會以 `400` 拒絕該篩選，沒有讀取擁有者的權限而依擁有者篩選會被拒絕，傳回 `422`。
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | 請求有誤：API 金鑰無效、某個值不被允許、某個欄位無法寫入、它指定的某筆記錄不屬於你，或者它一次變更多個專案。訊息會說明哪裡出錯。 | [請求所指定的記錄](#請求所指定的記錄) |
 | `402` | 專案的方案不包含請求所使用的功能。訊息會指明方案。 | [你的方案不包含的功能](#你的方案不包含的功能) |
 | `404` | 記錄不存在、位於另一個專案中，或是你無權讀取的記錄：每種情況的回應都相同。 | [變更或刪除你無權讀取的記錄](#變更或刪除你無權讀取的記錄) |
+| `413` | 請求內文超過了 OneUptime 在該請求中接受的上限：大多數請求為 1 MB，最多 100,000 個 JSON 值；傳送檔案、儀表板或狀態頁的請求為 50 MB。訊息會說明上限。在你自己執行的伺服器上，`REQUEST_BODY_MAX_BYTES` 和 `REQUEST_BODY_MAX_JSON_VALUES` 可以提高大多數請求的上限。 | [請求與回應](#請求與回應) |
 | `422` | 你無權這麼做：API 金鑰沒有這類記錄的權限，你可以讀取該記錄但不能變更它，或者某項權限的標籤排除了它。訊息會說明原因。 | [變更或刪除你無權讀取的記錄](#變更或刪除你無權讀取的記錄) |
 | `500` | 伺服器上發生了錯誤。當新記錄的擁有者無法寫入時，該記錄會被再次移除，以便可以重試建立。 | [請求所指定的記錄](#請求所指定的記錄) |
 
@@ -254,7 +255,33 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-以任意大小寫再次傳送記錄自身名稱的更新不算重新命名，因此先前同名的記錄仍然可以修改，也可以重新命名以區分開來。對於團隊、待命策略和待命排程，`GET /api/shared-names/team`（或 `on-call-policy`、`on-call-schedule`）會回答哪些記錄同名：`{"groups": [["<id>", "<id>"]]}`，每個群組是名稱讀起來相同的記錄中你的金鑰可以讀取的那些記錄的 ID。
+許多其他類型也各自擁有獨一無二的名稱，例如事件嚴重程度、監測器狀態、狀態頁面和工作流程，無論是建立還是重新命名，它們都會以同樣的方式拒絕已被占用的名稱：
+
+```text
+Incident Severity with the same name already exists.
+```
+
+除訊息外，每個這類拒絕還包含一個 `refusalCode`，說明是什麼占用了該名稱。請憑這個代碼辨識拒絕，而不是憑措辭可能改變的句子：
+
+- `"refusalCode": "name_taken"`：一筆正在使用的記錄占用了該名稱。由於沒有寫入任何內容，一旦這筆記錄讓出該名稱，就可以再次傳送同一請求：Terraform 提供者會在最多 30 秒內再次請求。
+- `"refusalCode": "name_taken_by_archived"`：只有一筆已封存的記錄占用了該名稱。請取消封存這筆記錄，或另選一個名稱：再次傳送請求無濟於事，Terraform 提供者也不會再次傳送。
+
+以任意大小寫再次傳送記錄自身名稱的更新不算重新命名，因此先前同名的記錄仍然可以修改，也可以重新命名以區分開來，但絕不能改成其他記錄的名稱。對於團隊、標籤、待命策略和待命排程，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）會回答哪些記錄同名：`{"groups": [["<id>", "<id>"]]}`，每個群組是名稱讀起來相同的記錄中你的金鑰可以讀取的那些記錄的 ID。已封存的標籤和待命策略不計在內。
+
+#### 其他記錄已在使用的值
+
+一些不是名稱的值也各自只屬於一筆記錄，其中包括狀態頁面、儀表板或表單的網域、專案網域、主機或 Kubernetes 叢集的識別碼、SSO 提供者的登入 URL 以及 API 金鑰的權限。建立記錄，或變更其中某個值的更新，如果使用了其他記錄已有的值，就會被拒絕，並傳回一個說明這一點的 `400`：
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+除訊息外，這類拒絕還包含一個 `refusalCode`，說明是什麼占用了該值，以及一個 `field`，指出值被占用的欄位，例如 `"field": "fullDomain"`。由多個欄位共同組成的值不帶 `field`。請憑這個代碼辨識拒絕，而不是憑措辭可能改變的句子：
+
+- `"refusalCode": "value_taken"`：一筆正在使用的記錄占用了該值。由於沒有寫入任何內容，一旦這筆記錄讓出該值，就可以再次傳送同一請求：Terraform 提供者會在最多 30 秒內再次請求。
+- `"refusalCode": "value_taken_by_archived"`：只有一筆已封存的記錄占用了該值。請取消封存這筆記錄，或另選一個值：再次傳送請求無濟於事，Terraform 提供者也不會再次傳送。
+
+以任意大小寫再次傳送記錄自身值的更新不算變更，因此先前共用一個值的記錄仍然可以修改，也可以改成各不相同的值。
 
 ### 開關
 
@@ -279,6 +306,40 @@ User is not allowed to create on resellerId column of Project. No permission all
 OneUptime 根據請求本身記錄是誰建立了記錄——以及是誰封存、解決、確認或觸發了它：已登入的人，或者在請求來自 API 金鑰或工作流程時為無人。這些欄位（`createdByUserId` 以及其他以 `ByUserId` 結尾的欄位，連同 `createdByUser` 等關聯）是唯讀的，記錄被封存或解決的時間（`archivedAt`、`markedAsResolvedAt`、`markedAsArchivedAt`）也是唯讀的：開啟 `isArchived` 或 `isResolved` 會記錄是誰、在何時做的，關閉則會清除兩者。依開關現有的狀態傳送它，會保留是誰、在何時切換的它。
 
 API 參考將這些欄位標示為唯讀。請求在其他變更之外為其中某個欄位傳送的值會被忽略，因此其餘變更可以通過；除此之外什麼都不傳送的更新會被拒絕，並傳回一則指明這些欄位的訊息。OneUptime 代表某人自行建立的記錄——從 Slack 或 Microsoft Teams 發布的備註、透過邀請建立的帳戶——會指明那個人。
+
+### 只有 OneUptime 才會寫入的欄位
+
+有些欄位只由 OneUptime 寫入：遙測監測器上次執行和下次執行的時間、代理程式上次回報的內容、SLA 的截止時間、SCIM 用戶端密鑰失效的時間。API 參考將它們標示為唯讀，並且不把它們放入建立和更新的請求本文。傳送其中某個欄位的建立（例如複製一筆你讀取的記錄時就會如此）會去掉該欄位後通過，新記錄取得 OneUptime 的值。傳送其中某個欄位的更新會被拒絕，回應會指明它傳送的每一個此類欄位：
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+更新時請不要傳送這些欄位。少數由人變更的欄位各有專屬的請求：輪替 SCIM 用戶端密鑰會設定它失效的時間，`POST /api/host/:id/try-collector-config-again` 會把在主機上失敗的收集器設定再次傳送給該主機。你和 OneUptime 都會變更的欄位，例如記錄的 `labels`（標籤規則會在其中加上標籤），仍由你像以前一樣設定。
+
+省略了欄位的建立會在回應的 `X-OneUptime-Fields-Left-Out` 標頭中指明這些欄位，欄位之間以逗號分隔；沒有省略任何內容的回應沒有這個標頭。CLI 會在一則提示中輸出這些欄位，MCP 伺服器的回應會在 `fieldsLeftOut` 中列出它們，Terraform 提供者會在一則警告中顯示它們。
+
+### 在清單中新增項目和移除項目
+
+變更可以在清單中新增記錄，或移除其中一些，而不必傳送整個清單：`addToList` 和 `removeFromList` 依清單指明要新增和要移除的 ID。變更沒有指明的每個項目都會保留，包括其他人或標籤規則在同一時刻新增的項目：
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+把它傳送到 `PUT /api/monitor/<id>`，會重新命名該監測器，為它新增一個標籤並移除另一個標籤。如果變更只新增和移除項目，請省略 `data`。項目是記錄的 ID，或帶有其 `_id` 的物件，與 `data` 中相同；新增清單中已有的項目，或移除清單中沒有的項目，不會變更任何內容。
+
+變更可以指明的清單，就是完整的 API 參考在該資源的 `PUT` 請求下 `addToList` 中列出的清單。以這種方式進行的變更，會依上面的規則，像它留下的整個清單那樣接受檢查：你變更該清單的權限、它新增的每筆記錄都是你專案中你可以讀取的記錄，以及限於標籤的權限所保留的標籤。同時在 `data` 中整體傳送、又在 `addToList` 或 `removeFromList` 中傳送的清單，會以 `400` 被拒絕：
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform 和 Crossplane 提供者就是這樣變更記錄的標籤，因此規則在它們執行期間新增的標籤會保留：請參閱[標籤和 OneUptime 也會新增的其他清單](/docs/terraform/complete-guide#標籤和-oneuptime-也會新增的其他清單)。
 
 ## 狀態與片段
 

@@ -1041,6 +1041,39 @@ describe("SloHealth notices are translation keys", () => {
       metricQueryConfig: COUNTER_METRIC,
       sloStatus: SloStatus.Misconfigured,
     }),
+    // What its metric's kind says of it (#10027).
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      metricQueryConfig: COUNTER_METRIC,
+      sloStatus: SloStatus.Misconfigured,
+      metricPointType: "Gauge",
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      metricQueryConfig: COUNTER_METRIC,
+      sloStatus: SloStatus.Misconfigured,
+      metricPointType: "Summary",
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      metricQueryConfig: COUNTER_METRIC,
+      sloStatus: SloStatus.Misconfigured,
+      metricPointType: "Histogram",
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      metricQueryConfig: {
+        metricName: "http.server.request.duration",
+        kind: "Histogram",
+        goodAtOrUnder: 0.3,
+      },
+      sloStatus: SloStatus.Misconfigured,
+      metricPointType: "Sum",
+    }),
   ];
 
   test("the inputs reach every notice, each once", () => {
@@ -1066,6 +1099,10 @@ describe("SloHealth notices are translation keys", () => {
       "No services chosen",
       "No metric to count",
       "Waiting for its metric",
+      "Its metric is a gauge, which cannot be counted",
+      "Its metric cannot be counted",
+      "Its metric is a histogram, counted as a counter",
+      "Its metric is a counter, counted as a histogram",
     ]);
   });
 
@@ -1193,6 +1230,116 @@ describe("getSloNotice - a Metric SLO", () => {
     expect(notice?.type).toBe(SloNoticeType.Info);
     expect(notice?.title).toBe("Waiting for its metric");
     expect(notice?.body).not.toContain("traces");
+  });
+
+  /*
+   * #10027: a Metric SLO counts a counter's Sum points or a histogram's
+   * Histogram points, and every cloud metric is written as a gauge. One on
+   * a gauge waited "for its metric" for ever, without saying why.
+   */
+  it("on a gauge says plainly that a gauge cannot be counted, and what measures it instead", () => {
+    const notice: SloNotice | null = getSloNotice({
+      ...METRIC_SLO,
+      sloStatus: SloStatus.Misconfigured,
+      metricPointType: "Gauge",
+    });
+
+    expect(notice?.type).toBe(SloNoticeType.Warning);
+    expect(notice?.title).toBe(
+      "Its metric is a gauge, which cannot be counted",
+    );
+    expect(notice?.body).toContain("Every cloud metric OneUptime reads");
+    expect(notice?.body).toContain("monitor uptime");
+    expect(notice?.action).toEqual({
+      label: "Open Settings",
+      target: SloNoticeActionTarget.Settings,
+    });
+  });
+
+  it.each(["Summary", "ExponentialHistogram"])(
+    "on a %s says it is neither a counter nor a histogram",
+    (pointType: string) => {
+      const notice: SloNotice | null = getSloNotice({
+        ...METRIC_SLO,
+        sloStatus: SloStatus.Misconfigured,
+        metricPointType: pointType,
+      });
+
+      expect(notice?.type).toBe(SloNoticeType.Warning);
+      expect(notice?.title).toBe("Its metric cannot be counted");
+      expect(notice?.action?.target).toBe(SloNoticeActionTarget.Settings);
+    },
+  );
+
+  it("on a histogram counted as a counter, or a counter as a histogram, says which to choose", () => {
+    expect(
+      getSloNotice({
+        ...METRIC_SLO,
+        sloStatus: SloStatus.Misconfigured,
+        metricPointType: "Histogram",
+      })?.title,
+    ).toBe("Its metric is a histogram, counted as a counter");
+    expect(
+      getSloNotice({
+        ...METRIC_SLO,
+        sloStatus: SloStatus.Misconfigured,
+        metricQueryConfig: {
+          metricName: "http.server.request.duration",
+          kind: "Histogram",
+          goodAtOrUnder: 0.3,
+        },
+        metricPointType: "Sum",
+      })?.title,
+    ).toBe("Its metric is a counter, counted as a histogram");
+  });
+
+  it("on a counter or a histogram counted as itself, or of no known kind, waits for its metric as before", () => {
+    for (const metricPointType of ["Sum", null, undefined, ""]) {
+      expect(
+        getSloNotice({
+          ...METRIC_SLO,
+          sloStatus: SloStatus.Misconfigured,
+          metricPointType,
+        })?.title,
+      ).toBe("Waiting for its metric");
+    }
+
+    expect(
+      getSloNotice({
+        ...METRIC_SLO,
+        sloStatus: SloStatus.Misconfigured,
+        metricQueryConfig: {
+          metricName: "http.server.request.duration",
+          kind: "Histogram",
+          goodAtOrUnder: 0.3,
+        },
+        metricPointType: "Histogram",
+      })?.title,
+    ).toBe("Waiting for its metric");
+  });
+
+  it("a gauge's notice is said only while it waits: a measuring SLO, or a setup problem first, as before", () => {
+    // Measuring: nothing to say.
+    expect(
+      getSloNotice({ ...METRIC_SLO, metricPointType: "Gauge" }),
+    ).toBeNull();
+    // No services comes first: the person fixes it first.
+    expect(
+      getSloNotice({
+        ...METRIC_SLO,
+        sloStatus: SloStatus.Misconfigured,
+        serviceCount: 0,
+        metricPointType: "Gauge",
+      })?.title,
+    ).toBe("No services chosen");
+    // A Monitor Uptime SLO's metric is never read.
+    expect(
+      getSloNotice({
+        ...MEASURING,
+        sloStatus: SloStatus.Misconfigured,
+        metricPointType: "Gauge",
+      })?.title,
+    ).toBe("Waiting for SLO evaluation");
   });
 
   it("before its first evaluation names what is missing, or that numbers are coming", () => {

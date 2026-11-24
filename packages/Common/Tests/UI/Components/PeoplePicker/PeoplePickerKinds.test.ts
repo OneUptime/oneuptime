@@ -352,7 +352,13 @@ describe("teams", () => {
     expect(request.query.name).toBeInstanceOf(Search);
     expect(request.query.name.toString()).toBe("a");
     expect(request.sort).toEqual({ name: SortOrder.Ascending });
-    expect(request.select).toEqual({ _id: true, name: true });
+    // With what tells records of one name apart (SharedNameOptions, #10064).
+    expect(request.select).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
     expect(options).toEqual([
       { kind: PeoplePickerKind.Team, id: DATABASE, name: "Database" },
       { kind: PeoplePickerKind.Team, id: PLATFORM, name: "Platform" },

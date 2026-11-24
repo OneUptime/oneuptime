@@ -32,14 +32,17 @@ import { findModelClass } from "../Services/SelectFieldGenerator";
 import { McpToolInfo } from "../Types/McpTypes";
 import ModelType from "../Types/ModelType";
 
-// The column types a plain object is a filter on.
+/*
+ * The column types a plain object is a filter on. Not a permission, nor a
+ * custom field's type: each is a string - IncidentMember, Text - that the
+ * API spec documented as an object when this check was written (#10300),
+ * and a plain object compared with one matches nothing.
+ */
 const OBJECT_FILTER_TYPES: Set<string> = new Set<string>([
   TableColumnType.Entity,
   TableColumnType.EntityArray,
   TableColumnType.JSON,
   TableColumnType.MonitorSteps,
-  TableColumnType.Permission,
-  TableColumnType.CustomFieldType,
   AnalyticsColumnType.MapStringString,
   AnalyticsColumnType.JSON,
   AnalyticsColumnType.JSONArray,

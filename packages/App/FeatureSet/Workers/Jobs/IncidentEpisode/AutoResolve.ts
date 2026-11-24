@@ -21,6 +21,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import { StateListType } from "Common/Utils/StateOrder";
+import { EPISODE_RESOLVED_ALL_INCIDENTS_RESOLVED } from "Common/Utils/Monitor/StatusChangeNotes";
 
 /*
  * Open incident episodes resolve themselves once every incident in them is
@@ -157,6 +158,7 @@ export const INCIDENT_EPISODE_AUTO_RESOLVE: EpisodeAutoResolveKind = {
       episodeId,
       undefined, // No user - auto-resolved by system
       false, // Don't cascade to incidents - they're already resolved
+      EPISODE_RESOLVED_ALL_INCIDENTS_RESOLVED,
     );
   },
 };

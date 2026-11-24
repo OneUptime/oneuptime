@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | 차트와 OneUptime AI를 위해 배포나 다른 변경을 기록합니다 | [배포 및 변경 사항](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | 프로젝트의 데이터 검사를 저장소의 파일과 일치시킵니다 | [명령 참조](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | 빌드 후 dbt 프로젝트의 아티팩트를 데이터 관측 가능성으로 보냅니다 | [명령 참조](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | 빌드 후 iOS 앱의 dSYM을 보내, 크래시와 앱 멈춤을 함수 이름으로 읽을 수 있게 합니다 | [모바일 설정](/docs/rum/mobile-setup#dsym-업로드하기) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 한 종류의 레코드를 다룹니다 | [리소스 작업](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 리소스의 필드와 그것을 설정하는 플래그를 나열합니다 | [리소스 작업](/docs/cli/resource-operations#리소스의-필드-보기) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 인시던트, 경고, 예정된 유지 관리에 대해 대시보드 버튼과 같은 일을 합니다 | [리소스 작업](/docs/cli/resource-operations#인지-해결-메모-추가) |

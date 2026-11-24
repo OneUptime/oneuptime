@@ -72,6 +72,10 @@ export const CHECK_ON_TERMS: Readonly<Record<CheckOn, string>> = {
     "Sessions With Exceptions (in %)",
   ),
   [CheckOn.SessionCount]: translationKey("Sessions"),
+  [CheckOn.InstallsWithExceptionsPercent]: translationKey(
+    "Installs With Exceptions (in %)",
+  ),
+  [CheckOn.InstallCount]: translationKey("Installs"),
   [CheckOn.ExceptionCountIncreasePercent]: translationKey(
     "Exception Increase (in %)",
   ),

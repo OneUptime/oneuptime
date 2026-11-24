@@ -338,6 +338,49 @@ describe("turning a Kubernetes framework off for a cluster or a namespace", () =
     ).toBeUndefined();
   });
 
+  test("a CIS control kube-bench checks is one by its benchmark's number, and the NSA/CISA guide's by its title", async () => {
+    for (const [framework, requirement] of [
+      // The generic benchmark's node and control plane controls (#9873).
+      [KubernetesComplianceFramework.CisKubernetes, "4.1.1"],
+      [KubernetesComplianceFramework.CisKubernetes, "1.2.16"],
+      // A managed platform's, by its own numbers.
+      [KubernetesComplianceFramework.CisKubernetes, "EKS 3.2.1"],
+      [KubernetesComplianceFramework.CisKubernetes, "GKE 3.1.1"],
+      [KubernetesComplianceFramework.CisKubernetes, "AKS 3.2.9"],
+      // The NSA/CISA guide (#9875).
+      [KubernetesComplianceFramework.NsaCisaHardening, "Non-root containers"],
+      [
+        KubernetesComplianceFramework.NsaCisaHardening,
+        "API server audit logging",
+      ],
+    ] as Array<[KubernetesComplianceFramework, string]>) {
+      expect([
+        requirement,
+        (await create({ framework, requirement })).thrown,
+      ]).toEqual([requirement, undefined]);
+    }
+
+    for (const [framework, requirement] of [
+      // A managed platform's benchmark scores only its worker nodes.
+      [KubernetesComplianceFramework.CisKubernetes, "EKS 1.2.16"],
+      [KubernetesComplianceFramework.CisKubernetes, "4.1"],
+      [KubernetesComplianceFramework.CisKubernetes, "4.1.1.1.1.1"],
+      // A CIS number is no control of the guide's, nor its title of CIS's.
+      [KubernetesComplianceFramework.NsaCisaHardening, "4.1.1"],
+      [KubernetesComplianceFramework.CisKubernetes, "Non-root containers"],
+      // What the guide asks that OneUptime cannot read is never scored.
+      [
+        KubernetesComplianceFramework.NsaCisaHardening,
+        "Secrets encrypted at rest",
+      ],
+    ] as Array<[KubernetesComplianceFramework, string]>) {
+      expect([
+        requirement,
+        (await create({ framework, requirement })).thrown,
+      ]).toEqual([requirement, expect.any(BadDataException)]);
+    }
+  });
+
   test("a control the framework is not scored on is refused, saying what to choose", async () => {
     const baseline: { thrown: unknown; data: DataSecurityComplianceSetting } =
       await create({

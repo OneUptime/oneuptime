@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getSharedNameSelect } from "Common/UI/Utils/SharedNameOptions";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -399,6 +400,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           _id: true,
           color: true,
           isArchived: true,
+          // What tells labels of one name apart (#10064).
+          ...getSharedNameSelect(Label),
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -715,6 +718,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 name: true,
                 isArchived: true,
+                // What tells policies of one name apart (#10064).
+                ...getSharedNameSelect(OnCallDutyPolicy),
               },
               skip: 0,
               limit: LIMIT_PER_PROJECT,

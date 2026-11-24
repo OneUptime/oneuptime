@@ -6,6 +6,8 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Navigation from "Common/UI/Utils/Navigation";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import RecordAccessScopeProvider from "../../../Components/RecordAccess/RecordAccessScopeProvider";
+import { RecordAccessKind } from "Common/Types/RecordAccess/RecordAccess";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
@@ -24,7 +26,17 @@ const ScheduledMaintenanceViewLayout: FunctionComponent<
       breadcrumbLinks={getScheduleMaintenanceBreadcrumbs(path)}
       sideMenu={<SideMenu modelId={modelId} />}
     >
-      <Outlet />
+      {/*
+       * What the server says the reader may do on this maintenance event
+       * by its labels and its owners: every lock on its pages reads it
+       * (RecordAccessScopeProvider, #10272).
+       */}
+      <RecordAccessScopeProvider
+        kind={RecordAccessKind.ScheduledMaintenance}
+        modelId={modelId}
+      >
+        <Outlet />
+      </RecordAccessScopeProvider>
     </ModelPage>
   );
 };

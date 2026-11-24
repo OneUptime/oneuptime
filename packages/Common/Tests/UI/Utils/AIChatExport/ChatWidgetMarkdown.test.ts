@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  AIChatResourceCardOrigin,
   AIChatToolActionStatus,
   AIChatWidget,
   AIChatWidgetType,
@@ -9,6 +10,7 @@ import {
   citationsToMarkdown,
   toolActionsToMarkdown,
   widgetToMarkdown,
+  widgetsToMarkdown,
 } from "../../../../UI/Utils/AIChatExport/ChatWidgetMarkdown";
 
 /*
@@ -68,6 +70,204 @@ describe("ChatWidgetMarkdown", () => {
 
       expect(markdown).toContain("**#42 · Payment API down**");
       expect(markdown).not.toContain("- **");
+    });
+  });
+
+  /*
+   * Issue #7395: a read's card was written under "#### Monitor
+   * payments-api", and then "_MONITOR_" and "**payments-api**" again. The
+   * chat draws no title over a read's card - its kind and its name are its
+   * title - and the PDF no longer prints one (PR #7322). Its name is its
+   * heading now, its kind beside its line.
+   */
+  describe("a read's card (issue #7395)", () => {
+    const monitorCard: (
+      data?: Partial<AIChatWidget["data"]> | undefined,
+    ) => AIChatWidget = (
+      data?: Partial<AIChatWidget["data"]> | undefined,
+    ): AIChatWidget => {
+      return {
+        id: "W1",
+        type: AIChatWidgetType.ResourceCard,
+        title: "Monitor payments-api",
+        data: {
+          resourceType: "Monitor",
+          heading: "payments-api",
+          subheading: "Degraded",
+          fields: [{ label: "Monitor type", value: "API" }],
+          origin: AIChatResourceCardOrigin.Read,
+          statusColor: "#f59e0b",
+          ...(data || {}),
+        },
+      };
+    };
+
+    const count: (text: string, part: string) => number = (
+      text: string,
+      part: string,
+    ): number => {
+      return text.split(part).length - 1;
+    };
+
+    test("its name is its heading, its kind beside its line, then its facts", () => {
+      expect(widgetToMarkdown(monitorCard())).toBe(
+        [
+          "#### payments-api",
+          "",
+          "_MONITOR_ · Degraded",
+          "",
+          "- **Monitor type:** API",
+        ].join("\n"),
+      );
+    });
+
+    test("its kind and its name appear once each, never its title", () => {
+      const markdown: string = widgetToMarkdown(monitorCard());
+
+      expect(count(markdown, "payments-api")).toBe(1);
+      expect(count(markdown.toLowerCase(), "monitor")).toBe(2);
+      // "MONITOR" once, and "Monitor type" - a fact's label, not the kind.
+      expect(count(markdown, "MONITOR")).toBe(1);
+      expect(markdown).not.toContain("Monitor payments-api");
+      expect(markdown).not.toContain("**payments-api**");
+      // One heading: the card's own.
+      expect(markdown.match(/^#### /gm)).toHaveLength(1);
+    });
+
+    test("a card with no line: its kind alone under its name", () => {
+      expect(widgetToMarkdown(monitorCard({ subheading: undefined }))).toBe(
+        [
+          "#### payments-api",
+          "",
+          "_MONITOR_",
+          "",
+          "- **Monitor type:** API",
+        ].join("\n"),
+      );
+    });
+
+    test("a card with nothing but its name: the heading alone", () => {
+      expect(
+        widgetToMarkdown(
+          monitorCard({
+            resourceType: undefined,
+            subheading: undefined,
+            fields: [],
+          }),
+        ),
+      ).toBe("#### payments-api");
+    });
+
+    test("a fact its line already says is left out, as the card leaves it out", () => {
+      const markdown: string = widgetToMarkdown(
+        monitorCard({
+          fields: [
+            { label: "Status", value: "Degraded" },
+            { label: "Monitor type", value: "API" },
+          ],
+        }),
+      );
+
+      expect(markdown).not.toContain("**Status:**");
+      expect(markdown).toContain("- **Monitor type:** API");
+    });
+
+    test("its name and its line are text, never Markdown: a heading of their own, a link or an image", () => {
+      const markdown: string = widgetToMarkdown(
+        monitorCard({
+          heading:
+            "pay_ments [docs](https://example.com) ![x](https://example.com/t.png)",
+          subheading: "Degraded *now*\n# Not a heading",
+        }),
+      );
+      const [heading, , kindAndLine]: Array<string> = markdown.split("\n");
+
+      // An "_" inside a word never starts emphasis, so it stays as typed.
+      expect(heading).toBe(
+        "#### pay_ments \\[docs\\](https://example.com) !\\[x\\](https://example.com/t.png)",
+      );
+      expect(kindAndLine!.startsWith("_MONITOR_ · Degraded \\*now\\*")).toBe(
+        true,
+      );
+      // The line stays one line: nothing in it starts a heading.
+      expect(markdown.match(/^#/gm)).toHaveLength(1);
+    });
+
+    test("a write's card keeps its title, which says what was done", () => {
+      const markdown: string = widgetToMarkdown({
+        id: "W2",
+        type: AIChatWidgetType.ResourceCard,
+        title: "Alert created",
+        data: {
+          resourceType: "Alert",
+          heading: "ALT-12 · High memory usage on test01",
+          subheading: "Severity: High",
+          fields: [{ label: "State", value: "Created" }],
+          origin: AIChatResourceCardOrigin.Write,
+        },
+      });
+
+      expect(markdown).toBe(
+        [
+          "#### Alert created",
+          "",
+          "_ALERT_",
+          "",
+          "**ALT-12 · High memory usage on test01**",
+          "Severity: High",
+          "",
+          "- **State:** Created",
+        ].join("\n"),
+      );
+    });
+
+    test("a card saved before cards said which keeps its title, as it always read", () => {
+      const markdown: string = widgetToMarkdown(
+        monitorCard({ origin: undefined }),
+      );
+
+      expect(markdown.startsWith("#### Monitor payments-api\n")).toBe(true);
+      expect(markdown).toContain("_MONITOR_");
+      expect(markdown).toContain("**payments-api**");
+    });
+
+    test("a read's card with no name keeps its title rather than an empty heading", () => {
+      const markdown: string = widgetToMarkdown(
+        monitorCard({ heading: "   " }),
+      );
+
+      expect(markdown.startsWith("#### Monitor payments-api\n")).toBe(true);
+      expect(markdown).not.toMatch(/^#### \s*$/m);
+    });
+
+    test("several read cards: one heading each, by name, in their order", () => {
+      const markdown: string = widgetsToMarkdown([
+        monitorCard(),
+        monitorCard({
+          heading: "checkout-web",
+          subheading: "Operational",
+        }),
+        {
+          id: "W3",
+          type: AIChatWidgetType.ResourceCard,
+          title: "Team Platform",
+          data: {
+            resourceType: "Team",
+            heading: "Platform",
+            fields: [{ label: "Members", value: "4" }],
+            origin: AIChatResourceCardOrigin.Read,
+          },
+        },
+      ]);
+
+      expect(markdown.match(/^#### .*$/gm)).toEqual([
+        "#### payments-api",
+        "#### checkout-web",
+        "#### Platform",
+      ]);
+      expect(markdown).not.toContain("Team Platform");
+      expect(markdown).toContain("_TEAM_");
+      expect(markdown).toContain("_MONITOR_ · Operational");
     });
   });
 

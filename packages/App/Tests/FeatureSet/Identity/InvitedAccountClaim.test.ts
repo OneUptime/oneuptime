@@ -9,13 +9,13 @@ import {
   withSecretColumns,
 } from "./IdentityRouterTestUtil";
 import User from "Common/Models/DatabaseModels/User";
-import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { SSO_MANAGED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SsoManagedSignIn";
+import { SignUpInvitation } from "Common/Types/Accounts/SignUpInvitation";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import {
   ExpressRequest,
@@ -327,7 +327,6 @@ jest.mock("Common/Server/Utils/JsonWebToken", () => {
 });
 
 const sendCompleteRegistrationEmail: jest.Mock = jest.fn();
-const sendAccountAlreadyExistsEmail: jest.Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
   return {
@@ -336,9 +335,6 @@ jest.mock("../../../FeatureSet/Identity/Utils/AuthenticationEmail", () => {
       sendVerificationEmail: jest.fn(),
       sendCompleteRegistrationEmail: (...args: Array<unknown>): unknown => {
         return sendCompleteRegistrationEmail(...args);
-      },
-      sendAccountAlreadyExistsEmail: (...args: Array<unknown>): unknown => {
-        return sendAccountAlreadyExistsEmail(...args);
       },
     },
   };
@@ -485,7 +481,6 @@ beforeEach(() => {
   userFindOneBy.mockResolvedValue(unclaimedInvitedUser());
   consumeRegistrationToken.mockResolvedValue(false);
   sendCompleteRegistrationEmail.mockResolvedValue(undefined);
-  sendAccountAlreadyExistsEmail.mockResolvedValue(undefined);
   createSession.mockResolvedValue({
     session: { id: "session-id" },
     refreshToken: "refresh-token",
@@ -642,24 +637,17 @@ describe("Identity /signup - claiming an invited account without the invitation"
 
     // Third argument is the entity: null, so no user is echoed back.
     expect(args[2]).toBeNull();
-
-    const miscData: Record<string, unknown> = (args[4] as Record<string, any>)[
-      "miscData"
-    ];
-
     /*
-     * Where the server proves an address by email (OneUptime Cloud, #9816),
-     * the answer every address gets - check your email to finish signing
-     * up - and the invitation's link goes out after it. A server that
-     * cannot email the address answers an unclaimed invitation with its own
-     * check-your-email, as before.
+     * Check your email, in the words of the server's sign-up: on the hosted
+     * service every sign-up proves its address by email and every address
+     * gets the one answer (EmailProvedSignUp, #9816); a self-hosted server
+     * that proves nothing says the link went to the invited address.
      */
-    if (IsBillingEnabled) {
-      expect(miscData["emailVerificationRequired"]).toBe(true);
-      expect(miscData["registrationEmailSent"]).toBeUndefined();
-    } else {
-      expect(miscData["registrationEmailSent"]).toBe(true);
-    }
+    expect(
+      (args[4] as Record<string, any>)["miscData"][
+        IsBillingEnabled ? "emailVerificationRequired" : "registrationEmailSent"
+      ],
+    ).toBe(true);
   });
 
   it("never puts a registration token in the response", async () => {
@@ -840,7 +828,7 @@ describe("Identity /signup - the invited person following their own invitation",
 });
 
 describe("Identity /signup - the paths that must not have changed", () => {
-  it("never signs up an address that has finished registering: refused as taken where the server cannot email it, answered as every address is where it can (#9816)", async () => {
+  it("still refuses an address that has finished registering", async () => {
     userFindOneBy.mockResolvedValue(registeredUser());
 
     await invoke(
@@ -853,27 +841,23 @@ describe("Identity /signup - the paths that must not have changed", () => {
 
     if (IsBillingEnabled) {
       /*
-       * OneUptime Cloud proves every sign-up's address by email: the
-       * caller gets the answer every address gets, and the account's owner
-       * is told by email that somebody tried to sign up with it.
+       * On the hosted service every address gets the one answer, check your
+       * email (EmailProvedSignUp, #9816): it never says an address is taken,
+       * and its owner is told by email instead.
        */
       expect(sendErrorResponse).not.toHaveBeenCalled();
-      expect(sendAccountAlreadyExistsEmail).toHaveBeenCalledTimes(1);
+      expect(sendEntityResponse).toHaveBeenCalledTimes(1);
+      expect(sendEntityResponse.mock.calls[0]![2]).toBeNull();
       expect(
-        (
-          sendAccountAlreadyExistsEmail.mock.calls[0]![0] as {
-            user: { _id: string };
-          }
-        ).user._id,
-      ).toBe(INVITED_USER_ID);
+        (sendEntityResponse.mock.calls[0]![4] as Record<string, any>)[
+          "miscData"
+        ]["emailVerificationRequired"],
+      ).toBe(true);
     } else {
       expect(sendErrorResponse).toHaveBeenCalledTimes(1);
-      expect(sendAccountAlreadyExistsEmail).not.toHaveBeenCalled();
     }
 
-    // Either way the account is left as it was, and nobody is signed in.
     expectNothingHappened();
-    expect(userCreateUserOnSignup).not.toHaveBeenCalled();
   });
 
   it("never claims an account that already has a password, even with a valid token", async () => {
@@ -1022,13 +1006,13 @@ describe("Identity /signup - the paths that must not have changed", () => {
  */
 describe("Identity /sign-up-invitation - what the sign-up page may say", () => {
   it("hands the address and the token to SignUpInvitation, and answers with what it read", async () => {
+    // An ordinary invitation: no single sign-on manages their sign-in (#9819).
     const invitation: SignUpInvitation = {
       projectId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       projectName: "Walk Co",
       inviterName: "Ada Walker",
       name: "Grace Member",
       isAccepted: false,
-      // An ordinary invitation: SSO does not manage their sign-in (#9819).
       ssoSignIn: null,
     };
 

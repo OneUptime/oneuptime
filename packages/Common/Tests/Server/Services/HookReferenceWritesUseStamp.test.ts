@@ -170,6 +170,18 @@ describe("findReferenceWrites", () => {
       "a hook whose argument is named data",
       "data.data.createdByUserId = data.props.userId;",
     ],
+    [
+      "an alias in the hook that names it, written in a callback",
+      "class S {\n  onBeforeCreate(createBy) {\n    const data = createBy.data;\n    ids.forEach((id) => {\n      data.monitorId = id;\n    });\n  }\n}",
+    ],
+    [
+      "an alias named in a block of the hook",
+      "class S {\n  onBeforeCreate(createBy) {\n    if (id) {\n      const data = createBy.data;\n      data.monitorId = id;\n    }\n  }\n}",
+    ],
+    [
+      "a hook's argument by another name, by its type",
+      "class S {\n  onBeforeCreate(create: CreateBy<Model>) {\n    create.data.monitorId = id;\n  }\n}",
+    ],
   ];
 
   const NOT_WRITES: Array<[string, string]> = [
@@ -180,6 +192,16 @@ describe("findReferenceWrites", () => {
     ["another column", 'createBy.data.name = "Core Switch";'],
     ["a column of another object", "query.monitorId = id;"],
     ["a new record", "const row: Model = new Model();\nrow.monitorId = id;"],
+    /*
+     * A name is the payload only in the function that gives it: a helper's
+     * new record of the same name is another variable (IncidentSlaService
+     * names its create's payload `sla`, and so does createSlaForIncident the
+     * SLA it builds).
+     */
+    [
+      "a new record named as another function names the payload",
+      "class S {\n  onBeforeCreate(createBy) {\n    const sla = createBy.data;\n    return sla;\n  }\n  createSla() {\n    const sla = new Model();\n    sla.monitorId = id;\n  }\n}",
+    ],
     ["a read", "const id: ObjectID = createBy.data.monitorId;"],
     ["a comparison", "if (createBy.data.monitorId === id) {\n}"],
     ["a column the scan was not given", "createBy.data.projectId = id;"],

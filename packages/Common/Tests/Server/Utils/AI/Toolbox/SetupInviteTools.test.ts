@@ -2,6 +2,7 @@ import AIToolbox from "../../../../../Server/Utils/AI/Toolbox/Index";
 import {
   InvitePeopleTool,
   findInviteTeam,
+  readAddressesInProjectAlready,
   readInviteEmails,
   readPreparedInvitation,
 } from "../../../../../Server/Utils/AI/Toolbox/SetupInviteTools";
@@ -214,6 +215,48 @@ describe("the card", () => {
     expect(actionLineText(prepared.description)).toBe(
       "They join the Members team. This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
     );
+  });
+
+  test("everyone named in the project already: the check says so, so a second identical call invites nobody (#10041)", async () => {
+    teams();
+    people();
+    emailWorks(true);
+
+    const prepared: PreparedMutation = await InvitePeopleTool.prepareMutation!(
+      { emails: ["BO@acme.example"] },
+      ctx,
+    );
+
+    expect(prepared.arguments["emails"]).toEqual([]);
+    expect(readAddressesInProjectAlready(prepared.arguments)).toEqual([
+      "bo@acme.example",
+    ]);
+    expect(prepared.describedArguments).toContain("alreadyInProject");
+    // Never "no email address was given": an address was given.
+    expect(
+      (await InvitePeopleTool.checkBeforeApproval!(prepared.arguments, ctx))
+        ?.toldModel,
+    ).toBe(
+      "Nothing proposed: bo@acme.example is in this project already, invited or a member, so nobody is invited again and no invitation email is sent. Say so in one sentence.",
+    );
+  });
+
+  test("a name that is no address beside an address: left as handed, so the check refuses it rather than leave it out unsaid", async () => {
+    teams();
+    people();
+    emailWorks(true);
+    const asked: JSONObject = { emails: ["Ana Lopez", "cy@acme.example"] };
+
+    const prepared: PreparedMutation = await InvitePeopleTool.prepareMutation!(
+      asked,
+      ctx,
+    );
+
+    expect(prepared.arguments).toEqual(asked);
+    expect(
+      (await InvitePeopleTool.checkBeforeApproval!(prepared.arguments, ctx))
+        ?.toldModel,
+    ).toContain('"Ana Lopez" is not an email address');
   });
 
   test("someone in the project already is not invited again, and the card says so", async () => {

@@ -38,6 +38,7 @@ import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowe
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -1522,6 +1523,7 @@ export default class ScheduledMaintenance extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1629,6 +1631,7 @@ export default class ScheduledMaintenance extends BaseModel {
     description:
       "Scheduled Maintenance State ID. The state the event currently is in.",
     example: "c3d4e5f6-a7b8-9012-cdef-3456789012ab",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -2041,6 +2044,7 @@ export default class ScheduledMaintenance extends BaseModel {
     type: TableColumnType.JSON,
     title: "Custom Fields",
     description: "Custom Fields on this resource.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.JSON,
@@ -2158,6 +2162,7 @@ export default class ScheduledMaintenance extends BaseModel {
     isDefaultValueColumn: false,
     title: "Next subscriber notification before the event at?",
     description: "When will the next notification to subscribers be sent out?",
+    serverOwned: ServerOwned.Always,
   })
   @Index()
   @Column({

@@ -44,7 +44,7 @@ Hvis de vagthavendes telefoner ikke kan bruge din VPN, så udgiv de sider, et kv
 | --- | --- | --- |
 | GET | `/l/*` | De korte links i SMS'er og beskeder i WhatsApp og Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | Siden, der viser, hvad tilkaldet gælder, med knappen **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Knappen **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Knappen **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Valgfri: siden, der sender tilkaldet videre til den næste person |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Valgfri: dens knap |
 | GET | `/oneuptime-assets/*` | Skrifttyper, styles og logo til de sider |

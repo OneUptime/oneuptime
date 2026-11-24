@@ -36,7 +36,8 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { DataSource } from "typeorm";
+import { JSONObject } from "../../../Types/JSON";
+import { DataSource, Logger as TypeOrmLogger } from "typeorm";
 
 /*
  * Security Events' connections against a real Postgres, through the
@@ -81,6 +82,7 @@ const TABLES: Array<string> = [
   "OpenStackCloud",
   "NetworkDevice",
   "CloudResource",
+  "ServerlessFunction",
   "Monitor",
   "MonitorStatus",
   "SecurityCase",
@@ -88,12 +90,59 @@ const TABLES: Array<string> = [
 
 const DASHES: RegExp = /-/g;
 
+// A read, as TypeORM sends one: what the planner is asked about.
+const SELECT_STATEMENT: RegExp = /^\s*SELECT/i;
+
 const ROOT: DatabaseCommonInteractionProps = { isRoot: true };
+
+// A statement a service sent, with its parameters.
+interface Captured {
+  sql: string;
+  parameters: Array<unknown>;
+}
+
+/*
+ * Records the statements the services send while `capturing` is on, so a
+ * test plans exactly those, with their parameters.
+ */
+class CapturingLogger implements TypeOrmLogger {
+  public capturing: boolean = false;
+  public captured: Array<Captured> = [];
+
+  public logQuery(query: string, parameters?: Array<unknown>): void {
+    if (this.capturing) {
+      this.captured.push({ sql: query, parameters: parameters || [] });
+    }
+  }
+
+  public logQueryError(): void {}
+  public logQuerySlow(): void {}
+  public logSchemaBuild(): void {}
+  public logMigration(): void {}
+  public log(): void {}
+}
+
+// Each index a plan reads, by name, wherever in the plan.
+function indexesInPlan(node: JSONObject): Array<string> {
+  const own: Array<string> =
+    typeof node["Index Name"] === "string"
+      ? [node["Index Name"] as string]
+      : [];
+
+  return own.concat(
+    ((node["Plans"] as Array<JSONObject> | undefined) || []).flatMap(
+      (child: JSONObject): Array<string> => {
+        return indexesInPlan(child);
+      },
+    ),
+  );
+}
 
 describePostgres("Security Events' connections against Postgres", () => {
   const schema: string = `security_connections_${ObjectID.generate()
     .toString()
     .replace(DASHES, "")}`;
+  const captureLogger: CapturingLogger = new CapturingLogger();
   let database: DataSource;
 
   const projectId: ObjectID = ObjectID.generate();
@@ -116,6 +165,9 @@ describePostgres("Security Events' connections against Postgres", () => {
       entities: Entities,
       schema,
       synchronize: false,
+      // The statements a read sends, so a test can ask the planner about them.
+      logging: true,
+      logger: captureLogger,
       extra: { options: `-c search_path=${schema}` },
     });
     await database.initialize();
@@ -383,6 +435,57 @@ describePostgres("Security Events' connections against Postgres", () => {
     expect(await find(["db-9"])).toEqual([]);
   });
 
+  // #10034: a case naming the DynamoDB table "orders" is not about the table "Orders".
+  test("the cases naming an ARN as written, beside the values compared without case", async () => {
+    const table: string =
+      "arn:aws:dynamodb:us-east-1:111122223333:table/Orders";
+    const upper: string = await insertCase({
+      title: "Orders exported",
+      entities: [{ type: SecurityEntityType.Other, value: table }],
+    });
+    await insertCase({
+      title: "orders exported",
+      entities: [
+        { type: SecurityEntityType.Other, value: table.toLowerCase() },
+      ],
+    });
+    const vault: string = await insertCase({
+      title: "Vault policy changed",
+      entities: [
+        {
+          type: SecurityEntityType.Other,
+          value:
+            "/SUBSCRIPTIONS/6F1C2A3B-4D5E-4F60-8A7B-9C0D1E2F3A4B/RESOURCEGROUPS/RG/PROVIDERS/MICROSOFT.KEYVAULT/VAULTS/KV",
+        },
+      ],
+    });
+
+    const cases: Array<SecurityCase> = await SecurityCaseService.findBy({
+      query: {
+        projectId,
+        entities: QueryHelper.jsonArrayObjectsHaveTextAnyOf({
+          key: "value",
+          texts: [
+            "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg/providers/Microsoft.KeyVault/vaults/kv",
+          ],
+          exactTexts: [table],
+        }),
+      } as never,
+      select: { _id: true },
+      limit: 50,
+      skip: 0,
+      props: ROOT,
+    });
+
+    expect(
+      cases
+        .map((securityCase: SecurityCase): string => {
+          return securityCase.id!.toString();
+        })
+        .sort(),
+    ).toEqual([upper, vault].sort());
+  });
+
   async function insertMonitor(data: {
     projectId?: ObjectID;
     name: string;
@@ -622,7 +725,7 @@ describePostgres("Security Events' connections against Postgres", () => {
     return id;
   }
 
-  test("a cloud resource by its own ID however it is cased, and by the name and the address it answers on, in this project only", async () => {
+  test("a cloud resource by its own ID, and by the name and the address it answers on, in this project only", async () => {
     await insertCloudResource({
       name: "acme-prod-data",
       providerResourceId: "arn:aws:s3:::acme-prod-data",
@@ -654,7 +757,7 @@ describePostgres("Security Events' connections against Postgres", () => {
         entities: [
           {
             type: SecurityEntityType.Other,
-            value: "ARN:AWS:S3:::ACME-PROD-DATA",
+            value: "arn:aws:s3:::acme-prod-data",
           },
           {
             type: SecurityEntityType.Domain,
@@ -699,5 +802,437 @@ describePostgres("Security Events' connections against Postgres", () => {
     ]);
     expect(result.failedKinds).toEqual([]);
     expect(result.unmatched).toEqual([]);
+  });
+
+  // ---------- #10034: an Azure resource ID whatever its case ----------
+
+  const VAULT_ID: string =
+    "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod/providers/Microsoft.KeyVault/vaults/kv-Payments";
+
+  // The cloud resources a lookup of these values connects, by name and how.
+  async function cloudResourcesNamedBy(values: Array<string>): Promise<{
+    records: Array<[string, SecurityConnectionCertainty, string]>;
+    unmatched: Array<string>;
+  }> {
+    const result: SecurityConnectedRecordsResult =
+      await SecurityConnectedRecords.resolve({
+        projectId,
+        entities: values.map((value: string) => {
+          return { type: SecurityEntityType.Other, value };
+        }),
+        props: ROOT,
+      });
+
+    expect(result.failedKinds).toEqual([]);
+
+    return {
+      records: result.records
+        .filter((record: SecurityConnectedRecord): boolean => {
+          return record.kind === SecurityConnectionKind.CloudResource;
+        })
+        .map(
+          (
+            record: SecurityConnectedRecord,
+          ): [string, SecurityConnectionCertainty, string] => {
+            return [
+              record.name,
+              record.certainty,
+              record.matches[0]!.entity.value,
+            ];
+          },
+        ),
+      unmatched: result.unmatched.map((entity: { value: string }): string => {
+        return entity.value;
+      }),
+    };
+  }
+
+  test("an Azure resource ID finds its resource in whatever case a source wrote it - and no near miss does", async () => {
+    await insertCloudResource({
+      name: "kv-Payments",
+      providerResourceId: VAULT_ID,
+    });
+    // Near misses: another subscription, another group, a longer name, a part of it.
+    await insertCloudResource({
+      name: "kv-Payments (test)",
+      providerResourceId: VAULT_ID.replace(
+        "rg-Payments-Prod",
+        "rg-Payments-Test",
+      ),
+    });
+    await insertCloudResource({
+      name: "kv-Payments2",
+      providerResourceId: `${VAULT_ID}2`,
+    });
+    await insertCloudResource({
+      name: "kv-Payments (their subscription)",
+      providerResourceId: VAULT_ID.replace("6f1c2a3b", "0f1c2a3b"),
+    });
+    // The same vault, in another project.
+    await insertCloudResource({
+      projectId: otherProjectId,
+      name: "their kv-Payments",
+      providerResourceId: VAULT_ID,
+    });
+
+    for (const spelling of [
+      VAULT_ID,
+      // The Activity Log's export.
+      VAULT_ID.toUpperCase(),
+      // The key every event keeps it by (#10034).
+      VAULT_ID.toLowerCase(),
+      // Neither: a script's or an analyst's.
+      "/Subscriptions/6F1C2A3B-4D5E-4F60-8A7B-9C0D1E2F3A4B/ResourceGroups/RG-PAYMENTS-PROD/Providers/microsoft.keyvault/Vaults/KV-PAYMENTS",
+    ]) {
+      expect(await cloudResourcesNamedBy([spelling])).toEqual({
+        records: [["kv-Payments", SecurityConnectionCertainty.Exact, spelling]],
+        unmatched: [],
+      });
+    }
+
+    // A secret in the vault is not the vault; the vault's group alone is no resource of the project.
+    const secret: string = `${VAULT_ID}/secrets/db-password`;
+    const group: string =
+      "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-Payments-Prod";
+
+    expect(await cloudResourcesNamedBy([secret, group])).toEqual({
+      records: [],
+      unmatched: [secret, group],
+    });
+  });
+
+  test("an ARN or a Google Cloud name finds its resource only as written: another case is another resource", async () => {
+    const table: string =
+      "arn:aws:dynamodb:us-east-1:111122223333:table/Orders";
+    const dataset: string =
+      "//bigquery.googleapis.com/projects/acme-prod/datasets/MyDataset";
+
+    await insertCloudResource({ name: "Orders", providerResourceId: table });
+    await insertCloudResource({
+      name: "orders",
+      providerResourceId: table.toLowerCase(),
+    });
+    await insertCloudResource({
+      name: "MyDataset",
+      providerResourceId: dataset,
+    });
+
+    expect(await cloudResourcesNamedBy([table])).toEqual({
+      records: [["Orders", SecurityConnectionCertainty.Exact, table]],
+      unmatched: [],
+    });
+    expect(await cloudResourcesNamedBy([table.toLowerCase()])).toEqual({
+      records: [
+        ["orders", SecurityConnectionCertainty.Exact, table.toLowerCase()],
+      ],
+      unmatched: [],
+    });
+    // In capitals: neither table, and said to be no resource of the project.
+    expect(await cloudResourcesNamedBy([table.toUpperCase()])).toEqual({
+      records: [],
+      unmatched: [table.toUpperCase()],
+    });
+    expect(await cloudResourcesNamedBy([dataset.toLowerCase()])).toEqual({
+      records: [],
+      unmatched: [dataset.toLowerCase()],
+    });
+  });
+
+  /*
+   * Speed (#10034): the lookup reads the hash index on
+   * LOWER("providerResourceId") (AddCloudResourceProviderResourceIdIndex),
+   * not every cloud resource of the project. Asked of the planner, about
+   * the very statement the service sent, over a project with thousands of
+   * resources.
+   */
+  test("the lookup by ID reads the index on the lower-cased ID, not every resource of the project", async () => {
+    const clone: Array<{ name: string; definition: string }> =
+      await database.query(
+        `SELECT ic.relname AS name, pg_get_indexdef(i.indexrelid) AS definition
+           FROM pg_index i
+           JOIN pg_class ic ON ic.oid = i.indexrelid
+          WHERE i.indrelid = $1::regclass`,
+        [`"${schema}"."CloudResource"`],
+      );
+    const hashIndex: { name: string; definition: string } | undefined =
+      clone.find((index: { definition: string }): boolean => {
+        return index.definition.includes(
+          'USING hash (lower("providerResourceId"))',
+        );
+      });
+
+    // The migrated table holds it, so its clone does.
+    expect(hashIndex).toBeDefined();
+
+    await database.query(
+      `INSERT INTO "${schema}"."CloudResource" ("_id", "projectId", "name", "providerResourceId")
+       SELECT gen_random_uuid(), $1::uuid, 'vm-' || g,
+              '/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourceGroups/rg-' || (g % 40) || '/providers/Microsoft.Compute/virtualMachines/vm-' || g
+         FROM generate_series(1, 4000) AS g`,
+      [projectId.toString()],
+    );
+    await insertCloudResource({
+      name: "kv-Payments",
+      providerResourceId: VAULT_ID,
+    });
+    await database.query(`ANALYZE "${schema}"."CloudResource"`);
+
+    captureLogger.captured = [];
+    captureLogger.capturing = true;
+
+    let found: Awaited<ReturnType<typeof cloudResourcesNamedBy>>;
+
+    try {
+      found = await cloudResourcesNamedBy([VAULT_ID.toUpperCase()]);
+    } finally {
+      captureLogger.capturing = false;
+    }
+
+    expect(found.records).toEqual([
+      [
+        "kv-Payments",
+        SecurityConnectionCertainty.Exact,
+        VAULT_ID.toUpperCase(),
+      ],
+    ]);
+
+    const lookup: Captured | undefined = captureLogger.captured.find(
+      (statement: Captured): boolean => {
+        return (
+          SELECT_STATEMENT.test(statement.sql) &&
+          statement.sql.includes(`"${schema}"."CloudResource"`) &&
+          statement.sql.includes('LOWER("CloudResource"."providerResourceId")')
+        );
+      },
+    );
+
+    expect(lookup).toBeDefined();
+
+    const rows: Array<{ "QUERY PLAN": Array<{ Plan: JSONObject }> }> =
+      await database.query(
+        `EXPLAIN (ANALYZE, FORMAT JSON) ${lookup!.sql}`,
+        lookup!.parameters,
+      );
+    const plan: JSONObject = rows[0]!["QUERY PLAN"][0]!.Plan;
+
+    expect(indexesInPlan(plan)).toContain(hashIndex!.name);
+  });
+
+  // ---------- #10033: the cloud resource and the function an event's own logs were of ----------
+
+  async function insertFunction(data: {
+    projectId?: ObjectID;
+    name: string;
+    functionIdentifier: string;
+  }): Promise<string> {
+    const id: string = ObjectID.generate().toString();
+
+    await database.query(
+      `INSERT INTO "${schema}"."ServerlessFunction" ("_id", "projectId", "name", "functionIdentifier")
+       VALUES ($1, $2, $3, $4)`,
+      [
+        id,
+        (data.projectId || projectId).toString(),
+        data.name,
+        data.functionIdentifier,
+      ],
+    );
+
+    return id;
+  }
+
+  // The records an event read from these owners' own logs is connected to.
+  async function ownersOf(
+    logOwners: Array<{ kind: SecurityConnectionKind; value: string }>,
+  ): Promise<
+    Array<[SecurityConnectionKind, string, SecurityConnectionReason]>
+  > {
+    const result: SecurityConnectedRecordsResult =
+      await SecurityConnectedRecords.resolve({
+        projectId,
+        entities: [],
+        logOwners,
+        props: ROOT,
+      });
+
+    expect(result.failedKinds).toEqual([]);
+
+    return result.records.map(
+      (
+        record: SecurityConnectedRecord,
+      ): [SecurityConnectionKind, string, SecurityConnectionReason] => {
+        return [record.kind, record.name, record.matches[0]!.reason];
+      },
+    );
+  }
+
+  test("an event read from a cloud resource's own logs is connected to it: the ID its stream stamped, an Azure ID in any case", async () => {
+    await insertCloudResource({
+      name: "kv-Payments",
+      providerResourceId: VAULT_ID,
+    });
+    await insertCloudResource({
+      name: "kv-Payments2",
+      providerResourceId: `${VAULT_ID}2`,
+    });
+    await insertCloudResource({
+      projectId: otherProjectId,
+      name: "their kv-Payments",
+      providerResourceId: VAULT_ID,
+    });
+    await insertCloudResource({
+      name: "orders-broker",
+      providerResourceId: "AWS/AmazonMQ Broker=orders",
+    });
+
+    // As every event keeps it now (#10034), and as events kept it before.
+    for (const stamped of [
+      VAULT_ID.toLowerCase(),
+      VAULT_ID,
+      VAULT_ID.toUpperCase(),
+    ]) {
+      expect(
+        await ownersOf([
+          { kind: SecurityConnectionKind.CloudResource, value: stamped },
+        ]),
+      ).toEqual([
+        [
+          SecurityConnectionKind.CloudResource,
+          "kv-Payments",
+          SecurityConnectionReason.LogSource,
+        ],
+      ]);
+    }
+
+    // A stand-in a stream stamped: exactly as the row keeps it.
+    expect(
+      await ownersOf([
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          value: "AWS/AmazonMQ Broker=orders",
+        },
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          value: "AWS/AmazonMQ Broker=ORDERS",
+        },
+      ]),
+    ).toEqual([
+      [
+        SecurityConnectionKind.CloudResource,
+        "orders-broker",
+        SecurityConnectionReason.LogSource,
+      ],
+    ]);
+  });
+
+  test("an event read from a function's own logs or spans is connected to the function of that very faas.name", async () => {
+    await insertFunction({
+      name: "Checkout",
+      functionIdentifier: "checkout-handler",
+    });
+    await insertFunction({
+      name: "CHECKOUT-HANDLER",
+      functionIdentifier: "CHECKOUT-HANDLER",
+    });
+    await insertFunction({
+      name: "checkout-handler-v2",
+      functionIdentifier: "checkout-handler-v2",
+    });
+    await insertFunction({
+      projectId: otherProjectId,
+      name: "their checkout-handler",
+      functionIdentifier: "checkout-handler",
+    });
+
+    expect(
+      await ownersOf([
+        {
+          kind: SecurityConnectionKind.ServerlessFunction,
+          value: "checkout-handler",
+        },
+      ]),
+    ).toEqual([
+      [
+        SecurityConnectionKind.ServerlessFunction,
+        "Checkout",
+        SecurityConnectionReason.LogSource,
+      ],
+    ]);
+    expect(
+      await ownersOf([
+        { kind: SecurityConnectionKind.ServerlessFunction, value: "checkout" },
+      ]),
+    ).toEqual([]);
+  });
+
+  test("the function's lookup reads the project's unique index on its name, not every function of the project", async () => {
+    await database.query(
+      `INSERT INTO "${schema}"."ServerlessFunction" ("_id", "projectId", "name", "functionIdentifier")
+       SELECT gen_random_uuid(), $1::uuid, 'fn-' || g, 'fn-' || g
+         FROM generate_series(1, 3000) AS g`,
+      [projectId.toString()],
+    );
+    await insertFunction({
+      name: "Checkout",
+      functionIdentifier: "checkout-handler",
+    });
+    await database.query(`ANALYZE "${schema}"."ServerlessFunction"`);
+
+    const clone: Array<{ name: string; definition: string }> =
+      await database.query(
+        `SELECT ic.relname AS name, pg_get_indexdef(i.indexrelid) AS definition
+           FROM pg_index i
+           JOIN pg_class ic ON ic.oid = i.indexrelid
+          WHERE i.indrelid = $1::regclass`,
+        [`"${schema}"."ServerlessFunction"`],
+      );
+    const unique: { name: string } | undefined = clone.find(
+      (index: { definition: string }): boolean => {
+        return (
+          index.definition.includes("UNIQUE INDEX") &&
+          index.definition.includes('("projectId", "functionIdentifier")')
+        );
+      },
+    );
+
+    expect(unique).toBeDefined();
+
+    captureLogger.captured = [];
+    captureLogger.capturing = true;
+
+    try {
+      expect(
+        await ownersOf([
+          {
+            kind: SecurityConnectionKind.ServerlessFunction,
+            value: "checkout-handler",
+          },
+        ]),
+      ).toHaveLength(1);
+    } finally {
+      captureLogger.capturing = false;
+    }
+
+    const lookup: Captured | undefined = captureLogger.captured.find(
+      (statement: Captured): boolean => {
+        return (
+          SELECT_STATEMENT.test(statement.sql) &&
+          statement.sql.includes(`"${schema}"."ServerlessFunction"`) &&
+          statement.sql.includes('"functionIdentifier" IN')
+        );
+      },
+    );
+
+    expect(lookup).toBeDefined();
+
+    const rows: Array<{ "QUERY PLAN": Array<{ Plan: JSONObject }> }> =
+      await database.query(
+        `EXPLAIN (ANALYZE, FORMAT JSON) ${lookup!.sql}`,
+        lookup!.parameters,
+      );
+
+    expect(indexesInPlan(rows[0]!["QUERY PLAN"][0]!.Plan)).toContain(
+      unique!.name,
+    );
   });
 });

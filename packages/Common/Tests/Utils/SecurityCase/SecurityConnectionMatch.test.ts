@@ -637,16 +637,49 @@ describe("cloud resources: their own IDs, and the names and addresses they answe
     ).toBe(false);
   });
 
-  test("a resource's own ID, folded, is that resource whatever the value was typed as", () => {
+  test("an Azure resource's own ID is that resource whatever case it was typed in", () => {
     const verdict: SecurityConnectionVerdict | null = matchResourceId({
-      entityValue: " ARN:aws:s3:::Acme-Prod-Data ",
-      providerResourceId: "arn:aws:s3:::acme-prod-data",
+      entityValue:
+        " /SUBSCRIPTIONS/00000000-0000-0000-0000-000000000000/RESOURCEGROUPS/RG/PROVIDERS/MICROSOFT.COMPUTE/VIRTUALMACHINES/VM-1 ",
+      providerResourceId:
+        "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm-1",
     });
 
     expect(verdict).toEqual({
       certainty: SecurityConnectionCertainty.Exact,
       reason: SecurityConnectionReason.ResourceId,
     });
+  });
+
+  /*
+   * #10034: an ARN is matched as written - IAM compares an ARN's resource
+   * case-sensitively, and two resources may differ by case alone - so one
+   * typed in another case is another resource, never a looser match.
+   */
+  test("an ARN or a Google Cloud name is that resource only as written: another case is another resource", () => {
+    expect(
+      matchResourceId({
+        entityValue: " arn:aws:s3:::acme-prod-data ",
+        providerResourceId: "arn:aws:s3:::acme-prod-data",
+      }),
+    ).toEqual({
+      certainty: SecurityConnectionCertainty.Exact,
+      reason: SecurityConnectionReason.ResourceId,
+    });
+    expect(
+      matchResourceId({
+        entityValue: "ARN:aws:s3:::Acme-Prod-Data",
+        providerResourceId: "arn:aws:s3:::acme-prod-data",
+      }),
+    ).toBeNull();
+    expect(
+      matchResourceId({
+        entityValue:
+          "//bigquery.googleapis.com/projects/acme/datasets/MyDataset",
+        providerResourceId:
+          "//bigquery.googleapis.com/projects/acme/datasets/mydataset",
+      }),
+    ).toBeNull();
   });
 
   test("another ID, a name or nothing is no resource's ID", () => {
@@ -1480,9 +1513,10 @@ describe("the way back: what a record is searched for by", () => {
     const azure: string =
       "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Web/sites/orders";
 
+    // Its key first - the lower case every event keeps it in (#10034) - then as written and in capitals.
     expect(getObservableSearchValues([azure])).toEqual([
-      azure,
       azure.toLowerCase(),
+      azure,
       azure.toUpperCase(),
     ]);
   });

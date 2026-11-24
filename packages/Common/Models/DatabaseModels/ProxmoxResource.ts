@@ -942,6 +942,112 @@ export default class ProxmoxResource extends BaseModel {
   })
   public lastBackupDurationSeconds?: number = undefined;
 
+  /*
+   * A stopped guest's last power task, from the cluster's task log: the
+   * last task that started, stopped, shut down, hibernated or restored it,
+   * as the Proxmox AI agent reads it for every stopped guest every few
+   * minutes (pve_guest_last_power_task, Common/Utils/Proxmox/
+   * ProxmoxGuestPowerTask). It says who or what stopped a guest that should
+   * be running, and when (#10017). Null until the agent has read the
+   * guest's task log; the type is null when the log holds no such task.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Last Power Task",
+    description:
+      "The type of the last task that started or stopped this guest, as Proxmox VE logs it (qmstop, qmshutdown, hastop, qmstart...).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lastPowerTaskType?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Last Power Task User",
+    description:
+      "Who ran the guest's last power task, as Proxmox VE records them (alice@pve, root@pam, a token's user@realm!name).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lastPowerTaskUser?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Last Power Task Status",
+    description:
+      "How the guest's last power task ended, as Proxmox VE writes it: OK, or the error it failed with.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public lastPowerTaskStatus?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Power Task At",
+    description: "When the guest's last power task ended.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastPowerTaskAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Power Task Read At",
+    description:
+      "When the Proxmox AI agent last read this guest's task log; the power task above is as of then.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public powerTaskReadAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: READ_PERMISSIONS,

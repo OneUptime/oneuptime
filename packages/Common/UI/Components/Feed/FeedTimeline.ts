@@ -1,6 +1,6 @@
 import {
   FeedClock,
-  formatFeedDay,
+  formatFeedDayHeading,
   formatFeedFullTime,
   formatFeedTime,
   getFeedDayKey,
@@ -242,7 +242,7 @@ export const buildFeedTimeline: <TItem extends FeedTimelineItem>(data: {
     if (!currentDay || currentDay.dayKey !== dayKey) {
       currentDay = {
         dayKey: dayKey,
-        label: formatFeedDay(date, data.clock),
+        label: formatFeedDayHeading(date, data.clock),
         relativeLabel: getFeedRelativeDay(date, data.clock),
         zoneName: zoneName,
         entries: [],

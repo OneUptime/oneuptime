@@ -2,8 +2,13 @@ import { AZURE_MAX_SPLIT_SERIES_PER_METRIC } from "../../../../Types/Cloud/Cloud
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
-import { DataSourceHttpResponse } from "../../DataSource/HttpFetch";
+import {
+  DataSourceHttpResponse,
+  getDataSourceHttpStatusError,
+} from "../../DataSource/HttpFetch";
+import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import LlmProviderHttp, {
+  LlmProviderRequest,
   buildQueryString,
   readArray,
   readObject,
@@ -19,6 +24,7 @@ import {
   CloudReadBudgetSpent,
 } from "../CloudConnectorTypes";
 import { withCloudRetries } from "../CloudRetry";
+import { AzureRateLimit, readAzureRateLimit } from "./AzureRateLimit";
 
 /*
  * Azure Resource Manager and Azure Monitor, the calls an Azure cloud
@@ -49,6 +55,15 @@ import { withCloudRetries } from "../CloudRetry";
  *          resource with its tags and properties
  *   GET/POST anything else the inventory, the changes and the billing read,
  *       through get() and post() - always on the management host.
+ *   POST {arm}{scope}/providers/Microsoft.CostManagement/query
+ *       (queryCostManagement)
+ *       -> one page of a cost query, asked once - its caller paces it
+ *          against the tenant's quotas and asks again (AzureCostManagement)
+ *          - naming OneUptime as its client type.
+ *
+ * Every request reads its answer's status and headers itself: a throttled
+ * answer says how long to wait in them (AzureRateLimit), and the transport
+ * would have thrown them away.
  *
  *   GET https://{account}.blob.core.windows.net/... (getStorageText,
  *       getStorageBytes)
@@ -69,6 +84,20 @@ export const AZURE_RESOURCES_API_VERSION: string = "2021-04-01";
 export const AZURE_METRIC_DEFINITIONS_API_VERSION: string = "2018-01-01";
 export const AZURE_METRICS_API_VERSION: string = "2023-10-01";
 export const AZURE_RESOURCE_GRAPH_API_VERSION: string = "2022-10-01";
+/*
+ * Azure Monitor's regional metrics data plane (metrics:getBatch): its
+ * hosts are <region>.metrics.monitor.azure.com, a token for it is asked
+ * for its own resource, and a batch holds 50 resources at most (Microsoft's
+ * "Migrate from the metrics API to the getBatch API").
+ */
+export const AZURE_METRICS_BATCH_API_VERSION: string = "2023-10-01";
+export const AZURE_METRICS_DATA_PLANE_SUFFIX: string =
+  "metrics.monitor.azure.com";
+export const AZURE_METRICS_DATA_PLANE_RESOURCE: string =
+  "https://metrics.monitor.azure.com";
+export const AZURE_METRICS_BATCH_MAX_RESOURCES: number = 50;
+// A Region's name as Resource Manager writes it ("southcentralus", "global").
+const AZURE_METRICS_BATCH_REGION_PATTERN: RegExp = /^[a-z0-9]{2,40}$/;
 export const AZURE_ACTIVITY_LOG_API_VERSION: string = "2015-04-01";
 // The fields of an Activity Log event read: never its claims or request.
 /*
@@ -128,6 +157,8 @@ export interface AzureMetricDefinition {
   description?: string | undefined;
   supportedAggregationTypes?: Array<string> | undefined;
   isDimensionRequired?: boolean | undefined;
+  // The dimensions it can be split by (#9808): each name, and its name in words.
+  dimensions?: Array<{ name: string; displayName: string }> | undefined;
 }
 
 export interface AzureMetricSeriesPoint {
@@ -173,6 +204,8 @@ export interface AzureMetricsAnswer {
 
 // A dimension name a split read may name in its filter: letters and digits.
 const DIMENSION_NAME_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
+// A split read's order: an aggregation, its busiest first ("sum desc").
+const SPLIT_ORDER_PATTERN: RegExp = /^[a-z]+ desc$/;
 
 export interface AzureArmOptions {
   tenantId: string;
@@ -185,6 +218,46 @@ export interface AzureArmOptions {
   // Waits before asking a throttled request again (CloudRetry); setTimeout when absent.
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
 }
+
+/*
+ * An answer outside 2xx, as the transport would have thrown it ("Azure
+ * cost query failed with HTTP 429: ..."), with what its headers said of
+ * Azure's rate limits: the wait they asked for is its retryAfterSeconds too,
+ * which CloudRetry waits.
+ */
+export class AzureArmError extends LlmProviderError {
+  public rateLimit: AzureRateLimit;
+
+  public constructor(failure: LlmProviderError, rateLimit: AzureRateLimit) {
+    super({
+      message: failure.message,
+      kind: failure.kind,
+      statusCode: failure.statusCode,
+      retryAfterSeconds:
+        rateLimit.retryAfterMs !== undefined
+          ? rateLimit.retryAfterMs / 1000
+          : failure.retryAfterSeconds,
+      responseBody: failure.responseBody,
+    });
+    this.rateLimit = rateLimit;
+  }
+}
+
+// What a query answered: its JSON, and what its headers said of the limits.
+export interface AzureArmAnswer {
+  body: JSONObject;
+  rateLimit: AzureRateLimit;
+}
+
+/*
+ * What Cost Management is told the caller is (its ClientType request
+ * header). Microsoft's support says a caller that names none shares one
+ * pool of requests with every other caller that names none, which a busy
+ * minute anywhere spends ("x-ms-ratelimit-remaining-microsoft.
+ * costmanagement-clienttype-requests: DefaultQuota:0"). OneUptime, as its
+ * User-Agent says.
+ */
+export const AZURE_COST_CLIENT_TYPE: string = "OneUptime";
 
 export default class AzureArm {
   private options: AzureArmOptions;
@@ -205,6 +278,139 @@ export default class AzureArm {
 
   public getManagementBaseUrl(): string {
     return EntraTokenClient.getEndpoints(this.options.cloud).managementBaseUrl;
+  }
+
+  /*
+   * Whose rate limits the app's requests count against: its tenant's, in
+   * its cloud. Every connection of the tenant shares them (AzureCostPacer).
+   */
+  public getRateLimitKey(): string {
+    return `${this.options.cloud}|${this.options.tenantId.trim().toLowerCase()}`;
+  }
+
+  /*
+   * One request, its answer judged here rather than by the transport, which
+   * throws an answer outside 2xx away with its headers - where an Azure
+   * throttle says how long to wait (AzureRateLimit). So every request asks
+   * for every status (acceptAnyStatus), and one outside 2xx is thrown as the
+   * very error the transport's would have become, carrying what its headers
+   * said (AzureArmError). A transport that throws for the status anyway (a
+   * test's) is answered as before.
+   */
+  private async send(
+    request: LlmProviderRequest,
+  ): Promise<{ response: DataSourceHttpResponse; rateLimit: AzureRateLimit }> {
+    const response: DataSourceHttpResponse = await LlmProviderHttp.send({
+      ...request,
+      acceptAnyStatus: true,
+    });
+    const rateLimit: AzureRateLimit = readAzureRateLimit(response.headers);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return { response, rateLimit };
+    }
+
+    throw new AzureArmError(
+      LlmProviderError.from({
+        error: getDataSourceHttpStatusError(
+          response.statusCode,
+          response.bodyText || "",
+        ),
+        step: request.step,
+        providerTitle: request.providerTitle,
+        secretValues: request.secretValues,
+      }),
+      rateLimit,
+    );
+  }
+
+  // send(), answered as a JSON object.
+  private async requestJson(
+    request: LlmProviderRequest,
+  ): Promise<AzureArmAnswer> {
+    return AzureArm.readJsonAnswer(request, await this.send(request));
+  }
+
+  // An answer's JSON object, else LlmProviderHttp.requestJson's failure.
+  private static readJsonAnswer(
+    request: LlmProviderRequest,
+    sent: { response: DataSourceHttpResponse; rateLimit: AzureRateLimit },
+  ): AzureArmAnswer {
+    const json: unknown = sent.response.bodyJson;
+
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      throw new LlmProviderError({
+        message: LlmProviderError.redact(
+          `${request.providerTitle} ${request.step} returned a response that is not a JSON object (HTTP ${sent.response.statusCode}).`,
+          request.secretValues,
+        ),
+        kind: LlmProviderError.kindFromStatus(sent.response.statusCode),
+        statusCode: sent.response.statusCode,
+      });
+    }
+
+    return { body: json as JSONObject, rateLimit: sent.rateLimit };
+  }
+
+  /*
+   * One Cost Management query (a POST of its body, or of its next page),
+   * asked once: whoever asks paces it and asks again (AzureCostManagement),
+   * from what the answer's headers say - handed back with its JSON, and on
+   * the AzureArmError a throttled answer is thrown as. Each request is one
+   * of the read's budget, and names OneUptime as its client type.
+   */
+  public async queryCostManagement(
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<AzureArmAnswer> {
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const token: string = await this.tokens.getAccessToken(
+      this.getManagementBaseUrl(),
+    );
+    const request: LlmProviderRequest = {
+      transport: this.options.transport,
+      method: "POST",
+      url,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ClientType: AZURE_COST_CLIENT_TYPE,
+      },
+      body: JSON.stringify(body),
+      timeoutInMs: this.options.requestTimeoutInMs,
+      step,
+      providerTitle: PROVIDER_TITLE,
+      secretValues: [this.options.clientSecret, token],
+    };
+
+    /*
+     * 204 No Content: the reference's "resource is not available" - no
+     * costs to give, which reads as an empty answer, not a failure.
+     */
+    const sent: {
+      response: DataSourceHttpResponse;
+      rateLimit: AzureRateLimit;
+    } = await this.send(request);
+
+    if (sent.response.statusCode === 204) {
+      return { body: {}, rateLimit: sent.rateLimit };
+    }
+
+    return AzureArm.readJsonAnswer(request, sent);
+  }
+
+  // Whether a URL is on the management host, where the token may go.
+  public isManagementUrl(url: string): boolean {
+    try {
+      return new URL(url).host === new URL(this.getManagementBaseUrl()).host;
+    } catch {
+      return false;
+    }
   }
 
   /*
@@ -294,21 +500,23 @@ export default class AzureArm {
           AZURE_STORAGE_RESOURCE,
         );
 
-        return await LlmProviderHttp.send({
-          transport: this.options.transport,
-          method: "GET",
-          url: data.url,
-          headers: {
-            ...(data.headers || {}),
-            Authorization: `Bearer ${token}`,
-            "x-ms-version": AZURE_STORAGE_SERVICE_VERSION,
-          },
-          timeoutInMs: this.options.requestTimeoutInMs,
-          keepBodyBytes: data.keepBodyBytes,
-          step: data.step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        return (
+          await this.send({
+            transport: this.options.transport,
+            method: "GET",
+            url: data.url,
+            headers: {
+              ...(data.headers || {}),
+              Authorization: `Bearer ${token}`,
+              "x-ms-version": AZURE_STORAGE_SERVICE_VERSION,
+            },
+            timeoutInMs: this.options.requestTimeoutInMs,
+            keepBodyBytes: data.keepBodyBytes,
+            step: data.step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
       },
     });
   }
@@ -347,21 +555,23 @@ export default class AzureArm {
           this.getManagementBaseUrl(),
         );
 
-        return await LlmProviderHttp.requestJson({
-          transport: this.options.transport,
-          method: "POST",
-          url,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-          timeoutInMs: this.options.requestTimeoutInMs,
-          step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        return (
+          await this.requestJson({
+            transport: this.options.transport,
+            method: "POST",
+            url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).body;
       },
     });
   }
@@ -429,21 +639,23 @@ export default class AzureArm {
           this.getManagementBaseUrl(),
         );
 
-        const response: DataSourceHttpResponse = await LlmProviderHttp.send({
-          transport: this.options.transport,
-          method,
-          url,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-          timeoutInMs: this.options.requestTimeoutInMs,
-          step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        const response: DataSourceHttpResponse = (
+          await this.send({
+            transport: this.options.transport,
+            method,
+            url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
 
         return readObject(response.bodyJson);
       },
@@ -534,29 +746,36 @@ export default class AzureArm {
     return await withCloudRetries({
       sleep: this.options.sleep,
       call: async (): Promise<JSONObject> => {
-        if (this.options.budget && !this.options.budget.take()) {
-          throw new CloudReadBudgetSpent();
-        }
-
-        const token: string = await this.tokens.getAccessToken(
-          this.getManagementBaseUrl(),
-        );
-
-        return await LlmProviderHttp.requestJson({
-          transport: this.options.transport,
-          method: "GET",
-          url,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-          timeoutInMs: this.options.requestTimeoutInMs,
-          step,
-          providerTitle: PROVIDER_TITLE,
-          secretValues: [this.options.clientSecret, token],
-        });
+        return await this.getOnce(url, step);
       },
     });
+  }
+
+  // One GET on the management host, signed in as the app: a request of the budget.
+  private async getOnce(url: string, step: string): Promise<JSONObject> {
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const token: string = await this.tokens.getAccessToken(
+      this.getManagementBaseUrl(),
+    );
+
+    return (
+      await this.requestJson({
+        transport: this.options.transport,
+        method: "GET",
+        url,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        timeoutInMs: this.options.requestTimeoutInMs,
+        step,
+        providerTitle: PROVIDER_TITLE,
+        secretValues: [this.options.clientSecret, token],
+      })
+    ).body;
   }
 
   /*
@@ -694,6 +913,19 @@ export default class AzureArm {
           .filter((aggregation: string): boolean => {
             return Boolean(aggregation) && aggregation !== "None";
           });
+        const dimensions: Array<{ name: string; displayName: string }> =
+          readArray(definition["dimensions"])
+            .map((raw: unknown): { name: string; displayName: string } => {
+              const dimension: JSONObject = readObject(raw);
+
+              return {
+                name: readText(dimension["value"]),
+                displayName: readText(dimension["localizedValue"]),
+              };
+            })
+            .filter((dimension: { name: string }): boolean => {
+              return Boolean(dimension.name);
+            });
 
         return {
           name: readText(readObject(definition["name"])["value"]),
@@ -716,6 +948,7 @@ export default class AzureArm {
           ...(definition["isDimensionRequired"] === true
             ? { isDimensionRequired: true }
             : {}),
+          ...(dimensions.length > 0 ? { dimensions } : {}),
         };
       })
       .filter((definition: AzureMetricDefinition): boolean => {
@@ -740,6 +973,12 @@ export default class AzureArm {
     end: Date;
     splitBy?: string | undefined;
     top?: number | undefined;
+    /*
+     * A split read's order, the busiest values first: the aggregation the
+     * `top` values are picked by ("sum desc"), for an added metric split by
+     * a dimension of its own (#9808).
+     */
+    orderBy?: string | undefined;
   }): Promise<AzureMetricsAnswer> {
     AzureMonitorClient.assertResourceId(data.resourceId);
 
@@ -780,13 +1019,21 @@ export default class AzureArm {
           ? ([
               ["$filter", `${splitBy} eq '*'`],
               ["top", top],
+              ...(data.orderBy && SPLIT_ORDER_PATTERN.test(data.orderBy)
+                ? [["orderby", data.orderBy]]
+                : []),
               ["ValidateDimensions", "false"],
             ] as Array<[string, string | number]>)
           : []),
       ],
     )}`;
 
-    const response: JSONObject = await this.get(url, "metrics request");
+    /*
+     * Asked once: whoever reads the metrics asks again, after Azure's own
+     * wait (AzureMetricCalls), and an answer of only some metrics is no
+     * failure to ask again whole.
+     */
+    const response: JSONObject = await this.getOnce(url, "metrics request");
     const aggregationOf: Dictionary<string> = {};
 
     for (const metric of data.metrics) {
@@ -798,6 +1045,144 @@ export default class AzureArm {
       failures: AzureArm.readMetricFailures(response),
       capped: splitBy ? AzureArm.readCappedMetrics(response, top) : [],
     };
+  }
+
+  /*
+   * Whether a Region's metrics may be read in batches (getMetricsBatch):
+   * Azure Monitor's data plane answers getBatch in the public cloud, at a
+   * host of each Region's own. A global resource (a Front Door profile) and
+   * Azure Government's are read a resource at a time, as before: the few
+   * global ones a subscription has gain little from a batch.
+   */
+  public canBatchMetrics(region: string): boolean {
+    const name: string = region.trim().toLowerCase();
+
+    return (
+      this.options.cloud === "public" &&
+      name !== "global" &&
+      AZURE_METRICS_BATCH_REGION_PATTERN.test(name)
+    );
+  }
+
+  /*
+   * The same metrics of up to AZURE_METRICS_BATCH_MAX_RESOURCES resources at
+   * once - of one subscription, one Region and one type - from Azure
+   * Monitor's regional data plane (metrics:getBatch, which Microsoft
+   * recommends over a call per resource for a heavy reader: one request on
+   * Azure Monitor's own data plane, rather than a Resource Manager request
+   * per resource). Signed in for the data plane
+   * (https://metrics.monitor.azure.com), which takes Monitoring Reader on
+   * the subscription itself; the token goes to that Region's host alone.
+   * Each resource's answer, by its lowercased id: its series and the
+   * metrics Azure could not read of it, as getMetrics answers one. Never
+   * split by a dimension: a split read is a resource's own call. Asked
+   * once, as getMetrics is: its caller asks again (AzureMetricReads).
+   */
+  public async getMetricsBatch(data: {
+    subscriptionId: string;
+    region: string;
+    // The resources' type, which is the metrics' namespace.
+    namespace: string;
+    resourceIds: Array<string>;
+    metrics: Array<{ name: string; aggregation: string }>;
+    interval: string;
+    start: Date;
+    end: Date;
+  }): Promise<Map<string, AzureMetricsAnswer>> {
+    EntraTokenClient.validateGuid(data.subscriptionId, "Subscription ID");
+
+    const region: string = data.region.trim().toLowerCase();
+
+    if (!this.canBatchMetrics(region)) {
+      throw new BadDataException(
+        `Azure Monitor's metrics cannot be read in batches in "${data.region}".`,
+      );
+    }
+
+    if (
+      data.resourceIds.length === 0 ||
+      data.resourceIds.length > AZURE_METRICS_BATCH_MAX_RESOURCES
+    ) {
+      throw new BadDataException(
+        `A metrics batch reads 1 to ${AZURE_METRICS_BATCH_MAX_RESOURCES} resources.`,
+      );
+    }
+
+    for (const resourceId of data.resourceIds) {
+      AzureMonitorClient.assertResourceId(resourceId);
+    }
+
+    if (this.options.budget && !this.options.budget.take()) {
+      throw new CloudReadBudgetSpent();
+    }
+
+    const aggregations: Array<string> = Array.from(
+      new Set(
+        data.metrics.map((metric: { aggregation: string }): string => {
+          return metric.aggregation;
+        }),
+      ),
+    );
+    const host: string = `${region}.${AZURE_METRICS_DATA_PLANE_SUFFIX}`;
+    const url: string = `https://${host}/subscriptions/${encodeURIComponent(
+      data.subscriptionId.trim(),
+    )}/metrics:getBatch?${buildQueryString([
+      ["starttime", data.start.toISOString()],
+      ["endtime", data.end.toISOString()],
+      ["interval", data.interval],
+      ["metricnamespace", data.namespace],
+      [
+        "metricnames",
+        data.metrics
+          .map((metric: { name: string }): string => {
+            return metric.name;
+          })
+          .join(","),
+      ],
+      ["aggregation", aggregations.join(",")],
+      ["api-version", AZURE_METRICS_BATCH_API_VERSION],
+    ])}`;
+    const token: string = await this.tokens.getAccessToken(
+      AZURE_METRICS_DATA_PLANE_RESOURCE,
+    );
+    const answer: AzureArmAnswer = await this.requestJson({
+      transport: this.options.transport,
+      method: "POST",
+      url,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      // The property's name is lower case, as the reference requires.
+      body: JSON.stringify({ resourceids: data.resourceIds }),
+      timeoutInMs: this.options.requestTimeoutInMs,
+      step: "metrics batch request",
+      providerTitle: PROVIDER_TITLE,
+      secretValues: [this.options.clientSecret, token],
+    });
+    const aggregationOf: Dictionary<string> = {};
+
+    for (const metric of data.metrics) {
+      aggregationOf[metric.name.toLowerCase()] = metric.aggregation;
+    }
+
+    const answers: Map<string, AzureMetricsAnswer> = new Map();
+
+    for (const raw of readArray(answer.body["values"])) {
+      const values: JSONObject = readObject(raw);
+      const resourceId: string = readText(values["resourceid"]).toLowerCase();
+
+      if (resourceId) {
+        answers.set(resourceId, {
+          series: AzureArm.readMetricSeries(values, aggregationOf),
+          failures: AzureArm.readMetricFailures(values),
+          capped: [],
+        });
+      }
+    }
+
+    return answers;
   }
 
   /*

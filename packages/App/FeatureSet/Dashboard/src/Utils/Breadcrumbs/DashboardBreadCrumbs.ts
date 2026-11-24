@@ -107,6 +107,18 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "View Dashboard",
       "Custom Domains",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_PRIVATE_USERS, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Private Users",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON, [
+      "Project",
+      "Dashboards",
+      "View Dashboard",
+      "Single Sign-On",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARD_VIEW_AUDIT_LOGS, [
       "Project",
       "Dashboards",

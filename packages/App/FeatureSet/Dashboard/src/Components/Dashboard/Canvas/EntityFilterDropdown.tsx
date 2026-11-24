@@ -10,6 +10,10 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import Color from "Common/Types/Color";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -158,6 +162,13 @@ const toDropdownOption: ToDropdownOptionFunction = (
 
   if (color) {
     option.color = color;
+  }
+
+  // A label that shares its name is told apart from the others (#10064).
+  const sharedName: DropdownOption["sharedName"] = getSharedNameFacts(item);
+
+  if (sharedName) {
+    option.sharedName = sharedName;
   }
 
   return option;
@@ -412,6 +423,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
             select: {
               ...(def.optionSelect || {}),
               ...getOptionSelect(colorColumnName),
+              ...getSharedNameSelect(def.modelType),
             },
             sort: { [def.sortField]: def.sortOrder } as Record<
               string,

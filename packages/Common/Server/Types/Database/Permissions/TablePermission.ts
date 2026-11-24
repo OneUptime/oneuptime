@@ -186,6 +186,36 @@ export default class TablePermission {
   }
 
   /*
+   * Whether the caller may read the table at all, asked before a service's
+   * read hook acts on it: the table half of the read the CRUD path weighs
+   * after the hooks (an allow row for one of its read permissions, and no
+   * block with no labels on any of them), so a hook that does work for the
+   * read - asks a payment provider for the project's invoices and writes
+   * them again - does it only for a caller the read would let through.
+   * OneUptime itself and a master admin read every table.
+   */
+  @CaptureSpan()
+  public static assertCallerMayReadTable(
+    modelType: DatabaseBaseModelType,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    TablePermission.checkTableLevelPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Read,
+    );
+    TablePermission.checkTableLevelBlockPermissions(
+      modelType,
+      props,
+      DatabaseRequestType.Read,
+    );
+  }
+
+  /*
    * A WRITE NEEDS A READ. An update or a delete reaches only records the
    * caller may read (BasePermission.addRecordScopeToQuery), so a caller who
    * may read none of the table's records changes and deletes none of them:

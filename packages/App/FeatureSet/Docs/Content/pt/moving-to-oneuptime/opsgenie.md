@@ -55,9 +55,9 @@ O relatório conta o que foi criado, convidado e não trazido, e lista cada item
 | No Opsgenie | No OneUptime | Como |
 | --- | --- | --- |
 | Usuários | Membros do projeto | Associados pelo endereço de e-mail. Quem ainda não está no projeto é convidado para a equipe que você escolher. Usuários bloqueados não são trazidos. |
-| Equipes | Equipes | Criadas com seus membros. Uma equipe cujo nome o projeto já tem é usada como está, e seus membros não são alterados. |
-| Agendamentos | Agendamentos de plantão | Cada rotação vira uma camada com as mesmas pessoas, o mesmo início, a mesma duração de turno e a mesma restrição de horário, no fuso horário do agendamento, pertencente à equipe do agendamento. |
-| Escalonamentos | Políticas de plantão | Cada regra vira uma regra de escalonamento que aciona o mesmo agendamento, usuário ou equipe. Regras com o mesmo atraso acionam juntas, e a espera antes da próxima regra de escalonamento é a diferença entre os atrasos. As repetições do escalonamento viram as repetições da política. |
+| Equipes | Equipes | Criadas com seus membros. Uma equipe cujo nome o projeto já tem é usada como está, e seus membros não são alterados. Se duas equipes têm o mesmo nome, o segundo item vem com um número, por exemplo `Platform 2`, e o relatório diz o nome com que foi criado. |
+| Agendamentos | Agendamentos de plantão | Cada rotação vira uma camada com as mesmas pessoas, o mesmo início, a mesma duração de turno e a mesma restrição de horário, no fuso horário do agendamento, pertencente à equipe do agendamento. Se dois agendamentos têm o mesmo nome, o segundo item vem com um número, por exemplo `Primary 2`, e o relatório diz o nome com que foi criado. |
+| Escalonamentos | Políticas de plantão | Cada regra vira uma regra de escalonamento que aciona o mesmo agendamento, usuário ou equipe. Regras com o mesmo atraso acionam juntas, e a espera antes da próxima regra de escalonamento é a diferença entre os atrasos. As repetições do escalonamento viram as repetições da política. Se dois escalonamentos têm o mesmo nome, o segundo item vem com um número, por exemplo `Primary 2`, e o relatório diz o nome com que foi criado. |
 | Serviços | Serviços | Criados no catálogo de serviços, pertencentes à sua equipe. |
 
 Um agendamento cujas rotações colocam duas pessoas de plantão ao mesmo tempo vira um agendamento do OneUptime por rotação, porque um agendamento do OneUptime tem uma pessoa de plantão por vez. Cada política de plantão que acionava o agendamento aciona todos eles.

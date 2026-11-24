@@ -1,4 +1,9 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  ReaderDateTimeFormat,
+  getDateLocale,
+  getDateTimeFormat,
+  writeClockInLocale,
+} from "Common/Types/DateLanguage";
 import RestrictionTimes from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours, {
   WorkingHoursSpan,
@@ -132,34 +137,39 @@ export interface WorkingHoursOfRule {
   workingHoursTimezone?: string | null | undefined;
 }
 
-// "17:00" as the reader's clock shows it: "17:00", or "5:00 PM".
+/*
+ * "17:00" as the reader's clock shows it: "17:00", "17.00" in Danish,
+ * "۱۷:۰۰" in Persian (writeClockInLocale, #7914), or "5:00 PM" on a
+ * 12-hour clock. A clock of the day, not an instant: written at UTC.
+ */
 export const formatClock: (
   clock: string,
   options: WorkingHoursTextOptions,
 ) => string = (clock: string, options: WorkingHoursTextOptions): string => {
   const minuteOfDay: number | null = WorkingHours.parseClock(clock);
+  const locale: string = getDateLocale(options.translator.language);
 
-  if (minuteOfDay === null || !options.use12HourFormat) {
+  if (minuteOfDay === null) {
     return clock;
   }
 
-  try {
-    return new Intl.DateTimeFormat(
-      getNumberLocale(options.translator.language || "en"),
-      {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "UTC",
-      },
-    ).format(
-      new Date(
-        Date.UTC(2024, 0, 1, Math.floor(minuteOfDay / 60), minuteOfDay % 60),
-      ),
-    );
-  } catch {
-    return clock;
+  if (!options.use12HourFormat) {
+    return writeClockInLocale(clock, locale);
   }
+
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: locale,
+    timezones: ["UTC"],
+    options: { hour: "numeric", minute: "2-digit", hour12: true },
+  });
+
+  return format
+    ? format.format(
+        new Date(
+          Date.UTC(2024, 0, 1, Math.floor(minuteOfDay / 60), minuteOfDay % 60),
+        ),
+      )
+    : clock;
 };
 
 /*

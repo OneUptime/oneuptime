@@ -160,6 +160,7 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
 
 /*
  * DATA OBSERVABILITY'S OWN ROUTES, BESIDE THE DATA ASSET CRUD ROUTES.
@@ -227,32 +228,47 @@ import ProductKey from "../../Types/Product/ProductKey";
  * on is Data Security's call.
  */
 
-const READ_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
-  Permission.ReadDataAsset,
-];
+/*
+ * Who reads, operates and connects Data Observability, with its own levels
+ * (Types/Product/ProductLevels): Data Observability Viewer reads, its Member
+ * operates and its Admin connects, as Viewer, Project Member and Project
+ * Admin do.
+ */
+const READ_PERMISSIONS: Array<Permission> = withProductLevelsOf({
+  products: [ProductKey.DataObservability],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+    Permission.ReadDataAsset,
+  ],
+});
 
-const OPERATE_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.EditDataAsset,
-];
+const OPERATE_PERMISSIONS: Array<Permission> = withProductLevelsOf({
+  products: [ProductKey.DataObservability],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.EditDataAsset,
+  ],
+});
 
-const CONNECT_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.TelemetryAdmin,
-  Permission.CreateDataAsset,
-];
+const CONNECT_PERMISSIONS: Array<Permission> = withProductLevelsOf({
+  products: [ProductKey.DataObservability],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.TelemetryAdmin,
+    Permission.CreateDataAsset,
+  ],
+});
 
 // The kinds Data Observability collects today.
 export const COLLECTABLE_KINDS: ReadonlyArray<DataStoreKind> = [

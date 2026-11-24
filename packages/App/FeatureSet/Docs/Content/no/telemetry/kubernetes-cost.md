@@ -63,7 +63,7 @@ De første kostnadene vises etter at den første hele timen er avsluttet, og Ope
 
 Kostnadsmålingene (`node_total_hourly_cost`, `pv_hourly_cost` og resten) er vanlige målinger: de finnes i målingsutforskeren, på egendefinerte dashbord og i målingsmonitorer. For et ferdig dashbord, gå til **Produkter → Dashbord**, velg **Opprett dashbord** og velg **Kubernetes Cost Dashboard**: trender for nodenes timekostnad, enhetskostnader for CPU og minne, og forbruk på volumer og lastbalanserere.
 
-Under tallene viser oversikten og siden **Kostnader** hvor prisene kommer fra: en skyleverandørs listepriser, prislisten din eller standardprisene til OpenCost, uansett hvilken motor som priser klyngen, også Kubecost 3. En Kubecost som leser skyregningen din, avstemmer prisene sine mot regningen omtrent halvannet døgn etter hver time, så linjen sier da at tallene er listeprisene dens fra før avstemmingen. Effektivitet er ett og samme tall overalt, også i effektivitetsmålingen: hvor mye av den forespurte CPU-en og minnet som ble brukt, der hver containers time vektes etter hva CPU-en og minnet dens koster, slik at en billig jobb som ikke bruker noe, ikke kan trekke ned en godt utnyttet klynge, og ledig kapasitet telles ikke med.
+Under tallene viser oversikten og siden **Kostnader** hvor prisene kommer fra: en skyleverandørs listepriser, prislisten din eller standardprisene til OpenCost, uansett hvilken motor som priser klyngen, også Kubecost 3. En Kubecost som leser skyregningen din, avstemmer prisene sine mot regningen omtrent to døgn etter hver time, og OneUptime henter inn hver avstemte time, så linjen sier hvor langt tallene er avstemt mot regningen din. Effektivitet er ett og samme tall overalt, også i effektivitetsmålingen: hvor mye av den forespurte CPU-en og minnet som ble brukt, der hver containers time vektes etter hva CPU-en og minnet dens koster, slik at en billig jobb som ikke bruker noe, ikke kan trekke ned en godt utnyttet klynge, og ledig kapasitet telles ikke med.
 
 ## Kjører du allerede Kubecost eller OpenCost?
 
@@ -191,7 +191,7 @@ Les loggene: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost`.
 :::
 
 :::details Oversikten sier at den medfølgende OpenCost ikke trengs
-Klyngen kjører sin egen Kubecost eller OpenCost, og kostnadsagenten leser den, så OpenCost som fulgte med chartet, priser ingenting. Oppgrader med `--set cost.engine.url=auto` for å slutte å kjøre den og dens Prometheus, eller sett `cost.engine.preferExisting=false` for å lese den medfølgende motoren i stedet. Med Kubecost 3, som ikke leser noen Prometheus, kommer minneanbefalingene fra den medfølgende: angi en annen med `cost.engine.prometheusUrl` i samme oppgradering.
+Klyngen kjører sin egen Kubecost eller OpenCost, og kostnadsagenten leser den, så OpenCost som fulgte med chartet, priser ingenting. Oppgrader med `--set cost.engine.url=auto` for å slutte å kjøre den og dens Prometheus, eller sett `cost.engine.preferExisting=false` for å lese den medfølgende motoren i stedet. Når minneanbefalingene kommer fra den medfølgende Prometheus, som med Kubecost 3, som ikke leser noen, sier meldingen det: angi en annen med `cost.engine.prometheusUrl` i samme oppgradering, eller behold den medfølgende motoren. Kostnadsagenten stopper den aldri selv: den skriver ingenting til klyngen din, og den medfølgende motoren er reserven dens så lenge din ikke svarer.
 :::
 
 :::details Kostnadsagenten leser ikke motoren din
@@ -215,7 +215,7 @@ Ingen minnetopp nådde OneUptime, så minnet ble ikke dimensjonert i stedet for 
 :::
 
 :::details Tallene avviker fra motorens eget grensesnitt
-OneUptime sender hele, avsluttede timer, slik motoren priset dem da de var avsluttet, med avstemmingsjusteringene dens inkludert: forbruket for den nåværende timen vises etter at den er avsluttet. En Kubecost som leser skyregningen din, avstemmer hver time mot den omtrent halvannet døgn senere, og OneUptime beholder timen slik den først ble priset.
+OneUptime sender hele, avsluttede timer, slik motoren priset dem da de var avsluttet, med avstemmingsjusteringene dens inkludert: forbruket for den nåværende timen vises etter at den er avsluttet. En Kubecost som leser skyregningen din, avstemmer hver time mot den omtrent to døgn senere: OneUptime leser timen på nytt 36 timer, 47 timer og 4 dager etter, og henter inn det som endret seg. Kubecost beholder tallene for hver time i 49 timer som standard, så en time den avstemmer etter det, beholder tallet OneUptime leste sist: behold dem i 4 dager for å hente inn hver avstemming (`kubecostAggregator.etlHourlyStoreDurationHours: 96` med Kubecost 2, `aggregator.retention1h: 96` med Kubecost 3).
 :::
 
 :::details Den medfølgende Prometheus startet på nytt

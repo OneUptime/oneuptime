@@ -8,6 +8,9 @@ import {
   DATADOG_ROOT_PATHS,
   DATADOG_SERIES_V1_PATH,
   DATADOG_SERIES_V2_PATH,
+  DATADOG_TRACER_TRACES_PATHS,
+  DATADOG_TRACES_PATH,
+  DATADOG_TRACE_STATS_PATH,
   DATADOG_VALIDATE_PATH,
   LOKI_PUSH_PATH,
   PROMETHEUS_REMOTE_WRITE_PATH,
@@ -54,6 +57,8 @@ describe("isCompatibleIngestPath", () => {
     ["/telemetry/loki/api/v1/push//"],
     ["/SERVICES/COLLECTOR/EVENT"],
     ["/telemetry/datadog/api/v2/series/"],
+    ["/telemetry/datadog/api/v0.2/traces/"],
+    ["/Telemetry/Datadog/V0.4/Traces"],
     ["/telemetry/sentry/api/1/envelope/"],
     ["/sentry/api/1/store/"],
   ])("%s, as the router matches it, is read raw too", (own: string) => {
@@ -69,6 +74,11 @@ describe("isCompatibleIngestPath", () => {
     ["/api/monitor"],
     ["/api/v1/other"],
     ["/datadog/api/v1/other"],
+    ["/datadog/v0.6/stats"],
+    ["/datadog/v1.0/traces"],
+    ["/datadog/info"],
+    ["/v0.4/traces"],
+    ["/api/v0.2/traces"],
     ["/sentry/api/1/minidump"],
     ["/sentry/api/1/envelope/extra"],
     ["/api/telemetry/prometheus/api/v1/write"],
@@ -89,12 +99,34 @@ describe("isCompatibleIngestPath", () => {
     );
     expect(DATADOG_ROOT_PATHS).toEqual([DATADOG_LOGS_PATH]);
 
-    // dd_url takes a path, so the rest stay OneUptime's own API's.
+    // dd_url and apm_dd_url take a path, so the rest stay OneUptime's own API's.
     expect(isCompatibleIngestPath(DATADOG_SERIES_V2_PATH)).toBe(false);
+    expect(isCompatibleIngestPath(DATADOG_TRACES_PATH)).toBe(false);
     expect(isCompatibleIngestPath("/intake")).toBe(false);
     expect(isCompatibleIngestPath(`/datadog${DATADOG_SERIES_V2_PATH}`)).toBe(
       true,
     );
+  });
+
+  test("the Agent's APM intake and a tracer's own trace endpoints are served under /datadog", () => {
+    expect(DATADOG_TRACES_PATH).toBe("/api/v0.2/traces");
+    expect(DATADOG_TRACE_STATS_PATH).toBe("/api/v0.2/stats");
+    expect(DATADOG_TRACER_TRACES_PATHS).toEqual([
+      "/v0.3/traces",
+      "/v0.4/traces",
+      "/v0.5/traces",
+    ]);
+
+    for (const tracePath of [
+      DATADOG_TRACES_PATH,
+      DATADOG_TRACE_STATS_PATH,
+      ...DATADOG_TRACER_TRACES_PATHS,
+    ]) {
+      expect(DATADOG_PATHS).toContain(tracePath);
+      expect(isCompatibleIngestPath(`/telemetry/datadog${tracePath}`)).toBe(
+        true,
+      );
+    }
   });
 
   test("StartServer's body parsers and urlencoded parser both leave these paths alone", () => {

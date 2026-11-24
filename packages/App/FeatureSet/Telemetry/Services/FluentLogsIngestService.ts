@@ -37,6 +37,9 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
@@ -250,6 +253,18 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         logger.error(loadError);
       }
 
+      /*
+       * The addresses this batch's IP Address Hash rules hide, kept for
+       * Security Events' address vault when Security Events reads the
+       * project's logs (#10395), and written after the batch's logs.
+       */
+      const addressVault: SecurityAddressVaultBatch | null =
+        await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
+
       const dbLogs: Array<JSONObject> = [];
       let processed: number = 0;
       /*
@@ -349,7 +364,11 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           }
 
           if (loadedScrubRules.length > 0) {
-            logRow = LogScrubRuleService.scrubLog(logRow, loadedScrubRules);
+            logRow = LogScrubRuleService.scrubLog(
+              logRow,
+              loadedScrubRules,
+              addressVault,
+            );
           }
 
           if (loadedPipelines.length > 0) {
@@ -382,6 +401,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
        * re-processes the payload.
        */
       await Promise.all(pendingAcks);
+
+      // The logs are stored: their hashed addresses go to the vault, on their own.
+      addressVault?.write();
 
       if (processed === 0) {
         logger.warn("Fluent logs ingest: no valid entries processed");

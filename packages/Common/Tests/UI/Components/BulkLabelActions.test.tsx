@@ -630,9 +630,17 @@ describe("useBulkLabelActions", () => {
     expect(call.skip).toBe(0);
     /*
      * `color` has to be selected or the add dropdown loses the colour swatch;
-     * `labels` must not be, since Label has no labels of its own.
+     * `labels` must not be, since Label has no labels of its own. A
+     * label's description and when it was made tell two of one name apart
+     * (SharedNameOptions, #10064).
      */
-    expect(call.select).toEqual({ _id: true, name: true, color: true });
+    expect(call.select).toEqual({
+      _id: true,
+      name: true,
+      color: true,
+      description: true,
+      createdAt: true,
+    });
     expect(call.sort).toEqual({ name: SortOrder.Ascending });
   });
 

@@ -1,6 +1,9 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
-import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { kubernetesObjectKey } from "Common/Types/Kubernetes/KubernetesHealth";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
@@ -41,6 +44,12 @@ export interface ComponentProps {
   onRetry?: (() => void) | undefined;
   routes: KubernetesPartRoutes;
   refreshToken?: number | undefined;
+  /*
+   * What the cluster's recommendations for this part depend on: a node
+   * whose images have a disk of their own is offered the alert on it
+   * (#10056).
+   */
+  alertContext?: MonitorRecommendationContext | undefined;
 }
 
 const KubernetesPartOverview: FunctionComponent<ComponentProps> = (
@@ -134,6 +143,7 @@ const KubernetesPartOverview: FunctionComponent<ComponentProps> = (
           description={copy.alertsDescription}
           resourceType={MonitorRecommendationResourceType.Kubernetes}
           templateIds={templateIds}
+          context={props.alertContext}
           resourceId={props.clusterId}
           resourceIdentifier={props.clusterIdentifier}
           getRecommendationsRoute={props.routes.getRecommendationsRoute}

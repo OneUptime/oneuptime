@@ -8,14 +8,19 @@ import {
 } from "@jest/globals";
 import Dashboard from "../../../../../Models/DatabaseModels/Dashboard";
 import MetricPipelineRule from "../../../../../Models/DatabaseModels/MetricPipelineRule";
+import MetricRecordingRule from "../../../../../Models/DatabaseModels/MetricRecordingRule";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import Service from "../../../../../Models/DatabaseModels/Service";
+import ServiceLevelObjective from "../../../../../Models/DatabaseModels/ServiceLevelObjective";
 import AnalyticsDatabaseService, {
   Results,
 } from "../../../../../Server/Services/AnalyticsDatabaseService";
 import DashboardService from "../../../../../Server/Services/DashboardService";
 import LogScrubRuleService from "../../../../../Server/Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../../../Server/Services/MetricPipelineRuleService";
+import MetricRecordingRuleService from "../../../../../Server/Services/MetricRecordingRuleService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
+import ServiceLevelObjectiveService from "../../../../../Server/Services/ServiceLevelObjectiveService";
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
 import CreateBy from "../../../../../Server/Types/Database/CreateBy";
 import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -50,6 +55,7 @@ import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DataSecurityDropMetricImpact,
+  DataSecurityMetricUser,
   DataSecurityDropMetricUnavailableReason,
 } from "../../../../../Types/DataSecurity/DataSecurityApiTypes";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
@@ -64,6 +70,7 @@ import {
 } from "../../../../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import MetricPipelineRuleType from "../../../../../Types/Metrics/MetricPipelineRuleType";
 import ObjectID from "../../../../../Types/ObjectID";
+import SliType from "../../../../../Types/ServiceLevelObjective/SliType";
 
 /*
  * DROP THIS METRIC (issue #9757).
@@ -73,8 +80,9 @@ import ObjectID from "../../../../../Types/ObjectID";
  * so from being stored at all, until the code that names them is fixed.
  * Their points are lost for good, so it is never Scrub It's: a rule of its
  * own, made only when asked for after the page has said what it drops and
- * which monitors and dashboards it leaves without data - made as the person
- * who asked, audited as theirs, and undone by deleting it. The rule run
+ * which monitors, dashboards, SLOs and recording rules it leaves without
+ * data (#9946) - made as the person who asked, audited as theirs, and
+ * undone by deleting it. The rule run
  * through the metric pipeline itself is App's
  * DataSecurityMetricDropRuleIngest test.
  */
@@ -85,6 +93,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d9702");
 const CHECKOUT: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d9711");
 const PAYMENTS: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d9712");
+// A dashboard widget, as its dashboard names it.
+const CHART_ID: string = "0192f1a0-0000-7000-8000-0000000d9731";
 
 type Finding = {
   kind: DataStoreKind;
@@ -547,7 +557,17 @@ describe("which monitors and dashboards read a metric", () => {
 
 describe("what dropping would do, before it is asked for", () => {
   const NOW: Date = new Date("2026-11-19T12:00:00.000Z");
+  const JANE: string = "signups.jane.doe@acme-corp.com.count";
+  const KIM: string = "signups.kim.lee@acme-corp.com.count";
+  const READER: DatabaseCommonInteractionProps = {
+    userId: USER_ID,
+    tenantId: PROJECT_ID,
+  };
   let statements: Array<Statement>;
+  let monitors: Array<Monitor>;
+  let dashboards: Array<Dashboard>;
+  let slos: Array<ServiceLevelObjective>;
+  let rules: Array<MetricRecordingRule>;
 
   function monitorOf(name: string, metricName: string): Monitor {
     const monitor: Monitor = new Monitor(ObjectID.generate());
@@ -570,7 +590,11 @@ describe("what dropping would do, before it is asked for", () => {
     return monitor;
   }
 
-  function dashboardOf(name: string, metricName: string): Dashboard {
+  function dashboardOf(
+    name: string,
+    metricName: string,
+    widgetTitle: string = "Signups",
+  ): Dashboard {
     const dashboard: Dashboard = new Dashboard(ObjectID.generate());
     dashboard.name = name;
     (
@@ -578,7 +602,10 @@ describe("what dropping would do, before it is asked for", () => {
     ).dashboardViewConfig = {
       components: [
         {
+          componentType: "Chart",
+          componentId: { _type: "ObjectID", value: CHART_ID },
           arguments: {
+            chartTitle: widgetTitle,
             metricQueryConfig: {
               metricQueryData: { filterData: { metricName } },
             },
@@ -589,13 +616,70 @@ describe("what dropping would do, before it is asked for", () => {
     return dashboard;
   }
 
+  function sloOf(
+    name: string,
+    metricName: string,
+    serviceId: ObjectID = CHECKOUT,
+  ): ServiceLevelObjective {
+    const slo: ServiceLevelObjective = new ServiceLevelObjective(
+      ObjectID.generate(),
+    );
+    slo.name = name;
+    slo.sliType = SliType.Metric;
+    slo.metricQueryConfig = { metricName, kind: "Counter" };
+    slo.services = [new Service(serviceId)];
+    return slo;
+  }
+
+  function ruleOf(name: string, metricName: string): MetricRecordingRule {
+    const rule: MetricRecordingRule = new MetricRecordingRule(
+      ObjectID.generate(),
+    );
+    rule.name = name;
+    rule.outputMetricName = name.toLowerCase().replace(/ /g, "_");
+    rule.definition = {
+      sources: [{ alias: "A", metricName, aggregationType: "Sum" as never }],
+      expression: "A",
+    };
+    return rule;
+  }
+
+  /*
+   * A kind's records: all of them read as the server, and of those the
+   * reader asks about, the ones `visible` lets them read - or their role's
+   * refusal.
+   */
+  function serve<T extends { name?: string | undefined }>(
+    service: unknown,
+    all: () => Array<T>,
+    visible: ((record: T) => boolean) | Error = (): boolean => {
+      return true;
+    },
+  ): void {
+    jest
+      .spyOn(service as never, "findBy" as never)
+      .mockImplementation((async (findBy: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Array<T>> => {
+        if (findBy.props.isRoot) {
+          return all();
+        }
+
+        if (visible instanceof Error) {
+          throw visible;
+        }
+
+        return all().filter(visible);
+      }) as never);
+  }
+
   async function impactOf(
     finding: Finding = nameFinding(),
   ): Promise<DataSecurityDropMetricImpact> {
     return await getDropMetricImpact({
       projectId: PROJECT_ID,
       ...finding,
-      props: { userId: USER_ID, tenantId: PROJECT_ID },
+      props: READER,
       now: NOW,
     });
   }
@@ -611,29 +695,47 @@ describe("what dropping would do, before it is asked for", () => {
           json: (): Promise<unknown> => {
             return Promise.resolve({
               data: [
-                { metricName: "signups.jane.doe@acme-corp.com.count" },
-                { metricName: "signups.kim.lee@acme-corp.com.count" },
+                { metricName: JANE },
+                { metricName: KIM },
                 { metricName: "http.server.duration" },
               ],
             });
           },
         } as unknown as Results;
       }) as never);
-    jest
-      .spyOn(MonitorService, "findBy")
-      .mockResolvedValue([
-        monitorOf("Signups of Jane", "signups.jane.doe@acme-corp.com.count"),
-        monitorOf("Checkout latency", "http.server.duration"),
-      ] as never);
-    jest
-      .spyOn(DashboardService, "findBy")
-      .mockResolvedValue([
-        dashboardOf("Growth", "signups.kim.lee@acme-corp.com.count"),
-        dashboardOf("Latency", "http.server.duration"),
-      ] as never);
+    monitors = [
+      monitorOf("Signups of Jane", JANE),
+      monitorOf("Checkout latency", "http.server.duration"),
+    ];
+    dashboards = [
+      dashboardOf("Growth", KIM),
+      dashboardOf("Latency", "http.server.duration", "Latency"),
+    ];
+    slos = [
+      sloOf("Signup success", JANE),
+      // Another service's SLO of the same metric: its points are not dropped.
+      sloOf("Payments signups", JANE, PAYMENTS),
+      sloOf("Checkout latency", "http.server.duration"),
+    ];
+    rules = [
+      ruleOf("Signup rate", KIM),
+      ruleOf("Latency p99", "http.server.duration"),
+    ];
+    serve(MonitorService, () => {
+      return monitors;
+    });
+    serve(DashboardService, () => {
+      return dashboards;
+    });
+    serve(ServiceLevelObjectiveService, () => {
+      return slos;
+    });
+    serve(MetricRecordingRuleService, () => {
+      return rules;
+    });
   });
 
-  test("how many of the service's metrics it drops - their names never sent - and the monitors and dashboards that read them", async () => {
+  test("how many of the service's metrics it drops - their names never sent - and every monitor, dashboard widget, SLO and recording rule that reads them", async () => {
     const impact: DataSecurityDropMetricImpact = await impactOf();
 
     expect(impact).toEqual({
@@ -642,10 +744,30 @@ describe("what dropping would do, before it is asked for", () => {
       metricsMatched: 2,
       isMetricsMatchedCapped: false,
       metricsCounted: true,
-      monitors: [{ id: expect.any(String), name: "Signups of Jane" }],
-      dashboards: [{ id: expect.any(String), name: "Growth" }],
+      monitors: [{ id: monitors[0]!.id!.toString(), name: "Signups of Jane" }],
+      dashboards: [
+        {
+          id: dashboards[0]!.id!.toString(),
+          name: "Growth",
+          widgets: [{ id: CHART_ID, title: "Signups", type: "Chart" }],
+        },
+      ],
+      slos: [{ id: slos[0]!.id!.toString(), name: "Signup success" }],
+      recordingRules: [
+        {
+          id: rules[0]!.id!.toString(),
+          name: "Signup rate",
+          outputMetricName: "signup_rate",
+        },
+      ],
       monitorsChecked: true,
       dashboardsChecked: true,
+      slosChecked: true,
+      recordingRulesChecked: true,
+      monitorsHidden: 0,
+      dashboardsHidden: 0,
+      slosHidden: 0,
+      recordingRulesHidden: 0,
     });
     // No metric's name in the answer: they hold the data.
     expect(JSON.stringify(impact)).not.toContain("acme-corp.com");
@@ -665,23 +787,212 @@ describe("what dropping would do, before it is asked for", () => {
     expect(names!.query).toContain("max_execution_time = 20");
   });
 
-  test("monitors and dashboards are read with the reader's own permissions, and one they may not read is said to be unchecked", async () => {
-    jest
-      .spyOn(MonitorService, "findBy")
-      .mockRejectedValue(new NotAuthorizedException("No.") as never);
-    jest.spyOn(logger, "debug").mockImplementation((): void => {});
+  test("none reads them: every kind checked, none named, none hidden", async () => {
+    monitors = [monitorOf("Checkout latency", "http.server.duration")];
+    dashboards = [];
+    slos = [];
+    rules = [];
 
     const impact: DataSecurityDropMetricImpact = await impactOf();
 
-    expect(impact.monitorsChecked).toBe(false);
+    expect(impact).toMatchObject({
+      monitors: [],
+      dashboards: [],
+      slos: [],
+      recordingRules: [],
+      monitorsChecked: true,
+      dashboardsChecked: true,
+      slosChecked: true,
+      recordingRulesChecked: true,
+      monitorsHidden: 0,
+      dashboardsHidden: 0,
+      slosHidden: 0,
+      recordingRulesHidden: 0,
+    });
+  });
+
+  test("many read them: every one named, by name", async () => {
+    monitors = Array.from({ length: 12 }, (_: unknown, index: number) => {
+      return monitorOf(`Signups ${String(index).padStart(2, "0")}`, JANE);
+    });
+    rules = Array.from({ length: 7 }, (_: unknown, index: number) => {
+      return ruleOf(`Rate ${index}`, KIM);
+    });
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+
+    expect(impact.monitors).toHaveLength(12);
+    expect(impact.monitors[0]!.name).toBe("Signups 00");
+    expect(impact.recordingRules).toHaveLength(7);
+  });
+
+  test("what the reader may not read is counted, never named: monitors their role cannot read, an SLO they do not own", async () => {
+    monitors.push(monitorOf("Secret signups", KIM));
+    serve(
+      MonitorService,
+      () => {
+        return monitors;
+      },
+      new NotAuthorizedException("You do not have permission to read Monitor."),
+    );
+    serve(
+      ServiceLevelObjectiveService,
+      () => {
+        return slos;
+      },
+      (slo: ServiceLevelObjective): boolean => {
+        return slo.name !== "Signup success";
+      },
+    );
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+
     expect(impact.monitors).toEqual([]);
-    expect(impact.dashboardsChecked).toBe(true);
-    expect(DashboardService.findBy).toHaveBeenCalledWith(
+    expect(impact.monitorsHidden).toBe(2);
+    expect(impact.monitorsChecked).toBe(true);
+    expect(impact.slos).toEqual([]);
+    expect(impact.slosHidden).toBe(1);
+    expect(impact.slosChecked).toBe(true);
+    // The rest named as before.
+    expect(impact.dashboards).toHaveLength(1);
+    expect(impact.recordingRules).toHaveLength(1);
+    expect(JSON.stringify(impact)).not.toContain("Secret signups");
+    expect(JSON.stringify(impact)).not.toContain("Signup success");
+    // Read as the server to count them, and as the reader to name them.
+    expect(MonitorService.findBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { projectId: PROJECT_ID },
-        props: { userId: USER_ID, tenantId: PROJECT_ID },
+        props: { isRoot: true },
       }),
     );
+    expect(MonitorService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({ props: READER, select: { _id: true } }),
+    );
+  });
+
+  /*
+   * #10085: a recording rule the drop empties computes its output metric
+   * without those metrics, so what reads that output is named under it, on
+   * down the chain - counted where the reader may not see it, and named
+   * under the count of the rules they may not see.
+   */
+  test("a recording rule it empties names what reads its output metric, on down the chain", async () => {
+    const ratesWidgetId: string = "0d0d0d0d-0000-4000-8000-0000000000a1";
+    const rates: Dashboard = new Dashboard(ObjectID.generate());
+
+    rates.name = "Rates";
+    (rates as unknown as { dashboardViewConfig: unknown }).dashboardViewConfig =
+      {
+        components: [
+          {
+            componentType: "Chart",
+            componentId: ratesWidgetId,
+            arguments: {
+              chartTitle: "Daily signup rate",
+              metricQueryConfig: {
+                metricQueryData: {
+                  filterData: { metricName: "signup_rate_daily" },
+                },
+              },
+            },
+          },
+        ],
+      };
+    monitors.push(monitorOf("Signup rate alert", "signup_rate"));
+    dashboards.push(rates);
+    rules.push(ruleOf("Signup rate daily", "signup_rate"));
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+    const rule: DataSecurityMetricUser = impact.recordingRules[0]!;
+
+    expect(rule.name).toBe("Signup rate");
+    expect(rule.outputReaders!.monitors).toEqual({
+      readers: [{ id: monitors[2]!.id!.toString(), name: "Signup rate alert" }],
+      hidden: 0,
+    });
+    expect(rule.outputReaders!.recordingRules.readers).toEqual([
+      {
+        id: rules[2]!.id!.toString(),
+        name: "Signup rate daily",
+        outputMetricName: "signup_rate_daily",
+        outputReaders: {
+          monitors: { readers: [], hidden: 0 },
+          dashboards: {
+            readers: [
+              {
+                id: rates.id!.toString(),
+                name: "Rates",
+                widgets: [
+                  {
+                    id: ratesWidgetId,
+                    title: "Daily signup rate",
+                    type: "Chart",
+                  },
+                ],
+              },
+            ],
+            hidden: 0,
+          },
+          slos: { readers: [], hidden: 0 },
+          recordingRules: { readers: [], hidden: 0 },
+        },
+      },
+    ]);
+    // Those read the rule's output, not the dropped metrics: named only under it.
+    expect(impact.monitors).toHaveLength(1);
+    expect(impact.recordingRules).toHaveLength(1);
+    expect(impact.recordingRulesHiddenOutputReaders).toBeUndefined();
+  });
+
+  test("what reads the output of a rule the reader may not see is named under its count, the rule never", async () => {
+    monitors.push(
+      monitorOf("Signup rate alert", "signup_rate"),
+      monitorOf("Secret rate alert", "signup_rate"),
+    );
+    serve(
+      MonitorService,
+      () => {
+        return monitors;
+      },
+      (monitor: Monitor): boolean => {
+        return !monitor.name!.startsWith("Secret");
+      },
+    );
+    serve(
+      MetricRecordingRuleService,
+      () => {
+        return rules;
+      },
+      (): boolean => {
+        return false;
+      },
+    );
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+
+    expect(impact.recordingRules).toEqual([]);
+    expect(impact.recordingRulesHidden).toBe(1);
+    expect(impact.recordingRulesHiddenOutputReaders!.monitors).toEqual({
+      readers: [{ id: monitors[2]!.id!.toString(), name: "Signup rate alert" }],
+      hidden: 1,
+    });
+    expect(JSON.stringify(impact)).not.toContain(rules[0]!.id!.toString());
+    expect(JSON.stringify(impact)).not.toContain("Secret rate alert");
+  });
+
+  test("records that could not be read are said to be unchecked, not none, and the rest is still said", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    jest
+      .spyOn(MetricRecordingRuleService, "findBy")
+      .mockRejectedValue(new Error("Connection terminated unexpectedly"));
+
+    const impact: DataSecurityDropMetricImpact = await impactOf();
+
+    expect(impact.recordingRulesChecked).toBe(false);
+    expect(impact.recordingRules).toEqual([]);
+    expect(impact.recordingRulesHidden).toBe(0);
+    expect(impact.monitorsChecked).toBe(true);
+    expect(impact.monitors).toHaveLength(1);
   });
 
   test("a dashboard is read as every board reads it, so one stored in the API's envelope with its widget as JSON text is named too (#4571)", async () => {
@@ -694,7 +1005,10 @@ describe("what dropping would do, before it is asked for", () => {
       value: {
         components: [
           JSON.stringify({
+            componentType: "Chart",
+            componentId: { _type: "ObjectID", value: CHART_ID },
             arguments: {
+              chartTitle: "Signups",
               metricQueryConfig: {
                 metricQueryData: {
                   filterData: {
@@ -707,15 +1021,18 @@ describe("what dropping would do, before it is asked for", () => {
         ],
       },
     };
-    jest
-      .spyOn(DashboardService, "findBy")
-      .mockResolvedValue([
-        growth,
-        dashboardOf("Latency", "http.server.duration"),
-      ] as never);
+    dashboards = [
+      growth,
+      dashboardOf("Latency", "http.server.duration", "Latency"),
+    ];
 
+    // Named with the widget that reads it, as the board draws that widget.
     expect((await impactOf()).dashboards).toEqual([
-      { id: expect.any(String), name: "Growth" },
+      {
+        id: growth.id!.toString(),
+        name: "Growth",
+        widgets: [{ id: CHART_ID, title: "Signups", type: "Chart" }],
+      },
     ]);
   });
 

@@ -65,7 +65,7 @@ func walkEnvelope(req validator.StringRequest, resp *validator.StringResponse, v
 	switch typed := value.(type) {
 	case map[string]interface{}:
 		if typeName, ok := typed["_type"].(string); ok {
-			if !validOneUptimeObjectTypes[typeName] {
+			if !ValidOneUptimeObjectTypes[typeName] {
 				resp.Diagnostics.AddAttributeError(
 					req.Path,
 					"Unknown OneUptime Type",

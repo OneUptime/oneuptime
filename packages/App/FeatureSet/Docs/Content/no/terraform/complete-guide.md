@@ -11,7 +11,7 @@ Denne guiden dekker det som kommer etter den første applyen din: hvordan provid
 
 ## Konfigurer provideren
 
-Provideren tar to innstillinger. Hver av dem kommer fra provider-blokken, eller ellers fra en miljøvariabel:
+Provideren kobler til med to innstillinger. Hver av dem kommer fra provider-blokken, eller ellers fra en miljøvariabel:
 
 | Innstilling | Miljøvariabel | Når ingen av dem er angitt |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` er adressen til OneUptime-en din, uten `/api`: provideren legger til `https://` når adressen ikke har et skjema, og `/api` til slutt. `api_key` er sensitiv, så Terraform skriver den aldri ut.
+
+En tredje innstilling, `exclusive_lists`, avgjør hva etikettene i en konfigurasjon holder: se [Etiketter og andre lister som OneUptime også legger til i](#etiketter-og-andre-lister-som-oneuptime-også-legger-til-i).
 
 Nøkkelen må være en API-nøkkel til prosjektet du administrerer, med tillatelse til å opprette, lese, endre og slette hver type post i konfigurasjonen din: se [Opprett en API-nøkkel til prosjektet](/docs/terraform/quick-start#opprett-en-api-nøkkel-til-prosjektet). Master-API-nøkkelen til en selv-hostet OneUptime hører ikke til noe prosjekt, så en oppretting med den feiler med `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Etiketter og andre lister som OneUptime også legger til i
+
+OneUptime legger selv til i noen av listene til en post: en etikettregel legger etikettene sine til postene den treffer, en vaktregel legger policyene sine til hendelsene og varslene den treffer, og monitorreglene til en SLO knytter til monitorene de treffer. Referansen sier det om hver slik attributt: "OneUptime adds to it too, on its own". En konfigurasjon som setter en av dem, holder elementene den lister opp, og lar resten være:
+
+- **Det konfigurasjonen lister opp, legges til**, og settes på igjen hvis noen fjerner det.
+- **Det du tar ut av konfigurasjonen, fjernes.** `labels = []` fjerner hver etikett konfigurasjonen listet opp.
+- **Det OneUptime eller en person legger til, blir værende**, og ingen plan viser det som en endring.
+- **Utelatt fra konfigurasjonen** er listen OneUptimes: Terraform legger ingenting til og fjerner ingenting.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+Terraforms state holder etikettene konfigurasjonen lister opp som posten har, ikke hver etikett posten har: datakilden med samme navn leser dem alle. En apply legger til og fjerner enkeltetiketter, så en etikett en regel legger til mens den kjører, blir også værende.
+
+En import overtar hver etikett posten har: list opp alle, slik Terraform-siden til posten i dashbordet gjør, ellers viser planen at de du utelater, fjernes. Etter at du har oppgradert fra en tidligere versjon av provideren, viser den første planen for en konfigurasjon som setter etiketter, at de settes: apply legger til dem posten mangler, og fjerner ingen.
+
+For å holde hver slik liste til nøyaktig det konfigurasjonen lister opp, slik tidligere versjoner gjorde, setter du `exclusive_lists` i provider-blokken. Terraform fjerner da en etikett som en regel legger til, ved hver apply:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

@@ -427,6 +427,12 @@ describe("Ask to act: the card names the file before anyone approves it", () => 
         CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
           CodeFileUnseen.ChangedSinceRead
         ],
+      reason: {
+        template:
+          CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+            CodeFileUnseen.ChangedSinceRead
+          ],
+      },
     });
     // A prepare only reads: nothing is committed before anyone approves it.
     expect(repository.commits).toEqual([]);

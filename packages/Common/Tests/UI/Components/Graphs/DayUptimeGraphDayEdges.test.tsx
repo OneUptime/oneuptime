@@ -143,7 +143,7 @@ describe("DayUptimeGraph: where a day begins and ends", () => {
           "2026-11-10T06:00:00.000Z",
         ),
       ],
-      dayLabel: "Nov 08, 2026",
+      dayLabel: "Nov 8, 2026",
     });
 
     expect(summary.hasEvents).toBe(true);
@@ -160,7 +160,7 @@ describe("DayUptimeGraph: where a day begins and ends", () => {
           "2026-11-11T12:00:00.000Z",
         ),
       ],
-      dayLabel: "Nov 08, 2026",
+      dayLabel: "Nov 8, 2026",
     });
 
     expect(secondsByLabel(summary)).toEqual({ Operational: 86400 });
@@ -180,7 +180,7 @@ describe("DayUptimeGraph: where a day begins and ends", () => {
           "2026-11-11T12:00:00.000Z",
         ),
       ],
-      dayLabel: "Nov 08, 2026",
+      dayLabel: "Nov 8, 2026",
     });
 
     expect(secondsByLabel(summary)).toEqual({ Operational: 86400 });
@@ -233,7 +233,7 @@ describe("DayUptimeGraph: where a day begins and ends", () => {
         ),
       ],
       incidents: [incident],
-      dayLabel: "Nov 08, 2026",
+      dayLabel: "Nov 8, 2026",
     });
 
     expect(summary.incidents).toHaveLength(1);
@@ -250,7 +250,7 @@ describe("DayUptimeGraph: where a day begins and ends", () => {
         ),
       ],
       incidents: [incident],
-      dayLabel: "Nov 07, 2026",
+      dayLabel: "Nov 7, 2026",
     });
 
     expect(dayBefore.incidents).toHaveLength(0);
@@ -391,7 +391,7 @@ describe("MonitorUptimeGraph: a monitor group's day from its monitors' rows", ()
         0,
       );
 
-      if (label === "Nov 08, 2026") {
+      if (label === "Nov 8, 2026") {
         expect(
           summary.statusDurations.map((duration: StatusDuration) => {
             return [duration.label, duration.seconds];
@@ -399,7 +399,7 @@ describe("MonitorUptimeGraph: a monitor group's day from its monitors' rows", ()
         ).toEqual([["Offline", 86400]]);
       }
 
-      if (label === "Nov 07, 2026") {
+      if (label === "Nov 7, 2026") {
         // eight hours of it Offline: monitor 8's outage started at 16:00.
         expect(summary.uptimePercent).toBeCloseTo((16 / 24) * 100, 6);
       }

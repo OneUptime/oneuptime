@@ -26,6 +26,7 @@ import {
   isDashboardMasterPasswordRequired,
 } from "../../Types/Dashboard/DashboardAccess";
 import {
+  PUBLIC_DASHBOARD_ACCESS_SELECT,
   PUBLIC_DASHBOARD_DEFAULT_DESCRIPTION,
   PUBLIC_DASHBOARD_DEFAULT_TITLE,
   PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE,
@@ -128,6 +129,30 @@ import {
   readDashboardWidgetListInSteps,
 } from "../../Utils/Dashboard/DashboardWidgetSorts";
 import FileOwnership from "../Utils/File/FileOwnership";
+import CommonAPI from "./CommonAPI";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
+import ProductKey from "../../Types/Product/ProductKey";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import ImportQueryConversion, {
+  ImportQueryConversionRequest,
+  ImportQueryConversionResult,
+  readImportQueryConversionRequest,
+} from "../Utils/AI/ObservabilityImport/ImportQueryConversion";
+import PublicDashboardPromQLPolicy, {
+  PublicDashboardPromQLPlan,
+} from "../Utils/Dashboard/PublicDashboardPromQLPolicy";
+import {
+  ProjectMetricsQueryAnswer,
+  runPromQLOverProjectMetrics,
+} from "../Utils/PromQL/PromQLDataSourceQuery";
+import { PUBLIC_DASHBOARD_PROMQL_QUERY_PATH } from "../../Types/Dashboard/PublicDashboardPromQL";
+
+/*
+ * Where Import from Grafana or Datadog asks OneUptime AI to convert one
+ * query of the dashboard it previews (issue #7697).
+ */
+export const DASHBOARD_IMPORT_CONVERT_QUERY_PATH: string =
+  "/import/convert-query-with-ai";
 
 /*
  * How a public dashboard's logos and favicon are read: their bytes and type,
@@ -476,6 +501,61 @@ export default class DashboardAPI extends BaseAPI<
     super(Dashboard, DashboardService);
 
     /*
+     * POST /dashboard/import/convert-query-with-ai
+     *
+     * One query of a dashboard being imported from Grafana or Datadog that
+     * no rule converted, converted by OneUptime AI when the person asks
+     * (ImportQueryConversion): the PromQL, checked as the preview checks a
+     * query, for the person to read and use. Nothing is created here; the
+     * dashboard is created through its own create, afterwards.
+     *
+     * Asking takes the permission to create dashboards - it is the import's
+     * create - and AI on for the project. Only the query and the variables'
+     * names are sent, all from the person's own file.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}${DASHBOARD_IMPORT_CONVERT_QUERY_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Dashboards),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanCreateTable({
+            modelType: Dashboard,
+            props,
+            errorMessage:
+              "Converting a query with OneUptime AI takes a role that can create dashboards.",
+          });
+
+          const request: ImportQueryConversionRequest =
+            readImportQueryConversionRequest(req.body);
+
+          const result: ImportQueryConversionResult =
+            await ImportQueryConversion.convert({
+              projectId,
+              userId: props.userId,
+              language: request.language,
+              query: request.query,
+              variableNames: request.variableNames,
+              isForMonitor: false,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            promQL: result.promQL,
+            explanation: result.explanation,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
      * Rate limiting for the anonymous public dashboard surface. Nginx exposes
      * every route below under /public-dashboard-api and rewrites it to
      * /api/dashboard before it reaches us, so this router IS that prefix and
@@ -493,6 +573,18 @@ export default class DashboardAPI extends BaseAPI<
       next: NextFunction,
     ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
       PublicDashboardRateLimitBucket.Read,
+    );
+
+    /*
+     * /promql-query evaluates a PromQL query per request: a budget of its
+     * own, per dashboard and visitor (issue #10226).
+     */
+    const publicDashboardPromQLRateLimit: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = PublicDashboardRateLimit.getMiddleware(
+      PublicDashboardRateLimitBucket.PromQL,
     );
 
     /*
@@ -519,6 +611,8 @@ export default class DashboardAPI extends BaseAPI<
      *                            theme
      *   ... and a password       the title and the theme (its password
      *                            prompt shows them)
+     *   only people who sign in  the title and the theme (its sign-in page
+     *                            shows them)
      *   an IP allowlist          the generic title and description: a
      *                            visitor outside the list sees nothing of the
      *                            dashboard, but the link still answers, so
@@ -785,6 +879,8 @@ export default class DashboardAPI extends BaseAPI<
      *   Granted           the whole answer
      *   PasswordRequired  only what the password prompt shows: the name, the
      *                     page title, the favicon and the theme
+     *   SignInRequired    only what the sign-in page shows: the same - and
+     *                     nothing of who may sign in (#10250)
      *   Forbidden         403, the IP allowlist's refusal
      *   NotFound          404 "Dashboard not found", word for word what an id
      *                     no dashboard has gets: a dashboard shared only with
@@ -852,6 +948,19 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
           }
 
+          /*
+           * Who is signed in, once a private user is (#10250): their
+           * address, from their own row, for the page's Sign Out - and
+           * nothing for anybody else.
+           */
+          const signedInAs: string | null =
+            isUnlocked && access.isSignInRequired
+              ? await DashboardService.getSignedInPrivateUserEmail({
+                  dashboardId,
+                  req,
+                })
+              : null;
+
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
@@ -863,6 +972,12 @@ export default class DashboardAPI extends BaseAPI<
              * once this visitor has entered it.
              */
             enableMasterPassword: access.isMasterPasswordRequired,
+            /*
+             * Whether it asks its visitors to sign in instead, by the same
+             * rule - still true once this visitor has - and who has.
+             */
+            requireSignIn: access.isSignInRequired,
+            signedInAs: signedInAs,
             pageTitle: dashboard.pageTitle || "",
             // Its images only when they are files of its own project.
             faviconFile: DashboardAPI.getFileAsBase64JSONObject(
@@ -1745,6 +1860,114 @@ export default class DashboardAPI extends BaseAPI<
       },
     );
 
+    /*
+     * Public PromQL for the dashboard's Data Source widgets that read only
+     * this project's metrics (issue #10226): a Chart, a Value, a Gauge or a
+     * Table, drawn for a visitor nobody signed in.
+     *
+     * Nothing the caller sends is a query. The query is one stored in this
+     * dashboard's widgets, named by the widget's id and its place among the
+     * widget's queries; its variables are the dashboard's own, each pick
+     * held to what its definition allows; the step and the result kind come
+     * from the window and the widget; and the answer holds only what the
+     * widget draws (PublicDashboardPromQLPolicy). It reads this dashboard's
+     * project only, through the PromQL engine held to the authenticated
+     * route's limits, and keeps a rate of its own per dashboard and visitor.
+     * Access is the link's, decided before anything is read
+     * (DashboardService.hasReadAccess, which asks decidePublicAccess).
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/:dashboardId`,
+      publicDashboardPromQLRateLimit,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const dashboardId: ObjectID = getPublicDashboardIdOrThrow(
+            req.params["dashboardId"],
+          );
+
+          const accessResult: {
+            hasReadAccess: boolean;
+            error?: NotAuthenticatedException | ForbiddenException;
+          } = await DashboardService.hasReadAccess({
+            dashboardId,
+            req,
+          });
+
+          if (!accessResult.hasReadAccess) {
+            throw (
+              accessResult.error ||
+              new BadDataException("Access denied to this dashboard.")
+            );
+          }
+
+          const dashboard: Dashboard | null =
+            await DashboardService.findOneById({
+              id: dashboardId,
+              select: {
+                _id: true,
+                projectId: true,
+                dashboardViewConfig: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!dashboard || !dashboard.projectId) {
+            throw new NotFoundException(PUBLIC_DASHBOARD_NOT_FOUND_MESSAGE);
+          }
+
+          /*
+           * The widgets and the variables as the public page draws them:
+           * the widget's stored queries, in the order the page names them,
+           * and the toolbar's variables.
+           */
+          const plan: PublicDashboardPromQLPlan =
+            PublicDashboardPromQLPolicy.plan({
+              widgets: PublicDashboardViewConfig.getDrawnDataSourceWidgets(
+                dashboard.dashboardViewConfig,
+              ),
+              variables: DashboardAPI.getDrawnViewConfig(dashboard).variables,
+              body: req.body,
+            });
+
+          /*
+           * This dashboard's project, every service its query matches - as
+           * a metric chart saved without services reads them - by the
+           * engine and the limits of the authenticated route.
+           */
+          const answer: ProjectMetricsQueryAnswer =
+            await runPromQLOverProjectMetrics({
+              projectId: dashboard.projectId,
+              serviceFilter: {},
+              query: plan.queryText,
+              resultKind: plan.resultKind,
+              startDate: plan.startDate,
+              endDate: plan.endDate,
+            });
+
+          const shaped: ProjectMetricsQueryAnswer =
+            PublicDashboardPromQLPolicy.shapeAnswer({
+              plan,
+              answer,
+              requestedSort: req.body
+                ? req.body[DASHBOARD_WIDGET_SORT_REQUEST_FIELD]
+                : undefined,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            resultKind: shaped.resultKind,
+            result: shaped.result as unknown as JSONObject,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
@@ -1767,14 +1990,13 @@ export default class DashboardAPI extends BaseAPI<
             await DashboardService.findOneById({
               id: dashboardId,
               select: {
-                _id: true,
-                projectId: true,
-                enableMasterPassword: true,
-                masterPassword: true,
+                /*
+                 * Everything the link's decision reads - whether it asks its
+                 * visitors to sign in too (#10250), so a dashboard that does
+                 * is never read as one the password opens.
+                 */
+                ...PUBLIC_DASHBOARD_ACCESS_SELECT,
                 masterPasswordSalt: true,
-                isPublicDashboard: true,
-                isArchived: true,
-                ipWhitelist: true,
               },
               props: {
                 isRoot: true,
@@ -1803,11 +2025,15 @@ export default class DashboardAPI extends BaseAPI<
             throw access.error;
           }
 
-          // Who can view it, by the rule the Sharing page shows and writes.
+          /*
+           * Who can view it, by the rule the Sharing page shows and writes: a
+           * dashboard that asks its visitors to sign in takes no password.
+           */
           const accessState: DashboardAccessState = {
             isPublicDashboard: dashboard.isPublicDashboard,
             enableMasterPassword: dashboard.enableMasterPassword,
             hasMasterPassword: Boolean(dashboard.masterPassword),
+            requireSignIn: dashboard.requireSignIn,
           };
 
           if (

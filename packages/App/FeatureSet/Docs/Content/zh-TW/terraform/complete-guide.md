@@ -11,7 +11,7 @@
 
 ## 設定提供者
 
-提供者接受兩項設定。每項都來自提供者區塊，否則來自環境變數：
+提供者透過兩項設定進行連線。每項都來自提供者區塊，否則來自環境變數：
 
 | 設定 | 環境變數 | 兩者都未設定時 |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` 是你的 OneUptime 的位址，不帶 `/api`：位址沒有協定時，提供者會加上 `https://`，並在末尾加上 `/api`。`api_key` 是敏感值，因此 Terraform 從不輸出它。
+
+第三項設定 `exclusive_lists` 決定設定中的標籤包含什麼：請參閱[標籤和 OneUptime 也會新增的其他清單](#標籤和-oneuptime-也會新增的其他清單)。
 
 金鑰必須是你所管理專案的 API 金鑰，並且有權建立、讀取、更改和刪除設定中的每種記錄：請參閱 [建立專案 API 金鑰](/docs/terraform/quick-start#建立專案-api-金鑰)。自行託管 OneUptime 的主 API 金鑰不屬於任何專案，因此用它執行的建立操作會以 `ProjectId required` 失敗。
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## 標籤和 OneUptime 也會新增的其他清單
+
+OneUptime 會自行在記錄的某些清單中新增內容：標籤規則會把它的標籤新增到它符合的記錄上，待命規則會把它的原則新增到它符合的事件和警示上，SLO 的監測器規則會關聯它們符合的監測器。參考文件對每個這樣的屬性都會寫明："OneUptime adds to it too, on its own"。設定了這類清單的設定會保留它列出的項目，其餘的保持不變：
+
+- **設定列出的項目會被新增**，有人移除後會被重新加上。
+- **你從設定中刪去的項目會被移除。** `labels = []` 會移除設定曾列出的所有標籤。
+- **OneUptime 或某個人新增的項目會保留**，任何計畫都不會把它顯示為變更。
+- **在設定中省略時**，該清單歸 OneUptime 所有：Terraform 既不向其中新增，也不從中移除。
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+state 儲存的是設定列出且記錄擁有的標籤，而不是記錄的全部標籤：同名的資料來源會讀取全部標籤。apply 會逐一新增和移除標籤，因此在它執行期間規則新增的標籤也會保留。
+
+匯入會接管記錄擁有的所有標籤：請把它們全部列出，就像儀表板中該記錄的 Terraform 頁面那樣，否則計畫會顯示省略的標籤將被移除。從提供者的早期版本升級後，設定了標籤的設定的第一次計畫會顯示這些標籤將被設定：apply 會新增記錄缺少的標籤，不會移除任何標籤。
+
+要像早期版本那樣，讓每個這樣的清單與設定列出的內容完全一致，請在提供者區塊中設定 `exclusive_lists`。這樣 Terraform 會在每次 apply 時移除規則新增的標籤：
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

@@ -11,7 +11,7 @@ Esta guía cubre lo que viene después de su primer apply: cómo encuentra el pr
 
 ## Configurar el proveedor
 
-El proveedor toma dos ajustes. Cada uno viene del bloque del proveedor o, si no, de una variable de entorno:
+El proveedor se conecta con dos ajustes. Cada uno viene del bloque del proveedor o, si no, de una variable de entorno:
 
 | Ajuste | Variable de entorno | Cuando no se indica ninguno |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` es la dirección de su instancia de OneUptime, sin `/api`: el proveedor añade `https://` cuando la dirección no tiene esquema, y `/api` al final. `api_key` es sensible, así que Terraform nunca lo muestra.
+
+Un tercer ajuste, `exclusive_lists`, decide qué contienen las etiquetas de una configuración: consulte [Etiquetas y otras listas a las que OneUptime también añade](#etiquetas-y-otras-listas-a-las-que-oneuptime-también-añade).
 
 La clave debe ser una clave de API del proyecto que gestiona, con permiso para crear, leer, cambiar y eliminar cada tipo de registro de su configuración: vea [Crear una clave de API del proyecto](/docs/terraform/quick-start#crear-una-clave-de-api-del-proyecto). La clave de API maestra de una instancia de OneUptime autoalojada no pertenece a ningún proyecto, así que una creación hecha con ella falla con `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Etiquetas y otras listas a las que OneUptime también añade
+
+OneUptime añade por su cuenta a algunas listas de un registro: una regla de etiquetas añade sus etiquetas a los registros que coinciden con ella, una regla de guardia añade sus políticas a los incidentes y alertas que coinciden con ella, y las reglas de monitores de un SLO vinculan los monitores que coinciden con ellas. La referencia lo dice de cada uno de esos atributos: "OneUptime adds to it too, on its own". Una configuración que define una de ellas mantiene las entradas que enumera y deja el resto:
+
+- **Lo que la configuración enumera se añade**, y se vuelve a poner si alguien lo quita.
+- **Lo que quite de la configuración se quita.** `labels = []` quita todas las etiquetas que la configuración enumeraba.
+- **Lo que OneUptime o una persona añade se queda**, y ningún plan lo muestra como un cambio.
+- **Si se deja fuera de la configuración**, la lista es de OneUptime: Terraform no le añade nada ni le quita nada.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+El estado guarda las etiquetas que la configuración enumera y que el registro tiene, no todas las etiquetas del registro: la fuente de datos del mismo nombre las lee todas. Un apply añade y quita etiquetas sueltas, así que una etiqueta que una regla añade mientras se ejecuta también se queda.
+
+Una importación adopta todas las etiquetas que tiene el registro: enumérelas todas, como hace la página de Terraform del registro en el panel, o el plan mostrará que se quitan las que deje fuera. Después de actualizar desde una versión anterior del proveedor, el primer plan de una configuración que define etiquetas muestra que se establecen: el apply añade las que le faltan al registro y no quita ninguna.
+
+Para mantener cada una de estas listas exactamente en lo que enumera la configuración, como hacían las versiones anteriores, defina `exclusive_lists` en el bloque del proveedor. Terraform quitará entonces, en cada apply, una etiqueta que añada una regla:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

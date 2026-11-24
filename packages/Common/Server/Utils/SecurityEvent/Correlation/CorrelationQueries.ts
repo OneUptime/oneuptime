@@ -11,6 +11,9 @@ import {
 } from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import SecurityEventService, {
   DetectionArrivalRead,
+  detectionArrivedBefore,
+  detectionArrivedBy,
+  isDetectionArrivalCandidate,
 } from "../../../Services/SecurityEventService";
 import {
   Results,
@@ -367,34 +370,28 @@ function baseWhere(data: {
   return statement;
 }
 
-// The events that had come in by the write's last: ids are time-ordered.
+/*
+ * The events that had come in when the events judged did: by the write's
+ * last id, or by the end of a scheduled run (DetectionArrivalRead).
+ */
 function arrivedBy(arrival: DetectionArrivalRead): Statement {
-  return SQL`_id <= ${{
-    type: TableColumnType.Text,
-    value: arrival.lastId,
-  }}`;
+  return detectionArrivedBy(arrival);
 }
 
-// The events that came in before the write's first.
+// The events that came in before them: judged already.
 function arrivedBefore(arrival: DetectionArrivalRead): Statement {
-  return SQL`_id < ${{
-    type: TableColumnType.Text,
-    value: arrival.firstId,
-  }}`;
+  return detectionArrivedBefore(arrival);
 }
 
-// An event of the write.
+// One of the events judged: the write's, or one that arrived in the run.
 function isArrivalCandidate(arrival: DetectionArrivalRead): Statement {
-  return SQL`has(${{
-    type: TableColumnType.ArrayText,
-    value: arrival.candidateIds,
-  }}, _id)`;
+  return isDetectionArrivalCandidate(arrival);
 }
 
 /*
- * " AND (g0, g1) IN (...)": only the groups the write's events name, read
- * where they happened - so a real-time read aggregates the groups it can
- * fire, and the bloom indexes of the typed columns can skip the rest.
+ * " AND (g0, g1) IN (...)": only the groups the events judged name, read
+ * where they happened - so a read aggregates the groups it can fire, and
+ * the bloom indexes of the typed columns can skip the rest.
  */
 function appendArrivalGroups(data: {
   statement: Statement;
@@ -1087,8 +1084,16 @@ export default class CorrelationQueries {
     );
 
     if (arrival) {
-      // When the pair first came in, in this run, and whether the write brought one of its events.
-      query.append(", min(_id) AS __firstArrivalId, countIf(");
+      /*
+       * When the pair first came in, in this run, and whether the events
+       * judged brought one of its events: the first id of a write, or the
+       * first arrival of a scheduled run's.
+       */
+      query.append(
+        arrival.kind === "run"
+          ? ", min(createdAt) AS __firstArrivedAt, countIf("
+          : ", min(_id) AS __firstArrivalId, countIf(",
+      );
       query.append(isArrivalCandidate(arrival));
       query.append(") AS __k");
     }
@@ -1117,7 +1122,16 @@ export default class CorrelationQueries {
       ` GROUP BY ${[...groupNames, ...valueNames].join(", ")} HAVING ${nonEmptyGroups([...groupNames, ...valueNames])}`,
     );
 
-    if (arrival) {
+    // A pair none of whose events had come in before the events judged: new to the window now.
+    if (arrival?.kind === "run") {
+      query.append(" AND __k > 0 AND __firstArrivedAt > ");
+      query.append(
+        SQL`${{
+          type: TableColumnType.Date,
+          value: arrival.arrivedAfter,
+        }}`,
+      );
+    } else if (arrival) {
       query.append(" AND __k > 0 AND __firstArrivalId >= ");
       query.append(
         SQL`${{

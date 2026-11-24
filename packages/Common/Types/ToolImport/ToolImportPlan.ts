@@ -95,6 +95,12 @@ export interface ToolImportPlanItem {
 export interface ToolImportInviteTeam {
   id: string;
   name: string;
+  /*
+   * When the team was made (ISO): tells two teams of one name apart in the
+   * review's invite team picker (#10314). Its description is not sent: the
+   * teams are read as OneUptime.
+   */
+  createdAt?: string | undefined;
 }
 
 export interface ToolImportPlan {

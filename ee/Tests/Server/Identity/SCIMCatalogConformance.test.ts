@@ -8,7 +8,7 @@ import {
 } from "@jest/globals";
 import ProjectSCIMRouter from "../../../Server/Identity/API/SCIM";
 import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
-import { idOf, scimWorld } from "./InMemorySCIMWorld";
+import { idOf, scimWorld, WorldMembership } from "./InMemorySCIMWorld";
 import {
   createExpressApp,
   ExpressApplication,
@@ -433,10 +433,29 @@ describe("Okta's provisioning", () => {
     expect(updated.body["name"]).toEqual(
       expect.objectContaining({ givenName: "Fox William" }),
     );
-    // An account SCIM created here and nowhere else takes the new name.
+    /*
+     * On OneUptime Cloud an account SCIM created is invited, as one that
+     * existed is (#9899), and not this project's to rename until its person
+     * joins: it keeps its name, and the invitation the Users list shows
+     * takes the new one.
+     */
     expect(scimWorld.userByEmail("fox.mulder@acme.example")!.name).toBe(
-      "Fox William Mulder",
+      "Fox Mulder",
     );
+    expect(
+      scimWorld.memberships
+        .filter((row: WorldMembership): boolean => {
+          return row.userId === idOf(id);
+        })
+        .map((row: WorldMembership): JSONObject => {
+          return {
+            hasAcceptedInvitation: row.hasAcceptedInvitation,
+            inviteeName: row.inviteeName,
+          };
+        }),
+    ).toEqual([
+      { hasAcceptedInvitation: false, inviteeName: "Fox William Mulder" },
+    ]);
 
     const deactivated: HttpResult = await send(
       "PATCH",
@@ -457,6 +476,22 @@ describe("Okta's provisioning", () => {
 
     expect(reactivated.body["active"]).toBe(true);
     expect(scimWorld.teamIdsOf(id, PROJECT_ID)).toEqual([defaultTeamId]);
+
+    // Once its person has joined the project, the account takes a new name.
+    for (const row of scimWorld.memberships) {
+      if (row.userId === idOf(id)) {
+        row.hasAcceptedInvitation = true;
+      }
+    }
+
+    await send("PUT", `/Users/${id}`, {
+      ...oktaUser("fox.mulder@acme.example"),
+      name: { givenName: "Fox W.", familyName: "Mulder" },
+    });
+
+    expect(scimWorld.userByEmail("fox.mulder@acme.example")!.name).toBe(
+      "Fox W. Mulder",
+    );
   });
 
   test("group push: create, add, rename with no path, remove by filter", async () => {

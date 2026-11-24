@@ -30,6 +30,7 @@ flowchart TB
 - **一个已连接的 Azure 订阅。** 先在 **云 → 连接** 中连接它：参见 [连接云账户](/docs/telemetry/cloud-accounts)。
 - **项目所有者或项目管理员。** 只有他们可以开启读取和停止流式传输。
 - **Azure Cloud Shell**，以订阅的 **Owner** 身份登录，或以同时是 **User Access Administrator** 的 **Contributor** 身份登录：命令会创建资源组和角色分配，并更改诊断设置。
+- **Microsoft Entra ID 的日志需要租户的 Security Administrator**，且此人同时是命令所创建资源组的 **Owner** 或 **Contributor**：只有这样的人才能把租户的日志发送到事件中心。
 - **在自托管的 OneUptime 上，能访问 Azure 的出口。** OneUptime 通过端口 9093 在 `<namespace>.servicebus.windows.net` 读取每个命名空间，命名空间接受来自互联网的连接。
 
 ## 设置流式传输
@@ -43,6 +44,8 @@ flowchart TB
 
 **指标** 按分钟流式传输每个资源的关键指标，也就是 OneUptime 为每个资源绘制图表并据以评估它的指标，但[诊断设置无法发送的那些](#到达的内容)除外，连接会继续读取它们。**指标和日志** 加上每个资源自己的日志，即 Azure 为它保留的每个类别；**日志** 只流式传输资源日志。
 
+在 **用于安全事件** 下，**每个订阅的活动日志** 会让命令把每个订阅的更改、Defender for Cloud 警报和 Azure Policy 的拒绝发送到第一个区域的事件中心；**Microsoft Entra ID 的登录日志和审计日志** 会添加第二条命令，供你租户的 Security Administrator 运行。[安全事件](/docs/telemetry/security-events#在日志中查找安全事件) 会读取这两者。
+
 ### 开启读取
 
 选择 **开启读取**。OneUptime 每分钟查找一次事件中心，并一直等到命令创建了它们。
@@ -50,6 +53,10 @@ flowchart TB
 ### 在 Azure Cloud Shell 中运行命令
 
 复制命令，在 Azure Cloud Shell 中运行并等待它完成。它会列出创建了事件中心的每个区域、向这些事件中心发送数据的资源数量，以及它跳过的资源和 Azure 给出的原因。
+
+### 运行 Microsoft Entra ID 的命令（如果你选择了它）
+
+第一条命令完成后，由租户的 Security Administrator 在 Azure Cloud Shell 中运行第二条命令。它会为租户添加一个诊断设置，把 Microsoft Entra ID 的登录、审计和风险日志发送到第一个区域的事件中心；如果 Azure 拒绝，它会说明 Azure 要求什么。
 
 ### 等待首批事件
 
@@ -83,7 +90,13 @@ Service Bus 或 Event Hubs 命名空间不流式传输任何指标。读取按�
 
 日志按资源的 ARM ID 归档在该资源下，以 `cloud.resource_id` 携带，并把类别、操作、结果和属性保留为属性，例如 `azure.category`。
 
-虚拟机、规模集、磁盘、网络接口、虚拟网络、专用终结点、NAT 网关、DNS 区域和 App Service 计划不发送自己的资源日志，因此它们的页面没有 **日志** 标签页。存储账户的日志是其各项服务的日志，容器应用的日志是其环境的日志。
+`Administrative`、`Security` 或 `Policy` 类别的活动日志记录，以及 Microsoft Entra ID 的登录、审计或风险记录，会作为其日志的正文完整到达，即使它关于的是资源组、订阅或租户而不是资源。开启 [在日志中查找安全事件](/docs/telemetry/security-events#在日志中查找安全事件) 后，每条记录都会像来自日志管道的记录一样被读取为安全事件，并且无论通过多少条途径到达 OneUptime，都只存储一次。开启 **每个订阅的活动日志** 后，命令会为每个订阅添加一个诊断设置，把该订阅的活动日志发送到第一个区域的事件中心，Microsoft Entra ID 的命令则为租户添加一个。
+
+Key Vault 的 `AuditEvent`、存储账户的 `StorageRead`、`StorageWrite` 和 `StorageDelete`，以及 Azure SQL 数据库的 `SQLSecurityAuditEvents` 也会完整到达，各自归档在其资源下，安全事件会读取其中与安全相关的记录：参见 [Azure 资源自身的审计日志](/docs/telemetry/security-events#azure-资源自身的审计日志)。Azure SQL 数据库只有在开启审计并以 Azure Monitor 为目标时，才会发送其审计记录。
+
+虚拟机、规模集、磁盘、网络接口、虚拟网络、专用终结点、NAT 网关、DNS 区域和 App Service 计划不发送自己的资源日志，因此它们的页面没有 **日志** 标签页。容器应用的日志是其环境的日志。
+
+存储账户的日志是其 Blob、文件、队列和表服务的日志：命令会为每项服务添加一个自己的诊断设置，这些日志归档在该账户下，显示在它的 **日志** 标签页上。它们记录了该账户响应的每个请求，因此繁忙的账户会发送很多日志。
 
 ## 命令创建的内容
 
@@ -96,6 +109,9 @@ Service Bus 或 Event Hubs 命名空间不流式传输任何指标。读取按�
 | 每个命名空间中的事件中心 `oneuptime`，2 个分区 | 保存事件，直到 OneUptime 读取它们 |
 | 授予连接应用的 **Azure Event Hubs Data Receiver** 角色，仅作用于该资源组 | 让应用读取事件中心，别无其他 |
 | 每个资源上的诊断设置 `OneUptime-<suffix>` | 把资源的指标、日志或两者发送到其所在区域的事件中心 |
+| 流式传输日志时，存储账户的 Blob、文件、队列和表服务上各自的诊断设置 `OneUptime-<suffix>` | 把这些服务的日志发送到账户所在区域的事件中心 |
+| 开启 **每个订阅的活动日志** 时，每个订阅上的诊断设置 `OneUptime-<suffix>` | 把订阅的 `Administrative`、`Security` 和 `Policy` 记录发送到第一个区域的事件中心 |
+| 运行 Microsoft Entra ID 的命令时，租户的诊断设置 `OneUptime-<suffix>` | 把租户的登录、审计和风险日志发送到第一个区域的事件中心 |
 
 全局区域的资源（例如 Front Door）发送到第一个区域的事件中心。Azure 只保留指标或只保留日志的资源，会按其已有的内容设置；已经有 5 个诊断设置（Azure 允许的上限）的资源会被跳过。Azure 按小时对每个命名空间的吞吐量单位计费，并对诊断设置发送的事件计费。
 
@@ -108,20 +124,31 @@ Service Bus 或 Event Hubs 命名空间不流式传输任何指标。读取按�
 
 ### 删除命令创建的内容
 
-在删除之前，事件中心和诊断设置会一直保留在 Azure 中，并由 Azure 计费。对话框会显示命令：它会删除每个资源的诊断设置，然后删除资源组，无论资源组位于哪个订阅。
+在删除之前，事件中心和诊断设置会一直保留在 Azure 中，并由 Azure 计费。对话框会显示命令：它会删除每个资源的诊断设置、其存储账户各项服务的诊断设置和每个订阅的诊断设置，然后删除资源组，无论资源组位于哪个订阅。如果你有权限，它也会删除 Microsoft Entra ID 的诊断设置，否则会说明谁有权删除。
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ oneuptime_stream_stop
 
 :::details 命令跳过了一些资源
 它会列出这些资源，每个都附有 Azure 给出的原因。没有诊断设置的资源类型不会发送任何内容；已经有 5 个诊断设置的资源需要先删除其中一个。然后再次运行命令。
+:::
+
+:::details 活动日志或 Microsoft Entra ID 的日志被跳过了
+命令会说明 Azure 要求什么。订阅的诊断设置需要订阅上的 `Microsoft.Insights/diagnosticSettings/write`，订阅的 Owner、Contributor 和 Monitoring Contributor 拥有该权限；租户的诊断设置则需要租户的 Security Administrator。两者都需要命令所创建资源组上的 `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action`，该资源组的 Owner 和 Contributor 拥有该权限。然后再次运行命令。
 :::
 
 ## 后续步骤

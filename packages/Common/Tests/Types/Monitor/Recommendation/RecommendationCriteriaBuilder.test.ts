@@ -377,6 +377,54 @@ describe("RecommendationCriteriaBuilder", () => {
     });
 
     /*
+     * A device manager's Low Battery (#10288): a device whose service never
+     * says whether it is on its charger has no charging series, which counts
+     * as off it, while one with no battery reading still matches nothing.
+     */
+    test("an additional comparison can read no data its own way, and the others keep the criteria's", () => {
+      const instance: MonitorCriteriaInstance = buildUnhealthy({
+        filterType: FilterType.LessThan,
+        value: 20,
+        filterCondition: FilterCondition.All,
+        additionalFilters: [
+          {
+            metricAlias: "on_charger",
+            filterType: FilterType.LessThan,
+            value: 1,
+            onNoDataPolicy: NoDataPolicy.TreatAsZero,
+          },
+        ],
+      });
+      const filters: Array<CriteriaFilter> = instance.data
+        ?.filters as Array<CriteriaFilter>;
+
+      expect(filters[0]!.metricMonitorOptions?.onNoDataPolicy).toBeUndefined();
+      expect(filters[1]!.metricMonitorOptions?.onNoDataPolicy).toBe(
+        NoDataPolicy.TreatAsZero,
+      );
+
+      // Its own policy wins over the criteria's, for it alone.
+      const both: Array<CriteriaFilter> = buildUnhealthy({
+        triggerOnNoData: true,
+        additionalFilters: [
+          {
+            metricAlias: "on_charger",
+            filterType: FilterType.LessThan,
+            value: 1,
+            onNoDataPolicy: NoDataPolicy.TreatAsZero,
+          },
+        ],
+      }).data?.filters as Array<CriteriaFilter>;
+
+      expect(both[0]!.metricMonitorOptions?.onNoDataPolicy).toBe(
+        NoDataPolicy.Trigger,
+      );
+      expect(both[1]!.metricMonitorOptions?.onNoDataPolicy).toBe(
+        NoDataPolicy.TreatAsZero,
+      );
+    });
+
+    /*
      * The heartbeat shape the database "Engine Metrics Stopped" templates
      * use: silence IS the breach, so the firing side must say Trigger.
      */

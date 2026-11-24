@@ -380,6 +380,47 @@ const CURRENT_PLAN_HELD_BACK: PlanType = PlanType.Free;
 // How wide the quickstart is while it is the whole of Home.
 export const QUICKSTART_MAX_WIDTH_CLASS_NAME: string = "max-w-7xl";
 
+/*
+ * THE CHECKLIST'S LAYOUT (#10276). Under the greeting, from lg up, the
+ * steps take the room there is and a column beside them holds how far the
+ * person is, about how long is left, and the goals with Change - the
+ * guided setups' shape, steps beside a panel, so a wide screen frames the
+ * job instead of stretching each step across it. Below lg the same parts
+ * stack: how far and the goals, then the steps. How OneUptime works is the
+ * last line either way, under both.
+ */
+export const GETTING_STARTED_TEST_IDS: {
+  body: string;
+  summary: string;
+} = {
+  body: "getting-started-body",
+  summary: "getting-started-summary",
+};
+
+export const GETTING_STARTED_BODY_CLASS_NAME: string =
+  "grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem]";
+
+/*
+ * How far and the goals: over the steps on a phone, the column beside them
+ * from lg up, as tall as they are.
+ */
+export const GETTING_STARTED_SUMMARY_CLASS_NAME: string =
+  "space-y-5 border-b border-gray-200 bg-gray-50 px-5 py-5 sm:px-8 lg:col-start-2 lg:row-start-1 lg:border-b-0 lg:border-s lg:px-6";
+
+export const GETTING_STARTED_STEPS_CLASS_NAME: string =
+  "space-y-1 px-3 py-4 sm:px-5 lg:col-start-1 lg:row-start-1";
+
+export const GETTING_STARTED_LAST_LINE_CLASS_NAME: string =
+  "border-t border-gray-200 px-3 py-3 sm:px-5";
+
+/*
+ * A goal the project picked, under "Your goals:". Its corners are a
+ * card's, not a pill's: in the column beside the steps a long goal takes
+ * two lines, and a pill drawn around two lines reads as a mistake.
+ */
+export const GOAL_CHIP_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-medium text-gray-700";
+
 export const HOW_ONEUPTIME_WORKS_LINE_TEST_ID: string =
   "getting-started-how-it-works";
 
@@ -882,7 +923,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               <span
                 key={goal}
                 data-testid={`welcome-checklist-goal-${goal}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-medium text-gray-700"
+                className={GOAL_CHIP_CLASS_NAME}
               >
                 <Icon
                   icon={getWelcomeGoalEntry(goal).icon}
@@ -942,12 +983,23 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         <p className="mt-2 max-w-2xl text-sm text-gray-600">
           {translator.translateText(WELCOME_CHECKLIST_COPY.description)}
         </p>
-        <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 lg:flex-1">{goalsRow}</div>
-          <div
-            data-testid="getting-started-progress"
-            className="w-full flex-none lg:w-80"
-          >
+      </div>
+      {error ? (
+        <p role="alert" className="px-5 pt-4 text-sm text-red-600 sm:px-8">
+          {translator.translateText(error)}
+        </p>
+      ) : (
+        <></>
+      )}
+      <div
+        data-testid={GETTING_STARTED_TEST_IDS.body}
+        className={GETTING_STARTED_BODY_CLASS_NAME}
+      >
+        <div
+          data-testid={GETTING_STARTED_TEST_IDS.summary}
+          className={GETTING_STARTED_SUMMARY_CLASS_NAME}
+        >
+          <div data-testid="getting-started-progress" className="w-full">
             <ProgressBar
               count={answer.doneCount}
               totalCount={answer.totalCount}
@@ -976,52 +1028,46 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
+          {goalsRow}
         </div>
+        <ol
+          data-testid="getting-started-steps"
+          className={GETTING_STARTED_STEPS_CLASS_NAME}
+        >
+          {answer.steps.map(
+            (state: WelcomeChecklistStepState, index: number): ReactElement => {
+              return (
+                <WelcomePlanStep
+                  key={state.step}
+                  state={state}
+                  entry={getWelcomeStepEntry(state.step)}
+                  description={describe(state)}
+                  gap={gapOf(state)}
+                  startTitle={
+                    getWelcomeStepGapFix({
+                      gap: state.gap,
+                      translator: translator,
+                    })?.text
+                  }
+                  /*
+                   * Who is told is done, but only email pages the person: a
+                   * way to their phone and the app stays (#9442).
+                   */
+                  doneFooter={
+                    state.step === WelcomeStep.OnCall && offersPhone
+                      ? pagedByPhoneLink
+                      : undefined
+                  }
+                  isLast={index === answer.steps.length - 1}
+                  onOpen={() => {
+                    openStep(state);
+                  }}
+                />
+              );
+            },
+          )}
+        </ol>
       </div>
-      {error ? (
-        <p role="alert" className="px-5 pt-4 text-sm text-red-600 sm:px-8">
-          {translator.translateText(error)}
-        </p>
-      ) : (
-        <></>
-      )}
-      <ol
-        data-testid="getting-started-steps"
-        className="space-y-1 px-3 py-4 sm:px-5"
-      >
-        {answer.steps.map(
-          (state: WelcomeChecklistStepState, index: number): ReactElement => {
-            return (
-              <WelcomePlanStep
-                key={state.step}
-                state={state}
-                entry={getWelcomeStepEntry(state.step)}
-                description={describe(state)}
-                gap={gapOf(state)}
-                startTitle={
-                  getWelcomeStepGapFix({
-                    gap: state.gap,
-                    translator: translator,
-                  })?.text
-                }
-                /*
-                 * Who is told is done, but only email pages the person: a
-                 * way to their phone and the app stays (#9442).
-                 */
-                doneFooter={
-                  state.step === WelcomeStep.OnCall && offersPhone
-                    ? pagedByPhoneLink
-                    : undefined
-                }
-                isLast={index === answer.steps.length - 1}
-                onOpen={() => {
-                  openStep(state);
-                }}
-              />
-            );
-          },
-        )}
-      </ol>
       {/*
        * The checklist says what to do; How OneUptime works says how the
        * pieces connect. One line opens it, named as the dialog is and
@@ -1029,7 +1075,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
        * to do first. Hiding the card keeps it one click away, on the line
        * left behind.
        */}
-      <div className="border-t border-gray-200 px-3 py-3 sm:px-5">
+      <div className={GETTING_STARTED_LAST_LINE_CLASS_NAME}>
         <button
           type="button"
           aria-haspopup="dialog"

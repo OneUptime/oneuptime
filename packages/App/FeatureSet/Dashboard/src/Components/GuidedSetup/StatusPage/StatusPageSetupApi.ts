@@ -16,6 +16,7 @@ import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorsResult,
 } from "../../StatusPage/BulkAddStatusPageMonitors";
 import Label from "Common/Models/DatabaseModels/Label";
+import { getSharedNameFacts } from "Common/Types/Database/SharedNameMarks";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -105,6 +106,7 @@ const labelsOf: (
         id: label._id!.toString(),
         name: label.name || "",
         color: label.color?.toString() || undefined,
+        sharedName: getSharedNameFacts(label),
       };
     });
 
@@ -196,6 +198,8 @@ export default class StatusPageSetupApi {
           _id: true,
           name: true,
           color: true,
+          // When each was made: tells two labels of one name apart (#10314).
+          createdAt: true,
         },
       },
       sort: {
@@ -243,6 +247,8 @@ export default class StatusPageSetupApi {
             _id: true,
             name: true,
             color: true,
+            // When each was made: tells two labels of one name apart (#10314).
+            createdAt: true,
           },
         },
         sort: {

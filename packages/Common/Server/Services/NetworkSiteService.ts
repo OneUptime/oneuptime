@@ -5,6 +5,9 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
 import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkSiteOwnerUserService, {
+  NetworkSiteOwners,
+} from "./NetworkSiteOwnerUserService";
 import NetworkSiteStatusTimelineService from "./NetworkSiteStatusTimelineService";
 import NetworkSiteTypeService from "./NetworkSiteTypeService";
 import ProbeService from "./ProbeService";
@@ -66,6 +69,9 @@ import {
   deviceRollupStateForGroup,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
 
 /**
  * How many sites are stamped with each MonitorStatus. `monitorStatusId` is
@@ -2379,6 +2385,77 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Which of `siteIds` have a site under them, deleted ones included: a
+   * deleted child still names its parent until the retention purge removes
+   * it, and a delete of the parent is refused until then (onBeforeDelete).
+   * Ids in lower case. Read as OneUptime: a child the caller may not read
+   * holds its parent all the same (NetworkSiteUsage).
+   */
+  @CaptureSpan()
+  public async findSiteIdsWithChildren(data: {
+    projectId: ObjectID;
+    siteIds: Array<string>;
+  }): Promise<Set<string>> {
+    const parents: Set<string> = new Set<string>();
+    const asked: Set<string> = new Set<string>(
+      data.siteIds.map((siteId: string): string => {
+        return siteId.toLowerCase();
+      }),
+    );
+    const askedList: Array<string> = Array.from(asked);
+
+    for (
+      let offset: number = 0;
+      offset < askedList.length;
+      offset += DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE
+    ) {
+      const batch: Array<string> = askedList.slice(
+        offset,
+        offset + DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+      );
+      let skip: number = 0;
+
+      while (true) {
+        const children: Array<Model> = await this.findByWithDeleted({
+          query: {
+            projectId: data.projectId,
+            parentSiteId: QueryHelper.any(batch),
+          },
+          select: {
+            _id: true,
+            parentSiteId: true,
+          },
+          sort: {
+            _id: SortOrder.Ascending,
+          },
+          limit: DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE,
+          skip: skip,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const child of children) {
+          const parentId: string =
+            child.parentSiteId?.toString().toLowerCase() || "";
+
+          if (asked.has(parentId)) {
+            parents.add(parentId);
+          }
+        }
+
+        if (children.length < DIRECT_CHILD_TYPE_VALIDATION_PAGE_SIZE) {
+          break;
+        }
+
+        skip += children.length;
+      }
+    }
+
+    return parents;
+  }
+
+  /*
    * Every site id in the subtrees rooted at `siteIds`, INCLUDING the roots
    * themselves.
    *
@@ -3015,12 +3092,35 @@ export class Service extends ProjectReferencesService<Model> {
     alert.rootCause =
       mdText`Network site **${site.name || site.id.toString()}** rolled up to **${statusName}**.`.toString();
 
-    const createdAlert: Alert = await AlertService.create({
+    const createBy: CreateBy<Alert> = {
       data: alert,
       props: {
         isRoot: true,
       },
-    });
+    };
+
+    /*
+     * The site's owners own its alert (#10188), so they hear of it: added
+     * once it exists, and its owners' "Alert Created" notification waits for
+     * them (CreatedNotificationHold), as a monitor's alert waits for the
+     * owners of the device it watches.
+     */
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+    let createdAlert: Alert;
+
+    try {
+      createdAlert = await AlertService.create(createBy);
+
+      if (createdAlert.id) {
+        await this.addSiteOwnersToAlert({
+          site: site,
+          alertId: createdAlert.id,
+        });
+      }
+    } finally {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Caller);
+    }
 
     if (createdAlert.id) {
       await this.updateColumnsByIdWithoutHooks({
@@ -3029,6 +3129,52 @@ export class Service extends ProjectReferencesService<Model> {
           currentActiveAlertId: createdAlert.id,
         },
       });
+    }
+  }
+
+  /*
+   * The people and teams who own a site become owners of the alert it
+   * raises (#10188). Best effort: an alert without them is still the
+   * site's, and its "Alert Created" notification then goes to the
+   * project's owners, as any alert's with no owner does.
+   */
+  private async addSiteOwnersToAlert(data: {
+    site: Model;
+    alertId: ObjectID;
+  }): Promise<void> {
+    if (!data.site.id || !data.site.projectId) {
+      return;
+    }
+
+    try {
+      const owners: NetworkSiteOwners =
+        await NetworkSiteOwnerUserService.getSiteOwners({
+          projectId: data.site.projectId,
+          networkSiteId: data.site.id,
+        });
+
+      if (
+        owners.ownerUserIds.length === 0 &&
+        owners.ownerTeamIds.length === 0
+      ) {
+        return;
+      }
+
+      await AlertService.addOwners(
+        data.site.projectId,
+        data.alertId,
+        owners.ownerUserIds,
+        owners.ownerTeamIds,
+        true, // notify owners
+        {
+          isRoot: true,
+        },
+      );
+    } catch (err) {
+      logger.error(
+        `Network site alerting: could not make the owners of site ${data.site.id.toString()} owners of alert ${data.alertId.toString()}.`,
+      );
+      logger.error(err);
     }
   }
 

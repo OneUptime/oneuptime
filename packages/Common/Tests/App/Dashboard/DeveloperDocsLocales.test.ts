@@ -48,7 +48,12 @@ function readLocale(file: string): Record<string, string> {
 }
 
 // Names that stay as they are in every language.
-const UNTRANSLATED: ReadonlyArray<string> = ["Terraform", "API", "CLI"];
+const UNTRANSLATED: ReadonlyArray<string> = [
+  "Terraform",
+  "Crossplane",
+  "API",
+  "CLI",
+];
 
 const STRINGS: Array<string> = Array.from(
   new Set<string>([
@@ -103,6 +108,8 @@ describe("the Developer pages' words are in every Dashboard locale", () => {
       for (const name of [
         "OneUptime",
         "Terraform",
+        "Crossplane",
+        "Kubernetes",
         "Claude",
         "GitHub Copilot",
         "Cursor",

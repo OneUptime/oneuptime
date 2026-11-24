@@ -72,17 +72,23 @@ export const AI_SETUP_ACTION_TOOL_NAMES: ReadonlyArray<string> = Object.keys(
 );
 
 /*
- * THE SETUP ACTIONS RUN OUTSIDE ASK AI'S CHAT (#7241): what the MCP
- * server offers as tools of its own - a website monitor, paging, a status
- * page with monitors, monitors put on a status page - and the read beside
- * them, each one call. The API runs them (SETUP_ACTION_RUN_ROUTE,
- * Server/API/SetupActionAPI) through the same tools as Ask AI: the same
- * prepare, the same checks before anything is made, the same writes as
- * the person, so the two cannot drift.
+ * THE SETUP ACTIONS RUN OUTSIDE ASK AI'S CHAT (#7241, #10041): what the
+ * MCP server offers as tools of its own - a website monitor, a service's
+ * recommended monitors, paging, people added to a policy, invitations,
+ * the person's own How to Reach Me, a status page with monitors, monitors
+ * put on a status page - and the read beside them, each one call. The API
+ * runs them (SETUP_ACTION_RUN_ROUTE, Server/API/SetupActionAPI) through
+ * the same tools as Ask AI: the same prepare, the same checks before
+ * anything is made, the same writes as the person, so the two cannot
+ * drift. Every setup action of Ask AI's is one of them.
  */
 export const SETUP_ACTIONS_RUN_OUTSIDE_CHAT: ReadonlyArray<string> = [
   SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+  SET_UP_SERVICE_MONITOR_TOOL_NAME,
   SET_UP_PAGING_TOOL_NAME,
+  ADD_TO_ON_CALL_POLICY_TOOL_NAME,
+  INVITE_PEOPLE_TOOL_NAME,
+  SET_HOW_TO_REACH_ME_TOOL_NAME,
   PUBLISH_STATUS_PAGE_TOOL_NAME,
   ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME,
   WHO_IS_TOLD_TOOL_NAME,
@@ -94,6 +100,32 @@ export function isSetupActionRunOutsideChat(
   return (
     Boolean(toolName) && SETUP_ACTIONS_RUN_OUTSIDE_CHAT.includes(toolName!)
   );
+}
+
+/*
+ * What a project API key is told when it asks one of them to make
+ * something (#7241, #10041): each acts as the person signed in, and a key
+ * is no person. Most make a record that is theirs, with their permissions
+ * - their monitor, the policy that pages them. Two are a person's by
+ * their nature, so a key is told why in their own words: an invitation
+ * names the person who sent it, and How to Reach Me is the person's own,
+ * so for a key there is nobody to set it for. The MCP server says it
+ * before any request (Tools/SetupTools), and the route that runs them
+ * says it again (Server/Utils/AI/Toolbox/SetupActionRunner), in the same
+ * words.
+ */
+const SIGN_IN_INSTEAD: string =
+  "Connect this MCP client by signing in to OneUptime (OAuth)";
+
+export function getSetupActionApiKeyRefusal(action: string): string {
+  switch (action) {
+    case INVITE_PEOPLE_TOOL_NAME:
+      return `${action} sends each invitation in the name of the person signed in to OneUptime: the email says who invited them, and a reply reaches that person. A project API key is not a person, so it cannot invite anyone. ${SIGN_IN_INSTEAD} to invite people.`;
+    case SET_HOW_TO_REACH_ME_TOOL_NAME:
+      return `${action} sets how pages reach the person signed in to OneUptime: their own How to Reach Me. A project API key is not a person, so there is nobody whose How to Reach Me it could set. ${SIGN_IN_INSTEAD} as the person to be reached.`;
+    default:
+      return `${action} acts as the person signed in to OneUptime, as Ask AI's setup actions do: what it makes is theirs, made with their permissions, and a policy it changes can page them. A project API key is not a person, so it cannot set things up. ${SIGN_IN_INSTEAD} to use it, or create the records one by one with the create tools.`;
+  }
 }
 
 /*

@@ -14,6 +14,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * use the feature and this build includes it, and the upsell card otherwise.
  * Where custom roles cannot be changed, the project's roles - and Delete -
  * are on Teams > Settings > Roles.
+ *
+ * It is the Overview of the role's own layout (RoleViewLayout), beside the
+ * role's Developer pages (#10139).
  */
 const TeamRoleView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

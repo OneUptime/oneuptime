@@ -33,6 +33,9 @@ jest.mock("Common/Server/Utils/BasicCron", () => {
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
+import Dictionary from "Common/Types/Dictionary";
+import ProbeKeyHeaders from "Common/Types/Probe/ProbeKeyHeaders";
+import ProbeReportOpening from "Common/Server/Utils/Probe/ProbeReportOpening";
 import OpenStackCollectionErrorCode from "Common/Types/OpenStack/OpenStackCollectionError";
 import {
   OPENSTACK_PROBE_COLLECTION_CONCURRENCY,
@@ -435,6 +438,9 @@ describe("collecting", () => {
     expect(report!.headers).toEqual({
       "Content-Type": "application/json",
       "Content-Encoding": "gzip",
+      // Its id and key, which OneUptime checks before it reads the report (#10222).
+      "x-oneuptime-probe-id": "11111111-2222-3333-4444-555555555555",
+      "x-oneuptime-probe-key": "test-probe-key",
     });
     expect(report!.body).toMatchObject({
       probeKey: "test-probe-key",
@@ -453,6 +459,52 @@ describe("collecting", () => {
     expect(JSON.stringify(report!.body)).not.toContain(SECRET);
 
     expect(getRunningOpenStackCloudIds()).toEqual([]);
+  });
+
+  /*
+   * #10222: OneUptime checks a collection's key before it parses the report -
+   * from these headers, and from a probe before them, from the key and id
+   * the report opens with. Both are what the server reads them as, and the
+   * body keeps them first, for a OneUptime from before the headers.
+   */
+  test("each part carries the probe's id and key in headers, and first in its body", async () => {
+    workAnswers.push({
+      collections: [collectionJob("a")] as unknown as JSONObject,
+      tests: [],
+    });
+
+    await runOpenStackWorkTick(DEPENDENCIES);
+    collections[0]!.resolve(succeeded(collections[0]!.job));
+    await waitForRunningCollections();
+
+    const sent: JSONObject = fetchSpy.mock.calls
+      .map((call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
+      })
+      .find((request: JSONObject): boolean => {
+        return String(request["url"]) === COLLECTION_URL;
+      })!;
+
+    expect(
+      ProbeKeyHeaders.read(sent["headers"] as unknown as Dictionary<string>),
+    ).toEqual({
+      probeId: "11111111-2222-3333-4444-555555555555",
+      probeKey: "test-probe-key",
+    });
+
+    const text: Buffer = zlib.gunzipSync(sent["data"] as unknown as Buffer);
+
+    expect(
+      text
+        .toString("utf8")
+        .startsWith(
+          '{"probeKey":"test-probe-key","probeId":"11111111-2222-3333-4444-555555555555",',
+        ),
+    ).toBe(true);
+    expect(ProbeReportOpening.read(text)).toEqual({
+      probeId: "11111111-2222-3333-4444-555555555555",
+      probeKey: "test-probe-key",
+    });
   });
 
   test("never more than four clouds at once, and the rest wait their turn", async () => {

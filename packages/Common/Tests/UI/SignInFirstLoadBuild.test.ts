@@ -57,6 +57,13 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * Database Health metric catalog a Database Health step named its
  * collection groups from, which each had been kept out on its own before.
  *
+ * Every model's lists are read with the product levels (#10289), which read
+ * every product's tables (Types/Product/ProductRecordTables), and that file
+ * built, as it loaded, the tables of no product with why each is - which
+ * only the tests that hold every table to a product read. They are a file
+ * of their own (Types/Product/TablesOfNoProduct), not built from these
+ * modules at all.
+ *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
  * metafile (Helpers/FirstLoadBuild): the first load is the entry's file and
@@ -300,6 +307,11 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the Database Health metric catalog, which a Database Health step no longer loads to name its collection groups",
     path: "Types/Monitor/DatabaseMetricCatalog.ts",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the tables of no product, which only the tests that hold every table to a product read",
+    path: "Types/Product/TablesOfNoProduct.ts",
     isLoadedWhenNeeded: false,
   },
   {

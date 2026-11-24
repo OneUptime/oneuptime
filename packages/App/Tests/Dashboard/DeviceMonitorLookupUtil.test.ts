@@ -60,11 +60,17 @@ import NetworkDeviceMonitoringMethod from "Common/Types/NetworkDevice/NetworkDev
 import DeviceMonitorLookupUtil, {
   DeviceBinding,
   DeviceMonitorContext,
+  NETWORK_DEVICE_UNTIED_MONITORS_ROUTE,
   NETWORK_DEVICE_WATCHING_MONITORS_ROUTE,
+  NO_UNTIED_MONITORS,
+  UntiedMonitorsListing,
   WATCHING_MONITORS_PER_READ,
   WEB_UI_MONITOR_CANDIDATES_LIMIT,
+  getUntiedMonitorsRoute,
   getWatchingMonitorsRoute,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceMonitorLookupUtil";
+import { UntiedMonitorMatch } from "Common/Utils/NetworkDevice/UntiedDeviceMonitor";
+import { AmbiguousAddressReason } from "Common/Utils/NetworkDevice/DeviceAddressScope";
 
 const getListMock: jest.Mock = ModelAPI.getList as unknown as jest.Mock;
 const getItemMock: jest.Mock = ModelAPI.getItem as unknown as jest.Mock;
@@ -846,6 +852,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
       monitors: [bound],
       isMonitorBacked: true,
       removableMonitorIds: new Set<string>(),
+      untiedMonitors: NO_UNTIED_MONITORS,
     });
 
     /*
@@ -957,6 +964,7 @@ describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the
       monitors: [ntp],
       isMonitorBacked: false,
       removableMonitorIds: new Set<string>(),
+      untiedMonitors: NO_UNTIED_MONITORS,
     });
   });
 });
@@ -1144,6 +1152,7 @@ describe("DeviceMonitorLookupUtil - the device's web UI monitor", () => {
       monitors: [ntp],
       isMonitorBacked: false,
       removableMonitorIds: new Set<string>(),
+      untiedMonitors: NO_UNTIED_MONITORS,
     });
   });
 
@@ -1154,6 +1163,7 @@ describe("DeviceMonitorLookupUtil - the device's web UI monitor", () => {
       monitors: [WEB_UI],
       isMonitorBacked: false,
       removableMonitorIds: new Set<string>(),
+      untiedMonitors: NO_UNTIED_MONITORS,
     });
   });
 });
@@ -1252,5 +1262,284 @@ describe("DeviceMonitorLookupUtil - the monitors a person tied to the device", (
         listedForOtherReasons: [tied],
       }).size,
     ).toBe(0);
+  });
+});
+
+/*
+ * The monitors that check the device's address but are tied to no device
+ * (issue #9903), as the server answers them
+ * (POST /network-device/:id/untied-monitors): each with what its probes see
+ * there, the other devices named as the reader may read them, and none the
+ * card already lists.
+ */
+describe("DeviceMonitorLookupUtil - the monitors on the device's address tied to no device", () => {
+  const BRANCH_A_PING: string = "9f1b6b0e-0000-4000-8000-00000000c901";
+  const BOTH_BRANCHES_PING: string = "9f1b6b0e-0000-4000-8000-00000000c902";
+  const BRANCH_B_ROUTER: string = "3f1b6b0e-0000-4000-8000-0000000000bb";
+  const HIDDEN_ROUTER: string = "3f1b6b0e-0000-4000-8000-0000000000cc";
+
+  // What the server answers about the device's address.
+  let untiedAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse;
+  // The network devices the reader may read.
+  let readableDevices: Array<NetworkDevice>;
+  // Whether reading the devices' names fails.
+  let namesFail: boolean;
+
+  function isUntiedRequest(request: { url: URL }): boolean {
+    return request.url.toString().endsWith("/untied-monitors");
+  }
+
+  function namedDevice(id: string, name: string): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+    device._id = id;
+    device.name = name;
+    return device;
+  }
+
+  function deviceNameReads(): Array<unknown> {
+    return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return (call[0] as { modelType?: unknown }).modelType === NetworkDevice;
+    });
+  }
+
+  beforeEach(() => {
+    resetLookup();
+    getItemMock.mockResolvedValue(deviceRow({}));
+    readableDevices = [namedDevice(BRANCH_B_ROUTER, "Branch B router")];
+    namesFail = false;
+    untiedAnswer = new HTTPResponse<JSONObject>(
+      200,
+      {
+        monitors: [
+          {
+            monitorId: BRANCH_A_PING,
+            name: "Branch A ping",
+            monitorType: "Ping",
+            match: UntiedMonitorMatch.ThisDevice,
+          },
+          {
+            monitorId: BOTH_BRANCHES_PING,
+            name: "Both branches ping",
+            monitorType: "Ping",
+            match: UntiedMonitorMatch.CannotTellApart,
+            ambiguousReason: AmbiguousAddressReason.PollSeveral,
+            otherDeviceIds: [BRANCH_B_ROUTER, HIDDEN_ROUTER],
+          },
+        ],
+        hasMore: false,
+      } as JSONObject,
+      {},
+    );
+
+    postMock.mockImplementation(async (request: unknown) => {
+      if (isUntiedRequest(request as { url: URL })) {
+        return untiedAnswer;
+      }
+
+      return new HTTPResponse<JSONObject>(
+        200,
+        { monitorIds: [] } as JSONObject,
+        {},
+      );
+    });
+
+    const monitorLists: (request: unknown) => unknown =
+      getListMock.getMockImplementation() as (request: unknown) => unknown;
+
+    getListMock.mockImplementation(async (request: unknown) => {
+      const asked: { modelType?: unknown; query?: Record<string, unknown> } =
+        request as { modelType?: unknown; query?: Record<string, unknown> };
+
+      if (asked.modelType !== NetworkDevice) {
+        return monitorLists(request);
+      }
+
+      if (namesFail) {
+        throw new Error("The devices could not be read.");
+      }
+
+      const ids: Array<string> = (
+        (asked.query!["_id"] as Includes).values as Array<string>
+      ).map((id: string): string => {
+        return id.toString();
+      });
+      const found: Array<NetworkDevice> = readableDevices.filter(
+        (device: NetworkDevice): boolean => {
+          return ids.includes(device._id!.toString());
+        },
+      );
+
+      return { data: found, count: found.length, skip: 0, limit: 100 };
+    });
+  });
+
+  test("asks the device's own route, with the project header", async () => {
+    await DeviceMonitorLookupUtil.fetchUntiedMonitors(DEVICE_ID);
+
+    const request: { url: URL; data: JSONObject; headers: Dictionary<string> } =
+      postMock.mock.calls[0]![0] as {
+        url: URL;
+        data: JSONObject;
+        headers: Dictionary<string>;
+      };
+
+    expect(NETWORK_DEVICE_UNTIED_MONITORS_ROUTE).toBe(
+      "/network-device/:networkDeviceId/untied-monitors",
+    );
+    expect(getUntiedMonitorsRoute(DEVICE_ID)).toBe(
+      `/network-device/${DEVICE_ID.toString()}/untied-monitors`,
+    );
+    expect(request.url.toString()).toBe(
+      `http://localhost/api${getUntiedMonitorsRoute(DEVICE_ID)}`,
+    );
+    expect(request.data).toEqual({});
+    expect(request.headers).toEqual(TENANT_HEADERS);
+  });
+
+  test("a refused request is thrown by the fetch", async () => {
+    untiedAnswer = new HTTPErrorResponse(500, {} as JSONObject, {});
+
+    await expect(
+      DeviceMonitorLookupUtil.fetchUntiedMonitors(DEVICE_ID),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
+  });
+
+  test("lists each with what its probes see, naming the other devices the reader may read", async () => {
+    const listing: UntiedMonitorsListing =
+      await DeviceMonitorLookupUtil.listUntiedMonitors(DEVICE_ID);
+
+    expect(
+      listing.monitors.map(
+        (monitor: { name: string; match: string }): Array<string> => {
+          return [monitor.name, monitor.match];
+        },
+      ),
+    ).toEqual([
+      ["Branch A ping", UntiedMonitorMatch.ThisDevice],
+      ["Both branches ping", UntiedMonitorMatch.CannotTellApart],
+    ]);
+    // The router the reader may not read is not named.
+    expect(Array.from(listing.deviceNames.entries())).toEqual([
+      [BRANCH_B_ROUTER, "Branch B router"],
+    ]);
+    expect(listing.hasMore).toBe(false);
+    expect(deviceNameReads()).toHaveLength(1);
+  });
+
+  test("reads no device names when no row names another device", async () => {
+    untiedAnswer = new HTTPResponse<JSONObject>(
+      200,
+      {
+        monitors: [
+          {
+            monitorId: BRANCH_A_PING,
+            name: "Branch A ping",
+            match: UntiedMonitorMatch.ThisDevice,
+          },
+        ],
+        hasMore: true,
+      } as JSONObject,
+      {},
+    );
+
+    const listing: UntiedMonitorsListing =
+      await DeviceMonitorLookupUtil.listUntiedMonitors(DEVICE_ID);
+
+    expect(listing.monitors).toHaveLength(1);
+    expect(listing.hasMore).toBe(true);
+    expect(deviceNameReads()).toHaveLength(0);
+  });
+
+  test("a refused request lists none, and the device's own monitors are listed all the same", async () => {
+    untiedAnswer = new HTTPErrorResponse(500, {} as JSONObject, {});
+    const tied: Monitor = boundPingMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000c903",
+      "tied ping",
+    );
+    tiedToDevice = [tied];
+
+    const context: DeviceMonitorContext =
+      await DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID);
+
+    expect(context.monitors).toEqual([tied]);
+    expect(context.untiedMonitors).toEqual(NO_UNTIED_MONITORS);
+  });
+
+  test("a failed read of the devices' names leaves them unnamed, the rows listed", async () => {
+    namesFail = true;
+
+    const listing: UntiedMonitorsListing =
+      await DeviceMonitorLookupUtil.listUntiedMonitors(DEVICE_ID);
+
+    expect(listing.monitors).toHaveLength(2);
+    expect(listing.deviceNames.size).toBe(0);
+  });
+
+  test("the device's page context carries them, less any monitor the card lists already", async () => {
+    // The monitor bound to a monitor-backed device, untied: the device's all the same.
+    const bound: Monitor = boundPingMonitor(BRANCH_A_PING, "Branch A ping");
+    getItemMock.mockResolvedValue(
+      deviceRow({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitor: bound,
+      }),
+    );
+
+    const context: DeviceMonitorContext =
+      await DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID);
+
+    expect(context.monitors).toEqual([bound]);
+    expect(
+      context.untiedMonitors.monitors.map(
+        (monitor: { monitorId: string }): string => {
+          return monitor.monitorId;
+        },
+      ),
+    ).toEqual([BOTH_BRANCHES_PING]);
+    expect(context.untiedMonitors.deviceNames.get(BRANCH_B_ROUTER)).toBe(
+      "Branch B router",
+    );
+  });
+
+  test("the rule on its own: a listed monitor is left out, by id whatever its case", () => {
+    const listed: Monitor = boundPingMonitor(
+      BRANCH_A_PING.toUpperCase(),
+      "listed",
+    );
+
+    expect(
+      DeviceMonitorLookupUtil.withoutListedMonitors({
+        untied: {
+          monitors: [
+            {
+              monitorId: BRANCH_A_PING,
+              name: "Branch A ping",
+              monitorType: "Ping",
+              match: UntiedMonitorMatch.ThisDevice,
+            },
+            {
+              monitorId: BOTH_BRANCHES_PING,
+              name: "Both branches ping",
+              monitorType: "Ping",
+              match: UntiedMonitorMatch.ThisDevice,
+            },
+          ],
+          hasMore: true,
+          deviceNames: new Map<string, string>(),
+        },
+        listed: [listed],
+      }),
+    ).toEqual({
+      monitors: [
+        {
+          monitorId: BOTH_BRANCHES_PING,
+          name: "Both branches ping",
+          monitorType: "Ping",
+          match: UntiedMonitorMatch.ThisDevice,
+        },
+      ],
+      hasMore: true,
+      deviceNames: new Map<string, string>(),
+    });
   });
 });

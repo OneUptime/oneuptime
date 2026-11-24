@@ -148,6 +148,12 @@ export function buildTimelineResponse(data: {
   ownerTeamIdsBySchedule: Map<string, Array<string>>;
   rosterScheduleIds: Set<string>;
   teamNames: Map<string, string>;
+  /*
+   * When each owner team was made, which tells two of one name apart in the
+   * team filter (#10314). Its description is not sent: the names are read
+   * as OneUptime, for a caller who may read the schedules but not the team.
+   */
+  teamCreatedAt?: Map<string, Date> | undefined;
   memberTeamIds: Set<string>;
   totalScheduleCount: number;
   // False strips override provenance: the caller cannot read user overrides.
@@ -217,10 +223,13 @@ export function buildTimelineResponse(data: {
 
   const teams: Array<ScheduleTimelineTeamJson> = Array.from(usedTeamIds)
     .map((teamId: string): ScheduleTimelineTeamJson => {
+      const createdAt: Date | undefined = data.teamCreatedAt?.get(teamId);
+
       return {
         teamId,
         teamName: data.teamNames.get(teamId) || "Unnamed team",
         isCurrentUserMember: data.memberTeamIds.has(teamId),
+        ...(createdAt ? { teamCreatedAt: createdAt.toISOString() } : {}),
       };
     })
     .sort((a: ScheduleTimelineTeamJson, b: ScheduleTimelineTeamJson) => {
@@ -360,14 +369,21 @@ async function loadOwnerTeamIds(data: {
   return out;
 }
 
+// The owner teams' names, and when each was made (#10314).
+interface TeamFacts {
+  names: Map<string, string>;
+  createdAt: Map<string, Date>;
+}
+
 async function loadTeamNames(data: {
   teamIds: Array<string>;
   projectId: ObjectID;
-}): Promise<Map<string, string>> {
+}): Promise<TeamFacts> {
   const out: Map<string, string> = new Map();
+  const createdAt: Map<string, Date> = new Map();
 
   if (data.teamIds.length === 0) {
-    return out;
+    return { names: out, createdAt: createdAt };
   }
 
   const rows: Array<Team> = await TeamService.findBy({
@@ -378,6 +394,7 @@ async function loadTeamNames(data: {
     select: {
       _id: true,
       name: true,
+      createdAt: true,
     },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
@@ -391,10 +408,14 @@ async function loadTeamNames(data: {
 
     if (teamId) {
       out.set(teamId, row.name?.toString() || "Unnamed team");
+
+      if (row.createdAt instanceof Date && !isNaN(row.createdAt.getTime())) {
+        createdAt.set(teamId, row.createdAt);
+      }
     }
   }
 
-  return out;
+  return { names: out, createdAt: createdAt };
 }
 
 // The caller's own accepted memberships among `teamIds`.
@@ -651,8 +672,8 @@ router.get(
         Array.from(ownerTeamIdsBySchedule.values()).flat(),
       );
 
-      const [teamNames, memberTeamIds, rosterScheduleIds]: [
-        Map<string, string>,
+      const [teamFacts, memberTeamIds, rosterScheduleIds]: [
+        TeamFacts,
         Set<string>,
         Set<string>,
       ] = await Promise.all([
@@ -709,7 +730,8 @@ router.get(
         segments,
         ownerTeamIdsBySchedule,
         rosterScheduleIds,
-        teamNames,
+        teamNames: teamFacts.names,
+        teamCreatedAt: teamFacts.createdAt,
         memberTeamIds,
         totalScheduleCount,
         includeOverrides,

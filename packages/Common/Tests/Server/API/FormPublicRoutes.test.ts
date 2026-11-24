@@ -1574,11 +1574,19 @@ describe("the public form routes over HTTP", () => {
 
       expect(created.data.createdByUserId).toBeUndefined();
       expect(created.props).toEqual({ isRoot: true });
-      expect(
-        Object.keys(
-          getPublicForm.mock.calls[0]![0] as Record<string, unknown>,
-        ).sort(),
-      ).toEqual(["clientIp", "shareKey"]);
+      /*
+       * The link's key, the trusted address, and a reader of the form's own
+       * sign-in cookie (#10249) - nothing of the OneUptime session.
+       */
+      const asked: Record<string, unknown> = getPublicForm.mock
+        .calls[0]![0] as Record<string, unknown>;
+
+      expect(Object.keys(asked).sort()).toEqual([
+        "clientIp",
+        "formSession",
+        "shareKey",
+      ]);
+      expect(typeof asked["formSession"]).toBe("function");
     });
 
     /*

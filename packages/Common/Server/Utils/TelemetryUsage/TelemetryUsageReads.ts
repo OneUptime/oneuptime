@@ -21,6 +21,10 @@ import {
   toTelemetryUsageDay,
 } from "../../../Types/Telemetry/TelemetryUsage";
 import TelemetryUsageBillingService from "../../Services/TelemetryUsageBillingService";
+import {
+  EXCEPTION_BILLING_PRODUCT_TYPES,
+  isExceptionBillingProductType,
+} from "../../../Types/Telemetry/ExceptionSource";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import TelemetryUsageResourceNames from "./TelemetryUsageResourceNames";
 
@@ -41,13 +45,15 @@ import TelemetryUsageResourceNames from "./TelemetryUsageResourceNames";
  * billing is on and they read billing. Without it no cost leaves the server.
  *
  * Exceptions are shown as a signal of their own (issue #6356), though they
- * are billed inside Traces: a Traces row keeps everything it is billed for in
- * dataIngestedInGB, and how much of that was exceptions in
- * exceptionDataIngestedInGB. Each read takes that part out of the row's
- * Traces and shows it as Exceptions, with its share of the row's cost - so
- * every total, and every cost, is what it was. A Traces row counted before
- * the exceptions were counted apart has no part to take out: its exceptions
- * stay inside Traces, as they were shown when it was counted.
+ * are billed inside the product they were found in (ExceptionSource, issue
+ * #6590): a Traces row keeps everything it is billed for in
+ * dataIngestedInGB, spans and the exceptions found in them, and a Logs row
+ * its log records and the exceptions found in them, each with how much of
+ * that was exceptions in exceptionDataIngestedInGB. Each read takes that part
+ * out of the row's product and shows it as Exceptions, with its share of the
+ * row's cost - so every total, and every cost, is what it was. A row counted
+ * before the exceptions were counted apart has no part to take out: its
+ * exceptions stay inside Traces, as they were shown when it was counted.
  */
 
 const TABLE: string = '"TelemetryUsageBilling"';
@@ -56,15 +62,21 @@ const TABLE: string = '"TelemetryUsageBilling"';
 const ROW_DAY: string = `to_char("createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD')`;
 
 /*
- * A row's exceptions, in GB: a Traces row's recorded part, never less than
- * none nor more than the row holds. Every other row - another product's, and
- * a Traces row counted before the part was recorded (NULL) - has none.
- * `alias` is the table's, with its dot ('u.'), or '' for none.
+ * A row's exceptions, in GB: a Traces or Logs row's recorded part, never less
+ * than none nor more than the row holds. Every other row - another
+ * product's, and a row counted before the part was recorded (NULL) - has
+ * none. `alias` is the table's, with its dot ('u.'), or '' for none.
  */
 export const getExceptionGBSql: (alias: string) => string = (
   alias: string,
 ): string => {
-  return `(CASE WHEN ${alias}"productType" = '${ProductType.Traces}' THEN LEAST(GREATEST(COALESCE(${alias}"exceptionDataIngestedInGB", 0), 0), ${alias}"dataIngestedInGB") ELSE 0 END)`;
+  const products: string = EXCEPTION_BILLING_PRODUCT_TYPES.map(
+    (productType: ProductType): string => {
+      return `'${productType}'`;
+    },
+  ).join(", ");
+
+  return `(CASE WHEN ${alias}"productType" IN (${products}) THEN LEAST(GREATEST(COALESCE(${alias}"exceptionDataIngestedInGB", 0), 0), ${alias}"dataIngestedInGB") ELSE 0 END)`;
 };
 
 /*
@@ -96,10 +108,10 @@ export const getSignalSumsSql: (alias: string) => string = (
 
 interface ProductSumRow {
   productType: string;
-  // The product's own, the exceptions taken out of Traces.
+  // The product's own, the exceptions taken out of Traces and Logs.
   dataIngestedInGB: string | number | null;
   totalCostInUSD: string | number | null;
-  // The exceptions of Traces rows; none for any other product.
+  // The exceptions of Traces and Logs rows; none for any other product.
   exceptionDataIngestedInGB?: string | number | null | undefined;
   exceptionCostInUSD?: string | number | null | undefined;
 }
@@ -158,8 +170,8 @@ export interface TelemetryUsageSignalAmount {
 
 /*
  * The signals a group of one product's rows holds, and how much of each: the
- * product's own, and for Traces the exceptions apart, when there were any.
- * Rows that held only exceptions hold no Traces of their own.
+ * product's own, and for Traces and Logs the exceptions apart, when there
+ * were any. Rows that held only exceptions hold none of their product's own.
  */
 export const getSignalAmounts: (
   row: ProductSumRow & { productType: ProductType },
@@ -177,7 +189,8 @@ export const getSignalAmounts: (
     isCostIncluded,
   );
   const hasExceptions: boolean =
-    row.productType === ProductType.Traces && exceptions.dataIngestedInGB > 0;
+    isExceptionBillingProductType(row.productType) &&
+    exceptions.dataIngestedInGB > 0;
 
   const amounts: Array<TelemetryUsageSignalAmount> = [];
 

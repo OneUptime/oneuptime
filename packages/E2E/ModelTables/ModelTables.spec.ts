@@ -4506,7 +4506,7 @@ test.describe("a table fits its own card", () => {
       // "Oct 5, 7:04 AM": this year's, in the reader's zone, unnamed.
       expect(date.text).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} [AP]M$/);
       // Whole under the pointer: its year, and the zone it is read in.
-      expect(date.title).toMatch(/2026, \d{2}:\d{2} [AP]M BST$/);
+      expect(date.title).toMatch(/2026, \d{1,2}:\d{2} [AP]M BST$/);
       expect(date.dateTime).toMatch(/^2026-\d{2}-\d{2}T/);
       expect(new Date(date.dateTime || "").toISOString()).toBe(date.dateTime);
     }

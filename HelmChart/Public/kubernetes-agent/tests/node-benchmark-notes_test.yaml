@@ -1,0 +1,95 @@
+# What the notes say about kube-bench (#9873), and what the chart's RBAC gives
+# it: nothing.
+#
+# When it runs, the notes list it among what the agent collects, with the
+# benchmark, the schedule, its cost in a sentence, and the command that runs
+# it now. When somebody turned it on but the platform cannot run it, they say
+# so and why, so nobody waits for node controls that cannot arrive. Off, the
+# default, they say nothing of it.
+suite: the notes say when kube-bench runs, and why it does not where it cannot
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+  - templates/rbac.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: says nothing of it while it is off
+    template: templates/NOTES.txt
+    asserts:
+      - notMatchRegexRaw:
+          pattern: kube-bench
+
+  - it: lists it among what the agent collects, with its benchmark, schedule, cost and the command that runs it now
+    template: templates/NOTES.txt
+    set:
+      compliance.nodeBenchmark.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: '  - The CIS Kubernetes Benchmark''s node and control plane controls \(cis-1\.12\), read on the nodes by kube-bench on the schedule "37 \*/6 \* \* \*", for the cluster''s Compliance page\. Its pods run as root with the node''s process namespace and read-only mounts of its Kubernetes directories; the README''s "Node benchmark" section says what that costs\. To run it now:\n      kubectl create job --from=cronjob/oneuptime-agent-kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime\n'
+
+  - it: names only the node controls where the control plane is the provider's
+    template: templates/NOTES.txt
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: aks-1.8
+      compliance.nodeBenchmark.nodeGroups:
+        - name: system
+          nodeSelector:
+            kubernetes.azure.com/mode: system
+    asserts:
+      - matchRegexRaw:
+          pattern: "  - The CIS Kubernetes Benchmark's node controls \\(aks-1\\.8\\), read on the nodes"
+      - matchRegexRaw:
+          pattern: "kubectl create job --from=cronjob/oneuptime-agent-kubernetes-agent-kube-bench-system kube-bench-now -n oneuptime"
+
+  - it: says why it is left out on GKE Autopilot
+    template: templates/NOTES.txt
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: gke-autopilot
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\ncompliance\\.nodeBenchmark\\.enabled is true, but kube-bench is left out:\\nthe gke-autopilot preset admits no pod that reads the node's files or\\nshares its processes, which is how kube-bench reads them\\.\\n"
+      - notMatchRegexRaw:
+          pattern: "read on the nodes by kube-bench"
+
+  - it: says why it is left out on EKS Fargate
+    template: templates/NOTES.txt
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: eks-fargate
+    asserts:
+      - matchRegexRaw:
+          pattern: "the eks-fargate preset admits no pod that reads the node's files"
+
+  - it: points OpenShift at its Compliance Operator
+    template: templates/NOTES.txt
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: openshift
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\ncompliance\\.nodeBenchmark\\.enabled is true, but kube-bench is left out:\\nOpenShift's benchmark \\(rh-1\\.x\\) reads the cluster through oc with a cluster\\nreader's rights, which kube-bench's pod never gets\\. OpenShift's Compliance\\nOperator scores the CIS Red Hat OpenShift Container Platform Benchmark\\.\\n"
+
+  - it: says resource specs carry its results
+    template: templates/NOTES.txt
+    set:
+      compliance.nodeBenchmark.enabled: true
+      resourceSpecs.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\ncompliance\\.nodeBenchmark\\.enabled is true, but kube-bench is left out:\\nresourceSpecs\\.enabled is false, and the resource snapshots it turns off are\\nwhat carry kube-bench's results to OneUptime\\.\\n"
+
+  - it: binds no role of the chart's to kube-bench's service account
+    template: templates/rbac.yaml
+    set:
+      compliance.nodeBenchmark.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: metadata.name
+          pattern: node-benchmark

@@ -14,7 +14,7 @@ import {
 import { getLlmProviderShownModelName } from "Common/UI/Components/AI/LlmProviderFormCopy";
 import LlmProviderTypeLabel from "Common/UI/Components/AI/LlmProviderTypeLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestLLMProvider from "Common/UI/Utils/TestLLMProvider";
@@ -31,6 +31,21 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { Green } from "Common/Types/BrandColors";
+import Card from "Common/UI/Components/Card/Card";
+import ProductKey from "Common/Types/Product/ProductKey";
+import { useIsProductOffOnServer } from "../../Utils/ProjectProducts/UseProjectProducts";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+
+const DATA_SECURITY_AI_LINK_TITLE: string = translationKey(
+  "What Data Security Sends These Models",
+);
+const DATA_SECURITY_AI_LINK_DESCRIPTION: string = translationKey(
+  "Names, shapes, counts and configuration, never a value of your data. See what each feature sends.",
+);
+const DATA_SECURITY_AI_LINK_BUTTON: string = translationKey(
+  "What OneUptime AI Sees",
+);
 
 /*
  * Project Settings > AI > LLM Providers: the providers this project's AI
@@ -58,6 +73,9 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * may; before the permission snapshot has landed it is not offered.
    */
   const testGate: PermissionGateResult = TestLLMProvider.getTestGate();
+  const isDataSecurityOff: boolean = useIsProductOffOnServer(
+    ProductKey.DataSecurity,
+  );
 
   return (
     <Fragment>
@@ -295,6 +313,32 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
           />
         ) : null}
+
+        {/*
+         * What Data Security sends these models (#10365): names, shapes,
+         * counts and configuration, never a value - said on its own page,
+         * linked from here, where people choose the model.
+         */}
+        {isDataSecurityOff ? null : (
+          <Card
+            title={DATA_SECURITY_AI_LINK_TITLE}
+            description={DATA_SECURITY_AI_LINK_DESCRIPTION}
+            buttons={[
+              {
+                title: DATA_SECURITY_AI_LINK_BUTTON,
+                buttonStyle: ButtonStyleType.NORMAL,
+                icon: IconProp.ArrowCircleRight,
+                onClick: () => {
+                  Navigation.navigate(
+                    RouteUtil.populateRouteParams(
+                      RouteMap[PageMap.DATA_SECURITY_SETTINGS_AI] as Route,
+                    ),
+                  );
+                },
+              },
+            ]}
+          />
+        )}
       </>
     </Fragment>
   );

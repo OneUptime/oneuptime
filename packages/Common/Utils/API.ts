@@ -11,6 +11,7 @@ import URL from "../Types/API/URL";
 import Dictionary from "../Types/Dictionary";
 import APIException from "../Types/Exception/ApiException";
 import BadDataException from "../Types/Exception/BadDataException";
+import ReauthenticationRequiredException from "../Types/Exception/ReauthenticationRequiredException";
 import { JSONArray, JSONObject } from "../Types/JSON";
 import axios, {
   AxiosError,
@@ -136,6 +137,14 @@ export interface RequestOptions {
   useNodeHttpAdapter?: boolean | undefined;
   skipAuthRefresh?: boolean | undefined;
   hasAttemptedAuthRefresh?: boolean | undefined;
+  /*
+   * A change to how a person signs in, refused until their session confirms
+   * it's theirs (#10155, ReauthenticationRequiredException), is sent again
+   * once a client that can ask for the confirmation has it
+   * (tryReauthenticate) - once. The prompt's own requests skip it.
+   */
+  skipReauthentication?: boolean | undefined;
+  hasAttemptedReauthentication?: boolean | undefined;
   onUploadProgress?: ((event: AxiosProgressEvent) => void) | undefined;
   /*
    * Purely diagnostic observer, called once after the request settles. It
@@ -264,6 +273,18 @@ export default class API {
   }
 
   protected static async tryRefreshAuth(
+    _context: AuthRetryContext,
+  ): Promise<boolean> {
+    return false;
+  }
+
+  /*
+   * A request refused until the session confirms it's its person's (#10155):
+   * whether the session has confirmed now, so the request is sent again. A
+   * client with a person to ask (the Dashboard's, Common/UI/Utils/API/API)
+   * asks them; every other client answers no, and the refusal is its answer.
+   */
+  protected static async tryReauthenticate(
     _context: AuthRetryContext,
   ): Promise<boolean> {
     return false;
@@ -901,6 +922,60 @@ export default class API {
             headers,
             params,
             nextOptions,
+          );
+        }
+      }
+
+      /*
+       * A change to how the person signs in, refused - before anything was
+       * written - until their session confirms it's theirs (#10155): sent
+       * again, once, when it has.
+       */
+      if (
+        error.response?.status === 400 &&
+        !options?.skipReauthentication &&
+        !options?.hasAttemptedReauthentication &&
+        ReauthenticationRequiredException.isRefusal(errorResponse.data)
+      ) {
+        const retryUrl: URL = URL.fromStringLenient(url.toString());
+
+        const requestContext: AuthRetryContext["request"] = {
+          method,
+          url: retryUrl,
+        };
+
+        if (data) {
+          requestContext.data = data;
+        }
+
+        if (headers) {
+          requestContext.headers = headers;
+        }
+
+        if (params) {
+          requestContext.params = params;
+        }
+
+        if (options) {
+          requestContext.options = options;
+        }
+
+        const reauthenticated: boolean = await this.tryReauthenticate({
+          error: errorResponse,
+          request: requestContext,
+        });
+
+        if (reauthenticated) {
+          return await this.fetchInternal(
+            method,
+            retryUrl,
+            data,
+            headers,
+            params,
+            {
+              ...(options || {}),
+              hasAttemptedReauthentication: true,
+            },
           );
         }
       }

@@ -154,13 +154,31 @@ describe("the evidence of a telemetry issue", () => {
     );
   });
 
-  test("falls back to a custom type's id when the project has no name for it", () => {
+  // Never by its id (#10363): an auditor reads the evidence.
+  test("names a custom type the project deleted as deleted, never by its id", () => {
     expect(
       evidenceOf(
-        telemetryStore({ unscrubbedDataTypeIds: [CUSTOM_EMPLOYEE_ID] }),
+        telemetryStore({
+          unscrubbedDataTypeIds: [CUSTOM_EMPLOYEE_ID, "ip-address"],
+          dataTypeNames: { [CUSTOM_LOYALTY]: "Loyalty card number" },
+        }),
         SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
       ),
-    ).toBe(`1 kind of sensitive data is not scrubbed: ${CUSTOM_EMPLOYEE_ID}.`);
+    ).toBe(
+      "2 kinds of sensitive data are not scrubbed: A deleted data type, IP address.",
+    );
+  });
+
+  test("names a custom type as one when the project's names were not given", () => {
+    const evidence: string | undefined = evidenceOf(
+      telemetryStore({ unscrubbedDataTypeIds: [CUSTOM_EMPLOYEE_ID] }),
+      SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+    );
+
+    expect(evidence).toBe(
+      "1 kind of sensitive data is not scrubbed: Custom data type.",
+    );
+    expect(evidence).not.toContain("custom:");
   });
 
   test(`names ${MAX_DATA_TYPES_NAMED} and counts the rest`, () => {
@@ -274,10 +292,22 @@ describe("getDataTypeName", () => {
     expect(
       getDataTypeName(CUSTOM_LOYALTY, { [CUSTOM_LOYALTY]: "Loyalty" }),
     ).toBe("Loyalty");
+    // One of the project's types, with no name: never its id.
     expect(getDataTypeName(CUSTOM_LOYALTY, { [CUSTOM_LOYALTY]: "   " })).toBe(
-      CUSTOM_LOYALTY,
+      "Custom data type",
     );
-    expect(getDataTypeName(CUSTOM_LOYALTY)).toBe(CUSTOM_LOYALTY);
+    expect(getDataTypeName(CUSTOM_LOYALTY)).toBe("Custom data type");
+  });
+
+  test("a custom type the project's names do not hold is one it deleted", () => {
+    expect(getDataTypeName(CUSTOM_LOYALTY, {})).toBe("A deleted data type");
+    expect(
+      getDataTypeName(CUSTOM_LOYALTY, { [CUSTOM_EMPLOYEE_ID]: "Employee ID" }),
+    ).toBe("A deleted data type");
+  });
+
+  test("an id the catalog does not know, that is not a custom type's, reads as written", () => {
+    expect(getDataTypeName("retired-type", {})).toBe("retired-type");
   });
 
   test(`a name longer than ${MAX_NAMED_DATA_TYPE_LENGTH} characters is cut in the evidence only`, () => {

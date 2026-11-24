@@ -39,6 +39,8 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { isWidgetDrawnHere } from "../Utils/PublicDashboardContext";
+import { findDashboardLinkWidget } from "Common/Utils/Dashboard/DashboardWidgetLink";
+import { landOnDashboardWidget } from "Common/UI/Utils/DashboardWidgetLanding";
 
 export interface ComponentProps {
   dashboardViewConfig: DashboardViewConfig;
@@ -92,6 +94,16 @@ export interface ComponentProps {
    * where a reader digs in.
    */
   isPlayback?: boolean | undefined;
+  /*
+   * The widget a link opened the board at (?widget=<id>, #10084,
+   * DashboardWidgetLink): once its box is drawn, the page lands on it -
+   * brought into view and outlined for a moment (DashboardWidgetLanding).
+   * Handed in by the page that reads the link: the dashboard's own and its
+   * public link's. Landed on once for each id it is handed.
+   */
+  landingWidgetId?: string | undefined;
+  // The link named a widget this board does not have: it opens at its top.
+  onLandingWidgetMissing?: (() => void) | undefined;
 }
 
 /** Extra empty rows kept below the lowest widget while editing. */
@@ -161,6 +173,15 @@ export const DASHBOARD_BOARD_MEASURING_TEST_ID: string =
 // The box of no height across the board that its ResizeObserver watches.
 export const DASHBOARD_BOARD_WIDTH_PROBE_TEST_ID: string =
   "dashboard-board-width-probe";
+
+// What each widget's box on the board carries: the box a link lands on (#10084).
+export const DASHBOARD_WIDGET_BOX_ATTRIBUTE: string =
+  "data-dashboard-widget-box";
+
+// The id of a widget's box on the board: what a scroll to it finds it by.
+export function getDashboardWidgetBoxId(componentId: string): string {
+  return `dashboard-component-${componentId}`;
+}
 
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -349,6 +370,70 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
    */
   const isBoardMeasured: boolean = boardWidthInPx !== null;
 
+  // Each widget's box on the board, by its id, as it is drawn.
+  const widgetBoxesRef: React.MutableRefObject<Map<string, HTMLElement>> =
+    useRef<Map<string, HTMLElement>>(new Map<string, HTMLElement>());
+
+  /*
+   * Whether the board is drawn: its widgets, which come with its width, in
+   * the same commit as their boxes - or the empty board, which has no box
+   * to measure.
+   */
+  const isBoardDrawn: boolean = isBoardMeasured || components.length === 0;
+
+  /*
+   * The widget a link opened the board at (#10084), landed on once the
+   * board is drawn. Once for each id handed in, so the board's own changes
+   * after it - a refresh, a new time range, editing - never bring the page
+   * back to it. A widget the board does not have is said once, and the
+   * board stays at its top.
+   */
+  const landingRef: React.MutableRefObject<{
+    widgetId: string;
+    stop: (() => void) | null;
+  }> = useRef<{ widgetId: string; stop: (() => void) | null }>({
+    widgetId: "",
+    stop: null,
+  });
+
+  useEffect(() => {
+    const linkedWidgetId: string = props.landingWidgetId || "";
+
+    if (
+      !linkedWidgetId ||
+      !isBoardDrawn ||
+      landingRef.current.widgetId === linkedWidgetId
+    ) {
+      return;
+    }
+
+    landingRef.current.stop?.();
+    landingRef.current = { widgetId: linkedWidgetId, stop: null };
+
+    const linked: DashboardBaseComponent | null = findDashboardLinkWidget(
+      components,
+      linkedWidgetId,
+    );
+    const box: HTMLElement | undefined = linked
+      ? widgetBoxesRef.current.get(linked.componentId.toString())
+      : undefined;
+
+    if (!box) {
+      props.onLandingWidgetMissing?.();
+      return;
+    }
+
+    landingRef.current.stop = landOnDashboardWidget(box);
+  }, [props.landingWidgetId, isBoardDrawn]);
+
+  // A board that goes away stops its landing; drawn again, it lands again.
+  useEffect(() => {
+    return () => {
+      landingRef.current.stop?.();
+      landingRef.current = { widgetId: "", stop: null };
+    };
+  }, []);
+
   const layout: DashboardBoardLayout = DashboardBoardLayoutUtil.getLayout({
     boardWidthInPx: boardWidthInPx ?? 0,
     isEditMode: props.isEditMode,
@@ -533,9 +618,16 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     return (
       <div
         key={id}
-        id={`dashboard-component-${id}`}
+        id={getDashboardWidgetBoxId(id)}
+        data-dashboard-widget-box="true"
         ref={(element: HTMLDivElement | null) => {
           dnd.registerItemElement(id, element);
+
+          if (element) {
+            widgetBoxesRef.current.set(id, element);
+          } else {
+            widgetBoxesRef.current.delete(id);
+          }
         }}
         style={
           isStacked

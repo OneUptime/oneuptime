@@ -28,6 +28,21 @@ object LogSessionText {
         }
     }
 
+    /**
+     * The requester's note, as the device's language quotes it: “Checking
+     * why the payment app crashes after 6pm” in English, „…“ in German,
+     * « … » in French, 「…」 in Japanese. Null when they wrote none. The note
+     * itself is shown as written, never translated.
+     */
+    fun noteLine(strings: StringSource, request: LogSessionRequest): String? =
+        request.note?.trim()?.takeIf { it.isNotEmpty() }?.let { strings.get(R.string.log_session_note, it) }
+
+    /** What the notification says: the request, then the requester's note on a line of its own. */
+    fun notificationText(context: Context, request: LogSessionRequest): String = notificationText(ContextStrings(context), request)
+
+    fun notificationText(strings: StringSource, request: LogSessionRequest): String =
+        listOfNotNull(requestSentence(strings, request), noteLine(strings, request)).joinToString("\n")
+
     /** "30 minutes", "1 hour", "2 hours": a request asks for minutes, and whole hours read as hours. */
     fun duration(strings: StringSource, minutes: Int): String =
         if (minutes >= 60 && minutes % 60 == 0) {

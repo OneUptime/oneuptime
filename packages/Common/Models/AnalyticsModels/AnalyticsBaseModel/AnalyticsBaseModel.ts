@@ -1,7 +1,9 @@
 import EnableRealtimeEventsOn from "../../../Types/Realtime/EnableRealtimeEventsOn";
 import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
-import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import AnalyticsTableColumn, {
+  SkipIndex,
+} from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Projection from "../../../Types/AnalyticsDatabase/Projection";
 import MaterializedView from "../../../Types/AnalyticsDatabase/MaterializedView";
@@ -21,6 +23,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import { withProductLevelsOnLists } from "../../../Types/Product/ProductLevels";
 import Text from "../../../Types/Text";
 import CommonModel from "./CommonModel";
 
@@ -87,6 +90,14 @@ export default class AnalyticsBaseModel extends CommonModel {
      */
     includeBaseColumns?: boolean | undefined;
     /*
+     * A skip index on the base `createdAt` column, for a table that is read
+     * by when its rows arrived: SecurityEvent, whose scheduled detection
+     * rules judge what arrived since their last run (#10337). The tables
+     * are sorted by when their rows happened, so without one such a read
+     * scans every row of its time range for the few that arrived.
+     */
+    createdAtSkipIndex?: SkipIndex | undefined;
+    /*
      * Column that `findBy` falls back to when the caller doesn't
      * specify a `sort`. Defaults to `createdAt` (matching the legacy
      * behavior), but heavy analytics tables should override this to
@@ -133,7 +144,14 @@ export default class AnalyticsBaseModel extends CommonModel {
           description: "Date and Time when the object was created.",
           required: true,
           type: TableColumnType.Date,
+          skipIndex: data.createdAtSkipIndex,
         }),
+      );
+    }
+
+    if (data.includeBaseColumns === false && data.createdAtSkipIndex) {
+      throw new BadDataException(
+        "A skip index on createdAt needs the base columns, and this model leaves them out (includeBaseColumns is false). Remove createdAtSkipIndex, or keep the base columns.",
       );
     }
 
@@ -195,7 +213,45 @@ export default class AnalyticsBaseModel extends CommonModel {
     this.tableBillingAccessControl = data.tableBillingAccessControl;
     this.allowAccessIfSubscriptionIsUnpaid =
       data.allowAccessIfSubscriptionIsUnpaid || false;
-    this.accessControl = data.accessControl;
+
+    /*
+     * The table's lists and each column's, with the levels of the product
+     * whose records the table holds (Types/Product/ProductLevels: RUM Admin
+     * wherever a RUM table lets in Project Admin), as a database model's
+     * lists are read (Types/Database/AccessControl).
+     */
+    this.accessControl = data.accessControl
+      ? withProductLevelsOnLists(data.tableName, data.accessControl)
+      : data.accessControl;
+
+    /*
+     * Columns that share one access control object share one with the
+     * levels too, as a database model's columns do (ColumnAccessControl
+     * keeps one per object): a model shares the object to keep columns'
+     * lists moving together, such as a session's person columns, apart
+     * from the rest of its row (RumSessionReplayColumns).
+     */
+    const listsWithLevels: Map<ColumnAccessControl, ColumnAccessControl> =
+      new Map<ColumnAccessControl, ColumnAccessControl>();
+
+    for (const column of columns) {
+      if (column.accessControl) {
+        const declared: ColumnAccessControl = column.accessControl;
+        let withLevels: ColumnAccessControl | undefined =
+          listsWithLevels.get(declared);
+
+        if (!withLevels) {
+          withLevels = withProductLevelsOnLists(
+            data.tableName,
+            declared,
+            data.accessControl || {},
+          );
+          listsWithLevels.set(declared, withLevels);
+        }
+
+        column.accessControl = withLevels;
+      }
+    }
     this.enableWorkflowOn = data.enableWorkflowOn;
     this.crudApiPath = data.crudApiPath;
     this.enableDocumentation = data.enableDocumentation || false;

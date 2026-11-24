@@ -31,22 +31,30 @@ const PROJECT_SERVICE: string = fs.readFileSync(
   "utf8",
 );
 
-// The text of every BadDataException ProjectService throws with a literal.
+/*
+ * The text of every BadDataException ProjectService throws with a literal:
+ * a NameTakenException is one too (#10065), the refusal of a taken name,
+ * with the code a program tells it by beside its sentence.
+ */
 function thrownMessages(): Array<string> {
   const messages: Array<string> = [];
-  const marker: string = "new BadDataException(";
-  let at: number = PROJECT_SERVICE.indexOf(marker);
 
-  while (at !== -1) {
-    const rest: string = PROJECT_SERVICE.slice(at + marker.length).trimStart();
-    const quote: string = rest[0] || "";
+  for (const marker of ["new BadDataException(", "new NameTakenException("]) {
+    let at: number = PROJECT_SERVICE.indexOf(marker);
 
-    if (quote === '"' || quote === "`") {
-      const end: number = rest.indexOf(quote, 1);
-      messages.push(rest.slice(1, end));
+    while (at !== -1) {
+      const rest: string = PROJECT_SERVICE.slice(
+        at + marker.length,
+      ).trimStart();
+      const quote: string = rest[0] || "";
+
+      if (quote === '"' || quote === "`") {
+        const end: number = rest.indexOf(quote, 1);
+        messages.push(rest.slice(1, end));
+      }
+
+      at = PROJECT_SERVICE.indexOf(marker, at + marker.length);
     }
-
-    at = PROJECT_SERVICE.indexOf(marker, at + marker.length);
   }
 
   return messages;

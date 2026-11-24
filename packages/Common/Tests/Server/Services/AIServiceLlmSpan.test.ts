@@ -343,6 +343,28 @@ describe("AIService.executeWithLogging marks its span as an AI call", () => {
       process.env[CAPTURE_MESSAGE_CONTENT_ENV_VAR] = "true";
     });
 
+    /*
+     * Data Security's calls (#10365): their prompts are the Security
+     * roles' to read, and the operator's telemetry is one more place they
+     * would be kept. The span still says which model, its tokens and why
+     * it stopped.
+     */
+    test("a call that asks for no recording records none of it, recording on or not", async () => {
+      await AIService.executeWithLogging(
+        request({ recordContentInTelemetry: false }),
+      );
+
+      const attributes: Attributes = attributesOf(callSpan());
+
+      expect(attributes["gen_ai.system_instructions"]).toBeUndefined();
+      expect(attributes["gen_ai.input.messages"]).toBeUndefined();
+      expect(attributes["gen_ai.output.messages"]).toBeUndefined();
+      expect(JSON.stringify(attributes)).not.toContain(QUESTION);
+      expect(JSON.stringify(attributes)).not.toContain(ANSWER);
+      expect(attributes["gen_ai.response.model"]).toBe(MODEL);
+      expect(attributes["gen_ai.usage.input_tokens"]).toBeDefined();
+    });
+
     test("the span carries the system prompt, the messages and the answer", async () => {
       await AIService.executeWithLogging(request());
 

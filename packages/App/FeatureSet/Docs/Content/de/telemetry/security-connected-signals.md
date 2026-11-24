@@ -47,11 +47,12 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 | Eine Kurz- oder Langform des Namens eines Datensatzes, etwa `web-1` und `web-1.acme.internal` | Diesem Datensatz | Möglich |
 | Eine öffentliche IP-Adresse, die nur ein Host oder Netzwerkgerät hat oder unter der nur eine Cloud-Ressource antwortet | Diesem Datensatz | Exakt |
 | Eine private IP-Adresse oder eine, die mehr als ein Datensatz hat | Jedem Datensatz, der sie hat | Möglich |
-| Die eigene ID einer Cloud-Ressource: eine AWS-ARN, eine Azure-Ressourcen-ID oder ein Google-Cloud-Ressourcenname | Dieser Cloud-Ressource | Exakt |
+| Die eigene ID einer Cloud-Ressource: eine AWS-ARN oder ein Google-Cloud-Ressourcenname so, wie er geschrieben ist, oder eine Azure-Ressourcen-ID in beliebiger Groß- und Kleinschreibung | Dieser Cloud-Ressource | Exakt |
 | Ein Host, eine öffentliche IP-Adresse oder der Host einer URL, die ein Monitor prüft | Diesem Monitor | Exakt |
 | Eine private IP-Adresse, die ein Monitor prüft | Diesem Monitor | Möglich |
 | Die E-Mail-Adresse eines Mitglieds | Diesem Mitglied | Exakt |
 | Der Datensatz, unter dem eine Protokollzeile gesendet wurde, für die Ereignisse aus Ihren Protokollen | Diesem Host, Cluster, dieser OpenStack-Cloud, dieser Cloud-Ressource, Serverless-Funktion oder diesem Dienst | Exakt |
+| Die Cloud-Ressource oder die Serverless-Funktion, von der eine Protokollzeile kam, über ihre `cloud.resource_id` oder ihren `faas.name`, für die Ereignisse aus Ihren Protokollen | Dieser Cloud-Ressource oder Serverless-Funktion | Exakt |
 | Ein bloßer Benutzername, ein Datei-Hash oder ein Prozess | Nichts: Kein Datensatz ist danach geschlüsselt | - |
 
 - Eine mögliche Übereinstimmung zeigt **Mögliche Übereinstimmung** neben ihrem Namen und sagt, warum. Sie wird auf der Seite des Datensatzes nie gezählt, und ein Vorfall, den der Fall meldet, wird nie mit ihr verknüpft.

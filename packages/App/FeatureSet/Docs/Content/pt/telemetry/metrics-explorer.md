@@ -72,6 +72,8 @@ Abra **Configurações de exibição** para escolher o **Tipo de gráfico** (lin
 
 Cada consulta desenha o próprio gráfico. Para desenhar uma consulta no mesmo gráfico que a anterior, ative **Sobrepor à consulta anterior** nas **Configurações de exibição** dela.
 
+Um gráfico sobreposto lê o seu eixo de valores da esquerda na unidade da sua primeira consulta, e converte para ela uma consulta em outra unidade do mesmo tipo, como megabytes em um gráfico em gigabytes. Uma consulta em uma unidade de outro tipo, como bytes em um gráfico em porcentagem, é desenhada em um segundo eixo de valores à direita do gráfico, na sua própria unidade, e a legenda abaixo do gráfico diz em qual eixo cada série é desenhada. Só um terceiro tipo de unidade não se encaixa em nenhum dos eixos: ele é desenhado em uma escala própria, sem eixo, e o gráfico e a chave dizem isso. Leia os valores dele na legenda e na dica.
+
 ## Combinar consultas com uma fórmula
 
 :::steps

@@ -141,6 +141,14 @@ describe("records with no labels of their own", () => {
       ResourceAiAgent: ["resourceId"],
       RunnerJob: ["assignedAgentId", "resourceId"],
       /*
+       * The connection a destination enforces the blocklist through
+       * (connectionId): a security event connection or a cloud
+       * connection, which kind its provider column says (#10338). People
+       * read the table through the Blocklist page, and a block with labels
+       * leaves out the rows of a connection that carries one.
+       */
+      SecurityBlockEnforcement: ["connectionId"],
+      /*
        * The record an import created, of the kind its `kind` column names
        * (a monitor, a policy, a team...), so of any kind. Only OneUptime
        * reads the table (every access list is empty, and it has no API),

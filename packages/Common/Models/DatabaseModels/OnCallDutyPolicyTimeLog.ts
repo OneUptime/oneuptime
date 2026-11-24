@@ -11,6 +11,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -541,6 +542,7 @@ export default class OnCallDutyPolicyTimeLog extends BaseModel {
     required: false,
     description: "When does this end?",
     example: "2024-01-15T18:00:00.000Z",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @ColumnAccessControl({
     create: [

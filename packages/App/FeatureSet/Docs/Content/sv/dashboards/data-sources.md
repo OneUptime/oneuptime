@@ -75,6 +75,7 @@ För att ändra en datakälla senare öppnar du den från listan. **Redigera** p
 
 Redigera en instrumentpanel, klicka på **Lägg till widget** och välj en widget i gruppen Externa datakällor: ett **Diagram**, ett **Värde**, en **Mätare** eller en **Tabell**. I dess inställningar:
 
+- **Det här projektets mätvärden (PromQL)** är den första **Datakälla**, och den som en ny widget börjar med: PromQL över de mätvärden ditt projekt skickar till OneUptime, lästa för de tjänster du får läsa, som på sidan [PromQL](/docs/telemetry/promql). Den behöver ingen egen datakälla och fungerar därför med alla planer.
 - Välj **Datakälla** och skriv **Fråga**. Redigeraren namnger frågespråket och visar ett exempel för typen.
 - På ett diagram lägger **Lägg till fråga** fler frågor på samma axlar, och **Legend (optional)** namnger varje serie utifrån dess etiketter: `{{instance}} — errors` skriver seriens etikett `instance` först.
 - På ett värde eller en mätare gör **Slå ihop** om punkterna till ett enda tal: det senaste värdet (standard), det första, medelvärdet, summan, minimum eller maximum. **Enhet** lägger till ett suffix och skalar de kända enheterna: `Bytes` läses som 1.5 MB, `ms` som 2.4 s.
@@ -164,7 +165,7 @@ Intervallfrågor till Prometheus och Loki ber om ungefär 250 punkter över tids
 - **SQL förblir skrivskyddad.** En fråga måste vara en enda sats som börjar med `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` eller `DESC`. Ord som skriver eller ändrar en session, till exempel `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` eller `SET`, avvisas överallt utanför strängar och citerade namn, så citera en kolumn som heter som något av dem. Skriv ett citattecken i en sträng som två citattecken (`''`): ett omvänt snedstreck före ett citattecken avvisas. Sessioner i PostgreSQL, MySQL och ClickHouse är också skrivskyddade. SQL Server har ingen skrivskyddad session, så anslut den med en skrivskyddad inloggning.
 - **Inloggningsuppgifter kan bara skrivas.** **Lösenord**, **API-token** och **Anpassade HTTP-huvuden** krypteras när de lagras, och API:et returnerar dem aldrig, inte ens till dig.
 - **Adresser kontrolleras.** Loopback-, link-local- (där molnmetadata finns) och andra reserverade adresser avvisas överallt. Privata adresser avvisas på OneUptime Cloud, och tillåts på en egeninstallation om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`: se [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access).
-- **Offentliga instrumentpaneler kör dem aldrig.** Widgetarna i Externa datakällor utelämnas från en [offentlig instrumentpanel](/docs/dashboards/sharing), frågor och allt.
+- **Offentliga instrumentpaneler kör bara det du har sparat.** En widget på **Det här projektets mätvärden (PromQL)** visar sina data på en [offentlig instrumentpanel](/docs/dashboards/sharing), aldrig sina frågor: OneUptime kör frågorna som sparats i widgeten, aldrig en som en besökare skickar, över alla tjänster i projektet och inom gränserna ovan. En variabel med en lista av värden fyller dem bara med ett av de värdena; en vars värden skrivs in eller läses från telemetri fyller dem bara inuti en etikettmatchning som `job="{{job}}"`, och behåller sitt sparade värde överallt annars. Widgetar på en extern datakälla utelämnas från en offentlig instrumentpanel, frågor och allt.
 
 ## Felsökning
 

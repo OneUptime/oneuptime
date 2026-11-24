@@ -523,7 +523,8 @@ const PAGES: Array<PageCase> = [
     defaultRange: undefined,
     isCreateable: true,
     isDeleteable: true,
-    causeColumn: undefined,
+    // Why each state began, as an incident's shows it (#9959).
+    causeColumn: "rootCause",
     logColumn: undefined,
     hasSubscriberNotification: false,
     onlyRowRefusal:
@@ -545,7 +546,8 @@ const PAGES: Array<PageCase> = [
     defaultRange: undefined,
     isCreateable: true,
     isDeleteable: true,
-    causeColumn: undefined,
+    // Why each state began, as an alert's shows it (#9959).
+    causeColumn: "rootCause",
     logColumn: undefined,
     hasSubscriberNotification: false,
     onlyRowRefusal:

@@ -441,6 +441,68 @@ export default class Form extends BaseModel {
   public ipWhitelist?: string = undefined;
 
   /*
+   * Only people who sign in (#10249): the form's public link - OneUptime's
+   * own address and every custom domain - shows a sign-in page, and the
+   * form is neither shown nor taken from a visitor who holds no session of
+   * one of its private users (FormPrivateUser, FormService). Forms are a
+   * Growth product, so this needs no plan of its own. A form a trial left
+   * asking visitors to sign in keeps asking until it is turned off: the
+   * check reads the column, never the plan, so it never opens up by itself.
+   */
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require Sign In",
+    description:
+      "Only this form's private users can open and submit it on its public link, once they sign in with a password or single sign-on.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public requireSignIn?: boolean = undefined;
+
+  /*
+   * Require SSO to Sign In: while the form asks its visitors to sign in,
+   * only its single sign-on lets them in - a private user's password no
+   * longer does, and a session one signed in with stops counting at its
+   * next request (FormPrivateUserSessionService). As on a status page and
+   * a dashboard, single sign-on is a Scale feature on OneUptime Cloud:
+   * turning this on needs Scale; turning it off works on every plan.
+   */
+  @ColumnAccessControl({
+    create: [...CREATE_PERMISSIONS],
+    read: [...READ_PERMISSIONS],
+    update: [...UPDATE_PERMISSIONS],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Require SSO",
+    description:
+      "While the form asks its visitors to sign in, only its single sign-on lets them in: private users' passwords no longer do.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public requireSsoForLogin?: boolean = undefined;
+
+  /*
    * The form's branding, set in the Build page's Branding section: a logo
    * shown at the top of its public page in place of the OneUptime logo,
    * what that logo says for screen readers, and the icon of the browser tab

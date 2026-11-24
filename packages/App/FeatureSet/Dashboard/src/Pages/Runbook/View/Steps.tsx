@@ -34,6 +34,12 @@ import UnknownVariablesNote from "../../../Components/Runbook/Steps/UnknownVaria
 import { HTTP_STEP_VARIABLES_HELP } from "../../../Components/Runbook/RunbookVariableCopy";
 import { getHttpStepVariableTexts } from "Common/Types/Runbook/HttpStepVariables";
 import {
+  CaCertificateProblem,
+  HttpStepCertificateSettings,
+  getCaCertificateShapeProblem,
+  getHttpStepCertificateSettings,
+} from "Common/Types/Runbook/HttpStepCertificates";
+import {
   ParsedSshHostKeys,
   parseSshHostKeys,
 } from "Common/Types/Runbook/SshHostKey";
@@ -45,6 +51,12 @@ import RunbookVariableChoicesLoader, {
 import {
   CONTINUE_ON_FAILURE_DESCRIPTION,
   CONTINUE_ON_FAILURE_TITLE,
+  HTTP_ALLOW_SELF_SIGNED_DESCRIPTION,
+  HTTP_ALLOW_SELF_SIGNED_TITLE,
+  HTTP_CA_CERTIFICATE_HELP,
+  HTTP_CA_CERTIFICATE_PLACEHOLDER,
+  HTTP_CA_CERTIFICATE_PROBLEMS,
+  HTTP_CA_CERTIFICATE_TITLE,
   HTTP_HEADERS_TITLE,
   KUBECONFIG_TITLE,
   KUBECTL_EXAMPLES,
@@ -72,6 +84,8 @@ import {
   applyStepConfigChange,
   convertLegacyCredentialStep,
   formatSshTarget,
+  getAllowSelfSignedCertificatesPatch,
+  getCaCertificatePatch,
   getFirstCommand,
   getStepMoreFieldsItems,
   isHttpBodyShown,
@@ -1569,6 +1583,81 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
+  /*
+   * How an HTTP request step checks the server's certificate, under More
+   * fields (Common/Types/Runbook/HttpStepCertificates): the switch that
+   * skips the checks, worded as a monitor's, and - while the step checks -
+   * the CA certificate it trusts instead of skipping them, the safer way.
+   * Said under the box, while it is not a certificate a save takes, why
+   * the save will be refused.
+   */
+  const renderHttpCertificateFields: (
+    config: HttpRequestStepConfig,
+    idx: number,
+  ) => ReactElement = (
+    config: HttpRequestStepConfig,
+    idx: number,
+  ): ReactElement => {
+    const certificates: HttpStepCertificateSettings =
+      getHttpStepCertificateSettings(config);
+    const problem: CaCertificateProblem | null = getCaCertificateShapeProblem(
+      config.caCertificate,
+    );
+
+    return (
+      <div className="flex flex-col gap-3">
+        <Toggle
+          title={HTTP_ALLOW_SELF_SIGNED_TITLE}
+          description={HTTP_ALLOW_SELF_SIGNED_DESCRIPTION}
+          value={certificates.skipsCertificateChecks}
+          dataTestId={`runbook-step-${idx}-http-allow-self-signed`}
+          onChange={(v: boolean) => {
+            updateConfig(idx, getAllowSelfSignedCertificatesPatch(v));
+          }}
+        />
+        {certificates.skipsCertificateChecks ? (
+          <></>
+        ) : (
+          <div data-testid={`runbook-step-${idx}-http-ca-certificate-field`}>
+            <label
+              htmlFor={`runbook-step-${idx}-http-ca-certificate`}
+              className="block text-xs font-medium text-gray-700 mb-1.5"
+            >
+              {translator.translateText(HTTP_CA_CERTIFICATE_TITLE)}
+            </label>
+            <TextArea
+              id={`runbook-step-${idx}-http-ca-certificate`}
+              dataTestId={`runbook-step-${idx}-http-ca-certificate`}
+              value={config.caCertificate || ""}
+              placeholder={HTTP_CA_CERTIFICATE_PLACEHOLDER}
+              disableSpellCheck={true}
+              autoGrow={true}
+              rows={2}
+              maxRows={8}
+              ariaDescribedby={`runbook-step-${idx}-http-ca-certificate-help`}
+              error={
+                problem
+                  ? translator.translateText(
+                      HTTP_CA_CERTIFICATE_PROBLEMS[problem],
+                    )
+                  : undefined
+              }
+              onChange={(v: string) => {
+                updateConfig(idx, getCaCertificatePatch(v));
+              }}
+            />
+            <p
+              id={`runbook-step-${idx}-http-ca-certificate-help`}
+              className="text-xs text-gray-500 mt-1.5"
+            >
+              {translator.translateText(HTTP_CA_CERTIFICATE_HELP)}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderHttpBody: (step: RunbookStep, idx: number) => ReactElement = (
     step: RunbookStep,
     idx: number,
@@ -1705,6 +1794,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 placeholder={'{ "Authorization": "Bearer ..." }'}
               />
             </div>
+            {renderHttpCertificateFields(config, idx)}
             {renderDescriptionField(step, idx)}
             {/*
              * Half the width, as every other step's timeouts are: a number

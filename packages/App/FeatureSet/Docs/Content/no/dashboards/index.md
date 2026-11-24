@@ -61,6 +61,8 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 | **Deling** | Hvem som kan se det, den offentlige lenken og en IP-tillatelsesliste under Flere innstillinger. |
 | **Merkevare** | Sidetittel, beskrivelse, logo, tema og favicon for det offentlige dashbordet. |
 | **Egendefinerte domener** | Host det offentlige dashbordet på ditt eget domene. |
+| **Private brukere** | Personene som kan logge på den offentlige lenken, når bare personer som logger inn, kan se den. |
+| **Enkel pålogging** | SAML- og OpenID Connect-leverandørene de logger på med, og **Krev SSO for å logge på**. |
 | **Innstillinger** | Dupliser, eksporter eller arkiver dashbordet. |
 | **Eiere** | Brukerne og teamene som eier det. |
 | **Revisjonslogger** | Hver endring som er gjort på dashbordet, og hvem som gjorde den. |
@@ -103,4 +105,5 @@ Målet: én side for checkout-tjenesten med ventetiden, feilraten, de åpne hend
 - [Dashbord-widgets](/docs/dashboards/widgets): Hver widget, og hvilken du skal velge.
 - [Dashbord-variabler & filtre](/docs/dashboards/variables): Ett dashbord for hver tjeneste, vert eller kunde.
 - [Deling & offentlige dashbord](/docs/dashboards/sharing): Offentlige lenker, passord, IP-tillatelseslister og egendefinerte domener.
+- [Import fra Grafana og Datadog](/docs/dashboards/import): Hent inn et dashbord, eller varslingsreglene, du har laget i Grafana eller Datadog.
 :::

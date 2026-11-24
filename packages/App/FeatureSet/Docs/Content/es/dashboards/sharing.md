@@ -1,10 +1,11 @@
 # Compartir y paneles públicos
 
-De forma predeterminada, un panel es privado para tu proyecto: solo pueden verlo las personas que inician sesión en tu proyecto. También puedes compartirlo mediante un enlace público, proteger ese enlace con una contraseña, limitarlo a ciertas direcciones IP y alojarlo en tu propio dominio. Esta página cubre las cuatro cosas.
+De forma predeterminada, un panel es privado para tu proyecto: solo pueden verlo las personas que inician sesión en tu proyecto. También puedes compartirlo mediante un enlace público, proteger ese enlace con una contraseña o pedir a sus visitantes que inicien sesión, limitarlo a ciertas direcciones IP y alojarlo en tu propio dominio. Esta página lo cubre todo.
 
 :::cards
-- [Quién puede ver un panel](#quién-puede-ver-un-panel): Una opción entre tres, con el plan que necesita cada una.
+- [Quién puede ver un panel](#quién-puede-ver-un-panel): Una opción entre cuatro, con el plan que necesita cada una.
 - [Compartir con una contraseña](#compartir-con-una-contraseña): Comparte el enlace, y luego la contraseña, con quienes deben verlo.
+- [Solo quienes inician sesión](#solo-quienes-inician-sesión): Invita a las personas que pueden abrirlo, o deja que tu inicio de sesión único las autentique.
 - [Lista de IP permitidas](#lista-de-ip-permitidas): Abre el enlace público solo a tu oficina o tu VPN.
 - [Dominios personalizados](#dominios-personalizados): Sirve el panel en tu propio dominio, con un certificado gratuito.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["Un visitante abre<br/>el enlace público"] --> shared("¿Se comparte el panel<br/>públicamente?")
     shared -->|"No"| missing["Una página de<br/>no encontrado"]
     shared -->|"Sí"| allowed("¿Está su dirección<br/>en la lista de<br/>IP permitidas?")
-    allowed -->|"Sí, o<br/>sin lista"| locked("¿Hace falta una<br/>contraseña?")
+    allowed -->|"Sí, o<br/>sin lista"| signin("¿Deben iniciar<br/>sesión los visitantes?")
     allowed -->|"No"| denied["Una página<br/>Access Denied"]
+    signin -->|"Sí"| signinpage["La página de<br/>inicio de sesión"]
+    signinpage --> board["El panel"]
+    signin -->|"No"| locked("¿Hace falta una<br/>contraseña?")
     locked -->|"Sí"| prompt["La petición de<br/>la contraseña"]
-    prompt --> board["El panel"]
+    prompt --> board
     locked -->|"No"| board
 ```
 
@@ -32,14 +36,15 @@ Abre el panel y elige **⋯ → Compartir**, o abre **Uso compartido** en el men
 - **Solo las personas de este proyecto** (la opción predeterminada): los miembros ven el panel cuando inician sesión en OneUptime. No tiene enlace público: su dirección pública muestra la misma página de no encontrado que una dirección sin panel, y nada del panel, ni siquiera su nombre.
 - **Cualquiera con el enlace**: el panel es público. Cualquiera que tenga su enlace puede verlo, sin iniciar sesión.
 - **Cualquiera con el enlace y una contraseña**: los visitantes abren el enlace y luego introducen una contraseña que tú compartes con ellos. Nadie necesita una cuenta.
+- **Solo quienes inician sesión**: el panel tiene un enlace público, y solo lo abren las personas que eliges, una vez que inician sesión allí: los usuarios privados que invitas y las personas que tu inicio de sesión único deja entrar. Consulta [Solo quienes inician sesión](#solo-quienes-inician-sesión).
 
-Elegir una opción te pide confirmación, explicando qué cambia para los visitantes, y luego se aplica de inmediato. Elegir **Cualquiera con el enlace y una contraseña** pide la contraseña en el mismo cuadro de diálogo cuando el panel no tiene ninguna; mientras sea la opción elegida, **Cambiar contraseña** la sustituye. Mientras el panel es público, las direcciones en las que los visitantes lo abren aparecen bajo la elección: primero sus dominios personalizados y después su enlace público, cada una con **Copiar enlace**. Un dominio personalizado que aún no está activo aparece marcado como **Aún no activo**, con el motivo.
+Elegir una opción te pide confirmación, explicando qué cambia para los visitantes, y luego se aplica de inmediato. Elegir **Cualquiera con el enlace y una contraseña** pide la contraseña en el mismo cuadro de diálogo cuando el panel no tiene ninguna; mientras sea la opción elegida, **Cambiar contraseña** la sustituye. Mientras el panel es público, las direcciones en las que los visitantes lo abren aparecen bajo la elección: primero sus dominios personalizados y después su enlace público, cada una con **Copiar enlace**. Un dominio personalizado que aún no está activo aparece marcado como **Aún no activo**, con el motivo. Mientras **Solo quienes inician sesión** sea la opción elegida, **Usuarios privados** e **Inicio de sesión único** quedan a un clic, debajo de ella.
 
 Dentro del proyecto, los propietarios y las etiquetas controlan quién ve qué: consulta [Configuración y permisos del panel](/docs/dashboards/configuration). Quien puede ver el panel pero no editarlo ve la elección y puede copiar el enlace público, pero no puede cambiarla.
 
-En OneUptime Cloud, compartir un panel requiere el plan **Growth**: en un plan inferior, las dos opciones públicas muestran el plan que necesitan y no se pueden elegir. Volver a hacer privado un panel (**Solo las personas de este proyecto**) funciona en todos los planes, así que un panel que quedó público cuando terminó una prueba, o tras pasar a un plan inferior, siempre puede dejar de compartirse; el cuadro de diálogo indica que volver a compartirlo requiere **Growth**. Pasar de **Cualquiera con el enlace** a **Cualquiera con el enlace y una contraseña**, y cambiar la contraseña, funciona en todos los planes. Un panel creado mediante la API o Terraform está sujeto a los mismos planes: si se crea público necesita **Growth**, y si se crea con una lista de IP permitidas, **Scale**.
+En OneUptime Cloud, compartir un panel requiere el plan **Growth**: en un plan inferior, las opciones públicas muestran el plan que necesitan y no se pueden elegir. Volver a hacer privado un panel (**Solo las personas de este proyecto**) funciona en todos los planes, así que un panel que quedó público cuando terminó una prueba, o tras pasar a un plan inferior, siempre puede dejar de compartirse; el cuadro de diálogo indica que volver a compartirlo requiere **Growth**. Pasar de **Cualquiera con el enlace** a **Cualquiera con el enlace y una contraseña**, y cambiar la contraseña, funciona en todos los planes. **Solo quienes inician sesión** también requiere **Growth**, como sus usuarios privados, y su inicio de sesión único requiere **Scale**; dejarla funciona en todos los planes, y el cuadro de diálogo indica que volver a elegirla requiere **Growth**. Un panel creado mediante la API o Terraform está sujeto a los mismos planes: si se crea público necesita **Growth**, y si se crea con una lista de IP permitidas, **Scale**.
 
-La elección se guarda en tres columnas, que la API y Terraform leen y escriben como antes: `isPublicDashboard`, `enableMasterPassword` y `masterPassword`. Solo un panel público tiene enlace público, y a sus visitantes se les pide la contraseña siempre que `enableMasterPassword` está activado. Un panel público con `enableMasterPassword` activado pero sin contraseña definida no deja entrar a nadie por su enlace público: la página **Uso compartido** lo muestra como **Cualquiera con el enlace y una contraseña**, indica que nadie puede abrir todavía el enlace y ofrece **Definir contraseña**. Elegir **Solo las personas de este proyecto** también desactiva `enableMasterPassword` y conserva la contraseña, para que volver a compartir con contraseña pueda reutilizarla.
+La elección se guarda en cuatro columnas, que la API y Terraform leen y escriben: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` y `requireSignIn`. Solo un panel público tiene enlace público, y a sus visitantes se les pide la contraseña siempre que `enableMasterPassword` está activado. Un panel público con `enableMasterPassword` activado pero sin contraseña definida no deja entrar a nadie por su enlace público: la página **Uso compartido** lo muestra como **Cualquiera con el enlace y una contraseña**, indica que nadie puede abrir todavía el enlace y ofrece **Definir contraseña**. Elegir **Solo las personas de este proyecto** también desactiva `enableMasterPassword` y conserva la contraseña, para que volver a compartir con contraseña pueda reutilizarla. Un panel público con `requireSignIn` activado pide a sus visitantes que inicien sesión, y nunca la contraseña: elegir **Solo quienes inician sesión** desactiva `enableMasterPassword` y también conserva la contraseña.
 
 ## Paneles públicos
 
@@ -53,7 +58,7 @@ Un panel público:
 
 Trata el compartir un panel como publicar una página web. Cada widget que contiene pasa a ser legible por cualquiera que tenga el enlace. Mira lo que hay en el lienzo antes de compartirlo.
 
-Cada widget publica solo lo que dibuja, y solo de los recursos a los que se apuntó. Un widget SLO, por ejemplo, publica las cifras principales de ese SLO pero nunca su definición: consulta [SLO](/docs/dashboards/widgets#slo). Los widgets de **Fuente de datos** externa son la excepción: se quitan por completo de un panel público en lugar de renderizarse, porque su configuración es la propia consulta. Algunos widgets más no pueden mostrarse sin una sesión iniciada, y lo indican en su lugar: [En un panel público](/docs/dashboards/widgets#en-un-panel-público) los enumera. Solo publican su título, nunca las búsquedas ni los filtros con los que leen sus datos. Las variables, igualmente, solo publican lo que muestran sus selectores: la consulta de una variable de consulta antigua nunca se publica.
+Cada widget publica solo lo que dibuja, y solo de los recursos a los que se apuntó. Un widget SLO, por ejemplo, publica las cifras principales de ese SLO pero nunca su definición: consulta [SLO](/docs/dashboards/widgets#slo). Los widgets de **Fuente de datos** publican sus datos, nunca sus consultas: un widget sobre **Métricas de este proyecto (PromQL)** dibuja lo que devuelven las consultas guardadas en él, ejecutadas sobre todos los servicios del proyecto, y un widget de fuente de datos externa se quita por completo de un panel público en lugar de renderizarse. Algunos widgets más no pueden mostrarse sin una sesión iniciada, y lo indican en su lugar: [En un panel público](/docs/dashboards/widgets#en-un-panel-público) los enumera. Solo publican su título, nunca las búsquedas ni los filtros con los que leen sus datos. Las variables, igualmente, solo publican lo que muestran sus selectores: la consulta de una variable de consulta antigua nunca se publica.
 
 ## Compartir con una contraseña
 
@@ -64,7 +69,19 @@ Usa una contraseña cuando:
 - Quieres compartir con un socio o un cliente, pero no quieres que la URL sirva de algo si se filtra.
 - El panel es "semipúblico": lo bastante abierto como para no querer invitar a cada espectador como miembro del equipo, pero no tanto como para ponerlo en internet abierto.
 
-Para un control más estricto (cuentas separadas para cada espectador, un registro de auditoría de quién vio qué), deja el panel en **Solo las personas de este proyecto** e invita a los espectadores como miembros del equipo de solo lectura.
+Para un control más estricto (cuentas separadas para cada espectador, un registro de auditoría de quién vio qué), deja el panel en **Solo las personas de este proyecto** e invita a los espectadores como miembros del equipo de solo lectura, o elige **Solo quienes inician sesión**.
+
+## Solo quienes inician sesión
+
+Elige **Solo quienes inician sesión** para que solo las personas que eliges abran el enlace público. Cada visitante encuentra primero una página de inicio de sesión, en el enlace público y en cada dominio personalizado. Muestra el nombre, el título de página y el favicon del panel, con su tema, y nada más: ni sus widgets ni quién puede iniciar sesión. Una vez iniciada la sesión, el panel indica quién la inició, con un botón para cerrarla.
+
+Abre **Enlace público → Usuarios privados** en el menú lateral del panel para añadir por correo electrónico a las personas que pueden iniciar sesión. Cada una recibe por correo una invitación cuyo enlace le permite elegir una contraseña. El enlace funciona durante 24 horas, y el enlace de contraseña olvidada de la página de inicio de sesión envía uno nuevo. La tabla muestra quién está **Registrado**, qué invitación está en **Invitación enviada** y el **Último inicio de sesión** de cada uno. Quitar a alguien, o una contraseña nueva, cierra su sesión en todas partes en su siguiente solicitud.
+
+Abre **Enlace público → Inicio de sesión único** para que tu proveedor de identidad inicie la sesión de las personas, con SAML u OpenID Connect. Cada proveedor muestra los valores que debes pegar en tu proveedor de identidad. Quien tu proveedor de identidad deje entrar se convierte en usuario privado la primera vez que inicia sesión. Desactivar un proveedor, o eliminarlo, cierra la sesión de todos los que inició. **Requerir SSO para iniciar sesión** desactiva el inicio de sesión con contraseña: entonces todos inician sesión con inicio de sesión único, y a quien haya iniciado sesión con contraseña se le cierra en su siguiente solicitud.
+
+Una sesión dura hasta que pasa 30 días sin usarse. Sus cookies solo se envían a la dirección propia del panel, así que ningún otro sitio puede leer el panel con ellas ni cerrar la sesión de nadie. Los intentos de inicio de sesión están limitados para cada dirección y cada cuenta, y las páginas de inicio de sesión y de contraseña olvidada responden igual tanto si una dirección puede iniciar sesión como si no.
+
+En la API, los usuarios privados y los proveedores de inicio de sesión único son registros propios: `/dashboard-private-user`, `/dashboard-sso` y `/dashboard-oidc`, cada uno con permisos que llevan su nombre.
 
 ## Lista de IP permitidas
 
@@ -199,7 +216,7 @@ Para dar a un panel incrustado el aspecto de tu sitio, añade `?theme=light` o `
 
 ## Enviar un enlace
 
-El enlace público abre el panel con sus valores predeterminados guardados. Para enviar un enlace que se abra en un valor concreto, añádele la variable como `?var-<name>=<value>`, igual que hace la barra de direcciones cuando un visitante elige un valor; los distintos valores se separan con comas. Para que se abra con un intervalo de tiempo o una actualización automática propios, añade del mismo modo `range` y `refresh`: `?range=1d&refresh=1m` se abre en el último día, actualizándose cada minuto, como lo haría una pantalla mural. `range` admite `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` o `3mo`, y `refresh` admite `off`, `5s`, `10s`, `30s`, `1m`, `5m` o `15m`. Prevalecen sobre los valores predeterminados del panel y las elecciones del visitante, que aun así puede cambiarlos. Para abrir el panel con un tema, añade `theme=light`, `theme=dark` o `theme=system`, como describe [Incrustar](#incrustar).
+El enlace público abre el panel con sus valores predeterminados guardados. Para enviar un enlace que se abra en un valor concreto, añádele la variable como `?var-<name>=<value>`, igual que hace la barra de direcciones cuando un visitante elige un valor; los distintos valores se separan con comas. Para que se abra con un intervalo de tiempo o una actualización automática propios, añade del mismo modo `range` y `refresh`: `?range=1d&refresh=1m` se abre en el último día, actualizándose cada minuto, como lo haría una pantalla mural. `range` admite `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` o `3mo`, y `refresh` admite `off`, `5s`, `10s`, `30s`, `1m`, `5m` o `15m`. Prevalecen sobre los valores predeterminados del panel y las elecciones del visitante, que aun así puede cambiarlos. Para abrir el panel con un tema, añade `theme=light`, `theme=dark` o `theme=system`, como describe [Incrustar](#incrustar). Para abrirlo en un widget, añade `widget=` con el identificador del widget, su `componentId` en el JSON del panel: el panel se desplaza hasta ese widget y lo resalta con un contorno un momento, por su enlace público igual que dentro de OneUptime. Un widget que el panel ya no tiene lo abre arriba, y lo dice. Los enlaces que OneUptime crea a un widget, como en un aviso que nombra lo que lee una métrica, ya lo llevan.
 
 ## Próximos pasos
 

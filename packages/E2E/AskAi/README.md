@@ -25,7 +25,9 @@ the panel open, and an **Open details** button that opens one of the app's own s
 
 - `incident` (the default): incident #42 "Checkout latency above 2s", whose context the
   composer's pill names and whose own suggestions the start offers;
-- `home`: Home, with no page context, where one sentence says where answers come from;
+- `home`: Home, a page Ask AI knows (#7062): the pill names it and the start offers its own four
+  questions; with the pill removed, no page is behind it, and one sentence says where answers
+  come from;
 - `logs`: the logs explorer with an error pattern's **Explain with AI**, which opens a new
   conversation with a prepared question in the composer, unsent;
 - `setup`: a guided setup's first step, drawn by the Dashboard's own frame (`GuidedSetupFrame`) as
@@ -51,9 +53,11 @@ An in-page server answers what the panel asks and records what it sends on
   would write over unseen: a file changed on the branch since Ask AI read it, one read in an
   earlier answer, one read earlier in this answer whose text the conversation has left out
   since, and one read whole in two parts whose first part was left out since (said to be read
-  and no longer all in hand, never "read only part of"); `?thread=monitors` on "Which monitors
-  are down right now?", answered with two monitors read by id, one Offline and one whose
-  monitoring is off, each on a read's plain card with its status a dot in its own colour, and
+  and no longer all in hand, never "read only part of"); `?thread=code-skipped` on one whose
+  commit Auto-run did not make, a file having changed on the branch since Ask AI read it: its
+  Skipped row says why under its title, in the reader's language (#6982);
+  `?thread=monitors` on "Which monitors are down right now?", answered with two monitors read
+  by id, one Offline and one whose monitoring is off, each on a read's plain card with its status a dot in its own colour, and
   the monitors table, a monitor named by its URL beside one-word statuses ("Operational"), built
   as query_monitors builds it (MonitorsTableWords), with its words; `?thread=docs` on "How do I
   get a text when an incident starts?" answered from the docs (#7067): numbered steps, the docs

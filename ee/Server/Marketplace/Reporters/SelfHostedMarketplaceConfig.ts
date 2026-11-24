@@ -3,7 +3,7 @@ import GoogleCloudMarketplaceAPI, {
   GoogleServiceAccountKey,
 } from "../../CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
 import AwsContainerMeteringAPI from "./AwsContainerMeteringAPI";
-import AwsWorkloadCredentialsProvider from "./AwsWorkloadCredentials";
+import MarketplaceAwsCredentials from "./MarketplaceAwsCredentials";
 import AzureKubernetesAppMeteringAPI from "./AzureKubernetesAppMeteringAPI";
 import {
   AwsSelfHostedReporter,
@@ -182,7 +182,7 @@ export default class SelfHostedMarketplaceConfig {
       case CloudMarketplace.AWS:
         return new AwsSelfHostedReporter({
           api: new AwsContainerMeteringAPI({
-            credentials: new AwsWorkloadCredentialsProvider(),
+            credentials: MarketplaceAwsCredentials.createChain(),
             region: settings.region,
           }),
           productCode: settings.productCode,
@@ -246,13 +246,13 @@ export default class SelfHostedMarketplaceConfig {
      * AWS takes usage from EKS only when it is signed with IAM roles for
      * service accounts - not EKS Pod Identity, the node's role or keys.
      */
-    if (AwsWorkloadCredentialsProvider.getSource(env) !== "web-identity") {
+    if (MarketplaceAwsCredentials.getSource(env) !== "web-identity") {
       problems.push(
         "OneUptime's Kubernetes service account has no IAM role (IAM roles for service accounts). AWS Marketplace takes usage only from a pod with one: create the role with the AWSMarketplaceMeteringFullAccess policy and annotate the service account with eks.amazonaws.com/role-arn.",
       );
     }
 
-    const region: string | null = AwsWorkloadCredentialsProvider.getRegion(
+    const region: string | null = MarketplaceAwsCredentials.getRegion(
       env,
       read(env, "ENTERPRISE_MARKETPLACE_AWS_REGION") || null,
     );

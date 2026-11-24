@@ -78,7 +78,11 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import {
+  CLICK_TO_REASSIGN_TEXT,
   CommanderFactValue,
+  CommanderReassign,
+  EVENT_COMMANDER_REASSIGN_IDLE_CLASS_NAME,
+  EVENT_COMMANDER_REASSIGN_OPEN_CLASS_NAME,
   EVENT_EMPTY_PLACE_ACTION_OPEN_CLASS_NAME,
   EventAddOwners,
   OwnersFactValue,
@@ -86,6 +90,7 @@ import {
   getCommanderFact,
   getOwnersFact,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
+import { EVENT_HEADER_FACT_EDITOR_ATTRIBUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import { OwnersChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwners";
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
@@ -1179,5 +1184,432 @@ describe("nothing in the people row sends the reader away to fill it", () => {
         return button.getAttribute("aria-haspopup");
       }),
     ).toEqual(["dialog", "dialog"]);
+  });
+});
+
+/*
+ * THE COMMANDER'S NAME HANDS THE ROLE ON (#10195).
+ *
+ * Changing an incident's commander meant scrolling to the Incident Roles
+ * card, mid-incident. The name the header already shows is the control
+ * now, to a reader who may hand the role on: pointed at, it lights up and
+ * says "Click to reassign", with a pencil after the role's label; pressed,
+ * or opened from the keyboard, it opens the header's own list of people
+ * right under it, the holder ticked; the person picked takes the role over
+ * at once. To anyone else it is the plain name it always was.
+ */
+describe("the commander's name, which hands the role on", () => {
+  const MAYA_ROW: string = "77000000-0000-4000-8000-000000000001";
+  const SAM_ROW: string = "77000000-0000-4000-8000-000000000002";
+  const MAYA_HOLDS: EventRoleMember = { ...MAYA, memberId: MAYA_ROW };
+  const SAM_HOLDS: EventRoleMember = {
+    ...MAYA,
+    memberId: SAM_ROW,
+    userId: SAM_ID,
+    name: "Sam Rivera",
+    email: "sam.rivera@acme-commerce.example",
+  };
+  const REASSIGN_MAYA: string = "Reassign Incident Commander from Maya Chen";
+  const LIST_NAME: string = "Reassign Incident Commander";
+
+  type ReassignMock = Mock<
+    (member: EventRoleMember, person: PeoplePickerOption) => Promise<void>
+  >;
+
+  const reassignMock: () => ReassignMock = (): ReassignMock => {
+    return jest.fn<
+      (member: EventRoleMember, person: PeoplePickerOption) => Promise<void>
+    >(async (): Promise<void> => {});
+  };
+
+  const renderHolder: (
+    onReassign?: CommanderReassign | undefined,
+    members?: Array<EventRoleMember>,
+    roleName?: string,
+  ) => RenderResult = (
+    onReassign?: CommanderReassign | undefined,
+    members?: Array<EventRoleMember>,
+    roleName?: string,
+  ): RenderResult => {
+    return render(
+      <CommanderFactValue
+        members={members || [MAYA_HOLDS]}
+        roleName={roleName || "Incident Commander"}
+        onReassign={onReassign}
+      />,
+    );
+  };
+
+  // The project's people, Maya among them: the holder the list ticks.
+  const serveListsWithTheHolder: () => void = (): void => {
+    getListMock.mockImplementation(async (request: any): Promise<any> => {
+      if (request.modelType === TeamMember) {
+        const people: Array<TeamMember> = [
+          projectUser(
+            MAYA.userId,
+            "Maya Chen",
+            "maya.chen@acme-commerce.example",
+          ),
+          projectUser(
+            JORDAN_ID,
+            "Jordan Patel",
+            "jordan.patel@acme-commerce.example",
+          ),
+          projectUser(SAM_ID, "Sam Rivera", "sam.rivera@acme-commerce.example"),
+        ].map((user: User): TeamMember => {
+          const member: TeamMember = new TeamMember();
+          member.user = user;
+          return member;
+        });
+        return { data: people, count: people.length, skip: 0, limit: 25 };
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 0 };
+    });
+  };
+
+  // Lets Tippy's deferred work run, then reads the tooltips shown.
+  const tooltipsShown: () => Promise<Array<string>> = async (): Promise<
+    Array<string>
+  > => {
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 250);
+      });
+    });
+
+    return screen.queryAllByRole("tooltip").map((tooltip: HTMLElement) => {
+      return tooltip.textContent || "";
+    });
+  };
+
+  test("to a reader who may hand it on, the name is a button: seen as the person, heard as what it does", () => {
+    renderHolder(reassignMock());
+
+    const name: HTMLElement = screen.getByRole("button", {
+      name: REASSIGN_MAYA,
+    });
+
+    // What a person sees: the avatar and the name, as before.
+    expect(within(name).getByTestId("event-person-name")).toHaveTextContent(
+      /^Maya Chen$/,
+    );
+    expect(within(name).getByTestId("event-commander-person")).toHaveAttribute(
+      "data-kind",
+      "user",
+    );
+    // The avatar's initials are decoration: heard once, as the label says.
+    expect(
+      within(name).getByTestId("event-commander-person").firstElementChild,
+    ).toHaveAttribute("aria-hidden", "true");
+
+    // A real button, which says it opens a list, and that it is shut.
+    expect(name.tagName).toBe("BUTTON");
+    expect(name).toHaveAttribute("type", "button");
+    expect(name).toHaveAttribute("aria-haspopup", "dialog");
+    expect(name).toHaveAttribute("aria-expanded", "false");
+    expect(name).toHaveAttribute("data-testid", "event-commander-reassign");
+    // The fact's label lights its pencil from it.
+    expect(name).toHaveAttribute(EVENT_HEADER_FACT_EDITOR_ATTRIBUTE, "true");
+  });
+
+  test("its look: as plain as any person at rest, a light ground and a thin ring under the pointer, and the keyboard's focus ring", () => {
+    renderHolder(reassignMock());
+
+    const name: HTMLElement = screen.getByRole("button", {
+      name: REASSIGN_MAYA,
+    });
+
+    for (const className of EVENT_COMMANDER_REASSIGN_IDLE_CLASS_NAME.split(
+      " ",
+    )) {
+      expect(name).toHaveClass(className);
+    }
+    expect(name).toHaveClass(
+      "rounded-full",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+    );
+    // Nothing lit until it is pointed at: no ground, no ring of its own.
+    expect(name).not.toHaveClass("bg-indigo-50", "ring-1");
+    // Lined up with the avatars of the facts beside it.
+    expect(name).toHaveClass("-ms-1", "ps-1");
+    /*
+     * As wide as its box and the 0.25rem it reaches back past it: held to
+     * the box alone, a name that fits one line broke onto two.
+     */
+    expect(name).toHaveClass("max-w-[calc(100%+0.25rem)]");
+    expect(name).not.toHaveClass("max-w-full");
+  });
+
+  test("pointed at, it says what a click does: Click to reassign", async () => {
+    renderHolder(reassignMock());
+
+    fireEvent.mouseEnter(screen.getByRole("button", { name: REASSIGN_MAYA }));
+
+    expect(await tooltipsShown()).toEqual([CLICK_TO_REASSIGN_TEXT]);
+  });
+
+  test("pressed, it opens the header's list of people right under it, named for the hand-over, with the holder ticked, and stays lit", async () => {
+    serveListsWithTheHolder();
+    renderHolder(reassignMock());
+
+    const name: HTMLElement = screen.getByRole("button", {
+      name: REASSIGN_MAYA,
+    });
+
+    fireEvent.click(name);
+
+    const list: HTMLElement = await openedList(LIST_NAME);
+
+    // Everyone in the project, by name: the holder among them.
+    expect(offered(list)).toEqual([JORDAN_ID, MAYA.userId, SAM_ID]);
+
+    // The holder is ticked, as a single choice ticks what it holds.
+    const holder: HTMLElement = within(list)
+      .getAllByRole("option")
+      .find((option: HTMLElement): boolean => {
+        return option.getAttribute("data-id") === MAYA.userId;
+      })!;
+    expect(holder).toHaveAttribute("aria-selected", "true");
+    expect(within(list).getByRole("listbox")).not.toHaveAttribute(
+      "aria-multiselectable",
+    );
+
+    // People only: no teams are searched.
+    expect(
+      getListMock.mock.calls.some((call: Array<any>): boolean => {
+        return call[0].modelType === Team;
+      }),
+    ).toBe(false);
+
+    expect(name).toHaveAttribute("aria-expanded", "true");
+    expect(name).toHaveAttribute("aria-controls", list.id);
+    for (const className of EVENT_COMMANDER_REASSIGN_OPEN_CLASS_NAME.split(
+      " ",
+    )) {
+      expect(name).toHaveClass(className);
+    }
+    // Never both sets of colours: the later rule would win.
+    expect(name).not.toHaveClass("hover:bg-indigo-50");
+  });
+
+  test("the keyboard opens it too: Enter, Space or Down on the name", async () => {
+    for (const key of ["Enter", " ", "ArrowDown"]) {
+      const view: RenderResult = renderHolder(reassignMock());
+      const name: HTMLElement = screen.getByRole("button", {
+        name: REASSIGN_MAYA,
+      });
+
+      act(() => {
+        name.focus();
+      });
+      fireEvent.keyDown(name, { key: key, code: key === " " ? "Space" : key });
+
+      expect(await openedList(LIST_NAME)).toBeVisible();
+      expect(name).toHaveAttribute("aria-expanded", "true");
+
+      view.unmount();
+    }
+  });
+
+  test("its tooltip goes while its list is open, so nothing hangs over the list", async () => {
+    renderHolder(reassignMock());
+
+    const name: HTMLElement = screen.getByRole("button", {
+      name: REASSIGN_MAYA,
+    });
+
+    fireEvent.mouseEnter(name);
+    expect(await tooltipsShown()).toEqual([CLICK_TO_REASSIGN_TEXT]);
+
+    fireEvent.click(name);
+    await openedList(LIST_NAME);
+
+    expect(await tooltipsShown()).toEqual([]);
+  });
+
+  test("picking someone hands the role to them: the holder and the person picked, then the list closes with the keyboard back on the name", async () => {
+    const onReassign: ReassignMock = reassignMock();
+    renderHolder(onReassign);
+
+    const name: HTMLElement = screen.getByRole("button", {
+      name: REASSIGN_MAYA,
+    });
+
+    fireEvent.click(name);
+    pick(await openedList(LIST_NAME), JORDAN_ID);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: LIST_NAME })).toBeNull();
+    });
+
+    expect(onReassign).toHaveBeenCalledTimes(1);
+    expect(onReassign.mock.calls[0]![0]).toBe(MAYA_HOLDS);
+    expect(onReassign.mock.calls[0]![1]).toEqual(
+      expect.objectContaining({
+        id: JORDAN_ID,
+        name: "Jordan Patel",
+        description: "jordan.patel@acme-commerce.example",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(name).toHaveFocus();
+    });
+    expect(name).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("picking the person who holds it keeps them: nothing is handed on", async () => {
+    serveListsWithTheHolder();
+    const onReassign: ReassignMock = reassignMock();
+    renderHolder(onReassign);
+
+    fireEvent.click(screen.getByRole("button", { name: REASSIGN_MAYA }));
+    pick(await openedList(LIST_NAME), MAYA.userId);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: LIST_NAME })).toBeNull();
+    });
+
+    expect(onReassign).not.toHaveBeenCalled();
+  });
+
+  test("a refusal is said in the list, which stays open on the same people, and the holder stays", async () => {
+    const onReassign: ReassignMock = reassignMock();
+    onReassign.mockRejectedValue(
+      new Error(
+        "You do not have permission to update this Incident Member. You need this permission: Edit Incident Member.",
+      ),
+    );
+    renderHolder(onReassign);
+
+    fireEvent.click(screen.getByRole("button", { name: REASSIGN_MAYA }));
+
+    const list: HTMLElement = await openedList(LIST_NAME);
+
+    pick(list, SAM_ID);
+
+    expect(
+      await within(list).findByText(
+        "You do not have permission to update this Incident Member. You need this permission: Edit Incident Member.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole("dialog", { name: LIST_NAME })).toBe(list);
+    expect(offered(list)).toEqual([JORDAN_ID, SAM_ID]);
+    expect(screen.getByRole("button", { name: REASSIGN_MAYA })).toBeVisible();
+  });
+
+  test("Escape closes the list, hands nothing on, and the keyboard goes back to the name", async () => {
+    const onReassign: ReassignMock = reassignMock();
+    renderHolder(onReassign);
+
+    const name: HTMLElement = screen.getByRole("button", {
+      name: REASSIGN_MAYA,
+    });
+
+    fireEvent.click(name);
+    const list: HTMLElement = await openedList(LIST_NAME);
+
+    fireEvent.keyDown(within(list).getByRole("combobox"), {
+      key: "Escape",
+      code: "Escape",
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: LIST_NAME })).toBeNull();
+    });
+    expect(onReassign).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(name).toHaveFocus();
+    });
+  });
+
+  test("to a reader who may not hand it on, the name is plain text: no button, no tooltip", async () => {
+    renderHolder(undefined);
+
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByTestId("event-commander-person")).toHaveTextContent(
+      "Maya Chen",
+    );
+
+    fireEvent.mouseEnter(screen.getByTestId("event-commander-person"));
+    expect(await tooltipsShown()).toEqual([]);
+  });
+
+  test("a holder named before the roles card read their row is plain until it has: there is no row yet to hand on", () => {
+    renderHolder(reassignMock(), [MAYA]);
+
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(shownNames(screen.getByTestId("event-commander"))).toEqual([
+      "Maya Chen",
+    ]);
+  });
+
+  test("a role two people hold is handed on by each one's own name", () => {
+    renderHolder(reassignMock(), [MAYA_HOLDS, SAM_HOLDS]);
+
+    expect(
+      screen.getAllByRole("button").map((button: HTMLElement) => {
+        return button.getAttribute("aria-label");
+      }),
+    ).toEqual([REASSIGN_MAYA, "Reassign Incident Commander from Sam Rivera"]);
+  });
+
+  test("a renamed role is named in what the name says and in its list", async () => {
+    renderHolder(reassignMock(), [MAYA_HOLDS], "Incident Lead");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Reassign Incident Lead from Maya Chen",
+      }),
+    );
+
+    expect(await openedList("Reassign Incident Lead")).toBeVisible();
+  });
+
+  test("getCommanderFact marks the fact as changed right there only when its holder's name hands it on", () => {
+    const holding: PrimaryRoleHolding = {
+      role: {
+        id: MAYA.roleId,
+        name: "Incident Commander",
+        isPrimaryRole: true,
+      },
+      members: [MAYA_HOLDS],
+    };
+    const onReassign: ReassignMock = reassignMock();
+
+    const offeredFact: EventStatusFact | null = getCommanderFact({
+      holding: holding,
+      onReassign: onReassign,
+    });
+
+    expect(offeredFact?.isEditableInPlace).toBe(true);
+    expect(
+      (
+        (offeredFact!.value as ReactElement).props as {
+          onReassign?: CommanderReassign;
+        }
+      ).onReassign,
+    ).toBe(onReassign);
+
+    // Not offered: a reader who may not, or a record that is over.
+    expect(getCommanderFact({ holding: holding })?.isEditableInPlace).toBe(
+      false,
+    );
+    // Nobody to hand it on from: Assign stands there instead.
+    expect(
+      getCommanderFact({
+        holding: { ...holding, members: [] },
+        onReassign: onReassign,
+      })?.isEditableInPlace,
+    ).toBe(false);
+    // A holder whose row is not read yet.
+    expect(
+      getCommanderFact({
+        holding: { ...holding, members: [MAYA] },
+        onReassign: onReassign,
+      })?.isEditableInPlace,
+    ).toBe(false);
   });
 });

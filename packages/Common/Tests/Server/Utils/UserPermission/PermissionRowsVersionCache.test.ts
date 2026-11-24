@@ -373,7 +373,7 @@ describe("what a member's cached set carries", () => {
         PERMISSION_ROW_MIGRATIONS[PERMISSION_ROW_MIGRATIONS.length - 1]!,
       ),
     );
-    expect(PERMISSION_ROWS_VERSION).toBe(1809178600000);
+    expect(PERMISSION_ROWS_VERSION).toBe(1809186970000);
     expect(PREVIOUS_VERSION).toBeLessThan(PERMISSION_ROWS_VERSION);
   });
 

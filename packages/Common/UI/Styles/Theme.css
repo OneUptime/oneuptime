@@ -1204,6 +1204,15 @@ html.dark [class*="focus-visible:ring-indigo-"]:focus-visible {
   --tw-ring-color: rgb(129 140 248 / 55%) !important;
 }
 
+/*
+ * A thin ring a control shows under the pointer - the incident header's
+ * commander, whose name hands the role on (#10195) - as ring-indigo-300
+ * is drawn on a dark card.
+ */
+html.dark [class~="hover:ring-indigo-300"]:hover {
+  --tw-ring-color: rgb(129 140 248 / 35%) !important;
+}
+
 html.dark [class*="focus:ring-red-"]:focus,
 html.dark [class*="focus-visible:ring-red-"]:focus-visible {
   --tw-ring-color: rgb(248 113 113 / 50%) !important;
@@ -2040,6 +2049,64 @@ html.dark [data-page-anchor-landed] {
 }
 
 html.dark [data-page-anchor-focused]:focus-visible {
+  outline-color: #818cf8;
+}
+
+/*
+ * The dashboard widget a link opened the board at (?widget=, #10084,
+ * UI/Utils/DashboardWidgetLanding): a ring in the product's indigo around
+ * its card, held for a moment and then faded over
+ * DASHBOARD_WIDGET_LANDED_IN_MS, so the eye finds the widget a warning
+ * named among the others on the board. A ring, not the tint a setting
+ * gets: the card's own ground would hide a tint behind it. It follows the
+ * card's corners (rounded-xl) and stays inside the board's gap (10px)
+ * between two widgets. A reader who asks for less motion gets the ring
+ * held still until the mark goes. Where it lands under the sticky header
+ * when it is taller than the window, as a place a link lands on does.
+ */
+@keyframes ou-dashboard-widget-landed {
+  0%,
+  45% {
+    outline-color: var(--ou-dashboard-widget-landed-ring);
+  }
+
+  100% {
+    outline-color: transparent;
+  }
+}
+
+[data-dashboard-widget-landed] {
+  --ou-dashboard-widget-landed-ring: #6366f1;
+
+  border-radius: 0.75rem;
+  outline: 3px solid var(--ou-dashboard-widget-landed-ring);
+  outline-offset: 2px;
+  scroll-margin-top: calc(var(--app-header-height, 0px) + 1.5rem);
+  scroll-margin-bottom: 1.5rem;
+}
+
+html.dark [data-dashboard-widget-landed] {
+  --ou-dashboard-widget-landed-ring: #818cf8;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-dashboard-widget-landed] {
+    animation: ou-dashboard-widget-landed 3.2s ease-out forwards;
+  }
+}
+
+/*
+ * The focus the landing gives the widget, after a link followed with the
+ * keyboard: the same ring, kept while it holds the focus - outside the
+ * card, round its corners, where a place's ring is drawn inside its edge.
+ */
+[data-dashboard-widget-box][data-page-anchor-focused]:focus-visible {
+  border-radius: 0.75rem;
+  outline: 3px solid #6366f1;
+  outline-offset: 2px;
+}
+
+html.dark [data-dashboard-widget-box][data-page-anchor-focused]:focus-visible {
   outline-color: #818cf8;
 }
 

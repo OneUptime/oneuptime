@@ -96,6 +96,8 @@ För att fasa ut en etikett arkiverar du den från radens meny **⋯** i ställe
 
 **Används av**, i menyn på en etiketts rad, räknar posterna av varje slag som har etiketten, och öppnar dem en sida i taget. Poster du inte får öppna räknas men namnges inte.
 
+En etikett som har samma namn som en annan etikett, från tiden innan namn behövde skilja sig åt, märks med **Samma namn som en annan etikett**, och listan visar hur många det är: jämför med **Används av** var var och en används, och byt sedan namn på den ena med **Byt namn** på dess rad.
+
 ## Aviseringar
 
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:

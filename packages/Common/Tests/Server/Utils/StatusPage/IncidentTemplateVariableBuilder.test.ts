@@ -959,14 +959,14 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
     expect(site.customFieldRows).toEqual([
       {
         title: "Started",
-        renderedHtml: "Sep 27 2026, 02:05 PM UTC<br/>Sep 27 2026, 07:35 PM IST",
+        renderedHtml: "Sep 27, 2026, 2:05 PM UTC<br/>Sep 27, 2026, 7:35 PM IST",
       },
     ]);
     expect(site.plainText["incident.customFields.started"]).toBe(
-      "Sep 27 2026, 02:05 PM UTC, Sep 27 2026, 07:35 PM IST",
+      "Sep 27, 2026, 2:05 PM UTC, Sep 27, 2026, 7:35 PM IST",
     );
     expect(htmlOf(site.emailBody["incident.customFields.started"])).toBe(
-      "Sep 27 2026, 02:05 PM UTC<br/>Sep 27 2026, 07:35 PM IST",
+      "Sep 27, 2026, 2:05 PM UTC<br/>Sep 27, 2026, 7:35 PM IST",
     );
   });
 
@@ -990,7 +990,7 @@ describe("IncidentTemplateVariableBuilder value formats", () => {
     });
 
     expect(site.plainText["incident.customFields.started"]).toContain(
-      "Sep 27 2026, 02:05 PM UTC",
+      "Sep 27, 2026, 2:05 PM UTC",
     );
     expect(site.plainText["incident.customFields.started"]).toContain("AEST");
   });
@@ -1445,7 +1445,7 @@ describe("IncidentTemplateVariableBuilder feed record", () => {
         "",
         "- **Affected Location:** Site 03 \\*EU\\*",
         "- **Acknowledged:** No",
-        "- **Started:** Sep 27 2026, 02:05 PM UTC",
+        "- **Started:** Sep 27, 2026, 2:05 PM UTC",
         "",
         "**Impact:**",
         "",
@@ -2150,11 +2150,11 @@ describe("IncidentTemplateVariableBuilder in the page's language", () => {
       }).join(", ");
     });
 
-    expect(germanStarted).not.toBe("Sep 27 2026, 02:05 PM UTC");
+    expect(germanStarted).not.toBe("Sep 27, 2026, 2:05 PM UTC");
     expect(site.plainText["incident.customFields.started"]).toBe(germanStarted);
     // The default email's row reads as it always has.
     expect(site.customFieldRows).toEqual([
-      { title: "Started", renderedHtml: "Sep 27 2026, 02:05 PM UTC" },
+      { title: "Started", renderedHtml: "Sep 27, 2026, 2:05 PM UTC" },
     ]);
   });
 

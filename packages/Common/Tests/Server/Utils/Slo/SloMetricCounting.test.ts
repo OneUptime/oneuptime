@@ -302,6 +302,91 @@ describe("SloMetricCounting.countRange", () => {
   });
 });
 
+/*
+ * #10027: an SLO that counted nothing says why when its metric's points
+ * say so - the newest point's kind, of its services, whatever its kind.
+ */
+describe("SloMetricCounting.getNewestPointType", () => {
+  const POINT_TYPE_RANGE: { from: Date; to: Date } = {
+    from: new Date(FROM - 30 * 24 * 60 * 60 * 1000),
+    to: new Date(FROM),
+  };
+
+  test("reads the newest point of the SLO's services' metric, of any kind", () => {
+    const statement: Statement =
+      SloMetricCounting.buildNewestPointTypeStatement({
+        projectId: PROJECT_ID,
+        serviceIds: [SERVICE_A, SERVICE_B],
+        metricName: "azure_requests_total",
+        ...POINT_TYPE_RANGE,
+      });
+    const sql: string = oneLine(statement);
+    const params: Array<unknown> = paramValues(statement);
+
+    expect(sql).toMatch(/^SELECT metricPointType FROM \{/);
+    expect(params).toContain("MetricItemV3");
+    expect(sql).toMatch(
+      /WHERE projectId = \{p\d+:String\} AND name = \{p\d+:String\} AND primaryEntityId IN \(\{p\d+:Array\(String\)\}\)/,
+    );
+    expect(params).toContain(PROJECT_ID.toString());
+    expect(params).toContain("azure_requests_total");
+    expect(params).toContainEqual([SERVICE_A.toString(), SERVICE_B.toString()]);
+    expect(sql).toContain("AND retentionDate >= now()");
+    expect(sql).toMatch(/ORDER BY time DESC LIMIT 1$/);
+    // Every kind: not only the one the SLO counts.
+    expect(sql).not.toContain("metricPointType =");
+    expect(params).toContain("2026-10-16 10:00:00.000000000");
+    expect(params).toContain("2026-11-15 10:00:00.000000000");
+  });
+
+  test("answers the newest row's kind, or null with no row, no service or no name", async () => {
+    const query: SpyInstance<typeof MetricService.executeQuery> = jest
+      .spyOn(MetricService, "executeQuery")
+      .mockResolvedValue(resultOf([{ metricPointType: "Gauge" }]));
+
+    expect(
+      await SloMetricCounting.getNewestPointType({
+        projectId: PROJECT_ID,
+        serviceIds: [SERVICE_A],
+        metricName: "azure_requests_total",
+        ...POINT_TYPE_RANGE,
+      }),
+    ).toBe("Gauge");
+    expect(query).toHaveBeenCalledTimes(1);
+
+    query.mockResolvedValue(resultOf([]));
+
+    expect(
+      await SloMetricCounting.getNewestPointType({
+        projectId: PROJECT_ID,
+        serviceIds: [SERVICE_A],
+        metricName: "azure_requests_total",
+        ...POINT_TYPE_RANGE,
+      }),
+    ).toBeNull();
+
+    query.mockClear();
+
+    expect(
+      await SloMetricCounting.getNewestPointType({
+        projectId: PROJECT_ID,
+        serviceIds: [],
+        metricName: "azure_requests_total",
+        ...POINT_TYPE_RANGE,
+      }),
+    ).toBeNull();
+    expect(
+      await SloMetricCounting.getNewestPointType({
+        projectId: PROJECT_ID,
+        serviceIds: [SERVICE_A],
+        metricName: "  ",
+        ...POINT_TYPE_RANGE,
+      }),
+    ).toBeNull();
+    expect(query).not.toHaveBeenCalled();
+  });
+});
+
 describe("SloRequestCounting, for a Metric SLO", () => {
   const METRIC: SloRequestCountingConfig = {
     sliType: SliType.Metric,

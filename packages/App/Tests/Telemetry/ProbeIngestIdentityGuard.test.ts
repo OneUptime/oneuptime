@@ -433,8 +433,13 @@ describe("probe ingest: the request is the authenticated probe's", () => {
     expect(reads).toEqual([]);
   });
 
+  /*
+   * Once: the body's id is handed to the one key check, which a
+   * collection's headers and its report's opening are handed to as well
+   * (#10222), and nothing else reads it.
+   */
   test("the probe-auth middleware is the one reader of the body's probe id", () => {
-    expect(bodyProbeIdReads(readSource(MIDDLEWARE_FILE)).length).toBe(2);
+    expect(bodyProbeIdReads(readSource(MIDDLEWARE_FILE)).length).toBe(1);
   });
 
   test("the scan sees a body read when there is one", () => {

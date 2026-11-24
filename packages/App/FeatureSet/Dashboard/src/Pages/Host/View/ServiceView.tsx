@@ -86,6 +86,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import HostServiceMonitorsCard from "../../../Components/Host/HostServiceMonitorsCard";
+import { HostServiceKind } from "../../../Utils/HostServiceMonitorPrefill";
 
 interface ServiceSample {
   time: Date;
@@ -147,6 +149,8 @@ interface StatTileProps {
   // No reading is no value: the tile draws the figure's quiet dash (#8264).
   value?: string | ReactElement | null | undefined;
   sublabel?: string | undefined;
+  // The sublabel is in the reader's words already: drawn as given.
+  isSublabelTranslated?: boolean | undefined;
   percent?: number | null | undefined;
   barClassName?: string | undefined;
   // What the tile shows, in an (i) tooltip beside the title.
@@ -185,7 +189,9 @@ const StatTile: FunctionComponent<StatTileProps> = (
       </div>
       {props.sublabel ? (
         <div className="mt-1 text-xs text-gray-500">
-          {translator.translateText(props.sublabel)}
+          {props.isSublabelTranslated
+            ? props.sublabel
+            : translator.translateText(props.sublabel)}
         </div>
       ) : (
         <div className="mt-1 text-xs text-gray-500">&nbsp;</div>
@@ -721,6 +727,8 @@ const HostServiceView: FunctionComponent<
                 })
               : "no samples in range"
           }
+          // When it was read, worded here. Else English, looked up by the tile.
+          isSublabelTranslated={Boolean(identity.latestSampleAt)}
         />
         <StatTile
           title="Availability"
@@ -755,6 +763,8 @@ const HostServiceView: FunctionComponent<
                   { active: translator.formatNumber(runningCount) },
                 )
           }
+          // A count of samples, worded here.
+          isSublabelTranslated={true}
           percent={availability}
           barClassName={
             availability === null
@@ -786,6 +796,8 @@ const HostServiceView: FunctionComponent<
                 )
               : "in selected range"
           }
+          // Since when, worded here. Else English, looked up by the tile.
+          isSublabelTranslated={Boolean(truncatedFrom)}
         />
       </div>
     );
@@ -1030,10 +1042,31 @@ const HostServiceView: FunctionComponent<
    * double-click on it, or Reset zoom beside the hero's picker, puts the
    * range from before the zoom back.
    */
+  /*
+   * Issue #10296: under its status, the monitors that watch this service on
+   * this host, and Create Monitor - a Host monitor of this service, filled
+   * in, that opens an incident when it stops running.
+   */
+  const renderMonitors: () => ReactElement = (): ReactElement => {
+    if (!host?.hostIdentifier) {
+      return <Fragment />;
+    }
+
+    return (
+      <HostServiceMonitorsCard
+        kind={HostServiceKind.WindowsService}
+        serviceName={serviceName}
+        hostId={modelId}
+        hostIdentifier={host.hostIdentifier}
+      />
+    );
+  };
+
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       {renderHero()}
       {renderSummaryTiles()}
+      {renderMonitors()}
       {renderStatusChart()}
       {renderTransitions()}
       {renderNoDataNote()}

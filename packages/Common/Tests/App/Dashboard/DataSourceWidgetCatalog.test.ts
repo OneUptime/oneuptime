@@ -330,7 +330,12 @@ describe("External Data Sources widget catalog category", () => {
       expect(matched).toContain(DashboardComponentType.DataSourceGauge);
     });
 
-    test('a plain "metric" search does not surface the external widgets', () => {
+    /*
+     * The data source widgets chart the project's own metrics in PromQL too
+     * (issue #7713), so a search for metrics finds them - after the Metrics
+     * widgets, which are what most people mean.
+     */
+    test('a plain "metric" search offers the Metrics widgets first, then the PromQL ones', () => {
       const matched: Array<DashboardComponentType> = getMatchedTypes("metric");
 
       expect(matched).toEqual([
@@ -338,8 +343,15 @@ describe("External Data Sources widget catalog category", () => {
         DashboardComponentType.Value,
         DashboardComponentType.Gauge,
         DashboardComponentType.Table,
+        DashboardComponentType.DataSourceChart,
+        DashboardComponentType.DataSourceValue,
+        DashboardComponentType.DataSourceGauge,
+        DashboardComponentType.DataSourceTable,
       ]);
-      expect(getMatchedCategoryNames("metric")).toEqual(["Metrics"]);
+      expect(getMatchedCategoryNames("metric")).toEqual([
+        "Metrics",
+        EXTERNAL_CATEGORY_NAME,
+      ]);
     });
 
     test("searching a system name that nobody supports returns nothing", () => {

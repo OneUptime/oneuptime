@@ -20,6 +20,7 @@ import ProjectService from "./ProjectService";
 import Dictionary from "../../Types/Dictionary";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { ProbeVersionReport } from "../../Types/Probe/ProbeReportedVersion";
+import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
@@ -131,6 +132,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether a cached key digest is the presented key's, compared in constant
+   * time, as the key itself is compared with the database's (#10222): how
+   * long a comparison takes says nothing of how much of a digest matched.
+   * The revocation sentinel, or anything else that is no digest, is not the
+   * same length, and never matches.
+   */
+  public isSameKeyHash(cached: string, presented: string): boolean {
+    const cachedBytes: Buffer = Buffer.from(cached, "utf8");
+    const presentedBytes: Buffer = Buffer.from(presented, "utf8");
+
+    if (cachedBytes.length !== presentedBytes.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(cachedBytes, presentedBytes);
+  }
+
+  /*
    * The auth cache entry of a probe: one per probe, whatever case its id is
    * written in. Postgres reads a uuid in any case, so a probe authenticates
    * with its id upper-cased too - and an entry per spelling would be one
@@ -206,7 +225,10 @@ export class Service extends ProjectReferencesService<Model> {
         GlobalCache.getString(PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE, cacheKey),
       );
 
-      if (cachedKeyHash && cachedKeyHash === presentedKeyHash) {
+      if (
+        cachedKeyHash &&
+        this.isSameKeyHash(cachedKeyHash, presentedKeyHash)
+      ) {
         return true;
       }
     } catch (err) {
@@ -511,6 +533,13 @@ export class Service extends ProjectReferencesService<Model> {
      * a request that says nothing of it leaves the kept release alone.
      */
     versionReport?: ProbeVersionReport | undefined,
+    /*
+     * The address the request came from, as the server sees it
+     * (ClientIp.resolveClientIp): the probe's egress address, which the
+     * blocklist never blocks (#10338). Kept in the same write; a request
+     * whose address cannot be read leaves the kept one alone.
+     */
+    egressIpAddress?: string | undefined,
   ): Promise<void> {
     if (!probeId) {
       throw new BadDataException("probeId is required");
@@ -536,6 +565,15 @@ export class Service extends ProjectReferencesService<Model> {
      */
     if (versionReport?.isReported) {
       (data as Dictionary<unknown>)["reportedVersion"] = versionReport.version;
+    }
+
+    // Written the one way blocks are, so a block of it is refused however it was spelled.
+    const egressAddress: string | null = egressIpAddress
+      ? NetworkAddressBlockUtil.canonicalAddress(egressIpAddress)
+      : null;
+
+    if (egressAddress) {
+      (data as Dictionary<unknown>)["egressIpAddress"] = egressAddress;
     }
 
     /*

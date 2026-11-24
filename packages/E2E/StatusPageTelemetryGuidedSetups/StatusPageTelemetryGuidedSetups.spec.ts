@@ -268,6 +268,14 @@ for (const each of LOOKS) {
     await expect(page.getByTestId("guided-setup-search")).toHaveCount(0);
     await look(page, each, "status-page-1-pick");
 
+    // The panel lists what step 1 makes, waiting for it (#10276).
+    await expect(
+      page.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "waiting");
+    await expect(
+      page.getByTestId("guided-setup-resource-shown_monitors"),
+    ).toHaveAttribute("data-status", "waiting");
+
     await page.getByTestId(`guided-setup-monitor-${MONITOR_ID}`).check();
     await page.getByTestId("guided-setup-create-status-page").click();
 
@@ -276,6 +284,22 @@ for (const each of LOOKS) {
     await expect(page.getByTestId("guided-setup-preview")).toContainText(
       "Acme website",
     );
+    // The page made and the monitor on it, each with Open, in the reader's words.
+    await expect(
+      page.getByTestId("guided-setup-resource-status_page"),
+    ).toHaveAttribute("data-status", "created");
+    await expect(
+      page.getByTestId("guided-setup-resource-shown_monitors"),
+    ).toHaveAttribute("data-status", "created");
+    await expect(
+      page.getByTestId("guided-setup-resource-shown_monitors-status"),
+    ).toHaveText(words(each.lang, "Added"));
+    await expect(
+      page.getByTestId("guided-setup-resource-shown_monitors"),
+    ).toContainText(words(each.lang, "Monitors shown"));
+    await expect(
+      page.getByTestId("guided-setup-resource-status_page-open"),
+    ).toBeVisible();
     await look(page, each, "status-page-2-review");
     await page.getByTestId("guided-setup-review-continue").click();
 
@@ -285,6 +309,46 @@ for (const each of LOOKS) {
 
     expect(await writesTo(page, "StatusPage")).toHaveLength(1);
     expect(await writesTo(page, "StatusPageResource")).toHaveLength(1);
+  });
+}
+
+/*
+ * A STATUS PAGE THE SERVER REFUSES (#10276): the panel says the page was not
+ * made and why, beside the step, and Try again makes it - one page, never
+ * two - and goes on to what customers see.
+ */
+for (const each of [LOOKS[0]!, LOOKS[LOOKS.length - 1]!]) {
+  test(`status page setup, ${nameOf(each)}: a page the server refused says why, and Try again makes one`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSetup(page, each, STATUS_PAGE_SETUP, {
+      seed: "monitor",
+      refuse: "StatusPage",
+    });
+
+    await page.getByTestId(`guided-setup-monitor-${MONITOR_ID}`).check();
+    await page.getByTestId("guided-setup-create-status-page").click();
+
+    const pageRow: Locator = page.getByTestId(
+      "guided-setup-resource-status_page",
+    );
+
+    await expect(pageRow).toHaveAttribute("data-status", "failed");
+    await expect(
+      page.getByTestId("guided-setup-resource-status_page-error"),
+    ).not.toBeEmpty();
+    await expect(step(page, "pick")).toHaveAttribute("data-state", "open");
+    await look(page, each, "status-page-refused");
+
+    await page.getByTestId("guided-setup-resource-status_page-retry").click();
+
+    await expect(pageRow).toHaveAttribute("data-status", "created");
+    await expect(step(page, "review")).toHaveAttribute("data-state", "open");
+    expect(await writesTo(page, "StatusPage")).toHaveLength(1);
+    expect(await writesTo(page, "StatusPageResource")).toHaveLength(1);
+    await look(page, each, "status-page-tried-again");
   });
 }
 
@@ -329,6 +393,20 @@ for (const each of LOOKS) {
     await expect(
       page.getByTestId("guided-setup-create-monitors"),
     ).toBeEnabled();
+    // The panel (#10276): the service receiving data, the four monitors to come.
+    await expect(
+      page.getByTestId("guided-setup-resource-service"),
+    ).toHaveAttribute("data-status", "created");
+    await expect(
+      page.getByTestId("guided-setup-resource-service-status"),
+    ).toHaveText(words(each.lang, "Receiving data"));
+    await expect(
+      page
+        .getByTestId("guided-setup-aside")
+        .locator(
+          '[data-testid^="guided-setup-resource-picked-"][data-status="waiting"]',
+        ),
+    ).toHaveCount(4);
     await look(page, each, "telemetry-2-alert");
     await page.getByTestId("guided-setup-create-monitors").click();
 
@@ -336,6 +414,14 @@ for (const each of LOOKS) {
     await expect(page.getByTestId("guided-setup-summary")).toBeVisible();
     await expect(
       page.getByTestId("guided-setup-summary-watched-by").getByRole("link"),
+    ).toHaveCount(4);
+    // Each one made, in the panel too, with Open.
+    await expect(
+      page
+        .getByTestId("guided-setup-aside")
+        .locator(
+          '[data-testid^="guided-setup-resource-monitor-"][data-status="created"]',
+        ),
     ).toHaveCount(4);
     await look(page, each, "telemetry-3-summary");
 

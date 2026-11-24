@@ -5,6 +5,7 @@ import {
   timesRoleNamedAsDrawn,
   writtenPermissionTitle,
 } from "./FeatureSet/Docs/DocsRoleNames";
+import { PRODUCT_LEVEL_NAMES } from "../FeatureSet/Dashboard/src/Components/Permission/ProductLevelNames";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -97,6 +98,29 @@ const NOT_A_ROLE_PHRASES: ReadonlyArray<KeptEnglish> = [
   },
 ];
 
+/*
+ * A product's levels (#10289): "Cloud Viewer", "Network Admin". A level is
+ * named after the project-wide role it follows, but its name is a key of
+ * its own (Components/Permission/ProductLevelNames), drawn where a role's
+ * is, and each language words it as it words its area's roles: Danish
+ * "Kodeseer" as "Hændelsesseer", German "Code-Betrachter" as
+ * "Vorfall-Betrachter". So the Viewer in a level's name is the level's, not
+ * the Viewer role, and ProductLevelNamesInLocales holds how each language
+ * names the levels. The longest first, so no level is read inside another.
+ */
+const PRODUCT_LEVEL_TITLES: ReadonlyArray<string> = Object.values(
+  PRODUCT_LEVEL_NAMES,
+)
+  .map((name: string | undefined): string => {
+    return name || "";
+  })
+  .filter((name: string): boolean => {
+    return name.length > 0;
+  })
+  .sort((first: string, second: string): number => {
+    return second.length - first.length;
+  });
+
 // The text whose role words are the built-in roles.
 function roleWords(text: string): string {
   return NOT_A_ROLE_PHRASES.reduce(
@@ -105,6 +129,13 @@ function roleWords(text: string): string {
     },
     text,
   );
+}
+
+// An English key without the product levels it names.
+function withoutLevelNames(key: string): string {
+  return PRODUCT_LEVEL_TITLES.reduce((words: string, level: string): string => {
+    return words.split(level).join(" ");
+  }, key);
 }
 
 // How often a locale key names each built-in role, as the English does.
@@ -117,7 +148,7 @@ function rolesTheKeyNames(key: string): Map<string, number> {
     return new Map();
   }
 
-  return englishRoleCounts(roleWords(key));
+  return englishRoleCounts(roleWords(withoutLevelNames(key)));
 }
 
 // Whether this language's role picker draws the role in words of its own.
@@ -340,6 +371,23 @@ describe("the check on a translated message", () => {
         "Fügen Sie die Rolle Incident Viewer hinzu und öffnen Sie den Protokoll-Viewer.",
       ),
     ).toEqual(["Incident Viewer"]);
+    // A product level's name names the level, one word in Danish.
+    expect(rolesNotNamedAsDrawn("da", "Code Viewer", "Kodeseer")).toEqual([]);
+    // The Viewer role named beside a level is still the role.
+    expect(
+      rolesNotNamedAsDrawn(
+        "da",
+        "A Code Viewer reads code as a Viewer does.",
+        "En Kodeseer læser kode, som en læser gør.",
+      ),
+    ).toEqual(["Viewer"]);
+    expect(
+      rolesNotNamedAsDrawn(
+        "da",
+        "A Code Viewer reads code as a Viewer does.",
+        "En Kodeseer læser kode, som en Seer gør.",
+      ),
+    ).toEqual([]);
   });
 
   it("lists only key words the locales use, each with its reason", () => {

@@ -166,7 +166,7 @@ describe("the SLA breached email", () => {
 
     for (const row of [
       "Incident Title: Checkout API is down",
-      "Resolution Deadline: Oct 26 2026, 11:59 AM GMT",
+      "Resolution Deadline: Oct 26, 2026, 11:59 AM GMT",
       "SLA Rule: P1 customer SLA",
       "Current State: Investigating",
       "Open For: 2 hours, 30 minutes",
@@ -193,7 +193,7 @@ describe("the SLA breached email", () => {
 
     expect(resolution).toContain("Resolution Deadline:");
     expect(resolution).not.toContain("Response Deadline:");
-    expect(response).toContain("Response Deadline: Oct 26 2026, 11:59 AM GMT");
+    expect(response).toContain("Response Deadline: Oct 26, 2026, 11:59 AM GMT");
     expect(response).not.toContain("Resolution Deadline:");
 
     for (const text of [resolution, response]) {

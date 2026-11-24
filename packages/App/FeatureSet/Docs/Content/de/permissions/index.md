@@ -129,6 +129,26 @@ Die Abrechnung hat drei eigene Rollen. `BillingViewer` liest die Abrechnung des 
 
 Alle {{PERMISSION_ROLE_COUNT}} Rollen sind in der [Berechtigungsreferenz](/docs/permissions/reference) aufgeführt.
 
+### Produktstufen
+
+Eine Produktstufe gibt einem Team ein Produkt, auf einer Stufe, und sonst nichts vom Projekt: `CloudAdmin`, `NetworkViewer`, `HostMember`. Jede Stufe tut mit den eigenen Datensätzen des Produkts, was eine projektweite Rolle mit jedem Datensatz tut:
+
+- **Betrachter** liest dort, was die Rolle Betrachter liest, und ändert nichts.
+- **Mitglied** erstellt, ändert und löscht außerdem die Datensätze des Produkts, wie es ein Projektmitglied tut.
+- **Administrator** tut dort außerdem, was ein Projektadministrator tut: die Einstellungen des Produkts, seine Verbindungen und Zugangsdaten sowie seine Label- und Eigentümerregeln.
+
+Eine Stufe erreicht nie ein anderes Produkt und auch nicht die Einstellungen, Teams, Mitglieder, API-Schlüssel, SSO oder die Abrechnung des Projekts.
+
+:::steps
+1. Öffnen Sie die Seite **Berechtigungen** des Teams.
+2. Wählen Sie unter **Produktzugriff** eine Stufe für jedes Produkt, mit dem das Team arbeitet. Leeren Sie die Stufe eines Produkts, um dem Team das Produkt wieder zu nehmen.
+:::
+
+- **Monitore, Vorfälle und die anderen Bereiche mit eigenen Rollen** vergeben Sie mit **Rolle hinzufügen** unter **Ein Bereich**. Ebenso die Telemetrie-Rollen für Protokolle, Metriken, Traces, Profile und Ausnahmen sowie die Security-Rollen.
+- **KI / LLM, Inventar und Formulare** haben nur eine Betrachter- und eine Administratorstufe, weil ein Projektmitglied dort nichts ändert.
+- **Eine Stufe ist eine Berechtigung wie jede andere.** Sie können sie in der Tabelle der Berechtigungen auf einige Labels oder auf eigene Datensätze beschränken, sie sperren, in eine benutzerdefinierte Rolle aufnehmen oder einem API-Schlüssel geben. Eine Stufe können Sie wie jede Berechtigung nur vergeben, wenn Sie sie selbst haben, es sei denn, Sie sind Projektinhaber.
+- **Eine Stufe liest die Datensätze des Produkts, nicht seine Telemetrie.** Ein Team mit `HostViewer` sieht die Hosts des Projekts und braucht für deren Diagramme zusätzlich `TelemetryViewer`.
+
 ### Granulare Berechtigungen
 
 Jede einzelne Fähigkeit ist auch für sich vergebbar — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` und {{PERMISSION_TOTAL_COUNT}} weitere. Nutzen Sie diese, wenn eine Rolle zu breit ist und Sie genau eine Sache vergeben möchten.
@@ -202,7 +222,7 @@ Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben: Beim Hinzufü
 
 Eine Rolle bietet alle drei Antworten an. Eine einzelne Berechtigung, hinzugefügt mit **Berechtigung hinzufügen**, bietet überall dort einen Geltungsbereich an, wo einer sie einschränkt, und nur die Antworten, die das tun: **Create Workflow** lässt sich auf die Workflows beschränken, die einem Team gehören, oder auf einige Labels, genau wie **Edit Workflow**, während eine Berechtigung für etwas, das alle teilen, etwa **Create Label**, keinen Geltungsbereich anbietet, weil keiner sie einschränken würde. Die einzelne Berechtigung eines API-Schlüssels nimmt Labels überall dort, wo Labels sie einschränken. Eine Sperre ist nie auf eigene Ressourcen beschränkt: Sie nimmt eine Berechtigung überall weg oder, mit Labels, für die Ressourcen, die sie tragen.
 
-**Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt wird jede Ressource, die Eigentümer haben kann — Monitore, Vorfälle, Dashboards, Services, Monitor-Gruppen, Bereitschaftspläne und Ähnliches — samt dem, was zu ihr gehört, etwa den Ebenen eines Bereitschaftsplans. Sonden, Runner, KI-Agenten, Bereitschaftspläne sowie Vorfall- und Wartungsvorlagen sind das, womit andere Ressourcen eingerichtet werden: Eine Berechtigung mit Geltungsbereich „Eigene" liest sie deshalb weiterhin alle, und Sie können jede davon auswählen; ändern und löschen kann sie nur die, die Ihnen oder Ihren Teams gehören. Den Schlüssel eines Runners, mit dem jeder, der ihn hat, als dieser Runner auftreten kann, sieht sie nur bei den Runnern, die Ihnen oder Ihren Teams gehören. Projektkonfiguration (Vorfallzustände, Labels) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal. Auch die eigenen Seiten von Data Observability halten sich daran: Die **Übersicht**, **Probleme** und die Zahl neben **Übersicht** zählen und listen nur die Tabellen, Prüfungen und Pipelines, die Sie lesen dürfen, und eine Aktion an einer einzelnen Tabelle oder Prüfung, etwa **Jetzt ausführen**, erreicht nur eine, die Sie lesen oder ändern dürfen.
+**Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt wird jede Ressource, die Eigentümer haben kann — Monitore, Vorfälle, Dashboards, Services, Monitor-Gruppen, Bereitschaftspläne und Ähnliches — samt dem, was zu ihr gehört, etwa den Ebenen eines Bereitschaftsplans. Sonden, Runner, KI-Agenten, Bereitschaftspläne, Netzwerkstandorte sowie Vorfall- und Wartungsvorlagen sind das, womit andere Ressourcen eingerichtet werden: Eine Berechtigung mit Geltungsbereich „Eigene" liest sie deshalb weiterhin alle, und Sie können jede davon auswählen; ändern und löschen kann sie nur die, die Ihnen oder Ihren Teams gehören. Den Schlüssel eines Runners, mit dem jeder, der ihn hat, als dieser Runner auftreten kann, sieht sie nur bei den Runnern, die Ihnen oder Ihren Teams gehören. Projektkonfiguration (Vorfallzustände, Labels) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal. Auch die eigenen Seiten von Data Observability halten sich daran: Die **Übersicht**, **Probleme** und die Zahl neben **Übersicht** zählen und listen nur die Tabellen, Prüfungen und Pipelines, die Sie lesen dürfen, und eine Aktion an einer einzelnen Tabelle oder Prüfung, etwa **Jetzt ausführen**, erreicht nur eine, die Sie lesen oder ändern dürfen.
 
 Die Berechtigung mit Geltungsbereich „Eigene" eines Teams reicht so weit wie das, was diesem Team gehört, nicht wie das, was den anderen Teams der Person gehört. Wer in zwei Teams ist, von denen eines `IncidentMember` mit Geltungsbereich „Eigene" und das andere `Viewer` mit Geltungsbereich „Eigene" hat, ändert die Vorfälle, die dem ersten Team gehören, und die eigenen, und sieht sich die Vorfälle, die dem zweiten Team gehören, nur an. Eine Berechtigung mit Geltungsbereich „Eigene" fügt Eigentümer auch nur zu Ressourcen hinzu, die der Person oder dem Team gehören, dem sie gegeben ist; das erste Team lässt sich also nicht zum Eigentümer der Vorfälle des zweiten Teams machen, um das zu umgehen. Die Berechtigung mit Geltungsbereich „Eigene" einer benutzerdefinierten Rolle reicht so weit wie das, was jedem Team gehört, dem die Rolle gegeben ist.
 

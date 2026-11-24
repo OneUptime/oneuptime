@@ -92,35 +92,35 @@ func (v recordIDValidator) detail(value string) string {
 	)
 }
 
-// recordIDValidators: the ID of one record of resourceType.
-func recordIDValidators(resourceType string) []validator.String {
+// RecordIDValidators: the ID of one record of resourceType.
+func RecordIDValidators(resourceType string) []validator.String {
 	return []validator.String{recordIDValidator{resourceType: resourceType}}
 }
 
-// recordIDSetValidators: the IDs of records of resourceType, as a set.
-func recordIDSetValidators(resourceType string) []validator.Set {
+// RecordIDSetValidators: the IDs of records of resourceType, as a set.
+func RecordIDSetValidators(resourceType string) []validator.Set {
 	return []validator.Set{setvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType})}
 }
 
-// recordIDListValidators: the IDs of records of resourceType, in order.
-func recordIDListValidators(resourceType string) []validator.List {
+// RecordIDListValidators: the IDs of records of resourceType, in order.
+func RecordIDListValidators(resourceType string) []validator.List {
 	return []validator.List{listvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType})}
 }
 
-// dataSourceRecordIDValidators: the ID of one record of resourceType, a
+// DataSourceRecordIDValidators: the ID of one record of resourceType, a
 // type with a data source and no resource.
-func dataSourceRecordIDValidators(resourceType string) []validator.String {
+func DataSourceRecordIDValidators(resourceType string) []validator.String {
 	return []validator.String{recordIDValidator{resourceType: resourceType, dataSourceOnly: true}}
 }
 
-// dataSourceRecordIDSetValidators: the IDs of records of resourceType, a
+// DataSourceRecordIDSetValidators: the IDs of records of resourceType, a
 // type with a data source and no resource, as a set.
-func dataSourceRecordIDSetValidators(resourceType string) []validator.Set {
+func DataSourceRecordIDSetValidators(resourceType string) []validator.Set {
 	return []validator.Set{setvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType, dataSourceOnly: true})}
 }
 
-// dataSourceRecordIDListValidators: the IDs of records of resourceType, a
+// DataSourceRecordIDListValidators: the IDs of records of resourceType, a
 // type with a data source and no resource, in order.
-func dataSourceRecordIDListValidators(resourceType string) []validator.List {
+func DataSourceRecordIDListValidators(resourceType string) []validator.List {
 	return []validator.List{listvalidator.ValueStringsAre(recordIDValidator{resourceType: resourceType, dataSourceOnly: true})}
 }

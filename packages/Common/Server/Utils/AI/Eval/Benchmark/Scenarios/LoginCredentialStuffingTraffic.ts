@@ -42,7 +42,7 @@ const scenario: BenchmarkScenario = {
     "Description: Login success rate below 90% for 10 minutes and p95 of POST /login above 3 s (Login monitor).",
     "Severity: SEV-1",
     "Current state: Created",
-    "Declared at: Sep 12 2026, 19:18 UTC",
+    "Declared at: Sep 12, 2026, 19:18 UTC",
     "Affected monitors: Login",
     "Labels: auth, login",
     "",

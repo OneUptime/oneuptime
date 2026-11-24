@@ -205,7 +205,13 @@ describe("the Security Events menu", () => {
       ],
       [
         "Playbooks",
-        ["Playbooks", "Approvals", "Playbook Runs", "Protected Entities"],
+        [
+          "Playbooks",
+          "Approvals",
+          "Playbook Runs",
+          "Blocklist",
+          "Protected Entities",
+        ],
       ],
       // What OneUptime AI does on its own; the triage is on each case.
       ["AI", ["Settings"]],
@@ -261,6 +267,7 @@ describe("the Security Events menu", () => {
       ["Playbooks", "SECURITY_PLAYBOOKS"],
       ["Approvals", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
+      ["Blocklist", "SECURITY_BLOCKLIST"],
       ["Protected Entities", "SECURITY_PROTECTED_ENTITIES"],
       ["Settings", "SECURITY_EVENTS_SETTINGS_AI"],
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
@@ -535,7 +542,7 @@ describe("the case queue's pages are the queue's views", () => {
         .map((item: SecurityEventsMenuItem): string => {
           return item.title;
         }),
-    ).toEqual(["Protected Entities"]);
+    ).toEqual(["Blocklist", "Protected Entities"]);
   });
 });
 
@@ -715,6 +722,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Playbooks"],
       ["Security Events", "Playbooks", "Approvals"],
       ["Security Events", "Playbooks", "Playbook Runs"],
+      ["Security Events", "Playbooks", "Blocklist"],
       ["Security Events", "Playbooks", "Protected Entities"],
       ["Security Events", "AI", "Settings"],
       ["Security Events", "Connections"],

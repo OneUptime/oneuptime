@@ -5,10 +5,9 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import crypto from "crypto";
 import LogScrubRuleService from "./LogScrubRuleService";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
-import { maskKeepingEnds } from "Common/Utils/Telemetry/ScrubMask";
+import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -486,6 +485,7 @@ export default class SessionReplayScrubService {
           result,
           (compiled.rule.scrubAction as string) || LogScrubAction.Redact,
           LogScrubPatternType.SensitiveKeys,
+          compiled.rule.projectId,
         );
       }
     }
@@ -532,7 +532,12 @@ export default class SessionReplayScrubService {
       const replaced: string = compiled.regex.replace(
         result,
         (match: string): string => {
-          return this.applyScrubAction(match, action, patternType);
+          return this.applyScrubAction(
+            match,
+            action,
+            patternType,
+            compiled.rule.projectId,
+          );
         },
       );
 
@@ -547,81 +552,23 @@ export default class SessionReplayScrubService {
 
   /*
    * Same three actions and the same output shapes as the log scrubber, so a
-   * customer's rules mean the same thing wherever they are applied. Kept
-   * local because the log service's version is private; the shapes are
-   * pinned by SessionReplayScrubService.test.ts.
+   * customer's rules mean the same thing wherever they are applied: the log,
+   * trace and session replay scrubbers all ask the one module
+   * (Common/Server/Utils/Telemetry/ScrubAction). A Hash rule makes its
+   * project's token there (ScrubHashToken, #10394), as a log rule does -
+   * the same rule hashes a value alike in a recording and in a log line.
    */
   private static applyScrubAction(
     match: string,
     action: string,
     patternType: string,
+    projectId?: ObjectID | string | null | undefined,
   ): string {
-    switch (action) {
-      case LogScrubAction.Redact:
-        return "[REDACTED]";
-
-      case LogScrubAction.Hash: {
-        const hash: string = crypto
-          .createHash("sha256")
-          .update(match)
-          .digest("hex")
-          .substring(0, 8);
-        return `[HASHED:${hash}]`;
-      }
-
-      case LogScrubAction.Mask:
-        return this.maskValue(match, patternType);
-
-      default:
-        return "[REDACTED]";
-    }
-  }
-
-  private static maskValue(value: string, patternType: string): string {
-    switch (patternType) {
-      case LogScrubPatternType.Email: {
-        const atIndex: number = value.indexOf("@");
-
-        if (atIndex > 0) {
-          const dotIndex: number = value.lastIndexOf(".");
-
-          if (dotIndex > atIndex) {
-            return value[0] + "***@***" + value.substring(dotIndex);
-          }
-        }
-
-        return "***@***.***";
-      }
-
-      case LogScrubPatternType.CreditCard: {
-        const digits: string = value.replace(/[-\s]/g, "");
-
-        if (digits.length >= 4) {
-          return "****-****-****-" + digits.substring(digits.length - 4);
-        }
-
-        return "****-****-****-****";
-      }
-
-      case LogScrubPatternType.SSN:
-        return "***-**-" + value.substring(value.length - 4);
-
-      case LogScrubPatternType.PhoneNumber: {
-        const phoneDigits: string = value.replace(/[^0-9]/g, "");
-
-        if (phoneDigits.length >= 4) {
-          return "***-***-" + phoneDigits.substring(phoneDigits.length - 4);
-        }
-
-        return "***-***-****";
-      }
-
-      case LogScrubPatternType.IPAddress:
-        return "***.***.***.***";
-
-      default:
-        // First and last characters kept, whole (Common/Utils/Telemetry/ScrubMask).
-        return maskKeepingEnds(value);
-    }
+    return ScrubAction.apply({
+      match: match,
+      action: action,
+      patternType: patternType,
+      projectId: projectId,
+    });
   }
 }

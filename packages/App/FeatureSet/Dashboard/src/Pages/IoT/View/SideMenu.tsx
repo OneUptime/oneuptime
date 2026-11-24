@@ -31,7 +31,16 @@ import React, {
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * The fleet's counts beside its pages. Devices counts every device the
+ * fleet has, in grey - never the ones its last snapshot calls offline,
+ * which a fleet whose own connection is down would blame for what its
+ * collector did (#10014): the fleet's Overview, its Devices list and a
+ * device's page say why, whether it reports or not.
+ */
 export interface ResourceCounts {
   devices?: number | undefined;
 }
@@ -44,6 +53,7 @@ export interface ComponentProps {
 const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const counts: ResourceCounts = props.resourceCounts || {};
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -180,6 +190,16 @@ const IoTFleetSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Cube}
           badge={counts.devices}
+          badgeType={BadgeType.NEUTRAL}
+          // The count is drawn for the eye only: a screen reader hears this.
+          badgeLabel={
+            counts.devices
+              ? translator.translatePlural(
+                  { one: "{{count}} device", other: "{{count}} devices" },
+                  counts.devices,
+                )
+              : undefined
+          }
         />
         <SideMenuItem
           link={{

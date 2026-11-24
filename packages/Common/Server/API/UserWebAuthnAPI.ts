@@ -20,6 +20,7 @@ import TwoFactorBackupCode from "../Utils/TwoFactorBackupCode";
 import logger from "../Utils/Logger";
 import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
 import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 
 export default class UserWebAuthnAPI extends BaseAPI<
   UserWebAuthn,
@@ -36,6 +37,17 @@ export default class UserWebAuthnAPI extends BaseAPI<
         try {
           const userId: ObjectID = (req as OneUptimeRequest).userAuthorization!
             .userId;
+
+          /*
+           * A key or a passkey is a way in, so the session adding one has
+           * confirmed it's its person's (#10155): asked here, before the
+           * browser's prompt, so the person confirms before they touch
+           * their key - and again where the key's answer is saved
+           * (UserWebAuthnService.verifyRegistration).
+           */
+          await Reauthentication.assertConfirmed(
+            await CommonAPI.getDatabaseCommonInteractionProps(req),
+          );
 
           const result: { options: any; challenge: string } =
             await UserWebAuthnService.generateRegistrationOptions({

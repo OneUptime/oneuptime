@@ -61,6 +61,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management svarer for hvert abonnement, med ressursen hver kostnad gjelder, og det koster ingenting å lese. Når den ikke kan svare for et abonnement, sier kontoens **Kostnader** hvorfor.
 
+Cost Management begrenser hvor raskt kostnadene til en leietaker leses, likt for alle som leser dem: hver spørring koster en spørringsbehandlingsenhet (QPU) for hver måned med data den leser, og en leietaker har 12 QPU hvert 10. sekund, 60 i minuttet og 600 i timen. OneUptime leser abonnementene til en leietaker ett om gangen innenfor to tredjedeler av hver kvote, venter så lenge Cost Management ber om når den avviser en spørring, og fortsetter ved neste lesing der den slapp. Et abonnement som ikke er lest ennå, sier **I kø** og når det leses; et som har beløp, beholder dem i mellomtiden.
+
 ## Google Cloud
 
 Google Cloud har ikke noe API for kostnadene til et prosjekt: OneUptime leser dem fra faktureringskontoens eksport til BigQuery.
@@ -151,6 +153,10 @@ Tilkoblingen kan ikke lese kontoens kostnader ennå. Kjør oppsettkommandoen på
 
 :::details En konto sier Ikke satt opp
 Skyen har ingen kostnader å gi ennå. På AWS slår du på Cost Explorer; på Google Cloud oppgir du eksportens tabell under **Tabell for fakturaeksport**. De første beløpene kommer med neste lesing, innen 12 timer.
+:::
+
+:::details En konto sier I kø
+Kostnadene venter på tur: Azure Cost Management begrenser hvor raskt kostnadene til en leietaker leses. Kontoen sier når de leses, ved tilkoblingens første lesing fra da av, og ingenting må gjøres. En konto som allerede har beløp, beholder dem i mellomtiden.
 :::
 
 :::details Kostnader per ressurs sier Ikke satt opp

@@ -12,6 +12,9 @@ import { FilterType, EvaluateOverTimeType } from "./CriteriaFilter";
 import MonitorStepHostMonitor from "./MonitorStepHostMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS } from "../Host/AndroidSecurityPatch";
+
+export { ANDROID_SECURITY_PATCH_MAX_AGE_DAYS };
 
 export type HostAlertTemplateCategory = "Availability" | "Resource" | "Host";
 
@@ -541,12 +544,16 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
          *
          * NOTE this template still pages on read-only pseudo-filesystems
          * that are 100% full by design (snap `squashfs` loop mounts,
-         * macOS `devfs`). The Kubernetes agent's collector already
-         * excludes those with an `include_fs_types` allowlist; the
-         * standalone host collector config does not, and excluding them
-         * here would need a NOT-IN comparison that `filterData.attributes`
-         * (exact match only) cannot express. The mount and device are on
-         * the alert, so the description below names the pattern instead.
+         * macOS `devfs`) when a collector sends them. The collector
+         * configs OneUptime runs and hands out leave them out of the
+         * `filesystem` scraper (`exclude_fs_types`, or the Kubernetes
+         * agent's `include_fs_types` allowlist); a config of the user's
+         * own may not. The mount and device are on the alert, so the
+         * description below names the pattern instead.
+         *
+         * A query that loses this group-by reads the fullest mount only,
+         * under one incident for the whole monitor (the Host Monitor
+         * docs' "Hosts with several disks" and its troubleshooting entry).
          */
         groupByAttributeKeys: ["mountpoint", "device"],
       }),
@@ -1207,6 +1214,71 @@ const androidStorageNearlyFullTemplate: HostAlertTemplate = {
 };
 
 /*
+ * A device behind on its security patches (#9965). Its patch level is the
+ * date of the Android security bulletin its build includes
+ * (Build.VERSION.SECURITY_PATCH); the agent sends the days since that date
+ * as android.os.security_patch.age with every report. Out of date is more
+ * than ANDROID_SECURITY_PATCH_MAX_AGE_DAYS, the rule Inventory's Security
+ * Patch Level filter reads too (Types/Host/AndroidSecurityPatch says why).
+ */
+const androidSecurityPatchOutOfDateTemplate: HostAlertTemplate = {
+  id: "android-security-patch-out-of-date",
+  name: "Security Patch Out of Date",
+  summary: "The device's security patch is more than 90 days old.",
+  description:
+    "Alert when the device's security patch level is more than 90 days old: Android Enterprise Recommended devices get each monthly Android security bulletin within 90 days, so a device further behind misses fixes for known vulnerabilities. Reads android.os.security_patch.age, the days since the patch level's date, which the agent sends with every report. It resolves once the device is updated.",
+  category: "Host",
+  severity: "Warning",
+  getMonitorStep: (args: HostAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "android_security_patch_age";
+
+    return buildHostMonitorStep({
+      hostMonitor: buildHostMonitorConfig({
+        hostIdentifier: args.hostIdentifier,
+        metricName: "android.os.security_patch.age",
+        metricAlias,
+        rollingTime: RollingTime.Past1Hour,
+        aggregationType: MetricsAggregationType.Min,
+        groupByAttributeKeys: ANDROID_TEMPLATE_GROUP_BY,
+      }),
+      /*
+       * The age grows a day a day and drops only when the device is
+       * updated: the whole hour behind fires, and one reading at 90 days
+       * or newer - the update - resolves it.
+       */
+      offlineCriteriaInstance: buildHostOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: ANDROID_SECURITY_PATCH_MAX_AGE_DAYS,
+        metricAggregationType: EvaluateOverTimeType.AllValues,
+        incidentTitle: `[Android] Security Patch Out of Date (>90 days)${hostTitleSuffix(args)}`,
+        incidentDescription: `This device's security patch level is more than 90 days old, so it misses the fixes of the Android security bulletins since then. Update its operating system: through your device manager's OS update policy, or on the device in Settings, System, Software update. A device whose maker no longer ships updates stays out of date until it is replaced. The incident resolves once the device reports a patch level from the last 90 days.`,
+        criteriaName: "Security Patch Out of Date - older than 90 days",
+        criteriaDescription:
+          "Triggers when the device's security patch level is more than 90 days old for every sample in the monitoring window.",
+      }),
+      /*
+       * No dead band: the age never wavers about the threshold - it grows a
+       * day a day - and an update to a patch from the last 90 days is up
+       * to date, as Inventory says it is.
+       */
+      onlineCriteriaInstance: buildHostOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.LessThanOrEqualTo,
+        value: ANDROID_SECURITY_PATCH_MAX_AGE_DAYS,
+        recoveryValue: ANDROID_SECURITY_PATCH_MAX_AGE_DAYS,
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      }),
+    });
+  },
+};
+
+/*
  * CPU use, for an Android device that reports it: Android 7, or a device on
  * which the agent is the device owner (Android 8 and later keep CPU use
  * from other apps). Busy is 1 - idle, not user + system as High CPU
@@ -1274,6 +1346,7 @@ export function getAndroidHostAlertTemplates(): Array<HostAlertTemplate> {
     androidOverheatingTemplate,
     androidRestartLoopTemplate,
     androidStorageNearlyFullTemplate,
+    androidSecurityPatchOutOfDateTemplate,
     androidHighCpuTemplate,
   ];
 }

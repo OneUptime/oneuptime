@@ -50,8 +50,14 @@ import {
   AZURE_EVENT_HUBS_DATA_RECEIVER_ROLE,
   AZURE_EVENT_HUBS_KAFKA_PORT,
   AZURE_EVENT_HUBS_SEND_RULE,
+  AZURE_ACTIVITY_LOG_CATEGORIES,
+  AZURE_DIAGNOSTIC_SETTINGS_WRITE,
+  AZURE_ENTRA_ID_SETTINGS_ROLE,
+  AZURE_EVENT_HUBS_LIST_KEYS,
+  AZURE_STORAGE_ACCOUNT_TYPE,
   getAzureCloudStreamCommand,
   getAzureCloudStreamDeleteCommand,
+  getAzureCloudStreamEntraCommand,
   getAzureCloudStreamNames,
 } from "Common/Types/CloudConnection/CloudStreamAzure";
 import {
@@ -525,9 +531,8 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
       "microsoft.network/natgateways": "nat gateways",
       "microsoft.network/dnszones": "dns zones",
       "microsoft.web/serverfarms": "app service plans",
-      "microsoft.storage/storageaccounts":
-        "a storage account's logs are its services'",
-      "microsoft.app/containerapps": "a container app's are its environment's",
+      "microsoft.app/containerapps":
+        "a container app's logs are its environment's",
     };
 
     expect(Array.from(AZURE_TYPES_WITHOUT_RESOURCE_LOGS).sort()).toEqual(
@@ -540,6 +545,55 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
         said: true,
       });
     }
+
+    // A storage account has the tab: its services' logs, filed under it (#10110).
+    expect(
+      AZURE_TYPES_WITHOUT_RESOURCE_LOGS.has(AZURE_STORAGE_ACCOUNT_TYPE),
+    ).toBe(false);
+    expect(paragraph).toContain(
+      "a storage account's logs are its blob, file, queue and table services': the command gives each service a diagnostic setting of its own, and their logs are filed under the account",
+    );
+  });
+
+  it("names what the command makes for Security Events: each subscription's Activity Log, and Entra ID's own command", () => {
+    const text: string = prose(page);
+
+    // The dialog's words, as it draws them.
+    for (const [words, file] of [
+      ["Each subscription's Activity Log", "azureSetup"],
+      ["Microsoft Entra ID's sign-in and audit logs", "azureSetup"],
+      ["For Security Events", "azureDialog"],
+    ] as Array<[string, string]>) {
+      expect(source(file)).toContain(`translationKey("${words}")`);
+      expect(text).toContain(`**${words}**`);
+    }
+
+    expect(text).toContain("Under **For Security Events**");
+
+    for (const category of AZURE_ACTIVITY_LOG_CATEGORIES) {
+      expect(text).toContain(`\`${category}\``);
+    }
+
+    // What each takes, as the commands say it when Azure refuses.
+    expect(text).toContain(`\`${AZURE_DIAGNOSTIC_SETTINGS_WRITE}\``);
+    expect(text).toContain(`\`${AZURE_EVENT_HUBS_LIST_KEYS}\``);
+    expect(text).toContain(AZURE_ENTRA_ID_SETTINGS_ROLE);
+    expect(
+      getAzureCloudStreamCommand({
+        connectionId: EXAMPLE_CONNECTION_ID,
+        appId: "0b9f6c1e-2d3a-4b5c-8d7e-9f0a1b2c3d4e",
+        subscriptionIds: EXAMPLE_SUBSCRIPTIONS,
+        metrics: true,
+        logs: true,
+        activityLog: true,
+      }),
+    ).toContain(AZURE_DIAGNOSTIC_SETTINGS_WRITE);
+    expect(
+      getAzureCloudStreamEntraCommand({
+        connectionId: EXAMPLE_CONNECTION_ID,
+        hostSubscriptionId: EXAMPLE_SUBSCRIPTIONS[0]!,
+      }),
+    ).toContain(AZURE_ENTRA_ID_SETTINGS_ROLE);
   });
 
   it("names the dialog's and the list's words as they draw them", () => {

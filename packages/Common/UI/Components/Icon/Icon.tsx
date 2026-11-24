@@ -10,6 +10,7 @@ import TelegramMark from "../../../Types/ProviderLogo/Marks/telegram";
 import DiscordMark from "../../../Types/ProviderLogo/Marks/discord";
 import MattermostMark from "../../../Types/ProviderLogo/Marks/mattermost";
 import TerraformMark from "../../../Types/ProviderLogo/Marks/terraform";
+import CrossplaneMark from "../../../Types/ProviderLogo/Marks/crossplane";
 import SlackMark from "../../../Types/ProviderLogo/Marks/slack";
 import KubernetesMark from "../../../Types/ProviderLogo/Marks/kubernetes";
 import AndroidMark from "../../../Types/ProviderLogo/Marks/android";
@@ -1211,6 +1212,8 @@ const Icon: FunctionComponent<ComponentProps> = ({
     return drawBrandMark(ProviderLogo.Mattermost, MattermostMark);
   } else if (icon === IconProp.Terraform) {
     return drawBrandMark(ProviderLogo.Terraform, TerraformMark);
+  } else if (icon === IconProp.Crossplane) {
+    return drawBrandMark(ProviderLogo.Crossplane, CrossplaneMark);
   } else if (icon === IconProp.Hide) {
     return getSvgWrapper(
       <path

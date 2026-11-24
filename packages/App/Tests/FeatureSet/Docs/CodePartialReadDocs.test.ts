@@ -1,5 +1,11 @@
-import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
-import { dashboardLocale, readAsTheDocsWriteIt } from "./DocsDashboardLabels";
+import { DOCS_LANGUAGES } from "./DocsContentSupport";
+import {
+  codeChangeCautionIndex,
+  codeChangeCautionQuoting,
+  codeChangesSectionOf,
+  codeDocsCautionLine,
+  codeDocsTranslatorFor,
+} from "./CodeChangesDocsSection";
 import { readRepoFile } from "./InventoryAndApiDocsSupport";
 import {
   AI_ACTION_CODE_FILE,
@@ -15,7 +21,7 @@ import {
   findCodeFileUnseen,
   getCodeFileLinesShown,
 } from "Common/Types/CodeRepository/CodeFileSeen";
-import { createTranslator, Translator } from "Common/Types/Translator";
+import { Translator } from "Common/Types/Translator";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -26,7 +32,6 @@ import { describe, expect, it } from "@jest/globals";
  * held to the code that makes it true.
  */
 
-const PAGE: string = "ai/ask-ai";
 const FILE: string = "src/billing/charge.ts";
 
 // The card's line for one file Ask AI read only part of.
@@ -52,55 +57,33 @@ const CHANGED: AIActionSentence = aiActionPluralSentence(
   },
 );
 
-const translatorFor: (language: string) => Translator = (
-  language: string,
-): Translator => {
-  const words: Record<string, unknown> = dashboardLocale(language);
-
-  // What it draws, as the page writes it (asTheDocsWriteIt).
-  return readAsTheDocsWriteIt(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = words[text];
-      return typeof value === "string" ? value : undefined;
-    }, language),
-  );
-};
-
-// The bullet about proposing code changes, which says it all.
-const codeBulletOf: (language: string) => string = (
-  language: string,
-): string => {
-  return (
-    readPage(language, PAGE)
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.startsWith("- ") && line.includes(FILE);
-      }) || ""
-  );
-};
+const translatorFor: (language: string) => Translator = codeDocsTranslatorFor;
 
 const flat: (text: string) => string = (text: string): string => {
   return text.replace(/\s+/g, " ");
 };
 
 describe("the Ask AI page on a file Ask AI read only part of (issue #6330)", () => {
-  it("quotes the card line as the English card says it, on the code-change bullet", () => {
-    const bullet: string = codeBulletOf("en");
+  it("quotes the card line as the English card says it, as a caution of its own in the Code changes section", () => {
     const line: string = describeAIActionSentence(READ_IN_PART);
 
     expect(line).toBe(
       "Ask AI read only part of this file, and its version replaces all of it: src/billing/charge.ts.",
     );
-    expect(bullet).toMatch(/^- Propose a code change:/);
-    expect(bullet).toContain(`"${line}"`);
+    expect(
+      codeChangeCautionQuoting("en", line)!.startsWith(`  - "${line}"`),
+    ).toBe(true);
   });
 
-  it("says why, and that reading all of it - in one read or several - says nothing", () => {
-    const bullet: string = codeBulletOf("en");
+  it("says why, and that reading all of it - in one read or several, all of it still had - says nothing", () => {
+    const bullet: string = codeChangeCautionQuoting(
+      "en",
+      describeAIActionSentence(READ_IN_PART),
+    )!;
 
     for (const said of [
-      "Ask AI reads a long file a part at a time, so the card also names a file Ask AI read only part of, for example",
-      "Once Ask AI has read all of the file, in one read or in several, the card says nothing of it.",
+      "Ask AI reads a long file a part at a time.",
+      "Once it has read all of the file, in one read or in several, and still has all of its text, the card says nothing of it.",
     ]) {
       expect({ said, inPage: bullet.includes(said) }).toEqual({
         said,
@@ -197,32 +180,37 @@ describe("the Ask AI page on a file Ask AI read only part of (issue #6330)", () 
         expect(line).not.toContain("read only part of");
       }
       expect(line).toContain(FILE);
-      expect(codeBulletOf(language)).toContain(line);
+      expect(codeChangeCautionQuoting(language, line)).toBeDefined();
     });
 
-    it("says it after the line about a file changed since the read, on the bullet it extends", () => {
-      const bullet: string = codeBulletOf(language);
-      const changed: string = describeAIActionSentence(
-        CHANGED,
-        translatorFor(language),
-      );
-      const part: string = describeAIActionSentence(
-        READ_IN_PART,
-        translatorFor(language),
+    it("says it after the caution about a file changed since the read, right after the one about a part no longer had, once", () => {
+      const translator: Translator = translatorFor(language);
+      const changed: string = describeAIActionSentence(CHANGED, translator);
+      const part: string = describeAIActionSentence(READ_IN_PART, translator);
+      const noLongerHad: string = describeAIActionSentence(
+        codeDocsCautionLine(AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand),
+        translator,
       );
 
-      expect(bullet.indexOf(changed)).toBeGreaterThan(-1);
-      expect(bullet.indexOf(part)).toBeGreaterThan(bullet.indexOf(changed));
+      expect(codeChangeCautionIndex(language, changed)).toBeGreaterThan(-1);
+      expect(codeChangeCautionIndex(language, part)).toBeGreaterThan(
+        codeChangeCautionIndex(language, changed),
+      );
+      expect(codeChangeCautionIndex(language, part)).toBe(
+        codeChangeCautionIndex(language, noLongerHad) + 1,
+      );
       // Each quoted once.
-      expect(bullet.split(part)).toHaveLength(2);
+      expect(codeChangesSectionOf(language).split(part)).toHaveLength(2);
     });
 
-    it("keeps the bullet one line, in its place", () => {
-      const lines: Array<string> = readPage(language, PAGE).split("\n");
-      const english: Array<string> = readPage("en", PAGE).split("\n");
-
-      expect(lines.indexOf(codeBulletOf(language))).toBe(
-        english.indexOf(codeBulletOf("en")),
+    it("keeps the caution in its place: where the English page has it", () => {
+      expect(
+        codeChangeCautionIndex(
+          language,
+          describeAIActionSentence(READ_IN_PART, translatorFor(language)),
+        ),
+      ).toBe(
+        codeChangeCautionIndex("en", describeAIActionSentence(READ_IN_PART)),
       );
     });
   });

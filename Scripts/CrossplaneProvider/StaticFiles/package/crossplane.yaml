@@ -6,6 +6,11 @@ metadata:
     meta.crossplane.io/maintainer: OneUptime <hello@oneuptime.com>
     meta.crossplane.io/source: github.com/OneUptime/oneuptime
     meta.crossplane.io/license: Apache-2.0
+    # The name and the icon a package catalog, such as the Upbound
+    # Marketplace, lists the provider by (#6618). The icon is the one the
+    # Helm charts show.
+    friendly-name.meta.crossplane.io: Provider OneUptime
+    meta.crossplane.io/iconURI: https://oneuptime.com/img/OneUptimePNG/1.png
     meta.crossplane.io/description: |
       Manage your OneUptime project from Kubernetes: monitors, status pages,
       incidents, on-call policies, teams and every other resource of the

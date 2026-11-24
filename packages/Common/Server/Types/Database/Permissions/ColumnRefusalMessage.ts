@@ -44,6 +44,15 @@ export const NO_PERMISSION_ALLOWS: Record<ColumnOperation, string> = {
  * who has not signed in through the project's SSO yet - which nobody is
  * given, so a refusal does not name them. They have no title.
  */
+// The same, of several columns one write is refused for.
+export const NO_PERMISSION_ALLOWS_ANY_OF: Record<"create" | "update", string> =
+  {
+    create:
+      "No permission allows it: these columns are set by the server, not by a request.",
+    update:
+      "No permission allows it: these columns are changed by the server, not by a request.",
+  };
+
 export const UNNAMED_GRANTS: ReadonlyArray<Permission> = [
   Permission.AuthenticatedRequest,
   Permission.UnAuthorizedSsoUser,
@@ -129,6 +138,27 @@ export default class ColumnRefusalMessage {
   }
 
   /*
+   * A column of a related record a select reads through a relation that
+   * only those who may read it on the related record read that way
+   * (RelationReaders.ColumnReaders) - `{ dataStore: { sensitivity: true } }`
+   * on a data asset - and the caller may not (#10281). Worded as the
+   * owner-only refusal through a relation is
+   * (OwnerOnlyColumnPermission.checkRelationSelect), never "select on -
+   * <column>": the Terraform provider and the MCP server drop a column of
+   * the select's own so named and retry (SelectRejectionMessageContract),
+   * and this one is a related record's.
+   */
+  public static getRelationSelectRefusal(data: {
+    column: string;
+    relatedModelName: string;
+    relationColumn: string;
+    modelName: string;
+    permissions: Array<Permission>;
+  }): string {
+    return `You do not have permissions to read ${data.column} of ${data.relatedModelName} through ${data.relationColumn} on ${data.modelName}. ${ColumnRefusalMessage.getWhoMay("select", data.permissions)}`;
+  }
+
+  /*
    * A column of a related record a query filters on through a relation -
    * `{ smtpConfig: { password: ... } }` - that the caller may not read.
    */
@@ -152,15 +182,31 @@ export default class ColumnRefusalMessage {
     column: string;
     modelName: string | null;
     permissions?: Array<Permission> | undefined;
+    /*
+     * Every column refused, when one write is refused for several - the
+     * columns only OneUptime writes that an update names (#10053). `column`
+     * is the first of them.
+     */
+    columns?: Array<string> | undefined;
   }): string {
-    const refusal: string = `User is not allowed to ${data.requestType} on ${data.column} column of ${data.modelName}`;
+    const columns: Array<string> =
+      data.columns && data.columns.length > 1 ? data.columns : [data.column];
+
+    const refusal: string = `User is not allowed to ${data.requestType} on ${columns.join(", ")} ${
+      columns.length === 1 ? "column" : "columns"
+    } of ${data.modelName}`;
 
     if (!data.permissions) {
       return refusal;
     }
 
-    const operation: ColumnOperation =
+    const operation: "create" | "update" =
       data.requestType === "update" ? "update" : "create";
+
+    // Several columns nobody may write: said of them all.
+    if (columns.length > 1 && data.permissions.length === 0) {
+      return `${refusal}. ${NO_PERMISSION_ALLOWS_ANY_OF[operation]}`;
+    }
 
     return `${refusal}. ${ColumnRefusalMessage.getWhoMay(operation, data.permissions)}`;
   }

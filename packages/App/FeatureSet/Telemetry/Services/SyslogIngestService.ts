@@ -34,6 +34,9 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
+import SecurityAddressVaultWriter, {
+  SecurityAddressVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import {
   ParsedSyslogMessage,
@@ -212,6 +215,18 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       }
 
       /*
+       * The addresses this batch's IP Address Hash rules hide, kept for
+       * Security Events' address vault when Security Events reads the
+       * project's logs (#10395), and written after the batch's logs.
+       */
+      const addressVault: SecurityAddressVaultBatch | null =
+        await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
+
+      /*
        * Handed back by the time the work took, not every so many messages:
        * a message's work grows with its scrub rules and what they read
        * (Common/Server/Utils/EventLoop.ts).
@@ -359,7 +374,11 @@ export default class SyslogIngestService extends OtelIngestBaseService {
               logRow: logRow,
               line: parsed,
               scrub: (row: JSONObject): JSONObject => {
-                return LogScrubRuleService.scrubLog(row, loadedScrubRules);
+                return LogScrubRuleService.scrubLog(
+                  row,
+                  loadedScrubRules,
+                  addressVault,
+                );
               },
             });
           }
@@ -411,6 +430,9 @@ export default class SyslogIngestService extends OtelIngestBaseService {
        * re-processes the payload.
        */
       await Promise.all(pendingAcks);
+
+      // The logs are stored: their hashed addresses go to the vault, on their own.
+      addressVault?.write();
 
       if (processed === 0) {
         logger.warn("Syslog ingest: no valid messages processed");

@@ -41,8 +41,11 @@ export const INVENTORY_AND_API_PAGES: ReadonlyArray<InventoryAndApiDocsPageEntry
  * whose tables name their own verbs (createVerb "Add" and "Connect").
  */
 export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  // The Esper connections table's createVerb is "Connect" (issue #9586).
-  [INVENTORY_OVERVIEW]: ["Add Item", "Connect Esper"],
+  /*
+   * The device management connections table's createVerb is "Connect"
+   * (issue #9586), and its singularName "device manager" (#9837).
+   */
+  [INVENTORY_OVERVIEW]: ["Add Item", "Connect device manager"],
   [INVENTORY_CUSTOM_FIELDS]: ["Create Inventory Item Custom Field"],
   [CMDB_SYNC]: ["Create API Key"],
   [API_REFERENCE]: ["Create API Key"],
@@ -94,14 +97,47 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *     the component catalog writes it. Its Fields to watch setting is worded
  *     in every language now, so each page names it as drawn;
  *   - a recommended monitor's name, which a Recommendations page draws as
- *     its template names it: Esper Device Stopped Checking In, and Host
- *     Stopped Reporting for a device the Android Agent reports (#9835).
+ *     its template names it: Esper Android Device Stopped Checking In,
+ *     Esper Apple Device Stopped Checking In and Intune Device Stopped
+ *     Checking In (#9837), Workspace ONE Device Stopped Checking In
+ *     (#10086), SOTI Device Stopped Checking In and SOTI Apple Device
+ *     Stopped Checking In (#10087), and Host Stopped Reporting for a device
+ *     the Android Agent reports (#9835); and each device manager's Security
+ *     Patch Out of Date (#10098), with the Android Agent's own Security
+ *     Patch Out of Date for a device it reports; each device manager's Low
+ *     Battery and Storage Nearly Full (#10008; Intune's Low Battery since
+ *     #10287), with the Android Agent's own, and each connection's
+ *     Connection Stopped Reading (#10006).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [INVENTORY_OVERVIEW]: [
-      "Esper Device Stopped Checking In",
+      "Esper Android Device Stopped Checking In",
+      "Esper Apple Device Stopped Checking In",
+      "Intune Device Stopped Checking In",
+      "Workspace ONE Device Stopped Checking In",
+      "SOTI Device Stopped Checking In",
+      "SOTI Apple Device Stopped Checking In",
       "Host Stopped Reporting",
+      "Esper Security Patch Out of Date",
+      "Intune Security Patch Out of Date",
+      "Workspace ONE Security Patch Out of Date",
+      "SOTI Security Patch Out of Date",
+      "Security Patch Out of Date",
+      "Esper Low Battery",
+      "Intune Low Battery",
+      "Workspace ONE Low Battery",
+      "SOTI Low Battery",
+      "Low Battery",
+      "Esper Storage Nearly Full",
+      "Intune Storage Nearly Full",
+      "Workspace ONE Storage Nearly Full",
+      "SOTI Storage Nearly Full",
+      "Storage Nearly Full",
+      "Esper Connection Stopped Reading",
+      "Intune Connection Stopped Reading",
+      "Workspace ONE Connection Stopped Reading",
+      "SOTI Connection Stopped Reading",
     ],
     [API_REFERENCE]: ["⋯", "Owned", "On Update"],
   };

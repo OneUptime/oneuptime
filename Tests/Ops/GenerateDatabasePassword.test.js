@@ -254,6 +254,21 @@ describe("replacing a shipped DATABASE_PASSWORD in config.env", () => {
     ]);
   });
 
+  // Compose gets `export DATABASE_PASSWORD=...` as DATABASE_PASSWORD (WithConfig.sh).
+  test("an export before the name is read as that setting, and kept", () => {
+    const before = `export DATABASE_PASSWORD=${PLACEHOLDER}\nexport\tHOST=localhost\n`;
+    const result = replaceDatabasePassword(before, NEW_PASSWORD);
+
+    expect(result).toEqual({
+      contents: `export DATABASE_PASSWORD=${NEW_PASSWORD}\nexport\tHOST=localhost\n`,
+      replaced: true,
+    });
+    expect(readSettings(result.contents).get("DATABASE_PASSWORD")).toBe(
+      NEW_PASSWORD,
+    );
+    expect(readSettings(before).get("HOST")).toBe("localhost");
+  });
+
   test("leaves a password the operator chose, and a second run changes nothing", () => {
     const chosen = "DATABASE_PASSWORD=my-own-password\n";
     expect(replaceDatabasePassword(chosen, NEW_PASSWORD)).toEqual({

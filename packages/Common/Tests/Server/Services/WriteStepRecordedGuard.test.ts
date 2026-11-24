@@ -25,7 +25,9 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  *     WriteProgress.write, a save() as one in a transaction of its own -
  *     and so is a row's UPDATE held to a rule its project's other records
  *     decide, which the rule's own transaction writes and commits
- *     (updateWithinUpdateLimit, below);
+ *     (updateWithinUpdateLimit, below), and the entries an update adds to
+ *     a record's lists and takes off them, which a transaction of their
+ *     own writes and commits (LIST_ENTRY_HELPERS, below);
  *   - none of them reaches the repository another way (a repository kept
  *     in a variable, a transaction of their own);
  *   - every error hook is handed what that progress recorded.
@@ -85,6 +87,22 @@ const UPDATE_WITHIN_UPDATE_LIMIT: RegExp =
 
 const UPDATE_IN_ITS_OWN_TRANSACTION: string = "updateWithinUpdateLimit";
 
+/*
+ * An update whose lists change entry by entry (#10135, Server/Utils/
+ * Database/ListEntries): the row's UPDATE with the entries its lists add
+ * and take off (updateRowWithListEntries), or the entries alone after the
+ * row's save() (writeListEntries). Each helper writes through the manager
+ * of a transaction of its own, committed with its COMMIT - a write in a
+ * transaction of its own.
+ */
+const LIST_ENTRY_HELPERS: Array<string> = [
+  "updateRowWithListEntries",
+  "writeListEntries",
+];
+
+const LIST_ENTRY_WRITE: RegExp =
+  /\bthis\.(updateRowWithListEntries|writeListEntries)\s*\(/g;
+
 function repositoryWritesIn(text: string): Array<string> {
   return [
     ...Array.from(text.matchAll(REPOSITORY_WRITE)).map(
@@ -95,6 +113,11 @@ function repositoryWritesIn(text: string): Array<string> {
     ...Array.from(text.matchAll(UPDATE_WITHIN_UPDATE_LIMIT)).map((): string => {
       return UPDATE_IN_ITS_OWN_TRANSACTION;
     }),
+    ...Array.from(text.matchAll(LIST_ENTRY_WRITE)).map(
+      (match: RegExpMatchArray): string => {
+        return match[1]!;
+      },
+    ),
   ];
 }
 
@@ -136,7 +159,11 @@ describe.each(WRITING_METHODS)(
         // One kind of write each.
         expect(kinds.size).toBe(1);
         expect(write).toMatch(
-          kinds.has("save") || kinds.has(UPDATE_IN_ITS_OWN_TRANSACTION)
+          kinds.has("save") ||
+            kinds.has(UPDATE_IN_ITS_OWN_TRANSACTION) ||
+            LIST_ENTRY_HELPERS.some((helper: string): boolean => {
+              return kinds.has(helper);
+            })
             ? /^\s*true\s*,/
             : /^\s*false\s*,/,
         );
@@ -200,6 +227,37 @@ describe("a row's UPDATE held to a rule is written in the rule's transaction", (
     expect(text).not.toMatch(/this\.getRepository\(\)/);
   });
 });
+
+describe.each(LIST_ENTRY_HELPERS)(
+  "an update's list entries are written by %s, in a transaction of its own",
+  (helper: string) => {
+    const text: string = methodText(DATABASE_SERVICE, helper);
+
+    test("an update writes through it once, recorded as a write in a transaction of its own", () => {
+      const update: string = methodText(DATABASE_SERVICE, "_updateBy");
+
+      expect(text).not.toBe("");
+      expect(
+        Array.from(
+          update.matchAll(new RegExp(`\\bthis\\.${helper}\\s*\\(`, "g")),
+        ),
+      ).toHaveLength(1);
+      expect(update).toMatch(
+        new RegExp(
+          `progress\\.write\\(\\s*true\\s*,\\s*async \\(\\): Promise<\\w+> => \\{\\s*(?:return )?await this\\.${helper}\\(`,
+        ),
+      );
+    });
+
+    test("it writes them through its own transaction's manager, never a repository of the pool", () => {
+      expect(text).toMatch(
+        /this\.executeTransaction\(\s*async \(manager: EntityManager\)/,
+      );
+      expect(text).toMatch(/ListEntries\.write\(\{\s*manager: manager,/);
+      expect(text).not.toMatch(/this\.getRepository\(\)/);
+    });
+  },
+);
 
 describe("every error hook DatabaseService declares takes which step failed", () => {
   test.each(["onCreateError", "onUpdateError", "onDeleteError"])(

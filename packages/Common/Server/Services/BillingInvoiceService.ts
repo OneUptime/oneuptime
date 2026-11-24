@@ -24,6 +24,7 @@ import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OneUptimeDate from "../../Types/Date";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
 
 /*
  * What OneUptime staff are told when the payment provider has no invoice by
@@ -430,6 +431,14 @@ export class Service extends DatabaseService<Model> {
     if (!findBy.props.tenantId) {
       throw new BadDataException("ProjectID not found.");
     }
+
+    /*
+     * Only someone who may read the project's invoices makes OneUptime
+     * refresh its subscription, ask the payment provider for its invoices
+     * and write them all again: anyone else is refused here, before any of
+     * it, as the read would refuse them after.
+     */
+    TablePermission.assertCallerMayReadTable(Model, findBy.props);
 
     const project: Project | null = await ProjectService.findOneById({
       id: findBy.props.tenantId!,

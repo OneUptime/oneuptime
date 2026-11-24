@@ -45,6 +45,11 @@ import {
   cloudTrailRecord,
   logLine,
 } from "../../Utils/SecurityEvent/LogParsers/LogParserFixtures";
+import {
+  batchOf,
+  sqlDatabaseRecord,
+  sqlFreshSignIn,
+} from "../../Utils/SecurityEvent/LogParsers/AzureResourceLogFixtures";
 
 /*
  * What each rule of the library reads (DetectionRuleDataKind), and how the
@@ -478,6 +483,22 @@ describe("whether a project sends a kind", () => {
     expect(kindsSeenIn(seen)).toContain(DetectionRuleDataKind.WebRequests);
   });
 
+  test("an Azure SQL sign-in from a resource's own audit log sends sign-ins, which library rules read", () => {
+    const seen: SecurityEventKindsSeen = seenFrom([
+      ...parse(batchOf([sqlDatabaseRecord()])),
+      ...parse(batchOf([sqlFreshSignIn()])),
+    ]);
+
+    expect(kindsSeenIn(seen)).toContain(DetectionRuleDataKind.SignIns);
+    expect(
+      DETECTION_RULE_LIBRARY.some(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.dataKind === DetectionRuleDataKind.SignIns;
+        },
+      ),
+    ).toBe(true);
+  });
+
   test("every format of your logs sends at least one kind a library rule reads", () => {
     const kindsRead: Set<DetectionRuleDataKind> = new Set(
       DETECTION_RULE_LIBRARY.map(
@@ -505,7 +526,9 @@ describe("whether a project sends a kind", () => {
        * SSH sign-ins come by their class (Authentication), and so do a
        * security product's CEF and LEEF records and a firewall's own
        * syslog (Authentication, Network Activity, Detection Finding), which
-       * carry the product's own name; the rest by product.
+       * carry the product's own name, and an Azure resource's own audit
+       * log, whose events carry their service's name - Azure SQL's
+       * sign-ins (Authentication, below); the rest by product.
        */
       if (
         format.format === SecurityLogFormat.SshSignIn ||
@@ -513,7 +536,8 @@ describe("whether a project sends a kind", () => {
         format.format === SecurityLogFormat.Leef ||
         format.format === SecurityLogFormat.PaloAlto ||
         format.format === SecurityLogFormat.FortiGate ||
-        format.format === SecurityLogFormat.CiscoAsa
+        format.format === SecurityLogFormat.CiscoAsa ||
+        format.format === SecurityLogFormat.AzureResourceLogs
       ) {
         continue;
       }

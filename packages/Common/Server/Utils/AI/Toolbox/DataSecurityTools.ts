@@ -7,28 +7,18 @@ import {
   AIChatCitationTargetType,
 } from "../../../../Types/AI/AIChatTypes";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import Select from "../../../Types/Database/Select";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import {
-  CheckRemediation,
-  DataSecurityCheckInfo,
-  fillRemediationText,
-  getCheckRemediation,
-  getDataSecurityCheck,
-} from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
   isDataSensitivity,
 } from "../../../../Types/DataSecurity/DataSensitivity";
-import {
-  DATA_TYPE_CATALOG,
-  DataTypeInfo,
-  getBuiltInDataType,
-} from "../../../../Types/DataSecurity/DataTypeCatalog";
-import {
-  DataStoreKind,
-  DataStoreProvider,
-} from "../../../../Types/DataSecurity/DataStoreKind";
+import { isBuiltInDataType } from "../../../../Types/DataSecurity/DataTypeCatalog";
+import { isCustomDataTypeId } from "../../../../Types/DataSecurity/CustomDataTypeId";
+import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
+import ProjectDataTypeNames from "../../DataSecurity/ProjectDataTypeNames";
+import { DataStoreProvider } from "../../../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -40,8 +30,10 @@ import DataSecurityIssueService from "../../../Services/DataSecurityIssueService
 import DataStoreAccessService from "../../../Services/DataStoreAccessService";
 import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import DataStoreService from "../../../Services/DataStoreService";
+import QueryPermission from "../../../Types/Database/Permissions/QueryPermission";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import DataSecurityAiInput from "../DataSecurity/DataSecurityAiInput";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
@@ -147,23 +139,84 @@ function effectiveSensitivity(
   return isDataSensitivity(level) ? level : DataSensitivity.Public;
 }
 
-function dataTypeName(id: string): string {
-  return getBuiltInDataType(id)?.name || id;
-}
+// Names the built-in types, and a project's own as one.
+const BUILT_IN_NAMER: DataTypeNamer = DataTypeNamer.withoutCustomTypes();
 
 /*
  * A data type the model named, as Data Security keys it: a built-in type's
  * id, or its name in any case ("Credit card number"), or a custom type's id.
+ * A project's own type by its name is found with the project's names
+ * (ToolDataTypeNames.findIds).
  */
 export function resolveDataTypeId(value: string): string {
-  const wanted: string = value.trim().toLowerCase();
-  const byName: DataTypeInfo | undefined = DATA_TYPE_CATALOG.find(
-    (info: DataTypeInfo): boolean => {
-      return info.id === wanted || info.name.toLowerCase() === wanted;
+  return BUILT_IN_NAMER.findIds(value)[0] || value.trim();
+}
+
+/*
+ * The data types one tool call names and finds (#10363): a built-in type by
+ * the catalog's name, a project's own by the name the project gave it -
+ * never by its "custom:" id. The project's types are read once for the
+ * call, as the caller may read them (ProjectDataTypeNames), and only when
+ * something to name or find is one of them: a reader who may not read them
+ * sees each named "Custom data type", as the Dashboard names it for them.
+ */
+export interface ToolDataTypeNames {
+  // A namer for these ids.
+  namerFor: (dataTypeIds: Iterable<string>) => Promise<DataTypeNamer>;
+  // The ids of the type the model named: a built-in one, or the project's own.
+  findIds: (text: string) => Promise<Array<string>>;
+}
+
+export function getToolDataTypeNames(ctx: ToolContext): ToolDataTypeNames {
+  let projectNames: Promise<DataTypeNamer> | null = null;
+
+  const readProjectNames: () => Promise<DataTypeNamer> =
+    (): Promise<DataTypeNamer> => {
+      if (!projectNames) {
+        projectNames = ProjectDataTypeNames.read({
+          projectId: ctx.projectId,
+          props: ctx.props,
+        });
+      }
+
+      return projectNames;
+    };
+
+  return {
+    namerFor: async (dataTypeIds: Iterable<string>): Promise<DataTypeNamer> => {
+      for (const dataTypeId of dataTypeIds) {
+        if (isCustomDataTypeId(dataTypeId)) {
+          return await readProjectNames();
+        }
+      }
+
+      return projectNames ? await projectNames : BUILT_IN_NAMER;
+    },
+    findIds: async (text: string): Promise<Array<string>> => {
+      const found: Array<string> = BUILT_IN_NAMER.findIds(text);
+      const first: string = found[0] || "";
+
+      // A built-in type, or a custom one by its id: nothing to read.
+      if (!first || isBuiltInDataType(first) || isCustomDataTypeId(first)) {
+        return found;
+      }
+
+      return (await readProjectNames()).findIds(text);
+    },
+  };
+}
+
+// Every data type id of these rows, for a namer that names them all.
+function dataTypeIdsOf(
+  rows: ReadonlyArray<{ dataTypeIds?: Array<string> | undefined } | undefined>,
+): Array<string> {
+  return rows.flatMap(
+    (
+      row: { dataTypeIds?: Array<string> | undefined } | undefined,
+    ): Array<string> => {
+      return row?.dataTypeIds || [];
     },
   );
-
-  return byName ? byName.id : value.trim();
 }
 
 function readEnumValue<T extends string>(
@@ -238,24 +291,12 @@ const STORE_SELECT: {
   isPublicByDesign: true,
 };
 
-export function describeStoreRow(store: DataStore): JSONObject {
-  return {
-    dataStoreId: store.id?.toString() || "",
-    name: store.name || "",
-    kind: store.kind || "",
-    provider: store.provider || "",
-    region: store.region || "",
-    environment: store.environment || "",
-    sensitivity: effectiveSensitivity(store),
-    dataTypes: (store.dataTypeIds || []).map(dataTypeName).join(", "),
-    exposure: store.exposure || DataStoreExposure.Unknown,
-    publicByDesign: Boolean(store.isPublicByDesign),
-    openIssues: store.openIssueCount || 0,
-    highestIssueSeverity: store.highestIssueSeverity || "",
-    riskScore: store.riskScore || 0,
-    contentScannedAt: store.contentScannedAt || null,
-    configurationReadAt: store.configurationReadAt || null,
-  };
+// A store as the tools list it: the allow-list's row (DataSecurityAiInput).
+export function describeStoreRow(
+  store: DataStore,
+  dataTypeNamer: DataTypeNamer = BUILT_IN_NAMER,
+): JSONObject {
+  return DataSecurityAiInput.storeRow(store, dataTypeNamer);
 }
 
 /*
@@ -345,9 +386,11 @@ export const QueryDataStoresTool: ObservabilityTool = {
       args,
       "dataType",
     );
-    const dataTypeId: string | undefined = dataTypeText
-      ? resolveDataTypeId(dataTypeText)
-      : undefined;
+    const dataTypeNames: ToolDataTypeNames = getToolDataTypeNames(ctx);
+    // A project's own type by its name too: "which stores hold employee IDs".
+    const dataTypeIds: Array<string> = dataTypeText
+      ? await dataTypeNames.findIds(dataTypeText)
+      : [];
     const name: string | undefined = ToolArgs.getString(args, "name")?.trim();
     const limit: number = ToolArgs.getNumber(args, "limit", {
       defaultValue: 15,
@@ -388,13 +431,25 @@ export const QueryDataStoresTool: ObservabilityTool = {
           return false;
         }
 
-        return !dataTypeId || (store.dataTypeIds || []).includes(dataTypeId);
+        return (
+          dataTypeIds.length === 0 ||
+          (store.dataTypeIds || []).some((id: string): boolean => {
+            return dataTypeIds.includes(id);
+          })
+        );
       },
     );
 
-    const rows: Array<JSONObject> = stores
-      .slice(0, limit)
-      .map(describeStoreRow);
+    const listed: Array<DataStore> = stores.slice(0, limit);
+    const namer: DataTypeNamer = await dataTypeNames.namerFor([
+      ...dataTypeIdsOf(listed),
+      ...dataTypeIds,
+    ]);
+    const rows: Array<JSONObject> = listed.map(
+      (store: DataStore): JSONObject => {
+        return describeStoreRow(store, namer);
+      },
+    );
     const serialized: SerializedResult = ToolResultSerializer.serializeRows(
       rows,
       stores.length,
@@ -415,10 +470,10 @@ export const QueryDataStoresTool: ObservabilityTool = {
             }),
           ]
         : []),
-      ...(dataTypeId
+      ...(dataTypeIds[0]
         ? [
             aiActionSentence(AI_TOOL_CITATIONS.dataStoreHolding, {
-              dataType: dataTypeName(dataTypeId),
+              dataType: namer.nameOf(dataTypeIds[0]),
             }),
           ]
         : []),
@@ -603,8 +658,16 @@ async function readOneStore(
     return serialized.text;
   };
 
+  // The store's and its findings' data types, named by one read.
+  const namer: DataTypeNamer = await getToolDataTypeNames(ctx).namerFor([
+    ...(store.dataTypeIds || []),
+    ...findings.value.map((finding: DataStoreFinding): string => {
+      return finding.dataTypeId || "";
+    }),
+  ]);
+
   const lines: Array<string> = [
-    serialize([describeStoreRow(store)]),
+    serialize([describeStoreRow(store, namer)]),
     "",
     findings.isReadable
       ? `What was found (${findings.value.length}):`
@@ -612,26 +675,7 @@ async function readOneStore(
     findings.isReadable
       ? serialize(
           findings.value.map((finding: DataStoreFinding): JSONObject => {
-            return {
-              dataType:
-                finding.dataTypeName || dataTypeName(finding.dataTypeId || ""),
-              location: finding.location || "",
-              locationKind: finding.locationKind || "",
-              confidence: finding.confidence || "",
-              matches: finding.matchCount || 0,
-              ofValuesSampled: finding.valueCount || 0,
-              distinctValues: finding.distinctValues || 0,
-              scrubbedAtIngest: Boolean(finding.isScrubbed),
-              /*
-               * OneUptime AI's suggestion from the field's name and the
-               * shapes of its values: it counts only once a person confirms it.
-               */
-              ...(finding.isAiSuggested
-                ? { suggestedByOneUptimeAi: true }
-                : {}),
-              ...(finding.isConfirmed ? { confirmedByAPerson: true } : {}),
-              lastSeenAt: finding.lastSeenAt || null,
-            };
+            return DataSecurityAiInput.findingRow(finding, namer);
           }),
         )
       : "",
@@ -649,13 +693,7 @@ async function readOneStore(
     issues.isReadable
       ? serialize(
           issues.value.map((issue: DataSecurityIssue): JSONObject => {
-            return {
-              dataSecurityIssueId: issue.id?.toString() || "",
-              title: issue.title || "",
-              checkId: issue.checkId || "",
-              severity: issue.severity || "",
-              riskScore: issue.riskScore || 0,
-            };
+            return DataSecurityAiInput.storeIssueRow(issue);
           }),
         )
       : "",
@@ -712,18 +750,9 @@ export function sortAccess(
   });
 }
 
+// An access entry as the tools list it: the allow-list's row (DataSecurityAiInput).
 export function describeAccessRow(entry: DataStoreAccess): JSONObject {
-  return {
-    principal: entry.principalName || entry.principal || "",
-    principalId: entry.principal || "",
-    type: entry.principalType || "",
-    level: entry.accessLevel || "",
-    grantedVia: entry.grantedVia || "",
-    public: Boolean(entry.isPublic),
-    outsideYourAccounts: Boolean(entry.isExternal),
-    seenInTraces: Boolean(entry.isSeenInTraces),
-    lastUsedAt: entry.lastUsedAt || null,
-  };
+  return DataSecurityAiInput.accessRow(entry);
 }
 
 /*
@@ -938,18 +967,7 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
 
     const rows: Array<JSONObject> = issues.map(
       (issue: DataSecurityIssue): JSONObject => {
-        return {
-          dataSecurityIssueId: issue.id?.toString() || "",
-          title: issue.title || "",
-          store: issue.dataStore?.name || "",
-          storeKind: issue.dataStore?.kind || "",
-          dataStoreId: issue.dataStoreId?.toString() || "",
-          checkId: issue.checkId || "",
-          severity: issue.severity || "",
-          riskScore: issue.riskScore || 0,
-          status: issue.status || "",
-          firstDetectedAt: issue.firstDetectedAt || null,
-        };
+        return DataSecurityAiInput.issueListRow(issue);
       },
     );
     const serialized: SerializedResult =
@@ -1010,40 +1028,53 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
   },
 };
 
-async function readOneIssue(
+// What the tool reads of one issue, and of the store it is on.
+export const ONE_ISSUE_SELECT: Select<DataSecurityIssue> = {
+  _id: true,
+  title: true,
+  checkId: true,
+  checkGroup: true,
+  evidence: true,
+  severity: true,
+  riskScore: true,
+  status: true,
+  dataTypeIds: true,
+  firstDetectedAt: true,
+  lastDetectedAt: true,
+  resolvedAt: true,
+  acceptedUntil: true,
+  securityCaseId: true,
+  alertId: true,
+  incidentId: true,
+  dataStoreId: true,
+  dataStore: {
+    name: true,
+    kind: true,
+    region: true,
+    sensitivity: true,
+    sensitivityOverride: true,
+    exposure: true,
+  },
+};
+
+export async function readOneIssue(
   issueId: ObjectID,
   ctx: ToolContext,
 ): Promise<ToolExecutionResult> {
   const issue: DataSecurityIssue | null =
     await DataSecurityIssueService.findOneBy({
       query: { _id: issueId, projectId: ctx.projectId },
-      select: {
-        _id: true,
-        title: true,
-        checkId: true,
-        checkGroup: true,
-        evidence: true,
-        severity: true,
-        riskScore: true,
-        status: true,
-        dataTypeIds: true,
-        firstDetectedAt: true,
-        lastDetectedAt: true,
-        resolvedAt: true,
-        acceptedUntil: true,
-        securityCaseId: true,
-        alertId: true,
-        incidentId: true,
-        dataStoreId: true,
-        dataStore: {
-          name: true,
-          kind: true,
-          region: true,
-          sensitivity: true,
-          sensitivityOverride: true,
-          exposure: true,
-        },
-      },
+      /*
+       * Of its store, what the caller may read through the issue: a store's
+       * region, sensitivity and exposure only by who may read the store
+       * (#10281). A custom role that reads issues and not stores is told
+       * the issue and its store's name and kind, not refused the issue.
+       */
+      select: QueryPermission.getSelectReadableThroughRelations({
+        modelType: DataSecurityIssue,
+        select: ONE_ISSUE_SELECT,
+        props: ctx.props,
+      }),
       props: ctx.props,
     });
 
@@ -1053,60 +1084,11 @@ async function readOneIssue(
     );
   }
 
-  const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
-    issue.checkId || "",
+  // What its check saw, its store, and the fix: the allow-list's row.
+  const row: JSONObject = DataSecurityAiInput.issueRow(
+    issue,
+    await getToolDataTypeNames(ctx).namerFor(issue.dataTypeIds || []),
   );
-  const kind: DataStoreKind | undefined = issue.dataStore?.kind as
-    | DataStoreKind
-    | undefined;
-  const remediation: CheckRemediation | undefined =
-    check && kind ? getCheckRemediation(check, kind) : undefined;
-  const values: { name: string; region?: string | undefined } = {
-    name: issue.dataStore?.name || "<store>",
-    region: issue.dataStore?.region,
-  };
-
-  const row: JSONObject = {
-    dataSecurityIssueId: issue.id.toString(),
-    title: issue.title || check?.title || "",
-    checkId: issue.checkId || "",
-    group: issue.checkGroup || check?.group || "",
-    severity: issue.severity || "",
-    riskScore: issue.riskScore || 0,
-    status: issue.status || "",
-    store: issue.dataStore?.name || "",
-    storeKind: kind || "",
-    region: issue.dataStore?.region || "",
-    dataStoreId: issue.dataStoreId?.toString() || "",
-    storeSensitivity: issue.dataStore
-      ? effectiveSensitivity(issue.dataStore)
-      : "",
-    exposure: issue.dataStore?.exposure || "",
-    dataTypes: (issue.dataTypeIds || []).map(dataTypeName).join(", "),
-    evidence: issue.evidence || "",
-    whatIsWrong: check?.description || "",
-    whyItMatters: check?.whyItMatters || "",
-    fixSteps: remediation
-      ? remediation.steps
-          .map((step: string, index: number): string => {
-            return `${index + 1}. ${fillRemediationText(step, values)}`;
-          })
-          .join(" ")
-      : "",
-    fixCli: remediation?.cli
-      ? fillRemediationText(remediation.cli, values)
-      : "",
-    fixTerraform: remediation?.terraform
-      ? fillRemediationText(remediation.terraform, values)
-      : "",
-    firstDetectedAt: issue.firstDetectedAt || null,
-    lastDetectedAt: issue.lastDetectedAt || null,
-    resolvedAt: issue.resolvedAt || null,
-    acceptedUntil: issue.acceptedUntil || null,
-    securityCaseId: issue.securityCaseId?.toString() || "",
-    alertId: issue.alertId?.toString() || "",
-    incidentId: issue.incidentId?.toString() || "",
-  };
   const serialized: SerializedResult = ToolResultSerializer.serializeRows([
     row,
   ]);
@@ -1321,6 +1303,9 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
         return [store.id!.toString(), store];
       }),
     );
+    const namer: DataTypeNamer = await getToolDataTypeNames(ctx).namerFor(
+      dataTypeIdsOf(stores),
+    );
 
     const reachable: Array<JSONObject> = entries
       .filter((entry: DataStoreAccess): boolean => {
@@ -1329,15 +1314,7 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
       .map((entry: DataStoreAccess): JSONObject => {
         const store: DataStore = storesById.get(entry.dataStoreId!.toString())!;
 
-        return {
-          ...describeAccessRow(entry),
-          store: store.name || "",
-          dataStoreId: store.id!.toString(),
-          storeKind: store.kind || "",
-          sensitivity: effectiveSensitivity(store),
-          dataTypes: (store.dataTypeIds || []).map(dataTypeName).join(", "),
-          riskScore: store.riskScore || 0,
-        };
+        return DataSecurityAiInput.reachableStoreRow(entry, store, namer);
       })
       .sort((a: JSONObject, b: JSONObject): number => {
         const rank: number =

@@ -1,5 +1,8 @@
 import ExceptionMonitorResponse from "../../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
-import { isExceptionCountAnomaly } from "../../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
+import {
+  EXCEPTION_SHARE_MEASURES,
+  isExceptionCountAnomaly,
+} from "../../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataToProcess from "../DataToProcess";
 import ExceptionLearnedBaselineUtil, {
@@ -53,12 +56,13 @@ export default class ExceptionMonitorCriteria {
      * criteria form saves what was typed as text, which convertToNumber
      * would cut to 1: read it as a metric's threshold is, fraction kept.
      */
-    const threshold: number | null =
-      input.criteriaFilter.checkOn === CheckOn.SessionsWithExceptionsPercent
-        ? CompareCriteria.convertMetricThresholdToNumber(
-            input.criteriaFilter.value,
-          )
-        : CompareCriteria.convertToNumber(input.criteriaFilter.value);
+    const threshold: number | null = EXCEPTION_SHARE_MEASURES.includes(
+      input.criteriaFilter.checkOn,
+    )
+      ? CompareCriteria.convertMetricThresholdToNumber(
+          input.criteriaFilter.value,
+        )
+      : CompareCriteria.convertToNumber(input.criteriaFilter.value);
 
     return CompareCriteria.compareCriteriaNumbers({
       value,
@@ -92,6 +96,13 @@ export default class ExceptionMonitorCriteria {
           : null;
       case CheckOn.SessionCount:
         return response.sessionCount || 0;
+      // No install to take a share of says nothing about the rate (#9924).
+      case CheckOn.InstallsWithExceptionsPercent:
+        return typeof response.installsWithExceptionsPercent === "number"
+          ? response.installsWithExceptionsPercent
+          : null;
+      case CheckOn.InstallCount:
+        return response.installCount || 0;
       default:
         return null;
     }

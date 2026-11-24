@@ -41,6 +41,12 @@ import useNetworkDeviceRefresh, {
 import NetworkDeviceRefreshStatus from "../NetworkDevice/NetworkDeviceRefreshStatus";
 import { REFRESH_TITLE } from "../NetworkDevice/NetworkDeviceRefreshWords";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import OneUptimeDate from "Common/Types/Date";
+import {
+  SecurityPatchReading,
+  SecurityPatchStatusLine,
+  readSecurityPatch,
+} from "./SecurityPatchStatus";
 
 /*
  * Asset details: what a machine is and where it is, in the same terms for
@@ -70,6 +76,10 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
  *
  * The raw attributes stay on the Attributes card below, for everything this
  * card does not name.
+ *
+ * An Android device's security patch level says what Inventory's Security
+ * Patch Level column says of it (#10099): Out of Date or Up to Date, by the
+ * same rule and in the same words, and how many days old it is.
  */
 
 export interface ComponentProps {
@@ -80,6 +90,8 @@ export interface ComponentProps {
    * landed.
    */
   onRefreshed?: (() => void) | undefined;
+  // The moment a security patch's age is read at; now when left out.
+  now?: Date | undefined;
 }
 
 const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
@@ -116,6 +128,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
   }
 
   const unknownCount: number = details.unknownFields.length;
+  const now: Date = props.now || OneUptimeDate.getCurrentDate();
   /*
    * Why they are unknown decides what the line says and where it leads: a
    * device that reports no more, one that is waiting for a poll, or a Meraki
@@ -191,6 +204,12 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
             const isLong: boolean =
               detail.field === InventoryAssetField.SystemDescription;
 
+            // Out of Date or Up to Date, and how old: the column's rule (#10099).
+            const securityPatch: SecurityPatchReading | undefined =
+              detail.field === InventoryAssetField.SecurityPatch
+                ? readSecurityPatch(detail.value, now)
+                : undefined;
+
             return (
               <div
                 key={detail.field}
@@ -219,6 +238,12 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
                       <PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />
                     </span>
                   )}
+                  {securityPatch ? (
+                    <SecurityPatchStatusLine
+                      reading={securityPatch}
+                      testId={`inventory-asset-${detail.field}-status`}
+                    />
+                  ) : null}
                 </dd>
               </div>
             );

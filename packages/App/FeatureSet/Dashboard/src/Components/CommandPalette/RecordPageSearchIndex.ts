@@ -946,6 +946,18 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Custom Domains",
       },
       {
+        page: PageMap.DASHBOARD_VIEW_PRIVATE_USERS,
+        section: "Public Link",
+        title: "Private Users",
+        keywords: ["sign in", "invite"],
+      },
+      {
+        page: PageMap.DASHBOARD_VIEW_SINGLE_SIGN_ON,
+        section: "Public Link",
+        title: "Single Sign-On",
+        keywords: ["sso", "saml", "oidc"],
+      },
+      {
         page: PageMap.DASHBOARD_VIEW_SETTINGS,
         section: "Advanced",
         title: "Settings",
@@ -1097,6 +1109,29 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.TEAM_VIEW_DELETE,
         section: "Settings",
         title: "Delete Team",
+      },
+    ],
+  },
+  /*
+   * A custom role's page and, from the registry, its Developer pages
+   * (#10139): "incident responder api" opens that role's API page.
+   */
+  {
+    id: "custom-roles",
+    area: "teams",
+    menus: ["Pages/Teams/RoleViewSideMenu.tsx"],
+    recordName: "Custom Role",
+    keywords: ["custom role", "custom roles"],
+    pages: [
+      {
+        page: PageMap.TEAM_ROLE_VIEW,
+        section: "Custom Role",
+        title: "Overview",
+      },
+      {
+        page: PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS,
+        section: "Custom Role",
+        title: "Audit Logs",
       },
     ],
   },
@@ -3622,6 +3657,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Scheduled Maintenance",
       },
       {
+        page: PageMap.NETWORK_SITE_VIEW_OWNERS,
+        section: "Manage",
+        title: "Owners",
+      },
+      {
         page: PageMap.NETWORK_SITE_VIEW_SETTINGS,
         section: "Manage",
         title: "Settings",
@@ -3982,6 +4022,18 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Custom Domains",
       },
       {
+        page: PageMap.FORM_VIEW_PRIVATE_USERS,
+        section: "Form",
+        title: "Private Users",
+        keywords: ["sign in", "invite"],
+      },
+      {
+        page: PageMap.FORM_VIEW_SINGLE_SIGN_ON,
+        section: "Form",
+        title: "Single Sign-On",
+        keywords: ["sso", "saml", "oidc"],
+      },
+      {
         page: PageMap.FORM_VIEW_SUBMISSIONS,
         section: "Form",
         title: "Submissions",
@@ -4006,7 +4058,7 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
 ];
 
 /*
- * The Developer pages (Terraform, API, CLI, AI Assistants) of a kind, from
+ * The Developer pages (Terraform, Crossplane, API, CLI, AI Assistants) of a kind, from
  * the list its menu draws its Developer section from.
  */
 const getDeveloperPages: (

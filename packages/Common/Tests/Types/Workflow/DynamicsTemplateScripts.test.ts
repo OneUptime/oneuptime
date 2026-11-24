@@ -273,6 +273,8 @@ interface RecordKind {
   dashboardPath: string;
   prepareRecordStep: string;
   syncPrivateName: string;
+  /** Where the record names its monitor: a list on an incident, one on an alert. */
+  monitorRelation: string;
   createdState: JSONObject;
   acknowledgedState: JSONObject;
   resolvedState: JSONObject;
@@ -346,6 +348,7 @@ const INCIDENT: RecordKind = {
   dashboardPath: "incidents",
   prepareRecordStep: "prepare-incident-1",
   syncPrivateName: "SYNC_PRIVATE_INCIDENTS",
+  monitorRelation: "monitors",
   createdState: CREATED_STATE,
   acknowledgedState: ACKNOWLEDGED_STATE,
   resolvedState: RESOLVED_STATE,
@@ -418,6 +421,7 @@ const ALERT: RecordKind = {
   dashboardPath: "alerts",
   prepareRecordStep: "prepare-alert-1",
   syncPrivateName: "SYNC_PRIVATE_ALERTS",
+  monitorRelation: "monitor",
   createdState: ALERT_CREATED_STATE,
   acknowledgedState: ALERT_ACKNOWLEDGED_STATE,
   resolvedState: ALERT_RESOLVED_STATE,
@@ -488,6 +492,8 @@ describe.each(KINDS)(
       linkColumn?: string | undefined;
       oneuptimeUrl?: string | undefined;
       severities?: JSONValue | undefined;
+      // Left out, as a workflow made before the setting was has none.
+      configurationItemColumn?: string | undefined;
     }) => JSONObject;
 
     const args: ArgsFunction = (props?: {
@@ -496,10 +502,14 @@ describe.each(KINDS)(
       linkColumn?: string | undefined;
       oneuptimeUrl?: string | undefined;
       severities?: JSONValue | undefined;
+      configurationItemColumn?: string | undefined;
     }): JSONObject => {
       const record: JSONObject | string = props?.record || kind.model();
 
       return {
+        ...(props?.configurationItemColumn === undefined
+          ? {}
+          : { configurationItemColumn: props.configurationItemColumn }),
         oneuptimeUrl:
           props?.oneuptimeUrl === undefined
             ? "https://oneuptime.com"
@@ -908,6 +918,270 @@ describe.each(KINDS)(
       expect(columns["title"]).toBe(`[OneUptime] ${kind.number}: Badtitle`);
       expect(String(columns["description"])).toContain(
         "line one\nline two\ttabbed",
+      );
+    });
+
+    /* ------- Affected resources, and the configuration item (#9358) ------- */
+
+    const MONITOR: string = "STG IMS AKS - Warning Events";
+    const CLUSTER: string = "STG IMS AKS";
+    const ITEM_COLUMN: string = "new_configurationitem";
+
+    interface Resources {
+      monitors?: Array<string> | undefined;
+      hosts?: Array<string> | undefined;
+      kubernetesClusters?: Array<string> | undefined;
+      services?: Array<string> | undefined;
+    }
+
+    type WithResourcesFunction = (resources: Resources) => JSONObject;
+
+    /*
+     * The record as its trigger hands it over, linked to these resources by
+     * name: BaseModel.toJSON writes a list as an array of rows, and an
+     * alert's one monitor as a row of its own.
+     */
+    const withResources: WithResourcesFunction = (
+      resources: Resources,
+    ): JSONObject => {
+      const record: JSONObject = kind.model();
+      const rows: (names: Array<string>) => Array<JSONObject> = (
+        names: Array<string>,
+      ): Array<JSONObject> => {
+        return names.map((name: string, index: number): JSONObject => {
+          return {
+            _id: `0000000${index}-1b2d-4e5f-8a9b-0c1d2e3f4a5b`,
+            name: name,
+          };
+        });
+      };
+
+      if (resources.monitors) {
+        record[kind.monitorRelation] =
+          kind.monitorRelation === "monitors"
+            ? rows(resources.monitors)
+            : rows(resources.monitors)[0] || null;
+      }
+
+      for (const list of ["hosts", "kubernetesClusters", "services"] as const) {
+        if (resources[list]) {
+          record[list] = rows(resources[list] as Array<string>);
+        }
+      }
+
+      return record;
+    };
+
+    test("the description names every affected resource, the monitor first, as the dashboard lists them", async () => {
+      const columns: JSONObject = caseOf(
+        await run(
+          args({
+            record: withResources({
+              monitors: [MONITOR],
+              kubernetesClusters: [CLUSTER],
+              hosts: ["aks-node-2", "aks-node-1"],
+            }),
+          }),
+        ),
+      );
+
+      expect(String(columns["description"])).toContain(
+        [
+          "State: Identified",
+          `Affected resources: monitor ${MONITOR}, host aks-node-1, host aks-node-2, Kubernetes cluster ${CLUSTER}`,
+          "",
+          kind.description,
+        ].join("\n"),
+      );
+    });
+
+    test("the description names ten affected resources, and counts the rest", async () => {
+      const hosts: Array<string> = Array.from(
+        { length: 12 },
+        (_value: unknown, index: number): string => {
+          return `web-${String(index + 1).padStart(2, "0")}`;
+        },
+      );
+      const columns: JSONObject = caseOf(
+        await run(args({ record: withResources({ hosts: hosts }) })),
+      );
+
+      expect(String(columns["description"])).toContain(
+        `\nAffected resources: ${hosts
+          .slice(0, 10)
+          .map((host: string): string => {
+            return `host ${host}`;
+          })
+          .join(", ")} and 2 more\n`,
+      );
+    });
+
+    test("a record linked to nothing names no resources, and no configuration item", async () => {
+      const columns: JSONObject = caseOf(
+        await run(
+          args({
+            record: withResources({ monitors: [], hosts: [] }),
+            configurationItemColumn: ITEM_COLUMN,
+          }),
+        ),
+      );
+
+      expect(String(columns["description"])).not.toContain(
+        "Affected resources:",
+      );
+      expect(columns[ITEM_COLUMN]).toBeUndefined();
+      expect(columns[LINK_COLUMN]).toBe(kind.link);
+    });
+
+    test.each([
+      ["left out, by a workflow made before the setting", undefined],
+      ["left blank", ""],
+      ["only spaces", "   "],
+    ])(
+      "a Configuration Item Column setting %s writes no configuration item",
+      async (_label: string, column: string | undefined) => {
+        const columns: JSONObject = caseOf(
+          await run(
+            args({
+              record: withResources({
+                monitors: [MONITOR],
+                kubernetesClusters: [CLUSTER],
+              }),
+              configurationItemColumn: column,
+            }),
+          ),
+        );
+
+        expect(Object.keys(columns).sort()).toEqual(
+          [
+            "title",
+            "description",
+            "prioritycode",
+            "caseorigincode",
+            "casetypecode",
+            "customerid_account@odata.bind",
+            LINK_COLUMN,
+          ].sort(),
+        );
+      },
+    );
+
+    test.each([
+      [
+        "a cluster and the monitor watching it: the cluster",
+        { monitors: [MONITOR], kubernetesClusters: [CLUSTER] },
+        CLUSTER,
+      ],
+      [
+        "a host and a cluster: the host, which the dashboard lists first",
+        { kubernetesClusters: [CLUSTER], hosts: ["aks-node-1"] },
+        "aks-node-1",
+      ],
+      [
+        "two hosts: the first by name",
+        { hosts: ["web-02", "web-01"] },
+        "web-01",
+      ],
+      [
+        "a service and the monitor: the service",
+        { monitors: [MONITOR], services: ["Checkout"] },
+        "Checkout",
+      ],
+      ["the monitor alone: the monitor", { monitors: [MONITOR] }, MONITOR],
+    ])(
+      "the configuration item, for %s",
+      async (_label: string, resources: Resources, item: string) => {
+        const columns: JSONObject = caseOf(
+          await run(
+            args({
+              record: withResources(resources),
+              configurationItemColumn: ITEM_COLUMN,
+            }),
+          ),
+        );
+
+        expect(columns[ITEM_COLUMN]).toBe(item);
+        expect(columns[LINK_COLUMN]).toBe(kind.link);
+      },
+    );
+
+    test("CONFIGURATION_ITEM_PRECEDENCE puts the monitor last, and can put it first", async () => {
+      const columns: JSONObject = caseOf(
+        await run(
+          args({
+            record: withResources({
+              monitors: [MONITOR],
+              kubernetesClusters: [CLUSTER],
+            }),
+            configurationItemColumn: ITEM_COLUMN,
+          }),
+          replaceInCode(
+            `const CONFIGURATION_ITEM_PRECEDENCE = ['hosts', 'networkDevices', 'kubernetesClusters', 'dockerHosts', 'podmanHosts', 'proxmoxClusters', 'openStackClouds', 'vmwareVCenters', 'cephClusters', 'storageArrays', 'dockerSwarmClusters', 'iotFleets', 'databaseServers', 'cloudResources', 'services', 'serviceLevelObjectives', '${kind.monitorRelation}'];`,
+            `const CONFIGURATION_ITEM_PRECEDENCE = ['${kind.monitorRelation}', 'kubernetesClusters'];`,
+          ),
+        ),
+      );
+
+      expect(columns[ITEM_COLUMN]).toBe(MONITOR);
+    });
+
+    test("the configuration item stops at MAX_CONFIGURATION_ITEM_LENGTH, 100 characters", async () => {
+      const columns: JSONObject = caseOf(
+        await run(
+          args({
+            record: withResources({ kubernetesClusters: ["c".repeat(150)] }),
+            configurationItemColumn: ITEM_COLUMN,
+          }),
+        ),
+      );
+      const item: string = String(columns[ITEM_COLUMN]);
+
+      expect(item).toHaveLength(100);
+      expect(item.endsWith("…")).toBe(true);
+    });
+
+    test.each([
+      ["Configuration Item", "Configuration Item"],
+      ["new_ConfigurationItem", "new_ConfigurationItem"],
+      // A workflow variable deleted after the workflow was made.
+      [
+        "{{local.variables.dynamicsConfigurationItemColumn}}",
+        "{ {local.variables.dynamicsConfigurationItemColumn} }",
+      ],
+    ])(
+      "a configuration item column of %j opens no case",
+      async (column: string, named: string) => {
+        expectSkipped(
+          await run(args({ configurationItemColumn: column })),
+          `The Configuration Item Column setting, ${named}, is not the logical name of a column, such as new_configurationitem, so no case was opened.`,
+        );
+      },
+    );
+
+    test("the configuration item column cannot be the link column, which the other templates find the case by", async () => {
+      expectSkipped(
+        await run(args({ configurationItemColumn: LINK_COLUMN })),
+        `The Configuration Item Column and Case Link Column settings are both ${LINK_COLUMN}, but the link to OneUptime needs a column of its own, so no case was opened.`,
+      );
+    });
+
+    test("resource names can never become a reference in a later step", async () => {
+      const result: JSONObject = await run(
+        args({
+          record: withResources({
+            monitors: [MALICIOUS],
+            kubernetesClusters: [MALICIOUS],
+          }),
+          configurationItemColumn: ITEM_COLUMN,
+        }),
+      );
+
+      expectDefused(result);
+      expect(String(caseOf(result)[ITEM_COLUMN])).toContain(
+        "{ {local.variables.dynamicsAccessToken} }",
+      );
+      expect(String(caseOf(result)["description"])).toContain(
+        "Affected resources: monitor { {local.variables.dynamicsAccessToken} }",
       );
     });
   },

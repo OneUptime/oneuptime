@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -22,12 +23,17 @@ import {
 } from "Common/Types/Cloud/CloudAddedMetrics";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
+  GetMetricRowAggregation,
   GetMetricRowGroup,
   GetMetricRowGroupGaps,
+  MetricRowAggregation,
   MetricRowGroupGap,
 } from "../../../Components/Metrics/Utils/MetricRowScope";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import CloudResourceMoreMetrics from "../../../Components/Cloud/ResourceMetrics/CloudResourceMoreMetrics";
 import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
+import CloudResourceMetricCollectionLine from "../../../Components/Cloud/ResourceMetrics/CloudResourceMetricCollectionLine";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
@@ -35,6 +41,7 @@ import {
   getCloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceRowGroup,
   getCloudMonitoredResourceRowGroupGaps,
+  getCloudResourceAddedSplitAttributes,
   getCloudResourceAddedStoredNames,
   isCloudMonitoredResourceScoped,
 } from "../Utils/CloudMonitoredResourceScope";
@@ -51,7 +58,9 @@ import {
  *
  * Its key metrics read in sections, each saying - folded away - which of
  * its key metrics the resource did not report in the range, and why
- * (#9569). Under the list, More Metrics lists what else its cloud
+ * (#9569). Above them, when its connection last read them, and what it
+ * could not read, with its cloud's own words (#10291). Under the list,
+ * More Metrics lists what else its cloud
  * publishes, on demand, and adds one to what its connection reads (#9563):
  * an added metric reads in a section of its own, and charts and alerts as
  * a key metric does.
@@ -71,25 +80,40 @@ const CloudResourceMetrics: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
+      /*
+       * Its connection's additions and settings are read through the
+       * resource for who may read the connection itself (#10310): every
+       * reader of the project's cloud resources, but a team kept from its
+       * connections, which reads the key metrics without them.
+       */
       const item: CloudResource | null = await ModelAPI.getItem({
         modelType: CloudResource,
         id: modelId,
-        select: {
-          _id: true,
-          resourceIdentifier: true,
-          name: true,
-          // The scope reads the attributes of a resource only.
-          cloudResourceKind: true,
-          telemetryAttributes: true,
-          // What its rows add up: a namespace's metrics, one per queue.
-          cloudProvider: true,
-          cloudResourceType: true,
-          // What its connection reads for it besides its key metrics.
-          cloudConnectionId: true,
-          cloudConnection: {
-            addedMetrics: true,
+        select: PermissionGate.getSelectReadableThroughRelations(
+          CloudResource,
+          {
+            _id: true,
+            resourceIdentifier: true,
+            name: true,
+            // The scope reads the attributes of a resource only.
+            cloudResourceKind: true,
+            telemetryAttributes: true,
+            // What its rows add up: a namespace's metrics, one per queue.
+            cloudProvider: true,
+            cloudResourceType: true,
+            /*
+             * What its connection reads for it besides its key metrics, and
+             * how often: a metric that comes once an hour is missing only
+             * past its delay (#10026).
+             */
+            cloudConnectionId: true,
+            cloudConnection: {
+              addedMetrics: true,
+              provider: true,
+              config: true,
+            },
           },
-        },
+        ),
       });
 
       if (!item?.resourceIdentifier) {
@@ -164,6 +188,47 @@ const CloudResourceMetrics: FunctionComponent<
   const addedNamesKey: string = addedStoredNames.join("\n");
 
   /*
+   * An addition split by a dimension (#9808) opens its chart split by it, a
+   * line per value; every other row as its type reads it.
+   */
+  const splitAttributes: Map<string, string> = useMemo(() => {
+    return getCloudResourceAddedSplitAttributes({
+      _id: cloudResource?._id,
+      cloudResourceType: cloudResource?.cloudResourceType,
+      cloudConnection: { addedMetrics },
+    });
+  }, [cloudResource?._id, cloudResource?.cloudResourceType, addedMetrics]);
+  const splitAttributesKey: string = Array.from(splitAttributes.entries())
+    .map(([name, attribute]: [string, string]): string => {
+      return `${name}=${attribute}`;
+    })
+    .join("\n");
+
+  const getRowAggregation: GetMetricRowAggregation | undefined = useMemo(() => {
+    if (splitAttributes.size === 0) {
+      return rowAggregation?.getRowAggregation;
+    }
+
+    return (
+      metricName: string,
+      startAndEndDate: InBetween<Date>,
+    ): MetricRowAggregation | undefined => {
+      const read: MetricRowAggregation | undefined =
+        rowAggregation?.getRowAggregation(metricName, startAndEndDate);
+      const attribute: string | undefined = splitAttributes.get(
+        metricName.trim().toLowerCase(),
+      );
+
+      return attribute
+        ? {
+            ...(read || { aggregationType: AggregationType.Avg }),
+            groupByAttributeKeys: [attribute],
+          }
+        : read;
+    };
+  }, [rowAggregation, splitAttributesKey]);
+
+  /*
    * Its key metrics in sections - Availability, Traffic, Errors, Latency
    * and the rest, most telling first - then what someone added, and its
    * other metrics after them.
@@ -183,6 +248,7 @@ const CloudResourceMetrics: FunctionComponent<
     cloudResource?.cloudProvider,
     cloudResource?.cloudResourceType,
     cloudResource?.telemetryAttributes,
+    cloudResource?.cloudConnection?.config,
   ]);
 
   const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =
@@ -222,11 +288,20 @@ const CloudResourceMetrics: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * When its connection last read its metrics, and what it could not
+       * (#10291): above them, where a person looks when one is missing.
+       */}
+      {cloudResource.cloudConnectionId ? (
+        <CloudResourceMetricCollectionLine cloudResourceId={modelId} />
+      ) : (
+        <></>
+      )}
       <MetricsViewer
         attributeFilters={attributeFilters}
         attributeFilterDisplayKeys={attributeFilterDisplayKeys}
         eventScope={eventScope}
-        getRowAggregation={rowAggregation?.getRowAggregation}
+        getRowAggregation={getRowAggregation}
         getRowGroup={getRowGroup}
         getRowGroupGaps={getRowGroupGaps}
         renderRowGroupGap={renderRowGroupGap}

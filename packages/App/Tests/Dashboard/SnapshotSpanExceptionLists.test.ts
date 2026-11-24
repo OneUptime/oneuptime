@@ -243,9 +243,14 @@ describe("TracesViewer hosts a stored span query", () => {
      * The list query and the histogram / facet payload speak different
      * vocabularies. Reading the stored query separately for each is how a
      * chart ends up counting rows the list excludes, so both must derive from
-     * one buildSpanQueryScope result.
+     * one buildSpanQueryScope result. It is handed the viewer's translator,
+     * so its chips read in the reader's language, and read again only when
+     * the query or that language changes - not on every render, though the
+     * translator is made anew on each.
      */
-    expect(TRACES_VIEWER).toContain("buildSpanQueryScope(props.spanQuery)");
+    expect(TRACES_VIEWER).toContain(
+      "return buildSpanQueryScope(props.spanQuery, translator); }, [spanQueryKey, translator.language]);",
+    );
     expect(countOccurrences(TRACES_VIEWER, "buildSpanQueryScope")).toBe(2);
   });
 

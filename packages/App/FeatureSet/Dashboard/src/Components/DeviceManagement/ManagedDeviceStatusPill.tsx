@@ -23,6 +23,9 @@ export interface ComponentProps {
   providerState?: number | undefined | null;
   lastCheckInAt?: Date | string | undefined | null;
   removedAt?: Date | string | undefined | null;
+  // The device's service and platform: how long it may be quiet and still be online.
+  provider?: string | undefined | null;
+  platform?: string | undefined | null;
   now: Date;
   // "· 3h ago" after an online or offline device's status.
   showAge?: boolean | undefined;
@@ -54,6 +57,8 @@ const ManagedDeviceStatusPill: FunctionComponent<ComponentProps> = (
     providerState: props.providerState,
     lastCheckInAt: props.lastCheckInAt,
     removedAt: props.removedAt,
+    provider: props.provider,
+    platform: props.platform,
     now: props.now,
   });
   const words: ManagedDeviceStatusWords = getManagedDeviceStatusWords(status);

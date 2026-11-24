@@ -7,6 +7,7 @@ Un moniteur d'hôte surveille une machine – son CPU, sa mémoire, ses disques,
 - [Modèles](#modèles-dalerte-prêts-à-lemploi): Dix alertes prêtes à l'emploi pour un hôte devenu silencieux ou redémarré, le CPU, la mémoire, le swap, le disque, les inodes, la charge, les processus et les unités systemd en échec.
 - [Métriques](#métriques-collectées): Les métriques d'hôte sur lesquelles vous pouvez alerter, et leurs unités.
 - [Hôte ou Serveur / VM ?](#moniteur-dhôte-ou-moniteur-serveur-vm): Lequel des deux moniteurs de machines utiliser.
+- [Plusieurs disques](#hôtes-avec-plusieurs-disques): Un moniteur pour tous les disques, un incident par disque.
 :::
 
 ## Fonctionnement
@@ -136,9 +137,10 @@ Un hôte dont l'OS est Android, comme une borne ou un terminal de point de vente
 | Device Overheating | Avertissement | `android.thermal.status`, Max, 5 dernières minutes | 3 (sévère) ou pire | Sous 3 |
 | Restart Loop | Critique | `android.boot.recent_count`, Max, dernière heure | Une valeur est à 3 ou plus | Chaque valeur est sous 3 |
 | Storage Nearly Full | Critique | `system.filesystem.utilization`, Max par `mountpoint`, en pourcentage, 5 dernières minutes | Au-dessus de 90 % | À 90 % ou moins |
+| Security Patch Out of Date | Avertissement | `android.os.security_patch.age`, le nombre de jours écoulés depuis le niveau de correctif de sécurité de l'appareil, Min, dernière heure | Plus de 90 jours pendant toute la fenêtre | Une mesure de 90 jours ou moins, une fois l'appareil mis à jour |
 | High CPU Utilization | Avertissement | `system.cpu.utilization` pour l'état `idle`, occupé calculé comme 1 moins inactif, en pourcentage, 5 dernières minutes | Au-dessus de 80 % | À 80 % ou moins |
 
-High CPU Utilization est proposé dès que l'appareil signale son utilisation du processeur, ce qui, sous Android 8 et versions ultérieures, exige que l'agent soit le propriétaire de l'appareil. Une alerte d'un appareil Android commence par des commandes adb à lancer d'abord, comme `adb shell dumpsys battery` ou `adb shell getprop sys.boot.reason`, plutôt que par les commandes shell d'un serveur.
+High CPU Utilization est proposé dès que l'appareil signale son utilisation du processeur, ce qui, sous Android 8 et versions ultérieures, exige que l'agent soit le propriétaire de l'appareil. Une alerte d'un appareil Android commence par des commandes adb à lancer d'abord, comme `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` ou `adb shell getprop ro.build.version.security_patch`, plutôt que par les commandes shell d'un serveur.
 
 ## Métriques collectées
 
@@ -220,6 +222,26 @@ Un moniteur que vous ne créez pas à partir d'un modèle commence avec deux cri
 > [!IMPORTANT]
 > Une valeur de `0` est une donnée : une métrique souvent nulle, comme les redémarrages ou les erreurs, ne met pas le moniteur hors ligne. Pour être alerté sur une valeur, partez d'un modèle ou ajoutez un critère avec un seuil. Quand aucune donnée n'arrive et qu'aucun critère ne correspond, le moniteur garde son statut et les incidents ouverts restent ouverts : le silence n'est pas un rétablissement. Le temps où OneUptime lui-même ne recevait rien ne compte jamais comme une absence de données : une vérification dont la fenêtre en contient attend, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
+## Hôtes avec plusieurs disques
+
+Un seul moniteur d'hôte couvre chaque disque que l'hôte remonte. Les modèles High Filesystem Usage et Running Out of Inodes regroupent leur requête par `mountpoint` et `device`, si bien que le moniteur vérifie chaque disque séparément et ouvre un incident par disque : un deuxième disque qui se remplit n'est pas masqué par l'incident ouvert du premier.
+
+| Où | Ce qui s'affiche pour chaque disque |
+| --- | --- |
+| La page **Métriques** du moniteur | Une ligne par disque, nommée d'après son `mountpoint` et son `device`. |
+| **Journaux de surveillance** | La colonne **Observé** compte les séries que chaque vérification a lues : une par disque. |
+| **Incidents** et **Alertes** | Un incident ou une alerte par disque, qui nomme le montage et le périphérique du disque. |
+| La carte **Systèmes de fichiers** de l'hôte | Chaque disque que le collecteur remonte, quoi que surveillent vos moniteurs. |
+
+Chaque critère est vérifié pour chaque disque :
+
+- Tant que l'incident d'un disque est ouvert, le critère qui l'a ouvert n'en ouvre aucun autre pour ce disque. Un autre disque qui satisfait ce critère ouvre le sien.
+- Un disque qui satisfait deux critères, comme l'un au-dessus de 98 % et l'autre au-dessus de 90 %, reçoit un seul incident, celui du premier des deux dans la liste. Placez le plus strict en premier.
+- L'incident d'un disque se résout quand ce disque cesse de satisfaire le critère qui l'a ouvert, quoi que fassent les autres disques.
+- Le moniteur a un seul statut, fixé par le premier critère de la liste que satisfait un disque quelconque. Quand aucun disque ne satisfait un critère qui se déclenche, un seul disque au seuil de rétablissement ou en dessous suffit au critère qui rétablit ; la marge de rétablissement de 10 % ne tient donc pas sur un hôte dont un disque n'est jamais près d'être plein.
+
+Pour ne surveiller que certains disques, ouvrez **Avancé** et, dans la requête sous **Sélectionner les métriques**, ajoutez avec **Filtrer par attributs** un filtre sur `mountpoint` : **est l'un de** pour les disques à surveiller, ou **n'est aucun de** pour ceux à laisser de côté. Gardez le **Regrouper par**, et écrivez chaque disque comme le montre la carte **Systèmes de fichiers**, par exemple `C:` ou `/var`. Pour ne plus collecter un disque du tout, afin qu'il quitte aussi les pages de l'hôte, définissez `include_mount_points` ou `exclude_mount_points` sur le scraper `filesystem` du collecteur ([Métriques de l'hôte](/docs/telemetry/host-otel-collector#métriques-de-lhôte)).
+
 ## Dépannage
 
 :::details L'hôte n'est pas dans la liste Hôte
@@ -236,6 +258,10 @@ Le moniteur limite chaque requête au `resource.host.name` égal à l'hôte choi
 
 :::details High Filesystem Usage se déclenche pour un montage toujours plein
 Les pseudo-systèmes de fichiers en lecture seule, comme les montages en boucle snap `squashfs` sous `/snap` ou `devfs` sous macOS, sont pleins à 100 % par conception et ne se rétablissent jamais. Les configurations que OneUptime exécute et fournit les excluent avec `exclude_fs_types` ; une configuration à vous, ou une Configuration du collecteur créée avant qu'elles ne le fassent, a besoin de la même chose : copiez-la depuis [Métriques de l'hôte](/docs/telemetry/host-otel-collector#métriques-de-lhôte). Excluez un autre montage toujours plein, comme un `.dmg` monté, avec `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage n'affiche qu'une série sur un hôte avec plusieurs disques
+La requête n'a pas de **Regrouper par**. Chaque vérification ne lit alors que le disque le plus plein, et un seul incident vaut pour tous les disques : la page **Métriques** du moniteur trace une seule ligne, nommée d'après la requête, et la colonne **Observé** dans **Journaux de surveillance** compte des points de données au lieu de séries. Sur la page **Critères** du moniteur, cliquez sur **Modifier les critères**, ouvrez **Avancé** sous **Plus de champs** et, dans la requête sous **Sélectionner les métriques**, réglez **Regrouper par** sur `mountpoint` et `device`. Choisir de nouveau le modèle sous **Sur quoi alerter** le règle aussi, mais remplace vos critères par ceux du modèle. À la vérification suivante, chaque disque au-dessus du seuil ouvre son propre incident, et celui ouvert pour tout le moniteur se résout si son critère résout automatiquement les incidents.
 :::
 
 ## Étapes suivantes

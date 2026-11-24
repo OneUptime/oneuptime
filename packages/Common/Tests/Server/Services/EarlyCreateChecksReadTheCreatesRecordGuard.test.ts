@@ -38,6 +38,24 @@ const TAKE_OUT: string = "this.takeOutWhatTheServerSetsOnCreate(";
 // The create() overrides that check a create's columns before handing it on.
 const EARLY_CHECKS: Array<string> = ["OnCallDutyPolicyChildService.ts"];
 
+/*
+ * What a create does to the record before its own checks read it, in order:
+ * it takes out who did something to the record, then what only OneUptime
+ * writes (ColumnsOnlyOneUptimeWrites, #10053) - each named to the caller as
+ * left out (recordFieldsLeftOut, #10136) - and then holds a value in a
+ * server-set column to its create list (checkComputedColumnsRecordingLeftOut).
+ */
+const STEPS_BEFORE_THE_CHECKS: Array<string> = [
+  "DatabaseService.recordFieldsLeftOut( createBy, this.decideUserAttributionOnCreate(createBy.data, createBy.props), );",
+  "DatabaseService.recordFieldsLeftOut( createBy, ColumnsOnlyOneUptimeWrites.takeOut({",
+  "this.checkComputedColumnsRecordingLeftOut(createBy)",
+];
+
+// Code with every run of whitespace as one space, so a line break is no change.
+function compact(code: string): string {
+  return code.replace(/\s+/g, " ");
+}
+
 // The body of every `override async create(` in `source`, up to its handing on.
 function getCreateOverrides(source: string): Array<string> {
   const bodies: Array<string> = [];
@@ -143,25 +161,47 @@ describe("a create column check a service asks before the create starts", () => 
     const helper: RegExpMatchArray | null = source.match(
       /protected takeOutWhatTheServerSetsOnCreate\([\s\S]*?\n {2}\}\n/,
     );
-
-    expect(helper).not.toBeNull();
-    // Who did something to the record, then the server-set values: as checkCreateBeforeHooks.
-    expect(helper![0]).toContain(
-      "this.decideUserAttributionOnCreate(createBy.data, createBy.props);",
-    );
-    expect(helper![0]).toContain(
-      "ModelPermission.checkComputedColumnsSentOnCreate(",
-    );
-
     const beforeHooks: RegExpMatchArray | null = source.match(
       /private async checkCreateBeforeHooks\([\s\S]*?\n {2}\}\n/,
     );
 
+    expect(helper).not.toBeNull();
     expect(beforeHooks).not.toBeNull();
-    expect(beforeHooks![0]).toContain(
-      "this.decideUserAttributionOnCreate(createBy.data, createBy.props);",
+
+    // Each takes the same steps, in the same order: as checkCreateBeforeHooks.
+    for (const [name, body] of [
+      ["takeOutWhatTheServerSetsOnCreate", helper![0]],
+      ["checkCreateBeforeHooks", beforeHooks![0]],
+    ] as Array<[string, string]>) {
+      const steps: Array<number> = STEPS_BEFORE_THE_CHECKS.map(
+        (step: string): number => {
+          return compact(body).indexOf(compact(step));
+        },
+      );
+
+      for (const [index, at] of steps.entries()) {
+        expect({
+          name,
+          step: STEPS_BEFORE_THE_CHECKS[index],
+          found: at > -1,
+        }).toEqual({ name, step: STEPS_BEFORE_THE_CHECKS[index], found: true });
+      }
+
+      expect({ name, inOrder: steps }).toEqual({
+        name,
+        inOrder: [...steps].sort((a: number, b: number): number => {
+          return a - b;
+        }),
+      });
+    }
+
+    // The server-set values are held to the create list by the column check.
+    const computed: RegExpMatchArray | null = source.match(
+      /private checkComputedColumnsRecordingLeftOut\([\s\S]*?\n {2}\}\n/,
     );
-    expect(beforeHooks![0]).toContain(
+
+    expect(computed).not.toBeNull();
+    expect(computed![0]).toContain(
       "ModelPermission.checkComputedColumnsSentOnCreate(",
     );
   });

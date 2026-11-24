@@ -276,6 +276,48 @@ describe("AnalyticsDatabaseService.getRealtimeReadAccess", () => {
     ).toBeUndefined();
   });
 
+  /*
+   * The occurrences' service keeps a crash's second report out of every
+   * list and count (#9923) with a find hook of its own, which leaves a read
+   * of an occurrence by its _id as it was: it narrows no one's read, and
+   * says so (getFindHookThatNarrowsNoRead). Taken as narrowing, it had
+   * nobody hear that any occurrence was written.
+   */
+  test("a find hook that narrows no one's read, the occurrences' (#9923): its rows are heard as the read check and the read scope say", async () => {
+    readsWith(scope(null));
+
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        ExceptionInstanceServiceClass.prototype,
+        "onBeforeFind",
+      ),
+    ).toBe(true);
+
+    const service: ExceptionInstanceServiceClass =
+      new ExceptionInstanceServiceClass();
+
+    expect(service.getFindHookThatNarrowsNoRead()).toBe(
+      (service as unknown as Record<string, unknown>)["onBeforeFind"],
+    );
+
+    const items: Array<ExceptionInstance> = [
+      row(READABLE_SERVICE),
+      row(OTHER_SERVICE),
+    ];
+    const reader: RealtimeReader = readerWith();
+    const access: RealtimeReadAccess = service.getRealtimeReadAccess();
+
+    await expect(access.readsEveryRecord(reader)).resolves.toBe(true);
+    await expect(
+      access.getReadableIds(reader, idsOf(items), ownersOf(items, service)),
+    ).resolves.toEqual(asText(idsOf(items)));
+    expect(checked).toHaveBeenCalled();
+  });
+
+  /*
+   * A hook of its own in place of the one its service names - here, in
+   * place of the occurrences' - is one nothing says narrows no read.
+   */
   test("a service that narrows its reads on its own: nobody hears about its rows rather than everybody", async () => {
     readsWith(scope(null));
 

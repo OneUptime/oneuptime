@@ -53,7 +53,7 @@ Een tijdreeks van een of meer metrics-query's over het tijdsbereik van het dashb
 
 Elke query tekent een eigen grafiek, onder elkaar in de widget. Om een query in plaats daarvan in de grafiek van de query ervoor te tekenen, als extra lijnen op dezelfde assen, zet je **Over de vorige query leggen** aan in de **Weergave-instellingen** ervan: bijvoorbeeld `mem_used` en `mem_total` in één grafiek. Elke query na de eerste heeft deze schakelaar, en elke query waarbij hij aan staat, komt in dezelfde grafiek, zodat drie of meer query's er één kunnen delen. Zet hem uit om de query weer een eigen grafiek te geven.
 
-Een over elkaar gelegde grafiek neemt zijn titel, zijn grafiektype en zijn waardeas over van zijn eerste query, dus elke query erin wordt gelezen in de eenheid van die query. Een query in een andere eenheid van dezelfde soort wordt getekend in de eenheid van de grafiek, zoals megabytes in een grafiek in gigabytes, of seconden in een grafiek in milliseconden. Een eenheid van een andere soort is niet af te lezen op die as, zoals bytes in een grafiek in procenten: de query wordt er toch getekend, en de grafiek en de schakelaar zeggen allebei dat de eenheden verschillen, dus geef zo'n query een eigen grafiek.
+Een over elkaar gelegde grafiek neemt zijn titel, zijn grafiektype en zijn linker waardeas over van zijn eerste query, dus een query erin wordt waar dat kan gelezen in de eenheid van die query. Een query in een andere eenheid van dezelfde soort wordt getekend in de eenheid van de grafiek, zoals megabytes in een grafiek in gigabytes, of seconden in een grafiek in milliseconden. Een query in een eenheid van een andere soort, zoals bytes in een grafiek in procenten, wordt tegen een tweede waardeas aan de rechterkant van de grafiek getekend, in zijn eigen eenheid, en de schakelaar zegt dat. De legenda onder de grafiek noemt de eenheid van elke as en de as waartegen elke reeks wordt getekend. Alleen een derde soort eenheid past op geen van beide assen: die wordt op een eigen schaal getekend, zonder as, en de grafiek en de schakelaar zeggen dat allebei. Lees de waarden af in de legenda en de tooltip, of geef zo'n query een eigen grafiek om hem tegen een as af te lezen.
 
 Gebruik hem als de vorm van de lijn het verhaal vertelt: latentie, fouten, doorvoer of de lengte van een wachtrij.
 
@@ -250,7 +250,7 @@ Via de API en Terraform is de volgorde de `arguments.sort` van de widget: een ko
 Een [openbaar dashboard](/docs/dashboards/sharing) tekent de meeste widgets voor zijn bezoekers, en elk toont alleen wat hij moest tonen. Een paar kunnen niet worden weergegeven zonder aangemelde sessie:
 
 - **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen**, **Stroom van beveiligingsgebeurtenissen**, **Trechter** en **Gebruikersretentie** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
-- De widgets van Externe gegevensbronnen worden helemaal weggelaten uit een openbaar dashboard, omdat hun instellingen de query zelf zijn.
+- De widgets van Externe gegevensbronnen tonen hun gegevens wanneer ze **Metrieken van dit project (PromQL)** lezen, nooit hun query's. Een widget met een externe gegevensbron wordt helemaal weggelaten uit een openbaar dashboard.
 
 ## Als een widget niet kan worden weergegeven
 

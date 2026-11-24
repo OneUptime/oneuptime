@@ -596,7 +596,9 @@ describe("a chart's value axis and tooltip write a figure as the tiles beside th
    * A query's yAxisValueFormatter writes English - a page's shared
    * formatter, KubernetesResourceUtils.formatBytesForChart and forty more -
    * and the metric chart words it in the reader's digits wherever it draws
-   * it: its value axis and its series list (#8428).
+   * it: its value axes and its series list (#8428). Every query is written
+   * through one formatter (getMemberValueFormatter), which each value axis -
+   * the second one too (#10042) - and the series list draw with.
    */
   test("the metric chart writes a query's own figure in the reader's digits", () => {
     const source: string = fs.readFileSync(
@@ -604,14 +606,24 @@ describe("a chart's value axis and tooltip write a figure as the tiles beside th
       "utf8",
     );
     const drawn: Array<string> =
-      source.match(/[^\n]*\n[^\n]*firstQuery\.yAxisValueFormatter\(value\)/g) ||
-      [];
+      source.match(/[^\n]*\n[^\n]*\.yAxisValueFormatter\(value\)/g) || [];
 
-    expect(drawn.length).toBeGreaterThanOrEqual(2);
+    expect(drawn.length).toBeGreaterThanOrEqual(1);
 
     for (const call of drawn) {
       expect(call).toContain("writeFigureInLanguage(");
     }
+
+    // Both value axes and the series list draw through it.
+    expect(source).toContain(
+      "getMemberValueFormatter(firstMember, translator.language)",
+    );
+    expect(source).toContain(
+      "getMemberValueFormatter(secondAxisLead, translator.language)",
+    );
+    expect(source).toContain("formatter: firstAxisValueFormatter,");
+    expect(source).toContain("formatter: secondAxisValueFormatter,");
+    expect(source).toContain("getMemberAxisValueFormatter(owner)");
   });
 });
 

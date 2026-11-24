@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime متریک‌ها را به شیوهٔ OpenTelemetry ذخیره می�
 
 | در OneUptime | در PromQL |
 | --- | --- |
-| یک گِیج `system.cpu.utilization` | `system_cpu_utilization` |
-| یک شمارنده `http.requests` | `http_requests`، یا `http_requests_total` |
-| یک هیستوگرام `http.server.request.duration` | `http_server_request_duration_bucket` (با `le`)، `_count` و `_sum` |
+| یک گیج `system.cpu.utilization` با واحد `1` | `system_cpu_utilization_ratio`، یا `system_cpu_utilization` |
+| یک گیج `system.memory.usage` با واحد `By` | `system_memory_usage_bytes`، یا `system_memory_usage` |
+| یک شمارنده `http.requests` | `http_requests_total`، یا `http_requests` |
+| یک هیستوگرام `http.server.request.duration` با واحد `s` | `http_server_request_duration_seconds_bucket` (با `le`)، `_count` و `_sum`، یا همین‌ها بدون `_seconds` |
 | یک summary `rpc.latency` | `rpc_latency` (با `quantile`)، `_count` و `_sum` |
 | یک ویژگی `http.route` | برچسب `http_route` |
 | یک ویژگی منبع `service.name` | برچسب `resource_service_name`، و `job` |
 | یک ویژگی منبع `service.instance.id` | برچسب `resource_service_instance_id`، و `instance` |
 
 - **نقطه‌ها و خط‌تیره‌ها به زیرخط تبدیل می‌شوند**، هم در نام متریک‌ها و هم در نام برچسب‌ها. برای نام بردن از یک متریک یا یک برچسب دقیقاً همان‌طور که ذخیره شده، نامش را مانند Prometheus 3 در نقل‌قول بگذارید: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **واحد بخشی از نام است**، همان‌طور که Prometheus 3 و OpenTelemetry Collector آن را می‌نویسند: `s` پسوند `_seconds` را می‌افزاید، `By` پسوند `_bytes`، `By/s` پسوند `_bytes_per_second` و `%` پسوند `_percent`؛ گیجی با واحد `1` به `_ratio` و شمارنده به `_total` ختم می‌شود، و واحدی در آکولاد، مانند `{request}`، چیزی نمی‌افزاید. نام بدون واحد هم متریک را پیدا می‌کند، و **افزودن نام یک متریک** هر متریک را با واحدش فهرست می‌کند.
 - **شمارنده‌های دلتا جمع زده می‌شوند**، از آغاز بازهٔ زمانی کوئری، پس `rate()` و `increase()` آن‌ها را مانند هر شمارندهٔ دیگری می‌خوانند.
 - **هیستوگرام‌های نمایی** `_count` و `_sum` دارند، اما باکت ندارند.
 
@@ -144,6 +146,7 @@ API به مسیرهای HTTP API در Prometheus، با `GET` یا `POST`، زی
 | زمانی که ارزیابی می‌تواند طول بکشد | ۳۰ ثانیه |
 | یک انتخابگر برای آخرین نمونهٔ یک سری تا چه اندازه به عقب نگاه می‌کند | ۵ دقیقه |
 | گام یک زیرکوئری، وقتی کوئری آن را تعیین نمی‌کند | ۱ دقیقه |
+| کوئری‌هایی که یک پروژه در هر دقیقه می‌تواند بفرستد | ۱٬۲۰۰ |
 
 ## عیب‌یابی
 
@@ -159,10 +162,15 @@ API به مسیرهای HTTP API در Prometheus، با `GET` یا `POST`، زی
 کوئری بیش از آنچه یک خواندن می‌تواند نگه دارد درخواست می‌کند. matcherهای برچسب بیفزایید، بازهٔ زمانی را کوتاه‌تر کنید، یا گام بزرگ‌تری به کار ببرید.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+داشبوردها، Grafana و اسکریپت‌های پروژه در این دقیقه روی هم بیش از ۱٬۲۰۰ کوئری به API فرستادند. پنل‌ها در دقیقهٔ بعد دوباره بارگذاری می‌شوند؛ برای ماندن زیر این حد، داشبوردها را کمتر تازه کنید.
+:::
+
 ## گام‌های بعدی
 
 :::cards
 - [کاوشگر متریک](/docs/telemetry/metrics-explorer): بدون نوشتن کوئری از متریک‌ها نمودار بسازید.
-- [مانیتور متریک‌ها](/docs/monitor/metrics-monitor): وقتی یک متریک از آستانه‌ای گذشت هشدار بگیرید.
-- [منابع داده خارجی](/docs/dashboards/data-sources): روی داشبوردهایتان از یک Prometheus بیرونی نمودار بسازید.
+- [مانیتور متریک‌ها](/docs/monitor/metrics-monitor): برای یک متریک یا یک عبارت PromQL هشدار بگیرید، با یک حادثه برای هر سری.
+- [منابع داده خارجی](/docs/dashboards/data-sources): روی داشبوردهایتان از PromQL نمودار بسازید، روی متریک‌های این پروژه یا یک Prometheus بیرونی.
+- [LogQL](/docs/telemetry/logql): لاگ‌ها را با LogQL کوئری کنید، از منبع دادهٔ Loki در Grafana هم.
 :::

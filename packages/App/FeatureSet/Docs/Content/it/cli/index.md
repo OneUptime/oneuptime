@@ -103,6 +103,7 @@ L'elenco mostra ogni tipo di record con cui puoi lavorare, e il suo comando, com
 | `oneuptime deploy` | Registra un deploy, o un'altra modifica, per i grafici e OneUptime AI | [Deploy e modifiche](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Fa corrispondere i controlli dei dati del progetto a un file nel tuo repository | [Riferimento dei comandi](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Invia gli artefatti di un progetto dbt dopo una build a Osservabilità dei dati | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Invia i dSYM di un'app iOS dopo una build, così che i suoi crash e blocchi si leggano per funzione | [Configurazione mobile](/docs/rum/mobile-setup#caricare-i-dsym) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Lavora con un tipo di record | [Operazioni sulle risorse](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Elenca i campi di una risorsa e i flag che li impostano | [Operazioni sulle risorse](/docs/cli/resource-operations#vedere-i-campi-di-una-risorsa) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Fa ciò che fanno i pulsanti della dashboard su incidenti, avvisi e manutenzioni programmate | [Operazioni sulle risorse](/docs/cli/resource-operations#riconoscere-risolvere-e-aggiungere-note) |

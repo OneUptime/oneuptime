@@ -33,6 +33,14 @@ import StackTraceParser, {
 } from "../../Telemetry/StackTraceParser";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
+  CodeLineRun,
+  findCodePrivateKeyBlockLines,
+  formatCodeLinesWithNumbers,
+  getCodeLinePrefixLength,
+  splitCodeFileLines,
+  widenCodeLinesToWholeRuns,
+} from "./CodeFileLines";
+import {
   ObservabilityTool,
   ToolArgs,
   ToolContext,
@@ -674,20 +682,6 @@ function matchFrameToRepositoryPath(
  * Split file content into lines without inventing a phantom blank line for the
  * trailing newline that virtually every source file ends with.
  */
-function splitIntoLines(content: string): Array<string> {
-  if (content === "") {
-    return [];
-  }
-
-  const lines: Array<string> = content.split("\n");
-
-  if (lines[lines.length - 1] === "") {
-    lines.pop();
-  }
-
-  return lines;
-}
-
 /*
  * How many lines a numbered block still holds whole once the serializer
  * cut it at its own payload cap: the line breaks it kept, each the end of
@@ -732,24 +726,6 @@ function takeLinesWithinByteBudget(
   }
 
   return kept;
-}
-
-// Prefix each line with its real file line number so the model can cite lines.
-function formatWithLineNumbers(data: {
-  lines: Array<string>;
-  startLine: number;
-}): string {
-  const width: number = String(data.startLine + data.lines.length - 1).length;
-
-  return data.lines
-    .map((line: string, index: number) => {
-      const lineNumber: string = String(data.startLine + index).padStart(
-        width,
-        " ",
-      );
-      return `${lineNumber}| ${line}`;
-    })
-    .join("\n");
 }
 
 export const ListCodeRepositoriesTool: ObservabilityTool = {
@@ -1219,7 +1195,7 @@ export const ReadCodeFileTool: ObservabilityTool = {
         : null;
     };
 
-    const allLines: Array<string> = splitIntoLines(file.content);
+    const allLines: Array<string> = splitCodeFileLines(file.content);
 
     if (allLines.length === 0) {
       // An empty file shows all of itself.
@@ -1291,15 +1267,35 @@ export const ReadCodeFileTool: ObservabilityTool = {
      * later startLine" hint would then skip exactly the lines that were cut.
      * Trimming by whole lines here keeps the reported range true.
      */
-    const selected: Array<string> = takeLinesWithinByteBudget(
+    const budgeted: Array<string> = takeLinesWithinByteBudget(
       allLines.slice(startLine - 1, endLine),
       startLine,
     );
 
+    /*
+     * Never part of a private key block (issue #6388): the redaction hides
+     * a block from its header to its footer, so a window that held one
+     * without the other - the 400 lines or the byte budget ending inside
+     * it, or a startLine past its header - showed the key itself to the
+     * model. A window is widened to the whole of any block it cuts; the
+     * block shows as one placeholder, however long it is.
+     */
+    const window: CodeLineRun = widenCodeLinesToWholeRuns({
+      first: startLine,
+      last: startLine + budgeted.length - 1,
+      runs: findCodePrivateKeyBlockLines(file.content),
+    });
+
+    startLine = window.first;
+
+    const selected: Array<string> = allLines.slice(
+      window.first - 1,
+      window.last,
+    );
     const actualEndLine: number = startLine + selected.length - 1;
     const isTruncated: boolean = actualEndLine < requestedEndLine;
 
-    const numbered: string = formatWithLineNumbers({
+    const numbered: string = formatCodeLinesWithNumbers({
       lines: selected,
       startLine: startLine,
     });
@@ -1355,8 +1351,8 @@ export const ReadCodeFileTool: ObservabilityTool = {
       findLinesWithValuesHidden({
         numberedLines: numbered.split("\n"),
         firstLine: startLine,
-        // formatWithLineNumbers' "NNN| ": the last line's number, padded, and "| ".
-        prefixLength: String(startLine + selected.length - 1).length + 2,
+        // formatCodeLinesWithNumbers' "NNN| ": the last line's number, padded, and "| ".
+        prefixLength: getCodeLinePrefixLength(startLine + selected.length - 1),
         shown: wholeLinesShown,
       }),
     );

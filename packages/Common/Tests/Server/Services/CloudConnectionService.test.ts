@@ -10,6 +10,8 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { CloudConnectionSettings } from "../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import AwsServerIdentity from "../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
+import AwsDefaultCredentialChain from "../../../Server/Utils/Aws/AwsDefaultCredentialChain";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudConnectionAuthMethod,
@@ -112,12 +114,22 @@ function stored(overrides: Partial<CloudConnection> = {}): CloudConnection {
 beforeEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  /*
+   * A server with no AWS credentials of its own either (#7379): OneUptime
+   * has no AWS identity until a test gives it the Cloud Connect key.
+   */
+  AwsServerIdentity.useCredentialChain(
+    new AwsDefaultCredentialChain({
+      env: { AWS_EC2_METADATA_DISABLED: "true" },
+    }),
+  );
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  AwsServerIdentity.useCredentialChain(null);
 });
 
 describe("validateSettings", () => {
@@ -608,30 +620,47 @@ describe("the model", () => {
   const access: Dictionary<ColumnAccessControl> =
     model.getColumnAccessControlForAllColumns();
 
-  test("credentials are written by owners and admins, and read by nobody", () => {
+  /*
+   * Cloud Admin (#10289) does on Cloud's records what Project Admin does:
+   * it connects a cloud, and reads its credentials back no more than anyone.
+   */
+  test("credentials are written by owners, admins and Cloud Admin, and read by nobody", () => {
     expect(access["secrets"]?.read).toEqual([]);
     expect(access["secrets"]?.create).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.CloudAdmin,
     ]);
     expect(access["pullState"]?.read).toEqual([]);
   });
 
-  test("only owners and admins add, change or remove a connection; cloud readers see it", () => {
+  test("only owners, admins and Cloud Admin add, change or remove a connection; cloud readers see it", () => {
     expect(model.getCreatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.CloudAdmin,
     ]);
     expect(model.getUpdatePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.CloudAdmin,
     ]);
     expect(model.getDeletePermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.CloudAdmin,
     ]);
     expect(model.getReadPermissions()).toEqual(
-      expect.arrayContaining([Permission.ReadCloudResource, Permission.Viewer]),
+      expect.arrayContaining([
+        Permission.ReadCloudResource,
+        Permission.Viewer,
+        Permission.CloudViewer,
+      ]),
+    );
+    // Cloud Member works with accounts and resources, not connections.
+    expect(model.getCreatePermissions()).not.toContain(Permission.CloudMember);
+    expect(model.getReadPermissions()).not.toContain(
+      Permission.AppPlatformViewer,
     );
   });
 

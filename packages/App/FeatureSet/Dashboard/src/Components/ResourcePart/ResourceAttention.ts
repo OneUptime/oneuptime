@@ -84,6 +84,12 @@ export interface ResourceAttentionEvent {
 export interface ResourceAttentionSince {
   at: Date;
   template: string;
+  /*
+   * The resource's own values the template names besides {{time}} - who
+   * stopped a guest, in "Stopped by {{user}} {{time}}" - as it writes them:
+   * never translated, each set apart from the words around it.
+   */
+  values?: Record<string, string> | undefined;
 }
 
 export interface ResourceAttentionItem {

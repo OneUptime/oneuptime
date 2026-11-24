@@ -50,6 +50,12 @@ export interface MaintenanceStatusPagesFormFieldOptions {
    * own.
    */
   monitorsOf?: StatusPageSuggestionsFooterOptions["monitorsOf"];
+  /*
+   * What the pages picked will do, under the field, on a form with no
+   * Subscriber Notifications section to say it (an event's Edit, #9974):
+   * MaintenanceStatusPagesReason. Left out, nothing.
+   */
+  getReachNote?: StatusPageSuggestionsFooterOptions["getNote"];
 }
 
 // A form field of a model, as ModelForm takes one.
@@ -93,6 +99,7 @@ export const getMaintenanceStatusPagesFormField: <
     getFooterElement: getStatusPageSuggestionsFooter<TEntity>({
       eventType: StatusPageEventType.ScheduledEvent,
       monitorsOf: options.monitorsOf,
+      getNote: options.getReachNote,
     }),
     getSummaryElement: (
       values: FormValues<TEntity>,

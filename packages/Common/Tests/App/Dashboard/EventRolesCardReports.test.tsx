@@ -342,6 +342,8 @@ describe.each([
       ]);
       expect(snapshot.members).toEqual([
         {
+          // The row that gives the role: what the header hands on (#10195).
+          memberId: expect.stringMatching(/^91000000-/),
           roleId: COMMANDER_ROLE_ID,
           userId: MAYA_ID,
           name: "Maya Chen",
@@ -349,6 +351,7 @@ describe.each([
           hasProfilePicture: true,
         },
         {
+          memberId: expect.stringMatching(/^91000000-/),
           roleId: SCRIBE_ROLE_ID,
           userId: SAM_ID,
           name: "Sam Rivera",

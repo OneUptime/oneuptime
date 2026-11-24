@@ -1,4 +1,5 @@
 import { ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME } from "../../Components/OnCallPolicy/OnCallLabelClasses";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 import CoverageMatrix, {
   CoverageModel,
   buildCoverageModel,
@@ -1146,18 +1147,40 @@ const OnCallReadinessPage: FunctionComponent<
    */
   const teamOptions: Array<DropdownOption> =
     useMemo((): Array<DropdownOption> => {
-      const namesById: Map<string, string> = new Map<string, string>();
+      const teamsById: Map<string, ReadinessTeamWire> = new Map<
+        string,
+        ReadinessTeamWire
+      >();
 
       for (const row of allRows) {
         for (const team of row.readiness.teams) {
-          namesById.set(team._id, team.name);
+          teamsById.set(team._id, team);
         }
       }
 
-      return Array.from(namesById.entries())
-        .map(([id, name]: [string, string]): DropdownOption => {
+      return Array.from(teamsById.values())
+        .map((team: ReadinessTeamWire): DropdownOption => {
+          const createdAt: Date | undefined = team.createdAt
+            ? new Date(team.createdAt)
+            : undefined;
+
           // A team's name, drawn as written (DropdownOption.isUserContent).
-          return { value: id, label: name, isUserContent: true };
+          return {
+            value: team._id,
+            label: team.name,
+            isUserContent: true,
+            /*
+             * Two teams of one name told apart (#10314): by when each was
+             * made, the most the page is sent of a team.
+             */
+            sharedName: {
+              kind: SharedNameKind.Team,
+              createdAt:
+                createdAt && !isNaN(createdAt.getTime())
+                  ? createdAt
+                  : undefined,
+            },
+          };
         })
         .sort((a: DropdownOption, b: DropdownOption): number => {
           return a.label.localeCompare(b.label);

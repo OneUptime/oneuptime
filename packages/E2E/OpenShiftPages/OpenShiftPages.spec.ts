@@ -141,7 +141,7 @@ test.describe("the cluster's menu", () => {
     await page.goto(CLUSTER_PATH);
 
     const menu: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
 
     await expect(
@@ -178,7 +178,7 @@ test.describe("the cluster's menu", () => {
     await page.goto(`${CLUSTER_PATH}?cluster=plain`);
 
     const menu: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
 
     await expect(menu.getByRole("link", { name: /Pods/ })).toBeVisible();
@@ -198,7 +198,7 @@ test.describe("the cluster's menu", () => {
 
     await expect(
       page
-        .getByRole("navigation", { name: "Main navigation" })
+        .getByRole("navigation", { name: "Pages in this section" })
         .getByRole("link", { name: /Routes/ }),
     ).toHaveAttribute("aria-current", "true");
   });
@@ -936,7 +936,7 @@ test.describe("the cluster's Recommendations", () => {
   // What the menu's Recommendations entry says is left to do.
   async function menuCount(page: Page): Promise<number> {
     const entry: Locator = page
-      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("navigation", { name: "Pages in this section" })
       .getByRole("link", { name: /Recommendations/ });
 
     await expect(entry).toContainText(/[0-9]+/);

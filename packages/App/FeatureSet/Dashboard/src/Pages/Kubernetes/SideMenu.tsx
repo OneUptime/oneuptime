@@ -26,6 +26,15 @@ const KubernetesSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
+            title: "Compliance",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_COMPLIANCE] as Route,
+            ),
+          },
+          icon: IconProp.ClipboardDocumentCheck,
+        },
+        {
+          link: {
             title: "Costs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.KUBERNETES_COSTS] as Route,

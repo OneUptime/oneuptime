@@ -10,7 +10,7 @@ import {
   CrossSignalQueryParams,
   toLogsExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceAttentionEvent,
   ResourceAttentionFact,
@@ -44,6 +44,10 @@ import { withRouteQueryParams } from "../../../Utils/TelemetryTabScope";
  * (ResourceAttentionDialog), and the unit's Logs a step away, filtered to
  * it.
  *
+ * The host's Systemd Units list opens the same rows (#9960): a failed
+ * unit's Failed opens its own, with View to its page, and the list's count
+ * of failed units opens every one of them (getSystemdFailedUnitItems).
+ *
  * React-free and free of the route map, so App tests can read it.
  */
 
@@ -55,6 +59,13 @@ export const SYSTEMD_UNIT_JOURNAL_READ_LIMIT: number = 50;
 
 // How many of them the Recent logs card shows.
 export const SYSTEMD_UNIT_RECENT_LINES_SHOWN: number = 10;
+
+/*
+ * How many failed units one read of why they failed asks about (#9960,
+ * #10129): the Systemd Units list's count opens at most this many, the
+ * newest failure first, and a host's Needs attention says why for as many.
+ */
+export const SYSTEMD_FAILED_UNITS_LISTED: number = 50;
 
 /*
  * How long before a failure a process's exit is the one that failed it:
@@ -264,6 +275,21 @@ export const SYSTEMD_UNIT_CURRENT: { key: string; label: string } = {
 
 const KIND_SYSTEMD_UNIT: string = translationKey("Systemd unit");
 const FAILED_SINCE: string = translationKey("Failed {{time}}");
+const STATE_FAILED: string = translationKey("Failed");
+
+/*
+ * A failed unit whose journal says nothing of why: the host's collector
+ * does not send each line's unit (a Collector Config of the project's own),
+ * or the unit failed before the window.
+ */
+export const SYSTEMD_UNIT_NO_REASON_IN_JOURNAL: string = translationKey(
+  "Its journal of the last {{days}} days does not say why. OneUptime's default collector config sends each journal line with its unit.",
+);
+
+// A unit's row in a list of failed units: its key, unique in the list.
+export function getSystemdUnitItemKey(unitName: string): string {
+  return `${SYSTEMD_UNIT_CURRENT.key}:${unitName}`;
+}
 
 // Since when it is failed: "Failed 2 hours ago", in the dialog and the tile alike.
 export function getSystemdUnitFailureSince(
@@ -295,11 +321,17 @@ export function getSystemdUnitOwnLines(data: {
  * The unit as the dialog behind its Failed lists it: why in a chip,
  * systemd's result and exit status as written, the last thing it printed
  * before it failed, since when, and its lines before that.
+ *
+ * On the unit's own page it is the dialog's current row (SYSTEMD_UNIT_CURRENT,
+ * "This unit"); from a list, a row of its own (`key`) with View to the unit's
+ * page (`route`).
  */
 export function getSystemdUnitFailureItem(data: {
   unitName: string;
   failure: SystemdUnitFailure;
   lines: ReadonlyArray<SystemdUnitJournalLine>;
+  key?: string | undefined;
+  route?: Route | undefined;
 }): ResourceAttentionItem {
   const failure: SystemdUnitFailure = data.failure;
   const facts: Array<ResourceAttentionFact> = [
@@ -324,7 +356,7 @@ export function getSystemdUnitFailureItem(data: {
   const [lastSaid, ...before] = ownLines;
 
   return {
-    key: SYSTEMD_UNIT_CURRENT.key,
+    key: data.key || SYSTEMD_UNIT_CURRENT.key,
     kind: KIND_SYSTEMD_UNIT,
     icon: IconProp.Cog6Tooth,
     name: data.unitName,
@@ -338,7 +370,153 @@ export function getSystemdUnitFailureItem(data: {
       unitName: data.unitName,
       lines: before,
     }),
+    route: data.route,
   };
+}
+
+/*
+ * A failed unit whose journal holds no failure: Failed, why the journal may
+ * not say (SYSTEMD_UNIT_NO_REASON_IN_JOURNAL, in the reader's words), and
+ * what it printed lately.
+ */
+export function getSystemdUnitUnexplainedFailureItem(data: {
+  unitName: string;
+  lines: ReadonlyArray<SystemdUnitJournalLine>;
+  translator: Translator;
+  key?: string | undefined;
+  route?: Route | undefined;
+}): ResourceAttentionItem {
+  return {
+    key: data.key || SYSTEMD_UNIT_CURRENT.key,
+    kind: KIND_SYSTEMD_UNIT,
+    icon: IconProp.Cog6Tooth,
+    name: data.unitName,
+    severity: ResourceAttentionSeverity.Critical,
+    reasons: [{ text: STATE_FAILED }],
+    explanation: data.translator.translateTemplate(
+      SYSTEMD_UNIT_NO_REASON_IN_JOURNAL,
+      {
+        days: data.translator.formatNumber(SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS),
+      },
+    ),
+    events: getSystemdUnitLineEvents({
+      unitName: data.unitName,
+      lines: getSystemdUnitOwnLines({ lines: data.lines }),
+    }),
+    route: data.route,
+  };
+}
+
+/*
+ * One unit's row, from its journal: why it failed when the journal says
+ * so, else that it does not.
+ */
+export function getSystemdUnitFailedItem(data: {
+  unitName: string;
+  lines: ReadonlyArray<SystemdUnitJournalLine>;
+  translator: Translator;
+  key?: string | undefined;
+  route?: Route | undefined;
+}): ResourceAttentionItem {
+  const failure: SystemdUnitFailure | null = readSystemdUnitFailure(data.lines);
+
+  return failure
+    ? getSystemdUnitFailureItem({
+        unitName: data.unitName,
+        failure: failure,
+        lines: data.lines,
+        key: data.key,
+        route: data.route,
+      })
+    : getSystemdUnitUnexplainedFailureItem(data);
+}
+
+// A unit the Systemd Units list read as failed, and its page.
+export interface SystemdFailedUnit {
+  name: string;
+  route?: Route | undefined;
+}
+
+/*
+ * The lines of a read of several units' journal (any unit's, filed under
+ * systemd.unit.name), by the unit each is about.
+ */
+export function groupSystemdJournalLinesByUnit(
+  lines: ReadonlyArray<SystemdUnitJournalLine>,
+): Map<string, Array<SystemdUnitJournalLine>> {
+  const linesByUnit: Map<string, Array<SystemdUnitJournalLine>> = new Map();
+
+  for (const line of lines) {
+    const unitName: string = attribute(line, JOURNALD_SYSTEMD_UNIT_ATTRIBUTE);
+    const unitLines: Array<SystemdUnitJournalLine> | undefined =
+      linesByUnit.get(unitName);
+
+    if (unitLines) {
+      unitLines.push(line);
+    } else {
+      linesByUnit.set(unitName, [line]);
+    }
+  }
+
+  return linesByUnit;
+}
+
+/*
+ * The host's failed units as a list of what failed opens them (#9960), each
+ * from the lines its journal holds about it (`lines`: any unit's, filed
+ * under systemd.unit.name): the newest failure first, then the units whose
+ * journal does not say why, by name.
+ */
+export function getSystemdFailedUnitItems(data: {
+  units: ReadonlyArray<SystemdFailedUnit>;
+  lines: ReadonlyArray<SystemdUnitJournalLine>;
+  translator: Translator;
+}): Array<ResourceAttentionItem> {
+  const linesByUnit: Map<
+    string,
+    Array<SystemdUnitJournalLine>
+  > = groupSystemdJournalLinesByUnit(data.lines);
+
+  const rows: Array<{
+    item: ResourceAttentionItem;
+    failedAt: number | null;
+  }> = data.units.map((unit: SystemdFailedUnit) => {
+    const lines: Array<SystemdUnitJournalLine> =
+      linesByUnit.get(unit.name) || [];
+    const failure: SystemdUnitFailure | null = readSystemdUnitFailure(lines);
+
+    return {
+      item: getSystemdUnitFailedItem({
+        unitName: unit.name,
+        lines: lines,
+        translator: data.translator,
+        key: getSystemdUnitItemKey(unit.name),
+        route: unit.route,
+      }),
+      failedAt: failure ? failure.failedAt.getTime() : null,
+    };
+  });
+
+  return rows
+    .sort(
+      (
+        a: { item: ResourceAttentionItem; failedAt: number | null },
+        b: { item: ResourceAttentionItem; failedAt: number | null },
+      ): number => {
+        if (a.failedAt !== null && b.failedAt !== null) {
+          return b.failedAt - a.failedAt;
+        }
+
+        if (a.failedAt !== null || b.failedAt !== null) {
+          return a.failedAt !== null ? -1 : 1;
+        }
+
+        return a.item.name.localeCompare(b.item.name);
+      },
+    )
+    .map((row: { item: ResourceAttentionItem }): ResourceAttentionItem => {
+      return row.item;
+    });
 }
 
 /*

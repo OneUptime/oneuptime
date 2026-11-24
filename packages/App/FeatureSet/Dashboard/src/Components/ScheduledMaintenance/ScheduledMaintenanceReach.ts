@@ -31,6 +31,7 @@ import {
   readSubscriberNotificationSettings,
 } from "./ScheduledMaintenanceForm";
 import {
+  MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT,
   REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT,
   getPublishAtInForm,
   getPublishingSummary,
@@ -105,9 +106,8 @@ export interface MaintenanceReachQuestion {
   recordId: string | null;
 }
 
-export const MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED: string = translationKey(
-  "None of the status pages picked shows maintenance events.",
-);
+export const MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED: string =
+  MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT;
 
 export const MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY: string = translationKey(
   "The status pages picked do not send notifications to their subscribers.",
@@ -539,6 +539,88 @@ export const getMaintenanceNotifyOptionsReason: (data: {
   }
 
   return null;
+};
+
+/*
+ * Under the status page picker on an event's Edit, which has no Subscriber
+ * Notifications section (#9974): what the pages picked will do with the
+ * event when that is nothing - it shows on none of them, or it shows and
+ * tells nobody - and why:
+ *
+ *   - hidden from its status pages: that;
+ *   - no page picked: it appears on none;
+ *   - none of the pages picked shows maintenance events (or they are
+ *     archived): that - whatever the event asks of its subscribers, since
+ *     it shows nowhere - and, when it asks anything, that nobody is told;
+ *   - the pages that show it send nothing: that, when it asks anything.
+ *
+ * Empty while the pages' answer is not known - nothing is promised either
+ * way - and when a page shows the event and one notifies.
+ */
+export const getMaintenanceStatusPagesReason: (data: {
+  values: unknown;
+  record: MaintenanceReachRecord;
+  reach: PickedStatusPagesReachResult | null | undefined;
+}) => Array<string> = (data: {
+  values: unknown;
+  record: MaintenanceReachRecord;
+  reach: PickedStatusPagesReachResult | null | undefined;
+}): Array<string> => {
+  const settings: ScheduledMaintenanceSubscriberSettings =
+    readMaintenanceSubscriberSettings(data.values, data.record);
+  const isAsking: boolean = isAskingAnything(settings);
+
+  const eventReason: MaintenanceEventNothingSentReason | null | undefined =
+    ScheduledMaintenanceSubscriberReach.getEventReason({
+      settings: settings,
+      statusPagesReason: getStatusPagesReason(data),
+    });
+
+  if (eventReason === PublicNoteNothingSentReason.HiddenFromStatusPages) {
+    return [MAINTENANCE_HIDDEN];
+  }
+
+  if (!getMaintenanceReachQuestion(data)) {
+    return [
+      data.record === MaintenanceReachRecord.Template
+        ? MaintenanceStatusPagesCopy.templateNotShownWarning
+        : MaintenanceStatusPagesCopy.notShownWarning,
+    ];
+  }
+
+  if (eventReason === PublicNoteNothingSentReason.NoStatusPages) {
+    return isAsking
+      ? [
+          MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED,
+          MAINTENANCE_SUBSCRIBERS_NOT_NOTIFIED,
+        ]
+      : [MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED];
+  }
+
+  if (
+    eventReason === PublicNoteNothingSentReason.NotificationsOff &&
+    isAsking
+  ) {
+    return [MAINTENANCE_PAGES_PICKED_DO_NOT_NOTIFY];
+  }
+
+  return [];
+};
+
+/*
+ * Under the status pages an event's details list (#9974): that none of
+ * them shows it, once the server has said so - none of them shows
+ * maintenance events, or they are archived. Null otherwise, and while that
+ * is not known: the list is the pages the event was put on, which is true.
+ */
+export const getStatusPagesListedReason: (
+  reach: PickedStatusPagesReachResult | null | undefined,
+) => string | null = (
+  reach: PickedStatusPagesReachResult | null | undefined,
+): string | null => {
+  return reach?.nothingSentReason === PublicNoteNothingSentReason.NoStatusPages
+    ? MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED
+    : null;
 };
 
 /*

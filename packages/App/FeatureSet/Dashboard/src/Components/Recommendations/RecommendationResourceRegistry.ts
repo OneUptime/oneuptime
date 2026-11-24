@@ -17,10 +17,13 @@ import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataPipeline from "Common/Models/DatabaseModels/DataPipeline";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CloudApp from "Common/Models/DatabaseModels/CloudApp";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
 import DeviceManagementConnection from "Common/Models/DatabaseModels/DeviceManagementConnection";
+import { readDeviceManagementConfig } from "Common/Types/DeviceManagement/DeviceManagementConnectionSettings";
+import { JSONObject } from "Common/Types/JSON";
 import { parseMessageQueueIdentifier } from "Common/Types/MessageQueue/MessageQueueIdentity";
 import {
   MessageQueueMetricDescriptor,
@@ -31,6 +34,7 @@ import {
   MessageQueueAlertTemplate,
   getAllMessageQueueAlertTemplates,
 } from "Common/Types/Monitor/MessageQueueAlertTemplates";
+import { getManagedDeviceAlertTemplatesFor } from "Common/Types/Monitor/ManagedDeviceAlertTemplates";
 import OneUptimeDate from "Common/Types/Date";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { getCloudAppTelemetryFilters } from "../../Pages/AppPlatforms/Utils/CloudApps";
@@ -42,14 +46,22 @@ import {
 import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
 import {
   CloudAlertTemplate,
+  getCloudAlertStreamedMetrics,
   getCloudAlertTemplatesFor,
   getCloudAlertTemplatesForType,
+  getCloudAlertWindow,
   getCloudConnectionsThreshold,
   getCloudMonitoringServiceName,
   isCloudAlertTemplateOfOpsAgent,
   readAllocatedStorageGiB,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
+import {
+  CloudConnectionDefinition,
+  READ_INTERVAL_FIELD_KEY,
+  getCloudConnectionDefinition,
+  getCloudConnectionReadIntervalInMinutes,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import { readCloudResourceReadings } from "Common/Types/Cloud/CloudResourceHealth";
 import { AWS_CLOUDWATCH_NAMESPACE_ATTRIBUTE } from "Common/Types/Cloud/CloudMonitoredResource";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
@@ -102,6 +114,7 @@ import {
   fetchOpenStackInventorySummary,
 } from "../../Pages/OpenStack/Utils/OpenStackResourceUtils";
 import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { hasKubernetesClusterSeparateImageDisk } from "../../Pages/Kubernetes/Utils/KubernetesImageDisk";
 import { readRumClientKind } from "Common/Types/Rum/RumClientKind";
 
 /*
@@ -479,6 +492,48 @@ export function describeMessageQueueRecommendationContext(
   );
 }
 
+/*
+ * A device management connection is offered its own service's templates
+ * (getManagedDeviceAlertTemplatesFor): nothing to say while there are some,
+ * and why the list is empty when its service has none.
+ */
+/*
+ * What a device management connection's row says that decides its
+ * recommendations: its service, which picks the templates (#9837), and how
+ * often it is read, which Connection Stopped Reading waits three of
+ * (#10006). A row with no settings says no interval: the default one's.
+ */
+export function readDeviceManagementRecommendationContext(
+  record: Record<string, unknown>,
+): MonitorRecommendationContext {
+  const provider: unknown = record["provider"];
+  const config: unknown = record["config"];
+
+  return {
+    deviceManagementProvider:
+      typeof provider === "string" && provider ? provider : null,
+    deviceManagementReadIntervalInMinutes:
+      config && typeof config === "object" && !Array.isArray(config)
+        ? readDeviceManagementConfig(config as JSONObject).readIntervalInMinutes
+        : null,
+  };
+}
+
+export function describeDeviceManagementRecommendationContext(
+  context: MonitorRecommendationContext,
+): string | undefined {
+  if (
+    getManagedDeviceAlertTemplatesFor(context.deviceManagementProvider).length >
+    0
+  ) {
+    return undefined;
+  }
+
+  return translateTemplate(
+    "OneUptime has no recommended monitor for this connection's devices yet.",
+  );
+}
+
 // Whether a cloud resource is an RDS DB instance: the one type with a connection limit.
 function isRdsDbInstance(provider: unknown, resourceType: unknown): boolean {
   return (
@@ -529,6 +584,155 @@ export function readCloudResourceRecommendationContext(
     // An ObjectID on a read row, a string in a plain record.
     cloudReadByConnection: Boolean(connectionId && String(connectionId).trim()),
   };
+}
+
+// A cloud connection as a resource's recommendations read it.
+export interface CloudRecommendationConnection {
+  provider?: unknown;
+  config?: unknown;
+  streamSummary?: unknown;
+}
+
+/*
+ * What a cloud resource's connection says of how its metrics come
+ * (#10028): how often it reads them, and which of them its account's
+ * stream writes instead - each recommended monitor's window follows both
+ * (getCloudAlertWindow). The resource's row says its account and Region,
+ * which its stream is read by. No connection: the context as it was, and
+ * the windows its cloud's default interval reads.
+ */
+export function readCloudConnectionRecommendationContext(data: {
+  context: MonitorRecommendationContext;
+  record: Record<string, unknown>;
+  connection: CloudRecommendationConnection | null | undefined;
+  now: Date;
+}): MonitorRecommendationContext {
+  const provider: string = String(
+    data.connection?.provider || data.context.cloudProvider || "",
+  )
+    .trim()
+    .toLowerCase();
+  const definition: CloudConnectionDefinition | undefined =
+    getCloudConnectionDefinition(provider);
+
+  if (!data.connection || !definition) {
+    return data.context;
+  }
+
+  const config: Record<string, unknown> =
+    data.connection.config &&
+    typeof data.connection.config === "object" &&
+    !Array.isArray(data.connection.config)
+      ? (data.connection.config as Record<string, unknown>)
+      : {};
+
+  return {
+    ...data.context,
+    cloudReadIntervalInMinutes: getCloudConnectionReadIntervalInMinutes(
+      definition,
+      config[READ_INTERVAL_FIELD_KEY],
+    ),
+    cloudStreamedMetrics: getCloudAlertStreamedMetrics({
+      provider,
+      resourceType: data.context.cloudResourceType,
+      accountId: data.record["cloudAccountId"],
+      region: data.record["cloudRegion"],
+      streamSummary: data.connection.streamSummary,
+      now: data.now,
+    }),
+  };
+}
+
+// What a cloud resource's connection's row is read with.
+export const CLOUD_RECOMMENDATION_CONNECTION_SELECT: {
+  provider: true;
+  config: true;
+  streamSummary: true;
+} = { provider: true, config: true, streamSummary: true };
+
+/*
+ * A cloud resource's row, completed with what its connection says
+ * (readCloudConnectionRecommendationContext). The connection is read with
+ * the person's own rights; a read that fails keeps the row's context
+ * (RecommendationResourceRegistry.loadContext): its windows are then its
+ * cloud's default interval's.
+ */
+export async function loadCloudResourceRecommendationContext(data: {
+  model: BaseModel;
+  context: MonitorRecommendationContext;
+}): Promise<MonitorRecommendationContext> {
+  const record: Record<string, unknown> = data.model as unknown as Record<
+    string,
+    unknown
+  >;
+  const connectionId: string = String(record["cloudConnectionId"] || "").trim();
+
+  if (!connectionId) {
+    return data.context;
+  }
+
+  // Imported here: its client reads the browser's config as it loads.
+  const modelApi: typeof import("Common/UI/Utils/ModelAPI/ModelAPI") =
+    await import("Common/UI/Utils/ModelAPI/ModelAPI");
+
+  const connection: CloudConnection | null = await modelApi.default.getItem({
+    modelType: CloudConnection,
+    id: new ObjectID(connectionId),
+    select: CLOUD_RECOMMENDATION_CONNECTION_SELECT,
+  });
+
+  return readCloudConnectionRecommendationContext({
+    context: data.context,
+    record,
+    connection,
+    now: OneUptimeDate.getCurrentDate(),
+  });
+}
+
+/*
+ * Whether a resource read every `readIntervalInMinutes` reads one of
+ * `templates` a longer window than its template's (getCloudAlertWindow,
+ * #10028): its connection is read less often than its cloud's default.
+ */
+export function isCloudAlertWindowWidened(data: {
+  templates: Array<CloudAlertTemplate>;
+  readIntervalInMinutes: number | null | undefined;
+  streamedMetrics?: Array<string> | null | undefined;
+}): boolean {
+  return data.templates.some((template: CloudAlertTemplate): boolean => {
+    return (
+      getCloudAlertWindow({
+        template,
+        readIntervalInMinutes: data.readIntervalInMinutes,
+        streamedMetrics: data.streamedMetrics,
+      }) !== template.rollingTime
+    );
+  });
+}
+
+/*
+ * What reading a connection less often than its cloud's default costs the
+ * recommended monitors whose window it widens (isCloudAlertWindowWidened):
+ * an alert can come up to a read after what it watches, and each monitor
+ * reads a longer window, to judge every reading a read brings - with how
+ * to alert sooner. Of a resource, or of its account's resources.
+ */
+export function describeCloudReadIntervalCost(data: {
+  readIntervalInMinutes: number;
+  isAccount?: boolean | undefined;
+}): string {
+  const minutes: number = data.readIntervalInMinutes;
+  const translator: Translator = getGlobalTranslator();
+
+  return data.isAccount
+    ? translator.translateTemplate(
+        "This account's connection reads metrics every {{minutes}} minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        { minutes: translator.formatNumber(minutes) },
+      )
+    : translator.translateTemplate(
+        "Its connection reads metrics every {{minutes}} minutes, so an alert can come that long after a problem, and these monitors read longer windows to miss no reading. To alert sooner, read more often in Cloud > Connect.",
+        { minutes: translator.formatNumber(minutes) },
+      );
 }
 
 /*
@@ -626,7 +830,9 @@ export function joinCloudRecommendationNotes(
 
 /*
  * Why a cloud resource is offered fewer recommendations than its type has,
- * or none - said only then: a resource offered all of them needs no note.
+ * or none - said only then: a resource offered all of them needs no note -
+ * and what its connection's interval costs them when it reads them longer
+ * windows (describeCloudReadIntervalCost).
  */
 export function describeCloudResourceRecommendationContext(
   context: MonitorRecommendationContext,
@@ -755,6 +961,22 @@ export function describeCloudResourceRecommendationContext(
     notes.push(connectionNote);
   }
 
+  // What its connection's interval costs the monitors it is offered (#10028).
+  if (
+    context.cloudReadIntervalInMinutes &&
+    isCloudAlertWindowWidened({
+      templates: offered,
+      readIntervalInMinutes: context.cloudReadIntervalInMinutes,
+      streamedMetrics: context.cloudStreamedMetrics,
+    })
+  ) {
+    notes.push(
+      describeCloudReadIntervalCost({
+        readIntervalInMinutes: context.cloudReadIntervalInMinutes,
+      }),
+    );
+  }
+
   return joinCloudRecommendationNotes(notes);
 }
 
@@ -841,20 +1063,52 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       };
     },
     /*
-     * Said only where the provider changed the list, by the catalog's own
-     * test: an OpenShift cluster's operator and update alerts. Every other
-     * cluster is offered what every cluster is, which needs no note.
+     * Node Image Disk Almost Full is offered only where some node keeps its
+     * container images on a disk of its own (#10056), which only the
+     * cluster's nodes know: ingest keeps that disk's reading on the node's
+     * row, and on no other. A read that fails leaves it withheld, as it is on
+     * a cluster with no such node.
+     */
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      return {
+        ...data.context,
+        kubernetesHasSeparateImageDisk:
+          await hasKubernetesClusterSeparateImageDisk(
+            data.model.id as ObjectID,
+          ),
+      };
+    },
+    /*
+     * Said only where the cluster changed the list, by the catalog's own
+     * tests: an OpenShift cluster's operator and update alerts, and the image
+     * disk alert of a cluster with a node that has one. Every other cluster
+     * is offered what every cluster is, which needs no note.
      */
     describeContext: (
       context: MonitorRecommendationContext,
     ): string | undefined => {
-      if (context.kubernetesProvider !== OPENSHIFT_KUBERNETES_PROVIDER) {
-        return undefined;
+      const notes: Array<string> = [];
+
+      if (context.kubernetesProvider === OPENSHIFT_KUBERNETES_PROVIDER) {
+        notes.push(
+          translateTemplate(
+            "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
+          ),
+        );
       }
 
-      return translateTemplate(
-        "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
-      );
+      if (context.kubernetesHasSeparateImageDisk === true) {
+        notes.push(
+          translateTemplate(
+            "At least one node of this cluster keeps its container images on a disk of its own, so the recommendations below include an alert on that disk.",
+          ),
+        );
+      }
+
+      return joinCloudRecommendationNotes(notes);
     },
   },
   {
@@ -1448,12 +1702,17 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       "cloudReadings",
       "cloudProperties",
       "cloudConnectionId",
+      // What its account's stream is read by (loadContext).
+      "cloudAccountId",
+      "cloudRegion",
     ],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       return readCloudResourceRecommendationContext(
         model as unknown as Record<string, unknown>,
       );
     },
+    // Its connection's interval and stream, which its windows follow.
+    loadContext: loadCloudResourceRecommendationContext,
     describeContext: describeCloudResourceRecommendationContext,
     getCardDescription: (
       context: MonitorRecommendationContext,
@@ -1570,19 +1829,28 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   },
   /*
    * A device management connection (an Esper tenant, #9835): its monitors
-   * read the check-ins each read of it writes for its devices, filtered on
-   * the connection's id, so `_id` is the identifier. Read by everyone who
-   * may read the project's Inventory; its page is opened from its row on
-   * Inventory > Managed Devices (Set up alerts).
+   * read what each read of it writes - of its devices, and of itself
+   * (#10006) - filtered on the connection's id, so `_id` is the
+   * identifier. Its service picks the templates (#9837), and how often it
+   * is read is what Connection Stopped Reading waits three of. Read by
+   * everyone who may read the project's Inventory; its page is opened from
+   * its row on Inventory > Managed Devices (Set up alerts).
    */
   {
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     modelType: DeviceManagementConnection,
     identifierFieldName: "_id",
     displayNameFieldName: "name",
+    contextFieldNames: ["provider", "config"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      return readDeviceManagementRecommendationContext(
+        model as unknown as Record<string, unknown>,
+      );
+    },
+    describeContext: describeDeviceManagementRecommendationContext,
     getCardDescription: (): string | undefined => {
       return translateTemplate(
-        "Monitors OneUptime recommends for the devices this connection imports, from how long since each checked in. Pick the ones you want and create them in one step.",
+        "Monitors OneUptime recommends for this connection and the devices it imports: when it stops reading them, and when one of them stops checking in or needs attention. Pick the ones you want and create them in one step.",
       );
     },
   },

@@ -7,6 +7,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import Color from "../../Types/Color";
 import Text from "../../Types/Text";
 import { isRecordNameAsWritten } from "../../Utils/DefaultRecordNames";
+import { SharedNameFacts, getSharedNameFacts } from "./SharedNameOptions";
 
 type Enum<E> = Record<keyof E, number | string> & { [k: number]: string };
 
@@ -118,6 +119,20 @@ export default class DropdownUtil {
 
         if (color) {
           option.color = color;
+        }
+      }
+
+      /*
+       * A team, a label, an on-call policy or a schedule, by its name: what
+       * tells it from another of the same name, read from the columns the
+       * caller selected (getSharedNameSelect, #10064).
+       */
+      if (data.labelField === "name") {
+        const sharedName: SharedNameFacts | undefined =
+          getSharedNameFacts(item);
+
+        if (sharedName) {
+          option.sharedName = sharedName;
         }
       }
 

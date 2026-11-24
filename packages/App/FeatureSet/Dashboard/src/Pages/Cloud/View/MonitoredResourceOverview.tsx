@@ -7,6 +7,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -42,6 +43,7 @@ import {
   MetricRowGroupGap,
 } from "../../../Components/Metrics/Utils/MetricRowScope";
 import CloudUnreportedKeyMetricsList from "../../../Components/Cloud/ResourceMetrics/CloudUnreportedKeyMetricsList";
+import CloudResourceMetricCollectionLine from "../../../Components/Cloud/ResourceMetrics/CloudResourceMetricCollectionLine";
 import {
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
@@ -158,43 +160,55 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
+      /*
+       * Its connection's additions and settings are read through the
+       * resource for who may read the connection itself (#10310): every
+       * reader of the project's cloud resources, but a team kept from its
+       * connections, which reads the resource without them.
+       */
       const item: CloudResource | null = await ModelAPI.getItem({
         modelType: CloudResource,
         id: modelId,
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          cloudResourceKind: true,
-          cloudResourceType: true,
-          providerResourceId: true,
-          cloudProvider: true,
-          cloudRegion: true,
-          cloudAccountId: true,
-          cloudResourceGroup: true,
-          telemetryAttributes: true,
-          cloudTags: true,
-          cloudProperties: true,
-          cloudRelationships: true,
-          cloudEndpoints: true,
-          inventoriedAt: true,
-          otelCollectorStatus: true,
-          cloudReadings: true,
-          cloudReadingsAt: true,
-          healthSeverity: true,
-          lastSeenAt: true,
-          createdAt: true,
-          cloudConnectionId: true,
-          cloudConnection: {
+        select: PermissionGate.getSelectReadableThroughRelations(
+          CloudResource,
+          {
+            _id: true,
             name: true,
-            // What it reads for this resource besides its key metrics.
-            addedMetrics: true,
+            description: true,
+            cloudResourceKind: true,
+            cloudResourceType: true,
+            providerResourceId: true,
+            cloudProvider: true,
+            cloudRegion: true,
+            cloudAccountId: true,
+            cloudResourceGroup: true,
+            telemetryAttributes: true,
+            cloudTags: true,
+            cloudProperties: true,
+            cloudRelationships: true,
+            cloudEndpoints: true,
+            inventoriedAt: true,
+            otelCollectorStatus: true,
+            cloudReadings: true,
+            cloudReadingsAt: true,
+            healthSeverity: true,
+            lastSeenAt: true,
+            createdAt: true,
+            cloudConnectionId: true,
+            cloudConnection: {
+              name: true,
+              // What it reads for this resource besides its key metrics.
+              addedMetrics: true,
+              // How often: a seldom metric is missing only past its delay.
+              provider: true,
+              config: true,
+            },
+            labels: {
+              name: true,
+              color: true,
+            },
           },
-          labels: {
-            name: true,
-            color: true,
-          },
-        },
+        ),
       });
 
       if (!item) {
@@ -259,6 +273,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     cloudResource?.cloudProvider,
     cloudResource?.cloudResourceType,
     cloudResource?.telemetryAttributes,
+    cloudResource?.cloudConnection?.config,
   ]);
 
   const renderRowGroupGap: (gap: MetricRowGroupGap) => ReactElement =
@@ -571,6 +586,15 @@ const CloudMonitoredResourceOverview: FunctionComponent<
             title="Metrics"
             description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
           >
+            {/*
+             * When its connection last read them, and what it could not
+             * (#10291) - also where none is recorded yet.
+             */}
+            {r.cloudConnectionId ? (
+              <CloudResourceMetricCollectionLine cloudResourceId={modelId} />
+            ) : (
+              <></>
+            )}
             {Object.keys(attributeFilters).length > 0 ? (
               <MetricsViewer
                 attributeFilters={attributeFilters}

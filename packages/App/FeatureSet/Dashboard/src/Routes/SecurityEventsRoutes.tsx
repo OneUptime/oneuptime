@@ -53,6 +53,7 @@ import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
+import SecurityBlocklistPage from "../Pages/SecurityEvents/Blocklist";
 import SecurityEventsWorkspaceConnectionSlackPage from "../Pages/SecurityEvents/WorkspaceConnectionSlack";
 import SecurityEventsWorkspaceConnectionMicrosoftTeamsPage from "../Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
 import SecurityEventsWorkspaceConnectionMattermostPage from "../Pages/SecurityEvents/WorkspaceConnectionMattermost";
@@ -359,6 +360,15 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        <PageRoute
+          path={SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST] || ""}
+          element={
+            <SecurityBlocklistPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_BLOCKLIST] as Route}
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_PROTECTED_ENTITIES] || ""

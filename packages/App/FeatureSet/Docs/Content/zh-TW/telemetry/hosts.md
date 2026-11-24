@@ -130,7 +130,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 
 ### 編輯它的 config.yaml
 
-在設定的頁面上選擇 **編輯設定**，修改 YAML 並儲存。OneUptime 會先檢查它，對無法傳送的設定予以拒絕並說明原因：請參閱 [設定可以做什麼](#設定可以做什麼)。
+在設定的頁面上選擇 **編輯設定**，修改 YAML 並儲存。OneUptime 會先檢查它，對無法傳送的設定予以拒絕並說明原因：請參閱 [設定可以做什麼](#設定可以做什麼)。在 Linux 設定中，請保留 `journald` 接收器的 `operators`：它們會將每一行 journal 日誌歸入其 systemd 單元，失敗單元的頁面據此說明它失敗的原因。沒有它們的設定可以從 Linux 預設設定的 **檢視設定** 中複製。
 
 ### 查看它送達主機
 

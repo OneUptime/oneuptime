@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 2602
+    "keys": 59636,
+    "untranslated": 2609
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -145,6 +145,7 @@
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
+    "Challenge",
     "Chassis",
     "Chat",
     "Chats",
@@ -390,6 +391,7 @@
     "Mesh / VPN",
     "Messaging",
     "Microsoft Entra ID",
+    "Microsoft Intune",
     "Min",
     "Minimum",
     "Minute",
@@ -406,6 +408,7 @@
     "Mounts",
     "MySQL",
     "Myanmar",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Name",
     "Name (optional)",
     "Nameserver",
@@ -575,6 +578,7 @@
     "Senegal",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Service Level Objective",
     "Service Level Objectives",
     "Service Mesh",
@@ -737,6 +741,7 @@
     "amd64",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "body",
     "build=1.4.2, plan=pro",
@@ -746,6 +751,7 @@
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
+    "dSYMs",
     "db-primary",
     "db-replica.prod.internal:5432",
     "debug",

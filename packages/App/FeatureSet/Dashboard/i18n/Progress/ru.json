@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 8176
+    "keys": 59636,
+    "untranslated": 8181
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -96,9 +96,11 @@
     "Markdown",
     "Memcached",
     "Mesh / VPN",
+    "Microsoft Intune",
     "Mirantis MOSK",
     "MongoDB",
     "MySQL",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Null",
     "OID Collection Template",
     "OK",
@@ -175,6 +177,7 @@
     "amphorae",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",

@@ -292,6 +292,7 @@ describe("what is turned off", () => {
       [BASELINE, false],
       [RESTRICTED, true],
       [CIS, false],
+      [KubernetesComplianceFramework.NsaCisaHardening, false],
     ]);
   });
 

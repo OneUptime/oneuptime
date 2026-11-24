@@ -511,9 +511,14 @@ const store = {
   Incident: incidents,
   Alert: alerts,
   ScheduledMaintenance: [],
-  // What the Recommendations menu item reads: no monitors, nothing dismissed.
+  /*
+   * What the Recommendations menu item reads: no monitors, nothing
+   * dismissed, and no connection reading the account - none of its
+   * resources names one - so each window is its template's (#10028).
+   */
   Monitor: [],
   RecommendationDismissal: [],
+  CloudConnection: [],
   /*
    * The project's first data of each kind (its activation milestones): the
    * master Topology page reads the first traces, which its services sent.

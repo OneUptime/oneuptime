@@ -9,13 +9,17 @@ import {
   SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE,
   SECURITY_LOG_DOCKER_HOST_ATTRIBUTE,
   SECURITY_LOG_FUNCTION_ATTRIBUTE,
+  SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH,
   SECURITY_LOG_PODMAN_HOST_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
   SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
   SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY,
   SECURITY_LOG_ROW_FUNCTION_KEY,
 } from "../../../Types/SecurityCase/SecurityConnection";
-import { MAX_RESOURCE_ID_LENGTH } from "../../SecurityCase/SecurityConnectionMatch";
+import {
+  MAX_RESOURCE_ID_LENGTH,
+  getResourceIdMatchKey,
+} from "../../SecurityCase/SecurityConnectionMatch";
 import { getResourceIdObservables } from "../SecurityRecordReading";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
@@ -347,7 +351,8 @@ export function readLogContainerHost(
 }
 
 // The longest function name a line's faas.name is read as.
-export const MAX_LOG_FUNCTION_NAME_LENGTH: number = 255;
+export const MAX_LOG_FUNCTION_NAME_LENGTH: number =
+  SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH;
 
 // A row's text attribute, trimmed: "" when it is none, or longer than `limit` - never cut.
 function readExactAttribute(
@@ -369,10 +374,14 @@ function readExactAttribute(
 
 /*
  * The cloud resource a line is of (#9779): its resource.cloud.resource_id,
- * exactly as the stream stamped it - the value the resource's Logs page
- * filters on - so every event read from the line reaches that resource's
- * Security Events page. Kept whole: a value cut to fit would name another
- * resource, so one longer than any cloud's ID is left out.
+ * as the stream stamped it - the value the resource's Logs page filters on
+ * - so every event read from the line reaches that resource's Security
+ * Events page and its Connected Signals. An Azure resource ID is kept by
+ * its key, in lower case (#10034): Azure compares its IDs without case, and
+ * a collector or a pipeline stamps one in any case it likes. An ARN or a
+ * Google Cloud name is kept as written. Kept whole: a value cut to fit
+ * would name another resource, so one longer than any cloud's ID is left
+ * out.
  */
 export function readLogCloudResource(
   attributes: JSONObject | undefined | null,
@@ -383,7 +392,9 @@ export function readLogCloudResource(
     MAX_RESOURCE_ID_LENGTH,
   );
 
-  return id ? { [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: id } : {};
+  return id
+    ? { [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: getResourceIdMatchKey(id) }
+    : {};
 }
 
 /*
@@ -431,6 +442,8 @@ export interface LogSecurityEventInput {
   ruleName?: string | undefined;
   // The source's own id for the record (an audit ID, a CloudTrail event ID).
   eventUid?: string | undefined;
+  // Ids it may have been stored under before (NormalizedSecurityEvent.eventUidAliases).
+  eventUidAliases?: Array<string> | undefined;
   // Distinguishes the events of one line that holds several records.
   recordIndex?: number | undefined;
   principalUser?: string | undefined;
@@ -518,6 +531,11 @@ export function buildLogSecurityEvent(
     input.recordIndex !== undefined ? `:${input.recordIndex}` : "";
   const eventUid: string =
     input.eventUid || (logId ? `log:${logId}${recordSuffix}` : "");
+  const eventUidAliases: Array<string> = (input.eventUidAliases || []).filter(
+    (alias: string): boolean => {
+      return Boolean(alias) && alias !== eventUid;
+    },
+  );
 
   return {
     time: input.time || input.line.time,
@@ -569,6 +587,9 @@ export function buildLogSecurityEvent(
     traceId: readTelemetryId(input.line.traceId),
     spanId: readTelemetryId(input.line.spanId),
     sessionId: readTelemetryId(input.line.sessionId),
+    ...(input.eventUid && eventUidAliases.length > 0
+      ? { eventUidAliases }
+      : {}),
   };
 }
 

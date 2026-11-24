@@ -106,6 +106,16 @@ import Select from "../Types/Database/Select";
 import Incident from "../../Models/DatabaseModels/Incident";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import StateMoveUtil, { StateMoveRecord } from "../../Utils/StateMove";
+import {
+  EPISODE_ACKNOWLEDGED_BY_USER,
+  EPISODE_ACKNOWLEDGED_VIA_API,
+  EPISODE_REOPENED_BY_USER,
+  EPISODE_REOPENED_VIA_API,
+  EPISODE_RESOLVED_BY_USER,
+  EPISODE_RESOLVED_VIA_API,
+  STATE_CHANGED_BY_EPISODE,
+  STATE_CHANGED_WITH_EPISODE,
+} from "../../Utils/Monitor/StatusChangeNotes";
 
 /*
  * The two names of each reference this service reads off a write itself, ID
@@ -310,7 +320,7 @@ export class Service extends ProjectReferencesService<Model> {
           episodeId: itemId,
           incidentStateId: updatedIncidentStateId,
           notifyOwners: true,
-          rootCause: "State was changed when the episode was updated.",
+          rootCause: STATE_CHANGED_WITH_EPISODE,
           props: {
             isRoot: true,
           },
@@ -1571,7 +1581,7 @@ export class Service extends ProjectReferencesService<Model> {
           shouldNotifyStatusPageSubscribers: false,
           isSubscribersNotified: false,
           notifyOwners: false, // Don't send notifications for cascaded state changes
-          rootCause: "State changed by episode state cascade.",
+          rootCause: STATE_CHANGED_BY_EPISODE,
           stateChangeLog: undefined,
           props: props,
         });
@@ -1654,8 +1664,8 @@ export class Service extends ProjectReferencesService<Model> {
       incidentStateId: incidentState.id,
       notifyOwners: true,
       rootCause: acknowledgedByUserId
-        ? `Acknowledged by user.`
-        : "Acknowledged via API.",
+        ? EPISODE_ACKNOWLEDGED_BY_USER
+        : EPISODE_ACKNOWLEDGED_VIA_API,
       props: {
         isRoot: true,
         userId: acknowledgedByUserId,
@@ -1664,11 +1674,17 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * `rootCause`: why OneUptime resolved it itself - every incident in it
+   * resolved, none joined it within its inactivity timeout - so its State
+   * Timeline never says a person or the API did (StatusChangeNotes).
+   */
   @CaptureSpan()
   public async resolveEpisode(
     episodeId: ObjectID,
     resolvedByUserId?: ObjectID,
     cascadeToIncidents: boolean = true,
+    rootCause?: string | undefined,
   ): Promise<void> {
     const episode: Model | null = await this.findOneById({
       id: episodeId,
@@ -1704,7 +1720,11 @@ export class Service extends ProjectReferencesService<Model> {
       episodeId: episodeId,
       incidentStateId: incidentState.id,
       notifyOwners: true,
-      rootCause: resolvedByUserId ? `Resolved by user.` : "Resolved via API.",
+      rootCause:
+        rootCause ||
+        (resolvedByUserId
+          ? EPISODE_RESOLVED_BY_USER
+          : EPISODE_RESOLVED_VIA_API),
       props: {
         isRoot: true,
         userId: resolvedByUserId,
@@ -1713,11 +1733,16 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * `rootCause`: why OneUptime reopened it itself - a new incident joined it
+   * within its grouping rule's reopen window (StatusChangeNotes).
+   */
   @CaptureSpan()
   public async reopenEpisode(
     episodeId: ObjectID,
     reopenedByUserId?: ObjectID,
     cascadeToIncidents: boolean = true,
+    rootCause?: string | undefined,
   ): Promise<void> {
     const episode: Model | null = await this.findOneById({
       id: episodeId,
@@ -1742,7 +1767,11 @@ export class Service extends ProjectReferencesService<Model> {
       episodeId: episodeId,
       incidentStateId: createdIncidentStateId,
       notifyOwners: true,
-      rootCause: reopenedByUserId ? `Reopened by user.` : "Reopened via API.",
+      rootCause:
+        rootCause ||
+        (reopenedByUserId
+          ? EPISODE_REOPENED_BY_USER
+          : EPISODE_REOPENED_VIA_API),
       props: {
         isRoot: true,
         userId: reopenedByUserId,

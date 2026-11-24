@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import ApiKey from "./ApiKey";
 import CustomRole from "./CustomRole";
 import Label from "./Label";
@@ -747,6 +748,7 @@ export default class Workflow extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

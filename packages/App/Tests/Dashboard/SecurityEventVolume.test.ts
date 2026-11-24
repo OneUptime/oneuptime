@@ -194,13 +194,13 @@ describe("buildSecurityEventVolumeAggregateBy", () => {
   });
 
   /*
-   * The volume lays a day window out on the epoch's day grid and snaps each
-   * row onto it (buildSecurityEventVolume), so it asks for UTC's days. A
-   * reader's zone (#7277), which every other day chart is read in, would
-   * start Kolkata's days at 18:30 UTC the day before: each count would
-   * snap onto the day before its own.
+   * Handed no zone, the volume asks for UTC's days and lays them out on
+   * UTC's calendar (buildSecurityEventVolume). The viewer hands it the
+   * reader's (#7923, SecurityEventVolumeReaderDays.test.ts): the aggregate
+   * and the day grid then follow that zone together, so a count never snaps
+   * onto the day before its own.
    */
-  test("asks for UTC's days, which its day grid is laid out on, whatever zone the reader is in", () => {
+  test("handed no zone, asks for UTC's days, whatever zone the reader is in", () => {
     try {
       for (const reader of [
         Timezone.AmericaNew_York,

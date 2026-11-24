@@ -28,6 +28,7 @@ import {
   storeSsoToken,
 } from "../storage/ssoTokens";
 import { completeSsoLoginFromUrl } from "../sso/session";
+import { startSsoHandOff } from "../sso/handOff";
 import serializedPasskeyUser from "../../../Common/Tests/Fixtures/MobilePasskeyUser.json";
 
 /*
@@ -644,6 +645,15 @@ test("an already queued passkey cleanup cannot erase a subsequent real SSO login
   };
   const passkey: Promise<LoginResponse | null> = start(abort.signal);
   await cleanupStarted.promise;
+  /*
+   * The SSO sign-in the app started (#9989, ../sso/handOff), on a server
+   * that hands the session back on the link: kept in memory, so its
+   * callback is stored without a wait.
+   */
+  await startSsoHandOff({
+    serverUrl: CLOUD_ORIGIN,
+    serverHandsBackCodes: false,
+  });
   const session: StoredTokens = tokens("new-sso");
   const ssoUrl: NodeURL = new NodeURL("oneuptime://sso-callback");
   for (const [key, value] of Object.entries(session)) {

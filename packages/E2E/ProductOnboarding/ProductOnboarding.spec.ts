@@ -1193,7 +1193,7 @@ test("the Data Observability menu reads in the order a data engineer asks: the e
   await openDataObservability(page, "data=busy");
   await sideMenuAtRest(page);
   const menu: Locator = page.locator(
-    "aside[role='navigation'][aria-label='Main navigation']",
+    "aside[role='navigation'][aria-label='Pages in this section']",
   );
 
   await expect(menu.locator("h6").first()).toBeVisible();

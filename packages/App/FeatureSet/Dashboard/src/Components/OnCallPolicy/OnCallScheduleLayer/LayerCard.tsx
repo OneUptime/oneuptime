@@ -105,10 +105,10 @@ export interface ComponentProps {
    */
   onSkipUser?: ((person: { userId: string; name: string }) => void) | undefined;
   /*
-   * Why "Skip until..." is locked for the reader (LayerUser), or null when
-   * it is not.
+   * Why "Skip until..." is locked beside the person `userId` (LayerUser),
+   * or null when it is not.
    */
-  skipLockedReason?: string | null | undefined;
+  getSkipLockedReason?: ((userId: string) => string | null) | undefined;
 }
 
 interface SummaryChipProps {
@@ -693,7 +693,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               coverNameById={coverNameById}
               timezone={props.timezone}
               onSkipUser={props.onSkipUser}
-              skipLockedReason={props.skipLockedReason}
+              getSkipLockedReason={props.getSkipLockedReason}
             />
           </div>
 

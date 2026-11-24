@@ -31,10 +31,11 @@ import {
  * answers the way a real server does (captured on 26.7; the real-server
  * proof is App's LogSearchTimeLimitClickhouse suite): an HTTP error before
  * the rows, an empty or cut-off body after a 200, an error block after the
- * rows. Whatever the shape, findBy, aggregateBy and an exact countBy reject
- * with the QueryTimeoutException the API answers 504 with — never a
- * SyntaxError, never an empty list — and the reads carry 'throw' and ask
- * ClickHouse to hold their answer until they are done.
+ * rows. Whatever the shape, findBy, aggregateBy, an exact countBy and
+ * countDistinctNonEmpty reject with the QueryTimeoutException the API
+ * answers 504 with — never a SyntaxError, never an empty list — and the
+ * reads carry 'throw' and ask ClickHouse to hold their answer until they
+ * are done.
  */
 
 class LogLikeModel extends AnalyticsBaseModel {
@@ -411,6 +412,55 @@ describe("AnalyticsDatabaseService when ClickHouse stops a read at its time limi
         "LogLike count query stopped before it finished, defaulting to 0",
         { tableName: "LogLike" },
       );
+    });
+  });
+
+  /*
+   * The distinct count an Exceptions monitor's share of installs is read
+   * with (#9924): exact, so stopped with an error as an exact count is.
+   */
+  describe("countDistinctNonEmpty — a monitor's installs", () => {
+    const countDistinct: () => Promise<number> = (): Promise<number> => {
+      return service.countDistinctNonEmpty({
+        query: { projectId: PROJECT_ID } as GenericObject,
+        expression: "body",
+        props: { isRoot: true },
+      });
+    };
+
+    test("asks ClickHouse to stop with an error, not to break off quietly", async () => {
+      await countDistinct();
+
+      expect(calls[0]!.query).toContain("max_execution_time = 45");
+      expect(calls[0]!.query).toContain("timeout_overflow_mode = 'throw'");
+      expect(calls[0]!.query).not.toContain("'break'");
+      expect(calls[0]!.clickhouse_settings).toEqual({
+        http_wait_end_of_query: 1,
+      });
+    });
+
+    test.each(ANSWERS_THAT_STOPPED)(
+      "%s: rejects with the stop, never a count of part of the rows or 0",
+      async (_name: string, answer: Answer) => {
+        nextAnswer = answer;
+
+        const error: unknown = await captureError(() => {
+          return countDistinct();
+        });
+
+        expect(error).toBeInstanceOf(QueryTimeoutException);
+        expect((error as QueryTimeoutException).code).toBe(504);
+        expect((error as QueryTimeoutException).message).toBe(LIMIT_MESSAGE_45);
+      },
+    );
+
+    test("a whole answer is read as before", async () => {
+      nextAnswer = {
+        kind: "body",
+        body: JSON.stringify({ data: [{ count: "37" }] }),
+      };
+
+      expect(await countDistinct()).toBe(37);
     });
   });
 

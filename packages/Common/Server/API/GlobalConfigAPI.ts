@@ -676,12 +676,19 @@ export default class GlobalConfigAPI extends BaseAPI<
      * A signed-in master admin only, never the master API key: a key that
      * leaked must not be able to replace itself and lock its admins out.
      * The page says afterwards that they made it, and when (#8903).
+     *
+     * And only once their session has confirmed it's theirs (#10216): the
+     * key is root in every project, and lasts after the session that made
+     * it ends - whoever held a master admin's session could otherwise walk
+     * away with it.
      */
     this.router.post(
       MASTER_API_KEY_ROUTE,
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          await MasterAdminAuthorization.assertSessionConfirmed(req);
+
           const masterApiKey: string =
             await GlobalConfigService.createMasterApiKey({
               createdByUserId: await GlobalConfigAPI.getSessionUserId(req),

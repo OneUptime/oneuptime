@@ -288,7 +288,12 @@ const CreateOnCallRuleDialog: FunctionComponent<{
   const options: Array<DropdownOption> = policies.map(
     (policy: SetupHealthPolicyChoice): DropdownOption => {
       // A policy's name is the project's own, drawn as written.
-      return { value: policy.id, label: policy.name, isUserContent: true };
+      return {
+        value: policy.id,
+        label: policy.name,
+        isUserContent: true,
+        sharedName: policy.sharedName,
+      };
     },
   );
 

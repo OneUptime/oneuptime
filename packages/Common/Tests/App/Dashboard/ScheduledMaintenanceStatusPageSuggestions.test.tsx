@@ -681,6 +681,12 @@ describe("the scheduled maintenance template forms suggest the same way", () => 
           return step.id;
         },
       ),
-    ).toEqual(["template-info", "event", "resources-affected", "recurring"]);
+    ).toEqual([
+      "template-info",
+      "event",
+      "resources-affected",
+      "recurring",
+      "first-event",
+    ]);
   });
 });

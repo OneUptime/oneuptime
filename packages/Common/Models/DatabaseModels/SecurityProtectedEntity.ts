@@ -22,11 +22,13 @@ import { SecurityEntityType } from "../../Types/SecurityCase/SecurityEntity";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * A user or host the project's containment never touches: a break-glass
- * account, a domain controller, the VPN gateway every attack on the network
- * names. A playbook's containment step reports one as protected instead of
- * acting on it, and an approver cannot pick it (SecurityProtectedEntity.ts in
- * Types has the matching rules: a value or a `*` pattern, whatever the case).
+ * A user, host or address the project's containment never touches: a
+ * break-glass account, a domain controller, the VPN gateway every attack on
+ * the network names, the office's address. A playbook's containment step
+ * reports one as protected instead of acting on it, an approver cannot pick
+ * it, and the blocklist refuses to block it (SecurityProtectedEntity.ts in
+ * Types has the matching rules: a value or a `*` pattern, whatever the case,
+ * and an address or a range, matched as a range).
  *
  * The list is part of how playbooks act, so it is kept like a playbook: the
  * Admin tier and whoever may set up playbooks change it, and every Security
@@ -97,7 +99,7 @@ const editableColumnAccess: {
   pluralName: "Protected Entities",
   icon: IconProp.Lock,
   tableDescription:
-    "Users and hosts that security playbooks never contain, such as break-glass accounts, domain controllers and VPN gateways.",
+    "Users, hosts and IP addresses that security playbooks never contain and the blocklist never blocks, such as break-glass accounts, domain controllers, VPN gateways and office addresses.",
 })
 @Index(["projectId", "entityType"])
 export default class SecurityProtectedEntity extends BaseModel {
@@ -154,7 +156,7 @@ export default class SecurityProtectedEntity extends BaseModel {
     allowedValues: Object.values(SecurityEntityType),
     canReadOnRelationQuery: true,
     title: "Type",
-    description: "User or Host: what the value names.",
+    description: "User, Host or IP Address: what the value names.",
   })
   @Column({
     nullable: false,
@@ -170,7 +172,7 @@ export default class SecurityProtectedEntity extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Value",
     description:
-      "The user's sign-in name or the host's name, matched whatever the case. * stands for any run of characters: svc-* protects every service account.",
+      "The user's sign-in name or the host's name, matched whatever the case. * stands for any run of characters: svc-* protects every service account. For an IP Address, an IPv4 or IPv6 address or a range such as 203.0.113.0/24, which protects every address inside it.",
   })
   @Column({
     nullable: false,

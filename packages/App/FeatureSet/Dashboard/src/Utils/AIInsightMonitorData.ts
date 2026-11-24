@@ -3,25 +3,21 @@ import Metric, {
   MetricPointType,
 } from "Common/Models/AnalyticsModels/Metric";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelAPI, {
   ListResult as AnalyticsListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   AIInsightMetricShape,
   AIInsightMonitorInput,
   AIInsightMonitorSeedIds,
 } from "./AIInsightMonitorPrefill";
+import { fetchMonitorSeedIds } from "./MonitorSeedIds";
 
 /*
  * The network half of "Create Monitor" from an AI insight — everything
@@ -61,87 +57,11 @@ export function toAIInsightMonitorInput(
 }
 
 /*
- * The statuses and severities the criteria are built with. Sorted the way
- * MonitorService.onBeforeCreate and the steps form sort them — priority for
- * statuses, order for severities — so the status the criteria pick is the
- * one the server stamps, and the first severity is the most severe.
+ * The statuses and severities the criteria are built with: the project's,
+ * read as every prefill of Monitor Create reads them (MonitorSeedIds).
  */
 export async function fetchAIInsightMonitorSeedIds(): Promise<AIInsightMonitorSeedIds> {
-  const [monitorStatuses, incidentSeverities, alertSeverities]: [
-    ListResult<MonitorStatus>,
-    ListResult<IncidentSeverity>,
-    ListResult<AlertSeverity>,
-  ] = await Promise.all([
-    ModelAPI.getList<MonitorStatus>({
-      modelType: MonitorStatus,
-      // A new monitor is set up with values that can be picked.
-      query: { isArchived: false },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        _id: true,
-        isOperationalState: true,
-        isOfflineState: true,
-        priority: true,
-      },
-      sort: {
-        priority: SortOrder.Ascending,
-      },
-    }),
-    ModelAPI.getList<IncidentSeverity>({
-      modelType: IncidentSeverity,
-      // A new monitor is set up with values that can be picked.
-      query: { isArchived: false },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    }),
-    ModelAPI.getList<AlertSeverity>({
-      modelType: AlertSeverity,
-      // A new monitor is set up with values that can be picked.
-      query: { isArchived: false },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        _id: true,
-        order: true,
-      },
-      sort: {
-        order: SortOrder.Ascending,
-      },
-    }),
-  ]);
-
-  const toIds: (rows: Array<{ id: ObjectID | null }>) => Array<ObjectID> = (
-    rows: Array<{ id: ObjectID | null }>,
-  ): Array<ObjectID> => {
-    return rows
-      .map((row: { id: ObjectID | null }) => {
-        return row.id;
-      })
-      .filter((id: ObjectID | null): id is ObjectID => {
-        return Boolean(id);
-      });
-  };
-
-  return {
-    operationalMonitorStatusId:
-      monitorStatuses.data.find((status: MonitorStatus) => {
-        return status.isOperationalState;
-      })?.id || null,
-    offlineMonitorStatusId:
-      monitorStatuses.data.find((status: MonitorStatus) => {
-        return status.isOfflineState;
-      })?.id || null,
-    rankedIncidentSeverityIds: toIds(incidentSeverities.data),
-    rankedAlertSeverityIds: toIds(alertSeverities.data),
-  };
+  return await fetchMonitorSeedIds();
 }
 
 /**

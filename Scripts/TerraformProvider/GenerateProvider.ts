@@ -13,6 +13,7 @@ import {
   ProviderSchemaDump,
 } from "./Core/DocumentationGenerator";
 import { runGoCommand } from "./Core/GoCommand";
+import { checkShardSizes } from "./Core/ProviderShards";
 
 /*
  * Extract the most useful diagnostic text from a failed `exec` call. Compiler
@@ -155,6 +156,13 @@ async function main(): Promise<void> {
       apiSpec,
     );
     await dataSourceGen.generateDataSources();
+
+    /*
+     * The generated resources and data sources are split into packages of
+     * their own, so no compile holds them all (Core/ProviderShards.ts):
+     * stop here if one has grown too large for that.
+     */
+    checkShardSizes(providerDir);
 
     /*
      * Step 10: Write VERSION file (no timestamp — regeneration is a no-op

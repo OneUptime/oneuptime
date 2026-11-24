@@ -9,6 +9,7 @@ import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
+import { MOBILE_SSO_HAND_OFF_SUPPORTED_FIELD } from "Common/Types/SSO/MobileSsoHandOff";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -175,7 +176,29 @@ describe("GET /sign-in-methods", () => {
       ssoProviders: [DRAWN_PROVIDER],
       hasProjectSsoProviders: true,
       isMagicLinkLoginEnabled: false,
+      isMobileSsoHandOffSupported: true,
     });
+  });
+
+  /*
+   * #9989: the mobile app reads it before it takes a deep link that carries
+   * tokens - from a server that hands back one-time codes, such a link is
+   * nobody's the app may take. Literal: the app reads this very name.
+   */
+  it("says the server hands mobile SSO sign-ins back as one-time codes", async () => {
+    getSignInMethods.mockResolvedValue({
+      isSsoRequired: false,
+      ssoProviders: [],
+      hasProjectSsoProviders: false,
+      isMagicLinkLoginEnabled: false,
+    });
+
+    await call("/sign-in-methods");
+
+    expect(MOBILE_SSO_HAND_OFF_SUPPORTED_FIELD).toBe(
+      "isMobileSsoHandOffSupported",
+    );
+    expect(sentBody()["isMobileSsoHandOffSupported"]).toBe(true);
   });
 
   // Common/Types/Accounts/MagicLink: the page offers "Email me a sign-in link".
@@ -194,6 +217,7 @@ describe("GET /sign-in-methods", () => {
       ssoProviders: [],
       hasProjectSsoProviders: false,
       isMagicLinkLoginEnabled: true,
+      isMobileSsoHandOffSupported: true,
     });
     expect(
       Object.prototype.hasOwnProperty.call(

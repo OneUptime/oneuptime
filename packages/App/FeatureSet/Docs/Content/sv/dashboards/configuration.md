@@ -60,6 +60,7 @@ Vem som kan se en instrumentpanel utanför projektet är ett enda val på dess s
 1. **Bara personer i det här projektet** (standard): instrumentpanelen har ingen offentlig länk; dess offentliga adress visar en sida med "hittades inte".
 2. **Alla med länken**: alla som har den offentliga länken kan se den, utan att logga in.
 3. **Alla med länken och ett lösenord**: besökare anger ett lösenord innan instrumentpanelen visas.
+4. **Bara personer som loggar in**: bara de privata användare du bjuder in, och de personer som er enkla inloggning släpper in, ser den när de har loggat in.
 
 Under **Fler inställningar** på samma sida avvisar **IP-tillåtelselista** (planen Scale) förfrågningar till den offentliga länken från alla IP-adresser som inte finns med. Den mest låsta offentliga uppsättningen är **Alla med länken och ett lösenord** med en IP-tillåtelselista: användbart för partnerportaler där du vill ha båda lagren.
 

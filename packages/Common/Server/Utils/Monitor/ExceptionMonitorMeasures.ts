@@ -15,9 +15,11 @@ import {
   ExceptionMonitorNeeds,
   getExceptionIncreasePercent,
   getExceptionMonitorNeeds,
+  getInstallsWithExceptionsPercent,
   getSessionsWithExceptionsPercent,
   getUsualExceptionCount,
 } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
+import { STORED_APP_INSTALL_SQL } from "../../../Types/Rum/MobileAppTelemetry";
 import { ExceptionLearnedBaseline } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepExceptionMonitor, {
@@ -69,6 +71,9 @@ export interface ExceptionMonitorMeasures {
   sessionCount?: number | undefined;
   sessionsWithExceptionsCount?: number | undefined;
   sessionsWithExceptionsPercent?: number | null | undefined;
+  installCount?: number | undefined;
+  installsWithExceptionsCount?: number | undefined;
+  installsWithExceptionsPercent?: number | null | undefined;
 }
 
 export interface ExceptionMonitorSessions {
@@ -76,6 +81,13 @@ export interface ExceptionMonitorSessions {
   sessions: number;
   // The distinct session ids of the occurrences the monitor counts.
   sessionsWithExceptions: number;
+}
+
+export interface ExceptionMonitorInstalls {
+  // The distinct installs of the window's spans of the monitor's services.
+  installs: number;
+  // The distinct installs of the occurrences the monitor counts.
+  installsWithExceptions: number;
 }
 
 export default class ExceptionMonitorMeasureReader {
@@ -97,6 +109,7 @@ export default class ExceptionMonitorMeasureReader {
       !needs.regressedExceptions &&
       !needs.baseline &&
       !needs.sessions &&
+      !needs.installs &&
       needs.learnedBaselineWindowDays.length === 0
     ) {
       return {};
@@ -165,6 +178,7 @@ export default class ExceptionMonitorMeasureReader {
       previousCount,
       learnedBaselines,
       sessions,
+      installs,
     ] = await Promise.all([
       needs.newExceptions
         ? countGroupsWhere({
@@ -195,6 +209,15 @@ export default class ExceptionMonitorMeasureReader {
       }),
       needs.sessions
         ? ExceptionMonitorMeasureReader.readSessions({
+            projectId: data.projectId,
+            config: data.config,
+            countQuery: data.countQuery,
+            windowStart,
+            windowEnd,
+          })
+        : Promise.resolve(undefined),
+      needs.installs
+        ? ExceptionMonitorMeasureReader.readInstalls({
             projectId: data.projectId,
             config: data.config,
             countQuery: data.countQuery,
@@ -240,7 +263,68 @@ export default class ExceptionMonitorMeasureReader {
         getSessionsWithExceptionsPercent(sessions);
     }
 
+    if (installs !== undefined) {
+      measures.installCount = installs.installs;
+      measures.installsWithExceptionsCount = Math.min(
+        installs.installsWithExceptions,
+        installs.installs,
+      );
+      measures.installsWithExceptionsPercent =
+        getInstallsWithExceptionsPercent(installs);
+    }
+
     return measures;
+  }
+
+  /*
+   * The window's installs, and those the occurrences the monitor counts
+   * happened on (#9924): the distinct install - app.installation.id, else
+   * device.id (MobileAppTelemetry) - of the spans of the monitor's services
+   * and entities, as a mobile app's Crash-free installs reads them, and of
+   * its own count's occurrences, every filter with them, over the same
+   * window. A row that names no install is no install. A read the time
+   * limit stops fails the check with a QueryTimeoutException
+   * (countDistinctNonEmpty), so the check changes nothing rather than judge
+   * a share taken of part of the installs.
+   */
+  public static async readInstalls(data: {
+    projectId: ObjectID;
+    config: MonitorStepExceptionMonitor;
+    countQuery: AnalyticsQuery<ExceptionInstance>;
+    windowStart: Date;
+    windowEnd: Date;
+  }): Promise<ExceptionMonitorInstalls> {
+    const spanQuery: AnalyticsQuery<Span> = {
+      projectId: data.projectId,
+      startTime: new InBetween(data.windowStart, data.windowEnd),
+    };
+
+    if (data.config.telemetryServiceIds?.length > 0) {
+      spanQuery.primaryEntityId = new Includes(data.config.telemetryServiceIds);
+    }
+
+    if (MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config)) {
+      spanQuery.entityKeys = new Includes(data.config.entityKeys!);
+    }
+
+    const [installs, installsWithExceptions]: [number, number] =
+      await Promise.all([
+        SpanService.countDistinctNonEmpty({
+          query: spanQuery,
+          expression: STORED_APP_INSTALL_SQL,
+          props: { isRoot: true },
+        }),
+        ExceptionInstanceService.countDistinctNonEmpty({
+          query: {
+            ...data.countQuery,
+            time: new InBetween(data.windowStart, data.windowEnd),
+          },
+          expression: STORED_APP_INSTALL_SQL,
+          props: { isRoot: true },
+        }),
+      ]);
+
+    return { installs, installsWithExceptions };
   }
 
   /*

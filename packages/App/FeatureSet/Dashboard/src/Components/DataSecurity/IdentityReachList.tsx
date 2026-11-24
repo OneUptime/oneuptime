@@ -8,7 +8,9 @@ import {
 } from "./IdentityCells";
 import { getStoreViewRoute } from "./IssueListRoute";
 import IssueMoment from "./IssueMoment";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
@@ -22,8 +24,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
+import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -104,6 +108,23 @@ export interface ComponentProps {
   principal: string;
 }
 
+/*
+ * What the list reads of each grant and its store. The store's sensitivity
+ * is read through a grant only by who may read the store (#10281): for
+ * anyone else it is left out of the read, and so is its column
+ * (PermissionGate.getSelectReadableThroughRelations).
+ */
+export const IDENTITY_REACH_SELECT: Select<DataStoreAccess> = {
+  _id: true,
+  dataStoreId: true,
+  accessLevel: true,
+  grantedVia: true,
+  isSeenInTraces: true,
+  lastUsedAt: true,
+  isUnused: true,
+  dataStore: { name: true, kind: true, sensitivity: true },
+};
+
 const IdentityReachList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -112,6 +133,12 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
   const [rows, setRows] = useState<Array<DataStoreAccess> | null>(null);
   const [count, setCount] = useState<number>(0);
   const [error, setError] = useState<string>("");
+
+  // Whether the reader may read the store's sensitivity through a grant.
+  const showsSensitivity: boolean = PermissionGate.canReadThroughRelation(
+    new DataStore(),
+    "sensitivity",
+  );
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -127,16 +154,10 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
       },
       limit: MAX_REACH_ROWS,
       skip: 0,
-      select: {
-        _id: true,
-        dataStoreId: true,
-        accessLevel: true,
-        grantedVia: true,
-        isSeenInTraces: true,
-        lastUsedAt: true,
-        isUnused: true,
-        dataStore: { name: true, kind: true, sensitivity: true },
-      },
+      select: PermissionGate.getSelectReadableThroughRelations(
+        DataStoreAccess,
+        IDENTITY_REACH_SELECT,
+      ),
       sort: { createdAt: SortOrder.Ascending },
     })
       .then((result: ListResult<DataStoreAccess>): void => {
@@ -221,17 +242,23 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
                     );
                   },
                 },
-                {
-                  key: "dataStore",
-                  title: "Sensitivity",
-                  type: FieldType.Element,
-                  disableSort: true,
-                  getElement: (access: DataStoreAccess): ReactElement => {
-                    return (
-                      <SensitivityPill sensitivity={sensitivityOf(access)} />
-                    );
-                  },
-                },
+                ...(showsSensitivity
+                  ? [
+                      {
+                        key: "dataStore",
+                        title: "Sensitivity",
+                        type: FieldType.Element,
+                        disableSort: true,
+                        getElement: (access: DataStoreAccess): ReactElement => {
+                          return (
+                            <SensitivityPill
+                              sensitivity={sensitivityOf(access)}
+                            />
+                          );
+                        },
+                      } as Column<DataStoreAccess>,
+                    ]
+                  : []),
                 {
                   key: "accessLevel",
                   title: "Access Level",

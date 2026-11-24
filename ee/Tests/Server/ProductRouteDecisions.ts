@@ -13,6 +13,10 @@
  * ee/Server then too. The Enterprise Edition Test job runs it so, beside
  * App's other guards that check ee/ (.github/workflows/test.ee.yaml).
  *
+ * Register each route by its verb - router.post(...), never
+ * router[method](...): the guard cannot read the verb of a computed one,
+ * and refuses it in ee/ as in core (#10230).
+ *
  * Plain data, with no imports: the guard loads it from Common's own test run.
  */
 
@@ -99,7 +103,17 @@ export const ENTERPRISE_FILES_DECIDED_WHOLE: Record<
     "Billing, which the project pays for every product with, and the marketplaces that bill it.",
     {
       "ee/Server/CloudMarketplace/API/MarketplaceAPI.ts": 8,
-      "ee/Server/CloudMarketplace/API/VercelMarketplaceProviderAPI.ts": 1,
+      /*
+       * #10230: what Vercel calls as a team installs OneUptime, changes or
+       * uninstalls it (PUT, PATCH, DELETE), adds, changes or deletes a
+       * resource - a project billed through Vercel - (POST, PATCH, DELETE)
+       * or rotates its secrets (POST), and Vercel's webhook (POST), as AWS,
+       * Microsoft and Google Cloud call MarketplaceAPI. What adding a
+       * resource and the webhook would make in a product - a status page, a
+       * monitor - is not made while that product is off (#10251:
+       * VercelMarketplaceResources, VercelMarketplaceMonitors).
+       */
+      "ee/Server/CloudMarketplace/API/VercelMarketplaceProviderAPI.ts": 8,
     },
   ),
   ...decided(

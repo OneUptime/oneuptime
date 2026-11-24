@@ -18,9 +18,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
+  SITE_LABELS_FIELD_DESCRIPTION,
   SITE_MORE_FIELDS,
   SITE_TYPE_FIELD_DESCRIPTION,
 } from "../SiteFormSections";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -165,6 +168,11 @@ const NetworkSiteSettings: FunctionComponent<
             required: false,
             placeholder: "-89.6501",
           },
+          getLabelsFormField<NetworkSite>({
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description: SITE_LABELS_FIELD_DESCRIPTION,
+          }),
           {
             field: {
               parentSite: true,
@@ -339,6 +347,22 @@ const NetworkSiteSettings: FunctionComponent<
               fieldType: FieldType.Text,
               showIf: (item: NetworkSite): boolean => {
                 return Boolean(item.address);
+              },
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              fieldType: FieldType.Element,
+              showIf: (item: NetworkSite): boolean => {
+                return Boolean(item.labels && item.labels.length > 0);
+              },
+              getElement: (item: NetworkSite): ReactElement => {
+                return <LabelsElement labels={item.labels || []} />;
               },
             },
           ],

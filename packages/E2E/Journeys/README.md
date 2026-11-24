@@ -20,6 +20,7 @@ check, from what the fixture's server kept, that the job was really done.
 | Create a website monitor | Home, in a new project | the monitor's page opens, its probes checking the address |
 | Make sure I am told when the monitor goes down | the website monitor's page | an on-call policy pages me for every new incident and alert |
 | Know when my website or API is down (guided setup) | Home, in a new project | the monitor checks the address, an on-call policy pages me for every new incident and alert, and my test page was acknowledged |
+| Know when my website or API is down (Ask AI) | Home, with Ask AI closed (Ask AI's own fixture) | Ask AI's plan - the monitor and an on-call policy that pages me - is run from its one approval card, and the policy's test page was sent |
 | Get paged by phone and escalate to a teammate (Cloud) | Home, on OneUptime Cloud | calls are on and paid for, my number is verified, and a policy calls me, then pages Grace |
 | Get paged by phone and escalate to a teammate (Cloud, guided setup) | Home, on OneUptime Cloud | SMS and calls are on and paid for, my number is verified for both, a policy pages me for every new incident and alert, then Grace, and its test page was acknowledged |
 | Publish a status page that shows the monitor | Home, with the website monitor | the status page shows the monitor |

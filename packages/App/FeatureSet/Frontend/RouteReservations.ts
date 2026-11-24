@@ -39,6 +39,13 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/source-maps",
   /*
+   * An iOS app's dSYM upload (/dsyms/v1/upload, #9922), which the CLI's
+   * `dsym upload` posts to at the root and nginx routes as /source-maps.
+   * Mounted on both "/telemetry" and "/" the same way; POST-only today,
+   * reserved for the same reason as /fluentd above.
+   */
+  "/dsyms",
+  /*
    * The Vercel log drain (/vercel/v1/logs), mounted on both "/telemetry"
    * and "/" the same way. POST-only today; reserved for the same reason as
    * /fluentd above.

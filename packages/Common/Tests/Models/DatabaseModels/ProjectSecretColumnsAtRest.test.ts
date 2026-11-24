@@ -52,6 +52,11 @@ const NOT_ENCRYPTED_YET: Readonly<Record<string, string>> = {
     "stored as the token's hash (StatusPagePrivateUserService), never as the token",
   "StatusPagePrivateUser.magicLinkToken":
     "stored as the token's hash (StatusPagePrivateUserService), never as the token",
+  // A dashboard's private users' reset links (#10250), kept the same way.
+  "DashboardPrivateUser.resetPasswordToken":
+    "stored as the token's hash (PrivateUserServiceBase, DashboardPrivateUserAuthentication), never as the token",
+  "FormPrivateUser.resetPasswordToken":
+    "stored as the token's hash (PrivateUserServiceBase, FormPrivateUserAuthentication), never as the token",
   "UserPush.deviceToken":
     "a device's push registration: it addresses the device through OneUptime's own push credentials, and signs in to nothing",
 };

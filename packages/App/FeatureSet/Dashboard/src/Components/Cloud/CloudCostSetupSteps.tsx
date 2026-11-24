@@ -1,3 +1,4 @@
+import { CloudCostState } from "Common/Types/Cloud/CloudCost";
 import {
   CloudProvider,
   getCloudProviderLabel,
@@ -44,6 +45,33 @@ export function getCloudProvidersOf(
   );
 
   return found.length > 0 ? found : order;
+}
+
+/*
+ * The clouds whose accounts need a step before their costs are read: not
+ * an account whose costs are queued - set up, and waiting its turn as fast
+ * as its cloud allows (CloudCostState.Queued). None when every account is
+ * queued; every cloud for no accounts at all.
+ */
+export interface CloudCostSetupAccount {
+  provider: string;
+  costSummary?: { state: CloudCostState } | null | undefined;
+}
+
+export function getCloudCostSetupProviders(
+  accounts: Array<CloudCostSetupAccount>,
+): Array<CloudProvider> {
+  const needing: Array<CloudCostSetupAccount> = accounts.filter(
+    (account: CloudCostSetupAccount): boolean => {
+      return account.costSummary?.state !== CloudCostState.Queued;
+    },
+  );
+
+  if (accounts.length > 0 && needing.length === 0) {
+    return [];
+  }
+
+  return getCloudProvidersOf(needing);
 }
 
 export interface ComponentProps {

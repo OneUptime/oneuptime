@@ -2,9 +2,13 @@ import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import SecurityCaseFeedService from "../../../../Server/Services/SecurityCaseFeedService";
 import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
 import SecurityDetectionService from "../../../../Server/Services/SecurityDetectionService";
+import logger from "../../../../Server/Utils/Logger";
 import SecurityCaseIngest, {
+  SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE,
   SecurityCaseIngestResult,
   SecurityDetectionSignal,
+  findRepeatedDetection,
+  getRepeatedDetectionIdsToRead,
   securityCaseGroupingKey,
   worseSeverity,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
@@ -22,6 +26,7 @@ import {
   SecurityDetectionMatchedEvent,
   SecurityDetectionMatchedEvents,
   buildSecurityDetectionMatchedEvent,
+  keepSecurityDetectionMatchedEvents,
   readSecurityDetectionMatchedEvents,
 } from "../../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
@@ -113,9 +118,22 @@ interface Stubs {
 
 let stubs: Stubs;
 
+/*
+ * A read of what detections kept (#9943): by their ids, the column the
+ * reads of fingerprints never select.
+ */
+function isKeptEventsRead(findBy: unknown): boolean {
+  return (
+    (findBy as { query: Record<string, unknown> }).query["_id"] instanceof
+    Includes
+  );
+}
+
 function install(data: {
   detections?: Array<SecurityDetection>;
   openCases?: Array<SecurityCase>;
+  // What each stored detection kept, by id: what a read of the column returns.
+  kept?: Map<string, SecurityDetectionMatchedEvents> | undefined;
 }): void {
   const order: Array<string> = [];
 
@@ -131,7 +149,38 @@ function install(data: {
     findDetections: getJestSpyOn(
       SecurityDetectionService,
       "findBy",
-    ).mockResolvedValue((data.detections || []) as never),
+    ).mockImplementation(async (findBy: unknown) => {
+      if (!isKeptEventsRead(findBy)) {
+        return (data.detections || []) as never;
+      }
+
+      const ids: Array<string> = (
+        (findBy as { query: Record<string, unknown> }).query["_id"] as Includes
+      ).values.map((value: unknown): string => {
+        return String(value);
+      });
+
+      return ids
+        .filter((id: string): boolean => {
+          return Boolean(
+            (data.detections || []).find((detection: SecurityDetection) => {
+              return detection.id?.toString() === id;
+            }),
+          );
+        })
+        .map((id: string): SecurityDetection => {
+          const row: SecurityDetection = new SecurityDetection();
+          row._id = id;
+
+          if (data.kept?.has(id)) {
+            row.matchedEvents = JSON.parse(
+              JSON.stringify(data.kept.get(id)),
+            ) as never;
+          }
+
+          return row;
+        }) as never;
+    }),
     createDetection: getJestSpyOn(
       SecurityDetectionService,
       "create",
@@ -617,17 +666,15 @@ describe("the events a detection keeps", () => {
     detection.severity = OcsfSeverity.Medium;
     detection.entities = [];
 
-    install({ detections: [detection], openCases: [securityCase] });
+    install({
+      detections: [detection],
+      openCases: [securityCase],
+      kept: new Map([
+        [detection.id!.toString(), matched([1, 2], { Rejected: 10 })],
+      ]),
+    });
 
-    const stored: SecurityDetection = new SecurityDetection();
-    stored.matchedEvents = matched([1, 2], {
-      Rejected: 10,
-    }) as never;
-
-    const readKept: Spy = getJestSpyOn(
-      SecurityDetectionService,
-      "findOneById",
-    ).mockResolvedValue(stored as never);
+    const readOne: Spy = getJestSpyOn(SecurityDetectionService, "findOneById");
 
     await SecurityCaseIngest.recordDetections([
       signal({
@@ -636,13 +683,13 @@ describe("the events a detection keeps", () => {
       }),
     ]);
 
-    expect(readKept).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: detection.id,
-        select: { matchedEvents: true },
-        props: { isRoot: true },
+    // Read with the batch's other repeats (#9943), never on its own.
+    expect(readOne).not.toHaveBeenCalled();
+    expect(
+      stubs.findDetections.mock.calls.filter((call: Array<unknown>) => {
+        return isKeptEventsRead(call[0]);
       }),
-    );
+    ).toHaveLength(1);
 
     const set: { matchedEvents?: unknown } = (
       stubs.addToDetection.mock.calls[0]![0] as {
@@ -680,11 +727,539 @@ describe("the events a detection keeps", () => {
 
     expect(readKept).not.toHaveBeenCalled();
     expect(
+      stubs.findDetections.mock.calls.filter((call: Array<unknown>) => {
+        return isKeptEventsRead(call[0]);
+      }),
+    ).toHaveLength(0);
+    expect(
       (
         stubs.addToDetection.mock.calls[0]![0] as {
           set: { matchedEvents?: unknown };
         }
       ).set.matchedEvents,
     ).toBeUndefined();
+  });
+});
+
+/*
+ * A firing that repeats many detections (#9943): what each of them kept
+ * is read with the others', in reads of at most a hundred - one for any
+ * rule's firing - where each was read on its own. What is written is what
+ * the reads one by one wrote, read as OneUptime and only the project's.
+ */
+describe("what a batch's repeated detections kept, read at once", () => {
+  const FIRING_SIZE: number = 100;
+
+  function keptEvent(
+    group: number,
+    index: number,
+  ): SecurityDetectionMatchedEvent {
+    return buildSecurityDetectionMatchedEvent({
+      time: `2026-10-14 08:${String(index % 60).padStart(2, "0")}:${String(
+        group % 60,
+      ).padStart(2, "0")}.000000000`,
+      eventUid: `group-${group}-event-${index}`,
+      primaryEntityId: "88888888-8888-4888-8888-888888888888",
+      message: `Failed sign-in ${index} from 198.18.0.${group}`,
+      principalIp: `198.18.0.${group}`,
+      requestOutcome: index % 3 === 0 ? "Reached App" : "Rejected",
+      retentionDate: "2026-10-21 09:00:00",
+    })!;
+  }
+
+  function events(
+    group: number,
+    from: number,
+    count: number,
+  ): SecurityDetectionMatchedEvents {
+    return {
+      events: Array.from(
+        { length: count },
+        (_: unknown, index: number): SecurityDetectionMatchedEvent => {
+          return keptEvent(group, from + index);
+        },
+      ),
+      outcomes: { Rejected: count, "Reached App": 1 },
+    };
+  }
+
+  interface Firing {
+    securityCase: SecurityCase;
+    detections: Array<SecurityDetection>;
+    // What each detection kept before the firing, by id; none for some.
+    kept: Map<string, SecurityDetectionMatchedEvents>;
+    signals: Array<SecurityDetectionSignal>;
+  }
+
+  /*
+   * A correlation firing again for `size` groups while its case is open:
+   * the first third of its detections are full, the next third hold a few
+   * events, the rest kept nothing; every group brings ten events.
+   */
+  function firing(size: number): Firing {
+    const securityCase: SecurityCase = storedCase();
+    const detections: Array<SecurityDetection> = [];
+    const kept: Map<string, SecurityDetectionMatchedEvents> = new Map();
+    const signals: Array<SecurityDetectionSignal> = [];
+
+    for (let group: number = 0; group < size; group++) {
+      const detection: SecurityDetection = new SecurityDetection();
+      detection._id = ObjectID.generate().toString();
+      detection.fingerprint = `detection-rule:r1:group-${group}`;
+      detection.securityCaseId = securityCase.id!;
+      detection.severity = OcsfSeverity.Medium;
+      detection.entities = [];
+      detections.push(detection);
+
+      if (group % 3 === 0) {
+        kept.set(detection.id!.toString(), events(group, 0, 25));
+      } else if (group % 3 === 1) {
+        kept.set(detection.id!.toString(), events(group, 0, 4));
+      }
+
+      signals.push(
+        signal({
+          fingerprint: `detection-rule:r1:group-${group}`,
+          groupValue: "203.0.113.7",
+          eventCount: 10,
+          matchedEvents: events(group, 2, 10),
+        }),
+      );
+    }
+
+    return { securityCase, detections, kept, signals };
+  }
+
+  function keptEventsReads(): Array<{
+    query: Record<string, unknown>;
+    select: Record<string, unknown>;
+    props: Record<string, unknown>;
+    limit: number;
+  }> {
+    return stubs.findDetections.mock.calls
+      .filter((call: Array<unknown>): boolean => {
+        return isKeptEventsRead(call[0]);
+      })
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          query: Record<string, unknown>;
+          select: Record<string, unknown>;
+          props: Record<string, unknown>;
+          limit: number;
+        };
+      });
+  }
+
+  function idsOf(read: { query: Record<string, unknown> }): Array<string> {
+    return (read.query["_id"] as Includes).values.map(
+      (value: unknown): string => {
+        return String(value);
+      },
+    );
+  }
+
+  // What was written for each detection, by id.
+  function written(): Map<string, SecurityDetectionMatchedEvents | null> {
+    const writes: Map<string, SecurityDetectionMatchedEvents | null> =
+      new Map();
+
+    for (const call of stubs.addToDetection.mock.calls) {
+      const update: { id: ObjectID; set: { matchedEvents?: unknown } } =
+        call[0] as { id: ObjectID; set: { matchedEvents?: unknown } };
+
+      writes.set(
+        update.id.toString(),
+        readSecurityDetectionMatchedEvents(update.set.matchedEvents),
+      );
+    }
+
+    return writes;
+  }
+
+  /*
+   * What the reads one by one wrote: each detection's row read again, and
+   * the firing's events merged onto it (keepSecurityDetectionMatchedEvents).
+   */
+  function writtenOneByOne(
+    data: Firing,
+  ): Map<string, SecurityDetectionMatchedEvents | null> {
+    const writes: Map<string, SecurityDetectionMatchedEvents | null> =
+      new Map();
+    const rows: Map<string, unknown> = new Map(
+      Array.from(data.kept.entries()).map(
+        ([id, kept]: [string, SecurityDetectionMatchedEvents]) => {
+          return [id, JSON.parse(JSON.stringify(kept)) as unknown];
+        },
+      ),
+    );
+
+    data.signals.forEach(
+      (repeat: SecurityDetectionSignal, index: number): void => {
+        const id: string = data.detections[index]!.id!.toString();
+        const merged: SecurityDetectionMatchedEvents =
+          keepSecurityDetectionMatchedEvents({
+            kept: readSecurityDetectionMatchedEvents(rows.get(id)),
+            firing: repeat.matchedEvents!,
+          });
+
+        rows.set(id, JSON.parse(JSON.stringify(merged)) as unknown);
+        writes.set(id, readSecurityDetectionMatchedEvents(rows.get(id)));
+      },
+    );
+
+    return writes;
+  }
+
+  test("a firing that repeats a hundred detections reads what they kept in one read, never one each", async () => {
+    const data: Firing = firing(FIRING_SIZE);
+
+    install({
+      detections: data.detections,
+      openCases: [data.securityCase],
+      kept: data.kept,
+    });
+
+    const readOne: Spy = getJestSpyOn(SecurityDetectionService, "findOneById");
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections(data.signals);
+
+    expect(result.detectionsRepeated).toBe(FIRING_SIZE);
+    // Before #9943: one findOneById a repeat, a hundred reads. Now one.
+    expect(readOne).not.toHaveBeenCalled();
+    expect(keptEventsReads()).toHaveLength(1);
+    expect(idsOf(keptEventsReads()[0]!)).toEqual(
+      data.detections.map((detection: SecurityDetection): string => {
+        return detection.id!.toString();
+      }),
+    );
+    expect(keptEventsReads()[0]!.limit).toBe(FIRING_SIZE);
+    // Every detection is still written once, as before.
+    expect(stubs.addToDetection).toHaveBeenCalledTimes(FIRING_SIZE);
+  });
+
+  test("writes exactly what the reads one by one wrote: full ones take only the outcomes, others top up", async () => {
+    const data: Firing = firing(FIRING_SIZE);
+
+    install({
+      detections: data.detections,
+      openCases: [data.securityCase],
+      kept: data.kept,
+    });
+
+    await SecurityCaseIngest.recordDetections(data.signals);
+
+    const writes: Map<string, SecurityDetectionMatchedEvents | null> =
+      written();
+
+    expect(writes).toEqual(writtenOneByOne(data));
+
+    // A full detection keeps its 25 and adds the outcomes; one with four tops up; one with none starts.
+    const full: SecurityDetectionMatchedEvents = writes.get(
+      data.detections[0]!.id!.toString(),
+    )!;
+    const few: SecurityDetectionMatchedEvents = writes.get(
+      data.detections[1]!.id!.toString(),
+    )!;
+    const none: SecurityDetectionMatchedEvents = writes.get(
+      data.detections[2]!.id!.toString(),
+    )!;
+
+    expect(full.events).toHaveLength(25);
+    expect(full.events[24]!.eventUid).toBe("group-0-event-24");
+    expect(full.outcomes).toEqual({ Rejected: 35, "Reached App": 2 });
+    expect(
+      few.events.map((event: SecurityDetectionMatchedEvent): string => {
+        return event.eventUid;
+      }),
+    ).toEqual(
+      Array.from({ length: 12 }, (_: unknown, index: number): string => {
+        return `group-1-event-${index}`;
+      }),
+    );
+    expect(none.events).toHaveLength(10);
+  });
+
+  test("a batch larger than a firing is read a hundred at a time", async () => {
+    const data: Firing = firing(250);
+
+    install({
+      detections: data.detections,
+      openCases: [data.securityCase],
+      kept: data.kept,
+    });
+
+    await SecurityCaseIngest.recordDetections(data.signals);
+
+    expect(
+      keptEventsReads().map(
+        (read: { query: Record<string, unknown> }): number => {
+          return idsOf(read).length;
+        },
+      ),
+    ).toEqual([
+      SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE,
+      SECURITY_CASE_INGEST_KEPT_EVENTS_READ_SIZE,
+      50,
+    ]);
+    expect(written()).toEqual(writtenOneByOne(data));
+  });
+
+  test("a detection the batch repeats twice is read once, and its second firing merges onto its first", async () => {
+    const data: Firing = firing(1);
+    const second: SecurityDetectionSignal = signal({
+      fingerprint: data.signals[0]!.fingerprint,
+      matchedEvents: events(0, 30, 3),
+    });
+
+    install({
+      detections: data.detections,
+      openCases: [data.securityCase],
+      kept: new Map([[data.detections[0]!.id!.toString(), events(0, 0, 4)]]),
+    });
+
+    await SecurityCaseIngest.recordDetections([data.signals[0]!, second]);
+
+    expect(keptEventsReads()).toHaveLength(1);
+    expect(idsOf(keptEventsReads()[0]!)).toEqual([
+      data.detections[0]!.id!.toString(),
+    ]);
+
+    const writes: Array<SecurityDetectionMatchedEvents | null> =
+      stubs.addToDetection.mock.calls.map((call: Array<unknown>) => {
+        return readSecurityDetectionMatchedEvents(
+          (call[0] as { set: { matchedEvents?: unknown } }).set.matchedEvents,
+        );
+      });
+    const first: SecurityDetectionMatchedEvents =
+      keepSecurityDetectionMatchedEvents({
+        kept: events(0, 0, 4),
+        firing: data.signals[0]!.matchedEvents!,
+      });
+
+    expect(writes).toEqual([
+      readSecurityDetectionMatchedEvents(JSON.parse(JSON.stringify(first))),
+      readSecurityDetectionMatchedEvents(
+        JSON.parse(
+          JSON.stringify(
+            keepSecurityDetectionMatchedEvents({
+              kept: first,
+              firing: second.matchedEvents!,
+            }),
+          ),
+        ),
+      ),
+    ]);
+  });
+
+  test("a detection the batch opens and then repeats merges onto what it opened with, and reads nothing", async () => {
+    const opening: SecurityDetectionSignal = signal({
+      matchedEvents: events(5, 0, 3),
+    });
+    const repeat: SecurityDetectionSignal = signal({
+      matchedEvents: events(5, 3, 2),
+    });
+
+    const readOne: Spy = getJestSpyOn(SecurityDetectionService, "findOneById");
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([opening, repeat]);
+
+    expect(result).toEqual({
+      casesOpened: 1,
+      detectionsAdded: 1,
+      detectionsRepeated: 1,
+    });
+    expect(readOne).not.toHaveBeenCalled();
+    expect(keptEventsReads()).toHaveLength(0);
+
+    const kept: SecurityDetectionMatchedEvents | null =
+      readSecurityDetectionMatchedEvents(
+        (
+          stubs.addToDetection.mock.calls[0]![0] as {
+            set: { matchedEvents?: unknown };
+          }
+        ).set.matchedEvents,
+      );
+
+    expect(
+      kept!.events.map((event: SecurityDetectionMatchedEvent): string => {
+        return event.eventUid;
+      }),
+    ).toEqual([
+      "group-5-event-0",
+      "group-5-event-1",
+      "group-5-event-2",
+      "group-5-event-3",
+      "group-5-event-4",
+    ]);
+  });
+
+  test("when the read at once fails, each repeat reads its own, as before, and loses nothing it kept", async () => {
+    const data: Firing = firing(6);
+
+    install({
+      detections: data.detections,
+      openCases: [data.securityCase],
+      kept: data.kept,
+    });
+
+    const fingerprints: Spy = stubs.findDetections;
+    fingerprints.mockImplementation(async (findBy: unknown) => {
+      if (isKeptEventsRead(findBy)) {
+        throw new Error("statement timeout");
+      }
+
+      return data.detections as never;
+    });
+
+    const warn: Spy = getJestSpyOn(logger, "warn").mockImplementation(
+      (): void => {},
+    );
+    const readOne: Spy = getJestSpyOn(
+      SecurityDetectionService,
+      "findOneById",
+    ).mockImplementation(async (findOneById: unknown) => {
+      const id: string = (findOneById as { id: ObjectID }).id.toString();
+      const row: SecurityDetection = new SecurityDetection();
+
+      if (data.kept.has(id)) {
+        row.matchedEvents = JSON.parse(
+          JSON.stringify(data.kept.get(id)),
+        ) as never;
+      }
+
+      return row as never;
+    });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections(data.signals);
+
+    expect(result.detectionsRepeated).toBe(6);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(readOne).toHaveBeenCalledTimes(6);
+    expect(written()).toEqual(writtenOneByOne(data));
+  });
+
+  test("reads as OneUptime, only the project's detections, only the ones the batch repeats, and only what they kept", async () => {
+    const data: Firing = firing(3);
+    // The same fingerprint in a closed case: a signal never repeats it.
+    const closed: SecurityDetection = new SecurityDetection();
+    closed._id = ObjectID.generate().toString();
+    closed.fingerprint = data.signals[0]!.fingerprint;
+    closed.securityCaseId = ObjectID.generate();
+    // A repeat whose signal kept nothing: nothing of it is read.
+    data.signals[2] = { ...data.signals[2]!, matchedEvents: undefined };
+
+    install({
+      detections: [closed, ...data.detections],
+      openCases: [data.securityCase],
+      kept: data.kept,
+    });
+
+    await SecurityCaseIngest.recordDetections(data.signals);
+
+    expect(keptEventsReads()).toHaveLength(1);
+
+    const read: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+      props: Record<string, unknown>;
+    } = keptEventsReads()[0]!;
+
+    // No role reads the column (SecurityDetection.matchedEvents): only OneUptime does.
+    expect(read.props).toEqual({ isRoot: true });
+    expect(read.query["projectId"]).toEqual(PROJECT_ID);
+    expect(idsOf(read)).toEqual([
+      data.detections[0]!.id!.toString(),
+      data.detections[1]!.id!.toString(),
+    ]);
+    expect(read.select).toEqual({ _id: true, matchedEvents: true });
+  });
+
+  test("the column it reads is one no role reads, writes or creates through the API", () => {
+    const model: SecurityDetection = new SecurityDetection();
+
+    expect(model.getColumnAccessControlFor("matchedEvents")?.read).toEqual([]);
+    expect(model.getColumnAccessControlFor("matchedEvents")?.update).toEqual(
+      [],
+    );
+    expect(model.getColumnAccessControlFor("matchedEvents")?.create).toEqual(
+      [],
+    );
+  });
+
+  test("a detection the read does not return kept nothing, as a read of it alone says", async () => {
+    const data: Firing = firing(2);
+
+    install({
+      detections: data.detections,
+      openCases: [data.securityCase],
+      kept: data.kept,
+    });
+
+    const reads: Spy = stubs.findDetections;
+    reads.mockImplementation(async (findBy: unknown) => {
+      // Gone between the reads: the batch read returns no row for it.
+      return (isKeptEventsRead(findBy) ? [] : data.detections) as never;
+    });
+
+    await SecurityCaseIngest.recordDetections(data.signals);
+
+    expect(written()).toEqual(writtenOneByOne({ ...data, kept: new Map() }));
+  });
+});
+
+describe("the repeats a batch reads", () => {
+  test("are the detections of open cases its signals with events repeat, each once", () => {
+    const open: SecurityCase = storedCase();
+    const inOpen: SecurityDetection = new SecurityDetection();
+    inOpen._id = ObjectID.generate().toString();
+    inOpen.fingerprint = "f-open";
+    inOpen.securityCaseId = open.id!;
+    const inClosed: SecurityDetection = new SecurityDetection();
+    inClosed._id = ObjectID.generate().toString();
+    inClosed.fingerprint = "f-closed";
+    inClosed.securityCaseId = ObjectID.generate();
+
+    const openCases: Map<string, SecurityCase> = new Map([
+      [open.id!.toString(), open],
+    ]);
+    const withEvents: SecurityDetectionMatchedEvents = {
+      events: [],
+      outcomes: { Rejected: 1 },
+    };
+
+    expect(
+      getRepeatedDetectionIdsToRead({
+        signals: [
+          signal({ fingerprint: "f-open", matchedEvents: withEvents }),
+          signal({ fingerprint: "f-open", matchedEvents: withEvents }),
+          signal({ fingerprint: "f-closed", matchedEvents: withEvents }),
+          signal({ fingerprint: "f-new", matchedEvents: withEvents }),
+          signal({ fingerprint: "f-open" }),
+        ],
+        detections: [inOpen, inClosed],
+        openCases,
+      }),
+    ).toEqual([inOpen.id!.toString()]);
+
+    expect(
+      findRepeatedDetection({
+        detections: [inClosed, inOpen],
+        fingerprint: "f-closed",
+        openCases,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("reads none at all for a batch that repeats nothing", async () => {
+    expect(
+      await SecurityCaseIngest.readKeptEventsOfDetections({
+        projectId: PROJECT_ID,
+        detectionIds: [],
+      }),
+    ).toEqual(new Map());
+    expect(stubs.findDetections).not.toHaveBeenCalled();
   });
 });

@@ -150,3 +150,148 @@ export function countTreeNodes(roots: Array<SiteTreeNode>): number {
 
   return total;
 }
+
+/*
+ * WHAT THE HIERARCHY SHOWS OF A TREE OF HUNDREDS OF SITES (#10188).
+ *
+ * An import of a Meraki organization leaves one site per network - 700 of
+ * them, all at the top - and the tree drew every one. The Sites page's
+ * hierarchy now draws the sites at the top first, a page at a time, opens a
+ * site's children when asked, and narrows the tree by what is searched and
+ * by whether a site holds devices at all. This decides what it draws.
+ */
+
+// A search's words, without case: every one must be in a site's name.
+export function getSiteSearchWords(search: string): Array<string> {
+  return search
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word: string): string => {
+      return word.trim();
+    })
+    .filter(Boolean);
+}
+
+export function siteNameMatches(
+  name: string | undefined,
+  words: Array<string>,
+): boolean {
+  const lower: string = (name || "").toLowerCase();
+
+  return words.every((word: string): boolean => {
+    return lower.includes(word);
+  });
+}
+
+export interface SiteTreeFilter {
+  // What the person typed: every word is in the name of a site it finds.
+  search: string;
+  // Leave out the sites with no device in them or anywhere below them.
+  hideEmpty: boolean;
+}
+
+export interface FilteredSiteTree {
+  // The tree as drawn: copies of the nodes kept, with the children kept.
+  roots: Array<SiteTreeNode>;
+  // The sites the search found; every site kept when nothing is searched.
+  matchCount: number;
+  // The sites drawn open so every match shows: each site above one.
+  openIds: Set<string>;
+  isSearching: boolean;
+}
+
+// A node the filter keeps, and whether it or a site below it was found.
+interface KeptSiteNode {
+  node: SiteTreeNode;
+  hasMatch: boolean;
+}
+
+/*
+ * The tree narrowed by a filter. A site the search finds is kept with the
+ * sites above it, which are drawn open, and with the sites below it, drawn
+ * closed - so a region found by its name still opens on its stores. Hiding
+ * the sites with no devices leaves out a site, and everything below it,
+ * only when its whole subtree holds none. Pure: the tree it is given is
+ * left as it was.
+ */
+export function filterSiteTree(
+  roots: Array<SiteTreeNode>,
+  filter: SiteTreeFilter,
+): FilteredSiteTree {
+  const words: Array<string> = getSiteSearchWords(filter.search);
+  const isSearching: boolean = words.length > 0;
+  const openIds: Set<string> = new Set<string>();
+  let matchCount: number = 0;
+
+  const visit: (
+    node: SiteTreeNode,
+    isUnderMatch: boolean,
+  ) => KeptSiteNode | null = (
+    node: SiteTreeNode,
+    isUnderMatch: boolean,
+  ): KeptSiteNode | null => {
+    if (filter.hideEmpty && node.subtreeDeviceCount === 0) {
+      return null;
+    }
+
+    // Without a search, every site kept is one the list shows.
+    const isMatch: boolean = isSearching
+      ? siteNameMatches(node.site.name, words)
+      : true;
+
+    const children: Array<KeptSiteNode> = [];
+
+    for (const child of node.children) {
+      const kept: KeptSiteNode | null = visit(child, isUnderMatch || isMatch);
+
+      if (kept) {
+        children.push(kept);
+      }
+    }
+
+    const hasMatchBelow: boolean = children.some(
+      (child: KeptSiteNode): boolean => {
+        return child.hasMatch;
+      },
+    );
+
+    if (isSearching && !isMatch && !isUnderMatch && !hasMatchBelow) {
+      return null;
+    }
+
+    if (isMatch) {
+      matchCount++;
+    }
+
+    if (isSearching && hasMatchBelow && node.site._id) {
+      openIds.add(node.site._id);
+    }
+
+    return {
+      node: {
+        ...node,
+        children: children.map((child: KeptSiteNode): SiteTreeNode => {
+          return child.node;
+        }),
+      },
+      hasMatch: (isSearching && isMatch) || hasMatchBelow,
+    };
+  };
+
+  const kept: Array<SiteTreeNode> = [];
+
+  for (const root of roots) {
+    const node: KeptSiteNode | null = visit(root, false);
+
+    if (node) {
+      kept.push(node.node);
+    }
+  }
+
+  return {
+    roots: kept,
+    matchCount: matchCount,
+    openIds: openIds,
+    isSearching: isSearching,
+  };
+}

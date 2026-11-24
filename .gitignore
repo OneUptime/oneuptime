@@ -241,10 +241,13 @@ RFP/
 /output/**
 
 # AI eval harness output (npm run ai-eval, npm run ai-eval -- --replay,
-# npm run ai-benchmark, and packages/Runner's npm run benchmark)
+# npm run ai-benchmark, npm run ask-ai-eval, and packages/Runner's npm run
+# benchmark)
 eval-corpus.json
 eval-replays.json
 ai-benchmark-results.json
+ai-data-security-eval-results.json
+ask-ai-eval-results.json
 code-agent-benchmark-results.json
 
 # CycloneDX SBOMs written by Scripts/GHA/generate_sboms.sh

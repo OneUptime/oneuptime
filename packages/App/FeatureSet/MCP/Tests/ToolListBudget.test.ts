@@ -81,7 +81,12 @@ import ModelType from "../Types/ModelType";
  * website monitoring, paging, a status page, monitors on one, and who is
  * told) and took the answer from 276,431 to 281,103, so an agent sets up a
  * monitor, who is paged and a status page with one call each, where
- * create_monitor alone takes some hundred lines of JSON (#7241).
+ * create_monitor alone takes some hundred lines of JSON (#7241). Kept at
+ * 290,000 on 2026-11-20, when Ask AI's other four setup actions became
+ * tools too (4,795 bytes: a service's recommended monitors, people added
+ * to a policy, invitations, and How to Reach Me) and the two that make a
+ * monitor said what it costs on the Free plan, which took the answer to
+ * 284,919 (#10041, #9995).
  */
 const MAX_TOOLS_LIST_BYTES: number = 290_000;
 

@@ -22,8 +22,9 @@ visit, so a move to another page of the app keeps it: `ssorequired=1`,
 `signup=verify|sent` (a sign-up held until its email is verified, or a link sent to
 an address that has an account), `signin=wrong|methods|totp|enrol|codes|nocodes` (what a password sign-in is
 answered, and its second step), `verify=failed`, `mcp=read|write|loopback|noprojects|error`,
-`market=ready|error`, `form=ok|missing` (on the form's link, and on its own domain:
-the server's `/` with `formdomain=1` is the page a form domain's root renders) and
+`market=ready|error`, `form=ok|missing|signin` (on the form's link, and on its own domain:
+the server's `/` with `formdomain=1` is the page a form domain's root renders; `signin`
+is a form that asks its visitors to sign in) and
 `brand=name|logo|logos` (an installation
 with a name of its own, a logo for light backgrounds only, or logos for both). The
 server's `/hold` and `/release` hold Tailwind and the app's bundle back, so a test can
@@ -59,6 +60,15 @@ footer with only the language picker, centred), that it reads the form and sends
 answers at the address it was opened on (`/api/form/custom-domain`), that it is light
 whatever was picked, that a form that is not available says so, and that nothing is
 wider than the screen at 1280 and 390 pixels in English, German and Persian.
+
+`FormSignIn.spec.ts` opens a form that asks its visitors to sign in (`form=signin`,
+#10249), on its link and on its own domain, and checks that a visitor meets its
+sign-in first - titled with the form's name, with an email, a password, Forgot
+password? and its single sign-on button - with nothing of the form read; that the
+right password (`correct horse battery staple 9`) opens the form, saying who is
+signed in, with Sign Out, and a wrong one gets the server's one answer; that on the
+form's own domain every request goes to the address the page was opened on; and that
+nothing is wider than the screen at 1280 and 390 pixels, in English and Persian.
 
 This checks real browser rendering and the pages' theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

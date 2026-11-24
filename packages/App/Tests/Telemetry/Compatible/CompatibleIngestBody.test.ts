@@ -46,6 +46,90 @@ const statusOf: (promise: Promise<unknown>) => Promise<number | null> = async (
   }
 };
 
+describe("CompatibleIngestBody - an endpoint's own limits", () => {
+  const limits: { maxBodyBytes: number; maxDecompressedBytes: number } = {
+    maxBodyBytes: 1024,
+    maxDecompressedBytes: 2048,
+  };
+
+  test("a body larger than the endpoint's limit as sent is a 413, though under the shared one", async () => {
+    const error: unknown = await CompatibleIngestBody.read(
+      streamRequest(Buffer.alloc(1025)),
+      { limits: limits },
+    ).catch((caught: unknown) => {
+      return caught;
+    });
+
+    expect((error as CompatibleBodyError).statusCode).toBe(413);
+    expect((error as Error).message).toBe(
+      "The request body may not exceed 1024 bytes.",
+    );
+  });
+
+  test("snappy that decompresses past the endpoint's limit is a 413", async () => {
+    expect(
+      await statusOf(
+        CompatibleIngestBody.read(
+          streamRequest(snappyCompress(Buffer.alloc(2049, 1)), {
+            "content-encoding": "snappy",
+          }),
+          { limits: limits },
+        ),
+      ),
+    ).toBe(413);
+  });
+
+  test("gzip that decompresses past the endpoint's limit is a 413 too", async () => {
+    const error: unknown = await CompatibleIngestBody.read(
+      streamRequest(zlib.gzipSync(Buffer.alloc(4096, 1)), {
+        "content-encoding": "gzip",
+      }),
+      { limits: limits },
+    ).catch((caught: unknown) => {
+      return caught;
+    });
+
+    expect((error as CompatibleBodyError).statusCode).toBe(413);
+    expect((error as Error).message).toBe(
+      "The request body may not decompress to more than 2048 bytes.",
+    );
+  });
+
+  test("an uncompressed body counts as its own decompressed size", async () => {
+    expect(
+      await statusOf(
+        CompatibleIngestBody.read(streamRequest(Buffer.alloc(1000)), {
+          limits: { maxBodyBytes: 4096, maxDecompressedBytes: 999 },
+        }),
+      ),
+    ).toBe(413);
+  });
+
+  test("at the limits it is read", async () => {
+    const body: Buffer = Buffer.alloc(2048, 1);
+
+    expect(
+      (
+        await CompatibleIngestBody.read(
+          streamRequest(snappyCompress(body), { "content-encoding": "snappy" }),
+          { limits: limits },
+        )
+      ).equals(body),
+    ).toBe(true);
+  });
+
+  test("an endpoint's limit can only lower the shared ones", () => {
+    expect(
+      CompatibleIngestBody.maxBodyBytes({
+        maxBodyBytes: MAX_OTLP_REQUEST_BYTES * 2,
+      }),
+    ).toBe(MAX_OTLP_REQUEST_BYTES);
+    expect(CompatibleIngestBody.maxBodyBytes(undefined)).toBe(
+      MAX_OTLP_REQUEST_BYTES,
+    );
+  });
+});
+
 describe("CompatibleIngestBody.encodingOf", () => {
   test.each<[string | undefined, string | null]>([
     [undefined, "none"],

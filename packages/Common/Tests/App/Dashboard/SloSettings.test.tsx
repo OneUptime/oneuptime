@@ -67,9 +67,11 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 /*
  * Reads the page makes that these tests leave unanswered: refused at
  * once, as the network refused them, and taken as reads it could not
- * make (Tests/Helpers/RealNetworkRequests.ts).
+ * make (Tests/Helpers/RealNetworkRequests.ts). A Metric SLO's page reads
+ * the kind of its metric's newest point, to say when a gauge has no events
+ * to count (#10027): unread, it says nothing of it.
  */
-refuseRequestsTo(["/monitor-status/get-list"]);
+refuseRequestsTo(["/monitor-status/get-list", "/metrics/get-list"]);
 
 jest.mock("react-i18next", () => {
   return {

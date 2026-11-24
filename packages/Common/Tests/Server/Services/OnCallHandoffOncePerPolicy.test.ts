@@ -513,7 +513,7 @@ describe("what a policy's feed and channels get from a handoff", () => {
         OnCallDutyPolicyFeedEventType.CoverageGapStarted,
       );
       expect(row.feedInfoInMarkdown).toMatch(
-        /^⚠️ Nobody is on call for \[(Payments|Checkout)\]\(.+\) until Nov 15 2026, .+ EST, when \*\*\[Bob\]/,
+        /^⚠️ Nobody is on call for \[(Payments|Checkout)\]\(.+\) until Nov 15, 2026, .+ EST, when \*\*\[Bob\]/,
       );
     }
 

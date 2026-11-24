@@ -177,7 +177,9 @@ describe("Escape puts an open header menu away", () => {
     renderRail();
 
     fireEvent.click(menuButton("Help"));
-    const row: HTMLElement = screen.getByRole("link", { name: "Glossary" });
+    const row: HTMLElement = screen.getByRole("menuitem", {
+      name: "Glossary",
+    });
     row.focus();
     expect(document.activeElement).toBe(row);
     expect(menuButton("Help")).toHaveAttribute("aria-expanded", "true");

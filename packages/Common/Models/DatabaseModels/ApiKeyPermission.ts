@@ -363,7 +363,11 @@ export default class APIKeyPermission extends BaseModel {
     title: "Permission",
     description:
       "Permission. You can find list of permissions on the Permissions page.",
-    example: "ProjectOwner",
+    /*
+     * The key the API reference and the Terraform reference show, in their
+     * examples (#10300): a role a key is commonly given, not Project Owner.
+     */
+    example: "IncidentMember",
   })
   /*
    * Once per key among the permissions given to it directly, and once per

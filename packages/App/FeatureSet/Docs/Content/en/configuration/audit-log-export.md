@@ -148,7 +148,7 @@ Every entry is one JSON object, its keys always in this order:
 | `mcpOAuthGrantId`, `mcpClientName` | The MCP client it was made through, if any. |
 | `workflowId`, `workflowName` | The workflow that made it, if any. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | In version 3, what the workflow's step ran as: `Default`, `ProjectOwner` or `CustomRole`, and the role's name then. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | In version 3, whose permissions it ran with: the person's or the project API key's id, and their name then. Each of these five keys is `null` when no workflow made the change. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | In version 3, whose permissions it ran with: the person's or the project API key's id, and their name then. Each of these five keys is `null` when no workflow made the change. |
 | `changes` | Each field changed: `field`, with `oldValue` and `newValue`, and in version 2 `summary`. |
 
 A file holds one entry per line, compressed with gzip, and is filed by the hour of its first entry: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

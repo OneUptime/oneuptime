@@ -23,6 +23,7 @@ import {
   TelemetryScrubUnavailableReason,
 } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
 import { DataSecurityDropMetricUnavailableReason } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
+import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import LogScrubAction from "../../../../Types/Log/LogScrubAction";
@@ -59,6 +60,7 @@ import LogScrubRuleService from "../../../Services/LogScrubRuleService";
 import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
 import WorkspaceActionAuthorization from "../../Workspace/WorkspaceActionAuthorization";
+import ProjectDataTypeNames from "../ProjectDataTypeNames";
 
 // Which rule reaches a location is decided beside the store kinds, for the pages too.
 export {
@@ -897,8 +899,30 @@ function maskAction(signal: ScrubRuleSignal): string {
   return signal === "log" ? LogScrubAction.Mask : TraceScrubAction.Mask;
 }
 
+// A built-in type by its name; one of the project's own as one, never by its id.
 function dataTypeNameOf(dataTypeId: string): string {
-  return getBuiltInDataType(dataTypeId)?.name || "Custom data type";
+  return DataTypeNamer.withoutCustomTypes().nameOf(dataTypeId);
+}
+
+/*
+ * What a rule Scrub It makes calls the type it scrubs, in its name and its
+ * description: one of the project's own by the name the project gave it
+ * (#10363), read only for such a type - else the name its finding kept -
+ * and a built-in one by the catalog's.
+ */
+async function nameTypeForRule(data: {
+  projectId: ObjectID;
+  dataTypeId: string;
+  // The name the finding kept when it was found.
+  dataTypeName?: string | null | undefined;
+}): Promise<string> {
+  if (!isCustomDataTypeId(data.dataTypeId)) {
+    return dataTypeNameOf(data.dataTypeId);
+  }
+
+  return (
+    await ProjectDataTypeNames.read({ projectId: data.projectId })
+  ).nameOf(data.dataTypeId, data.dataTypeName);
 }
 
 // Why no rule can be made for a data type, in a sentence a person can act on.
@@ -1064,6 +1088,8 @@ export function buildMetricScrubRule(data: {
   dataTypeId: string;
   location: string;
   target: ScrubTarget;
+  // What the rule calls the type (nameTypeForRule); the catalog's name when left out.
+  dataTypeName?: string | undefined;
 }): MetricPipelineRule {
   const key: string = data.target.key || "";
   const serviceId: string = data.serviceId ? data.serviceId.toString() : "";
@@ -1082,7 +1108,8 @@ export function buildMetricScrubRule(data: {
 
   const filters: Array<MetricPipelineRuleFilterCondition> =
     buildMetricScrubFilters(data.dataTypeId, key);
-  const dataTypeName: string = dataTypeNameOf(data.dataTypeId);
+  const dataTypeName: string =
+    data.dataTypeName || dataTypeNameOf(data.dataTypeId);
   const name: string = cut(
     `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${data.location}`,
     MAX_METRIC_RULE_NAME_LENGTH,
@@ -1117,10 +1144,22 @@ async function createMetricScrubRule(data: {
   serviceId?: ObjectID | string | null | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
+  dataTypeName?: string | null | undefined;
   location: string;
   target: ScrubTarget;
 }): Promise<CreatedScrubRule> {
-  const rule: MetricPipelineRule = buildMetricScrubRule(data);
+  // Refused before anything is read for a rule that cannot be made.
+  let rule: MetricPipelineRule = buildMetricScrubRule({
+    ...data,
+    dataTypeName: undefined,
+  });
+
+  if (isCustomDataTypeId(data.dataTypeId)) {
+    rule = buildMetricScrubRule({
+      ...data,
+      dataTypeName: await nameTypeForRule(data),
+    });
+  }
   const created: MetricPipelineRule = await MetricPipelineRuleService.create({
     data: rule,
     props: await propsFor(data),
@@ -1271,6 +1310,8 @@ export async function createScrubRuleForFinding(data: {
   userId?: ObjectID | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
+  // The name the finding kept for its type: what the rule calls a type that is gone.
+  dataTypeName?: string | null | undefined;
   location: string;
   // The service the store is the telemetry of: a metric rule is its own.
   serviceId?: ObjectID | string | null | undefined;
@@ -1331,7 +1372,11 @@ export async function createScrubRuleForFinding(data: {
   }
 
   const plan: ScrubRulePlan = planScrubRule({ dataTypeId, location, target });
-  const dataTypeName: string = dataTypeNameOf(dataTypeId);
+  const dataTypeName: string = await nameTypeForRule({
+    projectId: data.projectId,
+    dataTypeId,
+    dataTypeName: data.dataTypeName,
+  });
   const name: string = cut(
     `${DATA_SECURITY_SCRUB_RULE_NAME_PREFIX}${dataTypeName} in ${location}`,
     MAX_RULE_NAME_LENGTH,

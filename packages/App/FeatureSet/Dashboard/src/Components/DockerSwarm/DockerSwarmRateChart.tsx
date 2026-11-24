@@ -15,6 +15,7 @@ import {
   XAxisAggregateType,
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import YAxis, {
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import ValueFormatter from "Common/Utils/ValueFormatter";
@@ -224,9 +225,10 @@ const DockerSwarmRateChart: FunctionComponent<ComponentProps> = (
       min: 0,
       max: "auto",
       precision: YAxisPrecision.NoDecimals,
-      formatter: (value: number): string => {
+      formatter: (value: number, precision?: ValueAxisPrecision): string => {
         return ValueFormatter.formatValue(value, yAxisUnit, {
           language: getDateDisplayLanguage(),
+          step: precision?.step,
         });
       },
     },

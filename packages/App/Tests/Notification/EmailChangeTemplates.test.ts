@@ -149,7 +149,12 @@ describe("ConfirmEmailChange.hbs: the new address is free", () => {
 
     expect(text).toContain("Or copy and paste this link into your browser:");
     expect(html.split(CONFIRM_URL).length - 1).toBeGreaterThanOrEqual(2);
-    expect(text).toContain("This link works for 24 hours, and only once.");
+    /*
+     * Looked up in the reader's language now (#10157), in the count's form,
+     * and its number held to its unit with a no-break space, as every
+     * duration OneUptime writes in English is (#8811).
+     */
+    expect(text).toContain("This link works for 24 hours, and only once.");
   });
 
   test("says when, from where and on which device the change was asked for", () => {

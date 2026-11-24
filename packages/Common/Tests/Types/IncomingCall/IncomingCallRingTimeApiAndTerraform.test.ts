@@ -25,6 +25,7 @@ import {
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import { ResourceGenerator } from "../../../../../Scripts/TerraformProvider/Core/ResourceGenerator";
+import { providerGoFilePath } from "../../../../../Scripts/TerraformProvider/Core/ProviderShards";
 import {
   OpenAPISpec,
   TerraformAttribute,
@@ -195,7 +196,9 @@ describe("the Terraform provider", () => {
       const go: string = fs.readFileSync(
         path.join(
           outputDir,
-          "internal/provider/resource_incoming_call_policy_escalation_rule.go",
+          providerGoFilePath(
+            "resource_incoming_call_policy_escalation_rule.go",
+          ),
         ),
         "utf-8",
       );

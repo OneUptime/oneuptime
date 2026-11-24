@@ -5,6 +5,7 @@ Vea cuánta telemetría envía cada proyecto, y cada servicio o recurso que cont
 :::cards
 - [Cómo se cuenta el uso](#cómo-se-cuenta-el-uso): Una vez al día, para cada recurso y cada señal.
 - [Ver el uso de un proyecto](#ver-el-uso-de-un-proyecto): Ajustes del proyecto → Telemetría y APM → Uso.
+- [Graficar el uso a medida que llega](#graficar-el-uso-a-medida-que-llega): Cada 5 minutos, como una métrica.
 - [Ver el uso de todos los proyectos](#ver-el-uso-de-todos-los-proyectos): El Admin Dashboard, para el administrador de la instancia.
 - [Cuánto tiempo se conserva el uso](#cuánto-tiempo-se-conserva-el-uso): 120 días, salvo que lo cambie.
 :::
@@ -24,11 +25,11 @@ flowchart TB
 
 - **Un día se cuenta cuando termina.** Cada día queda contado a más tardar hacia las 08:00 UTC del día siguiente, así que el uso de hoy aparece mañana. Un día que no se pudo contar se vuelve a intentar durante una semana.
 - **El tamaño es el tamaño almacenado.** Cada señal se cuenta como el tamaño de las filas en las que se almacena, antes de la compresión. Las reproducciones de sesiones se cuentan como los bytes que subieron las grabadoras.
-- **Las excepciones se muestran aparte.** Las excepciones recogidas de spans y registros tienen su propio total, su propia columna y su propia parte del gráfico, y **Trazas** cuenta los spans. No tienen fila propia: cada fila de trazas indica qué parte de ella corresponde a excepciones. Un día contado antes de que las excepciones se mostraran aparte las sigue incluyendo en **Trazas**, como antes.
+- **Las excepciones se muestran aparte.** Las excepciones recogidas de spans y registros tienen su propio total, su propia columna y su propia parte del gráfico, **Trazas** cuenta los spans y **Registros** cuenta las entradas de registro. No tienen fila propia: cada fila de trazas o de registros indica qué parte de ella corresponde a excepciones. Un día contado antes de que las excepciones se mostraran aparte las sigue incluyendo en **Trazas**, como antes.
 - **Los perfiles incluyen sus muestras.**
 - **La telemetría propia de OneUptime no se cuenta.** Las lecturas de monitores, alertas, incidentes y SLO, las lecturas de Observabilidad de datos y las métricas de presupuesto de las reproducciones de sesiones las escribe el propio OneUptime.
 - **En OneUptime Cloud, la telemetría se factura a partir de estas filas.** En una instalación sin facturación, el uso se cuenta sin costo, y no se cobra nada por él, aunque la facturación se active más adelante.
-- **Las excepciones se facturan como parte de las trazas.** En OneUptime Cloud, las trazas se facturan por sus spans y sus excepciones en conjunto, al precio de las trazas, como siempre. Mostrar las excepciones aparte no cambia nada de lo que se le factura, y nunca se cobran dos veces.
+- **Las excepciones se facturan con aquello en lo que se encontraron.** En OneUptime Cloud, una excepción encontrada en un span se factura con **Trazas**, y una encontrada en una entrada de registro, con **Registros**. Los registros y las trazas cuestan lo mismo por GB, así que cada excepción se factura una sola vez, al mismo precio, y a un proyecto que solo envía registros nunca se le facturan trazas. Un día contado antes de que las excepciones encontradas en registros pasaran a **Registros** las mantiene en **Trazas**.
 - **Un presupuesto se cuenta aparte del uso.** Un [presupuesto de ingesta](/docs/telemetry/ingestion-budgets) cuenta la telemetría a medida que llega, descomprimida, así que puede detener la telemetría de un día el mismo día. Mientras haya uno fijado, esta página se abre con los presupuestos de hoy. Las excepciones no tienen presupuesto propio: cuentan en el presupuesto de las trazas o los registros en los que llegan.
 
 ## Antes de empezar
@@ -58,7 +59,7 @@ La página tiene tres tarjetas:
 | --- | --- |
 | **Uso de telemetría** | El **Total** del intervalo, un total por cada señal y un gráfico de cada día, con sus señales apiladas. |
 | **Uso por recurso** | Cada **Recurso** con su tipo, una columna por cada señal, el **Total** y, en **Retención**, cuánto tiempo se conserva su telemetría. |
-| **Historial de uso de telemetría** | Una fila por producto, recurso y día, con filtros por **Producto**, **Día** y **Servicio**. Una fila de **Trazas** reúne sus spans y sus excepciones, tal como se facturan las trazas, e indica en **Datos ingeridos (en GB)** qué parte corresponde a excepciones. |
+| **Historial de uso de telemetría** | Una fila por producto, recurso y día, con filtros por **Producto**, **Día** y **Servicio**. Una fila de **Trazas** reúne sus spans y las excepciones encontradas en ellos, y una fila de **Registros**, sus entradas de registro y las excepciones encontradas en ellas, tal como se facturan. Cada una indica en **Datos ingeridos (en GB)** qué parte corresponde a excepciones. |
 
 La telemetría que no indicaba ningún servicio aparece como **Servicio desconocido**. Un recurso que se ha eliminado desde entonces, o cuyo tipo su rol no lee, aparece con su tipo y el comienzo de su ID.
 
@@ -70,6 +71,36 @@ La telemetría que no indicaba ningún servicio aparece como **Servicio desconoc
 | Miembro del proyecto, Visor, Administrador de telemetría, Miembro de telemetría, Visor de telemetría | Cuánto envió cada recurso y cuánto tiempo se conserva |
 
 Lo que costó el uso solo se muestra en OneUptime Cloud: una instalación sin facturación no cobra nada por él. Consulte [Facturación y uso](/docs/configuration/billing#historial-de-uso) para ver los precios.
+
+## Graficar el uso a medida que llega
+
+Las filas de uso llegan al día siguiente. Para graficar en minutos lo que envía cada servicio, y recibir una alerta cuando envía más, un Propietario del proyecto o un Administrador del proyecto puede publicar el uso del proyecto como una métrica:
+
+:::steps
+### Activarlo
+
+Vaya a **Ajustes del proyecto → Telemetría y APM → Uso**, abra **Más ajustes** al final de la página y active **Publicar el uso como métricas** en la tarjeta **Uso como métricas**. Se guarda en cuanto lo activa.
+
+### Graficarlo
+
+Cada 5 minutos, OneUptime escribe lo que cada servicio y recurso envió de cada señal en esos 5 minutos como la métrica `oneuptime.telemetry.usage.bytes`, en bytes (`By`). Grafique su suma en el [Explorador de métricas](/docs/telemetry/metrics-explorer), o alerte sobre ella con un [monitor de métricas](/docs/monitor/metrics-monitor).
+:::
+
+Cada punto lleva estos atributos:
+
+| Atributo | Valor |
+| --- | --- |
+| `projectId` | El ID del proyecto. |
+| `signal` | `logs`, `traces`, `metrics` o `profiles`. |
+| `resourceType` | El tipo de recurso: `OpenTelemetry` para un servicio, `Host` para un host, y así sucesivamente. |
+| `resourceId` | El ID del servicio o recurso. |
+| `resourceName` | Su nombre cuando se escribió el punto. |
+
+- **Contado a medida que llega.** Cada punto es la parte del recurso en lo que llegó, descomprimido, como lo cuentan los presupuestos de ingesta, así que puede marcar más que las filas de uso, que cuentan lo que se almacenó.
+- **Enviado por OpenTelemetry.** Se cuentan los registros, trazas, métricas y perfiles enviados por OTLP. Los eventos de seguridad, las reproducciones de sesiones y los registros de Fluent Bit, Fluentd o syslog no.
+- **Cada punto es de su recurso.** Quien puede leer la telemetría de un servicio o de un recurso lee sus puntos: un rol limitado a algunas etiquetas solo ve los suyos.
+- **No cuestan nada.** Estos puntos no se descuentan de ningún presupuesto ni cuentan como uso, y se conservan tanto como las métricas de monitores: 30 días, salvo que el administrador de la instancia lo cambie. Los nombres de métrica que empiezan por `oneuptime.telemetry.usage.` están reservados para ellos: las métricas que sus aplicaciones envían con un nombre así se descartan.
+- **Desactivado de forma predeterminada.** Mientras está desactivado, no se escribe nada, y los puntos ya escritos se conservan hasta que caducan.
 
 ## Ver el uso de todos los proyectos
 
@@ -114,7 +145,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` y `endDay` son días escritos `YYYY-MM-DD`, ambos incluidos, y un intervalo puede durar hasta 1095 días. La respuesta tiene los totales, cada día por señal y cada recurso por señal, en GB, con el costo solo donde la facturación está activada y la clave lee la facturación. Las excepciones están en `Exceptions`, separadas de `Traces`, y un día contado antes de que las excepciones se mostraran aparte las incluye en `Traces`.
+`startDay` y `endDay` son días escritos `YYYY-MM-DD`, ambos incluidos, y un intervalo puede durar hasta 1095 días. La respuesta tiene los totales, cada día por señal y cada recurso por señal, en GB, con el costo solo donde la facturación está activada y la clave lee la facturación. Las excepciones están en `Exceptions`, separadas de `Traces` y `Logs`, y un día contado antes de que las excepciones se mostraran aparte las incluye en `Traces`.
 
 ## Solución de problemas
 
@@ -132,6 +163,10 @@ El recurso se eliminó después de enviar la telemetría, o su rol no lee ese ti
 
 :::details Las Trazas bajaron el día en que aparecieron las Excepciones
 Antes, las excepciones se contaban dentro de **Trazas**. Desde el primer día contado con las excepciones aparte, **Trazas** cuenta los spans y **Excepciones** cuenta las excepciones. Juntas suman lo que era **Trazas**, y aquello por lo que se facturan las trazas.
+:::
+
+:::details Los Registros cuestan más y las Trazas menos a partir de un día
+Las excepciones encontradas en entradas de registro se facturaban antes con **Trazas**. Desde el primer día contado después del cambio, se facturan con **Registros**, el producto que las encontró. Los registros y las trazas cuestan lo mismo por GB, así que juntos cuestan lo mismo que antes.
 :::
 
 ## Próximos pasos

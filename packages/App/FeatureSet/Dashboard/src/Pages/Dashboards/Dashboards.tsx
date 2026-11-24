@@ -31,6 +31,11 @@ import useProductFirstRun, {
 } from "../../Components/ProductOnboarding/UseProductFirstRun";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import ImportDashboardModal from "../../Components/ObservabilityImport/ImportDashboardModal";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import IconProp from "Common/Types/Icon/IconProp";
 
 /*
  * Create Dashboard opens Create a dashboard (Components/Dashboard/
@@ -45,6 +50,24 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     query: { isArchived: false },
   });
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+
+  /*
+   * Import from Grafana or Datadog (issue #7697), in the list's ⋯ beside
+   * Import JSON: offered to whoever may create a dashboard, as Create is.
+   */
+  const importButton: CardButtonSchema | null = PermissionGate.gateCardButton(
+    {
+      title: "Import from Grafana or Datadog",
+      buttonStyle: ButtonStyleType.OUTLINE,
+      icon: IconProp.Upload,
+      onClick: () => {
+        setShowImportModal(true);
+      },
+    },
+    new Dashboard(),
+    ModelAction.Create,
+  );
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Dashboard>({ modelType: Dashboard });
@@ -113,6 +136,26 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
+      {showImportModal ? (
+        <ImportDashboardModal
+          onClose={() => {
+            setShowImportModal(false);
+          }}
+          onCreated={(dashboard: Dashboard) => {
+            setShowImportModal(false);
+
+            // The imported dashboard opens, as a created one does.
+            if (dashboard._id) {
+              Navigation.navigate(
+                getDashboardViewRoute(new ObjectID(dashboard._id.toString())),
+              );
+            }
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       <ModelTable<Dashboard>
         modelType={Dashboard}
         refreshToggle={firstRun.refreshToken}
@@ -160,6 +203,7 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Dashboards",
           description:
             "Your own views of metrics, logs, traces, monitors and incidents, arranged the way your team wants them. Start from a template or an empty dashboard.",
+          buttons: importButton ? [importButton] : [],
         }}
         showViewIdButton={true}
         /*

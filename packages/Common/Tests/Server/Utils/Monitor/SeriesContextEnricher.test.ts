@@ -1,6 +1,8 @@
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import SeriesContextEnricher from "../../../../Server/Utils/Monitor/SeriesContextEnricher";
+import SeriesLabelDisplay from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
+import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import { WORD_JOINER } from "../../../../Utils/Markdown/MarkdownEscape";
 import { neutralizeUntrustedValue } from "../../../../Utils/Markdown/UntrustedMarkdown";
 
@@ -229,6 +231,54 @@ describe("SeriesContextEnricher", () => {
           seriesLabels: { "resource.k8s.pod.name": "web-1" },
         }),
       ).toBe(" - Pod: web-1");
+    });
+
+    /*
+     * A title is plain text, so its suffix is written as the shared title
+     * suffix is (SeriesLabelDisplay.formatTitleSuffix), never escaped as
+     * Markdown here: the alert's feed item and its chat messages place the
+     * title with mdText, which escapes it there (the guard
+     * FeedAndChatPlainTextEscapedGuard holds both to that).
+     */
+    test("names a series whose values look like Markdown as they are, with the shared title suffix", () => {
+      const seriesLabels: JSONObject = {
+        "resource.k8s.namespace.name": "[shop](https://example.com)",
+        "resource.k8s.pod.name": "web_1*",
+      };
+      const title: string = SeriesContextEnricher.enrichTitle({
+        title: "[K8s] Pod Crash Looping",
+        seriesLabels,
+      });
+
+      expect(title).toBe(
+        "[K8s] Pod Crash Looping - Pod: web_1* | Namespace: [shop](https://example.com)",
+      );
+      expect(title).not.toContain("\\");
+      expect(title).toBe(
+        `[K8s] Pod Crash Looping${SeriesLabelDisplay.buildTitleSuffix(seriesLabels)}`,
+      );
+    });
+
+    test("and a feed or chat sentence that places the title escapes it there, so it reads as typed", () => {
+      const title: string = SeriesContextEnricher.enrichTitle({
+        title: "[K8s] Pod Crash Looping",
+        seriesLabels: {
+          "resource.k8s.namespace.name": "[shop](https://example.com)",
+          "resource.k8s.pod.name": "web_1*",
+        },
+      });
+
+      // As the alert's Created item and its chat message place it: bold.
+      const placed: string = mdText`**${title}**`.toString();
+
+      /*
+       * No link - its opening bracket is escaped - and no emphasis: each
+       * character a backslash keeps as typed, which every renderer turns
+       * back into the character.
+       */
+      expect(placed).toContain("\\[shop\\](https://example.com)");
+      expect(placed).toContain("web_1\\*");
+      expect(placed.replace(/\\([!-/:-@[-`{-~])/g, "$1")).toBe(`**${title}**`);
     });
   });
 

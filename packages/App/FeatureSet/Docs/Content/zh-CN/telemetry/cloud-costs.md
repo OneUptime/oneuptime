@@ -61,6 +61,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management 会按每个订阅作答，并附上每项成本所属的资源，读取它不收费。当它无法为某个订阅作答时，账户的 **成本** 会说明原因。
 
+Cost Management 会限制读取一个租户成本的速度，对所有读取者都一样：每个查询读取的每个月数据消耗一个查询处理单元 (QPU)，一个租户每 10 秒有 12 QPU，每分钟 60，每小时 600。OneUptime 在每项配额的三分之二以内逐个读取租户的订阅，在 Cost Management 拒绝查询时按其要求等待，并在下一次读取时从停下的地方继续。尚未读取的订阅显示 **排队中** 以及读取时间；已有金额的订阅在此期间保留其金额。
+
 ## Google Cloud
 
 Google Cloud 没有提供项目成本的 API：OneUptime 从你的结算账户导出到 BigQuery 的数据中读取成本。
@@ -151,6 +153,10 @@ AI 智能体可以通过 [MCP 服务器](/docs/ai/mcp-server) 创建和更改预
 
 :::details 账户显示 未设置
 它的云还没有可提供的成本。在 AWS 上开启 Cost Explorer；在 Google Cloud 上，在 **账单导出表** 中填写导出的表。第一批金额会随下一次读取到达，在 12 小时之内。
+:::
+
+:::details 账户显示 排队中
+它的成本在排队等候：Azure Cost Management 限制读取一个租户成本的速度。账户会显示读取时间，即从那时起连接的第一次读取，无需任何操作。已有金额的账户在此期间保留其金额。
 :::
 
 :::details 按资源的成本显示 未设置

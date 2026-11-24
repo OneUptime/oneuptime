@@ -1,9 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 import { SearchValueOperator } from "../../../Types/Telemetry/TelemetrySearchQuery";
 import {
+  SLO_METRIC_COUNTER_AS_HISTOGRAM_REASON,
+  SLO_METRIC_GAUGE_REASON,
+  SLO_METRIC_HISTOGRAM_AS_COUNTER_REASON,
+  SLO_METRIC_UNCOUNTABLE_REASON,
   getSloMetricQueryError,
   getSloMetricQueryFingerprintParts,
   getSloMetricQueryProblem,
+  getSloMetricUncountedReason,
   normalizeSloMetricQueryConfig,
   ParsedSloMetricSearch,
   parseSloMetricSearch,
@@ -301,5 +306,78 @@ describe("getSloMetricQueryFingerprintParts", () => {
     expect(JSON.stringify(getSloMetricQueryFingerprintParts(HISTOGRAM))).toBe(
       '{"metricName":"http.server.request.duration","kind":"Histogram","goodFilter":null,"goodAtOrUnder":0.3,"filter":null}',
     );
+  });
+});
+
+/*
+ * #10027: why a Metric SLO counted nothing, when its metric's newest point
+ * says so - the sentence its feed is told.
+ */
+describe("getSloMetricUncountedReason", () => {
+  test("a gauge, which every cloud metric is, has no events to count", () => {
+    for (const kind of [SloMetricKind.Counter, SloMetricKind.Histogram]) {
+      expect(
+        getSloMetricUncountedReason({ metricPointType: "Gauge", kind }),
+      ).toBe(SLO_METRIC_GAUGE_REASON);
+    }
+
+    expect(SLO_METRIC_GAUGE_REASON).toContain("every cloud metric");
+    expect(SLO_METRIC_GAUGE_REASON).toContain("monitor's uptime");
+  });
+
+  test("a summary or an exponential histogram is neither a counter nor a histogram", () => {
+    for (const metricPointType of ["Summary", "ExponentialHistogram"]) {
+      expect(
+        getSloMetricUncountedReason({
+          metricPointType,
+          kind: SloMetricKind.Counter,
+        }),
+      ).toBe(SLO_METRIC_UNCOUNTABLE_REASON);
+    }
+  });
+
+  test("a histogram counted as a counter, or a counter as a histogram, says which to choose", () => {
+    expect(
+      getSloMetricUncountedReason({
+        metricPointType: "Histogram",
+        kind: SloMetricKind.Counter,
+      }),
+    ).toBe(SLO_METRIC_HISTOGRAM_AS_COUNTER_REASON);
+    expect(
+      getSloMetricUncountedReason({
+        metricPointType: "Sum",
+        kind: SloMetricKind.Histogram,
+      }),
+    ).toBe(SLO_METRIC_COUNTER_AS_HISTOGRAM_REASON);
+    expect(SLO_METRIC_HISTOGRAM_AS_COUNTER_REASON).toContain(
+      '"A histogram, by a value"',
+    );
+    expect(SLO_METRIC_COUNTER_AS_HISTOGRAM_REASON).toContain(
+      '"A counter, by a condition"',
+    );
+  });
+
+  test("a counter or a histogram counted as itself, or no point at all, says nothing new", () => {
+    expect(
+      getSloMetricUncountedReason({
+        metricPointType: "Sum",
+        kind: SloMetricKind.Counter,
+      }),
+    ).toBeNull();
+    expect(
+      getSloMetricUncountedReason({
+        metricPointType: "Histogram",
+        kind: SloMetricKind.Histogram,
+      }),
+    ).toBeNull();
+
+    for (const metricPointType of [null, undefined, ""]) {
+      expect(
+        getSloMetricUncountedReason({
+          metricPointType,
+          kind: SloMetricKind.Counter,
+        }),
+      ).toBeNull();
+    }
   });
 });

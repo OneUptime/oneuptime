@@ -318,8 +318,15 @@ describe("Data security response", () => {
       template.Resources.OneUptimeReadOnlyRole.Properties.Policies[2]!
         .PolicyDocument,
     ).toEqual(getAwsDataSecurityResponsePolicy(BLOCK));
-    expect(template.Description).toContain(
-      "it may also block a data store's public access and sharing",
+    // A role that may write is not one that "can only read", and says what it may do.
+    expect(template.Description).toBe(
+      "OneUptime: a role that reads this account's metrics, resources, changes and health events, and its data stores' configuration; it may also close a data store's exposures and fix its settings.",
+    );
+    expect(
+      JSON.parse(getAwsReadOnlyRoleTemplate({ ...ROLE, dataSecurity: "off" }))
+        .Description,
+    ).toBe(
+      "OneUptime: a role that can only read this account's metrics, resources, changes and health events.",
     );
     expect(
       getAwsOrganizationSetupCommand({ ...ROLE, dataSecurityResponse: BLOCK }),

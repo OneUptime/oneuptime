@@ -1,4 +1,5 @@
 import { getHandDrawnLookClassName } from "../Button/ButtonStates";
+import Timezone from "../../../Types/Timezone";
 import TableSkeleton from "../Skeleton/TableSkeleton";
 import React, {
   MutableRefObject,
@@ -305,6 +306,11 @@ export interface TelemetryViewerProps<T> {
    * bucketed them. It is what lets a click on a bar open that bar's rows.
    */
   histogramBucketIntervalMs?: number | undefined;
+  /*
+   * The zone the histogram's day bars were cut in (the answer's
+   * bucketTimezone, #7923).
+   */
+  histogramBucketTimezone?: Timezone | undefined;
   onHistogramTimeRangeSelect?:
     | ((startTime: Date, endTime: Date) => void)
     | undefined;
@@ -767,6 +773,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             series={props.histogramSeries}
             title={props.histogramTitle}
             bucketIntervalMs={props.histogramBucketIntervalMs}
+            bucketTimezone={props.histogramBucketTimezone}
             onTimeRangeSelect={viewerZoom.onTimeRangeSelect}
             onZoomOut={viewerZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}

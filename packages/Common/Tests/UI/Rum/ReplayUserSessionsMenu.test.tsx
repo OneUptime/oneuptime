@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 /*
  * The Dashboard has its own copy of react; Common's jest moduleNameMapper
  * pins react and react-dom to this project's single copy for every
@@ -12,6 +12,8 @@ import ReplayUserSessionsMenu, {
   ReplayUserSessionsMenuProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessionsMenu";
 import { ReplayUserSessionItem } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUserSessions";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
+import { wasPressConsumedByAnAnchoredPopup } from "../../../UI/Types/LayeredDismissal";
 
 /*
  * The "N sessions" dropdown in the player header
@@ -492,5 +494,138 @@ describe("ReplayUserSessionsMenu", () => {
         return item.getAttribute("aria-selected") === "true";
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * The panel is drawn on the tooltip layer (#9910): the player's header sits
+ * in a player that rounds its corners and, in a drawer or a card, in boxes
+ * that clip - a panel drawn in place under the trigger would be cut off
+ * there. The layer keeps it whole, and keeps what the menu did.
+ */
+describe("ReplayUserSessionsMenu on the tooltip layer", () => {
+  function renderInPlayer(): void {
+    render(
+      <div>
+        <div data-testid="player" style={{ overflow: "hidden" }}>
+          <ReplayUserSessionsMenu {...makeProps()} />
+          <button type="button">Next session</button>
+        </div>
+        <button type="button" data-testid="elsewhere">
+          Elsewhere
+        </button>
+      </div>,
+    );
+  }
+
+  it("is drawn on the page's body, outside the player that clips it, hung from its trigger's start", () => {
+    renderInPlayer();
+
+    const menu: HTMLElement = openMenu();
+    const layer: HTMLElement | null = menu.closest<HTMLElement>(
+      `.${LAYERED_POPOVER_CLASS_NAME}`,
+    );
+
+    expect(screen.getByTestId("player")).not.toContainElement(menu);
+    expect(layer?.parentElement).toBe(document.body);
+    expect(layer).toHaveAttribute("data-popper-placement", "bottom-start");
+    expect(
+      (layer as HTMLElement & { _tippy?: { reference: Element } })._tippy
+        ?.reference,
+    ).toBe(screen.getByTestId("replay-user-sessions-button"));
+    expect(menu).toHaveClass("w-[26rem]", "max-w-[calc(100vw-1rem)]");
+    expect(menu).not.toHaveClass("absolute", "left-0", "mt-1");
+  });
+
+  it("Tab from the trigger reaches the current row, and from it goes on past the menu, closing it", () => {
+    renderInPlayer();
+
+    const trigger: HTMLElement = screen.getByTestId(
+      "replay-user-sessions-button",
+    );
+
+    openMenu();
+    act(() => {
+      trigger.focus();
+    });
+
+    expect(fireEvent.keyDown(trigger, { key: "Tab" })).toBe(false);
+
+    const current: HTMLElement = within(
+      screen.getByTestId("replay-user-sessions-menu"),
+    ).getByRole("option", { selected: true });
+
+    expect(current).toHaveFocus();
+
+    // The rows are one stop (roving focus): Tab goes on from the trigger.
+    expect(fireEvent.keyDown(current, { key: "Tab" })).toBe(true);
+    expect(trigger).toHaveFocus();
+    expect(
+      screen.queryByTestId("replay-user-sessions-menu"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("the focus leaving it for the player closes it", () => {
+    renderInPlayer();
+
+    openMenu();
+    act(() => {
+      screen.getByRole("button", { name: "Next session" }).focus();
+    });
+
+    expect(
+      screen.queryByTestId("replay-user-sessions-menu"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("a press outside closes it and is spent there, not also a press on what is behind", () => {
+    renderInPlayer();
+
+    openMenu();
+
+    const press: MouseEvent = new MouseEvent("mousedown", {
+      bubbles: true,
+      cancelable: true,
+    });
+
+    act(() => {
+      screen.getByTestId("elsewhere").dispatchEvent(press);
+    });
+
+    expect(
+      screen.queryByTestId("replay-user-sessions-menu"),
+    ).not.toBeInTheDocument();
+    expect(wasPressConsumedByAnAnchoredPopup(press)).toBe(true);
+  });
+
+  it("the arrow keys still move between rows inside it, and Space opens one without reaching the player", () => {
+    const onOpenUserSession: MockFunction = getJestMockFunction();
+    const onWindowKey: MockFunction = getJestMockFunction();
+
+    render(
+      <ReplayUserSessionsMenu
+        {...makeProps({ onOpenUserSession: onOpenUserSession })}
+      />,
+    );
+
+    window.addEventListener("keydown", onWindowKey);
+
+    try {
+      const listbox: HTMLElement = within(openMenu()).getByRole("listbox");
+
+      fireEvent.keyDown(listbox, { key: "ArrowDown" });
+
+      const focused: HTMLElement = document.activeElement as HTMLElement;
+
+      expect(focused).toHaveAttribute("data-session-id", "oldest");
+
+      fireEvent.keyDown(focused, { key: " " });
+
+      expect(onOpenUserSession).toHaveBeenCalledWith("oldest");
+      // Space is play/pause on the player's window listener: spent here.
+      expect(onWindowKey).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener("keydown", onWindowKey);
+    }
   });
 });

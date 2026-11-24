@@ -171,6 +171,7 @@ De [hosttabel](#assetattributen-van-hosts) en de [netwerkapparatentabel](#asseta
 | Naam van het besturingssysteem | `os.name` | Alleen van SDK's die het melden: anders noemt `os.description` het besturingssysteem |
 | Apparaattype | `device.type` | Optioneel: stempel het op dezelfde manier (`Hypervisor`, `Workstation`) |
 | Locatie | `device.location` | Optioneel: stempel het op dezelfde manier (`Frankfurt DC, Rack B4`) |
+| Beveiligingspatchniveau | `android.os.security_patch` | Op een Android-apparaat: van de Android-agent of zijn MDM |
 
 Alles wat met Ja is gemarkeerd, komt uit de processor `resourcedetection` van de collector en staat al in de configuratie die OneUptime voor je genereert.
 

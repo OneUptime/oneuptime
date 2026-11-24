@@ -255,6 +255,170 @@ describe("UserPickerModal", () => {
 
     expect(screen.getByText("No teammates match that search.")).toBeTruthy();
   });
+
+  /*
+   * A list of only the person left out - the signed-in user, alone in their
+   * team - offers nobody. It said "No teammates match that search." with
+   * nothing searched.
+   */
+  test("a list of only the person left out says nobody can be picked, not that a search found nobody", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible={true}
+        title="Route my pages to"
+        users={[USERS[0]!]}
+        isLoading={false}
+        selectedUserId={null}
+        excludeUserId="user-me"
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText("No teammates found in this project."),
+    ).toBeTruthy();
+    expect(screen.queryByText("No teammates match that search.")).toBeNull();
+  });
+});
+
+/*
+ * #9883: for someone who may name only the people of their own teams, the
+ * list says which teams above it, and says so when nobody in them can be
+ * picked.
+ */
+describe("UserPickerModal kept to some teams", () => {
+  const HINT: string =
+    "Only people in Payments are listed: the teams that let you manage user overrides.";
+
+  test("says why it lists whom it does, above the list", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible={true}
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        excludeUserId="user-me"
+        hint={HINT}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId("user-picker-hint")).getByText(HINT),
+    ).toBeTruthy();
+    expect(screen.getByTestId("user-option-user-2")).toBeTruthy();
+  });
+
+  test("the line stays while a search finds nobody, and while the list loads", async (): Promise<void> => {
+    const rendered: Awaited<ReturnType<typeof render>> = await render(
+      <UserPickerModal
+        visible={true}
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        hint={HINT}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    await fireEvent.changeText(
+      screen.getByTestId("user-picker-search"),
+      "nobody-by-this-name",
+    );
+
+    expect(screen.getByText("No teammates match that search.")).toBeTruthy();
+    expect(screen.getByTestId("user-picker-hint")).toBeTruthy();
+
+    await rendered.rerender(
+      <UserPickerModal
+        visible={true}
+        title="Route my pages to"
+        users={[]}
+        isLoading={true}
+        selectedUserId={null}
+        hint={HINT}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("user-picker-loading")).toBeTruthy();
+    expect(screen.getByTestId("user-picker-hint")).toBeTruthy();
+  });
+
+  test("nobody in the teams to pick: its own words, not the project's", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible={true}
+        title="Who covers?"
+        users={[USERS[0]!]}
+        isLoading={false}
+        selectedUserId={null}
+        excludeUserId="user-me"
+        hint={HINT}
+        emptyText="No one in these teams can be picked."
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId("user-picker-empty")).getByText(
+        "No one in these teams can be picked.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText("No teammates found in this project."),
+    ).toBeNull();
+  });
+
+  test("with no line given, there is none", async (): Promise<void> => {
+    await render(
+      <UserPickerModal
+        visible={true}
+        title="Route my pages to"
+        users={USERS}
+        isLoading={false}
+        selectedUserId={null}
+        onSelect={jestGlobal.fn()}
+        onClose={jestGlobal.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("user-picker-hint")).toBeNull();
+  });
+
+  test("the line is secondary text on the sheet, readable in the dark theme too", async (): Promise<void> => {
+    mockColorScheme = "dark";
+
+    try {
+      await render(
+        <ThemeProvider>
+          <UserPickerModal
+            visible={true}
+            title="Route my pages to"
+            users={USERS}
+            isLoading={false}
+            selectedUserId={null}
+            hint={HINT}
+            onSelect={jestGlobal.fn()}
+            onClose={jestGlobal.fn()}
+          />
+        </ThemeProvider>,
+      );
+
+      expect(screen.getByText(HINT)).toHaveStyle({
+        color: darkColors.textSecondary,
+      });
+    } finally {
+      mockColorScheme = "light";
+    }
+  });
 });
 
 describe("UserPickerModal sheet", () => {

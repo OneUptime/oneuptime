@@ -60,6 +60,8 @@ export interface SentRequest {
   status: number;
   // The answer as it came back: the JSON text, parsed back.
   answer: unknown;
+  // The answer's headers, by their names in lower case, as Node reads them.
+  headers: Record<string, string>;
 }
 
 interface HttpAnswer {
@@ -173,6 +175,7 @@ export default class DashboardRequestsOverHttp {
       body: parseOrKeep(text),
       status: answer.status,
       answer: parseOrKeep(answer.text),
+      headers: answer.headers,
     };
 
     this.requests.push(sent);
@@ -206,6 +209,7 @@ export default class DashboardRequestsOverHttp {
       body: parseOrKeep(body),
       status: answer.status,
       answer: parseOrKeep(answer.text),
+      headers: answer.headers,
     });
 
     const response: AxiosResponse = {

@@ -63,7 +63,7 @@ Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzu
 Klicken Sie auf eine Zeile. Ihre Details öffnen sich neben der Liste.
 :::
 
-Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Protokolle öffnet. Ein Link auf eine einzelne Protokollzeile, etwa **Protokollzeile anzeigen** bei einem Sicherheitsereignis, öffnet diese Zeile über der Liste, gelesen mit Ihren eigenen Berechtigungen. **Link kopieren** in den Details einer Zeile kopiert einen solchen Link, mit der Liste, aus der Sie ihn kopiert haben, darunter und über denselben Zeitraum.
+Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Protokolle öffnet. Ein Link auf eine einzelne Protokollzeile, etwa **Protokollzeile anzeigen** bei einem Sicherheitsereignis, öffnet diese Zeile über der Liste, gelesen mit Ihren eigenen Berechtigungen. **Link kopieren** in den Details einer Zeile kopiert einen solchen Link, mit der Liste, aus der Sie ihn kopiert haben, darunter und über denselben Zeitraum. Auch jede Zeile der Liste hat **Link kopieren**, neben ihrer Nachricht: So kopieren Sie den Link einer Zeile, ohne sie zu öffnen.
 
 ## Ein Protokoll lesen
 
@@ -112,7 +112,9 @@ Gespeicherte Ansichten gehören zum Projekt, alle darin sehen also dieselben Ans
 
 ## Ihre Protokolle in Diagrammen darstellen
 
-Schalten Sie die Liste auf **Analysen** um, um Protokolle zu zählen statt sie zu lesen. Wählen Sie eine Zeitreihe, eine Top-Liste oder eine Tabelle; zählen Sie jedes Protokoll oder die eindeutigen Werte eines Felds; und gruppieren Sie nach Schweregrad, Dienst, Trace, Span oder einem beliebigen Attribut, dann nach einem zweiten Feld. Eine Top-Liste oder eine Tabelle zeigt die obersten 5, 10, 25 oder 50 Gruppen.
+Schalten Sie die Liste auf **Analysen** um, um Protokolle in Diagrammen darzustellen statt sie zu lesen. Wählen Sie eine Zeitreihe, eine Top-Liste oder eine Tabelle und was sie misst: jedes Protokoll gezählt, die eindeutigen Werte eines Felds oder die Summe, den Durchschnitt, den Median, P90, P95, P99, das Minimum oder das Maximum eines numerischen Attributs, etwa das P95 von `duration_ms`. Gruppieren Sie nach Schweregrad, Dienst, Trace, Span oder einem beliebigen Attribut, dann nach einem zweiten Feld. Eine Top-Liste oder eine Tabelle zeigt die obersten 5, 10, 25 oder 50 Gruppen.
+
+Ein numerisches Attribut wird nur gelesen, wo sein Wert eine Zahl ist: eine ganze Zahl oder eine Dezimalzahl, mit oder ohne Vorzeichen, in wissenschaftlicher Schreibweise oder nicht, etwa `42`, `-7`, `3.14` oder `1e3`. Ein Protokoll ohne das Attribut oder mit etwas anderem darin, etwa `12ms` oder `n/a`, wird ausgelassen, statt als 0 gelesen zu werden. Ein Perzentil wird aus bis zu 8.192 Werten pro Punkt ermittelt, sodass ein Punkt mit mehr Protokollen eine nahe Schätzung statt des exakten Werts hat.
 
 Klicken Sie auf **Liste**, um zu den Zeilen selbst zurückzukehren.
 
@@ -192,6 +194,7 @@ Drücken Sie im Betrachter `?`, um sie zu sehen.
 | --- | --- |
 | `j` / `k` | Zum nächsten oder vorherigen Protokoll wechseln. |
 | Enter | Das ausgewählte Protokoll öffnen oder schließen. |
+| `l` | Einen Link auf das ausgewählte Protokoll kopieren. |
 | Esc | Das Detailfenster schließen. |
 | `/` | Zum Suchfeld springen. |
 | ⌘ + Enter oder Strg + Enter | Die Suche anwenden. |

@@ -51,7 +51,8 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Playbook** | Playbooks | Passi che vengono eseguiti sui casi, da soli o a mano |
 | **Approvazioni** | Playbooks | I passi dei playbook in attesa che qualcuno li approvi o li rifiuti |
 | **Esecuzioni** | Playbooks | Cosa ha fatto ogni playbook, passo per passo |
-| **Entità protette** | Playbooks | Gli utenti e gli host a cui nessun playbook applica il contenimento |
+| **Blocklist** | Playbooks | Gli indirizzi che il tuo progetto blocca, fino a quando e dove viene applicato ogni blocco |
+| **Entità protette** | Playbooks | Gli utenti, gli host e gli indirizzi a cui nessun playbook applica il contenimento e che nessun blocco tocca |
 | **Impostazioni** | IA | Se OneUptime AI classifica ogni nuovo caso |
 | **Connessioni** | Connections | I tuoi log, i prodotti di sicurezza che OneUptime interroga e i SIEM a cui invia |
 | **Guida alla configurazione** | Connections | Frammenti per inviare eventi, compilati con la tua chiave di acquisizione |
@@ -72,8 +73,8 @@ I dati di sicurezza li leggono solo i ruoli Proprietario del progetto e Amminist
 | Ruolo | Cosa può fare |
 | --- | --- |
 | Amministratore della sicurezza | Tutto: eventi, casi, playbook, regole di rilevamento, feed di threat intel e connessioni |
-| Membro della sicurezza | Leggere eventi e threat intel, gestire i casi, eseguire playbook e approvarne i passi, e creare, modificare ed eliminare regole di rilevamento e feed. Non può configurare playbook né connessioni, né eliminare dati di sicurezza. |
-| Visualizzatore della sicurezza | Leggere eventi, casi, playbook, regole, feed, indicatori e connessioni |
+| Membro della sicurezza | Leggere eventi e threat intel, gestire i casi, eseguire playbook e approvarne i passi, bloccare indirizzi, e creare, modificare ed eliminare regole di rilevamento e feed. Non può configurare playbook né connessioni, né eliminare dati di sicurezza. |
+| Visualizzatore della sicurezza | Leggere eventi, casi, playbook, la blocklist, regole, feed, indicatori e connessioni |
 
 ## Inviare eventi di sicurezza
 
@@ -191,8 +192,9 @@ Ogni tipo arriva a OneUptime come normali log:
 | Accessi SSH, sudo | Il journal o il log di autenticazione di una macchina Linux, con l'[OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Eventi Windows | Il receiver `windowseventlog` del collector sulla macchina, o un forwarder che scrive ogni evento come JSON, come NXLog o Winlogbeat. Un [host](/docs/telemetry/hosts) aggiunto a OneUptime legge anche Sysmon, Microsoft Defender e PowerShell dove li ha |
 | AWS CloudTrail | Un trail consegnato a CloudWatch Logs, letto dal receiver `awscloudwatch` del collector, oppure, per un account collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
-| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
-| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di audit di Google Cloud | Un sink di log verso Pub/Sub, letto dal receiver `googlecloudpubsub` del collector con `encoding: raw_text`, oppure, per un progetto collegato in **Cloud**, il suo [stream](/docs/telemetry/cloud-streaming-google-cloud) o [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di attività di Azure e di Entra ID | Un'impostazione di diagnostica che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure all'hub eventi dello [stream](/docs/telemetry/cloud-streaming-azure) di una sottoscrizione collegata, oppure, per il log attività di una sottoscrizione collegata in **Cloud**, [Log di audit cloud](#leggere-i-log-di-audit-dei-tuoi-account-cloud) |
+| Log di Azure Key Vault, Storage e SQL | L'impostazione di diagnostica di una risorsa, che trasmette a un Event Hub, letta dal receiver `azureeventhub` del collector con `format: raw`, oppure le impostazioni di diagnostica dello [stream](/docs/telemetry/cloud-streaming-azure) di una sottoscrizione collegata, quando trasmette i log. Vedi [Log di audit propri delle risorse Azure](#log-di-audit-propri-delle-risorse-azure) |
 | Audit trail di OpenStack | Le notifiche e il filtro di audit di un cloud inviati ai suoi log con `driver = log`, letti dal [profilo dei log](/docs/telemetry/openstack#chi-ha-fatto-cosa) dell'agente |
 | CEF, LEEF | Il syslog del prodotto, inoltrato da [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Il syslog del firewall stesso, inoltrato da [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ Su **I tuoi log**, ogni tipo indica quando è stato trovato l'ultima volta, e **
 
 Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o una minaccia di Palo Alto Networks, FortiGate o Cisco ASA, apre un [caso](/docs/telemetry/security-cases) come fa l'avviso di un prodotto collegato, e aumenta il rischio dell'utente, dell'host o dell'indirizzo che nomina. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**. Gli accessi e le connessioni bloccate del prodotto restano eventi, che le tue regole leggono.
 
-Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un accesso di Microsoft Entra ID letto dalla sua connessione ed esportato da Azure nei tuoi log, oppure un record CloudTrail nei tuoi log e nel log di audit di un account AWS collegato.
+Un record che raggiunge OneUptime per due vie viene salvato una sola volta: un accesso di Microsoft Entra ID letto dalla sua connessione ed esportato da Azure nei tuoi log, un record CloudTrail nei tuoi log e nel log di audit di un account AWS collegato, oppure un record di audit che lo stream di un account cloud invia e che anche **Log di audit cloud** legge.
+
+#### Log di audit propri delle risorse Azure
+
+Un Key Vault, un account di archiviazione e un database Azure SQL tengono ciascuno un proprio log di audit, che riporta ogni richiesta. Diventa un evento di sicurezza solo ciò che un team di sicurezza esamina:
+
+| Risorsa | Cosa diventa un evento di sicurezza |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Una richiesta che il vault ha rifiutato; un segreto consegnato; un segreto, una chiave, un certificato o il vault stesso eliminati, eliminati definitivamente o sottoposti a backup; i suoi criteri di accesso modificati; e una modifica a ciò che contiene. Non la risposta 401 che ogni client di un SDK di Azure riceve alla sua prima chiamata, fatta senza token per conoscere il tenant: Key Vault la scrive nel log sotto la sua operazione `Authentication` |
+| Account di archiviazione (`StorageRead`, `StorageWrite`, `StorageDelete`) | Una richiesta rifiutata per mancanza di un diritto; una servita senza alcuna credenziale, tranne le pagine di un sito web statico e una richiesta preliminare CORS; l'elenco di accesso di un contenitore, di una condivisione, di una coda o di una tabella modificato, o uno di essi eliminato per intero; e una scrittura o un'eliminazione firmata da una firma di accesso condiviso (SAS). Non una lettura riuscita, nemmeno con una SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Un accesso non riuscito; un accesso su una nuova connessione, non il riutilizzo di una connessione di un pool; un'autorizzazione concessa, negata o revocata, il membro di un ruolo o una password modificati, una rappresentazione, e un login, un utente o un ruolo creati, modificati o eliminati; e un'azione il cui controllo delle autorizzazioni non è riuscito. Non un batch, la maggior parte di un audit |
+
+Le letture riuscite di un account di archiviazione sono la maggior parte di ciò che scrive nel log: una SAS è il modo in cui la maggior parte delle app consegna file ai browser. Restano nei log, intere, nella scheda **Log** dell'account: cerca lì `"type":"SAS"` per vedere cosa ha letto una firma di accesso condiviso. Ogni evento nomina la sua risorsa con il suo ID, e quello di un servizio di archiviazione anche il suo account, quindi compare nella pagina **Eventi di sicurezza** di quella risorsa, e un record che arriva due volte viene salvato una sola volta.
 
 ### Leggere i log di audit dei tuoi account cloud
 
@@ -471,9 +485,9 @@ detection:
 | **Esegui in tempo reale** | Disattivo su una nuova regola. Se attivo, la regola controlla ogni evento appena arriva invece che a ogni intervallo; vedi [Regole in tempo reale](#regole-in-tempo-reale). |
 | **Campo di raggruppamento** | Facoltativo. Le corrispondenze che condividono il valore di questo campo, come `principalHost`, vengono contate, avvisate e deduplicate insieme: un avviso per host invece di centinaia. |
 | **Campo di conteggio distinto** | Facoltativo. Conta i valori diversi di questo campo invece degli eventi corrispondenti. I valori vuoti non contano. |
-| **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in un'esecuzione, o in una finestra in tempo reale: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
+| **Soglia di corrispondenze** | Un gruppo scatta solo quando il suo conteggio raggiunge questo numero in una finestra dell'intervallo della regola: da 1 a 1000000, e 1 scatta a qualsiasi corrispondenza. |
 
-Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo della regola. Con essi, la soglia dice «tanti, dalla stessa cosa, in un'esecuzione», senza un monitor sopra:
+Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo della regola. Con essi, la soglia dice «tanti, dalla stessa cosa, in una finestra», senza un monitor sopra:
 
 | Obiettivo | Group By Field | Distinct Count Field | Soglia |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Il raggruppamento e il conteggio distinto accettano gli stessi nomi di campo del
 
 ### Quando gira una regola
 
-OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro intervallo dall'ultima esecuzione. Ogni esecuzione legge gli eventi il cui orario dell'evento cade tra l'esecuzione precedente e due minuti fa, poi va avanti. I due minuti lasciano tempo agli eventi ancora in arrivo, come una riga di log letta un minuto dopo essere stata scritta:
+OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro intervallo dall'ultima esecuzione. Ogni esecuzione legge gli eventi arrivati a OneUptime tra l'esecuzione precedente e due minuti fa, in qualunque momento siano avvenuti, poi va avanti. I due minuti lasciano tempo agli eventi ancora in scrittura:
 
-- Le finestre sono una dopo l'altra, non scorrono. Con un intervallo di 10 minuti, errori alle 09:58 e alle 10:01 possono cadere in esecuzioni diverse e vengono contati separatamente, quindi lascia margine quando scegli una soglia.
+- Una regola che conta e una correlazione contano in finestre lunghe quanto l'intervallo, una dopo l'altra secondo l'orologio: con un intervallo di 10 minuti, errori alle 09:58 e alle 10:01 cadono in finestre diverse e vengono contati separatamente, quindi lascia margine quando scegli una soglia.
 - Dopo un'interruzione, come un worker fermo o una regola riattivata, l'esecuzione successiva copre l'intera interruzione, fino alle ultime 24 ore.
-- Un evento che arriva con più di due minuti di ritardo, quando un'esecuzione ha già coperto il suo orario, viene salvato ed è ricercabile, ma quella regola non lo legge mai.
+- Un evento che arriva in ritardo viene letto comunque, una volta, dall'esecuzione successiva, e contato nella finestra in cui è avvenuto: un gruppo scatta quando la sua finestra raggiunge il conteggio, e al massimo una volta per finestra. Uno che arriva più di un giorno dopo essere avvenuto viene salvato ed è ricercabile, ma le esecuzioni della regola non lo leggono; **Esegui su eventi passati** sì.
 - Ogni gruppo che raggiunge la soglia diventa un Detection Finding, fino a 10.000 per esecuzione. Avvisi, incidenti e casi si aprono per i 100 con i conteggi più alti; gli altri condividono un caso sulla regola, e l'**Ultimo errore** della regola dice quanti gruppi hanno corrisposto.
 
 ### Regole in tempo reale

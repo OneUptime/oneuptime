@@ -14,6 +14,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -393,6 +394,7 @@ export default class IncomingCallLogItem extends BaseModel {
     title: "Status",
     description: "Status of this dial attempt",
     canReadOnRelationQuery: true,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: false,
@@ -443,6 +445,7 @@ export default class IncomingCallLogItem extends BaseModel {
     title: "Dial Duration (Seconds)",
     description: "How long this dial lasted in seconds",
     canReadOnRelationQuery: true,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -493,6 +496,7 @@ export default class IncomingCallLogItem extends BaseModel {
     title: "Started At",
     description: "When dial started",
     canReadOnRelationQuery: true,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -516,6 +520,7 @@ export default class IncomingCallLogItem extends BaseModel {
     type: TableColumnType.Date,
     title: "Ended At",
     description: "When dial ended",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -542,6 +547,7 @@ export default class IncomingCallLogItem extends BaseModel {
     description: "Whether this user answered the call",
     defaultValue: false,
     canReadOnRelationQuery: true,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: false,

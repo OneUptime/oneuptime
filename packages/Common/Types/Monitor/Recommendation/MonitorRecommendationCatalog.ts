@@ -103,7 +103,9 @@ import {
 } from "../DataPipelineAlertTemplates";
 import {
   CloudAlertTemplate,
+  CloudAlertTemplateArgs,
   getAllCloudAlertTemplates,
+  getCloudAlertTemplateEquivalentSteps,
   getCloudAlertTemplatesFor,
 } from "../CloudAlertTemplates";
 import {
@@ -123,7 +125,11 @@ import {
 } from "../MessageQueueAlertTemplates";
 import {
   ManagedDeviceAlertTemplate,
+  ManagedDeviceAlertTemplateArgs,
   getAllManagedDeviceAlertTemplates,
+  getManagedDeviceAlertTemplateEquivalentSteps,
+  getManagedDeviceAlertTemplatesFor,
+  hasManagedDeviceAlertTemplateEquivalentSteps,
 } from "../ManagedDeviceAlertTemplates";
 
 /*
@@ -166,11 +172,12 @@ export interface MonitorRecommendationResourceTypeDefinition {
   /*
    * What to recommend for ONE resource of this type.
    *
-   * Most resource types ignore the argument entirely — every Kubernetes
-   * cluster is offered the same eighteen recommendations, and a
-   * zero-argument function satisfies this type, so those are declared
-   * exactly as they were. Services, databases and RUM applications are the
-   * exceptions: see `MonitorRecommendationContext`.
+   * Most resource types ignore the argument entirely — every Docker host
+   * is offered the same recommendations, and a zero-argument function
+   * satisfies this type, so those are declared exactly as they were.
+   * Services, databases, RUM applications and Kubernetes clusters (OpenShift,
+   * an image disk of a node's own) are among the exceptions: see
+   * `MonitorRecommendationContext`.
    *
    * Passing no context means "nothing is known about this resource", and the
    * only honest answer to that is the context-free subset. It does NOT mean
@@ -332,18 +339,40 @@ function getOpenShiftRecommendations(): Array<MonitorRecommendation> {
 }
 
 /*
+ * The template that watches a node's image disk of its own (#10056): offered
+ * among a cluster's recommendations only where some node has one.
+ */
+export const KUBERNETES_IMAGE_DISK_TEMPLATE_ID: string =
+  "k8s-node-image-disk-almost-full";
+
+/*
  * What to recommend for one cluster: the Kubernetes recommendations, and on an
  * OpenShift cluster the OpenShift ones after them. A cluster whose platform is
- * not known yet is offered the Kubernetes ones only.
+ * not known yet is offered the Kubernetes ones only. Node Image Disk Almost
+ * Full is among them only once some node of the cluster keeps its images on
+ * a disk of its own: on a node that keeps them on its root filesystem, as most
+ * do, it reads that root filesystem, which High Node Disk Usage watches, and
+ * both would fire for one full disk.
  */
 function getKubernetesRecommendationsFor(
   context?: MonitorRecommendationContext | undefined,
 ): Array<MonitorRecommendation> {
+  const kubernetes: Array<MonitorRecommendation> =
+    context?.kubernetesHasSeparateImageDisk === true
+      ? getKubernetesRecommendations()
+      : getKubernetesRecommendations().filter(
+          (recommendation: MonitorRecommendation): boolean => {
+            return (
+              recommendation.templateId !== KUBERNETES_IMAGE_DISK_TEMPLATE_ID
+            );
+          },
+        );
+
   if (context?.kubernetesProvider !== OPENSHIFT_KUBERNETES_PROVIDER) {
-    return getKubernetesRecommendations();
+    return kubernetes;
   }
 
-  return [...getKubernetesRecommendations(), ...getOpenShiftRecommendations()];
+  return [...kubernetes, ...getOpenShiftRecommendations()];
 }
 
 function getAllKubernetesRecommendations(): Array<MonitorRecommendation> {
@@ -934,26 +963,51 @@ function normalizeCloudTemplate(
   template: CloudAlertTemplate,
   context?: MonitorRecommendationContext | undefined,
 ): MonitorRecommendation {
-  return normalize({
-    resourceType: MonitorRecommendationResourceType.CloudResource,
-    monitorType: template.monitorType,
-    template: template,
-    getMonitorStep: (args: MonitorRecommendationArgs) => {
-      return template.getMonitorStep({
-        cloudResourceId: args.resourceIdentifier,
-        telemetryAttributes: context?.cloudTelemetryAttributes || {},
-        readings: context?.cloudReadings,
-        allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
-        connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
-        resourceName: context?.cloudResourceName,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-      });
+  const toTemplateArgs: (
+    args: MonitorRecommendationArgs,
+  ) => CloudAlertTemplateArgs = (
+    args: MonitorRecommendationArgs,
+  ): CloudAlertTemplateArgs => {
+    return {
+      cloudResourceId: args.resourceIdentifier,
+      telemetryAttributes: context?.cloudTelemetryAttributes || {},
+      readings: context?.cloudReadings,
+      allocatedStorageGiB: context?.cloudAllocatedStorageGiB,
+      connectionLimit: context?.cloudConnectionLimit?.limit?.limit,
+      resourceName: context?.cloudResourceName,
+      // Its window follows how often its connection reads it (#10028).
+      readIntervalInMinutes: context?.cloudReadIntervalInMinutes,
+      streamedMetrics: context?.cloudStreamedMetrics,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+    };
+  };
+
+  return {
+    ...normalize({
+      resourceType: MonitorRecommendationResourceType.CloudResource,
+      monitorType: template.monitorType,
+      template: template,
+      getMonitorStep: (args: MonitorRecommendationArgs) => {
+        return template.getMonitorStep(toTemplateArgs(args));
+      },
+    }),
+    /*
+     * A monitor made before its connection's interval changed keeps its
+     * window, and is still this recommendation.
+     */
+    getEquivalentMonitorSteps: (
+      args: MonitorRecommendationArgs,
+    ): Array<MonitorStep> => {
+      return getCloudAlertTemplateEquivalentSteps(
+        template,
+        toTemplateArgs(args),
+      );
     },
-  });
+  };
 }
 
 function getCloudResourceRecommendations(
@@ -1132,32 +1186,87 @@ function getAllMessageQueueRecommendations(): Array<MonitorRecommendation> {
 
 /*
  * The device management connection adapter (#9835): a connection's monitors
- * read the check-ins its reads write for its devices, filtered on the
- * connection's id, which is the resource identifier.
+ * read the readings its reads write - of its devices, and of itself
+ * (#10006) - filtered on the connection's id, which is the resource
+ * identifier. Its read interval, where the context says it, is what
+ * Connection Stopped Reading waits three of; the default one otherwise.
  */
 function normalizeManagedDeviceTemplate(
   template: ManagedDeviceAlertTemplate,
+  context?: MonitorRecommendationContext | undefined,
 ): MonitorRecommendation {
-  return normalize({
+  const readIntervalInMinutes: number | undefined =
+    typeof context?.deviceManagementReadIntervalInMinutes === "number"
+      ? context.deviceManagementReadIntervalInMinutes
+      : undefined;
+  const toTemplateArgs: (
+    args: MonitorRecommendationArgs,
+  ) => ManagedDeviceAlertTemplateArgs = (
+    args: MonitorRecommendationArgs,
+  ): ManagedDeviceAlertTemplateArgs => {
+    return {
+      deviceManagementConnectionId: args.resourceIdentifier,
+      onlineMonitorStatusId: args.onlineMonitorStatusId,
+      offlineMonitorStatusId: args.offlineMonitorStatusId,
+      defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+      defaultAlertSeverityId: args.defaultAlertSeverityId,
+      monitorName: args.monitorName,
+      readIntervalInMinutes,
+    };
+  };
+  const recommendation: MonitorRecommendation = normalize({
     resourceType: MonitorRecommendationResourceType.DeviceManagementConnection,
     monitorType: MonitorType.Metrics,
     template: template,
     getMonitorStep: (args: MonitorRecommendationArgs) => {
-      return template.getMonitorStep({
-        deviceManagementConnectionId: args.resourceIdentifier,
-        onlineMonitorStatusId: args.onlineMonitorStatusId,
-        offlineMonitorStatusId: args.offlineMonitorStatusId,
-        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-        defaultAlertSeverityId: args.defaultAlertSeverityId,
-        monitorName: args.monitorName,
-      });
+      return template.getMonitorStep(toTemplateArgs(args));
     },
+  });
+
+  if (!hasManagedDeviceAlertTemplateEquivalentSteps(template)) {
+    return recommendation;
+  }
+
+  return {
+    ...recommendation,
+    /*
+     * A monitor made from an earlier version of the template (a check-in's
+     * or a security patch's from before its query read its service), or
+     * before its connection's interval changed (Connection Stopped
+     * Reading's, which keeps the wait it was made with), is still this
+     * recommendation.
+     */
+    getEquivalentMonitorSteps: (
+      args: MonitorRecommendationArgs,
+    ): Array<MonitorStep> => {
+      return getManagedDeviceAlertTemplateEquivalentSteps(
+        template,
+        toTemplateArgs(args),
+      );
+    },
+  };
+}
+
+/*
+ * A connection is offered its own service's templates (#9837): each says
+ * the silence that means a device of that service is gone. A connection
+ * whose service is not known is Esper's, as every connection was before.
+ */
+function getManagedDeviceRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  return getManagedDeviceAlertTemplatesFor(
+    context?.deviceManagementProvider,
+  ).map((template: ManagedDeviceAlertTemplate): MonitorRecommendation => {
+    return normalizeManagedDeviceTemplate(template, context);
   });
 }
 
-function getManagedDeviceRecommendations(): Array<MonitorRecommendation> {
+function getAllManagedDeviceRecommendations(): Array<MonitorRecommendation> {
   return getAllManagedDeviceAlertTemplates().map(
-    normalizeManagedDeviceTemplate,
+    (template: ManagedDeviceAlertTemplate): MonitorRecommendation => {
+      return normalizeManagedDeviceTemplate(template);
+    },
   );
 }
 
@@ -1359,10 +1468,11 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       resourceType:
         MonitorRecommendationResourceType.DeviceManagementConnection,
       monitorTypes: [MonitorType.Metrics],
-      resourceLabel: "Esper Connection",
+      resourceLabel: "Device Management Connection",
       identifierFieldName: "deviceManagementConnectionId",
       icon: IconProp.DevicePhoneMobile,
       getRecommendations: getManagedDeviceRecommendations,
+      getAllPossibleRecommendations: getAllManagedDeviceRecommendations,
     },
   ];
 

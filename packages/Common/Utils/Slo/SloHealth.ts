@@ -4,6 +4,7 @@ import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import { fillTemplate, translationKey } from "../../Types/Translator";
 import {
+  SloMetricKind,
   getSloMetricQueryProblem,
   normalizeSloMetricQueryConfig,
 } from "./SloMetricSli";
@@ -181,6 +182,12 @@ export interface SloNoticeData {
   latencyThresholdInMilliseconds?: number | undefined | null;
   /** A Metric SLO's metric (#8445), as stored. */
   metricQueryConfig?: unknown;
+  /*
+   * The kind of point its metric's newest one is (Metric.metricPointType:
+   * "Sum", "Histogram", "Gauge"...), where the page read it: a gauge has
+   * no events to count (#10027). Unknown counts as countable.
+   */
+  metricPointType?: string | undefined | null;
   /** Of the attached monitors, how many have active monitoring disabled. */
   disabledMonitorCount?: number | undefined | null;
   /*
@@ -297,6 +304,115 @@ const getNoMetricNotice: GetNoMetricNoticeFunction = (): SloNotice => {
     ),
     action: {
       label: translationKey("Choose the metric"),
+      target: SloNoticeActionTarget.Settings,
+    },
+  };
+};
+
+/*
+ * The kinds of point a Metric SLO counts (SloMetricCounting): a counter's
+ * Sum points, a histogram's Histogram points. A gauge, a summary or an
+ * exponential histogram of the same name counts nothing.
+ */
+export const SLO_COUNTABLE_METRIC_POINT_TYPES: ReadonlyArray<string> = [
+  "Sum",
+  "Histogram",
+];
+
+export const SLO_GAUGE_METRIC_POINT_TYPE: string = "Gauge";
+
+// The kind of point each kind of Metric SLO counts (SloMetricCounting).
+export const SLO_METRIC_KIND_POINT_TYPES: Readonly<
+  Record<SloMetricKind, string>
+> = {
+  [SloMetricKind.Counter]: "Sum",
+  [SloMetricKind.Histogram]: "Histogram",
+};
+
+/*
+ * A Metric SLO waiting for events its metric's points cannot hold (#10027):
+ * a gauge - every cloud metric OneUptime reads is one - is a level read now
+ * and then, not events; a summary or an exponential histogram has no
+ * buckets the counting reads; and a counter counted as a histogram, or a
+ * histogram as a counter, has none of the points its kind counts. It would
+ * wait for ever, so it says why, and what measures it instead. Null when
+ * its metric's kind is the one it counts, or not known.
+ */
+type GetUncountableMetricNoticeFunction = (data: {
+  metricPointType: string | undefined | null;
+  metricQueryConfig: unknown;
+}) => SloNotice | null;
+
+const getUncountableMetricNotice: GetUncountableMetricNoticeFunction = (data: {
+  metricPointType: string | undefined | null;
+  metricQueryConfig: unknown;
+}): SloNotice | null => {
+  const metricPointType: string | undefined | null = data.metricPointType;
+  const kind: SloMetricKind | undefined = normalizeSloMetricQueryConfig(
+    data.metricQueryConfig,
+  )?.kind;
+
+  if (!metricPointType) {
+    return null;
+  }
+
+  if (SLO_COUNTABLE_METRIC_POINT_TYPES.includes(metricPointType)) {
+    // Counted as the kind it is, or as no kind yet: its setup says so.
+    if (!kind || SLO_METRIC_KIND_POINT_TYPES[kind] === metricPointType) {
+      return null;
+    }
+
+    return kind === SloMetricKind.Counter
+      ? {
+          type: SloNoticeType.Warning,
+          title: translationKey(
+            "Its metric is a histogram, counted as a counter",
+          ),
+          body: translationKey(
+            'This SLO counts what its metric grew by, as a counter\'s events are counted, and its metric is a histogram, which has none of them. Choose "A histogram, by a value" under Good Events in Settings.',
+          ),
+          action: {
+            label: translationKey("Open Settings"),
+            target: SloNoticeActionTarget.Settings,
+          },
+        }
+      : {
+          type: SloNoticeType.Warning,
+          title: translationKey(
+            "Its metric is a counter, counted as a histogram",
+          ),
+          body: translationKey(
+            "This SLO counts its metric's observations at or under a value, as a histogram's are counted, and its metric is a counter, which has none of them. Choose \"A counter, by a condition\" under Good Events in Settings.",
+          ),
+          action: {
+            label: translationKey("Open Settings"),
+            target: SloNoticeActionTarget.Settings,
+          },
+        };
+  }
+
+  if (metricPointType === SLO_GAUGE_METRIC_POINT_TYPE) {
+    return {
+      type: SloNoticeType.Warning,
+      title: translationKey("Its metric is a gauge, which cannot be counted"),
+      body: translationKey(
+        "A Metric SLO counts the events of a counter or a histogram, and a gauge is a level read now and then, with no events in it. Every cloud metric OneUptime reads is a gauge. To measure one, create a metric monitor on it and choose monitor uptime as what this SLO measures, or choose a counter or a histogram your services send.",
+      ),
+      action: {
+        label: translationKey("Open Settings"),
+        target: SloNoticeActionTarget.Settings,
+      },
+    };
+  }
+
+  return {
+    type: SloNoticeType.Warning,
+    title: translationKey("Its metric cannot be counted"),
+    body: translationKey(
+      "A Metric SLO counts the events of a counter or an explicit-bucket histogram, and its metric is neither: a summary or an exponential histogram has no buckets to count from. Choose a counter or a histogram your services send in Settings.",
+    ),
+    action: {
+      label: translationKey("Open Settings"),
       target: SloNoticeActionTarget.Settings,
     },
   };
@@ -478,6 +594,19 @@ export const getSloNotice: GetSloNoticeFunction = (
      * - a quiet service, or one whose traces do not reach OneUptime.
      */
     if (data.sliType === SliType.Metric) {
+      /*
+       * Its metric's points are of a kind the counting reads none of: it
+       * waits for ever (#10027). Every cloud metric is a gauge.
+       */
+      const uncountable: SloNotice | null = getUncountableMetricNotice({
+        metricPointType: data.metricPointType,
+        metricQueryConfig: data.metricQueryConfig,
+      });
+
+      if (uncountable) {
+        return uncountable;
+      }
+
       return {
         type: SloNoticeType.Info,
         title: translationKey("Waiting for its metric"),

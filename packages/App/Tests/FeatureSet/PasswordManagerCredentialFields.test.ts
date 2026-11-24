@@ -31,6 +31,22 @@ const FRONTENDS: Array<string> = [
   "Accounts",
 ];
 
+/*
+ * Shared components the frontends draw that hold a password of their own:
+ * Confirm It's You (#10155), which the Dashboard and the Admin Dashboard
+ * both mount (#10216).
+ */
+const SHARED_FILES: Array<string> = [
+  path.join(
+    PACKAGES_DIR,
+    "Common",
+    "UI",
+    "Components",
+    "Reauthentication",
+    "ReauthenticationPrompt.tsx",
+  ),
+];
+
 const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "node_modules",
   "dist",
@@ -241,6 +257,16 @@ function scanFrontends(): FileScan {
     }
   }
 
+  for (const file of SHARED_FILES) {
+    const fileScan: FileScan = scanSource(
+      toRelative(file),
+      fs.readFileSync(file, "utf8"),
+    );
+
+    scan.fields.push(...fileScan.fields);
+    scan.rawInputs.push(...fileScan.rawInputs);
+  }
+
   return scan;
 }
 
@@ -277,6 +303,21 @@ describe("password fields across the frontends", () => {
   test("exactly the sign-in, sign-up and own-password fields are left to password managers, each with the right autocomplete", () => {
     expect(ownCredentialAutoCompletesByFile(SCAN.fields)).toEqual({
       "App/FeatureSet/Accounts/src/Pages/Login.tsx": ["current-password"],
+      /*
+       * A form's private users (#10249): the password a reset link sets,
+       * and the one they sign in with, on the form's own sign-in.
+       */
+      "App/FeatureSet/Accounts/src/Components/FormSignIn/FormSignInView.tsx": [
+        "new-password",
+        "current-password",
+      ],
+      // A dashboard's private users (#10250): the same two, on its own pages.
+      "App/FeatureSet/PublicDashboard/src/Pages/SignIn/ResetPassword.tsx": [
+        "new-password",
+      ],
+      "App/FeatureSet/PublicDashboard/src/Pages/SignIn/SignIn.tsx": [
+        "current-password",
+      ],
       "App/FeatureSet/StatusPage/src/Pages/Accounts/Login.tsx": [
         "current-password",
       ],
@@ -396,16 +437,26 @@ describe("password fields across the frontends", () => {
     ).toEqual([]);
   });
 
-  test("no hand-built password Input (workflow secrets, SNMP credentials) claims to be someone's own", () => {
+  /*
+   * One hand-built password Input is the person's own: Confirm It's You
+   * (#10155), the prompt that asks for the password they sign in with
+   * before a change to how they sign in, shared by the Dashboard and the
+   * Admin Dashboard (#10216). It is open only while it asks, so a password
+   * manager offers the person's own login there and nowhere else on either;
+   * any other is a secret the product stores.
+   */
+  test("no hand-built password Input (workflow secrets, SNMP credentials) claims to be someone's own, but Confirm It's You", () => {
     expect(
       SCAN.rawInputs
         .filter((input: RawPasswordInput): boolean => {
           return input.setsIsOwnCredential;
         })
         .map((input: RawPasswordInput): string => {
-          return `${input.file}:${input.line}`;
+          return input.file;
         }),
-    ).toEqual([]);
+    ).toEqual([
+      "Common/UI/Components/Reauthentication/ReauthenticationPrompt.tsx",
+    ]);
   });
 });
 

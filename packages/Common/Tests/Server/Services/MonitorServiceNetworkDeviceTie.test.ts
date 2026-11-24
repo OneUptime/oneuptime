@@ -25,6 +25,7 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import NetworkDeviceTieSource from "../../../Types/NetworkDevice/NetworkDeviceTieSource";
 import {
   afterEach,
   beforeEach,
@@ -711,5 +712,210 @@ describe("the probes a monitor runs on", () => {
         monitorId: null,
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * WHO SET THE TIE (OneUptime issue #9904), recorded with every write of
+ * Network Device once the caller has passed the permission checks
+ * (onCreatePermitted, onUpdatePermitted): Automatic when the address rule
+ * set it, Person for any other write. OneUptime works its own ties out again
+ * when a monitor's probes change, and never a person's.
+ */
+describe("who set a monitor's network device", () => {
+  const personProps: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: USER_ID,
+  };
+
+  async function createPermitted(createBy: {
+    data: Monitor;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await (MonitorService as any).onCreatePermitted({
+      createBy: createBy,
+      carryForward: null,
+    });
+  }
+
+  async function updatePermitted(updateBy: {
+    data: Record<string, unknown>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Record<string, unknown>> {
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+    return updateBy.data;
+  }
+
+  it("is OneUptime's when a new monitor is tied by the address it checks", async () => {
+    devicesAt = [device(PRINTER_ID, "10.20.0.7")];
+    const createBy: {
+      data: Monitor;
+      props: DatabaseCommonInteractionProps;
+    } = {
+      data: newMonitor(MonitorType.Ping, IP.fromString("10.20.0.7")),
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    };
+
+    await (MonitorService as any).onBeforeCreate(createBy);
+    await createPermitted(createBy);
+
+    expect(createBy.data.networkDeviceId?.toString()).toBe(
+      PRINTER_ID.toString(),
+    );
+    expect(createBy.data.networkDeviceTieSource).toBe(
+      NetworkDeviceTieSource.Automatic,
+    );
+  });
+
+  it("is a person's when the create names the device", async () => {
+    deviceFindOneBy.mockResolvedValue(device(PRINTER_ID, "10.20.0.7"));
+    const monitor: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.20.0.7"),
+    );
+    monitor.networkDeviceId = PRINTER_ID;
+    const createBy: {
+      data: Monitor;
+      props: DatabaseCommonInteractionProps;
+    } = { data: monitor, props: { ...personProps } };
+
+    await createPermitted(createBy);
+
+    expect(createBy.data.networkDeviceTieSource).toBe(
+      NetworkDeviceTieSource.Person,
+    );
+  });
+
+  it("is nobody's on a monitor created tied to no device", async () => {
+    devicesAt = [];
+    const createBy: {
+      data: Monitor;
+      props: DatabaseCommonInteractionProps;
+    } = {
+      data: newMonitor(MonitorType.Ping, IP.fromString("10.20.0.99")),
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    };
+
+    await (MonitorService as any).onBeforeCreate(createBy);
+    await createPermitted(createBy);
+
+    expect(createBy.data.networkDeviceId).toBeUndefined();
+    expect(createBy.data.networkDeviceTieSource).toBeUndefined();
+  });
+
+  it("is a person's whenever someone ties a monitor, or takes its tie off", async () => {
+    expect(
+      (
+        await updatePermitted({
+          data: { networkDeviceId: PRINTER_ID },
+          props: { ...personProps },
+        })
+      )["networkDeviceTieSource"],
+    ).toBe(NetworkDeviceTieSource.Person);
+
+    expect(
+      (
+        await updatePermitted({
+          data: { networkDeviceId: null },
+          props: { ...personProps },
+        })
+      )["networkDeviceTieSource"],
+    ).toBe(NetworkDeviceTieSource.Person);
+
+    // Under the relation's name too.
+    expect(
+      (
+        await updatePermitted({
+          data: { networkDevice: { _id: PRINTER_ID.toString() } },
+          props: { ...personProps },
+        })
+      )["networkDeviceTieSource"],
+    ).toBe(NetworkDeviceTieSource.Person);
+  });
+
+  it("is a person's when a write says it is OneUptime's but is not OneUptime's own", async () => {
+    expect(
+      (
+        await updatePermitted({
+          data: {
+            networkDeviceId: PRINTER_ID,
+            networkDeviceTieSource: NetworkDeviceTieSource.Automatic,
+          },
+          props: { ...personProps },
+        })
+      )["networkDeviceTieSource"],
+    ).toBe(NetworkDeviceTieSource.Person);
+  });
+
+  it("is what OneUptime's own write says, and a person's when it says nothing", async () => {
+    expect(
+      (
+        await updatePermitted({
+          data: {
+            networkDeviceId: PRINTER_ID,
+            networkDeviceTieSource: NetworkDeviceTieSource.Automatic,
+          },
+          props: { isRoot: true },
+        })
+      )["networkDeviceTieSource"],
+    ).toBe(NetworkDeviceTieSource.Automatic);
+
+    expect(
+      (
+        await updatePermitted({
+          data: { networkDeviceId: PRINTER_ID },
+          props: { isRoot: true },
+        })
+      )["networkDeviceTieSource"],
+    ).toBe(NetworkDeviceTieSource.Person);
+  });
+
+  it("is OneUptime's when the tie follows a changed address", async () => {
+    const monitor: Monitor = newMonitor(
+      MonitorType.Ping,
+      IP.fromString("10.20.0.7"),
+    );
+    monitor.id = ObjectID.generate();
+    monitor.projectId = PROJECT_ID;
+    monitor.networkDeviceId = PRINTER_ID;
+    deviceFindOneBy.mockResolvedValue(device(PRINTER_ID, "10.20.0.7"));
+    devicesAt = [device(OTHER_PRINTER_ID, "10.20.0.8")];
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
+
+    const updateBy: {
+      query: Record<string, unknown>;
+      data: Record<string, unknown>;
+      limit: number;
+      skip: number;
+      props: DatabaseCommonInteractionProps;
+    } = {
+      query: { _id: monitor.id },
+      data: {
+        monitorSteps: steps(MonitorType.Ping, IP.fromString("10.20.0.8")),
+      },
+      limit: 1,
+      skip: 0,
+      // As the other edits here are read: the rule's answer, not the caller's.
+      props: { isRoot: true, tenantId: PROJECT_ID },
+    };
+
+    await (MonitorService as any).onBeforeUpdate(updateBy);
+    await updatePermitted(updateBy);
+
+    expect(String(updateBy.data["networkDeviceId"])).toBe(
+      OTHER_PRINTER_ID.toString(),
+    );
+    expect(updateBy.data["networkDeviceTieSource"]).toBe(
+      NetworkDeviceTieSource.Automatic,
+    );
+  });
+
+  it("is left alone by a write that names no network device", async () => {
+    const data: Record<string, unknown> = await updatePermitted({
+      data: { name: "Printer" },
+      props: { ...personProps },
+    });
+
+    expect(Object.keys(data)).toEqual(["name"]);
   });
 });

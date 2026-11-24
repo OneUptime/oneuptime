@@ -28,8 +28,9 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
  *                    Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the
  *                    Approvals - the runs a step holds for one - every
- *                    Playbook Run, and the Protected Entities no playbook
- *                    may contain
+ *                    Playbook Run, the Blocklist of addresses the project
+ *                    blocks, and the Protected Entities no playbook may
+ *                    contain and no block may touch
  *   AI               whether OneUptime AI triages each new case (Settings),
  *                    as the Incidents' and Alerts' menus have it; the
  *                    triage itself is on each case's AI card
@@ -279,6 +280,16 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_PLAYBOOK_RUNS,
         title: "Playbook Runs",
         icon: IconProp.Play,
+      },
+      {
+        /*
+         * What the project blocks now - each address or range, why, until
+         * when and where it is enforced (Types/SecurityBlocklist) - beside
+         * the entities no block or playbook may touch.
+         */
+        page: PageMap.SECURITY_BLOCKLIST,
+        title: "Blocklist",
+        icon: IconProp.NoSymbol,
       },
       {
         page: PageMap.SECURITY_PROTECTED_ENTITIES,

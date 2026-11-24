@@ -75,6 +75,9 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
+import AndroidAgentPermissions, {
+  AndroidAgentPermissionsStatus,
+} from "Common/Types/Host/AndroidAgentPermissions";
 import fs from "fs";
 import path from "path";
 import {
@@ -393,6 +396,22 @@ describe("An Android device running the agent is one Inventory item", () => {
       "host.id": "3f2a9c1b7d4e5a60",
     });
     expect(host!.descriptiveAttributes!["host.ip"]).toContain("10.20.30.40");
+  });
+
+  /*
+   * #9965 and #9967: what Inventory's Security Patch Level and Agent
+   * Permissions filters read off the device's item.
+   */
+  test("its item keeps the patch level and which grants the agent lacks, which Inventory's filters read", () => {
+    expect(host!.descriptiveAttributes).toMatchObject({
+      "android.os.security_patch": "2024-06-05",
+      "oneuptime.agent.permissions.missing": "none",
+    });
+    expect(
+      AndroidAgentPermissions.getStatus(
+        host!.descriptiveAttributes!["oneuptime.agent.permissions.missing"],
+      ),
+    ).toBe(AndroidAgentPermissionsStatus.Granted);
   });
 
   test("no other entity: no service, and no mobile app", () => {

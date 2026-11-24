@@ -96,13 +96,12 @@ describe("the acknowledge page", () => {
       ...ACKNOWLEDGE_BASE,
       passOn: PASS_ON_BLOCK,
     });
+    const acknowledgeForm: string = `<form method="POST" action="${String(ACKNOWLEDGE_BASE["acknowledgeUrl"])}"`;
 
-    expect(
-      html.indexOf(`href="${String(ACKNOWLEDGE_BASE["acknowledgeUrl"])}"`),
-    ).toBeGreaterThan(0);
-    expect(
-      html.indexOf(`href="${String(ACKNOWLEDGE_BASE["acknowledgeUrl"])}"`),
-    ).toBeLessThan(html.indexOf('data-testid="pass-on"'));
+    expect(html.indexOf(acknowledgeForm)).toBeGreaterThan(0);
+    expect(html.indexOf(acknowledgeForm)).toBeLessThan(
+      html.indexOf('data-testid="pass-on"'),
+    );
   });
 
   test("escalating is the quieter button: outlined, not the page's yellow", () => {
@@ -110,10 +109,8 @@ describe("the acknowledge page", () => {
       ...ACKNOWLEDGE_BASE,
       passOn: PASS_ON_BLOCK,
     });
-    const button: string = html.slice(
-      html.indexOf('data-testid="pass-on-button"'),
-      html.indexOf("</button>"),
-    );
+    const start: number = html.indexOf('data-testid="pass-on-button"');
+    const button: string = html.slice(start, html.indexOf("</button>", start));
 
     expect(button).toContain("bg-white");
     expect(button).toContain("border-gray-300");
@@ -123,7 +120,10 @@ describe("the acknowledge page", () => {
   test("without it - a link sent before, or a page that is over - is the page it always was", () => {
     const html: string = render(ACKNOWLEDGE_VIEW, ACKNOWLEDGE_BASE);
 
-    expect(html).not.toContain("<form");
+    // Acknowledge alone: its own form, and no other.
+    expect(html.split("<form")).toHaveLength(2);
+    expect(html).not.toContain(FORM_URL);
+    expect(html).not.toContain('data-testid="pass-on"');
     expect(html).not.toContain("Escalate");
     expect(html).not.toContain("Pass it on");
     expect(html).toContain("Acknowledge Incident");
@@ -189,14 +189,33 @@ describe("the escalate page", () => {
     expect(button).toContain("text-white");
   });
 
-  test("offers acknowledging instead, for somebody who can take it after all", () => {
+  test("offers acknowledging instead, for somebody who can take it after all: a form too, with the same token (#10025)", () => {
     const html: string = render(PASS_ON_VIEW, PASS_ON_BASE);
+    const acknowledgeAt: number = html.indexOf(
+      '<form method="POST" action="https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/1"',
+    );
 
-    expect(html).toContain('data-testid="acknowledge-instead"');
-    expect(html).toContain(
+    expect(acknowledgeAt).toBeGreaterThan(0);
+
+    const form: string = html.slice(
+      acknowledgeAt,
+      html.indexOf("</form>", acknowledgeAt),
+    );
+
+    expect(form).toContain(
+      `<input type="hidden" name="pageToken" value="${TOKEN}">`,
+    );
+    expect(form).toContain(
+      '<button type="submit" data-testid="acknowledge-instead"',
+    );
+    expect(htmlAsText(form)).toContain("Acknowledge Incident instead");
+    // Quiet, under Escalate: no yellow button of its own.
+    expect(form).toContain("underline");
+    expect(form).not.toContain("bg-yellow-600");
+    // A mail scanner that follows every link acknowledges nothing.
+    expect(html).not.toContain(
       'href="https://oneuptime.example.com/api/user-notification-log-timeline/acknowledge/1"',
     );
-    expect(htmlAsText(html)).toContain("Acknowledge Incident instead");
   });
 
   test("draws the product's logo, as every page a message opens does", () => {
@@ -356,9 +375,14 @@ describe("picking the level", () => {
     resourceTitle: "Checkout is down",
   };
 
-  // The form's markup, from its opening tag to its end.
+  /*
+   * The form's markup, from its opening tag to its end.
+   * The form that escalates: the Acknowledge button is a form of its own.
+   */
   function formOf(html: string): string {
-    const start: number = html.indexOf("<form");
+    const start: number = html.indexOf(
+      `<form method="POST" action="${FORM_URL}"`,
+    );
 
     expect(start).toBeGreaterThan(0);
 

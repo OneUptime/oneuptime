@@ -11,7 +11,7 @@ Questa guida copre ciò che viene dopo il tuo primo apply: come il provider trov
 
 ## Configurare il provider
 
-Il provider prende due impostazioni. Ognuna viene dal blocco del provider, altrimenti da una variabile d'ambiente:
+Il provider si collega con due impostazioni. Ognuna viene dal blocco del provider, altrimenti da una variabile d'ambiente:
 
 | Impostazione | Variabile d'ambiente | Quando nessuna delle due è impostata |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` è l'indirizzo della tua istanza OneUptime, senza `/api`: il provider aggiunge `https://` quando l'indirizzo non ha uno schema, e `/api` alla fine. `api_key` è sensibile, quindi Terraform non lo stampa mai.
+
+Una terza impostazione, `exclusive_lists`, decide cosa contengono le etichette di una configurazione: vedi [Le etichette e le altre liste a cui aggiunge anche OneUptime](#le-etichette-e-le-altre-liste-a-cui-aggiunge-anche-oneuptime).
 
 La chiave deve essere una chiave API del progetto che gestisci, autorizzata a creare, leggere, modificare ed eliminare ogni tipo di record della tua configurazione: vedi [Creare una chiave API del progetto](/docs/terraform/quick-start#creare-una-chiave-api-del-progetto). La chiave API master di un'istanza OneUptime self-hosted non appartiene a nessun progetto, quindi una creazione fatta con essa fallisce con `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Le etichette e le altre liste a cui aggiunge anche OneUptime
+
+OneUptime aggiunge da sé ad alcune liste di un record: una regola per etichette aggiunge le sue etichette ai record che corrispondono, una regola di reperibilità aggiunge le sue policy agli incidenti e agli avvisi che corrispondono, e le regole dei monitor di uno SLO collegano i monitor che corrispondono. Il riferimento lo dice di ognuno di questi attributi: "OneUptime adds to it too, on its own". Una configurazione che ne imposta uno tiene le voci che elenca e lascia il resto:
+
+- **Ciò che la configurazione elenca viene aggiunto**, e rimesso se qualcuno lo toglie.
+- **Ciò che togli dalla configurazione viene tolto.** `labels = []` toglie ogni etichetta che la configurazione elencava.
+- **Ciò che OneUptime o una persona aggiunge resta**, e nessun piano lo mostra come una modifica.
+- **Se resta fuori dalla configurazione**, la lista è di OneUptime: Terraform non vi aggiunge nulla e non ne toglie nulla.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+Lo stato contiene le etichette che la configurazione elenca e che il record ha, non ogni etichetta del record: la sorgente dati con lo stesso nome le legge tutte. Un apply aggiunge e toglie singole etichette, quindi anche un'etichetta che una regola aggiunge mentre è in corso resta.
+
+Un'importazione adotta ogni etichetta del record: elencale tutte, come fa la pagina Terraform del record nella dashboard, altrimenti il piano mostra quelle lasciate fuori come tolte. Dopo l'aggiornamento da una versione precedente del provider, il primo piano di una configurazione che imposta etichette le mostra come impostate: l'apply aggiunge quelle che mancano al record e non ne toglie nessuna.
+
+Per tenere ognuna di queste liste esattamente a ciò che elenca la configurazione, come facevano le versioni precedenti, imposta `exclusive_lists` nel blocco del provider. Terraform toglie allora a ogni apply un'etichetta che una regola aggiunge:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

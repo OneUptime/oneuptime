@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { DrawnPopup, expectDrawnWhole } from "../SuiteHelpers/Popups";
 
 /*
  * A BUSY DAY'S "+N MORE" LIST IS NEVER CUT OFF BY THE MONTH VIEW (#9865).
@@ -21,6 +22,14 @@ import path from "path";
  * whole at its four corners and inside the window, for the busy 22nd and
  * for the first and last weeks of a month busy every day, on a laptop, a
  * tablet and a phone, and in the dark theme.
+ *
+ * Placed against the month view, the library's list opened above its "+N
+ * more" in a short window where the day had scrolled near the window's top,
+ * and started above the window's top edge (#9911). The calendar draws the
+ * list on the tooltip layer now (LayeredPopover), placed against the
+ * window: so it is whole where it opens - never scrolled into view first -
+ * under its "+N more" while the window has the room there, and a keyboard
+ * goes from the "+N more" through its events.
  */
 
 const SCREENSHOTS: string = path.resolve(
@@ -70,7 +79,7 @@ function monthView(page: Page): Locator {
     .locator(".rbc-month-view");
 }
 
-// The list a "+N more" opens: drawn by the library at the end of the body.
+// The list a "+N more" opens: on the tooltip layer, at the end of the body.
 function busyDayList(page: Page): Locator {
   return page.locator(".rbc-overlay");
 }
@@ -82,10 +91,12 @@ async function openList(page: Page, more: Locator): Promise<Locator> {
   const list: Locator = busyDayList(page);
   await expect(list).toBeVisible();
 
-  // Drawn on the body, outside the month view and its overflow.
+  // Drawn on the body's tooltip layer, outside the month view and its overflow.
   expect(
     await list.evaluate((element: Element): boolean => {
-      return element.parentElement === document.body;
+      const layer: Element | null = element.closest("[data-tippy-root]");
+
+      return Boolean(layer && layer.parentElement === document.body);
     }),
     "the list is drawn on the page's body",
   ).toBe(true);
@@ -100,37 +111,16 @@ async function openList(page: Page, more: Locator): Promise<Locator> {
 }
 
 /*
- * The list is whole in the window: what the page shows at its corners is
- * the list. It is the library's, not a popup of the tooltip layer, so its
- * corners are read here rather than by SuiteHelpers/Popups.
+ * The list is whole in the window where it opens: what the page shows at
+ * its corners is the list, inside the window's edges, never scrolled into
+ * view first (#9911). It is a popup of the tooltip layer, read as every
+ * other one is (SuiteHelpers/Popups).
  */
-async function expectListWhole(list: Locator, what: string): Promise<void> {
-  // Brought into the window first: the page scrolls, the list with it.
-  await list.evaluate((element: Element): void => {
-    element.scrollIntoView({ block: "nearest" });
-  });
-
-  await expect
-    .poll(
-      async (): Promise<Array<boolean>> => {
-        return await list.evaluate((element: Element): Array<boolean> => {
-          const rect: DOMRect = element.getBoundingClientRect();
-          const inset: number = 6;
-
-          return [
-            [rect.left + inset, rect.top + inset],
-            [rect.right - inset, rect.top + inset],
-            [rect.left + inset, rect.bottom - inset],
-            [rect.right - inset, rect.bottom - inset],
-          ].map(([x, y]: Array<number>): boolean => {
-            const shown: Element | null = document.elementFromPoint(x!, y!);
-            return Boolean(shown && element.contains(shown));
-          });
-        });
-      },
-      { message: `${what}: what the page shows at its four corners` },
-    )
-    .toEqual([true, true, true, true]);
+async function expectListWhole(
+  list: Locator,
+  what: string,
+): Promise<DrawnPopup> {
+  return await expectDrawnWhole(list, what);
 }
 
 const SIZES: Array<{ name: string; width: number; height: number }> = [
@@ -216,5 +206,153 @@ test.describe("a busy day's +N more list in the month view (#9865)", () => {
         return getComputedStyle(element).backgroundColor;
       }),
     ).not.toBe("rgb(255, 255, 255)");
+  });
+});
+
+test.describe("a busy day's +N more list stays inside the window (#9911)", () => {
+  /*
+   * The report: a 1280x560 window, the page scrolled so the busy 22nd is
+   * near the window's top. The library opened the 320px list above its
+   * "+N more", past the window's top edge, though the window had the room
+   * under it.
+   */
+  test("in a short window, with the day near the window's top, it opens under its +N more, whole where it opens", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "events=many", { width: 1280, height: 560 });
+
+    const more: Locator = monthView(page).locator(".rbc-show-more").first();
+
+    // The 22nd scrolled as near the window's top as the page goes.
+    await more.evaluate((element: Element): void => {
+      window.scrollBy(0, element.getBoundingClientRect().top - 48);
+    });
+
+    const room: { above: number; below: number } = await more.evaluate(
+      (element: Element): { above: number; below: number } => {
+        const box: DOMRect = element.getBoundingClientRect();
+
+        return { above: box.top, below: window.innerHeight - box.bottom };
+      },
+    );
+
+    // The library's 320px list, put above, started past the window's top here.
+    expect(
+      room.above,
+      "less room above the +N more than the list",
+    ).toBeLessThan(320);
+
+    await more.click();
+
+    const list: Locator = busyDayList(page);
+    await expect(list).toBeVisible();
+
+    const drawn: DrawnPopup = await expectListWhole(
+      list,
+      "the 22nd's list in a short window",
+    );
+
+    expect(drawn.box.y, "it starts inside the window").toBeGreaterThanOrEqual(
+      0,
+    );
+    // On the side with the room for it, or the more room: under it here.
+    expect(drawn.placement, "it opens on the roomier side").toMatch(
+      room.below >= room.above ? /^bottom/ : /^top/,
+    );
+    expect(drawn.placement).toMatch(/^bottom/);
+
+    fs.mkdirSync(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "busy-day-list-1280x560-near-the-top.png"),
+      animations: "disabled",
+    });
+  });
+
+  test("in a short window, with the day near the window's foot, it opens above it, whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "events=many", { width: 1280, height: 560 });
+
+    const more: Locator = monthView(page).locator(".rbc-show-more").first();
+
+    // The 22nd at the window's foot, with the room above it.
+    await more.evaluate((element: Element): void => {
+      window.scrollBy(
+        0,
+        element.getBoundingClientRect().bottom - window.innerHeight + 24,
+      );
+    });
+
+    await more.click();
+
+    const drawn: DrawnPopup = await expectListWhole(
+      busyDayList(page),
+      "the 22nd's list at a short window's foot",
+    );
+
+    expect(drawn.placement, "it opens above its +N more").toMatch(/^top/);
+  });
+
+  test("in a narrow window, it stays inside the window's sides", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "events=many", { width: 390, height: 844 });
+
+    const list: Locator = await openList(
+      page,
+      monthView(page).locator(".rbc-show-more").last(),
+    );
+
+    const drawn: DrawnPopup = await expectListWhole(
+      list,
+      "the last busy day's list on a phone",
+    );
+
+    expect(drawn.box.x).toBeGreaterThanOrEqual(8);
+    expect(drawn.box.x + drawn.box.width).toBeLessThanOrEqual(390 - 8);
+
+    fs.mkdirSync(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "busy-day-list-390x844-last.png"),
+      animations: "disabled",
+    });
+  });
+
+  test("a keyboard opens it, goes through its events from the +N more, and Escape brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "events=many", { width: 1280, height: 900 });
+
+    const more: Locator = monthView(page).locator(".rbc-show-more").first();
+
+    await more.scrollIntoViewIfNeeded();
+    await more.focus();
+    await page.keyboard.press("Enter");
+
+    const list: Locator = busyDayList(page);
+    await expect(list).toBeVisible();
+    await expect(more).toBeFocused();
+
+    // Tab goes from the +N more into the list, to its first event's link.
+    await page.keyboard.press("Tab");
+    await expect(
+      list.getByTestId("scheduled-maintenance-calendar-event").first(),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
+      list.getByTestId("scheduled-maintenance-calendar-event").nth(1),
+    ).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(list).toHaveCount(0);
+    await expect(more).toBeFocused();
   });
 });

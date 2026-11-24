@@ -65,7 +65,7 @@ Il menu laterale di un servizio ha sei sezioni:
 | **Telemetria** | I suoi **Log**, **Eventi di sicurezza**, **Tracce**, **Metriche**, **Profili**, **Eccezioni** e **Source map**, già filtrati su questo servizio. |
 | **Attività** | Gli **Incidenti**, gli **Avvisi** e gli eventi di **Manutenzione programmata** che lo riguardano. |
 | **Sicurezza** | **Sicurezza dei dati**: i dati sensibili contenuti nei suoi log, tracce ed eccezioni, e cosa correggere ([Dati sensibili nella telemetria](/docs/data-security/telemetry)). **Conformità**: come stanno quei dati rispetto a ogni framework, con un interruttore che disattiva un framework o un requisito per questo servizio ([Conformità di Sicurezza dei dati](/docs/data-security/compliance#nella-pagina-di-una-risorsa)). Compare quando Sicurezza dei dati ha scansionato la telemetria del servizio, e all'inizio è chiusa. |
-| **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
+| **Sviluppatori** | **Terraform**, **Crossplane**, **API**, **CLI** e **Assistenti IA**: il servizio gestito dal codice. All'inizio è chiusa. |
 | **Avanzato** | **Impostazioni**, **Log di audit** ed **Elimina servizio**. **Avanzato** è inizialmente compresso: espandetelo prima. |
 
 Accanto al suo nome, la **Panoramica** di un servizio indica se la sua telemetria arriva: **Riceve dati** finché negli ultimi 30 minuti è arrivato qualcosa, **Nessun dato recente** quando non arriva più nulla e **In attesa di dati** prima della sua prima telemetria. Un servizio che invia span solo mentre gestisce le richieste mostra **Nessun dato recente** ogni volta che nessuno lo chiama, quindi questo da solo non è un guasto.

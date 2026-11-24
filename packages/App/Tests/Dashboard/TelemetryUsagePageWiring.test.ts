@@ -209,7 +209,8 @@ describe("what the page draws", () => {
    * together, so its Data Ingested stays what it is billed for and says,
    * under it, how much of it was exceptions - the overview shows them apart.
    */
-  test("says under a Traces row's data ingested how much of it was exceptions", () => {
+  // A Traces row holds the exceptions found in spans, a Logs row those found in logs (#6590).
+  test("says under a Traces or Logs row's data ingested how much of it was exceptions", () => {
     const columns: string = page.slice(page.indexOf("columns={["));
     const dataIngested: string = columns.slice(
       columns.lastIndexOf(
@@ -222,14 +223,14 @@ describe("what the page draws", () => {
     expect(dataIngested).toContain("dataIngestedInGB: true,");
     expect(dataIngested).toContain("exceptionDataIngestedInGB: true,");
     expect(dataIngested).toContain(
-      'item["productType"] === ProductType.Traces &&',
+      'isExceptionBillingProductType(item["productType"]) &&',
     );
     expect(dataIngested).toContain("exceptionDataIngestedInGB > 0");
     expect(dataIngested).toContain("formatTelemetryUsageExceptionsPart(");
     // What the row is billed for is still the first line, unchanged.
-    expect(dataIngested).toContain(
-      '(item["dataIngestedInGB"] as Decimal).value as number,',
-    );
+    expect(dataIngested).toContain("dataIngestedInGB.value as number,");
+    // A row read without its amount says so, rather than taking the page down.
+    expect(dataIngested).toContain("return <TableEmptyValue />;");
   });
 
   test("and says what the rows cost only where billing is on", () => {

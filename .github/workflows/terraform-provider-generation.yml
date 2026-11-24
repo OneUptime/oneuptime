@@ -24,9 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
-      # Go's soft memory limit, for every step that compiles the provider:
-      # without it the compiler alone took ~15 GB of the runner's 16, and the
-      # job lost its runner (Scripts/TerraformProvider/Core/GoCommand.ts).
+      # Go's soft memory limit, for every step that compiles the provider. A
+      # guard rail: compiled as one package the provider took the compiler
+      # ~15 GB of the runner's 16 without it, and the job lost its runner;
+      # split into packages, a compile holds under 1 GiB
+      # (Scripts/TerraformProvider/Core/GoCommand.ts).
       GOMEMLIMIT: 10GiB
     
     steps:
@@ -39,11 +41,17 @@ jobs:
           node-version: 26
           cache: 'npm'
 
+      # No Go cache. setup-go keys it on a go.sum, and the repository has none
+      # at its root: the provider's is generated, after this step, with the
+      # newest modules each time. So the cache restored nothing and only
+      # warned "Dependencies file is not found". A cache that worked would come
+      # to several GB, in the cache space the npm caches share
+      # (crossplane-provider.yml says the same).
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
-          cache: true
+          cache: false
 
       - name: Install Common dependencies
         uses: ./.github/actions/npm-install
@@ -68,8 +76,11 @@ jobs:
       # alias, Common's sources, with Common's own compiler options (its
       # tsconfig.json extends packages/Common's). Nothing else checks that
       # whole program: ts-jest checks the files a test loads, and generation
-      # below compiles only what it runs, under the root's tsconfig. It needs
-      # the three installs above: Common's for Common's imports, Scripts' for
+      # below checks no types, here or in any job that generates the
+      # provider. It runs the generator transpile-only, which keeps ~1 GiB of
+      # Node.js out of the runner's memory while Go compiles the provider
+      # (Tests/Ops/TerraformProviderGeneratorTypeCheck.test.js). It needs the
+      # three installs above: Common's for Common's imports, Scripts' for
       # GenerateSpec's @readme/openapi-parser, the generator's for TypeScript.
       - name: Type-check the generator
         run: cd Scripts/TerraformProvider && npm run compile

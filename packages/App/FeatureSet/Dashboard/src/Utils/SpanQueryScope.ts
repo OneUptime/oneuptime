@@ -6,12 +6,10 @@ import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import { JSONObject } from "Common/Types/JSON";
 import {
-  createTranslator,
-  DEFAULT_LANGUAGE,
   Translator,
+  getGlobalTranslator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "./Milliseconds";
 import {
   TelemetryScopeAttributeValue,
   getFilterAttributes,
@@ -24,6 +22,7 @@ import {
   TraceDurationFilter,
   hasTraceDurationFilter,
 } from "../Components/Traces/TracesSearchCompile";
+import { formatDurationMsInLanguage } from "../Components/TelemetryResource/telemetryFormat";
 
 /*
  * Read a stored `Query<Span>` — the slice a trace monitor evaluated, kept on
@@ -170,9 +169,6 @@ export const DURATION_FACET_KEY: string = "durationUnixNano";
 
 const NANOSECONDS_PER_MILLISECOND: number = 1_000_000;
 
-// English, as a chip's seed is written: the explorer words it for the reader.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
-
 /*
  * A stored comparison as its wire shape: a deserialized GreaterThanOrEqual
  * (the pages restore the query) or the `{_type, value}` JSON (a raw reader).
@@ -304,7 +300,7 @@ export function toDurationSearchValue(
 /**
  * How a duration chip says its bounds, before the explorer words the
  * durations in the reader's language: a comparison symbol, which no
- * language translates, before each bound. "≥ 5,000 ms" for a monitor's
+ * language translates, before each bound. "≥ 5000 ms" for a monitor's
  * floor of five seconds.
  */
 export function describeDurationBounds(
@@ -342,6 +338,21 @@ export function describeDurationBounds(
   }
 
   return parts.join(", ");
+}
+
+/**
+ * A duration chip's bounds in the reader's language: "≥ 5.00 s", "≥ ۵٫۰۰
+ * ثانیه", each duration in the unit that reads best and written by the
+ * shared formatter (formatDurationMsInLanguage), never a figure glued to
+ * "ms" by hand. The scope's chip and the viewer's word it the same way.
+ */
+export function describeDurationBoundsInLanguage(
+  filter: TraceDurationFilter,
+  translator: Translator,
+): string {
+  return describeDurationBounds(filter, (milliseconds: number): string => {
+    return formatDurationMsInLanguage(milliseconds, translator);
+  });
 }
 
 /*
@@ -434,9 +445,13 @@ function readBoolean(value: unknown): boolean | null {
  * Read a stored span query as a viewer scope. A null / non-object query, or
  * one that scopes nothing, yields `EMPTY_SPAN_QUERY_SCOPE` — the viewer then
  * behaves exactly as it does on the standalone /traces page.
+ *
+ * `translator` words what a chip says in the reader's language (a duration
+ * floor's "≥ 5.00 s"): the viewer's own, else the page's (the global one).
  */
 export function buildSpanQueryScope(
   query: Query<Span> | JSONObject | null | undefined,
+  translator: Translator = getGlobalTranslator(),
 ): SpanQueryScope {
   if (!query || typeof query !== "object" || Array.isArray(query)) {
     return EMPTY_SPAN_QUERY_SCOPE;
@@ -693,15 +708,13 @@ export function buildSpanQueryScope(
       scope.duration = duration;
 
       /*
-       * The seed reads "≥ 5,000 ms"; the explorer words the durations in the
-       * reader's language as it draws the chip. Its value is the search
-       * bar's spelling (`>=5000`), which the chip's tooltip offers to copy.
+       * The chip reads "≥ 5.00 s" in the reader's language, through the
+       * shared duration formatter. Its value is the search bar's spelling
+       * (`>=5000`), which the chip's tooltip offers to copy.
        */
-      const seed: string = describeDurationBounds(
+      const seed: string = describeDurationBoundsInLanguage(
         duration,
-        (milliseconds: number): string => {
-          return formatMilliseconds(ENGLISH, milliseconds);
-        },
+        translator,
       );
 
       addChip(

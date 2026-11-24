@@ -105,6 +105,19 @@ describe("CORS preflight and exposed headers", () => {
     expect(exposed).toContain("retry-after");
   });
 
+  test("what a create left out because only OneUptime writes it is readable from another origin (#10136)", () => {
+    const exposed: Array<string> = (
+      runCors("POST").headers["Access-Control-Expose-Headers"] || ""
+    )
+      .toLowerCase()
+      .split(",")
+      .map((header: string): string => {
+        return header.trim();
+      });
+
+    expect(exposed).toContain("x-oneuptime-fields-left-out");
+  });
+
   test("allowedHeaders is left to the cors default, which reflects the request", () => {
     const result: CorsProbeResult = runCors("OPTIONS");
 

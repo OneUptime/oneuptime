@@ -31,6 +31,11 @@ const access: Dictionary<ColumnAccessControl> =
   model.getColumnAccessControlForAllColumns();
 const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
 
+/*
+ * Each list ends with Network's levels (#10289), which follow the
+ * project-wide roles on Network's records: Network Viewer reads a name,
+ * Network Member writes one.
+ */
 const READERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -40,6 +45,9 @@ const READERS: Array<Permission> = [
   Permission.SettingsMember,
   Permission.SettingsViewer,
   Permission.ReadNetworkDevice,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
+  Permission.NetworkViewer,
 ];
 
 const CREATORS: Array<Permission> = [
@@ -49,6 +57,8 @@ const CREATORS: Array<Permission> = [
   Permission.SettingsAdmin,
   Permission.SettingsMember,
   Permission.CreateNetworkDevice,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
 ];
 
 const EDITORS: Array<Permission> = [
@@ -58,6 +68,8 @@ const EDITORS: Array<Permission> = [
   Permission.SettingsAdmin,
   Permission.SettingsMember,
   Permission.EditNetworkDevice,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
 ];
 
 const DELETERS: Array<Permission> = [
@@ -67,6 +79,8 @@ const DELETERS: Array<Permission> = [
   Permission.SettingsAdmin,
   Permission.SettingsMember,
   Permission.DeleteNetworkDevice,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
 ];
 
 function accessOf(column: string): ColumnAccessControl {

@@ -138,7 +138,7 @@ Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate 
 | **Indagine** | **Descrizione**, **Causa principale**, **Rimedio**, **Runbook**, **Incidenti collegati**, **Note private** |
 | **Team** | **Esecuzioni di reperibilità** e **Proprietari**: chi è stato chiamato per l'avviso, e chi ne è proprietario |
 | **Notifiche**              | **Log di notifica** e **Log IA**: ogni messaggio inviato sull'avviso, e tutto ciò che l'IA ha fatto per esso |
-| **Sviluppatori**          | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'avviso gestito dal codice                            |
+| **Sviluppatori**          | **Terraform**, **Crossplane**, **API**, **CLI** e **Assistenti IA**: l'avviso gestito dal codice                            |
 | **Avanzato** | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina avviso** |
 
 **Panoramica**, **Indagine** e **Team** sono aperte; le altre sezioni restano compresse finché non ci fate clic.

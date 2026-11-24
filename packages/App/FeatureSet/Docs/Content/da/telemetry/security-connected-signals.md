@@ -47,11 +47,12 @@ Hver bruger, vært og adresse, som en sag eller en begivenhed nævner, slås op 
 | En kort eller fuld form af en posts navn, som `web-1` og `web-1.acme.internal` | Den post | Muligt |
 | En offentlig IP-adresse, som kun én vært eller netværksenhed har, eller som kun én cloud-ressource svarer på | Den post | Præcist |
 | En privat IP-adresse, eller en, som flere poster har | Hver post, der har den | Muligt |
-| En cloud-ressources eget ID: en AWS-ARN, et Azure-ressource-ID eller et Google Cloud-ressourcenavn | Den cloud-ressource | Præcist |
+| En cloud-ressources eget ID: en AWS-ARN eller et Google Cloud-ressourcenavn, som det er skrevet, eller et Azure-ressource-ID, uanset store og små bogstaver | Den cloud-ressource | Præcist |
 | En vært, en offentlig IP-adresse eller værten for en URL, som en monitor tjekker | Den monitor | Præcist |
 | En privat IP-adresse, som en monitor tjekker | Den monitor | Muligt |
 | Et medlems e-mail | Det medlem | Præcist |
 | Den post, en protokollinje blev sendt under, for de begivenheder, der læses fra dine protokoller | Den vært, klynge, OpenStack-cloud, cloud-ressource, serverløse funktion eller tjeneste | Præcist |
+| Den cloud-ressource eller serverløse funktion, en protokollinje kom fra, efter dens `cloud.resource_id` eller dens `faas.name`, for de begivenheder, der læses fra dine protokoller | Den cloud-ressource eller serverløse funktion | Præcist |
 | Et rent brugernavn, en filhash eller en proces | Intet: ingen post er nøglet efter dem | - |
 
 - Et muligt match viser **Muligt match** ved siden af navnet og siger hvorfor. Det tælles aldrig med på postens side, og en hændelse, som sagen erklærer, knyttes aldrig til det.

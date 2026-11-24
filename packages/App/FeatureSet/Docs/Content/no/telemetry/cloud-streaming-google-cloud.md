@@ -71,6 +71,8 @@ Dialogen spør med noen sekunders mellomrom hva som har kommet. Pub/Sub pusher e
 
 Hver logg beholder tiden for oppføringen på nanosekundet, alvorlighetsgraden, tracen og spanet, og HTTP-forespørselen under navnene fra OpenTelemetrys semantiske konvensjoner. Den arkiveres under en ressurs når den overvåkede ressursen er en type OneUptime leser målingene til, for eksempel en VM (`gce_instance`), en Cloud Run-tjeneste (`cloud_run_revision`) eller en Cloud SQL-instans (`cloudsql_database`), og bærer ressursens ID som `cloud.resource_id`. Forespørselsloggene til en ekstern lastbalanserer, skrevet under `http_load_balancer`, arkiveres under URL-kartet dens, den `https_lb_rule` målingene dens havner på.
 
+En oppføring i en revisjonslogg kommer hel, som loggens brødtekst: med [Finn sikkerhetshendelser i loggene dine](/docs/telemetry/security-events#finn-sikkerhetshendelser-i-loggene-dine) slått på leses hver som en sikkerhetshendelse, slik en fra en loggpipeline gjør, og lagres én gang, uansett hvor mange veier den når OneUptime.
+
 Loggene til en instansgruppe er VM-enes, så siden dens har ingen fane **Logger**. En oppføring av en annen type strømmes likevel, under prosjektet sitt.
 
 ## Hva kommandoen oppretter

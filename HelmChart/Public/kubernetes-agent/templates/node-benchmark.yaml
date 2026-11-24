@@ -1,0 +1,53 @@
+{{- /*
+  The CIS Kubernetes Benchmark's node and control plane controls, read by
+  kube-bench on the nodes (compliance.nodeBenchmark; templates/_node-benchmark.tpl
+  says how). Off by default: it runs as root with the node's process
+  namespace and read-only mounts of the node's Kubernetes directories.
+
+  A service account with no role and no token, a CronJob per node group and,
+  where the cluster runs its own control plane, one on a control plane node,
+  and a NetworkPolicy that keeps their pods off the network: they need none.
+*/ -}}
+{{- if eq (include "kubernetes-agent.nodeBenchmarkEnabled" .) "true" }}
+{{- $values := include "kubernetes-agent.nodeBenchmarkValues" . | fromYaml }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "kubernetes-agent.nodeBenchmarkServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: node-benchmark
+# No Role or ClusterRole is bound to it, and no token is mounted: kube-bench
+# reads the node, never the Kubernetes API.
+automountServiceAccountToken: false
+{{- $groups := $values.nodeGroups | default (list (dict "name" "workers")) }}
+{{- range $groups }}
+---
+{{ include "kubernetes-agent.nodeBenchmarkCronJob" (dict "root" $ "group" . "controlPlane" false) }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.nodeBenchmarkControlPlane" .) "true" }}
+---
+{{ include "kubernetes-agent.nodeBenchmarkCronJob" (dict "root" . "group" (dict) "controlPlane" true) }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "kubernetes-agent.nodeBenchmarkServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: node-benchmark
+spec:
+  # kube-bench sends nothing and serves nothing: its results leave in the
+  # pod's status. Where the network plugin enforces NetworkPolicies, this
+  # keeps whatever it reads on the node from leaving that way.
+  podSelector:
+    matchLabels:
+      {{- include "kubernetes-agent.selectorLabels" . | nindent 6 }}
+      component: node-benchmark
+  policyTypes:
+    - Ingress
+    - Egress
+{{- end }}

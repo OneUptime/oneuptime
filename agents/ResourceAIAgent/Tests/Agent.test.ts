@@ -742,6 +742,49 @@ test("shutdown before start does nothing but succeed", async () => {
 });
 
 /*
+ * A Proxmox cluster's agent also reads the task log of each stopped guest
+ * every few minutes, and sends who or what stopped it (#10017,
+ * ProxmoxGuestTasks); no other agent does, and 0 turns it off.
+ */
+function proxmoxEnv(overrides: Record<string, string> = {}): NodeJS.ProcessEnv {
+  return agentEnv({
+    ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "proxmox",
+    DOCKER_HOST_NAME: "",
+    PROXMOX_CLUSTER_NAME: "pve-prod",
+    PVE_HOST: "192.0.2.10",
+    PVE_API_TOKEN_ID: "monitoring@pam!oneuptime",
+    PVE_API_TOKEN_SECRET: "0b7f2a1e-5c3d-4e8f-9a6b-1c2d3e4f5a6b",
+    ...overrides,
+  });
+}
+
+test("a Proxmox cluster's agent reads its guests' task log; any other agent does not", async () => {
+  const proxmox: ResourceAiAgent = createAgent({ env: proxmoxEnv() });
+  await proxmox.start();
+  assert.strictEqual(proxmox.getGuestTasks()?.isEnabled(), true);
+
+  const dockerAgent: ResourceAiAgent = createAgent();
+  await dockerAgent.start();
+  assert.strictEqual(dockerAgent.getGuestTasks(), null);
+});
+
+test("ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS=0 keeps a Proxmox agent from reading the task log, and it says so", async () => {
+  const agent: ResourceAiAgent = createAgent({
+    env: proxmoxEnv({ ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS: "0" }),
+  });
+  await agent.start();
+
+  assert.strictEqual(agent.getGuestTasks()?.isEnabled(), false);
+  assert.ok(
+    logs.messages("info").some((message: string): boolean => {
+      return message.includes(
+        "Not reading the guests' task log: ONEUPTIME_PROXMOX_GUEST_TASKS_INTERVAL_SECONDS is 0.",
+      );
+    }),
+  );
+});
+
+/*
  * Shutdown order: a heartbeat still on the wire could land after the
  * sign-off, flip the agent back to connected and lock the replacement
  * container out for minutes; an unbounded wait could run past the forced

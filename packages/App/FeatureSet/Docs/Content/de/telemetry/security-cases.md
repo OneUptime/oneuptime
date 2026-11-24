@@ -369,7 +369,7 @@ Die beiden Datenspeicher-Schritte wirken auf die Datenspeicher, um die es im Fal
 
 #### Geschützte Entitäten
 
-**Geschützte Entitäten**, im Menü unter **Playbooks**, listet die Benutzer und Hosts, die kein Playbook eindämmt, etwa Notfallzugriffskonten, Domänencontroller und VPN-Gateways. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Sicherheits-Administratoren pflegen die Liste.
+**Geschützte Entitäten**, im Menü unter **Playbooks**, listet die Benutzer, Hosts und IP-Adressen, die kein Playbook eindämmt und die Sperrliste nie sperrt, etwa Notfallzugriffskonten, Domänencontroller, VPN-Gateways und Büroadressen. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Adresseintrag ist eine Adresse oder ein Bereich, etwa `203.0.113.0/24`, der jede Adresse darin schützt. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Sicherheits-Administratoren pflegen die Liste.
 
 #### Genehmigung
 
@@ -378,6 +378,14 @@ Die acht Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Sich
 #### Rückgängig machen
 
 Die Schritte zum Rückgängigmachen wirken auf die Benutzer oder Hosts, um die es im Fall geht, wie die Schritte, die sie rückgängig machen. Sobald die Ausführung beendet ist, hat ein eingedämmter Benutzer oder Host an seinem Schritt außerdem eine eigene Schaltfläche: **Sperre aufheben**, **Eindämmung aufheben**, **Freigeben** oder **Aktivieren**. Eine Abmeldung lässt sich nicht rückgängig machen. Jedes Rückgängigmachen wird in der Zeitachse des Falls und im Audit-Protokoll des Projekts festgehalten.
+
+### Sperrliste
+
+**Sperrliste**, im Menü unter **Playbooks**, listet die IP-Adressen und Bereiche, die Ihr Projekt sperrt: warum, bis wann, zu welchem Fall sie gehören und wer oder was sie hinzugefügt hat. **Adresse sperren** sperrt eine Adresse oder einen Bereich für 24 Stunden, sofern Sie nicht 1 Stunde, 7 Tage oder 30 Tage wählen. Nur ein Sicherheits-Administrator, ein Projektadministrator oder ein Projektinhaber kann eine Sperre behalten, bis jemand sie aufhebt, oder einen Bereich sperren, der größer als ein /24 ist (ein /48 bei IPv6), und niemand sperrt einen Bereich, der größer als ein /8 ist (ein /16 bei IPv6). **Aufheben** beendet eine Sperre, in einer Zeile oder in mehreren auf einmal, und **Verlängern** verschiebt ihr Ende.
+
+Die eigenen Adressen Ihres Projekts werden nie gesperrt: die Einträge unter **Geschützte Entitäten**, Ihre Hosts, Kubernetes-Knoten, Cloud-Ressourcen, Netzwerkgeräte und -endpunkte, Ihre Adressnamen und Sonden, die Sonden von OneUptime Cloud, die Bereiche, die nicht im Internet liegen, und das Edge-Netzwerk vor Ihrer App. Eine Sperre, die eine davon treffen würde, wird abgelehnt, mit dem Hinweis, was die Adresse ist, und **Geschützte Entitäten** listet sie unter **Automatisch geschützt**. Wenn OneUptime nicht feststellen kann, ob eine Adresse Ihnen gehört, sperrt es sie nicht.
+
+**Durchgesetzt bei** zeigt jeden Ort, an dem eine Sperre durchgesetzt wird, und ob sie dort greift. Solange nichts die Sperrliste durchsetzt, sagt die Seite das, und eine Sperre wird erfasst, sperrt aber nichts. Jede Sperre, Aufhebung und jeder Ablauf wird im Audit-Protokoll des Projekts festgehalten und, wenn es einen Fall gibt, auch in der Zeitachse dieses Falls.
 
 ### Nachrichten
 
@@ -433,7 +441,7 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 ## Automatisieren
 
 - **Arbeitsabläufe**: Ein Fall oder eine Notiz kann einen Workflow starten, wenn er oder sie erstellt, aktualisiert oder gelöscht wird. Ein Schritt **Arbeitsablauf ausführen** startet einen Workflow, dessen Trigger ein Webhook ist.
-- **API**: Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
+- **API**: Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten, Sperren sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
 - KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Aufgaben, Belege, Erkennungen, Playbooks sowie Fallprioritäten und Fallstatus. Siehe [MCP-Server](/docs/ai/mcp-server).
 - Terraform: Die Ressourcen `oneuptime_security_case_priority` und `oneuptime_security_case_status` halten die Prioritäten und Status eines Projekts als Code fest.
 

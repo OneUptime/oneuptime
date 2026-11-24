@@ -4,10 +4,21 @@ import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import Pill from "../Pill/Pill";
 import { PillTone } from "../Pill/PillTone";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+  SharedNameValueDetail,
+} from "./SharedNameOptionLines";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import { passEscapeOn } from "./DropdownEscape";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
+import {
+  SharedNameFacts,
+  SharedNameMark,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+} from "../../Utils/SharedNameOptions";
 import useTranslateValue from "../../Utils/Translation";
 import {
   createTranslator,
@@ -121,6 +132,16 @@ export interface DropdownOption {
    * Archived, so it can be kept or changed.
    */
   isArchived?: boolean | undefined;
+  /*
+   * A team, a label, an on-call policy or an on-call schedule, with what
+   * tells it from another of its kind of the same name (SharedNameOptions,
+   * #10064): records named alike before names were held to one record
+   * each keep their names. Among the options, those whose names read as
+   * one are marked with the pill their list draws, and a line that sets
+   * each apart - its description, or when it was made. Left out, nothing
+   * is marked.
+   */
+  sharedName?: SharedNameFacts | undefined;
   /*
    * A value a record still holds that names nothing now - a severity, a
    * label or an on-call policy since deleted (#7807): its label says so
@@ -515,6 +536,26 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       return [item];
     },
   );
+
+  /*
+   * The options whose records share a name, each with its list's pill and
+   * what sets it apart (SharedNameOptions, #10064), in the reader's
+   * language: found among every option, whatever the search shows.
+   */
+  const sharedNameMarks: Map<string, SharedNameMark> = getSharedNameMarks(
+    flatOptions,
+    createTranslator(translateString, undefined, { drawsOnPage: true }),
+  );
+
+  const getSharedNameMark: (
+    option: DropdownOption,
+  ) => SharedNameMark | undefined = (
+    option: DropdownOption,
+  ): SharedNameMark | undefined => {
+    return option.sharedName
+      ? sharedNameMarks.get(getSharedNameOptionKey(option.value))
+      : undefined;
+  };
 
   /*
    * An option's own value wins over another option's alias, so adding an
@@ -918,6 +959,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       normalizedLabels.length - visibleLabels.length,
       0,
     );
+    const sharedNameMark: SharedNameMark | undefined =
+      getSharedNameMark(option);
 
     if (meta.context === "value") {
       /*
@@ -966,6 +1009,14 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 dataTestId="dropdown-archived-tag"
               />
             ) : null}
+            {/*
+             * One of records that share a name: what sets the one picked
+             * apart, quieter than its name, so two picked twins read as
+             * two (#10064).
+             */}
+            {sharedNameMark ? (
+              <SharedNameValueDetail mark={sharedNameMark} />
+            ) : null}
           </div>
           {renderAssociatedLabels(
             visibleLabels,
@@ -997,6 +1048,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           {option.isArchived ? (
             <ArchivedTag dataTestId="dropdown-archived-tag" />
           ) : null}
+          {/*
+           * Another option has the same name: the pill its list draws
+           * beside it (#9746, #10064).
+           */}
+          {sharedNameMark ? <SharedNamePill mark={sharedNameMark} /> : null}
         </div>
         {option.description && option.isDescriptionUserContent ? (
           <IsolatedLine
@@ -1012,6 +1068,16 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           >
             {tx(option.description) ?? option.description}
           </span>
+        ) : null}
+        {/*
+         * What sets it apart from the others of its name: its owner's words
+         * as written, or when it was made, in the reader's language.
+         */}
+        {sharedNameMark ? (
+          <SharedNameDetail
+            mark={sharedNameMark}
+            className={DROPDOWN_OPTION_TYPED_DESCRIPTION_CLASS_NAME}
+          />
         ) : null}
         {renderAssociatedLabels(visibleLabels, meta.context, hiddenLabelCount)}
       </div>

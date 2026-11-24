@@ -53,7 +53,7 @@ Eine Zeitreihe aus einer oder mehreren Metrikabfragen über den Zeitbereich des 
 
 Jede Abfrage zeichnet ein eigenes Diagramm, untereinander im Widget. Um eine Abfrage stattdessen im Diagramm der Abfrage davor zu zeichnen, als weitere Linien auf denselben Achsen, schalten Sie **Mit vorheriger Abfrage überlagern** in ihren **Anzeigeeinstellungen** ein: zum Beispiel `mem_used` und `mem_total` in einem Diagramm. Jede Abfrage nach der ersten hat diesen Schalter, und jede Abfrage, bei der er eingeschaltet ist, kommt in dasselbe Diagramm, sodass sich drei oder mehr Abfragen eines teilen können. Schalten Sie ihn aus, damit die Abfrage wieder ein eigenes Diagramm bekommt.
 
-Ein überlagertes Diagramm übernimmt Titel, Diagrammtyp und Werteachse von seiner ersten Abfrage, also wird jede Abfrage darin in deren Einheit gelesen. Eine Abfrage in einer anderen Einheit derselben Art wird in der Einheit des Diagramms gezeichnet, etwa Megabyte in einem Diagramm in Gigabyte oder Sekunden in einem Diagramm in Millisekunden. Eine Einheit anderer Art lässt sich auf dieser Achse nicht ablesen, etwa Bytes in einem Diagramm in Prozent: Die Abfrage wird trotzdem dort gezeichnet, und Diagramm und Schalter sagen beide, dass sich die Einheiten unterscheiden. Geben Sie einer solchen Abfrage daher ein eigenes Diagramm.
+Ein überlagertes Diagramm übernimmt Titel, Diagrammtyp und linke Werteachse von seiner ersten Abfrage, also wird eine Abfrage darin in deren Einheit gelesen, wo das möglich ist. Eine Abfrage in einer anderen Einheit derselben Art wird in der Einheit des Diagramms gezeichnet, etwa Megabyte in einem Diagramm in Gigabyte oder Sekunden in einem Diagramm in Millisekunden. Eine Abfrage in einer Einheit anderer Art, etwa Bytes in einem Diagramm in Prozent, wird an einer zweiten Werteachse auf der rechten Seite des Diagramms gezeichnet, in ihrer eigenen Einheit, und der Schalter sagt das. Die Legende unter dem Diagramm nennt die Einheit jeder Achse und die Achse, an der jede Reihe gezeichnet wird. Nur eine dritte Art von Einheit passt auf keine der beiden Achsen: Sie wird auf einer eigenen Skala ohne Achse gezeichnet, und Diagramm und Schalter sagen das beide. Lesen Sie ihre Werte in der Legende und im Tooltip ab, oder geben Sie einer solchen Abfrage ein eigenes Diagramm, um sie an einer Achse abzulesen.
 
 Nutzen Sie es, wenn die Form der Linie die Geschichte erzählt: Latenz, Fehler, Durchsatz oder Warteschlangentiefe.
 
@@ -250,7 +250,7 @@ Die Dashboard-Vorlagen öffnen ihre Listen von Hosts, Knoten, Pods, Swarm-Dienst
 Ein [öffentliches Dashboard](/docs/dashboards/sharing) zeichnet die meisten Widgets für seine Besucher, jedes zeigt nur, wofür es eingerichtet wurde. Einige können ohne angemeldete Sitzung nicht angezeigt werden:
 
 - **Protokolldiagramm**, **Trace-Diagramm**, **Trace-Tabelle**, **Sicherheitsereignisse**, **Fluss der Sicherheitsereignisse**, **Trichter** und **Benutzerbindung** sagen an ihrer Stelle, dass sie auf öffentlichen Dashboards nicht verfügbar sind.
-- Die Widgets der Gruppe External Data Sources werden aus einem öffentlichen Dashboard ganz weggelassen, weil ihre Einstellungen die Abfrage selbst sind.
+- Die Widgets der Gruppe External Data Sources zeigen ihre Daten, wenn sie **Metriken dieses Projekts (PromQL)** lesen, nie ihre Abfragen. Ein Widget mit externer Datenquelle wird aus einem öffentlichen Dashboard ganz weggelassen.
 
 ## Wenn ein Widget nicht angezeigt werden kann
 

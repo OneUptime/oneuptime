@@ -128,6 +128,12 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     surfaceMember: "DbtArtifacts",
   },
   {
+    // An iOS app's dSYMs, from a build: never a page's (#9922).
+    file: `${TELEMETRY_API_DIRECTORY}/DsymIngest.ts`,
+    routePath: "/dsyms/v1/upload",
+    surfaceMember: "Dsym",
+  },
+  {
     file: `${TELEMETRY_API_DIRECTORY}/SyncWebhooksIngest.ts`,
     routePath: "/fivetran/v1/webhook/:ingestionKeyId",
     surfaceMember: "SyncWebhooks",
@@ -225,6 +231,47 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
   {
     file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
     routePath: "/datadog/api/v1/metadata",
+    surfaceMember: "Datadog",
+  },
+  // APM: the Agent's intake and stats, and a tracer's own endpoints (PUT and POST each).
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v0.2/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v0.2/stats",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.3/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.3/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.4/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.4/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.5/traces",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/v0.5/traces",
     surfaceMember: "Datadog",
   },
   {

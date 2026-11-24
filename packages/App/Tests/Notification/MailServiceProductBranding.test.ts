@@ -312,9 +312,12 @@ describe("a renamed installation", () => {
     const payload: CapturedMail = await deliver(invitation());
 
     expect(payload.html).toContain("Sign In to Acme &amp; Co");
-    // The sentence is printed as it is (info=): the name in it is escaped once.
+    /*
+     * The sentence is looked up in the email's language and escaped once
+     * (plainInfo, #9897): the name in it is escaped once with it.
+     */
     expect(payload.html).toContain(
-      "You've been invited to join a project on Acme &amp; Co.",
+      "You&#x27;ve been invited to join a project on Acme &amp; Co.",
     );
     expect(payload.html).toContain('href="https://acme.example"');
     expect(payload.html).not.toContain("oneuptime.com");

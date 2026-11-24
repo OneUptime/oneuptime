@@ -945,3 +945,104 @@ describe("Connections Near the Limit and Certificate Expiring on an account's Re
     expect(CLOUD_ALERT_MONITORING_INTERVAL).not.toBe("0 * * * *");
   });
 });
+
+/*
+ * #10028: each resource's monitors read the window its connection's
+ * interval gives them, and the page says what a slow interval costs.
+ */
+describe("an account read less often than its cloud's default", () => {
+  function readEvery(
+    item: CloudAccountRecommendationResource,
+    readIntervalInMinutes: number | undefined,
+    streamedMetrics?: Array<string>,
+  ): CloudAccountRecommendationResource {
+    return {
+      ...item,
+      context: {
+        ...item.context,
+        cloudReadIntervalInMinutes: readIntervalInMinutes,
+        cloudStreamedMetrics: streamedMetrics,
+      },
+    };
+  }
+
+  function groupsAt(
+    resources: Array<CloudAccountRecommendationResource>,
+    monitors: Array<{
+      monitorId: ObjectID;
+      monitorSteps: Array<MonitorStep>;
+    }> = [],
+  ): Array<CloudAccountRecommendationGroup> {
+    return CloudAccountRecommendationPlan.buildGroups({
+      resources,
+      existingMonitors: monitors,
+      dismissals: [],
+    });
+  }
+
+  test("the longest interval that reads one of its monitors a longer window, or none", () => {
+    expect(
+      CloudAccountRecommendationPlan.getWideningReadIntervalInMinutes(
+        groupsAt([readEvery(WEB_1, 60), readEvery(WEB_2, 30), CHECKOUT]),
+      ),
+    ).toBe(60);
+
+    // At AWS's default, or faster, or not known: none.
+    for (const minutes of [10, 5, undefined]) {
+      expect(
+        CloudAccountRecommendationPlan.getWideningReadIntervalInMinutes(
+          groupsAt([readEvery(WEB_1, minutes), readEvery(WEB_2, minutes)]),
+        ),
+      ).toBeUndefined();
+    }
+
+    // Streamed, what it reads comes within minutes: none either.
+    expect(
+      CloudAccountRecommendationPlan.getWideningReadIntervalInMinutes(
+        groupsAt([
+          readEvery(WEB_1, 60, [
+            "aws|aws/ec2|cpuutilization",
+            "aws|aws/ec2|statuscheckfailed",
+          ]),
+        ]),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("a monitor made before the interval changed still counts as created, as on the resource's own tab", () => {
+    const before: Array<CloudAccountRecommendationGroup> = groupsAt([
+      readEvery(WEB_1, undefined),
+    ]);
+    const target: CloudAccountRecommendationTarget = rowOf(
+      groupOf(before, "aws|aws::ec2::instance"),
+      "cloud-aws-ec2-high-cpu",
+    ).targets[0]!;
+    const made: { monitorId: ObjectID; monitorSteps: Array<MonitorStep> } = {
+      monitorId: ObjectID.generate(),
+      monitorSteps: [
+        target.recommendation.getMonitorStep({
+          resourceIdentifier: target.resource.resourceId,
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "web-1 - High CPU",
+        }),
+      ],
+    };
+
+    const after: Array<CloudAccountRecommendationGroup> = groupsAt(
+      [readEvery(WEB_1, 60)],
+      [made],
+    );
+    const row: CloudAccountRecommendationRow = rowOf(
+      groupOf(after, "aws|aws::ec2::instance"),
+      "cloud-aws-ec2-high-cpu",
+    );
+
+    expect(row.counts.created).toBe(1);
+    expect(row.targets[0]!.monitorId?.toString()).toBe(
+      made.monitorId.toString(),
+    );
+  });
+});

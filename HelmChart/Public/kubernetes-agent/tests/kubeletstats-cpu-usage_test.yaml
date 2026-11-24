@@ -37,17 +37,17 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
       # Still one `metrics:` map. Two under the same receiver is a
       # duplicate mapping key, which the collector rejects at startup. These
       # gaps also step over blank lines (a 2-space line still stops them),
       # and the second key may be flow-style (`metrics: {}`).
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:(?:    [^\\n]*)?\\n)*?    metrics:\\n(?:(?:    [^\\n]*)?\\n)*?    metrics:[ \\n]"
+          pattern: "\\n  kubelet_?stats:\\n(?:(?:    [^\\n]*)?\\n)*?    metrics:\\n(?:(?:    [^\\n]*)?\\n)*?    metrics:[ \\n]"
 
   - it: keeps them on when the saturation metrics are switched off
     # utilizationMetrics used to gate the whole `metrics:` map. It governs
@@ -59,10 +59,10 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "_(limit|request)_utilization:"
@@ -81,7 +81,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"

@@ -102,6 +102,10 @@ const UNMOUNTED_CRUD_API_EXCEPTIONS: Readonly<Record<string, string>> = {
     "Served only by OneUptime Cloud's license server, beside EnterpriseLicense: ee/Server/LicenseServer/Index.ts mounts its read, list and delete for the Admin Dashboard's license view when billing is enabled.",
   StatusPagePrivateUserSession:
     "Internal: private status page sign-in, refresh and sign-out keep these sessions through StatusPagePrivateUserSessionService (Identity's StatusPageAuthentication, StatusPageSSO and StatusPageOIDC). Every permission on the table is empty, no client reads it, and it is not documented.",
+  DashboardPrivateUserSession:
+    "Internal: a dashboard's sign-in for the people who open its public link (#10250) keeps these sessions through DashboardPrivateUserSessionService (Identity's DashboardPrivateUserAuthentication, DashboardSSO and DashboardOIDC). Every permission on the table is empty, no client reads it, and it is not documented.",
+  FormPrivateUserSession:
+    "Internal: a form's sign-in for the people who open its public link (#10249) keeps these sessions through FormPrivateUserSessionService (Identity's FormPrivateUserAuthentication, FormSSO and FormOIDC). Every permission on the table is empty, no client reads it, and it is not documented.",
   UserSession:
     "Internal: sign-in, refresh and sign-out keep these sessions through UserSessionService (Identity's Authentication and the other sign-in routes). A CRUD route would let every master admin, and the instance's master API key, list everyone's sessions with their IP addresses and user agents, and delete sessions without the revocation that records why each one ended. Nothing in OneUptime asks for that, so it is neither mounted nor documented (#5803).",
 };

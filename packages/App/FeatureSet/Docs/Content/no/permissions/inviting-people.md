@@ -107,6 +107,8 @@ Under **Brukere** klikker du på personen og deretter på **Team**.
 
 Klikk på **Inviter**, velg **Team**, og klikk på **Inviter** i dialogen. Et medlem er med i det nye teamet med en gang. Den som ikke har blitt med ennå, får én invitasjon til, og når den ene godtas, godtas begge.
 
+Prosjektet ditt sender en person høyst én invitasjon i timen på e-post. En invitasjon innen en time etter den siste e-posten, til et annet team eller etter at du har fjernet personen, blir opprettet, men ingen ny e-post sendes før personen godtar eller avslår en av dem. **Send invitasjon på nytt** i radmenyen til personen under **Brukere** sender fortsatt en e-post.
+
 ### Ta personen ut av et team
 
 Klikk på **Fjern** i teamets rad. Er det det siste teamet personen har blitt med i, tar fjerningen personen ut av prosjektet, og dialogen sier det før noe endres.
@@ -139,7 +141,11 @@ I OneUptime Cloud har et prosjekt på Free-abonnementet plass til én person. En
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-Én adresse kan få 10 invitasjoner i timen, til prosjekter og private statussider til sammen, uansett hvem som sender dem. Vent en time, og inviter så personen på nytt.
+Prosjektet ditt kan sende én adresse 10 invitasjoner i timen, til prosjektets team og private statussider til sammen. Invitasjoner fra andre prosjekter teller ikke. Vent en time, og inviter så personen på nytt.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime sender ikke mer enn 50 invitasjoner i timen til én adresse fra alle prosjekter til sammen, og denne ville gått over det. Ingenting ble opprettet. Prøv igjen om en time.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

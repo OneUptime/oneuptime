@@ -1191,16 +1191,15 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
           auditLog.workflowRunAsCustomRoleName =
             ranAs.workflowRunAsCustomRoleName;
         }
-        if (ranAs.workflowRunAsGivenByUserId) {
-          auditLog.workflowRunAsGivenByUserId =
-            ranAs.workflowRunAsGivenByUserId;
+        if (ranAs.workflowRunAsGiverUserId) {
+          auditLog.workflowRunAsGiverUserId = ranAs.workflowRunAsGiverUserId;
         }
-        if (ranAs.workflowRunAsGivenByApiKeyId) {
-          auditLog.workflowRunAsGivenByApiKeyId =
-            ranAs.workflowRunAsGivenByApiKeyId;
+        if (ranAs.workflowRunAsGiverApiKeyId) {
+          auditLog.workflowRunAsGiverApiKeyId =
+            ranAs.workflowRunAsGiverApiKeyId;
         }
-        if (ranAs.workflowRunAsGivenByName) {
-          auditLog.workflowRunAsGivenByName = ranAs.workflowRunAsGivenByName;
+        if (ranAs.workflowRunAsGiverName) {
+          auditLog.workflowRunAsGiverName = ranAs.workflowRunAsGiverName;
         }
       }
     }
@@ -2179,9 +2178,10 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
     if (relatedModel instanceof User) {
       /*
        * Someone only invited to the project is named as the project knows
-       * them - the name typed for them, else their address - never by
-       * their account's own name, which it does not see until they join
-       * (#9823, PendingInviteeProfiles).
+       * them - the name typed for them, else the address they were invited
+       * at (#10175) - never by their account's own name, or the address it
+       * has moved to, which it does not see until they join (#9823,
+       * PendingInviteeProfiles).
        */
       const withheld: Map<string, WithheldProfile> =
         await PendingInviteeProfiles.readWithheldProfilesInProject({
@@ -2194,7 +2194,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
           await this.getUserInfo(new ObjectID(id));
         const profile: WithheldProfile | undefined = withheld.get(id);
         const name: string | null = profile
-          ? profile.inviteeName || user?.email || null
+          ? profile.inviteeName || profile.inviteeEmail || user?.email || null
           : user?.name || user?.email || null;
 
         if (name) {

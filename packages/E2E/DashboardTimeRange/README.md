@@ -56,5 +56,18 @@ row's height down moves one row (rows taller than columns are wide) and is saved
 Both dashboards are the screen's width, but a menu's choice or the editing row can still
 sit below a phone's fold; the spec's `press` explains how it reaches them there.
 
+`DashboardWidgetLink.spec.ts` opens the same board at one of its widgets (#10084): a
+link's `?widget=<id>`, as a warning that names what reads a metric links to. Each widget
+keeps one id from read to read (`Boards.js`'s `widgetIdOf`), so the spec reads the id of a
+widget far below the fold and opens its link. Inside OneUptime and on the public link, at
+1280 and on a phone, the widget comes into the window's middle, ringed in indigo round its
+card's corners, the ring fading after a moment, and the keyboard's focus on it, which Tab
+moves on from; the ring is held still for a reader who asks for less motion
+(`reducedMotion: "reduce"`), and is the dark theme's lighter indigo there; a link to a
+widget the board no longer has opens the board at its top, untouched, with a note that
+says why and goes by itself (the fixture's root draws the app's `ToastRegion`, as the
+Dashboard's does). Screenshots of a widget landed on (light, dark, phone, public) and of
+the note are under `output/playwright/dashboard-time-range-ui`.
+
 This checks real browser rendering and the app's handling of the defaults and picks; the
 API, the database and the deployed app's routing are outside this fixture.

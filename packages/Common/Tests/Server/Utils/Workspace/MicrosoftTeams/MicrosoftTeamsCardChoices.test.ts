@@ -68,8 +68,10 @@ import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequ
  * - The card elements both forms share: buildNoteElement (the small print),
  *   buildNotShownNoteElement (that line as an element, or null) and
  *   buildCreateInOneUptimeAction (the button to the dashboard).
- * - The fetchers: what each one reads (the project, _id and name only, the
- *   order, the cap, as root), that the total is counted only when the cap was
+ * - The fetchers: what each one reads (the project, _id and name only -
+ *   and for labels and on-call policies what tells two of one name apart,
+ *   their description and when each was made (#10314) - the order, the
+ *   cap, as root), that the total is counted only when the cap was
  *   reached, and that rows become choices the way toChoices makes them, in the
  *   order they were read.
  */
@@ -1289,6 +1291,21 @@ interface FetcherCase {
   cap: number;
   // Filters the fetcher adds to the project scope, if any.
   extraQuery?: JSONObject | undefined;
+  /*
+   * What it reads beside the name: a label's and a policy's description and
+   * when it was made, which tell two of one name apart on the card (#10314).
+   */
+  extraSelect?: JSONObject | undefined;
+}
+
+// What tells two labels, or two on-call policies, of one name apart.
+const SHARED_NAME_SELECT: JSONObject = { description: true, createdAt: true };
+
+// What a fetcher's read is said to select, in its test's name.
+function selectedColumnsOf(fetcher: FetcherCase): string {
+  return fetcher.extraSelect
+    ? "_id, name and what tells two of one name apart"
+    : "_id and name";
 }
 
 function toModels(
@@ -1353,7 +1370,7 @@ function onlyArgumentOf(spy: SpyInstance<(data: unknown) => unknown>): unknown {
 function expectedFindBy(fetcher: FetcherCase): Record<string, unknown> {
   return {
     query: { projectId: PROJECT_ID, ...(fetcher.extraQuery || {}) },
-    select: { _id: true, name: true },
+    select: { _id: true, name: true, ...(fetcher.extraSelect || {}) },
     sort: fetcher.sort,
     limit: fetcher.cap,
     skip: 0,
@@ -1396,6 +1413,7 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
      * offers them nor counts them (Common/Utils/ArchivableValues).
      */
     extraQuery: { isArchived: false },
+    extraSelect: SHARED_NAME_SELECT,
   },
   {
     method: "getOnCallDutyPolicyChoices",
@@ -1417,6 +1435,7 @@ const COUNTED_FETCHERS: Array<FetcherCase> = [
      * counts them in "showing the first 100 of N".
      */
     extraQuery: { isArchived: false },
+    extraSelect: SHARED_NAME_SELECT,
   },
 ];
 
@@ -1483,7 +1502,7 @@ describe("MicrosoftTeamsCardChoices fetchers", () => {
 
   for (const fetcher of COUNTED_FETCHERS) {
     describe(fetcher.method, () => {
-      test(`reads the project's ${fetcher.pluralNoun} once: _id and name, by name, at most ${fetcher.cap}, as the member the card is for`, async () => {
+      test(`reads the project's ${fetcher.pluralNoun} once: ${selectedColumnsOf(fetcher)}, by name, at most ${fetcher.cap}, as the member the card is for`, async () => {
         const rows: Array<NamedRow> = rowsNamed(3, fetcher.pluralNoun);
         const spies: ReadSpies = stubReads(fetcher, { rows: rows });
 

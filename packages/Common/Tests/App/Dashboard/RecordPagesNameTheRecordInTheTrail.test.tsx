@@ -101,6 +101,12 @@ const RECORD_KINDS: Array<RecordKind> = [
     viewTitle: "View Team",
     builder: getTeamsBreadcrumbs,
   },
+  // A custom role's page and its Developer pages (#10139).
+  {
+    viewKey: "TEAM_ROLE_VIEW",
+    viewTitle: "View Role",
+    builder: getTeamsBreadcrumbs,
+  },
   {
     viewKey: "WORKFLOW_VIEW",
     viewTitle: "View Workflow",

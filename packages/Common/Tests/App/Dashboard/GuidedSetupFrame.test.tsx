@@ -38,9 +38,16 @@ import GuidedSetupFrame, {
   GUIDED_SETUP_GUIDE_LINK_TEST_ID,
   GUIDED_SETUP_GUIDE_TEXT,
   GUIDED_SETUP_OUTCOMES_TITLE,
+  GUIDED_SETUP_PAGE_CLASS_NAME,
   GuidedSetupFrameStep,
   SUMMARY_STEP_KEY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupFrame";
+import { GuidedSetupRunSync } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
+import { GuidedSetupResourceRow } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupResources";
+import { GuidedSetupResourceStatus } from "../../../Types/GuidedSetup/GuidedSetupRun";
+import Route from "../../../Types/API/Route";
+import fs from "fs";
+import path from "path";
 import { getLearnMoreUrl } from "../../../UI/Components/Link/LearnMoreLink";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
 import {
@@ -423,12 +430,38 @@ describe("what the setup sets up, beside its steps", () => {
     expect(aside).toHaveAttribute("aria-label", "What this sets up");
     expect(aside).toHaveTextContent("What this sets up");
     expect(
-      Array.from(aside.querySelectorAll("li")).map(
-        (item: HTMLLIElement): string => {
-          return item.textContent || "";
-        },
-      ),
+      Array.from(
+        aside.querySelectorAll('[data-testid^="guided-setup-outcome-"]'),
+      )
+        .filter((item: Element): boolean => {
+          return item.tagName === "LI";
+        })
+        .map((item: Element): string => {
+          return (
+            item.querySelector('[data-testid$="-text"]')?.textContent || ""
+          );
+        }),
     ).toEqual(["First step works.", "Second step works.", "Third step works."]);
+  });
+
+  test("numbers each outcome as its step is numbered, and ticks it once the step is done", () => {
+    render(
+      drawWith({
+        steps: withOutcomes(true, false, false),
+        openStepKey: "second",
+      }),
+    );
+
+    // Done: a tick, no number. Open and to come: the step's number.
+    expect(
+      screen.getByTestId("guided-setup-outcome-first"),
+    ).not.toHaveTextContent(/^1/);
+    expect(screen.getByTestId("guided-setup-outcome-second")).toHaveTextContent(
+      /^2Second step works\.$/,
+    );
+    expect(screen.getByTestId("guided-setup-outcome-third")).toHaveTextContent(
+      /^3Third step works\.$/,
+    );
   });
 
   test("marks each as done, open now, or still to come, as the steps are", () => {
@@ -496,18 +529,22 @@ describe("what the setup sets up, beside its steps", () => {
     ).toHaveLength(0);
   });
 
-  test("sits beside the steps from lg up, the steps as wide as they were", () => {
+  test("sits beside the steps from lg up, the steps taking the room the page has", () => {
     render(drawWith({ steps: withOutcomes(), openStepKey: "first" }));
 
     const frame: HTMLElement = screen.getByTestId("guided-setup");
     const columns: HTMLElement = frame.firstElementChild as HTMLElement;
 
-    expect(frame.className).toContain("max-w-6xl");
+    // The page is as wide as both need (GUIDED_SETUP_PAGE_CLASS_NAME).
+    expect(frame.className).not.toContain("max-w-");
     expect(columns.className).toBe(GUIDED_SETUP_COLUMNS_CLASS_NAME);
     expect(GUIDED_SETUP_COLUMNS_CLASS_NAME).toContain("grid-cols-1");
-    // The steps keep max-w-3xl's 48rem; what it sets up is beside them.
+    // The steps take what is left; what it sets up is beside them.
     expect(GUIDED_SETUP_COLUMNS_CLASS_NAME).toContain(
-      "lg:grid-cols-[minmax(0,48rem)_20rem]",
+      "lg:grid-cols-[minmax(0,1fr)_22rem]",
+    );
+    expect(GUIDED_SETUP_COLUMNS_CLASS_NAME).toContain(
+      "xl:grid-cols-[minmax(0,1fr)_25rem]",
     );
     expect(columns.lastElementChild).toBe(
       screen.getByTestId(GUIDED_SETUP_ASIDE_TEST_ID),
@@ -515,6 +552,37 @@ describe("what the setup sets up, beside its steps", () => {
     expect(columns.firstElementChild).toContainElement(
       screen.getByTestId("guided-setup-progress"),
     );
+  });
+
+  test("a setup's page is centred and only as wide as its steps and panel need (#10276)", () => {
+    /*
+     * A 2,500-pixel screen drew the steps in its left third and nothing
+     * beside them: the page is centred now, with its breadcrumbs and title
+     * lined up over the steps.
+     */
+    expect(GUIDED_SETUP_PAGE_CLASS_NAME).toContain("mx-auto");
+    expect(GUIDED_SETUP_PAGE_CLASS_NAME).toContain("max-w-7xl");
+    expect(GUIDED_SETUP_PAGE_CLASS_NAME).toContain("w-full");
+    // The Page's own padding, kept: a phone's 16px gutter.
+    expect(GUIDED_SETUP_PAGE_CLASS_NAME).toContain("px-4");
+
+    for (const page of [
+      "Monitor/GuidedSetup.tsx",
+      "OnCallDuty/GuidedSetup.tsx",
+      "StatusPages/GuidedSetup.tsx",
+      "Service/GuidedSetup.tsx",
+    ]) {
+      const source: string = fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Pages",
+          page,
+        ),
+        "utf8",
+      );
+
+      expect(source).toContain("className={GUIDED_SETUP_PAGE_CLASS_NAME}");
+    }
   });
 
   test("stays put while the steps scroll past, from lg up", () => {
@@ -541,5 +609,306 @@ describe("what the setup sets up, beside its steps", () => {
     expect(screen.getByTestId("guided-setup-minutes")).toHaveTextContent(
       /^About 1\sminute$/,
     );
+  });
+});
+
+describe("how far the person is (#10276)", () => {
+  test("a bar over the steps fills as they are done, and says so to a screen reader", () => {
+    const { rerender } = render(draw({ steps: steps(), openStepKey: "first" }));
+
+    const bar: HTMLElement = screen.getByTestId("guided-setup-progress-bar");
+
+    expect(bar).toHaveAttribute("role", "progressbar");
+    expect(bar).toHaveAttribute("aria-label", "Setup progress");
+    expect(bar).toHaveAttribute("aria-valuemin", "0");
+    expect(bar).toHaveAttribute("aria-valuemax", "3");
+    expect(bar).toHaveAttribute("aria-valuenow", "0");
+    expect((bar.firstElementChild as HTMLElement).style.width).toBe("0%");
+
+    rerender(draw({ steps: steps(true, true), openStepKey: "third" }));
+
+    expect(bar).toHaveAttribute("aria-valuenow", "2");
+    expect((bar.firstElementChild as HTMLElement).style.width).toBe("67%");
+
+    rerender(draw({ steps: steps(true, true, true), openStepKey: null }));
+
+    expect((bar.firstElementChild as HTMLElement).style.width).toBe("100%");
+  });
+});
+
+describe("why each step is there (#10276)", () => {
+  const described: (...done: Array<boolean>) => Array<GuidedSetupFrameStep> = (
+    ...done: Array<boolean>
+  ): Array<GuidedSetupFrameStep> => {
+    return steps(...done).map(
+      (step: GuidedSetupFrameStep): GuidedSetupFrameStep => {
+        return { ...step, description: `Why ${step.title} is there.` };
+      },
+    );
+  };
+
+  test("a step not reached yet says why it is there, under its title", () => {
+    render(draw({ steps: described(), openStepKey: "first" }));
+
+    expect(
+      screen.getByTestId("guided-setup-step-second-description"),
+    ).toHaveTextContent("Why Second step is there.");
+    expect(
+      screen.getByTestId("guided-setup-step-third-description"),
+    ).toHaveTextContent("Why Third step is there.");
+  });
+
+  test("the open step's own content says it in full, and a done one says what it made", () => {
+    render(draw({ steps: described(true), openStepKey: "second" }));
+
+    expect(
+      screen.queryByTestId("guided-setup-step-first-description"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("guided-setup-step-first-done-line"),
+    ).toHaveTextContent("First step made a record.");
+    expect(
+      screen.queryByTestId("guided-setup-step-second-description"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("guided-setup-step-third-description"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("the records each step makes, beside the steps (#10276)", () => {
+  const MONITOR_ROUTE: Route = new Route("/dashboard/p/monitors/m-1");
+
+  const withRecords: (data: {
+    monitor: Partial<GuidedSetupResourceRow>;
+    policy?: Partial<GuidedSetupResourceRow>;
+    done?: Array<boolean>;
+  }) => Array<GuidedSetupFrameStep> = (data: {
+    monitor: Partial<GuidedSetupResourceRow>;
+    policy?: Partial<GuidedSetupResourceRow>;
+    done?: Array<boolean>;
+  }): Array<GuidedSetupFrameStep> => {
+    return steps(...(data.done || [])).map(
+      (step: GuidedSetupFrameStep): GuidedSetupFrameStep => {
+        const resources: Array<GuidedSetupResourceRow> = [];
+
+        if (step.key === "first") {
+          resources.push({
+            key: "monitor",
+            stepKey: "first",
+            kind: "Monitor",
+            status: GuidedSetupResourceStatus.Waiting,
+            ...data.monitor,
+          });
+        }
+
+        if (step.key === "second") {
+          resources.push({
+            key: "on_call_policy",
+            stepKey: "second",
+            kind: "On-call policy",
+            status: GuidedSetupResourceStatus.Waiting,
+            ...(data.policy || {}),
+          });
+        }
+
+        return { ...step, outcome: `${step.title} works.`, resources };
+      },
+    );
+  };
+
+  test("each record sits under the outcome of the step that makes it", () => {
+    render(
+      draw({
+        steps: withRecords({ monitor: {} }),
+        openStepKey: "first",
+      }),
+    );
+
+    expect(screen.getByTestId("guided-setup-outcome-first")).toContainElement(
+      screen.getByTestId("guided-setup-resource-monitor"),
+    );
+    expect(screen.getByTestId("guided-setup-outcome-second")).toContainElement(
+      screen.getByTestId("guided-setup-resource-on_call_policy"),
+    );
+    // A step with no records of its own still says its outcome.
+    expect(screen.getByTestId("guided-setup-outcome-third")).toHaveTextContent(
+      "Third step works.",
+    );
+  });
+
+  test("a record being made, then made: the panel says so as it happens, with Open once it exists", () => {
+    const { rerender } = render(
+      draw({
+        steps: withRecords({
+          monitor: {
+            status: GuidedSetupResourceStatus.Creating,
+            name: "acme.example",
+          },
+        }),
+        openStepKey: "first",
+      }),
+    );
+
+    expect(screen.getByTestId("guided-setup-resource-monitor")).toHaveAttribute(
+      "data-status",
+      "creating",
+    );
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-status"),
+    ).toHaveTextContent("Creating…");
+    expect(
+      screen.queryByTestId("guided-setup-resource-monitor-open"),
+    ).toBeNull();
+
+    rerender(
+      draw({
+        steps: withRecords({
+          monitor: {
+            status: GuidedSetupResourceStatus.Created,
+            name: "acme.example",
+            route: MONITOR_ROUTE,
+          },
+        }),
+        openStepKey: "first",
+      }),
+    );
+
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-status"),
+    ).toHaveTextContent("Created");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-name"),
+    ).toHaveTextContent("acme.example");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-open"),
+    ).toHaveAttribute("href", MONITOR_ROUTE.toString());
+  });
+
+  test("the panel counts what is ready", () => {
+    render(
+      draw({
+        steps: withRecords({
+          monitor: { status: GuidedSetupResourceStatus.Created },
+        }),
+        openStepKey: "second",
+      }),
+    );
+
+    expect(screen.getByTestId("guided-setup-ready")).toHaveTextContent(
+      "1 of 2 ready",
+    );
+  });
+
+  test("a failure says why, and Try again reruns the step's request", () => {
+    const retry: MockFunction = getJestMockFunction();
+
+    render(
+      draw({
+        steps: withRecords({
+          monitor: { status: GuidedSetupResourceStatus.Created },
+          policy: {
+            status: GuidedSetupResourceStatus.Failed,
+            error: "OneUptime is busy and could not save this.",
+            onRetry: () => {
+              retry();
+            },
+          },
+          done: [true],
+        }),
+        openStepKey: "second",
+      }),
+    );
+
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy-error"),
+    ).toHaveTextContent("OneUptime is busy and could not save this.");
+
+    fireEvent.click(
+      screen.getByTestId("guided-setup-resource-on_call_policy-retry"),
+    );
+
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  test("where the run stands with the server is said under the records, with Try again when it is not saved", () => {
+    const retrySync: MockFunction = getJestMockFunction();
+    const frame: (sync: GuidedSetupRunSync) => React.ReactElement = (
+      sync: GuidedSetupRunSync,
+    ): React.ReactElement => {
+      return (
+        <GuidedSetupFrame
+          setup="example_setup"
+          steps={withRecords({ monitor: {} })}
+          openStepKey="first"
+          onOpenStep={() => {}}
+          summary={<p>All set</p>}
+          isFinished={false}
+          runSync={sync}
+          onRetryRunSync={() => {
+            retrySync();
+          }}
+        />
+      );
+    };
+
+    const { rerender } = render(frame(GuidedSetupRunSync.Saved));
+
+    expect(screen.getByTestId("guided-setup-sync")).toHaveAttribute(
+      "data-sync",
+      "saved",
+    );
+    expect(screen.getByTestId("guided-setup-sync")).toHaveTextContent(
+      "Saved to your account. Pick up where you left off on any device.",
+    );
+    expect(screen.queryByTestId("guided-setup-sync-retry")).toBeNull();
+
+    rerender(frame(GuidedSetupRunSync.NotSaved));
+
+    expect(screen.getByTestId("guided-setup-sync")).toHaveTextContent(
+      "Not saved to your account yet",
+    );
+    fireEvent.click(screen.getByTestId("guided-setup-sync-retry"));
+    expect(retrySync).toHaveBeenCalledTimes(1);
+  });
+
+  test("on a phone, the open step lists what it made, where the person is", () => {
+    render(
+      draw({
+        steps: withRecords({
+          monitor: {
+            status: GuidedSetupResourceStatus.Created,
+            name: "acme.example",
+          },
+        }),
+        openStepKey: "first",
+      }),
+    );
+
+    const records: HTMLElement = screen.getByTestId(
+      "guided-setup-step-first-records",
+    );
+
+    // Hidden from lg up, where the panel beside the steps says it.
+    expect(records.className).toContain("lg:hidden");
+    expect(
+      screen.getByTestId("guided-setup-step-first-content"),
+    ).toContainElement(records);
+    expect(
+      screen.getByTestId("guided-setup-step-record-monitor"),
+    ).toHaveTextContent("Monitor · acme.example");
+    // Not a second live region: the panel's rows are one.
+    expect(records.querySelector("[aria-live]")).toBeNull();
+  });
+
+  test("a step that has made nothing yet lists nothing in it", () => {
+    render(
+      draw({
+        steps: withRecords({ monitor: {} }),
+        openStepKey: "first",
+      }),
+    );
+
+    expect(screen.queryByTestId("guided-setup-step-first-records")).toBeNull();
   });
 });

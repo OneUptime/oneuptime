@@ -15,6 +15,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import RunbookScheduler from "../Utils/Runbook/RunbookScheduler";
 import RunbookTriggerAccess from "../Utils/Runbook/RunbookTriggerAccess";
+import { getHttpStepCertificateSaveRefusal } from "../Utils/Runbook/HttpStepCaCertificate";
 import {
   RUNBOOK_WEBHOOK_SECRET_KEY_BYTES,
   isRunbookWebhookSecretKeyShape,
@@ -239,6 +240,15 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(secretRefusal);
     }
 
+    // An HTTP request step's certificate settings (HttpStepCaCertificate).
+    const certificateRefusal: string | null = getHttpStepCertificateSaveRefusal(
+      createBy.data.steps,
+    );
+
+    if (certificateRefusal) {
+      throw new BadDataException(certificateRefusal);
+    }
+
     // A new runbook holds no step yet, so it may name no runbook credential.
     const credentialRefusal: string | null =
       Service.getRemovedCredentialRefusal({
@@ -288,6 +298,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (secretRefusal) {
       throw new BadDataException(secretRefusal);
+    }
+
+    const certificateRefusal: string | null = getHttpStepCertificateSaveRefusal(
+      (updateBy.data as unknown as Record<string, unknown>)["steps"],
+    );
+
+    if (certificateRefusal) {
+      throw new BadDataException(certificateRefusal);
     }
 
     await this.assertNamesNoRemovedCredential(updateBy);

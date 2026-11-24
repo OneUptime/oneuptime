@@ -138,7 +138,7 @@ type ShortenedName =
   | "mcpClientName"
   | "workflowName"
   | "workflowRunAsCustomRoleName"
-  | "workflowRunAsGivenByName";
+  | "workflowRunAsGiverName";
 
 const SHORTENED_NAMES: ReadonlyArray<ShortenedName> = [
   "resourceName",
@@ -148,7 +148,7 @@ const SHORTENED_NAMES: ReadonlyArray<ShortenedName> = [
   "mcpClientName",
   "workflowName",
   "workflowRunAsCustomRoleName",
-  "workflowRunAsGivenByName",
+  "workflowRunAsGiverName",
 ];
 
 // What the egress check of a host answers: the addresses the connection may dial.

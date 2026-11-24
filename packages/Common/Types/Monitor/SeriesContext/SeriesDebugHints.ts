@@ -1,10 +1,21 @@
 import { JSONObject } from "../../JSON";
+import MetricsViewConfig from "../../Metrics/MetricsViewConfig";
+import MonitorStep from "../MonitorStep";
+import MonitorSteps from "../MonitorSteps";
 import MonitorType from "../MonitorType";
 import SeriesLabelDisplay from "./SeriesLabelDisplay";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
   ManagedDeviceCheckInAttribute,
 } from "../../DeviceManagement/ManagedDeviceCheckIn";
+import {
+  DeviceManagementConnectionReadingAttribute,
+  MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+} from "../../DeviceManagement/DeviceManagementConnectionReading";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -237,7 +248,11 @@ export default class SeriesDebugHints {
        * The kubelet's own reading, as the agent collects it: the node's
        * root and image filesystems, and each pod's ephemeral storage - the
        * pod filling a node's disk (High Node Disk Usage), or using its
-       * memory. Read-only, through the API server's node proxy.
+       * memory. Read-only, through the API server's node proxy. The image
+       * filesystem (node.runtime.imageFs, and containerFs when the kubelet
+       * splits it) is only here: the agent's collector does not export it,
+       * and Node Image Disk Almost Full reads the containers' filesystem in
+       * its place.
        */
       commands.push({
         purpose:
@@ -459,6 +474,10 @@ export default class SeriesDebugHints {
     commands.push({
       purpose: "The crashes and reboots Android kept, newest last",
       command: "adb shell dumpsys dropbox",
+    });
+    commands.push({
+      purpose: "The security patch level the device's build includes",
+      command: "adb shell getprop ro.build.version.security_patch",
     });
 
     return commands;
@@ -1198,12 +1217,69 @@ export default class SeriesDebugHints {
   }
 
   /*
+   * The metrics a monitor's step reads, each once, in the order its queries
+   * name them: what narrows a managed device's commands to the reading its
+   * monitor alerts on (#10209). [] for a step with no metric query.
+   */
+  public static getMetricNamesOfView(
+    metricViewConfig: MetricsViewConfig | null | undefined,
+  ): Array<string> {
+    const names: Array<string> = [];
+
+    for (const query of metricViewConfig?.queryConfigs || []) {
+      const name: unknown = query?.metricQueryData?.filterData?.metricName;
+
+      if (typeof name === "string" && name && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+
+    return names;
+  }
+
+  /*
+   * The metrics every step of a monitor reads, each once: of its steps as
+   * the model holds them, or as their JSON column hands them back. [] for
+   * steps that cannot be read.
+   */
+  public static getMetricNamesOfMonitorSteps(
+    monitorSteps: MonitorSteps | JSONObject | null | undefined,
+  ): Array<string> {
+    const names: Array<string> = [];
+    let steps: MonitorSteps | undefined = undefined;
+
+    try {
+      steps = monitorSteps
+        ? MonitorSteps.fromJSON(monitorSteps as JSONObject | MonitorSteps)
+        : undefined;
+    } catch {
+      return names;
+    }
+
+    for (const step of steps?.data?.monitorStepsInstanceArray || []) {
+      for (const name of SeriesDebugHints.getMetricNamesOfView(
+        MonitorStep.getMetricsViewConfig(step),
+      )) {
+        if (!names.includes(name)) {
+          names.push(name);
+        }
+      }
+    }
+
+    return names;
+  }
+
+  /*
    * The read-only commands worth running first for this monitor type
    * and this series, or [] when the series carries nothing to address.
+   * `metricNames` are the metrics the monitor's step reads, where the
+   * caller knows them (getMetricNamesOfView): a managed device's series
+   * then gets only the command of the reading its monitor reads.
    */
   public static getDebugCommands(input: {
     monitorType: MonitorType | undefined;
     seriesLabels: JSONObject | undefined;
+    metricNames?: ReadonlyArray<string> | undefined;
   }): Array<SeriesDebugCommand> {
     const seriesLabels: JSONObject | undefined = input.seriesLabels;
 
@@ -1260,11 +1336,16 @@ export default class SeriesDebugHints {
       /*
        * A Metrics monitor grouped by a managed device (Esper Device Stopped
        * Checking In, #9835): the OneUptime CLI can show what the device's
-       * connection last read of it. Any other metric series has no command,
-       * as below.
+       * connection last read of it - the reading its monitor reads. One
+       * grouped by the connection itself (Connection Stopped Reading,
+       * #10006): its last reads and the error each failed with. Any other
+       * metric series has no command, as below.
        */
       case MonitorType.Metrics:
-        return SeriesDebugHints.managedDeviceCommands(seriesLabels);
+        return SeriesDebugHints.managedDeviceCommands(
+          seriesLabels,
+          input.metricNames,
+        );
 
       /*
        * IoT / RUM and friends deliberately return nothing: their series
@@ -1278,37 +1359,139 @@ export default class SeriesDebugHints {
   }
 
   /*
-   * A managed device that stopped checking in: the readings its
-   * connection's last reads took of it, newest first, with the OneUptime CLI
-   * - how long it had been quiet at each read, so when it went quiet, and its
-   * alias and group on their attributes. Read-only; only for a series that
-   * names the device.
+   * A managed device a connection's alert names - one that stopped checking
+   * in, ran low on battery or filled its storage (#10008), or an Android
+   * device behind on its security patches (#10098): the readings its
+   * connection's last reads took of it, newest first, with the OneUptime
+   * CLI. Its check-ins - how long it had been quiet at each read, so when
+   * it went quiet, and its alias and group on their attributes - its
+   * battery, its storage with its free bytes, and its security patch's age
+   * with the level on its attributes.
+   *
+   * A series names the device alone, whichever template it is of, so the
+   * command is the one of the reading its monitor reads (#10209): a Low
+   * Battery alert's first command lists the device's battery, never its
+   * check-ins - and, where its service says whether a device is on its
+   * charger, its charging after it (#10288). A monitor that reads several
+   * of them gets each of theirs; one whose readings are not known
+   * (`metricNames` not given, or none a device reading) gets them all,
+   * check-ins first. Read-only; only for a series that names the device.
    */
   private static managedDeviceCommands(
     seriesLabels: JSONObject,
+    metricNames?: ReadonlyArray<string> | undefined,
   ): Array<SeriesDebugCommand> {
     const device: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
       ManagedDeviceCheckInAttribute.DeviceName,
     ]);
 
     if (!device) {
-      return [];
+      return SeriesDebugHints.managedDeviceConnectionCommands(seriesLabels);
     }
 
-    const query: string = JSON.stringify({
-      name: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
-      attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
-    });
+    const readingsOf: (metricName: string) => string = (
+      metricName: string,
+    ): string => {
+      return SeriesDebugHints.metricReadingsCommand({
+        metricName,
+        attributes: { [ManagedDeviceCheckInAttribute.DeviceName]: device },
+      });
+    };
+
+    const commands: Array<{ metricName: string; purpose: string }> = [
+      {
+        metricName: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+        purpose:
+          "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
+      },
+      {
+        metricName: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+        purpose:
+          "The device's battery at each read, in percent, as its device manager last heard it",
+      },
+      {
+        metricName: MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+        purpose:
+          "Whether the device was on its charger at each read: 1 on power, 0 on its battery",
+      },
+      {
+        metricName: MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+        purpose:
+          "The device's storage at each read: how much of it was in use, and how many bytes were free",
+      },
+      {
+        metricName: MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+        purpose:
+          "An Android device's security patch at each read: how many days old it was, and its level",
+      },
+    ];
+
+    const readByTheMonitor: Array<{ metricName: string; purpose: string }> =
+      commands.filter((command: { metricName: string }): boolean => {
+        return Boolean(metricNames?.includes(command.metricName));
+      });
+
+    return (readByTheMonitor.length > 0 ? readByTheMonitor : commands).map(
+      (command: {
+        metricName: string;
+        purpose: string;
+      }): SeriesDebugCommand => {
+        return {
+          purpose: command.purpose,
+          command: readingsOf(command.metricName),
+        };
+      },
+    );
+  }
+
+  /*
+   * A device management connection that stopped reading (Connection Stopped
+   * Reading, #10006): its last readings, newest first, with the OneUptime
+   * CLI - how long since a read of it worked at each, what each read came
+   * to and, for one that failed, the error it failed with, its credentials
+   * removed. The error names what to fix: a refused key, a lost role, a
+   * service out of reach. Read-only; only for a series that names the
+   * connection.
+   */
+  private static managedDeviceConnectionCommands(
+    seriesLabels: JSONObject,
+  ): Array<SeriesDebugCommand> {
+    const connection: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      DeviceManagementConnectionReadingAttribute.ConnectionName,
+    ]);
+
+    if (!connection) {
+      return [];
+    }
 
     return [
       {
         purpose:
-          "The device's last readings: how many minutes since it checked in at each read, its alias and its group",
-        command: `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
-          query,
-        )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`,
+          "The connection's last error, and how long since one of its reads worked, at each of its last reads",
+        command: SeriesDebugHints.metricReadingsCommand({
+          metricName: MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
+          attributes: {
+            [DeviceManagementConnectionReadingAttribute.ConnectionName]:
+              connection,
+          },
+        }),
       },
     ];
+  }
+
+  // The last five readings of one metric that carry these attributes, newest first.
+  private static metricReadingsCommand(data: {
+    metricName: string;
+    attributes: Record<string, string>;
+  }): string {
+    const query: string = JSON.stringify({
+      name: data.metricName,
+      attributes: data.attributes,
+    });
+
+    return `oneuptime metric list --query ${SeriesDebugHints.quoteForShell(
+      query,
+    )} --sort '{"time":"DESC"}' --limit 5 --fields time,value,attributes`;
   }
 
   /*
@@ -1358,11 +1541,14 @@ export default class SeriesDebugHints {
     monitorType: MonitorType | undefined;
     seriesLabels: JSONObject | undefined;
     maxCommands?: number | undefined;
+    // The metrics the monitor's step reads (getDebugCommands).
+    metricNames?: ReadonlyArray<string> | undefined;
   }): string {
     const commands: Array<SeriesDebugCommand> =
       SeriesDebugHints.getDebugCommands({
         monitorType: input.monitorType,
         seriesLabels: input.seriesLabels,
+        metricNames: input.metricNames,
       });
 
     if (commands.length === 0) {

@@ -67,13 +67,13 @@ const FORM_FILE_ANSWER_SOURCE = path.join(
   "FormFileAnswer.ts",
 );
 
-const START_SERVER_SOURCE = path.join(
+const REQUEST_BODY_LIMIT_SOURCE = path.join(
   REPOSITORY_ROOT,
   "packages",
   "Common",
   "Server",
   "Utils",
-  "StartServer.ts",
+  "RequestBodyLimit.ts",
 );
 
 // What a location that sets nothing gets: nginx's compiled-in default.
@@ -317,18 +317,44 @@ function readSubmissionFilesLimitBytes() {
     }, 1);
 }
 
-// The App's own JSON body limit (StartServer's jsonBodyParserOptions).
-function readAppJsonBodyLimitBytes() {
-  const source = fs.readFileSync(START_SERVER_SOURCE, "utf8");
-  const start = source.indexOf("export const jsonBodyParserOptions");
+/*
+ * The most bytes the App takes in the body of a request to a path
+ * (RequestBodyLimit.ts). StartServer holds every body to its route's limit
+ * before it is parsed: 1 MB unless LARGE_REQUEST_BODY_ROUTES lists the path
+ * (#10190). So the limit is the one of the entry that lists the path, and
+ * its bytes are the RequestBodyLimit constant that entry names.
+ */
+function readAppBodyLimitBytes(appPath) {
+  const source = fs.readFileSync(REQUEST_BODY_LIMIT_SOURCE, "utf8");
+  const listed = source.indexOf(`"${appPath}"`);
 
-  assert.ok(start !== -1, "jsonBodyParserOptions moved");
+  assert.ok(
+    listed !== -1,
+    `${appPath} is no longer one of LARGE_REQUEST_BODY_ROUTES, so the App takes 1 MB of it`,
+  );
 
-  const match = /limit:\s*"(\d+)mb"/.exec(source.slice(start, start + 400));
+  // The rest of the entry: its paths, then its limit, then its reason.
+  const entry = source.slice(listed, source.indexOf("reason:", listed));
 
-  assert.ok(match, "the App's JSON body limit is no longer N mb");
+  assert.ok(!entry.includes("}"), `${appPath}'s entry has no reason`);
 
-  return Number(match[1]) * MIB;
+  const limitMatch = /\blimit:\s*([A-Z_]+),/.exec(entry);
+
+  assert.ok(limitMatch, `${appPath}'s entry no longer names its limit`);
+
+  const declaration = new RegExp(
+    `export const ${limitMatch[1]}: RequestBodyLimit = \\{\\s*bytes:\\s*([A-Z_]+),`,
+  ).exec(source);
+
+  assert.ok(declaration, `${limitMatch[1]} no longer names its bytes`);
+
+  const bytes = new RegExp(
+    `export const ${declaration[1]}: number = (\\d+) \\* MIB;`,
+  ).exec(source);
+
+  assert.ok(bytes, `${declaration[1]} is no longer N * MIB`);
+
+  return Number(bytes[1]) * MIB;
 }
 
 // ---------------------------------------------------------------------------
@@ -503,8 +529,8 @@ describe("a form on its own domain at the ingress", () => {
     assert.ok(largestSubmission < 50 * MIB, String(largestSubmission));
 
     // What nginx lets through, the App reads: the limits agree.
-    assert.equal(readAppJsonBodyLimitBytes(), 50 * MIB);
-    assert.ok(largestSubmission <= readAppJsonBodyLimitBytes());
+    assert.equal(readAppBodyLimitBytes(SUBMIT_PATH), 50 * MIB);
+    assert.ok(largestSubmission <= readAppBodyLimitBytes(SUBMIT_PATH));
 
     // And it was a real gap: 1M holds no file of a megabyte.
     assert.ok(largestSubmission > NGINX_DEFAULT_BODY_LIMIT_BYTES);

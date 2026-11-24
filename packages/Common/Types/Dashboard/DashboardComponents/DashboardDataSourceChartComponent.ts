@@ -23,5 +23,12 @@ export default interface DashboardDataSourceChartComponent
     chartTitle?: string | undefined;
     chartDescription?: string | undefined;
     chartType?: DashboardChartType | undefined;
+    /*
+     * The values' unit, for the value axis and the tooltip, as the Value
+     * and Gauge widgets name theirs: known units also scale ("Bytes" reads
+     * as 1.5 MB). An outside query carries no unit of its own. Absent: the
+     * raw numbers.
+     */
+    unit?: string | undefined;
   };
 }

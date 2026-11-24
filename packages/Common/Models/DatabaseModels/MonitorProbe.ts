@@ -13,6 +13,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Dictionary from "../../Types/Dictionary";
@@ -333,6 +334,7 @@ export default class MonitorProbe extends BaseModel {
     type: TableColumnType.Date,
     example: "2024-01-15T10:30:00.000Z",
     description: "When the probe last checked the monitor. Set by OneUptime.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -367,6 +369,7 @@ export default class MonitorProbe extends BaseModel {
     example: "2024-01-15T10:35:00.000Z",
     description:
       "When the probe checks the monitor next. Set by OneUptime: right away for a new one, then on the monitor's interval.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,

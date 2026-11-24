@@ -401,6 +401,62 @@ export const ON_CALL_SETUP_COPY: {
  * THE RUN: what this pass through the setup made or confirmed, as
  * GuidedSetupRunStore keeps it.
  */
+/*
+ * WHAT THE SETUP MAKES, AS ITS PANEL LISTS IT (#10276), by the step that
+ * makes it: how the person is reached (their notification methods, and a
+ * phone number added here), the policy with its first escalation rule and
+ * the on-call rules that run it, what happens when nobody answers, and the
+ * test page.
+ */
+export enum OnCallResource {
+  NotificationMethods = "notification_methods",
+  PhoneNumber = "phone_number",
+  OnCallPolicy = "on_call_policy",
+  EscalationRule = "escalation_rule",
+  OnCallRules = "on_call_rules",
+  NoAnswer = "no_answer",
+  TestPage = "test_page",
+}
+
+export const ON_CALL_RESOURCE_COPY: {
+  notificationMethods: string;
+  phoneNumber: string;
+  waitingForCode: string;
+  saved: string;
+  whenNobodyAnswers: string;
+  whoDescription: string;
+  noAnswerDescription: string;
+  testDescription: string;
+} = {
+  notificationMethods: translationKey("Notification methods"),
+  phoneNumber: translationKey("Phone number"),
+  waitingForCode: translationKey("Waiting for the code"),
+  saved: translationKey("Saved"),
+  whenNobodyAnswers: translationKey("When nobody answers"),
+  // Why each step is there, under its title until it is reached.
+  whoDescription: translationKey(
+    "Pick who is paged first, so every incident reaches someone.",
+  ),
+  noAnswerDescription: translationKey(
+    "Choose what happens when nobody answers the page in time.",
+  ),
+  testDescription: translationKey(
+    "A test page proves a page reaches the people on call before a real incident does.",
+  ),
+};
+
+/*
+ * A phone number as the panel names it, kept with the run: its last four
+ * digits, as Notification Methods shows a number ("•••0123").
+ */
+export const maskPhoneNumber: (phone: string) => string = (
+  phone: string,
+): string => {
+  const digits: string = phone.replace(/\D/g, "");
+
+  return digits.length > 4 ? `•••${digits.slice(-4)}` : phone;
+};
+
 export enum OnCallRunValue {
   // Step 1 was confirmed while something could reach the person.
   ReachConfirmed = "reachConfirmed",

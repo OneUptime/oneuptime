@@ -92,7 +92,7 @@ Open **Bereikbaarheid** via het menu **Producten** in de bovenste balk. Het open
 | **Rapporten** | **Bereikbaarheidstijd gebruiker**: hoe lang elke persoon dienst had |
 | **Werkruimte** | **Slack**, **Microsoft Teams** en **Mattermost**: regels die bereikbaarheidsgebeurtenissen in een kanaal plaatsen |
 | **Instellingen** | **Aangepaste velden**, **Labelregels** en **Eigenaarsregels** |
-| **Ontwikkelaars** | **Terraform**, **API**, **CLI** en **AI-assistenten**: bereikbaarheid ingericht vanuit code |
+| **Ontwikkelaars** | **Terraform**, **Crossplane**, **API**, **CLI** en **AI-assistenten**: bereikbaarheid ingericht vanuit code |
 
 **Beleidsregels** en **Schema's** staan open; de andere secties beginnen ingeklapt, en een sectie gaat vanzelf open als je op een van de pagina's ervan bent. **Werkruimte** toont de chattools die het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft.
 

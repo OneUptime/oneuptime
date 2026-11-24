@@ -181,7 +181,7 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 | --------------------- | ------------------------------------------------------------------------------ |
 | **Übersicht** | **Übersicht**, **Zustands-Zeitachse**, **Mitglieder-Warnungen**, **Eigentümer** |
 | **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebungs-Notizen**, **Private Notizen** |
-| **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** |
+| **Entwickler** | **Terraform**, **Crossplane**, **API**, **CLI**, **KI-Assistenten** |
 | **Erweitert** | **Audit-Protokolle**, **Episode löschen** |
 
 **Entwickler** und **Erweitert** sind zunächst eingeklappt. In der **Übersicht** nennt die Kopfzeile die **Eigentümer** der Episode, Teams zuerst, und die erste Kachel, **Erstellt**, sagt, wann die Episode entstand – **Automatisch**, wenn eine Gruppierungsregel sie eröffnet hat. Die Karte **Hergang** führt die Seite an – die Beschreibung der Episode und ihre **Grundursache** –, dann folgen **Warnungen in dieser Episode** und der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Episode verschieben nach** im Menü **⋯**.

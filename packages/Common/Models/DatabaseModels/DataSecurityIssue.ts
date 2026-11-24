@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import Alert from "./Alert";
 import DataStore from "./DataStore";
 import Incident from "./Incident";
@@ -361,6 +362,7 @@ export default class DataSecurityIssue extends BaseModel {
     description: "Open, Accepted, Resolved or Not an issue.",
     defaultValue: "Open",
     isDefaultValueColumn: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -406,6 +408,7 @@ export default class DataSecurityIssue extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Why Accepted",
     description: "Why the risk was accepted.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.LongText,
@@ -421,6 +424,7 @@ export default class DataSecurityIssue extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Accepted Until",
     description: "When an accepted issue opens again if its check still fails.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Date,

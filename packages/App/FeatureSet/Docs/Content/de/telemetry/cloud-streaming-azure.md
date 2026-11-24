@@ -30,6 +30,7 @@ flowchart TB
 - **Ein verbundenes Azure-Abonnement.** Verbinden Sie es zuerst unter **Cloud → Verbinden**: siehe [Ein Cloud-Konto verbinden](/docs/telemetry/cloud-accounts).
 - **Ein Projektinhaber oder Projektadministrator.** Nur sie können das Lesen einschalten und das Streaming beenden.
 - **Azure Cloud Shell**, angemeldet als **Owner** der Abonnements oder als **Contributor**, der auch **User Access Administrator** ist: Der Befehl legt eine Ressourcengruppe und eine Rollenzuweisung an und ändert Diagnoseeinstellungen.
+- **Für die Protokolle von Microsoft Entra ID ein Security Administrator** des Mandanten, der auch **Owner** oder **Contributor** der Ressourcengruppe ist, die der Befehl anlegt: Nur sie dürfen die Protokolle des Mandanten an einen Event Hub senden.
 - **Ein Weg nach Azure, bei einem selbst gehosteten OneUptime.** OneUptime liest jeden Namespace unter `<namespace>.servicebus.windows.net` auf Port 9093, und die Namespaces nehmen Verbindungen aus dem Internet an.
 
 ## Streaming einrichten
@@ -43,6 +44,8 @@ Gehen Sie zu **Cloud → Verbinden** und wählen Sie in der Zeile des Azure-Abon
 
 **Metriken** streamt die Schlüsselmetriken jeder Ressource minutengenau, die Metriken, die OneUptime für jede Ressource darstellt und nach denen es sie bewertet, außer [denen, die eine Diagnoseeinstellung nicht senden kann](#was-ankommt) und die die Verbindung weiter liest. **Metriken und Protokolle** fügt die eigenen Protokolle jeder Ressource hinzu, jede Kategorie, die Azure für sie führt, und **Protokolle** streamt nur Ressourcenprotokolle.
 
+Unter **Für Sicherheitsereignisse** lässt **Aktivitätsprotokoll jedes Abonnements** den Befehl die Änderungen, die Warnungen von Defender for Cloud und die Ablehnungen durch Azure Policy jedes Abonnements an den Event Hub der ersten Region senden, und **Anmelde- und Audit-Protokolle von Microsoft Entra ID** fügt einen zweiten Befehl hinzu, für einen Security Administrator Ihres Mandanten. [Sicherheitsereignisse](/docs/telemetry/security-events#sicherheitsereignisse-in-ihren-logs-finden) liest beide.
+
 ### Das Lesen einschalten
 
 Wählen Sie **Lesen einschalten**. OneUptime sucht jede Minute nach den Event Hubs und wartet auf sie, bis der Befehl sie angelegt hat.
@@ -50,6 +53,10 @@ Wählen Sie **Lesen einschalten**. OneUptime sucht jede Minute nach den Event Hu
 ### Den Befehl in Azure Cloud Shell ausführen
 
 Kopieren Sie den Befehl, führen Sie ihn in Azure Cloud Shell aus und warten Sie, bis er fertig ist. Er nennt jede Region, in der er einen Event Hub angelegt hat, wie viele Ressourcen an sie senden und welche Ressourcen er ausgelassen hat, mit der Begründung von Azure.
+
+### Den Befehl für Microsoft Entra ID ausführen, falls gewählt
+
+Sobald der erste Befehl fertig ist, führt ein Security Administrator des Mandanten den zweiten in Azure Cloud Shell aus. Dieser Befehl gibt dem Mandanten eine Diagnoseeinstellung, die die Anmelde-, Audit- und Risikoprotokolle von Microsoft Entra ID an den Event Hub der ersten Region sendet, und sagt, was Azure verlangt hat, wenn Azure sie ablehnt.
 
 ### Auf die ersten Ereignisse warten
 
@@ -83,7 +90,13 @@ Ein Service-Bus- oder Event-Hubs-Namespace streamt keine Metriken. Die Lesevorg�
 
 Ein Protokoll wird über die ARM-ID der Ressource unter ihr abgelegt, als `cloud.resource_id` mitgeführt, und behält Kategorie, Operation, Ergebnis und Eigenschaften als Attribute, etwa `azure.category`.
 
-Virtuelle Computer, Skalierungsgruppen, Datenträger, Netzwerkschnittstellen, virtuelle Netzwerke, private Endpunkte, NAT-Gateways, DNS-Zonen und App-Service-Pläne senden keine eigenen Ressourcenprotokolle, deshalb haben ihre Seiten keinen Tab **Protokolle**. Die Protokolle eines Speicherkontos sind die seiner Dienste, und die einer Container-App die ihrer Umgebung.
+Ein Datensatz des Aktivitätsprotokolls der Kategorie `Administrative`, `Security` oder `Policy` und ein Anmelde-, Audit- oder Risikodatensatz von Microsoft Entra ID kommen ganz an, als Text ihres Protokolls, auch einer über eine Ressourcengruppe, ein Abonnement oder den Mandanten statt über eine Ressource. Ist [Sicherheitsereignisse in Ihren Protokollen finden](/docs/telemetry/security-events#sicherheitsereignisse-in-ihren-logs-finden) eingeschaltet, wird jeder als Sicherheitsereignis gelesen, wie einer aus einer Log-Pipeline, und einmal gespeichert, auf wie vielen Wegen er OneUptime auch erreicht. Ist **Aktivitätsprotokoll jedes Abonnements** eingeschaltet, gibt der Befehl jedem Abonnement eine Diagnoseeinstellung, die sein Aktivitätsprotokoll an den Event Hub der ersten Region sendet, und der Befehl für Microsoft Entra ID gibt dem Mandanten eine.
+
+Auch `AuditEvent` eines Key Vaults, `StorageRead`, `StorageWrite` und `StorageDelete` eines Speicherkontos und `SQLSecurityAuditEvents` einer Azure SQL-Datenbank kommen ganz an, jedes unter seiner Ressource abgelegt, und Sicherheitsereignisse liest die, die für die Sicherheit zählen: siehe [Die eigenen Audit-Logs von Azure-Ressourcen](/docs/telemetry/security-events#die-eigenen-audit-logs-von-azure-ressourcen). Eine Azure SQL-Datenbank sendet ihre Audit-Einträge erst, wenn ihr Auditing eingeschaltet ist, mit Azure Monitor als Ziel.
+
+Virtuelle Computer, Skalierungsgruppen, Datenträger, Netzwerkschnittstellen, virtuelle Netzwerke, private Endpunkte, NAT-Gateways, DNS-Zonen und App-Service-Pläne senden keine eigenen Ressourcenprotokolle, deshalb haben ihre Seiten keinen Tab **Protokolle**. Die Protokolle einer Container-App sind die ihrer Umgebung.
+
+Die Protokolle eines Speicherkontos sind die seiner Blob-, Datei-, Warteschlangen- und Tabellendienste: Der Befehl gibt jedem Dienst eine eigene Diagnoseeinstellung, und ihre Protokolle werden unter dem Konto abgelegt, auf seinem Tab **Protokolle**. Sie verzeichnen jede Anfrage, die das Konto beantwortet, deshalb sendet ein stark genutztes Konto viele davon.
 
 ## Was der Befehl anlegt
 
@@ -96,6 +109,9 @@ Die Ressourcengruppe heißt `oneuptime-stream-` und die ersten 8 Zeichen der ID 
 | Ein Event Hub in jedem, `oneuptime`, mit 2 Partitionen | Bewahrt die Ereignisse auf, bis OneUptime sie liest |
 | Die Rolle **Azure Event Hubs Data Receiver** für die App der Verbindung, nur auf der Ressourcengruppe | Lässt die App die Event Hubs lesen, und sonst nichts |
 | Eine Diagnoseeinstellung an jeder Ressource, `OneUptime-<suffix>` | Sendet die Metriken, die Protokolle oder beides der Ressource an den Event Hub ihrer Region |
+| Mit Protokollen eine Diagnoseeinstellung an jedem Blob-, Datei-, Warteschlangen- und Tabellendienst eines Speicherkontos, `OneUptime-<suffix>` | Sendet die Protokolle der Dienste an den Event Hub der Region des Kontos |
+| Mit **Aktivitätsprotokoll jedes Abonnements** eine Diagnoseeinstellung an jedem Abonnement, `OneUptime-<suffix>` | Sendet seine Datensätze der Kategorien `Administrative`, `Security` und `Policy` an den Event Hub der ersten Region |
+| Mit dem Befehl für Microsoft Entra ID die Diagnoseeinstellung des Mandanten, `OneUptime-<suffix>` | Sendet seine Anmelde-, Audit- und Risikoprotokolle an den Event Hub der ersten Region |
 
 Eine Ressource einer globalen Region, etwa Front Door, sendet an den Event Hub der ersten Region. Eine Ressource, von der Azure nur Metriken oder nur Protokolle führt, wird mit dem eingerichtet, was sie hat, und eine, die schon 5 Diagnoseeinstellungen hat, das Höchste, was Azure erlaubt, wird ausgelassen. Azure berechnet die Durchsatzeinheit jedes Namespace stundenweise und die Ereignisse, die die Diagnoseeinstellungen senden.
 
@@ -108,20 +124,31 @@ Wählen Sie in der Zeile des Abonnements unter **Cloud → Verbinden** **Streami
 
 ### Löschen, was der Befehl angelegt hat
 
-Die Event Hubs und die Diagnoseeinstellungen bleiben in Azure, und Azure berechnet sie, bis sie gelöscht werden. Der Dialog zeigt den Befehl: Er löscht die Diagnoseeinstellung jeder Ressource und dann die Ressourcengruppe, in welchem Abonnement sie auch liegt.
+Die Event Hubs und die Diagnoseeinstellungen bleiben in Azure, und Azure berechnet sie, bis sie gelöscht werden. Der Dialog zeigt den Befehl: Er löscht die Diagnoseeinstellung jeder Ressource, die der Dienste der Speicherkonten und die jedes Abonnements, dann die Ressourcengruppe, in welchem Abonnement sie auch liegt. Die Einstellung von Microsoft Entra ID löscht er auch, wenn Sie das dürfen, und sagt sonst, wer es darf.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ Der Dialog und der Tooltip der Zeile sagen, warum. Wenn die App die Event Hubs n
 
 :::details Der Befehl hat Ressourcen ausgelassen
 Er listet sie auf, jede mit der Begründung von Azure. Eine Ressource eines Typs ohne Diagnoseeinstellungen sendet nichts, und bei einer, die schon 5 Diagnoseeinstellungen hat, muss zuerst eine davon gelöscht werden. Führen Sie den Befehl dann erneut aus.
+:::
+
+:::details Das Aktivitätsprotokoll oder die Protokolle von Microsoft Entra ID wurden ausgelassen
+Der Befehl sagt, was Azure verlangt hat. Die Diagnoseeinstellung eines Abonnements braucht `Microsoft.Insights/diagnosticSettings/write` auf dem Abonnement, eine Berechtigung, die dessen Owner, Contributor und Monitoring Contributor haben, und die des Mandanten braucht einen Security Administrator des Mandanten. Beide brauchen `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` auf der Ressourcengruppe, die der Befehl anlegt, eine Berechtigung, die deren Owner und Contributor haben. Führen Sie den Befehl dann erneut aus.
 :::
 
 ## Nächste Schritte

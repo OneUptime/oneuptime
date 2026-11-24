@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | Записывает развёртывание или другое изменение для графиков и OneUptime AI | [Развёртывания и изменения](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Приводит проверки данных проекта в соответствие с файлом в вашем репозитории | [Справочник команд](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Отправляет артефакты проекта dbt после сборки в «Наблюдаемость данных» | [Справочник команд](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Отправляет dSYM приложения iOS после сборки, чтобы его сбои и зависания читались по функциям | [Настройка для мобильных устройств](/docs/rum/mobile-setup#загружайте-файлы-dsym) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Работает с одним видом записей | [Операции с ресурсами](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Выводит поля ресурса и флаги, которые их задают | [Операции с ресурсами](/docs/cli/resource-operations#поля-ресурса) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Делает то же, что кнопки панели управления для инцидентов, оповещений и плановых обслуживаний | [Операции с ресурсами](/docs/cli/resource-operations#подтвердить-устранить-и-добавить-заметки) |

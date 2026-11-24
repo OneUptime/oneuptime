@@ -232,7 +232,9 @@ test.describe("Creating a telemetry ingestion key", () => {
       ),
       { timeout: 60000 },
     );
-    await expect(ctx.page.locator('[role="hidden-text"]').first()).toBeVisible({
+    await expect(
+      ctx.page.getByTestId("hidden-text-reveal").first(),
+    ).toBeVisible({
       timeout: 60000,
     });
     const keys: Array<StoredKey> = await fetchKeys(name);

@@ -110,7 +110,7 @@ describe("Code's side menu", () => {
       linksIn("Developer").map((link: { title: string }): string => {
         return link.title;
       }),
-    ).toEqual(["Terraform", "API", "CLI", "AI Assistants"]);
+    ).toEqual(["Terraform", "Crossplane", "API", "CLI", "AI Assistants"]);
   });
 
   test("links into the current project, and marks Tasks on Code's first page", async () => {

@@ -101,12 +101,12 @@ tests:
       # connector alike.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*?        - batch\\n      exporters:\\n        - otlphttp\\n"
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8s_attributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*?        - batch\\n      exporters:\\n        - otlp_http\\n"
       # Every workload name, by the pod's UID, which the increase keeps: the
       # pod's IP is first, but no k8s_cluster resource carries one.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  k8sattributes:\\n    auth_type: serviceAccount\\n    extract:\\n      metadata:\\n        - k8s\\.pod\\.name\\n        - k8s\\.pod\\.uid\\n        - k8s\\.namespace\\.name\\n        - k8s\\.node\\.name\\n        - k8s\\.deployment\\.name\\n        - k8s\\.replicaset\\.name\\n        - k8s\\.statefulset\\.name\\n        - k8s\\.daemonset\\.name\\n        - k8s\\.job\\.name\\n        - k8s\\.cronjob\\.name\\n        - k8s\\.container\\.name\\n      labels:\\n"
+          pattern: "\\n  k8s_attributes:\\n    auth_type: serviceAccount\\n    extract:\\n      metadata:\\n        - k8s\\.pod\\.name\\n        - k8s\\.pod\\.uid\\n        - k8s\\.namespace\\.name\\n        - k8s\\.node\\.name\\n        - k8s\\.deployment\\.name\\n        - k8s\\.replicaset\\.name\\n        - k8s\\.statefulset\\.name\\n        - k8s\\.daemonset\\.name\\n        - k8s\\.job\\.name\\n        - k8s\\.cronjob\\.name\\n        - k8s\\.container\\.name\\n      labels:\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    pod_association:\\n      - sources:\\n          - from: resource_attribute\\n            name: k8s\\.pod\\.ip\\n      - sources:\\n          - from: resource_attribute\\n            name: k8s\\.pod\\.uid\\n"
@@ -256,7 +256,7 @@ tests:
       # rules, which keep what they kept.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n"
+          pattern: "\\n        - k8s_attributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n"
 
   - it: and the namespace filters for metrics, which the receiver's own namespace attribute answers
     set:

@@ -13,7 +13,9 @@ import TelemetryExceptionActivityService, {
 import { TelemetryExceptionActivityType } from "../../../Models/DatabaseModels/TelemetryExceptionActivity";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ModelPermission from "../../Types/Database/Permissions/Index";
-import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
+import ExceptionInstanceService, {
+  EXCEPTION_ORIGINALS_SQL,
+} from "../../Services/ExceptionInstanceService";
 import {
   DbJSONResponse,
   Results,
@@ -360,6 +362,9 @@ export default class TelemetryExceptionMerge {
         type: TableColumnType.Text,
         value: data.fingerprint,
       }} AND retentionDate >= now()`;
+
+      // One crash, counted once (ExceptionInstanceService, #9923).
+      statement.append(` AND ${EXCEPTION_ORIGINALS_SQL}`);
 
       const result: Results =
         await ExceptionInstanceService.executeQuery(statement);

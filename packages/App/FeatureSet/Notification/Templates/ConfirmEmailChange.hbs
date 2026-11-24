@@ -2,7 +2,7 @@
 
 {{> Logo this}}
 
-{{> EmailTitle title="Confirm Your New Email Address" }}
+{{> EmailTitle title=(t "Confirm Your New Email Address") }}
 
 {{!--
   Sent to the new address when someone asks to make it their account's
@@ -11,30 +11,37 @@
   can be used to sign in or to reset the password. The reader may not be
   the person who asked - someone may have typed this address by mistake -
   so it says what happens if they ignore it.
+
+  In the language on the account that asked (#10157): the reader of a new
+  address is most often its own person. The product's name is the
+  installation's own (brandName), so it goes into a sentence through
+  ttHtml, which escapes the whole sentence; the request's rows are values.
+  Everything else is OneUptime's own words, looked up in the reader's
+  language (Utils/EmailLanguage.ts).
 --}}
 
-{{> InfoBlock info=(concat "Someone asked to make this the email address of their " (brandNameHtml) " account. If that was you, confirm it with the button below.")}}
+{{> InfoBlock info=(ttHtml "Someone asked to make this the email address of their {{product}} account. If that was you, confirm it with the button below." product=(brandName))}}
 
-{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Confirm Email Address"}}
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText=(t "Confirm Email Address")}}
 
 {{> VerticalSpace this}}
 
-{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="Or copy and paste this link into your browser:"}}
+{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel=(t "Or copy and paste this link into your browser:")}}
 
 {{> VerticalSpace this}}
 
 {{#if requestedAt}}
-{{> InfoBlock info="Details of the request:"}}
+{{> InfoBlock info=(tHtml "Details of the request:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Requested at:" plainText=requestedAt }}
+{{> DetailBoxField title=(t "Requested at:") plainText=requestedAt }}
 {{> RequestOriginFields this }}
 {{> DetailBoxEnd this }}
 {{/if}}
 
-{{> InfoBlock info=(concat "<strong>Note:</strong> This link works for " expiresInHours " hours, and only once.")}}
+{{> InfoBlock plainInfo=(tp "This link works for {{count}} hour, and only once." "This link works for {{count}} hours, and only once." expiresInHours)}}
 
-{{> InfoBlock info="<strong>Didn't ask for this?</strong> You can safely ignore this email. Nothing changes unless the link above is opened."}}
+{{> InfoBlock info=(tHtml "Didn't ask for this? You can safely ignore this email. Nothing changes unless the link above is opened.")}}
 
 {{> SupportBlock this }}
 

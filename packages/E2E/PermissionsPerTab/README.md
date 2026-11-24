@@ -15,7 +15,10 @@ carries the person's permission snapshot in that project and its hash
 (`project-permissions`, `project-permissions-hash`), unless the request's own
 hash says the browser already has it, and their global snapshot the same way.
 The person is Project Owner of Acme Production and Viewer of Beta Staging and
-Gamma Sandbox (`Fixture/Projects.js`).
+Gamma Sandbox (`Fixture/Projects.js`). Which labels share a name, which the
+Labels page asks with every read of its rows to mark them
+(`GET /shared-names/label`, #9856), is answered as the server finds them:
+none, each label's name is its own.
 
 The suite checks, in Chromium:
 

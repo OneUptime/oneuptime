@@ -609,13 +609,13 @@ export default class MonitorUptimeSummaryUtil {
    * a caller who sent "Europe/Lodnon" would otherwise get bars that are off
    * by an hour and no hint why.
    *
-   * The current name is returned, so the value handed to the database is
-   * always one it knows. moment answers a legacy name with that same name
-   * (its zone for "Asia/Calcutta" is called "Asia/Calcutta"), and Chromium
-   * reports Asia/Calcutta for India, but the Postgres in the shipped images
-   * has no legacy tzdata links and rejects several of them in AT TIME ZONE.
-   * So TimezoneAlias translates first — which also lets through
-   * US/Pacific-New, a name tzdata removed and moment no longer resolves.
+   * The current name is returned, the one the summary says its days were
+   * cut in. moment answers a legacy name with that same name (its zone for
+   * "Asia/Calcutta" is called "Asia/Calcutta"), and Chromium reports
+   * Asia/Calcutta for India, so TimezoneAlias translates first — which also
+   * lets through US/Pacific-New, a name tzdata removed and moment no longer
+   * resolves. The days themselves are cut with moment's data too
+   * (UptimeDayGrid): no zone reaches the database (issue #10039).
    */
   public static parseTimezone(raw: unknown): string {
     if (typeof raw !== "string") {

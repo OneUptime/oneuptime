@@ -6,6 +6,7 @@ Et indtagelsesbudget begrænser, hvor meget telemetri et projekt sender på en d
 - [Sådan fungerer budgetter](#sådan-fungerer-budgetter): Tre niveauer, talt, efterhånden som telemetrien ankommer.
 - [Angiv alle projekters standardbudgetter](#angiv-alle-projekters-standardbudgetter): I Admin Dashboards indstillinger.
 - [Giv en indtagelsesnøgle dens eget budget](#giv-en-indtagelsesnøgle-dens-eget-budget): En andel af projektets budget.
+- [Giv et team eller en mærkat dets eget budget](#giv-et-team-eller-en-mærkat-dets-eget-budget): For de tjenester, teamet ejer, eller som har mærkaten.
 - [Få advarsler om et budget](#få-advarsler-om-et-budget): Før det er brugt op, og når det er.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Til instansens og et projekts budgetter: Admin Dashboard.** På en selvhostet installation er det kun instansadministratoren, der angiver dem. Projektejere og Projektadministratorer kan se et projekts budgetter, men ikke ændre dem.
 - **Til en nøgles eget budget: en rolle, der redigerer indtagelsesnøgler.** Projektejer eller Projektadministrator, eller en brugerdefineret rolle med tilladelsen Edit Ingestion Key.
+- **Til et teams eller en mærkats budget: Projektejer eller Projektadministrator.**
 - **For at se budgetterne: en rolle, der ser projektets forbrug.** De roller, der ser siden [Telemetriforbrug](/docs/telemetry/usage), ser projektets budgetter på den.
 
 ## Angiv alle projekters standardbudgetter
@@ -94,6 +96,30 @@ Klik på **Gem ændringer**. En nøgles budget kan ikke være større end dens p
 - **Begge budgetter tæller.** Telemetri, der sendes med nøglen, tæller mod nøglens budget og projektets, og det budget, der først er brugt op, afviser den.
 - **Et sænket projektbudget holder også nøglen.** Når projektets budget sænkes under en nøgles, holdes nøglen til projektets.
 
+## Giv et team eller en mærkat dets eget budget
+
+Et teams eller en mærkats budget er også en andel af dets projekts, for de tjenester, teamet ejer, eller som har mærkaten: et teams løbske tjeneste stopper ved teamets budget, mens resten af projektet bliver ved med at sende, selv gennem den samme collector og den samme indtagelsesnøgle.
+
+:::steps
+### Åbn siden Forbrug
+
+Gå til **Projektindstillinger → Telemetri og APM → Forbrug**, og åbn **Yderligere indstillinger** nederst på siden.
+
+### Tilføj budgettet
+
+Klik på **Opret Budget** på kortet **Team- og mærkatbudgetter**. Vælg teamet eller mærkaten i **Team eller mærkat**, og indtast et antal GB pr. dag i **Protokoller (GB pr. dag)**. De andre signaler står under **Flere felter**. Lad et signal stå tomt, hvis det ikke skal have sit eget budget.
+
+### Gem budgettet
+
+Klik på **Opret Budget**. Et teams eller en mærkats budget kan ikke være større end dets projekts: OneUptime afviser det og siger, hvor stort det højst kan være.
+:::
+
+- **Hvad det tæller.** De protokoller, spor, metrikker og profiler, som teamets tjenester, eller tjenesterne med mærkaten, sender over OpenTelemetry (OTLP). Telemetri fra værter og andre ressourcer, sikkerhedshændelser og protokoller fra Fluent Bit, Fluentd eller syslog tæller kun mod projektets og nøglens budgetter.
+- **Når det er brugt op, kasseres telemetrien.** Tjenesternes telemetri for det signal kasseres indtil nulstillingen, og afsenderen får ikke besked: den fik sit svar, da telemetrien ankom. Det, der kasseres, tæller ikke længere mod projektets eller nøglens budget.
+- **Hvem der får besked.** Projektejere får en e-mail, når budgettet passerer advarselstærsklen, og når det er brugt op.
+- **Kun et dagligt budget.** Et team eller en mærkat har ingen hastighedsgrænse.
+- **Hvert budget tæller.** En tjenestes telemetri tæller mod budgetterne for dens teams og dens mærkater og for nøglen og projektet, og det, der først er brugt op, stopper den. Når projektets budget sænkes under et teams eller en mærkats, holdes det til projektets.
+
 ## Hvad afsendere ser
 
 | Når | Over HTTP | Over OTLP/gRPC | Hvad afsenderen gør |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Andre HTTP-afsendere får JSON.** Fluent Bit, Fluentd, syslog og de andre HTTP-endpoints får `error`, `message` og `resetsAt`, og fra en hastighedsgrænse også `retryAfterSeconds`.
 - **MQTT og cloudstreams kan ikke få besked.** Telemetri, der ankommer over MQTT eller fra en cloududbyders stream, kasseres, når dens budget er brugt op. Ingen hastighedsgrænse gælder for den: den kunne ikke sendes igen.
+- **Det kan et teams eller en mærkats tjenester heller ikke.** Når et teams eller en mærkats budget er brugt op, modtages deres telemetri og kasseres derefter: se [Giv et team eller en mærkat dets eget budget](#giv-et-team-eller-en-mærkat-dets-eget-budget).
 - **Afvisninger tælles.** Det, et opbrugt budget afviser eller kasserer, tælles som kasseret, og hver anmodning, en hastighedsgrænse afviser, som begrænset: se [Se dagens forbrug og kasserede data](#se-dagens-forbrug-og-kasserede-data).
 
 ## Advarslen og nulstillingen
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Se dagens forbrug og kasserede data
 
-Gå til **Projektindstillinger → Telemetri og APM → Forbrug**. Mens et budget eller en hastighedsgrænse er angivet for projektet, åbner siden med kortet **Indtagelsesbudgetter**, og nøglerne med deres egne budgetter står på kortet **Budgetter for indtagelsesnøgler**:
+Gå til **Projektindstillinger → Telemetri og APM → Forbrug**. Mens et budget eller en hastighedsgrænse er angivet for projektet, åbner siden med kortet **Indtagelsesbudgetter**, nøglerne med deres egne budgetter står på kortet **Budgetter for indtagelsesnøgler**, og teams og mærkater med deres egne budgetter på kortet **Team- og mærkatbudgetter i dag**:
 
 | Kolonne | Hvad den viser |
 | --- | --- |
 | **Signal** | Det signal, rækken gælder. |
 | **Brugt i dag** | Det, der er talt, siden budgetdagen begyndte, og dets andel af budgettet. |
-| **Dagligt budget** | Det gældende budget, og hvor det blev angivet: **Instansstandard**, **Angivet for dette projekt** eller **Nøglens eget budget**. |
+| **Dagligt budget** | Det gældende budget, og hvor det blev angivet: **Instansstandard**, **Angivet for dette projekt**, **Nøglens eget budget**, **Teamets eget budget** eller **Mærkatens eget budget**. |
 | **Hastighedsgrænse** | Den gældende hastighedsgrænse. |
 | **Kasseret** | Det, der blev afvist eller kasseret, fordi budgettet var brugt op. |
 | **Begrænset** | Hvor mange anmodninger hastighedsgrænsen afviste. |
 | **Status** | **Inden for budget**, **Advarsel nået** eller **Opbrugt**, **Intet dagligt budget** for et signal med kun en hastighedsgrænse, og **Ukendt**, mens optællingerne ikke kan læses. |
 
 - **På en nøgles side** viser kortet **Dagens budgetforbrug**, hvad nøglen har brugt af sine egne budgetter.
-- **I explorerne** siger et banner over dataene for protokoller, spor, metrikker, profiler og sikkerhedshændelser, når det signals budget har passeret sin advarsel eller er brugt op, med **Se budgetter** for at åbne siden Forbrug.
+- **I explorerne** siger et banner over dataene for protokoller, spor, metrikker, profiler og sikkerhedshændelser, når det signals budget har passeret sin advarsel eller er brugt op, eller en nøgles, et teams eller en mærkats er brugt op, med **Se budgetter** for at åbne siden Forbrug.
 - **I Admin Dashboard** viser et projekts side **Indtagelsesbudgetter** de samme tal.
 
 ## Få advarsler om et budget
@@ -153,9 +180,13 @@ Hvert punkt har disse attributter:
 | --- | --- |
 | `projectId` | Projektets ID. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` eller `security-events`. |
-| `scope` | `project`, eller `ingestion-key` for en nøgles eget budget. |
+| `scope` | `project`, `ingestion-key` for en nøgles eget budget, eller `team` eller `label` for et teams eller en mærkats. |
 | `ingestionKeyId` | Nøglens ID, for en nøgles eget budget. |
 | `ingestionKeyName` | Nøglens navn, da punktet blev skrevet, for en nøgles eget budget. |
+| `teamId` | Teamets ID, for et teams budget. |
+| `teamName` | Teamets navn, da punktet blev skrevet, for et teams budget. |
+| `labelId` | Mærkatens ID, for en mærkats budget. |
+| `labelName` | Mærkatens navn, da punktet blev skrevet, for en mærkats budget. |
 
 For at få besked ved 90 % af projektets protokolbudget skal du oprette en metrik-monitor på `oneuptime.telemetry.budget.used.percent`, filtreret på `signal` `logs` og `scope` `project`, der advarer, når maksimum er over 90:
 
@@ -168,6 +199,10 @@ For at få besked ved 90 % af projektets protokolbudget skal du oprette en metri
 
 :::details En collector logger 403 for sine eksporter
 Projektets eller nøglens daglige budget for det signal er brugt op, og collectoren kasserer det, den ikke kan sende, indtil budgettet nulstilles. Se **Brugt i dag** på siden Forbrug. Bed instansadministratoren om at hæve projektets budget, eller send mindre: et drop-filter hjælper ikke her, da det fjerner telemetri, efter at den er talt.
+:::
+
+:::details Et teams telemetri holdt op med at ankomme, og ingen afsender logger en fejl
+Det daglige budget for teamet, eller for en mærkat på dets tjenester, er brugt op for det signal, og deres telemetri kasseres, indtil budgettet nulstilles. Se **Brugt i dag** på kortet **Team- og mærkatbudgetter i dag** på siden Forbrug, og hæv budgettet under **Yderligere indstillinger**.
 :::
 
 :::details En collector logger 429 og prøver igen

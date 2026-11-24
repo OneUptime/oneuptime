@@ -736,10 +736,10 @@ describe("Status page overview in Shanghai - a monitor group's days (issue #6697
       await renderOverview();
 
       expect(
-        barNamed(CHECKOUT_NAME, "Nov 07, 2026").getAttribute("aria-label"),
-      ).toBe("Nov 07, 2026: 0% uptime");
+        barNamed(CHECKOUT_NAME, "Nov 7, 2026").getAttribute("aria-label"),
+      ).toBe("Nov 7, 2026: 0% uptime");
 
-      const dialog: HTMLElement = await openDay(CHECKOUT_NAME, "Nov 07, 2026");
+      const dialog: HTMLElement = await openDay(CHECKOUT_NAME, "Nov 7, 2026");
 
       expect(within(dialog).getByText("Offline")).toBeInTheDocument();
       expect(within(dialog).getByText(duration(86400))).toBeInTheDocument();
@@ -755,10 +755,10 @@ describe("Status page overview in Shanghai - a monitor group's days (issue #6697
       );
 
       expect(
-        barNamed(CHECKOUT_NAME, "Nov 06, 2026").getAttribute("aria-label"),
-      ).toBe(`Nov 06, 2026: ${uptime}% uptime, 1 incidents`);
+        barNamed(CHECKOUT_NAME, "Nov 6, 2026").getAttribute("aria-label"),
+      ).toBe(`Nov 6, 2026: ${uptime}% uptime, 1 incidents`);
 
-      const dialog: HTMLElement = await openDay(CHECKOUT_NAME, "Nov 06, 2026");
+      const dialog: HTMLElement = await openDay(CHECKOUT_NAME, "Nov 6, 2026");
 
       expect(within(dialog).getByText(duration(28860))).toBeInTheDocument();
       expect(
@@ -791,7 +791,7 @@ describe("Status page overview in Shanghai - a monitor group's days (issue #6697
         });
 
       expect(withIncidents).toEqual([
-        expect.stringMatching(/^Nov 06, 2026:/) as unknown as string,
+        expect.stringMatching(/^Nov 6, 2026:/) as unknown as string,
       ]);
     });
 
@@ -822,7 +822,7 @@ describe("Status page overview in Shanghai - a monitor group's days (issue #6697
 
     await renderOverview();
 
-    const dialog: HTMLElement = await openDay(CHECKOUT_NAME, "Nov 07, 2026");
+    const dialog: HTMLElement = await openDay(CHECKOUT_NAME, "Nov 7, 2026");
 
     expect(within(dialog).getByText("Offline")).toBeInTheDocument();
     expect(within(dialog).getByText(duration(86400))).toBeInTheDocument();
@@ -838,13 +838,13 @@ describe("Status page overview in Shanghai - a monitor group's days (issue #6697
       await renderOverview();
 
       // 07:36 UTC on 6 November is on the UTC day of 6 November.
-      const bar: HTMLElement = barNamed(CHECKOUT_NAME, "Nov 06, 2026 (UTC)");
+      const bar: HTMLElement = barNamed(CHECKOUT_NAME, "Nov 6, 2026 (UTC)");
 
       expect(bar.getAttribute("aria-label")).toContain("1 incidents");
 
       const dialog: HTMLElement = await openDay(
         CHECKOUT_NAME,
-        "Nov 06, 2026 (UTC)",
+        "Nov 6, 2026 (UTC)",
       );
 
       expect(dialog.textContent).toContain(

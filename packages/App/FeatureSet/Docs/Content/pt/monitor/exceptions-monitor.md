@@ -129,7 +129,7 @@ Cada mudança de status, com o motivo, fica registrada na **Linha do tempo de st
 
 ## Critérios
 
-Os critérios de um monitor de exceções têm seis opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **Exceções novas**, **Exceções com regressão**, **Aumento de exceções (em %)**, **Sessões com exceções (em %)** e **Sessões**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
+Os critérios de um monitor de exceções têm oito opções de **Tipo de filtro**: **Quantidade de exceções**, o número de exceções que corresponderam na janela, e **Exceções novas**, **Exceções com regressão**, **Aumento de exceções (em %)**, **Sessões com exceções (em %)**, **Sessões**, **Instalações com exceções (em %)** e **Instalações**, descritos abaixo. **Quando alertar** configura um critério, cuja **Condição** é **Mais de**, **Pelo menos**, **Menos de**, **No máximo**, **Exatamente**, **Incomumente alto**, **Incomumente baixo** ou **Incomumente alto ou baixo**. Para vários critérios, ou um com mais de um filtro, clique em **Editar como critérios personalizados** em **Mais campos** de **O que acontece**: cada critério ali tem uma **Condição do filtro** e um **Valor**.
 
 | Condição do filtro | Corresponde quando a contagem de exceções está… |
 | --- | --- |
@@ -184,6 +184,19 @@ Um aplicativo em milhares de celulares sempre tem algumas falhas, então o que a
 | **Sessões** | As sessões da janela: os `session.id` distintos dos spans dos serviços do monitor. Combine este filtro com a parcela, para que a parcela de poucas sessões não alerte. |
 
 Com **Somente exceções não tratadas** ativado e os tipos `ANR` e `Hang` deixados de fora, a parcela é a taxa de falhas de um aplicativo móvel. A recomendação **App Crash Rate** de um aplicativo móvel alerta quando mais de 1,09% das sessões de uma hora têm uma falha, a taxa que o Android vitals considera mau comportamento, desde que a hora tenha pelo menos 250 sessões. **App ANR Rate** conta só `ANR` e `Hang`, acima de 0,47%. Para escrever uma regra assim você mesmo, escolha **Uma parcela das sessões** em **Alertar sobre** de **Quando alertar**.
+
+## Uma parcela das instalações
+
+Ao longo de um dia, a taxa que o Android vitals avalia e que o Play Console mostra é a parcela das instalações de um aplicativo que tiveram uma falha: alguém cujo aplicativo falha cinco vezes é uma só instalação com falha. Para um aplicativo móvel cuja telemetria identifica a sua instalação, um monitor de exceções pode alertar sobre essa parcela, ao lado da parcela das sessões ou no lugar dela.
+
+| Tipo de filtro | O que ele lê na janela |
+| --- | --- |
+| **Instalações com exceções (em %)** | A parcela das instalações da janela em que aconteceu uma exceção correspondente. Sem nenhuma instalação na janela não há parcela, e nenhum critério sobre ela corresponde. |
+| **Instalações** | As instalações da janela: as instalações distintas que os spans dos serviços do monitor identificam. Combine este filtro com a parcela, para que a parcela de poucas instalações não alerte. |
+
+Uma instalação é o que o recurso do aplicativo indica: o `app.installation.id` que o OpenTelemetry Android 1.1 e posteriores definem ou, se não houver, o `device.id` de um aplicativo iOS, o seu identificador de fornecedor. Uma instalação Android termina quando o aplicativo é desinstalado, então uma reinstalação é uma nova instalação. Uma instalação iOS dura enquanto qualquer um dos aplicativos do fornecedor continuar no dispositivo, então reinstalar o único é uma nova instalação, e reinstalar um de dois não é. Uma instalação conta na janela quando o seu aplicativo enviou um span nela. Uma falha ainda conta quando a sua instalação não enviou nenhum, como acontece com uma falha do iOS que o MetricKit informa um dia depois, e a parcela nunca passa de 100%.
+
+**Daily Crash Rate** alerta quando mais de 1,09% de pelo menos 250 instalações têm uma falha em um dia, e **Daily ANR Rate** quando mais de 0,47% delas têm um ANR ou um travamento. Para escrever uma regra assim você mesmo, escolha **Uma parcela das instalações** em **Alertar sobre** de **Quando alertar**.
 
 ## Picos em relação ao normal
 

@@ -17,7 +17,13 @@ import {
   translateSecurityOverviewText,
 } from "./SecurityOverviewStatusModel";
 import { SETUP_TEST_FAILED_TITLE } from "./SecurityGettingStarted";
-import { SecuritySetupStatus } from "./SecuritySetupModel";
+import {
+  SecurityAddressScrubItem,
+  SecuritySetupStatus,
+  getSecurityAddressScrubItems,
+} from "./SecuritySetupModel";
+import { OPEN_SCRUB_RULES } from "../SecurityEvents/HiddenClientAddressCopy";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   SecuritySetupTestButton,
   SecuritySetupTestResultLine,
@@ -134,6 +140,68 @@ const AttentionLink: FunctionComponent<{
   );
 };
 
+export const SECURITY_ADDRESS_SCRUB_TEST_ID: string =
+  "security-address-scrub-rule";
+
+/*
+ * A scrub rule keeps Security Events from naming the address attacks came
+ * from (#10397): said once for the logs it reads and once for the traces,
+ * with the rule that does it and a way to it - an exception to act on, at
+ * the card's foot where the pipeline's other lines are, on a project set
+ * up or not (Get started's steps say nothing of it).
+ */
+const AddressScrubRow: FunctionComponent<{
+  item: SecurityAddressScrubItem;
+}> = (props: { item: SecurityAddressScrubItem }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div
+      data-testid={`${SECURITY_ADDRESS_SCRUB_TEST_ID}-${props.item.signal}`}
+      className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between"
+    >
+      <div className="flex min-w-0 items-start gap-2 text-sm">
+        <Icon
+          icon={IconProp.EyeSlash}
+          className="mt-0.5 h-4 w-4 flex-none text-amber-600"
+        />
+        <div className="min-w-0">
+          <p className="text-pretty text-gray-700">
+            {translator.translateText(props.item.sentence)}
+          </p>
+          {props.item.ruleName ? (
+            <p className="mt-0.5 text-gray-500">
+              <TranslatedSentence
+                template={props.item.ruleSentence}
+                slots={{
+                  rule: (
+                    <span className="font-medium text-gray-700 [overflow-wrap:anywhere]">
+                      {props.item.ruleName}
+                    </span>
+                  ),
+                }}
+              />
+            </p>
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
+      <div className="flex-shrink-0 self-end md:self-auto">
+        <Button
+          title={OPEN_SCRUB_RULES}
+          icon={IconProp.EyeSlash}
+          buttonStyle={ButtonStyleType.NORMAL}
+          dataTestId={`${SECURITY_ADDRESS_SCRUB_TEST_ID}-${props.item.signal}-open`}
+          onClick={() => {
+            Navigation.navigate(route(props.item.rulesPage));
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
 export interface ComponentProps {
   queue: SecurityOverviewQueue;
   // How Security is set up; null when it could not be read.
@@ -185,6 +253,9 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
   });
   const tone: ToneClassNames = TONE_CLASS_NAMES[headline.tone];
   const titleId: string = `${SECURITY_OVERVIEW_STATUS_ID}-title`;
+  const addressScrubItems: Array<SecurityAddressScrubItem> = props.status
+    ? getSecurityAddressScrubItems(props.status)
+    : [];
 
   return (
     <section
@@ -343,6 +414,10 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+
+      {addressScrubItems.map((item: SecurityAddressScrubItem): ReactElement => {
+        return <AddressScrubRow key={item.signal} item={item} />;
+      })}
 
       {props.showPipeline && props.status && props.status.destinations > 0 ? (
         <div

@@ -36,8 +36,10 @@ variables they set themselves (the customer page,
    **Create a status page**. Vercel calls **Provision Resource**. OneUptime
    makes a project for it, owned by the Vercel user who added it (found or
    made by their verified email address), billed through Vercel from the
-   start; an ingestion key named `Vercel`; and a public status page. The
-   answer carries the resource's secrets.
+   start; an ingestion key named `Vercel`; and a public status page, unless
+   Status Pages is switched off on the server
+   ([below](#while-a-product-is-switched-off-on-the-server)). The answer
+   carries the resource's secrets.
 3. They connect Vercel projects to the resource. Vercel gives each one the
    resource's secrets as environment variables: `OTEL_EXPORTER_OTLP_ENDPOINT`
    (`https://oneuptime.com/otlp`), `OTEL_EXPORTER_OTLP_HEADERS`
@@ -49,7 +51,10 @@ variables they set themselves (the customer page,
    puts it on the resource's status page (`VercelMarketplaceConnection`
    remembers which monitor is the project's). A project with no production
    domain yet gets its monitor at its first production deployment
-   (`deployment.succeeded`), from the domains Vercel's API lists.
+   (`deployment.succeeded`), from the domains Vercel's API lists. No monitor
+   is made while Monitors is switched off on the server, and none is put on
+   the status page while Status Pages is
+   ([below](#while-a-product-is-switched-off-on-the-server)).
 5. On Pro and Enterprise they add log and trace drains from the integration.
    Vercel posts logs to `/telemetry/vercel/v1/logs` and OTLP traces to
    `/otlp/v1/traces`, each with the resource's ingestion key in
@@ -66,6 +71,35 @@ invoice and tells Vercel billing is finalized. Deleting the project in
 OneUptime deletes the resource in Vercel. All three are what the user asked
 for: Vercel tells its customers that uninstalling "removes all associated
 products and their data".
+
+### While a product is switched off on the server
+
+A master admin can switch products off for every project on the server
+(**Admin Dashboard > Settings > Products**). Vercel's calls are still
+answered: the installation, a resource, its secrets, its bill and the
+webhook are billing, which every product is paid with, as on the other
+marketplaces (`ee/Tests/Server/ProductRouteDecisions.ts`). What those calls
+would make in a product that is off is not made: the server would make it
+as root, in a product the team cannot open, and such work is refused where
+it starts (the header of
+[ProductWriteRefusal.ts](../ServerProducts/ProductWriteRefusal.ts); the
+code asks `ServerProducts.getOffReasonOfServerWork`).
+
+- **Status Pages off**: a resource added is provisioned without its status
+  page, and the server log says why ("Could not make a status page for the
+  Vercel resource in project ..."). Switching Status Pages on later does not
+  make one: the team makes one in OneUptime. A connected project's monitor
+  is made, but put on no status page, now or later.
+- **Monitors off**: a connected project gets no monitor, and the server log
+  says why ("Could not make a monitor for ..."). The connection is still
+  remembered (`VercelMarketplaceConnection`, with no monitor), so once
+  Monitors is on again, the project's next production deployment, or
+  turning **Monitor production domains** off and on, makes its monitor,
+  once.
+
+A monitor the integration made is still deleted when its project is
+disconnected, whether Monitors is on or off: it keeps checking, and is
+billed as an active monitor, until it is.
 
 ## How it is built
 
@@ -310,6 +344,8 @@ private: the test project's top log error carried a person's email address.
 A status page is only made when the resource is, so its setting is read-only
 afterwards. Turning **Monitor production domains** on later makes the
 monitors still missing; turning it off makes no new ones (existing ones stay).
+No status page or monitor is made while its product is switched off on the
+server ([above](#while-a-product-is-switched-off-on-the-server)).
 
 **Log Drain Settings:** Enabled; Delivery Format **JSON**; Endpoint
 `https://oneuptime.com/telemetry/vercel/v1/logs`; one header,

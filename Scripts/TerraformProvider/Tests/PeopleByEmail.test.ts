@@ -13,6 +13,7 @@ import {
   TerraformDataSource,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath, registrationsOf } from "../Core/ProviderShards";
 import { buildPeopleFixtureSpec } from "./PeopleFixtures";
 
 /*
@@ -371,7 +372,7 @@ describe("the Go the generator writes", () => {
 
     const read: (file: string) => string = (file: string): string => {
       return fs.readFileSync(
-        path.join(outputDir, "internal/provider", file),
+        path.join(outputDir, providerGoFilePath(file)),
         "utf-8",
       );
     };
@@ -380,7 +381,7 @@ describe("the Go the generator writes", () => {
     layerUserGo = read("resource_on_call_duty_policy_schedule_layer_user.go");
     ruleGo = read("resource_monitor_owner_rule.go");
     teamGo = read("resource_team.go");
-    dataSourcesGo = read("data_sources.go");
+    dataSourcesGo = registrationsOf(outputDir, "data_sources.go");
     memberSourceGo = read("data_source_team_member.go");
   });
 
@@ -405,7 +406,7 @@ describe("the Go the generator writes", () => {
       "data_source_user.go",
     ]) {
       expect(
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ).toBe(true);
     }
   });
@@ -413,13 +414,13 @@ describe("the Go the generator writes", () => {
   test("the user data source is the hand-written one, registered under its name", () => {
     expect(
       fs.readFileSync(
-        path.join(outputDir, "internal/provider/data_source_user.go"),
+        path.join(outputDir, providerGoFilePath("data_source_user.go")),
         "utf-8",
       ),
     ).toBe(
       fs.readFileSync(path.join(STATIC_FILES, "data_source_user.go"), "utf-8"),
     );
-    expect(dataSourcesGo).toContain("NewUserDataSource,");
+    expect(dataSourcesGo).toMatch(/New: NewUserDataSource\},/);
   });
 
   test("the person's ID is planned by ModifyPlan, not by a plan modifier", () => {
@@ -427,7 +428,7 @@ describe("the Go the generator writes", () => {
     expect(userId).toContain("Optional: true");
     expect(userId).toContain("Computed: true");
     expect(userId).toContain(
-      'Validators: personIDValidators("user_email", true)',
+      'Validators: PersonIDValidators("user_email", true)',
     );
     /*
      * A plan modifier runs on a schema built from an unconfigured resource:
@@ -444,9 +445,9 @@ describe("the Go the generator writes", () => {
       "\n}\n",
     );
     expect(modifyPlan).toContain("if req.Plan.Raw.IsNull()");
-    expect(modifyPlan).toContain("planPersonID(ctx, r.client, req, resp");
+    expect(modifyPlan).toContain("PlanPersonID(ctx, r.client, req, resp");
     const teamMemberPerson: RegExp = new RegExp(
-      'id:\\s+"user_id",\\s+email:\\s+"user_email",\\s+invites:\\s+true,\\s+replaces: true,',
+      'ID:\\s+"user_id",\\s+Email:\\s+"user_email",\\s+Invites:\\s+true,\\s+Replaces: true,',
     );
     expect(modifyPlan).toMatch(teamMemberPerson);
   });
@@ -454,9 +455,9 @@ describe("the Go the generator writes", () => {
   test("the address has the plan modifiers and validators of an address", () => {
     const email: string = between(teamMemberGo, '"user_email": schema', "},\n");
     expect(email).toContain(
-      'PlanModifiers: personEmailPlanModifiers("user_id")',
+      'PlanModifiers: PersonEmailPlanModifiers("user_id")',
     );
-    expect(email).toContain("Validators: personEmailValidators()");
+    expect(email).toContain("Validators: PersonEmailValidators()");
   });
 
   test("a team member named by address is invited by it", () => {
@@ -471,14 +472,14 @@ describe("the Go the generator writes", () => {
       'delete(teamMemberRequest["data"].(map[string]interface{}), "userId")',
     );
     // An invitation needs no ID: it is not looked up before the create.
-    expect(create).not.toContain("personIDForWrite");
+    expect(create).not.toContain("PersonIDForWrite");
     // The person the API made the membership for, before the read-back.
-    expect(create).toContain('apiStringValue(created["userId"])');
+    expect(create).toContain('APIStringValue(created["userId"])');
     expect(create).toContain(
-      'alreadyInvitedHint(err, "oneuptime_team_member", "team_id")',
+      'AlreadyInvitedHint(err, "oneuptime_team_member", "team_id")',
     );
     expect(create).toContain(
-      "data.UserEmail = personEmailAfterWrite(ctx, r.client, data.UserId, data.UserEmail)",
+      "data.UserEmail = PersonEmailAfterWrite(ctx, r.client, data.UserId, data.UserEmail)",
     );
   });
 
@@ -489,10 +490,10 @@ describe("the Go the generator writes", () => {
       "func (r *MonitorOwnerUserResource) Read",
     );
     expect(create).toContain(
-      'if !personIDForWrite(ctx, r.client, &data.UserId, data.UserEmail, "user_email", &resp.Diagnostics)',
+      'if !PersonIDForWrite(ctx, r.client, &data.UserId, data.UserEmail, "user_email", &resp.Diagnostics)',
     );
     expect(create).not.toContain("miscDataProps");
-    expect(create).not.toContain("alreadyInvitedHint");
+    expect(create).not.toContain("AlreadyInvitedHint");
 
     const update: string = between(
       layerUserGo,
@@ -500,10 +501,10 @@ describe("the Go the generator writes", () => {
       "func (r *OnCallDutyPolicyScheduleLayerUserResource) Delete",
     );
     expect(update).toContain(
-      'if !personIDForWrite(ctx, r.client, &data.UserId, data.UserEmail, "user_email", &resp.Diagnostics)',
+      'if !PersonIDForWrite(ctx, r.client, &data.UserId, data.UserEmail, "user_email", &resp.Diagnostics)',
     );
     expect(update).toContain(
-      "data.UserEmail = personEmailAfterWrite(ctx, r.client, data.UserId, data.UserEmail)",
+      "data.UserEmail = PersonEmailAfterWrite(ctx, r.client, data.UserId, data.UserEmail)",
     );
   });
 
@@ -519,7 +520,7 @@ describe("the Go the generator writes", () => {
     expect(prior).toBeLessThan(call);
     expect(read).toContain("priorUserEmail := data.UserEmail");
     expect(read).toContain(
-      "data.UserEmail = personEmailAfterRead(ctx, r.client, priorUserId, data.UserId, priorUserEmail)",
+      "data.UserEmail = PersonEmailAfterRead(ctx, r.client, priorUserId, data.UserId, priorUserEmail)",
     );
   });
 
@@ -527,7 +528,7 @@ describe("the Go the generator writes", () => {
     const owners: string = between(ruleGo, '"owner_users": schema', "},\n");
     expect(owners).toContain("schema.SetAttribute");
     expect(owners).toContain(
-      'Validators: personIDsValidators("owner_user_emails", false)',
+      'Validators: PersonIDsValidators("owner_user_emails", false)',
     );
     const emails: string = between(
       ruleGo,
@@ -536,19 +537,19 @@ describe("the Go the generator writes", () => {
     );
     expect(emails).toContain("ElementType: types.StringType");
     expect(emails).toContain(
-      'PlanModifiers: personEmailsPlanModifiers("owner_users")',
+      'PlanModifiers: PersonEmailsPlanModifiers("owner_users")',
     );
-    expect(emails).toContain("Validators: personEmailsValidators()");
+    expect(emails).toContain("Validators: PersonEmailsValidators()");
 
     const ownerRulePeople: RegExp = new RegExp(
-      'planPeopleIDs\\(ctx, r\\.client, req, resp, personAttribute\\{\\s+id:\\s+"owner_users",\\s+email:\\s+"owner_user_emails",\\s+invites:\\s+false,\\s+replaces: false,',
+      'PlanPeopleIDs\\(ctx, r\\.client, req, resp, PersonAttribute\\{\\s+ID:\\s+"owner_users",\\s+Email:\\s+"owner_user_emails",\\s+Invites:\\s+false,\\s+Replaces: false,',
     );
     expect(ruleGo).toMatch(ownerRulePeople);
     expect(ruleGo).toContain(
-      'personIDsForWrite(ctx, r.client, &data.OwnerUsers, data.OwnerUserEmails, "owner_user_emails", &resp.Diagnostics)',
+      'PersonIDsForWrite(ctx, r.client, &data.OwnerUsers, data.OwnerUserEmails, "owner_user_emails", &resp.Diagnostics)',
     );
     expect(ruleGo).toContain(
-      "data.OwnerUserEmails = personEmailsAfterRead(ctx, r.client, priorOwnerUsers, data.OwnerUsers, priorOwnerUserEmails)",
+      "data.OwnerUserEmails = PersonEmailsAfterRead(ctx, r.client, priorOwnerUsers, data.OwnerUsers, priorOwnerUserEmails)",
     );
     // A set the people helpers plan needs no setplanmodifier of its own.
     expect(ruleGo).not.toContain("setplanmodifier");
@@ -556,8 +557,8 @@ describe("the Go the generator writes", () => {
 
   test("a resource that names nobody plans nobody", () => {
     expect(teamGo).not.toContain("person");
-    expect(teamGo).not.toContain("planPersonID");
-    expect(teamGo).not.toContain("planPeopleIDs");
+    expect(teamGo).not.toContain("PlanPersonID");
+    expect(teamGo).not.toContain("PlanPeopleIDs");
 
     /*
      * Its ModifyPlan, which every resource has, only keeps the state when
@@ -568,7 +569,7 @@ describe("the Go the generator writes", () => {
       "func (r *TeamResource) ModifyPlan",
       "\n}\n",
     );
-    expect(modifyPlan).toContain("keepStateWhenNothingChanges(ctx, req, resp)");
+    expect(modifyPlan).toContain("KeepStateWhenNothingChanges(ctx, req, resp)");
   });
 
   test("a membership is imported by its ID, or by team and person", () => {
@@ -577,10 +578,10 @@ describe("the Go the generator writes", () => {
       "func (r *TeamMemberResource) ImportState",
       "\n}\n",
     );
-    expect(importState).toContain("importIDOfMembership(ctx, r.client, req.ID");
-    expect(importState).toContain('listPath:        "/team-member/get-list"');
-    expect(importState).toContain('parentField:     "teamId"');
-    expect(importState).toContain('personField:     "userId"');
+    expect(importState).toContain("ImportIDOfMembership(ctx, r.client, req.ID");
+    expect(importState).toContain('ListPath:        "/team-member/get-list"');
+    expect(importState).toContain('ParentField:     "teamId"');
+    expect(importState).toContain('PersonField:     "userId"');
     expect(importState).toContain(
       'resp.State.SetAttribute(ctx, path.Root("user_email"), email)',
     );
@@ -590,10 +591,10 @@ describe("the Go the generator writes", () => {
       "func (r *MonitorOwnerUserResource) ImportState",
       "\n}\n",
     );
-    expect(ownerImport).toContain('parentField:     "monitorId"');
-    expect(ownerImport).toContain('parentNoun:      "monitor"');
-    expect(ownerImport).toContain("byEmail:         true");
-    expect(ownerImport).toContain('kind:            "owner"');
+    expect(ownerImport).toContain('ParentField:     "monitorId"');
+    expect(ownerImport).toContain('ParentNoun:      "monitor"');
+    expect(ownerImport).toContain("ByEmail:         true");
+    expect(ownerImport).toContain('Kind:            "owner"');
     expect(ownerImport).toContain(
       'resp.State.SetAttribute(ctx, path.Root("user_email"), email)',
     );
@@ -601,8 +602,8 @@ describe("the Go the generator writes", () => {
   });
 
   test("only a team member's create says how to import a membership it finds", () => {
-    expect(teamMemberGo).toContain("alreadyInvitedHint(err,");
-    expect(ownerGo).not.toContain("alreadyInvitedHint(err,");
+    expect(teamMemberGo).toContain("AlreadyInvitedHint(err,");
+    expect(ownerGo).not.toContain("AlreadyInvitedHint(err,");
   });
 
   test("the owner notification and the invitation's acceptance are never sent", () => {
@@ -621,7 +622,7 @@ describe("the Go the generator writes", () => {
     );
 
     expect(filter).toContain(
-      'personID, ok := personIDForLookup(ctx, d.client, data.UserEmail.ValueString(), "user_email", &resp.Diagnostics)',
+      'personID, ok := PersonIDForLookup(ctx, d.client, data.UserEmail.ValueString(), "user_email", &resp.Diagnostics)',
     );
     expect(filter).toContain('filters["userId"] = personID');
     // Not a column of the API: never filtered, selected or read as one.
@@ -630,13 +631,13 @@ describe("the Go the generator writes", () => {
     expect(memberSourceGo).not.toContain('item["userEmail"]');
     // Kept as written, or the person's own when found another way.
     expect(memberSourceGo).toContain(
-      "data.UserEmail = personEmailAfterLookup(ctx, d.client, data.UserId, data.UserEmail)",
+      "data.UserEmail = PersonEmailAfterLookup(ctx, d.client, data.UserId, data.UserEmail)",
     );
     expect(between(memberSourceGo, '"user_id": schema', "},\n")).toContain(
-      'Validators: personIDValidators("user_email", false)',
+      'Validators: PersonIDValidators("user_email", false)',
     );
     expect(between(memberSourceGo, '"user_email": schema', "},\n")).toContain(
-      "Validators: personEmailValidators()",
+      "Validators: PersonEmailValidators()",
     );
   });
 
@@ -654,7 +655,7 @@ describe("the Go the generator writes", () => {
     ].join("\n");
     const called: Set<string> = new Set<string>();
     const helperCall: RegExp = new RegExp(
-      "\\b(person[A-Za-z]+|planPersonID|planPeopleIDs|importIDOfMembership|alreadyInvitedHint|apiStringValue)\\(",
+      "\\b(Person[A-Za-z]+|PlanPersonID|PlanPeopleIDs|ImportIDOfMembership|AlreadyInvitedHint|APIStringValue)\\(",
       "g",
     );
     let match: RegExpExecArray | null = helperCall.exec(generated);
@@ -671,15 +672,15 @@ describe("the Go the generator writes", () => {
       });
     }
     for (const field of [
-      "listPath",
-      "parentField",
-      "parentAttribute",
-      "personField",
+      "ListPath",
+      "ParentField",
+      "ParentAttribute",
+      "PersonField",
     ]) {
       expect(peopleGo).toContain(`\t${field} `);
     }
     const personAttributeFields: RegExp = new RegExp(
-      "type personAttribute struct \\{[^}]*\\bid\\b[^}]*\\bemail\\b[^}]*\\binvites\\b[^}]*\\breplaces\\b",
+      "type PersonAttribute struct \\{[^}]*\\bID\\b[^}]*\\bEmail\\b[^}]*\\bInvites\\b[^}]*\\bReplaces\\b",
     );
     expect(peopleGo).toMatch(personAttributeFields);
   });
@@ -701,7 +702,7 @@ describe("the client remembers the people it found", () => {
         buildPeopleFixtureSpec(),
       ).generateProvider();
       const clientGo: string = fs.readFileSync(
-        path.join(outputDir, "internal/provider/client.go"),
+        path.join(outputDir, providerGoFilePath("client.go")),
         "utf-8",
       );
       const peopleField: RegExp = new RegExp(

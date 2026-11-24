@@ -21,6 +21,7 @@
     "Core/**/*.ts",
     "Tests/**/*.ts",
     "GenerateProvider.ts",
+    "CheckPins.ts",
     "../../packages/Common/Typings/**/*.d.ts",
     "../../packages/Common/UI/index.d.ts"
   ],

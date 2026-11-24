@@ -18,6 +18,7 @@ import com.oneuptime.androidagent.collect.NetworkReading
 import com.oneuptime.androidagent.collect.ThermalReading
 import com.oneuptime.androidagent.config.ConfigSource
 import com.oneuptime.androidagent.config.DeviceIdentity
+import com.oneuptime.androidagent.device.SecurityPatchAge
 import com.oneuptime.androidagent.dropbox.DropBoxDecoder
 import com.oneuptime.androidagent.dropbox.DropBoxEntry
 import com.oneuptime.androidagent.dropbox.DropBoxFinding
@@ -64,6 +65,8 @@ class GoldenPayloadTest {
                 ),
             ipAddresses = listOf("10.20.30.40", "fd00::40"),
             agentVersion = "17.0.12",
+            // The kiosk reads DropBox (its logs say so): it lacks no grant.
+            missingPermissions = emptyList(),
         )
 
     private val snapshot =
@@ -84,6 +87,8 @@ class GoldenPayloadTest {
             battery = BatteryReading(charge = 1.0, state = "full", plugged = "ac", temperatureCelsius = 31.5),
             thermal = ThermalReading(status = 0, headroom = 0.42),
             bootsInLastHour = 1,
+            // The kiosk's patch level (2024-06-05), as the agent ages it at this time.
+            securityPatchAgeDays = SecurityPatchAge.days(kioskFacts().securityPatch, now),
         )
 
     // A DropBox entry as the agent reads it: its text, filed at a time just before now.

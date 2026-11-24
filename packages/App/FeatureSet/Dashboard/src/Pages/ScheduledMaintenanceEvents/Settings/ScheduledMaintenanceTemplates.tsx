@@ -37,7 +37,7 @@ import OneUptimeDate from "Common/Types/Date";
 import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArrayFieldElement";
 import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   MaintenanceNotifyOptionsReason,
   getSubscriberNotificationsSection,
@@ -47,6 +47,12 @@ import { SCHEDULED_NOTIFICATION_DESCRIPTION } from "../../../Components/Schedule
 import { getMaintenanceStatusPagesFormField } from "../../../Components/ScheduledMaintenance/MaintenanceStatusPagesFormField";
 import ObjectID from "Common/Types/ObjectID";
 import { getTemplateNextEventAt } from "../../../Utils/ScheduledMaintenanceTemplateSchedule";
+import TimezoneUtil from "Common/UI/Utils/Timezone";
+
+// What the template's time zone does, under its picker and on its page.
+export const TEMPLATE_TIMEZONE_DESCRIPTION: string = translationKey(
+  "Events from this template keep the same time of day in this timezone all year, also after the clocks change.",
+);
 
 /*
  * A template is an event to schedule again and again, so its form walks the
@@ -460,6 +466,14 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
     },
   ]);
 
+  /*
+   * The schedule, in two steps once Recurring Event is on: how often and on
+   * which clock, then the first event's times - six fields on one step
+   * would overload it (Docs/ux/README.md#steps). Every later event is the
+   * first one moved on whole intervals of the template's time zone, so a
+   * 02:00 window stays at 02:00 there when the clocks change and a monthly
+   * one keeps its day of the month (MaintenanceTemplateSchedule, #10037).
+   */
   fields = fields.concat([
     {
       field: {
@@ -468,42 +482,6 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
       title: "Recurring Event",
       stepId: "recurring",
       fieldType: FormFieldSchemaType.Toggle,
-    },
-    {
-      field: {
-        firstEventScheduledAt: true,
-      },
-      title: "First Event Scheduled At",
-      description: "When would you like the first event to be scheduled?",
-      stepId: "recurring",
-      fieldType: FormFieldSchemaType.DateTime,
-      showIf: isRecurring,
-      required: isRecurring,
-      placeholder: "Pick Date and Time",
-    },
-    {
-      field: {
-        firstEventStartsAt: true,
-      },
-      title: "First Event Starts At",
-      description: "When does the first event start?",
-      stepId: "recurring",
-      fieldType: FormFieldSchemaType.DateTime,
-      showIf: isRecurring,
-      required: isRecurring,
-      placeholder: "Pick Date and Time",
-    },
-    {
-      field: {
-        firstEventEndsAt: true,
-      },
-      title: "First Event Ends At",
-      description: "When does the first event end?",
-      stepId: "recurring",
-      showIf: isRecurring,
-      fieldType: FormFieldSchemaType.DateTime,
-      required: isRecurring,
-      placeholder: "Pick Date and Time",
     },
     {
       field: {
@@ -533,6 +511,62 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
         );
       },
     },
+    /*
+     * The clock the schedule is read on. A new template starts on the
+     * reader's own time zone - the clock the dates below are typed on - so
+     * nobody has to touch it; a template saved before templates had one
+     * shows UTC, the clock it was stepped on, until it is changed here.
+     */
+    {
+      field: {
+        timezone: true,
+      },
+      title: "Timezone",
+      description: TEMPLATE_TIMEZONE_DESCRIPTION,
+      stepId: "recurring",
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
+      defaultValue: OneUptimeDate.getCurrentTimezone(),
+      showIf: isRecurring,
+      required: isRecurring,
+      placeholder: "Select Timezone",
+    },
+    {
+      field: {
+        firstEventScheduledAt: true,
+      },
+      title: "First Event Scheduled At",
+      description: "When would you like the first event to be scheduled?",
+      stepId: "first-event",
+      fieldType: FormFieldSchemaType.DateTime,
+      showIf: isRecurring,
+      required: isRecurring,
+      placeholder: "Pick Date and Time",
+    },
+    {
+      field: {
+        firstEventStartsAt: true,
+      },
+      title: "First Event Starts At",
+      description: "When does the first event start?",
+      stepId: "first-event",
+      fieldType: FormFieldSchemaType.DateTime,
+      showIf: isRecurring,
+      required: isRecurring,
+      placeholder: "Pick Date and Time",
+    },
+    {
+      field: {
+        firstEventEndsAt: true,
+      },
+      title: "First Event Ends At",
+      description: "When does the first event end?",
+      stepId: "first-event",
+      showIf: isRecurring,
+      fieldType: FormFieldSchemaType.DateTime,
+      required: isRecurring,
+      placeholder: "Pick Date and Time",
+    },
   ]);
 
   return fields;
@@ -544,9 +578,10 @@ type GetFormStepsFunction = (data: {
 }) => Array<FormStep<ScheduledMaintenanceTemplate>>;
 
 /*
- * Template Info, Event, Resources Affected, Recurring. The view page's Edit
- * has no resources on its second step - they have a card of their own
- * there - so that step is called after what it holds: Status Pages.
+ * Template Info, Event, Resources Affected, Recurring, and - once Recurring
+ * Event is on - First Event. The view page's Edit has no resources on its
+ * second step - they have a card of their own there - so that step is
+ * called after what it holds: Status Pages.
  */
 export const getFormSteps: GetFormStepsFunction = (data: {
   isViewPage: boolean;
@@ -570,6 +605,11 @@ export const getFormSteps: GetFormStepsFunction = (data: {
     {
       title: "Recurring",
       id: "recurring",
+    },
+    {
+      title: "First Event",
+      id: "first-event",
+      showIf: isRecurring,
     },
   ];
 };

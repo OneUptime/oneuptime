@@ -25,7 +25,8 @@ import {
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
   TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
 } from "../../../UI/Components/Table/TableHeaderControls";
-import { TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES } from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
+import { TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME } from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 
 /*
  * The session list's search: the bar the header's "Search…  /" pill opens
@@ -86,6 +87,28 @@ function emitted(index: number = 0): SessionReplayAdvancedFilters {
 
 function lastEmitted(): SessionReplayAdvancedFilters {
   return emitted(onFiltersChange.mock.calls.length - 1);
+}
+
+/*
+ * The help and the hints are drawn on the tooltip layer (#9909): the layer's
+ * element they are in, on the page's body, never inside the bar.
+ */
+function layerOf(popup: HTMLElement): HTMLElement {
+  const layer: HTMLElement | null = popup.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(layer).not.toBeNull();
+  expect(layer!.parentElement).toBe(document.body);
+  expect(screen.getByTestId("session-search-bar")).not.toContainElement(popup);
+
+  return layer!;
+}
+
+function classesOf(className: string): Array<string> {
+  return className.split(" ").filter((name: string): boolean => {
+    return name.length > 0;
+  });
 }
 
 beforeEach(() => {
@@ -486,7 +509,7 @@ describe("SessionReplaySearchBar syntax help", () => {
     expect(screen.queryByTestId(SESSION_REPLAY_SEARCH_HELP_TEST_ID)).toBeNull();
   });
 
-  it("hangs from the box's right edge and is never wider than the screen", () => {
+  it("is drawn on the tooltip layer, hung from the box's end, and is never wider than the screen", () => {
     renderBar();
 
     fireEvent.focus(input());
@@ -494,9 +517,13 @@ describe("SessionReplaySearchBar syntax help", () => {
     const help: HTMLElement = screen.getByTestId(
       SESSION_REPLAY_SEARCH_HELP_TEST_ID,
     );
+    const layer: HTMLElement = layerOf(help);
 
-    expect(help).toHaveClass("right-0", "max-w-[calc(100vw-2rem)]");
-    expect(help).not.toHaveClass("left-0");
+    // The box's end: its right edge on a page read left to right.
+    expect(layer).toHaveAttribute("data-popper-placement", "bottom-end");
+    expect(help).toHaveClass("w-[36rem]", "max-w-[calc(100vw-1rem)]");
+    // Drawn on the layer: no place of its own inside the bar.
+    expect(help).not.toHaveClass("absolute", "right-0", "left-0", "top-full");
   });
 
   /*
@@ -509,10 +536,53 @@ describe("SessionReplaySearchBar syntax help", () => {
     fireEvent.focus(input());
 
     expect(screen.getByTestId(SESSION_REPLAY_SEARCH_HELP_TEST_ID)).toHaveClass(
-      "max-md:left-0",
-      "max-md:w-auto",
-      "max-md:max-w-none",
+      "max-md:w-[var(--layered-popover-anchor-width)]",
     );
+  });
+
+  it("is still read right after the box: the bar owns it while it shows", () => {
+    renderBar();
+
+    expect(screen.getByTestId("session-search-bar")).not.toHaveAttribute(
+      "aria-owns",
+    );
+
+    fireEvent.focus(input());
+
+    const help: HTMLElement = screen.getByTestId(
+      SESSION_REPLAY_SEARCH_HELP_TEST_ID,
+    );
+
+    expect(help.id).not.toBe("");
+    expect(screen.getByTestId("session-search-bar")).toHaveAttribute(
+      "aria-owns",
+      help.id,
+    );
+
+    type("j");
+
+    expect(screen.getByTestId("session-search-bar")).not.toHaveAttribute(
+      "aria-owns",
+    );
+  });
+
+  it("keeps the focus in the box: an example pressed on the layer is typed in, the box focused", () => {
+    renderBar();
+
+    input().focus();
+    fireEvent.focus(input());
+
+    const help: HTMLElement = screen.getByTestId(
+      SESSION_REPLAY_SEARCH_HELP_TEST_ID,
+    );
+    const press: boolean = fireEvent.mouseDown(
+      within(help).getByText("url:/checkout"),
+    );
+
+    // The press is spent on the row, so the box never loses the focus.
+    expect(press).toBe(false);
+    expect(input()).toHaveFocus();
+    expect(input().value).toBe("url:/checkout");
   });
 
   it("an example click puts it in the box and applies it", () => {
@@ -636,10 +706,20 @@ describe("SessionReplaySearchBar hints panel", () => {
 
     const hint: HTMLElement = screen.getByTestId("session-search-hint");
 
-    expect(hint).toHaveClass(
-      ...TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES.right.split(" "),
+    expect(layerOf(hint)).toHaveAttribute(
+      "data-popper-placement",
+      "bottom-end",
     );
-    expect(hint).toHaveClass("max-md:left-0", "max-md:w-auto");
+    expect(hint).toHaveClass(
+      ...classesOf(TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME),
+    );
+    expect(hint).toHaveClass("max-md:w-[var(--layered-popover-anchor-width)]");
+    // The box owns it, and still names it as what describes the box.
+    expect(screen.getByTestId("session-search-bar")).toHaveAttribute(
+      "aria-owns",
+      hint.id,
+    );
+    expect(input()).toHaveAttribute("aria-describedby", hint.id);
   });
 
   it("never leaves one word of a hint on a line of its own", () => {

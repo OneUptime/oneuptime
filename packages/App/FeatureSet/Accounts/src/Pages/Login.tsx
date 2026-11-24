@@ -30,7 +30,8 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Captcha from "Common/UI/Components/Captcha/Captcha";
+// A file of its own: drawn only while the server asks for a captcha.
+import Captcha from "Common/UI/Components/Captcha/LazyCaptcha";
 import {
   DASHBOARD_URL,
   CAPTCHA_ENABLED,

@@ -2291,7 +2291,7 @@ describe("Microsoft Dynamics 365", () => {
     }
   });
 
-  it("asks every template for the five Dynamics 365 settings, and the create-case templates for the customer and the OneUptime URL too", () => {
+  it("asks every template for the five Dynamics 365 settings, and the create-case templates for the customer, the OneUptime URL and a configuration item column too", () => {
     const FIVE: Array<string> = [
       "dynamicsUrl",
       "dynamicsTenantId",
@@ -2313,7 +2313,12 @@ describe("Microsoft Dynamics 365", () => {
       expect({ template: template.id, names }).toEqual({
         template: template.id,
         names: createsCases
-          ? [...FIVE, "dynamicsCustomer", "oneuptimeUrl"]
+          ? [
+              ...FIVE,
+              "dynamicsCustomer",
+              "oneuptimeUrl",
+              "dynamicsConfigurationItemColumn",
+            ]
           : FIVE,
       });
     }
@@ -2323,9 +2328,25 @@ describe("Microsoft Dynamics 365", () => {
       "### What the templates ask for",
     );
 
-    for (const name of [...FIVE, "dynamicsCustomer", "oneuptimeUrl"]) {
+    for (const name of [
+      ...FIVE,
+      "dynamicsCustomer",
+      "oneuptimeUrl",
+      "dynamicsConfigurationItemColumn",
+    ]) {
       expect(list).toContain(`\n- ${bold(variableNamed(name).title)} — `);
     }
+
+    // Eight at most, the eighth the one the wizard marks optional.
+    expect(variableNamed("dynamicsConfigurationItemColumn").required).toBe(
+      false,
+    );
+    expect(list).toContain(
+      "asks for up to eight values: every template asks for the first five, the Dynamics 365 settings, and the two create-case templates for the last three as well, the last of them optional.",
+    );
+    expect(list).toContain(
+      "- **Configuration Item Column** — optional, and only the two create-case templates ask for it:",
+    );
 
     for (const name of TEMPLATE_NAMES[DYNAMICS] || []) {
       const real: boolean = DYNAMICS_TEMPLATES.some(
@@ -2466,6 +2487,14 @@ describe("Microsoft Dynamics 365", () => {
         blocks: ["prepare-case-1"],
         templates: createCase,
       },
+      CONFIGURATION_ITEM_PRECEDENCE: {
+        blocks: ["prepare-case-1"],
+        templates: createCase,
+      },
+      MAX_CONFIGURATION_ITEM_LENGTH: {
+        blocks: ["prepare-case-1"],
+        templates: createCase,
+      },
       RESOLVED_CASE_STATUS: { blocks: ["plan-case-1"], templates: resolveCase },
       STATE_TO_CASE_STATUS: { blocks: ["plan-case-1"], templates: resolveCase },
       PRIORITY_RANK: {
@@ -2583,6 +2612,11 @@ describe("Microsoft Dynamics 365", () => {
     expect(constantValue(prepare, "CASE_TYPE")).toBe("2");
     expect(constantValue(prepare, "MAX_TITLE_LENGTH")).toBe("200");
     expect(constantValue(prepare, "MAX_DESCRIPTION_LENGTH")).toBe("2000");
+    expect(constantValue(prepare, "MAX_CONFIGURATION_ITEM_LENGTH")).toBe("100");
+    // Hosts first, as the dashboard lists them, and the monitor moved to the end.
+    expect(constantValue(prepare, "CONFIGURATION_ITEM_PRECEDENCE")).toMatch(
+      /^\['hosts', 'networkDevices', 'kubernetesClusters', .*'monitors'\]$/,
+    );
     expect(constantValue(plan, "RESOLVED_CASE_STATUS")).toBe("5");
     expect(constantValue(toCase, "MAX_NOTE_LENGTH")).toBe("100000");
     expect(constantValue(fromCase, "MAX_NOTE_LENGTH")).toBe("30000");

@@ -137,6 +137,7 @@ const STEP_OF_THE_EVENT: Record<string, string> = {
   "resources-affected": "what it affects and who hears",
   "status-pages": "what it affects and who hears",
   recurring: "the schedule",
+  "first-event": "the schedule's first event",
 };
 
 // A field as this test compares it: where it is and what it is folded in.
@@ -399,12 +400,19 @@ describe("the scheduled maintenance forms", () => {
     expect(source).not.toContain("getDefaultMaintenanceStartsAt");
   });
 
+  /*
+   * The schedule takes two steps once Recurring Event is on (#10037): how
+   * often and on which clock, then the first event's times - six fields on
+   * one step would overload it. The second step shows only for a template
+   * that recurs.
+   */
   test("a template's create form adds its name in front and its schedule at the end", () => {
     expect(TEMPLATE_CREATE.steps).toEqual([
       "template-info: Template Info",
       "event: Maintenance Details",
       "resources-affected: Resources Affected",
       "recurring: Recurring",
+      "first-event: First Event",
     ]);
     expect(rowsByStep(TEMPLATE_CREATE)).toEqual({
       "template-info": ["templateName", "templateDescription"],
@@ -414,14 +422,32 @@ describe("the scheduled maintenance forms", () => {
         "statusPages",
         NOTIFY_SECTION_ROW,
       ],
-      recurring: [
-        "isRecurringEvent",
+      recurring: ["isRecurringEvent", "recurringInterval", "timezone"],
+      "first-event": [
         "firstEventScheduledAt",
         "firstEventStartsAt",
         "firstEventEndsAt",
-        "recurringInterval",
       ],
     });
+
+    const firstEvent: FormStep<ScheduledMaintenanceTemplate> | undefined =
+      getFormSteps({ isViewPage: false }).find(
+        (step: FormStep<ScheduledMaintenanceTemplate>): boolean => {
+          return step.id === "first-event";
+        },
+      );
+
+    expect(firstEvent?.showIf).toBeDefined();
+    expect(
+      firstEvent!.showIf!({
+        isRecurringEvent: true,
+      } as FormValues<ScheduledMaintenanceTemplate>),
+    ).toBe(true);
+    expect(
+      firstEvent!.showIf!({
+        isRecurringEvent: false,
+      } as FormValues<ScheduledMaintenanceTemplate>),
+    ).toBe(false);
   });
 
   test("a template's Edit leaves out the resources and owners its page has cards for", () => {
@@ -430,6 +456,7 @@ describe("the scheduled maintenance forms", () => {
       "event: Maintenance Details",
       "resources-affected: Status Pages",
       "recurring: Recurring",
+      "first-event: First Event",
     ]);
 
     const rows: Record<string, Array<string>> = rowsByStep(TEMPLATE_EDIT);

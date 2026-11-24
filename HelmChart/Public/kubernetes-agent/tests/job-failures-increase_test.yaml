@@ -41,7 +41,7 @@ tests:
       # conversion into increases, and the metadata processors still follow.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n"
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8s_attributes\\n        - transform/pod-level-unmark\\n        - resource\\n"
       # Nowhere else: not in the restarts pipeline, the traces or the logs.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -193,7 +193,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n"
+          pattern: "\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8s_attributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n"
 
   - it: and before the namespace filters for metrics, which the receiver's own namespace attribute answers
     set:
@@ -204,7 +204,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n"
+          pattern: "\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8s_attributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "resource\\.attributes\\[\"k8s\\.namespace\\.name\"\\] != nil and"

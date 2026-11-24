@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -351,6 +352,7 @@ export default class TelemetrySourceMap extends BaseModel {
     title: "Size in Bytes",
     description: "Size of the source map JSON in bytes",
     example: "1048576",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

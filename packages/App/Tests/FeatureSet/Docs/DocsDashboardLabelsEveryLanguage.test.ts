@@ -106,7 +106,8 @@ const CHAT_NOTE_MODAL: string =
  * although the Persian Dashboard words them.
  */
 const KEPT_ON_PERSIAN_PAGES: Record<string, ReadonlyArray<KeptName>> = {
-  "incidents/index": [],
+  // Who may hand the Incident Commander's role on from the header (#10273).
+  "incidents/index": [{ name: "Edit Incident Member", why: PERMISSION_NAME }],
   "incidents/declaring-incidents": [
     {
       name: "Primary",
@@ -156,6 +157,9 @@ const KEPT_ON_PERSIAN_PAGES: Record<string, ReadonlyArray<KeptName>> = {
     { name: "Edit Incident Template", why: PERMISSION_NAME },
     { name: "Edit Incident Custom Field", why: PERMISSION_NAME },
     { name: "Edit Project", why: PERMISSION_NAME },
+    // What a role's Reassign and Remove each need (#10273).
+    { name: "Edit Incident Member", why: PERMISSION_NAME },
+    { name: "Delete Incident Member", why: PERMISSION_NAME },
   ],
   "integrations/irc": [{ name: "Growth", why: PLAN_NAME }],
 };
@@ -403,6 +407,14 @@ describe("the Persian pages the exception covered", () => {
     expect(holds(PLAN_NAME, "Owners")).toBe(false);
     // A built-in role's name reads in the page's language.
     expect(holds(PERMISSION_NAME, "Project Owner")).toBe(false);
+    /*
+     * Incident Member is a role, عضو حوادث on the incident pages, and Edit
+     * Incident Member the permission a custom role gives to hand the
+     * commander's role on (#10273): only the permission stays in English.
+     */
+    expect(holds(PERMISSION_NAME, "Incident Member")).toBe(false);
+    expect(holds(PERMISSION_NAME, "Edit Incident Member")).toBe(true);
+    expect(holds(PERMISSION_NAME, "Delete Incident Member")).toBe(true);
     // And each confirms what it names.
     expect(holds(PERMISSION_NAME, "Edit Incident Template")).toBe(true);
     expect(holds(PLAN_NAME, "Growth")).toBe(true);

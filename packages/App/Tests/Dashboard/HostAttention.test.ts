@@ -10,9 +10,20 @@ import {
   HOST_FLEET_ATTENTION_TRUNCATED_DESCRIPTION,
   HostAttentionRow,
   getHostDisplayName,
+  getHostFailedUnitNames,
   getHostFleetAttentionItems,
   getHostOwnAttentionItems,
 } from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/HostAttention";
+import {
+  SYSTEMD_FAILED_UNITS_LISTED,
+  SystemdUnitJournalLine,
+} from "../../FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnitFailure";
+import {
+  JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE,
+  JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE,
+  JOURNALD_SYSTEMD_RESULT_ATTRIBUTE,
+  JOURNALD_SYSTEMD_UNIT_ATTRIBUTE,
+} from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -307,6 +318,179 @@ describe("a host's own Needs attention rows", () => {
 
   test("a healthy host has no rows", () => {
     expect(own(host())).toEqual([]);
+  });
+});
+
+/*
+ * Why each failed unit failed, once its journal is read (#10129): the
+ * lines one read of the units' result and exit lines returns, each filed
+ * under its unit as the host collector's default config files them.
+ */
+describe("a host's failed units, with why they failed", () => {
+  function systemdLine(
+    unit: string,
+    minutesAgo: number,
+    body: string,
+    attributes: Record<string, unknown>,
+  ): SystemdUnitJournalLine {
+    return {
+      time: new Date(NOW.getTime() - minutesAgo * MINUTE),
+      body: body,
+      severityText: "INFO",
+      attributes: {
+        [JOURNALD_SYSTEMD_UNIT_ATTRIBUTE]: unit,
+        "syslog.identifier": "systemd",
+        "process.pid": "1",
+        ...attributes,
+      },
+    };
+  }
+
+  const NGINX_EXIT: string =
+    "nginx.service: Main process exited, code=exited, status=1/FAILURE";
+
+  // nginx exited 1 forty minutes ago; of backup's failure, nothing.
+  const JOURNAL: Array<SystemdUnitJournalLine> = [
+    systemdLine(
+      "nginx.service",
+      40,
+      "nginx.service: Failed with result 'exit-code'.",
+      { [JOURNALD_SYSTEMD_RESULT_ATTRIBUTE]: "exit-code" },
+    ),
+    systemdLine("nginx.service", 40, NGINX_EXIT, {
+      [JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE]: "exited",
+      [JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE]: "1",
+    }),
+  ];
+
+  const failing: HostAttentionRow = host({
+    failedSystemdUnitCount: 2,
+    failedSystemdUnits: ["backup.service", "nginx.service"],
+  });
+
+  function ownWith(data: {
+    unitJournal?: Array<SystemdUnitJournalLine> | null;
+    isDetailed?: boolean;
+  }): Array<ResourceAttentionItem> {
+    return getHostOwnAttentionItems({
+      host: failing,
+      now: NOW,
+      collectorName: "Databases",
+      collectorRoute: route("/host/collector"),
+      getUnitRoute: (unitName: string): Route => {
+        return route(`/host/units/${unitName}`);
+      },
+      unitJournal: data.unitJournal,
+      isDetailed: data.isDetailed,
+    });
+  }
+
+  function rowOf(
+    rows: Array<ResourceAttentionItem>,
+    unit: string,
+  ): ResourceAttentionItem {
+    return rows.find((row: ResourceAttentionItem): boolean => {
+      return row.key === `systemd-unit:${unit}`;
+    })!;
+  }
+
+  test("a unit whose journal says why: the reason, since when and systemd's words, still its page and the host's urgency", () => {
+    const nginx: ResourceAttentionItem = rowOf(
+      ownWith({ unitJournal: JOURNAL }),
+      "nginx.service",
+    );
+
+    expect(nginx.reasons).toEqual([
+      { text: "Exited with code {{code}}", values: { code: "1" } },
+    ]);
+    expect(nginx.since).toEqual({
+      at: new Date(NOW.getTime() - 40 * MINUTE),
+      template: "Failed {{time}}",
+    });
+    expect(nginx.message).toBe(NGINX_EXIT);
+    expect(nginx.severity).toBe(ResourceAttentionSeverity.Warning);
+    expect(nginx.route?.toString()).toBe("/host/units/nginx.service");
+    expect(nginx.name).toBe("nginx.service");
+    expect(nginx.kind).toBe("Systemd unit");
+    // The card's row leaves systemd's result and exit status to the dialog.
+    expect(nginx.facts).toBeUndefined();
+    expect(nginx.events).toBeUndefined();
+  });
+
+  test("the dialog's row lists systemd's result and exit status too", () => {
+    const nginx: ResourceAttentionItem = rowOf(
+      ownWith({ unitJournal: JOURNAL, isDetailed: true }),
+      "nginx.service",
+    );
+
+    expect(nginx.facts).toEqual([
+      { key: "result", label: "Result", value: "exit-code" },
+      { key: "exit-status", label: "Exit status", value: "1/FAILURE" },
+    ]);
+    expect(nginx.events).toEqual([]);
+  });
+
+  test("a unit its journal says nothing of keeps its row as it was", () => {
+    const plainRows: Array<ResourceAttentionItem> = ownWith({});
+
+    expect(rowOf(ownWith({ unitJournal: JOURNAL }), "backup.service")).toEqual(
+      rowOf(plainRows, "backup.service"),
+    );
+  });
+
+  test("not read yet, or not readable: every row as it was", () => {
+    expect(ownWith({ unitJournal: null })).toEqual(ownWith({}));
+    expect(ownWith({ unitJournal: [] })).toEqual(ownWith({}));
+    expect(rowOf(ownWith({}), "nginx.service").reasons).toEqual([
+      { text: "Failed" },
+    ]);
+  });
+
+  test("a recovered failure of another unit is no reason for this one", () => {
+    const otherUnit: Array<SystemdUnitJournalLine> = JOURNAL.map(
+      (line: SystemdUnitJournalLine): SystemdUnitJournalLine => {
+        return {
+          ...line,
+          attributes: {
+            ...line.attributes,
+            [JOURNALD_SYSTEMD_UNIT_ATTRIBUTE]: "api.service",
+          },
+        };
+      },
+    );
+
+    expect(
+      rowOf(ownWith({ unitJournal: otherUnit }), "nginx.service").reasons,
+    ).toEqual([{ text: "Failed" }]);
+  });
+
+  test("the units a read asks about: each once, by name, no more than the list's dialog opens", () => {
+    expect(
+      getHostFailedUnitNames(
+        host({
+          failedSystemdUnits: [
+            "nginx.service",
+            " backup.service ",
+            "nginx.service",
+            "",
+          ],
+        }),
+      ),
+    ).toEqual(["backup.service", "nginx.service"]);
+    expect(getHostFailedUnitNames(host({ failedSystemdUnits: null }))).toEqual(
+      [],
+    );
+
+    const many: Array<string> = Array.from(
+      { length: SYSTEMD_FAILED_UNITS_LISTED + 5 },
+      (_value: unknown, index: number): string => {
+        return `unit-${String(index).padStart(3, "0")}.service`;
+      },
+    );
+
+    expect(
+      getHostFailedUnitNames(host({ failedSystemdUnits: many })),
+    ).toHaveLength(SYSTEMD_FAILED_UNITS_LISTED);
   });
 });
 

@@ -138,7 +138,7 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 | **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstel**, **Runbooks**, **Gekoppelde incidenten**, **Privénotities** |
 | **Team** | **Bereikbaarheidsuitvoeringen** en **Eigenaren**: wie er voor de waarschuwing werd opgeroepen, en wie haar eigenaar is |
 | **Meldingen**         | **Meldingslogboeken** en **AI-logboeken**: elk bericht dat over de waarschuwing is verstuurd, en alles wat AI ervoor deed |
-| **Ontwikkelaars**     | **Terraform**, **API**, **CLI** en **AI-assistenten**: de waarschuwing vanuit code beheerd                 |
+| **Ontwikkelaars**     | **Terraform**, **Crossplane**, **API**, **CLI** en **AI-assistenten**: de waarschuwing vanuit code beheerd                 |
 | **Geavanceerd** | **Aangepaste velden**, **Instellingen**, **Auditlogboeken**, **Waarschuwing verwijderen** |
 
 **Overzicht**, **Onderzoek** en **Team** zijn open; de andere secties blijven ingeklapt tot je erop klikt.

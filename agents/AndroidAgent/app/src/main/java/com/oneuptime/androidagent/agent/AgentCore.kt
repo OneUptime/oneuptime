@@ -14,6 +14,7 @@ import com.oneuptime.androidagent.collect.HostMetrics
 import com.oneuptime.androidagent.config.AgentConfig
 import com.oneuptime.androidagent.config.OtlpEndpoint
 import com.oneuptime.androidagent.device.DeviceFacts
+import com.oneuptime.androidagent.device.SecurityPatchAge
 import com.oneuptime.androidagent.dropbox.DropBoxFinding
 import com.oneuptime.androidagent.dropbox.DropBoxRead
 import com.oneuptime.androidagent.dropbox.DropBoxState
@@ -54,6 +55,8 @@ class AgentEnvironment(
     val takeDroppedDropBoxRecord: () -> LogRecord? = { null },
     // Where the last snapshot's CPU use came from, or why there was none (SnapshotCollector.capabilities).
     val cpuReading: () -> CollectorCapabilities? = { null },
+    // The grants the agent still lacks here (AgentPermissions), for the resource; null when unknown.
+    val missingPermissions: (config: AgentConfig) -> List<AgentGrant>? = { null },
 )
 
 /** How the last cycle went, for the notification and the setup screen. */
@@ -135,7 +138,8 @@ class AgentCore(
         }
 
         val now: Long = clock.nowMillis()
-        val resource: List<Attribute> = DeviceResource.build(facts, config.identity, environment.ipAddresses(), agentVersion)
+        val resource: List<Attribute> =
+            DeviceResource.build(facts, config.identity, environment.ipAddresses(), agentVersion, environment.missingPermissions(config))
         val records: MutableList<LogRecord> = mutableListOf()
 
         // DropBox first: what it says of the last reboot goes on the boot's own record.
@@ -165,7 +169,11 @@ class AgentCore(
         lastLogcatState = logcat
         lastDropBoxState = dropBox.state
 
-        val snapshot: DeviceSnapshot = environment.collectSnapshot().copy(bootsInLastHour = bootTracker.bootsInLastHour(now))
+        val snapshot: DeviceSnapshot =
+            environment.collectSnapshot().copy(
+                bootsInLastHour = bootTracker.bootsInLastHour(now),
+                securityPatchAgeDays = SecurityPatchAge.days(facts.securityPatch, now),
+            )
         outbox.add(Signal.METRICS, OtlpJson.metricsRequest(resource, scope, HostMetrics.from(snapshot)).toString())
         lastCollectionAtMillis = snapshot.timeMillis
 

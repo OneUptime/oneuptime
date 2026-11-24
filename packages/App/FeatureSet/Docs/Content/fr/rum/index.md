@@ -44,7 +44,7 @@ Le menu latéral d'une application regroupe ses pages ainsi ; **Développeurs** 
 | **Observabilité** | **Métriques**, **Journaux**, **Traces**, **Clients** |
 | **Analyse produit** | **Utilisateurs**, **Sessions**, **Événements**, **Entonnoirs**, **Rétention des utilisateurs**, **Parcours utilisateur**, **Paramètres d'analyse** |
 | **Relecture de session** | **Relecture de session**, **Utilisateurs des relectures**, **Santé**, **Politique de relecture**, **Signaux de frustration**, **Journal d'accès aux relectures**, **Documentation** |
-| **Développeurs** | **Terraform**, **API**, **CLI**, **Assistants IA** |
+| **Développeurs** | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistants IA** |
 | **Avancé** | **Paramètres**, **Journaux d'audit**, **Supprimer l'application** |
 
 ## Comment OneUptime reconnaît le RUM

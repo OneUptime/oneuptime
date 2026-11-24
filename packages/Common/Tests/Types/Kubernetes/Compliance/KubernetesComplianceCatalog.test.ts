@@ -67,11 +67,12 @@ const CIS_SECTION_FIVE: Array<string> = [
 ];
 
 describe("the frameworks", () => {
-  test("are the two Pod Security Standards policies and the CIS benchmark, with names apart from the data frameworks'", () => {
+  test("are the two Pod Security Standards policies, the CIS benchmark and the NSA/CISA guide, with names apart from the data frameworks'", () => {
     expect(ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS).toEqual([
       "PSS Baseline",
       "PSS Restricted",
       "CIS Kubernetes",
+      "NSA/CISA Hardening",
     ]);
     for (const framework of ALL_KUBERNETES_COMPLIANCE_FRAMEWORKS) {
       expect(isKubernetesComplianceFramework(framework)).toBe(true);
@@ -145,6 +146,10 @@ describe("the controls", () => {
       expect(control.isNumbered).toBe(
         control.framework === KubernetesComplianceFramework.CisKubernetes,
       );
+      // The guide numbers nothing: each of its controls names its section instead (#9875).
+      expect(Boolean(control.section)).toBe(
+        control.framework === KubernetesComplianceFramework.NsaCisaHardening,
+      );
     }
   });
 
@@ -174,10 +179,59 @@ describe("the controls", () => {
         "5.1.7",
       ),
     ).toBe(false);
+    /*
+     * A node or control plane control kube-bench scores (#9873), the generic
+     * benchmark's or a managed platform's, may be named before it runs.
+     */
+    for (const requirement of [
+      "1.2.1",
+      "2.1",
+      "4.2.1",
+      "EKS 3.2.1",
+      "GKE 3.1.1",
+      "AKS 3.2.9",
+    ]) {
+      expect([
+        requirement,
+        isKubernetesComplianceRequirement(
+          KubernetesComplianceFramework.CisKubernetes,
+          requirement,
+        ),
+      ]).toEqual([requirement, true]);
+    }
+    // But never one outside the sections kube-bench reads, or another framework's.
+    for (const requirement of [
+      "6.1",
+      "EKS 4.1.1",
+      "EKS3.2.1",
+      "eks 3.2.1",
+      "4",
+    ]) {
+      expect([
+        requirement,
+        isKubernetesComplianceRequirement(
+          KubernetesComplianceFramework.CisKubernetes,
+          requirement,
+        ),
+      ]).toEqual([requirement, false]);
+    }
     expect(
       isKubernetesComplianceRequirement(
-        KubernetesComplianceFramework.CisKubernetes,
-        "1.2.1",
+        KubernetesComplianceFramework.PssRestricted,
+        "4.2.1",
+      ),
+    ).toBe(false);
+    // The NSA/CISA guide's controls by their English titles (#9875).
+    expect(
+      isKubernetesComplianceRequirement(
+        KubernetesComplianceFramework.NsaCisaHardening,
+        "Default-deny network policies",
+      ),
+    ).toBe(true);
+    expect(
+      isKubernetesComplianceRequirement(
+        KubernetesComplianceFramework.NsaCisaHardening,
+        "5.1.1",
       ),
     ).toBe(false);
   });

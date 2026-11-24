@@ -19,6 +19,9 @@ import MoveInListUtil, {
   getMoveInListRoute,
 } from "../../../Types/Database/MoveInList";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ListChangesUtil, {
+  ListChanges,
+} from "../../../Types/Database/ListChanges";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
@@ -107,6 +110,13 @@ export default class ModelAPI {
      * given.
      */
     miscDataProps?: JSONObject | undefined;
+    /*
+     * Entries to add to the record's lists of related records and take off
+     * them, by the list's field (Types/Database/ListChanges, #10135): only
+     * those are written, so a label a rule adds at the same moment stays.
+     * Sent only when given.
+     */
+    listChanges?: ListChanges | undefined;
     apiUrlOverride?: URL;
     requestOptions?: RequestOptions;
   }): Promise<
@@ -138,6 +148,9 @@ export default class ModelAPI {
       data: {
         data: data.data,
         ...(data.miscDataProps ? { miscDataProps: data.miscDataProps } : {}),
+        ...(data.listChanges
+          ? ListChangesUtil.toRequestBody(data.listChanges)
+          : {}),
       },
       headers: this.getCommonHeaders(data.requestOptions),
       ...(data.requestOptions?.apiRequestOptions

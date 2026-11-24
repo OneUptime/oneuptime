@@ -329,6 +329,9 @@ import "./Jobs/SecurityPlaybooks/RecoverSecurityPlaybookRuns";
 import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
+import "./Jobs/SecurityBlocklist/ExpireSecurityBlocks";
+import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
+import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis
@@ -348,6 +351,9 @@ import "./Jobs/Logs/ComputeLogRecordingRules";
 
 // Kubernetes inventory cleanup.
 import "./Jobs/Kubernetes/CleanupStaleResources";
+
+// Kubernetes clusters' compliance summaries, for the fleet's Compliance page.
+import "./Jobs/Kubernetes/RefreshComplianceSummaries";
 
 // Docker inventory cleanup + cached count refresh.
 import "./Jobs/Docker/CleanupStaleResources";
@@ -494,6 +500,8 @@ import "./Jobs/Rum/PublishSessionReplayBudgetMetrics";
  */
 import "./Jobs/TelemetryUsage/MeterTelemetryUsage";
 import "./Jobs/TelemetryUsage/DeleteOldTelemetryUsage";
+// Telemetry usage as metrics, every five minutes, where a project asks (#6355).
+import "./Jobs/TelemetryUsage/PublishTelemetryUsageMetrics";
 // Telemetry ingestion budgets as metrics, and the owners' warning emails.
 import "./Jobs/TelemetryIngestionBudget/PublishTelemetryIngestionBudgetMetrics";
 

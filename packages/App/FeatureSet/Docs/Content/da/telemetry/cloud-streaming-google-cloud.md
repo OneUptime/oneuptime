@@ -71,6 +71,8 @@ Dialogen spørger med få sekunders mellemrum, hvad der er ankommet. Pub/Sub pus
 
 Hver log beholder sin posts tid på nanosekundet, sin alvorsgrad, sin trace og span og sin HTTP-anmodning under navnene fra OpenTelemetrys semantiske konventioner. Den arkiveres under en ressource, når dens overvågede ressource er en type, hvis metrikker OneUptime læser, fx en VM (`gce_instance`), en Cloud Run-tjeneste (`cloud_run_revision`) eller en Cloud SQL-instans (`cloudsql_database`), og bærer ressourcens id som `cloud.resource_id`. En ekstern load balancers anmodningslogge, skrevet under `http_load_balancer`, arkiveres under dens URL-kort, den `https_lb_rule`, dens metrikker lander på.
 
+En auditlogs post ankommer hel, som sin logs brødtekst: med [Find sikkerhedshændelser i dine logs](/docs/telemetry/security-events#find-sikkerhedshændelser-i-dine-logs) slået til læses hver som en sikkerhedshændelse, ligesom en fra en logpipeline, og gemmes én gang, uanset hvor mange veje den når OneUptime ad.
+
 En instansgruppes logge er dens VM'ers, så dens side har ingen fane **Protokoller**. En post af en anden type streames alligevel, under sit projekt.
 
 ## Hvad kommandoen opretter

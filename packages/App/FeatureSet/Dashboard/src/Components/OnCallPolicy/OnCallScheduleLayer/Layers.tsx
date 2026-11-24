@@ -42,6 +42,15 @@ import {
   fetchUserOverrideAddAccess,
   getPoliciesToOffer,
 } from "../UserOverrides/UserOverridePolicies";
+import {
+  UserOverrideTeamLimit,
+  getUserOverrideTeamAwayLock,
+  getUserOverrideTeamLimit,
+} from "../UserOverrides/UserOverrideTeamLimit";
+import useUserOverrideTeamPeople, {
+  UserOverrideTeamPeople,
+} from "../UserOverrides/UseUserOverrideTeamPeople";
+import { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { SCHEDULE_FINAL_SCHEDULE_DESCRIPTION } from "./ScheduleOverviewCopy";
 import {
   ScheduleOverrideResolution,
@@ -347,6 +356,40 @@ const Layers: FunctionComponent<ComponentProps> = (
   if (isSkipOnSomePolicies && skipPolicies && skipPolicies.length > 0) {
     skipLockedReason = null;
   }
+
+  /*
+   * For a reader who manages the user overrides of their own teams' people
+   * only (Manage On-Call Policy User Overrides for Own Team, issue #9884):
+   * the server refuses a skip for anybody outside those teams, so "Skip
+   * until..." is locked beside each of them, saying why, and stays as it
+   * is beside their teammates (UserOverrideTeamLimit). Asked as the skip
+   * would be added - a global override, or one on each policy offered.
+   * Until the teams' members are known nothing is locked for it: the
+   * server decides, and the dialog says so under "Who is away?".
+   */
+  const skipTeamLimit: UserOverrideTeamLimit | null = getUserOverrideTeamLimit({
+    action: ModelAction.Create,
+    isGlobal: !isSkipOnSomePolicies,
+  });
+
+  const skipTeamPeople: UserOverrideTeamPeople = useUserOverrideTeamPeople({
+    teamIds: skipTeamLimit ? skipTeamLimit.teamIds : null,
+    withMembers: true,
+  });
+
+  // Why "Skip until..." is locked beside the person `userId`, or null.
+  const getSkipLockedReason: (userId: string) => string | null = (
+    userId: string,
+  ): string | null => {
+    return (
+      skipLockedReason ||
+      getUserOverrideTeamAwayLock({
+        limit: skipTeamLimit,
+        memberIds: skipTeamPeople.memberIds,
+        awayUserId: userId,
+      })
+    );
+  };
 
   /*
    * The schedule's timezone, its layers in priority order and every
@@ -1607,13 +1650,13 @@ const Layers: FunctionComponent<ComponentProps> = (
                 restoreLayerUser(layerId, layerUser);
               }}
               onSkipUser={(person: { userId: string; name: string }) => {
-                if (skipLockedReason) {
+                if (getSkipLockedReason(person.userId)) {
                   return;
                 }
 
                 setPersonToSkip(person);
               }}
-              skipLockedReason={skipLockedReason}
+              getSkipLockedReason={getSkipLockedReason}
             />
           );
         })}

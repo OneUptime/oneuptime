@@ -30,6 +30,11 @@ export default class ColumnWriteRefusedException extends BadDataException {
      * permissions, which keeps to its first sentence.
      */
     permissions?: Array<Permission> | undefined;
+    /*
+     * Every column refused, when one write is refused for several: the
+     * refusal names them all, and columnName is the first.
+     */
+    columnNames?: Array<string> | undefined;
   }) {
     super(
       ColumnRefusalMessage.getWriteRefusal({
@@ -37,6 +42,7 @@ export default class ColumnWriteRefusedException extends BadDataException {
         column: data.columnName,
         modelName: data.modelName,
         permissions: data.permissions,
+        columns: data.columnNames,
       }),
     );
 

@@ -55,9 +55,9 @@ The report counts what was created, invited and not brought over, and lists ever
 | In PagerDuty | In OneUptime | How |
 | --- | --- | --- |
 | Users | Project members | Matched by email address. Anyone who is not in the project yet is invited to the team you pick. |
-| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. |
-| Schedules | On-call schedules | Each layer becomes a layer with the same people, start, turn length and restrictions, in the schedule's time zone, owned by the schedule's team. The layers keep their order, so a higher layer still takes over from the ones below it. |
-| Escalation policies | On-call policies | Each escalation rule becomes an escalation rule that pages the same schedules and users, and escalates after the same delay. The policy's repeats come over as the policy's repeats. |
+| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. When two teams have the same name, the second comes over numbered, such as `Platform 2`, and the report says the name it was created with. |
+| Schedules | On-call schedules | Each layer becomes a layer with the same people, start, turn length and restrictions, in the schedule's time zone, owned by the schedule's team. The layers keep their order, so a higher layer still takes over from the ones below it. When two schedules have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
+| Escalation policies | On-call policies | Each escalation rule becomes an escalation rule that pages the same schedules and users, and escalates after the same delay. The policy's repeats come over as the policy's repeats. When two escalation policies have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
 | Services | Services | Created in the service catalog, owned by their team. A service turned off in PagerDuty starts unticked. |
 
 A PagerDuty schedule stays one OneUptime schedule: its layers take over from one another the way PagerDuty's do. A layer whose turns are not whole hours comes over with turns rounded to the hour, and the preview says so.

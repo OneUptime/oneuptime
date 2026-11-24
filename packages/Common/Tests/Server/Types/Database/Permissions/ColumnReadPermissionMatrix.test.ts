@@ -166,6 +166,13 @@ const RECORD_READERS: Array<Permission> = [
   Permission.Viewer,
 ];
 
+// Network's levels (#10289), which read Network's records as those roles do.
+const NETWORK_LEVELS: Array<Permission> = [
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
+  Permission.NetworkViewer,
+];
+
 const CHANGED: Array<ChangedColumns> = [
   {
     modelType: WorkspaceNotificationLog,
@@ -203,6 +210,7 @@ const CHANGED: Array<ChangedColumns> = [
     apiKeyReaders: [
       ...RECORD_READERS,
       Permission.ReadNetworkDeviceAutoImportRule,
+      ...NETWORK_LEVELS,
     ],
   },
   {
@@ -214,6 +222,7 @@ const CHANGED: Array<ChangedColumns> = [
     apiKeyReaders: [
       ...RECORD_READERS,
       Permission.ReadNetworkDeviceAutoImportRule,
+      ...NETWORK_LEVELS,
     ],
   },
   {
@@ -227,7 +236,11 @@ const CHANGED: Array<ChangedColumns> = [
       Permission.MonitorMember,
       Permission.MonitorViewer,
     ],
-    apiKeyReaders: [...RECORD_READERS, Permission.ReadNetworkAlertPolicy],
+    apiKeyReaders: [
+      ...RECORD_READERS,
+      Permission.ReadNetworkAlertPolicy,
+      ...NETWORK_LEVELS,
+    ],
   },
   {
     modelType: OnCallDutyPolicyExecutionLog,

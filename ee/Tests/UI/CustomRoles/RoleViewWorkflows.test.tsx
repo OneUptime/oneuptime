@@ -32,7 +32,10 @@ import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
  *   - an empty card says how a workflow comes to run as the role, with the
  *     way to the Workflows page, and offers no button of its own;
  *   - someone who may not read the project's workflows sees no card, no
- *     count and no workflow's name, and the page asks no count of them.
+ *     count and no workflow's name, and the page asks no count of them;
+ *   - on a page read from the right, each name reads the way its own words
+ *     do, and its cell keeps the page's way, so the badge beside it stays
+ *     after it (TableNameColumnsLineTextGuard).
  */
 
 let licenseModeForTest: string = "editable";
@@ -91,6 +94,9 @@ jest.mock("Common/UI/Utils/User", () => {
   };
 });
 
+// The reader's language: English, unless a test reads the page in another.
+let mockLanguage: string | undefined = undefined;
+
 jest.mock("Common/UI/Utils/Translation", () => {
   return {
     __esModule: true,
@@ -102,6 +108,7 @@ jest.mock("Common/UI/Utils/Translation", () => {
         translateValue: (value: unknown): unknown => {
           return value;
         },
+        language: mockLanguage,
       };
     },
   };
@@ -257,6 +264,7 @@ const WORKFLOW_READ_REFUSED: string =
   "You do not have permissions to read Workflow. You need one of these permissions: Project Owner, Project Admin, Read Workflow.";
 
 beforeEach(() => {
+  mockLanguage = undefined;
   licenseModeForTest = "editable";
   holding([Permission.ProjectOwner]);
   workflowsReadable = true;
@@ -575,5 +583,97 @@ describe("a custom role's workflows", () => {
     await waitFor(() => {
       expect(callsFor(countMock, Workflow)).toEqual([]);
     });
+  });
+});
+
+/*
+ * A workflow's name is the project's own words, whatever the page's
+ * language; Archived and Disabled beside it are the page's. The column
+ * says it draws its own lines (drawsItsOwnLines): the cell keeps the
+ * page's way, so on a Persian page the badge stays after the name, at its
+ * left, and the name reads its own way in an isolate (IsolatedText). Read
+ * as one English line, the whole cell turned round, and the badge went to
+ * the name's right, before it.
+ */
+describe("a custom role's workflows on a page read from the right", () => {
+  const PERSIAN_NAME: string = "پاک‌سازی شبانه";
+
+  beforeEach(() => {
+    mockLanguage = "fa";
+    workflowRows = [
+      workflow({ id: RUNNING_ID, name: "Close stale incidents" }),
+      workflow({
+        id: OFF_ID,
+        name: PERSIAN_NAME,
+        isEnabled: false,
+      }),
+    ];
+  });
+
+  // The element that says the line's way, from the name's link up to its row.
+  function directionsAbove(link: HTMLElement): Array<string> {
+    const directions: Array<string> = [];
+    let node: HTMLElement | null = link.parentElement;
+
+    while (node && node.tagName !== "TR") {
+      const direction: string | null = node.getAttribute("dir");
+
+      if (direction) {
+        directions.push(direction);
+      }
+
+      node = node.parentElement;
+    }
+
+    return directions;
+  }
+
+  test("an English name reads left to right, in its own isolate", async () => {
+    await renderPage();
+    const card: HTMLElement = await workflowsCard();
+    const link: HTMLElement = await within(card).findByRole("link", {
+      name: "Close stale incidents",
+    });
+
+    const isolate: HTMLElement | null = link.querySelector("bdi");
+
+    expect(isolate).not.toBeNull();
+    expect(isolate).toHaveTextContent("Close stale incidents");
+    expect(isolate).toHaveAttribute("dir", "ltr");
+  });
+
+  test("a Persian name reads right to left, in its own isolate", async () => {
+    await renderPage();
+    const card: HTMLElement = await workflowsCard();
+    const link: HTMLElement = await within(card).findByRole("link", {
+      name: PERSIAN_NAME,
+    });
+
+    expect(link.querySelector("bdi")).toHaveAttribute("dir", "rtl");
+  });
+
+  test("the cell keeps the page's way, so the badge is not turned round with the name", async () => {
+    await renderPage();
+    const card: HTMLElement = await workflowsCard();
+
+    for (const name of ["Close stale incidents", PERSIAN_NAME]) {
+      const link: HTMLElement = await within(card).findByRole("link", {
+        name: name,
+      });
+
+      // Nothing between the link and its row sets a way of its own.
+      expect({ name, directions: directionsAbove(link) }).toEqual({
+        name,
+        directions: [],
+      });
+    }
+
+    // The badge is the page's, beside the name, outside its isolate.
+    const badge: HTMLElement = within(rowOf(card, PERSIAN_NAME)).getByTestId(
+      "custom-role-workflow-state",
+    );
+
+    expect(badge).toHaveTextContent("Disabled");
+    expect(badge.closest("bdi")).toBeNull();
   });
 });

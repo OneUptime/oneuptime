@@ -73,6 +73,13 @@ function claim(fields: {
   };
 }
 
+/*
+ * A node with a 100 GiB root disk, `usedPercent` used. Without
+ * `imageUsedPercent` it keeps its container images on that disk, as most
+ * nodes do, so the disk is nearly full from 80% and almost full from 85%,
+ * where the kubelet starts evicting pods (#10057). With it, the images have
+ * a 400 GiB disk of their own, and the root disk is almost full at 90%.
+ */
 function node(fields: {
   name?: string;
   isReady?: boolean;
@@ -251,7 +258,7 @@ describe("a node's status says its disk", () => {
 
   test("disk pressure and a nearly full disk: Disk pressure, with how full it is", () => {
     const assessment: KubernetesHealthAssessment = assessKubernetesNode(
-      node({ diskPressure: true, usedPercent: 86 }),
+      node({ diskPressure: true, usedPercent: 82 }),
     );
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Warning);
     expect(assessment.status.text).toBe("Disk pressure");
@@ -259,6 +266,61 @@ describe("a node's status says its disk", () => {
       "Disk pressure",
       "Disk {{percent}} used, {{free}} free",
     ]);
+    expect(assessment.reasons[1]!.values).toEqual({
+      percent: "82%",
+      free: "18 GiB",
+    });
+  });
+
+  /*
+   * 86% of a disk that holds the node's images is past the kubelet's 85%:
+   * it is evicting pods there, so the disk is almost full, not nearly
+   * (#10057). Before, every node disk was almost full only from 90%.
+   */
+  test("disk pressure at 86% of the disk that holds the images: almost full, so the disk leads", () => {
+    const assessment: KubernetesHealthAssessment = assessKubernetesNode(
+      node({ diskPressure: true, usedPercent: 86 }),
+    );
+    expect(assessment.severity).toBe(KubernetesHealthSeverity.Critical);
+    expect(assessment.status.text).toBe("Disk almost full");
+    expect(assessment.tone).toBe("danger");
+    expect(assessment.reasons).toEqual([
+      {
+        text: "Disk {{percent}} used, {{free}} free",
+        values: { percent: "86%", free: "14 GiB" },
+      },
+      { text: "Disk pressure" },
+    ]);
+  });
+
+  test("disk pressure at 86% of a root disk whose images have a disk of their own: still nearly full", () => {
+    const assessment: KubernetesHealthAssessment = assessKubernetesNode(
+      node({ diskPressure: true, usedPercent: 86, imageUsedPercent: 30 }),
+    );
+    expect(assessment.severity).toBe(KubernetesHealthSeverity.Warning);
+    expect(assessment.status.text).toBe("Disk pressure");
+    expect(textsOf(assessment)).toEqual([
+      "Disk pressure",
+      "Disk {{percent}} used, {{free}} free",
+    ]);
+  });
+
+  test("the disk that holds the images is nearly full up to 85%, and almost full from it", () => {
+    expect(assessKubernetesNode(node({ usedPercent: 84 })).status.text).toBe(
+      "Disk nearly full",
+    );
+    expect(assessKubernetesNode(node({ usedPercent: 85 })).status.text).toBe(
+      "Disk almost full",
+    );
+    // A root disk that holds no images is almost full only at 90%.
+    expect(
+      assessKubernetesNode(node({ usedPercent: 89, imageUsedPercent: 30 }))
+        .status.text,
+    ).toBe("Disk nearly full");
+    expect(
+      assessKubernetesNode(node({ usedPercent: 90, imageUsedPercent: 30 }))
+        .status.text,
+    ).toBe("Disk almost full");
   });
 
   test("disk pressure and an almost full disk: the disk leads, and pressure is still said", () => {

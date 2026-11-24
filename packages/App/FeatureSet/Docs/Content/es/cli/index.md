@@ -103,6 +103,7 @@ La lista muestra cada tipo de registro con el que puede trabajar, y su comando, 
 | `oneuptime deploy` | Registra un despliegue, u otro cambio, para los gráficos y OneUptime AI | [Despliegues y cambios](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Hace que las comprobaciones de datos del proyecto coincidan con un archivo de tu repositorio | [Referencia de comandos](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Envía los artefactos de un proyecto de dbt después de una compilación a Observabilidad de datos | [Referencia de comandos](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Envía los dSYM de una aplicación de iOS después de una compilación, para que sus fallos y bloqueos se lean por función | [Configuración para móviles](/docs/rum/mobile-setup#subir-tus-dsym) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Trabaja con un tipo de registro | [Operaciones de recursos](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lista los campos de un recurso y las opciones que los definen | [Operaciones de recursos](/docs/cli/resource-operations#ver-los-campos-de-un-recurso) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Hace lo que hacen los botones del panel en incidentes, alertas y mantenimientos programados | [Operaciones de recursos](/docs/cli/resource-operations#reconocer-resolver-y-añadir-notas) |

@@ -142,6 +142,13 @@ export const CLOUD_SAVINGS_MAX_DURATION_MS: number = 120 * 1000;
 export const CLOUD_COSTS_RETRY_MS: number = 60 * 60 * 1000;
 
 /*
+ * How long an account's last read of costs is remembered
+ * (costAccountsReadAt): one not read for this long has left the
+ * connection, and is read in full again if it comes back.
+ */
+export const CLOUD_COST_ACCOUNT_MEMORY_MS: number = 45 * 24 * 60 * 60 * 1000;
+
+/*
  * Which reading of the costs this is (CloudConnectionPullState.costsVersion).
  * 2: each cost keeps its tags. A connection whose costs were read by an
  * older one reads them as far back as a first read does, once, so the
@@ -567,11 +574,44 @@ export default class CloudConnectionLanes {
     }
   }
 
+  /*
+   * Whether the costs are read on this read: every account's, twelve hours
+   * after the last whole read; else the accounts the last read put off, once
+   * the time they may be read has come.
+   */
   public static isCostsDue(
     state: CloudConnectionPullState,
     now: Date,
   ): boolean {
+    return (
+      CloudConnectionLanes.isWholeCostsReadDue(state, now) ||
+      CloudConnectionLanes.isPendingCostsDue(state, now)
+    );
+  }
+
+  // Every account's costs: twelve hours after the last whole read.
+  public static isWholeCostsReadDue(
+    state: CloudConnectionPullState,
+    now: Date,
+  ): boolean {
     return isOlderThan(state.costsReadAt, CLOUD_COSTS_INTERVAL_MS, now);
+  }
+
+  // The accounts the last read put off, from the time they may be read.
+  public static isPendingCostsDue(
+    state: CloudConnectionPullState,
+    now: Date,
+  ): boolean {
+    const pending: CloudConnectionPullState["costsPending"] =
+      state.costsPending;
+
+    if (!pending || pending.accounts.length === 0) {
+      return false;
+    }
+
+    const at: number = Date.parse(pending.at);
+
+    return !Number.isFinite(at) || at <= now.getTime();
   }
 
   /*
@@ -651,13 +691,160 @@ export default class CloudConnectionLanes {
   }
 
   /*
+   * The accounts a read wrote, by the days each was read over: an account's
+   * own first read covers more days than the read was asked for, and each
+   * group is brought in line over its own days - never over another's, which
+   * would take back the days it did not read.
+   */
+  public static groupCostAccountsByWindow(data: {
+    outcomes: Array<CloudCostAccountOutcome>;
+    window: { start: Date; end: Date };
+  }): Array<{ window: { start: Date; end: Date }; accounts: Set<string> }> {
+    const groups: Map<
+      string,
+      { window: { start: Date; end: Date }; accounts: Set<string> }
+    > = new Map();
+
+    for (const outcome of data.outcomes) {
+      if (outcome.state !== CloudCostState.Reading) {
+        continue;
+      }
+
+      const window: { start: Date; end: Date } = outcome.window || data.window;
+      const key: string = `${window.start.getTime()}|${window.end.getTime()}`;
+      const group: {
+        window: { start: Date; end: Date };
+        accounts: Set<string>;
+      } = groups.get(key) || { window, accounts: new Set<string>() };
+
+      group.accounts.add(outcome.accountId.trim().toLowerCase());
+      groups.set(key, group);
+    }
+
+    return Array.from(groups.values());
+  }
+
+  /*
+   * When a queued account's costs are read: at the connection's first read
+   * from the time it may be read (its reads come every readIntervalMs from
+   * now), or at that time when the interval is not known.
+   */
+  public static getQueuedCostsReadAt(data: {
+    retryAt: string | undefined;
+    now: Date;
+    readIntervalMs?: number | undefined;
+  }): string {
+    const retryAt: number = Date.parse(data.retryAt || "");
+    const from: number = Number.isFinite(retryAt)
+      ? Math.max(retryAt, data.now.getTime())
+      : data.now.getTime();
+    const interval: number = data.readIntervalMs || 0;
+
+    if (interval <= 0) {
+      return new Date(from).toISOString();
+    }
+
+    const reads: number = Math.max(
+      1,
+      Math.ceil((from - data.now.getTime()) / interval),
+    );
+
+    return new Date(data.now.getTime() + reads * interval).toISOString();
+  }
+
+  /*
+   * What a read of costs got to, kept on the connection once its costs are
+   * written: when each account it read was read, and the accounts it put
+   * off with the earliest time one may be read (costsPending) - none left,
+   * none pending. An account not read for CLOUD_COST_ACCOUNT_MEMORY_MS is
+   * forgotten: it has left the connection.
+   */
+  public static keepCostProgress(data: {
+    state: CloudConnectionPullState;
+    outcomes: Array<CloudCostAccountOutcome>;
+    now: Date;
+  }): void {
+    const readAt: Record<string, string> = {};
+
+    for (const [accountId, at] of Object.entries(
+      data.state.costAccountsReadAt || {},
+    )) {
+      if (!isOlderThan(at, CLOUD_COST_ACCOUNT_MEMORY_MS, data.now)) {
+        readAt[accountId] = at;
+      }
+    }
+
+    for (const outcome of data.outcomes) {
+      if (outcome.state === CloudCostState.Reading) {
+        readAt[outcome.accountId.trim().toLowerCase()] = data.now.toISOString();
+      }
+    }
+
+    if (Object.keys(readAt).length > 0) {
+      data.state.costAccountsReadAt = readAt;
+    } else {
+      delete data.state.costAccountsReadAt;
+    }
+
+    const queued: Array<CloudCostAccountOutcome> = data.outcomes.filter(
+      (outcome: CloudCostAccountOutcome): boolean => {
+        return outcome.state === CloudCostState.Queued;
+      },
+    );
+
+    if (queued.length === 0) {
+      delete data.state.costsPending;
+      return;
+    }
+
+    const times: Array<number> = queued
+      .map((outcome: CloudCostAccountOutcome): number => {
+        return Date.parse(outcome.retryAt || "");
+      })
+      .filter((time: number): boolean => {
+        return Number.isFinite(time);
+      });
+
+    data.state.costsPending = {
+      accounts: queued.map((outcome: CloudCostAccountOutcome): string => {
+        return outcome.accountId.trim().toLowerCase();
+      }),
+      at: new Date(
+        times.length > 0 ? Math.min(...times) : data.now.getTime(),
+      ).toISOString(),
+    };
+  }
+
+  /*
+   * A read that carried on with the accounts put off and failed as a whole
+   * is tried again within CLOUD_COSTS_RETRY_MS, as a whole read is: the
+   * accounts stay pending, and the twelve-hour beat stays as it was.
+   */
+  private static retryPendingSoon(
+    state: CloudConnectionPullState,
+    now: Date,
+  ): void {
+    if (state.costsPending) {
+      state.costsPending = {
+        ...state.costsPending,
+        at: new Date(now.getTime() + CLOUD_COSTS_RETRY_MS).toISOString(),
+      };
+    }
+  }
+
+  /*
    * What the connection's accounts cost, when it is due: read from the
    * cloud's billing, kept exactly (CloudCostWriter), each account's summary
    * written, and the project's budgets checked against it. A first read
-   * goes back further than the ones after it (getCloudCostWindow). An
-   * account whose costs could not be read keeps the figures it had, and its
-   * summary says why. A refused credential fails the read; any other
-   * failure is a warning, tried again within the hour.
+   * goes back further than the ones after it (getCloudCostWindow), and so
+   * does an account's own first read, for a cloud read account by account.
+   * An account whose costs could not be read keeps the figures it had, and
+   * its summary says why. One its cloud's rate limit put off (queued) keeps
+   * its figures and is read at the first read from when it may be - the
+   * read carries on with it there, and the next whole read is still twelve
+   * hours after this one; until it has figures, its summary says when. A
+   * refused credential fails the read; any other failure is a warning,
+   * tried again within the hour.
    */
   public static async runCosts(data: {
     projectId: ObjectID;
@@ -671,6 +858,8 @@ export default class CloudConnectionLanes {
     clock?: (() => Date) | undefined;
     deadlineMs: number;
     sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+    // How often the connection is read: when a queued account is read next.
+    readIntervalMs?: number | undefined;
   }): Promise<CloudCostsLaneOutcome> {
     const durationMs: number = getLaneDurationMs({
       maxDurationMs: CLOUD_COSTS_MAX_DURATION_MS,
@@ -686,6 +875,14 @@ export default class CloudConnectionLanes {
       return { ran: false, warnings: [], rowsWritten: 0, accountsRead: 0 };
     }
 
+    // Every account's, or only the ones the last read put off.
+    const isWholeRead: boolean = CloudConnectionLanes.isWholeCostsReadDue(
+      data.state,
+      data.now,
+    );
+    const pendingAccounts: Array<string> | undefined = isWholeRead
+      ? undefined
+      : data.state.costsPending?.accounts;
     let window: { start: Date; end: Date } = getCloudCostWindow({
       now: data.now,
       isFirstRead: CloudConnectionLanes.isFirstCostsRead(data.state),
@@ -720,13 +917,22 @@ export default class CloudConnectionLanes {
         }),
         start: window.start,
         end: window.end,
+        firstReadWindow: getCloudCostWindow({
+          now: data.now,
+          isFirstRead: true,
+        }),
+        ...(pendingAccounts ? { accounts: pendingAccounts } : {}),
       });
     } catch (error) {
       if (isRefusedCredential(error)) {
         throw error;
       }
 
-      CloudConnectionLanes.retrySoon(data.state, "costsReadAt", data.now);
+      if (isWholeRead) {
+        CloudConnectionLanes.retrySoon(data.state, "costsReadAt", data.now);
+      } else {
+        CloudConnectionLanes.retryPendingSoon(data.state, data.now);
+      }
 
       return {
         ran: true,
@@ -781,26 +987,33 @@ export default class CloudConnectionLanes {
       const readAccounts: Set<string> = CloudConnectionLanes.readAccounts(
         read.accounts,
       );
-
-      const written: CloudCostWriteResult = await CloudCostWriter.write({
-        target: {
-          projectId: data.projectId,
-          connectionId: data.connectionId,
-          provider: data.provider,
-          accountRows: CloudConnectionLanes.toRowIds(rows),
-        },
-        window,
-        // Each cost with its resource's tags, where its billing named none.
-        records: tagCloudCostRecords({
-          records: read.records,
-          provider: data.provider,
-          resources: linked,
-        }),
-        accountsRead: readAccounts,
-        now: data.now,
+      // Each cost with its resource's tags, where its billing named none.
+      const records: Array<CloudCostRecord> = tagCloudCostRecords({
+        records: read.records,
+        provider: data.provider,
+        resources: linked,
       });
 
-      rowsWritten = written.rowsWritten;
+      // Each account's days brought in line: an account's first read over its own.
+      for (const group of CloudConnectionLanes.groupCostAccountsByWindow({
+        outcomes: read.accounts,
+        window,
+      })) {
+        const written: CloudCostWriteResult = await CloudCostWriter.write({
+          target: {
+            projectId: data.projectId,
+            connectionId: data.connectionId,
+            provider: data.provider,
+            accountRows: CloudConnectionLanes.toRowIds(rows),
+          },
+          window: group.window,
+          records,
+          accountsRead: group.accounts,
+          now: data.now,
+        });
+
+        rowsWritten += written.rowsWritten;
+      }
 
       // Each account's summary: its figures, or why they could not be read.
       const summaries: Map<string, CloudAccountCostSummary> =
@@ -826,13 +1039,19 @@ export default class CloudConnectionLanes {
         }
 
         let summary: CloudAccountCostSummary | undefined;
+        const previous: CloudAccountCostSummary | null =
+          readCloudAccountCostSummary(row.costSummary);
 
         if (outcome.state === CloudCostState.Reading) {
           summary = summaries.get(row.id.toString());
           accountsRead++;
+        } else if (
+          outcome.state === CloudCostState.Queued &&
+          previous?.state === CloudCostState.Reading
+        ) {
+          // Its figures still hold, and still count, while its next read waits.
+          continue;
         } else {
-          const previous: CloudAccountCostSummary | null =
-            readCloudAccountCostSummary(row.costSummary);
           summary = {
             ...(previous || {
               currency: "USD",
@@ -847,6 +1066,14 @@ export default class CloudConnectionLanes {
             }),
             state: outcome.state,
             message: outcome.message,
+            nextReadAt:
+              outcome.state === CloudCostState.Queued
+                ? CloudConnectionLanes.getQueuedCostsReadAt({
+                    retryAt: outcome.retryAt,
+                    now: data.now,
+                    readIntervalMs: data.readIntervalMs,
+                  })
+                : undefined,
           };
         }
 
@@ -880,13 +1107,27 @@ export default class CloudConnectionLanes {
         "Could not keep the accounts' costs: " +
           (error instanceof Error ? error.message : String(error)),
       );
-      CloudConnectionLanes.retrySoon(data.state, "costsReadAt", data.now);
+
+      if (isWholeRead) {
+        CloudConnectionLanes.retrySoon(data.state, "costsReadAt", data.now);
+      } else {
+        CloudConnectionLanes.retryPendingSoon(data.state, data.now);
+      }
 
       return { ran: true, warnings, rowsWritten, accountsRead };
     }
 
-    data.state.costsReadAt = data.now.toISOString();
-    data.state.costsVersion = CLOUD_COSTS_READ_VERSION;
+    // What the read got to, now that its costs are kept.
+    CloudConnectionLanes.keepCostProgress({
+      state: data.state,
+      outcomes: read.accounts,
+      now: data.now,
+    });
+
+    if (isWholeRead) {
+      data.state.costsReadAt = data.now.toISOString();
+      data.state.costsVersion = CLOUD_COSTS_READ_VERSION;
+    }
 
     // The costs per resource read, now kept: read again a day later.
     if (read.resourceCostsReadAt) {

@@ -34,7 +34,10 @@ import SecretRedactor from "../Utils/SecretRedactor";
 import CodeAgentWorkspaceGuard, {
   CommandGuardDecision,
 } from "Common/Server/Utils/AI/CodeFix/CodeAgentWorkspaceGuard";
-import { measureContextChars } from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
+import {
+  getToolResultLoopCall,
+  measureContextChars,
+} from "Common/Server/Utils/AI/Chat/AgentContextCompactor";
 import { AIRunRetryDecision } from "Common/Server/Utils/AI/AIRunRetryPolicy";
 import {
   LLMMessage,
@@ -629,13 +632,18 @@ export default class InHouseCodeAgent implements CodeAgent {
 
           if (!refusal) {
             this.toolCallsMade++;
-            roundCalls.push({
-              name: toolCall.name,
-              arguments: toolCall.arguments || {},
-              output: toolResult,
-              // The tools' failures are "Error: ..."; a command's exit code is a result.
-              isError: toolResult.startsWith("Error"),
-            });
+            /*
+             * As every agent loop records a result (getToolResultLoopCall),
+             * and as a compaction names one it leaves out (CodeAgentContext).
+             */
+            roundCalls.push(
+              getToolResultLoopCall({
+                toolCall,
+                content: toolResult,
+                // The tools' failures are "Error: ..."; a command's exit code is a result.
+                isError: toolResult.startsWith("Error"),
+              }),
+            );
           }
 
           logs.push(

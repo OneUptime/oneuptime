@@ -37,9 +37,11 @@ import { KubernetesCostPricingSource } from "./Types";
  *
  * And for a cloud, any Kubecost says whether it reads that cloud's bill
  * (/model/cloudCost/status, its cloud integrations): then it reconciles its
- * prices with what was paid, a day and a half after each hour (its UI's
- * reconciliationHoursDelay). The cost agent ships each hour as it closes,
- * before that, so those hours are at list prices; the pages say both.
+ * prices with what was paid, a day and a half to two days after each hour
+ * (its UI's reconciliationHoursDelay is 36 hours, its docs say 48). The cost
+ * agent ships each hour as it closes, before that, at list prices, and reads
+ * the hour again once it is reconciled (EngineCorrections, #9969); the pages
+ * say how far the reconciled figures reach.
  *
  * When the engine cannot say (an older engine, a frontend that does not pass
  * the API on), the chart's hint about its own bundled engine decides, and

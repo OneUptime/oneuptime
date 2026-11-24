@@ -168,6 +168,58 @@ const logReads: Array<ScopedRead> = [
       });
     },
   ],
+  /*
+   * An aggregate of a number (#7716) reads the same rows a count does: an
+   * average never takes in a service the caller may not read.
+   */
+  [
+    "analytics timeseries of a p95",
+    () => {
+      return LogAggregationService.getAnalyticsTimeseries({
+        projectId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes: 5,
+        chartType: "timeseries",
+        aggregation: "p95",
+        aggregationField: "duration_ms",
+        groupBy: ["primaryEntityId"],
+        ...scoped,
+      });
+    },
+  ],
+  [
+    "analytics top list of an average",
+    () => {
+      return LogAggregationService.getAnalyticsTopList({
+        projectId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes: 5,
+        chartType: "toplist",
+        aggregation: "avg",
+        aggregationField: "duration_ms",
+        groupBy: ["http.route"],
+        ...scoped,
+      });
+    },
+  ],
+  [
+    "analytics table of a maximum",
+    () => {
+      return LogAggregationService.getAnalyticsTable({
+        projectId,
+        startTime,
+        endTime,
+        bucketSizeInMinutes: 5,
+        chartType: "table",
+        aggregation: "max",
+        aggregationField: "bytes",
+        groupBy: ["severityText"],
+        ...scoped,
+      });
+    },
+  ],
   [
     "export",
     () => {

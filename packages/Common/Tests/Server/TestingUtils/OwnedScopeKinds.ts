@@ -24,6 +24,8 @@ export const KINDS_READ_BY_EVERY_READER: Readonly<Record<string, string>> = {
     "A runbook's steps, a cluster's AI and a code repository's AI work run on a runner picked from the project's runners.",
   AIAgent: "Like a probe, an agent the project's AI work runs on.",
   Team: "A team is picked as an owner, an on-call responder and a notification recipient everywhere, and who is in it is shown with it, whoever owns it.",
+  NetworkSite:
+    "A device is put in a site and a site under another, links, endpoints, rules and maintenance events name one, and the Sites page draws the whole tree with every site's parents.",
 };
 
 // Whether the Owned scope leaves reads of `kind` (a registry key) alone.

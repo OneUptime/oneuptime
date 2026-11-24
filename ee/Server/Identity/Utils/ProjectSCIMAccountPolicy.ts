@@ -1,4 +1,5 @@
 import { isScimEmailChanging } from "./SCIMUtils";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
@@ -22,16 +23,27 @@ import User from "Common/Models/DatabaseModels/User";
  *
  * 1. MEMBERSHIP. Accepting a membership is a permission grant (see
  *    TeamMemberService.onBeforeCreate), so on the hosted service SCIM creates
- *    an ACCEPTED membership only for:
- *      - an account this SCIM request has just created, or
- *      - an account that has already joined this project - which includes
- *        everybody whose mailbox owner confirmed this project's single
- *        sign-on (UserProjectSsoConsent): confirming joins them.
- *    Any other existing account is INVITED: a pending membership and the
- *    ordinary invitation email, which it accepts or rejects for itself. That
+ *    an ACCEPTED membership only for an account that has already joined
+ *    this project - which includes everybody whose mailbox owner confirmed
+ *    this project's single sign-on (UserProjectSsoConsent): confirming joins
+ *    them. Everybody else is INVITED: a pending membership and the ordinary
+ *    invitation email, which they accept or reject for themselves. That
  *    includes somebody who has left the project: leaving ends their consent
  *    to its single sign-on (ProjectLeaveAccessCleanup), so the project
  *    cannot add them back without asking.
+ *
+ *    And it includes an account the connection has just created (#9899).
+ *    It used to be added at once, where one that existed was invited, so
+ *    the project's Users list - Member or Invited - said which addresses
+ *    already had an account. Now both are invited, after the same reads,
+ *    named by the name the identity provider sent (TeamMember.inviteeName)
+ *    until they accept: what the project reads of the two is the same.
+ *    Accepting SCIM's word for addresses on the project's verified domains,
+ *    so that both are members instead, would not hide it: a member's own
+ *    profile shows (#9823, PendingInviteeProfiles), and an account that
+ *    existed would show its own name and picture where one SCIM made shows
+ *    the provider's.
+ *
  *    Self-hosted installs keep accepting on arrival. Their project admins are
  *    usually one organisation, and many have no working SMTP to invite with.
  *
@@ -151,16 +163,41 @@ export default class ProjectSCIMAccountPolicy {
   }
 
   /*
+   * A name the identity provider sent, as a membership keeps it
+   * (TeamMember.inviteeName, as TeamMemberService.toInviteeName keeps an
+   * invite form's): trimmed, cut to the column's length, and undefined when
+   * there is none.
+   */
+  public static toInviteeName(
+    name: string | null | undefined,
+  ): string | undefined {
+    if (typeof name !== "string") {
+      return undefined;
+    }
+
+    const kept: string = name
+      .trim()
+      .substring(0, ColumnLength.ShortText)
+      .trim();
+
+    return kept || undefined;
+  }
+
+  /*
    * Adds an account to one of the project's teams: accepted when rule 1
-   * above allows it, as a pending invitation when it does not.
+   * above allows it, as a pending invitation when it does not. Asked the
+   * same way, with the same reads, whether the connection has just created
+   * the account or it existed (#9899).
    *
-   * `userWasCreatedByScim` is for an account this very request created.
+   * `inviteeName` is the name the identity provider sent for the person -
+   * never the account's own - which the project sees in place of their
+   * profile until they accept (TeamMember.inviteeName, #9823).
    */
   public static async addUserToTeam(data: {
     projectId: ObjectID;
     userId: ObjectID;
     teamId: ObjectID;
-    userWasCreatedByScim?: boolean | undefined;
+    inviteeName?: string | null | undefined;
   }): Promise<ProjectSCIMTeamAddOutcome> {
     const user: User | null = await UserService.findOneById({
       id: data.userId,
@@ -202,10 +239,24 @@ export default class ProjectSCIMAccountPolicy {
     teamMember.userId = data.userId;
     teamMember.teamId = data.teamId;
 
-    if (!this.isHostedService() || data.userWasCreatedByScim) {
+    const inviteeName: string | undefined = this.toInviteeName(
+      data.inviteeName,
+    );
+
+    if (inviteeName) {
+      teamMember.inviteeName = inviteeName;
+    }
+
+    if (!this.isHostedService()) {
       return await this.createAcceptedMembership(teamMember);
     }
 
+    /*
+     * Where the account stands in the project, read for every address -
+     * one the connection has just created as well as one that existed - so
+     * that both take the same reads, and only having joined the project
+     * already makes a member (rule 1 above).
+     */
     const standing: ProjectSCIMAccountStanding =
       await this.getStandingInProject({
         projectId: data.projectId,
@@ -239,6 +290,45 @@ export default class ProjectSCIMAccountPolicy {
     return ProjectSCIMTeamAddOutcome.Invited;
   }
 
+  /*
+   * The identity provider renamed a SCIM user: the person's invitations into
+   * the project that wait for them take the new name, so the project goes
+   * on seeing the provider's name for someone it has not met yet (#9899).
+   * An accepted membership is left as it is: the project sees a member's
+   * own profile. A provider that sends no name any more leaves the one it
+   * sent. The same write, whether or not the account existed before the
+   * connection named it: both are invitations until they accept.
+   */
+  public static async renamePendingInvitations(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+    inviteeName: string | null | undefined;
+  }): Promise<void> {
+    const inviteeName: string | undefined = this.toInviteeName(
+      data.inviteeName,
+    );
+
+    if (!inviteeName) {
+      return;
+    }
+
+    await TeamMemberService.updateBy({
+      query: {
+        projectId: data.projectId,
+        userId: data.userId,
+        hasAcceptedInvitation: false,
+      },
+      data: {
+        inviteeName: inviteeName,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   private static async createAcceptedMembership(
     teamMember: TeamMember,
   ): Promise<ProjectSCIMTeamAddOutcome> {
@@ -257,6 +347,9 @@ export default class ProjectSCIMAccountPolicy {
   /*
    * Rule 2's "an account this project manages". Every membership the account
    * has, in any project, is read: one elsewhere is what disqualifies it.
+   * Read before anything is decided - for an administrator's account too,
+   * which no project manages - so every account takes the same reads, and
+   * how long the answer takes says nothing of which it was (#9899).
    */
   public static async isAccountManagedByProject(data: {
     projectId: ObjectID;
@@ -273,10 +366,6 @@ export default class ProjectSCIMAccountPolicy {
       },
     });
 
-    if (!user || user.isMasterAdmin) {
-      return false;
-    }
-
     const memberships: Array<TeamMember> = await TeamMemberService.findBy({
       query: {
         userId: data.userId,
@@ -292,6 +381,10 @@ export default class ProjectSCIMAccountPolicy {
         isRoot: true,
       },
     });
+
+    if (!user || user.isMasterAdmin) {
+      return false;
+    }
 
     const belongsToAnotherProject: boolean = memberships.some(
       (membership: TeamMember) => {
@@ -327,14 +420,20 @@ export default class ProjectSCIMAccountPolicy {
       return false;
     }
 
-    if (!(await this.isAccountManagedByProject(data))) {
-      return false;
-    }
+    /*
+     * Both asked of every account, managed or not, so the answer takes the
+     * same reads whichever it is: an account this project manages has
+     * joined it and no other, and how long the answer took would say which
+     * (#9899).
+     */
+    const isManaged: boolean = await this.isAccountManagedByProject(data);
 
-    return !(await this.isAddressOfAnotherAccount({
+    const isTaken: boolean = await this.isAddressOfAnotherAccount({
       userId: data.userId,
       email: data.newEmail,
-    }));
+    });
+
+    return isManaged && !isTaken;
   }
 
   /*

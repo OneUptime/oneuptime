@@ -5,6 +5,8 @@ import { readDataLineageDepth } from "../../../../Types/DataObservability/DataTa
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import Permission from "../../../../Types/Permission";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../../../Types/Product/ProductLevels";
 import DataTableAnswerer, {
   DataTableAnswer,
   formatDataTableAnswer,
@@ -60,17 +62,23 @@ import { citationSentence, countFigure } from "./ReadTableWords";
  * apart (#9562).
  */
 
-// Who may read the watched tables: whoever may read a data asset.
-const DATA_ASSET_READ_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.Viewer,
-  Permission.TelemetryAdmin,
-  Permission.TelemetryMember,
-  Permission.TelemetryViewer,
-  Permission.ReadDataAsset,
-];
+/*
+ * Who may read the watched tables: whoever may read a data asset, Data
+ * Observability's own levels among them (Types/Product/ProductLevels).
+ */
+const DATA_ASSET_READ_PERMISSIONS: Array<Permission> = withProductLevelsOf({
+  products: [ProductKey.DataObservability],
+  permissions: [
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.TelemetryAdmin,
+    Permission.TelemetryMember,
+    Permission.TelemetryViewer,
+    Permission.ReadDataAsset,
+  ],
+});
 
 // What a tool reads of the tables and pipelines, and what its alert names besides.
 interface ToolReadScope {

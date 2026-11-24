@@ -267,6 +267,7 @@ flowchart TB
 - `escalateAfterInMinutes` 在仪表板之外没有默认值。不带它创建的规则不会等待：此级别运行后会立即呼叫下一级。请显式设置它——仪表板建议的值是 30。
 - 在 `miscDataProps` 中带 `onCallSchedules` 、 `teams` 或 `users` （ID 列表）创建的规则会获得这些响应人，仪表板的 **通知** 选择器就是这样发送它们的。不带它们创建的规则在你通过上述资源添加响应人之前不会呼叫任何人。
 - 在 `miscDataProps` 中带 `nextInRotationSchedules` （值班计划 ID 列表）创建的规则，会呼叫其中每个值班计划轮换中的下一个人。在 `-schedule` 资源上， `pageNextInRotation` 设为 `true` 的行作用相同；该值在创建该行时设置。
+- 规则对每个人员、团队和值班计划只呼叫一次，对值班计划则按每种呼叫方式各呼叫一次。通过上述资源或 Terraform 添加规则已在呼叫的响应人会被拒绝，错误会指出该响应人和规则，且不会有任何改动。 `miscDataProps` 的列表中出现两次的 ID 只添加一次。
 - 以级别命名的规则只会在你于仪表板中移动或删除规则时被重命名。通过 API 或 Terraform 更改 `order` 只会改变顺序。
 - 在 `/api/on-call-duty-policy` 创建值班策略时，在 `miscDataProps` 中带上 `onCallSchedules` 、 `teams` 或 `users` （ID 列表），会像仪表板一样为它创建第一条升级规则：呼叫这些对象的 **Level 1** ， `escalateAfterInMinutes` 为 30。每个 ID 都必须属于该项目，调用方必须有权创建升级规则，否则不会创建策略。不带它们创建的策略和以前一样没有规则；Terraform 的策略资源不会发送它们。
 

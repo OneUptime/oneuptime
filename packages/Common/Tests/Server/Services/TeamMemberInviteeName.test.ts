@@ -9,6 +9,7 @@ import MailService from "../../../Server/Services/MailService";
 import ProjectSCIMService from "../../../Server/Services/ProjectSCIMService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService, {
+  TeamMemberCreateCarryForward,
   TeamMemberService as TeamMemberServiceClass,
 } from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
@@ -29,6 +30,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { callTeamMemberHook } from "../TestingUtils/TeamMemberInvitations";
 
 /*
  * THE NAME AN INVITATION GIVES (#9745).
@@ -62,21 +64,17 @@ let createUserSpy: jest.SpyInstance;
 let updateUserSpy: jest.SpyInstance;
 let sendMailSpy: jest.SpyInstance;
 
-// Calls a protected hook without widening the service's public surface.
+/*
+ * Calls a protected hook without widening the service's public surface -
+ * a membership's onBeforeCreate with the invitation it plans, which its
+ * create sends once the membership is made (runInvitationHooks, #10180).
+ */
 function callHook(
   service: unknown,
   name: string,
   ...args: Array<unknown>
 ): Promise<unknown> {
-  const hooks: Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  > = service as Record<
-    string,
-    (...hookArgs: Array<unknown>) => Promise<unknown>
-  >;
-
-  return hooks[name]!.apply(service, args);
+  return callTeamMemberHook(service, name, ...args);
 }
 
 // An invitation by address, as the invite forms send it.
@@ -354,18 +352,30 @@ describe("the invitation goes on alike, whoever the address belongs to", () => {
     async (_case: string, account: (() => User) | null) => {
       findUserSpy.mockResolvedValue(account ? account() : null);
 
-      const result: { createBy: CreateBy<TeamMember>; carryForward: null } =
-        (await callHook(
-          TeamMemberService,
-          "onBeforeCreate",
-          inviteBy("Grace"),
-        )) as { createBy: CreateBy<TeamMember>; carryForward: null };
+      const result: {
+        createBy: CreateBy<TeamMember>;
+        carryForward: TeamMemberCreateCarryForward;
+      } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy("Grace"),
+      )) as {
+        createBy: CreateBy<TeamMember>;
+        carryForward: TeamMemberCreateCarryForward;
+      };
 
-      expect(result.carryForward).toBeNull();
+      // One invitation planned for the account, to the address, alike.
+      expect(result.carryForward.invitation?.user.id?.toString()).toBe(
+        USER_ID.toString(),
+      );
+      expect(result.carryForward.invitation?.email?.toString()).toBe(
+        "grace@company.com",
+      );
+      expect(result.carryForward.invitation?.isAccepted).toBe(false);
       expect(result.createBy.data.userId?.toString()).toBe(USER_ID.toString());
       expect(result.createBy.data.hasAcceptedInvitation).toBe(false);
 
-      // Not waited for, but asked for before the hook returns.
+      // Not waited for: sent once the membership is made (#10180).
       expect(sendMailSpy).toHaveBeenCalledTimes(1);
       expect(
         (
@@ -481,6 +491,108 @@ describe("the name typed is kept on the membership, whoever the address belongs 
   });
 });
 
+describe("the address invited is kept on the membership, whoever the address belongs to (#10175)", () => {
+  /*
+   * Until the person accepts, the project sees the address it invited, not
+   * the one their account moves to meanwhile (PendingInviteeProfiles reads
+   * it in place of the account's). So it is the address the invitation was
+   * sent to, whether the address had an account, an unclaimed one, or none,
+   * and OneUptime's alone to write.
+   */
+  test.each([
+    ["nobody", null],
+    [
+      "an unclaimed invitation",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: false });
+      },
+    ],
+    [
+      "someone signed up",
+      (): User => {
+        return accountAtAddress({ hasSignedUp: true });
+      },
+    ],
+  ])(
+    "an address that belongs to %s: the membership keeps the address invited",
+    async (_case: string, account: (() => User) | null) => {
+      findUserSpy.mockResolvedValue(account ? account() : null);
+
+      const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+        TeamMemberService,
+        "onBeforeCreate",
+        inviteBy("Grace Hopper"),
+      )) as { createBy: CreateBy<TeamMember> };
+
+      expect(result.createBy.data.inviteeEmail?.toString()).toBe(
+        INVITEE_EMAIL.toString(),
+      );
+    },
+  );
+
+  test("an address typed with capitals and spaces is kept as it was sent", async () => {
+    const typed: CreateBy<TeamMember> = inviteBy();
+    typed.miscDataProps = { email: "  Grace@Company.COM " };
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      typed,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeEmail?.toString()).toBe(
+      "grace@company.com",
+    );
+  });
+
+  test("an API client's own inviteeEmail is never kept: the address the invitation went to is", async () => {
+    const fromApi: CreateBy<TeamMember> = inviteBy();
+    fromApi.data.inviteeEmail = new Email("somebody.else@elsewhere.com");
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      fromApi,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.inviteeEmail?.toString()).toBe(
+      INVITEE_EMAIL.toString(),
+    );
+  });
+
+  test("a membership accepted as it is made keeps none: the project sees a member's own address", async () => {
+    // Someone in the project already, added to another of its teams.
+    findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
+    (TeamMemberService.isUserMemberOfProject as jest.Mock).mockResolvedValue(
+      true,
+    );
+
+    const added: CreateBy<TeamMember> = inviteBy();
+    added.data.inviteeEmail = new Email("somebody.else@elsewhere.com");
+
+    const result: { createBy: CreateBy<TeamMember> } = (await callHook(
+      TeamMemberService,
+      "onBeforeCreate",
+      added,
+    )) as { createBy: CreateBy<TeamMember> };
+
+    expect(result.createBy.data.hasAcceptedInvitation).toBe(true);
+    expect("inviteeEmail" in result.createBy.data).toBe(false);
+  });
+
+  test("no caller may send it: OneUptime writes it", () => {
+    const member: TeamMember = new TeamMember();
+
+    expect(member.getColumnAccessControlFor("inviteeEmail")!.create).toEqual(
+      [],
+    );
+    expect(member.getColumnAccessControlFor("inviteeEmail")!.update).toEqual(
+      [],
+    );
+    expect(member.getTableColumnMetadata("inviteeEmail").computed).toBe(true);
+  });
+});
+
 describe("an invitation into a project that manages sign-in with SSO is emailed as one (#9819)", () => {
   // The email the hook asked the mail service for: its variables.
   function emailVars(): Record<string, string> {
@@ -510,7 +622,13 @@ describe("an invitation into a project that manages sign-in with SSO is emailed 
     });
   });
 
-  test("someone signed up already: Sign In with SSO, on Sign in with SSO", async () => {
+  /*
+   * Someone who has signed up is sent to the project's own SSO page, which
+   * lists its providers (#10178) - on OneUptime Cloud with a single-use link
+   * of their own (InvitationSsoSignInLink.test.ts holds it), on a
+   * self-hosted server, which asks no mailbox, without one.
+   */
+  test("someone signed up already: Sign In with SSO, on the project's own SSO page", async () => {
     findUserSpy.mockResolvedValue(accountAtAddress({ hasSignedUp: true }));
     const asked: jest.SpyInstance = jest
       .spyOn(TeamMemberServiceClass, "readInvitationSsoManagedBy")
@@ -519,9 +637,13 @@ describe("an invitation into a project that manages sign-in with SSO is emailed 
     await callHook(TeamMemberService, "onBeforeCreate", inviteBy());
 
     const vars: Record<string, string> = emailVars();
+    const page: string = `https://oneuptime.test/accounts/sso/${PROJECT_ID.toString()}`;
 
     expect(vars["isSsoSignIn"]).toBe("true");
-    expect(vars["ssoSignInLink"]).toBe("https://oneuptime.test/accounts/sso");
+    expect(
+      vars["ssoSignInLink"] === page ||
+        vars["ssoSignInLink"]!.startsWith(`${page}?invitation=`),
+    ).toBe(true);
     // Their own projects count: asked about this account.
     expect(String(asked.mock.calls[0]![0]["userId"])).toBe(USER_ID.toString());
   });

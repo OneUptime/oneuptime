@@ -24,7 +24,19 @@ enum EmailTemplateType {
    */
   ConfirmEmailChange = "ConfirmEmailChange.hbs",
   EmailChangeAddressTaken = "EmailChangeAddressTaken.hbs",
+  /*
+   * An account's address changed, however it changed (#9907): to the
+   * address it had, in the account's own language
+   * (Types/Accounts/EmailAddressChangedEmail).
+   */
+  EmailAddressChanged = "EmailAddressChanged.hbs",
   ConfirmProjectSsoSignIn = "ConfirmProjectSsoSignIn.hbs",
+  /*
+   * The SSO sign-in links of the organizations an account belongs to, asked
+   * for on "Sign in with SSO" (#9987, Types/Accounts/SsoSignInLinks), in the
+   * account's own language.
+   */
+  SsoSignInLinks = "SsoSignInLinks.hbs",
   ProbeConnectionStatusChange = "ProbeConnectionStatusChange.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
   AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",
@@ -35,6 +47,12 @@ enum EmailTemplateType {
   TwoFactorBackupCodesRegenerated = "TwoFactorBackupCodesRegenerated.hbs",
   TwoFactorBackupCodesCreated = "TwoFactorBackupCodesCreated.hbs",
   TwoFactorWrongCodes = "TwoFactorWrongCodes.hbs",
+  /*
+   * A session of a person's account was signed out after too many wrong
+   * attempts to confirm it was them (#10218, Server/Utils/Reauthentication/
+   * SignedOutEmail), in their own language.
+   */
+  ReauthenticationSignedOut = "ReauthenticationSignedOut.hbs",
   /*
    * A person's password, passkeys and second steps were cleared by a server
    * admin or an owner of their projects (#9818, #9820,
@@ -70,7 +88,22 @@ enum EmailTemplateType {
   // A private user's sign-in link (Types/StatusPage/StatusPageMagicLink).
   StatusPageMagicLink = "StatusPageMagicLink.hbs",
   StatusPagePasswordChanged = "StatusPagePasswordChanged.hbs",
+  /*
+   * A private user's address changed (#10156): to the address they had, in
+   * the status page's branding and language
+   * (Types/StatusPage/PrivateUserEmailAddressChangedEmail).
+   */
+  StatusPagePrivateUserEmailAddressChanged = "StatusPagePrivateUserEmailAddressChanged.hbs",
   StatusPageWelcomeEmail = "StatusPageWelcomeEmail.hbs",
+  /*
+   * A private user of a dashboard's public link (#10250), or a form's: the
+   * invitation that sets their first password, a password reset link, and
+   * word that their password was changed. Named for the resource only, so
+   * one template serves every kind (Server/Services/PrivateUserServiceBase).
+   */
+  PrivateUserInvitation = "PrivateUserInvitation.hbs",
+  PrivateUserForgotPassword = "PrivateUserForgotPassword.hbs",
+  PrivateUserPasswordChanged = "PrivateUserPasswordChanged.hbs",
   SubscriberScheduledMaintenanceEventNoteCreated = "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
   SubscriberScheduledMaintenanceEventNoteUpdated = "SubscriberScheduledMaintenanceEventNoteUpdated.hbs",
   SMTPTest = "SMTPTest.hbs",

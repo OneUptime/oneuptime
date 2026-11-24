@@ -19,6 +19,7 @@ import Dictionary from "Common/Types/Dictionary";
 import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
 import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
 import { MetricZeroFillOptions } from "Common/Utils/Metrics/MetricZeroFill";
+import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -55,6 +56,7 @@ import MetricService from "Common/Server/Services/MetricService";
 import logger from "Common/Server/Utils/Logger";
 import {
   QueryArrivals,
+  QueryArrivalsReads,
   getSlotArrivals,
   isReadBehind,
   readQueryArrivals,
@@ -507,6 +509,219 @@ describe("readQueryArrivals: read only when it can change a verdict", () => {
       "Could not read when the metric monitor's data arrived; its series are judged by their data points' times alone.",
       { service: "workers", projectId: projectId.toString() },
     );
+  });
+});
+
+/*
+ * ONE EVALUATION'S ARRIVAL READS, EACH READ ONCE (issue #10108).
+ *
+ * The #10108 monitor reads container.restarts twice - its Maximum and its
+ * Minimum - with the same filters over the same window, and both reads look
+ * behind: the arrivals they read are the same rows. Given the evaluation's
+ * reads, a query that reads what another already read (or is reading) is
+ * handed that read; a read that failed is not kept. And given the
+ * evaluation's series reader, every row is fingerprinted as before.
+ */
+describe("readQueryArrivals: the arrivals one evaluation reads, each once", () => {
+  const behind: AggregatedResult = buckets({
+    "checkout-1": 0,
+    "checkout-2": 6,
+  });
+
+  const ROWS: Array<unknown> = [
+    {
+      attributes: { [POD_KEY]: "checkout-1" },
+      aggregates: {
+        newestArrivalMs: END_MS - 10 * SECOND,
+        oldestArrivalMs: END_MS - 14 * MINUTE,
+        arrivalMinuteCount: 15,
+        newestPointArrivalMs: END_MS - 10 * SECOND,
+        newestPointTimeMs: END_MS - 3 * MINUTE,
+      },
+    },
+    {
+      attributes: { [POD_KEY]: "checkout-2" },
+      aggregates: {
+        newestArrivalMs: END_MS - 6 * MINUTE,
+        oldestArrivalMs: END_MS - 14 * MINUTE,
+        arrivalMinuteCount: 9,
+        newestPointArrivalMs: END_MS - 6 * MINUTE,
+        newestPointTimeMs: END_MS - 7 * MINUTE,
+      },
+    },
+  ];
+
+  function arrivalsOf(input: {
+    reads?: QueryArrivalsReads | undefined;
+    name?: string;
+    groupByAttributeKeys?: Array<string>;
+    startAndEndDate?: InBetween<Date>;
+    attributes?: Dictionary<string>;
+  }): Promise<QueryArrivals | null> {
+    return readQueryArrivals({
+      query: {
+        projectId,
+        name: input.name ?? "container.restarts",
+        time: input.startAndEndDate ?? WINDOW,
+        ...(input.attributes ? { attributes: input.attributes } : {}),
+      },
+      groupByAttributeKeys: input.groupByAttributeKeys ?? [POD_KEY],
+      aggregatedResult: behind,
+      startAndEndDate: input.startAndEndDate ?? WINDOW,
+      judgesFreshness: true,
+      projectId,
+      reads: input.reads,
+    });
+  }
+
+  test("a second query reading the same arrivals is handed the first's read", async () => {
+    readSeriesArrivals.mockResolvedValue(ROWS);
+    const reads: QueryArrivalsReads = new Map();
+
+    const first: QueryArrivals | null = await arrivalsOf({ reads });
+    const second: QueryArrivals | null = await arrivalsOf({ reads });
+
+    expect(readSeriesArrivals).toHaveBeenCalledTimes(1);
+    expect(first!.bySeries.size).toBe(2);
+    expect(second).toBe(first);
+  });
+
+  test("queries asking at once wait on one read", async () => {
+    let answer: (rows: Array<unknown>) => void = (): void => {};
+    readSeriesArrivals.mockReturnValue(
+      new Promise<Array<unknown>>((resolve: (rows: Array<unknown>) => void) => {
+        answer = resolve;
+      }),
+    );
+    const reads: QueryArrivalsReads = new Map();
+
+    const asked: Promise<Array<QueryArrivals | null>> = Promise.all([
+      arrivalsOf({ reads }),
+      arrivalsOf({ reads }),
+      arrivalsOf({ reads }),
+    ]);
+
+    // Let every query get to its read before it is answered.
+    for (let turn: number = 0; turn < 10; turn++) {
+      await new Promise<void>((resolve: () => void) => {
+        setImmediate(resolve);
+      });
+    }
+
+    answer(ROWS);
+    const arrivals: Array<QueryArrivals | null> = await asked;
+
+    expect(readSeriesArrivals).toHaveBeenCalledTimes(1);
+    expect(arrivals[1]).toBe(arrivals[0]);
+    expect(arrivals[2]).toBe(arrivals[0]);
+    expect(arrivals[0]!.bySeries.size).toBe(2);
+  });
+
+  test("another metric, other filters, another grouping or another window is a read of its own", async () => {
+    readSeriesArrivals.mockResolvedValue(ROWS);
+    const reads: QueryArrivalsReads = new Map();
+
+    await arrivalsOf({ reads });
+    await arrivalsOf({ reads, name: "container.uptime" });
+    await arrivalsOf({ reads, attributes: CLUSTER_SCOPE });
+    await arrivalsOf({ reads, groupByAttributeKeys: [POD_KEY, "host.name"] });
+    await arrivalsOf({
+      reads,
+      startAndEndDate: new InBetween<Date>(
+        new Date(END_MS - 30 * MINUTE),
+        new Date(END_MS),
+      ),
+    });
+
+    expect(readSeriesArrivals).toHaveBeenCalledTimes(5);
+  });
+
+  test("a read that failed is not kept: the next query that needs it reads again", async () => {
+    readSeriesArrivals
+      .mockRejectedValueOnce(new Error("Timeout exceeded"))
+      .mockResolvedValueOnce(ROWS);
+    const reads: QueryArrivalsReads = new Map();
+
+    expect(await arrivalsOf({ reads })).toBeNull();
+
+    const again: QueryArrivals | null = await arrivalsOf({ reads });
+
+    expect(readSeriesArrivals).toHaveBeenCalledTimes(2);
+    expect(again!.bySeries.size).toBe(2);
+    expect(reads.size).toBe(1);
+  });
+
+  test("without the evaluation's reads, every query reads, as before", async () => {
+    readSeriesArrivals.mockResolvedValue(ROWS);
+
+    const first: QueryArrivals | null = await arrivalsOf({});
+    const second: QueryArrivals | null = await arrivalsOf({});
+
+    expect(readSeriesArrivals).toHaveBeenCalledTimes(2);
+    expect(second).not.toBe(first);
+    expect(second).toEqual(first);
+  });
+
+  test("with the evaluation's series reader, each series' arrival is under the fingerprint it had", async () => {
+    readSeriesArrivals.mockResolvedValue(ROWS);
+
+    const withReader: QueryArrivals | null = await readQueryArrivals({
+      query: { projectId, name: "container.restarts", time: WINDOW },
+      groupByAttributeKeys: [POD_KEY],
+      aggregatedResult: behind,
+      startAndEndDate: WINDOW,
+      judgesFreshness: true,
+      projectId,
+      readSeries: MetricSeriesFingerprint.createSeriesReader([POD_KEY]),
+    });
+    const without: QueryArrivals | null = await arrivalsOf({});
+
+    expect(withReader).toEqual(without);
+    expect(
+      Array.from(withReader!.bySeries.keys()).sort((a: string, b: string) => {
+        return a.localeCompare(b);
+      }),
+    ).toEqual(
+      ["checkout-1", "checkout-2"]
+        .map((pod: string): string => {
+          return MetricSeriesFingerprint.computeFingerprint({
+            [POD_KEY]: pod,
+          });
+        })
+        .sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        }),
+    );
+  });
+
+  test("isReadBehind with a series reader says what it says without one, over 2,000 random fleets", () => {
+    const random: SeededRandom = seededRandom(10108);
+
+    for (let fleet: number = 0; fleet < 2_000; fleet++) {
+      const pods: Record<string, number> = {};
+      const podCount: number = 1 + random(6);
+
+      for (let pod: number = 0; pod < podCount; pod++) {
+        pods[`pod-${random(4)}`] = random(4);
+      }
+
+      const aggregatedResult: AggregatedResult = buckets(pods);
+
+      expect(
+        isReadBehind({
+          aggregatedResult,
+          groupByAttributeKeys: [POD_KEY],
+          startAndEndDate: WINDOW,
+          readSeries: MetricSeriesFingerprint.createSeriesReader([POD_KEY]),
+        }),
+      ).toBe(
+        isReadBehind({
+          aggregatedResult,
+          groupByAttributeKeys: [POD_KEY],
+          startAndEndDate: WINDOW,
+        }),
+      );
+    }
   });
 });
 

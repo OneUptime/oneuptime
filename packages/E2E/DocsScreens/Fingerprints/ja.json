@@ -232,8 +232,8 @@
       "button: 自分にテスト呼び出しを送信",
       "button: テストをスキップ"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: このポリシーをテスト",
       "button: テストをスキップ"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "paging-summary": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: 解決",
+      "button: Maya Chen の インシデントコマンダー を再割り当て",
       "button: 追加 所有者を追加",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"

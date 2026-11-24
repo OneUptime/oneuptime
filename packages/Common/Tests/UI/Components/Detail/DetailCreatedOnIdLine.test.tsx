@@ -97,7 +97,7 @@ import Timezone from "../../../../Types/Timezone";
  * on the monitor's Details card, a "Created" row with a clock above the
  * small ID line. Detail now takes a Date or DateTime field on createdAt (and
  * on updatedAt, where a card shows it) out of the grid and puts it on that
- * line, after the ID: "ID dafafe92… Created Sep 30 2026, 14:25 BST". Pages
+ * line, after the ID: "ID dafafe92… Created Sep 30, 2026, 14:25 BST". Pages
  * declare the field as they always have. These hold that, every way out of
  * it, and that nothing else about the grid moved.
  */
@@ -217,10 +217,10 @@ describe("Created leaves the grid for the ID line", () => {
     expect(pieces()).toEqual(["detail-id-line", "detail-created-at"]);
     expect(
       within(recordLine()).getByTestId("detail-created-at-value"),
-    ).toHaveTextContent("Sep 30 2026, 14:25 BST");
+    ).toHaveTextContent("Sep 30, 2026, 14:25 BST");
     // Nothing of it is left in the grid: no row, no clock, no date.
     expect(grid).not.toHaveTextContent("Created");
-    expect(grid).not.toHaveTextContent("Sep 30 2026");
+    expect(grid).not.toHaveTextContent("Sep 30, 2026");
     expect(grid.querySelector("svg")).toBeNull();
   });
 
@@ -251,7 +251,7 @@ describe("Created leaves the grid for the ID line", () => {
 
     expect(screen.queryByText("Issued On")).toBeNull();
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Sep 30 2026, 14:25 BST",
+      "Sep 30, 2026, 14:25 BST",
     );
   });
 
@@ -282,7 +282,7 @@ describe("Created leaves the grid for the ID line", () => {
       "detail-updated-at",
     ]);
     expect(screen.getByTestId("detail-updated-at-value")).toHaveTextContent(
-      "Oct 01 2026, 09:12 BST",
+      "Oct 1, 2026, 09:12 BST",
     );
   });
 
@@ -310,7 +310,7 @@ describe("Created leaves the grid for the ID line", () => {
     const grid: HTMLElement = detail.firstElementChild as HTMLElement;
 
     expect(rowTitles(grid)).toEqual(["Starts At"]);
-    expect(grid).toHaveTextContent("Oct 06 2026, 20:00 BST");
+    expect(grid).toHaveTextContent("Oct 6, 2026, 20:00 BST");
   });
 
   test("a time declared twice is said once", () => {
@@ -328,7 +328,7 @@ describe("Created leaves the grid for the ID line", () => {
     renderDetail({ fields: [NAME, CREATED_FIELD, ID] });
 
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Sep 30 2026, 09:25 EDT",
+      "Sep 30, 2026, 09:25 EDT",
     );
   });
 
@@ -601,7 +601,7 @@ describe("ModelDetail and CardModelDetail", () => {
 
     expect(pieces()).toEqual(["detail-id-line", "detail-created-at"]);
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Sep 30 2026, 14:25 BST",
+      "Sep 30, 2026, 14:25 BST",
     );
     expect(screen.queryByText("Created At")).toBeNull();
     expect(recordLine().parentElement).toHaveAttribute("id", "probe-detail");

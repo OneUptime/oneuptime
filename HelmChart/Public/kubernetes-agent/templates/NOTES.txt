@@ -28,7 +28,7 @@ not arrive. Switch to the openshift preset:
 The agent is now collecting:
 {{- /* The node collector DaemonSet reads these; EKS Fargate runs no DaemonSet. */}}
 {{- if eq (include "kubernetes-agent.daemonSetMetricsEnabled" .) "true" }}
-  - Node, pod, and container resource metrics (kubeletstats)
+  - Node, pod, and container resource metrics ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "kubelet_stats") }})
 {{- if .Values.kubeletstats.utilizationMetrics.enabled }}
   - Container & pod CPU/memory saturation (% of request/limit)
 {{- end }}
@@ -40,9 +40,9 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
-  - Kubernetes events (k8sobjects)
+  - Kubernetes events ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_objects") }})
 {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
-  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services (k8sobjects/openshift)
+  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "k8s_objects") }}/openshift)
 {{- end }}
 {{- if .Values.kubeStateMetrics.enabled }}
 {{- if eq .Values.kubeStateMetrics.mode "bundled" }}
@@ -84,7 +84,7 @@ The agent is now collecting:
 {{- if eq $logMode "api" }}
   - Pod logs via the Kubernetes API (log-tailer Deployment — works on GKE Autopilot, EKS Fargate, and any cluster that blocks hostPath)
 {{- else if eq $logMode "daemonset" }}
-  - Pod logs from /var/log/pods (filelog DaemonSet)
+  - Pod logs from /var/log/pods ({{ include "kubernetes-agent.componentType" (dict "root" . "type" "file_log") }} DaemonSet)
 {{- if eq (include "kubernetes-agent.windowsPodLogsEnabled" .) "true" }}
   - Pod logs from Windows nodes via the Kubernetes API (log-tailer Deployment, scoped to pods the Linux-only DaemonSet cannot reach)
 {{- end }}
@@ -119,6 +119,30 @@ The agent is now collecting:
 {{- end }}
 {{- if $aiAgent.enabled }}
   - Kubernetes AI agent: lets OneUptime AI run {{ if $aiAgent.allowWrites }}kubectl to investigate AND fix incidents and alerts{{ else }}read-only kubectl while it investigates incidents and alerts{{ end }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.nodeBenchmarkEnabled" .) "true" }}
+  - The CIS Kubernetes Benchmark's node{{ if eq (include "kubernetes-agent.nodeBenchmarkControlPlane" .) "true" }} and control plane{{ end }} controls ({{ include "kubernetes-agent.nodeBenchmarkName" . }}), read on the nodes by kube-bench on the schedule "{{ (include "kubernetes-agent.nodeBenchmarkValues" . | fromYaml).schedule | default "37 */6 * * *" }}", for the cluster's Compliance page. Its pods run as root with the node's process namespace and read-only mounts of its Kubernetes directories; the README's "Node benchmark" section says what that costs. To run it now:
+      kubectl create job --from=cronjob/{{ include "kubernetes-agent.nodeBenchmarkCronJobName" (dict "root" . "group" (first ((include "kubernetes-agent.nodeBenchmarkValues" . | fromYaml).nodeGroups | default (list (dict "name" "workers")))).name) }} kube-bench-now -n {{ .Release.Namespace }}
+{{- end }}
+{{- $nodeBenchmarkLeftOut := include "kubernetes-agent.nodeBenchmarkLeftOut" . }}
+{{- if and $nodeBenchmarkLeftOut (ne $nodeBenchmarkLeftOut "off") }}
+
+compliance.nodeBenchmark.enabled is true, but kube-bench is left out:
+{{- if eq $nodeBenchmarkLeftOut "resource-specs" }}
+resourceSpecs.enabled is false, and the resource snapshots it turns off are
+what carry kube-bench's results to OneUptime.
+{{- else if eq $nodeBenchmarkLeftOut "no-host-access" }}
+the {{ .Values.preset }} preset admits no pod that reads the node's files or
+shares its processes, which is how kube-bench reads them.
+{{- else if eq $nodeBenchmarkLeftOut "openshift" }}
+OpenShift's benchmark (rh-1.x) reads the cluster through oc with a cluster
+reader's rights, which kube-bench's pod never gets. OpenShift's Compliance
+Operator scores the CIS Red Hat OpenShift Container Platform Benchmark.
+{{- else if eq $nodeBenchmarkLeftOut "rancher" }}
+k3s and RKE2 keep their components' flags in the node's journal and in
+Rancher's own paths, which kube-bench's pod does not read. Set
+compliance.nodeBenchmark.benchmark=cis-1.12 to run the generic benchmark anyway.
+{{- end }}
 {{- end }}
 {{- if .Values.preset }}
 

@@ -349,27 +349,43 @@ export default class QueryHelper {
   /*
    * A jsonb array of objects holding an object whose `key` is one of these
    * texts, compared without case: the security cases whose entities name
-   * "web-1", however an event spelled it ("WEB-1"). The key and the texts
-   * are bound parameters; anything that is not an array of objects matches
-   * nothing rather than aborting the query. Callers must not pass an empty
-   * list.
+   * "web-1", however an event spelled it ("WEB-1"). `exactTexts`, when
+   * given, are compared as written instead: an ARN or a Google Cloud
+   * resource name, which another case makes another resource (#10034). The
+   * key and the texts are bound parameters; anything that is not an array
+   * of objects matches nothing rather than aborting the query. Callers must
+   * not pass empty lists only.
    */
   public static jsonArrayObjectsHaveTextAnyOf(data: {
     key: string;
     texts: Array<string>;
+    exactTexts?: Array<string> | undefined;
   }): FindWhereProperty<any> {
     const keyParameter: string = Text.generateRandomText(10);
     const textsParameter: string = Text.generateRandomText(10);
+    const exactTextsParameter: string = Text.generateRandomText(10);
+    const exactTexts: Array<string> = (data.exactTexts || []).map(
+      (text: string): string => {
+        return text.trim();
+      },
+    );
 
     return Raw(
       (alias: string): string => {
-        return `(EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(${alias}) = 'array' THEN ${alias} ELSE '[]'::jsonb END) AS json_array_item(item) WHERE jsonb_typeof(json_array_item.item) = 'object' AND LOWER(json_array_item.item ->> :${keyParameter}) = ANY(CAST(:${textsParameter} AS text[]))))`;
+        const value: string = `json_array_item.item ->> :${keyParameter}`;
+        const matches: string =
+          exactTexts.length > 0
+            ? `(LOWER(${value}) = ANY(CAST(:${textsParameter} AS text[])) OR ${value} = ANY(CAST(:${exactTextsParameter} AS text[])))`
+            : `LOWER(${value}) = ANY(CAST(:${textsParameter} AS text[]))`;
+
+        return `(EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(${alias}) = 'array' THEN ${alias} ELSE '[]'::jsonb END) AS json_array_item(item) WHERE jsonb_typeof(json_array_item.item) = 'object' AND ${matches}))`;
       },
       {
         [keyParameter]: data.key,
         [textsParameter]: data.texts.map((text: string): string => {
           return text.toLowerCase().trim();
         }),
+        ...(exactTexts.length > 0 ? { [exactTextsParameter]: exactTexts } : {}),
       },
     );
   }

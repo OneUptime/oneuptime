@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 58633,
-    "untranslated": 8222
+    "keys": 59636,
+    "untranslated": 8227
   },
   "sameAsEnglish": [
     " is",
@@ -86,6 +86,7 @@
     "Capabilities (Restricted)",
     "Capture",
     "Celsius",
+    "Challenge",
     "Chassis",
     "Chat",
     "Chats",
@@ -316,6 +317,7 @@
     "Messaging",
     "Metadata",
     "Mexico (+52)",
+    "Microsoft Intune",
     "Minimum",
     "Mirantis MOSK",
     "Model",
@@ -325,6 +327,7 @@
     "Mons",
     "Mons in quorum",
     "MySQL",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Nameserver",
     "Native push (Proxmox VE 9+)",
     "Nav",
@@ -464,6 +467,7 @@
     "Selector",
     "Server",
     "Server / VM",
+    "Server: {{server}}",
     "Serverless",
     "Servers",
     "Service",
@@ -601,6 +605,7 @@
     "amphorae",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "body",
     "bucket",

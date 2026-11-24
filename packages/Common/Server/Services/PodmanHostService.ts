@@ -605,6 +605,15 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The column telemetry is matched on is held to one resource each by
+   * checkMatchColumn above, in its own words: the generic check of an
+   * update leaves it out (#10318).
+   */
+  protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
+    return [PODMAN_HOST_MATCH_COLUMN.column];
+  }
+
+  /*
    * An operator's write of an AI access setting (the investigation switch, the
    * remediation mode, the command allowlist) is validated and checked against
    * who may make AI do more on this Podman host — the rules every resource AI

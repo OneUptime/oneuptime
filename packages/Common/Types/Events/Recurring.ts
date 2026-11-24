@@ -6,7 +6,11 @@ import JSONFunctions from "../JSONFunctions";
 import PositiveNumber from "../PositiveNumber";
 import EventInterval from "./EventInterval";
 import { refusedValue } from "../../Utils/RefusedValue";
+import moment from "moment-timezone";
 import { FindOperator } from "typeorm";
+
+// A wall clock's date and time, to the millisecond, without a zone.
+const WALL_CLOCK_FORMAT: string = "YYYY-MM-DDTHH:mm:ss.SSS";
 
 export interface RecurringData extends JSONObject {
   intervalType: EventInterval;
@@ -74,46 +78,6 @@ export default class Recurring extends DatabaseProperty {
     return nextDate;
   }
 
-  public static getNextDate(startDate: Date, rotation: Recurring): Date {
-    let nextDate: Date = OneUptimeDate.fromString(startDate);
-    const dateNow: Date = OneUptimeDate.getCurrentDate();
-
-    if (nextDate.getTime() <= dateNow.getTime()) {
-      const intervalType: EventInterval = rotation.intervalType;
-      const intervalCount: PositiveNumber = rotation.intervalCount;
-
-      const diff: number = dateNow.getTime() - nextDate.getTime();
-      let intervalMillis: number;
-
-      switch (intervalType) {
-        case EventInterval.Hour:
-          intervalMillis = intervalCount.toNumber() * 3600000;
-          break;
-        case EventInterval.Day:
-          intervalMillis = intervalCount.toNumber() * 86400000;
-          break;
-        case EventInterval.Week:
-          intervalMillis = intervalCount.toNumber() * 604800000;
-          break;
-        case EventInterval.Month:
-          intervalMillis = intervalCount.toNumber() * 2629800000; // Approximate month in milliseconds
-          break;
-        case EventInterval.Year:
-          intervalMillis = intervalCount.toNumber() * 31557600000; // Approximate year in milliseconds
-          break;
-        default:
-          throw new BadDataException(
-            "Invalid Interval Type: " + refusedValue(intervalType),
-          );
-      }
-
-      const intervalsToAdd: number = Math.ceil(diff / intervalMillis);
-      nextDate = new Date(nextDate.getTime() + intervalsToAdd * intervalMillis);
-    }
-
-    return nextDate;
-  }
-
   /*
    * The calendar unit this interval is expressed in, for the date helpers that
    * do calendar (rather than fixed-millisecond) arithmetic.
@@ -137,15 +101,164 @@ export default class Recurring extends DatabaseProperty {
     }
   }
 
+  // How many units one interval is: its count, a whole number, at least one.
+  public static getIntervalCount(recurring: Recurring): number {
+    return Math.max(1, Math.floor(recurring.intervalCount.toNumber()));
+  }
+
+  /*
+   * The zone a recurrence is stepped on: the one named when the tz database
+   * knows it, UTC for a name it does not (so a browser and a server step it
+   * alike), and the process's own when none is named.
+   */
+  private static toKnownZone(timezone: string | undefined): string | undefined {
+    if (!timezone) {
+      return undefined;
+    }
+
+    return moment.tz.zone(timezone) ? timezone : "UTC";
+  }
+
   /**
-   * The first occurrence of `recurring` (anchored at `startDate`) strictly after
-   * `afterDate`, stepping in whole CALENDAR units in `timezone`.
+   * The `index`th occurrence of `recurring` anchored at `startDate` (0 is
+   * `startDate` itself), on the wall clock of `timezone` - the process's own
+   * zone when it is left out, which on a server is UTC.
    *
-   * getNextDate() approximates a month as 30.4375 days and a year as 365.25
-   * days, which is fine for hours/days/weeks but makes a monthly recurrence
-   * walk backwards through the calendar: anchored on 1 Jul it fires on 31 Jul,
-   * then 30 Aug, and eventually skips a month entirely. This steps 1 Jul ->
-   * 1 Aug -> 1 Sep instead, and holds the local time of day across DST.
+   * Every occurrence is worked out from the anchor, never from the one
+   * before it, so nothing drifts:
+   *
+   *   - days, weeks, months and years are whole calendar units of the
+   *     anchor's date and time of day on that clock: 02:00 stays 02:00 when
+   *     the clocks change, and the 1st of the month stays the 1st. Stepped
+   *     as milliseconds, as a maintenance template was until #10037, a
+   *     daily 02:00 moved to 01:00 for the winter, and a month of 30.4375
+   *     days walked an event on the 1st to 31 January, then 2 March;
+   *   - a day of the month the month does not have is its last day: an
+   *     occurrence on the 31st is on 30 April and on 28 or 29 February, and
+   *     back on the 31st in March; one on 29 February is on 28 February in
+   *     other years;
+   *   - a time of day the clocks skip, 02:30 on the night they go forward,
+   *     is moved on by the jump (03:30), as a calendar moves it;
+   *   - a time of day the clocks pass twice, 01:30 on the night they go back
+   *     in New York, is the first of the two, whichever side of the change
+   *     the anchor is on;
+   *   - hours are hours of elapsed time: an occurrence every 12 hours is 12
+   *     hours after the one before, whatever the clocks do.
+   *
+   * A zone that has stopped changing its clocks, such as British Columbia
+   * since November 2026, has no skipped or doubled hours left: its
+   * occurrences keep one offset from then on.
+   */
+  public static getOccurrence(data: {
+    startDate: Date;
+    recurring: Recurring | JSONObject;
+    index: number;
+    timezone?: string | undefined;
+  }): Date {
+    const startDate: Date = OneUptimeDate.fromString(data.startDate);
+    const recurring: Recurring = Recurring.fromJSON(data.recurring);
+    const unit: CalendarUnit = Recurring.toCalendarUnit(recurring.intervalType);
+    const index: number = Math.max(0, Math.floor(data.index));
+
+    if (index === 0) {
+      return startDate;
+    }
+
+    const count: number = index * Recurring.getIntervalCount(recurring);
+
+    if (unit === "hour") {
+      return OneUptimeDate.addRemoveHours(startDate, count);
+    }
+
+    // The anchor's date and time of day on the clock, moved on whole units.
+    const zone: string | undefined = Recurring.toKnownZone(data.timezone);
+    const anchor: moment.Moment = zone
+      ? moment.tz(startDate, zone)
+      : moment(startDate);
+    const wallClock: string = moment
+      .utc(anchor.format(WALL_CLOCK_FORMAT), WALL_CLOCK_FORMAT, true)
+      .add(count, unit as moment.unitOfTime.DurationConstructor)
+      .format(WALL_CLOCK_FORMAT);
+
+    /*
+     * Read back on the clock: moment moves a skipped time on by the jump,
+     * and reads a doubled one as the first of the two.
+     */
+    return (
+      zone
+        ? moment.tz(wallClock, WALL_CLOCK_FORMAT, true, zone)
+        : moment(wallClock, WALL_CLOCK_FORMAT, true)
+    ).toDate();
+  }
+
+  /**
+   * Which occurrence of `recurring` anchored at `startDate` is the first
+   * strictly after `afterDate` (0 while `startDate` is still ahead), on the
+   * wall clock of `timezone` (see getOccurrence).
+   */
+  public static getOccurrenceIndexAfter(data: {
+    startDate: Date;
+    recurring: Recurring | JSONObject;
+    afterDate: Date;
+    timezone?: string | undefined;
+  }): number {
+    const startDate: Date = OneUptimeDate.fromString(data.startDate);
+    const afterDate: Date = OneUptimeDate.fromString(data.afterDate);
+    const recurring: Recurring = Recurring.fromJSON(data.recurring);
+    const unit: CalendarUnit = Recurring.toCalendarUnit(recurring.intervalType);
+    const timezone: string | undefined = Recurring.toKnownZone(data.timezone);
+
+    if (startDate.getTime() > afterDate.getTime()) {
+      return 0;
+    }
+
+    /*
+     * Jump most of the way in one step so a status page left disabled for a
+     * year does not loop 365 times, then walk the remainder. The estimate can
+     * only be off by a single interval either way (calendar units are not
+     * uniform), so the two loops below run a handful of times at most.
+     */
+    const elapsedUnits: number = OneUptimeDate.getCalendarUnitsBetween(
+      startDate,
+      afterDate,
+      unit,
+      timezone,
+    );
+
+    let index: number = Math.max(
+      0,
+      Math.floor(elapsedUnits / Recurring.getIntervalCount(recurring)),
+    );
+
+    const occurrenceAt: (occurrenceIndex: number) => number = (
+      occurrenceIndex: number,
+    ): number => {
+      return Recurring.getOccurrence({
+        startDate: startDate,
+        recurring: recurring,
+        index: occurrenceIndex,
+        timezone: timezone,
+      }).getTime();
+    };
+
+    // Overshot - come back until we are at or before the cutoff.
+    while (index > 0 && occurrenceAt(index - 1) > afterDate.getTime()) {
+      index--;
+    }
+
+    // Undershot - advance until we are strictly after it.
+    while (occurrenceAt(index) <= afterDate.getTime()) {
+      index++;
+    }
+
+    return index;
+  }
+
+  /**
+   * The first occurrence of `recurring` (anchored at `startDate`) strictly
+   * after `afterDate`, stepping in whole calendar units on the wall clock of
+   * `timezone` (getOccurrence): a monthly recurrence anchored on 1 Jul steps
+   * 1 Aug, 1 Sep, and one at 09:00 stays at 09:00 across DST.
    *
    * A start date already after `afterDate` is returned unchanged - the first
    * occurrence has not happened yet.
@@ -156,62 +269,12 @@ export default class Recurring extends DatabaseProperty {
     afterDate: Date;
     timezone?: string | undefined;
   }): Date {
-    const startDate: Date = OneUptimeDate.fromString(data.startDate);
-    const recurring: Recurring = Recurring.fromJSON(data.recurring);
-    const unit: CalendarUnit = Recurring.toCalendarUnit(recurring.intervalType);
-
-    const intervalCount: number = Math.max(
-      1,
-      Math.floor(recurring.intervalCount.toNumber()),
-    );
-
-    if (startDate.getTime() > data.afterDate.getTime()) {
-      return startDate;
-    }
-
-    /*
-     * Jump most of the way in one step so a status page left disabled for a year
-     * does not loop 365 times, then walk the remainder. The estimate can only be
-     * off by a single interval either way (calendar units are not uniform), so
-     * the two loops below run a handful of times at most.
-     */
-    const elapsedUnits: number = OneUptimeDate.getCalendarUnitsBetween(
-      startDate,
-      data.afterDate,
-      unit,
-      data.timezone,
-    );
-
-    let intervals: number = Math.max(
-      0,
-      Math.floor(elapsedUnits / intervalCount),
-    );
-
-    type OccurrenceFunction = (intervalsToAdd: number) => Date;
-
-    const occurrence: OccurrenceFunction = (intervalsToAdd: number): Date => {
-      return OneUptimeDate.addRemoveCalendarUnits(
-        startDate,
-        unit,
-        intervalsToAdd * intervalCount,
-        data.timezone,
-      );
-    };
-
-    // Overshot - come back until we are at or before the cutoff.
-    while (
-      intervals > 0 &&
-      occurrence(intervals - 1).getTime() > data.afterDate.getTime()
-    ) {
-      intervals--;
-    }
-
-    // Undershot - advance until we are strictly after it.
-    while (occurrence(intervals).getTime() <= data.afterDate.getTime()) {
-      intervals++;
-    }
-
-    return occurrence(intervals);
+    return Recurring.getOccurrence({
+      startDate: data.startDate,
+      recurring: data.recurring,
+      index: Recurring.getOccurrenceIndexAfter(data),
+      timezone: data.timezone,
+    });
   }
 
   private data: RecurringData = Recurring.getDefaultRotationData();

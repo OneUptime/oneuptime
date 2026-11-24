@@ -21,6 +21,7 @@ import { useLocation } from "react-router-dom";
 import EventName from "../../Utils/EventName";
 import AIChatUnavailableView from "./AIChatUnavailableView";
 import AskAiConversation from "./AskAiConversation";
+import AskAiDocsResults from "./AskAiDocsResults";
 import AskAiHistory from "./AskAiHistory";
 import AskAiMark, { AskAiMarkSize } from "./AskAiMark";
 import {
@@ -456,7 +457,7 @@ const AskAiPanelSurface: FunctionComponent<PanelProps> = (
         value={chat.permissionMode}
         onChange={chat.setPermissionMode}
         disabled={chat.isWorking}
-        menuAlign="left"
+        menuAlign="start"
       />
     </>
   );
@@ -500,6 +501,18 @@ const AskAiPanelSurface: FunctionComponent<PanelProps> = (
   const composer: ReactElement = (
     <>
       {errorBanner}
+      {/*
+       * A question the server would not take - over a limit, too busy -
+       * still finds its docs, under why (#7063).
+       */}
+      {chat.error && chat.refusedQuestion ? (
+        <AskAiDocsResults
+          question={chat.refusedQuestion}
+          className="mb-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5"
+        />
+      ) : (
+        <></>
+      )}
       <ChatInput
         value={chat.inputValue}
         onChange={chat.setInputValue}
@@ -673,7 +686,14 @@ const AskAiPanelSurface: FunctionComponent<PanelProps> = (
         <div className="relative flex min-h-0 flex-1 flex-col">
           {view === "unavailable" && chat.unavailableReason ? (
             <div className="flex min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <AIChatUnavailableView reason={chat.unavailableReason} />
+              {/*
+               * The question Ask AI was opened with is looked up in the
+               * docs, above why Ask AI cannot answer it (#7063).
+               */}
+              <AIChatUnavailableView
+                reason={chat.unavailableReason}
+                question={chat.inputValue}
+              />
             </div>
           ) : (
             <></>

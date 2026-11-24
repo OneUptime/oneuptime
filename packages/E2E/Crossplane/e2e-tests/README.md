@@ -6,7 +6,10 @@ running OneUptime through its API.
 
 The `Crossplane Provider` workflow (`.github/workflows/crossplane-provider.yml`) runs them on pull requests that change
 the generators, this test or the English Crossplane docs pages, on main every night, and in every release before the
-package is published (`release.yml`, `publish-crossplane-provider`).
+package is published (`release.yml`, `publish-crossplane-provider`). Each run tests the package of its runner's
+platform: linux/amd64, and in the nightly run linux/arm64 too, on an arm64 runner. Before a run installs a package,
+`Scripts/CrossplaneProvider/check-package.sh` checks that its runtime image and its provider binary are that
+platform's, and that the binary starts; the release checks both platforms' packages that way before it pushes them.
 
 ## Directory structure
 
@@ -55,6 +58,8 @@ CI uses.
 npm run generate-terraform-provider
 npm run generate-crossplane-provider
 bash Scripts/CrossplaneProvider/build-package.sh --version "$(head -n 1 VERSION)" --platforms linux/amd64
+# linux/arm64 on an arm64 machine; then check it: its image, its binary, and that the binary starts
+bash Scripts/CrossplaneProvider/check-package.sh --platforms linux/amd64 --run
 
 # A test user, project and API key, written to the Terraform suite's test-env.sh
 bash packages/E2E/Terraform/e2e-tests/scripts/setup-test-account.sh

@@ -145,7 +145,7 @@ const VARS: Record<string, unknown> = {
   currentState: "Identified",
   resourcesAffected: "Pod: kubernetes-agent-logs-7t88f | Namespace: default",
   declaredBy: "OneUptime",
-  declaredAt: "Sep 05 2026, 10:55 AM BST",
+  declaredAt: "Sep 5, 2026, 10:55 AM BST",
   alertSeverity: "Warning",
   rootCause:
     "Any value of Pod CPU vs Limit (%) is 91.53 %, which is greater than 90 %.",
@@ -261,10 +261,10 @@ describe("DetailBoxField escaping", () => {
   test("the multi-timezone declaredAt keeps its real <br/>", () => {
     const html: string = render("AlertOwnerResourceCreated.hbs", {
       ...VARS,
-      declaredAt: "Sep 05 2026, 10:55 AM BST<br/>Sep 05 2026, 05:55 AM EDT",
+      declaredAt: "Sep 5, 2026, 10:55 AM BST<br/>Sep 5, 2026, 5:55 AM EDT",
     });
 
-    expect(html).toContain("BST<br/>Sep 05");
+    expect(html).toContain("BST<br/>Sep 5");
     expect(html).not.toContain("&lt;br/&gt;");
   });
 
@@ -613,7 +613,7 @@ describe("AlertOwnerStateChanged.hbs", () => {
     previousStateColor: "#ef4444",
     previousStateDurationText: "Was Identified for 6 minutes",
     resourcesAffected: "Pod: kubernetes-agent-logs-7t88f | Namespace: default",
-    stateChangedAt: "Sep 05 2026, 11:01 AM BST",
+    stateChangedAt: "Sep 5, 2026, 11:01 AM BST",
     alertSeverity: "Warning",
     alertDescription: "A pod's CPU usage has exceeded 90% of its limit.",
     stateChangeRootCause: "",

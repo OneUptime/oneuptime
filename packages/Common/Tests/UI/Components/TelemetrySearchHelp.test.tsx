@@ -6,11 +6,15 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import TelemetrySearchHelp, {
   TELEMETRY_SEARCH_HELP_DESCRIPTION_CELL_CLASS_NAME,
   TELEMETRY_SEARCH_HELP_EXAMPLE_CELL_CLASS_NAME,
-  TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES,
   TELEMETRY_SEARCH_HELP_ROW_CLASS_NAME,
   TELEMETRY_SEARCH_HELP_SYNTAX_CELL_CLASS_NAME,
+  TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME,
 } from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
 import { SearchHelpRow } from "../../../UI/Components/TelemetryViewer/types";
+import {
+  LAYERED_POPOVER_CLASS_NAME,
+  LayeredPopoverAlignment,
+} from "../../../UI/Components/Tooltip/LayeredPopover";
 
 /*
  * The search syntax panel an explorer's search and the session list's
@@ -43,61 +47,107 @@ function classesOf(className: string): Array<string> {
   });
 }
 
+// A search box the panel hangs from, as the explorers and the session list draw theirs.
+function SearchWithHelp(props: {
+  align?: LayeredPopoverAlignment | undefined;
+  onExampleClick?: ((example: string) => void) | undefined;
+}): React.ReactElement {
+  const searchRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
+
+  return (
+    <div data-testid="card" style={{ overflow: "hidden" }}>
+      <div ref={searchRef} data-testid="search">
+        <input aria-label="Search" />
+      </div>
+      <TelemetrySearchHelp
+        anchorRef={searchRef}
+        id="search-help"
+        rows={ROWS}
+        combinedExample="user:jane@example.com url:/checkout"
+        align={props.align}
+        onExampleClick={props.onExampleClick}
+        dataTestId="help"
+      />
+    </div>
+  );
+}
+
 function renderHelp(
-  align?: "left" | "right",
+  align?: LayeredPopoverAlignment,
   onExampleClick?: (example: string) => void,
 ): HTMLElement {
-  render(
-    <TelemetrySearchHelp
-      rows={ROWS}
-      combinedExample="user:jane@example.com url:/checkout"
-      align={align}
-      onExampleClick={onExampleClick}
-      dataTestId="help"
-    />,
-  );
+  render(<SearchWithHelp align={align} onExampleClick={onExampleClick} />);
 
   return screen.getByTestId("help");
 }
 
+function layerOf(help: HTMLElement): HTMLElement {
+  const layer: HTMLElement | null = help.closest<HTMLElement>(
+    `.${LAYERED_POPOVER_CLASS_NAME}`,
+  );
+
+  expect(layer).not.toBeNull();
+
+  return layer!;
+}
+
 describe("TelemetrySearchHelp placement", () => {
-  it("hangs from the search's left edge by default, as wide as its search below md", () => {
+  it("is drawn on the tooltip layer, never inside the card its search sits in (#9909)", () => {
+    const help: HTMLElement = renderHelp();
+
+    expect(screen.getByTestId("card")).not.toContainElement(help);
+    expect(layerOf(help).parentElement).toBe(document.body);
+    expect(help).toHaveAttribute("id", "search-help");
+    // No place of its own: the layer places it against the search.
+    expect(help).not.toHaveClass("absolute", "left-0", "right-0", "top-full");
+  });
+
+  it("hangs from the search's start by default", () => {
+    const help: HTMLElement = renderHelp();
+
+    expect(layerOf(help)).toHaveAttribute(
+      "data-popper-placement",
+      "bottom-start",
+    );
+  });
+
+  it("hangs from its end in a table's header", () => {
+    const help: HTMLElement = renderHelp("end");
+
+    expect(layerOf(help)).toHaveAttribute(
+      "data-popper-placement",
+      "bottom-end",
+    );
+  });
+
+  it("on a page read right to left, its start is the search's right edge", () => {
+    document.documentElement.setAttribute("dir", "rtl");
+
+    try {
+      const help: HTMLElement = renderHelp();
+
+      // The line starts at the right: Popper's "end" is the right edge.
+      expect(layerOf(help)).toHaveAttribute(
+        "data-popper-placement",
+        "bottom-end",
+      );
+    } finally {
+      document.documentElement.removeAttribute("dir");
+    }
+  });
+
+  it("is 36rem wide from md up, never wider than the window, and as wide as its search below md", () => {
     const help: HTMLElement = renderHelp();
 
     expect(help).toHaveClass(
-      ...classesOf(TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES.left),
+      ...classesOf(TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME),
     );
-    expect(help).toHaveClass("left-0", "w-[36rem]");
-    expect(help).toHaveClass("max-md:right-0", "max-md:w-auto");
-    expect(help).not.toHaveClass("right-0");
-  });
-
-  it("hangs from the right edge in a table's header, as wide as its search below md", () => {
-    const help: HTMLElement = renderHelp("right");
-
-    expect(help).toHaveClass(
-      ...classesOf(TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES.right),
-    );
-    expect(help).toHaveClass("right-0", "w-[36rem]");
-    /* Never wider than the screen from md up. */
-    expect(help).toHaveClass("max-w-[calc(100vw-2rem)]");
-    /* Below md: from edge to edge of the search, with no cap of its own. */
-    expect(help).toHaveClass(
-      "max-md:left-0",
-      "max-md:w-auto",
-      "max-md:max-w-none",
-    );
-    expect(help).not.toHaveClass("left-0");
-  });
-
-  it("keeps its 36rem width only from md up in both placements", () => {
-    for (const className of Object.values(
-      TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES,
-    )) {
-      expect(classesOf(className)).toEqual(
-        expect.arrayContaining(["w-[36rem]", "max-md:w-auto"]),
-      );
-    }
+    expect(classesOf(TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME)).toEqual([
+      "w-[36rem]",
+      "max-w-[calc(100vw-1rem)]",
+      "max-md:w-[var(--layered-popover-anchor-width)]",
+    ]);
   });
 });
 
@@ -165,7 +215,7 @@ describe("TelemetrySearchHelp rows", () => {
       "whitespace-nowrap",
     );
 
-    const help: HTMLElement = renderHelp("right");
+    const help: HTMLElement = renderHelp("end");
 
     expect(within(help).getByRole("table")).toHaveClass("max-sm:block");
     expect(help.querySelector("tbody")).toHaveClass("max-sm:block");
@@ -190,7 +240,7 @@ describe("TelemetrySearchHelp rows", () => {
 
   it("still puts a row's example in the search when it is pressed", () => {
     const onExampleClick: MockFunction = getJestMockFunction();
-    const help: HTMLElement = renderHelp("right", onExampleClick);
+    const help: HTMLElement = renderHelp("end", onExampleClick);
 
     fireEvent.mouseDown(within(help).getAllByRole("row")[1]!);
 

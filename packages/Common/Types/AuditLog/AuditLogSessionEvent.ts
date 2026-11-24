@@ -155,6 +155,9 @@ export const SESSION_END_CAUSE_DESCRIPTIONS: Readonly<
   [SessionEndCause.SignInSettingsCleared]: translationKey(
     "Signed out by a server admin who cleared their sign-in settings",
   ),
+  [SessionEndCause.ReauthenticationFailed]: translationKey(
+    "Signed out after too many wrong attempts to confirm it was them",
+  ),
   [SessionEndCause.Other]: translationKey("Session ended"),
 };
 

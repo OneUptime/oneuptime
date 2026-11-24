@@ -1,6 +1,7 @@
 import DataSourceEgressGuard, {
   PinnedAgents,
   PinnedTarget,
+  TargetTlsOptions,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -40,7 +41,9 @@ import {
  * ALL_PROXY the step goes through the proxy, as every request of the
  * worker does - and a proxy named by host name used to be dialled at the
  * target's address instead, because the pinned lookup answered the proxy's
- * name too. A host in NO_PROXY is dialled directly, pinned. The step reads
+ * name too. A host in NO_PROXY is dialled directly, pinned. Its agents
+ * open the tunnel, not axios (createPinnedAgentsForNodeHttp, #10277), so a
+ * proxy that will not open one is said to have refused. The step reads
  * at most 10 MB of an answer (its output keeps 50 KB of it), so a step
  * pointed at an endpoint that streams forever no longer fills the
  * worker's memory.
@@ -141,9 +144,17 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
       step(`https://${HOST}/health`),
     );
 
-    // The proxy refuses every tunnel here, and the step reports what it said.
+    /*
+     * The proxy refuses every tunnel here, and the step reports what it
+     * said - as the proxy's answer, never as the target's (it read "HTTP
+     * 403" while axios opened the tunnel), and without the proxy's address,
+     * which is the operator's.
+     */
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toBe("HTTP 403");
+    expect(result.errorMessage).toBe(
+      `The outbound proxy did not open a connection to ${HOST}:443: it answered HTTP/1.1 403 Forbidden. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`,
+    );
+    expect(result.errorMessage).not.toContain(String(proxy.port));
     expect(proxy.connects).toEqual([`${HOST}:443`]);
     expect(target.isUntouched).toBe(true);
   });
@@ -167,31 +178,41 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
   test("its agents are freed once the request is over", async () => {
     const { target } = await proxyAndTarget();
     const destroyed: Array<string> = [];
-    const realCreate: (target: PinnedTarget) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgents.bind(DataSourceEgressGuard);
+    const realCreate: (
+      target: PinnedTarget,
+      tls?: TargetTlsOptions | undefined,
+    ) => PinnedAgents =
+      DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
+        DataSourceEgressGuard,
+      );
 
     jest
-      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
-      .mockImplementation((pinnedTarget: PinnedTarget): PinnedAgents => {
-        const agents: PinnedAgents = realCreate(pinnedTarget);
-        const destroyHttp: () => void = agents.httpAgent.destroy.bind(
-          agents.httpAgent,
-        );
-        const destroyHttps: () => void = agents.httpsAgent.destroy.bind(
-          agents.httpsAgent,
-        );
+      .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+      .mockImplementation(
+        (
+          pinnedTarget: PinnedTarget,
+          tls?: TargetTlsOptions | undefined,
+        ): PinnedAgents => {
+          const agents: PinnedAgents = realCreate(pinnedTarget, tls);
+          const destroyHttp: () => void = agents.httpAgent.destroy.bind(
+            agents.httpAgent,
+          );
+          const destroyHttps: () => void = agents.httpsAgent.destroy.bind(
+            agents.httpsAgent,
+          );
 
-        agents.httpAgent.destroy = (): void => {
-          destroyed.push("http");
-          destroyHttp();
-        };
-        agents.httpsAgent.destroy = (): void => {
-          destroyed.push("https");
-          destroyHttps();
-        };
+          agents.httpAgent.destroy = (): void => {
+            destroyed.push("http");
+            destroyHttp();
+          };
+          agents.httpsAgent.destroy = (): void => {
+            destroyed.push("https");
+            destroyHttps();
+          };
 
-        return agents;
-      });
+          return agents;
+        },
+      );
 
     await runHttpStep(step(`http://${HOST}:${target.port}/health`));
 

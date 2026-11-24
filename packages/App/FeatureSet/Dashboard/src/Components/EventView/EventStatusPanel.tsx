@@ -22,7 +22,9 @@ import EventStateTrack from "./EventStateTrack";
 import {
   EVENT_HEADER_BUTTONS_CLASS_NAME,
   EVENT_HEADER_CLASS_NAME,
+  EVENT_HEADER_EDITABLE_FACT_CLASS_NAME,
   EVENT_HEADER_FACT_CLASS_NAME,
+  EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME,
@@ -122,6 +124,13 @@ export interface EventStatusFact {
   isLabelTyped?: boolean | undefined;
   value: string | ReactElement;
   icon?: IconProp | undefined;
+  /*
+   * The value is a control that changes it right there - the commander's
+   * name, which hands the role on (#10195) - marked with
+   * EVENT_HEADER_FACT_EDITOR_ATTRIBUTE: a pencil fades in after the label
+   * while that control is pointed at, focused or open.
+   */
+  isEditableInPlace?: boolean | undefined;
 }
 
 export interface ComponentProps {
@@ -770,7 +779,11 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             return (
               <div
                 key={`${fact.label}-${index}`}
-                className={EVENT_HEADER_FACT_CLASS_NAME}
+                className={
+                  fact.isEditableInPlace
+                    ? `${EVENT_HEADER_FACT_CLASS_NAME} ${EVENT_HEADER_EDITABLE_FACT_CLASS_NAME}`
+                    : EVENT_HEADER_FACT_CLASS_NAME
+                }
               >
                 <dt className={EVENT_HEADER_FACT_LABEL_CLASS_NAME}>
                   {fact.icon && (
@@ -788,6 +801,22 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                   ) : (
                     <span className={EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME}>
                       {translateLabel(fact.label)}
+                    </span>
+                  )}
+                  {/*
+                   * The value can be changed right there: a pencil after the
+                   * label while its control is pointed at, focused or open.
+                   */}
+                  {fact.isEditableInPlace && (
+                    <span
+                      aria-hidden="true"
+                      data-testid="event-header-fact-edit-hint"
+                      className="inline-flex"
+                    >
+                      <Icon
+                        icon={IconProp.Pencil}
+                        className={EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME}
+                      />
                     </span>
                   )}
                 </dt>

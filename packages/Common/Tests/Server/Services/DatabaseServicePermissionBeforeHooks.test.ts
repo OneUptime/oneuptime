@@ -1066,9 +1066,14 @@ describe("DatabaseService: the rows are looked up first only for a service with 
     );
     const repository: FakeRepository = withFakeRepository(service);
 
+    /*
+     * Its description: a rename is also held to the names of the
+     * project's other labels (checkUniqueColumnByOnUpdate, #10318), which
+     * this fake repository does not answer.
+     */
     const result: number = await service.updateBy({
       query: { _id: OTHER_LABEL_ID },
-      data: { name: "renamed" } as never,
+      data: { description: "Renamed." } as never,
       limit: 10,
       skip: 0,
       props: ownerProps(),
@@ -1187,13 +1192,18 @@ describe("DatabaseService: onUpdatePermitted runs only once every permission che
     return { harness, permitted };
   }
 
+  /*
+   * Its description: a rename is also held to the names of the project's
+   * other labels before onUpdatePermitted (checkUniqueColumnByOnUpdate,
+   * #10318), which this fake repository does not answer.
+   */
   function updateOwnLabel(
     service: DatabaseService<BaseModel>,
     props: DatabaseCommonInteractionProps = ownerProps(),
   ): Promise<number> {
     return service.updateBy({
       query: { _id: OWN_LABEL_ID },
-      data: { name: "renamed" } as never,
+      data: { description: "Renamed." } as never,
       limit: 10,
       skip: 0,
       props,

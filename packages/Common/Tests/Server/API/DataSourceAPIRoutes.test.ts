@@ -86,6 +86,9 @@ import { DataSourceResultKind } from "../../../Types/DataSource/DataSourceQueryC
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
+import * as PromQLDataSourceQuery from "../../../Server/Utils/PromQL/PromQLDataSourceQuery";
 
 const QUERY_ROUTE: string = "/data-source/query";
 const TEST_ROUTE: string = "/data-source/test";
@@ -423,6 +426,123 @@ describe("DataSourceAPI custom routes", () => {
     const error: BadDataException = (Response.sendErrorResponse as jest.Mock)
       .mock.calls[0]![2] as BadDataException;
     expect(error.message).toContain("parse error at char 5");
+  });
+
+  /*
+   * The built-in source (issue #7713): PromQL over the project's own
+   * metrics, with no Data Source record to read and no credentials.
+   */
+  test("the project's own metrics are queried with no record, as the caller", async () => {
+    const findSpy: jest.SpiedFunction<typeof DataSourceService.findOneById> =
+      jest.spyOn(DataSourceService, "findOneById").mockResolvedValue(null);
+    const settingsSpy: jest.SpiedFunction<
+      typeof DataSourceService.getConnectionSettingsById
+    > = jest
+      .spyOn(DataSourceService, "getConnectionSettingsById")
+      .mockResolvedValue(null);
+    const runSpy: jest.SpiedFunction<
+      typeof PromQLDataSourceQuery.runProjectMetricsQuery
+    > = jest
+      .spyOn(PromQLDataSourceQuery, "runProjectMetricsQuery")
+      .mockResolvedValue({
+        resultKind: DataSourceResultKind.TimeSeries,
+        result: { data: [], truncated: false },
+      });
+
+    const startDate: Date = new Date(Date.now() - 3600_000);
+    const endDate: Date = new Date();
+
+    await callRoute(QUERY_ROUTE, {
+      dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+      query: "sum by (job) (rate(http_requests_total[5m]))",
+      resultKind: DataSourceResultKind.TimeSeries,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      stepInSeconds: 60,
+    });
+
+    expect(findSpy).not.toHaveBeenCalled();
+    expect(settingsSpy).not.toHaveBeenCalled();
+    expect(runSpy).toHaveBeenCalledTimes(1);
+
+    const request: PromQLDataSourceQuery.ProjectMetricsQueryRequest =
+      runSpy.mock.calls[0]![0];
+    expect(request.query).toBe("sum by (job) (rate(http_requests_total[5m]))");
+    expect(request.resultKind).toBe(DataSourceResultKind.TimeSeries);
+    expect(request.startDate.getTime()).toBe(startDate.getTime());
+    expect(request.endDate.getTime()).toBe(endDate.getTime());
+    expect(request.stepInSeconds).toBe(60);
+    // The caller's own props: their project, their permissions.
+    expect(request.props.tenantId).toBeInstanceOf(ObjectID);
+
+    const payload: JSONObject = (Response.sendJsonObjectResponse as jest.Mock)
+      .mock.calls[0]![2] as JSONObject;
+    expect(payload).toEqual({
+      resultKind: DataSourceResultKind.TimeSeries,
+      result: { data: [], truncated: false },
+    });
+  });
+
+  test("a table on the project's own metrics asks for the table", async () => {
+    const runSpy: jest.SpiedFunction<
+      typeof PromQLDataSourceQuery.runProjectMetricsQuery
+    > = jest
+      .spyOn(PromQLDataSourceQuery, "runProjectMetricsQuery")
+      .mockResolvedValue({
+        resultKind: DataSourceResultKind.Table,
+        result: { columns: [], rows: [], truncated: false },
+      });
+
+    await callRoute(QUERY_ROUTE, {
+      dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+      query: "topk(5, up)",
+      resultKind: DataSourceResultKind.Table,
+      startDate: new Date(Date.now() - 3600_000).toISOString(),
+      endDate: new Date().toISOString(),
+    });
+
+    expect(runSpy.mock.calls[0]![0].resultKind).toBe(
+      DataSourceResultKind.Table,
+    );
+    const payload: JSONObject = (Response.sendJsonObjectResponse as jest.Mock)
+      .mock.calls[0]![2] as JSONObject;
+    expect(payload["resultKind"]).toBe(DataSourceResultKind.Table);
+  });
+
+  test("a caller who may not read metrics is refused on the project's own metrics", async () => {
+    // The real query runner: the caller's props hold no permission at all.
+    const { next } = await callRoute(QUERY_ROUTE, {
+      dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+      query: "up",
+      startDate: new Date(Date.now() - 3600_000).toISOString(),
+      endDate: new Date().toISOString(),
+    });
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next.mock.calls[0]![0]).toBeInstanceOf(NotAuthorizedException);
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+  });
+
+  test("the built-in id still needs a query and a window, as any source", async () => {
+    const runSpy: jest.SpiedFunction<
+      typeof PromQLDataSourceQuery.runProjectMetricsQuery
+    > = jest.spyOn(PromQLDataSourceQuery, "runProjectMetricsQuery");
+
+    await callRoute(QUERY_ROUTE, {
+      dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+      query: "  ",
+      startDate: new Date(Date.now() - 3600_000).toISOString(),
+      endDate: new Date().toISOString(),
+    });
+    await callRoute(QUERY_ROUTE, {
+      dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+      query: "up",
+      startDate: "not-a-date",
+      endDate: new Date().toISOString(),
+    });
+
+    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(2);
+    expect(runSpy).not.toHaveBeenCalled();
   });
 
   test("test route reports connector failures as ok:false, not an exception", async () => {

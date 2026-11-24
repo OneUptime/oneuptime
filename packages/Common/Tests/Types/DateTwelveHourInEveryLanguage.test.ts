@@ -203,6 +203,39 @@ const WRITERS: Array<Writer> = [
       });
     },
   },
+  {
+    // A clock of the day: working hours, a runbook's schedule.
+    name: "getClockTimeString",
+    write: (use12HourFormat: boolean): string => {
+      return OneUptimeDate.getClockTimeString(5, 14, { use12HourFormat });
+    },
+  },
+  {
+    // A time in a schedule's zone: the schedule timeline's bars.
+    name: "getTimeStringInTimezone",
+    write: (use12HourFormat: boolean): string => {
+      return OneUptimeDate.getTimeStringInTimezone(MORNING, {
+        timezone: Timezone.UTC,
+        use12HourFormat,
+      });
+    },
+  },
+  {
+    /*
+     * The time range button, a filter's chip: a window within one day,
+     * whose end is its time alone ("5:44 AM UTC"); its start is a whole
+     * date, as getDateAsLocalFormattedString writes it.
+     */
+    name: "getLocalDateTimeRangeEnds's end",
+    write: (use12HourFormat: boolean): string => {
+      return OneUptimeDate.getLocalDateTimeRangeEnds({
+        start: new Date("2025-11-05T04:14:00.000Z"),
+        end: new Date("2025-11-05T05:14:00.000Z"),
+        style: "long",
+        use12HourFormat,
+      }).end;
+    },
+  },
 ];
 
 beforeEach(() => {
@@ -267,17 +300,17 @@ describe("the issue's languages, word for word", () => {
     },
   );
 
-  test("a table date's tooltip in Korean: the day keeps its two digits, the 12-hour hour has none", () => {
+  test("a table date's tooltip in Korean: the day and the 12-hour hour have no zero (#7652)", () => {
     setDateDisplayLanguage("ko");
 
     expect(
       spaced(OneUptimeDate.getDateAsLocalFormattedString(MORNING, false, true)),
-    ).toBe("2025년 11월 05일 오전 5:14 UTC");
+    ).toBe("2025년 11월 5일 오전 5:14 UTC");
     expect(
       spaced(
         OneUptimeDate.getDateAsLocalFormattedString(MORNING, false, false),
       ),
-    ).toBe("2025년 11월 05일 05:14 UTC");
+    ).toBe("2025년 11월 5일 05:14 UTC");
   });
 
   test("an hour of two digits is written whole: 오전 10:05, 오후 12:30", () => {
@@ -302,17 +335,51 @@ describe("the issue's languages, word for word", () => {
   });
 });
 
-describe("English is as it was", () => {
+/*
+ * English's whole dates wrote "Nov 05 2025, 05:14 AM": the day's zero and
+ * a 12-hour time's zero, which its short dates ("Nov 5, 2025, 5:14 AM")
+ * and every other language left out (#7652). Every long writer reads as
+ * the short form does with its year and zone now; a 24-hour time keeps its
+ * zero.
+ */
+describe("English, on both clocks", () => {
   test.each<[string, string, string]>([
     ["getDateAsLocalShortDateTimeString", "Nov 5, 5:14 AM", "Nov 5, 05:14"],
-    // English's own pattern for a whole date keeps its zero ("hh").
+    [
+      "getDateAsLocalShortDateTimeString with its year",
+      "Nov 5, 2025, 5:14 AM",
+      "Nov 5, 2025, 05:14",
+    ],
     [
       "getDateAsLocalFormattedString",
-      "Nov 05 2025, 05:14 AM UTC",
-      "Nov 05 2025, 05:14 UTC",
+      "Nov 5, 2025, 5:14 AM UTC",
+      "Nov 5, 2025, 05:14 UTC",
     ],
+    [
+      "getDateAsLocalFormattedString with seconds",
+      "Nov 5, 2025, 5:14:00 AM UTC",
+      "Nov 5, 2025, 05:14:00 UTC",
+    ],
+    [
+      "getDateAsFormattedArrayInMultipleTimezones",
+      "Nov 5, 2025, 5:14 AM UTC",
+      "Nov 5, 2025, 05:14 UTC",
+    ],
+    [
+      "getDateAsFormattedString",
+      "Nov 5, 2025, 5:14 AM UTC",
+      "Nov 5, 2025, 05:14 UTC",
+    ],
+    [
+      "getDateAsFormattedStringInTimezone",
+      "Nov 5, 2025, 5:14 AM UTC",
+      "Nov 5, 2025, 05:14 UTC",
+    ],
+    // Moment's own "hh", which nothing OneUptime writes asks for any more.
     ["the custom pattern hh:mm A, or HH:mm", "05:14 AM", "05:14"],
     ["the custom pattern h:mm A, or HH:mm", "5:14 AM", "05:14"],
+    ["getClockTimeString", "5:14 AM", "05:14"],
+    ["getTimeStringInTimezone", "5:14 AM", "05:14"],
   ])(
     "%s: %s and %s",
     (name: string, twelveHour: string, twentyFourHour: string) => {

@@ -25,6 +25,17 @@ export interface EmailEnvelope {
    * the sender's: it writes them in this language itself.
    */
   language?: string | undefined;
+  /*
+   * The subject the project's email log keeps (EmailLog.subject, read by its
+   * members and viewers), when it must not be the one sent: an invitation
+   * written in the invitee's own language would tell the inviting project
+   * that the address already had an account, and which language it reads
+   * (#9897, Types/Team/InvitationEmailWords). The log gets the subject in
+   * the language the email has for an invitee with no language of their
+   * own instead. A literal subject, as `subject` is. Left out, the log keeps
+   * the subject sent; the server's own email log always does.
+   */
+  projectLogSubject?: string | undefined;
 }
 
 export default interface EmailMessage extends EmailEnvelope {

@@ -90,7 +90,7 @@ När dina tjänster redan räknar sina begäranden som mätvärden, eller inte s
 | **Godkänd på eller under** | För ett histogram: det värde som en bra observation ligger på eller under, i mätvärdets egen enhet, till exempel `0.3` för 300 ms i ett histogram i sekunder. Använd en av histogrammets bucketgränser. |
 | **Mätvärdesfilter** | Valfritt: de serier som räknas, till exempel `-@http.route:/health`. |
 
-En räknares händelser är det som den har ökat med i varje steg om 5 minuter, så som Prometheus `increase()` läser en räknare: en räknare som startar om räknas från noll igen, och både kumulativa räknare och deltaräknare räknas. Ett histograms händelser är dess observationer, och de bra är observationerna i de buckets som ligger på eller under värdet. Bara mätvärdets egna punkter räknas, från SLO:ets tjänster: en gauge med samma namn räknas inte alls.
+En räknares händelser är det som den har ökat med i varje steg om 5 minuter, så som Prometheus `increase()` läser en räknare: en räknare som startar om räknas från noll igen, och både kumulativa räknare och deltaräknare räknas. Ett histograms händelser är dess observationer, och de bra är observationerna i de buckets som ligger på eller under värdet. Bara mätvärdets egna punkter räknas, från SLO:ets tjänster: en gauge med samma namn räknas inte alls. En SLO på en gauge, vilket varje molnmätvärde är, säger det på sin sida, och det gör mätvärdesväljaren också: mät ett molnmätvärde med en mätvärdesmonitor och en SLO av den monitorns drifttid.
 
 Därifrån fungerar ett mätvärdesbaserat SLO som ett SLO för begäranden, med felbudget, regler för förbrukningstakt och releasekontroller räknade i händelser. Att ändra mätvärdet gör att dess händelser räknas om från början.
 

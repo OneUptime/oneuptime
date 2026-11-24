@@ -55,7 +55,10 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "Host",
     resourceType: MonitorRecommendationResourceType.Host,
-    // A server's templates, and the ones only an Android device has (#9802).
+    /*
+     * A server's templates, and an Android device's own (#9802), which a
+     * host whose OS is Android is offered beside the ones it answers.
+     */
     templates: [
       ...getAllHostAlertTemplates(),
       ...getAndroidHostAlertTemplates(),

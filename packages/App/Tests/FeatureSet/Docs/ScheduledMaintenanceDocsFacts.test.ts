@@ -52,6 +52,10 @@ import {
   CreatedRecordKind,
 } from "../../../FeatureSet/Dashboard/src/Components/CreateFromRecord/CreateFromRecord";
 import { getTemplateNextEventAt } from "../../../FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceTemplateSchedule";
+import MaintenanceTemplateSchedule, {
+  MaintenanceTemplateEvent,
+  MaintenanceTemplateScheduleData,
+} from "Common/Types/ScheduledMaintenance/MaintenanceTemplateSchedule";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import { getStatusPageHistoryInDays } from "Common/Utils/StatusPage/HistoryWindow";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
@@ -102,6 +106,8 @@ import {
   getMeasurementPresets,
 } from "Common/Utils/Measurement/MeasurementMoments";
 import EventInterval from "Common/Types/Events/EventInterval";
+import Recurring from "Common/Types/Events/Recurring";
+import OneUptimeDate from "Common/Types/Date";
 import ScheduledMaintenanceReminderStopState from "Common/Types/Reminder/ScheduledMaintenanceReminderStopState";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import RuleCriteria, {
@@ -2285,7 +2291,14 @@ describe("the create form", () => {
       "getPublishingSummary(values, now),\n    ...getWhoIsToldSentences({",
     );
     expect(REACH_MODULE).toContain(
-      'MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED: string = translationKey(\n  "None of the status pages picked shows maintenance events.",',
+      "MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED: string =\n  MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT;",
+    );
+    expect(
+      readDashboardSource(
+        "Components/ScheduledMaintenance/ScheduledMaintenancePublishing.ts",
+      ),
+    ).toContain(
+      'MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT: string =\n  translationKey("None of the status pages picked shows maintenance events.");',
     );
     expect(creating).toContain(
       "**Subscriber Notifications**, folded, says in one line when the event shows on them and who is told when; open it to pick **At a date and time** under **Publish on Status Pages**, or to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.",
@@ -2653,7 +2666,31 @@ describe("publishing an event later", () => {
       "<ScheduledMaintenanceStatusPagesCell item={item} />",
     );
     expect(later).toContain(
-      "- **Its page says so.** Its header says **Not on status pages yet**, with the time it shows from, and **Publish Now** publishes it at once, after asking. Its **Settings** say the same, and the list of events shows the time under its status pages.",
+      "- **Its page says so.** Its header says **Not on status pages yet**, with the time it shows from, and **Publish Now** publishes it at once, after asking. When none of its status pages shows maintenance events, the header says that instead of the time. Its **Settings** say the same, and the list of events shows the time under its status pages.",
+    );
+    // That sentence, in place of the time, when the server says none of them does.
+    expect(publishing).toContain(
+      "if (data.statusPagesReason === PublicNoteNothingSentReason.NoStatusPages) {\n    return {\n      band: MAINTENANCE_NOT_SHOWN_ON_PAGES_PICKED_TEXT,\n      namesTheTime: false,",
+    );
+  });
+
+  /*
+   * #9974: the Edit's Status Pages step says what the pages picked will do
+   * when that is nothing, and which reminders are not sent; the details
+   * card says it under the pages when none of them shows the event.
+   */
+  it("says on the Edit, and on the details card, when its status pages show it to nobody or tell nobody", () => {
+    const overview: string = readDashboardSource(
+      "Pages/ScheduledMaintenanceEvents/View/Index.tsx",
+    );
+
+    expect(overview).toContain("<MaintenanceStatusPagesReason");
+    expect(overview).toContain("<MaintenanceRemindersReason");
+    expect(overview).toContain(
+      "getStatusPagesListedReason(statusPagesReach.reach)",
+    );
+    expect(later).toContain(
+      "- **What its status pages do.** On the same step, a note under the status pages says when the pages picked will show the event to nobody or tell nobody, and why, and a note under **Reminders before the event** says which reminders are not sent. The **Maintenance Details** card says it under **Shown on Status Pages** when none of them shows maintenance events.",
     );
   });
 
@@ -2917,13 +2954,13 @@ describe("maintenance templates", () => {
     );
   });
 
-  it("walk the form's steps: Template Info, Maintenance Details, Resources Affected, Recurring - Status Pages on the view page's Edit", () => {
+  it("walk the form's steps: Template Info, Maintenance Details, Resources Affected, Recurring, First Event - Status Pages on the view page's Edit", () => {
     expect(TEMPLATES_PAGE).toContain(
-      '{\n      title: "Template Info",\n      id: "template-info",\n    },\n    {\n      title: "Maintenance Details",\n      id: "event",\n    },\n    {\n      title: data.excludeAffectedResources\n        ? "Status Pages"\n        : "Resources Affected",\n      id: "resources-affected",\n    },\n    {\n      title: "Recurring",\n      id: "recurring",\n    },',
+      '{\n      title: "Template Info",\n      id: "template-info",\n    },\n    {\n      title: "Maintenance Details",\n      id: "event",\n    },\n    {\n      title: data.excludeAffectedResources\n        ? "Status Pages"\n        : "Resources Affected",\n      id: "resources-affected",\n    },\n    {\n      title: "Recurring",\n      id: "recurring",\n    },\n    {\n      title: "First Event",\n      id: "first-event",\n      showIf: isRecurring,\n    },',
     );
     expect(TEMPLATE_VIEW_PAGE).toContain("excludeAffectedResources: true,");
     expect(templates).toContain(
-      "Its **Edit** walks **Template Info**, **Maintenance Details**, **Status Pages** and **Recurring**.",
+      "Its **Edit** walks **Template Info**, **Maintenance Details**, **Status Pages** and **Recurring**, then **First Event** for a template that recurs.",
     );
   });
 
@@ -3042,30 +3079,66 @@ describe("recurring events", () => {
   const RECURRING_TEMPLATES_QUERY: string =
     "query: {\n          isRecurringEvent: true,\n          scheduleNextEventAt: QueryHelper.lessThanEqualTo(";
 
-  it("asks for the schedule on the Recurring step, only once Recurring Event is on", () => {
+  /*
+   * Recurring holds the switch, how often and the time zone; the first
+   * event's times have a step of their own, First Event, shown only once
+   * the template recurs - six fields would overload one step (#10037).
+   */
+  it("asks for the schedule on the Recurring and First Event steps, only once Recurring Event is on", () => {
     expect(stepOf(fieldObject(TEMPLATES_PAGE, "Recurring Event"))).toBe(
       "recurring",
     );
 
-    for (const title of [
-      "First Event Scheduled At",
-      "First Event Starts At",
-      "First Event Ends At",
-      "How often should this event recur?",
-    ]) {
+    for (const [title, step] of [
+      ["How often should this event recur?", "recurring"],
+      ["Timezone", "recurring"],
+      ["First Event Scheduled At", "first-event"],
+      ["First Event Starts At", "first-event"],
+      ["First Event Ends At", "first-event"],
+    ] as Array<[string, string]>) {
       const field: string = fieldObject(TEMPLATES_PAGE, title);
 
-      expect(stepOf(field)).toBe("recurring");
+      expect([title, stepOf(field)]).toEqual([title, step]);
       expect(field).toContain("showIf: isRecurring,");
     }
 
     expect(firstColumn(recurring)).toEqual([
       "**Recurring Event**",
+      "**How often should this event recur?**",
+      "**Timezone**",
       "**First Event Scheduled At**",
       "**First Event Starts At**",
       "**First Event Ends At**",
-      "**How often should this event recur?**",
     ]);
+    expect(recurring).toContain(
+      "The first three are on the **Recurring** step. The first event's times are on the **First Event** step, which appears once **Recurring Event** is on.",
+    );
+  });
+
+  /*
+   * The time zone starts on the reader's own, as the page says of a new
+   * template; one saved before templates had a time zone reads UTC.
+   */
+  it("starts a new template on the reader's time zone, and an older one on UTC", () => {
+    const field: string = fieldObject(TEMPLATES_PAGE, "Timezone");
+
+    expect(field).toContain(
+      "defaultValue: OneUptimeDate.getCurrentTimezone(),",
+    );
+    expect(field).toContain("required: isRecurring,");
+    expect(
+      tableRows(recurring)
+        .map(tableCells)
+        .find((cells: Array<string>): boolean => {
+          return cells[0] === "**Timezone**";
+        })?.[1],
+    ).toBe(
+      "The time zone the events keep their time of day in. A new template starts on yours.",
+    );
+    expect(MaintenanceTemplateSchedule.DEFAULT_TIMEZONE).toBe("UTC");
+    expect(recurring).toContain(
+      "A template created before templates had a time zone shows **UTC**, the time zone its events were worked out in until then.",
+    );
   });
 
   /*
@@ -3142,7 +3215,7 @@ describe("recurring events", () => {
     );
   });
 
-  it("is run every minute: the job moves a template's next time on by one interval and creates the event", () => {
+  it("is run every minute: the job creates the event and moves a template's next time on to the schedule's next event", () => {
     expect(recurringJob).toContain(
       "{ schedule: EVERY_MINUTE, runOnStartup: false }",
     );
@@ -3156,20 +3229,208 @@ describe("recurring events", () => {
       ),
     ).toBe(true);
     expect(recurring).toContain(
-      "A job checks the recurring templates every minute. When a template's next time comes, it moves that time on by one interval and creates the event.",
+      "A job checks the recurring templates every minute. When a template's next time comes, it creates the event and moves that time on to the next event of the schedule.",
     );
   });
 
-  it("keeps each event's distances from the first one, one interval later", () => {
-    expect(recurringJob).toContain(
-      "scheduledMaintenanceEvent.startsAt = OneUptimeDate.addRemoveMinutes(\n          eventscheduledTime,\n          minutesBetwenScheduledAndStartTime,",
-    );
-    expect(recurringJob).toContain(
-      "scheduledMaintenanceEvent.endsAt = OneUptimeDate.addRemoveMinutes(\n          eventscheduledTime,\n          minutesBetweenScheduledAndEndTime,",
-    );
-    expect(recurring).toContain(
-      "every later event keeps the same distances, one interval later.",
-    );
+  /*
+   * Every event is the first one moved on whole intervals of the
+   * template's time zone's calendar (#10037), and the page says what that
+   * does on the days that are not like the others. Each of its sentences is
+   * checked here on the schedule itself.
+   */
+  describe("keeps every event's times of day on the template's own clock", () => {
+    function wallClockOf(
+      instant: Date,
+      zone: string,
+      format: string = "YYYY-MM-DD HH:mm",
+    ): string {
+      return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: instant,
+        format: format,
+        timezone: zone,
+      });
+    }
+
+    // The first event's start and end as instants (ISO 8601, UTC).
+    function schedule(data: {
+      zone: string;
+      startsAt: string;
+      endsAt: string;
+      interval: EventInterval;
+      count?: number;
+    }): MaintenanceTemplateScheduleData {
+      const startsAt: Date = new Date(data.startsAt);
+
+      return MaintenanceTemplateSchedule.read({
+        firstEventScheduledAt: new Date(startsAt.getTime() - 60 * 60 * 1000),
+        firstEventStartsAt: startsAt,
+        firstEventEndsAt: new Date(data.endsAt),
+        recurringInterval: Recurring.fromJSON({
+          _type: "Recurring",
+          value: {
+            intervalType: data.interval,
+            intervalCount: { _type: "PositiveNumber", value: data.count || 1 },
+          },
+        }),
+        timezone: data.zone,
+      })!;
+    }
+
+    function startOf(
+      data: MaintenanceTemplateScheduleData,
+      index: number,
+      zone: string,
+    ): string {
+      return wallClockOf(
+        MaintenanceTemplateSchedule.getEvent(data, index).startsAt,
+        zone,
+      );
+    }
+
+    it("the job creates each event at the times the schedule works out, on the template's clock", () => {
+      expect(recurringJob).toContain(
+        "MaintenanceTemplateSchedule.getDueEvent({",
+      );
+      expect(recurringJob).toContain(
+        "scheduledMaintenanceEvent.startsAt = eventTimes.startsAt;",
+      );
+      expect(recurringJob).toContain(
+        "scheduledMaintenanceEvent.endsAt = eventTimes.endsAt;",
+      );
+      expect(recurringJob).toContain("timezone: true,");
+      expect(recurring).toContain(
+        "every later event is the first one moved on whole intervals of that time zone's calendar, at the same times of day.",
+      );
+    });
+
+    it("02:00 to 04:00 in Berlin is 02:00 to 04:00 there in summer and in winter", () => {
+      // 02:00 to 04:00 CEST on 4 July.
+      const data: MaintenanceTemplateScheduleData = schedule({
+        zone: "Europe/Berlin",
+        startsAt: "2026-07-04T00:00:00.000Z",
+        endsAt: "2026-07-04T02:00:00.000Z",
+        interval: EventInterval.Week,
+      });
+
+      // 4 July (CEST) and 21 November (CET).
+      for (const index of [0, 20]) {
+        const event: MaintenanceTemplateEvent =
+          MaintenanceTemplateSchedule.getEvent(data, index);
+
+        expect(wallClockOf(event.startsAt, "Europe/Berlin").slice(11)).toBe(
+          "02:00",
+        );
+        expect(wallClockOf(event.endsAt, "Europe/Berlin").slice(11)).toBe(
+          "04:00",
+        );
+      }
+
+      expect(recurring).toContain(
+        "a window from 02:00 to 04:00 in Berlin is from 02:00 to 04:00 there in summer and in winter.",
+      );
+    });
+
+    it("a monthly event on the 31st is on 30 April and 28 February, and back on the 31st; a yearly one on 29 February is on the 28th", () => {
+      const monthly: MaintenanceTemplateScheduleData = schedule({
+        zone: "UTC",
+        startsAt: "2027-01-31T02:00:00.000Z",
+        endsAt: "2027-01-31T04:00:00.000Z",
+        interval: EventInterval.Month,
+      });
+
+      expect(
+        [1, 2, 3].map((index: number): string => {
+          return startOf(monthly, index, "UTC").slice(0, 10);
+        }),
+      ).toEqual(["2027-02-28", "2027-03-31", "2027-04-30"]);
+
+      const yearly: MaintenanceTemplateScheduleData = schedule({
+        zone: "UTC",
+        startsAt: "2028-02-29T02:00:00.000Z",
+        endsAt: "2028-02-29T04:00:00.000Z",
+        interval: EventInterval.Year,
+      });
+
+      expect(startOf(yearly, 1, "UTC").slice(0, 10)).toBe("2029-02-28");
+      expect(recurring).toContain(
+        "- **A day the month does not have.** A monthly event on the 29th, 30th or 31st is on the last day of a shorter month, such as 30 April or 28 February, and back on its own day in the months that have it. A yearly event on 29 February is on 28 February in other years.",
+      );
+    });
+
+    it("02:30 the night the clocks go forward is 03:30, and 01:30 the night they go back in New York is the first of the two", () => {
+      // 02:30 to 05:00 EST on 13 March.
+      const forward: MaintenanceTemplateScheduleData = schedule({
+        zone: "America/New_York",
+        startsAt: "2027-03-13T07:30:00.000Z",
+        endsAt: "2027-03-13T10:00:00.000Z",
+        interval: EventInterval.Day,
+      });
+
+      expect(startOf(forward, 1, "America/New_York")).toBe("2027-03-14 03:30");
+
+      // 01:30 to 05:00 EDT on 31 October.
+      const back: MaintenanceTemplateScheduleData = schedule({
+        zone: "America/New_York",
+        startsAt: "2026-10-31T05:30:00.000Z",
+        endsAt: "2026-10-31T09:00:00.000Z",
+        interval: EventInterval.Day,
+      });
+
+      expect(
+        wallClockOf(
+          MaintenanceTemplateSchedule.getEvent(back, 1).startsAt,
+          "America/New_York",
+          "YYYY-MM-DD HH:mm z",
+        ),
+      ).toBe("2026-11-01 01:30 EDT");
+
+      expect(recurring).toContain(
+        "- **The night the clocks go forward.** A time that does not exist that night, such as 02:30 when 02:00 jumps to 03:00, moves on by the jump, to 03:30.",
+      );
+      expect(recurring).toContain(
+        "- **The night the clocks go back.** A time that happens twice that night, such as 01:30 in New York, is the first of the two.",
+      );
+    });
+
+    it("every few hours, hours are counted as they pass", () => {
+      const data: MaintenanceTemplateScheduleData = schedule({
+        zone: "America/New_York",
+        // 12:00 to 13:00 EDT on 31 October.
+        startsAt: "2026-10-31T16:00:00.000Z",
+        endsAt: "2026-10-31T17:00:00.000Z",
+        interval: EventInterval.Hour,
+        count: 12,
+      });
+
+      // Two events of 12 hours on, across the night the clocks go back: 11:00.
+      expect(startOf(data, 2, "America/New_York")).toBe("2026-11-01 11:00");
+      expect(recurring).toContain(
+        "- **Every few hours.** Hours are counted as they pass, so a template that recurs every few hours moves an hour on the clock when it changes.",
+      );
+    });
+
+    it("British Columbia, on UTC-7 since November 2026, keeps the same offset", () => {
+      const data: MaintenanceTemplateScheduleData = schedule({
+        zone: "America/Vancouver",
+        // 02:00 to 04:00 PDT on 30 October.
+        startsAt: "2026-10-30T09:00:00.000Z",
+        endsAt: "2026-10-30T11:00:00.000Z",
+        interval: EventInterval.Day,
+      });
+
+      for (const index of [0, 5, 60, 150]) {
+        expect(
+          MaintenanceTemplateSchedule.getEvent(data, index)
+            .startsAt.toISOString()
+            .slice(11, 16),
+        ).toBe("09:00");
+      }
+
+      expect(recurring).toContain(
+        "- **A time zone without daylight saving time.** A time zone that no longer changes its clocks, such as British Columbia's (America/Vancouver) since November 2026, keeps the same offset, so nothing moves.",
+      );
+    });
   });
 
   it("copies the template into each event, owners included", () => {
@@ -3236,7 +3497,7 @@ describe("recurring events", () => {
   /*
    * Turned off, the service clears the template's next time and nothing
    * else; turned back on, it works the next time out from the first event,
-   * the schedule's next time after now (Recurring.getNextDate).
+   * the schedule's next time after now (MaintenanceTemplateSchedule).
    */
   it("keeps the schedule of a template turned off, and picks it up at its next time when it is turned back on", () => {
     const update: string = TEMPLATE_SERVICE.slice(
@@ -3259,10 +3520,11 @@ describe("recurring events", () => {
       expect(update).not.toContain(`newTemplate.${kept} =`);
     }
     expect(update).toContain(
-      "newTemplate.scheduleNextEventAt = this.getNextEventTime({\n            dateAndTime: firstEventScheduledAt,\n            recurringInterval: recurringInterval,\n          });",
+      "const nextEventAt: Date | undefined = this.getNextEventTime({\n          firstEventScheduledAt: firstEventScheduledAt,",
     );
+    expect(update).toContain("newTemplate.scheduleNextEventAt = nextEventAt;");
     expect(TEMPLATE_SERVICE).toContain(
-      "return Recurring.getNextDate(data.dateAndTime, data.recurringInterval);",
+      "return MaintenanceTemplateSchedule.getNextEventAt(template);",
     );
     expect(templates).toContain(
       "A template turned off keeps its schedule: turn it back on, and it picks up at the schedule's next time, skipping the times it was off.",

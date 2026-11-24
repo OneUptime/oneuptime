@@ -3,6 +3,8 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
+import Timezone from "../../Types/Timezone";
 import { appendAttributeFilters } from "../Utils/AnalyticsDatabase/AttributeFilterStatement";
 import {
   getQuerySettings,
@@ -25,7 +27,7 @@ import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
-import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
+import { STORED_APP_INSTALL_SQL } from "../../Types/Rum/MobileAppTelemetry";
 import {
   appendResourceScopeFilters,
   ResourceEntityScope,
@@ -154,6 +156,12 @@ export interface HistogramRequest extends TraceFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
 }
 
 /*
@@ -203,6 +211,12 @@ export interface TraceAnalyticsRequest extends TraceFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
   chartType: TraceAnalyticsChartType;
   metric: TraceAnalyticsMetric;
   /*
@@ -553,9 +567,12 @@ export class TraceAggregationService {
       "SELECT uniqIf(sessionId, sessionId != '') AS sessions, count() AS cnt",
     );
 
-    // An install as a crash's occurrence names it (ExceptionAggregationService).
+    /*
+     * An install as a crash's occurrence names it (ExceptionAggregationService):
+     * the resource's app.installation.id, else its device.id (#9924).
+     */
     if (request.countInstalls) {
-      const install: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
+      const install: string = STORED_APP_INSTALL_SQL;
 
       statement.append(`, uniqIf(${install}, ${install} != '') AS installs`);
     }
@@ -1175,15 +1192,16 @@ export class TraceAggregationService {
   }
 
   private static buildHistogramStatement(request: HistogramRequest): Statement {
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-
     /*
      * Two-stage aggregation. The inner query groups by minute + statusCode,
      * which exactly matches the proj_hist_by_minute projection. With
      * optimize_use_projections=1 (default in modern ClickHouse), the inner
      * scan reads pre-aggregated rows instead of the 1.8B-row span table —
      * even for multi-week ranges. The outer query then re-buckets the tiny
-     * minute-level result to the requested bucket size.
+     * minute-level result to the requested bucket size: a day bar from the
+     * reader's midnight when the request names their zone, exact because
+     * every zone's offset is a whole number of minutes
+     * (TelemetryHistogramBuckets, #7923).
      *
      * The time window is filtered on toStartOfMinute(startTime) — the
      * projection's key expression — NOT raw startTime. A raw startTime
@@ -1208,10 +1226,17 @@ export class TraceAggregationService {
      */
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(minute, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket,
+        `;
+
+    statement.append(
+      TelemetryHistogramBuckets.buildBucketStatement({
+        timestampExpression: "minute",
+        bucketSizeInMinutes: request.bucketSizeInMinutes,
+        timezone: request.timezone,
+      }),
+    );
+
+    statement.append(SQL` AS bucket,
         statusCode,
         sum(cnt_minute) AS cnt
       FROM (
@@ -1232,7 +1257,7 @@ export class TraceAggregationService {
             type: TableColumnType.DateTime64,
             value: request.endTime,
           }}
-    `;
+    `);
 
     TraceAggregationService.appendCommonFilters(statement, request);
 
@@ -2741,15 +2766,20 @@ export class TraceAggregationService {
     TraceAggregationService.validateGroupBy(request.groupBy);
 
     const groupByKeys: Array<string> = request.groupBy || [];
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
     const metricExpr: string = TraceAggregationService.getMetricExpression(
       request.metric,
     );
 
-    const statement: Statement = SQL`SELECT toStartOfInterval(startTime, INTERVAL ${{
-      type: TableColumnType.Number,
-      value: intervalSeconds,
-    }} SECOND) AS bucket`;
+    // A day from the reader's midnight, when the request names their zone.
+    const statement: Statement = SQL`SELECT `
+      .append(
+        TelemetryHistogramBuckets.buildBucketStatement({
+          timestampExpression: "startTime",
+          bucketSizeInMinutes: request.bucketSizeInMinutes,
+          timezone: request.timezone,
+        }),
+      )
+      .append(" AS bucket");
 
     statement.append(`, ${metricExpr} AS val`);
 

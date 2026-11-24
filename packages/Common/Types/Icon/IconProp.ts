@@ -152,6 +152,7 @@ enum IconProp {
   Discord = "Discord",
   Mattermost = "Mattermost",
   Terraform = "Terraform",
+  Crossplane = "Crossplane",
   Brain = "Brain",
   FlowDiagram = "FlowDiagram",
   GitHub = "GitHub",

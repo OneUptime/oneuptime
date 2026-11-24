@@ -9,6 +9,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/BillingPaymentMethod";
 import Project from "../../Models/DatabaseModels/Project";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
 import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
@@ -115,6 +116,14 @@ export class Service extends DatabaseService<Model> {
     if (!findBy.props.tenantId) {
       throw new BadDataException("ProjectID not found.");
     }
+
+    /*
+     * Only someone who may read the project's payment methods makes
+     * OneUptime ask the payment provider for them and write them again:
+     * anyone else is refused here, before any of it, as the read would
+     * refuse them after.
+     */
+    TablePermission.assertCallerMayReadTable(Model, findBy.props);
 
     const project: Project | null = await ProjectService.findOneById({
       id: findBy.props.tenantId!,

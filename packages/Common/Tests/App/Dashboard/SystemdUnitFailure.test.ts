@@ -38,9 +38,18 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
+import { createTranslator, Translator } from "../../../Types/Translator";
+import { ResourceAttentionDialogRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttentionDialog";
+import {
+  SYSTEMD_FAILED_UNITS_LISTED,
+  loadSystemdFailedUnits,
+  loadSystemdUnitFailure,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnitFailureDialog";
 import {
   JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE,
   JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE,
@@ -56,18 +65,25 @@ import {
   SYSTEMD_UNIT_CURRENT,
   SYSTEMD_UNIT_JOURNAL_READ_LIMIT,
   SYSTEMD_UNIT_JOURNAL_WINDOW_DAYS,
+  SYSTEMD_UNIT_NO_REASON_IN_JOURNAL,
   SystemdUnitFailure,
   SystemdUnitJournalLine,
   getSignalName,
+  getSystemdFailedUnitItems,
   getSystemdFailureReason,
+  getSystemdUnitFailedItem,
   getSystemdUnitFailureItem,
+  getSystemdUnitItemKey,
   getSystemdUnitLogsRoute,
   getSystemdUnitOwnLines,
+  getSystemdUnitUnexplainedFailureItem,
   isSystemdOwnLine,
   readSystemdUnitFailure,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnitFailure";
 import {
+  SYSTEMD_FAILED_UNITS_JOURNAL_READ_LIMIT,
   getSystemdUnitJournalWindow,
+  readSystemdFailedUnitsJournal,
   readSystemdUnitJournal,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnitJournal";
 
@@ -549,5 +565,501 @@ describe("readSystemdUnitJournal: the unit's newest lines, from the host's logs"
       }),
     ).toEqual([]);
     expect(getListMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE SYSTEMD UNITS LIST'S FAILED UNITS OPEN WHY (#9960).
+ *
+ * The list drew each failed unit's state as a plain "Failed". Its Failed
+ * now opens the dialog the unit's page opens, read the same way, with View
+ * to the unit's page; and its count of failed units opens all of them at
+ * once, from one read of what systemd said of why they failed.
+ */
+
+// A unit's line, as the host's logs file it under its unit.
+function unitLine(
+  unit: string,
+  time: string,
+  body: string,
+  attributes: Record<string, unknown> = {},
+): SystemdUnitJournalLine {
+  return {
+    time: at(time),
+    body: body,
+    severityText: "INFO",
+    attributes: {
+      [JOURNALD_SYSTEMD_UNIT_ATTRIBUTE]: unit,
+      "syslog.identifier": "systemd",
+      "process.pid": "1",
+      ...attributes,
+    },
+  };
+}
+
+function failedWith(
+  unit: string,
+  time: string,
+  result: string,
+  exit?: { code: string; status: string; name: string },
+): Array<SystemdUnitJournalLine> {
+  const lines: Array<SystemdUnitJournalLine> = [
+    unitLine(unit, time, `${unit}: Failed with result '${result}'.`, {
+      [JOURNALD_SYSTEMD_RESULT_ATTRIBUTE]: result,
+    }),
+  ];
+
+  if (exit) {
+    lines.push(
+      unitLine(
+        unit,
+        time,
+        `${unit}: Main process exited, code=${exit.code}, status=${exit.status}/${exit.name}`,
+        {
+          [JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE]: exit.code,
+          [JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE]: exit.status,
+        },
+      ),
+    );
+  }
+
+  return lines;
+}
+
+const ENGLISH: Translator = createTranslator((): string | undefined => {
+  return undefined;
+}, "en");
+
+function unitRoute(unit: string): Route {
+  return new Route(`/dashboard/p/host/h/systemd-units/${unit}`);
+}
+
+const NO_REASON: string =
+  "Its journal of the last 7 days does not say why. OneUptime's default collector config sends each journal line with its unit.";
+
+describe("getSystemdUnitFailedItem: one unit's row, from its journal", () => {
+  test("why it failed, when its journal says so: on its page the current row, from a list a row of its own with View", () => {
+    const onItsPage: ResourceAttentionItem = getSystemdUnitFailedItem({
+      unitName: UNIT,
+      lines: EXIT_CODE_FAILURE,
+      translator: ENGLISH,
+    });
+
+    expect(onItsPage).toEqual(
+      getSystemdUnitFailureItem({
+        unitName: UNIT,
+        failure: readSystemdUnitFailure(EXIT_CODE_FAILURE)!,
+        lines: EXIT_CODE_FAILURE,
+      }),
+    );
+    expect(onItsPage.key).toBe(SYSTEMD_UNIT_CURRENT.key);
+    expect(onItsPage.route).toBeUndefined();
+
+    const fromAList: ResourceAttentionItem = getSystemdUnitFailedItem({
+      unitName: UNIT,
+      lines: EXIT_CODE_FAILURE,
+      translator: ENGLISH,
+      key: getSystemdUnitItemKey(UNIT),
+      route: unitRoute(UNIT),
+    });
+
+    expect(fromAList.key).toBe(`systemd-unit:${UNIT}`);
+    expect(fromAList.route?.toString()).toBe(unitRoute(UNIT).toString());
+    expect(fromAList.reasons).toEqual(onItsPage.reasons);
+  });
+
+  test("Failed, and why its journal may not say, when it does not: with what it printed", () => {
+    const printed: Array<SystemdUnitJournalLine> = [
+      ownLine("10:00:02", "nginx: [warn] the configuration file is deprecated"),
+      systemdLine("10:00:00", "Starting nginx.service...", {}),
+    ];
+
+    const item: ResourceAttentionItem = getSystemdUnitFailedItem({
+      unitName: UNIT,
+      lines: printed,
+      translator: ENGLISH,
+      key: getSystemdUnitItemKey(UNIT),
+      route: unitRoute(UNIT),
+    });
+
+    expect(item).toEqual(
+      getSystemdUnitUnexplainedFailureItem({
+        unitName: UNIT,
+        lines: printed,
+        translator: ENGLISH,
+        key: getSystemdUnitItemKey(UNIT),
+        route: unitRoute(UNIT),
+      }),
+    );
+    expect(item.reasons).toEqual([{ text: "Failed" }]);
+    expect(item.explanation).toBe(NO_REASON);
+    expect(item.facts).toBeUndefined();
+    expect(item.since).toBeUndefined();
+    // What it printed, never systemd's own lines.
+    expect(item.events).toEqual([
+      {
+        key: `${at("10:00:02").getTime()}-0`,
+        reason: "nginx",
+        message: "nginx: [warn] the configuration file is deprecated",
+        count: 1,
+        lastSeenAt: at("10:00:02"),
+      },
+    ]);
+    expect(item.route?.toString()).toBe(unitRoute(UNIT).toString());
+  });
+
+  test("the explanation is in the reader's words and digits", () => {
+    const persian: Translator = createTranslator(
+      (text: string): string | undefined => {
+        return text === SYSTEMD_UNIT_NO_REASON_IN_JOURNAL
+          ? "ژورنال {{days}} روز گذشته آن نمی‌گوید چرا."
+          : undefined;
+      },
+      "fa",
+    );
+
+    expect(
+      getSystemdUnitUnexplainedFailureItem({
+        unitName: UNIT,
+        lines: [],
+        translator: persian,
+      }).explanation,
+    ).toContain("۷");
+  });
+});
+
+describe("getSystemdFailedUnitItems: the list's failed units, each with why", () => {
+  const LINES: Array<SystemdUnitJournalLine> = [
+    ...failedWith("backup.service", "09:00:00", "signal", {
+      code: "killed",
+      status: "9",
+      name: "KILL",
+    }),
+    ...failedWith("nginx.service", "10:00:03", "exit-code", {
+      code: "exited",
+      status: "1",
+      name: "FAILURE",
+    }),
+    // An earlier failure of nginx: the newest one is why it is failed now.
+    ...failedWith("nginx.service", "08:00:00", "timeout"),
+    // A unit the list does not hold as failed now: none of its business.
+    ...failedWith("api.service", "11:00:00", "exit-code", {
+      code: "exited",
+      status: "3",
+      name: "NOTIMPLEMENTED",
+    }),
+  ];
+
+  const items: Array<ResourceAttentionItem> = getSystemdFailedUnitItems({
+    units: [
+      { name: "worker.service", route: unitRoute("worker.service") },
+      { name: "nginx.service", route: unitRoute("nginx.service") },
+      { name: "backup.service", route: unitRoute("backup.service") },
+      { name: "archive.service", route: unitRoute("archive.service") },
+    ],
+    lines: LINES,
+    translator: ENGLISH,
+  });
+
+  test("the newest failure first, then the units whose journal does not say why, by name", () => {
+    expect(
+      items.map((item: ResourceAttentionItem): string => {
+        return item.name;
+      }),
+    ).toEqual([
+      "nginx.service",
+      "backup.service",
+      "archive.service",
+      "worker.service",
+    ]);
+  });
+
+  test("each its own row, why as systemd said it, since when, and View to its page", () => {
+    const [nginx, backup, archive] = items as [
+      ResourceAttentionItem,
+      ResourceAttentionItem,
+      ResourceAttentionItem,
+    ];
+
+    expect(nginx.key).toBe("systemd-unit:nginx.service");
+    expect(nginx.reasons).toEqual([
+      { text: "Exited with code {{code}}", values: { code: "1" } },
+    ]);
+    expect(nginx.since).toEqual({
+      at: at("10:00:03"),
+      template: "Failed {{time}}",
+    });
+    // Its own lines were not read: systemd's words say how it ended.
+    expect(nginx.message).toBe(
+      "nginx.service: Main process exited, code=exited, status=1/FAILURE",
+    );
+    expect(nginx.route?.toString()).toBe(unitRoute("nginx.service").toString());
+
+    expect(backup.reasons).toEqual([
+      { text: "Killed by {{signal}}", values: { signal: "SIGKILL" } },
+    ]);
+    expect(backup.facts).toEqual([
+      { key: "result", label: "Result", value: "signal" },
+      { key: "exit-status", label: "Exit status", value: "9/KILL" },
+    ]);
+
+    expect(archive.reasons).toEqual([{ text: "Failed" }]);
+    expect(archive.explanation).toBe(NO_REASON);
+    expect(archive.route?.toString()).toBe(
+      unitRoute("archive.service").toString(),
+    );
+  });
+
+  test("every key is its unit's, so no two rows share one", () => {
+    expect(
+      new Set(
+        items.map((item: ResourceAttentionItem): string => {
+          return item.key;
+        }),
+      ).size,
+    ).toBe(items.length);
+  });
+
+  test("no unit, no row", () => {
+    expect(
+      getSystemdFailedUnitItems({
+        units: [],
+        lines: LINES,
+        translator: ENGLISH,
+      }),
+    ).toEqual([]);
+  });
+});
+
+interface FailedUnitsLogRequest {
+  modelType: { name: string };
+  query: {
+    projectId: string;
+    time: InBetween<Date>;
+    attributes: Record<string, unknown>;
+  };
+  limit: number;
+  sort: Record<string, unknown>;
+}
+
+function failedUnitsRequests(): Array<FailedUnitsLogRequest> {
+  return getListMock.mock.calls.map(
+    (args: Array<unknown>): FailedUnitsLogRequest => {
+      return args[0] as FailedUnitsLogRequest;
+    },
+  );
+}
+
+describe("readSystemdFailedUnitsJournal: what systemd said of why the list's failed units failed", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "10000000-0000-4000-8000-000000000001",
+  );
+
+  beforeEach(() => {
+    getListMock.mockReset();
+    getCurrentProjectIdMock.mockReset();
+    getCurrentProjectIdMock.mockReturnValue(PROJECT_ID);
+  });
+
+  test("one read of their result lines and one of their exit lines, at once, bounded, newest first", async () => {
+    getListMock.mockReturnValue(Promise.resolve({ data: [] }));
+
+    await readSystemdFailedUnitsJournal({
+      hostIdentifier: "web-01",
+      unitNames: ["backup.service", "nginx.service"],
+      window: { startTime: at("09:00:00"), endTime: at("10:00:00") },
+    });
+
+    expect(failedUnitsRequests()).toHaveLength(2);
+
+    const [results, exits] = failedUnitsRequests() as [
+      FailedUnitsLogRequest,
+      FailedUnitsLogRequest,
+    ];
+
+    for (const request of [results, exits]) {
+      expect(request.modelType.name).toBe("Log");
+      expect(request.query.projectId).toBe(PROJECT_ID.toString());
+      expect(request.query.time).toEqual(
+        new InBetween<Date>(at("09:00:00"), at("10:00:00")),
+      );
+      expect(request.limit).toBe(SYSTEMD_FAILED_UNITS_JOURNAL_READ_LIMIT);
+      expect(request.sort).toEqual({ time: SortOrder.Descending });
+      expect(request.query.attributes[HOST_NAME_LOG_ATTRIBUTE]).toBe("web-01");
+
+      // Only these units' lines: another unit's never crowd them out.
+      const units: unknown =
+        request.query.attributes[JOURNALD_SYSTEMD_UNIT_ATTRIBUTE];
+      expect(units).toBeInstanceOf(Includes);
+      expect((units as Includes).values).toEqual([
+        "backup.service",
+        "nginx.service",
+      ]);
+    }
+
+    expect(
+      results.query.attributes[JOURNALD_SYSTEMD_RESULT_ATTRIBUTE],
+    ).toBeInstanceOf(NotNull);
+    expect(
+      results.query.attributes[JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE],
+    ).toBeUndefined();
+    expect(
+      exits.query.attributes[JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE],
+    ).toBeInstanceOf(NotNull);
+    expect(
+      exits.query.attributes[JOURNALD_SYSTEMD_RESULT_ATTRIBUTE],
+    ).toBeUndefined();
+  });
+
+  test("both reads' lines, each as a journal line", async () => {
+    const [result, exit] = failedWith(
+      "nginx.service",
+      "10:00:03",
+      "exit-code",
+      { code: "exited", status: "1", name: "FAILURE" },
+    ) as [SystemdUnitJournalLine, SystemdUnitJournalLine];
+
+    getListMock.mockImplementation((request: unknown): Promise<unknown> => {
+      const attributes: Record<string, unknown> = (
+        request as FailedUnitsLogRequest
+      ).query.attributes;
+      return Promise.resolve({
+        data: [attributes[JOURNALD_SYSTEMD_RESULT_ATTRIBUTE] ? result : exit],
+      });
+    });
+
+    expect(
+      await readSystemdFailedUnitsJournal({
+        hostIdentifier: "web-01",
+        unitNames: ["nginx.service"],
+        window: { startTime: at("09:00:00"), endTime: at("11:00:00") },
+      }),
+    ).toEqual([result, exit]);
+  });
+
+  test("no unit: nothing asked", async () => {
+    expect(
+      await readSystemdFailedUnitsJournal({
+        hostIdentifier: "web-01",
+        unitNames: [],
+        window: { startTime: at("09:00:00"), endTime: at("10:00:00") },
+      }),
+    ).toEqual([]);
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("the dialogs' reads", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "10000000-0000-4000-8000-000000000001",
+  );
+
+  beforeEach(() => {
+    getListMock.mockReset();
+    getCurrentProjectIdMock.mockReset();
+    getCurrentProjectIdMock.mockReturnValue(PROJECT_ID);
+  });
+
+  test("one unit's: its journal of the last days, its row from a list with View", async () => {
+    getListMock.mockReturnValue(Promise.resolve({ data: EXIT_CODE_FAILURE }));
+
+    const read: ResourceAttentionDialogRead = await loadSystemdUnitFailure({
+      hostIdentifier: "web-01",
+      unitName: UNIT,
+      translator: ENGLISH,
+      unitRoute: unitRoute(UNIT),
+      now: at("12:00:00"),
+    });
+
+    const [request] = failedUnitsRequests() as [FailedUnitsLogRequest];
+
+    expect(request.query.attributes).toEqual({
+      [HOST_NAME_LOG_ATTRIBUTE]: "web-01",
+      [JOURNALD_SYSTEMD_UNIT_ATTRIBUTE]: UNIT,
+    });
+    expect(request.query.time).toEqual(
+      new InBetween<Date>(
+        getSystemdUnitJournalWindow(at("12:00:00")).startTime,
+        at("12:00:00"),
+      ),
+    );
+    expect(read.items).toHaveLength(1);
+    expect(read.items[0]!.key).toBe(getSystemdUnitItemKey(UNIT));
+    expect(read.items[0]!.route?.toString()).toBe(unitRoute(UNIT).toString());
+    expect(read.items[0]!.reasons).toEqual([
+      { text: "Exited with code {{code}}", values: { code: "1" } },
+    ]);
+  });
+
+  test("one unit's on its own page: the current row, no View", async () => {
+    getListMock.mockReturnValue(Promise.resolve({ data: EXIT_CODE_FAILURE }));
+
+    const read: ResourceAttentionDialogRead = await loadSystemdUnitFailure({
+      hostIdentifier: "web-01",
+      unitName: UNIT,
+      translator: ENGLISH,
+    });
+
+    expect(read.items[0]!.key).toBe(SYSTEMD_UNIT_CURRENT.key);
+    expect(read.items[0]!.route).toBeUndefined();
+  });
+
+  test("the list's failed units: at most the first by name, and says when there are more", async () => {
+    getListMock.mockReturnValue(Promise.resolve({ data: [] }));
+
+    const units: Array<{ name: string }> = [];
+    for (let index: number = SYSTEMD_FAILED_UNITS_LISTED; index >= 0; index--) {
+      units.push({ name: `unit-${String(index).padStart(3, "0")}.service` });
+    }
+
+    const read: ResourceAttentionDialogRead = await loadSystemdFailedUnits({
+      hostIdentifier: "web-01",
+      units: units,
+      translator: ENGLISH,
+    });
+
+    expect(units).toHaveLength(SYSTEMD_FAILED_UNITS_LISTED + 1);
+    expect(read.items).toHaveLength(SYSTEMD_FAILED_UNITS_LISTED);
+    expect(read.isTruncated).toBe(true);
+
+    const [request] = failedUnitsRequests() as [FailedUnitsLogRequest];
+    const asked: Includes = request.query.attributes[
+      JOURNALD_SYSTEMD_UNIT_ATTRIBUTE
+    ] as Includes;
+
+    expect(asked.values).toHaveLength(SYSTEMD_FAILED_UNITS_LISTED);
+    expect(asked.values[0]).toBe("unit-000.service");
+    // The last by name is the one left out.
+    expect(asked.values).not.toContain(
+      `unit-${String(SYSTEMD_FAILED_UNITS_LISTED).padStart(3, "0")}.service`,
+    );
+  });
+
+  test("the list's failed units, few enough: every one, nothing cut", async () => {
+    getListMock.mockReturnValue(
+      Promise.resolve({
+        data: failedWith("nginx.service", "10:00:03", "exit-code", {
+          code: "exited",
+          status: "1",
+          name: "FAILURE",
+        }),
+      }),
+    );
+
+    const read: ResourceAttentionDialogRead = await loadSystemdFailedUnits({
+      hostIdentifier: "web-01",
+      units: [
+        { name: "nginx.service", route: unitRoute("nginx.service") },
+        { name: "worker.service", route: unitRoute("worker.service") },
+      ],
+      translator: ENGLISH,
+    });
+
+    expect(read.isTruncated).toBe(false);
+    expect(
+      read.items.map((item: ResourceAttentionItem): string => {
+        return item.name;
+      }),
+    ).toEqual(["nginx.service", "worker.service"]);
   });
 });

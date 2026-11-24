@@ -15,12 +15,14 @@
  *
  * Every metric read is answered with a smooth, repeatable curve across the
  * window it asks for, and recorded with that window, so a test can say
- * which time range the widgets read.
+ * which time range the widgets read. Each widget keeps one id from read to
+ * read (widgetIdOf), so a link to a widget opens the board at it again.
  */
 import {
   DashboardTemplateType,
   getTemplateConfig,
 } from "Common/Types/Dashboard/DashboardTemplates";
+import ObjectID from "Common/Types/ObjectID";
 
 export const PROJECT_ID = "10000000-0000-4000-8000-0000000000d1";
 
@@ -67,8 +69,22 @@ export const getScenario = (id) => {
  * widgets, and the scenario's defaults - none at all for a dashboard saved
  * before them.
  */
+// The id a board's n-th widget keeps, read after read (from 1).
+export const widgetIdOf = (n) => {
+  return `cc000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+};
+
 export const buildConfig = (scenario) => {
   const config = getTemplateConfig(DashboardTemplateType.Metrics);
+
+  /*
+   * Each widget keeps its id from one read to the next, as a saved board
+   * does - the template makes new ones each time it is asked - so a link
+   * to one of them (?widget=, #10084) finds it again after a reload.
+   */
+  config.components = (config.components || []).map((component, index) => {
+    return { ...component, componentId: new ObjectID(widgetIdOf(index + 1)) };
+  });
 
   if (scenario.isEmpty) {
     config.components = [];

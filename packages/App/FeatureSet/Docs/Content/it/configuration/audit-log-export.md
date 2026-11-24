@@ -148,7 +148,7 @@ Ogni voce è un oggetto JSON, con le chiavi sempre in quest'ordine:
 | `mcpOAuthGrantId`, `mcpClientName` | Il client MCP tramite cui è stata fatta, se c'è. |
 | `workflowId`, `workflowName` | Il flusso di lavoro che l'ha fatta, se c'è. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | Nella versione 3, come è stato eseguito il passaggio del flusso di lavoro: `Default`, `ProjectOwner` o `CustomRole`, e il nome che il ruolo aveva allora. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | Nella versione 3, con i permessi di chi è stato eseguito: l'id della persona o della chiave API del progetto, e il nome che aveva allora. Ognuna di queste cinque chiavi è `null` quando nessun flusso di lavoro ha fatto la modifica. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | Nella versione 3, con i permessi di chi è stato eseguito: l'id della persona o della chiave API del progetto, e il nome che aveva allora. Ognuna di queste cinque chiavi è `null` quando nessun flusso di lavoro ha fatto la modifica. |
 | `changes` | Ogni campo modificato: `field`, con `oldValue` e `newValue`, e nella versione 2 `summary`. |
 
 Un file contiene una voce per riga, compresso con gzip, ed è archiviato sotto l'ora della sua prima voce: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

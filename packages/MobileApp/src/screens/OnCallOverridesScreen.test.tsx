@@ -14,6 +14,15 @@ import { lightColors } from "../theme/colors";
 import { radius } from "../theme/tokens";
 import type { OnCallOverrideItem } from "../api/types";
 import type { UseOnCallOverridesResult } from "../hooks/useOnCallOverrides";
+import type { OverrideTeamPeopleState } from "../hooks/useOverrideTeamPeople";
+import {
+  clearAllProjectPermissions,
+  recordProjectPermissions,
+} from "../api/projectPermissions";
+import {
+  OVERRIDE_TEAM_DELETE_REFUSAL,
+  OVERRIDE_TEAM_EDIT_REFUSAL,
+} from "../oncall/overrideTeamAccess";
 
 const mockNavigate: jest.Mock = jest.fn();
 const mockCancel: jest.Mock = jest.fn();
@@ -57,6 +66,56 @@ jest.mock("../hooks/useHaptics", () => {
         lightImpact: jest.fn(),
         successFeedback: jest.fn(),
         errorFeedback: jest.fn(),
+      };
+    },
+  };
+});
+
+// The project the list is of: none, as outside a ProjectProvider, unless a test says.
+const mockSelectedProjectId: { current: string | null } = { current: null };
+
+jest.mock("../hooks/useProject", () => {
+  return {
+    useSelectedProjectId: (): string | null => {
+      return mockSelectedProjectId.current;
+    },
+  };
+});
+
+/*
+ * The people of the teams the list's locks are kept to
+ * (useOverrideTeamPeople): what a test says, and what each render asked
+ * for. Asked with no teams, nothing is known, as the hook answers.
+ */
+const mockTeamPeople: { current: OverrideTeamPeopleState | null } = {
+  current: null,
+};
+const mockTeamPeopleAsked: Array<{
+  projectId: string | null;
+  teamIds: ReadonlyArray<string> | null;
+}> = [];
+
+jest.mock("../hooks/useOverrideTeamPeople", () => {
+  return {
+    useOverrideTeamPeople: (data: {
+      projectId: string | null;
+      teamIds: ReadonlyArray<string> | null;
+    }): OverrideTeamPeopleState => {
+      mockTeamPeopleAsked.push(data);
+
+      if (data.teamIds && mockTeamPeople.current) {
+        return mockTeamPeople.current;
+      }
+
+      return {
+        users: [],
+        membersByTeam: null,
+        teamNames: null,
+        isLoading: false,
+        isError: false,
+        refetch: async (): Promise<void> => {
+          return undefined;
+        },
       };
     },
   };
@@ -489,3 +548,274 @@ function flatStyle(testID: string): Record<string, unknown> {
   return (StyleSheet.flatten(screen.getByTestId(testID).props.style) ??
     {}) as Record<string, unknown>;
 }
+
+/*
+ * #9883: for someone who manages the user overrides of their own teams'
+ * people only (Manage On-Call Policy User Overrides for Own Team), the
+ * server refuses any change to an override that names anybody outside
+ * those teams. So such an override's card says why in place of Edit, End
+ * now and Cancel, in the server's words, as the Dashboard locks them, and
+ * an override of the team's people keeps them.
+ */
+describe("Coverage for someone who manages their own team's overrides", () => {
+  const PROJECT: string = "production";
+  const TEAM_PAYMENTS: string = "team-payments";
+  const TEAM_MOBILE: string = "team-mobile";
+
+  // Sam (signed in) and Priya are in Payments; Omar is in no team of Sam's.
+  const PAYMENTS_PEOPLE: OverrideTeamPeopleState = {
+    users: [],
+    membersByTeam: new Map<string, Set<string>>([
+      [TEAM_PAYMENTS, new Set<string>(["me", "priya"])],
+    ]),
+    teamNames: ["Payments"],
+    isLoading: false,
+    isError: false,
+    refetch: async (): Promise<void> => {
+      return undefined;
+    },
+  };
+
+  function row(
+    permission: string,
+    data: { teamId?: string; scope?: string; labelIds?: Array<unknown> } = {},
+  ): Record<string, unknown> {
+    return {
+      _type: "UserPermission",
+      permission: permission,
+      labelIds: data.labelIds ?? [],
+      scope: data.scope ?? "All",
+      isBlockPermission: false,
+      ...(data.teamId
+        ? { teamId: { _type: "ObjectID", value: data.teamId } }
+        : {}),
+    };
+  }
+
+  const TEAM_SCOPED: Array<Record<string, unknown>> = [
+    row("OnCallViewer"),
+    row("ManageTeamOnCallDutyPolicyUserOverride", { teamId: TEAM_PAYMENTS }),
+  ];
+
+  function holding(rows: Array<Record<string, unknown>>): void {
+    recordProjectPermissions(PROJECT, {
+      "project-permissions": JSON.stringify({
+        _type: "UserTenantAccessPermission",
+        projectId: { _type: "ObjectID", value: PROJECT },
+        permissions: rows,
+      }),
+    });
+  }
+
+  // Sam covered by Omar, who is in no team of Sam's.
+  function outsiders(id: string): OnCallOverrideItem {
+    return {
+      ...override(id),
+      routeAlertsToUser: { _id: "omar", name: "Omar" },
+    };
+  }
+
+  function lastTeamPeopleAsked(): (typeof mockTeamPeopleAsked)[number] {
+    return mockTeamPeopleAsked[mockTeamPeopleAsked.length - 1]!;
+  }
+
+  function lockedLine(id: string): string {
+    return within(screen.getByTestId(`override-locked-${id}`)).getByText(
+      /user override/,
+    ).props.children as string;
+  }
+
+  beforeEach(() => {
+    clearAllProjectPermissions();
+    mockSelectedProjectId.current = PROJECT;
+    mockTeamPeople.current = PAYMENTS_PEOPLE;
+    mockTeamPeopleAsked.length = 0;
+    mockNavigate.mockReset();
+    mockCancel.mockReset();
+    mockEndNow.mockReset();
+    mockOverrides.current = {
+      active: [],
+      upcoming: [],
+      past: [],
+      isLoading: false,
+      isError: false,
+      refetch: mockRefetch,
+      cancelOverride: mockCancel,
+      isCancelling: false,
+      createOverride: jest.fn(),
+      isCreating: false,
+      updateOverride: jest.fn(),
+      isUpdating: false,
+      endOverrideNow: mockEndNow,
+      isEnding: false,
+    };
+  });
+
+  afterEach(() => {
+    clearAllProjectPermissions();
+    mockSelectedProjectId.current = null;
+    mockTeamPeople.current = null;
+  });
+
+  test("one in force naming somebody outside the teams says why in place of Edit and End now", async (): Promise<void> => {
+    holding(TEAM_SCOPED);
+    mockOverrides.current.active = [outsiders("active")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.queryByTestId("override-edit-active")).toBeNull();
+    expect(screen.queryByTestId("override-end-now-active")).toBeNull();
+    expect(lockedLine("active")).toBe(OVERRIDE_TEAM_EDIT_REFUSAL);
+  });
+
+  test("one to come naming somebody outside the teams says why in place of Edit and Cancel, once", async (): Promise<void> => {
+    holding(TEAM_SCOPED);
+    mockOverrides.current.upcoming = [
+      {
+        ...override("upcoming"),
+        overrideUser: { _id: "omar", name: "Omar" },
+        routeAlertsToUser: null,
+      },
+    ];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.queryByTestId("override-edit-upcoming")).toBeNull();
+    expect(screen.queryByTestId("override-cancel-upcoming")).toBeNull();
+    expect(lockedLine("upcoming")).toBe(OVERRIDE_TEAM_EDIT_REFUSAL);
+    expect(screen.queryByText(OVERRIDE_TEAM_DELETE_REFUSAL)).toBeNull();
+  });
+
+  test("one of the team's people keeps Edit, End now and Cancel, with nothing locked", async (): Promise<void> => {
+    holding(TEAM_SCOPED);
+    mockOverrides.current.active = [override("active")];
+    mockOverrides.current.upcoming = [override("upcoming")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.getByTestId("override-edit-active")).toBeTruthy();
+    expect(screen.getByTestId("override-end-now-active")).toBeTruthy();
+    expect(screen.getByTestId("override-cancel-upcoming")).toBeTruthy();
+    expect(screen.queryByTestId("override-locked-active")).toBeNull();
+    expect(screen.queryByTestId("override-locked-upcoming")).toBeNull();
+
+    await fireEvent.press(screen.getByTestId("override-edit-upcoming"));
+
+    expect(mockNavigate).toHaveBeenCalledWith("EditOnCallOverride", {
+      override: mockOverrides.current.upcoming[0],
+    });
+  });
+
+  test("an edit permission that reaches everyone keeps Edit; Cancel alone is locked, with the words for a delete", async (): Promise<void> => {
+    holding([...TEAM_SCOPED, row("EditOnCallDutyPolicyUserOverride")]);
+    mockOverrides.current.upcoming = [outsiders("upcoming")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.getByTestId("override-edit-upcoming")).toBeTruthy();
+    expect(screen.queryByTestId("override-cancel-upcoming")).toBeNull();
+    expect(lockedLine("upcoming")).toBe(OVERRIDE_TEAM_DELETE_REFUSAL);
+  });
+
+  test("the teams' people are asked for once, for every team the locks are kept to", async (): Promise<void> => {
+    holding([
+      ...TEAM_SCOPED,
+      row("ManageTeamOnCallDutyPolicyUserOverride", { teamId: TEAM_MOBILE }),
+    ]);
+    mockOverrides.current.active = [override("active")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(lastTeamPeopleAsked()).toEqual({
+      projectId: PROJECT,
+      teamIds: [TEAM_MOBILE, TEAM_PAYMENTS],
+    });
+  });
+
+  test("a global override keeps to the teams over the whole project; a policy's beside a narrower role is the server's to weigh", async (): Promise<void> => {
+    holding([
+      ...TEAM_SCOPED,
+      row("OnCallMember", {
+        scope: "Labels",
+        labelIds: [{ _type: "ObjectID", value: "label-team-a" }],
+      }),
+    ]);
+    mockOverrides.current.upcoming = [
+      outsiders("global"),
+      {
+        ...outsiders("on-policy"),
+        onCallDutyPolicyId: "policy-1",
+        onCallDutyPolicy: { _id: "policy-1", name: "Payments Primary" },
+      },
+    ];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(lockedLine("global")).toBe(OVERRIDE_TEAM_EDIT_REFUSAL);
+    expect(screen.queryByTestId("override-locked-on-policy")).toBeNull();
+    expect(screen.getByTestId("override-edit-on-policy")).toBeTruthy();
+    expect(screen.getByTestId("override-cancel-on-policy")).toBeTruthy();
+  });
+
+  test("while who is in the teams is not known, nothing is locked: the server decides", async (): Promise<void> => {
+    holding(TEAM_SCOPED);
+    mockTeamPeople.current = { ...PAYMENTS_PEOPLE, membersByTeam: null };
+    mockOverrides.current.active = [outsiders("active")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.getByTestId("override-edit-active")).toBeTruthy();
+    expect(screen.getByTestId("override-end-now-active")).toBeTruthy();
+    expect(screen.queryByTestId("override-locked-active")).toBeNull();
+  });
+
+  test("an ended override has nothing to lock", async (): Promise<void> => {
+    holding(TEAM_SCOPED);
+    mockOverrides.current.past = [outsiders("past")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.queryByTestId("override-locked-past")).toBeNull();
+    // Nothing to change is shown, so nobody is read for it.
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+  });
+
+  test("a permission that reaches everyone: every action as before, and no team read", async (): Promise<void> => {
+    holding([row("OnCallMember"), ...TEAM_SCOPED]);
+    mockOverrides.current.active = [outsiders("active")];
+    mockOverrides.current.upcoming = [outsiders("upcoming")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.getByTestId("override-edit-active")).toBeTruthy();
+    expect(screen.getByTestId("override-end-now-active")).toBeTruthy();
+    expect(screen.getByTestId("override-cancel-upcoming")).toBeTruthy();
+    expect(screen.queryByTestId("override-locked-active")).toBeNull();
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+  });
+
+  test("before the server has said anything, every action as before", async (): Promise<void> => {
+    mockOverrides.current.active = [outsiders("active")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.getByTestId("override-edit-active")).toBeTruthy();
+    expect(screen.queryByTestId("override-locked-active")).toBeNull();
+    expect(lastTeamPeopleAsked().teamIds).toBeNull();
+  });
+
+  test("the locks follow the rows as an answer about the project brings them", async (): Promise<void> => {
+    mockOverrides.current.active = [outsiders("active")];
+
+    await render(<OnCallOverridesScreen />);
+
+    expect(screen.getByTestId("override-edit-active")).toBeTruthy();
+
+    await act(async (): Promise<void> => {
+      holding(TEAM_SCOPED);
+    });
+
+    expect(screen.queryByTestId("override-edit-active")).toBeNull();
+    expect(lockedLine("active")).toBe(OVERRIDE_TEAM_EDIT_REFUSAL);
+  });
+});

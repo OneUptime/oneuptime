@@ -7,9 +7,14 @@ import {
   CostEngineResolver,
   clusterOfAllocations,
   latestAllocationEnd,
+  readingCoversWindow,
 } from "../CostEngineResolver";
 import { KubernetesService, ServiceQuery } from "../KubernetesApi";
-import { EngineAllocation, KubernetesCostEngineInfo } from "../Types";
+import {
+  CorrectionReading,
+  EngineAllocation,
+  KubernetesCostEngineInfo,
+} from "../Types";
 
 /*
  * #9633: which engine the agent reads. The Kubernetes API and the engines
@@ -1122,4 +1127,277 @@ test("auto has no engine's Prometheus to ask for until it has an engine", async 
     kind: "OpenCost",
     service: { name: "opencost", namespace: "opencost" },
   });
+});
+
+// --- later readings of the hours a Kubecost reconciles (#9969) -------------
+
+// One container's hour, as a Kubecost asked for 10:00-11:00 answers it.
+const HOUR_ROW: EngineAllocation = {
+  name: "prod-eu/node-1/prod/api-abc/api",
+  properties: { cluster: "prod-eu", namespace: "prod", pod: "api-abc" },
+  window: { start: "2026-11-18T10:00:00Z", end: "2026-11-18T11:00:00Z" },
+  start: "2026-11-18T10:00:00Z",
+  end: "2026-11-18T11:00:00Z",
+  totalCost: 1,
+};
+
+test("a later reading is whole when it holds the window, it alone, for this cluster", (): void => {
+  assert.strictEqual(
+    readingCoversWindow({
+      allocations: [
+        HOUR_ROW,
+        // A pod that ran the last twenty minutes only.
+        { ...HOUR_ROW, start: "2026-11-18T10:40:00Z" },
+        // The idle row names "__idle__" as its cluster: no second cluster.
+        {
+          name: "__idle__",
+          properties: { cluster: "__idle__" },
+          end: HOUR_ROW.end,
+        },
+      ],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }),
+    null,
+  );
+  // Rows that do not say their window are read as the window asked for.
+  assert.strictEqual(
+    readingCoversWindow({
+      allocations: [{ name: "a", properties: { cluster: "prod-eu" } }],
+      ...WINDOW,
+      clusterId: "",
+    }),
+    null,
+  );
+});
+
+test("a reading with nothing in it corrects nothing: the engine may no longer hold the hour hourly", (): void => {
+  assert.match(
+    readingCoversWindow({ allocations: [], ...WINDOW, clusterId: "prod-eu" }) ||
+      "",
+    /nothing for the window/,
+  );
+});
+
+test("a reading of a wider window, as a day's set answers, is never taken for the hour", (): void => {
+  const day: EngineAllocation = {
+    ...HOUR_ROW,
+    window: { start: "2026-11-18T00:00:00Z", end: "2026-11-19T00:00:00Z" },
+    start: "2026-11-18T00:00:00Z",
+    end: "2026-11-19T00:00:00Z",
+    totalCost: 24,
+  };
+
+  assert.match(
+    readingCoversWindow({
+      allocations: [day],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }) || "",
+    /wider than the window/,
+  );
+  // One row of another window is enough.
+  assert.match(
+    readingCoversWindow({
+      allocations: [HOUR_ROW, { ...HOUR_ROW, end: "2026-11-18T12:00:00Z" }],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }) || "",
+    /wider than the window/,
+  );
+});
+
+test("a reading whose rows stop short of the window's end is not whole", (): void => {
+  assert.match(
+    readingCoversWindow({
+      allocations: [{ ...HOUR_ROW, end: "2026-11-18T10:20:00Z" }],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }) || "",
+    /stop at 2026-11-18T10:20:00.000Z/,
+  );
+  // Within the minute's tolerance it is.
+  assert.strictEqual(
+    readingCoversWindow({
+      allocations: [{ ...HOUR_ROW, end: "2026-11-18T10:59:30Z" }],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }),
+    null,
+  );
+});
+
+test("a reading for several clusters, or another one, is not this cluster's", (): void => {
+  assert.match(
+    readingCoversWindow({
+      allocations: [
+        HOUR_ROW,
+        { ...HOUR_ROW, properties: { cluster: "staging" } },
+      ],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }) || "",
+    /2 clusters/,
+  );
+  assert.match(
+    readingCoversWindow({
+      allocations: [{ ...HOUR_ROW, properties: { cluster: "staging" } }],
+      ...WINDOW,
+      clusterId: "prod-eu",
+    }) || "",
+    /cluster staging, not prod-eu/,
+  );
+});
+
+// A Kubecost 2 on AWS that reads the AWS bill.
+const BILLING: Partial<FakeEngine> = {
+  kind: "Kubecost",
+  clusterInfo: { provider: "AWS" },
+  answer: [HOUR_ROW],
+  api: {
+    "cloudCost/status": [
+      {
+        active: true,
+        key: "aws-cur",
+        provider: "AWS",
+        source: "athena",
+        connectionStatus: "Connection Successful",
+      },
+    ],
+  },
+};
+
+test("a Kubecost that reads the bill is read again for a past hour, from that Kubecost", async (): Promise<void> => {
+  const world: World = new World();
+  const kubecost: FakeEngine = world.engine(KUBECOST_URL, { ...BILLING });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: KUBECOST_URL,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.describe()?.pricingSource, "billing-integration");
+
+  const reading: CorrectionReading = await resolver.rereadAllocations({
+    ...WINDOW,
+    engineUrl: KUBECOST_URL,
+  });
+
+  assert.deepStrictEqual(reading, { status: "read", allocations: [HOUR_ROW] });
+  assert.strictEqual(kubecost.fetches, 2);
+});
+
+test("only the engine that priced the hour is read again, while it is the one in use", async (): Promise<void> => {
+  const world: World = new World();
+  const kubecost: FakeEngine = world.engine(KUBECOST_URL, { ...BILLING });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: KUBECOST_URL,
+  });
+
+  // Before any engine is in use.
+  assert.strictEqual(
+    (await resolver.rereadAllocations({ ...WINDOW, engineUrl: KUBECOST_URL }))
+      .status,
+    "elsewhere",
+  );
+
+  await resolver.fetchAllocations(WINDOW);
+
+  const elsewhere: CorrectionReading = await resolver.rereadAllocations({
+    ...WINDOW,
+    engineUrl: BUNDLED_URL,
+  });
+
+  // Kept for later, without asking anything: no engine answered for it.
+  assert.strictEqual(elsewhere.status, "elsewhere");
+  assert.match(
+    elsewhere.status === "elsewhere" ? elsewhere.reason : "",
+    /not the one in use/,
+  );
+  assert.strictEqual(kubecost.fetches, 1);
+});
+
+test("an engine that does not reconcile with a bill is never read again", async (): Promise<void> => {
+  const world: World = new World();
+  const opencost: FakeEngine = world.engine(OPENCOST_URL, {
+    clusterInfo: { provider: "AWS" },
+  });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: OPENCOST_URL,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.describe()?.pricingSource, "list-prices");
+
+  const reading: CorrectionReading = await resolver.rereadAllocations({
+    ...WINDOW,
+    engineUrl: OPENCOST_URL,
+  });
+
+  assert.strictEqual(reading.status, "elsewhere");
+  assert.match(
+    reading.status === "elsewhere" ? reading.reason : "",
+    /does not reconcile/,
+  );
+  assert.strictEqual(opencost.fetches, 1);
+});
+
+test("a reading the engine cannot give whole leaves the hour as it is", async (): Promise<void> => {
+  const world: World = new World();
+  const kubecost: FakeEngine = world.engine(KUBECOST_URL, { ...BILLING });
+
+  const resolver: CostEngineResolver = world.resolver("configured", {
+    engineUrl: KUBECOST_URL,
+  });
+  await resolver.fetchAllocations(WINDOW);
+
+  kubecost.answer = [];
+
+  const reading: CorrectionReading = await resolver.rereadAllocations({
+    ...WINDOW,
+    engineUrl: KUBECOST_URL,
+  });
+
+  assert.strictEqual(reading.status, "nothing");
+});
+
+test("a past hour the engine fails to give never sends the agent looking for another engine", async (): Promise<void> => {
+  const world: World = new World();
+  world.services = [KUBECOST];
+  const kubecost: FakeEngine = world.engine(KUBECOST_URL, { ...BILLING });
+  world.engine(BUNDLED_URL, {});
+
+  const resolver: CostEngineResolver = world.resolver("bundled");
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.engineUrl(), KUBECOST_URL);
+  const listsBefore: number = world.lists;
+
+  kubecost.answer = new Error("HTTP 500");
+
+  for (let i: number = 0; i < 5; i++) {
+    const reading: CorrectionReading = await resolver.rereadAllocations({
+      ...WINDOW,
+      engineUrl: KUBECOST_URL,
+    });
+
+    assert.strictEqual(reading.status, "unavailable");
+    assert.match(
+      reading.status === "unavailable" ? reading.reason : "",
+      /did not answer: HTTP 500/,
+    );
+  }
+
+  // Back, and still the engine in use: no fallback, nothing looked for.
+  kubecost.answer = [HOUR_ROW];
+  await resolver.fetchAllocations(WINDOW);
+
+  assert.strictEqual(resolver.engineUrl(), KUBECOST_URL);
+  assert.strictEqual(
+    resolver.describe()?.service,
+    "kubecost/kubecost-cost-analyzer",
+  );
+  assert.strictEqual(world.lists, listsBefore);
 });

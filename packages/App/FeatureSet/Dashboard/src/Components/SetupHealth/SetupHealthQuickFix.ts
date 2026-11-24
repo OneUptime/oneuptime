@@ -26,6 +26,11 @@ import {
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  SharedNameFacts,
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -293,6 +298,8 @@ export function getOnCallRuleName(data: {
 export interface SetupHealthPolicyChoice {
   id: string;
   name: string;
+  // What tells it from another policy of its name (#10064).
+  sharedName?: SharedNameFacts | undefined;
 }
 
 function currentProjectId(): ObjectID {
@@ -330,7 +337,11 @@ export default class SetupHealthQuickFixApi {
       await ModelAPI.getList<OnCallDutyPolicy>({
         modelType: OnCallDutyPolicy,
         query: { isArchived: false },
-        select: { _id: true, name: true },
+        select: {
+          _id: true,
+          name: true,
+          ...getSharedNameSelect(OnCallDutyPolicy),
+        },
         sort: { name: SortOrder.Ascending },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -344,6 +355,7 @@ export default class SetupHealthQuickFixApi {
         return {
           id: (policy.id || policy._id)!.toString(),
           name: policy.name?.toString() || "",
+          sharedName: getSharedNameFacts(policy),
         };
       });
   }

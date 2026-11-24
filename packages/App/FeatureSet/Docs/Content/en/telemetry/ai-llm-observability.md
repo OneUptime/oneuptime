@@ -28,7 +28,7 @@ Open **Products → AI / LLM**, under **Observability**. The product has seven t
 | Tab | What it shows |
 | --- | --- |
 | **Conversations** | Every conversation your AI had, the ones that need attention first. Above the list: conversations, AI answers, how many need attention, cost and the typical answer time. |
-| **Calls** | Every model, embedding, agent and tool call. Filter by service, provider, model, operation, person, team or conversation; click a call to open it in the trace viewer. |
+| **Calls** | Every model, embedding, agent and tool call. Filter by service, provider, model, operation, person, team, conversation or status; a call that failed says its error under its status. Click a call to open it in the trace viewer. |
 | **Usage** | Calls, tokens and cost for a time range, ranked by employee, team, model, provider or app; under **Provider accounts**, what your connected accounts were billed. |
 | **Alerts** | Ready-made alerts for when the AI answers badly, and your AI / LLM monitors. |
 | **Budgets** | Daily cost limits, published as metrics you can alert on. |
@@ -239,7 +239,7 @@ A ready-made alert raises an alert that resolves itself, and shows the monitor a
 
 ## See who spends what
 
-The **Usage** tab shows the calls, tokens and cost of a time range (the last 7 days unless you pick another), and a table of the top 25 under one of five breakdowns: **Employee**, **Team**, **Model**, **Provider** and **Application / Service**. Calls that name nobody are counted under **Unattributed**, never dropped.
+The **Usage** tab shows the calls, tokens and cost of a time range (the last 7 days unless you pick another), and a table of the top 25 under one of five breakdowns: **Employee**, **Team**, **Model**, **Provider** and **Application / Service**. Calls that name nobody are counted under **Unattributed**, never dropped. The error rate under **AI calls** opens **Calls** on the calls of the range that failed, with **Status** set to **Error**.
 
 These are **Your AI calls**. Pick **Provider accounts** instead to see what your connected OpenAI, Anthropic, Azure, Bedrock, Vertex AI and Cursor accounts were billed: see [AI Provider Accounts](/docs/telemetry/ai-provider-accounts#see-the-usage). The two are never added together.
 

@@ -129,7 +129,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Ausnahmen-Monitors haben sechs Arten von **Filtertyp**: **Anzahl der Ausnahmen**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **Neue Ausnahmen**, **Erneut aufgetretene Ausnahmen**, **Anstieg der Ausnahmen (in %)**, **Sitzungen mit Ausnahmen (in %)** und **Sitzungen**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
+Die Kriterien eines Ausnahmen-Monitors haben acht Arten von **Filtertyp**: **Anzahl der Ausnahmen**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **Neue Ausnahmen**, **Erneut aufgetretene Ausnahmen**, **Anstieg der Ausnahmen (in %)**, **Sitzungen mit Ausnahmen (in %)**, **Sitzungen**, **Installationen mit Ausnahmen (in %)** und **Installationen**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Ausnahmen … |
 | --- | --- |
@@ -184,6 +184,19 @@ Eine App auf Tausenden von Handys hat immer einige Abstürze, deshalb will ihr T
 | **Sitzungen** | Die Sitzungen des Fensters: die verschiedenen `session.id` der Spans der Dienste des Monitors. Kombinieren Sie diesen Filtertyp mit dem Anteil, damit der Anteil weniger Sitzungen keine Warnung auslöst. |
 
 Mit eingeschaltetem **Nur nicht behandelte Ausnahmen** und ausgeschlossenen Typen `ANR` und `Hang` ist der Anteil die Absturzrate einer mobilen App. Die Empfehlung **App Crash Rate** einer mobilen App alarmiert, wenn mehr als 1,09 % der Sitzungen einer Stunde abstürzen, die Rate, die Android vitals als schlechtes Verhalten wertet, sobald die Stunde mindestens 250 Sitzungen hat. **App ANR Rate** zählt nur `ANR` und `Hang`, über 0,47 %. Um eine solche Regel selbst zu schreiben, wählen Sie in **Wann alarmieren** unter **Warnung bei** die Option **Ein Anteil der Sitzungen**.
+
+## Ein Anteil der Installationen
+
+Auf einen Tag gerechnet ist die Rate, die Android vitals bewertet und die Play Console anzeigt, der Anteil der Installationen einer App, die abgestürzt sind: Stürzt die App einer Person fünfmal ab, ist das eine abgestürzte Installation. Für eine mobile App, deren Telemetrie ihre Installation nennt, kann ein Ausnahmen-Monitor bei diesem Anteil alarmieren, neben dem Anteil der Sitzungen oder an seiner Stelle.
+
+| Filtertyp | Was es im Fenster liest |
+| --- | --- |
+| **Installationen mit Ausnahmen (in %)** | Der Anteil der Installationen des Fensters, auf denen eine passende Ausnahme aufgetreten ist. Ohne Installation im Fenster gibt es keinen Anteil, und kein Kriterium, das ihn prüft, trifft zu. |
+| **Installationen** | Die Installationen des Fensters: die verschiedenen Installationen, die die Spans der Dienste des Monitors nennen. Kombinieren Sie diesen Filtertyp mit dem Anteil, damit der Anteil weniger Installationen keine Warnung auslöst. |
+
+Eine Installation ist, was die Ressource der App angibt: die `app.installation.id`, die OpenTelemetry Android ab Version 1.1 setzt, sonst die `device.id` einer iOS-App, ihre Anbieter-ID. Eine Android-Installation endet, wenn die App deinstalliert wird, daher ist eine Neuinstallation eine neue Installation. Eine iOS-Installation besteht, solange eine der Apps des Anbieters auf dem Gerät bleibt: Wird die einzige neu installiert, ist das eine neue Installation, wird eine von zweien neu installiert, nicht. Eine Installation gehört zum Fenster, wenn ihre App darin einen Span gesendet hat. Ein Absturz zählt auch dann, wenn seine Installation keinen gesendet hat, wie ein iOS-Absturz, den MetricKit einen Tag später meldet, und der Anteil übersteigt nie 100 %.
+
+**Daily Crash Rate** alarmiert, wenn an einem Tag mehr als 1,09 % von mindestens 250 Installationen abstürzen, und **Daily ANR Rate**, wenn mehr als 0,47 % von ihnen einen ANR oder einen Hänger haben. Um eine solche Regel selbst zu schreiben, wählen Sie in **Wann alarmieren** unter **Warnung bei** die Option **Ein Anteil der Installationen**.
 
 ## Sprünge gegenüber dem Normalen
 

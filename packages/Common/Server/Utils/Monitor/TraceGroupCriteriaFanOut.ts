@@ -73,6 +73,8 @@ export default class TraceGroupCriteriaFanOut {
         return {
           // Hashed into the same fingerprint the worker stamped on the group.
           labels: group.labels,
+          // Which device it is, for the alert's words only (#9925).
+          ...(group.context ? { context: group.context } : {}),
           narrowFilter: (filter: CriteriaFilter): CriteriaFilter => {
             return filter;
           },

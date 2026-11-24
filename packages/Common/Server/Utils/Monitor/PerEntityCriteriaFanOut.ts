@@ -60,6 +60,13 @@ export interface FanOutEntity {
    */
   labels: JSONObject;
   /**
+   * What else is known about this entity, for its alert's words only: a
+   * device's name and model beside the install it is grouped by (#9925).
+   * Never hashed into the fingerprint, so the same entity renamed stays
+   * the same alert.
+   */
+  context?: JSONObject | undefined;
+  /**
    * Rewrite one criteria filter so it names this entity and nothing
    * else. Filters that do not address an entity are returned unchanged,
    * so a criteria mixing "CPU > 90%" with "any disk > 90%" still means
@@ -144,6 +151,9 @@ export default class PerEntityCriteriaFanOut {
         fingerprint: MetricSeriesFingerprint.computeFingerprint(entity.labels),
         labels: entity.labels,
         rootCause: rootCause,
+        ...(entity.context && Object.keys(entity.context).length > 0
+          ? { context: entity.context }
+          : {}),
       });
     }
 

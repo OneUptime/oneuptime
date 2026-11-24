@@ -702,13 +702,16 @@ describe("Create Scheduled Maintenance Event's Resources Affected step", () => {
       'getMaintenanceStatusPagesFormField<ScheduledMaintenance>({ stepId: "resources-affected", }),',
     );
 
-    // ...so its suggestions read the form's own monitors.
+    /*
+     * ...so its suggestions read the form's own monitors. (A form may hand
+     * the field a note to draw above them: the event's Edit, #9974.)
+     */
     expect(
       dense(
         "Components/ScheduledMaintenance/MaintenanceStatusPagesFormField.tsx",
       ),
     ).toContain(
-      "getFooterElement: getStatusPageSuggestionsFooter<TEntity>({ eventType: StatusPageEventType.ScheduledEvent, monitorsOf: options.monitorsOf, }),",
+      "getFooterElement: getStatusPageSuggestionsFooter<TEntity>({ eventType: StatusPageEventType.ScheduledEvent, monitorsOf: options.monitorsOf, getNote: options.getReachNote, }),",
     );
   });
 });

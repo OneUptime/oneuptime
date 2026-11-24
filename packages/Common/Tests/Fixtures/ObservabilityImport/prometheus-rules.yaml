@@ -1,0 +1,42 @@
+# A Prometheus rule file (rule_files:), in the shape Prometheus documents:
+# alerting rules with and without a comparison, a `for` OneUptime has a
+# window of and one it has not, keep_firing_for, a recording rule, a rule
+# over Loki's logs, and a rule that does not parse.
+groups:
+  - name: availability
+    interval: 30s
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "{{ $labels.instance }} of {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for more than 5 minutes (value {{ $value }})."
+          runbook_url: https://runbooks.example.com/instance-down
+      - alert: TargetMissing
+        expr: absent(up{job="checkout"})
+        for: 3m
+        labels:
+          severity: page
+        annotations:
+          summary: The checkout job sends no data
+      - alert: HighLatency
+        expr: histogram_quantile(0.99, sum by (le, job) (rate(http_request_duration_seconds_bucket[5m]))) > 0.5
+        keep_firing_for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p99 latency of {{ $labels.job }} is {{ printf \"%.2f\" $value }}s"
+      - record: job:http_requests:rate5m
+        expr: sum by (job) (rate(http_requests_total[5m]))
+  - name: logs
+    rules:
+      - alert: ErrorLogs
+        expr: sum(count_over_time({app="checkout"} |= "error" [5m])) > 10
+        for: 1m
+      - alert: Broken
+        expr: rate(http_requests_total[5m] > 1
+        for: 1m

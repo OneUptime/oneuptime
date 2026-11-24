@@ -72,4 +72,6 @@ data class DeviceSnapshot(
     val thermal: ThermalReading?,
     // Boots in the hour up to now, this one included (BootTracker): 3 or more is a restart loop.
     val bootsInLastHour: Int? = null,
+    // Days since the security patch level's date (SecurityPatchAge): more than 90 is out of date.
+    val securityPatchAgeDays: Int? = null,
 )

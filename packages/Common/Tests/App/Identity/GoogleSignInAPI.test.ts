@@ -16,6 +16,10 @@ import GoogleSignInRouter from "../../../../App/FeatureSet/Identity/API/GoogleSi
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SignInMethods";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { SignInMethod } from "../../../Types/UserSession/SessionSignIn";
+import {
+  REAUTHENTICATE_QUERY_PARAM,
+  SignInAgainRefusal,
+} from "../../../Types/Accounts/Reauthentication";
 
 /*
  * Continue with Google's two endpoints. The callback is where a Google
@@ -184,6 +188,8 @@ const IDENTITY: GoogleIdentity = {
   name: "Ada Lovelace",
   subject: "110169484474386276334",
   hostedDomain: "example.com",
+  // Session age claims off: Google says nothing of when they signed in.
+  authenticatedAt: null,
 };
 
 interface FakeResponse {
@@ -710,5 +716,159 @@ describe("GET /google/callback", () => {
       "Something went wrong. Please try again, or sign in with your email and password.",
     );
     expect(UserSessionService.createSession).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Sign In Again through Google (#10217). Google cannot be asked to ask
+ * again; it is asked to say when the person signed in, and the sign-in
+ * confirms the session only when that is after it sent them to Google.
+ */
+describe("Sign In Again through Google", () => {
+  const SECOND_IN_MS: number = 1000;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsSsoRequired.mockResolvedValue(false);
+  });
+
+  it("asks Google to say when the person signed in, and keeps when it sent them, signed with the state", async () => {
+    const { res, redirect } = createResponse();
+    const before: number = Date.now();
+
+    await getHandler("/google/sign-in")(
+      {
+        query: { [REAUTHENTICATE_QUERY_PARAM]: "true" },
+        headers: {},
+      } as unknown as ExpressRequest,
+      res,
+    );
+
+    const authorizationUrl: URL = new URL(redirect.mock.calls[0]![0] as string);
+    expect(JSON.parse(authorizationUrl.searchParams.get("claims")!)).toEqual({
+      id_token: { auth_time: { essential: true } },
+    });
+
+    const stored: Record<string, unknown> = JSON.parse(
+      mocked(CookieUtil.setCookie).mock.calls[0]![2] as string,
+    );
+    expect(stored["signInAgainRequestedAt"]).toBeGreaterThanOrEqual(before);
+    expect(stored["signInAgainRequestedAt"]).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("any other sign-in asks for nothing more, and keeps nothing of it", async () => {
+    const { res, redirect } = createResponse();
+
+    await getHandler("/google/sign-in")(
+      { query: {}, headers: {} } as unknown as ExpressRequest,
+      res,
+    );
+
+    expect(
+      new URL(redirect.mock.calls[0]![0] as string).searchParams.has("claims"),
+    ).toBe(false);
+    expect(
+      JSON.parse(mocked(CookieUtil.setCookie).mock.calls[0]![2] as string)[
+        "signInAgainRequestedAt"
+      ],
+    ).toBeNull();
+  });
+
+  describe("its callback", () => {
+    let completeSignIn: jest.SpyInstance;
+
+    beforeEach(() => {
+      mocked(UserSessionService.createSession).mockResolvedValue({
+        session: { id: ObjectID.generate() },
+        refreshToken: "refresh-token",
+        refreshTokenExpiresAt: new Date(),
+      });
+      mocked(DatabaseConfig.shouldDisableSignup).mockResolvedValue(false);
+      mocked(UserService.findOneBy).mockResolvedValue(existingUser());
+    });
+
+    afterEach(() => {
+      completeSignIn.mockRestore();
+    });
+
+    // Signs in through Google, sent there by Sign In Again `sentSecondsAgo`.
+    const signInAgainOutcome: (data: {
+      sentSecondsAgo: number | null;
+      authenticatedAt: Date | null;
+    }) => Promise<unknown> = async (data: {
+      sentSecondsAgo: number | null;
+      authenticatedAt: Date | null;
+    }): Promise<unknown> => {
+      completeSignIn = jest
+        .spyOn(GoogleSignInClient.prototype, "completeSignIn")
+        .mockResolvedValue({
+          ...IDENTITY,
+          authenticatedAt: data.authenticatedAt,
+        });
+
+      mocked(CookieUtil.getCookieFromExpressRequest).mockReturnValue(
+        JSON.stringify({
+          ...STATE,
+          signInAgainRequestedAt:
+            data.sentSecondsAgo === null
+              ? null
+              : Date.now() - data.sentSecondsAgo * SECOND_IN_MS,
+        }),
+      );
+
+      const { res, redirect } = createResponse();
+
+      await getHandler("/google/callback")(
+        callbackRequest({ code: "authorization-code", state: STATE["state"]! }),
+        res,
+      );
+
+      // Signed in either way: Google vouched for them.
+      expect(redirect).toHaveBeenCalledWith("/dashboard");
+
+      const created: { signIn: { method: string; signInAgain?: unknown } } =
+        mocked(UserSessionService.createSession).mock.calls[0]![0] as {
+          signIn: { method: string; signInAgain?: unknown };
+        };
+
+      expect(created.signIn.method).toBe(SignInMethod.Google);
+
+      return created.signIn.signInAgain;
+    };
+
+    it("a Google sign-in after the person was sent there confirms the session from then", async () => {
+      const authenticatedAt: Date = new Date(Date.now() - 5 * SECOND_IN_MS);
+
+      expect(
+        await signInAgainOutcome({
+          sentSecondsAgo: 30,
+          authenticatedAt: authenticatedAt,
+        }),
+      ).toEqual({ reauthenticatedAt: authenticatedAt });
+    });
+
+    it("Google's session from this morning, which it signed them in with, confirms nothing", async () => {
+      expect(
+        await signInAgainOutcome({
+          sentSecondsAgo: 30,
+          authenticatedAt: new Date(Date.now() - 3 * 60 * 60 * SECOND_IN_MS),
+        }),
+      ).toEqual({ refusal: SignInAgainRefusal.ReusedSession });
+    });
+
+    it("without Session age claims Google does not say when: refused for that", async () => {
+      expect(
+        await signInAgainOutcome({ sentSecondsAgo: 30, authenticatedAt: null }),
+      ).toEqual({ refusal: SignInAgainRefusal.NoSignInTime });
+    });
+
+    it("a sign-in Sign In Again did not start keeps nothing of it", async () => {
+      expect(
+        await signInAgainOutcome({
+          sentSecondsAgo: null,
+          authenticatedAt: new Date(),
+        }),
+      ).toBeUndefined();
+    });
   });
 });

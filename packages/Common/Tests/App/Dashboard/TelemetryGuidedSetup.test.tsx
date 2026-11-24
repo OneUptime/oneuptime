@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -36,6 +37,21 @@ const api: Record<string, MockFunction> = {
   loadMonitors: getJestMockFunction(),
 };
 let mayCreate: boolean = true;
+
+/*
+ * The server's guided setup runs (#7253), in memory: the store reads and
+ * writes them as it would the server's (GuidedSetupRunServerMock).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupRunApi",
+  () => {
+    return (
+      jest.requireActual("./GuidedSetupRunServerMock") as {
+        guidedSetupRunApiModule: unknown;
+      }
+    ).guidedSetupRunApiModule;
+  },
+);
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/Telemetry/TelemetrySetupApi",
@@ -262,6 +278,10 @@ import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCall
 import { createTranslator, Translator } from "../../../Types/Translator";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import {
+  guidedSetupRunServer,
+  readKeptRunValues,
+} from "./GuidedSetupRunServerMock";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006806";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -282,7 +302,7 @@ const storedRun: () => Record<string, unknown> = (): Record<
   string,
   unknown
 > => {
-  return JSON.parse(window.localStorage.getItem(RUN_KEY) || "{}") as Record<
+  return readKeptRunValues(window.localStorage.getItem(RUN_KEY)) as Record<
     string,
     unknown
   >;
@@ -343,6 +363,7 @@ const reachAlertStep: () => Promise<void> = async (): Promise<void> => {
 };
 
 beforeEach(() => {
+  guidedSetupRunServer.reset();
   window.localStorage.clear();
   mayCreate = true;
   consentRequired = false;
@@ -392,11 +413,18 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// What the setup sets up, beside the steps (#8897), in the order listed.
+/*
+ * What the setup sets up, beside the steps (#8897), in the order listed:
+ * each step's outcome, whatever records the panel lists under it (#10276).
+ */
 const outcomesBeside: () => Array<string> = (): Array<string> => {
   return Array.from(
-    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
-  ).map((item: HTMLLIElement): string => {
+    screen
+      .getByTestId("guided-setup-aside")
+      .querySelectorAll(
+        '[data-testid^="guided-setup-outcome-"][data-testid$="-text"]',
+      ),
+  ).map((item: Element): string => {
     return item.textContent || "";
   });
 };
@@ -855,6 +883,82 @@ describe("2. Get alerted", () => {
     expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
   });
 
+  /*
+   * #10276: the panel lists each monitor as it is made, and a refused one
+   * with why and Try again - which makes only what is still missing: the
+   * monitors made leave the pick once they watch the service, so a second
+   * Create never makes a second copy of them.
+   */
+  test("the panel lists the monitors picked, then made; Try again makes only the one refused, never a second copy", async () => {
+    expect(IDS.length).toBeGreaterThan(1);
+    api["createMonitors"]!.mockResolvedValueOnce({
+      createdIds: ["mon-1"],
+      failures: [{ name: "checkout Error Burst", message: "Limit reached" }],
+    });
+    await reachAlertStep();
+
+    // Every recommendation picked waits for Create.
+    for (const id of IDS) {
+      expect(
+        screen.getByTestId(`guided-setup-resource-picked-${id}`),
+      ).toHaveAttribute("data-status", "waiting");
+    }
+
+    // What the first Create made watches the service now.
+    api["loadCoveredRecommendationIds"]!.mockResolvedValue(IDS.slice(1));
+    await press("guided-setup-create-monitors");
+
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-mon-1"),
+    ).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-refused-0"),
+    ).toHaveAttribute("data-status", "failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-refused-0-error"),
+    ).toHaveTextContent("Limit reached");
+    // Only the refused one is left to make.
+    expect(
+      screen.getByTestId("guided-setup-create-monitors"),
+    ).toHaveTextContent("Create 1 monitor");
+
+    api["createMonitors"]!.mockResolvedValueOnce({
+      createdIds: ["mon-2"],
+      failures: [],
+    });
+    await press("guided-setup-resource-refused-0-retry");
+
+    expect(api["createMonitors"]).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        api["createMonitors"]!.mock.calls[1]![0] as {
+          recommendationIds: Array<string>;
+        }
+      ).recommendationIds,
+    ).toEqual([IDS[0]]);
+    expect(storedRun()["monitorIds"]).toBe("mon-1,mon-2");
+    expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
+  });
+
+  test("a coverage read that fails after a refusal keeps the pick as it was", async () => {
+    api["createMonitors"]!.mockResolvedValueOnce({
+      createdIds: ["mon-1"],
+      failures: [{ name: "checkout Error Burst", message: "Limit reached" }],
+    });
+    await reachAlertStep();
+    api["loadCoveredRecommendationIds"]!.mockRejectedValue(
+      new Error("Not now"),
+    );
+    await press("guided-setup-create-monitors");
+
+    expect(
+      screen.getByTestId("guided-setup-create-monitors"),
+    ).toHaveTextContent(`Create ${IDS.length} monitors`);
+    expect(
+      screen.getByTestId("guided-setup-resource-refused-0"),
+    ).toHaveAttribute("data-status", "failed");
+  });
+
   test("an error says the server's reason and keeps the step open", async () => {
     api["createMonitors"]!.mockRejectedValue(new Error("Something broke"));
     await reachAlertStep();
@@ -886,10 +990,18 @@ describe("the summary", () => {
     expect(screen.getByTestId("guided-setup-summary")).toHaveTextContent(
       "checkout is sending data",
     );
-    expect(screen.getByText("checkout mon-1")).toHaveAttribute(
-      "href",
-      `/dashboard/${PROJECT_ID}/monitors/mon-1`,
-    );
+    expect(
+      within(screen.getByTestId("guided-setup-summary")).getByText(
+        "checkout mon-1",
+      ),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/monitors/mon-1`);
+    // The panel lists them too, made, each opening its page (#10276).
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-mon-1"),
+    ).toHaveAttribute("data-status", "created");
+    expect(
+      screen.getByTestId("guided-setup-resource-monitor-mon-1-open"),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/monitors/mon-1`);
     expect(
       screen.getByTestId("guided-setup-more-recommendations"),
     ).toHaveAttribute(
@@ -907,7 +1019,9 @@ describe("the summary", () => {
     await renderSetup();
     await press("guided-setup-start-over");
 
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(stepState("send")).toBe("open");
   });
 });
@@ -1221,6 +1335,28 @@ describe("getTelemetryWhoIsToldWords", () => {
 });
 
 describe("leaving and coming back", () => {
+  test("a run only the server kept - another device's - opens at the step it was on (#7253)", async () => {
+    guidedSetupRunServer.seed("telemetry", { serviceId: "svc-new" });
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(stepState("alert")).toBe("open");
+    });
+    expect(stepState("send")).toBe("done");
+    expect(api["loadService"]).toHaveBeenCalledWith("svc-new");
+  });
+
+  test("OneUptime out of reach when the page opens: it opens on what this browser kept (#7253)", async () => {
+    keepRun({ serviceId: "svc-new" });
+    guidedSetupRunServer.isDown = true;
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(stepState("alert")).toBe("open");
+    });
+    expect(stepState("send")).toBe("done");
+  });
+
   test("a service that reported opens the alert step, and asks nothing again", async () => {
     keepRun({ serviceId: "svc-new" });
     await renderSetup();
@@ -1247,7 +1383,9 @@ describe("leaving and coming back", () => {
     api["loadService"]!.mockResolvedValue(null);
     await renderSetup();
 
-    expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    await waitFor(() => {
+      expect(window.localStorage.getItem(RUN_KEY)).toBeNull();
+    });
     expect(stepState("send")).toBe("open");
   });
 

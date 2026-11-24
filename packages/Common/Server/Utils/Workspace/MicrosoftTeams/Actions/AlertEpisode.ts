@@ -7,6 +7,10 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "../Botbuilder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceSharedNames, {
+  WorkspaceNamedOption,
+} from "../../WorkspaceSharedNames";
+import { getSharedNameSelect } from "../../../../../Types/Database/SharedNameMarks";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
   WorkspaceEventStanding,
@@ -30,7 +34,9 @@ import FeedMarkdown, {
 } from "../../../../../Utils/Markdown/FeedMarkdown";
 import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
-import MicrosoftTeamsCardChoices from "../MicrosoftTeamsCardChoices";
+import MicrosoftTeamsCardChoices, {
+  MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
+} from "../MicrosoftTeamsCardChoices";
 
 export default class MicrosoftTeamsAlertEpisodeActions {
   // What a change-state card says instead of opening with nothing to pick.
@@ -594,15 +600,24 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         select: {
           name: true,
           _id: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         limit: 50,
       });
 
-    const choices: Array<{ title: string; value: string }> = onCallPolicies
-      .map((policy: OnCallDutyPolicy) => {
+    // Two policies of one name told apart in their titles (#10314).
+    const choices: Array<{ title: string; value: string }> = (
+      await WorkspaceSharedNames.getOptions({
+        records: onCallPolicies,
+        readerUserId: props.userId,
+        maxLength: MICROSOFT_TEAMS_MAX_CHOICE_TITLE_LENGTH,
+      })
+    )
+      .map((option: WorkspaceNamedOption) => {
         return {
-          title: policy.name || "",
-          value: policy._id?.toString() || "",
+          title: option.label,
+          value: option.value,
         };
       })
       .filter((choice: { title: string; value: string }) => {

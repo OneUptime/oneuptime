@@ -37,6 +37,7 @@ import {
 } from "../../Utils/RumSessionLookup";
 import { makeExceptionSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 import { buildExceptionOccurrenceQuery } from "../../Utils/ExceptionDetailData";
+import { findRepeatedOccurrences } from "../../Utils/ExceptionRepeats";
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -130,6 +131,28 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
     [],
   );
 
+  /*
+   * The occurrences another report repeats: an iOS crash KSCrash and
+   * MetricKit both reported, counted once (#9923). Read once per fetched
+   * page; the second report is kept as evidence and listed nowhere.
+   */
+  const [repeatedIds, setRepeatedIds] = useState<Set<string>>(new Set());
+
+  const resolveRepeats: (instances: Array<ExceptionInstance>) => Promise<void> =
+    useCallback(async (instances: Array<ExceptionInstance>): Promise<void> => {
+      const repeated: Set<string> = await findRepeatedOccurrences({
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        occurrences: instances.map((instance: ExceptionInstance) => {
+          return {
+            id: instance.id?.toString() || "",
+            time: toOccurrenceDate(instance.time),
+          };
+        }),
+      });
+
+      setRepeatedIds(repeated);
+    }, []);
+
   const logsRoute: Route = useMemo(() => {
     return RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route);
   }, []);
@@ -165,6 +188,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
           })}
           onFetchSuccess={(data: Array<ExceptionInstance>) => {
             void resolveSessionAnchors(data);
+            void resolveRepeats(data);
           }}
           showViewIdButton={true}
           noItemsMessage={
@@ -317,10 +341,28 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
               getElement: (
                 exceptionInstance: ExceptionInstance,
               ): ReactElement => {
-                return exceptionInstance.escaped ? (
+                const handling: ReactElement = exceptionInstance.escaped ? (
                   <Pill text="Unhandled" tone={PillTone.Danger} />
                 ) : (
                   <Pill text="Handled" tone={PillTone.Warning} />
+                );
+
+                if (!repeatedIds.has(exceptionInstance.id?.toString() || "")) {
+                  return handling;
+                }
+
+                return (
+                  <div
+                    className="flex flex-wrap items-center gap-1.5"
+                    data-testid="occurrence-reported-twice"
+                  >
+                    {handling}
+                    <Pill
+                      text="Reported twice"
+                      tone={PillTone.Info}
+                      tooltip="KSCrash and MetricKit both reported this crash. It is counted once, as this occurrence."
+                    />
+                  </div>
                 );
               },
             },

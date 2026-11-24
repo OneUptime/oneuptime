@@ -201,6 +201,27 @@ describe("SnappyBlock.decompress - blocks that lie", () => {
     expect((error as SnappyTooLargeError).declaredLength).toBe(4294967295);
   });
 
+  test("a block declaring more than its elements could ever write is refused before anything is allocated", () => {
+    // 30 MiB declared (under the ceiling), then a one-byte literal.
+    const block: Buffer = Buffer.from([0x80, 0x80, 0x80, 0x0f, 0x00, 0x61]);
+    const allocUnsafe: jest.SpyInstance = jest.spyOn(Buffer, "allocUnsafe");
+
+    expect(() => {
+      SnappyBlock.decompress(block, MAX);
+    }).toThrow(SnappyDecodeError);
+    expect(allocUnsafe).not.toHaveBeenCalled();
+    allocUnsafe.mockRestore();
+  });
+
+  test("a block that does write all it declares, at snappy's best ratio, is still read", () => {
+    // Runs of one byte: each copy writes 64 bytes from 3.
+    const body: Buffer = Buffer.alloc(1024 * 1024, 0x2a);
+    const compressed: Buffer = snappyCompress(body);
+
+    expect(compressed.length).toBeLessThan(body.length / 20);
+    expect(SnappyBlock.decompress(compressed, MAX).equals(body)).toBe(true);
+  });
+
   test("a body at exactly the ceiling is accepted", () => {
     const body: Buffer = crypto.randomBytes(2048);
 

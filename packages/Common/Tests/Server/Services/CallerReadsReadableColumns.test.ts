@@ -111,6 +111,10 @@ const ALLOWED_NARROW_READS: Record<string, string> = {
     "Search reads the project's people only once canSeeMembers - and, for emails, canSeeEmails - has passed the very checks this read makes: the table's read and its blocks, the user column's read, the relation query. Current User, the one reader the column leaves out, is what every signed-in person holds in any project; one who holds nothing more there is refused before anything is read.",
   "packages/Common/Server/Utils/Team/ProjectMemberSearch.ts#query#TeamMember.user":
     "Search filters the project's people by their user's name or email only once canSeeMembers - and, for emails, canSeeEmails - has passed the very checks this read makes: the table's read and its blocks, the user column's read, the relation query. Current User, the one reader the column leaves out, is what every signed-in person holds in any project; one who holds nothing more there is refused before anything is read.",
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityProtectedAddresses.ts#select#Probe.egressIpAddress":
+    "The Protected Entities page lists what OneUptime protects as its reader reads it (listAutomaticProtections): a reader who may pick a probe but not read the address it checks in from - a monitor's, network device's, site's or vCenter's level - is refused the read, and the page lists the project's probes as not read, their addresses protected all the same. A block's check (findProtection) reads them as OneUptime.",
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityProtectedAddresses.ts#query#Probe.egressIpAddress":
+    "The Protected Entities page lists what OneUptime protects as its reader reads it (listAutomaticProtections): a reader who may pick a probe but not read the address it checks in from - a monitor's, network device's, site's or vCenter's level - is refused the read, and the page lists the project's probes as not read, their addresses protected all the same. A block's check (findProtection) reads them as OneUptime.",
 };
 
 /*

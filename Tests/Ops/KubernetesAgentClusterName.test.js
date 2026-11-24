@@ -257,7 +257,7 @@ const CLUSTER_ENV = new Set([
 // so the change is looked at.
 const PLACES = {
   everything: [
-    `ConfigMap/${FULLNAME}-daemonset otel-collector-config.yaml filelog/audit`,
+    `ConfigMap/${FULLNAME}-daemonset otel-collector-config.yaml file_log/audit`,
     `ConfigMap/${FULLNAME}-daemonset otel-collector-config.yaml resource k8s.cluster.name`,
     `ConfigMap/${FULLNAME}-daemonset otel-collector-config.yaml resource service.name`,
     `ConfigMap/${FULLNAME}-deployment otel-collector-config.yaml resource k8s.cluster.name`,

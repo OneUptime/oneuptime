@@ -1,6 +1,5 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceDiscoveryScanService from "Common/Server/Services/NetworkDeviceDiscoveryScanService";
-import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import Response from "Common/Server/Utils/Response";
 import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -61,15 +60,6 @@ jest.mock("Common/Server/Services/NetworkDeviceDiscoveryScanService", () => {
   };
 });
 
-jest.mock("Common/Server/Services/NetworkDeviceService", () => {
-  return {
-    __esModule: true,
-    default: {
-      getRegisteredHostnames: jest.fn(),
-    },
-  };
-});
-
 jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
   return {
     __esModule: true,
@@ -114,8 +104,6 @@ type MockedService = {
 
 const scanService: MockedService =
   NetworkDeviceDiscoveryScanService as unknown as MockedService;
-const deviceService: { getRegisteredHostnames: jest.Mock } =
-  NetworkDeviceService as unknown as { getRegisteredHostnames: jest.Mock };
 const responseUtil: {
   sendErrorResponse: jest.Mock;
   sendEntityArrayResponse: jest.Mock;
@@ -195,9 +183,6 @@ function partialBody(overrides: JSONObject = {}): JSONObject {
 describe("POST /probe/discovery-scan/result — a partial result", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    deviceService.getRegisteredHostnames.mockResolvedValue(
-      new Set<string>() as never,
-    );
     scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
     scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
       undefined as never,
@@ -278,19 +263,31 @@ describe("POST /probe/discovery-scan/result — a partial result", () => {
     expect(partialWrite().data["respondedHostCount"]).toBe(2);
   });
 
-  test("marks hosts that already have a device, same as a final result", async () => {
-    deviceService.getRegisteredHostnames.mockResolvedValue(
-      new Set<string>(["10.240.249.5"]) as never,
+  /*
+   * Same as a final result (issue #9906): the hosts are stored as the probe
+   * reported them, and which of them are devices is worked out each time
+   * the scan is read, never stored.
+   */
+  test("stores the hosts with no word on which are devices, same as a final result", async () => {
+    await callResultEndpoint(
+      partialBody({
+        discoveredDevices: [
+          {
+            ipAddress: "10.240.249.5",
+            sysName: "sw-core-1",
+            snmpReachable: true,
+            isAlreadyRegistered: true,
+            registeredDeviceId: "d0000000-0000-4000-8000-00000000000a",
+          },
+          { ipAddress: "10.240.249.9", snmpReachable: false },
+        ],
+      }),
     );
 
-    await callResultEndpoint(partialBody());
-
-    const stored: Array<JSONObject> = partialWrite().data[
-      "discoveredDevices"
-    ] as Array<JSONObject>;
-
-    expect(stored[0]!["isAlreadyRegistered"]).toBe(true);
-    expect(stored[1]!["isAlreadyRegistered"]).toBe(false);
+    expect(partialWrite().data["discoveredDevices"]).toEqual([
+      { ipAddress: "10.240.249.5", sysName: "sw-core-1", snmpReachable: true },
+      { ipAddress: "10.240.249.9", snmpReachable: false },
+    ]);
   });
 
   test("answers 'partial' so the probe can tell it apart from a stored result", async () => {
@@ -358,9 +355,6 @@ describe("POST /probe/discovery-scan/result — a partial result", () => {
 describe("POST /probe/discovery-scan/result — a partial for a run that is over", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    deviceService.getRegisteredHostnames.mockResolvedValue(
-      new Set<string>() as never,
-    );
     scanService.updateColumnsByIdWithoutHooks.mockResolvedValue(
       undefined as never,
     );
@@ -442,9 +436,6 @@ describe("POST /probe/discovery-scan/result — a partial for a run that is over
 describe("POST /probe/discovery-scan/result — a failure report and the hosts already stored", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    deviceService.getRegisteredHostnames.mockResolvedValue(
-      new Set<string>() as never,
-    );
     scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
     scanService.updateOneById.mockResolvedValue(undefined as never);
   });
@@ -525,13 +516,46 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
     storedScan.discoveredDevices = [{ ipAddress: "10.0.0.9" }];
   }
 
+  /*
+   * Holds the next request just after it has read the scan, as a slow
+   * request is held between its read and its writes: it goes on, with the
+   * row as it read it, only once released.
+   */
+  function holdNextScanRead(): {
+    hasRead: Promise<void>;
+    release: () => void;
+  } {
+    let reportRead: () => void = (): void => {};
+    let release: () => void = (): void => {};
+    const hasRead: Promise<void> = new Promise<void>((resolve: () => void) => {
+      reportRead = resolve;
+    });
+    const released: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+
+    scanService.findOneBy.mockImplementationOnce(async () => {
+      const snapshot: NetworkDeviceDiscoveryScan = Object.assign(
+        new NetworkDeviceDiscoveryScan(),
+        storedScan,
+      );
+      reportRead();
+      await released;
+      return snapshot;
+    });
+
+    return {
+      hasRead: hasRead,
+      release: (): void => {
+        release();
+      },
+    };
+  }
+
   beforeEach(() => {
     jest.resetAllMocks();
     storedScan = makeFoundScan();
     storedScan.startedAt = new Date("2026-09-09T10:00:00.000Z");
-    deviceService.getRegisteredHostnames.mockResolvedValue(
-      new Set<string>() as never,
-    );
 
     /*
      * Each request reads a snapshot. Writes merge into the stored row just as
@@ -656,7 +680,8 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
       retainPreviousRun();
 
       if (rejectFirstProgress) {
-        deviceService.getRegisteredHostnames.mockRejectedValueOnce(
+        // The upload fails before it writes anything.
+        scanService.findOneBy.mockRejectedValueOnce(
           new Error("Temporary database error") as never,
         );
         const { next } = await callResultEndpoint(partialBody());
@@ -736,28 +761,14 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
       {
         ipAddress: "10.0.0.5",
         snmpReachable: true,
-        isAlreadyRegistered: false,
       },
     ]);
   });
 
-  test("a first failure waiting on its lookup cannot erase a newer accepted partial", async () => {
+  test("a first failure held after its read cannot erase a newer accepted partial", async () => {
     retainPreviousRun();
-    let finishLookup: (hosts: Set<string>) => void = (): void => {};
-    let reportLookupStarted: () => void = (): void => {};
-    const lookupStarted: Promise<void> = new Promise<void>(
-      (resolve: () => void) => {
-        reportLookupStarted = resolve;
-      },
-    );
-    deviceService.getRegisteredHostnames.mockImplementationOnce(() => {
-      reportLookupStarted();
-      return new Promise<Set<string>>(
-        (resolve: (hosts: Set<string>) => void) => {
-          finishLookup = resolve;
-        },
-      );
-    });
+    const held: { hasRead: Promise<void>; release: () => void } =
+      holdNextScanRead();
 
     const pendingFailure: ReturnType<typeof callResultEndpoint> =
       callResultEndpoint({
@@ -765,14 +776,14 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
         success: false,
         statusMessage: "The scan stopped early.",
       });
-    await lookupStarted;
+    await held.hasRead;
     await callResultEndpoint(
       partialBody({
         scannedHostCount: 128,
         discoveredDevices: [{ ipAddress: "10.0.0.5", snmpReachable: true }],
       }),
     );
-    finishLookup(new Set<string>());
+    held.release();
     await pendingFailure;
 
     expect(storedScan.status).toBe("Failed");
@@ -828,7 +839,6 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
       {
         ipAddress: "10.0.0.5",
         snmpReachable: true,
-        isAlreadyRegistered: false,
       },
     ]);
     expect(storedScan.completedAt).toBeInstanceOf(Date);
@@ -851,22 +861,9 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
     expect(storedScan.discoveredDevices).toEqual([]);
   });
 
-  test("keeps the final result if an earlier partial finishes its lookup later", async () => {
-    let finishLookup: (hosts: Set<string>) => void = (): void => {};
-    let reportLookupStarted: () => void = (): void => {};
-    const lookupStarted: Promise<void> = new Promise<void>(
-      (resolve: () => void) => {
-        reportLookupStarted = resolve;
-      },
-    );
-    deviceService.getRegisteredHostnames.mockImplementationOnce(() => {
-      reportLookupStarted();
-      return new Promise<Set<string>>(
-        (resolve: (hosts: Set<string>) => void) => {
-          finishLookup = resolve;
-        },
-      );
-    });
+  test("keeps the final result if an earlier partial, held after its read, writes later", async () => {
+    const held: { hasRead: Promise<void>; release: () => void } =
+      holdNextScanRead();
 
     const pendingPartial: ReturnType<typeof callResultEndpoint> =
       callResultEndpoint(
@@ -875,7 +872,7 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
           discoveredDevices: [{ ipAddress: "10.0.0.5", snmpReachable: true }],
         }),
       );
-    await lookupStarted;
+    await held.hasRead;
     await callResultEndpoint({
       scanId: scanId.toString(),
       success: true,
@@ -888,7 +885,7 @@ describe("POST /probe/discovery-scan/result — live progress across a run", () 
         },
       ],
     });
-    finishLookup(new Set<string>());
+    held.release();
     await pendingPartial;
 
     expect(storedScan.status).toBe("Completed");

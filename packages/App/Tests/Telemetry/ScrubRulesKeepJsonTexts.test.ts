@@ -22,6 +22,7 @@ import {
   seededRandom,
   writeJson,
 } from "Common/Tests/Utils/Telemetry/JsonTextCases";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -60,12 +61,19 @@ interface CompiledRule {
   regex: ScrubRegExp;
 }
 
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a30393",
+);
+
 function compile(
   service: unknown,
   rule: LogScrubRule | TraceScrubRule,
   spec: RuleSpec,
 ): CompiledRule {
   rule.name = "test rule";
+  // A Hash rule hashes with its project's key, as the rules ingest loads do.
+  rule.projectId = PROJECT_ID;
   rule.patternType = spec.patternType;
   rule.scrubAction = spec.action || "redact";
 
@@ -126,7 +134,8 @@ const LINE_STARTS: Array<[string, string]> = [
   ["creditCard", "4111 1111 1111 1111"],
   ["ssn", "123-45-6789"],
   ["phoneNumber", "555-123-4567"],
-  ["ipAddress", "10.0.0.12"],
+  // A public address: a private one is no one's, and is kept (#10393).
+  ["ipAddress", "203.0.113.12"],
 ];
 
 describe("a structured log body stays JSON under every pattern rule", () => {
@@ -227,7 +236,7 @@ describe("a structured log body stays JSON under every pattern rule", () => {
   });
 
   test("a body only a Body Only rule reads is kept JSON too, and an Attributes Only rule leaves it", () => {
-    const body: string = JSON.stringify({ m: "x\n10.0.0.12" });
+    const body: string = JSON.stringify({ m: "x\n203.0.113.12" });
 
     expect(
       scrubbedBody(body, [

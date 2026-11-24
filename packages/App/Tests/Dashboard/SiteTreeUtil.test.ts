@@ -2,8 +2,12 @@ import { describe, expect, test } from "@jest/globals";
 import {
   SiteTreeNode,
   SiteTreeRow,
+  FilteredSiteTree,
   buildSiteTree,
   countTreeNodes,
+  filterSiteTree,
+  getSiteSearchWords,
+  siteNameMatches,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteTreeUtil";
 
 /*
@@ -115,5 +119,119 @@ describe("countTreeNodes", () => {
 
     expect(countTreeNodes(roots)).toBe(4);
     expect(countTreeNodes([])).toBe(0);
+  });
+});
+
+describe("filterSiteTree: what the hierarchy draws of hundreds of sites (#10188)", () => {
+  // A region with two markets, a store in each, and 700 flat Meraki stores.
+  function estate(): Array<SiteTreeNode> {
+    const rows: Array<SiteTreeRow> = [
+      row("north", "North"),
+      row("leeds", "Leeds", "north"),
+      row("york", "York", "north"),
+      row("s-leeds", "Store 0660", "leeds"),
+      row("s-york", "Store 0101", "york"),
+    ];
+
+    for (let index: number = 1; index <= 700; index++) {
+      rows.push(row(`m-${index}`, `Meraki ${String(index).padStart(4, "0")}`));
+    }
+
+    return buildSiteTree(rows, { "s-leeds": 3, "m-7": 2 });
+  }
+
+  function idsOf(nodes: Array<SiteTreeNode>): Array<string> {
+    return nodes.map((node: SiteTreeNode): string => {
+      return node.site._id || "";
+    });
+  }
+
+  test("nothing asked: every site kept, nothing opened", () => {
+    const filtered: FilteredSiteTree = filterSiteTree(estate(), {
+      search: "",
+      hideEmpty: false,
+    });
+
+    expect(filtered.isSearching).toBe(false);
+    expect(filtered.roots).toHaveLength(701);
+    expect(filtered.matchCount).toBe(705);
+    expect(filtered.openIds.size).toBe(0);
+  });
+
+  test("a search keeps what it finds and the sites above it, which it opens", () => {
+    // "Meraki 0660" has the number, not the word "store".
+    const filtered: FilteredSiteTree = filterSiteTree(estate(), {
+      search: "store 0660",
+      hideEmpty: false,
+    });
+
+    expect(filtered.isSearching).toBe(true);
+    expect(filtered.matchCount).toBe(1);
+    expect(idsOf(filtered.roots)).toEqual(["north"]);
+    expect(idsOf(filtered.roots[0]!.children)).toEqual(["leeds"]);
+    expect(idsOf(filtered.roots[0]!.children[0]!.children)).toEqual([
+      "s-leeds",
+    ]);
+    expect(Array.from(filtered.openIds).sort()).toEqual(["leeds", "north"]);
+  });
+
+  test("a site found by its name keeps the sites below it, closed, to open", () => {
+    const filtered: FilteredSiteTree = filterSiteTree(estate(), {
+      search: "north",
+      hideEmpty: false,
+    });
+
+    expect(filtered.matchCount).toBe(1);
+    expect(idsOf(filtered.roots)).toEqual(["north"]);
+    expect(idsOf(filtered.roots[0]!.children)).toEqual(["leeds", "york"]);
+    // Nothing below it was found, so nothing is drawn open.
+    expect(filtered.openIds.size).toBe(0);
+  });
+
+  test("every word must be in the name, in any order and case", () => {
+    expect(getSiteSearchWords("  Store   0660 ")).toEqual(["store", "0660"]);
+    expect(siteNameMatches("Store 0660", ["0660", "store"])).toBe(true);
+    expect(siteNameMatches("Store 0660", ["store", "0101"])).toBe(false);
+    expect(siteNameMatches(undefined, ["store"])).toBe(false);
+
+    const filtered: FilteredSiteTree = filterSiteTree(estate(), {
+      search: "MERAKI 007",
+      hideEmpty: false,
+    });
+
+    // Meraki 0007, and 0070 to 0079.
+    expect(filtered.matchCount).toBe(11);
+    expect(filtered.roots).toHaveLength(11);
+  });
+
+  test("hiding the sites with no devices leaves out each subtree that holds none", () => {
+    const filtered: FilteredSiteTree = filterSiteTree(estate(), {
+      search: "",
+      hideEmpty: true,
+    });
+
+    expect(idsOf(filtered.roots)).toEqual(["m-7", "north"]);
+    // York's subtree holds no device: gone; Leeds holds its store's three.
+    expect(idsOf(filtered.roots[1]!.children)).toEqual(["leeds"]);
+    expect(filtered.roots[1]!.subtreeDeviceCount).toBe(3);
+    expect(filtered.matchCount).toBe(4);
+  });
+
+  test("search and hiding together; nothing found leaves no roots", () => {
+    expect(
+      filterSiteTree(estate(), { search: "york", hideEmpty: true }).roots,
+    ).toEqual([]);
+    expect(
+      filterSiteTree(estate(), { search: "nowhere", hideEmpty: false }),
+    ).toMatchObject({ roots: [], matchCount: 0, isSearching: true });
+  });
+
+  test("the tree it is given is left as it was", () => {
+    const roots: Array<SiteTreeNode> = estate();
+
+    filterSiteTree(roots, { search: "store 0660", hideEmpty: true });
+
+    expect(roots).toHaveLength(701);
+    expect(idsOf(roots[701 - 1]!.children)).toEqual(["leeds", "york"]);
   });
 });

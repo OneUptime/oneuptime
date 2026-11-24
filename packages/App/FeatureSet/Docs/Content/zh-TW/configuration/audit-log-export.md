@@ -148,7 +148,7 @@ OneUptime 將每個批次以 POST 方式傳送到 **URL**，依照**內文格式
 | `mcpOAuthGrantId`, `mcpClientName` | 進行變更所經由的 MCP 用戶端（如有）。 |
 | `workflowId`, `workflowName` | 進行變更的工作流程（如有）。 |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | 版本 3 中，工作流程步驟以什麼身分執行：`Default`、`ProjectOwner` 或 `CustomRole`，以及當時的角色名稱。 |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | 版本 3 中，它用誰的權限執行：人或專案 API 金鑰的 id，以及當時的名稱。變更不是由工作流程進行時，這五個鍵都為 `null`。 |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | 版本 3 中，它用誰的權限執行：人或專案 API 金鑰的 id，以及當時的名稱。變更不是由工作流程進行時，這五個鍵都為 `null`。 |
 | `changes` | 每個被變更的欄位：`field`，以及 `oldValue` 和 `newValue`，版本 2 中還有 `summary`。 |
 
 檔案每行一個條目，使用 gzip 壓縮，並依其第一個條目所在的小時歸檔：`oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`。

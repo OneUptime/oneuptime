@@ -34,9 +34,11 @@ import { explainCloudResourceUnreportedKeyMetrics } from "./CloudResourceMetrics
  * reported 3 hours ago", "Never reported" (the look-back holds the
  * resource's whole life), or "Not reported in the last 30 days" - and its
  * likely reasons, most likely first, each with what fixes it where
- * something does: Cloud > Connect, or the Ops Agent's install guide. The
- * server works the reasons out (CloudResourceMetrics.explainUnreported),
- * asked when the section is opened, never before.
+ * something does: Cloud > Connect, or the Ops Agent's install guide - and,
+ * where its connection's read kept it, what its cloud answered, in its
+ * own words (#10291). The server works the reasons out
+ * (CloudResourceMetrics.explainUnreported), asked when the section is
+ * opened, never before.
  */
 export interface ComponentProps {
   cloudResourceId: ObjectID;
@@ -46,6 +48,9 @@ export interface ComponentProps {
 
 export const CLOUD_UNREPORTED_ROW_TEST_ID: string =
   "cloud-unreported-key-metric";
+// What the cloud answered, under a reason that kept it.
+export const CLOUD_UNREPORTED_ERROR_TEST_ID: string =
+  "cloud-unreported-key-metric-error";
 
 const CloudUnreportedKeyMetricsList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -198,7 +203,9 @@ const CloudUnreportedKeyMetricsList: FunctionComponent<ComponentProps> = (
 
                     /*
                      * The reason, then what fixes it: two things, side by
-                     * side where they fit, not one sentence.
+                     * side where they fit, not one sentence - and under
+                     * them what the cloud answered, in its own words, where
+                     * a read kept it (#10291).
                      */
                     return (
                       <li
@@ -207,6 +214,17 @@ const CloudUnreportedKeyMetricsList: FunctionComponent<ComponentProps> = (
                       >
                         <span>{translator.translateText(text) || text}</span>
                         {fix}
+                        {entry.error ? (
+                          <p
+                            data-testid={CLOUD_UNREPORTED_ERROR_TEST_ID}
+                            className="mt-0.5 basis-full break-words font-mono text-gray-500"
+                            dir="ltr"
+                          >
+                            {entry.error}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
                       </li>
                     );
                   },

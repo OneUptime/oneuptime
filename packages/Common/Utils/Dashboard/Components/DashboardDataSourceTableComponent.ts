@@ -1,6 +1,7 @@
 import DashboardDataSourceTableComponent from "../../../Types/Dashboard/DashboardComponents/DashboardDataSourceTableComponent";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
@@ -30,7 +31,8 @@ export default class DashboardDataSourceTableComponentUtil extends DashboardBase
       arguments: {
         query: {
           id: ObjectID.generate().toString(),
-          dataSourceId: "",
+          // A new query reads the project's own metrics (issue #7713).
+          dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
           query: "",
         },
       },

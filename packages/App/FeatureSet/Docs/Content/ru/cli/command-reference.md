@@ -6,7 +6,7 @@
 - [Глобальные параметры](#глобальные-параметры): Параметры, которые принимает каждая команда.
 - [Вход и контексты](#вход-и-контексты): login и команды context.
 - [Команды ресурсов](#команды-ресурсов): Операции, поля и действия каждого ресурса.
-- [Другие команды](#другие-команды): deploy, dbt upload, data-checks apply, whoami, resources, version и help.
+- [Другие команды](#другие-команды): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version и help.
 :::
 
 ## Команды
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | Нет | Имя проекта dbt, нужно, только когда манифест не отправляется | Проект из манифеста |
 | `--ingestion-key <key>` | Нет | Ключ приёма телеметрии проекта | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+Отправляет dSYM приложения iOS после сборки, из CI или фазы сборки Xcode, чтобы кадры его сбоев и зависаний в разделе **Исключения** назывались по своим функциям и группировались по ним от одного релиза к следующему. Команда читает каждый dSYM на вашем компьютере: пакет `.dSYM`, папку с ними, например папку `dSYMs` архива, zip-архив с ними в том виде, в каком их выдаёт App Store Connect, или файл DWARF из dSYM. Она отправляет только UUID, архитектуру и имена функций каждого двоичного файла и пишет с ключом приёма телеметрии, а не с API-ключом. Двоичный файл, из которого удалены его функции, пропускается с предупреждением. См. [Загружайте файлы dSYM](/docs/rum/mobile-setup#загружайте-файлы-dsym).
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| Параметр | Обязателен | Что это | По умолчанию |
+| --- | --- | --- | --- |
+| `--app <name>` | Нет | Приложение, к которому они относятся, в виде его `service.name`, которое хранится рядом с ними | |
+| `--ingestion-key <key>` | Нет | Ключ приёма телеметрии проекта | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 Приводит проверки данных проекта в соответствие с YAML-файлом, чтобы они хранились в репозитории и проходили ревью как код. Ошибка в любом месте файла ничего не применяет и завершается с ошибкой. Формат файла описан в разделе [Проверки и сверки](/docs/data-observability/checks).
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API-ключ, когда его не задаёт флаг `--api-key` |
 | `ONEUPTIME_URL` | Адрес вашего OneUptime, когда его не задаёт флаг `--url` |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ключ приёма телеметрии, с которым пишет `oneuptime deploy`, когда его не задаёт флаг `--ingestion-key` |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ключ приёма телеметрии, с которым пишут `oneuptime deploy`, `oneuptime dbt upload` и `oneuptime dsym upload`, когда его не задаёт флаг `--ingestion-key` |
 | `NO_COLOR` | Заданная с любым значением, отключает цвета |
 
 ## Файлы

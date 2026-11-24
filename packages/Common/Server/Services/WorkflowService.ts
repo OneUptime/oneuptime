@@ -92,6 +92,8 @@ const RUN_AS_CUSTOM_ROLE_KEYS: Array<string> = [
   "runAsCustomRoleId",
   "runAsCustomRole",
 ];
+// The reference's name in a refusal of two names that disagree.
+const RUN_AS_CUSTOM_ROLE_TITLE: string = "Run As Custom Role";
 const RUN_AS_GIVEN_BY_USER_KEYS: Array<string> = [
   "runAsGivenByUserId",
   "runAsGivenByUser",
@@ -167,8 +169,8 @@ export class Service extends ProjectReferencesService<Model> {
    * A Run As as a write sends it, checked and tidied before anything else
    * reads it (#9695): one of WorkflowRunAs - an empty one is Default - or
    * refused in words that list them; the custom role kept only beside
-   * CustomRole, and named by its id alone. Who gave it - the person or the
-   * API key - and when are OneUptime's to say (holdRunAsToItsHolders,
+   * CustomRole, and stored under its id alone. Who gave it - the person or
+   * the API key - and when are OneUptime's to say (holdRunAsToItsHolders,
    * giveRunAsOnCreate): a value sent for the key or the time is dropped, as
    * UserAttribution drops a person sent.
    */
@@ -176,7 +178,25 @@ export class Service extends ProjectReferencesService<Model> {
     delete data["runAsGivenAt"];
     delete data["runAsGivenByApiKeyId"];
     delete data["runAsGivenByApiKey"];
-    delete data["runAsCustomRole"];
+
+    /*
+     * The custom role is read under either of its names, and two names
+     * that disagree are refused (ReferenceNamesReadTogether). An update
+     * that named it by the relation alone used to have it dropped here,
+     * so the change was quietly not made. It is kept under its id alone,
+     * so the role the checks read is the role that is stored.
+     */
+    if (RelationIdUtil.isPresent(data, RUN_AS_CUSTOM_ROLE_KEYS)) {
+      RelationIdUtil.stamp(
+        data,
+        RUN_AS_CUSTOM_ROLE_KEYS,
+        RelationIdUtil.readConsistent(
+          data,
+          RUN_AS_CUSTOM_ROLE_KEYS,
+          RUN_AS_CUSTOM_ROLE_TITLE,
+        ),
+      );
+    }
 
     if (data["runAs"] === undefined) {
       return;
@@ -315,14 +335,6 @@ export class Service extends ProjectReferencesService<Model> {
       string,
       unknown
     >;
-
-    // The custom role under either of its names (normalizeRunAsWrite keeps its id).
-    RelationIdUtil.readIntoIdColumn(
-      data,
-      RUN_AS_CUSTOM_ROLE_KEYS,
-      "Run As Custom Role",
-    );
-
     const written: Array<string> = this.getColumnsWrittenByCaller(data);
 
     if (written.length === 0) {
@@ -330,7 +342,22 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     const sendsRunAs: boolean =
-      written.includes("runAs") || written.includes("runAsCustomRoleId");
+      written.includes("runAs") ||
+      RelationIdUtil.isWritten(written, RUN_AS_CUSTOM_ROLE_KEYS);
+    /*
+     * The custom role it sends, under either of its names: normalizeRunAsWrite
+     * keeps it under its id alone, and reading it so holds whatever handed
+     * this the write to the role it stores.
+     */
+    const sendsCustomRole: boolean = RelationIdUtil.isPresent(
+      data,
+      RUN_AS_CUSTOM_ROLE_KEYS,
+    );
+    const sentCustomRoleId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      RUN_AS_CUSTOM_ROLE_KEYS,
+      RUN_AS_CUSTOM_ROLE_TITLE,
+    );
     const sendsGraph: boolean = written.includes("graph");
     // Turning a workflow off stops what it does: anyone who may edit it may.
     const turnsOffOnly: boolean =
@@ -371,10 +398,9 @@ export class Service extends ProjectReferencesService<Model> {
 
       const next: { runAs: unknown; customRoleId: ObjectID | null } = {
         runAs: data["runAs"] !== undefined ? data["runAs"] : row.runAs,
-        customRoleId:
-          data["runAsCustomRoleId"] !== undefined
-            ? (data["runAsCustomRoleId"] as ObjectID | null)
-            : row.runAsCustomRoleId || null,
+        customRoleId: sendsCustomRole
+          ? sentCustomRoleId
+          : row.runAsCustomRoleId || null,
       };
       const nextRunAs: WorkflowRunAs =
         readWorkflowRunAs(next.runAs) || WorkflowRunAs.ProjectOwner;
@@ -519,17 +545,16 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    // The custom role under either of its names, as normalizeRunAsWrite keeps it.
+    const customRoleId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      RUN_AS_CUSTOM_ROLE_KEYS,
+      RUN_AS_CUSTOM_ROLE_TITLE,
+    );
+
     const role: WorkflowRunAsRole | null =
       await WorkflowRunAsAuthority.assertMayGive({
-        setting: {
-          runAs: runAs,
-          // The custom role under either of its names.
-          customRoleId: RelationIdUtil.readConsistent(
-            data as unknown as Record<string, unknown>,
-            RUN_AS_CUSTOM_ROLE_KEYS,
-            "Run As Custom Role",
-          ),
-        },
+        setting: { runAs: runAs, customRoleId: customRoleId },
         projectId: projectId,
         props: createBy.props,
       });

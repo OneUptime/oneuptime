@@ -103,6 +103,7 @@ Listen viser hver slags post, du kan arbejde med, og dens kommando, for eksempel
 | `oneuptime deploy` | Registrerer en udrulning eller en anden ændring til grafer og OneUptime AI | [Udrulninger og ændringer](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Får projektets datatjek til at matche en fil i dit repository | [Kommandoreference](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Sender et dbt-projekts artefakter efter et build til Dataobservabilitet | [Kommandoreference](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Sender en iOS-apps dSYMs efter et build, så dens nedbrud og hængninger kan læses efter funktion | [Mobilopsætning](/docs/rum/mobile-setup#upload-dine-dsymer) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbejder med én slags post | [Ressourceoperationer](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Viser en ressources felter og de flag, der sætter dem | [Ressourceoperationer](/docs/cli/resource-operations#se-en-ressources-felter) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Gør det, som dashboardets knapper gør på hændelser, advarsler og planlagt vedligeholdelse | [Ressourceoperationer](/docs/cli/resource-operations#bekræft-løs-og-tilføj-noter) |

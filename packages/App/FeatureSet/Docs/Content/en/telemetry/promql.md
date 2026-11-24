@@ -50,7 +50,7 @@ A few queries to start from:
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime stores metrics the OpenTelemetry way. PromQL reads them the way Promet
 
 | In OneUptime | In PromQL |
 | --- | --- |
-| A gauge `system.cpu.utilization` | `system_cpu_utilization` |
-| A counter `http.requests` | `http_requests`, or `http_requests_total` |
-| A histogram `http.server.request.duration` | `http_server_request_duration_bucket` (with `le`), `_count` and `_sum` |
+| A gauge `system.cpu.utilization`, in `1` | `system_cpu_utilization_ratio`, or `system_cpu_utilization` |
+| A gauge `system.memory.usage`, in `By` | `system_memory_usage_bytes`, or `system_memory_usage` |
+| A counter `http.requests` | `http_requests_total`, or `http_requests` |
+| A histogram `http.server.request.duration`, in `s` | `http_server_request_duration_seconds_bucket` (with `le`), `_count` and `_sum`, or the same without `_seconds` |
 | A summary `rpc.latency` | `rpc_latency` (with `quantile`), `_count` and `_sum` |
 | An attribute `http.route` | The label `http_route` |
 | A resource attribute `service.name` | The label `resource_service_name`, and `job` |
 | A resource attribute `service.instance.id` | The label `resource_service_instance_id`, and `instance` |
 
 - **Dots and dashes become underscores** in metric and label names. To name a metric or a label exactly as it is stored, quote it, as Prometheus 3 does: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **The unit is part of the name**, as Prometheus 3 and the OpenTelemetry Collector write it: `s` adds `_seconds`, `By` `_bytes`, `By/s` `_bytes_per_second` and `%` `_percent`; a gauge in `1` ends in `_ratio` and a counter in `_total`, and a unit in braces, such as `{request}`, adds nothing. The name without its unit finds the metric too, and **Add a metric name** lists each metric with it.
 - **Delta counters are added up** from the start of the query's time range, so `rate()` and `increase()` read them like any other counter.
 - **Exponential histograms** have `_count` and `_sum`, but no buckets.
 
@@ -144,6 +146,7 @@ Every query is bounded, so a dashboard of many panels cannot overload OneUptime:
 | Time evaluating may take | 30 seconds |
 | How far back a selector looks for a series' latest sample | 5 minutes |
 | A subquery's step, when the query leaves it out | 1 minute |
+| Queries a project may send each minute | 1,200 |
 
 ## Troubleshooting
 
@@ -159,10 +162,15 @@ Its PromQL name has underscores where the stored name has dots, and a histogram 
 The query asks for more than a read may hold. Add label matchers, shorten the time range, or use a larger step.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+The project's dashboards, Grafana and scripts together sent more than 1,200 queries to the API this minute. The panels load again in the next minute; refresh dashboards less often to stay under it.
+:::
+
 ## Next steps
 
 :::cards
 - [Metrics Explorer](/docs/telemetry/metrics-explorer): Chart metrics without writing a query.
-- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert when a metric crosses a threshold.
-- [External Data Sources](/docs/dashboards/data-sources): Chart an outside Prometheus on your dashboards.
+- [Metrics Monitor](/docs/monitor/metrics-monitor): Alert on a metric or a PromQL expression, one incident per series.
+- [External Data Sources](/docs/dashboards/data-sources): Chart PromQL on your dashboards, over this project's metrics or an outside Prometheus.
+- [LogQL](/docs/telemetry/logql): Query logs with LogQL, and from Grafana's Loki data source.
 :::

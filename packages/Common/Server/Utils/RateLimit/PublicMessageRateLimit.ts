@@ -37,6 +37,8 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  *  - forgetting an account's password (POST /identity/forgot-password);
  *  - asking for a sign-in link to an account's address
  *    (POST /identity/send-magic-link);
+ *  - asking "Sign in with SSO" to email an address the SSO sign-in links
+ *    of its organizations (POST /identity/send-sso-sign-in-links, #9987);
  *  - signing up for an account (POST /identity/signup), which emails the
  *    address signed up with;
  *  - signing in to an account whose address is not verified yet (each step
@@ -95,17 +97,31 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  * page - from the dashboard, with an API key or by a workflow - and the
  * people it invites, to its project or to a private status page. Each is
  * sent a message as it is added, from this installation's mail server or
- * SMS sender, so each contact is sent a bounded number of them an hour,
- * whichever project names it. These are counted per contact only (assertTeamMaySend, TeamMessageKind): a team
- * adding its own subscribers in bulk, or inviting its colleagues, names
+ * SMS sender, so each contact is sent a bounded number of them an hour.
+ * These are counted per contact only (assertTeamMaySend, TeamMessageKind): a
+ * team adding its own subscribers in bulk, or inviting its colleagues, names
  * each contact once, and is never held back by how many it adds. A
  * subscriber the team adds is counted with the sign-ups of the same
  * contact - one count of the subscription messages a contact is sent,
- * whoever subscribed it - and an invitation with the other invitations sent
- * to that address. Counted right before the send, given back when the
+ * whoever subscribed it. Counted right before the send, given back when the
  * create ends with nothing sent, as above. When the counter cannot be
  * reached they go out uncounted, text messages too: the team is signed in,
  * and what it sends it pays for.
+ *
+ * AN INVITATION IS COUNTED IN ITS PROJECT (#10179). An invitation to a
+ * project, or to one of its private status pages, is counted for that
+ * project and that address: its limit says only what the project has sent
+ * the address itself. It used to be one count of every project's
+ * invitations together, so an address other projects had invited ten times
+ * in an hour was refused for everyone - which told an inviter that the
+ * address was being invited elsewhere, so had an account, and let one
+ * project use up the address's invitations for all the others. Every
+ * project's invitations to an address are still counted together too,
+ * against a cap well past anything people do (it stops a run of projects
+ * made to mail one person), and a refusal by that cap says only that the
+ * invitation cannot be sent now (503, PublicMessageNotNowException): never
+ * that the address was invited by anyone else. A project also mails a
+ * person one invitation per window at most (InvitationEmailWindow).
  */
 
 export enum PublicMessageKind {
@@ -121,11 +137,24 @@ export enum PublicMessageKind {
   // POST /identity/status-page/send-magic-link: a private user's sign-in link.
   StatusPageMagicLink = "status-page-magic-link",
 
+  /*
+   * POST /public-dashboard-api/private-user/forgot-password/:dashboardId: a
+   * dashboard private user's password reset (#10250), and a form's after
+   * it. Counted apart from a status page's, with the same limits.
+   */
+  PrivateUserPasswordReset = "private-user-password-reset",
+
   // POST /identity/forgot-password.
   PasswordReset = "password-reset",
 
   // POST /identity/send-magic-link: an account's sign-in link.
   MagicLink = "magic-link",
+
+  /*
+   * POST /identity/send-sso-sign-in-links: the SSO sign-in links of the
+   * organizations an account belongs to (#9987).
+   */
+  SsoSignInLinks = "sso-sign-in-links",
 
   /*
    * POST /identity/signup: a new account's welcome, or an invitation's
@@ -234,6 +263,23 @@ export interface PublicMessageSendPermit {
   giveBack: () => Promise<void>;
 }
 
+/*
+ * What the team is about to send (assertTeamMaySend): its kind and its
+ * contacts - and for an invitation, the project it is from, whose own count
+ * it is held to (#10179).
+ */
+export type TeamMessageSend =
+  | {
+      kind: TeamMessageKind.SubscriberAdded;
+      contacts: Array<PublicMessageContact>;
+    }
+  | {
+      kind: TeamMessageKind.Invitation;
+      // The project inviting: its own, or its private status page's.
+      projectId: ObjectID;
+      contacts: Array<PublicMessageContact>;
+    };
+
 export interface PublicMessageKindConfig {
   // Messages of this kind one client address may cause per client window.
   perClientLimit: number;
@@ -243,8 +289,18 @@ export interface PublicMessageKindConfig {
 }
 
 export interface TeamMessageKindConfig {
-  // Messages of this kind one contact may be sent per contact window.
+  /*
+   * Messages of this kind one contact may be sent per contact window. For
+   * an invitation, from every project together: the cap no person is sent
+   * more than, answered as "not now" (PublicMessageNotNowException).
+   */
   perContactLimit: number;
+
+  /*
+   * Messages of this kind one project may send one contact per contact
+   * window, for a kind counted in its project (an invitation, #10179).
+   */
+  perContactInProjectLimit?: number | undefined;
 }
 
 export interface PublicMessageRateLimitConfig {
@@ -278,6 +334,21 @@ export class PublicMessageRateLimitException extends TooManyRequestsException {
   public constructor(message: string, retryAfterSeconds: number) {
     super(message);
     this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/*
+ * What an invitation refused by the cap on every project's invitations to an
+ * address together is answered with (#10179): that it cannot be sent now -
+ * 503, never a 429, which a page reads as this project having sent too many,
+ * and words that name no other project's invitations.
+ */
+export const INVITATION_NOT_NOW_MESSAGE: string =
+  "This invitation cannot be sent right now. Please try again later.";
+
+export class PublicMessageNotNowException extends ServiceUnavailableException {
+  public constructor() {
+    super(INVITATION_NOT_NOW_MESSAGE);
   }
 }
 
@@ -332,6 +403,13 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * Counted whether or not the address has an account that a link could sign
  * in, so a refusal says nothing about who has one.
  *
+ * The SSO sign-in links of an account's organizations: thirty from one
+ * address in a quarter of an hour, and five to one address in an hour. The
+ * links do not change - a person needs one email, and five is room for a
+ * slow inbox. Counted whether or not the address has an account, or one in
+ * an organization that uses single sign-on, so a refusal says nothing of
+ * either.
+ *
  * The emails a sign-up for an account sends: sixty from one address in a
  * quarter of an hour - a class or a workshop signs up together, on one
  * network - and five to one address in an hour.
@@ -343,10 +421,14 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * A subscriber the team adds: counted with the sign-ups of its contact, so
  * held to their ten in an hour. A team adds each of its subscribers once.
  *
- * Invitations: ten to one address in an hour, to projects and private status
- * pages together. A person is invited once, perhaps again when the first
- * invitation is lost; ten is room for a person joining several projects in
- * one sitting.
+ * Invitations: ten from one project to one address in an hour, to its teams
+ * and its private status pages together (#10179). A person is invited once,
+ * perhaps again when the first invitation is lost; and a project mails them
+ * one per hour at most anyway, but for Resend Invitation
+ * (InvitationEmailWindow). Fifty to one address in an hour from every
+ * project together: a person joining several projects in one sitting is sent
+ * a handful, and the cap stops only a run of projects made to mail one
+ * person.
  */
 const STATUS_PAGE_SIGN_UPS_PER_CONTACT: number = parsePositiveIntFromEnv(
   "STATUS_PAGE_SIGN_UPS_PER_CONTACT",
@@ -401,6 +483,16 @@ const CONFIG: PublicMessageRateLimitConfig = {
         10,
       ),
     },
+    [PublicMessageKind.PrivateUserPasswordReset]: {
+      perClientLimit: parsePositiveIntFromEnv(
+        "PRIVATE_USER_PASSWORD_RESETS_PER_IP",
+        30,
+      ),
+      perContactLimit: parsePositiveIntFromEnv(
+        "PRIVATE_USER_PASSWORD_RESETS_PER_CONTACT",
+        5,
+      ),
+    },
     [PublicMessageKind.PasswordReset]: {
       perClientLimit: parsePositiveIntFromEnv("PASSWORD_RESETS_PER_IP", 30),
       perContactLimit: parsePositiveIntFromEnv(
@@ -411,6 +503,13 @@ const CONFIG: PublicMessageRateLimitConfig = {
     [PublicMessageKind.MagicLink]: {
       perClientLimit: parsePositiveIntFromEnv("MAGIC_LINKS_PER_IP", 30),
       perContactLimit: parsePositiveIntFromEnv("MAGIC_LINKS_PER_CONTACT", 10),
+    },
+    [PublicMessageKind.SsoSignInLinks]: {
+      perClientLimit: parsePositiveIntFromEnv("SSO_SIGN_IN_LINKS_PER_IP", 30),
+      perContactLimit: parsePositiveIntFromEnv(
+        "SSO_SIGN_IN_LINKS_PER_CONTACT",
+        5,
+      ),
     },
     [PublicMessageKind.SignUpEmail]: {
       perClientLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_IP", 60),
@@ -423,7 +522,11 @@ const CONFIG: PublicMessageRateLimitConfig = {
       perContactLimit: STATUS_PAGE_SIGN_UPS_PER_CONTACT,
     },
     [TeamMessageKind.Invitation]: {
-      perContactLimit: parsePositiveIntFromEnv("INVITATIONS_PER_CONTACT", 10),
+      perContactLimit: parsePositiveIntFromEnv("INVITATIONS_PER_CONTACT", 50),
+      perContactInProjectLimit: parsePositiveIntFromEnv(
+        "INVITATIONS_PER_CONTACT_IN_PROJECT",
+        10,
+      ),
     },
   },
 };
@@ -447,9 +550,13 @@ const CLIENT_REFUSALS: Record<PublicMessageKind, string> = {
     "Too many password resets asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.StatusPageMagicLink]:
     "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
+  [PublicMessageKind.PrivateUserPasswordReset]:
+    "Too many password resets asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.PasswordReset]:
     "Too many password resets asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.MagicLink]:
+    "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
+  [PublicMessageKind.SsoSignInLinks]:
     "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.SignUpEmail]:
     "Too many sign-ups from your network. Please wait a few minutes and try again.",
@@ -465,9 +572,13 @@ const CLIENT_TEXT_MESSAGE_REFUSALS: Record<PublicMessageKind, string> = {
     CLIENT_REFUSALS[PublicMessageKind.StatusPagePasswordReset],
   [PublicMessageKind.StatusPageMagicLink]:
     CLIENT_REFUSALS[PublicMessageKind.StatusPageMagicLink],
+  [PublicMessageKind.PrivateUserPasswordReset]:
+    CLIENT_REFUSALS[PublicMessageKind.PrivateUserPasswordReset],
   [PublicMessageKind.PasswordReset]:
     CLIENT_REFUSALS[PublicMessageKind.PasswordReset],
   [PublicMessageKind.MagicLink]: CLIENT_REFUSALS[PublicMessageKind.MagicLink],
+  [PublicMessageKind.SsoSignInLinks]:
+    CLIENT_REFUSALS[PublicMessageKind.SsoSignInLinks],
   [PublicMessageKind.SignUpEmail]:
     CLIENT_REFUSALS[PublicMessageKind.SignUpEmail],
 };
@@ -503,11 +614,19 @@ const CONTACT_REFUSALS: Record<
   [PublicMessageKind.StatusPageMagicLink]: (contactName: string): string => {
     return `Too many sign-in links asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
   },
+  [PublicMessageKind.PrivateUserPasswordReset]: (
+    contactName: string,
+  ): string => {
+    return `Too many password resets asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
+  },
   [PublicMessageKind.PasswordReset]: (contactName: string): string => {
     return `Too many password resets asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
   },
   [PublicMessageKind.MagicLink]: (contactName: string): string => {
     return `Too many sign-in links asked for ${contactName} in the last hour. Please use the link in the latest email, or try again later.`;
+  },
+  [PublicMessageKind.SsoSignInLinks]: (contactName: string): string => {
+    return `Too many sign-in links asked for ${contactName} in the last hour. Please use the links in the latest email, or try again later.`;
   },
   [PublicMessageKind.SignUpEmail]: (contactName: string): string => {
     return `Too many sign-up emails asked for ${contactName} in the last hour. Please use the link in the latest one, or try again later.`;
@@ -540,9 +659,13 @@ const TEXT_MESSAGE_UNAVAILABLE_REFUSALS: Record<PublicMessageKind, string> = {
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.StatusPageMagicLink]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
+  [PublicMessageKind.PrivateUserPasswordReset]:
+    "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.PasswordReset]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.MagicLink]:
+    "Text messages cannot be sent right now. Please try again in a few minutes.",
+  [PublicMessageKind.SsoSignInLinks]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.SignUpEmail]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
@@ -610,11 +733,17 @@ export default class PublicMessageRateLimit {
         [PublicMessageKind.StatusPageMagicLink]: {
           ...CONFIG.kinds[PublicMessageKind.StatusPageMagicLink],
         },
+        [PublicMessageKind.PrivateUserPasswordReset]: {
+          ...CONFIG.kinds[PublicMessageKind.PrivateUserPasswordReset],
+        },
         [PublicMessageKind.PasswordReset]: {
           ...CONFIG.kinds[PublicMessageKind.PasswordReset],
         },
         [PublicMessageKind.MagicLink]: {
           ...CONFIG.kinds[PublicMessageKind.MagicLink],
+        },
+        [PublicMessageKind.SsoSignInLinks]: {
+          ...CONFIG.kinds[PublicMessageKind.SsoSignInLinks],
         },
         [PublicMessageKind.SignUpEmail]: {
           ...CONFIG.kinds[PublicMessageKind.SignUpEmail],
@@ -953,10 +1082,9 @@ export default class PublicMessageRateLimit {
    * sent, after the create's own checks; a create that ends with nothing
    * sent gives the permit back (PublicMessageSendPermit).
    */
-  public static async assertTeamMaySend(data: {
-    kind: TeamMessageKind;
-    contacts: Array<PublicMessageContact>;
-  }): Promise<PublicMessageSendPermit> {
+  public static async assertTeamMaySend(
+    data: TeamMessageSend,
+  ): Promise<PublicMessageSendPermit> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client || !Redis.isConnected()) {
@@ -965,6 +1093,15 @@ export default class PublicMessageRateLimit {
       return PublicMessageRateLimit.permitFor({
         kind: data.kind,
         keys: [],
+      });
+    }
+
+    // An invitation is counted in its project, and under the cap (see the top).
+    if (data.kind === TeamMessageKind.Invitation) {
+      return await PublicMessageRateLimit.assertProjectMayInvite({
+        client: client,
+        projectId: data.projectId,
+        contacts: PublicMessageRateLimit.withoutRepeats(data.contacts),
       });
     }
 
@@ -1021,6 +1158,173 @@ export default class PublicMessageRateLimit {
         `PublicMessageRateLimit: rate limit counter unavailable, sending ${kind} uncounted`,
       );
     }
+  }
+
+  /*
+   * An invitation from `projectId` to each of `contacts` (#10179): counted
+   * on the project's counter for the address, and on the address's counter
+   * of every project's invitations together, in one go. Past the project's
+   * limit it is refused as before (429, with when to come back). Past the
+   * cap only, it is refused as "not now" (503), in words that name nobody
+   * else's invitations; the project's count is given back, as nothing went.
+   * A counter that fails lets it through uncounted, as above.
+   */
+  private static async assertProjectMayInvite(data: {
+    client: ClientType;
+    projectId: ObjectID;
+    contacts: Array<PublicMessageContact>;
+  }): Promise<PublicMessageSendPermit> {
+    const kind: TeamMessageKind = TeamMessageKind.Invitation;
+    const kindConfig: TeamMessageKindConfig = CONFIG.teamKinds[kind];
+    const windowIndex: number = PublicMessageRateLimit.getWindowIndex(
+      CONFIG.contactWindowSeconds,
+    );
+
+    /*
+     * The project's counter of each address first, then the cap's: when
+     * both are over, the project hears about its own invitations.
+     */
+    const counters: Array<
+      FixedRateLimitCounterSpec<{ isCap: boolean; contactIndex: number }>
+    > = data.contacts.flatMap(
+      (
+        contact: PublicMessageContact,
+        contactIndex: number,
+      ): Array<
+        FixedRateLimitCounterSpec<{ isCap: boolean; contactIndex: number }>
+      > => {
+        return [
+          {
+            scope: { isCap: false, contactIndex: contactIndex },
+            key: PublicMessageRateLimit.getProjectContactCounterKey({
+              counterName: TEAM_MESSAGE_COUNTERS[kind],
+              projectId: data.projectId,
+              contact: contact,
+              windowIndex: windowIndex,
+            }),
+            limit:
+              kindConfig.perContactInProjectLimit || kindConfig.perContactLimit,
+          },
+          {
+            scope: { isCap: true, contactIndex: contactIndex },
+            key: PublicMessageRateLimit.getContactCounterKey({
+              counterName: TEAM_MESSAGE_COUNTERS[kind],
+              contact: contact,
+              windowIndex: windowIndex,
+            }),
+            limit: kindConfig.perContactLimit,
+          },
+        ];
+      },
+    );
+
+    const keys: Array<string> = counters.map(
+      (
+        counter: FixedRateLimitCounterSpec<{
+          isCap: boolean;
+          contactIndex: number;
+        }>,
+      ): string => {
+        return counter.key;
+      },
+    );
+
+    if (counters.length === 0) {
+      return PublicMessageRateLimit.permitFor({ kind: kind, keys: [] });
+    }
+
+    let refusal: ClientRateLimitRefusal<{
+      isCap: boolean;
+      contactIndex: number;
+    }> | null;
+
+    try {
+      refusal = await ClientRateLimitCounter.countFixed<{
+        isCap: boolean;
+        contactIndex: number;
+      }>({
+        redis: data.client,
+        ttlSeconds: CONFIG.contactWindowSeconds * TTL_MULTIPLIER,
+        counters: counters,
+      });
+    } catch (err) {
+      if (PublicMessageRateLimit.shouldLogCounterUnavailable(kind)) {
+        logger.warn(`PublicMessageRateLimit: counter failed for ${kind}`);
+        logger.warn(err);
+      }
+
+      return PublicMessageRateLimit.permitFor({ kind: kind, keys: [] });
+    }
+
+    if (!refusal) {
+      return PublicMessageRateLimit.permitFor({ kind: kind, keys: keys });
+    }
+
+    // Nothing is sent: every other counter gets its count back.
+    const refusedKey: string =
+      counters.find(
+        (
+          counter: FixedRateLimitCounterSpec<{
+            isCap: boolean;
+            contactIndex: number;
+          }>,
+        ): boolean => {
+          return (
+            counter.scope.isCap === refusal!.scope.isCap &&
+            counter.scope.contactIndex === refusal!.scope.contactIndex
+          );
+        },
+      )?.key || "";
+
+    await PublicMessageRateLimit.giveBackContacts({
+      kind: kind,
+      keys: keys.filter((key: string): boolean => {
+        return key !== refusedKey;
+      }),
+    });
+
+    const contact: PublicMessageContact | undefined =
+      data.contacts[refusal.scope.contactIndex];
+
+    if (refusal.isFirstRefusalInWindow) {
+      logger.warn(
+        `PublicMessageRateLimit: refused ${kind} (${refusal.scope.isCap ? "every project's invitations to the contact" : "the project's invitations to the contact"}, ${contact?.channel || "contact"})`,
+      );
+    }
+
+    if (refusal.scope.isCap) {
+      throw new PublicMessageNotNowException();
+    }
+
+    throw new PublicMessageRateLimitException(
+      PublicMessageRateLimit.getTeamRefusalMessage({
+        kind: kind,
+        channel: contact?.channel || PublicMessageChannel.Email,
+      }),
+      PublicMessageRateLimit.getSecondsUntilWindowEnd(
+        CONFIG.contactWindowSeconds,
+      ),
+    );
+  }
+
+  /*
+   * The key one project's counter of `counterName` for one contact is kept
+   * under in a window (an invitation's, #10179): beside the contact's own
+   * counter, never the same key.
+   */
+  public static getProjectContactCounterKey(data: {
+    counterName: string;
+    projectId: ObjectID;
+    contact: PublicMessageContact;
+    windowIndex?: number | undefined;
+  }): string {
+    const windowIndex: number =
+      data.windowIndex ??
+      PublicMessageRateLimit.getWindowIndex(CONFIG.contactWindowSeconds);
+
+    return `${KEY_PREFIX}${data.counterName}:p:${PublicMessageRateLimit.sanitizeKeySegment(
+      data.projectId.toString().toLowerCase(),
+    )}:k:${PublicMessageRateLimit.getContactKey(data.contact)}:${windowIndex}`;
   }
 
   /*

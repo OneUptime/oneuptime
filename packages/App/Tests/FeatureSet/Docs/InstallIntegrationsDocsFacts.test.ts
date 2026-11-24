@@ -26,13 +26,16 @@ import {
   TwilioMessageKind,
   getNoTwilioAccountMessage,
 } from "Common/Utils/Project/TwilioAccount";
+import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
+import ResponseUtil from "Common/Server/Utils/Response";
 import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDatabase/RetentionTtl";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumns } from "Common/Types/Database/TableColumn";
 import Domain from "Common/Types/Domain";
-import { isEmptyErrorPhrase } from "Common/Types/Exception/ErrorMessageRule";
+import NotFoundException from "Common/Types/Exception/NotFoundException";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -44,7 +47,7 @@ import MicrosoftTeamsCloudUtil, {
   MicrosoftTeamsCloud,
   MicrosoftTeamsCloudHosts,
 } from "Common/Types/Workspace/MicrosoftTeamsCloud";
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
@@ -136,7 +139,6 @@ const SOURCES: Record<string, string> = {
     "packages/App/FeatureSet/Workers/Jobs/CoreSsl/ProvisionPrimaryDomain.ts",
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   userService: `${COMMON_SERVER}/Services/UserService.ts`,
-  response: `${COMMON_SERVER}/Utils/Response.ts`,
   startServer: `${COMMON_SERVER}/Utils/StartServer.ts`,
   serviceRoute: "packages/Common/ServiceRoute.ts",
   accountsApiPaths: "packages/App/FeatureSet/Accounts/src/Utils/ApiPaths.ts",
@@ -243,6 +245,10 @@ const followIngressScript: {
     url: string | null;
   };
   describeMoved: (moved: Array<string>, url: string) => string;
+  ingressUrlOf: (value: string) => { url: string; port: number } | null;
+  ingressRequestOf: (
+    value: string,
+  ) => { url: string; host: string; port: number } | null;
 } = require(path.join(REPO_DIR, "Scripts", "Install", "FollowIngressPort.js"));
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
@@ -359,6 +365,47 @@ function readSource(key: string): string {
   expect({ key, known: Boolean(relativePath) }).toEqual({ key, known: true });
 
   return fs.readFileSync(path.join(REPO_DIR, relativePath as string), "utf8");
+}
+
+// What an error answer sent: its status and its body, as the route handed them over.
+interface SentAnswer {
+  status: number | null;
+  body: unknown;
+}
+
+/*
+ * An error answered as the server's catch-all answers it
+ * (Response.sendErrorResponse), drawn into a response that keeps what it
+ * was sent. The log line it writes is left out of the test's output.
+ */
+function sendErrorAnswer(error: NotFoundException): SentAnswer {
+  const answer: SentAnswer = { status: null, body: undefined };
+  const response: ExpressResponse = {
+    status: (code: number): ExpressResponse => {
+      answer.status = code;
+      return response;
+    },
+    send: (body: unknown): ExpressResponse => {
+      answer.body = body;
+      return response;
+    },
+  } as unknown as ExpressResponse;
+
+  const logged: ReturnType<typeof jest.spyOn> = jest
+    .spyOn(logger, "error")
+    .mockImplementation((): void => {});
+
+  try {
+    ResponseUtil.sendErrorResponse(
+      { headers: {}, socket: {} } as unknown as ExpressRequest,
+      response,
+      error,
+    );
+  } finally {
+    logged.mockRestore();
+  }
+
+  return answer;
 }
 
 function sourceExists(relativePath: string): boolean {
@@ -1088,9 +1135,10 @@ describe("Local Development, against the scripts it runs", () => {
         }
       )["service"],
     ).toBe("ingress");
+    // Ports 80 and 443 even where config.env leaves them empty (#10170).
     expect(ingress["ports"]).toEqual([
-      "${ONEUPTIME_HTTP_PORT}:7849",
-      "${STATUS_PAGE_HTTPS_PORT}:7850",
+      "${ONEUPTIME_HTTP_PORT:-80}:7849",
+      "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
     ]);
     expect(config.get("ONEUPTIME_HTTP_PORT")).toBe("80");
     expect(config.get("STATUS_PAGE_HTTPS_PORT")).toBe("443");
@@ -1446,6 +1494,17 @@ describe("Docker Compose, against the compose files and scripts", () => {
         expect(inlineCodes(row[3] as string)).toContain("127.0.0.1");
       }
 
+      if (unwrap(row[1] as string) === "ingress") {
+        // The row's port even where config.env leaves the setting empty (#10170).
+        expect(
+          (base["ingress"]?.["ports"] as Array<string>).filter(
+            (entry: string): boolean => {
+              return entry.startsWith(`\${${settings[0]}:-${row[0]}}:`);
+            },
+          ),
+        ).toHaveLength(1);
+      }
+
       expect({
         port: row[0],
         setting: config.get(settings[0] as string),
@@ -1453,8 +1512,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     }
 
     expect(base["ingress"]?.["ports"]).toEqual([
-      "${ONEUPTIME_HTTP_PORT}:7849",
-      "${STATUS_PAGE_HTTPS_PORT}:7850",
+      "${ONEUPTIME_HTTP_PORT:-80}:7849",
+      "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
     ]);
     expect(valueAt(base, "probe-1.environment.PORT")).toBe(
       "${GLOBAL_PROBE_1_PORT}",
@@ -1632,8 +1691,15 @@ describe("Docker Compose, against the compose files and scripts", () => {
     const check: string = readSource("statusCheck");
 
     expect(check).toContain('HOST_TO_CHECK="${1-}"');
-    expect(check).toContain("HOST_TO_CHECK=$(ingress_address)");
-    expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
+    // Under localhost, at the address the ingress is published on (#10024).
+    expect(check).toContain(
+      'HOST_TO_CHECK=$(with_port localhost "$INGRESS_PORT")',
+    );
+    expect(check).toContain(
+      'RESOLVE="localhost:${INGRESS_PORT}:${resolved_address}"',
+    );
+    // ONEUPTIME_HTTP_PORT, 80 when it names no port, as Compose publishes it.
+    expect(check).toContain("read_published ONEUPTIME_HTTP_PORT 80");
     expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
     expect(readSource("endpointStatus")).toContain("Maximum retries reached");
 
@@ -1642,13 +1708,74 @@ describe("Docker Compose, against the compose files and scripts", () => {
       ':::details npm start ends with "Maximum retries reached"',
     );
     expect(page).toContain(
-      "It checks the ingress on the port `ONEUPTIME_HTTP_PORT` sets.",
+      "It checks the ingress where `ONEUPTIME_HTTP_PORT` publishes it, address and port, such as `127.0.0.1:8080`, with the host name `localhost`, as a browser on the server would.",
     );
     expect(page).toContain(
-      "`npm start` checks OneUptime on its new port, `localhost:8080`, and ends with **OneUptime is up!**",
+      "`npm start` checks OneUptime where the ingress now listens, `127.0.0.1:8080`, and ends with **OneUptime is up!**",
     );
     // The proxy steps restart with npm start; nobody runs the check by hand.
     expect(page).not.toContain("bash Tests/Scripts/status-check.sh");
+  });
+
+  // #10169: and HOST over HTTPS, where the ingress serves it itself.
+  it("with PROVISION_SSL=true the status check also checks HOST over HTTPS where STATUS_PAGE_HTTPS_PORT publishes the ingress, as the page says", () => {
+    const check: string = readSource("statusCheck");
+
+    expect(page).toContain(
+      "With `PROVISION_SSL=true` it also checks `HOST` over HTTPS, where `STATUS_PAGE_HTTPS_PORT` publishes the ingress.",
+    );
+    expect(check).toContain(
+      'if [ "$(read_setting PROVISION_SSL)" = "true" ] && [ -n "$https_name" ]; then',
+    );
+    expect(check).toContain(
+      'https_name=$(https_name_of "$(read_setting HOST)")',
+    );
+    expect(check).toContain("read_published STATUS_PAGE_HTTPS_PORT 443");
+    expect(check).toContain(
+      'HTTPS_URL="https://$(with_port "$https_name" "$PUBLISHED_PORT" 443)/status/ready"',
+    );
+    expect(check).toContain(
+      'bash "$scriptDir/endpoint-status.sh" "App (HTTPS)" "$HTTPS_URL" "$HTTPS_RESOLVE" "$HTTPS_CHECKED_AT" STATUS_PAGE_HTTPS_PORT',
+    );
+  });
+
+  /*
+   * Behind a proxy of one's own, the ingress listens on 127.0.0.1 alone, and
+   * routes by host name (#10024): the page says what each caller sends it,
+   * and each sends that.
+   */
+  it("with the ingress on 127.0.0.1, each caller sends the host name the page says, one the ingress serves OneUptime under", () => {
+    const restartStep: string = page.slice(
+      page.indexOf("#### Restart OneUptime on the new ports"),
+      page.indexOf("#### Configure the proxy"),
+    );
+    const check: string = readSource("statusCheck");
+
+    expect(restartStep).toContain(
+      "The ingress routes requests by host name: only `HOST` and `localhost` reach the whole application, and any other name, the address `127.0.0.1` included, is treated as a status page domain.",
+    );
+    expect(restartStep).toContain(
+      "So your proxy passes on `HOST`, the name the browser asked for, the probe calls `http://localhost:8080`, and the check that ends `npm start`, like `npm run doctor`, connects to `127.0.0.1:8080` with the host name `localhost:8080`.",
+    );
+
+    // The ingress's primary server: localhost, ingress and HOST, nothing else.
+    expect(readSource("ingressConfig")).toContain(
+      "server_name localhost ingress ${HOST_SERVER_NAME};",
+    );
+
+    // The probe's URL, the doctor's request, and the check's.
+    expect(followIngressScript.ingressUrlOf("127.0.0.1:8080")?.url).toBe(
+      "http://localhost:8080",
+    );
+    expect(followIngressScript.ingressRequestOf("127.0.0.1:8080")).toEqual({
+      url: "http://127.0.0.1:8080",
+      host: "localhost:8080",
+      port: 8080,
+    });
+    expect(check).toContain('CURL_TARGET=(--resolve "$RESOLVE")');
+    expect(check).toContain(
+      '"${CURL_TARGET[@]}" "$HOST_TO_CHECK/status/ready"',
+    );
   });
 
   it("HTTPS settings ship as plain HTTP behind the ingress alone, and the proxy adds one hop", () => {
@@ -2865,29 +2992,30 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     );
   });
 
+  /*
+   * The bytes are the answer's, so the answer is drawn here, by the
+   * function the catch-all answers with, rather than read off its source:
+   * the lines this case quoted moved into getErrorDetails (#10049) while
+   * the body stayed byte for byte what it was, and a refactor that changed
+   * the body (a field beside the message, the unexplained-error body) is
+   * what this case must catch.
+   */
   it("OneUptime's own 404 for that path is the 58-byte body the page quotes", () => {
-    const body: string = JSON.stringify({
-      message: "Page not found - /api/microsoft-bot/messages",
-    });
+    // An unmatched GET is answered through Response.sendErrorResponse.
+    expect(readSource("startServer")).toMatch(
+      /app\.get\("\*", \(req: ExpressRequest, res: ExpressResponse\) => \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new NotFoundException\(`Page not found - \$\{req\.url\}`\),\s*\);/,
+    );
 
-    expect(readSource("startServer")).toContain(
-      "new NotFoundException(`Page not found - ${req.url}`)",
+    const answer: SentAnswer = sendErrorAnswer(
+      new NotFoundException("Page not found - /api/microsoft-bot/messages"),
     );
-    /*
-     * The answer is the message alone: only a BadDataExceptionWithDetails
-     * adds fields beside it, and only an empty message is answered with the
-     * unexplained-error body instead.
-     */
-    const response: string = readSource("response");
-    expect(response).toContain(
-      "error instanceof BadDataExceptionWithDetails ? error.details : {};",
+    // Express sends an object as JSON.stringify writes it.
+    const body: string = JSON.stringify(answer.body);
+
+    expect(answer.status).toBe(404);
+    expect(body).toBe(
+      '{"message":"Page not found - /api/microsoft-bot/messages"}',
     );
-    expect(response).toContain(
-      ".send({ ...details, message: error.message });",
-    );
-    expect(
-      isEmptyErrorPhrase("Page not found - /api/microsoft-bot/messages"),
-    ).toBe(false);
     expect(Buffer.byteLength(body)).toBe(58);
     expect(page).toContain(`\`${body}\``);
     expect(page).toContain(

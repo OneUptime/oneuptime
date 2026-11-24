@@ -108,7 +108,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 
 ### 템플릿이 묻는 내용
 
-만들기 마법사의 **구성** 단계는 최대 일곱 개의 값을 묻습니다. 모든 템플릿이 처음 다섯 개인 Dynamics 365 설정을 묻고, 사례를 만드는 두 템플릿은 마지막 두 개도 묻습니다. 무엇이든 만들기 전에 각 Dynamics 365 설정의 형태를 확인하고 대신 무엇을 입력해야 하는지 알려 줍니다. 형태가 틀린 값은 실행되기 전까지 어디에서도 오류가 되지 않기 때문입니다.
+만들기 마법사의 **구성** 단계는 최대 여덟 개의 값을 묻습니다. 모든 템플릿이 처음 다섯 개인 Dynamics 365 설정을 묻고, 사례를 만드는 두 템플릿은 마지막 세 개도 묻는데, 그중 마지막 값은 선택 사항입니다. 무엇이든 만들기 전에 각 Dynamics 365 설정의 형태를 확인하고 대신 무엇을 입력해야 하는지 알려 줍니다. 형태가 틀린 값은 실행되기 전까지 어디에서도 오류가 되지 않기 때문입니다.
 
 - **Dynamics 365 Environment URL** — `https://yourorg.crm.dynamics.com` 같은 환경의 주소로, [Power Platform 관리 센터](https://admin.powerplatform.microsoft.com/)의 **Environments**에서 환경을 고르면 **Environment URL**에 나옵니다. 주소만 넣으세요. `/api/data/v9.2`로 끝나는 Web API 엔드포인트가 아니며, 끝에 슬래시도 붙이지 않습니다.
 - **Directory (Tenant) ID** — 앱 등록의 **Overview** 페이지에서 가져옵니다.
@@ -117,6 +117,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 - **Case Link Column** — `new_oneuptimelink` 같은 링크 열의 논리적 이름.
 - **Customer for New Cases** — 사례를 만드는 두 템플릿만 묻습니다. 모든 사례에는 고객이 필요한데 OneUptime 인시던트에는 고객이 없으므로, 새 사례는 모두 한 고객에 대해 등록됩니다. 거래처의 ID를 붙여 넣거나, 연락처라면 `contacts(<id>)`를 붙여 넣으세요. Dynamics 365에서 레코드를 열면 주소에서 `id=` 뒤의 부분이 ID입니다.
 - **OneUptime URL** — 사례를 만드는 두 템플릿만 묻습니다. `https://oneuptime.com`처럼 OneUptime을 여는 주소입니다. 사례의 설명은 이 주소로 인시던트나 경고에 다시 연결됩니다.
+- **Configuration Item Column** — 선택 사항이며, 사례를 만드는 두 템플릿만 묻습니다. Dynamics 365가 사례마다 구성 항목 하나를 요구할 때 쓰는 Case 테이블 텍스트 열의 논리적 이름으로, `new_configurationitem` 같은 값입니다. 새 사례마다 인시던트나 경고의 영향받는 리소스 중 `CONFIGURATION_ITEM_PRECEDENCE`가 고른 하나의 이름을 이 열에 씁니다. 열을 쓰지 않으려면 비워 두세요.
 
 **템플릿이 로그인하는 방식.** 마법사는 테넌트, 클라이언트 ID, 시크릿을 워크플로의 **워크플로 변수** 아래에 있는 [OAuth 2.0 변수](/docs/workflows/variables#oauth-20-변수스스로-갱신되는-토큰) 하나, `dynamicsAccessToken`에 저장합니다. 그 내용은 Client Credentials, 토큰 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, 범위 `<environment URL>/.default`, 그리고 요청 본문으로 전송되고 암호화되어 저장되는 클라이언트 시크릿입니다. Dynamics 365에 대한 모든 호출은 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`을 보냅니다. OneUptime은 단계가 처음 토큰을 필요로 할 때 토큰을 가져오고, 만료되기 전에 새 토큰을 가져오며, 실행 로그와 단계 추적에서는 토큰을 `[REDACTED]`로 바꿉니다.
 
@@ -229,6 +230,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `SEVERITY_TO_PRIORITY`, `DEFAULT_PRIORITY` | Create a Dynamics 365 case — `prepare-case-1` | 프로젝트의 심각도를 순서에 따라 사례 우선순위에 나눠 배정합니다. 가장 높은 심각도는 High 사례(`1`)를, 가장 낮은 심각도는 Low 사례(`3`)를, 그 사이의 심각도는 Normal 사례(`2`)를 엽니다. 우선순위를 직접 고르려면 `{ 'major incident': 1 }`처럼 심각도를 소문자 이름으로 나열하세요. `DEFAULT_PRIORITY`(`2`)는 프로젝트 목록에 없는 심각도나 심각도가 하나뿐인 프로젝트에 쓰입니다. |
 | `CASE_ORIGIN`, `CASE_TYPE` | Create a Dynamics 365 case — `prepare-case-1` | 새 사례의 `caseorigincode`(`3`, Web)와 `casetypecode`(`2`, Problem). 다른 열을 설정하려면 같은 스크립트의 `CASE`에 논리적 이름으로 추가하세요. |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | Case 테이블 자체의 한도인 200자와 2000자. 아무리 많이 잘려도 설명에는 OneUptime으로 돌아가는 링크가 남습니다. Case 테이블이 더 많이 허용한다면 값을 올리세요. |
+| `CONFIGURATION_ITEM_PRECEDENCE`, `MAX_CONFIGURATION_ITEM_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | 구성 항목 열에 어떤 영향받는 리소스가 들어가는지 정합니다. 레코드가 연결된 목록의 첫 번째 종류에서 이름순으로 첫 번째 리소스입니다. 목록은 대시보드의 순서를 따라 호스트가 먼저이고 모니터는 끝으로 옮겨져 있어, Kubernetes 클러스터를 감시하는 모니터의 사례에는 클러스터 이름이 들어갑니다. 사례가 열릴 때 한 번 정해지며 100자에서 잘립니다. 어느 쪽이든 사례의 설명에는 영향받는 리소스가 모두 나옵니다. |
 | `RESOLVED_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 해결된 레코드가 사례를 종결할 때 쓰는 상태: `5`는 Problem Solved, `1000`은 Information Provided입니다. |
 | `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 직접 만든 해결 상태에서, 상태 이름으로, 다른 해결 상태로 사례를 종결합니다. `{ Closed: 1000 }`은 Information Provided로 종결합니다. 레코드가 해결될 때만 사례가 바뀌며, Researching 같은 활성 상태는 설정되지 않습니다. |
 | `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`, `prepare-alert-1` | 사례 우선순위(`1` High, `2` Normal, `3` Low)를 `0`(가장 높은 심각도), `1` 또는 `2`(가장 낮은 심각도)에 매핑합니다. 목록에 없는 우선순위는 가운데에 놓입니다. 새 프로젝트에 있는 두 가지 경고 심각도에서는 `2: 1`을 `2: 0`으로 바꾸지 않는 한 Normal이 Low가 됩니다. |

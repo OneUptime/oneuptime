@@ -202,6 +202,33 @@ describe("formatToolResponse", () => {
       expect(result["success"]).toBe(true);
       expect(result["operation"]).toBe("create");
       expect((result["data"] as JSONObject)["_id"]).toBe("new-1");
+      // Nothing left out: the envelope it always was.
+      expect(result["message"]).toBe("Successfully created Incident");
+      expect(result).not.toHaveProperty("fieldsLeftOut");
+    });
+
+    /*
+     * A create leaves out what only OneUptime writes - as a copy of a
+     * record carries it - and names it in its answer's header (#10136):
+     * the envelope names the fields, and its message says what it means.
+     */
+    it("names the fields the create left out, and says why in its message", () => {
+      const result: JSONObject = formatToolResponse(
+        makeTool(OneUptimeOperation.Create, "Network Site", "Network Sites"),
+        { _id: "new-1" },
+        {} as OneUptimeToolCallArgs,
+        ["createdByUserId", "lastRollupAt"],
+      );
+
+      expect(result["success"]).toBe(true);
+      expect(result["fieldsLeftOut"]).toEqual([
+        "createdByUserId",
+        "lastRollupAt",
+      ]);
+      expect(result["message"]).toBe(
+        "Successfully created Network Site. OneUptime left out createdByUserId and lastRollupAt: only OneUptime writes them, so the new record has OneUptime's values.",
+      );
+      expect((result["data"] as JSONObject)["_id"]).toBe("new-1");
     });
   });
 });

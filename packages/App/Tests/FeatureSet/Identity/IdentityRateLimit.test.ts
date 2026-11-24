@@ -673,6 +673,14 @@ describe("the credential routes have a limiter in front of the handler", () => {
      * see "POST /sign-up-invitation" below.
      */
     ["/sign-up-invitation"],
+
+    /*
+     * The same bucket's: the project's SSO page an invitation opens for
+     * someone who has signed up sends its single-use link here (#10178).
+     * Its signature is checked before anything is read, but every ask that
+     * passes looks its token up.
+     */
+    ["/invitation-sso-sign-in"],
   ])("%s runs middleware before its handler", (uri: string) => {
     expect(mockRouter.matchAll("post", uri).length).toBeGreaterThan(1);
   });

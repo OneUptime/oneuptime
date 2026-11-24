@@ -34,7 +34,13 @@ import {
   getKubernetesSetupGuide,
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
-import { HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
+import {
+  HOST_COLLECTOR_EXCLUDED_FILESYSTEM_TYPES,
+  JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE,
+  JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE,
+  JOURNALD_SYSTEMD_RESULT_ATTRIBUTE,
+  JOURNALD_SYSTEMD_UNIT_ATTRIBUTE,
+} from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import {
   MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_ACTIVE_STATES,
@@ -130,6 +136,8 @@ const CHART_DIR: string = path.join(
 );
 
 const HOST_PAGE: string = "telemetry/host-otel-collector";
+// Hosts: one command, and the Collector Configs OneUptime sends the collector.
+const HOSTS_PAGE: string = "telemetry/hosts";
 const KUBERNETES_PAGE: string = "telemetry/kubernetes-agent";
 const COST_PAGE: string = "telemetry/kubernetes-cost";
 const DOCKER_PAGE: string = "telemetry/docker-host";
@@ -1428,6 +1436,98 @@ describe("the host collector page, against the setup guide", () => {
           ]);
         }
       }
+    });
+
+    /*
+     * OneUptime's default host config files each journal line under its
+     * systemd unit, with systemd's result and exit status (#9748), and a
+     * failed unit's page says why it failed from them. A host running the
+     * page's Linux config still sent each line as its whole journal entry
+     * in JSON, under no unit, and its unit pages said the journal did not
+     * say why (#9957). The fixture is the default itself
+     * (HostCollectorDefaultConfig.test.ts fails while they differ).
+     */
+    it("files journal lines under their systemd unit with the default's journald receiver (#9957)", () => {
+      const journald: unknown = at(
+        yamlOf(repoFile("Tests/Ops/HostCollectorDefaults/linux.yaml")),
+        "receivers.journald",
+      );
+      const journalds: Array<unknown> = configs
+        .map((config: YamlNode): unknown => {
+          return at(config, "receivers.journald");
+        })
+        .filter(Boolean);
+
+      expect(journald).toEqual(
+        expect.objectContaining({
+          convert_message_bytes: true,
+          operators: expect.arrayContaining([
+            expect.objectContaining({
+              to: `attributes["${JOURNALD_SYSTEMD_UNIT_ATTRIBUTE}"]`,
+            }),
+          ]),
+        }),
+      );
+      // Only the Linux config reads the journal, and it reads it as the default does.
+      expect(journalds).toEqual([journald]);
+    });
+  });
+
+  describe("the systemd journal it reads (#9957)", () => {
+    const KEEP_THE_OPERATORS: string =
+      "# Keep convert_message_bytes and the operators of the config above.";
+
+    it("says what the operators send, and that nothing else of an entry leaves the machine", () => {
+      lineWith(
+        HOST_PAGE,
+        "its `operators` send each entry as its message, at its syslog level, filed under the unit it is about",
+        `(\`${JOURNALD_SYSTEMD_UNIT_ATTRIBUTE}\`)`,
+        `(\`${JOURNALD_SYSTEMD_RESULT_ATTRIBUTE}\`, \`${JOURNALD_SYSTEMD_EXIT_CODE_ATTRIBUTE}\`, \`${JOURNALD_SYSTEMD_EXIT_STATUS_ATTRIBUTE}\`)`,
+        "the host's **Systemd Units** page says why it failed",
+        "Nothing else of an entry leaves the machine: no command line, user or cursor.",
+      );
+      lineWith(
+        HOST_PAGE,
+        "Keep the operators when you change the receiver",
+        "under no unit, and a failed unit's page cannot say why it failed",
+      );
+    });
+
+    it("keeps the operators in every journald receiver it narrows, and reads the journal where journalctl does", () => {
+      const narrowed: Array<string> = fencesOf(HOST_PAGE)
+        .filter((fence: DocsFence): boolean => {
+          return (
+            fence.lang === "yaml" &&
+            fence.info !== 'yaml title="config.yaml"' &&
+            Boolean(at(yamlOf(fence.code), "receivers.journald"))
+          );
+        })
+        .map((fence: DocsFence): string => {
+          return fence.code;
+        });
+
+      // "Narrow it to some units" and "Read only the logs you need".
+      expect(narrowed).toHaveLength(2);
+      for (const code of narrowed) {
+        expect(code).toContain(KEEP_THE_OPERATORS);
+        expect(at(yamlOf(code), "receivers.journald.units")).toEqual(
+          expect.arrayContaining(["ssh.service", "nginx.service"]),
+        );
+      }
+
+      // No journald receiver on the page reads only the persistent journal.
+      for (const fence of fencesOf(HOST_PAGE)) {
+        expect(fence.code).not.toContain("directory: /var/log/journal");
+      }
+    });
+
+    it("tells a project's own Collector Config to keep them (Hosts)", () => {
+      lineWith(
+        HOSTS_PAGE,
+        "select **Edit config**",
+        "In a Linux config, keep the `journald` receiver's `operators`: they file each journal line under its systemd unit",
+        "the Linux default's **View config**",
+      );
     });
   });
 });

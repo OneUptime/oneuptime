@@ -23,6 +23,11 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Redis, { ClientType } from "../Infrastructure/Redis";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
+import {
+  REAUTHENTICATION_MESSAGES,
+  ReauthenticationWebAuthnKind,
+} from "../../Types/Accounts/Reauthentication";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 import { randomBytes } from "crypto";
 import { URL } from "url";
 
@@ -30,12 +35,28 @@ const WEBAUTHN_CHALLENGE_TTL_MINUTES: number = 5;
 const AUTHENTICATION_CHALLENGE_PREFIX: string = "webauthn-security-key-login-";
 const REGISTRATION_CHALLENGE_PREFIX: string = "webauthn-registration-";
 const PASSKEY_CHALLENGE_PREFIX: string = "webauthn-passkey-login-";
+// A session confirming it's its person's (#10155): one challenge per session.
+const REAUTHENTICATION_CHALLENGE_PREFIX: string = "webauthn-reauthentication-";
 
 interface RegistrationChallenge {
   challenge: string;
   requireUserVerification: boolean;
   isPasskey?: boolean;
 }
+
+// What a re-authentication's challenge was made for.
+interface ReauthenticationChallenge {
+  challenge: string;
+  kind: ReauthenticationWebAuthnKind;
+  userId: string;
+}
+
+/*
+ * What a person is told who adds a key through the API's create, past the
+ * ceremony that proves one (#10155).
+ */
+export const WEBAUTHN_ADDED_BY_REGISTRATION_ONLY_MESSAGE: string =
+  "A security key or passkey is added by registering it with your browser: POST /api/user-webauthn/generate-registration-options, then /api/user-webauthn/verify-registration.";
 
 /*
  * What a sign-in asking for a security key's options is told when the
@@ -385,6 +406,17 @@ export class Service extends DatabaseService<Model> {
 
     // See generateRegistrationOptions. Before the challenge is spent.
     await SsoManagedSignIn.assertMayChangeLocalSignIn(data.props.userId);
+
+    /*
+     * A key or a passkey is a way in to the account - a passkey signs in on
+     * its own - so the session adding one has confirmed it's its person's
+     * (#10155), and its options were asked for on the same terms
+     * (UserWebAuthnAPI). Before the challenge is spent, so the same answer
+     * can be sent again once it has. The key a sign-in sets up as its
+     * second step is a root write: that sign-in has just proved the
+     * password.
+     */
+    await Reauthentication.assertConfirmed(data.props);
 
     const storedChallenge: RegistrationChallenge = JSON.parse(
       await this.consumeChallenge(
@@ -800,6 +832,220 @@ export class Service extends DatabaseService<Model> {
     return user;
   }
 
+  /*
+   * The options for the prompt a signed-in person confirms it's them with
+   * before a change to how they sign in (#10155, Utils/Reauthentication):
+   *
+   *   - SecurityKey: the second step after the password, any of the
+   *     account's keys and passkeys, asked as the sign-in's second step
+   *     asks them (WEBAUTHN_USER_VERIFICATION);
+   *   - Passkey: a passkey on its own, as a passkey signs in on its own,
+   *     with the device's own check of its person (user verification
+   *     required). A key registered as a second step only (isPasskey false)
+   *     is not offered.
+   *
+   * By the session's account, never an address or an id a caller names, and
+   * kept for that session alone: a challenge made for one session, or for
+   * one kind, answers for no other (verifyReauthentication).
+   */
+  @CaptureSpan()
+  public async generateReauthenticationOptions(data: {
+    userId: ObjectID;
+    sessionId: ObjectID;
+    kind: ReauthenticationWebAuthnKind;
+  }): Promise<{ options: any }> {
+    const credentials: Array<Model> = await this.findBy({
+      query: {
+        userId: data.userId,
+        isVerified: true,
+      },
+      select: {
+        credentialId: true,
+        transports: true,
+        isPasskey: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const offered: Array<Model> =
+      data.kind === ReauthenticationWebAuthnKind.Passkey
+        ? credentials.filter((credential: Model): boolean => {
+            return credential.isPasskey !== false;
+          })
+        : credentials;
+
+    if (offered.length === 0) {
+      throw new BadDataException(
+        data.kind === ReauthenticationWebAuthnKind.Passkey
+          ? REAUTHENTICATION_MESSAGES.noPasskey
+          : REAUTHENTICATION_MESSAGES.noSecurityKey,
+      );
+    }
+
+    const options: any = await generateAuthenticationOptions({
+      rpID: this.getRelyingParty().rpID,
+      allowCredentials: offered.map((credential: Model) => {
+        // See generateAuthenticationOptions: a hint only when one was kept.
+        const transports: Array<WebAuthnTransport> | undefined =
+          parseStoredTransports(credential.transports);
+
+        return {
+          id: credential.credentialId!,
+          type: "public-key",
+          ...(transports ? { transports } : {}),
+        };
+      }),
+      userVerification:
+        data.kind === ReauthenticationWebAuthnKind.Passkey
+          ? "required"
+          : WEBAUTHN_USER_VERIFICATION,
+    });
+
+    const challenge: ReauthenticationChallenge = {
+      challenge: options.challenge,
+      kind: data.kind,
+      userId: data.userId.toString(),
+    };
+
+    await this.storeChallenge(
+      `${REAUTHENTICATION_CHALLENGE_PREFIX}${data.sessionId.toString()}`,
+      JSON.stringify(challenge),
+    );
+
+    return { options: options as any };
+  }
+
+  /*
+   * A key's answer to generateReauthenticationOptions' prompt: the
+   * session's challenge, spent whether or not it verifies, of the same
+   * kind and the same account; a credential of that account; and, for a
+   * passkey on its own, a passkey that checked its person. Throws
+   * BadDataException when it does not confirm.
+   */
+  @CaptureSpan()
+  public async verifyReauthentication(data: {
+    userId: ObjectID;
+    sessionId: ObjectID;
+    kind: ReauthenticationWebAuthnKind;
+    credential: unknown;
+  }): Promise<void> {
+    const notAccepted: string =
+      data.kind === ReauthenticationWebAuthnKind.Passkey
+        ? REAUTHENTICATION_MESSAGES.passkeyNotAccepted
+        : REAUTHENTICATION_MESSAGES.securityKeyNotAccepted;
+
+    let stored: ReauthenticationChallenge | null = null;
+
+    try {
+      stored = JSON.parse(
+        await this.consumeChallenge(
+          `${REAUTHENTICATION_CHALLENGE_PREFIX}${data.sessionId.toString()}`,
+        ),
+      ) as ReauthenticationChallenge;
+    } catch (err) {
+      if (err instanceof DatabaseNotConnectedException) {
+        throw err;
+      }
+
+      throw new BadDataException(notAccepted);
+    }
+
+    const credential: Record<string, unknown> | null =
+      data.credential &&
+      typeof data.credential === "object" &&
+      !Array.isArray(data.credential)
+        ? (data.credential as Record<string, unknown>)
+        : null;
+
+    if (
+      !stored ||
+      typeof stored.challenge !== "string" ||
+      !stored.challenge ||
+      stored.kind !== data.kind ||
+      stored.userId !== data.userId.toString() ||
+      !credential ||
+      typeof credential["id"] !== "string" ||
+      !credential["id"]
+    ) {
+      throw new BadDataException(notAccepted);
+    }
+
+    const dbCredential: Model | null = await this.findOneBy({
+      query: {
+        credentialId: credential["id"] as string,
+        userId: data.userId,
+        isVerified: true,
+      },
+      select: {
+        _id: true,
+        credentialId: true,
+        publicKey: true,
+        counter: true,
+        isPasskey: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (
+      !dbCredential?.id ||
+      !dbCredential.credentialId ||
+      !dbCredential.publicKey ||
+      (data.kind === ReauthenticationWebAuthnKind.Passkey &&
+        dbCredential.isPasskey === false)
+    ) {
+      throw new BadDataException(notAccepted);
+    }
+
+    const requiresUserVerification: boolean =
+      data.kind === ReauthenticationWebAuthnKind.Passkey ||
+      WEBAUTHN_REQUIRE_USER_VERIFICATION;
+
+    let verification: any = null;
+
+    try {
+      verification = await verifyAuthenticationResponse({
+        response: credential as any,
+        expectedChallenge: stored.challenge,
+        expectedOrigin: this.getRelyingParty().origin,
+        expectedRPID: this.getRelyingParty().rpID,
+        requireUserVerification: requiresUserVerification,
+        credential: {
+          id: dbCredential.credentialId,
+          publicKey: new Uint8Array(
+            Buffer.from(dbCredential.publicKey, "base64"),
+          ),
+          counter: parseInt(dbCredential.counter || "0") || 0,
+        },
+      });
+    } catch {
+      throw new BadDataException(notAccepted);
+    }
+
+    if (
+      !verification?.verified ||
+      (requiresUserVerification &&
+        verification.authenticationInfo?.userVerified !== true)
+    ) {
+      throw new BadDataException(notAccepted);
+    }
+
+    await this.updateOneById({
+      id: dbCredential.id,
+      data: {
+        counter: String(verification.authenticationInfo.newCounter ?? 0),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
   private getRelyingParty(): { rpID: string; origin: string } {
     const origin: URL = new URL(`${HttpProtocol}${Host.toString()}`);
 
@@ -864,6 +1110,18 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("User id is required");
     }
 
+    /*
+     * A key is added by its ceremony alone (#10155): verifyRegistration
+     * checks the browser's answer to a challenge made for this account and
+     * writes the row as root. The API's create took a credential id and a
+     * public key from the body and stored them verified - so a session
+     * alone could add a key pair of its own choosing, with no browser and
+     * no confirmation, and sign in with it as a passkey from then on.
+     */
+    if (!createBy.props.isRoot) {
+      throw new BadDataException(WEBAUTHN_ADDED_BY_REGISTRATION_ONLY_MESSAGE);
+    }
+
     // The session user's own, and no other name of it to be stored instead.
     RelationIdUtil.stamp(
       createBy.data as unknown as Record<string, unknown>,
@@ -924,6 +1182,20 @@ export class Service extends DatabaseService<Model> {
       );
 
       await UserService.assertTwoFactorAuthKeepsASecondStep(rows);
+
+      /*
+       * Removing a key or a passkey changes how its person signs in: the
+       * session has confirmed it's theirs (#10155). After the refusal of
+       * the last second step, so nobody confirms for a delete that would be
+       * refused anyway, and only for a key that signs anybody in.
+       */
+      if (
+        rows.some((row: Model): boolean => {
+          return row.isVerified === true;
+        })
+      ) {
+        await Reauthentication.assertConfirmed(deleteBy.props);
+      }
     }
 
     return { deleteBy, carryForward: null };

@@ -1,6 +1,7 @@
 import { bold, boldIn, readRepoFile } from "./InventoryAndApiDocsSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { sectionInLanguage } from "./NetworkDocsLabels";
+import { withoutProductLevels } from "./DocsProductLevels";
 import {
   ADD_DEVICES_ACTION,
   DEVICE_KIND_NAMES,
@@ -22,6 +23,7 @@ import {
   MAX_DEVICES_PER_CONTROLLER_DEVICE_ADD,
 } from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { describe, expect, it } from "@jest/globals";
 
@@ -284,13 +286,46 @@ describe("Network Traffic: Add devices, held to the code", () => {
     );
   });
 
+  it("starts each device with its serial number and MAC from Meraki, adds a site only for a network a device goes into, and says each reason once (#10188)", () => {
+    const runner: string = readRepoFile(DEVICE_ADD_RUNNER);
+    // A site as its first device is added, and one left empty taken away.
+    expect(runner).toContain("NetworkControllerDeviceAddRunner.getSiteIdOf");
+    expect(runner).toContain(
+      "NetworkControllerDeviceAddRunner.removeSitesLeftEmpty",
+    );
+    // Failures counted by reason.
+    expect(runner).toContain("addNetworkControllerDeviceAddFailure");
+    // The serial number and the MAC written as OneUptime's.
+    expect(
+      readRepoFile(
+        "Common/Server/Utils/NetworkController/NetworkControllerDeviceAdd.ts",
+      ),
+    ).toContain(
+      "ServerSetColumns.set(device, {\n    serialNumber: data.device.serial,\n    macAddress: data.device.mac || undefined,\n  });",
+    );
+
+    expect(englishParagraph(NOTHING_TWICE_PARAGRAPH)).toContain(
+      "Each device starts with the serial number and MAC address Meraki lists for it, a site is added only for a network a device goes into, and the row gives each reason a device could not be added once, with how many devices it kept out.",
+    );
+  });
+
   it("is for project owners and admins, as reading a connection is", () => {
     const update: Array<Permission> =
       new NetworkControllerConnection().getUpdatePermissions();
 
-    expect(update.sort()).toEqual(
-      [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),
-    );
+    /*
+     * The Network product's Admin level (#10289) adds them too, as Project
+     * Admin does: the permissions page describes a product's levels once
+     * for every product, its connections and credentials included, as the
+     * other pages leave them to it.
+     */
+    expect(update).toContain(Permission.NetworkAdmin);
+    expect(
+      withoutProductLevels({
+        permissions: update,
+        product: ProductKey.Network,
+      }).sort(),
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin].sort());
     expect(readRepoFile(CONNECTION_API)).toContain(
       "`${basePath}/:connectionId/add-devices`",
     );

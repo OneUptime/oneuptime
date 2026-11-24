@@ -3,7 +3,10 @@ import RecommendationDismissal from "Common/Models/DatabaseModels/Recommendation
 import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourceCatalog";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
+  CloudAlertTemplate,
+  getCloudAlertTemplate,
   getCloudAlertTemplatesForType,
+  getCloudAlertWindow,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
@@ -445,6 +448,43 @@ export default class CloudAccountRecommendationPlan {
     }
 
     return counts;
+  }
+
+  /*
+   * The longest interval the account's resources are read at that reads
+   * one of their offered monitors a longer window than its template's
+   * (getCloudAlertWindow, #10028), or undefined when none does: what the
+   * page says the account's reads cost (describeCloudReadIntervalCost).
+   */
+  public static getWideningReadIntervalInMinutes(
+    groups: Array<CloudAccountRecommendationGroup>,
+  ): number | undefined {
+    let longest: number | undefined = undefined;
+
+    for (const group of groups) {
+      for (const row of group.rows) {
+        for (const target of row.targets) {
+          const context: MonitorRecommendationContext = target.resource.context;
+          const template: CloudAlertTemplate | undefined =
+            getCloudAlertTemplate(target.recommendation.templateId);
+          const minutes: number = Number(context.cloudReadIntervalInMinutes);
+
+          if (
+            template &&
+            minutes > (longest || 0) &&
+            getCloudAlertWindow({
+              template,
+              readIntervalInMinutes: minutes,
+              streamedMetrics: context.cloudStreamedMetrics,
+            }) !== template.rollingTime
+          ) {
+            longest = minutes;
+          }
+        }
+      }
+    }
+
+    return longest;
   }
 
   /*

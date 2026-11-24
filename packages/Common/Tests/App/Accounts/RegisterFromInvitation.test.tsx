@@ -35,15 +35,24 @@ import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register";
 import {
   SIGN_UP_INVITATION_ANSWER_TIMEOUT_IN_MS,
+  SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS,
+  confirmSignUpInvitationSsoSignIn,
   fetchSignUpInvitation,
 } from "../../../../App/FeatureSet/Accounts/src/Utils/SignUpInvitation";
-import { SIGN_UP_INVITATION_API_URL } from "../../../../App/FeatureSet/Accounts/src/Utils/ApiPaths";
+import {
+  SIGN_UP_INVITATION_API_URL,
+  SIGN_UP_INVITATION_SSO_API_URL,
+} from "../../../../App/FeatureSet/Accounts/src/Utils/ApiPaths";
+import InvitedSsoSignIn from "../../../../App/FeatureSet/Accounts/src/Components/InvitedSsoSignIn/InvitedSsoSignIn";
 import en from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import fa from "../../../../App/FeatureSet/Accounts/src/Locales/fa.json";
 import {
   SIGN_UP_INVITATION_PROJECT_KEY,
   SIGN_UP_INVITATION_ROUTE,
+  SIGN_UP_INVITATION_SSO_ROUTE,
+  SignUpInvitation,
 } from "../../../Types/Accounts/SignUpInvitation";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 
 /*
  * THE SIGN-UP PAGE AN INVITATION OPENS (#7471).
@@ -115,6 +124,15 @@ let answer: InvitationAnswer = "pending";
 let asked: Array<{ url: string; data: unknown }> = [];
 let link: { email: string; token: string } = { email: EMAIL, token: TOKEN };
 
+/*
+ * #9898: what the server does with the link a picked provider is told
+ * (POST /identity/sign-up-invitation/sso): answer as it always does, fail,
+ * throw, or never answer. Every request and page move, in order.
+ */
+let ssoAnswer: "ok" | "error" | "throws" | "held" = "ok";
+let told: Array<{ url: string; data: unknown }> = [];
+let events: Array<string> = [];
+
 function invitationAnswer(): JSONObject {
   if (answer === "none") {
     return { invitation: null };
@@ -153,13 +171,18 @@ beforeEach(() => {
   answer = "pending";
   asked = [];
   link = { email: EMAIL, token: TOKEN };
+  ssoAnswer = "ok";
+  told = [];
+  events = [];
   Object.defineProperty(UIConfig, "BILLING_ENABLED", { value: false });
 
   jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
   jest.spyOn(UserUtil, "getUtmParams").mockReturnValue({});
   jest.spyOn(UserUtil, "getAttributionClickIds").mockReturnValue(null);
   jest.spyOn(UserUtil, "getFirstTouchAttribution").mockReturnValue(null);
-  jest.spyOn(Navigation, "navigate").mockImplementation(() => {});
+  jest.spyOn(Navigation, "navigate").mockImplementation((to: unknown) => {
+    events.push(`navigated to ${String(to)}`);
+  });
   jest
     .spyOn(Navigation, "getQueryStringByName")
     .mockImplementation((key: string): string | null => {
@@ -192,6 +215,25 @@ beforeEach(() => {
         options: Parameters<typeof API.post>[0],
       ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const url: string = options.url.toString();
+
+        if (url.endsWith(SIGN_UP_INVITATION_SSO_ROUTE)) {
+          told.push({ url: url, data: options.data });
+          events.push("told the server the link");
+
+          if (ssoAnswer === "throws") {
+            throw new Error("network down");
+          }
+
+          if (ssoAnswer === "error") {
+            return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+          }
+
+          if (ssoAnswer === "held") {
+            return new Promise<HTTPResponse<JSONObject>>(() => {});
+          }
+
+          return new HTTPResponse<JSONObject>(200, {}, {});
+        }
 
         if (!url.endsWith(SIGN_UP_INVITATION_ROUTE)) {
           throw new Error(`Unexpected request to ${url}`);
@@ -594,7 +636,9 @@ describe("opened from an invitation whose sign-in is single sign-on", () => {
       );
     });
 
-    expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    });
     expect(
       String(jest.mocked(Navigation.navigate).mock.calls[0]![0]),
     ).toContain(`/sso/${PROJECT_ID}/${OKTA_ID}`);
@@ -620,6 +664,9 @@ describe("opened from an invitation whose sign-in is single sign-on", () => {
       fireEvent.click(screen.getByRole("button", { name: /Entra ID/ }));
     });
 
+    await waitFor(() => {
+      expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    });
     expect(
       String(jest.mocked(Navigation.navigate).mock.calls[0]![0]),
     ).toContain(`/oidc/${PROJECT_ID}/${ENTRA_ID}`);
@@ -671,5 +718,173 @@ describe("opened from an invitation whose sign-in is single sign-on", () => {
 
     expect(screen.getByTestId("password")).toBeInTheDocument();
     expect(screen.queryByTestId("register-sso-providers")).toBeNull();
+  });
+});
+
+/*
+ * ONE TRIP THROUGH THE PROVIDER ON ONEUPTIME CLOUD (#9898).
+ *
+ * There a project's provider signs someone in only once they have
+ * confirmed it from their mailbox: picking it here went through it, said
+ * "Check your email", and took a second email and a second trip. The link
+ * this page was opened with proves the mailbox already, so picking a
+ * provider first tells the server so - the link's address and token, and
+ * the project the page showed - and only then starts its sign-in. Whatever
+ * the server says, or if it says nothing in time, the sign-in starts.
+ */
+describe("picking a provider tells the server the invitation's link first", () => {
+  async function pickOkta(beforeClick?: () => void): Promise<void> {
+    answer = "sso";
+
+    render(
+      <MemoryRouter>
+        <RegisterPage />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("heading", { level: 1, name: "Join Walk Co" });
+
+    beforeClick?.();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Sign in with Okta" }),
+      );
+    });
+  }
+
+  test("with the link's address and token and the project the page showed, then starts the sign-in", async () => {
+    await pickOkta();
+
+    await waitFor(() => {
+      expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    });
+
+    expect(told).toEqual([
+      {
+        url: SIGN_UP_INVITATION_SSO_API_URL.toString(),
+        data: { email: EMAIL, token: TOKEN, projectId: PROJECT_ID },
+      },
+    ]);
+    // Told first: the provider's answer must find what the server wrote.
+    expect(events).toEqual([
+      "told the server the link",
+      expect.stringContaining(`/sso/${PROJECT_ID}/${OKTA_ID}`),
+    ]);
+  });
+
+  test("shows the page's skeleton while it is told, and is told once", async () => {
+    ssoAnswer = "held";
+
+    await pickOkta((): void => {
+      jest.useFakeTimers();
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Sign in with Okta" }),
+    ).toBeNull();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(told).toHaveLength(1);
+    expect(Navigation.navigate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS);
+    });
+
+    expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    expect(told).toHaveLength(1);
+  });
+
+  test.each([
+    ["the server refuses", "error"],
+    ["the request throws", "throws"],
+  ])(
+    "%s: the sign-in starts all the same",
+    async (_case: string, failure: string) => {
+      ssoAnswer = failure as "error" | "throws";
+
+      await pickOkta();
+
+      await waitFor(() => {
+        expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+      });
+      expect(
+        String(jest.mocked(Navigation.navigate).mock.calls[0]![0]),
+      ).toContain(`/sso/${PROJECT_ID}/${OKTA_ID}`);
+    },
+  );
+
+  test("a server that never answers lets them go on after the wait", async () => {
+    ssoAnswer = "held";
+    jest.useFakeTimers();
+
+    const pending: Promise<void> = confirmSignUpInvitationSsoSignIn({
+      email: EMAIL,
+      token: TOKEN,
+      projectId: PROJECT_ID,
+    });
+
+    jest.advanceTimersByTime(SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS);
+
+    await expect(pending).resolves.toBeUndefined();
+    expect(SIGN_UP_INVITATION_SSO_TIMEOUT_IN_MS).toBe(10000);
+  });
+
+  test("never throws, whatever the server does", async () => {
+    for (const failure of ["ok", "error", "throws"] as const) {
+      ssoAnswer = failure;
+
+      await expect(
+        confirmSignUpInvitationSsoSignIn({
+          email: EMAIL,
+          token: TOKEN,
+          projectId: PROJECT_ID,
+        }),
+      ).resolves.toBeUndefined();
+    }
+  });
+
+  test("a page drawn with no link tells nothing, and starts the sign-in", async () => {
+    const invitation: SignUpInvitation = {
+      projectId: PROJECT_ID,
+      projectName: "Walk Co",
+      inviterName: "Ada Walker",
+      name: "Grace Member",
+      isAccepted: false,
+      ssoSignIn: {
+        providers: [
+          {
+            type: SsoProviderType.ProjectSSO,
+            id: OKTA_ID,
+            name: "Okta",
+            description: "",
+          },
+        ],
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <InvitedSsoSignIn invitation={invitation} link={null} />
+      </MemoryRouter>,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Sign in with Okta" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    });
+    expect(told).toEqual([]);
+  });
+
+  test("an ordinary invitation's sign-up tells nothing of single sign-on", async () => {
+    answer = "pending";
+
+    await renderPage();
+
+    expect(told).toEqual([]);
   });
 });

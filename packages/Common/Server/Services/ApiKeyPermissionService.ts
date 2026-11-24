@@ -13,6 +13,7 @@ import DatabaseCommonInteractionPropsUtil, {
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import Exception from "../../Types/Exception/Exception";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Model from "../../Models/DatabaseModels/ApiKeyPermission";
@@ -679,9 +680,11 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
+    // With the code a program tells a taken value by (#10319).
     if (existingPermission) {
-      throw new BadDataException(
+      throw new ValueTakenException(
         "This permission is already assigned to this API Key",
+        { field: "permission" },
       );
     }
 
@@ -866,9 +869,11 @@ export class Service extends ProjectReferencesService<Model> {
           },
         });
 
+        // With the code a program tells a taken value by (#10319).
         if (duplicatePermission) {
-          throw new BadDataException(
+          throw new ValueTakenException(
             "This permission is already assigned to this API Key",
+            { field: "permission" },
           );
         }
       }

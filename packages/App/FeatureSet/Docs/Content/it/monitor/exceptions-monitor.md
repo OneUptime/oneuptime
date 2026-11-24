@@ -129,7 +129,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor eccezioni hanno sei valori di **Tipo di filtro**: **Numero di eccezioni**, il numero di eccezioni che hanno corrisposto nella finestra, e **Nuove eccezioni**, **Eccezioni in regressione**, **Aumento delle eccezioni (in %)**, **Sessioni con eccezioni (in %)** e **Sessioni**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
+I criteri di un monitor eccezioni hanno otto valori di **Tipo di filtro**: **Numero di eccezioni**, il numero di eccezioni che hanno corrisposto nella finestra, e **Nuove eccezioni**, **Eccezioni in regressione**, **Aumento delle eccezioni (in %)**, **Sessioni con eccezioni (in %)**, **Sessioni**, **Installazioni con eccezioni (in %)** e **Installazioni**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio delle eccezioni è… |
 | --- | --- |
@@ -184,6 +184,19 @@ Un'app installata su migliaia di telefoni ha sempre qualche crash, quindi ciò c
 | **Sessioni** | Le sessioni della finestra: i `session.id` distinti degli span dei servizi del monitor. Abbinatelo alla quota, così che una quota calcolata su poche sessioni non avvisi. |
 
 Con **Solo eccezioni non gestite** attivato e i tipi `ANR` e `Hang` esclusi, la quota è il tasso di crash di un'app mobile. La raccomandazione **App Crash Rate** di un'app mobile avvisa quando più dell'1,09% delle sessioni di un'ora va in crash, il tasso che Android vitals considera un comportamento scorretto, purché l'ora abbia almeno 250 sessioni. **App ANR Rate** conta solo `ANR` e `Hang`, sopra lo 0,47%. Per scrivere voi stessi una regola del genere, scegliete **Una quota di sessioni** in **Avvisa su** di **Quando avvisare**.
+
+## Una quota di installazioni
+
+Nell'arco di un giorno, il tasso che Android vitals valuta e che Play Console mostra è la quota delle installazioni di un'app che sono andate in crash: una persona la cui app va in crash cinque volte è una sola installazione andata in crash. Per un'app mobile la cui telemetria indica la sua installazione, un monitor eccezioni può avvisare su questa quota, accanto alla quota di sessioni o al suo posto.
+
+| Tipo di filtro | Cosa legge nella finestra |
+| --- | --- |
+| **Installazioni con eccezioni (in %)** | La quota delle installazioni della finestra su cui si è verificata un'eccezione corrispondente. Senza installazioni nella finestra non c'è alcuna quota, e nessun criterio su di essa corrisponde. |
+| **Installazioni** | Le installazioni della finestra: le installazioni distinte indicate dagli span dei servizi del monitor. Abbinatelo alla quota, così che una quota calcolata su poche installazioni non avvisi. |
+
+Un'installazione è ciò che indica la risorsa dell'app: l'`app.installation.id` che impostano OpenTelemetry Android 1.1 e successivi, altrimenti il `device.id` di un'app iOS, il suo identificatore per il fornitore. Un'installazione Android termina quando l'app viene disinstallata, quindi una reinstallazione è una nuova installazione. Un'installazione iOS dura finché una qualsiasi delle app del fornitore resta sul dispositivo, quindi reinstallare l'unica è una nuova installazione, mentre reinstallarne una su due non lo è. Un'installazione fa parte della finestra quando la sua app vi ha inviato uno span. Un crash conta anche quando la sua installazione non ne ha inviato nessuno, come un crash iOS che MetricKit segnala un giorno dopo, e la quota non supera mai il 100%.
+
+**Daily Crash Rate** avvisa quando più dell'1,09% di almeno 250 installazioni va in crash in un giorno, e **Daily ANR Rate** quando più dello 0,47% di esse ha un ANR o un blocco. Per scrivere voi stessi una regola del genere, scegliete **Una quota di installazioni** in **Avvisa su** di **Quando avvisare**.
 
 ## Picchi rispetto alla norma
 

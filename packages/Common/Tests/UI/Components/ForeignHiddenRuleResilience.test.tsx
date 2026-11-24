@@ -522,7 +522,7 @@ describe("Shared components under a foreign .hidden rule", () => {
     }
 
     function desktopAside(): HTMLElement {
-      return screen.getByRole("navigation", { name: "Main navigation" });
+      return screen.getByRole("navigation", { name: "Pages in this section" });
     }
 
     test("the desktop menu and its links are on screen from 768px up with the rule", () => {

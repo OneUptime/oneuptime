@@ -1020,6 +1020,14 @@ const TEMPLATES_WORDING_THEIR_OWN_LABELS_HELP: Array<string> = [
   `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplates.tsx: Incidents declared from this template start with these labels.`,
   `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplatesView.tsx: Incidents declared from this template start with these labels.`,
   `${DASHBOARD}/Pages/Monitor/Settings/MonitorTemplates.tsx: Default labels applied to monitors created from this template.`,
+  /*
+   * And a network site's forms (#10188): a site's labels group and filter
+   * sites and decide nothing about who sees one (no @AccessControlColumn),
+   * so the shared help's "can limit what a team sees" would be wrong there.
+   */
+  `${DASHBOARD}/Pages/NetworkSite/Sites.tsx: SITE_LABELS_FIELD_DESCRIPTION`,
+  `${DASHBOARD}/Pages/NetworkSite/View/ChildSites.tsx: SITE_LABELS_FIELD_DESCRIPTION`,
+  `${DASHBOARD}/Pages/NetworkSite/View/Settings.tsx: SITE_LABELS_FIELD_DESCRIPTION`,
   `${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates.tsx: Events scheduled from this template start with these labels.`,
 ];
 
@@ -1258,7 +1266,7 @@ describe("labels on the project's forms", () => {
    * its own: its labels are not its access, they are handed on to what it
    * creates, so it says that instead.
    */
-  test("keep the shared help, except on a template, which says what it hands on", () => {
+  test("keep the shared help, except on a template, which says what it hands on, and on a site, whose labels decide no access", () => {
     expect(
       findLabelsDescriptionOverrides(
         files.filter((file: string): boolean => {

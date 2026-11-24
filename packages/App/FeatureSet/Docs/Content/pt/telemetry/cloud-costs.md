@@ -61,6 +61,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 O Cost Management responde por cada assinatura, com o recurso a que cada custo se refere, e lê-lo não custa nada. Quando não consegue responder por uma assinatura, os **Custos** da conta dizem por quê.
 
+O Cost Management limita a rapidez com que os custos de um locatário são lidos, igual para todos que os leem: cada consulta custa uma unidade de processamento de consultas (QPU) por mês de dados que lê, e um locatário tem 12 QPU a cada 10 segundos, 60 por minuto e 600 por hora. O OneUptime lê as assinaturas de um locatário uma após a outra dentro de dois terços de cada cota, espera o tempo que o Cost Management pedir quando recusa uma consulta e continua na leitura seguinte de onde parou. Uma assinatura ainda não lida diz **Na fila**, com quando é lida; uma que já tem valores os mantém enquanto isso.
+
 ## Google Cloud
 
 O Google Cloud não tem uma API para os custos de um projeto: o OneUptime os lê da exportação da sua conta de faturamento para o BigQuery.
@@ -151,6 +153,10 @@ A conexão ainda não pode ler os custos da conta. Execute novamente o comando d
 
 :::details Uma conta diz Não configurado
 A nuvem dela ainda não tem custos para fornecer. Na AWS, ative o Cost Explorer; no Google Cloud, informe a tabela da exportação em **Tabela da exportação de faturamento**. Os primeiros valores chegam com a leitura seguinte, em até 12 horas.
+:::
+
+:::details Uma conta diz Na fila
+Os custos dela aguardam a vez: o Azure Cost Management limita a rapidez com que os custos de um locatário são lidos. A conta diz quando são lidos, na primeira leitura da conexão a partir de então, e não há nada a fazer. Uma conta que já tem valores os mantém enquanto isso.
 :::
 
 :::details Custos por recurso diz Não configurado

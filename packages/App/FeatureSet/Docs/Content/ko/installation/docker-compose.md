@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start`는 새 포트 `localhost:8080`에서 OneUptime을 확인하고 마지막에 다음을 출력합니다: **OneUptime is up!**
+`npm start`는 ingress가 이제 수신하는 `127.0.0.1:8080`에서 OneUptime을 확인하고 마지막에 다음을 출력합니다: **OneUptime is up!**
+
+이제 ingress에는 이 서버만 닿습니다. ingress는 호스트 이름으로 요청을 라우팅합니다. 애플리케이션 전체에 도달하는 것은 `HOST`와 `localhost`뿐이고, 주소 `127.0.0.1`을 포함한 다른 이름은 상태 페이지 도메인으로 처리됩니다. 그래서 프록시는 브라우저가 요청한 이름인 `HOST`를 그대로 전달하고, 프로브는 `http://localhost:8080`을 호출하며, `npm start`를 마무리하는 검사는 `npm run doctor`와 마찬가지로 호스트 이름 `localhost:8080`으로 `127.0.0.1:8080`에 연결합니다.
 
 #### 프록시 구성
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-모든 컨테이너가 실행되면 `npm run status-check`로 검사를 다시 실행합니다. 이 검사는 `ONEUPTIME_HTTP_PORT`가 정한 포트에서 ingress를 확인합니다.
+모든 컨테이너가 실행되면 `npm run status-check`로 검사를 다시 실행합니다. 이 검사는 `ONEUPTIME_HTTP_PORT`가 ingress를 공개한 주소와 포트(예: `127.0.0.1:8080`)에서, 서버의 브라우저처럼 호스트 이름 `localhost`로 ingress를 확인합니다. `PROVISION_SSL=true`이면 `STATUS_PAGE_HTTPS_PORT`가 ingress를 공개한 곳에서 `HOST`도 HTTPS로 확인합니다.
 :::
 
 :::details 브라우저에 "이 주소에는 OneUptime이 설정되어 있지 않습니다"가 표시됨

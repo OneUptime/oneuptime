@@ -82,6 +82,13 @@ const project = seedNewProject({
   billing: params.billing === "on",
   canSendEmail: params.email !== "off",
   isTestPageAnswered: params.test !== "unanswered",
+  /*
+   * ?world=<name>: the server state this tab shares with every other tab
+   * and browser that names it (server.js), as devices share one server.
+   */
+  world: /^[A-Za-z0-9_-]{1,64}$/.test(String(params.world || ""))
+    ? String(params.world)
+    : null,
 });
 
 signIn(
@@ -89,7 +96,12 @@ signIn(
   ["member", "admin", "viewer"].includes(params.as) ? params.as : "owner",
 );
 
-installModelApi(ModelAPI, project.store, dashboardHooks(project));
+installModelApi(ModelAPI, project.store, dashboardHooks(project), {
+  // ?refuse=<Table>: that table's first create fails, once per tab.
+  refuse: String(params.refuse || "")
+    .split(",")
+    .filter(Boolean),
+});
 installAnalyticsModelApi(AnalyticsModelAPI, project.store);
 installApi([API, BaseAPI], project.store, dashboardRoutes(project));
 silenceRealtime(Realtime);

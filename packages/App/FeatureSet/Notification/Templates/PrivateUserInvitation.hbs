@@ -1,0 +1,30 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{!--
+  An invitation to sign in to a dashboard's public link (#10250), or a
+  form's: its link sets the private user's first password, and works for a
+  day (Server/Services/PrivateUserServiceBase). The resource's name is chosen
+  by its team, so every line that carries it is printed through plainInfo -
+  escaped - never through the raw `info`.
+--}}
+
+{{> EmailTitle title="You're invited to sign in" }}
+
+{{> InfoBlock plainInfo=(concat "You have been invited to " resourceName ". Choose a password to sign in and open it.")}}
+
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Choose a Password"}}
+
+{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="You can also copy and paste this link:"}}
+
+{{> InfoBlock info="The link works for 24 hours. Once it has run out, open the sign-in page and use Forgot password to get a new one."}}
+
+{{> InfoBlock info="<strong>Not expecting this?</strong> You can safely ignore this email. Nothing happens until somebody uses the link above."}}
+
+{{> InfoBlock info="Thanks, have a great day."}}
+
+{{> InfoBlock plainInfo=(concat resourceName " Team.")}}
+{{> VerticalSpace this}}
+
+{{> End this}}

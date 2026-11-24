@@ -129,6 +129,26 @@ O faturamento tem três funções próprias. `BillingViewer` lê o faturamento d
 
 Todas as {{PERMISSION_ROLE_COUNT}} funções estão listadas na [Referência de permissões](/docs/permissions/reference).
 
+### Níveis de produto
+
+Um nível de produto dá a uma equipe um único produto, em um único nível, e nada mais do projeto: `CloudAdmin`, `NetworkViewer`, `HostMember`. Cada nível faz nos registros próprios do produto o que uma função de todo o projeto faz em todos os registros:
+
+- **Visualizador** lê ali o que a função Visualizador lê, e não altera nada.
+- **Membro** também cria, altera e exclui os registros do produto, como faz um Membro do projeto.
+- **Administrador** também faz ali o que um Administrador do projeto faz: as configurações do produto, as suas conexões e credenciais, e as suas regras de rótulos e de proprietários.
+
+Um nível nunca alcança outro produto, nem as configurações, as equipes, os membros, as chaves de API, o SSO ou o faturamento do projeto.
+
+:::steps
+1. Abra a página **Permissões** da equipe.
+2. Em **Acesso aos produtos**, escolha um nível para cada produto com que a equipe trabalha. Limpe o nível de um produto para tirar esse produto da equipe.
+:::
+
+- **Monitores, Incidentes e as outras áreas com funções próprias** são dados com **Adicionar função**, em **Uma área**. O mesmo vale para as funções de Telemetry, para Registros, Métricas, Traços, Perfis e Exceções, e para as funções Security.
+- **IA / LLM, Inventário e Formulários** têm só um nível Visualizador e um nível Administrador, porque um Membro do projeto não altera nada neles.
+- **Um nível é uma permissão como qualquer outra.** Você pode limitá-lo a alguns rótulos ou aos registros próprios na tabela de permissões, bloqueá-lo, colocá-lo em uma função personalizada ou dá-lo a uma chave de API. Como com toda permissão, você só pode dar um nível se você mesmo o tiver, a menos que seja Proprietário do projeto.
+- **Um nível lê os registros do produto, não a sua telemetria.** Uma equipe com `HostViewer` vê os hosts do projeto, e precisa também de `TelemetryViewer` para os gráficos deles.
+
 ### Permissões granulares
 
 Cada capacidade individual também pode ser atribuída sozinha — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` e mais {{PERMISSION_TOTAL_COUNT}}. Use-as quando uma função for ampla demais e você precisar conceder exatamente uma coisa.
@@ -202,7 +222,7 @@ Toda permissão concedida tem um escopo: quando você a adiciona, **Escopo** fic
 
 Uma função recebe as três respostas. Uma permissão individual, adicionada com **Adicionar permissão**, recebe um escopo onde quer que um escopo a restrinja, apenas com as respostas que a restringem: **Create Workflow** pode ser limitada aos fluxos de trabalho que uma equipe possui, ou a alguns rótulos, assim como **Edit Workflow**, enquanto uma permissão sobre algo que todos compartilham, como **Create Label**, não oferece escopo, porque nenhum a restringiria. A permissão individual de uma chave de API aceita rótulos onde quer que os rótulos a restrinjam. Um bloqueio nunca se limita a recursos próprios: ele retira uma permissão em todo lugar ou, com rótulos, dos recursos que os carregam.
 
-**Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso restringe todo recurso que pode ter proprietários — monitores, incidentes, painéis, serviços, grupos de monitores, agendamentos de plantão e afins — e o que pertence a eles, como as camadas de um agendamento. Sondas, Runners, agentes de IA, agendamentos de plantão e modelos de incidentes e de manutenção são aquilo com que outros recursos são configurados, então uma permissão com escopo Próprios continua lendo todos eles, e você pode escolher qualquer um; ela só altera e exclui aqueles dos quais você ou suas equipes são proprietários. A chave de um Runner, que permite a quem a tem agir como esse Runner, só aparece nos Runners dos quais você ou suas equipes são proprietários. A configuração do projeto (estados de incidentes, rótulos) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali. As páginas próprias do Data Observability também respeitam o seu escopo: a **Visão geral**, **Problemas** e o número ao lado de **Visão geral** contam e listam só as tabelas, verificações e pipelines que você pode ler, e uma ação sobre uma tabela ou verificação, como **Executar agora**, alcança só uma que você pode ler ou alterar.
+**Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso restringe todo recurso que pode ter proprietários — monitores, incidentes, painéis, serviços, grupos de monitores, agendamentos de plantão e afins — e o que pertence a eles, como as camadas de um agendamento. Sondas, Runners, agentes de IA, agendamentos de plantão, sites de rede e modelos de incidentes e de manutenção são aquilo com que outros recursos são configurados, então uma permissão com escopo Próprios continua lendo todos eles, e você pode escolher qualquer um; ela só altera e exclui aqueles dos quais você ou suas equipes são proprietários. A chave de um Runner, que permite a quem a tem agir como esse Runner, só aparece nos Runners dos quais você ou suas equipes são proprietários. A configuração do projeto (estados de incidentes, rótulos) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali. As páginas próprias do Data Observability também respeitam o seu escopo: a **Visão geral**, **Problemas** e o número ao lado de **Visão geral** contam e listam só as tabelas, verificações e pipelines que você pode ler, e uma ação sobre uma tabela ou verificação, como **Executar agora**, alcança só uma que você pode ler ou alterar.
 
 A permissão com escopo Próprios de cada equipe alcança o que pertence a essa equipe, não o que pertence às outras equipes da pessoa. Quem está em duas equipes, uma com `IncidentMember` com escopo Próprios e outra com `Viewer` com escopo Próprios, altera os incidentes que pertencem à primeira equipe e os seus próprios, e só vê os incidentes que pertencem à segunda. Uma permissão com escopo Próprios também só adiciona proprietários a recursos que pertencem à pessoa ou à equipe a que ela é dada, então a primeira equipe não pode virar proprietária dos incidentes da segunda para contornar isso. A permissão com escopo Próprios de uma função personalizada alcança o que pertence a cada equipe que recebeu a função.
 

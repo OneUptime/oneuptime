@@ -129,7 +129,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En undantagsmonitors kriterier har sex sorters **Filtertyp**: **Antal undantag**, antalet undantag som matchade i fönstret, samt **Nya undantag**, **Undantag med regression**, **Ökning av undantag (i %)**, **Sessioner med undantag (i %)** och **Sessioner**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
+En undantagsmonitors kriterier har åtta sorters **Filtertyp**: **Antal undantag**, antalet undantag som matchade i fönstret, samt **Nya undantag**, **Undantag med regression**, **Ökning av undantag (i %)**, **Sessioner med undantag (i %)**, **Sessioner**, **Installationer med undantag (i %)** och **Installationer**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
@@ -184,6 +184,19 @@ En app på tusentals telefoner har alltid några krascher, så det teamet vill f
 | **Sessioner** | Fönstrets sessioner: de distinkta `session.id` i spans från monitorns tjänster. Kombinera den med andelen, så att en andel av några få sessioner inte larmar. |
 
 Med **Endast ohanterade undantag** påslaget och typerna `ANR` och `Hang` utelämnade är andelen en mobilapps kraschfrekvens. En mobilapps rekommendation **App Crash Rate** larmar när mer än 1,09 % av en timmes sessioner kraschar, den nivå som Android vitals kallar dåligt beteende, så snart timmen har minst 250 sessioner. **App ANR Rate** räknar bara `ANR` och `Hang`, över 0,47 %. För att skriva en sådan regel själv väljer du **En andel av sessionerna** under **Larma vid** i **När det ska larmas**.
+
+## En andel av installationerna
+
+Över ett dygn är den nivå som Android vitals bedömer och Play Console visar andelen av en apps installationer som kraschade: någon vars app kraschar fem gånger är en installation som kraschade. För en mobilapp vars telemetri anger sin installation kan en undantagsmonitor larma om den andelen, bredvid eller i stället för andelen sessioner.
+
+| Filtertyp | Vad den läser i fönstret |
+| --- | --- |
+| **Installationer med undantag (i %)** | Andelen av fönstrets installationer där ett matchande undantag inträffade. Utan installationer i fönstret finns ingen andel, och inget kriterium på den matchar. |
+| **Installationer** | Fönstrets installationer: de distinkta installationer som spans från monitorns tjänster anger. Kombinera den med andelen, så att en andel av några få installationer inte larmar. |
+
+En installation är det som appens resurs anger: det `app.installation.id` som OpenTelemetry Android 1.1 och senare sätter, annars en iOS-apps `device.id`, dess leverantörs-id. En Android-installation upphör när appen avinstalleras, så en ominstallation är en ny installation. En iOS-installation varar så länge någon av leverantörens appar finns kvar på enheten, så att installera om den enda ger en ny installation, men att installera om en av två gör det inte. En installation hör till fönstret när dess app skickade en span i det. En krasch räknas ändå när dess installation inte skickade någon, som en iOS-krasch som MetricKit rapporterar en dag senare, och andelen blir aldrig över 100 %.
+
+**Daily Crash Rate** larmar när mer än 1,09 % av minst 250 installationer kraschar under ett dygn, och **Daily ANR Rate** när mer än 0,47 % av dem får en ANR eller ett häng. För att skriva en sådan regel själv väljer du **En andel av installationerna** under **Larma vid** i **När det ska larmas**.
 
 ## Toppar jämfört med det normala
 

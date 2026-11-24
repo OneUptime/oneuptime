@@ -1,6 +1,8 @@
+import Workflow from "../../../Models/DatabaseModels/Workflow";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import WorkflowService from "../../../Server/Services/WorkflowService";
 import WorkflowVariableService from "../../../Server/Services/WorkflowVariableService";
+import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import logger from "../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
@@ -357,6 +359,114 @@ describe("a workflow's variables, by what it runs as", () => {
       "role-of-new-teams",
     );
     expect(giverOf(OWNER_WORKFLOW_ID)).toBe(FIRST_GIVER_ID);
+  });
+
+  /*
+   * A variable names its workflow under its ID column or its relation
+   * (RelationIdUtil, ReferenceNamesReadTogether), and the check reads both:
+   * a create that names the workflow by the relation alone, whatever handed
+   * the hook the write, is held to the workflow's holders as well.
+   */
+  describe("the workflow, named either way", () => {
+    function variableOf(workflow: {
+      workflowId?: string;
+      workflow?: string;
+    }): WorkflowVariable {
+      const variable: WorkflowVariable = new WorkflowVariable();
+      variable.projectId = PROJECT_ID;
+      variable.name = `NEW_${Math.floor(Math.random() * 1_000_000)}`;
+      variable.content = "value";
+
+      if (workflow.workflowId) {
+        variable.workflowId = new ObjectID(workflow.workflowId);
+      }
+
+      if (workflow.workflow) {
+        variable.workflow = new Workflow(new ObjectID(workflow.workflow));
+      }
+
+      return variable;
+    }
+
+    // The hook as DatabaseService runs it once the create may be made.
+    async function createPermitted(
+      variable: WorkflowVariable,
+      props: DatabaseCommonInteractionProps,
+    ): Promise<OnCreate<WorkflowVariable>> {
+      const onCreate: OnCreate<WorkflowVariable> = {
+        createBy: { data: variable, props: props },
+        carryForward: null,
+      };
+
+      await (
+        WorkflowVariableService as unknown as {
+          onCreatePermitted: (
+            onCreate: OnCreate<WorkflowVariable>,
+          ) => Promise<void>;
+        }
+      ).onCreatePermitted(onCreate);
+
+      return onCreate;
+    }
+
+    test("named by the relation alone, a raised workflow's variable is refused to a Workflow Admin, as one named by its ID is", async () => {
+      expect(
+        (
+          await refusal(
+            createPermitted(
+              variableOf({ workflow: OWNER_WORKFLOW_ID }),
+              WORKFLOW_ADMIN(),
+            ),
+          )
+        ).message,
+      ).toBe(OWNER_REFUSAL);
+    });
+
+    test("named by the relation alone, a Project Owner's create carries the workflow forward, to make them its giver", async () => {
+      const onCreate: OnCreate<WorkflowVariable> = await createPermitted(
+        variableOf({ workflow: OWNER_WORKFLOW_ID }),
+        OWNER(),
+      );
+
+      expect(
+        (onCreate.carryForward as Array<ObjectID>).map(
+          (id: ObjectID): string => {
+            return id.toString().toLowerCase();
+          },
+        ),
+      ).toEqual([OWNER_WORKFLOW_ID]);
+    });
+
+    test("through the whole create, a variable named by the relation is refused to a Workflow Admin, and nothing is saved", async () => {
+      expect(
+        (
+          await refusal(
+            WorkflowVariableService.create({
+              data: variableOf({ workflow: OWNER_WORKFLOW_ID }),
+              props: WORKFLOW_ADMIN(),
+            }),
+          )
+        ).message,
+      ).toBe(OWNER_REFUSAL);
+      expect(variables.inserts).toEqual([]);
+    });
+
+    test("two names that disagree are refused before anything is checked or saved", async () => {
+      const error: Error = await refusal(
+        createPermitted(
+          variableOf({
+            workflowId: DEFAULT_WORKFLOW_ID,
+            workflow: OWNER_WORKFLOW_ID,
+          }),
+          OWNER(),
+        ),
+      );
+
+      expect(error.message).toBe(
+        "Conflicting Workflow references were provided. workflowId and workflow are names for the same field and must hold the same value: send only one of them, or the same id in each.",
+      );
+      expect(variables.inserts).toEqual([]);
+    });
   });
 });
 

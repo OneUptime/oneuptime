@@ -16,6 +16,7 @@ import * as React from "react";
 import { initReactI18next } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { settle } from "./HostTooltipHarness";
+import { isGrownByLegend } from "../../../UI/Components/Charts/Utils/UseLegendGrowth";
 
 /*
  * A host's Overview, rendered for real with its data layer mocked, as its
@@ -580,5 +581,68 @@ describe("the order of the page", () => {
     expect(follows(charts, alerts)).toBe(true);
     expect(follows(filesystems, alerts)).toBe(true);
     expect(follows(alerts, details)).toBe(true);
+  });
+});
+
+/*
+ * The charts grow with their legends (#7125): a chart whose legend wraps,
+ * the Network chart's In and Out in German beside the side menu, grows by
+ * its lines instead of squeezing its plot, so its card grows; each card is a
+ * column with its chart at its foot, so a row of cards grows to its tallest
+ * and the plots and time axes still line up under the hover line they share.
+ */
+describe("the charts", () => {
+  test("each chart sits at the foot of a card that is a column", async () => {
+    getItemMock.mockResolvedValue(reportingHost());
+    aggregateMock.mockImplementation((call: unknown) => {
+      return Promise.resolve({
+        data: rowsWithLoad(1)(call as AggregateCall),
+      });
+    });
+
+    await renderOverview();
+
+    const charts: Array<HTMLElement> = screen.getAllByTestId("line-chart");
+
+    // Availability, then CPU, Memory, Disk space and Network.
+    expect(charts.length).toBeGreaterThanOrEqual(5);
+
+    for (const chart of charts) {
+      const foot: HTMLElement = chart.parentElement!;
+      const card: HTMLElement = foot.parentElement!;
+
+      expect(foot).toHaveClass("mt-auto");
+      expect(card).toHaveClass("flex", "flex-col", "rounded-xl");
+    }
+  });
+
+  test("nothing keeps a chart to its 180px box: a legend that wraps grows it", async () => {
+    getItemMock.mockResolvedValue(reportingHost());
+    aggregateMock.mockImplementation((call: unknown) => {
+      return Promise.resolve({
+        data: rowsWithLoad(1)(call as AggregateCall),
+      });
+    });
+
+    await renderOverview();
+
+    const drawn: Array<{
+      heightInPx?: number;
+      growsWhenLegendWraps?: boolean;
+    }> = lineChartMock.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as { heightInPx?: number; growsWhenLegendWraps?: boolean };
+    });
+
+    expect(drawn.length).toBeGreaterThan(0);
+
+    for (const props of drawn) {
+      expect(props.heightInPx).toBe(180);
+      expect(
+        isGrownByLegend({
+          growsWhenLegendWraps: props.growsWhenLegendWraps,
+          showLegend: true,
+        }),
+      ).toBe(true);
+    }
   });
 });

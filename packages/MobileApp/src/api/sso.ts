@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import { getServerUrl } from "../storage/serverUrl";
 import type { SsoProviderKind } from "../sso/providerUrl";
+import type { SsoCallbackSuccess } from "../sso/callbackUrl";
 
 export interface SSOProvider {
   _id: string;
@@ -333,5 +334,213 @@ export async function fetchSSOProvidersForProject(
     // For project-specific endpoint, use the passed-in projectId
     parsed.projectId = projectId;
     return parsed;
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * The hand-off that ends an SSO sign-in (#9989, ../sso/handOff).
+ * ---------------------------------------------------------------------------
+ */
+
+// The answer of GET /identity/sign-in-methods that says the server hands back codes.
+const HAND_OFF_SUPPORTED_FIELD: string = "isMobileSsoHandOffSupported";
+
+/**
+ * Whether `serverUrl` hands an SSO sign-in the app starts back as a one-time
+ * code (#9989), never as tokens on the deep link.
+ *
+ * Read when a sign-in starts, so the app knows what it may take back. Only a
+ * server that answered and did not say so - a server from before #9989, or
+ * one so old it has no such route (404) - is told apart: a link carrying
+ * tokens may then end the sign-in, as it always did. Anything else, a
+ * failure to reach the server included, is answered as a server that hands
+ * back codes: a link carrying tokens is then refused, never taken on a
+ * guess.
+ */
+export async function fetchServerHandsBackSsoCodes(
+  serverUrl: string,
+): Promise<boolean> {
+  try {
+    const response: AxiosResponse = await axios.get(
+      `${serverUrl}/identity/sign-in-methods`,
+      { timeout: 15000 },
+    );
+    const answer: unknown = response.data;
+
+    return Boolean(
+      answer &&
+        typeof answer === "object" &&
+        (answer as Record<string, unknown>)[HAND_OFF_SUPPORTED_FIELD] === true,
+    );
+  } catch (error) {
+    const status: number | undefined = (
+      error as { response?: { status?: number } } | undefined
+    )?.response?.status;
+
+    return status !== 404;
+  }
+}
+
+/**
+ * Redeems the one-time code an SSO sign-in handed back, with the verifier
+ * and the state the app started it with (POST /identity/mobile-sso-exchange):
+ * the sign-in the code stands for, as a deep link from before #9989 carried
+ * it. Throws for an answer that is not one.
+ */
+export async function exchangeSsoCode(data: {
+  serverUrl: string;
+  code: string;
+  codeVerifier: string;
+  state: string;
+}): Promise<SsoCallbackSuccess> {
+  const response: AxiosResponse = await axios.post(
+    `${data.serverUrl}/identity/mobile-sso-exchange`,
+    { code: data.code, codeVerifier: data.codeVerifier, state: data.state },
+    {
+      timeout: 30000,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+  const body: Record<string, unknown> =
+    response.data && typeof response.data === "object"
+      ? (response.data as Record<string, unknown>)
+      : {};
+
+  const text: (key: string) => string | null = (key: string): string | null => {
+    const value: unknown = body[key];
+
+    return typeof value === "string" && value ? value : null;
+  };
+
+  const accessToken: string | null = text("accessToken");
+  const refreshToken: string | null = text("refreshToken");
+  const refreshTokenExpiresAt: string | null = text("refreshTokenExpiresAt");
+  const userId: string | null = text("userId");
+
+  if (
+    !accessToken ||
+    !refreshToken ||
+    !refreshTokenExpiresAt ||
+    !Number.isFinite(Date.parse(refreshTokenExpiresAt)) ||
+    !userId
+  ) {
+    throw new Error(
+      "The server did not complete single sign-on. Please try again.",
+    );
+  }
+
+  const ssoToken: string | null = text("ssoToken");
+  const projectId: string | null = text("projectId");
+
+  return {
+    status: "success",
+    tokens: { accessToken, refreshToken, refreshTokenExpiresAt },
+    user: {
+      userId,
+      email: text("email") || "",
+      name: text("name") || "",
+      isMasterAdmin: body["isMasterAdmin"] === true,
+    },
+    globalSsoToken: text("globalSsoToken"),
+    projectSsoToken: ssoToken && projectId ? { projectId, ssoToken } : null,
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A project's SSO sign-in link (#9989, ../sso/projectLink).
+ * ---------------------------------------------------------------------------
+ */
+
+// A provider a project's SSO sign-in link offers: its own, or the server's.
+export interface LinkedSsoProvider {
+  id: string;
+  name: string;
+  // Empty when the provider has none, or only "Sign in with <name>".
+  description: string;
+  kind: SsoProviderKind;
+}
+
+// The server's provider types (Common/Types/SSO/SsoProviderType), as kinds.
+const KIND_OF_PROVIDER_TYPE: Record<string, SsoProviderKind> = {
+  ProjectSSO: "project",
+  ProjectOIDC: "project-oidc",
+  GlobalSSO: "global-sso",
+  GlobalOIDC: "global-oidc",
+};
+
+const UUID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// No more than a sign-in page draws from an answer (SignInMethodsUtil).
+const MAX_PROVIDER_TEXT_LENGTH: number = 500;
+
+function providerText(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim().slice(0, MAX_PROVIDER_TEXT_LENGTH)
+    : "";
+}
+
+/**
+ * The providers that sign people in to one project
+ * (GET /identity/project-sign-in-methods/<project id>) - the ones the page a
+ * project's SSO sign-in link opens on the web lists. Asked by the project's
+ * id alone: no address is sent.
+ *
+ * Each with a real id, a kind the app starts and a name; anything else in
+ * the answer is left out, never drawn as a button that cannot work. An
+ * answer the server gave that lists nothing - no such project, or none of
+ * its providers turned on - is an empty list, not a failure.
+ */
+export async function fetchProjectSignInProviders(
+  projectId: string,
+): Promise<SsoDiscoveryResult<LinkedSsoProvider>> {
+  return settle(async (): Promise<Array<LinkedSsoProvider>> => {
+    const serverUrl: string = await getServerUrl();
+    const response: AxiosResponse = await axios.get(
+      `${serverUrl.replace(/\/+$/, "")}/identity/project-sign-in-methods/${encodeURIComponent(projectId)}`,
+      { timeout: 15000 },
+    );
+    const rows: unknown = (
+      response.data as { ssoProviders?: unknown } | null | undefined
+    )?.ssoProviders;
+    const providers: Array<LinkedSsoProvider> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      if (!row || typeof row !== "object") {
+        continue;
+      }
+
+      const item: Record<string, unknown> = row as Record<string, unknown>;
+      const kind: SsoProviderKind | undefined =
+        typeof item["type"] === "string"
+          ? KIND_OF_PROVIDER_TYPE[item["type"]]
+          : undefined;
+      const id: string = providerText(item["id"]);
+      const name: string = providerText(item["name"]);
+      const description: string = providerText(item["description"]);
+
+      if (!kind || !UUID_PATTERN.test(id) || !name) {
+        continue;
+      }
+
+      const key: string = `${kind}:${id.toLowerCase()}`;
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      providers.push({
+        id,
+        name,
+        description: description === `Sign in with ${name}` ? "" : description,
+        kind,
+      });
+    }
+
+    return providers;
   });
 }

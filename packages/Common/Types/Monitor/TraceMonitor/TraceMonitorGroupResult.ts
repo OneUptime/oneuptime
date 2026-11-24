@@ -25,4 +25,12 @@ export default interface TraceMonitorGroupResult {
    * is.
    */
   isQuiet?: boolean | undefined;
+  /*
+   * What the group's spans last said about it, for display only: a device's
+   * name (`device.name`, read from `host.name`) and model
+   * (`device.model.name`), when the group is one device (#9925). Never
+   * hashed into `fingerprint`, so a device renamed while its alert is open
+   * stays the same alert.
+   */
+  context?: JSONObject | undefined;
 }

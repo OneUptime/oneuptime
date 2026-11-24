@@ -48,6 +48,14 @@ export default class CriteriaInEffect {
   private openRecords: Promise<Array<OpenCriteriaRecord>> | null = null;
 
   /*
+   * The series each criteria has a record open for ("" for one for the
+   * whole monitor), built once, the first time it is asked: a grouped
+   * monitor asks for every one of thousands of series that waits, and a scan
+   * of every open record for each was the series times the records (#10108).
+   */
+  private openSeriesByCriteria: Promise<Map<string, Set<string>>> | null = null;
+
+  /*
    * Without readOpenRecords no alert or incident counts as open: what the
    * criteria evaluator falls back to when its caller hands it none.
    */
@@ -57,6 +65,36 @@ export default class CriteriaInEffect {
   }) {
     this.monitor = data.monitor;
     this.readOpenRecords = data.readOpenRecords || null;
+  }
+
+  private async readOpenSeriesByCriteria(): Promise<Map<string, Set<string>>> {
+    if (!this.openRecords) {
+      this.openRecords = this.readOpenRecords!();
+    }
+
+    const openSeriesByCriteria: Map<string, Set<string>> = new Map<
+      string,
+      Set<string>
+    >();
+
+    for (const record of await this.openRecords) {
+      if (record.createdCriteriaId === undefined) {
+        continue;
+      }
+
+      let openSeries: Set<string> | undefined = openSeriesByCriteria.get(
+        record.createdCriteriaId,
+      );
+
+      if (!openSeries) {
+        openSeries = new Set<string>();
+        openSeriesByCriteria.set(record.createdCriteriaId, openSeries);
+      }
+
+      openSeries.add(record.seriesFingerprint || "");
+    }
+
+    return openSeriesByCriteria;
   }
 
   // Reads the monitor's open alerts and incidents from the database.
@@ -85,20 +123,15 @@ export default class CriteriaInEffect {
         return false;
       }
 
-      if (!this.openRecords) {
-        this.openRecords = this.readOpenRecords();
+      if (!this.openSeriesByCriteria) {
+        this.openSeriesByCriteria = this.readOpenSeriesByCriteria();
       }
 
-      const records: Array<OpenCriteriaRecord> = await this.openRecords;
-      const criteriaId: string = criteria.id.toString();
-      const seriesFingerprint: string = data.seriesFingerprint || "";
+      const openSeries: Set<string> | undefined = (
+        await this.openSeriesByCriteria
+      ).get(criteria.id.toString());
 
-      return records.some((record: OpenCriteriaRecord) => {
-        return (
-          record.createdCriteriaId === criteriaId &&
-          (record.seriesFingerprint || "") === seriesFingerprint
-        );
-      });
+      return Boolean(openSeries?.has(data.seriesFingerprint || ""));
     }
 
     if (criteria.changeMonitorStatus && criteria.monitorStatusId) {

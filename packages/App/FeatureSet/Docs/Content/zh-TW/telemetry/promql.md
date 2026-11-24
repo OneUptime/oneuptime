@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime 以 OpenTelemetry 的方式儲存指標。PromQL 依照 Prometheus 本
 
 | 在 OneUptime 中 | 在 PromQL 中 |
 | --- | --- |
-| 量測器 `system.cpu.utilization` | `system_cpu_utilization` |
-| 計數器 `http.requests` | `http_requests` 或 `http_requests_total` |
-| 直方圖 `http.server.request.duration` | `http_server_request_duration_bucket`（帶 `le`）、`_count` 和 `_sum` |
+| 單位為 `1` 的儀表 `system.cpu.utilization` | `system_cpu_utilization_ratio`，或 `system_cpu_utilization` |
+| 單位為 `By` 的儀表 `system.memory.usage` | `system_memory_usage_bytes`，或 `system_memory_usage` |
+| 計數器 `http.requests` | `http_requests_total`，或 `http_requests` |
+| 單位為 `s` 的直方圖 `http.server.request.duration` | `http_server_request_duration_seconds_bucket`（帶 `le`）、`_count` 和 `_sum`，或去掉 `_seconds` 的同名序列 |
 | 摘要 `rpc.latency` | `rpc_latency`（帶 `quantile`）、`_count` 和 `_sum` |
 | 屬性 `http.route` | 標籤 `http_route` |
 | 資源屬性 `service.name` | 標籤 `resource_service_name`，以及 `job` |
 | 資源屬性 `service.instance.id` | 標籤 `resource_service_instance_id`，以及 `instance` |
 
 - **指標名稱和標籤名稱中的點和連字號會變成底線。** 若要依儲存時的原樣指定指標或標籤，請像 Prometheus 3 那樣為名稱加上引號：`{"http.server.request.duration", "http.route"="/checkout"}`。
+- **單位是名稱的一部分**，與 Prometheus 3 和 OpenTelemetry Collector 的寫法相同：`s` 加上 `_seconds`，`By` 加上 `_bytes`，`By/s` 加上 `_bytes_per_second`，`%` 加上 `_percent`；單位為 `1` 的儀表以 `_ratio` 結尾，計數器以 `_total` 結尾，而像 `{request}` 這樣寫在大括號裡的單位什麼也不加。不帶單位的名稱同樣能找到指標，**新增指標名稱** 會列出帶單位的每個指標。
 - **Delta 計數器會從查詢時間範圍的起點開始累加**，因此 `rate()` 和 `increase()` 會像讀取其他任何計數器一樣讀取它們。
 - **指數直方圖** 有 `_count` 和 `_sum`，但沒有桶。
 
@@ -144,6 +146,7 @@ Prometheus 的原生直方圖函式（例如 `histogram_count()`）無法使用�
 | 求值的最長時間 | 30 秒 |
 | 選擇器回溯尋找序列最新樣本的時長 | 5 分鐘 |
 | 子查詢未指定步長時的預設步長 | 1 分鐘 |
+| 一個專案每分鐘可以傳送的查詢 | 1,200 |
 
 ## 疑難排解
 
@@ -159,10 +162,15 @@ Prometheus 的原生直方圖函式（例如 `histogram_count()`）無法使用�
 查詢要求的資料超過了一次讀取所能容納的量。請新增標籤比對器、縮短時間範圍，或使用更大的步長。
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+這個專案的儀表板、Grafana 和指令碼在這一分鐘內總共向 API 傳送了超過 1,200 個查詢。面板會在下一分鐘重新載入；請降低儀表板的重新整理頻率，以免超出上限。
+:::
+
 ## 後續步驟
 
 :::cards
 - [指標瀏覽器](/docs/telemetry/metrics-explorer): 不必撰寫查詢就能為指標繪製圖表。
-- [指標監控](/docs/monitor/metrics-monitor): 當指標越過臨界值時發出警示。
-- [外部資料來源](/docs/dashboards/data-sources): 在儀表板上為外部 Prometheus 繪製圖表。
+- [指標監控](/docs/monitor/metrics-monitor): 針對指標或 PromQL 運算式發出警示，每個序列一個事件。
+- [外部資料來源](/docs/dashboards/data-sources): 在儀表板上為 PromQL 繪製圖表，可以針對此專案的指標或外部 Prometheus。
+- [LogQL](/docs/telemetry/logql): 用 LogQL 查詢日誌，也可以透過 Grafana 的 Loki 資料來源查詢。
 :::

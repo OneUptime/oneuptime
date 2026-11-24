@@ -1,7 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
+  CLOUD_RESOURCE_CADENCE_ROW_CAPTIONS,
+  CLOUD_RESOURCE_DAILY_ROW_CAPTION,
+  CLOUD_RESOURCE_FEW_TIMES_A_DAY_ROW_CAPTION,
   CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+  CLOUD_RESOURCE_HOURLY_ROW_CAPTION,
+  CLOUD_RESOURCE_SIX_HOURLY_ROW_CAPTION,
   CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
   CloudMonitoredResourceRowAggregation,
   getCloudMonitoredResourceAttributeDisplayKeys,
@@ -37,6 +42,7 @@ import {
 import {
   AWS_KEY_METRICS,
   AZURE_KEY_METRICS,
+  CloudKeyMetricCadence,
   GCP_KEY_METRICS,
   getAzureStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
@@ -563,9 +569,12 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
     }
   });
 
+  /*
+   * A Storage account's rows say its used capacity comes every hour
+   * (#10026), below; its minute metrics read as they did.
+   */
   test.each([
     [CloudProvider.Azure, "Microsoft.Compute/virtualMachines"],
-    [CloudProvider.Azure, "Microsoft.Storage/storageAccounts"],
     [CloudProvider.Azure, "Microsoft.EventGrid/namespaces"],
     [CloudProvider.AWS, "AWS::SQS::Queue"],
     [CloudProvider.AWS, SERVICE_BUS],
@@ -591,6 +600,7 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
     expect(readOf(sites, "azure_healthcheckstatus_average")).toEqual({
       aggregationType: AggregationType.Avg,
       caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+      showsNewestPointAge: true,
     });
     // Whatever range the list reads, and whatever case the name is in.
     expect(
@@ -598,6 +608,7 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
     ).toEqual({
       aggregationType: AggregationType.Avg,
       caption: CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+      showsNewestPointAge: true,
     });
     // Its minute metrics, and anything else, read as they did, uncaptioned.
     expect(readOf(sites, "azure_requests_total")).toBeUndefined();
@@ -626,6 +637,83 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
     expect(rowsOf(CloudProvider.Azure, "Microsoft.Web/staticSites")).toBe(
       undefined,
     );
+  });
+
+  /*
+   * #10026: a key metric whose points come an hour, six hours or a day
+   * apart says how often, as the five-minute ones do, and every such row
+   * says how old its newest point is - the value it shows.
+   */
+  test("a Storage account's used capacity comes every hour, an App Service app's file system every 6 hours, an S3 bucket's storage once a day", () => {
+    const storage: CloudMonitoredResourceRowAggregation | undefined = rowsOf(
+      CloudProvider.Azure,
+      "Microsoft.Storage/storageAccounts",
+    );
+
+    expect(readOf(storage, "azure_usedcapacity_average")).toEqual({
+      aggregationType: AggregationType.Avg,
+      caption: CLOUD_RESOURCE_HOURLY_ROW_CAPTION,
+      showsNewestPointAge: true,
+    });
+    // Its minute metrics read as before.
+    expect(readOf(storage, "azure_transactions_total")).toBeUndefined();
+
+    const sites: CloudMonitoredResourceRowAggregation | undefined = rowsOf(
+      CloudProvider.Azure,
+      "Microsoft.Web/sites",
+    );
+
+    expect(readOf(sites, "azure_filesystemusage_average")).toEqual({
+      aggregationType: AggregationType.Avg,
+      caption: CLOUD_RESOURCE_SIX_HOURLY_ROW_CAPTION,
+      showsNewestPointAge: true,
+    });
+
+    // A DNS zone's queries and a registry's storage, every hour too.
+    expect(
+      readOf(
+        rowsOf(CloudProvider.Azure, "Microsoft.Network/dnszones"),
+        "azure_queryvolume_total",
+      )?.caption,
+    ).toBe(CLOUD_RESOURCE_HOURLY_ROW_CAPTION);
+    expect(
+      readOf(
+        rowsOf(CloudProvider.Azure, "Microsoft.ContainerRegistry/registries"),
+        "azure_storageused_average",
+      )?.caption,
+    ).toBe(CLOUD_RESOURCE_HOURLY_ROW_CAPTION);
+
+    const bucket: CloudMonitoredResourceRowAggregation | undefined = rowsOf(
+      CloudProvider.AWS,
+      "AWS::S3::Bucket",
+    );
+
+    expect(readOf(bucket, "amazonaws.com/AWS/S3/BucketSizeBytes")).toEqual({
+      aggregationType: AggregationType.Avg,
+      caption: CLOUD_RESOURCE_DAILY_ROW_CAPTION,
+      showsNewestPointAge: true,
+    });
+    expect(
+      readOf(
+        rowsOf(CloudProvider.AWS, "AWS::CertificateManager::Certificate"),
+        "amazonaws.com/aws/certificatemanager/daystoexpiry",
+      )?.caption,
+    ).toBe(CLOUD_RESOURCE_FEW_TIMES_A_DAY_ROW_CAPTION);
+    // An EC2 instance's metrics come every read: its rows read as before.
+    expect(rowsOf(CloudProvider.AWS, "AWS::EC2::Instance")).toBeUndefined();
+    // So do a Compute Engine VM's.
+    expect(rowsOf(CloudProvider.GCP, "gce_instance")).toBeUndefined();
+  });
+
+  test("every cadence has its caption, each its own", () => {
+    const captions: Array<string> = Object.values(CloudKeyMetricCadence).map(
+      (cadence: CloudKeyMetricCadence): string => {
+        return CLOUD_RESOURCE_CADENCE_ROW_CAPTIONS[cadence];
+      },
+    );
+
+    expect(new Set(captions).size).toBe(captions.length);
+    expect(captions).toContain(CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION);
   });
 
   test("a row read without its provider or type reads as before", () => {
@@ -671,7 +759,7 @@ describe("getCloudMonitoredResourceRowAggregation", () => {
       for (const caption of [
         CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
         CLOUD_RESOURCE_AVERAGED_ROW_CAPTION,
-        CLOUD_RESOURCE_FIVE_MINUTE_ROW_CAPTION,
+        ...Object.values(CLOUD_RESOURCE_CADENCE_ROW_CAPTIONS),
       ]) {
         expect([file, caption, typeof locale[caption]]).toEqual([
           file,

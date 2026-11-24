@@ -88,6 +88,7 @@
     <string name="log_session_title">समस्या निवारण के लिए लॉग</string>
     <string name="log_session_request_by">%1$s ने OneUptime में इस डिवाइस पर हर ऐप के लॉग माँगे हैं (%2$s, स्तर %3$s और उससे ऊपर)।</string>
     <string name="log_session_request">OneUptime इस डिवाइस पर हर ऐप के लॉग माँग रहा है (%1$s, स्तर %2$s और उससे ऊपर)।</string>
+    <string name="log_session_note">“%1$s”</string>
     <string name="log_session_android_prompt">इसके बाद Android आपसे डिवाइस के सभी लॉग का ऐक्सेस देने के लिए पूछेगा। वहाँ भी अनुमति दें।</string>
     <string name="log_session_allow">अनुमति दें</string>
     <string name="log_session_decline">अस्वीकार करें</string>

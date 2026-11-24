@@ -199,6 +199,14 @@ describe("EntityFilterDropdown shows severities, states, statuses and labels wit
         _id: true,
         name: true,
         color: true,
+        /*
+         * A label is also read with what tells it apart from one that
+         * shares its name: its description and when it was made
+         * (getSharedNameSelect, #10064).
+         */
+        ...(type === EntityFilterModelType.Label
+          ? { description: true, createdAt: true }
+          : {}),
       });
     },
   );

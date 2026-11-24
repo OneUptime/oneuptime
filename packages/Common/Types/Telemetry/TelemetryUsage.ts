@@ -46,11 +46,13 @@ export const isTelemetryUsageProductType: (
 
 /*
  * Exceptions: a signal the usage pages and the API show on their own, but
- * never a product. They are billed inside Traces, one product that sums the
- * span rows and the exception rows, so a Traces usage row keeps that sum -
- * the bytes it is billed for - and says how much of it was exceptions
+ * never a product. Each is billed inside the product it was found in
+ * (ExceptionSource, issue #6590): Traces sum the span rows and the
+ * exceptions found in spans, Logs the log rows and the exceptions found in
+ * logs, so a Traces or Logs usage row keeps that sum - the bytes it is billed
+ * for - and says how much of it was exceptions
  * (TelemetryUsageBilling.exceptionDataIngestedInGB). The reads show that part
- * as Exceptions and the rest as Traces. A Traces row counted before the
+ * as Exceptions and the rest as Traces or Logs. A row counted before the
  * exceptions were counted apart has no such part: its exceptions stay inside
  * Traces, as they were shown when it was counted.
  *
@@ -66,7 +68,7 @@ export type TelemetryUsageSignal = ProductType | TelemetryUsageExceptionsSignal;
 
 /*
  * The signals the usage pages and the API show, in the order they are shown:
- * every product, and the exceptions after the traces they are billed with.
+ * every product, and the exceptions after the traces.
  */
 export const TELEMETRY_USAGE_SIGNALS: ReadonlyArray<TelemetryUsageSignal> = [
   ProductType.Logs,

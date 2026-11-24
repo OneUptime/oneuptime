@@ -129,7 +129,7 @@ Hver statusendring registreres med årsaken på monitorens **Statustidslinje**.
 
 ## Kriterier
 
-Kriteriene til en unntaksmonitor har seks slags **Filtertype**: **Antall unntak**, antallet unntak som samsvarte i vinduet, og **Nye unntak**, **Unntak med regresjon**, **Økning i unntak (i %)**, **Økter med unntak (i %)** og **Økter**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
+Kriteriene til en unntaksmonitor har åtte slags **Filtertype**: **Antall unntak**, antallet unntak som samsvarte i vinduet, og **Nye unntak**, **Unntak med regresjon**, **Økning i unntak (i %)**, **Økter med unntak (i %)**, **Økter**, **Installasjoner med unntak (i %)** og **Installasjoner**, som beskrives nedenfor. **Når det skal varsles** setter opp ett kriterium, der **Betingelse** er **Mer enn**, **Minst**, **Færre enn**, **Høyst**, **Nøyaktig**, **Uvanlig høy**, **Uvanlig lav** eller **Uvanlig høy eller lav**. For flere kriterier, eller ett med mer enn ett filter, klikker du på **Rediger som egne kriterier** under **Flere felt** i **Hva som skjer**: hvert kriterium der har et **Filtervilkår** og en **Verdi**.
 
 | Filtervilkår | Samsvarer når antallet unntak er… |
 | --- | --- |
@@ -184,6 +184,19 @@ En app på tusenvis av telefoner har alltid noen krasj, så det teamet vil høre
 | **Økter** | Vinduets økter: de distinkte `session.id` i spans fra monitorens tjenester. Kombiner den med andelen, så en andel av noen få økter ikke varsler. |
 
 Med **Bare uhåndterte unntak** slått på og typene `ANR` og `Hang` utelatt er andelen en mobilapps krasjrate. Anbefalingen **App Crash Rate** for en mobilapp varsler når mer enn 1,09 % av øktene i en time krasjer, raten Android vitals kaller dårlig oppførsel, så snart timen har minst 250 økter. **App ANR Rate** teller bare `ANR` og `Hang`, over 0,47 %. For å skrive en slik regel selv velger du **En andel av øktene** under **Varsle ved** i **Når det skal varsles**.
+
+## En andel av installasjonene
+
+Over et døgn er raten Android vitals vurderer og Play Console viser, andelen av en apps installasjoner som krasjet: en person der appen krasjer fem ganger, er én installasjon som krasjet. For en mobilapp der telemetrien angir installasjonen, kan en unntaksmonitor varsle ved den andelen, ved siden av eller i stedet for andelen av øktene.
+
+| Filtertype | Hva den leser i vinduet |
+| --- | --- |
+| **Installasjoner med unntak (i %)** | Andelen av vinduets installasjoner der et samsvarende unntak skjedde. Uten installasjoner i vinduet finnes det ingen andel, og ingen kriterier på den samsvarer. |
+| **Installasjoner** | Vinduets installasjoner: de distinkte installasjonene som spans fra monitorens tjenester angir. Kombiner den med andelen, så en andel av noen få installasjoner ikke varsler. |
+
+En installasjon er det appens ressurs angir: `app.installation.id` som OpenTelemetry Android 1.1 og nyere setter, ellers `device.id` til en iOS-app, appens leverandør-ID. En Android-installasjon slutter når appen avinstalleres, så en reinstallasjon er en ny installasjon. En iOS-installasjon varer så lenge en av leverandørens apper blir værende på enheten, så å installere den eneste på nytt gir en ny installasjon, mens å installere én av to på nytt ikke gjør det. En installasjon hører til vinduet når appen sendte et span i det. Et krasj teller likevel når installasjonen ikke sendte noe span, slik som et iOS-krasj MetricKit rapporterer en dag senere, og andelen blir aldri over 100 %.
+
+**Daily Crash Rate** varsler når mer enn 1,09 % av minst 250 installasjoner krasjer i løpet av et døgn, og **Daily ANR Rate** når mer enn 0,47 % av dem får en ANR eller et heng. For å skrive en slik regel selv velger du **En andel av installasjonene** under **Varsle ved** i **Når det skal varsles**.
 
 ## Topper sammenlignet med det normale
 

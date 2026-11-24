@@ -1,5 +1,6 @@
 import z, { ZodSchema } from "./Zod";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import {
   getTableColumns,
   TableColumnMetadata,
@@ -241,14 +242,24 @@ export class ModelSchema extends BaseSchema {
       return "";
     }
 
+    /*
+     * A column only OneUptime writes takes no value from a create or an
+     * update through the API, whatever its lists say (#10053): nobody, then.
+     */
+    const column: TableColumnMetadata | undefined =
+      model.getTableColumnMetadata(key);
+    const writtenOnlyByOneUptime: boolean = Boolean(
+      column && ModelSchema.isWrittenOnlyByOneUptime(column),
+    );
+
     const createPermissions: string = this.formatPermissionsForSchema(
-      accessControl.create,
+      writtenOnlyByOneUptime ? [] : accessControl.create,
     );
     const readPermissions: string = this.formatPermissionsForSchema(
       accessControl.read,
     );
     const updatePermissions: string = this.formatPermissionsForSchema(
-      accessControl.update,
+      writtenOnlyByOneUptime ? [] : accessControl.update,
     );
 
     return `Permissions - Create: [${createPermissions}], Read: [${readPermissions}], Update: [${updatePermissions}]`;
@@ -334,6 +345,39 @@ export class ModelSchema extends BaseSchema {
       type: "string",
       example: ModelSchema.getTextExample(column, placeholder),
       ...(allowedValues ? { enum: allowedValues } : {}),
+    };
+  }
+
+  /*
+   * What the spec says about a permission column - a team's, an API key's
+   * or a custom role's permission: the permission's key, such as
+   * IncidentMember or ReadProjectIncident. A string, as the API takes and
+   * answers it. It was documented as an object, with the example {"read":
+   * true, "write": false, "delete": false}, so every client generated from
+   * the spec took it as JSON: the Terraform provider asked for
+   * jsonencode("IncidentMember") and the CLI for '"IncidentMember"'
+   * (#10300). x-oneuptime-type says which string it is, so the provider
+   * still takes the key written the way it used to ask for.
+   *
+   * No enum: a team may be given more than 1,600 permissions, and more come
+   * with each release. A client generated from an enum would refuse every
+   * permission added after it was, and the enum would add tens of KB to the
+   * spec at each of the twelve places a permission column appears. The
+   * server says of a value that is no permission which picker lists the
+   * ones it takes.
+   */
+  public static getPermissionOpenApi(column: TableColumnMetadata): {
+    type: "string";
+    example: string;
+    "x-oneuptime-type": string;
+  } {
+    return {
+      type: "string",
+      example:
+        typeof column.example === "string" && column.example.trim()
+          ? column.example
+          : Permission.IncidentMember,
+      "x-oneuptime-type": TableColumnType.Permission,
     };
   }
 
@@ -549,10 +593,7 @@ export class ModelSchema extends BaseSchema {
         }
         zodType = z.number().openapi(openapiConfig);
       } else if (column.type === TableColumnType.Permission) {
-        zodType = z.any().openapi({
-          type: "object",
-          example: { read: true, write: false, delete: false },
-        });
+        zodType = z.string().openapi(ModelSchema.getPermissionOpenApi(column));
       } else if (column.type === TableColumnType.CustomFieldType) {
         // What a custom field holds: "Text", "Number", "Dropdown"...
         zodType = z.string().openapi({
@@ -682,10 +723,11 @@ export class ModelSchema extends BaseSchema {
         description: finalDescription,
         relation: relations[key],
         changesOnlyWith: column.changesOnlyWith,
+        serverOwned: column.serverOwned,
       });
 
       // Mark computed fields as readOnly in OpenAPI spec
-      if (column.computed) {
+      if (ModelSchema.isWrittenOnlyByOneUptime(column)) {
         zodType = zodType.openapi({ readOnly: true });
       }
 
@@ -718,12 +760,18 @@ export class ModelSchema extends BaseSchema {
    * (TableColumnMetadata.changesOnlyWith) names that column
    * (`x-oneuptime-changes-only-with`), so the Terraform provider refuses,
    * at plan time, a plan that changes it alone (#9814).
+   *
+   * A column OneUptime keeps once the record exists (TableColumnMetadata
+   * .serverOwned) says so, and how (`x-oneuptime-server-owned`: "always" or
+   * "after-create"), so the Terraform and Crossplane providers leave it to
+   * OneUptime (#9985).
    */
   private static annotateColumn(data: {
     zodType: ZodTypes.ZodTypeAny;
     description: string;
     relation?: ModelRelationReference | undefined;
     changesOnlyWith?: string | undefined;
+    serverOwned?: ServerOwned | undefined;
     disableOpenApiSchema?: boolean | undefined;
   }): ZodTypes.ZodTypeAny {
     let zodType: ZodTypes.ZodTypeAny = data.zodType;
@@ -752,7 +800,53 @@ export class ModelSchema extends BaseSchema {
       } as any);
     }
 
+    if (data.serverOwned) {
+      zodType = zodType.openapi({
+        "x-oneuptime-server-owned": data.serverOwned,
+      } as any);
+    }
+
     return zodType;
+  }
+
+  /*
+   * Whether only OneUptime writes the column, so no create or update
+   * schema offers it and every schema marks it read only: a computed column,
+   * which OneUptime fills in, and one OneUptime keeps from the record's
+   * creation on (ServerOwned.Always).
+   */
+  public static isWrittenOnlyByOneUptime(column: TableColumnMetadata): boolean {
+    return (
+      Boolean(column.computed) || column.serverOwned === ServerOwned.Always
+    );
+  }
+
+  /*
+   * The lists of related records an update of `modelType` can add single
+   * entries to and take them off (addToList and removeFromList,
+   * Types/Database/ListChanges, #10135): each list its update schema
+   * documents - a list a caller may update, which only OneUptime does not
+   * write - by its field, in the model's order.
+   */
+  public static getListsChangedEntryByEntry(
+    modelType: new () => DatabaseBaseModel,
+  ): Array<string> {
+    const model: DatabaseBaseModel = new modelType();
+    const columns: Dictionary<TableColumnMetadata> = getTableColumns(model);
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    return Object.keys(columns).filter((key: string): boolean => {
+      const column: TableColumnMetadata | undefined = columns[key];
+
+      return Boolean(
+        column &&
+          column.type === TableColumnType.EntityArray &&
+          !column.hideColumnInDocumentation &&
+          !ModelSchema.isWrittenOnlyByOneUptime(column) &&
+          (accessControl[key]?.update || []).length > 0,
+      );
+    });
   }
 
   /*
@@ -1626,9 +1720,12 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
-      // Skip computed fields for create and update operations
+      /*
+       * Skip computed fields for create and update operations, and the
+       * fields only OneUptime keeps (ServerOwned.Always).
+       */
       if (
-        column.computed &&
+        ModelSchema.isWrittenOnlyByOneUptime(column) &&
         (data.schemaType === "create" || data.schemaType === "update")
       ) {
         continue;
@@ -1739,6 +1836,7 @@ export class ModelSchema extends BaseSchema {
         description: finalDescription,
         relation: relations[key],
         changesOnlyWith: column.changesOnlyWith,
+        serverOwned: column.serverOwned,
         disableOpenApiSchema: data.disableOpenApiSchema || false,
       });
 
@@ -1973,10 +2071,10 @@ export class ModelSchema extends BaseSchema {
         }),
       );
     } else if (column.type === TableColumnType.Permission) {
-      zodType = applyOpenApi(z.any(), {
-        type: "object",
-        example: { read: true, write: false, delete: false },
-      });
+      zodType = applyOpenApi(
+        z.string(),
+        ModelSchema.getPermissionOpenApi(column),
+      );
     } else if (column.type === TableColumnType.CustomFieldType) {
       // What a custom field holds: "Text", "Number", "Dropdown"...
       zodType = applyOpenApi(z.string(), {
@@ -2107,7 +2205,7 @@ export class ModelSchema extends BaseSchema {
     }
 
     // Mark computed fields as readOnly in OpenAPI spec
-    if (column.computed && !disableOpenApiSchema) {
+    if (ModelSchema.isWrittenOnlyByOneUptime(column) && !disableOpenApiSchema) {
       zodType = zodType.openapi({ readOnly: true });
     }
 
@@ -2335,6 +2433,14 @@ export class ModelSchema extends BaseSchema {
         continue;
       }
 
+      // A create or an update never writes what only OneUptime keeps.
+      if (
+        (data.schemaType === "create" || data.schemaType === "update") &&
+        ModelSchema.isWrittenOnlyByOneUptime(column)
+      ) {
+        continue;
+      }
+
       // Filter out columns with no permissions (root-only access)
       const accessControl: ColumnAccessControl | undefined =
         columnAccessControl[key];
@@ -2467,8 +2573,9 @@ export class ModelSchema extends BaseSchema {
       case TableColumnType.Slug:
         return "example-slug";
 
+      // A permission's key, never "read": no permission is called that.
       case TableColumnType.Permission:
-        return "read";
+        return this.getPermissionOpenApi(column).example;
 
       default:
         return null;

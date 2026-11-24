@@ -7,6 +7,7 @@ import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
+import { CloudResourceMetricStatus } from "../../../Types/Cloud/CloudResourceMetricCollection";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
 import { AwsStreamCoverage } from "../../../Types/CloudConnection/CloudStreamStack";
 import { JSONObject } from "../../../Types/JSON";
@@ -61,6 +62,79 @@ export interface CloudConnectorCallOptions {
   requestTimeoutInMs?: number | undefined;
   // Test seam for waiting before a retry; setTimeout when absent.
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  // Test seam for the jitter of a retry's wait; Math.random when absent.
+  random?: (() => number) | undefined;
+}
+
+/*
+ * GOOGLE CLOUD: WHICH VALUES A SPLIT ADDITION'S RESOURCES ARE READ FOR
+ * (#10076), as the last learning found them (GcpCloudConnector).
+ */
+export interface GcpSplitLearned {
+  // When they were learned: a resource's busiest values are learned again an hour later.
+  at: string;
+  /*
+   * How: PromQL's topk, which returns - and bills - each resource's busiest
+   * values alone; or timeSeries.list, which returns every value, where
+   * PromQL could not rank them.
+   */
+  via: "promql" | "list";
+  /*
+   * The resources that had the cap's values or more: each read for its
+   * busiest values alone, by their labels (the split's resource labels).
+   */
+  capped: Array<{ resource: Record<string, string>; values: Array<string> }>;
+  // The others it saw, with fewer values: read for every value.
+  others: Array<Record<string, string>>;
+  /*
+   * A type's: the resources of the type that the read it was learned in
+   * found by their key metrics, but it did not see - a VM without the Ops
+   * Agent never reports the metric. Found again, they are no new ones.
+   */
+  checked?: Array<Record<string, string>> | undefined;
+  /*
+   * A type's: the resources of the type a read found since, which the next
+   * read learns alone - their busiest values, not every resource's again.
+   */
+  pending?: Array<Record<string, string>> | undefined;
+}
+
+/*
+ * GOOGLE CLOUD: A SPLIT METRIC PROMQL COULD NOT RANK (#10164). Its busiest
+ * values are learned from a timeSeries.list of the hour instead, which
+ * returns - and Google bills - every value of each resource once. Asking
+ * PromQL again each hour would fail again before the list, so the read
+ * remembers it, and asks PromQL again a day after.
+ */
+export interface GcpSplitUnranked {
+  // When PromQL last could not rank it: asked again a day after.
+  at: string;
+  /*
+   * What the hour's list returned of each resource that reported it, on
+   * average, rounded up: the series one learning bills a resource. Absent
+   * until a list has run.
+   */
+  valuesPerResource?: number | undefined;
+  // Its metric, aligner and label, for what More Metrics says of it.
+  metricType: string;
+  aligner: string;
+  label: string;
+  projectId: string;
+}
+
+/*
+ * AWS: AN ADDED METRIC'S UNIT AS ITS DATAPOINTS CARRY IT, AS THE READ LEARNED
+ * IT (#10077, AwsAddedMetricUnits).
+ */
+export interface AwsAddedMetricUnitState {
+  // CloudWatch's name for it ("Bytes"), "None" for none; absent until learned.
+  unit?: string | undefined;
+  // When the datapoints last confirmed it: checked again a day later.
+  checkedAt?: string | undefined;
+  // When the read last asked: an hour between two asks of one addition.
+  probedAt?: string | undefined;
+  // The last check found another unit: every unit is asked at the next read.
+  isChanged?: boolean | undefined;
 }
 
 /*
@@ -85,6 +159,11 @@ export interface CloudConnectionPullState {
   // AWS: Regions the credential cannot use (an opt-in Region not enabled).
   disabledRegions?: Array<string> | undefined;
   /*
+   * AWS, an account's: the unit of each added metric it reads, by the
+   * addition's key, as its datapoints carry it (#10077).
+   */
+  awsAddedMetricUnits?: Record<string, AwsAddedMetricUnitState> | undefined;
+  /*
    * Azure: each resource type's metrics as its definitions name them, when
    * they were read, and for which of its key metrics (`of`, a fingerprint).
    */
@@ -95,6 +174,20 @@ export interface CloudConnectionPullState {
    * balancer), read with their own definitions.
    */
   azureResourceMetricDefinitions?: JSONObject | undefined;
+  /*
+   * Azure: per resource (its lowercased ARM id), what the reads could not
+   * read of its metrics (AzureMetricMemory): the resource as a whole when
+   * no call for it was answered, and each metric Azure Monitor answered
+   * with an error - one it does not serve is left out of the reads until
+   * its `until`. A resource read in full has none. Its pages say so.
+   */
+  azureMetricStatus?: Record<string, CloudResourceMetricStatus> | undefined;
+  /*
+   * Azure: who Azure Monitor refused to read in batches ("*", a
+   * subscription, or "<subscription>|<region>|<type>"), and until when:
+   * their resources are read a resource at a time until then.
+   */
+  azureMetricBatchesOff?: Record<string, string> | undefined;
   /*
    * Google Cloud: per project, the monitored resource types it reported a
    * key metric of, and when it last did - so a read asks a project only
@@ -109,6 +202,18 @@ export interface CloudConnectionPullState {
    */
   gcpOpsAgentSeen?: Record<string, string> | undefined;
   gcpOpsAgentAskedAt?: Record<string, string> | undefined;
+  /*
+   * Google Cloud: per call a split addition is asked in (by
+   * getGcpSplitLearnKey), the values its resources are read for (#10076).
+   */
+  gcpSplitValues?: Record<string, GcpSplitLearned> | undefined;
+  /*
+   * Google Cloud: per split metric of a project (by getGcpSplitRankKey), when
+   * PromQL last could not rank its values (#10164): its learning goes
+   * straight to the hour's list until a day has passed, and More Metrics
+   * says what that list costs.
+   */
+  gcpSplitUnranked?: Record<string, GcpSplitUnranked> | undefined;
   // The accounts the last read reached.
   accounts?: Array<string> | undefined;
   // When the inventory last listed every resource (CloudInventory).
@@ -173,6 +278,27 @@ export interface CloudConnectionPullState {
    * newer one keeps besides (each cost's tags).
    */
   costsVersion?: number | undefined;
+  /*
+   * Per account (its id in lower case), when its costs were last read and
+   * kept - set once they are written. An account with none has had no read
+   * of its own yet, and is read as far back as a first read (Azure, whose
+   * subscriptions are read one by one: one a read could not reach is read
+   * in full when it is).
+   */
+  costAccountsReadAt?: Record<string, string> | undefined;
+  /*
+   * The accounts a read of costs put off - its cloud's rate limit, or the
+   * read's own limit, stopped it before them (Azure Cost Management) - and
+   * from when they may be read: the lane carries on with them at the first
+   * read from then, rather than in twelve hours, and never starts over.
+   */
+  costsPending?: { accounts: Array<string>; at: string } | undefined;
+  /*
+   * Azure: per subscription (lower case), when its reservations and savings
+   * plans were last read: they are read least recently read first, so a
+   * read Cost Management's limits stop part way reaches the rest next.
+   */
+  azureCommitmentsReadAt?: Record<string, string> | undefined;
   /*
    * AWS, with Costs per resource on: when Cost Explorer's resource-level
    * costs were last read in full - due again a day later, when the last
@@ -526,6 +652,17 @@ export interface CloudCostAccountOutcome {
   accountId: string;
   state: CloudCostState;
   message?: string | undefined;
+  /*
+   * Queued: when it may be read, as an ISO time - its cloud's own word (a
+   * rate limit's wait), or now when it was the read's own limit.
+   */
+  retryAt?: string | undefined;
+  /*
+   * Read over other days than the read was asked for: an account's first
+   * read, which goes back as far as a connection's first read does. The
+   * writer brings these days in line for it.
+   */
+  window?: { start: Date; end: Date } | undefined;
 }
 
 export interface CloudCostsOptions extends CloudConnectorCallOptions {
@@ -535,6 +672,17 @@ export interface CloudCostsOptions extends CloudConnectorCallOptions {
   // The first day read, and the day after the last, in UTC.
   start: Date;
   end: Date;
+  /*
+   * The days an account's first read covers (getCloudCostWindow's first
+   * read), for a connector that reads accounts one by one: an account it
+   * has never read in full (costAccountsReadAt) is read over these.
+   */
+  firstReadWindow?: { start: Date; end: Date } | undefined;
+  /*
+   * Only these accounts (lower case): a read that carries on with the
+   * accounts the last one put off (costsPending). Every account when absent.
+   */
+  accounts?: Array<string> | undefined;
   /*
    * The resources the connection holds: the Region of a cost the cloud
    * gives by resource but not by Region (Azure Cost Management).
@@ -663,11 +811,15 @@ export interface CloudConnector {
   /*
    * A small real read: is the credential accepted, may it read what the
    * connection needs, and what would a read find. Never throws: failures
-   * are a result with status "fail".
+   * are a result with status "fail". connectionId is the saved connection
+   * tested, when it is one (none for settings never saved): an AWS role's
+   * check is then kept for its reads, on every server (#10424).
    */
   testConnection(
     settings: CloudConnectionSettings,
-    options: CloudConnectorCallOptions,
+    options: CloudConnectorCallOptions & {
+      connectionId?: string | undefined;
+    },
   ): Promise<CloudConnectionTestResult>;
   // One read. Throws LlmProviderError when it cannot read at all.
   read(
@@ -738,6 +890,14 @@ export class CloudReadBudget {
 
   public isSpent(): boolean {
     return this.spent;
+  }
+
+  /*
+   * How long the read may still take, in milliseconds: 0 once its time is
+   * up. A client that would wait (a rate limit's) waits no longer than this.
+   */
+  public getRemainingMs(): number {
+    return Math.max(0, this.deadlineMs - Date.now());
   }
 
   // Requests made so far: the calls a read cost the customer's cloud.

@@ -136,6 +136,42 @@ test.describe("Passkey account lifecycle", () => {
     await expect(page.getByTestId("passkey-login")).toBeEnabled();
   };
 
+  /*
+   * A change to how this account signs in - a key added or removed - waits
+   * until the session has confirmed it's its person's (#10155). The
+   * Dashboard asks once, in Confirm It's You, then carries on with the
+   * change. Two-factor authentication is off while this suite adds and
+   * removes keys, so the account's password is all it asks for.
+   */
+  const reauthenticationPrompt: () => Locator = (): Locator => {
+    return page.getByRole("dialog", { name: "Confirm It's You", exact: true });
+  };
+
+  const confirmItsYou: () => Promise<void> = async (): Promise<void> => {
+    const prompt: Locator = reauthenticationPrompt();
+    await expect(prompt).toBeVisible();
+
+    const password: Locator = prompt.getByTestId("reauthentication-password");
+    await password.fill(E2E_SIGNUP_PASSWORD);
+    await password.press("Enter");
+    await expect(prompt).toHaveCount(0);
+  };
+
+  /*
+   * A session that confirmed in the last ten minutes is not asked again:
+   * then `whenNotAsked` is what shows instead.
+   */
+  const confirmItsYouIfAsked: (whenNotAsked: Locator) => Promise<void> = async (
+    whenNotAsked: Locator,
+  ): Promise<void> => {
+    const prompt: Locator = reauthenticationPrompt();
+    await expect(prompt.or(whenNotAsked).first()).toBeVisible();
+
+    if (await prompt.isVisible()) {
+      await confirmItsYou();
+    }
+  };
+
   const expectSignedIn: () => Promise<void> = async (): Promise<void> => {
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
     const cookies: Awaited<ReturnType<BrowserContext["cookies"]>> =
@@ -311,6 +347,8 @@ test.describe("Passkey account lifecycle", () => {
     await page
       .getByRole("button", { name: "Add Passkey", exact: true })
       .click();
+    // The session signed up with a password: it confirms before the key is added.
+    await confirmItsYou();
     await page
       .getByTestId("modal")
       .locator('input[type="text"]')
@@ -395,6 +433,10 @@ test.describe("Passkey account lifecycle", () => {
       await page
         .getByRole("button", { name: "Add Security Key", exact: true })
         .click();
+      // Confirmed a minute ago, when the passkey was added: usually not asked again.
+      await confirmItsYouIfAsked(
+        page.getByRole("textbox", { name: "Security key name" }),
+      );
       await page
         .getByRole("textbox", { name: "Security key name" })
         .fill(securityKeyName);
@@ -1072,6 +1114,11 @@ test.describe("Passkey account lifecycle", () => {
       name: "Delete",
     });
     await page.getByTestId("modal-footer-submit-button").click();
+    /*
+     * A session the passkey just signed in, which has not confirmed: the
+     * delete is refused until it does, then sent again.
+     */
+    await confirmItsYou();
     await expect(
       page.getByRole("row").filter({ hasText: passkeyName }),
     ).toHaveCount(0);

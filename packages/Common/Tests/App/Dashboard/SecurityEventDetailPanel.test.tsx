@@ -550,6 +550,7 @@ describe("what the event names in the rest of OneUptime", () => {
       ],
       time: new Date("2026-09-17T10:00:00.000Z"),
       logResources: [{ type: "Host", id: HOST_ID }],
+      logOwners: [],
     });
 
     const connected: HTMLElement = await screen.findByTestId(
@@ -656,6 +657,106 @@ describe("what the event names in the rest of OneUptime", () => {
     );
 
     expect(await within(connected).findByText("core-fw-01")).toBeTruthy();
+  });
+
+  /*
+   * #10033: an event read from a cloud resource's streamed logs, or from a
+   * function's own logs, is connected to the resource and the function - not
+   * only to the service its line was filed under.
+   */
+  test("an event read from a cloud resource's and a function's own logs asks for both, by what it carries of them", async () => {
+    const vault: string =
+      "/subscriptions/6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b/resourcegroups/rg-sec/providers/microsoft.keyvault/vaults/kv-payments";
+    const SERVICE_ID: string = "30000000-0000-4000-8000-000000000012";
+    const RESOURCE_ID: string = "30000000-0000-4000-8000-000000000013";
+
+    getConnectionsMock.mockReset();
+    getTelemetryMentionsMock.mockReset();
+    getTelemetryMentionsMock.mockResolvedValue({
+      windowStart: "2026-09-17T09:30:00.000Z",
+      windowEnd: "2026-09-17T10:30:00.000Z",
+      values: [],
+      hasMoreValues: false,
+      unreadableSignals: [],
+      failedSignals: [],
+    } as never);
+    getConnectionsMock.mockResolvedValue({
+      windowStart: "2026-09-17T09:30:00.000Z",
+      windowEnd: "2026-09-17T10:30:00.000Z",
+      resources: [
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          id: RESOURCE_ID,
+          name: "kv-payments",
+          certainty: "Exact",
+          matches: [
+            {
+              entityType: "Other",
+              entityValue: "kv-payments",
+              certainty: "Exact",
+              reason: "LogSource",
+              matchedValue: vault,
+            },
+          ],
+          activeIncidents: { count: 0, items: [] },
+          activeAlerts: { count: 0, items: [] },
+          monitors: null,
+          recentChanges: [],
+        },
+      ],
+      hasMoreResources: false,
+      unmatched: [],
+      unreadableKinds: [],
+      failedKinds: [],
+    } as never);
+
+    renderPanel(
+      event({
+        ...FULL_EVENT,
+        attributes: {
+          ...FULL_EVENT.attributes,
+          [SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]: SERVICE_ID,
+          [SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]: "OpenTelemetry",
+          "oneuptime.log.cloud.resource_id": vault,
+          "oneuptime.log.faas.name": "rotate-keys",
+        },
+      } as Partial<SecurityEvent>),
+    );
+
+    fireEvent.click(tab("Connected"));
+
+    await waitFor(() => {
+      expect(getConnectionsMock).toHaveBeenCalledTimes(1);
+    });
+    const asked: {
+      logResources: Array<{ type: string; id: string }>;
+      logOwners: Array<{ kind: string; value: string }>;
+    } = getConnectionsMock.mock.calls[0]![0] as never;
+
+    // The service its line was filed under, as before...
+    expect(asked.logResources).toContainEqual({
+      type: "OpenTelemetry",
+      id: SERVICE_ID,
+    });
+    // ...and the vault and the function its own line was of.
+    expect(asked.logOwners).toEqual([
+      { kind: SecurityConnectionKind.CloudResource, value: vault },
+      {
+        kind: SecurityConnectionKind.ServerlessFunction,
+        value: "rotate-keys",
+      },
+    ]);
+
+    const connected: HTMLElement = await screen.findByTestId(
+      SECURITY_CONNECTIONS_TEST_IDS.connectedSignals,
+    );
+
+    expect(await within(connected).findByText("kv-payments")).toBeTruthy();
+    expect(
+      await within(connected).findByTestId(
+        SECURITY_CONNECTIONS_TEST_IDS.recordReason,
+      ),
+    ).toHaveTextContent("Read from its logs.");
   });
 });
 

@@ -171,6 +171,7 @@ Die [Host-Tabelle](#asset-attribute-von-hosts) und die [Netzwerkgeräte-Tabelle]
 | Name des Betriebssystems | `os.name` | Nur von SDKs, die ihn melden: Sonst nennt `os.description` das Betriebssystem |
 | Gerätetyp | `device.type` | Optional: auf dieselbe Weise aufprägen (`Hypervisor`, `Workstation`) |
 | Standort | `device.location` | Optional: auf dieselbe Weise aufprägen (`Frankfurt DC, Rack B4`) |
+| Sicherheitspatch-Ebene | `android.os.security_patch` | Auf einem Android-Gerät: vom Android-Agenten oder von seiner Geräteverwaltung |
 
 Alles, was mit Ja markiert ist, stammt aus dem Prozessor `resourcedetection` des Collectors und steht bereits in der Konfiguration, die OneUptime für Sie erzeugt.
 

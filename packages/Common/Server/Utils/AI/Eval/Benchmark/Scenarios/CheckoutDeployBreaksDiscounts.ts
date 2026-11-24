@@ -29,7 +29,7 @@ const scenario: BenchmarkScenario = {
     "Description: Error rate on POST /api/checkout above 5% for 3 minutes (Checkout API monitor).",
     "Severity: SEV-1",
     "Current state: Created",
-    "Declared at: Mar 10 2026, 14:07 UTC",
+    "Declared at: Mar 10, 2026, 14:07 UTC",
     "Affected monitors: Checkout API",
     "Labels: payments, storefront",
     "",

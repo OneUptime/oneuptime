@@ -400,3 +400,56 @@ test("a job or cluster name is quoted, so it cannot change the query", (): void 
     'max by (namespace, pod, container) (max_over_time(container_memory_working_set_bytes{job="cadvisor\\"} or vector(1) #",container!="",container!="POD",cluster="a\\\\\\"b"}[60s]))',
   );
 });
+
+/*
+ * #9970: the shipment says where its memory peaks come from, so the page
+ * that advises stopping the bundled engine can say when that stops the
+ * peaks too.
+ */
+test("says where the peaks come from: the source's Prometheus, by its origin", (): void => {
+  assert.strictEqual(
+    new PrometheusClient(sourceOf(ENGINE_PROMETHEUS)).memoryPeaksFrom(),
+    "engine",
+  );
+  assert.strictEqual(
+    new PrometheusClient(
+      sourceOf({ ...ENGINE_PROMETHEUS, origin: "bundled" }),
+    ).memoryPeaksFrom(),
+    "bundled",
+  );
+  assert.strictEqual(
+    new PrometheusClient(
+      sourceOf({ ...ENGINE_PROMETHEUS, origin: "configured" }),
+    ).memoryPeaksFrom(),
+    "configured",
+  );
+});
+
+test("with no Prometheus to read, the peaks come from nowhere", (): void => {
+  assert.strictEqual(
+    new PrometheusClient(sourceOf(null)).memoryPeaksFrom(),
+    "",
+  );
+});
+
+test("where the peaks come from follows the source as it changes", (): void => {
+  let current: CostPrometheus | null = { ...ENGINE_PROMETHEUS };
+  const client: PrometheusClient = new PrometheusClient({
+    current: (): CostPrometheus | null => {
+      return current;
+    },
+    reason: (): string => {
+      return "";
+    },
+    refreshIfDue: async (): Promise<void> => {},
+  });
+
+  assert.strictEqual(client.memoryPeaksFrom(), "engine");
+
+  // The engine's own Prometheus was lost: the bundled one stands in.
+  current = { ...ENGINE_PROMETHEUS, origin: "bundled" };
+  assert.strictEqual(client.memoryPeaksFrom(), "bundled");
+
+  current = null;
+  assert.strictEqual(client.memoryPeaksFrom(), "");
+});

@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import CloudConnection from "./CloudConnection";
 import Label from "./Label";
 import Project from "./Project";
@@ -14,6 +15,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
@@ -47,6 +49,15 @@ const createPermissions: Array<Permission> = [
   Permission.CreateCloudResource,
 ];
 
+/*
+ * Through a relation too (#10310). A data store names the cloud account it
+ * is in, and the Security tiers and a custom role that reads stores read the
+ * store: of the account, which one it is - its name and its provider - and
+ * nothing else. Its account id, its name at the provider, its counts, when
+ * it was last seen and its connection are held to the account's own read
+ * (RelationReaders.ColumnReaders); a store says its own account number to
+ * its own readers.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -239,6 +250,7 @@ export default class CloudAccount extends BaseModel {
     required: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Account ID",
     description:
       "The cloud's own id for the account: an AWS account id, an Azure subscription id or a Google Cloud project id.",
@@ -260,6 +272,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Name in the Cloud",
     description:
       "What the cloud calls the account: an AWS account alias, an Azure subscription's or a Google Cloud project's name.",
@@ -308,6 +321,7 @@ export default class CloudAccount extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Cloud Connection ID",
     description: "ID of the connection that reads this account, if one does.",
   })
@@ -327,6 +341,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Resources",
     description: "How many live resources the account has in OneUptime.",
     example: 42,
@@ -346,6 +361,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.Number,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Regions",
     description: "How many regions the account's live resources are in.",
     example: 3,
@@ -431,6 +447,7 @@ export default class CloudAccount extends BaseModel {
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Last Read At",
     description: "When a cloud connection last reached the account.",
   })
@@ -592,6 +609,7 @@ export default class CloudAccount extends BaseModel {
     description:
       "When on, OneUptime AI reads this account live while investigating incidents and alerts linked to its resources — a resource's settings and status, its recent events, load balancer target health and quota usage — through the account's read-only cloud connection, and uses what it read as evidence; it needs no Cloud AI agent for that. Nothing is ever changed by an investigation. On by default. Anyone who may edit the account can turn it on or off.",
     defaultValue: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -641,6 +659,7 @@ export default class CloudAccount extends BaseModel {
       "Disabled: AI never proposes or runs a change on this account. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the account's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). The Cloud AI agent's own configuration (ONEUPTIME_AI_FIXES, which its setup command writes) sets the mode once it connects. Anyone who may edit the account can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
     example: ResourceAiRemediationMode.RequireApproval,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,

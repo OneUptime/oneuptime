@@ -26,6 +26,9 @@
  *                                     (ExceptionsViewer)
  *   METRICS                           /dashboard/:projectId/metrics
  *                                     Pages/Metrics/{Layout,Index} (MetricsViewer)
+ *   METRIC_VIEW                       /dashboard/:projectId/metrics/view
+ *                                     Pages/Metrics/View/{Layout,Index}
+ *                                     (MetricExplorer: the explorer's charts)
  *
  * Only the data boundary (ModelAPI / AnalyticsModelAPI / API / Realtime) and
  * the signed-in user are replaced. Every record is fabricated for a generic
@@ -160,6 +163,8 @@ import ExceptionsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Except
 import ExceptionsUnresolved from "../../../App/FeatureSet/Dashboard/src/Pages/Exceptions/Unresolved";
 import MetricsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Layout";
 import MetricsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/Index";
+import MetricsViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/View/Layout";
+import MetricViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Metrics/View/Index";
 import RouteMap, {
   RouteUtil,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -168,10 +173,12 @@ import {
   ingestionBudgetStatus,
   isIngestionBudgetRead,
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
+import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Metric from "Common/Models/AnalyticsModels/Metric";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -216,6 +223,7 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
+import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import Name from "Common/Types/Name";
@@ -223,6 +231,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TimeRange from "Common/Types/Time/TimeRange";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -1223,6 +1232,19 @@ HOST_MOUNTS.forEach((mount, index) => {
     },
   );
 });
+/*
+ * Two spans of time (#10118), in seconds. The gateway's nightly batch job
+ * runs an hour and a half, give or take two seconds: the issue's axis, which
+ * read "1.5000 hours", "1.5003 hours". The host's uptime counts up from twelve
+ * days and five hours at the window's start, a second a second.
+ */
+series("batch.job.duration", { ...hostAttributes }, (time) => {
+  return wave(time, { base: 5400, amplitude: 1.3, period: 13, phase: 0.4 });
+});
+const HOST_BOOTED_AT = NOW.getTime() - 12 * DAY - 5.5 * HOUR;
+series("system.uptime", { ...hostAttributes }, (time) => {
+  return Math.round((time - HOST_BOOTED_AT) / SECOND);
+});
 [
   ["1", "systemd", 0.001],
   ["812", "envoy", 0.18],
@@ -1342,6 +1364,8 @@ const METRIC_UNITS = {
   "system.filesystem.usage": "By",
   "system.network.io": "By",
   "process.cpu.utilization": "1",
+  "batch.job.duration": "s",
+  "system.uptime": "s",
 };
 Object.entries(METRIC_UNITS)
   .sort(([left], [right]) => {
@@ -2216,7 +2240,42 @@ const REQUEST_SHAPE_FIELDS = new Set([
   "facetKeys",
   "chartType",
   "metric",
+  // The reader's zone, which a day's bar starts in (histogramBars).
+  "timezone",
 ]);
+
+/*
+ * Where a histogram's bars start (#7923, TelemetryHistogramBuckets). The
+ * explorers name the reader's zone (`timezone`), read as the server reads
+ * it: a zone the Timezone list holds - any other the server refuses, and it
+ * lands on `unhandled` here. A bar of exactly a day starts at that zone's
+ * midnight, and the answer names the zone, in its current name
+ * (`bucketTimezone`); every other bar starts on the epoch's grid, whatever
+ * the zone.
+ */
+function histogramBars(body, bucketSizeInMinutes, url) {
+  const bucketMs = bucketSizeInMinutes * MINUTE;
+  let zone = null;
+  if (body.timezone !== undefined && body.timezone !== null) {
+    if (!TimezoneAlias.isListedName(body.timezone)) {
+      fixture.unhandled.push({ kind: "api", url, timezone: body.timezone });
+    } else if (bucketMs === DAY) {
+      zone = TimezoneAlias.getCanonicalTimezone(body.timezone);
+    }
+  }
+  return {
+    startOf: (time) => {
+      return zone
+        ? OneUptimeDate.getStartOfCalendarUnit(
+            new Date(time),
+            "day",
+            zone,
+          ).getTime()
+        : Math.floor(time / bucketMs) * bucketMs;
+    },
+    answer: zone ? { bucketTimezone: zone } : {},
+  };
+}
 
 function bodyFilter(filters, body, url) {
   const active = [];
@@ -2250,15 +2309,16 @@ function bodyWindow(body) {
  * The server's histogram (TraceAggregationService / LogAggregationService
  * .getHistogram): the rows whose minute starts inside the window (the start
  * rounded down to its minute, the end exclusive), re-bucketed on
- * toStartOfInterval(minute, INTERVAL bucketSize SECOND), one entry per
- * bucket and series that has rows, in time order.
+ * toStartOfInterval(minute, INTERVAL bucketSize SECOND) - a day's bar at the
+ * reader's midnight (histogramBars) - one entry per bucket and series that
+ * has rows, in time order.
  */
 function histogramOf(options) {
   const { start, end } = bodyWindow(options.body);
   const bucketSizeInMinutes =
     Number(options.body.bucketSizeInMinutes) ||
     defaultBucketSizeInMinutes(start, end);
-  const bucketMs = bucketSizeInMinutes * MINUTE;
+  const bars = histogramBars(options.body, bucketSizeInMinutes, options.url);
   const matches = bodyFilter(options.filters, options.body, options.url);
   const counts = new Map();
   for (
@@ -2266,7 +2326,7 @@ function histogramOf(options) {
     minute < end;
     minute += MINUTE
   ) {
-    const bucket = Math.floor(minute / bucketMs) * bucketMs;
+    const bucket = bars.startOf(minute);
     for (const row of rowsOfMinute(options.generated, minute)) {
       if (!matches(row)) {
         continue;
@@ -2294,7 +2354,7 @@ function histogramOf(options) {
         count: entry.count,
       };
     });
-  return { bucketSizeInMinutes, buckets };
+  return { bucketSizeInMinutes, buckets, ...bars.answer };
 }
 
 function countBy(rows, valueOf) {
@@ -2483,9 +2543,11 @@ function spanAnalytics(body, url) {
     fixture.unhandled.push({ kind: "api", url, groupBy: body.groupBy });
   }
   const { start, end } = bodyWindow(body);
-  const bucketMs =
-    (Number(body.bucketSizeInMinutes) ||
-      defaultBucketSizeInMinutes(start, end)) * MINUTE;
+  const bars = histogramBars(
+    body,
+    Number(body.bucketSizeInMinutes) || defaultBucketSizeInMinutes(start, end),
+    url,
+  );
   const filterable = { ...body };
   delete filterable.groupBy;
   const matches = bodyFilter(SPAN_BODY_FILTERS, filterable, url);
@@ -2495,7 +2557,7 @@ function spanAnalytics(body, url) {
     minute < end;
     minute += MINUTE
   ) {
-    const bucket = Math.floor(minute / bucketMs) * bucketMs;
+    const bucket = bars.startOf(minute);
     for (const row of rowsOfMinute(GENERATED_TABLES[tableName(Span)], minute)) {
       if (!matches(row)) {
         continue;
@@ -2521,6 +2583,7 @@ function spanAnalytics(body, url) {
           groupValues: {},
         };
       }),
+    ...bars.answer,
   };
 }
 
@@ -2611,7 +2674,12 @@ const EXPLORER_ENDPOINTS = [
       });
       entry.bucketSizeInMinutes = result.bucketSizeInMinutes;
       entry.buckets = result.buckets.length;
-      return { buckets: result.buckets };
+      return {
+        buckets: result.buckets,
+        ...(result.bucketTimezone
+          ? { bucketTimezone: result.bucketTimezone }
+          : {}),
+      };
     },
   },
   {
@@ -2708,10 +2776,10 @@ const EXPLORER_ENDPOINTS = [
       const bucketSizeInMinutes =
         Number(body.bucketSizeInMinutes) ||
         defaultBucketSizeInMinutes(start, end);
-      const bucketMs = bucketSizeInMinutes * MINUTE;
+      const bars = histogramBars(body, bucketSizeInMinutes, url);
       const counts = new Map();
       exceptionGroupsIn(body, url).forEach((row) => {
-        const bucket = Math.floor(toTime(row.lastSeenAt) / bucketMs) * bucketMs;
+        const bucket = bars.startOf(toTime(row.lastSeenAt));
         counts.set(bucket, (counts.get(bucket) || 0) + row.occuranceCount);
       });
       const buckets = Array.from(counts.entries())
@@ -2727,7 +2795,7 @@ const EXPLORER_ENDPOINTS = [
         });
       entry.bucketSizeInMinutes = bucketSizeInMinutes;
       entry.buckets = buckets.length;
-      return { buckets };
+      return { buckets, ...bars.answer };
     },
   },
   {
@@ -2998,6 +3066,11 @@ ModelAPI.updateById = async (options) => {
 table(Metric);
 table(Span);
 /*
+ * The project uses no Security Events: an opened log line's details read
+ * the events naming it (SecurityEventsInSignal), and find none.
+ */
+table(SecurityEvent);
+/*
  * The cost agent's hourly allocations, which the cluster Overview's Cost
  * card reads: the cluster has sent none yet, so the table is empty and the
  * card says how to turn cost monitoring on.
@@ -3008,6 +3081,7 @@ const ANALYTICS_TABLES = [
   tableName(ChangeEvent),
   tableName(Metric),
   tableName(Span),
+  tableName(SecurityEvent),
   tableName(KubernetesCostAllocation),
 ];
 
@@ -3681,6 +3755,11 @@ function FixtureMetricsLayout() {
   return <MetricsLayout {...pageProps(PageMap.METRICS)} />;
 }
 
+function FixtureMetricViewLayout() {
+  useNavigationHooks();
+  return <MetricsViewLayout {...pageProps(PageMap.METRIC_VIEW)} />;
+}
+
 function StubPage(props) {
   useNavigationHooks();
   const location = useLocation();
@@ -3717,6 +3796,11 @@ function FixtureShell() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8">
         <Outlet />
       </div>
+      {/*
+       * Where a page's toasts are said, as the Dashboard's src/Index.tsx
+       * draws it: a log row's Copy Link says "Link copied" there (#9944).
+       */}
+      <ToastRegion />
     </>
   );
 }
@@ -3818,6 +3902,15 @@ createRoot(document.getElementById("root")).render(
           <Route
             index
             element={<MetricsPage {...pageProps(PageMap.METRICS)} />}
+          />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.METRIC_VIEW].toString()}
+          element={<FixtureMetricViewLayout />}
+        >
+          <Route
+            index
+            element={<MetricViewPage {...pageProps(PageMap.METRIC_VIEW)} />}
           />
         </Route>
         <Route

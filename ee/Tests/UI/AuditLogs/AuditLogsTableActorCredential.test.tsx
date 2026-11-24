@@ -154,8 +154,8 @@ interface EntryData {
   workflowName?: string | undefined;
   workflowRunAs?: string | undefined;
   workflowRunAsCustomRoleName?: string | undefined;
-  workflowRunAsGivenByName?: string | undefined;
-  workflowRunAsGivenByApiKeyId?: ObjectID | undefined;
+  workflowRunAsGiverName?: string | undefined;
+  workflowRunAsGiverApiKeyId?: ObjectID | undefined;
 }
 
 type MakeEntryFunction = (data: EntryData) => AuditLog;
@@ -203,11 +203,11 @@ const makeEntry: MakeEntryFunction = (data: EntryData): AuditLog => {
   if (data.workflowRunAsCustomRoleName !== undefined) {
     entry.workflowRunAsCustomRoleName = data.workflowRunAsCustomRoleName;
   }
-  if (data.workflowRunAsGivenByName !== undefined) {
-    entry.workflowRunAsGivenByName = data.workflowRunAsGivenByName;
+  if (data.workflowRunAsGiverName !== undefined) {
+    entry.workflowRunAsGiverName = data.workflowRunAsGiverName;
   }
-  if (data.workflowRunAsGivenByApiKeyId !== undefined) {
-    entry.workflowRunAsGivenByApiKeyId = data.workflowRunAsGivenByApiKeyId;
+  if (data.workflowRunAsGiverApiKeyId !== undefined) {
+    entry.workflowRunAsGiverApiKeyId = data.workflowRunAsGiverApiKeyId;
   }
 
   return entry;
@@ -403,8 +403,8 @@ describe("what a workflow's change ran as", () => {
       expect.objectContaining({
         workflowRunAs: true,
         workflowRunAsCustomRoleName: true,
-        workflowRunAsGivenByName: true,
-        workflowRunAsGivenByApiKeyId: true,
+        workflowRunAsGiverName: true,
+        workflowRunAsGiverApiKeyId: true,
       }),
     );
   });
@@ -419,7 +419,7 @@ describe("what a workflow's change ran as", () => {
     expect(
       ranAsLine({
         workflowRunAs: "ProjectOwner",
-        workflowRunAsGivenByName: "Jane Doe",
+        workflowRunAsGiverName: "Jane Doe",
       }),
     ).toHaveTextContent(
       "Ran as Project Owner, with the permissions of Jane Doe.",
@@ -430,8 +430,8 @@ describe("what a workflow's change ran as", () => {
     expect(
       ranAsLine({
         workflowRunAs: "ProjectOwner",
-        workflowRunAsGivenByName: "Terraform",
-        workflowRunAsGivenByApiKeyId: KEY_ID,
+        workflowRunAsGiverName: "Terraform",
+        workflowRunAsGiverApiKeyId: KEY_ID,
       }),
     ).toHaveTextContent(
       'Ran as Project Owner, with the permissions of the API key "Terraform".',
@@ -443,7 +443,7 @@ describe("what a workflow's change ran as", () => {
       ranAsLine({
         workflowRunAs: "CustomRole",
         workflowRunAsCustomRoleName: "Incident Responder",
-        workflowRunAsGivenByName: "Jane Doe",
+        workflowRunAsGiverName: "Jane Doe",
       }),
     ).toHaveTextContent(
       'Ran as the custom role "Incident Responder", with the permissions of Jane Doe.',
@@ -455,8 +455,8 @@ describe("what a workflow's change ran as", () => {
       ranAsLine({
         workflowRunAs: "CustomRole",
         workflowRunAsCustomRoleName: "Incident Responder",
-        workflowRunAsGivenByName: "Deploy Bot",
-        workflowRunAsGivenByApiKeyId: KEY_ID,
+        workflowRunAsGiverName: "Deploy Bot",
+        workflowRunAsGiverApiKeyId: KEY_ID,
       }),
     ).toHaveTextContent(
       'Ran as the custom role "Incident Responder", with the permissions of the API key "Deploy Bot".',
@@ -493,7 +493,7 @@ describe("what a workflow's change ran as", () => {
         return option.value;
       }),
     ).toEqual(["Default", "ProjectOwner", "CustomRole"]);
-    expect(givenBy!.field).toEqual({ workflowRunAsGivenByName: true });
+    expect(givenBy!.field).toEqual({ workflowRunAsGiverName: true });
   });
 });
 

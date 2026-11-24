@@ -1043,6 +1043,54 @@ describe("the keys OneUptime's own components present", () => {
     }
   });
 
+  /*
+   * A collection upload carries the probe's id and key in headers too
+   * (#10222), URI-encoded. A call that gets no answer is logged with them:
+   * the key is redacted wherever it is, the id kept, as in a body.
+   */
+  it("redact the key a collection upload carries in its headers, and keep its id", () => {
+    for (const key of ["x-oneuptime-probe-key", "X-OneUptime-Probe-Key"]) {
+      expect({ key, sensitive: isSensitiveLogKey(key, ISSUED_KEY) }).toEqual({
+        key,
+        sensitive: true,
+      });
+    }
+
+    expect(isSensitiveLogKey("x-oneuptime-probe-id", AGENT_ID)).toBe(false);
+
+    for (const value of [PROBE_KEY, ISSUED_KEY]) {
+      const encoded: string = encodeURIComponent(value);
+
+      const structured: string = serialize({
+        config: {
+          url: "https://oneuptime.example.com/probe-ingest/probe/vmware/collection",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Encoding": "gzip",
+            "x-oneuptime-probe-id": AGENT_ID,
+            "x-oneuptime-probe-key": encoded,
+          },
+        },
+      });
+
+      const text: string = redactLogString(
+        `POST /probe-ingest/probe/vmware/collection HTTP/1.1\r\nx-oneuptime-probe-id: ${AGENT_ID}\r\nx-oneuptime-probe-key: ${encoded}\r\nContent-Encoding: gzip\r\n\r\n`,
+      );
+
+      for (const output of [structured, text]) {
+        for (const form of [value, encoded]) {
+          expect({ output, kept: keptRunsOf(output, form) }).toEqual({
+            output,
+            kept: [],
+          });
+        }
+
+        expect(output).toContain(AGENT_ID);
+        expect(output).toContain(REDACTED);
+      }
+    }
+  });
+
   it("leave none of a value with spaces and delimiters in a console's quoted print", () => {
     const value: string = "a key, with spaces; & ] } delimiters";
 

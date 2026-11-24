@@ -96,6 +96,8 @@ Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di 
 
 **Usato da**, nel menu della riga di un'etichetta, conta i record di ogni tipo che portano l'etichetta e li apre una pagina alla volta. I record che non puoi aprire vengono contati, non nominati.
 
+Un'etichetta che ha lo stesso nome di un'altra etichetta, da prima che i nomi dovessero essere diversi, è contrassegnata con **Stesso nome di un'altra etichetta**, e l'elenco indica quante sono: confronta dove viene usata ciascuna, con **Usato da**, poi rinominane una con **Rinomina** nella sua riga.
+
 ## Notifiche
 
 **Impostazioni del progetto → Notifiche** raccoglie il modo in cui il progetto invia le notifiche:

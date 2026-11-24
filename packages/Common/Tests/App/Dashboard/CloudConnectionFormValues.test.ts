@@ -4,12 +4,18 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   AZURE_SECRET_EXPIRES_AT_KEY,
   CloudConnectionAuthMethod,
+  CloudConnectionCatalog,
   CloudConnectionDefinition,
   CloudConnectionField,
+  DATA_SECURITY_FIELD_KEY,
+  DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
-import { CloudConnectionSetupScope } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  CloudConnectionSetupScope,
+  getCloudConnectionCommandSettings,
+} from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { CloudConnectionTestResult } from "../../../Types/CloudConnection/CloudConnectionTest";
 import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
@@ -21,11 +27,14 @@ import {
   applyCloudConnectionPaste,
   cloudConnectionTestBody,
   configFieldName,
+  getCommandSettingFields,
+  getCredentialsMoreFields,
   getMissingCloudConnectionFields,
   getPastedFieldTitles,
   getReadScopeField,
   isCredentialValueField,
   readCloudConnectionForm,
+  readFormCommandSettings,
   readFormScope,
   readFormText,
   secretFieldName,
@@ -500,5 +509,144 @@ describe("what a connection reads: one account or the organization", () => {
       readScope: CloudConnectionSetupScope.Organization,
       [AZURE_SECRET_EXPIRES_AT_KEY]: "2027-04-01T00:00:00.000Z",
     });
+  });
+});
+
+/*
+ * What the Access step's command is written from (#10336): the settings
+ * the form would save, read as the server reads them - so the command is
+ * never written from a value the form shows but would not save, nor
+ * misses one it would.
+ */
+describe("what the command is written from", () => {
+  const securityKey: string = configFieldName(DATA_SECURITY_FIELD_KEY);
+  const responseKey: string = configFieldName(DATA_SECURITY_RESPONSE_FIELD_KEY);
+  const scopeKey: string = configFieldName(READ_SCOPE_FIELD_KEY);
+
+  test("the form's picks, as it would save them", () => {
+    expect(
+      readFormCommandSettings(AZURE, {
+        [scopeKey]: CloudConnectionSetupScope.Organization,
+        [securityKey]: "content",
+        [responseKey]: "block",
+      }),
+    ).toEqual({
+      scope: CloudConnectionSetupScope.Organization,
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+    });
+    // Nothing picked yet: the one account, both settings off.
+    expect(readFormCommandSettings(GCP, {})).toEqual({
+      scope: CloudConnectionSetupScope.Account,
+      dataSecurity: "off",
+      dataSecurityResponse: "off",
+    });
+  });
+
+  test("is exactly what is saved, read as the server reads it, whatever shape the form holds a value in", () => {
+    const forms: Array<JSONObject> = [
+      {
+        [securityKey]: { label: "Configuration only", value: "configuration" },
+        [responseKey]: {
+          label: "Close exposures and fix settings",
+          value: "block",
+        },
+      },
+      // A picker's value with space around it is saved trimmed, and read so.
+      { [securityKey]: " content ", [responseKey]: " block " },
+      { [securityKey]: "everything", [responseKey]: "on" },
+      { [scopeKey]: " organization " },
+    ];
+
+    for (const values of forms) {
+      for (const definition of [AWS, AZURE, GCP]) {
+        expect(readFormCommandSettings(definition, values)).toEqual(
+          getCloudConnectionCommandSettings(
+            readCloudConnectionForm(definition, values).config,
+          ),
+        );
+      }
+    }
+
+    expect(
+      readFormCommandSettings(AZURE, {
+        [securityKey]: " content ",
+        [responseKey]: " block ",
+      }),
+    ).toMatchObject({ dataSecurity: "content", dataSecurityResponse: "block" });
+    expect(
+      readFormCommandSettings(AZURE, { [scopeKey]: " organization " }).scope,
+    ).toBe(CloudConnectionSetupScope.Organization);
+  });
+
+  test("an AWS access key's command is its own account's, whatever the form held, and keeps Data Security's settings", () => {
+    const values: JSONObject = {
+      [AUTH_METHOD_FIELD]: CloudConnectionAuthMethod.AwsAccessKey,
+      [scopeKey]: CloudConnectionSetupScope.Organization,
+      [securityKey]: "configuration",
+      [responseKey]: "block",
+    };
+
+    expect(readFormCommandSettings(AWS, values)).toEqual({
+      scope: CloudConnectionSetupScope.Account,
+      dataSecurity: "configuration",
+      dataSecurityResponse: "block",
+    });
+    expect(readFormScope(AWS, values)).toBe(CloudConnectionSetupScope.Account);
+  });
+
+  test("the first step folds Data Security's two settings under the command; the Credentials step's More fields keeps the rest", () => {
+    for (const definition of CloudConnectionCatalog) {
+      const command: Array<string> = getCommandSettingFields(definition).map(
+        (field: CloudConnectionField): string => {
+          return field.key;
+        },
+      );
+      const credentials: Array<string> = getCredentialsMoreFields(
+        definition,
+      ).map((field: CloudConnectionField): string => {
+        return field.key;
+      });
+      const folded: Array<string> = definition.configFields
+        .filter((field: CloudConnectionField): boolean => {
+          return Boolean(field.isAdvanced);
+        })
+        .map((field: CloudConnectionField): string => {
+          return field.key;
+        });
+
+      expect(command).toEqual([
+        DATA_SECURITY_FIELD_KEY,
+        DATA_SECURITY_RESPONSE_FIELD_KEY,
+      ]);
+      // Every folded setting in one of the two, none in both, in the catalog's order.
+      expect([...credentials, ...command].sort()).toEqual([...folded].sort());
+      expect(
+        credentials.filter((key: string): boolean => {
+          return command.includes(key);
+        }),
+      ).toEqual([]);
+      expect(credentials).toEqual(
+        folded.filter((key: string): boolean => {
+          return !command.includes(key);
+        }),
+      );
+    }
+  });
+
+  test("no setting the command is written from is asked on the Credentials step", () => {
+    for (const definition of CloudConnectionCatalog) {
+      const asked: Array<CloudConnectionField> = [
+        ...definition.configFields,
+        ...definition.secretFields,
+      ].filter(isCredentialValueField);
+
+      expect(
+        asked.filter((field: CloudConnectionField): boolean => {
+          return Boolean(field.changesSetupCommand);
+        }),
+      ).toEqual([]);
+      expect(titles(asked)).not.toContain("What to read");
+    }
   });
 });

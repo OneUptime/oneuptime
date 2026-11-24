@@ -242,6 +242,7 @@ describe("which surfaces are budgeted", () => {
     for (const surface of [
       TelemetryIngestSurface.SessionReplay,
       TelemetryIngestSurface.SourceMap,
+      TelemetryIngestSurface.Dsym,
       TelemetryIngestSurface.KubernetesCost,
       TelemetryIngestSurface.ChangeEvents,
       TelemetryIngestSurface.OpenLineage,

@@ -326,9 +326,8 @@ export const RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE: number = 500;
  * over the same results can both pass the check and both insert. The worker
  * holds this lock for its whole sweep; a real (non-dry) manual run takes
  * the SAME lock, so manual-vs-sweep and manual-vs-manual can never
- * interleave — which also means the scan jsonb write-back has exactly one
- * engine writer at a time. Defined here, imported by the worker, so the two
- * can never drift onto different locks.
+ * interleave. Defined here, imported by the worker, so the two can never
+ * drift onto different locks.
  */
 export const AUTO_IMPORT_SWEEP_LOCK_KEY: string =
   "NetworkDeviceDiscovery:ProcessAutoImportRules";
@@ -426,8 +425,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * NULL" always means "the results now on the row have not been processed".
    * If new results land while this pass is reading the old ones, the CAS
    * misses, the marker stays NULL, and the next tick processes the new upload
-   * — the stamp can never retire results it did not see, and the jsonb
-   * write-back can never clobber a newer host list. A truncated pass that
+   * — the stamp can never retire results it did not see. The hosts
+   * themselves are never written back (issue #9906). A truncated pass that
    * created something stamps nothing on purpose: the NULL marker is what
    * makes the next tick resume. (A truncated pass where every create FAILED stamps anyway — see
    * the zero-progress note at the stamp below.)
@@ -472,8 +471,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         props: {
           isRoot: true,
           /*
-           * Keep the stored payload for stampScan; the engine checks live
-           * inventory itself before evaluating these hosts.
+           * The hosts as stored: the engine checks live inventory itself
+           * before evaluating them, so the read's registration lookup
+           * would only be asked twice.
            */
           ignoreHooks: true,
         },
@@ -554,7 +554,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
     if (!hasImportRules) {
       // Nothing can import; retire these results so they never accumulate.
-      await this.stampScan({ scan: scan, createdIpAddresses: [] });
+      await this.stampScan({ scan: scan });
       return null;
     }
 
@@ -563,7 +563,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         `Auto-import: scan ${scan.id?.toString()} completed more than ${MAX_RESULT_AGE_IN_HOURS} hours ago; stamping it processed without importing. Use the rule's Run Now to import old results deliberately.`,
         { projectId: projectId.toString() } as LogAttributes,
       );
-      await this.stampScan({ scan: scan, createdIpAddresses: [] });
+      await this.stampScan({ scan: scan });
       return null;
     }
 
@@ -617,7 +617,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
      * Names nobody: what the sweep imports from a new result is OneUptime's
      * own, a system event, as a rule applied to a new record is.
      */
-    const createdIpAddresses: Array<string> = await this.importHostsFromScan({
+    await this.importHostsFromScan({
       scan: scan,
       rules: rules,
       existingDevices: existingDevices,
@@ -661,7 +661,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
     await this.stampScan({
       scan: scan,
-      createdIpAddresses: createdIpAddresses,
       leaveMarkerUnstamped: shouldResume,
     });
 
@@ -1028,7 +1027,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
              */
             ...AUTO_IMPORT_SCAN_BUILDER_SELECT,
           },
-          // Preserve the raw scan rows for the compare-and-set write-back.
+          // The hosts as stored: the run checks live inventory itself.
           props: { isRoot: true, ignoreHooks: true },
         });
 
@@ -1037,7 +1036,13 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         continue;
       }
 
-      const createdIpAddresses: Array<string> = await this.importHostsFromScan({
+      /*
+       * Nothing is written back to the scan (issue #9906): Review Results
+       * reads each host's registration from the inventory, so a host this
+       * run imported reads as Already added from then on, and the marker is
+       * the automatic path's to stamp, not a manual run of one rule's.
+       */
+      await this.importHostsFromScan({
         scan: scan,
         rules: rules,
         existingDevices: existingDevices,
@@ -1048,21 +1053,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         isDryRun: data.isDryRun,
         props: data.props,
       });
-
-      if (createdIpAddresses.length > 0) {
-        /*
-         * Same CAS write-back as the automatic path, so the Review dialog
-         * does not re-offer (pre-checked!) hosts this run just imported. A
-         * miss only means fresher results arrived, which recomputed the
-         * flags anyway. No concurrent engine writer can clobber this: the
-         * write happens only on real runs, which hold the sweep lock.
-         */
-        await this.stampScan({
-          scan: scan,
-          createdIpAddresses: createdIpAddresses,
-          leaveMarkerUnstamped: true,
-        });
-      }
 
       /*
        * The caps are shared across the whole run, dry or real. Stop OPENING
@@ -1878,12 +1868,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }
 
   /*
-   * Every device address in the project — the same paged walk the probe
-   * ingest endpoint does to stamp isAlreadyRegistered, for the same reason:
-   * a truncated answer produces duplicate devices, which is worse than a
-   * slow answer. Sorted for stable paging.
-   */
-  /*
    * The devices already at these addresses, keyed by hostname.
    *
    * This used to load EVERY device in the project, paging `ORDER BY
@@ -2181,10 +2165,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   /*
    * The core loop: evaluate every discovered host of one scan against the
    * rule set, create what should import, reconcile selected template monitors,
-   * and account for every host in the shared result. Returns the addresses
-   * actually created (for the jsonb write-back). Mutates `existingDevices` as
-   * it creates, which is what makes duplicate rows, overlapping scans in one
-   * sweep, and repeat runs idempotent.
+   * and account for every host in the shared result. Mutates
+   * `existingDevices` as it creates, which is what makes duplicate rows,
+   * overlapping scans in one sweep, and repeat runs idempotent.
    */
   @RuleEvaluation()
   private async importHostsFromScan(data: {
@@ -2198,12 +2181,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     isDryRun: boolean;
     // Who ran the rule (Run Now); none for the automatic path.
     props?: DatabaseCommonInteractionProps | undefined;
-  }): Promise<Array<string>> {
+  }): Promise<void> {
     const scan: NetworkDeviceDiscoveryScan = data.scan;
     const result: AutoImportRuleRunResult = data.result;
 
     if (!scan.projectId) {
-      return [];
+      return;
     }
 
     /*
@@ -2227,8 +2210,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       }),
       into: data.existingDevices,
     });
-
-    const createdIpAddresses: Array<string> = [];
 
     /*
      * The project's naming rules (issue #6619), read the first time this
@@ -2362,7 +2343,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       let networkDevice: NetworkDevice | undefined = data.existingDevices.get(
         getExistingDeviceKey(scan, host.ipAddress),
       );
-      let deviceWasCreated: boolean = false;
 
       /*
        * Devices at the address that the scan's probe cannot tell apart
@@ -2373,10 +2353,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         !networkDevice && ambiguousAddresses.has(host.ipAddress);
 
       /*
-       * Current inventory is authoritative. The stored isAlreadyRegistered
-       * flag can outlive a deleted device and must not veto re-importing it.
-       * The map also includes devices created during this run, keeping
-       * duplicate rows and overlapping scans idempotent.
+       * Current inventory is authoritative: an isAlreadyRegistered stored
+       * by an older server can outlive a deleted device and must not veto
+       * re-importing it (none is stored since issue #9906). The map also
+       * includes devices created during this run, keeping duplicate rows
+       * and overlapping scans idempotent.
        */
       if (networkDevice || isAmbiguous) {
         result.hostsSkippedAlreadyRegistered++;
@@ -2462,16 +2443,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           });
 
           networkDevice = createResult.device || undefined;
-          deviceWasCreated = createResult.wasCreated;
 
           if (!networkDevice) {
             continue;
           }
         }
-      }
-
-      if (deviceWasCreated) {
-        createdIpAddresses.push(host.ipAddress);
       }
 
       if (templateIds.length === 0) {
@@ -2516,8 +2492,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         }
       }
     }
-
-    return createdIpAddresses;
   }
 
   /*
@@ -3448,68 +3422,35 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }
 
   /*
-   * The one write this engine makes to the scan row: retire the consumed
-   * hosts in the stored jsonb (so the Review dialog stops offering them) and
-   * stamp the processed marker — in a single hook-free compare-and-set on the
-   * run state that was read, for the reasons on processCompletedScan. The
-   * claim endpoint's hook-free contract is why this must never go through
-   * updateOneById: the scan service deliberately has no update-success hooks
-   * to piggyback on, and this write must not fire the full pipeline on every
-   * worker tick.
+   * The one write this engine makes to the scan row: stamp the processed
+   * marker, in a single hook-free compare-and-set on the run state that was
+   * read, for the reasons on processCompletedScan. The claim endpoint's
+   * hook-free contract is why this must never go through updateOneById: the
+   * scan service deliberately has no update-success hooks to piggyback on,
+   * and this write must not fire the full pipeline on every worker tick.
+   *
+   * The stored hosts are left exactly as the probe reported them (issue
+   * #9906). This used to flip isAlreadyRegistered on the rows it imported,
+   * so the Review dialog would stop offering them; every read now works out
+   * which hosts are devices from the inventory itself, per site, so the flip
+   * only left a copy of the answer in the column that went stale the moment
+   * a device was deleted (DiscoveredHostRegistration).
    *
    * The CAS defends against exactly one concurrent writer — the ingest
    * endpoint, which rewrites completedAt with a final upload and the host
-   * counters with a partial one. It cannot defend against another ENGINE
-   * write (which changes none of those columns), and does not need to: every
-   * path that reaches this method holds the sweep lock (the worker for its
-   * whole sweep, Run Now for a real run; dry runs never write), so the
-   * full-array replace below always has the row's only engine writer. Weaken that invariant and this
-   * becomes last-writer-wins on the isAlreadyRegistered flips.
+   * counters with a partial one.
    */
   private async stampScan(data: {
     scan: NetworkDeviceDiscoveryScan;
-    createdIpAddresses: Array<string>;
     leaveMarkerUnstamped?: boolean;
   }): Promise<void> {
-    const payload: JSONObject = {};
-
-    if (!data.leaveMarkerUnstamped) {
-      payload["autoImportProcessedAt"] = OneUptimeDate.getCurrentDate();
-    }
-
-    if (data.createdIpAddresses.length > 0) {
-      const createdSet: Set<string> = new Set<string>(data.createdIpAddresses);
-
-      /*
-       * Mapped over the RAW stored rows, not the normalised copies: the
-       * write-back must preserve whatever shape the probe sent, only
-       * flipping isAlreadyRegistered on rows whose (trimmed) address was
-       * imported. Junk rows pass through untouched.
-       */
-      const restamped: Array<unknown> = (
-        (data.scan.discoveredDevices as Array<unknown>) || []
-      ).map((row: unknown): unknown => {
-        if (!row || typeof row !== "object") {
-          return row;
-        }
-
-        const hostRow: DiscoveredNetworkDevice = row as DiscoveredNetworkDevice;
-
-        const ipAddress: string = String(hostRow.ipAddress ?? "").trim();
-
-        if (!ipAddress || !createdSet.has(ipAddress)) {
-          return row;
-        }
-
-        return { ...hostRow, isAlreadyRegistered: true };
-      });
-
-      payload["discoveredDevices"] = restamped as unknown as Array<JSONObject>;
-    }
-
-    if (Object.keys(payload).length === 0) {
+    if (data.leaveMarkerUnstamped) {
       return;
     }
+
+    const payload: JSONObject = {
+      autoImportProcessedAt: OneUptimeDate.getCurrentDate(),
+    };
 
     await NetworkDeviceDiscoveryScanService.updateColumnsByIdWithoutHooks({
       id: data.scan.id!,

@@ -219,6 +219,64 @@ failures=0
 # The collector `validate` runs; one section below sets another for a while.
 VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
 
+# The line the collector logs, as it builds each component, for a component
+# named by a type it keeps only as a deprecated alias (collector 0.165.0:
+# `"kubeletstats" alias is deprecated; use "kubelet_stats" instead`). A later
+# release drops the alias and refuses the config, so the Kubernetes agent's
+# configs name every component by its new type on the collector the chart pins
+# (kubernetes-agent.componentType, #9930).
+DEPRECATED_ALIAS_LOG='alias is deprecated'
+
+# check_no_deprecated_alias <label> <config> [-e NAME=value ...]
+#
+# `validate` builds every component but logs nothing it warns about, so the
+# collector is started on the config instead, and its log is read once it has
+# built the components: until it says it is ready, or it gives up starting a
+# receiver that needs the cluster's API server (k8s_objects), which nothing
+# here answers. Both come after every component was built, and with it every
+# alias warning.
+check_no_deprecated_alias() {
+  local label="$1"
+  local config="$2"
+  shift 2
+  local container="validate-alias-$$-${RANDOM}"
+
+  echo "==> ${label}: no component named by a deprecated alias"
+  chmod 0644 "${config}"
+  docker run -d --name "${container}" \
+    "${ENV_ARGS[@]}" \
+    "$@" \
+    "${STUB_MOUNTS[@]}" \
+    -v "$(dirname "${config}")":/validate:ro \
+    "${VALIDATE_IMAGE}" \
+    --config "/validate/$(basename "${config}")" >/dev/null
+
+  local logs=""
+  for _ in $(seq 1 60); do
+    logs="$(docker logs "${container}" 2>&1 || true)"
+    case "${logs}" in
+      *'Everything is ready'* | *'cannot start pipelines'* | *'collector server run finished with error'*) break ;;
+    esac
+    if [ "$(docker inspect -f '{{.State.Running}}' "${container}" 2>/dev/null)" != "true" ]; then
+      logs="$(docker logs "${container}" 2>&1 || true)"
+      break
+    fi
+    sleep 0.5
+  done
+  docker rm -f "${container}" >/dev/null 2>&1 || true
+
+  if ! printf '%s\n' "${logs}" | grep -qE 'Everything is ready|cannot start pipelines'; then
+    echo "    FAILED: ${label}: the collector built no component"
+    printf '%s\n' "${logs}" | tail -10
+    failures=$((failures + 1))
+  elif printf '%s\n' "${logs}" | grep -F "${DEPRECATED_ALIAS_LOG}"; then
+    echo "    FAILED: ${label}: names a component by a deprecated alias"
+    failures=$((failures + 1))
+  else
+    echo "    ok"
+  fi
+}
+
 validate() {
   local label="$1"
   local config="$2"
@@ -478,6 +536,7 @@ if (
 
 while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
+  check_no_deprecated_alias "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
 
 # The span filter ebpf.dropUnlinkedClientCalls adds to the traces pipeline is
@@ -531,12 +590,12 @@ const configMap = yaml.loadAll(fs.readFileSync(rendered, "utf8")).find((doc) => 
   return doc && doc.kind === "ConfigMap" && doc.metadata.name === "validate-kubernetes-agent-daemonset";
 });
 const config = configMap.data["otel-collector-config.yaml"];
-const operators = yaml.load(config).receivers.filelog.operators.map((operator) => {
+const operators = yaml.load(config).receivers.file_log.operators.map((operator) => {
   return operator.id;
 });
 for (const id of ["openstack-route", "openstack-recombine", "openstack-cloud-name"]) {
   if (!operators.includes(id)) {
-    throw new Error(`${rendered}: the filelog receiver has no ${id}`);
+    throw new Error(`${rendered}: the file_log receiver has no ${id}`);
   }
 }
 fs.writeFileSync(out, config);
@@ -579,13 +638,13 @@ for (const component of ["deployment", "daemonset"]) {
   });
   const config = configMap.data["otel-collector-config.yaml"];
   const collector = yaml.load(config);
-  if (!collector.processors["resourcedetection/openshift"]) {
-    throw new Error(`${rendered}: the ${component} config defines no resourcedetection/openshift`);
+  if (!collector.processors["resource_detection/openshift"]) {
+    throw new Error(`${rendered}: the ${component} config defines no resource_detection/openshift`);
   }
   for (const [name, pipeline] of Object.entries(collector.service.pipelines)) {
     const at = pipeline.processors.indexOf("resource");
-    if (at >= 0 && pipeline.processors[at + 1] !== "resourcedetection/openshift") {
-      throw new Error(`${rendered}: the ${component} pipeline ${name} does not run resourcedetection/openshift after resource`);
+    if (at >= 0 && pipeline.processors[at + 1] !== "resource_detection/openshift") {
+      throw new Error(`${rendered}: the ${component} pipeline ${name} does not run resource_detection/openshift after resource`);
     }
   }
   fs.writeFileSync(path.join(outDir, `k8s-${component}-${renderName}.yaml`), config);
@@ -594,6 +653,11 @@ for (const component of ["deployment", "daemonset"]) {
   validate "kubernetes-agent / collector Deployment, ${label}" \
     "${WORK_DIR}/k8s-deployment-${name}.yaml"
   validate "kubernetes-agent / node collector DaemonSet, ${label}" \
+    "${WORK_DIR}/k8s-daemonset-${name}.yaml"
+  # The openshift detector is the one renamed component only these renders have.
+  check_no_deprecated_alias "kubernetes-agent / collector Deployment, ${label}" \
+    "${WORK_DIR}/k8s-deployment-${name}.yaml"
+  check_no_deprecated_alias "kubernetes-agent / node collector DaemonSet, ${label}" \
     "${WORK_DIR}/k8s-daemonset-${name}.yaml"
 }
 
@@ -642,8 +706,9 @@ for (const [job, namespace] of [
 # release from before 0.161.0 runs this chart's configs on 0.96.0 (NOTES.txt
 # warns about it, templates/_stale-defaults.tpl). A key 0.96.0 does not know
 # would stop its agent, so both configs are validated there too, rendered for
-# that tag (the chart writes the few newer keys only for a collector that has
-# them: kubernetes-agent.collectorAtLeast). 0.96.0's k8sobjects receiver asks
+# that tag (the chart writes the few newer keys, and the renamed components'
+# new types, only for a collector that has them: kubernetes-agent.collectorAtLeast
+# and kubernetes-agent.componentType). 0.96.0's k8sobjects receiver asks
 # the API server for its resources while `validate` builds it, which nothing
 # here can answer, so the Deployment config goes without that receiver (and
 # the events pipeline it alone feeds); the chart writes it the same for every

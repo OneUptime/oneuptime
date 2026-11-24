@@ -65,6 +65,48 @@ enum JsonWebTokenPurpose {
    * session of that reader on that page, and gets nothing anywhere.
    */
   StatusPageSessionSignOut = "status-page-session-sign-out",
+
+  /*
+   * A dashboard private user's sign-in (#10250): the access token of one
+   * DashboardPrivateUserSession (CookieUtil.setDashboardPrivateUserCookie),
+   * for that one dashboard's public link. It names the dashboard, the
+   * private user and the session, and nothing else - no address, no name -
+   * so it is no OneUptime session, no SSO sign-in and no status page's
+   * session, and none of those is one.
+   */
+  DashboardPrivateUserSession = "dashboard-private-user-session",
+
+  /*
+   * Which DashboardPrivateUserSession a browser holds on one dashboard's
+   * public link, for its sign-out there and nothing else
+   * (JSONWebToken.signDashboardPrivateUserSessionSignOutToken): the
+   * dashboard, the private user and the session. Kept in a cookie of its
+   * own, sent only to that dashboard's sign-out, for as long as the
+   * session's refresh token, so a sign-out after a renewal whose answer was
+   * lost still ends the session - as a status page's does (issue #8671).
+   */
+  DashboardPrivateUserSessionSignOut = "dashboard-private-user-session-sign-out",
+
+  /*
+   * A form private user's sign-in (#10249): the access token of one
+   * FormPrivateUserSession (CookieUtil.setFormPrivateUserCookie),
+   * for that one form's public link. It names the form, the
+   * private user and the session, and nothing else - no address, no name -
+   * so it is no OneUptime session, no SSO sign-in and no status page's
+   * session, and none of those is one.
+   */
+  FormPrivateUserSession = "form-private-user-session",
+
+  /*
+   * Which FormPrivateUserSession a browser holds on one form's
+   * public link, for its sign-out there and nothing else
+   * (JSONWebToken.signFormPrivateUserSessionSignOutToken): the
+   * form, the private user and the session. Kept in a cookie of its
+   * own, sent only to that form's sign-out, for as long as the
+   * session's refresh token, so a sign-out after a renewal whose answer was
+   * lost still ends the session - as a status page's does (issue #8671).
+   */
+  FormPrivateUserSessionSignOut = "form-private-user-session-sign-out",
 }
 
 export default JsonWebTokenPurpose;

@@ -1,7 +1,14 @@
 import {
+  createJsonBodyParserOptions,
+  createUrlEncodedBodyParserOptions,
   jsonBodyParserOptions,
   urlEncodedBodyParserOptions,
 } from "../../../Server/Utils/StartServer";
+import {
+  FILE_REQUEST_BODY_LIMIT,
+  LARGE_REQUEST_BODY_LIMIT,
+  ORDINARY_REQUEST_BODY_LIMIT,
+} from "../../../Server/Utils/RequestBodyLimit";
 import {
   ExpressJson,
   ExpressRequest,
@@ -82,11 +89,18 @@ const invokeJsonVerify: VerifyInvoker = (
 };
 
 describe("urlencoded verify: single decode aliased to both fields", () => {
-  test("decodes the buffer exactly once", () => {
+  test("decodes the buffer once, the first time a raw field is read, and not before", () => {
     const toString: MockFn = jest.fn().mockReturnValue("a=1&b=2");
     const req: OneUptimeRequest = {} as OneUptimeRequest;
 
     invokeUrlEncodedVerify(req, { toString } as unknown as Buffer);
+
+    // A route that never reads the raw body never holds a second copy.
+    expect(toString).toHaveBeenCalledTimes(0);
+
+    expect(req.rawBody).toBe("a=1&b=2");
+    expect(req.rawFormUrlEncodedBody).toBe("a=1&b=2");
+    expect(req.rawBody).toBe("a=1&b=2");
 
     expect(toString).toHaveBeenCalledTimes(1);
   });
@@ -167,14 +181,77 @@ describe("json verify: regression guard", () => {
     expect(req.rawFormUrlEncodedBody).toBeUndefined();
   });
 
-  test("decodes the buffer exactly once", () => {
-    const toString: MockFn = jest.fn().mockReturnValue("{}");
+  test("decodes the buffer once, the first time rawBody is read, and not before", () => {
+    const buf: Buffer = Buffer.from("{}");
+    const toString: ReturnType<typeof jest.spyOn> = jest.spyOn(buf, "toString");
     const req: OneUptimeRequest = {} as OneUptimeRequest;
 
-    invokeJsonVerify(req, { toString } as unknown as Buffer);
+    invokeJsonVerify(req, buf);
+
+    expect(toString).toHaveBeenCalledTimes(0);
+
+    expect(req.rawBody).toBe("{}");
+    expect(req.rawBody).toBe("{}");
 
     expect(toString).toHaveBeenCalledTimes(1);
-    expect(req.rawBody).toBe("{}");
+  });
+
+  test("a route that sets rawBody keeps what it set", () => {
+    const req: OneUptimeRequest = {} as OneUptimeRequest;
+
+    invokeJsonVerify(req, Buffer.from('{"a":1}'));
+
+    req.rawBody = "replaced";
+
+    expect(req.rawBody).toBe("replaced");
+  });
+
+  test("refuses, before parsing, a body with more values than its route reads", () => {
+    const req: OneUptimeRequest = {
+      requestBodyLimit: {
+        bytes: 1024 * 1024,
+        values: 10,
+        objectsArraysAndStrings: 10,
+      },
+    } as OneUptimeRequest;
+
+    let thrown: unknown = null;
+
+    try {
+      invokeJsonVerify(req, Buffer.from(`[${"[],".repeat(20)}[]]`));
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toMatchObject({
+      type: "entity.too.many.values",
+      status: 413,
+      expose: true,
+      limit: 10,
+    });
+    // Refused before anything was kept of it.
+    expect(req.rawBody).toBeUndefined();
+  });
+
+  test("refuses a JSON body in a charset other than UTF-8", () => {
+    let thrown: unknown = null;
+
+    try {
+      jsonBodyParserOptions.verify(
+        {} as ExpressRequest,
+        {} as ExpressResponse,
+        Buffer.from("[]", "utf16le"),
+        "utf-16le",
+      );
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toMatchObject({
+      type: "charset.unsupported",
+      status: 415,
+      expose: true,
+    });
   });
 
   test("logs the constant message with request attributes, never the body", () => {
@@ -305,31 +382,45 @@ describe("StartServer wires the exported options into its middlewares", () => {
     "utf8",
   );
 
-  test("json middleware is built from jsonBodyParserOptions", () => {
+  test("json middleware is built from createJsonBodyParserOptions, for the route's limit", () => {
     expect(startServerSource).toMatch(
-      /ExpressJson\(\s*jsonBodyParserOptions,?\s*\)/,
+      /ExpressJson\(\s*createJsonBodyParserOptions\(limit\),?\s*\)/,
     );
   });
 
-  test("urlencoded middleware is built from urlEncodedBodyParserOptions", () => {
+  test("urlencoded middleware is built from createUrlEncodedBodyParserOptions, for the route's limit", () => {
     expect(startServerSource).toMatch(
-      /ExpressUrlEncoded\(\s*urlEncodedBodyParserOptions,?\s*\)/,
+      /ExpressUrlEncoded\(\s*createUrlEncodedBodyParserOptions\(limit\),?\s*\)/,
     );
   });
 
   /*
-   * Large probe payloads depend on the 50mb limit; the express default is
-   * 100kb, so a transcription slip in these exported objects would reject
-   * real traffic while every tiny-body test here still passes.
+   * Large probe payloads depend on the 50 MiB limit of the routes that take
+   * them; the express default is 100kb, so a transcription slip in these
+   * option objects would reject real traffic while every tiny-body test
+   * here still passes.
    */
-  test("both option objects keep the 50mb limit and extended parsing", () => {
+  test("the exported option objects are a large route's: 50 MiB, with extended parsing", () => {
     for (const options of [
       jsonBodyParserOptions,
       urlEncodedBodyParserOptions,
     ]) {
-      expect(options.limit).toBe("50mb");
+      expect(options.limit).toBe(50 * 1024 * 1024);
       expect(options.extended).toBe(true);
       expect(typeof options.verify).toBe("function");
     }
+  });
+
+  test("each route's options take its limit's bytes", () => {
+    for (const limit of [
+      ORDINARY_REQUEST_BODY_LIMIT,
+      LARGE_REQUEST_BODY_LIMIT,
+      FILE_REQUEST_BODY_LIMIT,
+    ]) {
+      expect(createJsonBodyParserOptions(limit).limit).toBe(limit.bytes);
+      expect(createUrlEncodedBodyParserOptions(limit).limit).toBe(limit.bytes);
+    }
+
+    expect(ORDINARY_REQUEST_BODY_LIMIT.bytes).toBe(1024 * 1024);
   });
 });

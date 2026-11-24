@@ -66,6 +66,13 @@ export class Shipper {
   public async ship(
     rows: Array<KubernetesCostAllocationIngestRow>,
     costEngine?: KubernetesCostEngineInfo | undefined,
+    options?: {
+      /*
+       * A later reading of a window shipped before (#9969): the server
+       * brings what it holds in line with it rather than skip the window.
+       */
+      correction?: boolean | undefined;
+    },
   ): Promise<void> {
     /*
      * Every chunk carries the same shipment id and its own index. The server
@@ -74,7 +81,8 @@ export class Shipper {
      * shipped in the shipment's deterministic order so chunk N of a re-shipped
      * window holds exactly the rows it held the first time.
      */
-    const shipment: Shipment = buildShipment(rows);
+    const correction: boolean = options?.correction === true;
+    const shipment: Shipment = buildShipment(rows, { correction });
 
     for (let i: number = 0; i < shipment.rows.length; i += SHIP_BATCH_SIZE) {
       const chunk: Array<KubernetesCostAllocationIngestRow> =
@@ -86,6 +94,7 @@ export class Shipper {
         shipmentChunk: i / SHIP_BATCH_SIZE,
         // Every chunk says it: the server stamps it on the rows it carries.
         ...(costEngine ? { costEngine } : {}),
+        ...(correction ? { correction: true } : {}),
         allocations: chunk,
       };
       await this.post(payload, chunk.length);

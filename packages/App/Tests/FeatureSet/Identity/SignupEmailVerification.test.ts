@@ -21,6 +21,10 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import { PASSWORD_RULE_MESSAGES } from "Common/Types/Password";
 import { RESET_LINK_MESSAGES } from "Common/Types/Accounts/SignInMessages";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -1388,6 +1392,46 @@ describe("POST /verify-email -- a link that confirms a new address (#9821)", () 
     });
     expect(sendErrorResponse).not.toHaveBeenCalled();
     expectNobodySignedIn();
+  });
+
+  /*
+   * The address the account leaves is told (#9907,
+   * UserService.tellPreviousAddressesOfChange): the write names the
+   * account's own change - only OneUptime's own write may - and carries
+   * where the link was opened, for that email's rows.
+   */
+  it("names the account's own change, and where its link was opened, for the email to the old address", async () => {
+    findEmailVerificationToken.mockResolvedValue(changeLink());
+    userFindOneBy.mockResolvedValue(null);
+    userFindOneById.mockResolvedValue(waitingAccount(NEW_ADDRESS));
+
+    const handler: RouteHandler = mockRouter.match("post", "/verify-email");
+
+    await handler(
+      buildRequest(verifyBody(), {
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0",
+        },
+        socketAddress: "203.0.113.7",
+      }),
+      buildResponse(),
+      (() => {}) as unknown as NextFunction,
+    );
+
+    const move: Record<string, any> = userUpdateOneById.mock
+      .calls[0]![0] as Record<string, any>;
+
+    expect(move["miscDataProps"]).toEqual({
+      [EMAIL_ADDRESS_CHANGED_BY_KEY]: EmailAddressChangedBy.AccountOwner,
+    });
+    expect(move["props"]["isRoot"]).toBe(true);
+    expect(move["props"]["requestOrigin"]).toEqual(
+      expect.objectContaining({
+        ipAddress: "203.0.113.7",
+        device: expect.stringContaining("Firefox"),
+      }),
+    );
   });
 
   it("matches the waiting address without regard to case", async () => {

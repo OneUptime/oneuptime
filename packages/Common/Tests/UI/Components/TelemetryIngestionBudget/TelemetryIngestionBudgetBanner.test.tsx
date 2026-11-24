@@ -23,10 +23,13 @@ import {
   GB,
   hostileAnswers,
   KEY_ID,
+  LABEL_ID,
   LOGS,
   OTHER_KEY_ID,
   scope,
   status,
+  TEAM_ID,
+  teamOrLabel,
   TRACES,
 } from "./TelemetryIngestionBudgetFixtures";
 
@@ -150,6 +153,58 @@ describe("what the banner says", () => {
     expect(noticeFor(two)?.text).toBe(
       `Logs: 2 ingestion keys have used up their own budgets for today, so data sent with them is refused until ${resetsAt(two)}.`,
     );
+  });
+
+  // A team's or a label's budget (#6386): its services' data is dropped.
+  test("teams and labels that used up their own budget, counted, when the project and its keys are fine", () => {
+    const usedUp: Array<ReturnType<typeof teamOrLabel>> = [
+      teamOrLabel(
+        [budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted })],
+        { team: { id: TEAM_ID, name: "Payments" } },
+      ),
+      teamOrLabel(
+        [budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted })],
+        { label: { id: LABEL_ID, name: "production" } },
+      ),
+    ];
+
+    const one: TelemetryIngestionBudgetStatus = status({
+      project: [budgeted(LOGS, {})],
+      teamsAndLabels: [usedUp[0]!],
+    });
+    expect(noticeFor(one)).toEqual({
+      type: AlertType.WARNING,
+      text: `Logs: 1 team or label has used up its own budget for today, so data from its services is dropped until ${resetsAt(one)}.`,
+    });
+
+    const two: TelemetryIngestionBudgetStatus = status({
+      teamsAndLabels: usedUp,
+    });
+    expect(noticeFor(two)?.text).toBe(
+      `Logs: 2 teams and labels have used up their own budgets for today, so data from their services is dropped until ${resetsAt(two)}.`,
+    );
+
+    // Another signal's used-up team budget says nothing here.
+    expect(noticeFor(two, TRACES)).toBe(null);
+  });
+
+  test("a key's used-up budget is told before a team's or a label's", () => {
+    const data: TelemetryIngestionBudgetStatus = status({
+      ingestionKeys: [
+        scope(
+          [budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted })],
+          { id: KEY_ID, name: "Collector" },
+        ),
+      ],
+      teamsAndLabels: [
+        teamOrLabel(
+          [budgeted(LOGS, { state: TelemetryIngestionBudgetState.Exhausted })],
+          { team: { id: TEAM_ID, name: "Payments" } },
+        ),
+      ],
+    });
+
+    expect(noticeFor(data)?.text).toContain("ingestion key");
   });
 
   test("the project's used-up budget is told before any key's", () => {

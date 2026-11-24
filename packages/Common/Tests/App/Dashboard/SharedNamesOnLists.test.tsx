@@ -14,9 +14,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * A LIST OF RECORDS THAT MAY SHARE A NAME, MARKED (#9746).
  *
- * Teams, on-call policies and on-call schedules named alike before their
- * names were one record's each keep their names, and every picker draws
- * them alike. Their lists (Components/SharedName/UseSharedNames):
+ * Teams, labels, on-call policies and on-call schedules named alike before
+ * their names were one record's each keep their names, and every picker
+ * draws them alike. Their lists (Components/SharedName/UseSharedNames):
  *
  *   - ask the server which records share a name each time they read their
  *     rows - never before, and the newest answer wins;
@@ -30,7 +30,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - rename in a dialog of the name alone, where a name another record has
  *     is said under the field, and read the list again once it is saved;
  *   - keep the Name column a name: it sorts, exports and reads its way as
- *     before.
+ *     before, drawn as the list draws its names where that is more than
+ *     their words (a label's coloured chip, #9856).
  *
  * Each kind's words are in every Dashboard language.
  */
@@ -143,9 +144,11 @@ function current(): SharedNamesOfList<Team> {
 const ListHarness: (props: {
   rows: Array<Team>;
   withCanRename?: boolean;
+  withNameElement?: boolean;
 }) => ReactElement = (props: {
   rows: Array<Team>;
   withCanRename?: boolean;
+  withNameElement?: boolean;
 }): ReactElement => {
   const shared: SharedNamesOfList<Team> = useSharedNames<Team>({
     kind: SharedNameKind.Team,
@@ -153,6 +156,11 @@ const ListHarness: (props: {
     canRename: props.withCanRename
       ? (team: Team): boolean => {
           return team.isTeamEditable !== false;
+        }
+      : undefined,
+    getNameElement: props.withNameElement
+      ? (team: Team): ReactElement => {
+          return <strong data-testid="drawn-name">{`[${team.name}]`}</strong>;
         }
       : undefined,
   });
@@ -439,6 +447,27 @@ describe("Rename, on a marked row", () => {
 });
 
 describe("the Name column", () => {
+  test("drawn as the list draws its names, keeps the pill beside them", async () => {
+    render(<ListHarness rows={ROWS} withNameElement={true} />);
+    await listFetched();
+
+    const twin: HTMLElement = screen.getByTestId(`row-${TENANTS_TWIN}`);
+
+    expect(twin.querySelector('[data-testid="drawn-name"]')).toHaveTextContent(
+      "[tenants ]",
+    );
+    expect(pillOf(TENANTS_TWIN)).toHaveTextContent(WORDS.pill);
+    expect(
+      screen
+        .getByTestId(`row-${PLATFORM}`)
+        .querySelector('[data-testid="drawn-name"]'),
+    ).toHaveTextContent("[Platform]");
+    expect(pillOf(PLATFORM)).toBeNull();
+
+    // Still a name to export, whatever the cell draws.
+    expect(current().nameColumn.getExportValue!(ROWS[1]!)).toBe("tenants ");
+  });
+
   test("is a name: it sorts by it, exports it and reads its way", async () => {
     render(<ListHarness rows={ROWS} />);
 

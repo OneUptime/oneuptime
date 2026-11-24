@@ -44,6 +44,7 @@ import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCal
 import OnCallDutyPolicyOwnerTeam from "../../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicyOwnerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import Service from "../../../Models/DatabaseModels/Service";
+import { FIELDS_LEFT_OUT_HEADER } from "../../../Types/API/FieldsLeftOut";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
@@ -258,6 +259,8 @@ interface Outcome {
   count?: number;
   item?: BaseModel | null;
   isEmptySuccess?: boolean;
+  // The headers the route set on its answer, by their names in lower case.
+  headers?: Record<string, string>;
 }
 
 describePostgres("the records the CRUD API reaches, on Postgres", () => {
@@ -730,6 +733,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
 
     const res: ExpressResponse = {
       set: jest.fn(),
+      setHeader: jest.fn(),
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
       send: jest.fn(),
@@ -776,8 +780,17 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       body: data.body || {},
     } as unknown as ExpressRequest;
 
+    /*
+     * The headers the route sets, as Node's response takes them: a create
+     * names the fields it left out in one (FieldsLeftOut, #10136).
+     */
+    const headers: Record<string, string> = {};
+
     const res: ExpressResponse = {
       set: jest.fn(),
+      setHeader: jest.fn((name: string, value: unknown) => {
+        headers[name.toLowerCase()] = String(value);
+      }),
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
       send: jest.fn(),
@@ -842,7 +855,10 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
     ).mock.calls[0];
 
     if (itemCall) {
-      return { item: (itemCall[2] as BaseModel | null) || null };
+      return {
+        item: (itemCall[2] as BaseModel | null) || null,
+        headers: headers,
+      };
     }
 
     if (jest.mocked(Response.sendEmptySuccessResponse).mock.calls.length > 0) {
@@ -4301,6 +4317,14 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         });
 
         expect(owner.error).toBeUndefined();
+
+        /*
+         * Whether the owners were told is OneUptime's to write: the create
+         * leaves it out, and its answer names it (#10136).
+         */
+        expect(owner.headers![FIELDS_LEFT_OUT_HEADER.toLowerCase()]).toBe(
+          "isOwnerNotified",
+        );
 
         const rows: Array<{ teamId: string }> = await database.query(
           `SELECT "teamId" FROM "${schema}"."StatusPageOwnerTeam" WHERE "statusPageId" = $1`,

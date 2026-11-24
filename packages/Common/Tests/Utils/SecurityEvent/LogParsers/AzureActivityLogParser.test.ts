@@ -8,6 +8,7 @@ import SecurityLogFormat, {
 import AzureActivityLogParser, {
   AZURE_PREFILTER_WORDS,
   azureCategoryMarkers,
+  getAzureActivityRecordUid,
   readAzureRecords,
   subscriptionOf,
 } from "../../../../Utils/SecurityEvent/LogParsers/AzureActivityLogParser";
@@ -107,10 +108,54 @@ describe("AzureActivityLogParser - the Activity Log", () => {
     );
     expect(event.principalUser).toBe("mallory@contoso.example");
     expect(event.principalIp).toBe("198.51.100.66");
+    // Its id is what both of its shapes say (#10032); its eventDataId, what it was stored by before.
     expect(event.eventUid).toBe(
+      getAzureActivityRecordUid(azureActivityApiEvent()),
+    );
+    expect(event.eventUid).toMatch(/^azure-activity:[0-9a-f]{40}$/);
+    expect(event.eventUidAliases).toEqual([
+      "azure-activity:a0b1c2d3-0000-4000-8000-000000000008",
+    ]);
+    expect(event.time.toISOString()).toBe("2026-10-30T09:59:30.123Z");
+  });
+
+  /*
+   * #10032: a diagnostic setting's export has no eventDataId, so the same
+   * record read from the REST API and from the export is known by what both
+   * say of it - folded, whatever the case either writes it in.
+   */
+  test("the export's record and the REST API's are one record, by what both say of it", () => {
+    const exported: JSONObject = azureActivityExport({
+      time: "2026-10-30T09:59:30.1234567Z",
+      resourceId:
+        "/SUBSCRIPTIONS/11111111-2222-3333-4444-555555555555/PROVIDERS/MICROSOFT.INSIGHTS/DIAGNOSTICSETTINGS/TO-SIEM",
+      operationName: "MICROSOFT.INSIGHTS/DIAGNOSTICSETTINGS/DELETE",
+      correlationId: "8F7E6D5C-0000-4000-8000-000000000007",
+      resultType: "Success",
+    });
+
+    expect(only(exported).eventUid).toBe(
+      only(azureActivityApiEvent()).eventUid,
+    );
+    // The export never had an eventDataId: nothing it was stored by before.
+    expect(only(exported).eventUidAliases).toBeUndefined();
+  });
+
+  test("a record that says too little to be told from another keeps its eventDataId, or its line's id", () => {
+    const fromApi: JSONObject = azureActivityApiEvent();
+
+    delete fromApi["correlationId"];
+
+    expect(only(fromApi).eventUid).toBe(
       "azure-activity:a0b1c2d3-0000-4000-8000-000000000008",
     );
-    expect(event.time.toISOString()).toBe("2026-10-30T09:59:30.123Z");
+    expect(only(fromApi).eventUidAliases).toBeUndefined();
+
+    const exported: JSONObject = azureActivityExport();
+
+    delete exported["correlationId"];
+
+    expect(only(exported).eventUid.startsWith("log:")).toBe(true);
   });
 
   test("a Defender for Cloud alert is a finding at its own severity", () => {

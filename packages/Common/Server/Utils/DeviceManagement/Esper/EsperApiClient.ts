@@ -8,6 +8,7 @@ import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/Llm
 import RetryAfter from "../../../../Utils/RetryAfter";
 import { DataSourceHttpResponse } from "../../DataSource/HttpFetch";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
+import DeviceManagementRequestPacer from "../DeviceManagementRequestPacer";
 import {
   DeviceManagementBudgetSpent,
   DeviceManagementTransport,
@@ -192,13 +193,9 @@ export default class EsperApiClient {
   private readonly transport: DeviceManagementTransport;
   private readonly now: () => Date;
   private readonly sleep: (milliseconds: number) => Promise<void>;
-  private readonly random: () => number;
-  private readonly maxRequests: number;
-  private readonly deadlineMs: number;
   private readonly requestTimeoutInMs: number;
-  private requestsPerSecond: number;
-  private lastRequestStartedAt: number | null = null;
-  private used: number = 0;
+  // The read's pace and budget (DeviceManagementRequestPacer).
+  private readonly pacer: DeviceManagementRequestPacer;
   private rateLimited: boolean = false;
 
   public constructor(options: EsperApiClientOptions) {
@@ -211,26 +208,23 @@ export default class EsperApiClient {
         return new Date();
       });
     this.sleep = options.sleep || DEFAULT_SLEEP;
-    this.random = options.random || Math.random;
-    this.requestsPerSecond = Math.max(
-      ESPER_MIN_REQUESTS_PER_SECOND,
-      options.requestsPerSecond || ESPER_REQUESTS_PER_SECOND,
-    );
-    this.maxRequests =
-      options.maxRequests !== undefined && options.maxRequests >= 0
-        ? options.maxRequests
-        : Number.POSITIVE_INFINITY;
-    this.deadlineMs =
-      options.deadlineMs !== undefined
-        ? options.deadlineMs
-        : Number.POSITIVE_INFINITY;
+    this.pacer = new DeviceManagementRequestPacer({
+      now: this.now,
+      sleep: this.sleep,
+      random: options.random || Math.random,
+      requestsPerSecond: options.requestsPerSecond || ESPER_REQUESTS_PER_SECOND,
+      minRequestsPerSecond: ESPER_MIN_REQUESTS_PER_SECOND,
+      maxBackoffSeconds: MAX_BACKOFF_SECONDS,
+      maxRequests: options.maxRequests,
+      deadlineMs: options.deadlineMs,
+    });
     this.requestTimeoutInMs =
       options.requestTimeoutInMs || ESPER_REQUEST_TIMEOUT_IN_MS;
   }
 
   // Requests made so far: what the read cost the tenant's budget.
   public getRequestCount(): number {
-    return this.used;
+    return this.pacer.getRequestCount();
   }
 
   // Whether Esper answered 429 at least once.
@@ -239,15 +233,12 @@ export default class EsperApiClient {
   }
 
   public getRequestsPerSecond(): number {
-    return this.requestsPerSecond;
+    return this.pacer.getRequestsPerSecond();
   }
 
   // Whether the read's budget has room for this many more requests.
   public hasBudgetFor(requests: number): boolean {
-    return (
-      this.used + requests <= this.maxRequests &&
-      this.now().getTime() < this.deadlineMs
-    );
+    return this.pacer.hasBudgetFor(requests);
   }
 
   // "https://acme-api.esper.cloud/api/v2/devices/?limit=1000"
@@ -440,10 +431,7 @@ export default class EsperApiClient {
 
       if (status === 429) {
         this.rateLimited = true;
-        this.requestsPerSecond = Math.max(
-          ESPER_MIN_REQUESTS_PER_SECOND,
-          this.requestsPerSecond / 2,
-        );
+        this.pacer.slowDown();
 
         const retryAfter: number | null = readRetryAfterSeconds(
           headers["retry-after"],
@@ -497,13 +485,7 @@ export default class EsperApiClient {
    * the same second.
    */
   public backoffMs(attempt: number): number {
-    const base: number = Math.min(
-      MAX_BACKOFF_SECONDS,
-      Math.pow(2, Math.max(0, attempt)),
-    );
-    const jitter: number = 0.5 + Math.min(1, Math.max(0, this.random()));
-
-    return Math.round(base * jitter * 1000);
+    return this.pacer.backoffMs(attempt);
   }
 
   // One request, paced and counted; a dropped connection is tried once more.
@@ -514,7 +496,7 @@ export default class EsperApiClient {
     let attempts: number = 0;
 
     for (;;) {
-      await this.takeTurn();
+      await this.pacer.takeTurn();
       attempts++;
 
       try {
@@ -542,33 +524,6 @@ export default class EsperApiClient {
         });
       }
     }
-  }
-
-  /*
-   * Waits for this request's turn: the budget first (spent: stop), then the
-   * pace - requests start 1/requestsPerSecond apart.
-   */
-  private async takeTurn(): Promise<void> {
-    const nowMs: number = this.now().getTime();
-
-    if (this.used >= this.maxRequests || nowMs >= this.deadlineMs) {
-      throw new DeviceManagementBudgetSpent();
-    }
-
-    if (this.lastRequestStartedAt !== null) {
-      const spacingMs: number = 1000 / this.requestsPerSecond;
-      const waitMs: number = this.lastRequestStartedAt + spacingMs - nowMs;
-
-      if (waitMs > 0) {
-        await this.sleep(waitMs);
-      }
-    }
-
-    this.lastRequestStartedAt = Math.max(
-      this.now().getTime(),
-      (this.lastRequestStartedAt || 0) + 1000 / this.requestsPerSecond,
-    );
-    this.used++;
   }
 
   // A link, resolved against the address of the answer it came in.

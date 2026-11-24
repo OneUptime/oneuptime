@@ -18,6 +18,12 @@ import { describe, expect, test } from "@jest/globals";
  * the key is bound like every other one, and no character of it is ever read
  * as SQL whatever the validation allows. Counting rows, and the distinct
  * values of a column, build exactly the statements they built before.
+ *
+ * And it counts only the logs that carry the attribute (#7716): a log
+ * without it reads '' from the map, which uniqExact counted as one more
+ * value - three logs, two users and one log with no user.id made three
+ * unique users. The count is uniqExactIf(..., mapContains(...)) now, both
+ * keys bound.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -57,7 +63,7 @@ function sqlOf(statement: Statement): string {
 }
 
 const DISTINCT_COUNT_PARAMETER: RegExp =
-  /uniqExact\(attributes\[\{(p\d+):String\}\]\) AS cnt/;
+  /uniqExactIf\(attributes\[\{(p\d+):String\}\], mapContains\(attributes, \{(p\d+):String\}\)\) AS cnt/;
 
 describe("the distinct count of an attribute", () => {
   for (const [builder, chartType] of BUILDERS) {
@@ -83,6 +89,7 @@ describe("the distinct count of an attribute", () => {
 
         expect(match).not.toBeNull();
         expect(statement.query_params[match![1]!]).toBe(key);
+        expect(statement.query_params[match![2]!]).toBe(key);
         expect(statement.query).not.toContain(key);
         expect(sqlOf(statement)).not.toContain("'");
       });

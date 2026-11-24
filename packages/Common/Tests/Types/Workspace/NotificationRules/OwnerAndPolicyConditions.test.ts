@@ -1,3 +1,4 @@
+import { SharedNameKind } from "../../../../Types/Database/SharedNames";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition, {
@@ -718,8 +719,15 @@ describe("The values offered for a pick (#7582)", () => {
         value: PAYMENTS_POLICY,
         label: "Payments Escalation",
         isUserContent: true,
+        // What tells it apart from a policy that shares its name (#10495).
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
       },
-      { value: SEARCH_POLICY, label: "Search Escalation", isUserContent: true },
+      {
+        value: SEARCH_POLICY,
+        label: "Search Escalation",
+        isUserContent: true,
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
+      },
     ]);
   });
 
@@ -747,6 +755,7 @@ describe("The values offered for a pick (#7582)", () => {
         value: PAYMENTS_POLICY,
         label: "Payments Escalation",
         isUserContent: true,
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
       },
       {
         value: OLD_POLICY,
@@ -754,6 +763,7 @@ describe("The values offered for a pick (#7582)", () => {
         isUserContent: true,
         isArchived: true,
         isDisabled: true,
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
       },
     ]);
   });

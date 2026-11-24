@@ -136,7 +136,7 @@ Source maps are kept for 90 days after upload, then deleted automatically. A map
 ## Security
 
 - Maps are uploaded over an authenticated endpoint and stored in your OneUptime project — they are never fetched from your website, so hidden source maps stay hidden.
-- The raw map content (which includes your original source when built with `sourcesContent`) can only be read back by Project Owners and Project Admins, and by anyone given the **Read Telemetry Source Map** permission. Other team members see just the resolved frames and the few source lines around each crash site of exceptions they already have access to.
+- The raw map content (which includes your original source when built with `sourcesContent`) can only be read back by Project Owners and Project Admins, by anyone given Services at the [Admin level](/docs/permissions/index#product-levels) (`ServiceAdmin`), and by anyone given the **Read Telemetry Source Map** permission. Other team members see just the resolved frames and the few source lines around each crash site of exceptions they already have access to.
 - Deleting a service deletes its source maps.
 
 ## Troubleshooting

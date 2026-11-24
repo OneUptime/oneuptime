@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | GET | `/l/*` | SMS, WhatsApp और Telegram संदेशों के छोटे लिंक |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | वह पेज जो बताता है कि किस बारे में पेज किया गया, और उसका **Acknowledge** बटन |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** बटन |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** बटन |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | वैकल्पिक: वह पेज जिससे पेज को अगले व्यक्ति तक आगे बढ़ाया जाता है |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | वैकल्पिक: उसका बटन |
 | GET | `/oneuptime-assets/*` | उन पेजों के फ़ॉन्ट, स्टाइल और लोगो |

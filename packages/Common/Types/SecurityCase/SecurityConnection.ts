@@ -285,6 +285,36 @@ export const SECURITY_LOG_ROW_CLOUD_RESOURCE_KEY: string =
   "resource.cloud.resource_id";
 export const SECURITY_LOG_ROW_FUNCTION_KEY: string = "resource.faas.name";
 
+/*
+ * The record whose own log line or span an event was read from (#10033),
+ * by what the event carries of it: the cloud resource whose ID its stream
+ * stamped on the line (SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE) and the
+ * serverless function whose faas.name it carried
+ * (SECURITY_LOG_FUNCTION_ATTRIBUTE). The line was filed under its
+ * connection's service, or the service of the function's name, so the
+ * record it was sent under never says which these are. Each is connected
+ * exactly: the cloud resource whose providerResourceId is the ID - an
+ * Azure resource ID whatever its case - and the function whose
+ * functionIdentifier is the name.
+ */
+export interface SecurityLogOwner {
+  kind: SecurityConnectionKind;
+  // The ID as the line was stamped with it, or the function's name.
+  value: string;
+}
+
+// The kinds of record an event's own log line or span names that way.
+export const SECURITY_LOG_OWNER_KINDS: ReadonlyArray<SecurityConnectionKind> = [
+  SecurityConnectionKind.CloudResource,
+  SecurityConnectionKind.ServerlessFunction,
+];
+
+// The longest function name a line's faas.name is read as.
+export const SECURITY_LOG_FUNCTION_NAME_MAX_LENGTH: number = 255;
+
+// The most of them one request, or one read of a case's events, names.
+export const SECURITY_LOG_OWNERS_MAX: number = 20;
+
 // One way a security entity meets a record.
 export interface SecurityConnectionMatch {
   entity: SecurityEntity;

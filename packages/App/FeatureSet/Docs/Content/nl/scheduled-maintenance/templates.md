@@ -47,7 +47,7 @@ Kies onder **Getroffen middelen** de **Monitoren**, de **Monitorstatus wijzigen 
 
 ### Beslissen of het terugkeert
 
-Laat onder **Terugkerend** de schakelaar **Terugkerende gebeurtenis** uit voor een sjabloon dat je met de hand gebruikt, of zet hem aan en vul de planning in. Klik op **Volgende** om de controle na te lopen en maak dan het sjabloon.
+Laat onder **Terugkerend** de schakelaar **Terugkerende gebeurtenis** uit voor een sjabloon dat je met de hand gebruikt, of zet hem aan, kies hoe vaak het terugkeert en zijn **Tijdzone**, en stel de tijden van de eerste gebeurtenis in onder **Eerste gebeurtenis**. Klik op **Volgende** om de controle na te lopen en maak dan het sjabloon.
 :::
 
 Een sjabloon vraagt om **Monitorstatus wijzigen naar**, ook als het geen monitoren noemt: de status geldt ook voor de monitoren die je toevoegt wanneer je er een gebeurtenis mee plant. Onder **Andere getroffen resources** neemt een sjabloon hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services aan.
@@ -83,15 +83,18 @@ Als het project nog geen sjabloon heeft, zegt **Maken op basis van sjabloon** da
 
 ## Terugkerende gebeurtenissen
 
-Een terugkerend sjabloon maakt de gebeurtenis volgens een planning aan. Je legt vast wanneer de eerste gebeurtenis wordt gemaakt, wanneer ze begint en wanneer ze eindigt; elke volgende gebeurtenis houdt dezelfde afstanden, één interval later.
+Een terugkerend sjabloon maakt de gebeurtenis volgens een planning aan. Je legt vast hoe vaak het terugkeert, welke tijdzone het aanhoudt, en wanneer de eerste gebeurtenis wordt gemaakt, wanneer ze begint en wanneer ze eindigt; elke volgende gebeurtenis is de eerste, hele intervallen verschoven in de kalender van die tijdzone, op dezelfde tijden van de dag.
 
 | Veld                                     | Wat het betekent                                                                                    |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Terugkerende gebeurtenis**             | Zet de planning aan.                                                                                |
+| **Hoe vaak wilt u dat deze gebeurtenis zich herhaalt?** | Een getal en een eenheid: uren, dagen, weken, maanden of jaren.                      |
+| **Tijdzone**                             | De tijdzone waarin de gebeurtenissen hun tijd van de dag houden. Een nieuw sjabloon begint met de jouwe. |
 | **Eerste gebeurtenis gepland op**        | Wanneer OneUptime de eerste gebeurtenis maakt, en dus wanneer haar abonnees horen dat ze gepland is. |
 | **Eerste gebeurtenis begint om**         | Wanneer de eerste gebeurtenis begint.                                                               |
 | **Eerste gebeurtenis eindigt om**        | Wanneer de eerste gebeurtenis eindigt.                                                              |
-| **Hoe vaak wilt u dat deze gebeurtenis zich herhaalt?** | Een getal en een eenheid: uren, dagen, weken, maanden of jaren.                      |
+
+De eerste drie staan in de stap **Terugkerend**. De tijden van de eerste gebeurtenis staan in de stap **Eerste gebeurtenis**, die verschijnt zodra **Terugkerende gebeurtenis** aan staat.
 
 Bijvoorbeeld een wekelijks venster waarvan de eerste gebeurtenis op een maandag wordt gemaakt voor de zaterdag erna:
 
@@ -100,15 +103,25 @@ Bijvoorbeeld een wekelijks venster waarvan de eerste gebeurtenis op een maandag 
 | De eerste    | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | De tweede    | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Elke gebeurtenis houdt de tijden van de dag van de eerste gebeurtenis in de tijdzone van het sjabloon, ook als de klok wordt verzet voor de zomertijd: een venster van 02:00 tot 04:00 in Berlijn ligt daar in de zomer en in de winter van 02:00 tot 04:00. Een paar dagen lopen zo:
+
+- **Een dag die de maand niet heeft.** Een maandelijkse gebeurtenis op de 29e, 30e of 31e valt op de laatste dag van een kortere maand, zoals 30 april of 28 februari, en weer op haar eigen dag in de maanden die die dag hebben. Een jaarlijkse gebeurtenis op 29 februari valt in andere jaren op 28 februari.
+- **De nacht waarin de klok vooruit gaat.** Een tijd die die nacht niet bestaat, zoals 02:30 als 02:00 naar 03:00 springt, schuift met de sprong op, naar 03:30. Een gebeurtenis waarvan het begin daardoor voorbij haar einde schuift, houdt de lengte van de eerste gebeurtenis.
+- **De nacht waarin de klok terug gaat.** Een tijd die die nacht twee keer voorkomt, zoals 01:30 in New York, is de eerste van de twee.
+- **Om de paar uur.** Uren worden geteld zoals ze verstrijken, dus een sjabloon dat om de paar uur terugkeert, schuift een uur op de klok als die wordt verzet.
+- **Een tijdzone zonder zomertijd.** Een tijdzone die de klok niet meer verzet, zoals die van Brits-Columbia (America/Vancouver) sinds november 2026, houdt hetzelfde verschil, dus er verschuift niets.
+
+Een sjabloon dat is gemaakt voordat sjablonen een tijdzone hadden, toont **UTC**, de tijdzone waarin de gebeurtenissen tot dan toe werden berekend. Kies de tijdzone waarin de tijden bedoeld waren, en vanaf de volgende gebeurtenis houdt elke gebeurtenis daar de tijd van de dag van de eerste gebeurtenis.
+
 Zet **Eerste gebeurtenis gepland op** zo ver vóór het begin als je wilt dat je klanten van het werk horen. Alle drie de tijden moeten in de toekomst liggen wanneer je het sjabloon maakt, de gebeurtenis moet worden gemaakt voordat ze begint en eindigt, en ze moet beginnen voordat ze eindigt; het formulier zegt welke regel een tijd overtreedt.
 
-Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende tijd van een sjabloon aanbreekt, schuift ze die tijd één interval op en maakt ze de gebeurtenis. De sjabloonlijst toont die tijd in haar kolom **Terugkerende gebeurtenis**, en **Nee** voor een sjabloon dat niet terugkeert. Een gebeurtenis die door de planning is gemaakt, is als elke andere: haar regels draaien, haar eigenaren worden toegevoegd en haar abonnees horen dat ze gepland is.
+Een taak controleert de terugkerende sjablonen elke minuut. Wanneer de volgende tijd van een sjabloon aanbreekt, maakt ze de gebeurtenis en schuift ze die tijd op naar de volgende gebeurtenis van de planning. De sjabloonlijst toont die tijd in haar kolom **Terugkerende gebeurtenis**, en **Nee** voor een sjabloon dat niet terugkeert. Een gebeurtenis die door de planning is gemaakt, is als elke andere: haar regels draaien, haar eigenaren worden toegevoegd en haar abonnees horen dat ze gepland is.
 
 ## Een sjabloon wijzigen of stoppen
 
 Open een sjabloon uit de lijst om de pagina ervan te zien:
 
-- **Sjabloondetails voor gepland onderhoud** toont waarmee nieuwe gebeurtenissen beginnen. Het **Bewerken** ervan loopt door **Sjablooninformatie**, **Onderhoudsgegevens**, **Statuspagina's** en **Terugkerend**.
+- **Sjabloondetails voor gepland onderhoud** toont waarmee nieuwe gebeurtenissen beginnen. Het **Bewerken** ervan loopt door **Sjablooninformatie**, **Onderhoudsgegevens**, **Statuspagina's** en **Terugkerend**, en daarna **Eerste gebeurtenis** voor een sjabloon dat terugkeert.
 - **Getroffen resources** bevat de **Monitoren**, hun **Monitorstatus wijzigen naar** en de **Andere getroffen resources**, met een eigen **Bewerken**.
 - **Eigenaren** toont de personen en teams van wie elke gebeurtenis is die ermee wordt gepland.
 
@@ -122,6 +135,10 @@ Alle drie de eerste tijden moeten bij het maken na het huidige moment liggen. Sc
 
 :::details Een terugkerend sjabloon heeft geen gebeurtenis gemaakt
 Controleer of **Terugkerende gebeurtenis** nog aanstaat, en kijk naar de tijd in de kolom **Terugkerende gebeurtenis** van de lijst: de gebeurtenis wordt dan gemaakt, niet op haar begin. De taak draait elke minuut, dus wacht een minuut.
+:::
+
+:::details Gebeurtenissen uit een terugkerend sjabloon zijn na het verzetten van de klok een uur te vroeg of te laat
+Open het sjabloon en controleer zijn **Tijdzone**: de gebeurtenissen houden de tijd van de dag van de eerste gebeurtenis in die tijdzone. Een sjabloon dat is gemaakt voordat sjablonen een tijdzone hadden, toont **UTC**: kies de tijdzone waarin de tijden bedoeld waren. Gebeurtenissen die al zijn gemaakt, houden hun tijden.
 :::
 
 :::details Een gebeurtenis van een sjabloon mist een resource die ik had gekozen

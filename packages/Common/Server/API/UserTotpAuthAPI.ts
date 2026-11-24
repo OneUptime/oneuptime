@@ -22,6 +22,8 @@ import logger from "../Utils/Logger";
 import TwoFactorBackupCodeNotification from "../Utils/TwoFactorBackupCodeNotification";
 import RequestOriginUtil from "../Utils/RequestOrigin/RequestOriginUtil";
 import SsoManagedSignIn from "../Utils/SsoManagedSignIn";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
+import CommonAPI from "./CommonAPI";
 
 export default class UserTotpAuthAPI extends BaseAPI<
   UserTotpAuth,
@@ -72,6 +74,16 @@ export default class UserTotpAuthAPI extends BaseAPI<
            */
           await SsoManagedSignIn.assertMayChangeLocalSignIn(
             userTotpAuth.userId,
+          );
+
+          /*
+           * Finishing it makes it a second step of every sign-in: the
+           * session has confirmed it's its person's (#10155), as when the
+           * app was begun. Before the code is checked, so the same code can
+           * be sent again once it has.
+           */
+          await Reauthentication.assertConfirmed(
+            await CommonAPI.getDatabaseCommonInteractionProps(req),
           );
 
           // get user email.

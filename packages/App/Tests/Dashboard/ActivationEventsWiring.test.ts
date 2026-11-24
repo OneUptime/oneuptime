@@ -91,8 +91,17 @@ describe("the Dashboard's behaviour events", () => {
         feedbackRequest,
       ),
     );
+    /*
+     * The rating, and the kind of answer it rated (#7064): built by
+     * AskAiAnswerEvents, whose own tests hold "up", "down" and "cleared".
+     */
     expect(source).toMatch(
-      /ProductEvents\.send\(ProductEventName\.AskAiAnswerRated, \{\s*rating: feedback \? String\(feedback\) : "cleared",\s*\}\);/,
+      /ProductEvents\.send\(\s*ProductEventName\.AskAiAnswerRated,\s*getAnswerRatedEvent\(\{\s*feedback: feedback,/,
+    );
+
+    // An answer the docs did not cover, once, never its question (#7064).
+    expect(source).toMatch(
+      /ProductEvents\.send\(\s*ProductEventName\.AskAiDocsNotCovered,\s*notCovered,\s*\);/,
     );
   });
 

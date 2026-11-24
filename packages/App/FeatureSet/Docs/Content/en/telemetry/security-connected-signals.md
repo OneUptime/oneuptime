@@ -47,11 +47,12 @@ Each user, host and address a case or an event names is looked up among the proj
 | A short or full form of a record's name, such as `web-1` and `web-1.acme.internal` | That record | Possible |
 | A public IP address only one host or network device holds, or only one cloud resource answers on | That record | Exact |
 | A private IP address, or one more than one record holds | Each record holding it | Possible |
-| A cloud resource's own ID: an AWS ARN, an Azure resource ID or a Google Cloud resource name | That cloud resource | Exact |
+| A cloud resource's own ID: an AWS ARN or a Google Cloud resource name as written, or an Azure resource ID whatever its case | That cloud resource | Exact |
 | A host, a public IP address or the host of a URL a monitor checks | That monitor | Exact |
 | A private IP address a monitor checks | That monitor | Possible |
 | A member's email | That member | Exact |
 | The record a log line was sent under, for the events read from your logs | That host, cluster, OpenStack cloud, cloud resource, serverless function or service | Exact |
+| The cloud resource or the serverless function a log line came from, by its `cloud.resource_id` or its `faas.name`, for the events read from your logs | That cloud resource or serverless function | Exact |
 | A bare user name, a file hash or a process | Nothing: no record is keyed by them | - |
 
 - A possible match shows **Possible match** beside its name, and says why. It is never counted on the record's page, and an incident the case declares is never linked to it.

@@ -23,6 +23,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
+import { CopyLogRowLinkButton } from "./CopyLogLineLinkButton";
 import IsolatedText from "../../IsolatedText/IsolatedText";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import Link from "../../Link/Link";
@@ -96,6 +97,12 @@ export interface LogsTableProps {
     | ((spanId: string, log: Log) => Promise<Route | URL | undefined>)
     | undefined;
   /*
+   * The link that opens one line (#9794), as the app builds it: given, a
+   * row has Copy Link beside its Copy log message (#9944), the same link
+   * its details copy. Left out, rows have none.
+   */
+  getLogLink?: ((log: Log) => string | null | undefined) | undefined;
+  /*
    * The list's columns as wide as a person made them (Table/ColumnResize):
    * an edge on each column's header to drag, and Reset column widths at the
    * header row's end while one is sized - as a table with no ⋯ keeps it.
@@ -156,12 +163,21 @@ export type LogsTableSortField = "time" | "severityText";
 export const LOGS_TABLE_TEST_ID: string = "logs-table";
 
 /*
- * A row's own action (Copy log message): out of sight until the pointer is
- * on the row, or the keyboard's focus is in it - never a focus ring on
- * something unseen.
+ * A row's own actions (Copy log message, Copy Link): out of sight until the
+ * pointer is on the row, or the keyboard's focus is in it - never a focus
+ * ring on something unseen. A screen with no pointer to hover - a phone, a
+ * tablet - shows them on every row: there was nothing to reveal them there,
+ * and an unseen button took the tap meant for the row. Under a finger each
+ * is 32px across, with room between them (#9944).
  */
 export const LOGS_TABLE_ROW_ACTION_CLASS_NAME: string =
-  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100";
+  "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:min-h-8 [@media(pointer:coarse)]:min-w-8";
+
+// The row's actions, side by side: further apart under a finger.
+export const LOGS_TABLE_ROW_ACTIONS_CLASS_NAME: string =
+  "flex flex-none items-center gap-1 [@media(pointer:coarse)]:gap-2";
+
+export const LOGS_TABLE_ROW_ACTIONS_TEST_ID: string = "logs-table-row-actions";
 
 /*
  * A log's message: its own line breaks kept, a run too long for the column
@@ -742,74 +758,96 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
                       if (columnId === "message") {
                         return (
                           <td className="px-4 py-2" key={columnId}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  {/*
+                                   * Read the way it is written (IsolatedText):
+                                   * an English message on a Persian page keeps
+                                   * its full stop at its end. A word longer
+                                   * than the column breaks where it must
+                                   * (anywhere), so the column keeps to the
+                                   * list's width: an RDS line opens with one
+                                   * long run (its time, client, user and
+                                   * process), and break-words alone let it
+                                   * push the message past the list's edge.
+                                   * Breaking anywhere would also let a narrow
+                                   * list squeeze the column to a letter a
+                                   * line (a phone did): 8rem is its floor.
+                                   */}
+                                  <p
+                                    className={LOGS_TABLE_MESSAGE_CLASS_NAME}
+                                    title={message}
+                                  >
+                                    {message ? (
+                                      <IsolatedText text={message} />
+                                    ) : (
+                                      <TableEmptyValue />
+                                    )}
+                                  </p>
+                                </div>
                                 {/*
-                                 * Read the way it is written (IsolatedText):
-                                 * an English message on a Persian page keeps
-                                 * its full stop at its end. A word longer
-                                 * than the column breaks where it must
-                                 * (anywhere), so the column keeps to the
-                                 * list's width: an RDS line opens with one
-                                 * long run (its time, client, user and
-                                 * process), and break-words alone let it
-                                 * push the message past the list's edge.
-                                 * Breaking anywhere would also let a narrow
-                                 * list squeeze the column to a letter a
-                                 * line (a phone did): 8rem is its floor.
+                                 * Shown under the pointer, and to the keyboard
+                                 * as Tab reaches it: it was there to Tab to but
+                                 * stayed unseen, a focus ring on nothing.
+                                 * Beside the message's first line only: the
+                                 * trace and span under it keep the cell's
+                                 * whole width.
                                  */}
-                                <p
-                                  className={LOGS_TABLE_MESSAGE_CLASS_NAME}
-                                  title={message}
+                                <div
+                                  className={LOGS_TABLE_ROW_ACTIONS_CLASS_NAME}
+                                  data-testid={LOGS_TABLE_ROW_ACTIONS_TEST_ID}
                                 >
-                                  {message ? (
-                                    <IsolatedText text={message} />
+                                  <CopyTextButton
+                                    textToBeCopied={message}
+                                    size="xs"
+                                    variant="ghost"
+                                    iconOnly={true}
+                                    title="Copy log message"
+                                    className={LOGS_TABLE_ROW_ACTION_CLASS_NAME}
+                                  />
+                                  {/*
+                                   * The line's link, without opening it
+                                   * (#9944): the link its details copy.
+                                   */}
+                                  {props.getLogLink ? (
+                                    <CopyLogRowLinkButton
+                                      log={log}
+                                      getLogLink={props.getLogLink}
+                                      className={
+                                        LOGS_TABLE_ROW_ACTION_CLASS_NAME
+                                      }
+                                    />
                                   ) : (
-                                    <TableEmptyValue />
+                                    <></>
                                   )}
-                                </p>
-                                {((traceId && !showTraceColumn) ||
-                                  (spanId && !showSpanColumn)) && (
-                                  <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
-                                    {traceId && !showTraceColumn && (
-                                      <span>
-                                        <TranslatedSentence
-                                          template="Trace: {{id}}"
-                                          slots={{
-                                            id: renderTraceIdValue(
-                                              traceId,
-                                              log,
-                                            ),
-                                          }}
-                                        />
-                                      </span>
-                                    )}
-                                    {spanId && !showSpanColumn && (
-                                      <span>
-                                        <TranslatedSentence
-                                          template="Span: {{id}}"
-                                          slots={{
-                                            id: renderSpanIdValue(spanId, log),
-                                          }}
-                                        />
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
+                                </div>
                               </div>
-                              {/*
-                               * Shown under the pointer, and to the keyboard
-                               * as Tab reaches it: it was there to Tab to but
-                               * stayed unseen, a focus ring on nothing.
-                               */}
-                              <CopyTextButton
-                                textToBeCopied={message}
-                                size="xs"
-                                variant="ghost"
-                                iconOnly={true}
-                                title="Copy log message"
-                                className={LOGS_TABLE_ROW_ACTION_CLASS_NAME}
-                              />
+                              {((traceId && !showTraceColumn) ||
+                                (spanId && !showSpanColumn)) && (
+                                <div className="flex flex-wrap gap-3 text-[11px] tracking-wide text-gray-400">
+                                  {traceId && !showTraceColumn && (
+                                    <span>
+                                      <TranslatedSentence
+                                        template="Trace: {{id}}"
+                                        slots={{
+                                          id: renderTraceIdValue(traceId, log),
+                                        }}
+                                      />
+                                    </span>
+                                  )}
+                                  {spanId && !showSpanColumn && (
+                                    <span>
+                                      <TranslatedSentence
+                                        template="Span: {{id}}"
+                                        slots={{
+                                          id: renderSpanIdValue(spanId, log),
+                                        }}
+                                      />
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </td>
                         );

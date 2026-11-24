@@ -3,11 +3,15 @@ import {
   Statement,
   escapeIlikePattern,
 } from "../Utils/AnalyticsDatabase/Statement";
+import TelemetryHistogramBuckets from "../Utils/Telemetry/TelemetryHistogramBuckets";
+import Timezone from "../../Types/Timezone";
 import {
   getQuerySettings,
   INTERACTIVE_READ_TIME_LIMIT,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
-import ExceptionInstanceService from "./ExceptionInstanceService";
+import ExceptionInstanceService, {
+  EXCEPTION_ORIGINALS_SQL,
+} from "./ExceptionInstanceService";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -19,13 +23,14 @@ import TelemetryReadScopeUtil from "../Utils/Telemetry/TelemetryReadScope";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import { getResourceFacetServiceTypeMap } from "../../Types/Telemetry/ResourceFacetCatalog";
-import { STORED_APP_INSTALLATION_ID_ATTRIBUTE } from "../../Types/Rum/MobileAppTelemetry";
+import { STORED_APP_INSTALL_SQL } from "../../Types/Rum/MobileAppTelemetry";
 
 /*
- * The install an occurrence names (#9716): the attribute ingest copies onto
- * it from its span's or log's resource. A constant key, written inline.
+ * The install an occurrence names (#9716, #9924): its app.installation.id,
+ * else its device.id, which ingest copies onto it from its span's or log's
+ * resource. Constant keys, written inline.
  */
-const INSTALL_EXPRESSION: string = `attributes['${STORED_APP_INSTALLATION_ID_ATTRIBUTE}']`;
+const INSTALL_EXPRESSION: string = STORED_APP_INSTALL_SQL;
 
 export interface HistogramBucket {
   time: string;
@@ -57,6 +62,12 @@ export interface HistogramRequest extends ExceptionFilters {
   startTime: Date;
   endTime: Date;
   bucketSizeInMinutes: number;
+  /*
+   * The reader's zone (a name the Timezone list holds): a bar of a day
+   * starts at its midnight, not UTC's (TelemetryHistogramBuckets, #7923).
+   * Every shorter bar, and a day bar without it, is counted from the epoch.
+   */
+  timezone?: Timezone | undefined;
 }
 
 /*
@@ -265,14 +276,20 @@ export class ExceptionAggregationService {
   }
 
   private static buildHistogramStatement(request: HistogramRequest): Statement {
-    const intervalSeconds: number = request.bucketSizeInMinutes * 60;
-
+    // A day from the reader's midnight, when the request names their zone.
     const statement: Statement = SQL`
       SELECT
-        toStartOfInterval(time, INTERVAL ${{
-          type: TableColumnType.Number,
-          value: intervalSeconds,
-        }} SECOND) AS bucket,
+        `;
+
+    statement.append(
+      TelemetryHistogramBuckets.buildBucketStatement({
+        timestampExpression: "time",
+        bucketSizeInMinutes: request.bucketSizeInMinutes,
+        timezone: request.timezone,
+      }),
+    );
+
+    statement.append(SQL` AS bucket,
         escaped,
         count() AS cnt
       FROM ${ExceptionAggregationService.TABLE_NAME}
@@ -288,7 +305,7 @@ export class ExceptionAggregationService {
           type: TableColumnType.Date,
           value: request.endTime,
         }}
-    `;
+    `);
 
     /*
      * Read-side retention filter: rows past their per-service retention
@@ -423,6 +440,9 @@ export class ExceptionAggregationService {
     request: ExceptionFilters,
   ): void {
     TelemetryReadScopeUtil.appendServiceFilter(statement, request);
+
+    // One crash, counted once (ExceptionInstanceService, #9923).
+    statement.append(` AND ${EXCEPTION_ORIGINALS_SQL}`);
 
     if (request.exceptionTypes && request.exceptionTypes.length > 0) {
       statement.append(

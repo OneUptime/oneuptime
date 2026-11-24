@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime はメトリクスを OpenTelemetry の方式で保存します。Prom
 
 | OneUptime での表記 | PromQL での表記 |
 | --- | --- |
-| ゲージ `system.cpu.utilization` | `system_cpu_utilization` |
-| カウンター `http.requests` | `http_requests` または `http_requests_total` |
-| ヒストグラム `http.server.request.duration` | `http_server_request_duration_bucket` (`le` 付き)、`_count`、`_sum` |
+| `1` 単位のゲージ `system.cpu.utilization` | `system_cpu_utilization_ratio`、または `system_cpu_utilization` |
+| `By` 単位のゲージ `system.memory.usage` | `system_memory_usage_bytes`、または `system_memory_usage` |
+| カウンター `http.requests` | `http_requests_total`、または `http_requests` |
+| `s` 単位のヒストグラム `http.server.request.duration` | `http_server_request_duration_seconds_bucket`（`le` 付き）、`_count`、`_sum`、または `_seconds` のない同じ名前 |
 | サマリー `rpc.latency` | `rpc_latency` (`quantile` 付き)、`_count`、`_sum` |
 | 属性 `http.route` | ラベル `http_route` |
 | リソース属性 `service.name` | ラベル `resource_service_name` と `job` |
 | リソース属性 `service.instance.id` | ラベル `resource_service_instance_id` と `instance` |
 
 - **メトリクス名とラベル名のドットとダッシュは、アンダースコアになります。** 保存されているとおりの名前でメトリクスやラベルを指定するには、Prometheus 3 と同じく引用符で囲みます。たとえば `{"http.server.request.duration", "http.route"="/checkout"}` です。
+- **単位は名前の一部です**。Prometheus 3 と OpenTelemetry Collector が書くとおり、`s` は `_seconds`、`By` は `_bytes`、`By/s` は `_bytes_per_second`、`%` は `_percent` を付けます。`1` 単位のゲージは `_ratio`、カウンターは `_total` で終わり、`{request}` のように波かっこで囲んだ単位は何も付けません。単位のない名前でもメトリクスは見つかり、**メトリクス名を追加** は各メトリクスを単位付きで一覧にします。
 - **デルタカウンターは、クエリの時間範囲の開始時点から合算されます。** そのため `rate()` と `increase()` は、デルタカウンターもほかのカウンターと同じように読み取れます。
 - **指数ヒストグラム** には `_count` と `_sum` がありますが、バケットはありません。
 
@@ -144,6 +146,7 @@ API は `/api/prometheus` の下で、Prometheus HTTP API のルートに `GET` 
 | 評価にかけられる時間 | 30 秒 |
 | セレクターが系列の最新のサンプルを探してさかのぼる時間 | 5 分 |
 | クエリで省略したときのサブクエリのステップ | 1 分 |
+| 1 つのプロジェクトが 1 分間に送れるクエリ | 1,200 |
 
 ## トラブルシューティング
 
@@ -159,10 +162,15 @@ PromQL での名前は、保存されている名前のドットの部分がア�
 クエリが、1 回の読み取りで保持できる量を超えるデータを求めています。ラベルのマッチャーを追加するか、時間範囲を短くするか、より大きなステップを使ってください。
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+このプロジェクトのダッシュボード、Grafana、スクリプトが、この 1 分間に合わせて 1,200 件を超えるクエリを API に送りました。パネルは次の 1 分で再び読み込まれます。上限を超えないよう、ダッシュボードの更新間隔を長くしてください。
+:::
+
 ## 次のステップ
 
 :::cards
 - [メトリクスエクスプローラー](/docs/telemetry/metrics-explorer): クエリを書かずにメトリクスをチャートにします。
-- [メトリクス モニター](/docs/monitor/metrics-monitor): メトリクスがしきい値を超えたらアラートを出します。
-- [外部データソース](/docs/dashboards/data-sources): 外部の Prometheus をダッシュボードでチャートにします。
+- [メトリクス モニター](/docs/monitor/metrics-monitor): メトリクスや PromQL の式でアラートを出し、系列ごとにインシデントを開きます。
+- [外部データソース](/docs/dashboards/data-sources): このプロジェクトのメトリクスや外部の Prometheus に対する PromQL を、ダッシュボードでチャートにします。
+- [LogQL](/docs/telemetry/logql): LogQL でログを検索します。Grafana の Loki データソースからも使えます。
 :::

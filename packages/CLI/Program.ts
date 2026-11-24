@@ -3,6 +3,7 @@ import { registerConfigCommands } from "./Commands/ConfigCommands";
 import { registerDataCheckCommands } from "./Commands/DataCheckCommands";
 import { registerDbtCommands } from "./Commands/DbtCommands";
 import { registerDeployCommands } from "./Commands/DeployCommands";
+import { registerDsymCommands } from "./Commands/DsymCommands";
 import { registerResourceCommands } from "./Commands/ResourceCommands";
 import {
   readCliVersion,
@@ -42,6 +43,7 @@ export function buildProgram(): Command {
   registerUtilityCommands(program);
   registerDeployCommands(program);
   registerDbtCommands(program);
+  registerDsymCommands(program);
   registerDataCheckCommands(program);
   registerResourceCommands(program);
 

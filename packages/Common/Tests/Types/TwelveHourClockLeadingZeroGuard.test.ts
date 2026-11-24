@@ -16,10 +16,10 @@ import {
  * on a 12-hour clock read "오전 05:14" (issue #7279), and the mobile app
  * "Nov 5, 05:14 AM" (#7650). An Intl options object that asks for a
  * two-digit hour pins a 24-hour clock in the same object (hour12: false, or
- * hourCycle "h23" or "h24"); a time on the reader's clock asks
- * getHourOption, and one on its language's own clock (a calendar's grid, a
- * chart's axis) asks getLocaleClockHourOption (Common/Types/DateLanguage).
- * The mobile app asks its own getHourOption (MobileApp/src/utils/date).
+ * hourCycle "h23" or "h24"); a time asks getHourOption with the reader's
+ * clock (Common/Types/DateLanguage) - a calendar's grid and a chart's axis
+ * too, which followed their language's own clock until #7651. The mobile
+ * app asks its own getHourOption (MobileApp/src/utils/date).
  *
  * Its twin, TwentyFourHourClockLeadingZeroGuard, keeps the zero of a
  * 24-hour time. Both read the front ends listed in Helpers/IntlHourScan.
@@ -96,7 +96,7 @@ describe("a two-digit hour is asked for only on a 24-hour clock", () => {
     // A numeric hour, or one asked of the helpers.
     ['{ hour: "numeric", minute: "2-digit", hour12: true }', 0],
     ["{ hour: getHourOption(use12HourFormat), minute: '2-digit' }", 0],
-    ["{ hour: getLocaleClockHourOption(locale), minute: '2-digit' }", 0],
+    ["{ hour: getHourOption(twelveHour), minute: '2-digit' }", 0],
     ["options.hour = getHourOption(shape.use12HourFormat);", 0],
     // Two-digit minutes and seconds are not hours.
     ['{ minute: "2-digit", second: "2-digit" }', 0],

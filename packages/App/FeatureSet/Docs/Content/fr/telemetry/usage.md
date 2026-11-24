@@ -5,6 +5,7 @@ Voyez combien de télémétrie envoie chaque projet, et chaque service ou ressou
 :::cards
 - [Comment l'utilisation est comptée](#comment-lutilisation-est-comptée): Une fois par jour, pour chaque ressource et chaque signal.
 - [Voir l'utilisation d'un projet](#voir-lutilisation-dun-projet): Paramètres du projet → Télémétrie & APM → Utilisation.
+- [Suivre l'utilisation à mesure qu'elle arrive](#suivre-lutilisation-à-mesure-quelle-arrive): Toutes les 5 minutes, sous forme de métrique.
 - [Voir l'utilisation de tous les projets](#voir-lutilisation-de-tous-les-projets): L'Admin Dashboard, pour l'administrateur de l'instance.
 - [Combien de temps l'utilisation est conservée](#combien-de-temps-lutilisation-est-conservée): 120 jours, sauf si vous changez ce nombre.
 :::
@@ -24,11 +25,11 @@ flowchart TB
 
 - **Une journée est comptée une fois terminée.** Chaque journée est comptée au plus tard vers 08:00 UTC le lendemain, donc l'utilisation d'aujourd'hui apparaît demain. Une journée qui n'a pas pu être comptée est réessayée pendant une semaine.
 - **La taille est la taille stockée.** Chaque signal est compté comme la taille des lignes dans lesquelles il est stocké, avant compression. Les relectures de session sont comptées comme les octets que les enregistreurs ont envoyés.
-- **Les exceptions sont affichées à part.** Les exceptions enregistrées à partir des spans et des journaux ont leur propre total, leur propre colonne et leur propre partie du graphique, et **Traces** compte les spans. Elles n'ont pas de ligne à elles : chaque ligne de traces indique la part d'exceptions qu'elle contient. Une journée comptée avant que les exceptions ne soient affichées à part les garde dans **Traces**, comme auparavant.
+- **Les exceptions sont affichées à part.** Les exceptions enregistrées à partir des spans et des journaux ont leur propre total, leur propre colonne et leur propre partie du graphique, **Traces** compte les spans et **Journaux** compte les enregistrements de journal. Elles n'ont pas de ligne à elles : chaque ligne de traces ou de journaux indique la part d'exceptions qu'elle contient. Une journée comptée avant que les exceptions ne soient affichées à part les garde dans **Traces**, comme auparavant.
 - **Les profils incluent leurs échantillons.**
 - **La télémétrie propre à OneUptime n'est pas comptée.** Les relevés des moniteurs, des alertes, des incidents et des SLO, les relevés de l'Observabilité des données et les métriques de budget des relectures de session sont écrits par OneUptime lui-même.
 - **Sur OneUptime Cloud, c'est à partir de ces lignes que la télémétrie est facturée.** Sur une installation sans facturation, l'utilisation est comptée sans frais, et rien n'est facturé pour elle, même si la facturation est activée plus tard.
-- **Les exceptions sont facturées au titre des traces.** Sur OneUptime Cloud, les traces sont facturées pour leurs spans et leurs exceptions ensemble, au prix des traces, comme elles l'ont toujours été. Afficher les exceptions à part ne change rien à ce qui vous est facturé, et elles ne sont jamais facturées deux fois.
+- **Les exceptions sont facturées avec ce dans quoi elles ont été trouvées.** Sur OneUptime Cloud, une exception trouvée dans un span est facturée avec **Traces**, et une exception trouvée dans un enregistrement de journal avec **Journaux**. Les journaux et les traces coûtent le même prix par GB : chaque exception est donc facturée une seule fois, au même prix, et un projet qui n'envoie que des journaux n'est jamais facturé pour des traces. Une journée comptée avant que les exceptions trouvées dans les journaux ne passent dans **Journaux** les garde dans **Traces**.
 - **Un budget est compté à part de l'utilisation.** Un [budget d'ingestion](/docs/telemetry/ingestion-budgets) compte la télémétrie à son arrivée, décompressée, et peut donc arrêter la télémétrie d'une journée le jour même. Tant qu'un budget est défini, cette page s'ouvre sur les budgets du jour. Les exceptions n'ont pas de budget à elles : elles comptent dans le budget des traces ou des journaux dans lesquels elles arrivent.
 
 ## Avant de commencer
@@ -58,7 +59,7 @@ La page a trois cartes :
 | --- | --- |
 | **Utilisation de la télémétrie** | Le **Total** de la plage, un total pour chaque signal, et un graphique de chaque jour, ses signaux empilés. |
 | **Utilisation par ressource** | Chaque **Ressource** avec son type, une colonne pour chaque signal, le **Total** et, sous **Conservation**, la durée pendant laquelle sa télémétrie est conservée. |
-| **Historique d'utilisation de la télémétrie** | Une ligne par produit, ressource et jour, avec des filtres pour **Produit**, **Jour** et **Service**. Une ligne **Traces** réunit ses spans et ses exceptions, comme les traces sont facturées, et indique sous **Données ingérées (en GB)** la part d'exceptions qu'elle contient. |
+| **Historique d'utilisation de la télémétrie** | Une ligne par produit, ressource et jour, avec des filtres pour **Produit**, **Jour** et **Service**. Une ligne **Traces** réunit ses spans et les exceptions trouvées dans ceux-ci, et une ligne **Journaux** ses enregistrements de journal et les exceptions trouvées dans ceux-ci, comme ils sont facturés. Chacune indique sous **Données ingérées (en GB)** la part d'exceptions qu'elle contient. |
 
 La télémétrie qui ne nommait aucun service est listée comme **Service inconnu**. Une ressource supprimée depuis, ou dont votre rôle ne lit pas le type, est listée par son type et le début de son ID.
 
@@ -70,6 +71,36 @@ La télémétrie qui ne nommait aucun service est listée comme **Service inconn
 | Membre du projet, Lecteur, Administrateur de la télémétrie, Membre de la télémétrie, Lecteur de la télémétrie | Combien chaque ressource a envoyé et combien de temps c'est conservé |
 
 Le coût de l'utilisation n'est affiché que sur OneUptime Cloud : une installation sans facturation ne facture rien pour elle. Voir [Facturation et utilisation](/docs/configuration/billing#historique-dutilisation) pour les prix.
+
+## Suivre l'utilisation à mesure qu'elle arrive
+
+Les lignes d'utilisation arrivent le lendemain. Pour suivre dans un graphique ce que chaque service envoie en quelques minutes, et être alerté quand il envoie davantage, un Propriétaire du projet ou un Administrateur du projet peut publier l'utilisation du projet sous forme de métrique :
+
+:::steps
+### L'activer
+
+Allez dans **Paramètres du projet → Télémétrie & APM → Utilisation**, ouvrez **Plus de paramètres** en bas de la page, et activez **Publier l'utilisation sous forme de métriques** sur la carte **Utilisation sous forme de métriques**. Le réglage est enregistré dès que vous l'activez.
+
+### La suivre dans un graphique
+
+Toutes les 5 minutes, OneUptime écrit ce que chaque service et chaque ressource a envoyé de chaque signal pendant ces 5 minutes dans la métrique `oneuptime.telemetry.usage.bytes`, en octets (`By`). Suivez sa somme dans l'[Explorateur de métriques](/docs/telemetry/metrics-explorer), ou déclenchez des alertes dessus avec un [moniteur de métriques](/docs/monitor/metrics-monitor).
+:::
+
+Chaque point porte ces attributs :
+
+| Attribut | Valeur |
+| --- | --- |
+| `projectId` | L'ID du projet. |
+| `signal` | `logs`, `traces`, `metrics` ou `profiles`. |
+| `resourceType` | Le type de ressource : `OpenTelemetry` pour un service, `Host` pour un hôte, et ainsi de suite. |
+| `resourceId` | L'ID du service ou de la ressource. |
+| `resourceName` | Son nom au moment où le point a été écrit. |
+
+- **Comptée à son arrivée.** Chaque point est la part de la ressource dans ce qui est arrivé, décompressé, comme le comptent les budgets d'ingestion, il peut donc indiquer plus que les lignes d'utilisation, qui comptent ce qui a été stocké.
+- **Envoyée par OpenTelemetry.** Les journaux, traces, métriques et profils envoyés par OTLP sont comptés. Les événements de sécurité, les relectures de session et les journaux de Fluent Bit, Fluentd ou syslog ne le sont pas.
+- **Chaque point appartient à sa ressource.** Quiconque peut lire la télémétrie d'un service ou d'une ressource lit ses points : un rôle limité à certaines étiquettes ne voit que les leurs.
+- **Ils ne coûtent rien.** Ces points ne sont comptés sur aucun budget ni comme utilisation, et sont conservés aussi longtemps que les métriques de moniteur : 30 jours, sauf si l'administrateur de l'instance le change. Les noms de métriques qui commencent par `oneuptime.telemetry.usage.` leur sont réservés : les métriques que vos applications envoient sous un tel nom sont abandonnées.
+- **Désactivé par défaut.** Tant qu'il est désactivé, rien n'est écrit, et les points déjà écrits sont conservés jusqu'à leur expiration.
 
 ## Voir l'utilisation de tous les projets
 
@@ -114,7 +145,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` et `endDay` sont des jours écrits `YYYY-MM-DD`, tous deux inclus, et une plage peut durer jusqu'à 1095 jours. La réponse contient les totaux, chaque jour par signal et chaque ressource par signal, en GB, avec le coût uniquement là où la facturation est activée et où la clé lit la facturation. Les exceptions figurent sous `Exceptions`, séparément de `Traces`, et une journée comptée avant que les exceptions ne soient affichées à part les contient dans `Traces`.
+`startDay` et `endDay` sont des jours écrits `YYYY-MM-DD`, tous deux inclus, et une plage peut durer jusqu'à 1095 jours. La réponse contient les totaux, chaque jour par signal et chaque ressource par signal, en GB, avec le coût uniquement là où la facturation est activée et où la clé lit la facturation. Les exceptions figurent sous `Exceptions`, séparément de `Traces` et de `Logs`, et une journée comptée avant que les exceptions ne soient affichées à part les contient dans `Traces`.
 
 ## Dépannage
 
@@ -132,6 +163,10 @@ La ressource a été supprimée depuis qu'elle a envoyé la télémétrie, ou vo
 
 :::details Les Traces ont baissé le jour où les Exceptions sont apparues
 Les exceptions étaient auparavant comptées dans **Traces**. À partir du premier jour compté avec les exceptions à part, **Traces** compte les spans et **Exceptions** compte les exceptions. Ensemble, les deux correspondent à ce qu'était **Traces**, et à ce pour quoi les traces sont facturées.
+:::
+
+:::details Les Journaux coûtent plus et les Traces moins à partir d'un jour donné
+Les exceptions trouvées dans les enregistrements de journal étaient auparavant facturées avec **Traces**. À partir du premier jour compté après le changement, elles sont facturées avec **Journaux**, le produit qui les a trouvées. Les journaux et les traces coûtent le même prix par GB, donc ensemble les deux coûtent ce qu'ils coûtaient.
 :::
 
 ## Étapes suivantes

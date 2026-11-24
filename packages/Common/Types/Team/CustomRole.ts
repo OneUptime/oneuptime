@@ -107,7 +107,12 @@ export interface CustomRolePermissionShape {
 export const getCustomRolePermissionProblem: (
   data: CustomRolePermissionShape,
 ) => string | null = (data: CustomRolePermissionShape): string | null => {
-  if (!data.permission) {
+  /*
+   * No permission, or one that is not even text: the object the API spec
+   * once showed as a permission's example ({"read": true, ...}, #10300) was
+   * refused as "[object Object] can't be given to a team".
+   */
+  if (typeof data.permission !== "string" || !data.permission.trim()) {
     return "Pick a permission.";
   }
 

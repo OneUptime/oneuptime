@@ -105,6 +105,7 @@
     <string name="log_session_title">Logs for troubleshooting</string>
     <string name="log_session_request_by">%1$s asks, in OneUptime, for every app\'s logs on this device for %2$s, at %3$s and above.</string>
     <string name="log_session_request">OneUptime asks for every app\'s logs on this device for %1$s, at %2$s and above.</string>
+    <string name="log_session_note">“%1$s”</string>
     <string name="log_session_android_prompt">Android then asks you to allow access to all device logs. Choose Allow there too.</string>
     <string name="log_session_allow">Allow</string>
     <string name="log_session_decline">Decline</string>

@@ -22,6 +22,7 @@ import {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import { NAME_TAKEN_REFUSAL_CODE } from "../../../Types/Exception/NameTakenException";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -198,6 +199,17 @@ describe("creating a channel", () => {
         }),
       ),
     ).rejects.toThrow("A custom channel named CorpoApp already exists.");
+    // With the code a program tells a taken name by (#10065).
+    await expect(
+      hooks().onBeforeCreate(
+        createBy({
+          name: "CorpoApp",
+          webhookUrl: "https://push.example.com/oneuptime",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      details: { refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    });
   });
 
   test("refuses a channel with no URL", async () => {

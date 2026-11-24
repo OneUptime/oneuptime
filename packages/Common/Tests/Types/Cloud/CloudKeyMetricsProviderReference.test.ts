@@ -7,6 +7,7 @@ import {
   AZURE_HOURLY_GRAIN,
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  AZURE_SIX_HOURLY_GRAIN,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   AzureKeyMetric,
@@ -423,6 +424,52 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
       ],
       "Microsoft.ContainerRegistry/registries": ["StorageUsed"],
     });
+  });
+
+  /*
+   * #10026: the same for a key metric Azure Monitor keeps at six hours at
+   * its finest - read every six hours and kept between those reads - and
+   * no key metric is kept at a grain coarser than six hours, which no hold
+   * knows of.
+   */
+  test("every key metric kept at six hours at its finest is marked as one, and none is kept coarser", () => {
+    const sixHourly: Record<string, Array<string>> = {};
+    const kept: Record<string, Array<string>> = {};
+
+    for (const entry of AZURE_KEY_METRICS) {
+      const reference: AzureReference["types"][string] = azureReferenceOf(
+        entry.type,
+      );
+
+      for (const metric of entry.metrics) {
+        const row: AzureReferenceMetric | undefined =
+          reference.metrics[metric.name];
+        const grain: string | undefined = row
+          ? pickAzureGrain(row.timeGrains)
+          : undefined;
+
+        if (grain === AZURE_SIX_HOURLY_GRAIN) {
+          kept[entry.type] = [...(kept[entry.type] || []), metric.name];
+        }
+
+        if (metric.grain === AZURE_SIX_HOURLY_GRAIN) {
+          sixHourly[entry.type] = [
+            ...(sixHourly[entry.type] || []),
+            metric.name,
+          ];
+        }
+
+        // Its finest grain is six hours at the coarsest.
+        expect({
+          type: entry.type,
+          metric: metric.name,
+          tooCoarse: Boolean(grain && GRAIN_SECONDS[grain]! > 21600),
+        }).toEqual({ type: entry.type, metric: metric.name, tooCoarse: false });
+      }
+    }
+
+    expect(sixHourly).toEqual(kept);
+    expect(sixHourly).toEqual({ "Microsoft.Web/sites": ["FileSystemUsage"] });
   });
 
   test("the read selects every key metric a resource publishes as documented, then the retired ones, in one call's worth", () => {

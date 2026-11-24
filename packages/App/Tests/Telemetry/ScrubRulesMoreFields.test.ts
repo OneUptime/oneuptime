@@ -12,7 +12,8 @@ import {
   SCRUB_MAX_NESTED_VALUES_PER_RECORD,
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
-import crypto from "crypto";
+import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -56,12 +57,19 @@ interface CompiledRule {
   regex: ScrubRegExp;
 }
 
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a10394",
+);
+
 function compile(
   service: unknown,
   rule: LogScrubRule | TraceScrubRule,
   spec: RuleSpec,
 ): CompiledRule {
   rule.name = "test rule";
+  // A Hash rule hashes with its project's key, as the rules ingest loads do.
+  rule.projectId = PROJECT_ID;
   rule.patternType = spec.patternType;
   rule.scrubAction = spec.action || "redact";
 
@@ -100,8 +108,9 @@ const EMAIL_MASK: RuleSpec = { patternType: "email", action: "mask" };
 const EMAIL: string = "ada.lovelace@example.com";
 const EMAIL_MASKED: string = "a***@***.com";
 
-function sha8(text: string): string {
-  return crypto.createHash("sha256").update(text).digest("hex").slice(0, 8);
+// What a Hash rule of PROJECT_ID leaves of a text (#10394).
+function token(text: string): string {
+  return ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: text });
 }
 
 // The body a log is stored with, after the rules.
@@ -165,7 +174,7 @@ describe("a log body sent as a map or a list: a Sensitive Attribute Keys rule re
   test.each([
     ["redact", "[REDACTED]"],
     ["mask", "p***3"],
-    ["hash", `[HASHED:${sha8("pw-3")}]`],
+    ["hash", token("pw-3")],
   ])(
     "%s writes what it writes for an attribute",
     (action: string, hidden: string) => {
@@ -359,7 +368,7 @@ describe("a log body sent as a map or a list: a Sensitive Attribute Keys rule re
         { patternType: "sensitiveKeys", action: "redact" },
         { patternType: "sensitiveKeys", action: "hash" },
       ]),
-    ).toBe(stored(kv([["password", str(`[HASHED:${sha8("[REDACTED]")}]`)]])));
+    ).toBe(stored(kv([["password", str(token("[REDACTED]"))]])));
   });
 
   test("a log without a Sensitive Attribute Keys rule keeps its body as the pattern rules leave it", () => {
@@ -538,9 +547,7 @@ describe("a span's status message and its events' names: All reaches them", () =
       { patternType: "email", action: "hash", fields: TraceScrubField.All },
     ]);
 
-    expect(hashed["statusMessage"]).toBe(
-      `card declined for [HASHED:${sha8(EMAIL)}]`,
-    );
+    expect(hashed["statusMessage"]).toBe(`card declined for ${token(EMAIL)}`);
   });
 
   test("a Sensitive Attribute Keys rule reads no free text: the status message and event names stay", () => {
@@ -728,7 +735,7 @@ describe("each Sensitive Attribute Keys rule reads a structured body within the 
     expect(stored).toHaveLength(3_000);
     expect(stored[2_999]).toEqual({
       email: "user2999@example.com",
-      password: `[HASHED:${sha8("[REDACTED]")}]`,
+      password: token("[REDACTED]"),
     });
   });
 });

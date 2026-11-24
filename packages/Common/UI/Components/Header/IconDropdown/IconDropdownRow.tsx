@@ -17,7 +17,12 @@ const IconDropdownRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
+    /*
+     * Where the rows sit, no part of the menu itself (role="none"): its menu
+     * items are the menu's own, which the arrow keys walk across groups.
+     */
     <div
+      role="none"
       data-testid={props.dataTestId}
       className={
         props.isSeparated ? ICON_DROPDOWN_ROW_SEPARATED_CLASS_NAME : undefined

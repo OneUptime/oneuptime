@@ -66,22 +66,25 @@ const ThemeChoiceRow: FunctionComponent = (): ReactElement => {
   const titleId: string = useId();
 
   return (
+    /*
+     * A group of the menu, named Theme, of three choices: menu item radios
+     * (#7237), one of them checked, which Up and Down reach with the menu's
+     * other rows, and Left and Right walk the way the row is drawn.
+     */
     <div
+      role="group"
+      aria-labelledby={titleId}
       className="mx-2 flex items-center gap-3 rounded-lg px-4 py-1.5 text-sm text-gray-700"
       data-testid={THEME_CHOICE_ROW_TEST_ID}
       data-theme-preference={preference}
     >
-      <div className="h-5 w-5 flex-shrink-0 text-gray-400">
+      <div className="h-5 w-5 flex-shrink-0 text-gray-400" aria-hidden="true">
         <Icon icon={IconProp.Swatch} />
       </div>
       <span id={titleId} className="min-w-0 flex-1 truncate font-medium">
         {translator.translateText(THEME_CHOICE_ROW_TITLE)}
       </span>
-      <div
-        role="group"
-        aria-labelledby={titleId}
-        className={VIEW_SWITCH_CLASS_NAME}
-      >
+      <div role="none" className={VIEW_SWITCH_CLASS_NAME}>
         {THEME_PREFERENCES.map((choice: ThemePreference): ReactElement => {
           const isInUse: boolean = choice === preference;
           const label: string =
@@ -92,7 +95,9 @@ const ThemeChoiceRow: FunctionComponent = (): ReactElement => {
             <button
               key={choice}
               type="button"
-              aria-pressed={isInUse}
+              role="menuitemradio"
+              aria-checked={isInUse}
+              tabIndex={-1}
               aria-label={label}
               title={label}
               data-testid={getThemeChoiceTestId(choice)}

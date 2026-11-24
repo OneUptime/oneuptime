@@ -74,7 +74,11 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import SpanService from "Common/Server/Services/SpanService";
+import SpanService, {
+  SpanAttributeGroup,
+} from "Common/Server/Services/SpanService";
+import SeriesContextEnricher from "Common/Server/Utils/Monitor/SeriesContextEnricher";
+import MetricSeriesFingerprint from "Common/Utils/Metrics/MetricSeriesFingerprint";
 import TraceMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/TraceMonitorCriteria";
 import TraceGroupCriteriaFanOut from "Common/Server/Utils/Monitor/TraceGroupCriteriaFanOut";
 import { TraceGroupExpectedCache } from "Common/Server/Utils/Monitor/TraceGroupAbsence";
@@ -112,13 +116,28 @@ interface SpanFixture {
   // The install the span's resource names; '' for an SDK that names none.
   install: string;
   at: Date;
+  // What else the span's resource says about its device (#9925).
+  device?: JSONObject | undefined;
 }
+
+// What a kiosk's resource says about it: its name and model.
+const LANE_1: JSONObject = {
+  "resource.host.name": "Store 0412, lane 1",
+  "resource.device.model.name": "Pixel Tablet",
+};
+const LANE_3: JSONObject = {
+  "resource.host.name": "Store 0412, lane 3",
+  "resource.device.model.name": "Pixel Tablet",
+};
 
 function spanRow(fixture: SpanFixture, index: number): JSONObject {
   const startNs: string = String(
     BigInt(fixture.at.getTime()) * BigInt(1000000),
   );
-  const attributes: JSONObject = { "app.screen.name": "MenuActivity" };
+  const attributes: JSONObject = {
+    "app.screen.name": "MenuActivity",
+    ...(fixture.device || {}),
+  };
 
   if (fixture.install) {
     attributes[INSTALL] = fixture.install;
@@ -156,6 +175,10 @@ function spanRow(fixture: SpanFixture, index: number): JSONObject {
  * the week a group is expected for; spans that name no install are no
  * install; and another app's kiosk-z is not this app's. The dark fleet's
  * three kiosks all reported yesterday and none in the hour.
+ *
+ * The fleet names its kiosks (#9925): kiosk-a is "lane 1"; kiosk-c was
+ * renamed "lane 3" from "lane 9" before it went quiet, and its very last
+ * span named no device; kiosk-b, an iPad, names only its model identifier.
  */
 function spanFixtures(): Array<SpanFixture> {
   const spans: Array<SpanFixture> = [];
@@ -164,22 +187,35 @@ function spanFixtures(): Array<SpanFixture> {
     install: string,
     at: Date,
     count: number,
+    device?: JSONObject,
   ) => void = (
     appId: ObjectID,
     install: string,
     at: Date,
     count: number,
+    device?: JSONObject,
   ): void => {
     for (let index: number = 0; index < count; index++) {
-      spans.push({ appId, install, at: new Date(at.getTime() - index * 1000) });
+      spans.push({
+        appId,
+        install,
+        at: new Date(at.getTime() - index * 1000),
+        device,
+      });
     }
   };
 
-  add(kioskAppId, "kiosk-a", hoursAgo(0.2), 12);
-  add(kioskAppId, "kiosk-a", hoursAgo(30), 5);
-  add(kioskAppId, "kiosk-b", hoursAgo(0.5), 3);
+  add(kioskAppId, "kiosk-a", hoursAgo(0.2), 12, LANE_1);
+  add(kioskAppId, "kiosk-a", hoursAgo(30), 5, LANE_1);
+  add(kioskAppId, "kiosk-b", hoursAgo(0.5), 3, {
+    "resource.device.model.identifier": "iPad13,18",
+  });
   add(kioskAppId, "kiosk-b", hoursAgo(72), 2);
-  add(kioskAppId, "kiosk-c", hoursAgo(48), 4);
+  add(kioskAppId, "kiosk-c", hoursAgo(47.9), 1);
+  add(kioskAppId, "kiosk-c", hoursAgo(48), 3, LANE_3);
+  add(kioskAppId, "kiosk-c", hoursAgo(60), 2, {
+    "resource.host.name": "Store 0412, lane 9",
+  });
   add(kioskAppId, "kiosk-d", hoursAgo(240), 4);
   add(kioskAppId, "", hoursAgo(0.3), 6);
   add(kioskAppId, "", hoursAgo(50), 6);
@@ -341,7 +377,7 @@ integration(
       });
 
       test("find the week's installs, the most recently seen first, none without an install", async () => {
-        const groups: Array<Array<string>> =
+        const groups: Array<SpanAttributeGroup> =
           await SpanService.findRecentAttributeGroups({
             query: {
               projectId: projectId,
@@ -354,7 +390,69 @@ integration(
             props: { isRoot: true },
           });
 
-        expect(groups).toEqual([["kiosk-a"], ["kiosk-c"], ["kiosk-b"]]);
+        expect(groups).toEqual([
+          { values: ["kiosk-a"] },
+          { values: ["kiosk-c"] },
+          { values: ["kiosk-b"] },
+        ]);
+      });
+
+      test("with each install's last name and model, the latest span that sent one winning (#9925)", async () => {
+        const groups: Array<SpanAttributeGroup> =
+          await SpanService.findRecentAttributeGroups({
+            query: {
+              projectId: projectId,
+              primaryEntityId: new Includes([kioskAppId]),
+            } as Query<Span>,
+            groupByAttributes: [INSTALL],
+            since: hoursAgo(24 * 7 + 1),
+            until: hoursAgo(1),
+            limit: 1000,
+            props: { isRoot: true },
+            contextAttributes: [
+              "resource.host.name",
+              "resource.device.model.name",
+              "resource.device.model.identifier",
+            ],
+          });
+
+        expect(groups).toEqual([
+          { values: ["kiosk-a"], lastValues: LANE_1 },
+          /*
+           * Renamed from lane 9 to lane 3; its very last span named no
+           * device, and does not blank what the one before it said.
+           */
+          { values: ["kiosk-c"], lastValues: LANE_3 },
+          // Its week's spans before the hour named no device at all.
+          { values: ["kiosk-b"] },
+        ]);
+      });
+
+      test("the hour's count reads the same, beside each group", async () => {
+        const result: Awaited<
+          ReturnType<typeof SpanService.countByAttributeGroups>
+        > = await SpanService.countByAttributeGroups({
+          query: appQuery(kioskAppId, hoursAgo(1)),
+          groupByAttributes: [INSTALL],
+          limit: 100,
+          props: { isRoot: true },
+          contextAttributes: [
+            "resource.host.name",
+            "resource.device.model.name",
+            "resource.device.model.identifier",
+          ],
+        });
+
+        expect(result.groups).toEqual([
+          { values: ["kiosk-a"], count: 12, lastValues: LANE_1 },
+          { values: [""], count: 6 },
+          {
+            values: ["kiosk-b"],
+            count: 3,
+            lastValues: { "resource.device.model.identifier": "iPad13,18" },
+          },
+        ]);
+        expect(result.totalCount).toBe(21);
       });
     });
 
@@ -378,6 +476,26 @@ integration(
         expect(response.groupBreakdown![0]).toMatchObject({
           spanCount: 0,
           isQuiet: true,
+        });
+        /*
+         * #9925: the quiet kiosk is named by what its last spans said, the
+         * ones that report by what the hour's spans said - display only:
+         * its fingerprint is its install's alone.
+         */
+        expect(response.groupBreakdown![0]!.context).toEqual({
+          "device.name": "Store 0412, lane 3",
+          "device.model.name": "Pixel Tablet",
+        });
+        expect(response.groupBreakdown![0]!.fingerprint).toBe(
+          MetricSeriesFingerprint.computeFingerprint({ [INSTALL]: "kiosk-c" }),
+        );
+        expect(response.groupBreakdown![1]!.context).toEqual({
+          "device.name": "Store 0412, lane 1",
+          "device.model.name": "Pixel Tablet",
+        });
+        expect(response.groupBreakdown![2]!.context).toBeUndefined();
+        expect(response.groupBreakdown![3]!.context).toEqual({
+          "device.model.name": "iPad13,18",
         });
         // kiosk-d aged out: ten days quiet is past the week a group is expected for.
         expect(installsOf(response.groupBreakdown!)).not.toContain("kiosk-d");
@@ -420,6 +538,35 @@ integration(
         }
 
         expect(breaching).toEqual(["kiosk-c"]);
+      });
+
+      test("the quiet kiosk's alert reads its name, and dedupes on its install", async () => {
+        const step: MonitorStep = deviceStep(kioskAppId);
+        const response: TraceMonitorResponse = await monitorTrace({
+          monitorStep: step,
+          monitorId: ObjectID.generate(),
+          projectId: projectId,
+          evaluateUntil: now,
+        });
+
+        const quiet: FanOutEntity = (
+          TraceGroupCriteriaFanOut.getGroupEntities({
+            dataToProcess: response as unknown as DataToProcess,
+          }) as Array<FanOutEntity>
+        ).find((entity: FanOutEntity): boolean => {
+          return entity.labels[INSTALL] === "kiosk-c";
+        })!;
+
+        expect(quiet.labels).toEqual({ [INSTALL]: "kiosk-c" });
+        expect(
+          SeriesContextEnricher.enrichTitle({
+            title: "[RUM] Device stopped reporting - Kiosk Ordering",
+            seriesLabels: quiet.labels,
+            seriesContext: quiet.context,
+          }),
+        ).toBe(
+          "[RUM] Device stopped reporting - Kiosk Ordering - Device: Store 0412, lane 3 | Install: kiosk-c | Model: Pixel Tablet",
+        );
       });
 
       test("a fleet that went quiet at once judges no install, and says so", async () => {

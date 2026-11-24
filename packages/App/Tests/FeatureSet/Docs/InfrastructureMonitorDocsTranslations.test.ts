@@ -209,6 +209,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "High Node CPU Utilization",
     "High Node CPU Request Commitment",
     "High Node Memory Request Commitment",
+    "High Node Disk Usage",
+    "Node Image Disk Almost Full",
     "Cluster Daily Cost Over Budget",
     "Namespace Daily Cost Over Budget",
     "High Idle Spend",

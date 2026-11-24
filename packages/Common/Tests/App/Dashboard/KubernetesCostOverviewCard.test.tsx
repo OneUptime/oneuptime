@@ -92,7 +92,10 @@ import {
   KUBERNETES_COST_PRICING_TEST_ID,
   KUBERNETES_COST_RATE_CARD_DOCS_ROUTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/KubernetesCostPricingNote";
-import { KubernetesCostPricingSource } from "../../../Types/Kubernetes/KubernetesCostPricing";
+import {
+  KubernetesCostMemoryPeaksSource,
+  KubernetesCostPricingSource,
+} from "../../../Types/Kubernetes/KubernetesCostPricing";
 import KubernetesCostOverviewCard, {
   COST_OVERVIEW_RELOAD_AFTER_MS,
   KUBERNETES_COST_DOCS_ROUTE,
@@ -516,6 +519,7 @@ describe("the cost card says how the cluster is priced", () => {
           bundledEngineUnused: false,
           pricingSource: KubernetesCostPricingSource.ListPrices,
           pricingProvider: "GCP",
+          memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Bundled,
         },
       }) as never,
     );
@@ -539,6 +543,7 @@ describe("the cost card says how the cluster is priced", () => {
           bundledEngineUnused: false,
           pricingSource: KubernetesCostPricingSource.DefaultRates,
           pricingProvider: "",
+          memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Bundled,
         },
       }) as never,
     );
@@ -567,6 +572,7 @@ describe("the cost card says how the cluster is priced", () => {
           bundledEngineUnused: true,
           pricingSource: KubernetesCostPricingSource.ListPrices,
           pricingProvider: "AWS",
+          memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Engine,
         },
       }) as never,
     );

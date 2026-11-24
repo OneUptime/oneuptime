@@ -1466,6 +1466,114 @@ describe("Proxmox cluster overview: counts of what is wrong open which, and why"
     );
   });
 
+  /*
+   * #10017: who or what stopped each one, and when, from the task log the
+   * Proxmox AI agent reads - the columns as the API hands them, ISO dates.
+   */
+  test("a guest someone stopped says who, and when", async () => {
+    inventory.push({
+      kind: "Guest",
+      externalId: "qemu/106",
+      name: "web-2",
+      vmid: 106,
+      isUp: false,
+      onboot: true,
+      parentNodeName: "pve1",
+      isBackedUp: true,
+      lastPowerTaskType: "qmstop",
+      lastPowerTaskUser: "alice@pve",
+      lastPowerTaskStatus: "OK",
+      lastPowerTaskAt: new Date(NOW.getTime() - 120 * MINUTE).toISOString(),
+      powerTaskReadAt: new Date(NOW.getTime() - 2 * MINUTE).toISOString(),
+    });
+
+    await renderOverview();
+
+    fireEvent.click(screen.getByTestId("proxmox-hero-guests-stopped"));
+    const [row] = dialogRows("proxmox-hero-guests-stopped");
+    expect(row!).toHaveTextContent("Stopped, but starts on boot");
+    expect(
+      within(row!).getByTestId("proxmox-hero-guests-stopped-dialog-since"),
+    ).toHaveTextContent("Stopped by alice@pve 2 hours ago");
+    expect(
+      within(row!).queryByTestId(
+        "proxmox-hero-guests-stopped-dialog-explanation",
+      ),
+    ).toBeNull();
+  });
+
+  test("a guest HA gave up on says what to do, why its last start failed, and when", async () => {
+    inventory.push({
+      kind: "Guest",
+      externalId: "qemu/105",
+      name: "api",
+      vmid: 105,
+      isUp: false,
+      haState: "error",
+      parentNodeName: "pve2",
+      isBackedUp: true,
+      lastPowerTaskType: "qmstart",
+      lastPowerTaskUser: "root@pam",
+      lastPowerTaskStatus: "start failed: QEMU exited with code 1",
+      lastPowerTaskAt: new Date(NOW.getTime() - 10 * MINUTE).toISOString(),
+      powerTaskReadAt: new Date(NOW.getTime() - MINUTE).toISOString(),
+    });
+
+    await renderOverview();
+
+    fireEvent.click(screen.getByTestId("proxmox-hero-guests-stopped"));
+    const [row] = dialogRows("proxmox-hero-guests-stopped");
+    expect(
+      within(row!).getByTestId(
+        "proxmox-hero-guests-stopped-dialog-explanation",
+      ),
+    ).toHaveTextContent(
+      "HA could not start it and stopped trying. Set its HA state to disabled, fix what keeps it from starting, then set it to started.",
+    );
+    // Proxmox's own words, as it wrote them.
+    expect(
+      within(row!).getByTestId("proxmox-hero-guests-stopped-dialog-message"),
+    ).toHaveTextContent("start failed: QEMU exited with code 1");
+    expect(
+      within(row!).getByTestId("proxmox-hero-guests-stopped-dialog-since"),
+    ).toHaveTextContent("Last start failed 10 minutes ago");
+  });
+
+  test("a guest no Proxmox task stopped says it was shut down from inside, or crashed", async () => {
+    inventory.push({
+      kind: "Guest",
+      externalId: "lxc/107",
+      name: "cache",
+      vmid: 107,
+      isUp: false,
+      onboot: true,
+      parentNodeName: "pve1",
+      isBackedUp: true,
+      lastPowerTaskType: "vzstart",
+      lastPowerTaskUser: "root@pam",
+      lastPowerTaskStatus: "OK",
+      lastPowerTaskAt: new Date(
+        NOW.getTime() - 3 * 24 * 60 * MINUTE,
+      ).toISOString(),
+      powerTaskReadAt: new Date(NOW.getTime() - 3 * MINUTE).toISOString(),
+    });
+
+    await renderOverview();
+
+    fireEvent.click(screen.getByTestId("proxmox-hero-guests-stopped"));
+    const [row] = dialogRows("proxmox-hero-guests-stopped");
+    expect(
+      within(row!).getByTestId(
+        "proxmox-hero-guests-stopped-dialog-explanation",
+      ),
+    ).toHaveTextContent(
+      "No Proxmox task stopped it since it last started: it was shut down from inside, or it crashed.",
+    );
+    expect(
+      within(row!).getByTestId("proxmox-hero-guests-stopped-dialog-since"),
+    ).toHaveTextContent("Last started 3 days ago");
+  });
+
   test("every guest that should run does: no count beside the guests", async () => {
     await renderOverview();
 

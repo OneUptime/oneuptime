@@ -148,7 +148,7 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 | `mcpOAuthGrantId`, `mcpClientName` | Den MCP-klient, den blev foretaget gennem, hvis nogen. |
 | `workflowId`, `workflowName` | Den arbejdsgang, der foretog den, hvis nogen. |
 | `workflowRunAs`, `workflowRunAsCustomRoleName` | I version 3, hvad arbejdsgangens trin kørte som: `Default`, `ProjectOwner` eller `CustomRole`, og rollens navn på det tidspunkt. |
-| `workflowRunAsGivenByUserId`, `workflowRunAsGivenByApiKeyId`, `workflowRunAsGivenByName` | I version 3, hvis tilladelser det kørte med: id'et på personen eller projektets API-nøgle og deres navn på det tidspunkt. Hver af disse fem nøgler er `null`, når ingen arbejdsgang foretog ændringen. |
+| `workflowRunAsGiverUserId`, `workflowRunAsGiverApiKeyId`, `workflowRunAsGiverName` | I version 3, hvis tilladelser det kørte med: id'et på personen eller projektets API-nøgle og deres navn på det tidspunkt. Hver af disse fem nøgler er `null`, når ingen arbejdsgang foretog ændringen. |
 | `changes` | Hvert ændret felt: `field`, med `oldValue` og `newValue`, og i version 2 `summary`. |
 
 En fil rummer én post pr. linje, komprimeret med gzip, og arkiveres under timen for dens første post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.

@@ -53,7 +53,7 @@ En tidsserie med en eller flera mätvärdesfrågor över instrumentpanelens tids
 
 Varje fråga ritar ett eget diagram, under varandra i widgeten. För att i stället rita en fråga i diagrammet för frågan före den, som fler linjer på samma axlar, slår du på **Lägg över föregående fråga** i dess **Visningsinställningar**: till exempel `mem_used` och `mem_total` i ett diagram. Alla frågor efter den första har brytaren, och varje fråga som har den påslagen hamnar i samma diagram, så att tre eller fler frågor kan dela ett. Slå av den för att ge frågan ett eget diagram igen.
 
-Ett överlagrat diagram tar sin titel, sin diagramtyp och sin värdeaxel från sin första fråga, så varje fråga i det läses i den frågans enhet. En fråga i en annan enhet av samma slag ritas i diagrammets enhet, som megabyte i ett diagram i gigabyte, eller sekunder i ett diagram i millisekunder. En enhet av ett annat slag går inte att läsa på den axeln, som byte i ett diagram i procent: frågan ritas där ändå, och både diagrammet och brytaren säger att enheterna skiljer sig åt, så ge en sådan fråga ett eget diagram.
+Ett överlagrat diagram tar sin titel, sin diagramtyp och sin vänstra värdeaxel från sin första fråga, så en fråga i det läses i den frågans enhet där det går. En fråga i en annan enhet av samma slag ritas i diagrammets enhet, som megabyte i ett diagram i gigabyte, eller sekunder i ett diagram i millisekunder. En fråga i en enhet av ett annat slag, som byte i ett diagram i procent, ritas mot en andra värdeaxel till höger i diagrammet, i sin egen enhet, och brytaren säger det. Förklaringen under diagrammet anger varje axels enhet och vilken axel varje serie ritas mot. Bara ett tredje slags enhet passar inte på någon av axlarna: den ritas på en egen skala, utan axel, och både diagrammet och brytaren säger det. Läs av dess värden i förklaringen och verktygstipset, eller ge en sådan fråga ett eget diagram för att läsa av den mot en axel.
 
 Använd den när linjens form berättar historien: svarstid, fel, genomströmning eller ködjup.
 
@@ -250,7 +250,7 @@ Via API:et och Terraform är ordningen widgetens `arguments.sort`: en kolumn och
 En [offentlig instrumentpanel](/docs/dashboards/sharing) ritar de flesta widgetar för sina besökare, och var och en visar bara det den har ställts in att visa. Några få kan inte visas utan en inloggad session:
 
 - **Loggdiagram**, **Spårdiagram**, **Spårtabell**, **Säkerhetshändelser**, **Flöde av säkerhetshändelser**, **Tratt** och **Kvarhållning av användare** säger på sin plats att de inte är tillgängliga på offentliga instrumentpaneler.
-- Widgetarna i Externa datakällor utelämnas helt från en offentlig instrumentpanel, eftersom deras inställningar är själva frågan.
+- Widgetarna i Externa datakällor visar sina data när de läser **Det här projektets mätvärden (PromQL)**, aldrig sina frågor. En widget med en extern datakälla utelämnas helt från en offentlig instrumentpanel.
 
 ## När en widget inte kan visas
 

@@ -396,6 +396,16 @@ describe("parseDeploymentConfigObject", () => {
       selector: { app: "legacy-api", deploymentconfig: "legacy-api" },
       triggers: ["ConfigChange", "ImageChange"],
       paused: false,
+      /*
+       * Its pod template's security block (#9880), for the Compliance page
+       * while it runs no pod: this one sets nothing on its container.
+       */
+      security: {
+        version: 1,
+        containers: [{ name: "legacy-api", list: "containers" }],
+        volumes: [],
+        resourcesRead: true,
+      },
     });
   });
 

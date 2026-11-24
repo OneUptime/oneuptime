@@ -99,6 +99,39 @@ class LogSessionClientTest {
     }
 
     @Test
+    fun `a session carries the requester's note, as one line of plain text, and none when there is none`() {
+        val body =
+            """
+            {"sessions":[
+              {"id":"s1","status":"Requested","durationMinutes":30,"requestedByName":"Dana Reyes",
+               "note":"  Checking why the payment app\ncrashes after 6pm  "},
+              {"id":"s2","status":"Requested","durationMinutes":30},
+              {"id":"s3","status":"Requested","durationMinutes":30,"note":"   "},
+              {"id":"s4","status":"Requested","durationMinutes":30,"note":42},
+              {"id":"s5","status":"Requested","durationMinutes":30,"note":"Call dana@example.com \u202Eif it fails"}
+            ]}
+            """.trimIndent()
+
+        val sessions: List<LogSessionRequest> = LogSessionClient.parseSessions(body)
+
+        assertEquals(listOf("s1", "s2", "s3", "s4", "s5"), sessions.map { it.id })
+        assertEquals("Checking why the payment app crashes after 6pm", sessions[0].note)
+        assertNull(sessions[1].note)
+        assertNull(sessions[2].note)
+        // A note that is not text is none: the session is still read.
+        assertNull(sessions[3].note)
+        assertEquals("Call [email] if it fails", sessions[4].note)
+    }
+
+    @Test
+    fun `an answer from a OneUptime from before notes has sessions without one`() {
+        val sessions: List<LogSessionRequest> =
+            LogSessionClient.parseSessions("""{"sessions":[{"id":"s1","status":"Requested","durationMinutes":15}]}""")
+
+        assertNull(sessions.single().note)
+    }
+
+    @Test
     fun `an answer that is not JSON, or not the shape expected, has no sessions`() {
         assertTrue(LogSessionClient.parseSessions("<html>").isEmpty())
         assertTrue(LogSessionClient.parseSessions("[1,2]").isEmpty())

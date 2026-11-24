@@ -483,10 +483,26 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
             format(start),
           );
         }
+
+        /*
+         * A date and time range within one day of the reader's zone says
+         * the day once and the zone once (#7721): "Notification Sent At is
+         * between Nov 13, 2026, 9:00 AM and 5:30 PM GMT+08", where both
+         * ends in full ran to three lines on a phone. Across midnight, and
+         * for a date alone, each end is written whole, as before.
+         */
+        const ends: { start: string; end: string } = shouldOnlyShowDate
+          ? { start: format(start), end: format(end) }
+          : OneUptimeDate.getLocalDateTimeRangeEnds({
+              start: start,
+              end: end,
+              style: "long",
+            });
+
         return renderChip(
           translationKey("{{field}} is between {{start}} and {{end}}"),
           data.filter.title,
-          { start: format(start), end: format(end) },
+          { start: ends.start, end: ends.end },
         );
       }
       if (value instanceof GreaterThan) {

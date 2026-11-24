@@ -317,7 +317,7 @@ OneUptime 只回答发给它的内容。
 
 `/oneuptime incident 42` 会在只有您能看到的消息中显示事件 42，以及这些按钮和它的菜单。按 OneUptime 显示的样子输入编号： `42`、 `#42` 或 `INC-42`。在事件自己的频道中，只输入 `/oneuptime incident` 就会显示该事件。
 
-- **谁可以使用。** 能在 OneUptime 中做同样更改的人。 **Change Severity** 和 **Edit Custom Fields** 需要编辑事件的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，转移只能由一人担任的角色还需要 **Delete Incident Member**。 **Page Someone** 需要的权限与 **Execute On-Call Policy** 相同。其他任何人都会被告知原因，并且不会打开表单。
+- **谁可以使用。** 能在 OneUptime 中做同样更改的人。 **Change Severity** 和 **Edit Custom Fields** 需要编辑事件的权限： **项目所有者**、 **项目管理员**、 **项目成员**、 **事件管理员** 和 **事件成员**，或自定义角色中的 **Edit Incident**。 **Assign Role** 需要 **Create Incident Member**，转移只能由一人担任的角色还需要 **Edit Incident Member**。 **Page Someone** 需要的权限与 **Execute On-Call Policy** 相同。其他任何人都会被告知原因，并且不会打开表单。
 - **表单提供的内容。** 您在项目中可以读取的内容。从事件的监视器复制的自定义字段不会出现在表单中，因为它会被再次复制；一个表单最多容纳 40 个字段，其余字段请在 OneUptime 中编辑。
 - **之后会发生什么。** 表单会关闭，更改会像在 OneUptime 中一样以您本人的身份进行：事件的动态，以及随之而来的事件频道，会说明更改了什么，每个自定义字段都会附上新值。不适合其字段的值，例如数字字段中的文本，会在该字段下方说明，表单保持打开。 **Page Someone** 会说明呼叫了谁，或为什么没有呼叫任何人；已经解决的事件不会呼叫任何人。
 - **菜单出现之前发布的消息。** 它们保留 **Execute On-Call Policy** 按钮，并且仍然有效： **Page Someone** 也能呼叫值班策略。警报和片段保留它们自己的按钮。

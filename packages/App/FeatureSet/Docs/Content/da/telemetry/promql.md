@@ -50,7 +50,7 @@ Et par forespørgsler at starte med:
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime gemmer metrikker på OpenTelemetrys måde. PromQL læser dem med de na
 
 | I OneUptime | I PromQL |
 | --- | --- |
-| En gauge `system.cpu.utilization` | `system_cpu_utilization` |
-| En tæller `http.requests` | `http_requests` eller `http_requests_total` |
-| Et histogram `http.server.request.duration` | `http_server_request_duration_bucket` (med `le`), `_count` og `_sum` |
+| En gauge `system.cpu.utilization`, i `1` | `system_cpu_utilization_ratio` eller `system_cpu_utilization` |
+| En gauge `system.memory.usage`, i `By` | `system_memory_usage_bytes` eller `system_memory_usage` |
+| En tæller `http.requests` | `http_requests_total` eller `http_requests` |
+| Et histogram `http.server.request.duration`, i `s` | `http_server_request_duration_seconds_bucket` (med `le`), `_count` og `_sum`, eller de samme uden `_seconds` |
 | En summary `rpc.latency` | `rpc_latency` (med `quantile`), `_count` og `_sum` |
 | En attribut `http.route` | Etiketten `http_route` |
 | En ressourceattribut `service.name` | Etiketten `resource_service_name` og `job` |
 | En ressourceattribut `service.instance.id` | Etiketten `resource_service_instance_id` og `instance` |
 
 - **Punktummer og bindestreger bliver til understreger** i metrik- og etiketnavne. For at angive en metrik eller en etiket præcis, som den er gemt, sætter du navnet i anførselstegn, som Prometheus 3 gør: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **Enheden er en del af navnet**, sådan som Prometheus 3 og OpenTelemetry Collector skriver den: `s` tilføjer `_seconds`, `By` `_bytes`, `By/s` `_bytes_per_second` og `%` `_percent`; en gauge i `1` ender på `_ratio` og en tæller på `_total`, og en enhed i krøllede parenteser, som `{request}`, tilføjer intet. Navnet uden enheden finder også metrikken, og **Tilføj et metriknavn** viser hver metrik med den.
 - **Delta-tællere lægges sammen** fra starten af forespørgslens tidsinterval, så `rate()` og `increase()` læser dem som enhver anden tæller.
 - **Eksponentielle histogrammer** har `_count` og `_sum`, men ingen buckets.
 
@@ -144,6 +146,7 @@ Hver forespørgsel er afgrænset, så et dashboard med mange paneler ikke kan ov
 | Tid, evalueringen må tage | 30 sekunder |
 | Hvor langt tilbage en selektor kigger efter en series seneste måling | 5 minutter |
 | En underforespørgsels trin, når forespørgslen udelader det | 1 minut |
+| Forespørgsler, et projekt må sende hvert minut | 1.200 |
 
 ## Fejlfinding
 
@@ -159,10 +162,15 @@ Dens PromQL-navn har understreger, hvor det gemte navn har punktummer, og et his
 Forespørgslen beder om mere, end en læsning må rumme. Tilføj etiketmatchere, forkort tidsintervallet, eller brug et større trin.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+Projektets dashboards, Grafana og scripts sendte tilsammen mere end 1.200 forespørgsler til API'et i dette minut. Panelerne indlæses igen i næste minut; opdater dashboards sjældnere for at holde dig under grænsen.
+:::
+
 ## Næste trin
 
 :::cards
 - [Metrikudforsker](/docs/telemetry/metrics-explorer): Vis metrikker i diagrammer uden at skrive en forespørgsel.
-- [Metrik-monitor](/docs/monitor/metrics-monitor): Få en advarsel, når en metrik krydser en grænse.
-- [Eksterne datakilder](/docs/dashboards/data-sources): Vis en ekstern Prometheus på dine dashboards.
+- [Metrik-monitor](/docs/monitor/metrics-monitor): Få en advarsel om en metrik eller et PromQL-udtryk, med én hændelse pr. serie.
+- [Eksterne datakilder](/docs/dashboards/data-sources): Vis PromQL på dine dashboards, over dette projekts metrikker eller en ekstern Prometheus.
+- [LogQL](/docs/telemetry/logql): Forespørg logs med LogQL, også fra Grafanas Loki-datakilde.
 :::

@@ -1115,6 +1115,26 @@ import { AddTeamMemberInviteeName1809186500000 } from "./1809186500000-AddTeamMe
 import { AddHostLogSessions1809186600000 } from "./1809186600000-AddHostLogSessions";
 import { AddProjectDetectVoicemailOnCalls1809186610000 } from "./1809186610000-AddProjectDetectVoicemailOnCalls";
 import { BackfillSsoProviderDomains1809186620000 } from "./1809186620000-BackfillSsoProviderDomains";
+import { AddMonitorNetworkDeviceTieSource1809186700000 } from "./1809186700000-AddMonitorNetworkDeviceTieSource";
+import { AddKubernetesComplianceAcceptancesAndSummaries1809186710000 } from "./1809186710000-AddKubernetesComplianceAcceptancesAndSummaries";
+import { AddScheduledMaintenanceTemplateTimezone1809186800000 } from "./1809186800000-AddScheduledMaintenanceTemplateTimezone";
+import { AddManagedDevicePlatform1809186810000 } from "./1809186810000-AddManagedDevicePlatform";
+import { AddCloudResourceProviderResourceIdIndex1809186900000 } from "./1809186900000-AddCloudResourceProviderResourceIdIndex";
+import { AddTelemetryIngestionTeamLabelBudgets1809186905386 } from "./1809186905386-AddTelemetryIngestionTeamLabelBudgets";
+import { AddDomainVerifiedNameIndex1809186910000 } from "./1809186910000-AddDomainVerifiedNameIndex";
+import { AddHostLogSessionNote1809186919966 } from "./1809186919966-AddHostLogSessionNote";
+import { AddUserNewEmailLinkExpires1809186930000 } from "./1809186930000-AddUserNewEmailLinkExpires";
+import { AddTelemetryDsym1809186940000 } from "./1809186940000-AddTelemetryDsym";
+import { AddProxmoxGuestPowerTask1809186941017 } from "./1809186941017-AddProxmoxGuestPowerTask";
+import { AddTeamMemberInviteeEmail1809186960000 } from "./1809186960000-AddTeamMemberInviteeEmail";
+import { BackfillTeamMemberInviteeEmail1809186970000 } from "./1809186970000-BackfillTeamMemberInviteeEmail";
+import { AddNetworkSiteOwnersAndLabels1809187000000 } from "./1809187000000-AddNetworkSiteOwnersAndLabels";
+import { AddGuidedSetupRun1809187025300 } from "./1809187025300-AddGuidedSetupRun";
+import { AddDashboardPrivateUsersAndSingleSignOn1809187030250 } from "./1809187030250-AddDashboardPrivateUsersAndSingleSignOn";
+import { MakeEscalationRuleRespondersUnique1809187100000 } from "./1809187100000-MakeEscalationRuleRespondersUnique";
+import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "./1809187140120-AddFormPrivateUsersAndSingleSignOn";
+import { AddProjectAmazonSesIamRole1809187142000 } from "./1809187142000-AddProjectAmazonSesIamRole";
+import { AddSecurityBlocklist1809187150000 } from "./1809187150000-AddSecurityBlocklist";
 
 export default [
   InitialMigration,
@@ -2234,4 +2254,24 @@ export default [
   AddHostLogSessions1809186600000,
   AddProjectDetectVoicemailOnCalls1809186610000,
   BackfillSsoProviderDomains1809186620000,
+  AddMonitorNetworkDeviceTieSource1809186700000,
+  AddKubernetesComplianceAcceptancesAndSummaries1809186710000,
+  AddScheduledMaintenanceTemplateTimezone1809186800000,
+  AddManagedDevicePlatform1809186810000,
+  AddCloudResourceProviderResourceIdIndex1809186900000,
+  AddTelemetryIngestionTeamLabelBudgets1809186905386,
+  AddDomainVerifiedNameIndex1809186910000,
+  AddHostLogSessionNote1809186919966,
+  AddUserNewEmailLinkExpires1809186930000,
+  AddTelemetryDsym1809186940000,
+  AddProxmoxGuestPowerTask1809186941017,
+  AddTeamMemberInviteeEmail1809186960000,
+  BackfillTeamMemberInviteeEmail1809186970000,
+  AddNetworkSiteOwnersAndLabels1809187000000,
+  AddGuidedSetupRun1809187025300,
+  AddDashboardPrivateUsersAndSingleSignOn1809187030250,
+  MakeEscalationRuleRespondersUnique1809187100000,
+  AddFormPrivateUsersAndSingleSignOn1809187140120,
+  AddProjectAmazonSesIamRole1809187142000,
+  AddSecurityBlocklist1809187150000,
 ];

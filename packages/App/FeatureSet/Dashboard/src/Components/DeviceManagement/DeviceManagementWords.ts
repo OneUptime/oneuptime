@@ -1,5 +1,7 @@
 import { DeviceManagementConnectionStatus } from "Common/Types/DeviceManagement/DeviceManagementConnectionHealth";
 import { DeviceManagementTestResult } from "Common/Types/DeviceManagement/DeviceManagementConnectionTest";
+import DeviceManagementProvider from "Common/Types/DeviceManagement/DeviceManagementProvider";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   MANAGED_DEVICE_STATUS_LABELS,
   ManagedDeviceStatus,
@@ -7,8 +9,16 @@ import {
   getManagedDeviceStatusTone,
 } from "Common/Types/DeviceManagement/ManagedDeviceStatus";
 import { ManagedDeviceHostMatch } from "Common/Types/DeviceManagement/ManagedDeviceIdentity";
+import {
+  MANAGED_DEVICE_OPERATING_SYSTEM_NAMES,
+  MANAGED_DEVICE_PLATFORMS,
+  ManagedDevicePlatform,
+  getManagedDeviceOperatingSystemName,
+} from "Common/Types/DeviceManagement/ManagedDevicePlatform";
+import { JSONObject } from "Common/Types/JSON";
 import { LlmConnectionFailureKind } from "Common/Types/LlmObservability/LlmConnectionTest";
 import { PluralTemplate, translationKey } from "Common/Types/Translator";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 
 /*
@@ -26,6 +36,10 @@ export interface DeviceManagementHealthWords {
 /*
  * A connection's health as its row says it. Red only for a read that
  * failed; a connection someone turned off is grey (Paused), never red.
+ * The six states are drawn one above the other, so each language words
+ * them alike (StatesDrawnTogetherAgree): Waiting, Catching up and Failing
+ * have keys of their own, as Russian words a connection's states in the
+ * neuter, where the bare words are other pages' (#10009).
  */
 export function getDeviceManagementHealthWords(
   status: DeviceManagementConnectionStatus,
@@ -41,7 +55,7 @@ export function getDeviceManagementHealthWords(
       };
     case DeviceManagementConnectionStatus.Waiting:
       return {
-        label: translationKey("Waiting"),
+        label: translationKey("Waiting (device manager connection)"),
         tone: PillTone.Info,
         tooltip: translationKey(
           "Saved. Its first read starts within a minute.",
@@ -49,7 +63,7 @@ export function getDeviceManagementHealthWords(
       };
     case DeviceManagementConnectionStatus.Partial:
       return {
-        label: translationKey("Catching up"),
+        label: translationKey("Catching up (device manager connection)"),
         tone: PillTone.Info,
         tooltip: translationKey(
           "The last read worked. Some devices' apps wait for the next read, a minute from now.",
@@ -57,7 +71,7 @@ export function getDeviceManagementHealthWords(
       };
     case DeviceManagementConnectionStatus.Failing:
       return {
-        label: translationKey("Failing"),
+        label: translationKey("Failing (device manager connection)"),
         tone: PillTone.Danger,
         tooltip: translationKey(
           "The last read failed. View the error to see why.",
@@ -88,12 +102,171 @@ export interface DeviceManagementTestWords {
 }
 
 /*
- * Why a test or a read failed, and what to do, by the kind of failure:
- * the server's own message, in English, goes under these.
+ * Why an Intune test or read failed, and what to do (#9837): Microsoft
+ * Entra signs OneUptime in, and Microsoft Graph answers.
+ */
+function getIntuneFailureWords(
+  failureKind: LlmConnectionFailureKind | undefined,
+): DeviceManagementTestWords {
+  switch (failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+      return {
+        headline: translationKey("Microsoft Entra refused the client secret."),
+        advice: translationKey(
+          "Copy the secret's value again from Certificates & secrets on the app registration, or make a new one: a secret stops working when it expires.",
+        ),
+      };
+    case LlmConnectionFailureKind.Permission:
+      return {
+        headline: translationKey(
+          "The app registration may not read Intune's devices.",
+        ),
+        advice: translationKey(
+          "Give it the application permission DeviceManagementManagedDevices.Read.All on Microsoft Graph, and grant admin consent.",
+        ),
+      };
+    case LlmConnectionFailureKind.Settings:
+      return {
+        headline: translationKey(
+          "Check the tenant ID, the client ID and the cloud.",
+        ),
+        advice: translationKey(
+          "All three are on the app registration's Overview in the Microsoft Entra admin center.",
+        ),
+      };
+    case LlmConnectionFailureKind.RateLimited:
+      return {
+        headline: translationKey(
+          "Microsoft Graph asked OneUptime to slow down.",
+        ),
+        advice: translationKey("Try again in a minute."),
+      };
+    default:
+      return {
+        headline: translationKey("OneUptime could not reach Microsoft Graph."),
+        advice: translationKey(
+          "Check the cloud the tenant is in. If it is right, Microsoft may be having trouble: try again in a few minutes.",
+        ),
+      };
+  }
+}
+
+/*
+ * Why a Workspace ONE UEM test or read failed, and what to do (#10086):
+ * OneUptime signs in with an OAuth client or an administrator's account,
+ * and the tenant's API server answers.
+ */
+function getWorkspaceOneFailureWords(
+  failureKind: LlmConnectionFailureKind | undefined,
+): DeviceManagementTestWords {
+  switch (failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+      return {
+        headline: translationKey("Workspace ONE refused OneUptime's sign-in."),
+        advice: translationKey(
+          "Copy the OAuth client's ID and secret again and check its region, or check the administrator's username, password and REST API key.",
+        ),
+      };
+    case LlmConnectionFailureKind.Permission:
+      return {
+        headline: translationKey(
+          "OneUptime's admin role may not read Workspace ONE's devices.",
+        ),
+        advice: translationKey(
+          "Give the role Read on Devices and Apps under its REST API permissions, at the organization group whose devices OneUptime reads.",
+        ),
+      };
+    case LlmConnectionFailureKind.Settings:
+      return {
+        headline: translationKey("Check the REST API URL."),
+        advice: translationKey(
+          "Workspace ONE shows it in its REST API settings, like https://as1234.awmdm.com. OneUptime Cloud reads servers on the public internet only.",
+        ),
+      };
+    case LlmConnectionFailureKind.RateLimited:
+      return {
+        headline: translationKey("Workspace ONE asked OneUptime to slow down."),
+        advice: translationKey(
+          "Try again in a minute. If the tenant's daily API quota is used up, reads start again once it resets.",
+        ),
+      };
+    default:
+      return {
+        headline: translationKey("OneUptime could not reach Workspace ONE."),
+        advice: translationKey(
+          "Check the REST API URL. If it is right, the server may be having trouble: try again in a few minutes.",
+        ),
+      };
+  }
+}
+
+/*
+ * Why a SOTI MobiControl test or read failed, and what to do (#10087): an
+ * API client and a MobiControl user sign OneUptime in at the server.
+ */
+function getSotiFailureWords(
+  failureKind: LlmConnectionFailureKind | undefined,
+): DeviceManagementTestWords {
+  switch (failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+      return {
+        headline: translationKey("MobiControl refused OneUptime's sign-in."),
+        advice: translationKey(
+          "Check the API client's ID and secret, and the user's username and password. The user must be a MobiControl user with Web Console Access.",
+        ),
+      };
+    case LlmConnectionFailureKind.Permission:
+      return {
+        headline: translationKey(
+          "The MobiControl user may not read the devices.",
+        ),
+        advice: translationKey(
+          "Give it Web Console Access and View Installed Applications, and View Groups on the device groups to read.",
+        ),
+      };
+    case LlmConnectionFailureKind.Settings:
+      return {
+        headline: translationKey("Check the server's address."),
+        advice: translationKey(
+          "It is the address of the MobiControl web console, without /MobiControl. OneUptime Cloud reads servers on the public internet only.",
+        ),
+      };
+    case LlmConnectionFailureKind.RateLimited:
+      return {
+        headline: translationKey("MobiControl asked OneUptime to slow down."),
+        advice: translationKey("Try again in a minute."),
+      };
+    default:
+      return {
+        headline: translationKey("OneUptime could not reach MobiControl."),
+        advice: translationKey(
+          "Check the server's address. If it is right, the server may be having trouble: try again in a few minutes.",
+        ),
+      };
+  }
+}
+
+/*
+ * Why a test or a read failed, and what to do, by the kind of failure and
+ * the connection's service (Esper's when none is said): the server's own
+ * message, in English, goes under these.
  */
 export function getDeviceManagementFailureWords(
   failureKind: LlmConnectionFailureKind | undefined,
+  provider?: DeviceManagementProvider | string | undefined,
 ): DeviceManagementTestWords {
+  if (provider === DeviceManagementProvider.Intune) {
+    return getIntuneFailureWords(failureKind);
+  }
+
+  if (provider === DeviceManagementProvider.WorkspaceOne) {
+    return getWorkspaceOneFailureWords(failureKind);
+  }
+
+  if (provider === DeviceManagementProvider.Soti) {
+    return getSotiFailureWords(failureKind);
+  }
+
   switch (failureKind) {
     case LlmConnectionFailureKind.Authentication:
       return {
@@ -133,8 +306,8 @@ export function getDeviceManagementFailureWords(
 
 // A test that passed: how many devices a read will import.
 export const TEST_PASSED_WITH_DEVICES: PluralTemplate = {
-  one: "Connected. {{count}} Android device to import.",
-  other: "Connected. {{count}} Android devices to import.",
+  one: "Connected. {{count}} device to import.",
+  other: "Connected. {{count}} devices to import.",
 };
 
 export const TEST_PASSED: string = translationKey("Connected.");
@@ -147,7 +320,7 @@ export function getDeviceManagementTestWords(
     return { headline: TEST_PASSED };
   }
 
-  return getDeviceManagementFailureWords(result.failureKind);
+  return getDeviceManagementFailureWords(result.failureKind, result.provider);
 }
 
 export interface ManagedDeviceStatusWords {
@@ -175,10 +348,20 @@ export function getManagedDeviceStatusWords(
 // How a device's host in Inventory was found, as its card says it.
 export function getManagedDeviceMatchWords(
   match: ManagedDeviceHostMatch | undefined,
+  provider?: DeviceManagementProvider | string | undefined,
 ): string | undefined {
   switch (match) {
     case ManagedDeviceHostMatch.Name:
-      return translationKey("Telemetry names it by its Esper name");
+      switch (provider) {
+        case DeviceManagementProvider.Intune:
+          return translationKey("Telemetry names it by its Intune name");
+        case DeviceManagementProvider.WorkspaceOne:
+          return translationKey("Telemetry names it by its Workspace ONE name");
+        case DeviceManagementProvider.Soti:
+          return translationKey("Telemetry names it by its MobiControl name");
+        default:
+          return translationKey("Telemetry names it by its Esper name");
+      }
     case ManagedDeviceHostMatch.SerialNumber:
       return translationKey("Telemetry names it by its serial number");
     case ManagedDeviceHostMatch.Created:
@@ -187,6 +370,104 @@ export function getManagedDeviceMatchWords(
       return undefined;
   }
 }
+
+// What a device runs, for the devices list's Platform filter: product names, as written.
+export const MANAGED_DEVICE_PLATFORM_OPTIONS: Array<DropdownOption> =
+  MANAGED_DEVICE_PLATFORMS.map(
+    (platform: ManagedDevicePlatform): DropdownOption => {
+      return platform === ManagedDevicePlatform.Other
+        ? { value: platform, label: translationKey("Other") }
+        : {
+            value: platform,
+            label: MANAGED_DEVICE_OPERATING_SYSTEM_NAMES[platform],
+            isUserContent: true,
+          };
+    },
+  );
+
+/*
+ * What a device runs, its version after its name: "iOS 17.4", "Android 13".
+ * A product name and a version, the same in every language; a version that
+ * names its system already ("Windows 11 Pro") is not named twice.
+ */
+export function getManagedDeviceOperatingSystemLine(device: {
+  platform?: string | undefined | null;
+  osVersion?: string | undefined | null;
+  details?: JSONObject | undefined | null;
+}): string {
+  const details: JSONObject =
+    device.details && typeof device.details === "object"
+      ? (device.details as JSONObject)
+      : {};
+  const serviceOperatingSystem: unknown = details["operatingSystem"];
+  const name: string = getManagedDeviceOperatingSystemName({
+    platform: device.platform,
+    serviceOperatingSystem:
+      typeof serviceOperatingSystem === "string"
+        ? serviceOperatingSystem
+        : undefined,
+  });
+  const version: string = (device.osVersion || "").trim();
+
+  if (!name || version.toLowerCase().startsWith(name.toLowerCase())) {
+    return version;
+  }
+
+  return version ? `${name}\u00A0${version}` : name;
+}
+
+/*
+ * The device managers a project can connect, as "Connect device manager"
+ * offers them: each by its product name, what it imports and how
+ * OneUptime signs in. Drawn with OneUptime's own icons: none of the brands
+ * has a one-colour mark OneUptime may draw (Common/Types/ProviderLogo).
+ */
+/*
+ * The connections list's button ("Connect" and its singularName, "device
+ * manager"), as one phrase: translateCreateAction looks the whole phrase up
+ * before it fills the verb's template, so each language words it whole.
+ */
+export const CONNECT_DEVICE_MANAGER: string = translationKey(
+  "Connect device manager",
+);
+
+export interface DeviceManagementProviderChoice {
+  provider: DeviceManagementProvider;
+  description: string;
+  icon: IconProp;
+}
+
+export const DEVICE_MANAGEMENT_PROVIDER_CHOICES: ReadonlyArray<DeviceManagementProviderChoice> =
+  [
+    {
+      provider: DeviceManagementProvider.Esper,
+      description: translationKey(
+        "Android devices, iPhones, iPads and Apple TVs, read with an API key.",
+      ),
+      icon: IconProp.DevicePhoneMobile,
+    },
+    {
+      provider: DeviceManagementProvider.Intune,
+      description: translationKey(
+        "Windows PCs, Macs, iPhones, iPads and Android devices, read through Microsoft Graph with an app registration.",
+      ),
+      icon: IconProp.ComputerDesktop,
+    },
+    {
+      provider: DeviceManagementProvider.WorkspaceOne,
+      description: translationKey(
+        "Phones, tablets and computers, read through the Workspace ONE REST API with an OAuth client.",
+      ),
+      icon: IconProp.DeviceTablet,
+    },
+    {
+      provider: DeviceManagementProvider.Soti,
+      description: translationKey(
+        "Rugged devices, phones, tablets and computers, read from your MobiControl server with an API client.",
+      ),
+      icon: IconProp.Signal,
+    },
+  ];
 
 /*
  * The choices of how often a connection is read, under its "Read every"

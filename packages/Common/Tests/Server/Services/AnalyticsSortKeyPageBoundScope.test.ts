@@ -96,6 +96,12 @@ const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
   RumProductAnalyticsUserV1: false,
   RumSessionChunkV1: true,
   RumSessionV1: true,
+  /*
+   * Security Events' address vault (#10395): an aggregate target with no
+   * _id, read by Security Events' scans alone - its service refuses every
+   * generic read - and never listed.
+   */
+  SecurityAddressVaultV1: false,
   SecurityEventItemV1: true,
   SloHistory: true,
   SpanCountBaseline: false,

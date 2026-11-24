@@ -39,6 +39,9 @@ import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import UserType from "Common/Types/UserType";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "Common/Server/Utils/TeamMember/PendingInviteeProfiles";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -1654,6 +1657,78 @@ describe("relation values are recorded as named references", () => {
       { _id: USER_ID.toString(), name: "Ada Lovelace" },
     ]);
     expect(harness.relatedLookups).toHaveLength(0);
+  });
+
+  /*
+   * Someone only invited is named as the project knows them (#9823): the
+   * name typed for them, else the address they were invited at - never
+   * their account's own name, nor the address it has moved to (#10175).
+   */
+  test("someone only invited is named by the name typed, else the address invited, never the account's new address", async () => {
+    // Two people only invited; the person who made the change has joined.
+    const TYPED_ID: ObjectID = new ObjectID(
+      "77777777-7777-4777-8777-777777777777",
+    );
+
+    usersById.set(
+      OWNER_USER_ID.toString(),
+      makeUser(OWNER_USER_ID, "Grace Own", "grace.new@example.com"),
+    );
+    usersById.set(
+      TYPED_ID.toString(),
+      makeUser(TYPED_ID, "Ada Own", "ada.new@example.com"),
+    );
+
+    const withheldIn: jest.SpyInstance = jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockResolvedValue(
+        new Map<string, WithheldProfile>([
+          [
+            OWNER_USER_ID.toString().toLowerCase(),
+            { inviteeName: null, inviteeEmail: "grace.old@example.com" },
+          ],
+          [
+            TYPED_ID.toString().toLowerCase(),
+            { inviteeName: "Ada (typed)", inviteeEmail: "ada.old@example.com" },
+          ],
+        ]),
+      );
+
+    try {
+      const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
+      before.alertOwnerUsers = [];
+
+      await harness.recorder.recordUpdate({
+        model: new ServiceLevelObjectiveBurnRateRule(),
+        before,
+        updatedFields: {
+          alertOwnerUsers: [
+            OWNER_USER_ID.toString(),
+            { _id: TYPED_ID.toString() },
+          ],
+        } as unknown as JSONObject,
+        itemId: RULE_ID,
+        props: USER_PROPS,
+      });
+
+      expect(changeFor(onlyEntry(), "alertOwnerUsers")?.["newValue"]).toEqual([
+        { _id: OWNER_USER_ID.toString(), name: "grace.old@example.com" },
+        { _id: TYPED_ID.toString(), name: "Ada (typed)" },
+      ]);
+
+      const recorded: string = JSON.stringify(onlyEntry());
+
+      for (const own of [
+        "Grace Own",
+        "grace.new@example.com",
+        "Ada Own",
+        "ada.new@example.com",
+      ]) {
+        expect(recorded).not.toContain(own);
+      }
+    } finally {
+      withheldIn.mockRestore();
+    }
   });
 
   test("a many-to-one relation is recorded as a single named reference", async () => {

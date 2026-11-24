@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -231,6 +232,52 @@ describe("the records a resource's own ids point at", () => {
     ]);
   });
 
+  /*
+   * A record's labels are written by its Terraform configuration - the
+   * provider keeps a label a rule adds later (#10134) - and left out of its
+   * Crossplane manifest, which leaves them to OneUptime: only the Terraform
+   * page names them.
+   */
+  test("labels are named for the Terraform page, which writes them, and not for the Crossplane page, which leaves them out", () => {
+    const json: Record<string, unknown> = {
+      _id: "i1",
+      title: "Checkout",
+      incidentSeverityId: "s1",
+      labels: [{ _id: "l1" }],
+    };
+
+    expect(
+      describeLookups(
+        getDeveloperDocsRecordLookups({
+          modelType: Incident,
+          json,
+          page: "terraform",
+        }),
+      ),
+    ).toEqual(["IncidentSeverity:s1", "Label:l1"]);
+    expect(
+      describeLookups(
+        getDeveloperDocsRecordLookups({
+          modelType: Incident,
+          json,
+          page: "crossplane",
+        }),
+      ),
+    ).toEqual(["IncidentSeverity:s1"]);
+    expect(
+      describeLookups(
+        getDeveloperDocsPageLookups({
+          modelType: Incident,
+          scope: "view",
+          page: "crossplane",
+          json,
+        }),
+      ).filter((lookup: string): boolean => {
+        return lookup.startsWith("Label");
+      }),
+    ).toEqual([]);
+  });
+
   test("a record without ids needs no lookups", () => {
     expect(
       getDeveloperDocsRecordLookups({
@@ -293,5 +340,76 @@ describe("a page's lookups", () => {
         ).toBe(true);
       }
     }
+  });
+});
+
+/*
+ * A CUSTOM ROLE'S PAGES (#10139). The role is a name and a description:
+ * no id of its own to name. What its Terraform page builds beside it - a
+ * permission, a team given it - points at one of the project's teams, and
+ * nothing else; its API and CLI pages list and add its own rows, by its
+ * id, so they look nothing up. What OneUptime keeps (how many permissions
+ * it holds, its slug) is never an id to name.
+ */
+describe("a custom role's pages", () => {
+  const ROLE_JSON: Record<string, unknown> = {
+    _id: "r1",
+    name: "Incident Responder",
+    description: "Declares, works and resolves incidents.",
+    slug: "incident-responder-r1",
+    permissionCount: 3,
+    projectId: { _type: "ObjectID", value: "p1" },
+    createdByUserId: { _type: "ObjectID", value: "u1" },
+  };
+
+  test("its Terraform page samples the teams its recipe gives it to, and names no id of its own", () => {
+    expect(
+      describeLookups(
+        getDeveloperDocsPageLookups({
+          modelType: CustomRole,
+          scope: "view",
+          page: "terraform",
+          json: ROLE_JSON,
+        }),
+      ),
+    ).toEqual(["Team"]);
+  });
+
+  test.each(["crossplane", "api", "cli", "ai-assistants"] as const)(
+    "its %s page looks nothing up",
+    (page: "crossplane" | "api" | "cli" | "ai-assistants") => {
+      expect(
+        getDeveloperDocsPageLookups({
+          modelType: CustomRole,
+          scope: "view",
+          page,
+          json: ROLE_JSON,
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test("its own ids are none the configuration writes: never the project, its creator, or what OneUptime keeps", () => {
+    for (const page of ["terraform", "crossplane"] as const) {
+      expect(
+        getDeveloperDocsRecordLookups({
+          modelType: CustomRole,
+          json: ROLE_JSON,
+          page,
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("the team lookup asks for ids and names only", () => {
+    const [lookup] = getDeveloperDocsPageLookups({
+      modelType: CustomRole,
+      scope: "view",
+      page: "terraform",
+      json: ROLE_JSON,
+    });
+
+    expect(lookup?.select).toEqual({ _id: true, name: true });
+    expect(lookup?.ids).toBeUndefined();
   });
 });

@@ -267,7 +267,8 @@ describe("the hours and their zone", () => {
 
     const inPersian: string = inLanguage(persian) || "";
 
-    expect(inPersian).toContain("08:30–18:00؛ ");
+    // Its times in Persian digits, as every time on a Persian page (#7914).
+    expect(inPersian).toContain("۰۸:۳۰–۱۸:۰۰؛ ");
     expect(inPersian).not.toContain(";");
 
     expect(inLanguage(french)).toBe(

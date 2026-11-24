@@ -12,6 +12,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
@@ -35,6 +36,18 @@ const adminPermissions: Array<Permission> = [
   Permission.ProjectAdmin,
 ];
 
+/*
+ * Through a relation too (#10310). A data store and a data security scan
+ * name the cloud connection they were read through, and the Security tiers
+ * and the custom roles that read stores or scans read them: of the
+ * connection, which one it is - its name, its provider and whether it is on
+ * - and nothing of how it is set up. Its configuration (a role's ARN, a
+ * tenant, the regions it reads), its errors, what it pulled and when, its
+ * service, its stream key's age and its added metrics are held to the
+ * connection's own read (RelationReaders.ColumnReaders): everyone who reads
+ * the project's cloud resources, who read them on a resource's pages as
+ * before.
+ */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -180,12 +193,21 @@ export default class CloudConnection extends BaseModel {
     read: readPermissions,
     update: adminPermissions,
   })
+  /*
+   * Readable through a resource's relation: a resource's pages read how
+   * often its connection reads it (readIntervalInMinutes) - a metric that
+   * comes once an hour is missing from the last hour only past its delay,
+   * and a recommended monitor's window follows the interval (#10026,
+   * #10028). It holds no secret (secretConfig does).
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.JSON,
     title: "Settings",
     description:
       "The cloud's settings that are not secret, such as a role ARN, a tenant or the regions to read. Keys are defined by the cloud.",
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({
     type: ColumnType.JSON,
@@ -271,6 +293,7 @@ export default class CloudConnection extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Service ID",
     description:
       "ID of the telemetry service the metrics this connection reads belong to.",
@@ -301,6 +324,7 @@ export default class CloudConnection extends BaseModel {
     title: "Last Read At",
     description: "When the connection was last read. Empty means never.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastPulledAt?: Date = undefined;
@@ -312,6 +336,7 @@ export default class CloudConnection extends BaseModel {
     title: "Last Successful Read At",
     description: "When a read last finished without an error.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public lastSuccessfulPullAt?: Date = undefined;
@@ -335,6 +360,7 @@ export default class CloudConnection extends BaseModel {
     description:
       "Why the last read failed, with credentials removed. Cleared by the next read that works.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.VeryLongText, nullable: true })
   public lastError?: string = undefined;
@@ -381,6 +407,7 @@ export default class CloudConnection extends BaseModel {
     description:
       "When the connection's stream key was made. Empty means it streams nothing.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public streamKeyCreatedAt?: Date = undefined;
@@ -429,6 +456,7 @@ export default class CloudConnection extends BaseModel {
     description:
       "Metrics added to what the connection reads beyond each resource type's key metrics, for one resource or for every resource of a type.",
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public addedMetrics?: JSONObject = undefined;

@@ -8,6 +8,7 @@ import {
   isPlaceholderDigits,
 } from "../Detector";
 import { isRealDate } from "../Validators";
+import IpCanonicalUtil from "../../IpCanonicalUtil";
 
 /*
  * CONTACT AND IDENTITY: WHO SOMEONE IS AND HOW TO REACH THEM.
@@ -769,80 +770,109 @@ const ipv4Detector: DataTypeDetector = {
 };
 
 /*
- * Whether text is an IPv6 address that names one host on the internet:
- * eight groups, or fewer around a single "::", and none of loopback,
- * link-local, unique-local, multicast or the documentation prefix.
+ * Whether text is an IPv6 address that names one host on the internet: an
+ * address at all (IpCanonicalUtil.getIpv6Groups reads it as Node does - its
+ * "::" and an IPv4 tail too), and none of the unspecified and loopback
+ * addresses, link-local, unique-local, multicast or anything else under
+ * ::/16. IPv4-mapped addresses are under ::/16 as well: an IPv4 address
+ * written as IPv6 (::ffff:8.8.8.8) is judged as the IPv4 address it is, by
+ * isIpv6AddressData. The first group is the address's own, so "::abcd" is
+ * under ::/16, not a host of abcd::/16.
  */
 export function isPublicIpv6(address: string): boolean {
-  const lower: string = address.toLowerCase();
-  const doubleColons: number = lower.split("::").length - 1;
+  const groups: Array<number> | null = IpCanonicalUtil.getIpv6Groups(address);
 
-  if (doubleColons > 1) {
+  if (!groups) {
     return false;
   }
 
-  const groups: Array<string> = lower.split(":").filter((group: string) => {
-    return group.length > 0;
-  });
-
-  if (doubleColons === 0 ? groups.length !== 8 : groups.length > 7) {
-    return false;
-  }
-
-  for (const group of groups) {
-    if (group.length > 4) {
-      return false;
-    }
-  }
-
-  const first: number = parseInt(groups[0] || "0", 16);
+  const first: number = groups[0]!;
 
   return !(
-    lower === "::" ||
-    lower === "::1" ||
+    first === 0 ||
     (first & 0xffc0) === 0xfe80 ||
     (first & 0xfe00) === 0xfc00 ||
-    (first & 0xff00) === 0xff00 ||
-    first === 0
+    (first & 0xff00) === 0xff00
   );
 }
 
 // 2001:db8::/32, however its groups are written: 2001:db8:: or 2001:0db8:...
-function isDocumentationIpv6(address: string): boolean {
-  const groups: Array<string> = address.split(":");
+export function isDocumentationIpv6(address: string): boolean {
+  const groups: Array<number> | null = IpCanonicalUtil.getIpv6Groups(address);
 
-  return (
-    groups.length > 2 &&
-    groups[1]!.length > 0 &&
-    parseInt(groups[0]!, 16) === 0x2001 &&
-    parseInt(groups[1]!, 16) === 0x0db8
-  );
+  return groups !== null && groups[0] === 0x2001 && groups[1] === 0x0db8;
 }
 
 /*
- * Groups and colons, the last group either written out or after a "::"
- * that may end the address (2001:db8::) or lead to up to six more groups
- * (2001:db8::8a2e:370:7334) - the way addresses are usually written.
+ * Whether an IPv6 candidate is what the IP address type means: a public
+ * address, or one of the documentation prefix (counted as a test value), so
+ * a test with 2001:db8::1 shows a rule working. An IPv4 address written as
+ * IPv6 (::ffff:203.0.113.7) is judged as that IPv4 address. A clock reads
+ * 12:30:45, and C++ names a scope std::vector: an address has hex letters
+ * or many groups.
+ */
+export function isIpv6AddressData(address: string): boolean {
+  if (address.split(":").length < 4) {
+    return false;
+  }
+
+  const ipv4: string | null = IpCanonicalUtil.getIpv4OfMappedAddress(address);
+
+  if (ipv4 !== null) {
+    return isPublicIpv4(ipv4) || isDocumentationIpv4(ipv4);
+  }
+
+  return isPublicIpv6(address) || isDocumentationIpv6(address);
+}
+
+// A documentation address in IPv6: 2001:db8::/32, or ::ffff: and an RFC 5737 one.
+function isDocumentationIpv6Value(address: string): boolean {
+  const ipv4: string | null = IpCanonicalUtil.getIpv4OfMappedAddress(address);
+
+  return ipv4 !== null
+    ? isDocumentationIpv4(ipv4)
+    : isDocumentationIpv6(address);
+}
+
+/*
+ * An IPv6 address as telemetry writes it, never inside a longer run of hex
+ * digits and colons: groups and colons, the last group written out or after
+ * a "::" that may end the address (2001:db8::) or lead to more groups
+ * (2001:db8::8a2e:370:7334); one that starts with "::" (::ffff:808:808);
+ * or one whose last 32 bits are an IPv4 address (::ffff:8.8.8.8,
+ * 64:ff9b::192.0.2.1, 2001:db8::1.2.3.4) - what a dual-stack server logs
+ * for an IPv4 client - found whole, so it is hidden whole. In brackets with
+ * a port ([2001:db8::1]:443) the brackets and the port are left out, and a
+ * zone (fe80::1%eth0) too. A candidate followed by ".digit" is part of
+ * something else. Bounded, so a long run of colons and digits is read in
+ * time in line with its length.
  */
 const IPV6_PATTERN: RegExp =
-  /(?<![0-9A-Fa-f:])(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])/g;
+  /(?<![0-9A-Fa-f:])(?:(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3})(?![0-9]|\.[0-9])/g;
 
 const ipv6Detector: DataTypeDetector = {
   dataTypeId: "ip-address",
   quickCheck: containsAny([":"]),
   pattern: IPV6_PATTERN,
-  validate: (normalized: string): boolean => {
-    return (
-      (isPublicIpv6(normalized) || isDocumentationIpv6(normalized)) &&
-      // A clock reads 12:30:45 - an address has hex letters or many groups.
-      normalized.split(":").length >= 4
-    );
-  },
+  validate: isIpv6AddressData,
   keywords: ["ip", "address", "client", "remote", "forwarded", "ipv6"],
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
-  isTestValue: isDocumentationIpv6,
+  isTestValue: isDocumentationIpv6Value,
 };
+
+/*
+ * WHAT DATA SECURITY CALLS AN IP ADDRESS, AND WHAT AN IP ADDRESS SCRUB RULE
+ * HIDES: the two detectors of the type, IPv6 first. A scrub rule's IP
+ * Address pattern finds its matches with these very detectors - their
+ * patterns, quick checks and validators (Utils/Telemetry/ScrubIpAddress.ts)
+ * - so a finding and the rule that covers it can never disagree on what an
+ * address is (#10393).
+ */
+export const IP_ADDRESS_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  ipv6Detector,
+  ipv4Detector,
+];
 
 const MAC_PATTERN: RegExp =
   /(?<![0-9A-Fa-f:-])[0-9A-Fa-f]{2}([:-])[0-9A-Fa-f]{2}(?:[:-][0-9A-Fa-f]{2}){4}(?![0-9A-Fa-f:-])/g;

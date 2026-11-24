@@ -79,10 +79,15 @@ interface KeyCheck {
 }
 
 const KEY_CHECKS: Array<KeyCheck> = [
+  /*
+   * The one check every way a probe presents its key goes through - its
+   * body, its headers, its report's opening (#10222) - which each of
+   * ProbeAuthorization's middlewares hands its key to (below).
+   */
   {
     file: PROBE_AUTHORIZATION,
-    from: "public static async isAuthorizedServiceMiddleware(",
-    to: "return next(err);",
+    from: "private static async authorize(",
+    to: "req.probe = probe; return next();",
     compared: "await ProbeService.verifyProbeKey({",
     inOrder: [
       "const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Probe, componentId: probeId.toString(), });",
@@ -390,6 +395,82 @@ describe("every check of a component's key asks the limit, in the order the rule
         file: check.file,
         answersBetween: ANSWERS.test(segment.slice(lookup, asked)),
       }).toEqual({ file: check.file, answersBetween: false });
+    }
+  });
+});
+
+/*
+ * A probe presents its key in its body, in a collection's headers, or at the
+ * start of a collection's report (#10222). Each of ProbeAuthorization's
+ * middlewares reads it from one of those and hands it to the one check
+ * above: none looks a key up, or makes a request a probe's, on its own.
+ */
+describe("every way a probe presents its key goes through the one check", () => {
+  const code: string = collapsed(codeOf(PROBE_AUTHORIZATION));
+
+  const middlewares: Array<string> = [
+    "isAuthorizedServiceMiddleware",
+    "isAuthorizedFromHeadersMiddleware",
+    "isAuthorizedFromReportOpeningMiddleware",
+  ];
+
+  // A method's code: from its signature to the next method's, or the end.
+  const methodOf: (signature: string) => string = (
+    signature: string,
+  ): string => {
+    const start: number = code.indexOf(signature);
+    const ends: Array<number> = ["public static", "private static"]
+      .map((next: string): number => {
+        return code.indexOf(next, start + signature.length);
+      })
+      .filter((end: number): boolean => {
+        return end >= 0;
+      });
+
+    return start < 0
+      ? ""
+      : code.slice(start, ends.length ? Math.min(...ends) : undefined);
+  };
+
+  test.each(middlewares)(
+    "%s hands the key it reads to the check, and checks none itself",
+    (name: string) => {
+      const method: string = methodOf(`public static async ${name}(`);
+
+      expect({ name, found: method.length > 0 }).toEqual({
+        name,
+        found: true,
+      });
+      expect({
+        name,
+        handsItOn: method.includes(
+          "return await ProbeAuthorization.authorize({",
+        ),
+        looksUp: method.includes("ProbeService.verifyProbeKey("),
+        counts: method.includes("WrongComponentKeyLimit."),
+        makesItTheProbes: method.includes("req.probe ="),
+      }).toEqual({
+        name,
+        handsItOn: true,
+        looksUp: false,
+        counts: false,
+        makesItTheProbes: false,
+      });
+    },
+  );
+
+  test("only the check looks a key up and makes a request a probe's", () => {
+    const check: string = methodOf("private static async authorize(");
+
+    for (const call of ["ProbeService.verifyProbeKey(", "req.probe = "]) {
+      expect({ call, inTheFile: code.split(call).length - 1 }).toEqual({
+        call,
+        inTheFile: 1,
+      });
+      expect({ call, inTheCheck: check.includes(call) }).toEqual({
+        call,
+        inTheCheck: true,
+      });
     }
   });
 });

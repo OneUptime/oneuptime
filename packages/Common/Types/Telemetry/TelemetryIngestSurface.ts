@@ -19,6 +19,11 @@ enum TelemetryIngestSurface {
   OtelProfiles = "otel-profiles",
   SessionReplay = "session-replay",
   SourceMap = "source-map",
+  /*
+   * An iOS app's dSYMs, uploaded after a build by CI or the CLI (POST
+   * /dsyms/v1/upload, #9922). Server keys only: a build's, never a page's.
+   */
+  Dsym = "dsym",
   Syslog = "syslog",
   Fluent = "fluent",
   /*
@@ -182,6 +187,7 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.OtelProfiles]: "OTLP profile ingest",
   [TelemetryIngestSurface.SessionReplay]: "session replay ingest",
   [TelemetryIngestSurface.SourceMap]: "source map upload",
+  [TelemetryIngestSurface.Dsym]: "dSYM upload",
   [TelemetryIngestSurface.Syslog]: "syslog ingest",
   [TelemetryIngestSurface.Fluent]: "Fluentd / Fluent Bit ingest",
   [TelemetryIngestSurface.VercelLogDrain]: "Vercel log drain ingest",

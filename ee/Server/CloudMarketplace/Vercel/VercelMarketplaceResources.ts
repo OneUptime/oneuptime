@@ -9,6 +9,11 @@ import OneUptimeDate from "Common/Types/Date";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
 import ObjectID from "Common/Types/ObjectID";
+import ProductKey from "Common/Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  getProductOffMessage,
+} from "Common/Types/Product/ServerProducts";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import { ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY } from "Common/Utils/StatusPage/HistoryChartBarColors";
 import MarketplaceSubscriptionService from "Common/Server/Services/MarketplaceSubscriptionService";
@@ -19,6 +24,7 @@ import VercelMarketplaceConnectionService from "Common/Server/Services/VercelMar
 import VercelMarketplaceInstallationService from "Common/Server/Services/VercelMarketplaceInstallationService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
 import MarketplacePurchaseClaim from "../MarketplacePurchaseClaim";
 import MarketplaceUsageReporter from "../MarketplaceUsageReporter";
 import VercelMarketplaceAPI, { VercelSecret } from "./VercelMarketplaceAPI";
@@ -95,10 +101,10 @@ export default class VercelMarketplaceResources {
   /*
    * Make, or finish making, the resource: its purchase, its project (owned
    * by the person who added it, on the plan they chose, billed through
-   * Vercel), its ingestion key and - unless they turned it off - its status
-   * page. Each step is done only if it is not done yet, so a provisioning
-   * Vercel sends again after a timeout, or one that failed part way, ends
-   * with one of each.
+   * Vercel), its ingestion key and - unless they turned it off, or the
+   * server has Status Pages switched off - its status page. Each step is
+   * done only if it is not done yet, so a provisioning Vercel sends again
+   * after a timeout, or one that failed part way, ends with one of each.
    */
   public static async provision(
     data: ProvisionVercelResource,
@@ -545,6 +551,13 @@ export default class VercelMarketplaceResources {
    * monitors of its connected projects' production domains are added to.
    * Best effort: a resource is never refused because its status page could
    * not be made (a plan limit, say) - the team can make one in OneUptime.
+   *
+   * None is made while the server has Status Pages switched off (#10251).
+   * Vercel's calls are billing and are answered whatever is off
+   * (ProductRouteDecisions), but the page would be the server's own new
+   * work, written as root, in a product its team cannot open: such work is
+   * refused where it starts (ProductWriteRefusal, #9489). The resource is
+   * provisioned without one, as when a page cannot be made.
    */
   private static async createStatusPage(data: {
     projectId: ObjectID;
@@ -552,6 +565,16 @@ export default class VercelMarketplaceResources {
     createdByUserId: ObjectID;
   }): Promise<ObjectID | null> {
     try {
+      const offReason: ServerProductOffReason | null =
+        await ServerProducts.getOffReasonOfServerWork(ProductKey.StatusPages);
+
+      if (offReason) {
+        logger.error(
+          `Could not make a status page for the Vercel resource in project ${data.projectId.toString()}: ${getProductOffMessage({ product: ProductKey.StatusPages, reason: offReason })}`,
+        );
+        return null;
+      }
+
       const page: StatusPage = new StatusPage();
       page.projectId = data.projectId;
       page.name = data.name;

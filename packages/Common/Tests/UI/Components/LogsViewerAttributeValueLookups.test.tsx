@@ -78,7 +78,7 @@ import {
   ATTRIBUTE_VALUES_RETRY_TEST_ID,
 } from "../../../UI/Components/TelemetryViewer/components/AttributeValuesLoadError";
 import { ATTRIBUTE_VALUES_EMPTY_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/AttributeValuesEmpty";
-import { SEARCH_SUGGESTIONS_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogSearchSuggestions";
+import { SEARCH_SUGGESTIONS_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/TelemetrySearchSuggestions";
 import {
   ATTRIBUTE_VALUE_LOOKUP_PAUSE_IN_MS,
   clearAttributeValueAnswers,

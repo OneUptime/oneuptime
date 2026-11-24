@@ -138,6 +138,10 @@ export class MailService extends BaseService {
       body["SMTP_AWS_SECRET_ACCESS_KEY"] =
         options.mailServer.awsSecretAccessKey || undefined;
       body["SMTP_AWS_REGION"] = options.mailServer.awsRegion || undefined;
+      // A project's Amazon SES role (#7378): its ARN, and the config row's own project.
+      body["SMTP_AWS_ROLE_ARN"] = options.mailServer.awsRoleArn || undefined;
+      body["SMTP_AWS_ROLE_PROJECT_ID"] =
+        options.mailServer.awsRoleProjectId || undefined;
       body["SMTP_MAILGUN_DOMAIN"] =
         options.mailServer.mailgunDomain || undefined;
       body["SMTP_MAILGUN_REGION"] =

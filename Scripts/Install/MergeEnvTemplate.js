@@ -59,13 +59,22 @@ const isCommentLine = (line) => {
   return trimmed.startsWith("#") || trimmed.startsWith("//");
 };
 
-// The KEY of a KEY=value line (surrounding whitespace ignored), or null.
+/*
+ * The KEY of a KEY=value line, or null, as WithConfig.sh reads it for
+ * Compose and ReplacePlaceholderSecrets.js's readSettings for every other
+ * step of npm start: the whitespace around it dropped, and an "export "
+ * before it too. A copy, not an import: packages/Common/test-setup.sh and
+ * the tests run this file on its own (MergeEnvTemplateRenames.test.js holds
+ * the copy to readSettings).
+ */
 const assignedKeyOf = (line) => {
   if (isCommentLine(line) || !line.includes("=")) {
     return null;
   }
 
-  return keyOf(line).trim();
+  return keyOf(line)
+    .trim()
+    .replace(/^export[ \t]+/, "");
 };
 
 // The value of a KEY=value line, without surrounding whitespace or quotes.
@@ -161,9 +170,19 @@ const mergeEnvTemplate = (templateContents, envContents) => {
   const linesInTemplate = templateContents.split("\n");
   const linesInEnv = envContents.split("\n");
 
+  /*
+   * Whether config.env sets `key`, under the name Compose reads it by:
+   * "HOST = x", "  HOST=x" and "export HOST=x" all set HOST. Compared as
+   * written, such a line was no HOST, so the merge appended the template's
+   * HOST=localhost after it, and WithConfig.sh, where the last line of a
+   * name wins, handed Compose localhost: npm run update reset the address
+   * of an install that had one.
+   */
   const hasKey = (key) => {
     return linesInEnv.some((envLine) => {
-      return envLine.split("=").length > 0 && keyOf(envLine) === key;
+      return (
+        keyOf(envLine) === key || (key !== "" && assignedKeyOf(envLine) === key)
+      );
     });
   };
 

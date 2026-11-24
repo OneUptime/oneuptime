@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import CloudAccount from "./CloudAccount";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
@@ -27,6 +28,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import AccessControlColumn from "../../Types/Database/AccessControlColumn";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import { DataStoreKind } from "../../Types/DataSecurity/DataStoreKind";
 import DataStoreEnvironment from "../../Types/DataSecurity/DataStoreEnvironment";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
@@ -63,6 +65,19 @@ import {
  *
  * It is security data, so the Security tiers read it and nobody else - which
  * buckets hold card numbers is exactly what an attacker wants to know.
+ *
+ * Through a relation too (#10281). A data asset, a data alert and a data
+ * warehouse job name their store, and Data Observability's readers - Viewer,
+ * Project Member, the Telemetry tiers - read them: of the store, they read
+ * what says which store it is - its name, its kind, its environment, whether
+ * it is archived - and nothing it holds, how exposed it is, what its issues
+ * are or where it lives in a cloud. Every other column a relation reads is
+ * held to the store's own read (RelationReaders.ColumnReaders): the Security
+ * tiers read it on the issues, findings, accesses, flows and scans that name
+ * the store, and a custom role that reads those but not stores does not.
+ * Before, every column was read by every reader of the relation, and a
+ * Viewer read every store's sensitivity, exposure, risk score, open issues
+ * and cloud account through the data assets in it.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -276,6 +291,7 @@ export default class DataStore extends BaseModel {
     title: "Name",
     description:
       "The store's name: a bucket, database, dataset or service name.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.LongText,
@@ -289,6 +305,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.LongText,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Description",
     description: "What the store is for, in your team's words.",
   })
@@ -305,6 +322,7 @@ export default class DataStore extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Store Key",
     description:
       "What identifies the store within the project: its provider, kind and native id. One row per store, however often it is discovered.",
@@ -339,6 +357,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Provider",
     description:
       "Where the store lives: aws, azure, gcp, self-managed or oneuptime.",
@@ -356,6 +375,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Family",
     description:
       "The store's family: object storage, database, warehouse, search, cache, file system, snapshot or telemetry.",
@@ -373,6 +393,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Discovered From",
     description:
       "How OneUptime found the store: cloud inventory, the Database product, telemetry, the service map, or added by hand.",
@@ -413,6 +434,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Cloud Account ID",
     description: "The cloud account the store belongs to, for a cloud store.",
   })
@@ -453,6 +475,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Cloud Resource ID",
     description: "The cloud resource the store was discovered from, if any.",
   })
@@ -492,6 +515,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Cloud Connection ID",
     description:
       "The cloud connection that reads the store's configuration, if any.",
@@ -532,6 +556,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Database Server ID",
     description:
       "The Database product server the store is, for a self-managed database.",
@@ -572,6 +597,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Service ID",
     description:
       "The telemetry service whose logs, traces, exceptions, replays or AI conversations the store is.",
@@ -589,6 +615,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Provider Resource ID",
     description:
       "The store's id in its cloud: an ARN, an Azure resource id or a Google Cloud resource name.",
@@ -606,6 +633,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Account",
     description:
       "The cloud's own id for the account: an AWS account id, an Azure subscription id or a Google Cloud project id.",
@@ -623,6 +651,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Region",
     description: "The region the store lives in.",
   })
@@ -644,6 +673,7 @@ export default class DataStore extends BaseModel {
       "Which environment the store serves: Production, Staging, Development, Test or Unknown. Read from its tags and name; people may set it.",
     defaultValue: "Unknown",
     isDefaultValueColumn: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -660,6 +690,7 @@ export default class DataStore extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Sensitivity",
     description:
       "How sensitive the store is: Restricted, Confidential, Internal or Public, from the most sensitive data type found in it.",
@@ -680,6 +711,7 @@ export default class DataStore extends BaseModel {
     allowedValues: Object.values(DataSensitivity),
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Sensitivity Override",
     description:
       "A sensitivity people set by hand, which the store is treated as instead of what the scans found.",
@@ -697,11 +729,17 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     /*
-     * Readable through a relation, as the store's kind, sensitivity and
-     * exposure are: a data security issue's page reads the kinds of data its
-     * store holds (DATA_SECURITY_ISSUE_VIEW_SELECT).
+     * Never readable through a relation, as the store's data categories and
+     * subject countries are not (#10238). A label read on a relation query
+     * skips every permission check (QueryPermission), and a Data Asset, a
+     * Data Alert and a Data Warehouse Job join their store for every
+     * member, viewer and Telemetry role who reads them: through any of them,
+     * which kinds of data each store holds - what only the Security roles
+     * read - was anyone's to read. A data security issue's page reads its
+     * store's data types from the store itself (StoreDataTypes.ts), by the
+     * store's own read permissions. The store's other security facts are
+     * read through a relation by the store's own readers alone (#10281).
      */
-    canReadOnRelationQuery: true,
     title: "Data Types",
     description:
       "The data types found in the store with at least Medium confidence.",
@@ -748,6 +786,7 @@ export default class DataStore extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Exposure",
     description:
       "Where the store sits relative to the internet and other organizations: Public, Other accounts, Internet reachable, Private or Unknown.",
@@ -812,6 +851,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Size (Bytes)",
     description:
       "How much data the store holds, from the metrics already collected.",
@@ -829,6 +869,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Objects",
     description:
       "How many objects, rows or documents the store holds, when known.",
@@ -846,6 +887,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Estimated Sensitive Records",
     description:
       "An estimate of how many records with sensitive data the store holds, from its samples.",
@@ -863,6 +905,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Last Activity At",
     description:
       "When the store was last read or written, when its metrics or traces say.",
@@ -878,6 +921,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Public By Design",
     description:
       "The store is meant to be public, such as a website's assets. Public access checks pass for it.",
@@ -896,6 +940,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Used For AI",
     description: "The store holds data used to train or ground an AI model.",
     defaultValue: false,
@@ -913,6 +958,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Scan Content",
     description:
       "Whether Data Security samples the store's content. Configuration checks run either way.",
@@ -954,6 +1000,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Scan From Probe ID",
     description:
       "A probe that scans the store's content from inside your network instead of OneUptime's workers.",
@@ -970,6 +1017,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.ShortText,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Probe Connection Variable",
     description:
       "For a database scanned from a probe: the environment variable on that probe that holds its connection string. The connection string itself never reaches OneUptime.",
@@ -1029,6 +1077,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.LongText,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Purpose",
     description:
       "Why the store holds personal data, for the GDPR record of processing.",
@@ -1045,6 +1094,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.ShortText,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Retention",
     description:
       "How long data is kept in the store, for the GDPR record of processing.",
@@ -1062,6 +1112,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Configuration Read At",
     description: "When the store's configuration and access were last read.",
   })
@@ -1077,6 +1128,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Content Scanned At",
     description: "When the store's content was last sampled.",
   })
@@ -1092,6 +1144,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Content Scan Status",
     description: "How the last content scan ended, or why it could not run.",
   })
@@ -1109,6 +1162,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Next Content Scan At",
     description: "When the store's content is next sampled.",
   })
@@ -1144,6 +1198,7 @@ export default class DataStore extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Watch Table Health",
     description:
       "Data Observability collects the store's tables every few minutes: their columns, row counts, sizes and when they last changed. Only the catalog is read, never a row.",
@@ -1163,6 +1218,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Table Health Collected At",
     description: "When Data Observability last collected the store's tables.",
   })
@@ -1178,6 +1234,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Table Health Attempted At",
     description:
       "When the last collection of the store's tables ended, whether it collected them or failed.",
@@ -1194,6 +1251,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Table Health Status",
     description:
       "How the last collection of the store's tables ended: Collected, or Failed.",
@@ -1226,6 +1284,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Tables Watched",
     description: "How many tables and views the last collection found.",
   })
@@ -1324,6 +1383,7 @@ export default class DataStore extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Findings",
     description: "How many data types were found at how many locations.",
     defaultValue: 0,
@@ -1342,6 +1402,7 @@ export default class DataStore extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Open Issues",
     description: "How many of the store's issues are open.",
     defaultValue: 0,
@@ -1361,6 +1422,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Highest Issue Severity",
     description: "The severity of the store's worst open issue.",
   })
@@ -1378,6 +1440,7 @@ export default class DataStore extends BaseModel {
     required: true,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Risk Score",
     description:
       "The risk score of the store's worst open issue, from 0 to 100.",
@@ -1416,6 +1479,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "First Seen At",
     description: "When OneUptime first found the store.",
   })
@@ -1431,6 +1495,7 @@ export default class DataStore extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Last Seen At",
     description: "When OneUptime last found the store.",
   })
@@ -1447,6 +1512,7 @@ export default class DataStore extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

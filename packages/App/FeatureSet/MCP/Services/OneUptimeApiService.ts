@@ -93,6 +93,12 @@ export default class OneUptimeApiService {
      * a client that signed in with OAuth. See Types/McpCredential.
      */
     credential: McpCredentialInput,
+    /*
+     * Handed the headers of the answer: a create says in one which fields
+     * it left out because only OneUptime writes them
+     * (Common/Types/API/FieldsLeftOut, #10136).
+     */
+    onAnswerHeaders?: ((headers: Headers) => void) | undefined,
   ): Promise<JSONValue> {
     /*
      * `arguments` is optional in the MCP CallToolRequest — normalize here so
@@ -123,6 +129,7 @@ export default class OneUptimeApiService {
         route,
         headers,
         data,
+        onAnswerHeaders,
       );
       MCPLogger.info(
         `Successfully executed ${operation} operation for ${tableName}`,
@@ -193,12 +200,19 @@ export default class OneUptimeApiService {
     route: Route,
     headers: Headers,
     data: JSONObject | undefined,
+    onAnswerHeaders?: ((headers: Headers) => void) | undefined,
   ): Promise<JSONValue> {
     let attempt: number = 0;
 
     for (;;) {
       try {
-        return await this.makeApiRequest(operation, route, headers, data);
+        return await this.makeApiRequest(
+          operation,
+          route,
+          headers,
+          data,
+          onAnswerHeaders,
+        );
       } catch (error) {
         const select: JSONObject | undefined = data?.["select"] as
           | JSONObject
@@ -238,6 +252,7 @@ export default class OneUptimeApiService {
     route: Route,
     headers: Headers,
     data: JSONObject | undefined,
+    onAnswerHeaders?: ((headers: Headers) => void) | undefined,
   ): Promise<JSONValue> {
     const url: URL = new URL(this.api.protocol, this.api.hostname, route);
     const baseOptions: { url: URL; headers: Headers } = { url, headers };
@@ -272,6 +287,8 @@ export default class OneUptimeApiService {
         response.data as JSONValue,
       );
     }
+
+    onAnswerHeaders?.(response.headers || {});
 
     return response.data;
   }

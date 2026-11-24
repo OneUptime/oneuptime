@@ -14,6 +14,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -580,6 +581,7 @@ export default class AlertEpisodeStateTimeline extends BaseModel {
     type: TableColumnType.Date,
     title: "Ends At",
     description: "When did this status change end?",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Date,

@@ -781,6 +781,24 @@ export const MOBILE_FAULT_RATE_MINIMUM_SESSIONS: number = 250;
 export const MOBILE_FAULT_RATE_WINDOW_SECONDS: number = 3600;
 
 /*
+ * The same two rates per install over a day (#9924): the share of the day's
+ * installs a crash, or a freeze, happened on (Installs With Exceptions,
+ * ExceptionMonitorEvaluation) - the user-perceived rates Android vitals
+ * judges and the Play Console shows, where one person's crash loop is one
+ * install that crashed, not dozens of crashed sessions. Read from the
+ * install the SDK names (app.installation.id, else device.id:
+ * MobileAppTelemetry), so an Android app and an iOS app on opentelemetry-
+ * swift both have it; an app that names none - a React Native app - never
+ * reads one, and is served by the session rates above.
+ *
+ * Judged only once the day holds MOBILE_FAULT_RATE_MINIMUM_INSTALLS
+ * installs: one install of 250 is 0.4%, under both rates, so a single crash
+ * never reads as a rate.
+ */
+export const MOBILE_FAULT_DAILY_RATE_WINDOW_SECONDS: number = 24 * 60 * 60;
+export const MOBILE_FAULT_RATE_MINIMUM_INSTALLS: number = 250;
+
+/*
  * The OneUptime CLI's command for exception groups (TelemetryException),
  * as its resources name it (Utils/DeveloperDocs/CliResources).
  */
@@ -813,11 +831,35 @@ export function getMobileFaultDebugCommand(data: {
   )}' --sort '{"lastSeenAt":"DESC"}' --fields exceptionType,message,occuranceCount,lastSeenInRelease,lastSeenAt`;
 }
 
+// What a rate is a share of: the hour's sessions, or the day's installs.
+interface MobileFaultRateBase {
+  share: CheckOn;
+  volume: CheckOn;
+  minimum: number;
+  windowSeconds: number;
+}
+
+const PER_SESSION_HOURLY: MobileFaultRateBase = {
+  share: CheckOn.SessionsWithExceptionsPercent,
+  volume: CheckOn.SessionCount,
+  minimum: MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+  windowSeconds: MOBILE_FAULT_RATE_WINDOW_SECONDS,
+};
+
+const PER_INSTALL_DAILY: MobileFaultRateBase = {
+  share: CheckOn.InstallsWithExceptionsPercent,
+  volume: CheckOn.InstallCount,
+  minimum: MOBILE_FAULT_RATE_MINIMUM_INSTALLS,
+  windowSeconds: MOBILE_FAULT_DAILY_RATE_WINDOW_SECONDS,
+};
+
 interface MobileFaultRateTemplateData {
   id: string;
   name: string;
   description: string;
   filter: MobileFaultTemplateData["filter"];
+  // The hour's sessions unless said otherwise.
+  base?: MobileFaultRateBase | undefined;
   ratePercent: number;
   unhealthyName: string;
   unhealthyDescription: string;
@@ -833,6 +875,8 @@ interface MobileFaultRateTemplateData {
 function buildMobileFaultRateTemplate(
   data: MobileFaultRateTemplateData,
 ): RumAlertTemplate {
+  const base: MobileFaultRateBase = data.base || PER_SESSION_HOURLY;
+
   return {
     id: data.id,
     name: data.name,
@@ -855,7 +899,7 @@ function buildMobileFaultRateTemplate(
         step: step,
         args: args,
         filter: data.filter,
-        lastXSecondsOfExceptions: MOBILE_FAULT_RATE_WINDOW_SECONDS,
+        lastXSecondsOfExceptions: base.windowSeconds,
       });
 
       const command: string = getMobileFaultDebugCommand({
@@ -865,7 +909,7 @@ function buildMobileFaultRateTemplate(
 
       const criteria: MonitorCriteria = buildCriteria({
         args: args,
-        checkOn: CheckOn.SessionsWithExceptionsPercent,
+        checkOn: base.share,
         unhealthyFilterType: FilterType.GreaterThan,
         healthyFilterType: FilterType.LessThanOrEqualTo,
         threshold: data.ratePercent,
@@ -877,25 +921,25 @@ function buildMobileFaultRateTemplate(
       });
 
       /*
-       * The rate is judged only on enough sessions: both filters to alert,
-       * either to be healthy - a share at or under the rate, or too few
-       * sessions to read one.
+       * The rate is judged only on enough sessions (or installs): both
+       * filters to alert, either to be healthy - a share at or under the
+       * rate, or too few to read one.
        */
       const [unhealthy, healthy]: Array<MonitorCriteriaInstance> =
         criteria.data!.monitorCriteriaInstanceArray;
 
       unhealthy!.data!.filterCondition = FilterCondition.All;
       unhealthy!.data!.filters.push({
-        checkOn: CheckOn.SessionCount,
+        checkOn: base.volume,
         filterType: FilterType.GreaterThanOrEqualTo,
-        value: MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+        value: base.minimum,
       });
 
       healthy!.data!.filterCondition = FilterCondition.Any;
       healthy!.data!.filters.push({
-        checkOn: CheckOn.SessionCount,
+        checkOn: base.volume,
         filterType: FilterType.LessThan,
-        value: MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
+        value: base.minimum,
       });
 
       step.setMonitorCriteria(criteria);
@@ -938,6 +982,44 @@ const appAnrRateTemplate: RumAlertTemplate = buildMobileFaultRateTemplate({
   commandLead:
     "To list the app's open ANRs and hangs, the most recently seen first, with the release each was last seen in, run:",
   healthySentence: `stops responding in ${MOBILE_ANR_RATE_PERCENT}% of its sessions or fewer.`,
+});
+
+const appDailyCrashRateTemplate: RumAlertTemplate =
+  buildMobileFaultRateTemplate({
+    id: "rum-app-daily-crash-rate",
+    name: "Daily Crash Rate",
+    description: `Alert when more than ${MOBILE_CRASH_RATE_PERCENT}% of the app's installs in a day crash: the user-perceived crash rate Android vitals calls bad behaviour and the Play Console shows. Judged from ${MOBILE_FAULT_RATE_MINIMUM_INSTALLS} installs a day, so one crash alone never trips it. Reads the installs OpenTelemetry Android and opentelemetry-swift name; App Crash Rate reads an app's sessions instead.`,
+    filter: {
+      unhandledOnly: true,
+      excludedExceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+    },
+    base: PER_INSTALL_DAILY,
+    ratePercent: MOBILE_CRASH_RATE_PERCENT,
+    unhealthyName: `Daily crash rate above ${MOBILE_CRASH_RATE_PERCENT}%`,
+    unhealthyDescription: `Triggers when more than ${MOBILE_CRASH_RATE_PERCENT}% of at least ${MOBILE_FAULT_RATE_MINIMUM_INSTALLS} installs in a day crashed.`,
+    incidentHeadline: "App daily crash rate",
+    incidentLead: `More than ${MOBILE_CRASH_RATE_PERCENT}% of the app's installs crashed in the past day, the user-perceived crash rate Android vitals calls bad behaviour.`,
+    commandLead:
+      "To list the app's open crashes, the most recently seen first, with the release each was last seen in, run:",
+    healthySentence: `crashes on ${MOBILE_CRASH_RATE_PERCENT}% of its installs a day or fewer.`,
+  });
+
+const appDailyAnrRateTemplate: RumAlertTemplate = buildMobileFaultRateTemplate({
+  id: "rum-app-daily-anr-rate",
+  name: "Daily ANR Rate",
+  description: `Alert when more than ${MOBILE_ANR_RATE_PERCENT}% of the app's installs in a day have an ANR or a hang: the user-perceived ANR rate Android vitals calls bad behaviour and the Play Console shows. Judged from ${MOBILE_FAULT_RATE_MINIMUM_INSTALLS} installs a day, so one alone never trips it. Reads the installs OpenTelemetry Android and opentelemetry-swift name; App ANR Rate reads an app's sessions instead.`,
+  filter: {
+    exceptionTypes: [...APP_NOT_RESPONDING_EXCEPTION_TYPES],
+  },
+  base: PER_INSTALL_DAILY,
+  ratePercent: MOBILE_ANR_RATE_PERCENT,
+  unhealthyName: `Daily ANR rate above ${MOBILE_ANR_RATE_PERCENT}%`,
+  unhealthyDescription: `Triggers when more than ${MOBILE_ANR_RATE_PERCENT}% of at least ${MOBILE_FAULT_RATE_MINIMUM_INSTALLS} installs in a day had an ANR or a hang.`,
+  incidentHeadline: "App daily ANR rate",
+  incidentLead: `More than ${MOBILE_ANR_RATE_PERCENT}% of the app's installs had an ANR or a hang in the past day, the user-perceived ANR rate Android vitals calls bad behaviour.`,
+  commandLead:
+    "To list the app's open ANRs and hangs, the most recently seen first, with the release each was last seen in, run:",
+  healthySentence: `stops responding on ${MOBILE_ANR_RATE_PERCENT}% of its installs a day or fewer.`,
 });
 
 const SLOW_COLD_START_MS: number = EXCESSIVE_APP_START_MS[APP_START_TYPE_COLD];
@@ -1095,7 +1177,7 @@ const deviceStoppedReportingTemplate: RumAlertTemplate = {
   id: "rum-device-stopped-reporting",
   name: "Device Stopped Reporting",
   description:
-    "Alert when a device sends no spans for an hour after sending some in the past week, one alert per device: a kiosk or terminal of a fleet gone quiet while the others report. Reads the app.installation.id OpenTelemetry Android sets; when every device goes quiet at once, App Stopped Reporting alerts instead.",
+    "Alert when a device sends no spans for an hour after sending some in the past week, one alert per device: a kiosk or terminal of a fleet gone quiet while the others report. Reads the app.installation.id OpenTelemetry Android sets, and names each device by the host.name it sent; when every device goes quiet at once, App Stopped Reporting alerts instead.",
   category: "Availability",
   severity: "Warning",
   monitorType: MonitorType.Traces,
@@ -1133,7 +1215,7 @@ const deviceStoppedReportingTemplate: RumAlertTemplate = {
           "Triggers when a device that sent spans in the past week sends none over the past hour, once for each such device.",
         incidentTitle: `[RUM] Device stopped reporting - ${args.monitorName}`,
         incidentDescription:
-          "One device of the app sent no spans for an hour, though it sent some in the past week, while other devices still report. Check whether it is on, online and still running the app. Its last spans name its model, and its host.name when the fleet names its devices. This resolves on its own once it reports again.",
+          "One device of the app sent no spans for an hour, though it sent some in the past week, while other devices still report. Check whether it is on, online and still running the app. It is named by the host.name its last spans carried, when the fleet names its devices, and by its model. This resolves on its own once it reports again.",
         healthyDescription: `Every device of ${args.monitorName} that reported in the past week sent spans in the past hour.`,
       }),
     );
@@ -1540,6 +1622,8 @@ const ALL_RUM_ALERT_TEMPLATES: Array<RumAlertTemplate> = [
   appNotRespondingTemplate,
   appCrashRateTemplate,
   appAnrRateTemplate,
+  appDailyCrashRateTemplate,
+  appDailyAnrRateTemplate,
   failedUserOperationsTemplate,
   unhandledExceptionsTemplate,
   slowColdStartTemplate,
@@ -1618,8 +1702,9 @@ function isClientMet(data: {
  *
  * Only the templates for its kind of app (#9589): a browser app's Web Vitals
  * and Unhandled Browser Exceptions, or a mobile app's App Crashes, App Not
- * Responding (ANR), App Crash Rate, App ANR Rate, Slow Cold Start, Frozen
- * Frames, App Stopped Reporting and Device Stopped Reporting, and the
+ * Responding (ANR), App Crash Rate, App ANR Rate, Daily Crash Rate, Daily
+ * ANR Rate, Slow Cold Start, Frozen Frames, App Stopped Reporting and
+ * Device Stopped Reporting, and the
  * templates every kind can use. An application of no known kind is
  * offered the browser set.
  *

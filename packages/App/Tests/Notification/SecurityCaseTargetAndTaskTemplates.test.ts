@@ -209,7 +209,7 @@ describe("the email when a security case is about to miss, or misses, a response
       "Case: Password spray against Okta from 203.0.113.47",
       "Target: Acknowledge within 15 minutes",
       // 12:03 UTC is 1:03 PM in London on Oct 14 (summer time).
-      "Due: Oct 14 2026, 01:03 PM BST",
+      "Due: Oct 14, 2026, 1:03 PM BST",
       "Priority: Critical",
       "Status: New",
       "Assigned To: Maya Chen",

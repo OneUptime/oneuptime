@@ -2,6 +2,7 @@ import {
   USER_OVERRIDE_TEAM_PICKER_EMPTY_TEXT,
   UserOverrideFormTeamLimit,
   getUserOverrideFormFields,
+  getUserOverrideFormTeamLimitKey,
   getUserOverrideTeamPersonError,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/UserOverrides/UserOverrideForm";
 import OnCallDutyPolicyUserOverride from "../../../Models/DatabaseModels/OnCallDutyPolicyUserOverride";
@@ -249,5 +250,70 @@ describe("the server's refusal, said under the field it is about", () => {
     expect(UserOverrideTeamAccess.isCoverRefusal("Something else.")).toBe(
       false,
     );
+  });
+});
+
+/*
+ * What Add, Edit User Override and Skip until... rebuild the form's fields
+ * for as the team limit becomes known (getUserOverrideFormTeamLimitKey):
+ * one key, built the same way for both dialogs, that changes whenever the
+ * fields would read something new - and that holds no dash of its own for
+ * members not known yet (HandWrittenEmptyValueGuard), as no one reads it.
+ */
+describe("the key the dialogs rebuild the form for", () => {
+  test("is empty with no team limit", () => {
+    expect(getUserOverrideFormTeamLimitKey(undefined)).toBe("");
+  });
+
+  test("changes once the teams' members are known, and with how many there are", () => {
+    const unknown: string = getUserOverrideFormTeamLimitKey({
+      ...LIMIT,
+      memberIds: null,
+    });
+    const known: string = getUserOverrideFormTeamLimitKey(LIMIT);
+    const more: string = getUserOverrideFormTeamLimitKey({
+      ...LIMIT,
+      memberIds: new Set<string>([ALEX, SAM, PAT]),
+    });
+
+    expect(new Set<string>([unknown, known, more]).size).toBe(3);
+  });
+
+  test("changes when the line above the lists arrives, and when the teams change", () => {
+    const keys: Array<string> = [
+      getUserOverrideFormTeamLimitKey({ ...LIMIT, hint: null }),
+      getUserOverrideFormTeamLimitKey(LIMIT),
+      getUserOverrideFormTeamLimitKey({
+        ...LIMIT,
+        teamIds: [PAYMENTS, "9733f000-0000-4000-8000-0000000000f2"],
+      }),
+    ];
+
+    expect(new Set<string>(keys).size).toBe(3);
+  });
+
+  test("is the same for the same limit, built afresh", () => {
+    expect(
+      getUserOverrideFormTeamLimitKey({
+        teamIds: [PAYMENTS],
+        hint: HINT,
+        memberIds: new Set<string>([SAM, ALEX]),
+      }),
+    ).toBe(getUserOverrideFormTeamLimitKey(LIMIT));
+  });
+
+  test("writes members not known yet as null, never as a dash", () => {
+    const key: string = getUserOverrideFormTeamLimitKey({
+      teamIds: [PAYMENTS],
+      hint: null,
+      memberIds: null,
+    });
+
+    expect(JSON.parse(key)).toEqual({
+      teamIds: [PAYMENTS],
+      hint: null,
+      memberCount: null,
+    });
+    expect(key).not.toMatch(/[–—]|"-"/);
   });
 });

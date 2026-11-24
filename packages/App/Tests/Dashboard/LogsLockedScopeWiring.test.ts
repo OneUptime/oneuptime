@@ -872,3 +872,84 @@ describe("a Kubernetes-style entity scope never becomes an entity-key chip", () 
     ]);
   });
 });
+
+/*
+ * The Analytics chart reads the rows the volume histogram reads (#7716):
+ * the same inputs, through the same builder, without the window. It used to
+ * compile only some chips itself, so the typed search, an attribute or
+ * message chip and a host's or a pod's own scope narrowed the list and the
+ * histogram while the chart under them read every log.
+ */
+describe("the Analytics chart reads what the histogram reads", () => {
+  const INPUTS: Array<string> = [
+    "serviceIds: serviceIdStrings",
+    "traceIds: traceIdStrings",
+    "spanIds: spanIdStrings",
+    "attributes: logQueryAttributes",
+    "entityKeys: logQueryEntityKeys",
+    "appliedFacetFilters: appliedFacetFilters",
+    "typedFilter: typedAggregateFilter",
+  ];
+
+  test("the viewer builds the chart's scope from the histogram's inputs", () => {
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const analyticsScope: JSONObject = useMemo(",
+      "(",
+      ")",
+    );
+    const scope: string = blockAfter(
+      memo,
+      "buildLogsAggregateScope({",
+      "{",
+      "}",
+    );
+    const histogram: string = blockAfter(
+      LOGS_VIEWER,
+      "buildLogsHistogramRequest({",
+      "{",
+      "}",
+    );
+
+    for (const input of INPUTS) {
+      expect(scope).toContain(input);
+      expect(histogram).toContain(input);
+    }
+
+    // The page's session scope, set after the builder as the histogram's is.
+    expect(memo).toContain('scope["sessionIds"] = sessionIdStrings;');
+    expect(importedNames(LOGS_VIEWER, "./LogsHistogramRequest")).toContain(
+      "buildLogsAggregateScope",
+    );
+  });
+
+  test("it is rebuilt when an input changes, and keyed by value, not by the list query", () => {
+    const memo: string = blockAfter(
+      LOGS_VIEWER,
+      "const analyticsScope: JSONObject = useMemo(",
+      "(",
+      ")",
+    );
+    const deps: string = dependencyList(memo);
+
+    for (const dependency of [
+      "serviceIdStrings",
+      "traceIdStrings",
+      "spanIdStrings",
+      "sessionIdStrings",
+      "appliedFacetFilters",
+      "logQueryAttributes",
+      "logQueryEntityKeys",
+      "typedAggregateFilter",
+    ]) {
+      expect(deps).toContain(dependency);
+    }
+
+    // Not the whole query object, which is rebuilt on every pass.
+    expect(deps).not.toContain("filterOptions");
+  });
+
+  test("the chart is handed it", () => {
+    expect(LOGS_VIEWER).toContain("analyticsScope={analyticsScope}");
+  });
+});

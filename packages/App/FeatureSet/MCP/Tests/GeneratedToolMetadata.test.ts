@@ -5,7 +5,8 @@
  * - every tool carries a title and operation-appropriate annotations
  *   (readOnlyHint / destructiveHint / openWorldHint / idempotentHint): every
  *   write is destructive, and a write is open-world when what it changes is
- *   published - an incident's is, a label's is not
+ *   published - an incident's is, a label's is not - or when it points
+ *   OneUptime at an address outside it, as making or changing a monitor does
  * - a resource with no field to change gets no update tool
  * - database list/get tools expose a `select` array parameter
  * - the list tool's sort schema takes any field, ASC or DESC
@@ -24,6 +25,7 @@ import {
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import Label from "Common/Models/DatabaseModels/Label";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import {
@@ -211,6 +213,36 @@ describe("Generated tool metadata", () => {
           idempotentHint: true,
         });
       }
+    });
+  });
+
+  describe("database model tools for a resource that points OneUptime outside it (Monitor)", () => {
+    const tools: McpToolInfo[] = generateToolsForDatabaseModel(
+      new Monitor(),
+      Monitor,
+    ).tools;
+
+    it("marks making and changing one open-world: a monitor checks the address it is given", () => {
+      expect(findTool(tools, "create_monitor").annotations).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+      });
+      expect(findTool(tools, "update_monitor").annotations).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: true,
+        idempotentHint: true,
+      });
+    });
+
+    it("leaves deleting one closed-world: that reaches nothing outside", () => {
+      expect(findTool(tools, "delete_monitor").annotations).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+        idempotentHint: true,
+      });
     });
   });
 

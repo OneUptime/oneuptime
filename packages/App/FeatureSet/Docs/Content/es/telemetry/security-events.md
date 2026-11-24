@@ -51,7 +51,8 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Playbooks** | Playbooks | Pasos que se ejecutan sobre los casos, por sí solos o a mano |
 | **Aprobaciones** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones** | Playbooks | Lo que hizo cada playbook, paso a paso |
-| **Entidades protegidas** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
+| **Lista de bloqueo** | Playbooks | Las direcciones que bloquea tu proyecto, hasta cuándo y dónde se aplica cada bloqueo |
+| **Entidades protegidas** | Playbooks | Los usuarios, hosts y direcciones a los que ningún playbook aplica contención y ningún bloqueo afecta |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
@@ -72,8 +73,8 @@ Los datos de seguridad solo los leen los roles Propietario del proyecto y Admini
 | Rol | Qué puede hacer |
 | --- | --- |
 | Administrador de seguridad | Todo: eventos, casos, playbooks, reglas de detección, feeds de inteligencia de amenazas y conexiones |
-| Miembro de seguridad | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
-| Visor de seguridad | Leer eventos, casos, playbooks, reglas, feeds, indicadores y conexiones |
+| Miembro de seguridad | Leer eventos e inteligencia de amenazas, gestionar casos, ejecutar playbooks y aprobar sus pasos, bloquear direcciones, y crear, cambiar y eliminar reglas de detección y feeds. No puede configurar playbooks ni conexiones, ni eliminar datos de seguridad. |
+| Visor de seguridad | Leer eventos, casos, playbooks, la lista de bloqueo, reglas, feeds, indicadores y conexiones |
 
 ## Enviar eventos de seguridad
 
@@ -191,8 +192,9 @@ Cada tipo llega a OneUptime como registros normales:
 | Inicios de sesión SSH, sudo | El journal o el registro de autenticación de una máquina Linux, con el [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Eventos de Windows | El receptor `windowseventlog` del recolector en la máquina, o un reenviador que escribe cada evento como JSON, como NXLog o Winlogbeat. Un [host](/docs/telemetry/hosts) añadido a OneUptime también lee Sysmon, Microsoft Defender y PowerShell donde los tiene |
 | AWS CloudTrail | Un trail entregado a CloudWatch Logs, leído por el receptor `awscloudwatch` del recolector, o, para una cuenta conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
-| Registros de auditoría de Google Cloud | Un sink de registros hacia Pub/Sub, leído por el receptor `googlecloudpubsub` del recolector con `encoding: raw_text`, o, para un proyecto conectado en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
-| Registros de actividad de Azure y de Entra ID | Una configuración de diagnóstico que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw`, o, para el registro de actividad de una suscripción conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
+| Registros de auditoría de Google Cloud | Un sink de registros hacia Pub/Sub, leído por el receptor `googlecloudpubsub` del recolector con `encoding: raw_text`, o, para un proyecto conectado en **Nube**, su [transmisión](/docs/telemetry/cloud-streaming-google-cloud) o [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
+| Registros de actividad de Azure y de Entra ID | Una configuración de diagnóstico que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw`, o al centro de eventos de la [transmisión](/docs/telemetry/cloud-streaming-azure) de una suscripción conectada, o, para el registro de actividad de una suscripción conectada en **Nube**, [Registros de auditoría de la nube](#leer-los-registros-de-auditoría-de-sus-cuentas-en-la-nube) |
+| Registros de Azure Key Vault, Storage y SQL | La configuración de diagnóstico de un recurso, que transmite a un Event Hub, leída por el receptor `azureeventhub` del recolector con `format: raw`, o las configuraciones de diagnóstico de la [transmisión](/docs/telemetry/cloud-streaming-azure) de una suscripción conectada, cuando transmite registros. Consulte [Registros de auditoría propios de los recursos de Azure](#registros-de-auditoría-propios-de-los-recursos-de-azure) |
 | Registro de auditoría de OpenStack | Las notificaciones y el filtro de auditoría de una nube, enviados a sus registros con `driver = log` y leídos por el [perfil de registros](/docs/telemetry/openstack#quién-hizo-qué) del agente |
 | CEF, LEEF | El syslog del producto, retransmitido por [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | El propio syslog del firewall, retransmitido por [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ En **Tus registros**, cada tipo indica cuándo se encontró por última vez, y *
 
 Una amenaza que un producto de seguridad escribe en sus registros, como un hallazgo CEF o LEEF o una amenaza de Palo Alto Networks, FortiGate o Cisco ASA, abre un [caso](/docs/telemetry/security-cases) como lo hace la alerta de un producto conectado, y suma al riesgo del usuario, host o dirección que nombra. **Abrir casos a partir de**, en **Tus registros**, indica a partir de qué gravedad: **Alta y superior** salvo que elija otra, o **Nunca**. Los inicios de sesión y las conexiones bloqueadas del producto siguen siendo eventos, para que sus reglas los lean.
 
-Un registro que llega a OneUptime por dos vías se guarda una sola vez: un inicio de sesión de Microsoft Entra ID que lee su conexión y que Azure también exporta a sus registros, o un registro de CloudTrail en sus registros y en el registro de auditoría de una cuenta de AWS conectada.
+Un registro que llega a OneUptime por dos vías se guarda una sola vez: un inicio de sesión de Microsoft Entra ID que lee su conexión y que Azure también exporta a sus registros, un registro de CloudTrail en sus registros y en el registro de auditoría de una cuenta de AWS conectada, o un registro de auditoría que envía la transmisión de una cuenta en la nube y que **Registros de auditoría de la nube** también lee.
+
+#### Registros de auditoría propios de los recursos de Azure
+
+Un Key Vault, una cuenta de almacenamiento y una base de datos de Azure SQL llevan cada uno un registro de auditoría propio, que recoge cada solicitud. Solo lo que examina un equipo de seguridad se convierte en evento de seguridad:
+
+| Recurso | Qué se convierte en evento de seguridad |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Una solicitud que el almacén rechazó; un secreto entregado; un secreto, una clave, un certificado o el propio almacén eliminado, purgado o respaldado; su directiva de acceso cambiada; y un cambio en lo que contiene. No la respuesta 401 que recibe todo cliente de un SDK de Azure en su primera llamada, hecha sin token para conocer el inquilino: Key Vault la registra bajo su operación `Authentication` |
+| Cuenta de almacenamiento (`StorageRead`, `StorageWrite`, `StorageDelete`) | Una solicitud rechazada por falta de permiso; una atendida sin ninguna credencial, salvo las páginas de un sitio web estático y una solicitud preliminar de CORS; un cambio en la lista de acceso de un contenedor, un recurso compartido, una cola o una tabla, o la eliminación de uno de ellos entero; y una escritura o eliminación firmada con una firma de acceso compartido (SAS). No una lectura correcta, ni siquiera una con SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Un inicio de sesión fallido; un inicio de sesión en una conexión nueva, no la reutilización de una conexión de un grupo de conexiones; un permiso concedido, denegado o revocado, un cambio en los miembros de un rol o en una contraseña, una suplantación, y un login, un usuario o un rol creado, modificado o eliminado; y una acción cuya comprobación de permisos falló. No un lote, el grueso de una auditoría |
+
+Las lecturas correctas de una cuenta de almacenamiento son la mayor parte de lo que registra: una SAS es la forma en que la mayoría de las aplicaciones entregan archivos a los navegadores. Se quedan en los registros, enteras, en la pestaña **Registros** de la cuenta: busque ahí `"type":"SAS"` para ver qué leyó una firma de acceso compartido. Cada evento nombra su recurso por su ID, y el de un servicio de almacenamiento también su cuenta, así que aparece en la página **Eventos de seguridad** de ese recurso, y un registro que llega dos veces se guarda una sola vez.
 
 ### Leer los registros de auditoría de sus cuentas en la nube
 
@@ -471,9 +485,9 @@ detection:
 | **Ejecutar en tiempo real** | Desactivado en una regla nueva. Activado, la regla comprueba cada evento en cuanto llega en lugar de en cada intervalo; consulta [Reglas en tiempo real](#reglas-en-tiempo-real). |
 | **Campo de agrupación** | Opcional. Las coincidencias que comparten el valor de este campo, como `principalHost`, se cuentan, alertan y deduplican juntas: una alerta por host en lugar de cientos. |
 | **Campo de recuento distinto** | Opcional. Cuenta los valores distintos de este campo en lugar de los eventos coincidentes. Los valores vacíos no cuentan. |
-| **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ejecución, o de una ventana en tiempo real: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
+| **Umbral de número de coincidencias** | Un grupo se dispara solo cuando su recuento llega a este número dentro de una ventana del intervalo de la regla: de 1 a 1000000, y 1 se dispara con cualquier coincidencia. |
 
-La agrupación y el recuento distinto aceptan los mismos nombres de campo que la regla. Con ellos, el umbral dice «tantos, de lo mismo, en una ejecución», sin un monitor encima:
+La agrupación y el recuento distinto aceptan los mismos nombres de campo que la regla. Con ellos, el umbral dice «tantos, de lo mismo, en una ventana», sin un monitor encima:
 
 | Objetivo | Campo de agrupación | Campo de recuento distinto | Umbral |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ La agrupación y el recuento distinto aceptan los mismos nombres de campo que la
 
 ### Cuándo se ejecuta una regla
 
-OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su intervalo desde su última ejecución. Cada ejecución lee los eventos cuya hora de evento cae entre la ejecución anterior y hace dos minutos, y después avanza. Esos dos minutos dan margen a los eventos que aún están en camino, como una línea de registro leída un minuto después de escribirse:
+OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su intervalo desde su última ejecución. Cada ejecución lee los eventos que llegaron a OneUptime entre la ejecución anterior y hace dos minutos, ocurrieran cuando ocurrieran, y después avanza. Esos dos minutos dan margen a los eventos que aún se están escribiendo:
 
-- Las ventanas van una tras otra, no se deslizan. Con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 pueden caer en ejecuciones distintas y se cuentan por separado, así que deja margen al elegir un umbral.
+- Una regla que cuenta y una correlación cuentan en ventanas tan largas como el intervalo, seguidas según el reloj: con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 caen en ventanas distintas y se cuentan por separado, así que deja margen al elegir un umbral.
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
-- Un evento que llega con más de dos minutos de retraso, cuando una ejecución ya ha cubierto su hora, se guarda y se puede buscar, pero esa regla nunca lo lee.
+- Un evento que llega tarde lo lee igualmente, una vez, la siguiente ejecución, y cuenta en la ventana en la que ocurrió: un grupo se dispara cuando su ventana alcanza el recuento, y como mucho una vez por ventana. Uno que llega más de un día después de ocurrir se guarda y se puede buscar, pero las ejecuciones de la regla no lo leen; **Ejecutar sobre eventos pasados** sí.
 - Cada grupo que alcanza el umbral se convierte en un Detection Finding, hasta 10.000 por ejecución. Se abren alertas, incidentes y casos para los 100 con los recuentos más altos; el resto comparte un caso sobre la regla, y el **Último error** de la regla dice cuántos grupos coincidieron.
 
 ### Reglas en tiempo real

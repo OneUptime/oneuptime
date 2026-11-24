@@ -10,6 +10,7 @@ import {
   TableColumnMetadata,
 } from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import { JSONValue } from "../../Types/JSON";
 import Permission from "../../Types/Permission";
 import {
@@ -41,7 +42,8 @@ import {
  *   - the resource is `oneuptime_<singular name in snake_case>`, and exists
  *     when the model is documented, has an API, and can be created over it;
  *   - a column is an attribute when it is in the create or update schema:
- *     documented, not computed, not a relation object, and with create (or
+ *     documented, not computed, not one only OneUptime keeps
+ *     (ServerOwned.Always), not a relation object, and with create (or
  *     update) permissions;
  *   - its Terraform type follows its column type (strings, numbers, booleans,
  *     RFC3339 timestamps, sets of ids, JSON strings, typed monitor steps);
@@ -106,11 +108,35 @@ export interface TerraformAttributeDescriptor {
   secretKind?: TerraformSecretKind | undefined;
   /*
    * Set by the server as the resource runs (its current status, when it was
-   * last seen, when its postmortem was posted). Writing the value it has now
+   * last seen, when its postmortem was posted), or changed by it too (the
+   * labels a rule adds, ServerOwned.Shared). Writing the value it has now
    * into a configuration would make Terraform put it back every time the
    * server moves it on, so generated configuration leaves these out.
    */
   isServerManaged: boolean;
+  /*
+   * A value people set and OneUptime changes too (ServerOwned.Shared): the
+   * labels a label rule adds, an exception OneUptime resolves. Left out of a
+   * configuration it keeps OneUptime's value, even with a default; written
+   * in one, Terraform holds the record to it.
+   */
+  isChangedByOneUptimeToo: boolean;
+  /*
+   * Of those, a list of related records people and OneUptime both add to
+   * (ServerOwned.Shared on an EntityArray: a record's labels, an incident's
+   * on-call policies). The Terraform provider holds a configuration's list
+   * to the entries it declares (its entries.go, #10134): an entry OneUptime
+   * adds stays, so a configuration written from a record can list every
+   * entry the record has without taking off one a rule adds later.
+   */
+  isHeldEntryByEntry: boolean;
+  /*
+   * A value a create may give and OneUptime keeps from then on
+   * (ServerOwned.AfterCreate): the status a monitor starts in. The provider
+   * sends it to create the record only, and never replaces the record for
+   * it, though no update writes it.
+   */
+  startsAtCreate: boolean;
   /*
    * The model the column points at: for a set of ids (`labels`), the model
    * of its records; for an id (`incidentSeverityId`), the model of the
@@ -124,8 +150,9 @@ export interface TerraformAttributeDescriptor {
   readPermissions: Array<Permission>;
   /*
    * Named like one of Terraform's own meta-arguments (`provider`, `count`),
-   * which a resource block reads as the meta-argument: the attribute exists
-   * in the provider but cannot be set from a configuration.
+   * which a resource block reads as the meta-argument: the provider exposes
+   * the attribute with `_value` added instead (provider_value), and
+   * configuration sets it by that name (getTerraformProviderAttributeName).
    */
   isReservedName: boolean;
   /*
@@ -153,11 +180,22 @@ export interface TerraformPersonEmail {
  * requires is given by user ID or by email address, so neither attribute
  * is required on its own - the API reference still badges the column
  * Required (getColumnsRequiredOnCreate), as the API requires it.
+ *
+ * A permission (a team's, an API key's, a custom role's) is required by the
+ * API too, and optional in the provider all the same: the spec documented
+ * it as an object that a create could leave out until #10300, so the
+ * provider has always had it optional, and a configuration or a Crossplane
+ * manifest that takes over a row by its ID without saying its permission
+ * keeps the row's (OpenAPIParser.generateResourceSchema).
  */
 export function isRequiredInTerraform(
   descriptor: TerraformAttributeDescriptor,
 ): boolean {
-  return descriptor.isRequired && !descriptor.personEmail;
+  return (
+    descriptor.isRequired &&
+    !descriptor.personEmail &&
+    descriptor.columnType !== TableColumnType.Permission
+  );
 }
 
 /*
@@ -173,6 +211,20 @@ export const TERRAFORM_RESOURCE_META_ARGUMENTS: ReadonlyArray<string> = [
   "provisioner",
   "connection",
 ];
+
+/*
+ * The name an attribute has in the provider: one named like a meta-argument
+ * is exposed with `_value` added (the generator's
+ * StringUtils.toTerraformAttributeName), so a cloud account's `provider` is
+ * set as `provider_value = "aws"`. Every other attribute keeps its name.
+ */
+export function getTerraformProviderAttributeName(
+  attributeName: string,
+): string {
+  return TERRAFORM_RESOURCE_META_ARGUMENTS.includes(attributeName)
+    ? `${attributeName}_value`
+    : attributeName;
+}
 
 // Never part of a create or update schema (ModelSchema.getCreateModelSchema).
 const AUTO_GENERATED_COLUMNS: ReadonlyArray<string> = [
@@ -208,43 +260,22 @@ const SERVER_MANAGED_COLUMN_PATTERNS: ReadonlyArray<RegExp> = [
 ];
 
 /*
- * Server-managed columns no name rule catches, by table. Add one here when a
- * new model has a field the server keeps moving: a column listed here is
- * still an attribute of the resource, it is only left out of the
- * configuration the dashboard writes. A column nobody may write is no
- * attribute at all and needs no entry: an incident's or alert's episode
- * (incidentEpisodeId, alertEpisodeId), which OneUptime sets from the
- * episode's members, is one, and so is an Incoming Request monitor's latest
- * request (incomingMonitorRequest), which the server writes from each
- * request the monitor receives.
+ * Columns the dashboard leaves out of the configuration it writes though no
+ * name rule catches them and OneUptime does not keep them, by table. A
+ * column OneUptime keeps says so on its model instead
+ * (TableColumnMetadata.serverOwned, #9985): one only OneUptime writes - a
+ * telemetry monitor's evaluation times, an episode's number, what
+ * discovery named a device - is no attribute at all, and one a create may
+ * start - a monitor's status - is server-managed by that alone. A column
+ * nobody may write is no attribute either and needs no entry: an incident's
+ * or alert's episode (incidentEpisodeId, alertEpisodeId), which OneUptime
+ * sets from the episode's members, is one.
  */
 export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  Monitor: [
-    "incomingRequestMonitorHeartbeatCheckedAt",
-    "telemetryMonitorNextMonitorAt",
-    "telemetryMonitorLastMonitorAt",
-    "serverMonitorRequestReceivedAt",
-    "serverMonitorResponse",
-  ],
   Incident: ["postmortemPostedAt"],
   Alert: ["monitorStatusWhenThisAlertWasCreatedId"],
-  IncidentEpisode: ["resolvedAt", "episodeNumber", "groupingKey"],
-  AlertEpisode: [
-    "resolvedAt",
-    "episodeNumber",
-    "groupingKey",
-    "alertGroupingRuleId",
-  ],
-  StatusPage: ["sendNextReportBy"],
-  InventoryItem: ["firstSeenAt"],
-  NetworkDevice: [
-    "isMacAddressLearned",
-    "discoveredName",
-    "discoveredNameSource",
-    "discoveredDetails",
-  ],
 };
 
 /*
@@ -401,7 +432,6 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.Array:
       return TerraformValueKind.StringSet;
     case TableColumnType.JSON:
-    case TableColumnType.Permission:
       return TerraformValueKind.Json;
     case TableColumnType.MonitorSteps:
       return TerraformValueKind.MonitorSteps;
@@ -409,6 +439,11 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.Buffer:
     case TableColumnType.Entity:
       return TerraformValueKind.Unsupported;
+    /*
+     * Text, and the values written as text: a permission's key, such as
+     * IncidentMember, among them, as the spec documents it since #10300
+     * (ModelSchema.getPermissionOpenApi).
+     */
     case TableColumnType.ObjectID:
     case TableColumnType.ShortText:
     case TableColumnType.LongText:
@@ -435,6 +470,7 @@ function getKindForColumn(column: TableColumnMetadata): TerraformValueKind {
     case TableColumnType.CustomFieldType:
     case TableColumnType.HashedString:
     case TableColumnType.Password:
+    case TableColumnType.Permission:
       return TerraformValueKind.String;
     default:
       return TerraformValueKind.Unsupported;
@@ -475,8 +511,21 @@ function getSecretKind(
 export function isServerManagedColumn(
   tableName: string,
   columnName: string,
+  column?: TableColumnMetadata,
 ): boolean {
   if (SYSTEM_COLUMNS.includes(columnName)) {
+    return true;
+  }
+
+  /*
+   * The model says OneUptime keeps it, or changes it too
+   * (TableColumnMetadata.serverOwned, any kind): a configuration written with
+   * the value it has now would put that value back whenever OneUptime moves
+   * it - a label a rule added, an exception OneUptime resolved (#10052).
+   * Left out, the provider keeps OneUptime's value, even where the attribute
+   * has a default.
+   */
+  if (column?.serverOwned) {
     return true;
   }
 
@@ -514,7 +563,8 @@ function isColumnInWriteSchema(data: {
     return false;
   }
 
-  if (column.computed) {
+  // What only OneUptime writes (ModelSchema.isWrittenOnlyByOneUptime).
+  if (column.computed || column.serverOwned === ServerOwned.Always) {
     return false;
   }
 
@@ -551,7 +601,6 @@ function isColumnInWriteSchema(data: {
  */
 const COLUMN_TYPES_WITH_ANY_SCHEMA: ReadonlyArray<TableColumnType> = [
   TableColumnType.JSON,
-  TableColumnType.Permission,
   TableColumnType.File,
   TableColumnType.Buffer,
 ];
@@ -668,7 +717,12 @@ export function getTerraformAttributes(
       inUpdateSchema,
       isRequired: inCreateSchema && isColumnRequiredOnCreate(column),
       secretKind: getSecretKind(columnName, column),
-      isServerManaged: isServerManagedColumn(tableName, columnName),
+      isServerManaged: isServerManagedColumn(tableName, columnName, column),
+      isChangedByOneUptimeToo: column.serverOwned === ServerOwned.Shared,
+      isHeldEntryByEntry:
+        column.serverOwned === ServerOwned.Shared &&
+        column.type === TableColumnType.EntityArray,
+      startsAtCreate: column.serverOwned === ServerOwned.AfterCreate,
       readPermissions: accessControl?.read || [],
       isReservedName: TERRAFORM_RESOURCE_META_ARGUMENTS.includes(
         toTerraformSnakeCase(columnName),

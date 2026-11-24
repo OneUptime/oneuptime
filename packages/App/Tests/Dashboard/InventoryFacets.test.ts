@@ -1,15 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
+import { AndroidSecurityPatchStatus } from "Common/Types/Host/AndroidSecurityPatch";
+import { AndroidAgentPermissionsStatus } from "Common/Types/Host/AndroidAgentPermissions";
 import {
+  INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+  INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
   INVENTORY_ARCHIVED_TABLE_ID,
   INVENTORY_BASE_FACETS,
   INVENTORY_FACET_QUERY_FIELDS,
   INVENTORY_ITEMS_TABLE_ID,
   INVENTORY_LAST_SEEN_FACET_KEY,
+  INVENTORY_SECURITY_PATCH_FACET_KEY,
+  INVENTORY_SECURITY_PATCH_FACET_OPTIONS,
   INVENTORY_SOURCE_FACET_KEY,
   INVENTORY_SOURCE_FACET_OPTIONS,
   INVENTORY_STATUS_FACET_KEY,
@@ -68,6 +76,10 @@ describe("Inventory facet identity", () => {
     expect(INVENTORY_SOURCE_FACET_KEY).toBe("inventorySource");
     expect(INVENTORY_STATUS_FACET_KEY).toBe("inventoryStatus");
     expect(INVENTORY_LAST_SEEN_FACET_KEY).toBe("inventoryLastSeen");
+    expect(INVENTORY_SECURITY_PATCH_FACET_KEY).toBe("inventorySecurityPatch");
+    expect(INVENTORY_AGENT_PERMISSIONS_FACET_KEY).toBe(
+      "inventoryAgentPermissions",
+    );
   });
 
   test("keys and query fields are non-empty and distinct", () => {
@@ -99,6 +111,12 @@ describe("Inventory facet identity", () => {
     );
     expect(facet(INVENTORY_LAST_SEEN_FACET_KEY).queryField).toBe(
       INVENTORY_FACET_QUERY_FIELDS.lastSeen,
+    );
+    expect(facet(INVENTORY_SECURITY_PATCH_FACET_KEY).queryField).toBe(
+      INVENTORY_FACET_QUERY_FIELDS.securityPatch,
+    );
+    expect(facet(INVENTORY_AGENT_PERMISSIONS_FACET_KEY).queryField).toBe(
+      INVENTORY_FACET_QUERY_FIELDS.agentPermissions,
     );
   });
 });
@@ -322,6 +340,116 @@ describe("Last Seen facet", () => {
   });
 });
 
+/*
+ * #9965: which Android devices are behind on their security patches, by
+ * the rule the alert reads - more than 90 days old - computed by the
+ * server (InventoryItem.securityPatchStatus, InventorySecurityPatchPostgres).
+ */
+describe("Security Patch Level facet", () => {
+  const securityPatchFacet: ResourceFacet = facet(
+    INVENTORY_SECURITY_PATCH_FACET_KEY,
+  );
+
+  test("is named as the asset detail is, and offers out of date first", () => {
+    expect(securityPatchFacet.label).toBe("Security Patch Level");
+    expect(
+      INVENTORY_SECURITY_PATCH_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.value;
+        },
+      ),
+    ).toEqual([
+      AndroidSecurityPatchStatus.OutOfDate,
+      AndroidSecurityPatchStatus.UpToDate,
+    ]);
+    expect(
+      INVENTORY_SECURITY_PATCH_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.label;
+        },
+      ),
+    ).toEqual(["Out of Date", "Up to Date"]);
+  });
+
+  test("says the baseline in each option, in a sentence", () => {
+    expect(
+      INVENTORY_SECURITY_PATCH_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): string => {
+          return option.sublabel!;
+        },
+      ),
+    ).toEqual([
+      "Its security patch level is more than 90 days old.",
+      "Its security patch level is 90 days old or newer.",
+    ]);
+  });
+
+  test("reads the server's computed status, never the attributes themselves", () => {
+    expect(securityPatchFacet.queryField).toBe("securityPatchStatus");
+    expect(securityPatchFacet.isMultiSelect).toBe(true);
+    expect(securityPatchFacet.supportedOperators).toEqual(["is", "is_not"]);
+  });
+
+  test("is builds an Includes query, is not an IncludesNone one", () => {
+    const outOfDate: unknown = securityPatchFacet.toQueryValue!(
+      [AndroidSecurityPatchStatus.OutOfDate],
+      "is",
+    );
+    expect(outOfDate).toBeInstanceOf(Includes);
+    expect((outOfDate as Includes).values).toEqual([
+      AndroidSecurityPatchStatus.OutOfDate,
+    ]);
+
+    const notUpToDate: unknown = securityPatchFacet.toQueryValue!(
+      [AndroidSecurityPatchStatus.UpToDate],
+      "is_not",
+    );
+    expect(notUpToDate).toBeInstanceOf(IncludesNone);
+  });
+});
+
+/*
+ * #9967: the devices the OneUptime Android agent still lacks a grant on,
+ * which only adb gives, so a fleet's are found in one list and run device
+ * by device (InventoryAgentPermissionsPostgres holds the server's status).
+ */
+describe("Agent Permissions facet", () => {
+  const permissionsFacet: ResourceFacet = facet(
+    INVENTORY_AGENT_PERMISSIONS_FACET_KEY,
+  );
+
+  test("offers the devices still missing a grant first, then those with all", () => {
+    expect(permissionsFacet.label).toBe("Agent Permissions");
+    expect(
+      INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS.map(
+        (option: FilterChipDropdownOption): Array<string> => {
+          return [option.value, option.label];
+        },
+      ),
+    ).toEqual([
+      [AndroidAgentPermissionsStatus.Missing, "Missing"],
+      [AndroidAgentPermissionsStatus.Granted, "All Granted"],
+    ]);
+    for (const option of INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS) {
+      expect(option.sublabel).toMatch(/^The Android agent .+\.$/);
+    }
+  });
+
+  test("reads the server's computed status, as an option list", () => {
+    expect(permissionsFacet.queryField).toBe("agentPermissionsStatus");
+    expect(permissionsFacet.isMultiSelect).toBe(true);
+    expect(permissionsFacet.supportedOperators).toEqual(["is", "is_not"]);
+    const missing: unknown = permissionsFacet.toQueryValue!(
+      [AndroidAgentPermissionsStatus.Missing],
+      "is",
+    );
+    expect(missing).toBeInstanceOf(Includes);
+    expect((missing as Includes).values).toEqual([
+      AndroidAgentPermissionsStatus.Missing,
+    ]);
+  });
+});
+
 describe("scoped list protection", () => {
   test("an unscoped list gets every built-in facet", () => {
     expect(facetKeys(buildInventoryFacets())).toEqual(
@@ -334,6 +462,8 @@ describe("scoped list protection", () => {
     ["source", INVENTORY_SOURCE_FACET_KEY],
     ["lastSeenAt", INVENTORY_LAST_SEEN_FACET_KEY],
     ["inventoryStatus", INVENTORY_STATUS_FACET_KEY],
+    ["securityPatchStatus", INVENTORY_SECURITY_PATCH_FACET_KEY],
+    ["agentPermissionsStatus", INVENTORY_AGENT_PERMISSIONS_FACET_KEY],
   ])(
     "a page-owned %s constraint removes only the colliding facet",
     (queryField: string, removedFacetKey: string) => {
@@ -353,6 +483,8 @@ describe("scoped list protection", () => {
       source: EntitySource.Discovered,
       lastSeenAt: "cutoff",
       inventoryStatus: InventoryLiveness.Stale,
+      securityPatchStatus: AndroidSecurityPatchStatus.OutOfDate,
+      agentPermissionsStatus: AndroidAgentPermissionsStatus.Missing,
     };
 
     expect(buildInventoryFacets(query)).toEqual([]);
@@ -379,4 +511,80 @@ describe("scoped list protection", () => {
       facetKeys(buildInventoryFacets({ source: undefined })),
     ).not.toContain(INVENTORY_SOURCE_FACET_KEY);
   });
+});
+
+describe("the state facets read apart in every language", () => {
+  /*
+   * All Items draws the Status, Security Patch Level and Agent Permissions
+   * chips side by side, and the same words in the pills of their columns.
+   * Security Patch Level's Out of Date first read, in twelve languages,
+   * word for word what Status draws for Stale ("Veraltet" in German, "古い"
+   * in Japanese): a patch out of date and an item gone stale looked alike.
+   * In every language the Dashboard speaks, no two of these states read the
+   * same.
+   */
+  const LOCALES_DIR: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Locales",
+  );
+
+  const STATES: Array<string> = [
+    ...INVENTORY_STATUS_FACET_OPTIONS,
+    ...INVENTORY_SECURITY_PATCH_FACET_OPTIONS,
+    ...INVENTORY_AGENT_PERMISSIONS_FACET_OPTIONS,
+  ].map((option: FilterChipDropdownOption): string => {
+    return option.label;
+  });
+
+  const languages: Array<string> = fs
+    .readdirSync(LOCALES_DIR)
+    .filter((file: string): boolean => {
+      return file.endsWith(".json") && file !== "en.json";
+    })
+    .map((file: string): string => {
+      return file.replace(/\.json$/, "");
+    });
+
+  test("the scan reads every state of the three chips, in every language", () => {
+    expect(STATES).toEqual(
+      expect.arrayContaining(["Stale", "Out of Date", "Missing"]),
+    );
+    expect(languages.length).toBeGreaterThanOrEqual(16);
+  });
+
+  test.each(languages)(
+    "%s draws each state in words of its own",
+    (language: string) => {
+      const words: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+      ) as Record<string, unknown>;
+
+      const byWord: Map<string, Array<string>> = new Map<
+        string,
+        Array<string>
+      >();
+      for (const state of STATES) {
+        const drawn: unknown = words[state];
+        const word: string = (typeof drawn === "string" ? drawn : state)
+          .trim()
+          .toLocaleLowerCase(language);
+        byWord.set(word, [...(byWord.get(word) || []), state]);
+      }
+
+      const alike: Array<string> = [...byWord.entries()]
+        .filter((entry: [string, Array<string>]): boolean => {
+          return entry[1].length > 1;
+        })
+        .map((entry: [string, Array<string>]): string => {
+          return `${entry[1].join(" and ")} both read "${entry[0]}"`;
+        });
+
+      expect(alike).toEqual([]);
+    },
+  );
 });

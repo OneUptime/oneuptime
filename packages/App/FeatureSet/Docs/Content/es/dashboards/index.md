@@ -61,6 +61,8 @@ Al abrir un panel, su propio menú lateral tiene estas páginas. Todas las secci
 | **Uso compartido** | Quién puede verlo, su enlace público y una lista de IP permitidas en Más ajustes. |
 | **Marca** | Título de la página, descripción, logotipo, tema y favicon del panel público. |
 | **Dominios personalizados** | Alojar el panel público en tu propio dominio. |
+| **Usuarios privados** | Las personas que pueden iniciar sesión en el enlace público, cuando solo quienes inician sesión pueden verlo. |
+| **Inicio de sesión único** | Los proveedores SAML y OpenID Connect con los que inician sesión, y **Requerir SSO para iniciar sesión**. |
 | **Ajustes** | Duplicar, exportar o archivar el panel. |
 | **Propietarios** | Los usuarios y equipos a los que pertenece. |
 | **Registros de auditoría** | Cada cambio hecho en el panel, y quién lo hizo. |
@@ -103,4 +105,5 @@ El objetivo: una página para el servicio de checkout, con su latencia, su tasa 
 - [Widgets del panel](/docs/dashboards/widgets): Cada widget, y cuál elegir.
 - [Variables y filtros del panel](/docs/dashboards/variables): Un panel para cada servicio, host o cliente.
 - [Compartir y paneles públicos](/docs/dashboards/sharing): Enlaces públicos, contraseñas, listas de IP permitidas y dominios personalizados.
+- [Importar desde Grafana y Datadog](/docs/dashboards/import): Trae un panel, o las reglas de alerta, que creaste en Grafana o Datadog.
 :::

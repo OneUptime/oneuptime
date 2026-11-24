@@ -626,6 +626,12 @@ const PROSE: Record<string, Array<string>> = {
     // The two kinds of connection, as the FAQ calls them.
     "Project SCIM",
     "Status Page SCIM",
+    /*
+     * Where OneUptime runs, as two of the FAQ's answers open. The
+     * Dashboard's Self-hosted is something else: a model's, on Data
+     * Security's OneUptime AI page (#10365).
+     */
+    "Self-hosted",
   ],
 };
 
@@ -685,7 +691,6 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Refused:",
     "A removal that also changes a profile",
     "A request that changes nothing is answered as usual",
-    "Self-hosted",
     "invited",
   ],
 };

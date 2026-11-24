@@ -3,7 +3,7 @@
 Envoyez les e-mails de OneUptime par l'API HTTPS d'un fournisseur d'e-mail plutôt que par un serveur SMTP : Amazon SES, SendGrid, Mailgun, Postmark ou Resend. Un projet en choisit un pour une configuration SMTP, et une installation auto-hébergée peut envoyer tous ses propres e-mails par l'un d'eux. L'API est jointe en HTTPS sur le port 443 : les e-mails partent donc même depuis les réseaux qui bloquent les ports SMTP, et la clé de chaque fournisseur est stockée chiffrée.
 
 :::cards
-- [Amazon SES](#amazon-ses): Une clé d'accès IAM, ou le rôle IAM propre au serveur, et la région où votre expéditeur est vérifié.
+- [Amazon SES](#amazon-ses): Une clé d'accès IAM, un rôle IAM de votre compte AWS ou le rôle IAM propre au serveur, et la région où votre expéditeur est vérifié.
 - [SendGrid](#sendgrid): Une clé API avec l'accès Mail Send.
 - [Mailgun](#mailgun): Une clé API, le domaine d'envoi et sa région.
 - [Postmark](#postmark): Le jeton d'API du serveur.
@@ -55,16 +55,16 @@ Créez pour OneUptime un utilisateur IAM avec une politique qui autorise `ses:Se
 }
 ```
 
-Une installation auto-hébergée sur AWS peut se passer de la clé et [se connecter avec le rôle IAM du serveur](#se-connecter-avec-le-rôle-iam-du-serveur) à la place, avec la même politique.
+Une installation auto-hébergée sur AWS peut se passer de la clé et [se connecter avec le rôle IAM du serveur](#se-connecter-avec-le-rôle-iam-du-serveur) à la place, avec la même politique. La configuration d'un projet peut aussi s'en passer, et [se connecter avec un rôle IAM de votre compte AWS](#se-connecter-avec-un-rôle-iam-de-votre-compte-aws).
 
 ### Remplir l'étape Amazon SES
 
-Saisissez l'**ID de clé d'accès** et la **Clé d'accès secrète**, ainsi que la **Région** dans laquelle votre identité est vérifiée, par exemple `us-east-1`.
+Laissez **Clé d'accès** comme **Type d'authentification**, et saisissez l'**ID de clé d'accès**, la **Clé d'accès secrète** et la **Région** dans laquelle votre identité est vérifiée, par exemple `us-east-1`.
 :::
 
 ### Se connecter avec le rôle IAM du serveur
 
-Une installation auto-hébergée sur AWS peut envoyer ses propres e-mails en tant que rôle IAM qu'AWS donne au serveur, sans qu'aucune clé d'accès ne soit stockée dans OneUptime : les identifiants qu'AWS fournit expirent en quelques heures, et OneUptime en obtient de nouveaux avant qu'ils n'expirent. Cela ne concerne que les e-mails propres au serveur. La configuration Amazon SES d'un projet se connecte toujours avec une clé d'accès, car le rôle du serveur est l'identité AWS propre au serveur, pas celle d'un projet.
+Une installation auto-hébergée peut envoyer ses propres e-mails en tant que rôle IAM, sans qu'aucune clé d'accès ne soit stockée dans OneUptime : sur AWS, le rôle qu'AWS donne au serveur ; partout ailleurs, un rôle auquel il se connecte avec IAM Roles Anywhere. Les identifiants expirent en quelques heures, et OneUptime en obtient de nouveaux avant qu'ils n'expirent. Cela ne concerne que les e-mails propres au serveur : le rôle du serveur est l'identité AWS propre au serveur, pas celle d'un projet. La configuration Amazon SES d'un projet se connecte avec une clé d'accès, ou avec [un rôle IAM de votre compte AWS](#se-connecter-avec-un-rôle-iam-de-votre-compte-aws).
 
 Donnez au rôle la politique ci-dessus, puis exécutez OneUptime avec ce rôle :
 
@@ -88,11 +88,63 @@ Attachez le rôle à l'instance comme profil d'instance. Avec OneUptime dans Doc
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Hors d'AWS, sur vos propres serveurs ou dans un autre cloud, le serveur se connecte en tant que rôle via IAM Roles Anywhere, qui échange un certificat X.509 contre les identifiants du rôle. Dans IAM Roles Anywhere, créez un trust anchor pour votre autorité de certification et un profil pour le rôle. Placez ensuite l'outil d'identifiants d'AWS, `aws_signing_helper`, dans un dossier avec le certificat, sa clé privée et un fichier de configuration AWS dont le profil exécute l'outil comme son `credential_process` :
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Avec Docker Compose, montez le dossier en lecture seule et indiquez le fichier et le profil dans `docker-compose.override.yml`, à côté de `docker-compose.yml` :
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Avec le chart Helm, montez la configuration, le certificat et sa clé depuis un Secret avec `extraVolumes` et `extraVolumeMounts`, définissez `AWS_CONFIG_FILE` et `AWS_PROFILE` avec `extraEnv`, et placez l'outil dans une image construite sur celle de OneUptime : un Secret contient au plus 1 Mo. OneUptime exécute l'outil sans shell, par son chemin complet, pendant 30 secondes au plus, et uniquement depuis un fichier de configuration qu'il ne peut pas modifier : un fichier dans lequel il pourrait écrire est refusé.
 :::
 
 Ensuite, dans l'Admin Dashboard, cliquez sur **Modifier Amazon SES**, choisissez **Rôle IAM de ce serveur** comme **Type d'authentification** et saisissez la **Région**. L'enregistrement supprime toute clé d'accès stockée auparavant.
 
-OneUptime cherche les identifiants du serveur là où les SDK AWS les cherchent, dans cet ordre : `AWS_ACCESS_KEY_ID` et `AWS_SECRET_ACCESS_KEY` dans son environnement, un jeton d'identité web (`AWS_ROLE_ARN` et `AWS_WEB_IDENTITY_TOKEN_FILE`), le point de terminaison des identifiants de conteneur d'Amazon ECS et d'EKS Pod Identity, puis le service de métadonnées d'instance d'EC2 (IMDSv2).
+OneUptime cherche les identifiants du serveur là où les SDK AWS les cherchent, dans cet ordre : `AWS_ACCESS_KEY_ID` et `AWS_SECRET_ACCESS_KEY` dans son environnement, le profil AWS que nomme `AWS_PROFILE`, `AWS_CONFIG_FILE` ou `AWS_SHARED_CREDENTIALS_FILE` (ses clés, ou son `credential_process`), un jeton d'identité web (`AWS_ROLE_ARN` et `AWS_WEB_IDENTITY_TOKEN_FILE`), le point de terminaison des identifiants de conteneur d'Amazon ECS et d'EKS Pod Identity, puis le service de métadonnées d'instance d'EC2 (IMDSv2). Sans aucune des trois, OneUptime ne lit aucun fichier de configuration AWS.
+
+### Se connecter avec un rôle IAM de votre compte AWS
+
+La configuration Amazon SES d'un projet peut se connecter avec un rôle IAM de votre propre compte AWS : aucune clé n'est alors stockée dans OneUptime. OneUptime se connecte au rôle avec sa propre identité AWS et un ID externe que seuls les e-mails de votre projet utilisent, et chaque session dure une heure. Donnez au rôle la politique ci-dessus, et une politique d'approbation qui laisse entrer le compte AWS de OneUptime avec cet ID externe :
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+À l'étape **Amazon SES** de la configuration, choisissez **Rôle IAM de votre compte AWS** comme **Type d'authentification**. Sous l'**ARN du rôle**, **Configurer le rôle dans AWS** affiche l'**ID externe** de votre projet et cette politique d'approbation avec le compte de OneUptime et votre ID, prête à copier. Créez le rôle avec elle, saisissez son **ARN du rôle** et la **Région**, puis cliquez sur **Envoyer un e-mail de test** dans la ligne de la configuration. L'enregistrement du rôle supprime toute clé d'accès stockée auparavant.
+
+OneUptime vérifie le rôle avant d'envoyer par lui, et ne se connecte jamais à :
+
+- Un rôle dont la politique d'approbation n'exige pas l'ID externe de votre projet : tout projet qui connaît son ARN pourrait envoyer des e-mails par votre compte. Ajoutez la condition `sts:ExternalId` et envoyez un e-mail de test, qui vérifie à nouveau le rôle aussitôt. La vérification a lieu environ une fois par jour, et apparaît dans le CloudTrail du rôle comme un `AccessDenied` pour `sts:AssumeRole`.
+- Un rôle du compte AWS propre à OneUptime, quoi qu'en dise sa politique d'approbation. Pour envoyer les e-mails propres au serveur par le compte où il s'exécute, utilisez plutôt [le rôle IAM du serveur](#se-connecter-avec-le-rôle-iam-du-serveur).
+
+L'ID externe est propre à votre projet, et n'est pas un secret. Les rôles IAM de Cloud Connect en utilisent un autre : un rôle créé pour l'un n'est donc jamais utilisé par l'autre. Un serveur sans identité AWS propre, ni clé d'accès Cloud Connect ni identifiants AWS, ne peut se connecter à aucun rôle, et l'étape le dit.
 
 ## SendGrid
 
@@ -212,6 +264,10 @@ Le serveur se connecte avec son rôle IAM, mais AWS ne lui donne aucun identifia
 
 :::details "This server's IAM role may not send with Amazon SES" ou "did not let this server assume the role"
 La politique du rôle n'autorise pas `ses:SendEmail` sur votre identité : ajoutez la politique ci-dessus. Ou, sur Amazon EKS, la politique d'approbation du rôle n'autorise pas `sts:AssumeRoleWithWebIdentity` pour le fournisseur OIDC de votre cluster et le compte de service de OneUptime.
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" ou "This role is in this OneUptime's own AWS account"
+OneUptime n'envoie pas par le rôle, comme l'explique [Se connecter avec un rôle IAM de votre compte AWS](#se-connecter-avec-un-rôle-iam-de-votre-compte-aws). Ajoutez à la politique d'approbation du rôle la condition `sts:ExternalId` qu'affiche **Configurer le rôle dans AWS** dans la configuration, ou créez le rôle dans votre propre compte AWS, puis envoyez un e-mail de test.
 :::
 
 :::details "Mailgun has no domain … in its US region"

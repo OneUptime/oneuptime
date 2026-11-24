@@ -63,7 +63,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 비용 메트릭(`node_total_hourly_cost`, `pv_hourly_cost` 등)은 일반 메트릭이므로 메트릭 탐색기, 사용자 지정 대시보드, 메트릭 모니터에서 사용할 수 있습니다. 미리 만들어진 대시보드를 원하면 **제품 → 대시보드**로 이동해 **대시보드 만들기**를 선택하고 **Kubernetes Cost Dashboard**를 고르세요. 노드 시간당 비용 추세, CPU 및 메모리 단가, 볼륨과 로드 밸런서 지출을 보여 줍니다.
 
-개요와 **비용** 페이지는 수치 아래에 가격의 출처를 알려 줍니다. Kubecost 3을 포함해 어떤 엔진이 클러스터의 가격을 매기든, 클라우드 정가, 직접 설정한 요금표, 또는 OpenCost의 기본 요율입니다. 클라우드 청구서를 읽는 Kubecost는 각 시간이 지나고 약 하루 반 뒤에 그 청구서에 맞춰 가격을 조정하므로, 그 경우 이 줄은 수치가 조정 전의 정가임을 알려 줍니다. 효율은 효율 메트릭까지 포함해 어디서나 같은 수치입니다. 요청한 CPU와 메모리 중 실제로 사용된 비율이며, 각 컨테이너의 한 시간은 그 CPU와 메모리의 비용으로 가중됩니다. 따라서 아무것도 사용하지 않는 저렴한 작업이 잘 활용되는 클러스터의 효율을 끌어내릴 수 없고, 유휴 용량은 계산에 넣지 않습니다.
+개요와 **비용** 페이지는 수치 아래에 가격의 출처를 알려 줍니다. Kubecost 3을 포함해 어떤 엔진이 클러스터의 가격을 매기든, 클라우드 정가, 직접 설정한 요금표, 또는 OpenCost의 기본 요율입니다. 클라우드 청구서를 읽는 Kubecost는 각 시간이 지나고 약 2일 뒤에 그 청구서에 맞춰 가격을 조정하고 OneUptime은 조정된 각 시간을 가져오므로, 그 경우 이 줄은 수치가 언제까지 청구서에 맞춰 조정되었는지 알려 줍니다. 효율은 효율 메트릭까지 포함해 어디서나 같은 수치입니다. 요청한 CPU와 메모리 중 실제로 사용된 비율이며, 각 컨테이너의 한 시간은 그 CPU와 메모리의 비용으로 가중됩니다. 따라서 아무것도 사용하지 않는 저렴한 작업이 잘 활용되는 클러스터의 효율을 끌어내릴 수 없고, 유휴 용량은 계산에 넣지 않습니다.
 
 ## 이미 Kubecost나 OpenCost를 실행하고 있나요?
 
@@ -191,7 +191,7 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 :::
 
 :::details 개요에 번들 OpenCost가 필요 없다고 표시됨
-클러스터가 자체 Kubecost나 OpenCost를 실행하고 있고 비용 에이전트가 그것을 읽으므로, 차트가 번들한 OpenCost는 아무것도 가격을 매기지 않습니다. 그것과 그 Prometheus의 실행을 멈추려면 `--set cost.engine.url=auto`로 업그레이드하고, 대신 번들 엔진을 읽으려면 `cost.engine.preferExisting=false`를 설정하세요. Prometheus를 읽지 않는 Kubecost 3에서는 메모리 권장값이 번들 Prometheus에서 나옵니다. 다른 Prometheus를 쓰려면 같은 업그레이드에서 `cost.engine.prometheusUrl`로 지정하세요.
+클러스터가 자체 Kubecost나 OpenCost를 실행하고 있고 비용 에이전트가 그것을 읽으므로, 차트가 번들한 OpenCost는 아무것도 가격을 매기지 않습니다. 그것과 그 Prometheus의 실행을 멈추려면 `--set cost.engine.url=auto`로 업그레이드하고, 대신 번들 엔진을 읽으려면 `cost.engine.preferExisting=false`를 설정하세요. Prometheus를 읽지 않는 Kubecost 3처럼 메모리 권장값이 번들 Prometheus에서 나오면 알림이 그렇게 알려 줍니다. 같은 업그레이드에서 `cost.engine.prometheusUrl`로 다른 Prometheus를 지정하거나 번들 엔진을 유지하세요. 비용 에이전트는 번들 엔진을 스스로 멈추지 않습니다. 클러스터에 아무것도 쓰지 않으며, 사용 중인 엔진이 응답하지 않는 동안에는 번들 엔진이 대체 수단이기 때문입니다.
 :::
 
 :::details 비용 에이전트가 자체 엔진을 읽지 않음
@@ -215,7 +215,7 @@ Kubernetes 모니터에는 이 메트릭을 위한 템플릿이 세 개 있습�
 :::
 
 :::details 수치가 엔진 자체 UI와 다름
-OneUptime은 마감된 시간을 통째로, 각 시간이 마감될 때 엔진이 매긴 가격대로, 엔진의 조정(reconciliation) 금액을 포함해 보냅니다. 현재 시간의 지출은 그 시간이 마감된 뒤에 나타납니다. 클라우드 청구서를 읽는 Kubecost는 약 하루 반 뒤에 각 시간을 그 청구서에 맞춰 조정하지만, OneUptime은 그 시간을 처음 매겨진 가격대로 유지합니다.
+OneUptime은 마감된 시간을 통째로, 각 시간이 마감될 때 엔진이 매긴 가격대로, 엔진의 조정(reconciliation) 금액을 포함해 보냅니다. 현재 시간의 지출은 그 시간이 마감된 뒤에 나타납니다. 클라우드 청구서를 읽는 Kubecost는 약 2일 뒤에 각 시간을 그 청구서에 맞춰 조정합니다. OneUptime은 그 시간을 36시간, 47시간, 4일 뒤에 다시 읽어 바뀐 부분을 가져옵니다. Kubecost는 기본적으로 시간별 수치를 49시간 동안 보관하므로, 그 뒤에 조정된 시간은 OneUptime이 마지막으로 읽은 수치를 유지합니다. 모든 조정을 가져오려면 4일 동안 보관하세요(Kubecost 2는 `kubecostAggregator.etlHourlyStoreDurationHours: 96`, Kubecost 3은 `aggregator.retention1h: 96`).
 :::
 
 :::details 번들 Prometheus가 다시 시작됨

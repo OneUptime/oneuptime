@@ -5,6 +5,7 @@ import DashboardComponentType, {
 } from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import {
   DashboardTemplate,
   DashboardTemplates,
@@ -496,7 +497,11 @@ describe("data source widget defaults carry no metric config", () => {
 
     expect(Array.isArray(queries)).toBe(true);
     expect(queries.length).toBe(1);
-    expect(queries[0]!["dataSourceId"]).toBe("");
+    /*
+     * Blank, and on the project's own metrics (issue #7713): the source
+     * every project has, so writing PromQL is all a new widget needs.
+     */
+    expect(queries[0]!["dataSourceId"]).toBe(PROJECT_METRICS_DATA_SOURCE_ID);
     expect(queries[0]!["query"]).toBe("");
     expect(typeof queries[0]!["id"]).toBe("string");
     expect((queries[0]!["id"] as string).length).toBeGreaterThan(0);
@@ -525,7 +530,7 @@ describe("data source widget defaults carry no metric config", () => {
 
       expect(Array.isArray(query)).toBe(false);
       expect(`${widget.label} dataSourceId: ${query["dataSourceId"]}`).toBe(
-        `${widget.label} dataSourceId: `,
+        `${widget.label} dataSourceId: ${PROJECT_METRICS_DATA_SOURCE_ID}`,
       );
       expect(`${widget.label} query: ${query["query"]}`).toBe(
         `${widget.label} query: `,

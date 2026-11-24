@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import OneUptimeDate from "../../../Types/Date";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 import ScheduleTimelineLayout, {
   PositionedInterval,
   TimeInterval,
@@ -113,14 +115,35 @@ describe("getRange: week", () => {
     );
   });
 
+  /*
+   * A day's names are written where the grid draws it, in the reader's
+   * language, from the day's start in the view's zone (#7660): the week
+   * starts on a Monday whatever the language says.
+   */
+  const dayNames: (range: TimelineRange) => Array<[string, string, boolean]> = (
+    range: TimelineRange,
+  ): Array<[string, string, boolean]> => {
+    return range.days.map((day: TimelineDay): [string, string, boolean] => {
+      return [
+        OneUptimeDate.getDayOfWeekName(day.start, {
+          width: "short",
+          context: "standAlone",
+          timezone: range.timezone,
+        }),
+        OneUptimeDate.getDayOfWeekName(day.start, {
+          width: "narrow",
+          context: "standAlone",
+          timezone: range.timezone,
+        }),
+        day.isWeekend,
+      ];
+    });
+  };
+
   test("weekend, labels and first-of-month flags", () => {
     const range: TimelineRange = week(at("2026-09-30T12:00:00Z"), UTC);
 
-    expect(
-      range.days.map((day: TimelineDay) => {
-        return [day.weekdayShort, day.weekdayNarrow, day.isWeekend];
-      }),
-    ).toEqual([
+    expect(dayNames(range)).toEqual([
       ["Mon", "M", false],
       ["Tue", "T", false],
       ["Wed", "W", false],
@@ -137,8 +160,38 @@ describe("getRange: week", () => {
     );
 
     expect(october?.key).toBe("2026-10-01");
-    expect(october?.monthShort).toBe("Oct");
+    expect(
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: october!.start,
+        format: "MMM D",
+        timezone: range.timezone,
+      }),
+    ).toBe("Oct 1");
     expect(october?.dayOfMonth).toBe(1);
+  });
+
+  test("the labels in the reader's language, a day standing alone as CLDR writes it", () => {
+    const range: TimelineRange = week(at("2026-09-30T12:00:00Z"), UTC);
+
+    try {
+      setDateDisplayLanguage("es");
+      expect(dayNames(range)[0]).toEqual(["Lun", "L", false]);
+
+      setDateDisplayLanguage("da");
+      expect(dayNames(range)[0]).toEqual(["man.", "M", false]);
+
+      setDateDisplayLanguage("de");
+      expect(dayNames(range)[6]).toEqual(["So", "S", true]);
+      expect(
+        OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+          date: range.days[3]!.start,
+          format: "MMM D",
+          timezone: range.timezone,
+        }),
+      ).toBe("1. Okt.");
+    } finally {
+      setDateDisplayLanguage("en");
+    }
   });
 
   test("a week across a year boundary", () => {

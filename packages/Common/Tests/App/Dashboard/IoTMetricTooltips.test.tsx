@@ -1186,23 +1186,65 @@ describe("IoT Fleets list", () => {
     );
 
     const someOffline: ReturnType<typeof render> = render(
-      devices.getElement!({ deviceCount: 5, onlineDeviceCount: 4 }),
+      devices.getElement!({
+        otelCollectorStatus: "connected",
+        deviceCount: 5,
+        onlineDeviceCount: 4,
+      }),
     );
     expect(someOffline.getByText("4/5 online")).toHaveClass("text-red-700");
     someOffline.unmount();
 
     const allOnline: ReturnType<typeof render> = render(
-      devices.getElement!({ deviceCount: 5, onlineDeviceCount: 5 }),
+      devices.getElement!({
+        otelCollectorStatus: "connected",
+        deviceCount: 5,
+        onlineDeviceCount: 5,
+      }),
     );
     expect(allOnline.getByText("5/5 online")).not.toHaveClass("text-red-700");
     allOnline.unmount();
 
     const none: ReturnType<typeof render> = render(
-      devices.getElement!({ deviceCount: 0, onlineDeviceCount: 0 }),
+      devices.getElement!({
+        otelCollectorStatus: "connected",
+        deviceCount: 0,
+        onlineDeviceCount: 0,
+      }),
     );
     expect(none.getByText("—")).toBeInTheDocument();
     expect(IOT_METRIC_DESCRIPTIONS.fleetDevices).toMatch(
       /red when any of them is offline/,
+    );
+  });
+
+  /*
+   * While a fleet is disconnected its devices' last states are not current
+   * (#10014): the count is of the devices it has, never red, as its
+   * Overview's chip says it.
+   */
+  test("a disconnected fleet's Devices counts the devices it has, never red, as its header says", async () => {
+    const devices: CapturedColumn = column(
+      await capturedColumns(<IoTFleets {...PAGE_PROPS} />),
+      "Devices",
+    );
+
+    for (const status of ["disconnected", ""]) {
+      const disconnected: ReturnType<typeof render> = render(
+        devices.getElement!({
+          otelCollectorStatus: status,
+          deviceCount: 5,
+          onlineDeviceCount: 0,
+        }),
+      );
+      expect(disconnected.getByText("5 devices")).not.toHaveClass(
+        "text-red-700",
+      );
+      expect(disconnected.queryByText("0/5 online")).not.toBeInTheDocument();
+      disconnected.unmount();
+    }
+    expect(IOT_METRIC_DESCRIPTIONS.fleetDevices).toMatch(
+      /While the fleet is disconnected, it counts the devices the fleet has/,
     );
   });
 });

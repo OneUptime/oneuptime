@@ -918,7 +918,7 @@ describe("the start tile's time", () => {
         new Date("2026-09-14T18:01:00.000Z"),
         new Date("2026-09-14T18:20:00.000Z"),
       ),
-    ).toBe(`Sep${NBSP}14, 06:01${NBSP}PM UTC`);
+    ).toBe(`Sep${NBSP}14, 6:01${NBSP}PM UTC`);
   });
 
   test("gives the tile the date and time, and the zone it draws smaller after them", () => {
@@ -932,7 +932,7 @@ describe("the start tile's time", () => {
         new Date("2026-09-14T18:01:00.000Z"),
         new Date("2026-09-14T18:20:00.000Z"),
       ),
-    ).toEqual({ dateTime: `Sep${NBSP}14, 06:01${NBSP}PM`, zone: "UTC" });
+    ).toEqual({ dateTime: `Sep${NBSP}14, 6:01${NBSP}PM`, zone: "UTC" });
   });
 
   test("adds the year for a record from another year", () => {
@@ -946,7 +946,7 @@ describe("the start tile's time", () => {
         new Date("2025-12-31T23:30:00.000Z"),
         new Date("2026-01-01T00:10:00.000Z"),
       ),
-    ).toBe(`Dec${NBSP}31${NBSP}2025, 11:30${NBSP}PM UTC`);
+    ).toBe(`Dec${NBSP}31,${NBSP}2025, 11:30${NBSP}PM UTC`);
   });
 
   test("follows a 24-hour clock and the reader's own time zone, daylight saving included", () => {
@@ -982,7 +982,7 @@ describe("the start tile's time", () => {
         new Date("2025-12-31T12:00:00.000Z"),
         new Date("2025-12-31T13:00:00.000Z"),
       ),
-    ).toBe(`Jan${NBSP}01, 01:00 NZDT`);
+    ).toBe(`Jan${NBSP}1, 01:00 NZDT`);
   });
 
   test("breaks after the date's comma and before the zone, never inside the date, the time or the zone", () => {
@@ -996,7 +996,7 @@ describe("the start tile's time", () => {
       new Date("2026-09-14T18:20:00.000Z"),
     );
 
-    expect(text.split(" ")).toEqual([`Sep${NBSP}14,`, `06:01${NBSP}PM`, "UTC"]);
+    expect(text.split(" ")).toEqual([`Sep${NBSP}14,`, `6:01${NBSP}PM`, "UTC"]);
     expect(NBSP).toBe(String.fromCharCode(0xa0));
   });
 

@@ -1,10 +1,11 @@
 # Compartilhamento e painéis públicos
 
-Por padrão, um painel é privado do seu projeto: só quem entra no seu projeto pode vê-lo. Você também pode compartilhá-lo por um link público, proteger esse link com uma senha, limitá-lo a certos endereços IP e hospedá-lo no seu próprio domínio. Esta página cobre as quatro coisas.
+Por padrão, um painel é privado do seu projeto: só quem entra no seu projeto pode vê-lo. Você também pode compartilhá-lo por um link público, proteger esse link com uma senha ou pedir que os visitantes entrem, limitá-lo a certos endereços IP e hospedá-lo no seu próprio domínio. Esta página cobre tudo isso.
 
 :::cards
-- [Quem pode ver um painel](#quem-pode-ver-um-painel): Uma escolha entre três, com o plano que cada uma exige.
+- [Quem pode ver um painel](#quem-pode-ver-um-painel): Uma escolha entre quatro, com o plano que cada uma exige.
 - [Compartilhar com uma senha](#compartilhar-com-uma-senha): Compartilhe o link, e depois a senha, com as pessoas que devem vê-lo.
+- [Apenas quem entra](#apenas-quem-entra): Convide as pessoas que podem abri-lo, ou deixe o seu login único fazê-las entrar.
 - [Lista de IPs permitidos](#lista-de-ips-permitidos): Abra o link público só para o seu escritório ou a sua VPN.
 - [Domínios personalizados](#domínios-personalizados): Sirva o painel no seu próprio domínio, com um certificado gratuito.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["Um visitante abre<br/>o link público"] --> shared("O painel é<br/>compartilhado<br/>publicamente?")
     shared -->|"Não"| missing["Uma página de<br/>não encontrado"]
     shared -->|"Sim"| allowed("O endereço dele está<br/>na lista de IPs<br/>permitidos?")
-    allowed -->|"Sim, ou<br/>sem lista"| locked("É preciso uma<br/>senha?")
+    allowed -->|"Sim, ou<br/>sem lista"| signin("Os visitantes<br/>precisam entrar?")
     allowed -->|"Não"| denied["Uma página<br/>Access Denied"]
+    signin -->|"Sim"| signinpage["A página<br/>de login"]
+    signinpage --> board["O painel"]
+    signin -->|"Não"| locked("É preciso uma<br/>senha?")
     locked -->|"Sim"| prompt["O pedido<br/>de senha"]
-    prompt --> board["O painel"]
+    prompt --> board
     locked -->|"Não"| board
 ```
 
@@ -32,14 +36,15 @@ Abra o painel e escolha **⋯ → Partilhar**, ou abra **Compartilhamento** no m
 - **Apenas pessoas deste projeto** (o padrão): os membros veem o painel quando entram no OneUptime. Ele não tem link público: o endereço público dele mostra a mesma página de não encontrado que um endereço sem painel, e nada sobre o painel, nem mesmo o nome.
 - **Qualquer pessoa com o link**: o painel é público. Quem tiver o link dele pode vê-lo, sem entrar.
 - **Qualquer pessoa com o link e uma senha**: os visitantes abrem o link e depois digitam uma senha que você compartilha com eles. Ninguém precisa de conta.
+- **Apenas quem entra**: o painel tem um link público, e só o abrem as pessoas que você escolhe, depois de entrar nele: os usuários privados que você convida e as pessoas que o seu login único deixa entrar. Veja [Apenas quem entra](#apenas-quem-entra).
 
-Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, e então se aplica na hora. Escolher **Qualquer pessoa com o link e uma senha** pede a senha na mesma caixa de diálogo quando o painel não tem nenhuma; enquanto essa for a escolha, **Alterar senha** a substitui. Enquanto o painel for público, os endereços em que os visitantes o abrem ficam abaixo da escolha: primeiro seus domínios personalizados, depois seu link público, cada um com **Copiar link**. Um domínio personalizado que ainda não está ativo aparece marcado como **Ainda não ativo**, com o motivo.
+Escolher uma opção pede confirmação, dizendo o que muda para os visitantes, e então se aplica na hora. Escolher **Qualquer pessoa com o link e uma senha** pede a senha na mesma caixa de diálogo quando o painel não tem nenhuma; enquanto essa for a escolha, **Alterar senha** a substitui. Enquanto o painel for público, os endereços em que os visitantes o abrem ficam abaixo da escolha: primeiro seus domínios personalizados, depois seu link público, cada um com **Copiar link**. Um domínio personalizado que ainda não está ativo aparece marcado como **Ainda não ativo**, com o motivo. Enquanto **Apenas quem entra** for a escolha, **Usuários privados** e **Login único** ficam a um clique, logo abaixo dela.
 
 Dentro do projeto, os proprietários e os rótulos controlam quem vê o quê: veja [Configuração e permissões de painel](/docs/dashboards/configuration). Quem pode ver o painel mas não editá-lo vê a escolha e pode copiar o link público, mas não pode mudá-la.
 
-No OneUptime Cloud, compartilhar um painel exige o plano **Growth**: num plano inferior, as duas escolhas públicas mostram o plano de que precisam e não podem ser selecionadas. Tornar um painel privado de novo (**Apenas pessoas deste projeto**) funciona em todos os planos, então um painel que ficou público quando um teste terminou, ou depois de uma mudança para um plano inferior, sempre pode deixar de ser compartilhado; a caixa de diálogo diz que compartilhá-lo de novo exige **Growth**. Passar de **Qualquer pessoa com o link** para **Qualquer pessoa com o link e uma senha**, e alterar a senha, funciona em todos os planos. Um painel criado pela API ou pelo Terraform segue os mesmos planos: criado público, ele exige **Growth**, e criado com uma lista de IPs permitidos, **Scale**.
+No OneUptime Cloud, compartilhar um painel exige o plano **Growth**: num plano inferior, as escolhas públicas mostram o plano de que precisam e não podem ser selecionadas. Tornar um painel privado de novo (**Apenas pessoas deste projeto**) funciona em todos os planos, então um painel que ficou público quando um teste terminou, ou depois de uma mudança para um plano inferior, sempre pode deixar de ser compartilhado; a caixa de diálogo diz que compartilhá-lo de novo exige **Growth**. Passar de **Qualquer pessoa com o link** para **Qualquer pessoa com o link e uma senha**, e alterar a senha, funciona em todos os planos. **Apenas quem entra** também exige **Growth**, como os seus usuários privados, e o seu login único exige **Scale**; sair dela funciona em todos os planos, e a caixa de diálogo diz que escolhê-la de novo exige **Growth**. Um painel criado pela API ou pelo Terraform segue os mesmos planos: criado público, ele exige **Growth**, e criado com uma lista de IPs permitidos, **Scale**.
 
-A escolha é guardada em três colunas, que a API e o Terraform leem e gravam como antes: `isPublicDashboard`, `enableMasterPassword` e `masterPassword`. Só um painel público tem link público, e os visitantes dele precisam da senha sempre que `enableMasterPassword` estiver ligado. Um painel público com `enableMasterPassword` ligado mas sem senha definida não deixa ninguém entrar pelo link público: a página **Compartilhamento** o mostra como **Qualquer pessoa com o link e uma senha**, diz que ninguém pode abrir o link ainda e oferece **Definir senha**. Escolher **Apenas pessoas deste projeto** também desliga `enableMasterPassword` e mantém a senha, para que compartilhar com senha de novo possa reutilizá-la.
+A escolha é guardada em quatro colunas, que a API e o Terraform leem e gravam: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` e `requireSignIn`. Só um painel público tem link público, e os visitantes dele precisam da senha sempre que `enableMasterPassword` estiver ligado. Um painel público com `enableMasterPassword` ligado mas sem senha definida não deixa ninguém entrar pelo link público: a página **Compartilhamento** o mostra como **Qualquer pessoa com o link e uma senha**, diz que ninguém pode abrir o link ainda e oferece **Definir senha**. Escolher **Apenas pessoas deste projeto** também desliga `enableMasterPassword` e mantém a senha, para que compartilhar com senha de novo possa reutilizá-la. Um painel público com `requireSignIn` ligado pede que os visitantes entrem, e nunca a senha: escolher **Apenas quem entra** desliga `enableMasterPassword` e também mantém a senha.
 
 ## Painéis públicos
 
@@ -53,7 +58,7 @@ Um painel público:
 
 Trate compartilhar um painel como publicar uma página na web. Todo widget nele passa a ser legível por qualquer pessoa com o link. Veja o que está na tela antes de compartilhá-lo.
 
-Cada widget publica só o que desenha, e só para os recursos para os quais foi configurado. Um widget SLO, por exemplo, publica os números principais desse SLO, mas nunca a definição dele: veja [SLO](/docs/dashboards/widgets#slo). Os widgets de **Fonte de dados** externa são a exceção: eles são retirados por completo de um painel público em vez de renderizados, porque a configuração deles é a própria consulta. Alguns outros widgets não podem ser mostrados sem uma sessão conectada, e dizem isso no lugar deles: [Em um painel público](/docs/dashboards/widgets#em-um-painel-público) os lista. Eles publicam só o título, nunca as buscas e os filtros com que leem os dados. As variáveis também publicam só o que os seletores delas mostram: a consulta de uma variável de consulta antiga nunca é publicada.
+Cada widget publica só o que desenha, e só para os recursos para os quais foi configurado. Um widget SLO, por exemplo, publica os números principais desse SLO, mas nunca a definição dele: veja [SLO](/docs/dashboards/widgets#slo). Os widgets de **Fonte de dados** publicam os dados, nunca as consultas: um widget em **Métricas deste projeto (PromQL)** desenha o que as consultas salvas nele retornam, executadas sobre todos os serviços do projeto, e um widget de fonte de dados externa é retirado por completo de um painel público em vez de renderizado. Alguns outros widgets não podem ser mostrados sem uma sessão conectada, e dizem isso no lugar deles: [Em um painel público](/docs/dashboards/widgets#em-um-painel-público) os lista. Eles publicam só o título, nunca as buscas e os filtros com que leem os dados. As variáveis também publicam só o que os seletores delas mostram: a consulta de uma variável de consulta antiga nunca é publicada.
 
 ## Compartilhar com uma senha
 
@@ -64,7 +69,19 @@ Use uma senha quando:
 - Você quer compartilhar com um parceiro ou cliente, mas não quer que a URL sirva para nada se vazar.
 - O painel é "semipúblico": aberto o bastante para você não querer convidar cada pessoa como membro da equipe, mas não tão aberto a ponto de colocá-lo na internet.
 
-Para um controle mais forte (contas separadas por pessoa, uma trilha de auditoria de quem viu o quê), mantenha o painel em **Apenas pessoas deste projeto** e convide as pessoas como membros da equipe com acesso somente leitura.
+Para um controle mais forte (contas separadas por pessoa, uma trilha de auditoria de quem viu o quê), mantenha o painel em **Apenas pessoas deste projeto** e convide as pessoas como membros da equipe com acesso somente leitura, ou escolha **Apenas quem entra**.
+
+## Apenas quem entra
+
+Escolha **Apenas quem entra** para que só as pessoas que você escolhe abram o link público. Todo visitante encontra primeiro uma página de login, no link público e em cada domínio personalizado. Ela mostra o nome, o título da página e o favicon do painel, no tema dele, e nada mais: nem os seus widgets, nem quem pode entrar. Depois de entrar, o painel diz quem entrou, com um botão para sair.
+
+Abra **Link público → Usuários privados** no menu lateral do painel para adicionar por e-mail as pessoas que podem entrar. Cada uma recebe por e-mail um convite cujo link permite escolher uma senha. O link funciona por 24 horas, e o link de senha esquecida da página de login envia um novo. A tabela mostra quem está **Cadastrado**, qual convite está em **Convite enviado** e o **Último acesso** de cada um. Remover alguém, ou uma nova senha, faz essa pessoa sair em todos os lugares na próxima solicitação.
+
+Abra **Link público → Login único** para que o seu provedor de identidade faça as pessoas entrarem, com SAML ou OpenID Connect. Cada provedor mostra os valores para colar no seu provedor de identidade. Quem o seu provedor de identidade deixa entrar vira um usuário privado na primeira vez que entra. Desativar um provedor, ou excluí-lo, faz sair todos que ele fez entrar. **Exigir SSO para entrar** desliga a entrada com senha: todos passam a entrar com login único, e quem entrou com senha sai na próxima solicitação.
+
+Uma sessão dura até ficar 30 dias sem uso. Os seus cookies são enviados apenas ao endereço do próprio painel, então nenhum outro site consegue ler o painel com eles nem fazer alguém sair. As tentativas de login são limitadas para cada endereço e cada conta, e as páginas de login e de senha esquecida respondem igual, quer um endereço possa entrar ou não.
+
+Na API, os usuários privados e os provedores de login único são registros próprios: `/dashboard-private-user`, `/dashboard-sso` e `/dashboard-oidc`, cada um com permissões que levam o seu nome.
 
 ## Lista de IPs permitidos
 
@@ -199,7 +216,7 @@ Para dar a um painel incorporado a aparência do seu site, adicione `?theme=ligh
 
 ## Enviar um link
 
-O link público abre o painel com os valores padrão salvos. Para enviar um link que abra num valor específico, adicione a variável a ele como `?var-<name>=<value>`, como a barra de endereços faz quando um visitante escolhe um valor; vários valores são separados por vírgulas. Para abri-lo com um intervalo de tempo ou uma atualização automática próprios, adicione `range` e `refresh` do mesmo jeito: `?range=1d&refresh=1m` abre no último dia, atualizando a cada minuto, como uma tela de parede faria. `range` aceita `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` ou `3mo`, e `refresh` aceita `off`, `5s`, `10s`, `30s`, `1m`, `5m` ou `15m`. Eles prevalecem sobre os padrões do painel e sobre as escolhas do visitante, que ainda pode mudá-los. Para abrir o painel em um tema, adicione `theme=light`, `theme=dark` ou `theme=system`, como descreve [Incorporar](#incorporar).
+O link público abre o painel com os valores padrão salvos. Para enviar um link que abra num valor específico, adicione a variável a ele como `?var-<name>=<value>`, como a barra de endereços faz quando um visitante escolhe um valor; vários valores são separados por vírgulas. Para abri-lo com um intervalo de tempo ou uma atualização automática próprios, adicione `range` e `refresh` do mesmo jeito: `?range=1d&refresh=1m` abre no último dia, atualizando a cada minuto, como uma tela de parede faria. `range` aceita `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` ou `3mo`, e `refresh` aceita `off`, `5s`, `10s`, `30s`, `1m`, `5m` ou `15m`. Eles prevalecem sobre os padrões do painel e sobre as escolhas do visitante, que ainda pode mudá-los. Para abrir o painel em um tema, adicione `theme=light`, `theme=dark` ou `theme=system`, como descreve [Incorporar](#incorporar). Para abri-lo em um widget, adicione `widget=` com o ID do widget, seu `componentId` no JSON do painel: o painel rola até esse widget e o contorna por um momento, pelo link público e dentro do OneUptime da mesma forma. Um widget que o painel não tem mais o abre no topo, dizendo isso. Os links que o OneUptime cria para um widget, como em um aviso que nomeia o que lê uma métrica, já o trazem.
 
 ## Próximos passos
 

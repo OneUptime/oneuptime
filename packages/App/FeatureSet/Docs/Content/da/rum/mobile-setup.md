@@ -5,7 +5,7 @@ Instrumenter en Android-, iOS- eller React Native-app med OpenTelemetry, så den
 :::cards
 - [Hvad OneUptime har brug for](#hvad-oneuptime-har-brug-for): To ressourceattributter, sendt med en Server-nøgle.
 - [Sæt din platform op](#sæt-din-platform-op): Android, iOS, React Native og resten.
-- [Nedbrud og hæng på iOS](#nedbrud-og-hæng-på-ios): MetricKits diagnosticeringer i Undtagelser og på Oversigt.
+- [Nedbrud og hæng på iOS](#nedbrud-og-hæng-på-ios): Rapporter fra MetricKit og KSCrash i Undtagelser, navngivet ud fra dine dSYM'er.
 - [Tjek, at det kommer frem](#tjek-at-det-kommer-frem): Test nøglen, og find så appen.
 - [Session Replay på mobil](#session-replay-på-mobil): Optagelser til React Native-apps.
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model` giver et kort navn som `iPhone`, hvilket holder siden **Klienter** på én række pr. enhedstype.
+`UIDevice.current.model` giver et kort navn som `iPhone`, hvilket holder siden **Klienter** på én række pr. enhedstype. `identifierForVendor` er den installation, OneUptime tæller installationer uden nedbrud efter, som [Registrér sessioner](#registrér-sessioner) beskriver.
 @tab React Native
 React Native kører OpenTelemetry JavaScript SDK, så byg provideren, OTLP-eksportøren og batch-processoren som i [Browseropsætning](/docs/rum/browser-setup), med tre ændringer: Send med en **Server**-nøgle, udelad `browserDetector` og `DocumentLoadInstrumentation`, og sæt selv enhedsattributterne.
 
@@ -178,7 +179,9 @@ opentelemetry-swift 2.3 og nyere rapporterer en iOS-apps nedbrud og hæng gennem
 | Et nedbrud | `metrickit.diagnostic.crash` | En ikke-håndteret undtagelse med typen af det, der afsluttede appen: Objective-C-undtagelsen på iOS 17 og nyere, ellers Mach-undtagelsen (`EXC_BAD_ACCESS`), ellers signalet (`SIGSEGV`) |
 | Et hæng | `metrickit.diagnostic.hang` | En ikke-håndteret undtagelse af typen **Hang**, iOS' modstykke til en ANR, som gemmer, hvor længe hænget varede |
 
-Oversigtens felt **Nedbrud** tæller nedbruddene, og dens felt **ANR'er** tæller hængene sammen med Androids ANR'er. Hvert stack trace tegnes som trådene i en nedbrudsrapport, med den tråd, der gik ned eller hang, først. Frames er ikke symboliseret: hver nævner sin binære fil, og hvor langt inde i den koden lå, og **Binary Images** viser hver binær fils UUID, som fortæller, hvilket builds dSYM der symboliserer den.
+Oversigtens felt **Nedbrud** tæller nedbruddene, og dens felt **ANR'er** tæller hængene sammen med Androids ANR'er. Hvert stack trace tegnes som trådene i en nedbrudsrapport, med den tråd, der gik ned eller hang, først. En frame i din apps kode navngives efter sin funktion, fx `CartViewController.checkout()`, når dens builds dSYM er uploadet, som i [Upload dine dSYM'er](#upload-dine-dsymer). Alle andre frames nævner deres binære fil, og hvor langt inde i den koden lå, og **Binary Images** viser hver binær fils UUID, som fortæller, hvilket builds dSYM der navngiver den.
+
+Nedbrud og hæng grupperes efter din apps frames på den tråd, der gik ned eller hang: efter deres funktioner, hvor et dSYM navngav dem, så et nedbrud forbliver én undtagelse fra den ene udgivelse til den næste, og efter deres offsets i den binære fil, hvor intet dSYM gjorde det, og de offsets ændrer sig med hvert build. En rapport navngives, når den ankommer, så upload et builds dSYM'er, før du udgiver det: Et nedbrud, der ankom før sit dSYM, beholder sine offsets.
 
 :::steps
 ### Eksportér logs ud over spans
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### Registrér sessioner
 
-Felterne **Sessioner** og **Sessioner uden nedbrud** tæller det `session.id`, der er på dine spans. Produktet `Sessions` fra opentelemetry-swift sætter det: tilføj `SessionSpanProcessor` til tracer provider, og pak logprocessoren ind i `SessionLogRecordProcessor`, så diagnosticeringer også bærer en session. Udgivelserne af opentelemetry-swift sætter endnu intet `app.installation.id`, så en iOS-apps felt **Sessioner uden nedbrud** viser, hvor mange sessioner der gik ned, i stedet for installationerne uden nedbrud.
+Felterne **Sessioner** og **Sessioner uden nedbrud** tæller det `session.id`, der er på dine spans. Produktet `Sessions` fra opentelemetry-swift sætter det: tilføj `SessionSpanProcessor` til tracer provider, og pak logprocessoren ind i `SessionLogRecordProcessor`, så diagnosticeringer også bærer en session.
+
+Linjen under **Sessioner uden nedbrud** viser andelen af installationer, der ikke gik ned, og **Daily Crash Rate** og **Daily ANR Rate** advarer ud fra andelen, der gjorde. En installation er `device.id` i ressourcen ovenfor, appens identifikator for leverandøren: én pr. enhed for alle dine apps, som bevares, så længe en af dem forbliver installeret, så geninstallation af din eneste app giver en ny installation, mens geninstallation af én ud af to ikke gør. En udgivelse af opentelemetry-swift, der sætter `app.installation.id`, tælles i stedet efter den.
+
+### Upload dine dSYM'er
+
+Xcode skriver et dSYM for hver af din apps binære filer, når det arkiverer appen, og App Store Connect giver dem tilbage under **Download dSYMs**. Upload dem efter hver arkivering, fra CI eller en build-fase i Xcode, med [OneUptime-CLI'en](/docs/cli/index) og en Server-nøgle, der hører til dit build: En nøgle med et **Fastgjort tjenestenavn**, som den, din app udgives med, afvises, fordi et dSYM navngiver frames i hver app i projektet, der udgives med dets binære fil.
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+CLI'en læser `.dSYM`-bundter, mapper og zip-filer med dem samt DWARF-filer, hvor de ligger, og sender kun hver binær fils UUID, arkitektur og funktionsnavne: En stor apps dSYM'er fylder hundredvis af megabyte, deres navne nogle få. Uden CLI'en sender du DWARF-filen fra et dSYM eller en zip-fil med `.dSYM`-bundter, som den er, op til 50 MB pr. fil:
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+Hver binær fil gemmes efter sin UUID i 400 dage, så en udgivelse, der stadig er på folks telefoner måneder senere, stadig navngives, og når et build uploades igen, erstatter det, hvad der var gemt for det. Et dSYM hører til projektet, ikke til én app: Et framework, som to af dine apps indlejrer, navngives i begge.
 :::
 
 > [!NOTE]
 > Apple leverer først MetricKits diagnosticeringer til appen ved en senere start, med det samme på iOS 15 og nyere og én gang om dagen før det, så et nedbrud eller et hæng kan ankomme minutter eller en dag efter, at det skete, og tælles, når det ankommer. «0 nedbrud i den seneste time» på en iOS-apps oversigt er altså endnu ikke gode nyheder. En diagnosticering bærer den session, der rapporterede den, ikke den, den afsluttede.
 
 opentelemetry-swift registrerer intet span, når appen starter, så felterne **Appstarter** og **Koldstart (p95)** forbliver tomme, indtil din app selv registrerer et: et span med navnet `AppStart`, med `start.type` sat til `cold`, `warm` eller `hot`, fra processen starter, til den første skærm er klar.
+
+### Når KSCrash også rapporterer et nedbrud
+
+opentelemetry-swift kan også rapportere nedbrud gennem KSCrash, som sender sin rapport som en logpost `device.crash`, næste gang appen åbnes, med tidspunktet, hvor appen gik ned. En app, der registrerer begge, rapporterer hvert nedbrud to gange: KSCrash ved næste start, MetricKit ved næste start eller op til en dag senere. OneUptime tæller et sådant nedbrud én gang: Den første rapport, der ankommer, er forekomsten, og den anden gemmes ved siden af den, i den samme undtagelse, som bevis på det samme nedbrud og tælles ikke i noget felt, diagram eller nogen monitor. Under undtagelsens **Forekomster** står der **Rapporteret to gange** ved forekomsten.
+
+To rapporter regnes kun for ét nedbrud, når alt dette gælder:
+
+- De kommer fra de to rapportører, KSCrash og MetricKit. Ingen af dem rapporterer ét nedbrud to gange, så to rapporter fra den samme er to nedbrud.
+- De kommer fra den samme installation: det samme `app.installation.id` eller `device.id`.
+- De ligger højst 26 timer fra hinanden: MetricKit stempler et nedbrud med slutningen af den dag, det rapporterer om, KSCrash med øjeblikket for nedbruddet.
+- De stemmer overens om signalet, Mach-undtagelsen og Objective-C-undtagelsen, hvor end begge nævner en.
+- De tråde, der gik ned, stemmer overens frame for frame fra der, hvor tråden startede, og indad, efter binær fil og offset, over hver frame i din apps kode, som en af dem nævner. Et nedbrud helt i Apples kode skal stemme overens i mindst tre frames, og i dem alle.
+
+Hver rapport parres én gang, med den nærmeste i tid, så to nedbrud fra den samme fejl på én installation med minutters mellemrum er to forekomster, hver med sin anden rapport. Når OneUptime ikke kan sammenligne en rapport med sin installations andre, tæller det den, så et nedbrud i værste fald tælles to gange, men aldrig går tabt.
 
 ## Tjek, at det kommer frem
 

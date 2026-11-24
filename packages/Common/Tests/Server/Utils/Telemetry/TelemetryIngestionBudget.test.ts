@@ -343,6 +343,7 @@ describe("TelemetryIngestionBudget.admit with a budget", () => {
       dayId: "20261109T0000Z",
       signalSlug: "logs",
       countedBytes: 90_000,
+      isExact: false,
       scopes: [
         {
           scope: TelemetryIngestionBudgetScope.Project,
@@ -351,6 +352,21 @@ describe("TelemetryIngestionBudget.admit with a budget", () => {
         },
       ],
     });
+  });
+
+  /*
+   * An exact size has nothing to settle, but rides on the job all the same
+   * for a project with team or label budgets: the worker takes back what one
+   * of them drops (#6386). It says so, so the worker never settles it.
+   */
+  test("says when a size is exact, so the worker has nothing to settle", async () => {
+    getInstanceSettings.mockResolvedValue(instance(logs(10)) as never);
+    measure.mockReturnValue({ bytes: 4096, isExact: true });
+
+    const charge: TelemetryIngestionBudgetCharge | null = (await admit())
+      .charge;
+
+    expect(TelemetryIngestionBudget.toJobCharge(charge!).isExact).toBe(true);
   });
 
   test("logs the warning crossing, once, from the request that crossed it", async () => {
@@ -623,6 +639,16 @@ describe("TelemetryIngestionBudget.reconcile", () => {
     await TelemetryIngestionBudget.reconcile({
       charge: jobCharge,
       decodedBytes: -1,
+    });
+
+    expect(reconcile).not.toHaveBeenCalled();
+  });
+
+  // A charge counted at its size, carried only for a team's or a label's drop (#6386).
+  test("settles nothing for a charge counted at its exact size", async () => {
+    await TelemetryIngestionBudget.reconcile({
+      charge: { ...jobCharge, isExact: true },
+      decodedBytes: 15_000,
     });
 
     expect(reconcile).not.toHaveBeenCalled();

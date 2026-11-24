@@ -909,8 +909,12 @@ export default class OnCallTestPageDelivery {
         senderName: data.context.senderName,
         policyName: data.context.policyName,
       }),
+      /*
+       * The acknowledge page with the page's token, which its Acknowledge
+       * sends on (OnCallAcknowledgeLink), as a real page's email has it.
+       */
       acknowledgeLink: (
-        await OnCallPageLinks.getEmailAcknowledgePageUrl(data.timelineId)
+        await OnCallPageLinks.getAcknowledgePageUrl(data.timelineId)
       ).toString(),
     };
 

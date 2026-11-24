@@ -541,7 +541,8 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
       criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent ||
-      criteriaFilter?.checkOn === CheckOn.SessionsWithExceptionsPercent;
+      criteriaFilter?.checkOn === CheckOn.SessionsWithExceptionsPercent ||
+      criteriaFilter?.checkOn === CheckOn.InstallsWithExceptionsPercent;
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
@@ -2550,6 +2551,19 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SessionCount) {
       return "250";
+    }
+
+    /*
+     * The same rate per install over a day is the one Android vitals
+     * judges (#9924): more than 1.09% of the day's users crashing. Its
+     * installs, the fewest a rate is judged on.
+     */
+    if (checkOn === CheckOn.InstallsWithExceptionsPercent) {
+      return "1.09";
+    }
+
+    if (checkOn === CheckOn.InstallCount) {
+      return "100";
     }
 
     if (

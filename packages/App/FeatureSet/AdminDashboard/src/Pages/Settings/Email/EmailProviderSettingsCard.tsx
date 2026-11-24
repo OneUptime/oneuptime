@@ -14,6 +14,7 @@ import {
   usesAmazonSesServerIamRole,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ServerAwsIdentityLine from "./ServerAwsIdentityLine";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import Select from "Common/Types/BaseDatabase/Select";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -32,8 +33,9 @@ import { useTranslation } from "react-i18next";
  * what is still missing), then what tells the account apart - how Amazon
  * SES is signed in to (the access key, or this server's IAM role), the
  * access key ID and Region, the Mailgun domain and region - and who the
- * emails come from. No key is ever shown: the status reads only whether one
- * is set.
+ * emails come from. Signed in with the server's IAM role, it also says
+ * which AWS identity that is, asked of AWS (ServerAwsIdentityLine, #7380).
+ * No key is ever shown: the status reads only whether one is set.
  */
 
 export interface ComponentProps {
@@ -173,6 +175,26 @@ const EmailProviderSettingsCard: FunctionComponent<ComponentProps> = (
             // The server's IAM role has no key to tell apart (#7000).
             showIf: (item: GlobalConfig): boolean => {
               return !usesAmazonSesServerIamRole(item);
+            },
+          },
+          {
+            /*
+             * Who the server's IAM role is, asked of AWS when the card
+             * shows (#7380): a missing or wrong role shows here, not first
+             * on a test email.
+             */
+            field: { amazonSesRegion: true },
+            title: "Signs In As",
+            fieldType: FieldType.Element,
+            showIf: (item: GlobalConfig): boolean => {
+              return usesAmazonSesServerIamRole(item);
+            },
+            getElement: (item: GlobalConfig): ReactElement => {
+              return (
+                <ServerAwsIdentityLine
+                  region={item.amazonSesRegion?.trim() || undefined}
+                />
+              );
             },
           },
           {

@@ -21,6 +21,12 @@ import {
   validateAwsRegions,
 } from "../../../../Server/Utils/CloudConnection/Aws/AwsRegions";
 import AwsServerIdentity from "../../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
+import AwsDefaultCredentialChain, {
+  AwsChainHttpRequest,
+  AwsChainHttpResponse,
+} from "../../../../Server/Utils/Aws/AwsDefaultCredentialChain";
+import logger from "../../../../Server/Utils/Logger";
+import { SpyInstance } from "jest-mock";
 import {
   AssumedRoleCache,
   getRoleSessionName,
@@ -54,8 +60,61 @@ import {
 
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
 
+// A server with no AWS credentials of its own, the metadata service turned off: nothing is asked.
+const noServerCredentials: () => AwsDefaultCredentialChain =
+  (): AwsDefaultCredentialChain => {
+    return new AwsDefaultCredentialChain({
+      env: { AWS_EC2_METADATA_DISABLED: "true" },
+    });
+  };
+
+interface ScriptedServer {
+  chain: AwsDefaultCredentialChain;
+  asked: Array<AwsChainHttpRequest>;
+}
+
+// A server whose pods have an EKS Pod Identity role, in `region` (#7379).
+const serverWithPodIdentity: (data?: {
+  region?: string;
+  answer?: AwsChainHttpResponse;
+}) => ScriptedServer = (data?: {
+  region?: string;
+  answer?: AwsChainHttpResponse;
+}): ScriptedServer => {
+  const asked: Array<AwsChainHttpRequest> = [];
+
+  return {
+    asked,
+    chain: new AwsDefaultCredentialChain({
+      env: {
+        AWS_CONTAINER_CREDENTIALS_FULL_URI:
+          "http://169.254.170.23/v1/credentials",
+        AWS_CONTAINER_AUTHORIZATION_TOKEN: "pod-identity-agent-token",
+        ...(data?.region ? { AWS_REGION: data.region } : {}),
+      },
+      httpClient: async (
+        request: AwsChainHttpRequest,
+      ): Promise<AwsChainHttpResponse> => {
+        asked.push(request);
+
+        return (
+          data?.answer || {
+            status: 200,
+            bodyText: JSON.stringify({
+              AccessKeyId: "ASIA444455556666ROLE",
+              SecretAccessKey: "podIdentitySecretEXAMPLE",
+              Token: "pod-identity-session-token",
+              Expiration: "2099-01-01T00:00:00Z",
+            }),
+          }
+        );
+      },
+    }),
+  };
+};
+
 beforeEach(() => {
-  AwsServerIdentity.clearCache();
+  AwsServerIdentity.useCredentialChain(noServerCredentials());
   AssumedRoleCache.clear();
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
@@ -64,6 +123,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"];
   delete process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"];
+  AwsServerIdentity.useCredentialChain(null);
   jest.restoreAllMocks();
 });
 
@@ -355,6 +415,164 @@ describe("this OneUptime's AWS identity", () => {
 
     expect(setup.isAvailable).toBe(false);
     expect(setup.trustedPrincipalArn).toBeUndefined();
+  });
+
+  test("with no key, the server's own role: found from the chain, asked who it is with its session token (#7379)", async () => {
+    const server: ScriptedServer = serverWithPodIdentity();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    const fake: FakeAws = createFakeAws({ regions: {} });
+
+    expect(AwsServerIdentity.isConfigured()).toBe(true);
+
+    const setup: CloudConnectionAwsRoleSetup =
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: fake.transport,
+      });
+
+    // The fake names the caller's account from its key: 444455556666.
+    expect(setup).toEqual({
+      isAvailable: true,
+      trustedPrincipalArn: "arn:aws:iam::444455556666:root",
+      externalId: getAwsExternalIdForProject(PROJECT),
+    });
+    expect(server.asked).toHaveLength(1);
+    expect(fake.stsCalls).toHaveLength(1);
+
+    const headers: Record<string, string> = fake.stsCalls[0]!.request
+      .headers as Record<string, string>;
+
+    expect(fake.stsCalls[0]!.action).toBe("GetCallerIdentity");
+    expect(fake.stsCalls[0]!.request.url).toBe(
+      "https://sts.us-east-1.amazonaws.com/",
+    );
+    expect(headers["Authorization"]).toContain(
+      "Credential=ASIA444455556666ROLE/",
+    );
+    expect(headers["X-Amz-Security-Token"]).toBe("pod-identity-session-token");
+  });
+
+  test("the key, when set, wins: the server's own credentials are never fetched", async () => {
+    process.env["CLOUD_CONNECT_AWS_ACCESS_KEY_ID"] = "AKIAONEUPTIMESERVER1";
+    process.env["CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY"] = "server-secret";
+    const server: ScriptedServer = serverWithPodIdentity();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    const fake: FakeAws = createFakeAws({
+      regions: {},
+      account: "999988887777",
+    });
+
+    const setup: CloudConnectionAwsRoleSetup =
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: fake.transport,
+      });
+
+    expect(setup.trustedPrincipalArn).toBe("arn:aws:iam::999988887777:root");
+    expect(server.asked).toHaveLength(0);
+    expect(
+      (fake.stsCalls[0]!.request.headers as Record<string, string>)[
+        "X-Amz-Security-Token"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("a server in GovCloud is asked who it is in GovCloud's home Region", async () => {
+    AwsServerIdentity.useCredentialChain(
+      serverWithPodIdentity({ region: "us-gov-east-1" }).chain,
+    );
+    const fake: FakeAws = createFakeAws({ regions: {} });
+
+    await AwsServerIdentity.getRoleSetup({
+      projectId: PROJECT,
+      transport: fake.transport,
+    });
+
+    expect(fake.stsCalls[0]!.request.url).toBe(
+      "https://sts.us-gov-west-1.amazonaws.com/",
+    );
+  });
+
+  test("a server whose own credentials fail is not offered the role way, and says why only in its log", async () => {
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {});
+    AwsServerIdentity.useCredentialChain(
+      serverWithPodIdentity({
+        answer: {
+          status: 403,
+          bodyText: "pod-identity-agent-token is not this pod's",
+        },
+      }).chain,
+    );
+    const fake: FakeAws = createFakeAws({ regions: {} });
+
+    const setup: CloudConnectionAwsRoleSetup =
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: fake.transport,
+      });
+
+    expect(setup).toEqual({
+      isAvailable: false,
+      externalId: getAwsExternalIdForProject(PROJECT),
+    });
+    expect(fake.stsCalls).toHaveLength(0);
+
+    const logged: string = String(warn.mock.calls[0]?.[0]);
+
+    expect(logged).toContain("The EKS Pod Identity agent (169.254.170.23)");
+    expect(logged).not.toContain("pod-identity-agent-token");
+  });
+
+  test("no AWS here at all is said quietly: most installations run so", async () => {
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation((): void => {});
+    const debug: SpyInstance<typeof logger.debug> = jest
+      .spyOn(logger, "debug")
+      .mockImplementation((): void => {});
+
+    await AwsServerIdentity.getRoleSetup({
+      projectId: PROJECT,
+      transport: createFakeAws({ regions: {} }).transport,
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(String(debug.mock.calls[0]?.[0])).toContain(
+      "This server has no AWS credentials",
+    );
+  });
+
+  test("the server's own credentials AWS no longer takes are fetched again", async () => {
+    const server: ScriptedServer = serverWithPodIdentity();
+    AwsServerIdentity.useCredentialChain(server.chain);
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    for (let check: number = 0; check < 2; check++) {
+      AwsServerIdentity.clearCache();
+      await AwsServerIdentity.getRoleSetup({
+        projectId: PROJECT,
+        transport: createFakeAws({
+          regions: {},
+          callerIdentityError: stsError(403, "ExpiredToken"),
+        }).transport,
+      });
+    }
+
+    expect(server.asked).toHaveLength(2);
+  });
+
+  test("each source is named in the server's log in words of its own", () => {
+    expect(AwsServerIdentity.describeSource("cloud-connect-key")).toBe(
+      "CLOUD_CONNECT_AWS_ACCESS_KEY_ID",
+    );
+    expect(AwsServerIdentity.describeSource("profile")).toBe(
+      "the server's AWS profile",
+    );
+    expect(AwsServerIdentity.describeSource("web-identity")).toContain(
+      "IAM roles for service accounts",
+    );
   });
 
   test("a GovCloud identity trusts its GovCloud account", () => {

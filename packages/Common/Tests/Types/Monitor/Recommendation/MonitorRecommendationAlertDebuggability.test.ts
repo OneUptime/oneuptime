@@ -13,6 +13,13 @@ import SeriesLabelDisplay, {
   DisplaySeriesLabel,
 } from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import SeriesContextEnricher from "../../../../Server/Utils/Monitor/SeriesContextEnricher";
+import {
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+  MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+} from "../../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 
 /*
  * End-to-end guard on the thing the recommendations exist for: an alert
@@ -364,6 +371,114 @@ describe("Recommendation templates produce debuggable alerts", () => {
         expect(command).not.toMatch(/\s\s/);
         expect(command.trim()).toBe(command);
       }
+    });
+
+    /*
+     * #10209: a device series is named the same whichever template it is
+     * of, so the commands follow the metrics the monitor's step reads. A
+     * Low Battery alert's first step lists the device's battery - and, for
+     * a service that says whether a device is on its charger, its charging
+     * after it (#10288) - a Security Patch Out of Date alert's its patch
+     * age: never another reading's command, and never the check-ins first.
+     */
+    const DEVICE_READINGS: Array<string> = [
+      MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+      MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+      MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+      MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+      MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+    ];
+
+    // The device readings a step reads, in the order the commands list them.
+    function ownReadingsOf(ownMetrics: Array<string>): Array<string> {
+      return DEVICE_READINGS.filter((metricName: string): boolean => {
+        return ownMetrics.includes(metricName);
+      });
+    }
+
+    function metricsListedBy(commands: Array<string>): Array<string> {
+      return commands.map((command: string): string => {
+        const quoted: RegExpMatchArray | null = command.match(
+          /^oneuptime metric list --query '(.*)' --sort/,
+        );
+
+        expect(quoted).not.toBeNull();
+
+        return (
+          JSON.parse(quoted![1]!.split(`'\\''`).join("'")) as { name: string }
+        ).name;
+      });
+    }
+
+    test.each(CASES)(
+      "$recommendationId's first step holds only its own reading's command",
+      (testCase: TemplateCase) => {
+        const ownMetrics: Array<string> = SeriesDebugHints.getMetricNamesOfView(
+          MonitorStep.getMetricsViewConfig(testCase.step),
+        );
+        const ownReadings: Array<string> = ownReadingsOf(ownMetrics);
+        const commands: Array<string> = SeriesDebugHints.getDebugCommands({
+          monitorType: testCase.monitorType,
+          seriesLabels: buildSeriesLabels(testCase.groupByKeys),
+          metricNames: ownMetrics,
+        }).map((command: { command: string }) => {
+          return command.command;
+        });
+
+        // One command a reading the monitor reads: the connection's own, its one.
+        expect(commands).toHaveLength(Math.max(1, ownReadings.length));
+        expect(ownMetrics).toContain(metricsListedBy(commands)[0]);
+        // Its first is the template's own reading: a Low Battery's battery.
+        expect(metricsListedBy(commands)[0]).toBe(ownMetrics[0]);
+
+        // Of a device's readings, the ones its monitor reads alone.
+        if (ownReadings.length > 0) {
+          expect(metricsListedBy(commands)).toEqual(ownReadings);
+        }
+      },
+    );
+
+    test.each(CASES)(
+      "$recommendationId's alert description carries that command alone, as its monitor writes it",
+      (testCase: TemplateCase) => {
+        const metricNames: Array<string> =
+          SeriesDebugHints.getMetricNamesOfView(
+            MonitorStep.getMetricsViewConfig(testCase.step),
+          );
+
+        for (const instance of getCriteriaInstances(testCase.step)) {
+          for (const alert of instance.data?.alerts || []) {
+            const enriched: string = SeriesContextEnricher.enrichDescription({
+              description: alert.description,
+              seriesLabels: buildSeriesLabels(testCase.groupByKeys),
+              monitorType: testCase.monitorType,
+              metricNames,
+            });
+            const listed: Array<string> = DEVICE_READINGS.filter(
+              (metricName: string): boolean => {
+                return enriched.includes(`"name":"${metricName}"`);
+              },
+            );
+            const ownReadings: Array<string> = ownReadingsOf(metricNames);
+
+            expect(enriched.split("oneuptime metric list").length - 1).toBe(
+              Math.max(1, ownReadings.length),
+            );
+            expect(listed).toEqual(ownReadings);
+          }
+        }
+      },
+    );
+
+    test("a device series whose monitor is not known keeps every reading's command, check-ins first", () => {
+      const commands: Array<string> = SeriesDebugHints.getDebugCommands({
+        monitorType: MonitorType.Metrics,
+        seriesLabels: { "oneuptime.managed_device.name": "ESP-ID-AAAAW" },
+      }).map((command: { command: string }) => {
+        return command.command;
+      });
+
+      expect(metricsListedBy(commands)).toEqual(DEVICE_READINGS);
     });
   });
 

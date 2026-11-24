@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 /*
  * Today's ingestion budgets as the status API answers them (issue #5917):
  * every signal's budget and rate and where each was set, what the counters
- * say, for the project and each key with a budget of its own - and never a
- * 0 standing in for a counter that could not be read.
+ * say, for the project and each key with a budget of its own - and, since
+ * #6386, each team and label with one - and never a 0 standing in for a
+ * counter that could not be read.
  */
 
 jest.mock(
@@ -34,6 +35,13 @@ jest.mock("../../../../Server/Services/TelemetryIngestionKeyService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+jest.mock(
+  "../../../../Server/Services/TelemetryIngestionTeamLabelBudgetService",
+  () => {
+    return { __esModule: true, default: { findBy: jest.fn() } };
+  },
+);
+
 jest.mock("../../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -55,6 +63,7 @@ import TelemetryIngestionBudgetCounter, {
   TelemetryIngestionBudgetDayKeyParts,
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter";
 import TelemetryIngestionKeyService from "../../../../Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionTeamLabelBudgetService from "../../../../Server/Services/TelemetryIngestionTeamLabelBudgetService";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../Types/JSON";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
@@ -82,6 +91,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const KEY_ID: string = "11111111-1111-4111-8111-111111111192";
 const OTHER_KEY_ID: string = "11111111-1111-4111-8111-111111111193";
+const TEAM_ID: string = "11111111-1111-4111-8111-111111111195";
+const LABEL_ID: string = "11111111-1111-4111-8111-111111111196";
 const NOW: Date = new Date("2026-11-09T12:00:00Z");
 
 const counters: (
@@ -134,6 +145,9 @@ beforeEach(() => {
   (TelemetryIngestionKeyService.findBy as unknown as MockFn).mockResolvedValue(
     [] as never,
   );
+  (
+    TelemetryIngestionTeamLabelBudgetService.findBy as unknown as MockFn
+  ).mockResolvedValue([] as never);
   (
     TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
   ).mockImplementation((async (
@@ -235,6 +249,112 @@ describe("TelemetryIngestionBudgetStatusReader.getProjectStatus", () => {
       TelemetryIngestionBudgetState.NoBudget,
     );
     expect(status.ingestionKeys).toEqual([]);
+    expect(status.teamsAndLabels).toEqual([]);
+  });
+
+  test("lists the teams and labels with budgets of their own, teams first, each held to the project's", async () => {
+    (
+      TelemetryIngestionTeamLabelBudgetService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      {
+        labelId: new ObjectID(LABEL_ID),
+        label: { name: "production", color: "#ff0000" },
+        tracesDailyIngestionBudgetInGB: 3,
+      },
+      {
+        teamId: new ObjectID(TEAM_ID),
+        team: { name: "Payments" },
+        logsDailyIngestionBudgetInGB: 50,
+      },
+      // A row with no budget set is no budget.
+      {
+        teamId: new ObjectID("11111111-1111-4111-8111-111111111197"),
+        team: { name: "Idle" },
+      },
+    ] as never);
+
+    const status: TelemetryIngestionBudgetStatus =
+      await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+        projectId: PROJECT_ID,
+        now: NOW,
+      });
+
+    expect(
+      status.teamsAndLabels.map(
+        (scope: TelemetryIngestionBudgetScopeStatus) => {
+          return [scope.scope, scope.teamName || scope.labelName];
+        },
+      ),
+    ).toEqual([
+      [TelemetryIngestionBudgetScope.Team, "Payments"],
+      [TelemetryIngestionBudgetScope.Label, "production"],
+    ]);
+
+    const team: TelemetryIngestionBudgetScopeStatus = status.teamsAndLabels[0]!;
+    const label: TelemetryIngestionBudgetScopeStatus =
+      status.teamsAndLabels[1]!;
+
+    expect(team.teamId).toBe(TEAM_ID);
+    expect(label.labelId).toBe(LABEL_ID);
+    expect(label.labelColor).toBe("#ff0000");
+
+    // The four signals a team or a label budgets: no security events.
+    expect(
+      team.signals.map((signal: TelemetryIngestionBudgetSignalStatus) => {
+        return signal.signal;
+      }),
+    ).toEqual([
+      ProductType.Logs,
+      ProductType.Traces,
+      ProductType.Metrics,
+      ProductType.Profiles,
+    ]);
+
+    // 50 GB of its own, held to the project's 10, and never a rate.
+    expect(team.signals[0]!.dailyBudgetBytes).toBe(10 * GB);
+    expect(team.signals[0]!.dailyBudgetSource).toBe(
+      TelemetryIngestionBudgetLimitSource.Instance,
+    );
+    expect(team.signals[0]!.rateLimitBytesPerSecond).toBe(null);
+    // 3 GB of its own, under no project budget for traces.
+    expect(label.signals[1]!.dailyBudgetBytes).toBe(3 * GB);
+    expect(label.signals[1]!.dailyBudgetSource).toBe(
+      TelemetryIngestionBudgetLimitSource.Label,
+    );
+  });
+
+  test("reads a team's and a label's counters in the same batch, after the keys'", async () => {
+    (
+      TelemetryIngestionTeamLabelBudgetService.findBy as unknown as MockFn
+    ).mockResolvedValue([
+      {
+        teamId: new ObjectID(TEAM_ID),
+        team: { name: "Payments" },
+        logsDailyIngestionBudgetInGB: 1,
+      },
+    ] as never);
+
+    await TelemetryIngestionBudgetStatusReader.getProjectStatus({
+      projectId: PROJECT_ID,
+      now: NOW,
+    });
+
+    expect(
+      TelemetryIngestionBudgetCounter.readDayCounters,
+    ).toHaveBeenCalledTimes(1);
+
+    const days: Array<TelemetryIngestionBudgetDayKeyParts> = (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mock.calls[0]![0] as Array<TelemetryIngestionBudgetDayKeyParts>;
+
+    // The project's five signals, then the team's four.
+    expect(days).toHaveLength(9);
+    expect(days[5]).toEqual({
+      dayId: "20261109T0000Z",
+      scope: TelemetryIngestionBudgetScope.Team,
+      scopeId: TEAM_ID,
+      signalSlug: "logs",
+    });
   });
 
   test("reads the settings fresh, so a budget just saved is the one shown", async () => {

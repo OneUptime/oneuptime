@@ -218,7 +218,8 @@ and the plan after it is empty. Moving a row in the dashboard works as it did.
 ### Other changes in 17
 
 These change how OneUptime behaves after the upgrade. Read them if you number
-these lists through the API, Terraform or OpenTofu.
+these lists through the API, Terraform or OpenTofu, or schedule maintenance
+with recurring templates.
 
 :::details Read the other changes in 17
 - **Rows that share a number are read in the order of their IDs, and a gap in
@@ -231,6 +232,35 @@ these lists through the API, Terraform or OpenTofu.
   the other, in the order of their IDs: before 17, the second was never
   paged. A policy's next level is the first after the one it is on, never the
   one numbered one more.
+- **A recurring maintenance template keeps its events' time of day when the
+  clocks change, and a monthly one keeps its day of the month.** A
+  template's next event was the one before plus a fixed number of
+  milliseconds: a day was 24 hours and a month 30.4375 days. So a daily
+  02:00 window ran at 01:00 for the winter in a time zone that changes its
+  clocks, and a monthly window on the 1st moved to 31 January, then 2 March.
+  A template now has a time zone (**Timezone**, on its **Recurring** step),
+  and every event is its first event moved on whole days, weeks, months or
+  years of that time zone's calendar. A new template starts on its creator's
+  time zone. Every template that already exists gets **UTC**, the time zone
+  its events were worked out in until now, so none of its upcoming hourly,
+  daily or weekly events moves; a monthly or yearly template goes back to
+  its first event's day of the month and time of day from its next event
+  on. Events already created keep their times. Open each recurring template
+  whose times were meant on a clock that changes for daylight saving time,
+  pick that time zone, and check its next event: from then on, its events
+  keep the first event's time of day there. The API and Terraform
+  (`timezone`) take an IANA time zone name; a template created without one
+  takes its creator's profile time zone, or UTC when an API key creates it,
+  and a name that is not a time zone is refused. See
+  [Recurring events](/docs/scheduled-maintenance/templates#recurring-events).
+- **Network sites have owners, and the `Owned` scope narrows them.** A
+  site's people and teams own the alert it raises when it is unhealthy, and a
+  permission scoped to `Owned` - such as `ProjectMember` - now changes and
+  deletes only the sites its people or their teams own, where it changed
+  every site before. Sites are still read in full, so any of them can be
+  picked for a device. Make the people who look after sites their owners, on
+  a site's **Owners** page or with **Add Owner** in the **Sites** list's
+  **Bulk Actions**. See [Network Sites](/docs/monitor/network-sites).
 :::
 
 ## Upgrading from OneUptime 15 → 16

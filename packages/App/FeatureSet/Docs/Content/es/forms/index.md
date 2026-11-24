@@ -93,8 +93,10 @@ En **Compartir**, copia el enlace y envíalo a las personas que deben usar el fo
 | **Construir** | El nombre y la descripción del formulario, su **Marca** (logotipo y favicon, plegados) y el editor: sus preguntas, la paleta de preguntas y **Vista previa**. |
 | **Plantillas** | Conjuntos de respuestas con nombre desde los que se puede empezar el formulario, cómo hace las preguntas cada uno, el que se abre por defecto y el enlace propio de cada uno. |
 | **Al enviar** | Qué crea cada envío y cómo se rellena cada uno de sus campos. **Editar configuración** cambia los valores predeterminados y lo que se aplica siempre. |
-| **Compartir** | **Acepta envíos**, el **Enlace para compartir**, el mensaje que se muestra tras enviar y, en **Más ajustes**, la **Lista de IP permitidas**. |
+| **Compartir** | **Acepta envíos**, el **Enlace para compartir**, **Quién puede abrir este formulario**, el mensaje que se muestra tras enviar y, en **Más ajustes**, la **Lista de IP permitidas**. |
 | **Dominios personalizados** | Los dominios propios del formulario, como `report.acme.com`, con sus registros DNS y sus certificados. Consulta [Dominios personalizados](/docs/forms/sharing-and-security#dominios-personalizados). |
+| **Usuarios privados** | Las personas que pueden iniciar sesión para abrir el formulario, cuando solo quienes inician sesión pueden abrirlo. Consulta [Solo quienes inician sesión](/docs/forms/sharing-and-security#solo-quienes-inician-sesión). |
+| **Inicio de sesión único** | Los proveedores de identidad SAML y OpenID Connect que inician la sesión de las personas en el formulario, y **Requerir SSO para iniciar sesión**. |
 | **Envíos** | Cada envío hecho con el formulario, el más reciente primero, con sus respuestas y lo que creó. |
 | **Duplicar formulario** | En **Avanzado**: una copia del formulario, con nombre puesto por ti, con sus preguntas, plantillas, ajustes de Al enviar, marca, mensaje de agradecimiento y lista de IP permitidas, y un enlace propio. La copia empieza desactivada y se abre en su editor. |
 | **Registros de auditoría** | En **Avanzado**: cada cambio hecho en el formulario, sus dominios personalizados y sus envíos, quién lo hizo y cuándo. |
@@ -262,6 +264,8 @@ Los formularios tienen los componentes de workflow generados: **Al crear Formula
 ### Los endpoints propios de la página pública
 
 La página pública habla con dos rutas que no necesitan clave de API: `GET /api/form/public/<shareKey>`, que devuelve el nombre, la descripción y las preguntas del formulario (y su logotipo, el texto alternativo del logotipo y su favicon, las imágenes en base64, cuando los tiene, y sus plantillas, con sus respuestas a las preguntas que hace la página), y `POST /api/form/public/<shareKey>/submit`, que lo envía, nombrando en `templateId` la plantilla desde la que empezó quien envía. Son los endpoints propios de la página, no una API sobre la que construir: cada llamada pasa por las protecciones del formulario (consulta [Compartir y seguridad](/docs/forms/sharing-and-security)) y cambian con la página. Para crear incidentes desde tu propio código, usa `POST /api/incident` con una clave de API: consulta [Declarar un incidente](/docs/incidents/declaring-incidents). En un [dominio personalizado](/docs/forms/sharing-and-security#dominios-personalizados) de un formulario, la página usa en su lugar `GET /api/form/custom-domain` y `POST /api/form/custom-domain/submit` en ese dominio, que no llevan clave: el dominio indica el formulario.
+
+En un formulario que solo quienes inician sesión pueden abrir, estas rutas responden `401` a cualquiera que no haya iniciado sesión como uno de sus usuarios privados. La página lee primero `GET /api/form/public/<shareKey>/sign-in-state`, o `GET /api/form/custom-domain/sign-in-state` en un dominio personalizado, que solo dice si el formulario pide a sus visitantes iniciar sesión y, cuando lo hace, su ID, su nombre y quién ha iniciado sesión.
 
 ## Dónde están tus formularios de incidentes
 

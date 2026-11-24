@@ -181,7 +181,7 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 | --------------------- | --------------------------------------------------------------------------- |
 | **Overzicht** | **Overzicht**, **Statustijdlijn**, **Lidwaarschuwingen**, **Eigenaren** |
 | **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities**, **Privénotities** |
-| **Ontwikkelaars** | **Terraform**, **API**, **CLI**, **AI-assistenten** |
+| **Ontwikkelaars** | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
 **Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Waarschuwingen in deze episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Episode verplaatsen naar** in het menu **⋯**.

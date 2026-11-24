@@ -47,11 +47,12 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 | Una forma breve o completa del nome di un record, come `web-1` e `web-1.acme.internal` | Quel record | Possibile |
 | Un indirizzo IP pubblico che ha un solo host o dispositivo di rete, o su cui risponde una sola risorsa cloud | Quel record | Esatto |
 | Un indirizzo IP privato, o uno che hanno più record | Ogni record che lo ha | Possibile |
-| L'ID proprio di una risorsa cloud: un ARN AWS, un ID di risorsa Azure o un nome di risorsa Google Cloud | Quella risorsa cloud | Esatto |
+| L'ID proprio di una risorsa cloud: un ARN AWS o un nome di risorsa Google Cloud così come è scritto, oppure un ID di risorsa Azure, in maiuscolo o in minuscolo | Quella risorsa cloud | Esatto |
 | Un host, un indirizzo IP pubblico o l'host di un URL che un monitor controlla | Quel monitor | Esatto |
 | Un indirizzo IP privato che un monitor controlla | Quel monitor | Possibile |
 | L'email di un membro | Quel membro | Esatto |
 | Il record con cui è stata inviata una riga di log, per gli eventi letti dai tuoi log | Quell'host, cluster, cloud OpenStack, risorsa cloud, funzione serverless o servizio | Esatto |
+| La risorsa cloud o la funzione serverless da cui è arrivata una riga di log, in base al suo `cloud.resource_id` o al suo `faas.name`, per gli eventi letti dai tuoi log | Quella risorsa cloud o funzione serverless | Esatto |
 | Un semplice nome utente, un hash di file o un processo | Niente: nessun record è indicizzato in base a loro | - |
 
 - Una possibile corrispondenza mostra **Possibile corrispondenza** accanto al suo nome e dice perché. Non viene mai contata nella pagina del record, e un incidente che il caso dichiara non viene mai collegato a essa.

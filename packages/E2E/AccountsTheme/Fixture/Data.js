@@ -170,3 +170,16 @@ export const FORM = {
     { id: "email", label: "Your email", type: "Email" },
   ],
 };
+
+/*
+ * A form that asks its visitors to sign in (#10249), with form=signin: its
+ * id, the password that signs its private user in, and its one single
+ * sign-on provider, as its sign-in methods name them.
+ */
+export const FORM_ID = "0f000000-0000-4000-8000-000000000001";
+export const FORM_PASSWORD = "correct horse battery staple 9";
+export const FORM_SSO_PROVIDER = {
+  _id: "0f000000-0000-4000-8000-0000000000a1",
+  name: "Okta",
+  description: "Acme staff",
+};

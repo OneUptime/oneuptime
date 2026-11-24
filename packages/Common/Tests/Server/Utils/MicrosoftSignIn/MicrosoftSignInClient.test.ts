@@ -136,6 +136,68 @@ describe("MicrosoftSignInClient.createSignInRequest", () => {
   });
 });
 
+/*
+ * Sign In Again (#10217): Microsoft is asked to have the person sign in
+ * again (prompt=login) and to say when (max_age=0). Microsoft Entra ID
+ * puts auth_time in the ID token only once the server's app has it as an
+ * optional claim (Marketplace/RELEASING.md).
+ */
+describe("MicrosoftSignInClient, for Sign In Again", () => {
+  it("asks Microsoft to have the person sign in again, and to say when, in place of choosing an account", () => {
+    const request: MicrosoftSignInRequest = createClient(
+      createFakeHttpClient([]),
+    ).createSignInRequest({ isSignInAgain: true });
+
+    const params: URLSearchParams = new URL(request.authorizationUrl)
+      .searchParams;
+
+    expect(params.get("prompt")).toBe("login");
+    expect(params.get("max_age")).toBe("0");
+    expect(params.get("state")).toBe(request.state);
+    expect(params.get("nonce")).toBe(request.nonce);
+  });
+
+  it("any other sign-in chooses an account, as it did", () => {
+    for (const request of [
+      createClient(createFakeHttpClient([])).createSignInRequest(),
+      createClient(createFakeHttpClient([])).createSignInRequest({
+        isSignInAgain: false,
+      }),
+    ]) {
+      const params: URLSearchParams = new URL(request.authorizationUrl)
+        .searchParams;
+
+      expect(params.get("prompt")).toBe("select_account");
+      expect(params.has("max_age")).toBe(false);
+    }
+  });
+
+  it("reads when Microsoft says the person signed in, and nothing without the optional claim", () => {
+    expect(
+      MicrosoftSignInClient.readIdentity(
+        claimsFor(MICROSOFT_CONSUMER_TENANT_ID, { auth_time: 1795168800 }),
+        NONCE,
+      ).authenticatedAt,
+    ).toEqual(new Date(1795168800 * 1000));
+
+    expect(
+      MicrosoftSignInClient.readIdentity(
+        claimsFor(MICROSOFT_CONSUMER_TENANT_ID),
+        NONCE,
+      ).authenticatedAt,
+    ).toBeNull();
+
+    for (const authTime of ["1795168800", 0, -1, null]) {
+      expect(
+        MicrosoftSignInClient.readIdentity(
+          claimsFor(MICROSOFT_CONSUMER_TENANT_ID, { auth_time: authTime }),
+          NONCE,
+        ).authenticatedAt,
+      ).toBeNull();
+    }
+  });
+});
+
 describe("MicrosoftSignInClient.readIdentity", () => {
   it("signs in a personal Microsoft account by its email address", () => {
     const identity: MicrosoftIdentity = MicrosoftSignInClient.readIdentity(

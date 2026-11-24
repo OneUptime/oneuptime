@@ -136,7 +136,7 @@ Source maps worden 90 dagen na het uploaden bewaard en daarna automatisch verwij
 ## Beveiliging
 
 - Maps worden geüpload via een geauthenticeerd endpoint en opgeslagen in uw OneUptime-project: ze worden nooit van uw website opgehaald, dus verborgen source maps blijven verborgen.
-- De ruwe inhoud van een map (inclusief uw oorspronkelijke broncode als hij met `sourcesContent` is gebouwd) kan alleen worden teruggelezen door Projecteigenaren en Projectbeheerders, en door iedereen met de machtiging **Read Telemetry Source Map**. Andere teamleden zien alleen de opgeloste frames en de paar coderegels rond elke crashplek van uitzonderingen waartoe ze al toegang hebben.
+- De ruwe inhoud van een map (inclusief uw oorspronkelijke broncode als hij met `sourcesContent` is gebouwd) kan alleen worden teruggelezen door Projecteigenaren en Projectbeheerders, door iedereen die Services op het [niveau Beheerder](/docs/permissions/index#productniveaus) heeft (`ServiceAdmin`), en door iedereen met de machtiging **Read Telemetry Source Map**. Andere teamleden zien alleen de opgeloste frames en de paar coderegels rond elke crashplek van uitzonderingen waartoe ze al toegang hebben.
 - Een service verwijderen, verwijdert ook de source maps ervan.
 
 ## Problemen oplossen

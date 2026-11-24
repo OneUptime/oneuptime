@@ -89,7 +89,7 @@ En lista eller en räkning tar en `query`. Ett fält med ett värde matchar det 
 | `Includes` | Något av värdena i `value` |
 | `IsNull`, `NotNull` | Inget värde, eller vilket värde som helst |
 
-Ett fält i en post som resursen namnger filtreras under dess relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` hittar de teammedlemmar vars användare har ett namn som innehåller ”ada”. Att filtrera på ett fält kräver behörighet att läsa det, genom en relation som på själva resursen: ett filter på ett fält du inte får läsa avvisas med en `422` som namnger fältet.
+Ett fält i en post som resursen namnger filtreras under dess relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` hittar de teammedlemmar vars användare har ett namn som innehåller ”ada”. Att filtrera på ett fält kräver behörighet att läsa det, genom en relation som på själva resursen: ett filter på ett fält du inte får läsa avvisas med en `422` som namnger fältet. Genom en relation avvisas ett fält som bara personen själv får läsa, till exempel en användares tidszon eller personens aviseringsmetoder och jourloggar, för alla, både i ett filter och i en sortering, eftersom relationen kan namnge vems post som helst.
 
 En resurs med ägare - en monitor, en incident, en jourpolicy och varje annan med användar- och teamägare - filtreras också efter vem som äger den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` hittar de poster som en eller flera av de personerna och teamen äger. `match` är `AnyOf` om du inte anger den: `NoneOf` hittar de poster som ingen av dem äger, även poster utan ägare, och `AnyOwner` och `NoOwner` hittar de poster som har någon ägare eller ingen, utan att namnge någon. Ett teams medlemmar är inte ägare till det som teamet äger. Ett filter namnger högst 1 000 personer och team tillsammans, en resurs utan ägare avvisar det med en `400`, och att filtrera på ägare utan behörighet att läsa dem nekas med en `422`.
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | Begäran är felaktig: API-nyckeln är ogiltig, ett värde är inte tillåtet, ett fält kan inte skrivas, en post som den namnger är inte din, eller den ändrar flera projekt på en gång. Meddelandet säger vad som är fel. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
 | `402` | Projektets plan omfattar inte det som begäran använder. Meddelandet namnger planen. | [Funktioner som din plan inte omfattar](#funktioner-som-din-plan-inte-omfattar) |
 | `404` | Posten finns inte, ligger i ett annat projekt eller är en som du inte får läsa: samma svar för var och en. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
+| `413` | Kroppen är större än vad OneUptime tar emot i begäran: 1 MB med högst 100 000 JSON-värden i de flesta begäranden, och 50 MB i en som skickar en fil, en instrumentpanel eller en statussida. Meddelandet anger gränsen. På en server som du själv driver höjer `REQUEST_BODY_MAX_BYTES` och `REQUEST_BODY_MAX_JSON_VALUES` gränsen för de flesta begäranden. | [Begäranden och svar](#begäranden-och-svar) |
 | `422` | Du får inte göra detta: API-nyckeln har ingen behörighet för den här sortens post, du får läsa posten men inte ändra den, eller så utesluter en behörighets etiketter den. Meddelandet säger varför. | [Ändra eller radera en post som du inte får läsa](#ändra-eller-radera-en-post-som-du-inte-får-läsa) |
 | `500` | Något misslyckades på servern. När ägaren till en ny post inte kan skrivas tas posten bort igen, så att skapandet kan försökas igen. | [Poster som en begäran namnger](#poster-som-en-begäran-namnger) |
 
@@ -254,7 +255,33 @@ Team, etiketter, jourpolicyer och jourscheman har var sitt eget namn i ett proje
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn. För team, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant.
+Många andra slag har också ett eget namn, till exempel allvarlighetsgrader för incidenter, monitorstatusar, statussidor och arbetsflöden, och avvisar ett upptaget namn på samma sätt, både när en post skapas och när den byter namn:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Utöver meddelandet innehåller varje sådant avslag en `refusalCode` som säger vad som har namnet. Känn igen avslaget på den koden, inte på meningen, som kan formuleras om:
+
+- `"refusalCode": "name_taken"`: en post i drift har det. Ingenting skrevs, så samma begäran kan skickas igen så snart den posten lämnar namnet: Terraform-providern frågar igen i upp till 30 sekunder.
+- `"refusalCode": "name_taken_by_archived"`: bara en arkiverad post har det. Avarkivera den posten, eller välj ett annat namn: att skicka begäran igen hjälper inte, och Terraform-providern gör det inte.
+
+En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn, men aldrig en annan posts namn. För team, etiketter, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant. Arkiverade etiketter och jourpolicyer räknas inte med.
+
+#### Värden som en annan post redan har
+
+Även vissa värden som inte är ett namn hör till en post var: domänen för en statussida, en instrumentpanel eller ett formulär, en projektdomän, identifieraren för en värd eller ett Kubernetes-kluster, inloggnings-URL:en för en SSO-leverantör och behörigheten för en API-nyckel, bland andra. Ett skapande, eller en uppdatering som ändrar ett av dem, till ett värde som en annan post har avvisas med en `400` som säger det:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Utöver meddelandet innehåller avslaget en `refusalCode` som säger vad som har värdet, och ett `field` som namnger fältet vars värde är upptaget, till exempel `"field": "fullDomain"`. Ett värde av flera fält tillsammans kommer utan `field`. Känn igen avslaget på koden, inte på meningen, som kan formuleras om:
+
+- `"refusalCode": "value_taken"`: en post i drift har det. Ingenting skrevs, så samma begäran kan skickas igen så snart den posten lämnar värdet: Terraform-providern frågar igen i upp till 30 sekunder.
+- `"refusalCode": "value_taken_by_archived"`: bara en arkiverad post har det. Avarkivera den posten, eller välj ett annat värde: att skicka begäran igen hjälper inte, och Terraform-providern gör det inte.
+
+En uppdatering som skickar en posts eget värde igen, oavsett skiftläge, är ingen ändring, så poster som tidigare delade ett värde kan fortfarande ändras och få var sitt värde.
 
 ### Brytare
 
@@ -279,6 +306,40 @@ User is not allowed to create on resellerId column of Project. No permission all
 OneUptime registrerar vem som skapade en post — och vem som arkiverade den, löste den, bekräftade den eller utlöste den — från själva begäran: den person som är inloggad, eller ingen när begäran kommer med en API-nyckel eller från ett arbetsflöde. De här fälten (`createdByUserId` och de andra fälten som slutar på `ByUserId`, med sina relationer som `createdByUser`) är skrivskyddade, och det är även när en post arkiverades eller löstes (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): att slå på `isArchived` eller `isResolved` registrerar vem som gjorde det och när, och att slå av det rensar båda. Att skicka en brytare som den redan står behåller vem som slog om den, och när.
 
 API-referensen markerar de här fälten som skrivskyddade. Ett värde som en begäran skickar för ett av dem bredvid andra ändringar ignoreras, så att resten av ändringen går igenom; en uppdatering som inte skickar något annat avvisas med ett meddelande som namnger fälten. Poster som OneUptime självt skapar för någons räkning — en anteckning som postats från Slack eller Microsoft Teams, ett konto som skapats genom en inbjudan — namnger den personen.
+
+### Fält som bara OneUptime skriver
+
+Vissa fält skrivs av OneUptime ensamt: när en telemetrimonitor senast kördes och när den körs nästa gång, vad en agent senast rapporterade, tidsgränserna för ett SLA, när en SCIM-klienthemlighet slutar fungera. API-referensen markerar dem som skrivskyddade och utelämnar dem ur kroppen för skapande och uppdatering. Ett skapande som skickar ett av dem, som en kopia av en post du har läst gör, går igenom utan fältet, och den nya posten får OneUptimes värde. En uppdatering som skickar ett av dem avvisas, och svaret namnger varje sådant fält den skickade:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Utelämna de här fälten i en uppdatering. De få som en person ändrar har en egen begäran: att byta ut en SCIM-klienthemlighet anger när den slutar fungera, och `POST /api/host/:id/try-collector-config-again` skickar igen till en värd den insamlarkonfiguration som misslyckades på den. Ett fält som både du och OneUptime ändrar, till exempel en posts `labels`, där etikettregler lägger till etiketter, anger du som förut.
+
+Ett skapande som utelämnade ett fält namnger det i svarets huvud `X-OneUptime-Fields-Left-Out`, med fälten åtskilda av kommatecken; ett svar där inget har utelämnats har inget sådant huvud. CLI:t skriver ut fälten i en anteckning, MCP-serverns svar listar dem i `fieldsLeftOut`, och Terraform-providern visar dem i en varning.
+
+### Lägga till element i en lista och ta bort dem
+
+En ändring kan lägga till poster i en lista, eller ta bort några, utan att skicka hela listan: `addToList` och `removeFromList` namnger de ID:n som ska läggas till och tas bort, lista för lista. Varje element som ändringen inte namnger står kvar, även ett som någon annan eller en etikettregel lägger till i samma ögonblick:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Skickat till `PUT /api/monitor/<id>` byter detta namn på monitorn, lägger till en etikett på den och tar bort en annan. Utelämna `data` när ändringen bara lägger till och tar bort element. Ett element är postens ID, eller ett objekt med dess `_id`, som i `data`, och att lägga till ett element som listan redan innehåller, eller ta bort ett som den inte innehåller, ändrar ingenting.
+
+De listor som en ändring kan namnge är de som den fullständiga API-referensen listar under `addToList` för resursens `PUT`-begäran. En ändring som görs på det här sättet kontrolleras som hela den lista den lämnar efter sig skulle ha kontrollerats, enligt reglerna ovan: din behörighet att ändra listan, att varje post den lägger till är en av ditt projekts poster som du får läsa, och de etiketter som en behörighet begränsad till etiketter behåller. En lista som skickas både hel, i `data`, och i `addToList` eller `removeFromList` avvisas med en `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+Terraform- och Crossplane-providrarna ändrar en posts etiketter på det här sättet, så en etikett som en regel lägger till medan de körs står kvar: se [Etiketter och andra listor som OneUptime också lägger till i](/docs/terraform/complete-guide#etiketter-och-andra-listor-som-oneuptime-också-lägger-till-i).
 
 ## Tillstånd och episoder
 

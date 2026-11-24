@@ -381,11 +381,19 @@ export default class AuditLog extends AnalyticsBaseModel {
     /*
      * What the workflow whose step made the change ran as, and with whose
      * permissions (#9766): Default, ProjectOwner or CustomRole - the role by
-     * its name at the time - and, for the last two, the person or the
-     * project API key that gave them, by id and by name at the time. Set
+     * its name at the time - and, for the last two, its giver: the person or
+     * the project API key that gave them, by id and by name at the time. Set
      * only on a workflow's entries (beside workflowId); nullable, so the
      * rows written before these columns existed read NULL, which says
      * nothing either way (AddAuditLogWorkflowRunAsColumns).
+     *
+     * The giver's columns are named for the giver, as userId and apiKeyId
+     * are for whoever made the change. No analytics model names a column
+     * "<act> by user": the rule that closes such a column to every write is
+     * the database models' own (UserAttributionColumns). They were
+     * workflowRunAsGivenBy{UserId,ApiKeyId,Name} at first, and what an
+     * install recorded under those names is copied into these
+     * (CopyAuditLogWorkflowRunAsGiverColumns).
      */
     const auditLogReaders: Array<Permission> = [
       Permission.ProjectOwner,
@@ -423,9 +431,9 @@ export default class AuditLog extends AnalyticsBaseModel {
         },
       });
 
-    const workflowRunAsGivenByUserIdColumn: AnalyticsTableColumn =
+    const workflowRunAsGiverUserIdColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
-        key: "workflowRunAsGivenByUserId",
+        key: "workflowRunAsGiverUserId",
         title: "Workflow Permissions Given by User ID",
         description:
           "ID of the person whose permissions the workflow ran with, when it ran as Project Owner or a custom role and a person gave them.",
@@ -438,9 +446,9 @@ export default class AuditLog extends AnalyticsBaseModel {
         },
       });
 
-    const workflowRunAsGivenByApiKeyIdColumn: AnalyticsTableColumn =
+    const workflowRunAsGiverApiKeyIdColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
-        key: "workflowRunAsGivenByApiKeyId",
+        key: "workflowRunAsGiverApiKeyId",
         title: "Workflow Permissions Given by API Key ID",
         description:
           "ID of the project API key whose permissions the workflow ran with, when it ran as Project Owner or a custom role and a key gave them.",
@@ -453,9 +461,9 @@ export default class AuditLog extends AnalyticsBaseModel {
         },
       });
 
-    const workflowRunAsGivenByNameColumn: AnalyticsTableColumn =
+    const workflowRunAsGiverNameColumn: AnalyticsTableColumn =
       new AnalyticsTableColumn({
-        key: "workflowRunAsGivenByName",
+        key: "workflowRunAsGiverName",
         title: "Workflow Permissions Given By",
         description:
           "Name of the person or API key whose permissions the workflow ran with, at the time of the action. Empty when it ran with the default permissions.",
@@ -545,9 +553,9 @@ export default class AuditLog extends AnalyticsBaseModel {
         workflowNameColumn,
         workflowRunAsColumn,
         workflowRunAsCustomRoleNameColumn,
-        workflowRunAsGivenByUserIdColumn,
-        workflowRunAsGivenByApiKeyIdColumn,
-        workflowRunAsGivenByNameColumn,
+        workflowRunAsGiverUserIdColumn,
+        workflowRunAsGiverApiKeyIdColumn,
+        workflowRunAsGiverNameColumn,
         changesColumn,
         retentionDateColumn,
       ],
@@ -706,31 +714,29 @@ export default class AuditLog extends AnalyticsBaseModel {
     this.setColumnValue("workflowRunAsCustomRoleName", v);
   }
 
-  public get workflowRunAsGivenByUserId(): ObjectID | undefined {
-    return this.getColumnValue("workflowRunAsGivenByUserId") as
+  public get workflowRunAsGiverUserId(): ObjectID | undefined {
+    return this.getColumnValue("workflowRunAsGiverUserId") as
       | ObjectID
       | undefined;
   }
-  public set workflowRunAsGivenByUserId(v: ObjectID | undefined) {
-    this.setColumnValue("workflowRunAsGivenByUserId", v);
+  public set workflowRunAsGiverUserId(v: ObjectID | undefined) {
+    this.setColumnValue("workflowRunAsGiverUserId", v);
   }
 
-  public get workflowRunAsGivenByApiKeyId(): ObjectID | undefined {
-    return this.getColumnValue("workflowRunAsGivenByApiKeyId") as
+  public get workflowRunAsGiverApiKeyId(): ObjectID | undefined {
+    return this.getColumnValue("workflowRunAsGiverApiKeyId") as
       | ObjectID
       | undefined;
   }
-  public set workflowRunAsGivenByApiKeyId(v: ObjectID | undefined) {
-    this.setColumnValue("workflowRunAsGivenByApiKeyId", v);
+  public set workflowRunAsGiverApiKeyId(v: ObjectID | undefined) {
+    this.setColumnValue("workflowRunAsGiverApiKeyId", v);
   }
 
-  public get workflowRunAsGivenByName(): string | undefined {
-    return this.getColumnValue("workflowRunAsGivenByName") as
-      | string
-      | undefined;
+  public get workflowRunAsGiverName(): string | undefined {
+    return this.getColumnValue("workflowRunAsGiverName") as string | undefined;
   }
-  public set workflowRunAsGivenByName(v: string | undefined) {
-    this.setColumnValue("workflowRunAsGivenByName", v);
+  public set workflowRunAsGiverName(v: string | undefined) {
+    this.setColumnValue("workflowRunAsGiverName", v);
   }
 
   public get changes(): JSONArray | undefined {

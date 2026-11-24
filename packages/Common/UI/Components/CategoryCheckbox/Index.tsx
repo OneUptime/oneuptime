@@ -51,12 +51,15 @@ const CategoryCheckbox: FunctionComponent<CategoryCheckboxProps> = (
     Array<CategoryCheckboxValue>
   >(sanitizeInitialValues(props.initialValue));
 
-  const [categories] = React.useState<Array<CheckboxCategory>>([
-    ...props.categories,
-  ]);
-  const [options] = React.useState<Array<CategoryCheckboxOption>>([
-    ...props.options,
-  ]);
+  /*
+   * The options and categories as they are now, not as they were first
+   * drawn: what an option says can arrive later - what sets apart two
+   * on-call policies of one name is read after the dialog opens (#10314) -
+   * and a copy made on the first draw never showed it. What is ticked is
+   * kept, by value, either way.
+   */
+  const categories: Array<CheckboxCategory> = props.categories;
+  const options: Array<CategoryCheckboxOption> = props.options;
 
   useEffect(() => {
     // whenevent currentValue changes, make sure all the values are unique.

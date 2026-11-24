@@ -37,7 +37,12 @@ import SecurityCaseNote from "../../../../../Models/DatabaseModels/SecurityCaseN
 import SecurityDetection from "../../../../../Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "../../../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../../../../Models/DatabaseModels/SecurityPlaybookRun";
-import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
+import {
+  AIChatCitationTargetType,
+  AIChatResourceCardOrigin,
+  AIChatWidgetData,
+} from "../../../../../Types/AI/AIChatTypes";
+import { Blue, Red } from "../../../../../Types/BrandColors";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../../../Types/Date";
@@ -957,5 +962,155 @@ describe("query_security_cases - one case's card, in the reader's language", () 
         ],
       },
     );
+  });
+});
+
+/*
+ * Issue #7176: a monitor's card draws its status in the status's own
+ * colour, a dot before the line that names it; a case's card named its
+ * status ("New · High") with no dot. It carries its status's colour now,
+ * as the Security Cases pages draw it - and nothing when there is none to
+ * draw, so no dot ever sits beside the priority.
+ */
+describe("query_security_cases - one case's card, in its status's own colour", () => {
+  const cardOf: (
+    securityCaseStatusId: ObjectID | undefined,
+  ) => Promise<AIChatWidgetData> = async (
+    securityCaseStatusId: ObjectID | undefined,
+  ): Promise<AIChatWidgetData> => {
+    jest.spyOn(SecurityCaseService, "findOneBy").mockResolvedValue({
+      id: caseId,
+      caseNumberWithPrefix: "CASE-42",
+      title: "Brute force from 203.0.113.9",
+      securityCaseStatusId,
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
+      detectionCount: 2,
+    } as unknown as SecurityCase);
+    jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([]);
+
+    const result: ToolExecutionResult = await QuerySecurityCasesTool.execute(
+      { securityCaseId: caseId.toString() },
+      context(),
+    );
+
+    return result.widget!.data;
+  };
+
+  test("a new case: the New status's red, beside the line that starts with it", async () => {
+    const card: AIChatWidgetData = await cardOf(
+      testStatusId(SecurityCaseStage.New),
+    );
+
+    expect(card.origin).toBe(AIChatResourceCardOrigin.Read);
+    expect(card.subheading).toBe("New · High");
+    expect(card.statusColor).toBe(Red.toString());
+    expect(card.statusColor).toBe("#fd625e");
+  });
+
+  test("each status in its own colour, as the project chose it", async () => {
+    stubSecurityCaseValues({
+      statuses: [
+        buildTestStatus({
+          id: TEST_STATUS_IDS[SecurityCaseStage.New],
+          name: "Triage",
+          order: 1,
+          color: "#a855f7",
+          stage: SecurityCaseStage.New,
+        }),
+        buildTestStatus({
+          id: TEST_STATUS_IDS[SecurityCaseStage.Contained],
+          name: "Contained",
+          order: 2,
+          stage: SecurityCaseStage.Contained,
+        }),
+      ],
+    });
+
+    const triage: AIChatWidgetData = await cardOf(
+      testStatusId(SecurityCaseStage.New),
+    );
+    const contained: AIChatWidgetData = await cardOf(
+      testStatusId(SecurityCaseStage.Contained),
+    );
+
+    expect(triage.subheading).toBe("Triage · High");
+    expect(triage.statusColor).toBe("#a855f7");
+    expect(contained.subheading).toBe("Contained · High");
+    expect(contained.statusColor).toBe(Blue.toString());
+  });
+
+  test("a status with no colour: no dot", async () => {
+    const uncoloured: SecurityCaseStatus = buildTestStatus({
+      id: TEST_STATUS_IDS[SecurityCaseStage.New],
+      name: "Triage",
+      order: 1,
+    });
+    stubSecurityCaseValues({ statuses: [uncoloured] });
+
+    const card: AIChatWidgetData = await cardOf(
+      testStatusId(SecurityCaseStage.New),
+    );
+
+    expect(uncoloured.color).toBeUndefined();
+    expect(card.subheading).toBe("Triage · High");
+    expect(card.statusColor).toBeUndefined();
+    expect(Object.keys(card)).not.toContain("statusColor");
+  });
+
+  test("a case with no status, or one the project no longer has: no dot beside its priority", async () => {
+    const none: AIChatWidgetData = await cardOf(undefined);
+    const gone: AIChatWidgetData = await cardOf(
+      new ObjectID("c2000000-0000-4000-8000-0000000000ff"),
+    );
+
+    for (const card of [none, gone]) {
+      // The line is the priority alone, which has no dot.
+      expect(card.subheading).toBe("High");
+      expect(card.statusColor).toBeUndefined();
+    }
+  });
+
+  test("a status with a colour but no name: no dot beside the priority its line starts with", async () => {
+    stubSecurityCaseValues({
+      statuses: [
+        buildTestStatus({
+          id: TEST_STATUS_IDS[SecurityCaseStage.New],
+          name: "",
+          order: 1,
+          color: "#a855f7",
+          stage: SecurityCaseStage.New,
+        }),
+      ],
+    });
+
+    const card: AIChatWidgetData = await cardOf(
+      testStatusId(SecurityCaseStage.New),
+    );
+
+    expect(card.subheading).toBe("High");
+    expect(card.statusColor).toBeUndefined();
+  });
+
+  test("a colour that is not one is never drawn", async () => {
+    const odd: SecurityCaseStatus = buildTestStatus({
+      id: TEST_STATUS_IDS[SecurityCaseStage.New],
+      name: "Triage",
+      order: 1,
+      stage: SecurityCaseStage.New,
+    });
+    // As a stored row could hold it.
+    (odd as unknown as { color: { toString: () => string } }).color = {
+      toString: (): string => {
+        return "red; background: url(x)";
+      },
+    };
+    stubSecurityCaseValues({ statuses: [odd] });
+
+    const card: AIChatWidgetData = await cardOf(
+      testStatusId(SecurityCaseStage.New),
+    );
+
+    expect(card.subheading).toBe("Triage · High");
+    expect(card.statusColor).toBeUndefined();
   });
 });

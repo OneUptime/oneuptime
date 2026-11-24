@@ -104,7 +104,7 @@ Android lets an app read other apps' logs only with the READ_LOGS permission, an
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-With Esper, run that command over **Secure Remote ADB**: turn on ADB access for the device, connect with `espercli secureadb connect -d DEVICE_ID`, then run the command. Android restarts the agent when the permission is granted, and the agent starts reading at once.
+With Esper, run that command over **Secure Remote ADB**: turn on ADB access for the device, connect with `espercli secureadb connect --device DEVICE_ID`, then run the command. Android restarts the agent when the permission is granted, and the agent starts reading at once. Inventory's **Device Manager ID** column holds each device's `DEVICE_ID`.
 
 What the agent then reads depends on the Android version:
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 The first command is for Android 15 and later; usage access can also be turned on in the device's **Settings → Usage access**. A device policy cannot grant these, and the agent's screen lists the commands still to run. With them, each crash in **Exceptions** has its whole stack trace, a native crash its signal and the library it crashed in, an ANR its main thread's stack, and a restart in **Logs** the reason Android gives for it. Card numbers, email addresses, tokens and passwords in what the agent reads are replaced with `[card number]`, `[email]`, `[token]` and `[redacted]` before it is sent.
 
+### Grant them across a fleet
+
+Every report of the agent says which of these grants it still lacks. To list the devices that need them, open **Inventory**, then **All Items**, and filter by **Agent Permissions**: **Missing**. Turn on the **Agent Permissions** column to see what each device lacks, and export the list as CSV. Turn on the **Device Manager ID** column too, and the export holds each device's Esper ID, the `DEVICE_ID` that `espercli secureadb connect --device` takes.
+
+A device policy cannot grant these: READ_LOGS and READ_DROPBOX_DATA are permissions only adb, the system or the device's maker can give, and usage access is set by adb or by the person at the device. What Esper offers, and why none of it grants them:
+
+- **App permissions**, in a blueprint or with the `SET_APP_PERMISSION` command, go through Android's device owner API, which grants only the permissions an app asks the person at the device for. Android refuses these.
+- **Managed configuration** sets the agent's own settings, never Android's permissions.
+- **Run Shell Script** runs on Linux and Windows devices, not on Android ones.
+- **Secure Remote ADB** reaches one device at a time, from a computer that runs `espercli`. On Esper Foundation devices it needs no one at the device. On other devices, someone at the device accepts **Allow USB debugging?** the first time.
+
+So grant them with adb:
+
+- **Before a device ships**, when it is staged with a USB cable. This grants all three on every device connected to the computer:
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  On Android 14 and earlier the second command says the permission is unknown: that device does not need it.
+- **On a device in the field**, over Secure Remote ADB, one device of the **Missing** list at a time.
+- **Usage access alone** can be turned on by the person at the device, under **Settings → Usage access**, or with the button on the agent's screen.
+
+The device's next report, within a minute, takes it off the **Missing** list.
+
 ### CPU use
 
 Android 8 and later keep a device's CPU use from apps. Only a device owner app can read it, and only on devices whose hardware reports it. The agent reads it when it is the device owner, which you set with adb on a device that has no accounts and no other device owner:
@@ -141,16 +170,20 @@ A log session sends every app's logs from a device for a while, to troubleshoot 
 :::steps
 ### Request one
 
-Open the device in **Hosts**, then **Logs**, and click **Request Log Session** in **Log Sessions**. Choose how long the device sends its logs, from 15 minutes to 4 hours, and the lowest level it sends: **Info**, **Debug** or **Verbose**.
+Open the device in **Hosts**, then **Logs**, and click **Request Log Session** in **Log Sessions**. Choose how long the device sends its logs, from 15 minutes to 4 hours, and the lowest level it sends: **Info**, **Debug** or **Verbose**. Add a **Note** to say why you ask, such as "Checking why the payment app crashes after 6pm".
 
 ### Allow it at the device
 
-Within a minute, the device shows a notification that someone asked for its logs, with their name. The person at the device opens the agent and taps **Allow**. On Android 13 and later Android then asks to allow access to all device logs, and they allow that too.
+Within a minute, the device shows a notification that someone asked for its logs, with their name and your note. The person at the device opens the agent, where the request shows with your note under it, and taps **Allow**. On Android 13 and later Android then asks to allow access to all device logs, and they allow that too.
 
 ### Read the lines
 
-The session reads **Collecting**, and every app's lines arrive in the device's logs. Click **Show Lines** to see the session's lines on their own. The session ends when its time is up, or when someone stops it on the device or cancels it in OneUptime.
+The session reads **Collecting**, and every app's lines arrive in the device's logs. Click **Show Lines** to see the session's lines on their own, or **Download Lines** to save them as a file. The session ends when its time is up, or when someone stops it on the device or cancels it in OneUptime.
 :::
+
+The note is one line of up to 200 characters. The device shows it as you wrote it, in quotation marks, in the notification and on the agent's screen while the session waits or runs; it is never translated. Line breaks become spaces, and card numbers, email addresses, tokens and passwords in it are replaced with `[card number]`, `[email]`, `[token]` and `[redacted]` before it is kept, as in what the agent sends. The session's list shows it under who asked, and the host's **Audit Logs** keep it with the request.
+
+**Download Lines** saves the session's lines as a text file in the format `logcat -v threadtime` prints, which a vendor's support can read: each line with its time to the millisecond, its process and thread, its level, its tag and its message. Times are in UTC. The file's first lines say which session, device and note it is, and who asked. It holds the lines **Logs** shows, as the agent redacted them, so it takes the same permission as reading the device's logs. A file holds at most 100,000 lines and 32 MB; a longer session's file ends saying how many lines the session has.
 
 A session needs READ_LOGS and `logcat_enabled`; without them it reads **Unavailable**. One session at a time runs on a device. A request nobody allows within an hour expires, and a session the device restarts during ends with it, since Android's permission ends with the agent's process. Asking for a session takes permission to edit the host, and the host's **Audit Logs** keep who asked, and when.
 
@@ -165,11 +198,15 @@ A session needs READ_LOGS and `logcat_enabled`; without them it reads **Unavaila
 | Restarts | **Logs**, with `@event.name:device.boot`: how long the device had been up, whether it shut down cleanly, how long it was off, why it rebooted, and restart loops |
 | Installed apps | **Logs**, with `@event.name:android.package.inventory` once a day, and each install, update and removal |
 | Crashes and ANRs of every app | **Exceptions**, as unhandled, named after the app, with their stacks when the agent reads [DropBox](#crash-stacks-and-reboot-reasons) |
-| Make, model, serial number, OS version, security patch level and firmware | The device's item in **Inventory** |
+| Make, model, serial number, OS version, security patch level and firmware | The device's item in **Inventory**, with the **Security Patch Level** filter and column |
+| How old its security patch level is | The metric `android.os.security_patch.age`, in days |
+| The grants the agent still lacks | The device's item in **Inventory**, with the **Agent Permissions** filter and column |
 
 In **Hosts**, the device's OS reads Android, with Android's mark.
 
-The device's boots in the last hour are the metric `android.boot.recent_count`, and a device that keeps restarting logs a warning at each boot. In **Hosts**, an Android device is offered alert templates of its own: Device Unplugged, Low Battery, Device Overheating, Restart Loop and Storage Nearly Full, with Host Stopped Reporting, Host Restarted and High Memory Utilization, and High CPU Utilization once it reports CPU use. Each alert's first debug commands are adb commands. See [Host Monitor](/docs/monitor/host-monitor#android-devices).
+A device is behind on its security patches when its security patch level is more than 90 days old. Google publishes an Android security bulletin every month, and Android Enterprise Recommended holds a device's maker to shipping each one within 90 days, so a device further behind lacks fixes its maker should have shipped. In **Inventory**, the **Security Patch Level** filter lists the devices **Out of Date**; the **Security Patch Out of Date** template alerts on each. An Android device a device manager imports, without the agent, is alerted on by its connection's own template, such as **Esper Security Patch Out of Date**, from the patch level the device manager reports; a device that runs the agent is left to this one, so it never alerts twice.
+
+The device's boots in the last hour are the metric `android.boot.recent_count`, and a device that keeps restarting logs a warning at each boot. In **Hosts**, an Android device is offered alert templates of its own: Device Unplugged, Low Battery, Device Overheating, Restart Loop, Storage Nearly Full and Security Patch Out of Date, with Host Stopped Reporting, Host Restarted and High Memory Utilization, and High CPU Utilization once it reports CPU use. Each alert's first debug commands are adb commands. See [Host Monitor](/docs/monitor/host-monitor#android-devices).
 
 ## Troubleshooting
 

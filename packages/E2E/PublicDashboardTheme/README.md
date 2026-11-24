@@ -43,5 +43,17 @@ At a tablet's 768px the widgets keep the grid's arrangement
 in the screen's width. The spec's `press` explains how it reaches a control the visitor
 scrolls to.
 
+`PublicDashboardSignIn.spec.ts` covers a dashboard shared with Only people who sign in
+(#10250): `signIn`, `signInDark` and `signInSsoOnly` in `Fixture/Scenarios.js`, whose one
+private user is `PRIVATE_USER` and whose single sign-on is `SIGN_IN_PROVIDERS`. On a
+desktop and a phone, the link opens on Sign In and asks for nothing of the dashboard; a
+wrong password, and an address nobody invited, get the server's one sentence; signing in
+opens the dashboard with Sign Out in its toolbar, and Sign Out closes it again; Forgot
+password answers every address the same; with Require SSO to Sign In only the providers
+are offered, each starting on OneUptime's own address; and the pages take the dashboard's
+theme and fit a phone. `Fixture/MockApi.js` answers the sign-in routes
+(`/private-user/<route>/<dashboard>`) and refuses the dashboard's own routes until
+someone has signed in, as the server does.
+
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

@@ -209,7 +209,7 @@ function input(
     healthFilterMode: "all",
     projectName: "Acme Retail",
     scopeNames: ["North America", "East", "Store 1042"],
-    exportedAtText: "Oct 10 2026, 14:32 CEST",
+    exportedAtText: "Oct 10, 2026, 14:32 CEST",
     ...overrides,
   };
 }
@@ -650,7 +650,7 @@ describe("the header says what this is, whose network, where and when", () => {
     expect(texts(page, "header:eyebrow")).toEqual(["NETWORK TOPOLOGY"]);
     expect(texts(page, "header:title")).toEqual(["Store 1042"]);
     expect(texts(page, "header:meta").join(" ")).toBe(
-      "Acme Retail · North America > East · Exported Oct 10 2026, 14:32 CEST",
+      "Acme Retail · North America > East · Exported Oct 10, 2026, 14:32 CEST",
     );
   });
 
@@ -658,7 +658,7 @@ describe("the header says what this is, whose network, where and when", () => {
     const page: ExportPage = mapPage(build({ scopeNames: [] }));
     expect(texts(page, "header:title")).toEqual(["Acme Retail"]);
     expect(texts(page, "header:meta").join(" ")).toBe(
-      `${ALL_DEVICES_SCOPE} · Exported Oct 10 2026, 14:32 CEST`,
+      `${ALL_DEVICES_SCOPE} · Exported Oct 10, 2026, 14:32 CEST`,
     );
   });
 
@@ -668,7 +668,7 @@ describe("the header says what this is, whose network, where and when", () => {
     );
     expect(texts(page, "header:title")).toEqual(["All devices"]);
     expect(texts(page, "header:meta").join(" ")).toBe(
-      "Exported Oct 10 2026, 14:32 CEST",
+      "Exported Oct 10, 2026, 14:32 CEST",
     );
   });
 
@@ -715,7 +715,7 @@ describe("the header says what this is, whose network, where and when", () => {
     expect(document.title).toBe("Network topology - Store 1042");
     expect(document.fileLabel).toBe("network-topology-Store 1042");
     expect(document.subject).toBe(
-      "Network topology of North America > East > Store 1042, exported Oct 10 2026, 14:32 CEST",
+      "Network topology of North America > East > Store 1042, exported Oct 10, 2026, 14:32 CEST",
     );
   });
 

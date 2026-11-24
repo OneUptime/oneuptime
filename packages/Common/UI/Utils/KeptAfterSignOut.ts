@@ -1,4 +1,5 @@
 import { MORE_WAYS_TO_SIGN_IN_OPEN_KEY } from "../../Types/Accounts/MoreWaysToSignIn";
+import { REMEMBERED_SSO_PROVIDER_KEY } from "../../Types/Accounts/RememberedSsoProvider";
 import { COOKIE_CONSENT_STORAGE_KEY } from "../../Types/Analytics/CookieConsent";
 import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "../../Types/Dashboard/DashboardLanguage";
 import { DASHBOARD_VISITOR_THEME_STORAGE_KEY } from "../../Types/Dashboard/DashboardTheme";
@@ -85,4 +86,17 @@ export const KEYS_KEPT_AFTER_SIGN_OUT: ReadonlyArray<string> = [
    * person who signs in with them, at every sign-in.
    */
   MORE_WAYS_TO_SIGN_IN_OPEN_KEY,
+
+  /*
+   * Which project SSO provider this browser last signed in with (#9986):
+   * its kind, its id and its project's id, the ids of the project's public
+   * SSO sign-in link - never an address, a name or anything of an account
+   * (Types/Accounts/RememberedSsoProvider). Read only by "Sign in with SSO",
+   * with nobody signed in, which offers it first: cleared at sign-out, the
+   * one moment it is for would never come, and a contractor on another
+   * domain would need their admin's link again at every sign-in. Whoever
+   * uses the browser next sees which organization's provider it was, and
+   * forgets it there in a click.
+   */
+  REMEMBERED_SSO_PROVIDER_KEY,
 ];

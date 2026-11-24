@@ -1,8 +1,10 @@
 import {
+  ReaderDateTimeFormat,
   formatDurationText,
   formatRelativeAmount,
+  getDateTimeFormat,
   getHourOption,
-  getNumberLocale,
+  writeStandAloneDayName,
 } from "Common/Types/DateLanguage";
 import { Moment } from "Common/Types/Date";
 import {
@@ -39,48 +41,26 @@ import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 type ZonedMoment = ReturnType<typeof Moment>;
 
-const formatCache: Map<string, Intl.DateTimeFormat | null> = new Map<
-  string,
-  Intl.DateTimeFormat | null
->();
-
 /*
- * One formatter per locale, zone, hour cycle and shape, built once: the
- * card formats several times per row. Null where Intl cannot work in the
- * zone (moment knows a few zones some Intl builds do not), and the caller
- * falls back to moment's English.
+ * The card's formatter for a shape, built once by DateLanguage, which
+ * works the wall clock out in the reader's zone with OneUptime's own zone
+ * data (#10038). Null where nothing knows the zone, and the caller falls
+ * back to moment's English.
  */
 const getFormat: (data: {
   clock: FeedClock;
   shape: string;
   options: Intl.DateTimeFormatOptions;
-}) => Intl.DateTimeFormat | null = (data: {
+}) => ReaderDateTimeFormat | null = (data: {
   clock: FeedClock;
   shape: string;
   options: Intl.DateTimeFormatOptions;
-}): Intl.DateTimeFormat | null => {
-  const locale: string = getFeedLocale(data.clock.language);
-  const key: string = `${locale}|${data.clock.timezone}|${data.shape}|${
-    data.clock.use12HourClock ? 12 : 24
-  }`;
-
-  if (formatCache.has(key)) {
-    return formatCache.get(key) || null;
-  }
-
-  let format: Intl.DateTimeFormat | null = null;
-
-  try {
-    format = new Intl.DateTimeFormat(getNumberLocale(locale), {
-      ...data.options,
-      timeZone: data.clock.timezone,
-    });
-  } catch {
-    format = null;
-  }
-
-  formatCache.set(key, format);
-  return format;
+}): ReaderDateTimeFormat | null => {
+  return getDateTimeFormat({
+    locale: getFeedLocale(data.clock.language),
+    timezones: [data.clock.timezone],
+    options: data.options,
+  });
 };
 
 const inZone: (date: Date, timezone: string) => ZonedMoment = (
@@ -120,12 +100,12 @@ export const getShiftDateTile: (
   date: Date,
   clock: FeedClock,
 ) => ShiftDateTile = (date: Date, clock: FeedClock): ShiftDateTile => {
-  const monthFormat: Intl.DateTimeFormat | null = getFormat({
+  const monthFormat: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "tile-month",
     options: { month: "short" },
   });
-  const dayFormat: Intl.DateTimeFormat | null = getFormat({
+  const dayFormat: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "tile-day",
     options: { day: "numeric" },
@@ -190,14 +170,23 @@ export const getShiftDayLabel: (date: Date, clock: FeedClock) => string = (
     return offset === 0 ? "Today" : "Tomorrow";
   }
 
-  const weekday: Intl.DateTimeFormat | null = getFormat({
+  const weekday: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "weekday",
     options: { weekday: "long" },
   });
 
+  /*
+   * A day's name standing alone, beside its date tile: "Jueves" in
+   * Spanish, "torsdag" in Danish, as CLDR has each language write it
+   * (#7660). It took a capital in every language.
+   */
   return weekday
-    ? capitalizeFirst(weekday.format(date), locale)
+    ? writeStandAloneDayName({
+        name: weekday.format(date),
+        language: clock.language,
+        context: "standAlone",
+      })
     : inZone(date, clock.timezone).format("dddd");
 };
 
@@ -214,7 +203,7 @@ export const formatShiftDateTime: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
 ): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "date-time",
     options: {
@@ -269,7 +258,7 @@ export const formatShiftFullDateTime: (
   date: Date,
   clock: FeedClock,
 ) => string = (date: Date, clock: FeedClock): string => {
-  const format: Intl.DateTimeFormat | null = getFormat({
+  const format: ReaderDateTimeFormat | null = getFormat({
     clock: clock,
     shape: "full",
     options: {

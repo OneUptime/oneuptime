@@ -181,6 +181,10 @@ const stubRepository: (
     save: async (): Promise<never> => {
       throw new Error("this update must not go through save()");
     },
+    // One stored row: no other record has the name a write gives it (#10318).
+    count: async (): Promise<number> => {
+      return 0;
+    },
   });
 
   getJestSpyOn(service, "onTriggerWorkflow").mockResolvedValue(undefined);

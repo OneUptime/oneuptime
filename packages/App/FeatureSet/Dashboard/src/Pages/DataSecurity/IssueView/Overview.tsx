@@ -40,19 +40,24 @@ import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
+import {
+  STORE_DATA_TYPES_NOT_LOADED,
+  StoreDataTypesRead,
+  useStoreDataTypes,
+} from "../../../Components/DataSecurity/StoreDataTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useAiOffered from "../../../Utils/UseAiOffered";
 import DataSecurityIssueViewContext, {
   useDataSecurityIssueView,
 } from "./IssueViewContext";
-import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
   DataSecurityExplainResult,
+  DataSecurityFixRepository,
   DataSecurityFixResult,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
@@ -75,6 +80,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -82,13 +88,12 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import ProjectUtil from "Common/UI/Utils/Project";
 import {
   PluralTemplate,
   Translator,
@@ -223,8 +228,9 @@ const RequirementChip: FunctionComponent<{
  * is checked again at once), Accept Risk with a reason and an end date,
  * and in its ⋯ Not an Issue and Assign; a closed issue offers Reopen.
  * Explain with AI and Fix with AI sit with the fix, while the project's
- * AI is on; Fix with AI asks which repository when the project has
- * several. An open issue that a response action fixes - a public bucket,
+ * AI is on; Fix with AI asks which repository when the person may ask
+ * OneUptime AI to work in several, and offers only those. An open issue
+ * that a response action fixes - a public bucket,
  * a shared snapshot - offers it first, as one click (IssueResponseAction).
  */
 const DataSecurityIssueOverviewPage: FunctionComponent<
@@ -245,6 +251,10 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const [isExplaining, setIsExplaining] = useState<boolean>(false);
   const [isFixing, setIsFixing] = useState<boolean>(false);
   const [fixNotice, setFixNotice] = useState<FixNotice | null>(null);
+  // The repositories Fix with AI may be asked in, when there is a choice.
+  const [repositoryChoices, setRepositoryChoices] = useState<
+    Array<DataSecurityFixRepository>
+  >([]);
 
   const check: DataSecurityCheckInfo | undefined = issue.checkId
     ? getDataSecurityCheck(issue.checkId)
@@ -255,6 +265,20 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const storeName: string = store?.name || "";
   const title: string =
     translator.translateText(check?.title || issue.title) || issue.title || "";
+
+  /*
+   * What the store holds: the data types the issue was assessed with, else
+   * the store's own, read from the store by its own read permissions -
+   * never through the issue's relation (StoreDataTypes.ts, #10238).
+   */
+  const ownDataTypeIds: Array<string> = readDataTypeIds(issue.dataTypeIds);
+  const storeDataTypes: StoreDataTypesRead = useStoreDataTypes({
+    storeId: storeId,
+    isNeeded: ownDataTypeIds.length === 0,
+    refreshToggle: view.refreshToggle,
+  });
+  const dataTypeIds: Array<string> =
+    ownDataTypeIds.length > 0 ? ownDataTypeIds : storeDataTypes.dataTypeIds;
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new DataSecurityIssue(),
@@ -304,21 +328,12 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     setIsExplaining(false);
   };
 
-  // How many repositories the project has: more than one needs a pick.
-  const countRepositories: () => Promise<number> =
-    async (): Promise<number> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-      return await ModelAPI.count<CodeRepository>({
-        modelType: CodeRepository,
-        query: projectId ? { projectId: projectId } : {},
-      });
-    };
-
   /*
-   * Asks OneUptime AI for a pull request. With no repository named, the
-   * server answers without a run when it needs one picked - the project
-   * has several - or connected - it has none - and says which.
+   * Asks OneUptime AI for a pull request. The server answers without a run
+   * when something stands in the way - AI is off, no Runner is online, no
+   * repository the person may change is connected - and says what to fix;
+   * or, when the person may ask in several repositories, lists them to
+   * choose from (#10362).
    */
   const askForFix: (
     codeRepositoryId?: ObjectID | undefined,
@@ -336,19 +351,10 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
       return true;
     }
 
-    if (!codeRepositoryId) {
-      let repositories: number = 0;
-
-      try {
-        repositories = await countRepositories();
-      } catch {
-        // Not readable: the server's own words say what to do.
-      }
-
-      if (repositories > 1) {
-        setDialog("repository");
-        return false;
-      }
+    if (!codeRepositoryId && (result.repositories || []).length > 0) {
+      setRepositoryChoices(result.repositories || []);
+      setDialog("repository");
+      return false;
     }
 
     setFixNotice({ message: result.message });
@@ -495,11 +501,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     }
   }
 
-  const dataTypeIds: Array<string> = readDataTypeIds(
-    issue.dataTypeIds && readDataTypeIds(issue.dataTypeIds).length > 0
-      ? issue.dataTypeIds
-      : store?.dataTypeIds,
-  );
   const requirements: Array<FrameworkRequirementRef> = readRequirements(
     issue,
     check,
@@ -779,18 +780,43 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
               <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
                 {translator.translateText(STORE_HOLDS_LABEL)}
               </dt>
-              <dd className="mt-1.5 flex flex-wrap items-center gap-2">
-                <SensitivityPill sensitivity={store?.sensitivity} />
-                <IssueDataTypeChips
-                  dataTypeIds={dataTypeIds}
-                  namer={namer}
-                  limit={8}
-                  emptyElement={
-                    <span className="text-sm text-gray-500">
-                      {translator.translateText(NO_DATA_TYPES)}
-                    </span>
-                  }
-                />
+              <dd
+                className="mt-1.5 flex flex-wrap items-center gap-2"
+                data-testid="data-security-issue-store-holds"
+              >
+                {/*
+                 * Only a sensitivity read: one the reader may not read, or
+                 * of a store that did not load, is not "Public" (#10281).
+                 */}
+                {store?.sensitivity ? (
+                  <SensitivityPill sensitivity={store.sensitivity} />
+                ) : (
+                  <></>
+                )}
+                {storeDataTypes.isLoading ? (
+                  <InlineValueSkeleton widthClassName="w-32" />
+                ) : storeDataTypes.error && dataTypeIds.length === 0 ? (
+                  <span
+                    className="text-sm text-gray-600"
+                    data-testid="data-security-issue-store-data-types-error"
+                  >
+                    <ErrorSentence
+                      template={STORE_DATA_TYPES_NOT_LOADED}
+                      error={storeDataTypes.error}
+                    />
+                  </span>
+                ) : (
+                  <IssueDataTypeChips
+                    dataTypeIds={dataTypeIds}
+                    namer={namer}
+                    limit={8}
+                    emptyElement={
+                      <span className="text-sm text-gray-500">
+                        {translator.translateText(NO_DATA_TYPES)}
+                      </span>
+                    }
+                  />
+                )}
               </dd>
             </div>
             {store?.exposure ? (
@@ -967,6 +993,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
 
       {dialog === "repository" ? (
         <IssueRepositoryModal
+          repositories={repositoryChoices}
+          isTelemetry={isTelemetryFindingCheck(issue.checkId)}
           onClose={() => {
             setDialog(null);
           }}

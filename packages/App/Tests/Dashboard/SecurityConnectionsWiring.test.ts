@@ -174,7 +174,7 @@ describe("Connected Signals", () => {
     expect(page).toContain("description={CONNECTED_SIGNALS_CASE_DESCRIPTION}");
   });
 
-  test("an event's tab reads the event's values, its time and its log's record, inside the drawer", () => {
+  test("an event's tab reads the event's values, its time, its log's record and the cloud resource or function its own log was of, inside the drawer", () => {
     const panel: string = source(
       "Components",
       "SecurityEvents",
@@ -182,8 +182,10 @@ describe("Connected Signals", () => {
     );
 
     expect(panel).toContain(
-      "<ConnectedSignals request={{ entities: connectedEntities, ...(time ? { time } : {}), logResources, }}",
+      "<ConnectedSignals request={{ entities: connectedEntities, ...(time ? { time } : {}), logResources, logOwners, }}",
     );
+    // #10033: what the event carries of them, read from its attributes.
+    expect(panel).toContain("return readSecurityEventLogOwners(attributes);");
     expect(panel).toContain("isEmbedded={true}");
     // Drawn - and read - only while its tab is open.
     expect(panel).toContain(

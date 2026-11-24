@@ -1315,8 +1315,11 @@ describe("a status or state change's root cause, behind View Cause", () => {
 
     expect(rawDraws).toEqual([]);
     expect(timelinesWithoutWording).toEqual([]);
-    // A monitor's, an incident's and an alert's: a scan that finds none proves nothing.
-    expect(wordedTimelines).toBeGreaterThanOrEqual(3);
+    /*
+     * A monitor's, an incident's, an alert's and the two episodes' (#9959):
+     * a scan that finds none proves nothing.
+     */
+    expect(wordedTimelines).toBeGreaterThanOrEqual(5);
   });
 
   test("the timelines' table View Cause opens the worded cause", () => {
@@ -1324,6 +1327,8 @@ describe("a status or state change's root cause, behind View Cause", () => {
       "Pages/Monitor/View/StatusTimeline.tsx",
       "Pages/Incidents/View/StateTimeline.tsx",
       "Pages/Alerts/View/StateTimeline.tsx",
+      "Pages/Incidents/EpisodeView/StateTimeline.tsx",
+      "Pages/Alerts/EpisodeView/StateTimeline.tsx",
     ]) {
       const source: string = fs.readFileSync(
         path.join(DASHBOARD_DIRECTORY, page),

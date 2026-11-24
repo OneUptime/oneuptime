@@ -145,7 +145,8 @@ describe("how many captures a probe runs", () => {
 describe("who may start, stop, download and delete a capture", () => {
   const model: PacketCapture = new PacketCapture();
 
-  test("starting a capture is the model's create list: owners, admins and Start Packet Capture", () => {
+  // Network Admin (#10289) does on Network's records what Project Admin does.
+  test("starting a capture is the model's create list: owners, admins, Network Admin and Start Packet Capture", () => {
     expect(sorted(PACKET_CAPTURE_START_PERMISSIONS)).toEqual(
       sorted(model.createRecordPermissions),
     );
@@ -154,6 +155,7 @@ describe("who may start, stop, download and delete a capture", () => {
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.CreatePacketCapture,
+        Permission.NetworkAdmin,
       ]),
     );
   });
@@ -164,12 +166,13 @@ describe("who may start, stop, download and delete a capture", () => {
     );
   });
 
-  test("downloading a file is a permission of its own, held by owners and admins", () => {
+  test("downloading a file is a permission of its own, held by owners, admins and Network Admin", () => {
     expect(sorted(PACKET_CAPTURE_DOWNLOAD_PERMISSIONS)).toEqual(
       sorted([
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.DownloadPacketCapture,
+        Permission.NetworkAdmin,
       ]),
     );
     expect(PACKET_CAPTURE_DOWNLOAD_PERMISSIONS).not.toContain(
@@ -185,6 +188,8 @@ describe("who may start, stop, download and delete a capture", () => {
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.ReadPacketCapture,
+      Permission.NetworkMember,
+      Permission.NetworkViewer,
     ]) {
       expect(PACKET_CAPTURE_START_PERMISSIONS).not.toContain(permission);
       expect(PACKET_CAPTURE_STOP_PERMISSIONS).not.toContain(permission);
@@ -193,12 +198,13 @@ describe("who may start, stop, download and delete a capture", () => {
     }
   });
 
-  test("deleting is owners, admins and Delete Packet Capture", () => {
+  test("deleting is owners, admins, Network Admin and Delete Packet Capture", () => {
     expect(sorted(model.deleteRecordPermissions)).toEqual(
       sorted([
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
         Permission.DeletePacketCapture,
+        Permission.NetworkAdmin,
       ]),
     );
   });
@@ -211,6 +217,9 @@ describe("who may start, stop, download and delete a capture", () => {
         Permission.ProjectMember,
         Permission.Viewer,
         Permission.ReadPacketCapture,
+        Permission.NetworkAdmin,
+        Permission.NetworkMember,
+        Permission.NetworkViewer,
       ]),
     );
   });

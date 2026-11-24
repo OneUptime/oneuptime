@@ -28,7 +28,7 @@ Open **Producten → AI / LLM**, onder **Observability**. Het product heeft zeve
 | Tabblad | Wat het toont |
 | --- | --- |
 | **Gesprekken** | Elk gesprek dat je AI heeft gevoerd, de gesprekken die aandacht nodig hebben eerst. Boven de lijst: gesprekken, AI-antwoorden, hoeveel er aandacht nodig hebben, kosten en de gebruikelijke antwoordtijd. |
-| **Aanroepen** | Elke model-, embedding-, agent- en toolaanroep. Filter op service, provider, model, bewerking, persoon, team of gesprek; klik op een aanroep om hem in de traceviewer te openen. |
+| **Aanroepen** | Elke model-, embedding-, agent- en toolaanroep. Filter op service, provider, model, bewerking, persoon, team, gesprek of status; een mislukte aanroep noemt zijn fout onder zijn status. Klik op een aanroep om hem in de traceviewer te openen. |
 | **Gebruik** | Aanroepen, tokens en kosten over een periode, gerangschikt per medewerker, team, model, provider of app; onder **Provideraccounts**, wat je gekoppelde accounts in rekening kregen. |
 | **Waarschuwingen** | Kant-en-klare waarschuwingen voor als de AI slecht antwoordt, en je AI / LLM-monitors. |
 | **Budgetten** | Dagelijkse kostenlimieten, gepubliceerd als metrieken waarop je kunt waarschuwen. |
@@ -239,7 +239,7 @@ Een kant-en-klare waarschuwing maakt een waarschuwing die zichzelf oplost, en to
 
 ## Zien wie wat uitgeeft
 
-Het tabblad **Gebruik** toont de aanroepen, tokens en kosten van een periode (de laatste 7 dagen, tenzij je een andere kiest), en een tabel met de top 25 in een van vijf uitsplitsingen: **Medewerker**, **Team**, **Model**, **Provider** en **Applicatie / Service**. Aanroepen die niemand noemen, worden geteld onder **Niet toegewezen**, nooit weggegooid.
+Het tabblad **Gebruik** toont de aanroepen, tokens en kosten van een periode (de laatste 7 dagen, tenzij je een andere kiest), en een tabel met de top 25 in een van vijf uitsplitsingen: **Medewerker**, **Team**, **Model**, **Provider** en **Applicatie / Service**. Aanroepen die niemand noemen, worden geteld onder **Niet toegewezen**, nooit weggegooid. Het foutpercentage onder **AI-aanroepen** opent **Aanroepen** op de aanroepen van de periode die mislukten, met **Status** op **Fout**.
 
 Dit zijn **Je AI-aanroepen**. Kies in plaats daarvan **Provideraccounts** om te zien wat je gekoppelde accounts bij OpenAI, Anthropic, Azure, Bedrock, Vertex AI en Cursor in rekening kregen: zie [Accounts bij AI-providers](/docs/telemetry/ai-provider-accounts#het-gebruik-bekijken). De twee worden nooit opgeteld.
 

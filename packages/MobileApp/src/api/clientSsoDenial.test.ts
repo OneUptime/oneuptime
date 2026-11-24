@@ -6,6 +6,7 @@ import {
   completeSsoLoginFromUrl,
   type CompleteSsoLoginOutcome,
 } from "../sso/session";
+import { clearPendingSsoHandOff, startSsoHandOff } from "../sso/handOff";
 import {
   clearAllSsoDenials,
   getSsoDeniedProjectIds,
@@ -20,6 +21,38 @@ import {
   type InternalAxiosRequestConfig,
 } from "axios";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+
+// A real verifier and its S256 challenge, from Node's crypto (../sso/handOff).
+jest.mock("expo-crypto", () => {
+  const crypto: typeof import("node:crypto") =
+    jest.requireActual("node:crypto");
+
+  return {
+    CryptoDigestAlgorithm: { SHA256: "SHA-256" },
+    CryptoEncoding: { BASE64: "base64" },
+    getRandomBytesAsync: async (length: number): Promise<Uint8Array> => {
+      return new Uint8Array(crypto.randomBytes(length));
+    },
+    digestStringAsync: async (
+      _algorithm: string,
+      value: string,
+    ): Promise<string> => {
+      return crypto.createHash("sha256").update(value, "utf8").digest("base64");
+    },
+  };
+});
+
+/*
+ * A callback is taken only for the sign-in the app started (#9989,
+ * ../sso/session): each login below starts as one on a server from before
+ * #9989, which hands the session back on the link.
+ */
+async function startSsoSignIn(): Promise<void> {
+  await startSsoHandOff({
+    serverUrl: "https://oneuptime.com",
+    serverHandsBackCodes: false,
+  });
+}
 
 /*
  * The 406 half of the API client's response interceptor.
@@ -525,6 +558,11 @@ describe("denials accumulate per project", () => {
 });
 
 describe("an SSO login turns a denial back into a working project", () => {
+  beforeEach(async () => {
+    await clearPendingSsoHandOff();
+    await startSsoSignIn();
+  });
+
   test("a global token callback clears every denial", async () => {
     /*
      * A Global SSO/OIDC token is not bound to a project and the app cannot
@@ -601,8 +639,10 @@ describe("an SSO login turns a denial back into a working project", () => {
 
     /*
      * Positive control: the denials were clearable the whole time - it is the
-     * failure, not the state, that stopped them being cleared.
+     * failure, not the state, that stopped them being cleared. A refusal ends
+     * its sign-in, so this is the next one.
      */
+    await startSsoSignIn();
     await completeSsoLoginFromUrl(
       buildCallbackUrl({
         ...authParams(),

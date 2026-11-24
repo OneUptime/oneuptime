@@ -13,6 +13,8 @@ import EventRootCauseMetricChart, {
   RootCauseEventReader,
   RootCauseMoments,
 } from "../Telemetry/EventRootCauseMetricChart";
+import { readRootCauseMonitorSteps } from "../Telemetry/RootCauseMonitorSteps";
+import { MONITOR_THROUGH_RELATION_SELECT } from "../Monitor/ReadMonitorSteps";
 import {
   INCIDENT_EPISODE_FIRST_MEMBER,
   fetchFirstEpisodeMember,
@@ -32,10 +34,12 @@ export interface ComponentProps {
 /*
  * How the Root Cause card reads an incident episode: its first incident, as
  * its Overview picks it (EpisodeFirstMember) - the columns that decide what
- * it charts, with the monitors it is on, as an incident's own card reads
- * them; then, for a card there is, the episode itself, as its Overview reads
- * it: when it was declared and resolved, its state timeline and the
- * project's incident states.
+ * it charts, with which monitors it is on and what kind, and the steps of
+ * those that read metrics when it kept no snapshot, on each monitor by the
+ * reader's own read (#10309), as an incident's own card reads them; then,
+ * for a card there is, the episode itself, as its Overview reads it: when it
+ * was declared and resolved, its state timeline and the project's incident
+ * states.
  */
 export const INCIDENT_EPISODE_ROOT_CAUSE_READER: RootCauseEventReader = {
   subject: EventMetricSubject.IncidentEpisode,
@@ -52,15 +56,15 @@ export const INCIDENT_EPISODE_ROOT_CAUSE_READER: RootCauseEventReader = {
         telemetryQuery: true,
         seriesLabels: true,
         createdCriteriaId: true,
-        monitors: {
-          _id: true,
-          monitorType: true,
-          monitorSteps: true,
-        } as never,
+        monitors: MONITOR_THROUGH_RELATION_SELECT as never,
       },
     });
 
-    return member ? getIncidentEpisodeRootCauseEvent(member) : null;
+    return member
+      ? await readRootCauseMonitorSteps(
+          getIncidentEpisodeRootCauseEvent(member),
+        )
+      : null;
   },
   readMoments: async (episodeId: ObjectID): Promise<RootCauseMoments> => {
     const [episode, timelines, states]: [

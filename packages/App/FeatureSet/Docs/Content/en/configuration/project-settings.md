@@ -96,6 +96,8 @@ To retire a label, archive it from its row's **⋯** menu instead of deleting it
 
 **Used by**, in a label's row menu, counts the records of each kind that carry the label, and opens them a page at a time. Records you may not open are counted, not named.
 
+A label that has the same name as another label, from before names had to differ, is marked **Same name as another label**, and the list says how many there are: compare where each one is used, with **Used by**, then rename one with **Rename** on its row.
+
 ## Notifications
 
 **Project Settings → Notifications** holds how the project sends notifications:

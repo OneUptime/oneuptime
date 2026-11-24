@@ -61,6 +61,8 @@ Open a dashboard and its own side menu has these pages. Every section but **Basi
 | **Sharing** | Who can view it, its public link, and an IP allowlist under More settings. |
 | **Branding** | Page title, description, logo, theme and favicon of the public dashboard. |
 | **Custom Domains** | Host the public dashboard on your own domain. |
+| **Private Users** | The people who may sign in to the public link, when only people who sign in can view it. |
+| **Single Sign-On** | The SAML and OpenID Connect providers they sign in with, and **Require SSO to Sign In**. |
 | **Settings** | Duplicate, export, or archive the dashboard. |
 | **Owners** | The users and teams who own it. |
 | **Audit Logs** | Every change made to the dashboard, and who made it. |
@@ -103,4 +105,5 @@ The goal: one page for the checkout service, with its latency, its error rate, i
 - [Dashboard Widgets](/docs/dashboards/widgets): Every widget, and which one to pick.
 - [Dashboard Variables & Filters](/docs/dashboards/variables): One dashboard for every service, host or customer.
 - [Sharing & Public Dashboards](/docs/dashboards/sharing): Public links, passwords, IP allowlists and custom domains.
+- [Import from Grafana and Datadog](/docs/dashboards/import): Bring in a dashboard, or the alert rules, you built in Grafana or Datadog.
 :::

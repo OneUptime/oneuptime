@@ -28,7 +28,9 @@ import {
  * name (probe/packet-capture.md, Permissions):
  *
  *   - Start Packet Capture starts captures: Project Owner and Admin, and
- *     whoever is given it - a member's team, a project API key.
+ *     whoever is given it - a member's team, a project API key - and
+ *     Network Admin, Network's level that does what Project Admin does
+ *     (Types/PacketCapture/PacketCapturePermissions, #10289).
  *   - Delete Packet Capture deletes a capture, and its file with it.
  *   - Read Packet Capture lists them: who started what, where and when -
  *     never the file, which only Download hands out.
@@ -298,14 +300,17 @@ async function callRoute(
     body: data.body || {},
   } as unknown as ExpressRequest;
   const next: MockedFn = jest.fn();
+  /*
+   * The answer's headers are set on it: a create that left out a field only
+   * OneUptime writes names it in one (Types/API/FieldsLeftOut, #10136).
+   */
+  const res: ExpressResponse = {
+    setHeader: jest.fn(),
+  } as unknown as ExpressResponse;
 
   await mockRouter
     .match(method, route)
-    .handlerFunction(
-      req,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+    .handlerFunction(req, res, next as unknown as NextFunction);
 
   return { error: next.mock.calls[0]?.[0] as Error | undefined };
 }
@@ -476,7 +481,7 @@ describe("Start Packet Capture: POST /packet-capture with the body the dashboard
       expect(error).toBeInstanceOf(NotAuthorizedException);
       expect(error).not.toBeInstanceOf(ColumnWriteRefusedException);
       expect(error!.message).toBe(
-        "You do not have permissions to create Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture",
+        "You do not have permissions to create Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture, Network Admin",
       );
       expect(storedCaptures()).toHaveLength(0);
     },

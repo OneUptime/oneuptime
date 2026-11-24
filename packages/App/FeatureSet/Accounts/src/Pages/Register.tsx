@@ -38,7 +38,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/Types/Translator";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Link from "Common/UI/Components/Link/Link";
-import Captcha from "Common/UI/Components/Captcha/Captcha";
+// A file of its own: drawn only while the server asks for a captcha.
+import Captcha from "Common/UI/Components/Captcha/LazyCaptcha";
 import {
   BILLING_ENABLED,
   DASHBOARD_URL,
@@ -605,10 +606,12 @@ const RegisterPage: () => JSX.Element = () => {
 
   /*
    * An invitation whose person signs in with single sign-on (#9819): their
-   * project's providers, in place of a password they could not set.
+   * project's providers, in place of a password they could not set. The
+   * link goes with it, as the proof of the mailbox a provider's first
+   * sign-in on OneUptime Cloud asks for (#9898).
    */
   if (invitation?.ssoSignIn) {
-    return <InvitedSsoSignIn invitation={invitation} />;
+    return <InvitedSsoSignIn invitation={invitation} link={invitationLink} />;
   }
 
   if (emailAwaitingVerification !== null) {

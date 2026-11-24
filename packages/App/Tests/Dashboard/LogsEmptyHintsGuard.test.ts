@@ -114,14 +114,131 @@ function listSourceFiles(directory: string): Array<string> {
  * condition, a parenthesised value, or the words of a template before its
  * first ${...}.
  */
+/*
+ * A page that picks its line by what is true of the resource does it in a
+ * function of its own, named for it (getHostNoLogsMessage), whose returns
+ * are its lines: each is read as a line of the attribute is.
+ */
+const NO_LOGS_MESSAGE_HELPER: RegExp = /^get[A-Za-z]+NoLogsMessage$/;
+
+// How far a line is followed through constants and helpers of its file.
+const MAX_FOLLOW_DEPTH: number = 4;
+
+// The function or the constant a file declares under `name`, if any.
+function findDeclaration(
+  source: ts.SourceFile,
+  name: string,
+): ts.FunctionDeclaration | ts.VariableDeclaration | undefined {
+  let found: ts.FunctionDeclaration | ts.VariableDeclaration | undefined =
+    undefined;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      (ts.isFunctionDeclaration(node) || ts.isVariableDeclaration(node)) &&
+      node.name &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === name
+    ) {
+      found = node;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+  return found;
+}
+
+// The expressions a function's body returns, in order.
+function returnedExpressions(body: ts.Node): Array<ts.Expression> {
+  const returned: Array<ts.Expression> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isReturnStatement(node) && node.expression) {
+      returned.push(node.expression);
+      return;
+    }
+
+    // A function inside is its own: its returns are not this one's.
+    if (ts.isFunctionLike(node)) {
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  ts.forEachChild(body, visit);
+  return returned;
+}
+
 function collectMessages(
   node: ts.Node,
   source: ts.SourceFile,
   file: string,
   into: Array<FoundMessage>,
+  depth: number = 0,
 ): void {
   const line: number =
     source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+
+  if (depth > MAX_FOLLOW_DEPTH) {
+    return;
+  }
+
+  // A line marked as a Dashboard key, `translationKey("...")`: the key.
+  if (
+    ts.isCallExpression(node) &&
+    node.expression.getText(source) === "translationKey" &&
+    node.arguments[0]
+  ) {
+    collectMessages(node.arguments[0], source, file, into, depth + 1);
+    return;
+  }
+
+  // The page's own picker of its line: every line it returns.
+  if (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    NO_LOGS_MESSAGE_HELPER.test(node.expression.text)
+  ) {
+    const helper: ts.FunctionDeclaration | ts.VariableDeclaration | undefined =
+      findDeclaration(source, node.expression.text);
+    const body: ts.Node | undefined =
+      helper && ts.isFunctionDeclaration(helper)
+        ? helper.body
+        : helper?.initializer &&
+            (ts.isArrowFunction(helper.initializer) ||
+              ts.isFunctionExpression(helper.initializer))
+          ? helper.initializer.body
+          : undefined;
+
+    for (const returned of body ? returnedExpressions(body) : []) {
+      collectMessages(returned, source, file, into, depth + 1);
+    }
+    return;
+  }
+
+  // A constant of the file that holds a line.
+  if (ts.isIdentifier(node)) {
+    const declaration:
+      | ts.FunctionDeclaration
+      | ts.VariableDeclaration
+      | undefined = findDeclaration(source, node.text);
+
+    if (
+      declaration &&
+      ts.isVariableDeclaration(declaration) &&
+      declaration.initializer
+    ) {
+      collectMessages(declaration.initializer, source, file, into, depth + 1);
+    }
+    return;
+  }
 
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     into.push({
@@ -144,18 +261,18 @@ function collectMessages(
   }
 
   if (ts.isJsxExpression(node) && node.expression) {
-    collectMessages(node.expression, source, file, into);
+    collectMessages(node.expression, source, file, into, depth);
     return;
   }
 
   if (ts.isParenthesizedExpression(node)) {
-    collectMessages(node.expression, source, file, into);
+    collectMessages(node.expression, source, file, into, depth);
     return;
   }
 
   if (ts.isConditionalExpression(node)) {
-    collectMessages(node.whenTrue, source, file, into);
-    collectMessages(node.whenFalse, source, file, into);
+    collectMessages(node.whenTrue, source, file, into, depth);
+    collectMessages(node.whenFalse, source, file, into, depth);
     return;
   }
 
@@ -164,8 +281,8 @@ function collectMessages(
     (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
       node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
   ) {
-    collectMessages(node.left, source, file, into);
-    collectMessages(node.right, source, file, into);
+    collectMessages(node.left, source, file, into, depth);
+    collectMessages(node.right, source, file, into, depth);
   }
 }
 
@@ -266,6 +383,23 @@ describe("embedded logs lists say each thing once", () => {
     ]) {
       expect(files).toContain(`packages/App/FeatureSet/Dashboard/src/${page}`);
     }
+  });
+
+  test("a page that picks its line with a helper of its own has each line it can pick read", () => {
+    const host: Array<string> = MESSAGES.filter(
+      (message: FoundMessage): boolean => {
+        return message.file.endsWith("Pages/Host/View/Logs.tsx");
+      },
+    ).map((message: FoundMessage): string => {
+      return message.text;
+    });
+
+    // getHostNoLogsMessage: a log session's, an Android device's and a server's.
+    expect(host).toEqual([
+      "No lines from this log session yet. They arrive within a minute of someone at the device allowing it.",
+      "The OneUptime Android agent sends this device's logs within a few minutes of starting.",
+      "Make sure your OTel collector forwards logs with the host.name resource attribute.",
+    ]);
   });
 
   test("no embed's line opens with what the title already says", () => {

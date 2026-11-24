@@ -58,6 +58,7 @@ function facts(
     url: "",
     route: "",
     clientAddress: "",
+    hiddenClientAddress: null,
     userAgent: "",
     userId: "",
     durationMs: 0,

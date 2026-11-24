@@ -62,6 +62,7 @@ import ConnectedServices, {
   MAX_EPISODES_COMPARED,
   RecordServices,
 } from "../Utils/Topology/ConnectedServices";
+import { EPISODE_REOPENED_BY_NEW_INCIDENT } from "../../Utils/Monitor/StatusChangeNotes";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -758,6 +759,9 @@ class IncidentGroupingEngineServiceClass {
             // Reopen the episode
             await IncidentEpisodeService.reopenEpisode(
               recentlyResolvedEpisode.id,
+              undefined,
+              true,
+              EPISODE_REOPENED_BY_NEW_INCIDENT,
             );
 
             // Add incident to reopened episode

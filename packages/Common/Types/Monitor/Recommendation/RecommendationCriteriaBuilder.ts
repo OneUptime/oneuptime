@@ -29,6 +29,15 @@ export interface AdditionalCriteriaFilterSpec {
    * container's average readiness (Average). Unset: the criteria's.
    */
   metricAggregationType?: EvaluateOverTimeType | undefined;
+  /*
+   * How THIS comparison reads a series with no data, when it differs from
+   * the criteria's own. A device manager's Low Battery needs it (#10288):
+   * a device whose service never says whether it is on its charger has no
+   * charging series, which counts as off it (Treat As Zero), while a
+   * device with no battery reading still matches nothing. Unset: the
+   * criteria's.
+   */
+  onNoDataPolicy?: NoDataPolicy | undefined;
 }
 
 /*
@@ -204,6 +213,9 @@ function buildFilters(data: {
   ];
 
   return specs.map((spec: AdditionalCriteriaFilterSpec, index: number) => {
+    const onNoDataPolicy: NoDataPolicy | undefined =
+      spec.onNoDataPolicy ?? data.onNoDataPolicy;
+
     return {
       checkOn: CheckOn.MetricValue,
       filterType: spec.filterType,
@@ -211,7 +223,7 @@ function buildFilters(data: {
         metricAggregationType:
           spec.metricAggregationType ?? data.metricAggregationType,
         metricAlias: spec.metricAlias,
-        ...(data.onNoDataPolicy ? { onNoDataPolicy: data.onNoDataPolicy } : {}),
+        ...(onNoDataPolicy ? { onNoDataPolicy } : {}),
         // The baseline options belong to the primary comparison only.
         ...(index === 0 && data.anomalyDetection
           ? { anomalyDetection: data.anomalyDetection }

@@ -110,9 +110,10 @@ const EXPECTED_DIFFERENCES: Record<string, unknown> = {
 /*
  * Every strictness option Common's tsconfig turns on. The generator's own
  * files - Core/, Tests/, GenerateProvider.ts - are held to each of them, as
- * they are wherever else they compile (Common's test type-check imports Core/;
- * the root's ts-node runs GenerateProvider.ts). Pinned here on their own, so
- * that Common relaxing one shows up as the generator's check getting weaker.
+ * they are where Common's test type-check imports Core/. (The root's ts-node
+ * runs GenerateProvider.ts transpile-only, checking nothing.) Pinned here on
+ * their own, so that Common relaxing one shows up as the generator's check
+ * getting weaker.
  */
 const STRICT_OPTIONS: Array<string> = [
   "strict",

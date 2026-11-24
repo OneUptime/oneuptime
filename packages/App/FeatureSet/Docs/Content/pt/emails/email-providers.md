@@ -3,7 +3,7 @@
 Envie o e-mail do OneUptime pela API HTTPS de um provedor de e-mail em vez de um servidor SMTP: Amazon SES, SendGrid, Mailgun, Postmark ou Resend. Um projeto escolhe um deles para uma configuração SMTP, e uma instalação auto-hospedada pode enviar todo o seu próprio e-mail por um deles. A API é acessada por HTTPS na porta 443, então o e-mail continua saindo de redes que bloqueiam as portas SMTP, e a chave de cada provedor é guardada criptografada.
 
 :::cards
-- [Amazon SES](#amazon-ses): Uma chave de acesso do IAM, ou a própria função do IAM do servidor, e a região em que o seu remetente foi verificado.
+- [Amazon SES](#amazon-ses): Uma chave de acesso do IAM, uma função do IAM da sua conta da AWS ou a própria função do IAM do servidor, e a região em que o seu remetente foi verificado.
 - [SendGrid](#sendgrid): Uma chave de API com acesso Mail Send.
 - [Mailgun](#mailgun): Uma chave de API, o domínio de envio e a região dele.
 - [Postmark](#postmark): O token de API do servidor.
@@ -55,16 +55,16 @@ Crie um usuário do IAM para o OneUptime com uma política que permita `ses:Send
 }
 ```
 
-Uma instalação auto-hospedada na AWS pode dispensar a chave e [entrar com a função do IAM do servidor](#entrar-com-a-função-do-iam-do-servidor), com a mesma política.
+Uma instalação auto-hospedada na AWS pode dispensar a chave e [entrar com a função do IAM do servidor](#entrar-com-a-função-do-iam-do-servidor), com a mesma política. A configuração de um projeto também pode dispensá-la e [entrar com uma função do IAM da sua conta da AWS](#entrar-com-uma-função-do-iam-da-sua-conta-da-aws).
 
 ### Preencher a etapa Amazon SES
 
-Informe o **ID da chave de acesso**, a **Chave de acesso secreta** e a **Região** em que a sua identidade foi verificada, como `us-east-1`.
+Deixe **Chave de acesso** como **Tipo de autenticação** e informe o **ID da chave de acesso**, a **Chave de acesso secreta** e a **Região** em que a sua identidade foi verificada, como `us-east-1`.
 :::
 
 ### Entrar com a função do IAM do servidor
 
-Uma instalação auto-hospedada na AWS pode enviar os próprios e-mails como a função do IAM que a AWS dá ao servidor, sem nenhuma chave de acesso armazenada no OneUptime: as credenciais que a AWS fornece expiram em poucas horas, e o OneUptime obtém novas antes disso. Isso vale só para os e-mails do próprio servidor. A configuração do Amazon SES de um projeto sempre entra com uma chave de acesso, porque a função do servidor é a identidade da AWS do próprio servidor, não a de um projeto.
+Uma instalação auto-hospedada pode enviar os próprios e-mails como uma função do IAM, sem nenhuma chave de acesso armazenada no OneUptime: na AWS, a função que a AWS dá ao servidor; em qualquer outro lugar, uma função em que ele entra com o IAM Roles Anywhere. As credenciais expiram em poucas horas, e o OneUptime obtém novas antes disso. Isso vale só para os e-mails do próprio servidor: a função do servidor é a identidade da AWS do próprio servidor, não a de um projeto. A configuração do Amazon SES de um projeto entra com uma chave de acesso, ou com [uma função do IAM da sua conta da AWS](#entrar-com-uma-função-do-iam-da-sua-conta-da-aws).
 
 Dê à função a política acima e depois execute o OneUptime com ela:
 
@@ -88,11 +88,63 @@ Anexe a função à instância como o perfil de instância dela. Com o OneUptime
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Fora da AWS, nos seus próprios servidores ou em outra nuvem, o servidor entra como uma função pelo IAM Roles Anywhere, que troca um certificado X.509 pelas credenciais da função. No IAM Roles Anywhere, crie um trust anchor para a sua autoridade certificadora e um perfil para a função. Depois, coloque o auxiliar de credenciais da AWS, `aws_signing_helper`, em uma pasta com o certificado, a chave privada dele e um arquivo de configuração da AWS cujo perfil execute o auxiliar como seu `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Com o Docker Compose, monte a pasta como somente leitura e indique o arquivo e o perfil em `docker-compose.override.yml`, ao lado de `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Com o chart do Helm, monte a configuração, o certificado e a chave dele a partir de um Secret com `extraVolumes` e `extraVolumeMounts`, defina `AWS_CONFIG_FILE` e `AWS_PROFILE` com `extraEnv` e coloque o auxiliar em uma imagem construída sobre a do OneUptime: um Secret comporta no máximo 1 MB. O OneUptime executa o auxiliar sem shell, pelo caminho completo, por no máximo 30 segundos e somente a partir de um arquivo de configuração que ele não consegue alterar: um arquivo em que ele poderia escrever é recusado.
 :::
 
 Depois, no Admin Dashboard, clique em **Editar Amazon SES**, escolha **Função do IAM deste servidor** como **Tipo de autenticação** e informe a **Região**. Ao salvar, qualquer chave de acesso armazenada antes é removida.
 
-O OneUptime procura as credenciais do servidor onde os SDKs da AWS procuram, nesta ordem: `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no seu ambiente, um token de identidade web (`AWS_ROLE_ARN` e `AWS_WEB_IDENTITY_TOKEN_FILE`), o endpoint de credenciais de contêiner do Amazon ECS e do EKS Pod Identity e, por fim, o serviço de metadados de instância do EC2 (IMDSv2).
+O OneUptime procura as credenciais do servidor onde os SDKs da AWS procuram, nesta ordem: `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` no seu ambiente, o perfil da AWS que `AWS_PROFILE`, `AWS_CONFIG_FILE` ou `AWS_SHARED_CREDENTIALS_FILE` indica (as chaves dele ou o `credential_process` dele), um token de identidade web (`AWS_ROLE_ARN` e `AWS_WEB_IDENTITY_TOKEN_FILE`), o endpoint de credenciais de contêiner do Amazon ECS e do EKS Pod Identity e, por fim, o serviço de metadados de instância do EC2 (IMDSv2). Sem nenhuma das três definida, o OneUptime não lê nenhum arquivo de configuração da AWS.
+
+### Entrar com uma função do IAM da sua conta da AWS
+
+A configuração do Amazon SES de um projeto pode entrar com uma função do IAM da sua própria conta da AWS, de modo que nenhuma chave fica armazenada no OneUptime. O OneUptime entra na função com a própria identidade da AWS e um ID externo que só os e-mails do seu projeto usam, e cada sessão dura uma hora. Dê à função a política acima e uma política de confiança que deixe a conta da AWS do OneUptime entrar com esse ID externo:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+Na etapa **Amazon SES** da configuração, escolha **Função do IAM na sua conta da AWS** como **Tipo de autenticação**. Abaixo do **ARN da função**, **Configurar a função na AWS** mostra o **ID externo** do seu projeto e esta política de confiança com a conta do OneUptime e o seu ID, pronta para copiar. Crie a função com ela, informe o **ARN da função** dela e a **Região**, e então clique em **Enviar e-mail de teste** na linha da configuração. Salvar a função remove qualquer chave de acesso armazenada antes.
+
+O OneUptime verifica a função antes de enviar por ela, e nunca entra em:
+
+- Uma função cuja política de confiança não exige o ID externo do seu projeto: qualquer projeto que conheça o ARN dela poderia enviar e-mails pela sua conta. Adicione a condição `sts:ExternalId` e envie um e-mail de teste, que verifica a função de novo na hora. A verificação acontece cerca de uma vez por dia, e aparece no CloudTrail da função como um `AccessDenied` para `sts:AssumeRole`.
+- Uma função da conta da AWS do próprio OneUptime, diga o que disser a política de confiança dela. Para enviar os e-mails do próprio servidor pela conta em que ele roda, use [a função do IAM do servidor](#entrar-com-a-função-do-iam-do-servidor).
+
+O ID externo é do seu projeto, e não é um segredo. As funções do IAM do Cloud Connect usam outro, então uma função criada para um nunca é usada pelo outro. Um servidor sem identidade da AWS própria, nem chave de acesso do Cloud Connect nem credenciais da AWS, não consegue entrar em nenhuma função, e a etapa diz isso.
 
 ## SendGrid
 
@@ -212,6 +264,10 @@ O servidor entra com a sua função do IAM, mas a AWS não lhe dá credenciais. 
 
 :::details "This server's IAM role may not send with Amazon SES" ou "did not let this server assume the role"
 A política da função não permite `ses:SendEmail` na sua identidade: adicione a política acima. Ou, no Amazon EKS, a política de confiança da função não permite `sts:AssumeRoleWithWebIdentity` para o provedor OIDC do seu cluster e a conta de serviço do OneUptime.
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" ou "This role is in this OneUptime's own AWS account"
+O OneUptime não envia pela função, como explica [Entrar com uma função do IAM da sua conta da AWS](#entrar-com-uma-função-do-iam-da-sua-conta-da-aws). Adicione à política de confiança da função a condição `sts:ExternalId` que **Configurar a função na AWS** mostra na configuração, ou crie a função na sua própria conta da AWS, e então envie um e-mail de teste.
 :::
 
 :::details "Mailgun has no domain … in its US region"

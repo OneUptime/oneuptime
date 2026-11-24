@@ -7,6 +7,11 @@
       "type": "string",
       "description": "The version of the chart this values.yaml comes with, stamped by the release pipeline. Do not set it: the chart compares it with its own version to warn when a release renders with an older chart's defaults (helm upgrade --reuse-values)."
     },
+    "installedAs": {
+      "type": "string",
+      "enum": ["", "aws-eks-addon"],
+      "description": "How this agent was installed: empty for a Helm install, aws-eks-addon for the Amazon EKS add-on, which sets it itself. Do not set it. The agent's ClusterRole carries it as its oneuptime.com/installed-as label, for the cluster's Compliance page to name the setting that changes what the role grants as the install takes it."
+    },
     "global": {
       "type": "object",
       "description": "Reserved for platform-injected globals (e.g. Rancher's global.cattle.*, ArgoCD, Flux). Not consumed by this chart."
@@ -1373,6 +1378,102 @@
             },
             "additionalProperties": false
           }
+        }
+      },
+      "additionalProperties": false
+    },
+    "compliance": {
+      "type": "object",
+      "description": "The cluster's Compliance page: what is read for it beyond the Kubernetes API.",
+      "properties": {
+        "nodeBenchmark": {
+          "type": "object",
+          "description": "The CIS Kubernetes Benchmark's node and control plane controls, read on the nodes by kube-bench on a schedule. Off by default: its pods run as root with the node's process namespace and read-only mounts of the node's Kubernetes directories.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Run kube-bench on the nodes. Left out on gke-autopilot, eks-fargate and the OpenShift presets, and with resourceSpecs.enabled false."
+            },
+            "schedule": {
+              "type": "string",
+              "minLength": 9,
+              "description": "When it runs, as a CronJob schedule (every six hours by default)."
+            },
+            "timeZone": {
+              "type": "string",
+              "description": "The IANA time zone the schedule is read in; empty for the controller manager's own."
+            },
+            "benchmark": {
+              "type": "string",
+              "enum": ["auto", "cis-1.12", "cis-1.11", "eks-1.8.0", "gke-1.9.0", "aks-1.8"],
+              "description": "The benchmark kube-bench scores. auto: eks-1.8.0 on EKS, gke-1.9.0 on GKE, cis-1.12 elsewhere (set aks-1.8 on AKS, whose version names no provider)."
+            },
+            "controlPlane": {
+              "description": "Also run it on a control plane node: auto does unless the benchmark is a managed platform's.",
+              "anyOf": [
+                { "type": "boolean" },
+                { "type": "string", "enum": ["auto", "true", "false"] }
+              ]
+            },
+            "nodeGroups": {
+              "type": "array",
+              "minItems": 1,
+              "description": "The worker node groups it runs on: one pod in each group each run.",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]([-a-z0-9]{0,18}[a-z0-9])?$",
+                    "not": { "const": "control-plane" },
+                    "description": "The group's name, in its CronJob's: lowercase letters, digits and hyphens, at most 20."
+                  },
+                  "nodeSelector": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                  },
+                  "affinity": { "type": "object" },
+                  "tolerations": {
+                    "type": "array",
+                    "items": { "type": "object" }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "image": {
+              "type": "object",
+              "properties": {
+                "repository": { "type": "string", "minLength": 1 },
+                "tag": { "type": "string", "minLength": 1 },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^(sha256:[a-f0-9]{64})?$",
+                  "description": "Pins the image by its digest, which wins over the tag."
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": { "type": "object" },
+                "limits": { "type": "object" }
+              },
+              "additionalProperties": false
+            },
+            "activeDeadlineSeconds": {
+              "type": "integer",
+              "minimum": 60,
+              "description": "How long one run may take before it is stopped."
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

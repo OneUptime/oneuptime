@@ -9,14 +9,21 @@ import { shellQuote } from "./ApiExamples";
 import {
   CLI_FIELDS_SUBCOMMAND,
   CliAction,
+  CliDeleteChoiceFlag,
   CliFieldFlag,
   CliOperation,
+  getCliDeleteChoiceFlags,
   getCliFieldFlagsFor,
   getCliResourceName,
   ONEUPTIME_CLI_COMMAND,
   ONEUPTIME_CLI_PACKAGE,
   ONEUPTIME_URL_ENVIRONMENT_VARIABLE,
 } from "./CliCommands";
+import {
+  DeleteChoiceWay,
+  getDeleteChoiceWayData,
+  getDeleteChoiceWays,
+} from "./DeleteChoices";
 import { getApiKeyExportCommand } from "./ExampleValues";
 import { TerraformValueKind } from "./TerraformSchema";
 
@@ -410,14 +417,68 @@ export function getCliCountExample(data: {
   return example(args);
 }
 
+/*
+ * A delete's choices as the flags they go in as (#9949), in the order the
+ * table's choices come: { workflowsRunAs: "CustomRole",
+ * workflowsRunAsCustomRoleId: "<custom-role-id>" } is
+ * --workflows-run-as CustomRole --workflows-run-as-custom-role-id
+ * <custom-role-id>. A key that is no choice of the table's has no flag, and
+ * is left out.
+ */
+export function getCliDeleteChoiceArgs(data: {
+  tableName: string | null | undefined;
+  choices: JSONObject | null | undefined;
+}): Array<string> {
+  const choices: JSONObject = data.choices || {};
+
+  return getCliDeleteChoiceFlags(data.tableName).flatMap(
+    (flag: CliDeleteChoiceFlag): Array<string> => {
+      const value: JSONValue | undefined = choices[flag.key];
+
+      return value === undefined || value === null
+        ? []
+        : [flag.flag, String(value)];
+    },
+  );
+}
+
+/*
+ * Each way a delete of a record of `tableName` says its choices, as its
+ * flags: --workflows-run-as Default, and --workflows-run-as CustomRole
+ * --workflows-run-as-custom-role-id <custom-role-id>. The CLI's help, its
+ * hint after OneUptime refuses a delete for them, and the dashboard's CLI
+ * pages all show these. None for a table whose delete takes none.
+ */
+export function getCliDeleteChoiceWays(
+  tableName: string | null | undefined,
+): Array<Array<string>> {
+  return getDeleteChoiceWays(tableName).map(
+    (way: DeleteChoiceWay): Array<string> => {
+      return getCliDeleteChoiceArgs({
+        tableName,
+        choices: getDeleteChoiceWayData(way),
+      });
+    },
+  );
+}
+
+/*
+ * A record's delete, with the flags of the choices it says besides the
+ * record, if any (getCliDeleteChoiceArgs).
+ */
 export function getCliDeleteExample(data: {
   modelType: DatabaseBaseModelType;
   id: string;
+  choices?: JSONObject | undefined;
 }): CliExample {
   return example([
     getCliCommandOf(data.modelType),
     CliOperation.Delete,
     data.id,
+    ...getCliDeleteChoiceArgs({
+      tableName: new data.modelType().tableName,
+      choices: data.choices,
+    }),
   ]);
 }
 

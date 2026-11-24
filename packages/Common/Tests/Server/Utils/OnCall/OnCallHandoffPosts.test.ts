@@ -828,7 +828,7 @@ describe("posting a policy's handoff", () => {
     );
     // 5:50 PM in New York, where the schedule's handoffs are set.
     expect(rows[0]!.feedInfoInMarkdown).toMatch(
-      /Nov 14 2026, (17:50|05:50 PM) EST/,
+      /Nov 14, 2026, (17:50|5:50 PM) EST/,
     );
     expect(rows[0]!.feedInfoInMarkdown).not.toContain("{{");
   });
@@ -1051,7 +1051,7 @@ describe("posting a policy's handoff", () => {
         "until Sat, Nov 14 at 10:50 PM UTC, then",
       );
       // The feed, in the zone it always used for one: UTC.
-      expect(rows[0]!.feedInfoInMarkdown).toMatch(/Nov 14 2026, .*UTC/);
+      expect(rows[0]!.feedInfoInMarkdown).toMatch(/Nov 14, 2026, .*UTC/);
     });
 
     test("every line of the hand-off: who is next, and nobody on call, read in the zone too", async () => {

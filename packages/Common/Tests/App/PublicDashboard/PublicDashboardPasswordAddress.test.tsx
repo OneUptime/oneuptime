@@ -150,6 +150,23 @@ describe("the way to the password prompt", () => {
     );
   });
 
+  test("carries a link to one widget whole, so the dashboard opens at it after the password (#10084)", () => {
+    const widgetId: string = "ab000000-0000-4000-8000-0000000000d1";
+
+    openAt(`${PREVIEW_PATH}?widget=${widgetId}&var-env=prod`);
+
+    PublicDashboardUtil.navigateToMasterPasswordPage();
+
+    const redirect: URL = new URL(
+      prompt().searchParams.get("redirectUrl")!,
+      "https://dashboard.acme.com",
+    );
+
+    expect(redirect.pathname).toBe(PREVIEW_PATH);
+    expect(redirect.searchParams.get("widget")).toBe(widgetId);
+    expect(redirect.searchParams.get("var-env")).toBe("prod");
+  });
+
   test("on a custom domain, the prompt is the domain's own", () => {
     openAt("/?theme=light");
 

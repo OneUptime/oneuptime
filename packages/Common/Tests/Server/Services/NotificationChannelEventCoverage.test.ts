@@ -848,11 +848,6 @@ const EVENT_SPECS: Record<string, EventSpec> = {
           URL.fromString("https://oneuptime.test/acknowledge-page") as never,
         );
       jest
-        .spyOn(OnCallPageLinks, "getEmailAcknowledgePageUrl")
-        .mockResolvedValue(
-          URL.fromString("https://oneuptime.test/acknowledge-page") as never,
-        );
-      jest
         .spyOn(OnCallPageLinks, "getCallResponseUrl")
         .mockResolvedValue(
           URL.fromString("https://oneuptime.test/call-response") as never,

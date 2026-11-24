@@ -51,6 +51,7 @@ import {
   LLMToolDefinition,
 } from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
+import { readArgumentsTheSchemaTakes } from "../Toolbox/SetupActionRunner";
 import {
   ObservabilityTool,
   PlannedToolCall,
@@ -69,7 +70,7 @@ import {
   escapeToolResultContent,
   frameToolResult,
   getElidedToolResultCitations,
-  getToolResultLoopOutput,
+  getToolResultLoopCall,
   joinAnswerContinuation,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
@@ -1455,17 +1456,18 @@ export default class ChatAgentRunner {
             content: toolResultText,
           });
 
-          roundCalls.push({
-            name: toolCall.name,
-            arguments: toolCall.arguments,
-            /*
-             * What the model was shown, less the citation it was framed
-             * with: what a compaction that leaves the result out names it
-             * by (getToolResultLoopOutput).
-             */
-            output: getToolResultLoopOutput(toolResultText),
-            isError: state.lastToolCallFailed === true,
-          });
+          /*
+           * What the model was shown, less the citation it was framed
+           * with: what a compaction that leaves the result out names it
+           * by (getToolResultLoopCall, the same for every agent loop).
+           */
+          roundCalls.push(
+            getToolResultLoopCall({
+              toolCall,
+              content: toolResultText,
+              isError: state.lastToolCallFailed === true,
+            }),
+          );
 
           // Keep the run visibly alive during long tool batches.
           await this.heartbeat(request, state);
@@ -1960,6 +1962,21 @@ export default class ChatAgentRunner {
       return undefined;
     }
 
+    /*
+     * A setup action takes from the model only what its schema takes
+     * (#10041), as the route that runs them outside the chat does: what its
+     * prepare works out - the record each name stands for, by id, the team
+     * an invitation joins - is never the model's to hand it, even where
+     * the prepare finds nothing and leaves the arguments as they were. An
+     * approved card runs the arguments persisted here, prepared once.
+     */
+    if (AIToolbox.isSetupAction(toolCall.name)) {
+      toolCall.arguments = readArgumentsTheSchemaTakes(
+        tool,
+        toolCall.arguments || {},
+      );
+    }
+
     try {
       const prepared: PreparedMutation = await tool.prepareMutation(
         toolCall.arguments || {},
@@ -2032,12 +2049,21 @@ export default class ChatAgentRunner {
           : undefined;
     const descriptionSentences: Array<AIActionSentence> =
       words?.description || [];
+    /*
+     * Why Auto-run did not make it, said on its Skipped row in the reader's
+     * language (issue #6982): only of an action skipped for it.
+     */
+    const reason: AIActionSentence | undefined =
+      status === AIChatToolActionStatus.Skipped
+        ? words?.notRunWithoutApproval?.reason
+        : undefined;
     const actionWords: AIActionWords | undefined = titleSentence
       ? {
           title: titleSentence,
           ...(descriptionSentences.length > 0
             ? { description: descriptionSentences }
             : {}),
+          ...(reason ? { reason } : {}),
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }
             : {}),
@@ -2457,6 +2483,8 @@ export default class ChatAgentRunner {
       currentTime: OneUptimeDate.getCurrentDate(),
       permissionMode: request.permissionMode,
       pageContext: pageContext,
+      // "The docs do not cover this." in the reader's words (#7064).
+      language: request.language,
     });
 
     const messages: Array<LLMMessage> = [

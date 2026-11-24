@@ -36,6 +36,10 @@ import {
   FeedClock,
 } from "../Feed/FeedTime";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  ReaderDateTimeFormat,
+  getDateTimeFormat,
+} from "../../../Types/DateLanguage";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -239,7 +243,6 @@ export const formatRunRecordCreatedAt: FormatCreatedAtFunction = (
   const options: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "numeric",
-    timeZone: clock.timezone,
   };
 
   // The year only when it is not this one, in the reader's zone.
@@ -250,16 +253,16 @@ export const formatRunRecordCreatedAt: FormatCreatedAtFunction = (
     options.year = "numeric";
   }
 
-  try {
-    return OneUptimeDate.joinDateAndTime(
-      new Intl.DateTimeFormat(getFeedLocale(clock.language), options).format(
-        date,
-      ),
-      time,
-    );
-  } catch {
-    return time;
-  }
+  // The day from OneUptimeDate's own zone data, as the time's (#10038).
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getFeedLocale(clock.language),
+    timezones: [clock.timezone],
+    options: options,
+  });
+
+  return format
+    ? OneUptimeDate.joinDateAndTime(format.format(date), time)
+    : time;
 };
 
 interface ListState {

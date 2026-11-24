@@ -13,6 +13,7 @@ import { DataSourceGenerator } from "../../../../../Scripts/TerraformProvider/Co
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import { ResourceGenerator } from "../../../../../Scripts/TerraformProvider/Core/ResourceGenerator";
 import { StringUtils } from "../../../../../Scripts/TerraformProvider/Core/StringUtils";
+import { providerGoFilePath } from "../../../../../Scripts/TerraformProvider/Core/ProviderShards";
 import {
   OpenAPIOperation,
   OpenAPISpec,
@@ -35,7 +36,7 @@ import {
  *   - the spec says `number`, in every schema it appears in;
  *   - the provider makes it a number attribute, of the data source and of
  *     the resource where there is one;
- *   - the generated Go reads it only through numberFromAPI
+ *   - the generated Go reads it only through NumberFromAPI
  *     (StaticFiles/apinumber.go), which reads a JSON number, numeric text,
  *     and either inside a wrapper.
  *
@@ -157,7 +158,7 @@ function propertyOf(
 
 function readGenerated(fileName: string): string {
   return fs.readFileSync(
-    path.join(outputDir, "internal/provider", fileName),
+    path.join(outputDir, providerGoFilePath(fileName)),
     "utf-8",
   );
 }
@@ -309,7 +310,7 @@ describe("the Terraform provider", () => {
     expect(resourceAttributes).toBeGreaterThanOrEqual(8);
   });
 
-  test("reads each only through numberFromAPI, in every resource and data source", () => {
+  test("reads each only through NumberFromAPI, in every resource and data source", () => {
     const misread: Array<string> = [];
 
     for (const decimal of published) {
@@ -352,7 +353,7 @@ describe("the Terraform provider", () => {
         const source: string = readGenerated(fileName);
         const field: string = StringUtils.toPascalCase(attribute[0]);
         const read: string = `${responseMap}["${decimal.column}"]`;
-        const throughTheHelper: string = `data.${field} = numberFromAPI(data.${field}, ${read})`;
+        const throughTheHelper: string = `data.${field} = NumberFromAPI(data.${field}, ${read})`;
 
         if (countOf(source, throughTheHelper) === 0) {
           misread.push(`${fileName}: ${attribute[0]} is not read at all`);
@@ -394,12 +395,12 @@ describe("oneuptime_status_page_history_chart_bar_color, the resource in the iss
     ).toEqual({ required: true, optional: false, computed: false });
   });
 
-  test("reads it back through numberFromAPI after a create, at a refresh and after an update", () => {
+  test("reads it back through NumberFromAPI after a create, at a refresh and after an update", () => {
     const go: string = readGenerated(
       "resource_status_page_history_chart_bar_color.go",
     );
     const line: string =
-      'data.UptimePercentGreaterThanOrEqualTo = numberFromAPI(data.UptimePercentGreaterThanOrEqualTo, dataMap["uptimePercentGreaterThanOrEqualTo"])';
+      'data.UptimePercentGreaterThanOrEqualTo = NumberFromAPI(data.UptimePercentGreaterThanOrEqualTo, dataMap["uptimePercentGreaterThanOrEqualTo"])';
 
     for (const [method, next] of [
       [") Create(ctx context.Context", ") Read(ctx context.Context"],
@@ -428,10 +429,10 @@ describe("oneuptime_status_page_history_chart_bar_color, the resource in the iss
       "data_source_status_page_history_chart_bar_color.go",
     );
     expect(go).toContain(
-      'filters["uptimePercentGreaterThanOrEqualTo"] = lookupNumber(data.UptimePercentGreaterThanOrEqualTo)',
+      'filters["uptimePercentGreaterThanOrEqualTo"] = LookupNumber(data.UptimePercentGreaterThanOrEqualTo)',
     );
     expect(go).toContain(
-      'data.UptimePercentGreaterThanOrEqualTo = numberFromAPI(data.UptimePercentGreaterThanOrEqualTo, item["uptimePercentGreaterThanOrEqualTo"])',
+      'data.UptimePercentGreaterThanOrEqualTo = NumberFromAPI(data.UptimePercentGreaterThanOrEqualTo, item["uptimePercentGreaterThanOrEqualTo"])',
     );
   });
 

@@ -73,6 +73,7 @@ import {
   loadCloudAccountRecommendationResources,
 } from "./CloudAccountRecommendationData";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
+import { describeCloudReadIntervalCost } from "./RecommendationResourceRegistry";
 import {
   CREATE_MONITORS_LOCKED_SENTENCE,
   loadMonitorRecommendationProjectSetup,
@@ -281,6 +282,22 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       dismissals: dismissals,
     });
   }, [resources, existingMonitors, dismissals]);
+
+  /*
+   * What the account's connection's interval costs its monitors, when it
+   * reads them longer windows than at its cloud's default (#10028).
+   */
+  const readIntervalNote: string | undefined = useMemo(() => {
+    const minutes: number | undefined =
+      CloudAccountRecommendationPlan.getWideningReadIntervalInMinutes(groups);
+
+    return minutes
+      ? describeCloudReadIntervalCost({
+          readIntervalInMinutes: minutes,
+          isAccount: true,
+        })
+      : undefined;
+  }, [groups]);
 
   const isRunning: boolean = progress.isRunning || isStarting;
 
@@ -1075,6 +1092,21 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
                 className="mt-0.5 h-4 w-4 flex-none text-gray-400"
               />
               <span>{createLockReason}</span>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {readIntervalNote ? (
+            <div
+              className="flex items-start gap-2 text-sm text-gray-600"
+              data-testid="cloud-account-recommendations-read-interval"
+            >
+              <Icon
+                icon={IconProp.Clock}
+                className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+              />
+              <span>{readIntervalNote}</span>
             </div>
           ) : (
             <></>

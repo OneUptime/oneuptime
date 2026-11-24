@@ -412,6 +412,18 @@ export default class CommonAPI {
       (req as OneUptimeRequest).userAuthorization?.userId
     ) {
       props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
+
+      /*
+       * The session its access token names, which readRequestSession found
+       * live and this person's. An MCP client's and the master API key's
+       * stand-ins name none (#10155: they change nobody's sign-in).
+       */
+      const sessionId: ObjectID | undefined = (req as OneUptimeRequest)
+        .userAuthorization!.sessionId;
+
+      if (sessionId) {
+        props.sessionId = new ObjectID(sessionId.toString());
+      }
     }
 
     if ((req as OneUptimeRequest).userGlobalAccessPermission) {

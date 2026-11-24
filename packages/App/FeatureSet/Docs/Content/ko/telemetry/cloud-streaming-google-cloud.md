@@ -71,6 +71,8 @@ flowchart TB
 
 각 로그는 항목의 시각을 나노초까지, 심각도, 트레이스와 스팬, HTTP 요청을 OpenTelemetry 시맨틱 규칙의 이름으로 유지합니다. 모니터링 대상 리소스가 VM(`gce_instance`), Cloud Run 서비스(`cloud_run_revision`), Cloud SQL 인스턴스(`cloudsql_database`)처럼 OneUptime이 메트릭을 읽는 종류이면 로그는 그 리소스 아래에 보관되고, 리소스의 ID를 `cloud.resource_id`로 전달합니다. 외부 부하 분산기의 요청 로그는 `http_load_balancer` 아래에 기록되지만, 메트릭이 도착하는 그 URL 맵의 `https_lb_rule` 아래에 보관됩니다.
 
+감사 로그 항목은 로그 본문으로 통째로 도착합니다. [로그에서 보안 이벤트 찾기](/docs/telemetry/security-events#로그에서-보안-이벤트-찾기)를 켜면 각 항목은 로그 파이프라인에서 온 항목처럼 보안 이벤트로 읽히고, OneUptime에 몇 가지 경로로 도착하든 한 번만 저장됩니다.
+
 인스턴스 그룹의 로그는 그 VM들의 로그이므로, 그 페이지에는 **로그** 탭이 없습니다. 다른 종류의 항목도 프로젝트 아래에 그대로 스트리밍됩니다.
 
 ## 명령이 만드는 것

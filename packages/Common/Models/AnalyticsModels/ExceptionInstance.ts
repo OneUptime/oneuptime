@@ -493,6 +493,27 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       accessControl: sessionIdColumn.accessControl,
     });
 
+    /*
+     * The occurrence this one repeats (#9923): an iOS crash both of
+     * opentelemetry-swift's reporters sent - KSCrash on the next launch,
+     * MetricKit up to a day later (Utils/Telemetry/AppleCrashMatch). The
+     * second report is kept, under the first one's exception, as evidence of
+     * the same crash, and counted nowhere: every count of occurrences reads
+     * only those that repeat none. '' for an occurrence of its own - every
+     * row written before it existed too - and never part of the fingerprint.
+     */
+    const duplicateOfColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "duplicateOf",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "Duplicate Of",
+      description:
+        "The id of the occurrence this one repeats: the same crash another of the app's crash reporters reported first. '' for an occurrence of its own.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      accessControl: sessionIdColumn.accessControl,
+    });
+
     const fingerprintColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "fingerprint",
       title: "Fingerprint",
@@ -886,6 +907,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         spanIdColumn,
         sessionIdColumn,
         userIdColumn,
+        duplicateOfColumn,
         fingerprintColumn,
         spanNameColumn,
         releaseColumn,
@@ -981,6 +1003,15 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set sessionId(v: string | undefined) {
     this.setColumnValue("sessionId", v);
+  }
+
+  // The occurrence this one repeats (#9923); '' for one of its own.
+  public get duplicateOf(): string | undefined {
+    return this.getColumnValue("duplicateOf") as string | undefined;
+  }
+
+  public set duplicateOf(v: string | undefined) {
+    this.setColumnValue("duplicateOf", v);
   }
 
   // The user the occurrence happened to; '' when it names none.

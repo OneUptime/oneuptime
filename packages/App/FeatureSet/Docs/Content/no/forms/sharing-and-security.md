@@ -5,6 +5,7 @@ Et skjema er åpent for alle som har lenken, og hver innsending kan tilkalle vak
 :::cards
 - [Del lenken](#del-lenken): Kopier den, åpne den, og tilbakestill den når den sprer seg for langt.
 - [En lenke for hver mal](#en-lenke-for-hver-mal): Ett bokmerke per tilfelle, ett skjema bak alle.
+- [Bare personer som logger inn](#bare-personer-som-logger-inn): Inviter personene som kan åpne skjemaet, eller la identitetsleverandøren deres logge dem på med enkel pålogging.
 - [Egendefinerte domener](#egendefinerte-domener): Vis skjemaet på ditt eget domene, med et gratis sertifikat.
 - [Hva som beskytter et skjema](#hva-som-beskytter-et-skjema): Hver sjekk en forespørsel passerer, i rekkefølge.
 - [Feilsøking](#feilsøking): Hva hver melding på skjemaets side betyr, og hva du skal gjøre.
@@ -16,6 +17,7 @@ Et skjema er åpent for alle som har lenken, og hver innsending kan tilkalle vak
 | --- | --- |
 | **Status** | **Tar imot innsendinger** — om skjemaets lenke fungerer. |
 | **Delingslenke** | Hver adresse skjemaet svarer på, hver med **Kopier lenke**, og **Tilbakestill lenke**. |
+| **Hvem som kan åpne dette skjemaet** | **Bare personer som logger inn** — om bare personene du velger, kan åpne skjemaet, når de logger på. |
 | **Etter innsending** | **Takkemelding** folk ser når de har sendt inn, under nummeret på det skjemaet opprettet. |
 | **Flere innstillinger** | **IP-tillatelsesliste**, sammenfoldet til du åpner den. |
 
@@ -28,6 +30,8 @@ Kortet **Delingslenke** viser hver adresse skjemaet svarer på: først skjemaets
 - **Tilbakestill lenke** gir skjemaet en ny lenke etter at du har bekreftet. Den gamle lenken slutter å fungere med en gang og viser meldingen om at skjemaet ikke er tilgjengelig, så alle du delte den med, trenger den nye. Bruk den når en lenke har spredt seg lenger enn den burde. Skjemaets egendefinerte domener inneholder ingen nøkkel, og fortsetter å virke.
 
 Alle med lenken kan åpne skjemaet og sende det inn, uten en OneUptime-konto og uten å logge på. Å være pålogget endrer ingenting: OneUptime vet bare hvem som sendte inn, ut fra navnet og e-posten som er skrevet inn i skjemaet. Så behandle lenken som et telefonnummer til vaktteamet ditt. Del den der de som skal bruke den, finner den — en intranettside, en runbook for kundestøtte, en festet chatmelding — og ikke på et offentlig nettsted, med mindre du vil ha innsendinger fra hvem som helst.
+
+For å la bare personene du velger, åpne og sende inn skjemaet, slår du på **Bare personer som logger inn** — se [Bare personer som logger inn](#bare-personer-som-logger-inn).
 
 Lenken har en egen tilfeldig nøkkel, ikke skjemaets ID. På en selvdriftet installasjon serveres den fra din egen OneUptime-vert, og fungerer bare på adressen `HTTP_PROTOCOL` og `HOST` konfigurerer: åpnet under et annet navn på serveren, eller på IP-adressen, avvises skjemaets forespørsler som om de kom fra et annet nettsted.
 
@@ -48,6 +52,20 @@ For å slutte å ta imot innsendinger uten å slette skjemaet slår du av **Tar 
 Etter en innsending sier siden "Takk — svaret ditt er sendt." og gir nummeret på det som ble opprettet, deretter **Takkemelding**, i Markdown. Bruk den til å si hva som skjer videre, og hvor man skal henvende seg når noe haster. Uten en viser siden bare standardmeldingen.
 
 Et bilde i skjemaets beskrivelse eller takkemelding vises for alle som åpner lenken så lenge skjemaet står på **Tar imot innsendinger**. Slå av skjemaet, eller ta ut bildet, så er bildet privat igjen, med mindre noe annet alle ser, fortsatt inneholder det.
+
+## Bare personer som logger inn
+
+Slå på **Bare personer som logger inn** under **Hvem som kan åpne dette skjemaet** på skjemaets side **Del** for å la bare personene du velger, åpne og sende inn skjemaet. Når du slår det på, blir du bedt om å bekrefte. Fra da av møter hver besøkende først en påloggingsside, på skjemaets lenke og på hvert egendefinerte domene. Den viser skjemaets navn og ingenting annet: verken spørsmålene, malene eller logoen, eller hvem som kan logge på. Etter påloggingen viser skjemaet hvem som er logget på, med **Logg ut** ved siden av.
+
+Åpne **Private brukere** i skjemaets sidemeny for å legge til personene som kan logge på, via e-post. Hver får en invitasjon på e-post med en lenke der de velger et passord. Lenken virker i 24 timer, og **Glemt passordet?** på påloggingssiden sender en ny. Tabellen viser hvem som er **Registrert**, hvem sin invitasjon er **Invitasjon sendt**, og når hver enkelt var **Sist innlogget**. Å fjerne noen, eller et nytt passord, logger dem ut overalt ved neste forespørsel.
+
+Åpne **Enkel pålogging** for å la identitetsleverandøren deres logge personer på, med SAML eller OpenID Connect. Hver leverandør viser verdiene du limer inn i identitetsleverandøren. Alle identitetsleverandøren slipper inn, blir en privat bruker første gang de logger på. Å slå av en leverandør, eller slette den, logger ut alle den har logget på. **Krev SSO for å logge på** slår av pålogging med passord: alle logger da på med enkel pålogging, og alle som er logget på med et passord, logges ut ved neste forespørsel.
+
+En pålogging varer til den har vært ubrukt i 30 dager. Informasjonskapslene sendes bare med skjemaets egne forespørsler, så ingen andre nettsteder kan åpne eller sende inn skjemaet med dem eller logge noen ut. Påloggingsforsøk er begrenset for hver adresse og hver konto, og påloggingssiden og siden for glemt passord svarer likt, enten en adresse kan logge på eller ikke.
+
+En innsending nevner bare navnet og e-posten som er skrevet inn i skjemaet, som på alle andre skjemaer, ikke den private brukeren som sendte den. Et bilde i skjemaets beskrivelse eller takkemelding forblir offentlig på adressen sin, som ikke kan gjettes, så lenge skjemaet tar imot innsendinger, som på en statusside som ber besøkende logge på: slik laster de private brukernes nettlesere det.
+
+På OneUptime Cloud krever enkel pålogging **Scale**-planen, og det gjør **Krev SSO for å logge på** også. Gjennom API-et er private brukere og leverandører av enkel pålogging egne oppføringer: `/form-private-user`, `/form-sso` og `/form-oidc`, hver med tillatelser oppkalt etter seg.
 
 ## Egendefinerte domener
 
@@ -119,13 +137,14 @@ Hver forespørsel passerer disse sjekkene, i denne rekkefølgen:
 2. Den må være innenfor frekvensgrensene.
 3. Skjemaet må finnes, stå på **Tar imot innsendinger** og høre til et prosjekt på en plan som omfatter skjemaer.
 4. Den må komme fra en adresse på **IP-tillatelsesliste**, når skjemaet har en.
-5. En innsending må bestå captchaen, når instansen har captcha slått på.
-6. Hvert svar må være innenfor størrelsesgrensene og passe til spørsmålet — se [Bygg et skjema](/docs/forms/building#størrelsesgrenser).
-7. Det svarene og innstillingene danner, må kunne opprettes: en hendelse trenger en alvorlighetsgrad, en begivenhet en slutt etter starten.
-8. En innsending må passe innenfor skjemaets timekvote — se [Frekvensgrenser](#frekvensgrenser).
-9. Filene må passe innenfor skjemaets timekvote for filer, rett før de lagres.
+5. Den må komme fra en av skjemaets private brukere, logget på, når skjemaet er satt til **Bare personer som logger inn** — se [Bare personer som logger inn](#bare-personer-som-logger-inn).
+6. En innsending må bestå captchaen, når instansen har captcha slått på.
+7. Hvert svar må være innenfor størrelsesgrensene og passe til spørsmålet — se [Bygg et skjema](/docs/forms/building#størrelsesgrenser).
+8. Det svarene og innstillingene danner, må kunne opprettes: en hendelse trenger en alvorlighetsgrad, en begivenhet en slutt etter starten.
+9. En innsending må passe innenfor skjemaets timekvote — se [Frekvensgrenser](#frekvensgrenser).
+10. Filene må passe innenfor skjemaets timekvote for filer, rett før de lagres.
 
-Et skjemas logo og favikon er en del av skjemaet: de sendes inne i svaret som åpner det, i base64, først når det har bestått de fire første sjekkene, og aldri fra en egen adresse. Ingen kan hente dem uten skjemaet, og ingen fil kan hentes via id-en sin gjennom et skjema; selve filene forblir private. Et skjema viser bare bilder som er lastet opp i dets eget prosjekt: en fil fra et annet prosjekt avvises når skjemaet lagres, og sendes aldri til siden.
+Et skjemas logo og favikon er en del av skjemaet: de sendes inne i svaret som åpner det, i base64, først når det har bestått de fem første sjekkene, og aldri fra en egen adresse. Ingen kan hente dem uten skjemaet, og ingen fil kan hentes via id-en sin gjennom et skjema; selve filene forblir private. Et skjema viser bare bilder som er lastet opp i dets eget prosjekt: en fil fra et annet prosjekt avvises når skjemaet lagres, og sendes aldri til siden.
 
 ### IP-tillatelsesliste
 

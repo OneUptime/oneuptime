@@ -20,6 +20,7 @@ import {
   RANGE_SELECTION_THROTTLED_EVENTS,
 } from "../ChartLibrary/Utils/UseChartRangeSelection";
 import OneUptimeDate from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
 
 /*
  * The part of recharts' chart state the handlers read. `activeLabel` is the
@@ -47,6 +48,11 @@ export interface HistogramRangeSelectionOptions {
    * label to label, so a click on a single bar selects nothing.
    */
   bucketIntervalMs?: number | undefined;
+  /*
+   * The zone the bars were cut in when each is a day of it (#7923): a
+   * click on a day bar zooms to that zone's next midnight.
+   */
+  bucketTimezone?: Timezone | undefined;
 }
 
 export interface HistogramRangeSelectionState {
@@ -268,6 +274,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
   onTimeRangeSelectRef.current = options.onTimeRangeSelect;
 
   const bucketIntervalMs: number | undefined = options.bucketIntervalMs;
+  const bucketTimezone: Timezone | undefined = options.bucketTimezone;
   const onZoomOut: (() => void) | undefined = options.onZoomOut;
   const canSelect: boolean = Boolean(options.onTimeRangeSelect);
 
@@ -599,6 +606,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
           fromBucket: from,
           toBucket: to,
           bucketIntervalMs: bucketIntervalMs,
+          bucketTimezone: bucketTimezone,
         });
 
       if (!selected) {
@@ -633,6 +641,7 @@ const useHistogramRangeSelection: UseHistogramRangeSelectionFunction = (
     },
     [
       bucketIntervalMs,
+      bucketTimezone,
       clearSelection,
       doubleClickReset,
       hasPointerMoved,

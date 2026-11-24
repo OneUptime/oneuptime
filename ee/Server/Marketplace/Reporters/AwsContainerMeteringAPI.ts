@@ -9,18 +9,20 @@ import {
   MarketplaceHttpResponse,
   defaultMarketplaceHttpClient,
 } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
-import AwsWorkloadCredentialsProvider, {
-  AwsWorkloadCredentials,
-} from "./AwsWorkloadCredentials";
+import AwsDefaultCredentialChain, {
+  AwsChainCredentials,
+} from "Common/Server/Utils/Aws/AwsDefaultCredentialChain";
+import MarketplaceAwsCredentials from "./MarketplaceAwsCredentials";
 
 /*
  * The AWS Marketplace Metering Service as the self-hosted container product
  * calls it: MeterUsage, from the buyer's Amazon EKS cluster, signed with the
  * credentials of the IAM role on OneUptime's Kubernetes service account
  * (IAM roles for service accounts - AWS refuses EKS Pod Identity, the node
- * role and long-term keys for this call), at the Metering Service endpoint
- * of the Region the pod runs in (any other Region answers
- * InvalidEndpointRegionException).
+ * role and long-term keys for this call), from the server's AWS credential
+ * chain as the reporter looks in it (MarketplaceAwsCredentials), at the
+ * Metering Service endpoint of the Region the pod runs in (any other Region
+ * answers InvalidEndpointRegionException).
  *
  * AWS takes one record per dimension, hour and pod, rounding the timestamp
  * down to the hour, and nothing older than six hours. Sending the same
@@ -85,13 +87,14 @@ export const AWS_SETUP_ERROR_CODES: ReadonlyArray<string> = [
 ];
 
 export default class AwsContainerMeteringAPI {
-  private credentials: AwsWorkloadCredentialsProvider;
+  private credentials: AwsDefaultCredentialChain;
   private region: string;
   private httpClient: MarketplaceHttpClient;
   private now: () => Date;
 
   public constructor(options: {
-    credentials: AwsWorkloadCredentialsProvider;
+    // MarketplaceAwsCredentials.createChain(): where the reporter signs in from.
+    credentials: AwsDefaultCredentialChain;
     region: string;
     httpClient?: MarketplaceHttpClient | undefined;
     now?: (() => Date) | undefined;
@@ -243,8 +246,17 @@ export default class AwsContainerMeteringAPI {
     operation: string,
     payload: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const credentials: AwsWorkloadCredentials =
-      await this.credentials.getCredentials();
+    let credentials: AwsChainCredentials;
+
+    try {
+      // STS is asked in the Region the usage goes to when the pod does not say its own.
+      credentials = await this.credentials.getCredentials({
+        regionHint: this.region,
+      });
+    } catch (err) {
+      throw MarketplaceAwsCredentials.toMarketplaceApiError(err);
+    }
+
     const host: string = this.getEndpointHost();
     const body: string = JSON.stringify(payload);
 

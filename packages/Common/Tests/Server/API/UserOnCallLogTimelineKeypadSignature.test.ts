@@ -20,7 +20,9 @@ import {
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import logger from "../../../Server/Utils/Logger";
+import OnCallKeypadToken from "../../../Server/Utils/OnCall/OnCallKeypadToken";
 import OnCallPageLinks from "../../../Server/Utils/OnCall/OnCallPageLinks";
+import OnCallPageLinkToken from "../../../Server/Utils/OnCall/OnCallPageLinkToken";
 import OnCallPagePassOn from "../../../Server/Utils/OnCall/OnCallPagePassOn";
 import Response from "../../../Server/Utils/Response";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -31,6 +33,7 @@ import Protocol from "../../../Types/API/Protocol";
 import URL from "../../../Types/API/URL";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import OneUptimeDate from "../../../Types/Date";
+import { OnCallInputRequest } from "../../../Types/Call/CallRequest";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
@@ -54,13 +57,20 @@ import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
  * An on-call call asks the person to press 1 to acknowledge, or 2 to
  * escalate, with a <Gather> whose action is
  * /api/user-notification-log-timeline/call/gather-input/:itemId - the call's
- * signed token and the page's own in its query (OnCallPageLinks, CallService).
- * Twilio posts the key there, and signs the request with the auth token of
- * the account that placed the call: the project's own Twilio config, or the
- * OneUptime server's. The tokens travel in a URL - Twilio's request logs, a
- * proxy's access log - so the route also checks Twilio's signature: a request
- * Twilio did not sign acknowledges nothing, escalates nothing, says nothing,
- * and is logged with why, none of its tokens in the log.
+ * own signed token in its query, which names the notification the call was
+ * placed for (OnCallKeypadToken, OnCallPageLinks, CallService). Twilio posts
+ * the key there, and signs the request with the auth token of the account
+ * that placed the call: the project's own Twilio config, or the OneUptime
+ * server's. The token travels in a URL - Twilio's request logs, a proxy's
+ * access log - so the route also checks Twilio's signature: a request Twilio
+ * did not sign acknowledges nothing, escalates nothing, says nothing, and is
+ * logged with why, none of its tokens in the log.
+ *
+ * The address carries nothing that works anywhere else (#10025): no page
+ * link token, which escalates the page from a browser. A call placed before
+ * this release had one there, beside a call token that named no
+ * notification; it is taken in that form while its call token lasts - a
+ * day - and refused after.
  *
  * The requests here are posted to the action URL exactly as a call gives it
  * to Twilio, signed by Twilio's own algorithm (getExpectedTwilioSignature),
@@ -97,7 +107,11 @@ const ITEM: ObjectID = new ObjectID("0f910000-0000-4000-8000-000000000001");
 const PROJECT: ObjectID = new ObjectID("0f910000-0000-4000-8000-000000000003");
 const RUN: ObjectID = new ObjectID("0f910000-0000-4000-8000-000000000005");
 const ANA: ObjectID = new ObjectID("0f910000-0000-4000-8000-0000000000a1");
+const OTHER_ITEM: ObjectID = new ObjectID(
+  "0f910000-0000-4000-8000-000000000002",
+);
 const CALL_SID: string = "CA0123456789abcdef0123456789abcdef";
+const DAY_MS: number = 24 * 60 * 60 * 1000;
 
 const SERVER_ACCOUNT: TwilioConfig = {
   accountSid: "AC11111111111111111111111111111111",
@@ -114,7 +128,7 @@ const PROJECT_ACCOUNT: TwilioConfig = {
 };
 
 // What each key answers, as the call carries it in its own signed token.
-const ON_INPUT: JSONObject = {
+const ON_INPUT: OnCallInputRequest = {
   "1": { sayMessage: "You have acknowledged this incident. Good bye" },
   default: { sayMessage: "Invalid input. Good bye" },
 };
@@ -153,22 +167,66 @@ function projectConfig(account: TwilioConfig): ProjectCallSMSConfig {
 }
 
 /*
- * The <Gather> action a call gives Twilio: the page's address with its own
- * token, and the call's token, which says what each key answers
- * (CallService.generateTwimlForCall).
+ * The <Gather> action a call gives Twilio, as CallService.getKeypadAction
+ * makes it: the page's keypad address without the page's link token, and
+ * the call's token, which says what each key answers and names the
+ * notification the call was placed for.
  */
-async function actionUrl(): Promise<string> {
+async function actionUrl(
+  // The notification the call was placed for; null for none.
+  callPlacedFor: ObjectID | null = ITEM,
+): Promise<string> {
   const responseUrl: URL = await OnCallPageLinks.getCallResponseUrl(ITEM);
+  const action: URL = URL.fromString(responseUrl.toString().split("?")[0]!);
 
-  return responseUrl
+  return action
     .addQueryParam(
       "token",
-      JSONWebToken.signJsonPayload(
-        JSONFunctions.serialize(ON_INPUT),
-        OneUptimeDate.getDayInSeconds(),
-      ),
+      OnCallKeypadToken.sign({
+        userOnCallLogTimelineId: callPlacedFor || undefined,
+        answers: ON_INPUT,
+      }),
     )
     .toString();
+}
+
+/*
+ * The <Gather> action of a call placed before this release: the page's own
+ * link token beside a call token that says what each key answers, and
+ * names no notification - signed `placedAgoMs` ago, to last
+ * `lifetimeInSeconds` (a day, as every such call's was).
+ */
+async function earlierActionUrl(
+  options: {
+    pageToken?: string | null | undefined;
+    placedAgoMs?: number | undefined;
+    lifetimeInSeconds?: number | undefined;
+  } = {},
+): Promise<string> {
+  const clock: jest.SpyInstance = jest
+    .spyOn(Date, "now")
+    .mockReturnValue(Date.now() - (options.placedAgoMs || 0));
+
+  const callToken: string = JSONWebToken.signJsonPayload(
+    JSONFunctions.serialize(ON_INPUT as unknown as JSONObject),
+    options.lifetimeInSeconds || OneUptimeDate.getDayInSeconds(),
+  );
+
+  clock.mockRestore();
+
+  const url: URL = URL.fromString(
+    `https://oneuptime.example.com/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}`,
+  );
+
+  if (options.pageToken !== null) {
+    url.addQueryParam(
+      "pageToken",
+      options.pageToken ||
+        OnCallPageLinkToken.sign({ userOnCallLogTimelineId: ITEM }),
+    );
+  }
+
+  return url.addQueryParam("token", callToken).toString();
 }
 
 // The key pressed, as Twilio posts it to the action URL - signed with `signedWith`.
@@ -259,6 +317,31 @@ function expectRefused(answer: Answer): void {
   expect(Response.sendXmlResponse).not.toHaveBeenCalled();
   expect(item.status).toBe(UserNotificationStatus.Sent);
   expect(item.isAcknowledged).toBeFalsy();
+}
+
+/*
+ * A key press Twilio signed, refused because its call token does not bind
+ * it to this page: 403, nothing acknowledged, escalated or said, and why in
+ * the log - without a token.
+ */
+function expectRefusedAsNotThisCall(
+  request: TwilioRequestLike,
+  answer: Answer,
+  why: string,
+): void {
+  expectRefused(answer);
+
+  expect(warnSpy).toHaveBeenCalledTimes(1);
+
+  const logged: string = String(warnSpy.mock.calls[0]![0]);
+
+  expect(logged).toBe(
+    `On-call keypad press refused: the keypad callback for on-call notification ${ITEM.toString()}. ${why} Nothing was acknowledged or escalated.`,
+  );
+
+  for (const token of Object.values(request.query)) {
+    expect(logged).not.toContain(token);
+  }
 }
 
 function expectAcknowledged(answer: Answer): void {
@@ -355,10 +438,9 @@ describe("a key Twilio signed", () => {
   });
 
   test("still needs the call's own token: without it, nothing is read or written", async () => {
-    const url: string = (await actionUrl()).replace(/&token=[^&]+/, "");
+    const url: string = (await actionUrl()).replace(/\?token=[^&]+/, "");
 
-    expect(url).toContain("pageToken=");
-    expect(url).not.toContain("&token=");
+    expect(url).not.toContain("token=");
 
     const { answer } = await press({ digits: "1", url: url });
 
@@ -457,9 +539,8 @@ describe("a key Twilio did not sign acknowledges nothing, escalates nothing, say
     const logged: string = String(warnSpy.mock.calls[0]![0]);
 
     expect(logged).toContain(
-      `Twilio callback refused: the keypad callback for on-call notification ${ITEM.toString()}. Its X-Twilio-Signature does not match the one Twilio account AC…1111 makes for https://oneuptime.example.com/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}?pageToken=…&token=…`,
+      `Twilio callback refused: the keypad callback for on-call notification ${ITEM.toString()}. Its X-Twilio-Signature does not match the one Twilio account AC…1111 makes for https://oneuptime.example.com/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}?token=…`,
     );
-    expect(logged).not.toContain(request.query["pageToken"]!);
     expect(logged).not.toContain(request.query["token"]!);
     expect(logged).not.toContain(SERVER_ACCOUNT.authToken);
     expect(logged).not.toContain(SERVER_ACCOUNT.accountSid);
@@ -476,5 +557,221 @@ describe("a key Twilio did not sign acknowledges nothing, escalates nothing, say
     expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
     expect(findConfigsSpy).not.toHaveBeenCalled();
     expect(findGlobalConfigSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("the address a call gives Twilio carries nothing that works anywhere else (#10025)", () => {
+  test("no page link token: only the call's own token, which names this notification", async () => {
+    const url: globalThis.URL = new globalThis.URL(await actionUrl());
+
+    expect(url.pathname).toBe(
+      `/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}`,
+    );
+    expect([...url.searchParams.keys()]).toEqual(["token"]);
+    // The call's token escalates nothing from a browser: it is no page link token.
+    expect(
+      OnCallPageLinkToken.isValid({
+        token: url.searchParams.get("token"),
+        userOnCallLogTimelineId: ITEM,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("a key Twilio signed is taken only for the page its call was placed for", () => {
+  test("1, with the token of a call placed for another notification, acknowledges nothing", async () => {
+    const { request, answer } = await press({
+      digits: "1",
+      url: await actionUrl(OTHER_ITEM),
+    });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "Its call token was signed for another notification.",
+    );
+  });
+
+  test("2, with the token of a call placed for another notification, escalates nothing", async () => {
+    const { request, answer } = await press({
+      digits: "2",
+      url: await actionUrl(OTHER_ITEM),
+    });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "Its call token was signed for another notification.",
+    );
+  });
+
+  test("a call placed for no notification answers no page", async () => {
+    const { request, answer } = await press({
+      digits: "1",
+      url: await actionUrl(null),
+    });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "Its call token was signed for another notification.",
+    );
+  });
+
+  test("the page's own link token in the call token's place is no call token", async () => {
+    const url: string = URL.fromString(
+      `https://oneuptime.example.com/api/user-notification-log-timeline/call/gather-input/${ITEM.toString()}`,
+    )
+      .addQueryParam(
+        "token",
+        OnCallPageLinkToken.sign({ userOnCallLogTimelineId: ITEM }),
+      )
+      .toString();
+
+    const { request, answer } = await press({ digits: "2", url: url });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "Its call token is not one OneUptime signed for a call's keypad.",
+    );
+  });
+});
+
+/*
+ * A CALL PLACED BEFORE THIS RELEASE keeps the <Gather> action it was placed
+ * with: the page's link token beside a call token that names no
+ * notification. Its call token lasts a day, so the route takes that form
+ * for a day after the upgrade at most - signed by Twilio, and bound to the
+ * page by the link token - and refuses it once the call token has expired.
+ */
+describe("a call placed before this release, while its call token lasts", () => {
+  test("its earlier address carries the page's link token beside the call token", async () => {
+    const url: globalThis.URL = new globalThis.URL(await earlierActionUrl());
+
+    expect([...url.searchParams.keys()].sort()).toEqual(["pageToken", "token"]);
+  });
+
+  test("1 acknowledges the page", async () => {
+    const { answer } = await press({
+      digits: "1",
+      url: await earlierActionUrl(),
+    });
+
+    expectAcknowledged(answer);
+  });
+
+  test("2 escalates the page", async () => {
+    passOnSpy.mockResolvedValue({
+      passedOn: true,
+      result: {
+        outcome: "NextRulePaged",
+        isPreview: false,
+        isDirectPage: false,
+        policyName: "Payments",
+        rule: { order: 2, name: "Level 2" },
+        pagedNames: ["Bob Smith"],
+        stillPagedNames: [],
+        ruleCount: 2,
+      },
+    } as never);
+
+    const { answer } = await press({
+      digits: "2",
+      url: await earlierActionUrl(),
+    });
+
+    expect(answer.status).not.toHaveBeenCalled();
+    expect(passOnSpy).toHaveBeenCalledWith({
+      userId: ANA,
+      executionLogId: RUN,
+      viaUserOnCallLogTimelineId: ITEM,
+    });
+  });
+
+  test("placed 23 hours 59 minutes ago: still taken", async () => {
+    const { answer } = await press({
+      digits: "1",
+      url: await earlierActionUrl({ placedAgoMs: DAY_MS - 60 * 1000 }),
+    });
+
+    expectAcknowledged(answer);
+  });
+
+  test("placed a day and a second ago: its call token has expired, and nothing is read or written", async () => {
+    const { answer } = await press({
+      digits: "1",
+      url: await earlierActionUrl({ placedAgoMs: DAY_MS + 1000 }),
+    });
+
+    expect(answer.reachedHandler).toBe(false);
+    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (Response.sendErrorResponse as unknown as jest.Mock).mock
+          .calls[0]![2] as Error
+      ).message,
+    ).toBe("Invalid token");
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(passOnSpy).not.toHaveBeenCalled();
+    expect(findConfigsSpy).not.toHaveBeenCalled();
+  });
+
+  test("without the page's link token, nothing binds it to the page: refused", async () => {
+    const { request, answer } = await press({
+      digits: "1",
+      url: await earlierActionUrl({ pageToken: null }),
+    });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "It is the address of a call placed before this release, and it carries no page link token for this notification.",
+    );
+  });
+
+  test("with another page's link token: refused", async () => {
+    const { request, answer } = await press({
+      digits: "2",
+      url: await earlierActionUrl({
+        pageToken: OnCallPageLinkToken.sign({
+          userOnCallLogTimelineId: OTHER_ITEM,
+        }),
+      }),
+    });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "It is the address of a call placed before this release, and it carries no page link token for this notification.",
+    );
+  });
+
+  test("a token that says nothing of its purpose, signed to outlive any call, is no call's", async () => {
+    const { request, answer } = await press({
+      digits: "1",
+      url: await earlierActionUrl({
+        lifetimeInSeconds: 7 * OneUptimeDate.getDayInSeconds(),
+      }),
+    });
+
+    expectRefusedAsNotThisCall(
+      request,
+      answer,
+      "Its call token is not one OneUptime signed for a call's keypad.",
+    );
+  });
+
+  test("unsigned, it is refused as any key Twilio did not sign", async () => {
+    const { answer } = await press({
+      digits: "2",
+      url: await earlierActionUrl(),
+      signedWith: null,
+    });
+
+    expectRefused(answer);
+    expect(String(warnSpy.mock.calls[0]![0])).toContain(
+      "Twilio callback refused",
+    );
   });
 });

@@ -14,6 +14,14 @@ import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
 } from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  SYSTEMD_FAILED_UNITS_LISTED,
+  SystemdUnitFailure,
+  SystemdUnitJournalLine,
+  getSystemdUnitFailureItem,
+  groupSystemdJournalLinesByUnit,
+  readSystemdUnitFailure,
+} from "./SystemdUnitFailure";
 
 /*
  * WHAT NEEDS ATTENTION ON A FLEET OF HOSTS, AND ON ONE HOST, AS ROWS.
@@ -28,7 +36,9 @@ import {
  *     it last did;
  *   - on a host's page, one row per thing on it: the host itself ("This
  *     host": memory, swap, load, not reporting), each filesystem, its
- *     collector and each failed systemd unit, which opens the unit's page.
+ *     collector and each failed systemd unit, which opens the unit's page -
+ *     and says why it failed, as systemd said it, once its journal is read
+ *     (#10129).
  *
  * React-free (no Route building: pages hand in the routes), so App tests can
  * read it.
@@ -129,6 +139,65 @@ export function getHostFleetAttentionItems(data: {
 }
 
 /*
+ * The failed units a host's record names, as one read of their journal
+ * asks for them (#10129): each once, by name, at most as many as the
+ * Systemd Units list's count opens. Any more keep their rows as they are.
+ */
+export function getHostFailedUnitNames(host: HostAttentionRow): Array<string> {
+  const names: Set<string> = new Set<string>();
+
+  for (const name of host.failedSystemdUnits || []) {
+    if (typeof name === "string" && name.trim()) {
+      names.add(name.trim());
+    }
+  }
+
+  return Array.from(names)
+    .sort((a: string, b: string): number => {
+      return a.localeCompare(b);
+    })
+    .slice(0, SYSTEMD_FAILED_UNITS_LISTED);
+}
+
+/*
+ * A failed unit's row, with why it failed when its journal says (#10129):
+ * the reason in a chip ("Exited with code 1"), since when, and systemd's
+ * own words - and, for a dialog that answers "what failed?", systemd's
+ * result and exit status and the lines it wrote about the unit, as the
+ * Systemd Units list's dialog lists them. It keeps the row's urgency, name
+ * and page: the host's Needs attention and its health say the same. A unit
+ * whose journal says nothing of why keeps its row as it was.
+ */
+function withUnitFailure(data: {
+  row: ResourceAttentionItem;
+  unitName: string;
+  lines: ReadonlyArray<SystemdUnitJournalLine>;
+  isDetailed: boolean;
+}): ResourceAttentionItem {
+  const failure: SystemdUnitFailure | null = readSystemdUnitFailure(data.lines);
+
+  if (!failure) {
+    return data.row;
+  }
+
+  const failed: ResourceAttentionItem = getSystemdUnitFailureItem({
+    unitName: data.unitName,
+    failure: failure,
+    lines: data.lines,
+    key: data.row.key,
+    route: data.row.route,
+  });
+
+  return {
+    ...data.row,
+    reasons: failed.reasons,
+    message: failed.message,
+    since: failed.since,
+    ...(data.isDetailed ? { facts: failed.facts, events: failed.events } : {}),
+  };
+}
+
+/*
  * What needs attention on one host, as its page lists it: its own row
  * first ("This host"), then its filesystems, its collector and its failed
  * units, each as urgent as HostHealth says. `collectorName` is what its
@@ -140,11 +209,25 @@ export function getHostOwnAttentionItems(data: {
   collectorName: string;
   getUnitRoute: (unitName: string) => Route | undefined;
   collectorRoute: Route | undefined;
+  /*
+   * What systemd said of why the host's failed units failed (#10129): the
+   * lines one read of their journal returned (readSystemdFailedUnitsJournal).
+   * Not read yet, or not readable: every unit's row says Failed.
+   */
+  unitJournal?: ReadonlyArray<SystemdUnitJournalLine> | null | undefined;
+  /*
+   * The list is a dialog's, which answers "what failed?" (the host's
+   * Degraded): a failed unit's row lists systemd's result and exit status
+   * and its lines too. The Needs attention card's rows leave them out.
+   */
+  isDetailed?: boolean | undefined;
 }): Array<ResourceAttentionItem> {
   const assessment: HostHealthAssessment = assessHost(data.host, {
     now: data.now,
   });
   const lastSeenAt: Date | null = toHostDate(data.host.lastSeenAt);
+  const linesByUnit: Map<string, Array<SystemdUnitJournalLine>> | null =
+    data.unitJournal ? groupSystemdJournalLinesByUnit(data.unitJournal) : null;
 
   return assessment.findings.map(
     (finding: HostFinding): ResourceAttentionItem => {
@@ -170,8 +253,8 @@ export function getHostOwnAttentionItems(data: {
             reasons: finding.reasons,
             route: data.collectorRoute,
           };
-        case "systemd-unit":
-          return {
+        case "systemd-unit": {
+          const row: ResourceAttentionItem = {
             key: finding.key,
             kind: KIND_SYSTEMD_UNIT,
             icon: IconProp.Cog6Tooth,
@@ -181,6 +264,16 @@ export function getHostOwnAttentionItems(data: {
             reasons: finding.reasons,
             route: finding.name ? data.getUnitRoute(finding.name) : undefined,
           };
+
+          return finding.name && linesByUnit
+            ? withUnitFailure({
+                row: row,
+                unitName: finding.name,
+                lines: linesByUnit.get(finding.name) || [],
+                isDetailed: Boolean(data.isDetailed),
+              })
+            : row;
+        }
         default:
           return {
             key: HOST_ATTENTION_CURRENT.key,

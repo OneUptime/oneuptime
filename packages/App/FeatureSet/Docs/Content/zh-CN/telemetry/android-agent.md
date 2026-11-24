@@ -104,7 +104,7 @@ Android 只允许拥有 READ_LOGS 权限的应用读取其他应用的日志，�
 adb shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
 ```
 
-使用 Esper 时，请通过 **Secure Remote ADB** 运行该命令：为设备开启 ADB 访问，用 `espercli secureadb connect -d DEVICE_ID` 连接，然后运行命令。授予权限后，Android 会重启代理，代理随即开始读取。
+使用 Esper 时，请通过 **Secure Remote ADB** 运行该命令：为设备开启 ADB 访问，用 `espercli secureadb connect --device DEVICE_ID` 连接，然后运行命令。授予权限后，Android 会重启代理，代理随即开始读取。资产清单的 **设备管理服务 ID** 列显示每台设备的 `DEVICE_ID`。
 
 之后代理读取的内容取决于 Android 版本：
 
@@ -124,6 +124,35 @@ adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
 
 第一条命令适用于 Android 15 及更高版本；使用情况访问权限也可以在设备的 **设置 → 使用情况访问权限** 中开启。设备策略无法授予这些权限，代理的界面会列出仍需运行的命令。授予之后， **异常** 中的每个崩溃都有完整的堆栈追踪，原生崩溃有其信号和崩溃所在的库，ANR 有其主线程的堆栈， **日志** 中的重启则有 Android 给出的原因。代理读取的内容中的卡号、电子邮件地址、令牌和密码会在发送前被替换为 `[card number]` 、 `[email]` 、 `[token]` 和 `[redacted]` 。
 
+### 为整个设备群授予这些权限
+
+代理的每次上报都会说明它仍缺少其中哪些权限。要列出需要这些权限的设备，请打开 **资产清单** ，再打开 **所有项目** ，然后把 **代理权限** 筛选条件设为 **缺失** 。开启 **代理权限** 列即可查看每台设备缺少什么，并可将列表导出为 CSV。再开启 **设备管理服务 ID** 列，导出的列表就会包含每台设备的 Esper ID，即作为 `DEVICE_ID` 传给 `espercli secureadb connect --device` 的值。
+
+设备策略无法授予这些权限：READ_LOGS 和 READ_DROPBOX_DATA 是只有 adb、系统或设备制造商才能授予的权限，而使用情况访问权限由 adb 或设备前的人设置。下面是 Esper 提供的几种方式，以及它们为何都无法授予这些权限：
+
+- **应用权限** 无论是在蓝图中设置，还是通过 `SET_APP_PERMISSION` 命令设置，都要经过 Android 的设备所有者 API，而该 API 只授予应用会向设备前的人请求的权限。Android 会拒绝授予这些权限。
+- **托管配置** 设置的是代理自己的设置，从不涉及 Android 的权限。
+- **Run Shell Script** 在 Linux 和 Windows 设备上运行，不能在 Android 设备上运行。
+- **Secure Remote ADB** 一次只能连接一台设备，而且要从运行 `espercli` 的电脑上连接。在 Esper Foundation 设备上，它不需要设备前有人。在其他设备上，第一次连接时需要设备前的人接受 **Allow USB debugging?** 提示。
+
+因此，请用 adb 授予这些权限：
+
+- **设备发往现场之前** ，在用 USB 线预配设备时授予。下面的命令会为连接到电脑的每台设备授予全部三项权限：
+
+  ```bash
+  for serial in $(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_LOGS
+    adb -s "$serial" shell pm grant com.oneuptime.androidagent android.permission.READ_DROPBOX_DATA
+    adb -s "$serial" shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow
+  done
+  ```
+
+  在 Android 14 及更早版本上，第二条命令会提示该权限未知：这样的设备不需要它。
+- **对于已在现场的设备** ，通过 Secure Remote ADB 授予，每次处理 **缺失** 列表中的一台设备。
+- **只有使用情况访问权限** 可以由设备前的人自己开启：在 **设置 → 使用情况访问权限** 中开启，或使用代理界面上的按钮。
+
+设备在一分钟内的下一次上报会把它从 **缺失** 列表中移除。
+
 ### CPU 使用率
 
 Android 8 及更高版本不向应用提供设备的 CPU 使用率。只有设备所有者应用才能读取它，而且只在硬件会报告它的设备上可行。代理在成为设备所有者时读取它；你可以用 adb 在没有任何账号、也没有其他设备所有者的设备上进行设置：
@@ -141,16 +170,20 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 :::steps
 ### 发起请求
 
-在 **主机** 中打开设备，再打开 **日志** ，然后在 **日志会话** 中点击 **请求日志会话** 。选择设备发送日志的时长（15 分钟到 4 小时），以及它发送的最低级别： **信息** 、 **调试** 或 **详细** 。
+在 **主机** 中打开设备，再打开 **日志** ，然后在 **日志会话** 中点击 **请求日志会话** 。选择设备发送日志的时长（15 分钟到 4 小时），以及它发送的最低级别： **信息** 、 **调试** 或 **详细** 。添加 **备注** ，说明你请求的原因，例如“排查支付应用为何在下午 6 点后崩溃”。
 
 ### 在设备上允许
 
-一分钟内，设备会显示一条通知，说明有人请求了它的日志，并附上此人的名字。设备前的人打开代理并点按 **允许** 。在 Android 13 及更高版本上，Android 随后会询问是否允许访问所有设备日志，此人也要允许。
+一分钟内，设备会显示一条通知，说明有人请求了它的日志，并附上此人的名字和你的备注。设备前的人打开代理，请求会连同下方你的备注一起显示在代理中，然后此人点按 **允许** 。在 Android 13 及更高版本上，Android 随后会询问是否允许访问所有设备日志，此人也要允许。
 
 ### 查看日志行
 
-会话显示为 **正在收集** ，每个应用的日志行都会进入设备的日志。点击 **显示日志行** 即可单独查看该会话的日志行。会话会在时间到期时结束，或在有人于设备上停止它、或在 OneUptime 中取消它时结束。
+会话显示为 **正在收集** ，每个应用的日志行都会进入设备的日志。点击 **显示日志行** 即可单独查看该会话的日志行，点击 **下载日志行** 则可将它们保存为文件。会话会在时间到期时结束，或在有人于设备上停止它、或在 OneUptime 中取消它时结束。
 :::
+
+备注是一行文字，最多 200 个字符。在会话等待或运行期间，设备会在通知和代理的界面上按你写的原样、加上引号显示它；它永远不会被翻译。换行会变成空格，其中的卡号、电子邮件地址、令牌和密码会在保存前被替换为 `[card number]` 、 `[email]` 、 `[token]` 和 `[redacted]` ，与代理发送的内容一样。会话列表会在请求者下方显示备注，主机的 **审计日志** 也会将它与请求一起保存。
+
+**下载日志行** 会把会话的日志行保存为文本文件，格式与 `logcat -v threadtime` 的输出相同，供应商的支持人员能够读懂：每一行都有精确到毫秒的时间、进程和线程、级别、标签和消息。时间采用 UTC。文件开头的几行说明这是哪个会话、哪台设备、哪条备注，以及是谁请求的。文件包含的是 **日志** 中显示的日志行，即经过代理脱敏的内容，因此下载它所需的权限与读取设备日志相同。一个文件最多包含 100,000 行、32 MB；更长的会话，其文件末尾会说明该会话共有多少行。
 
 会话需要 READ_LOGS 和 `logcat_enabled` ；缺少它们时显示为 **不可用** 。一台设备上同一时间只运行一个会话。一小时内无人允许的请求会过期；设备在会话期间重启时，会话随之结束，因为 Android 的权限会随代理进程一起结束。请求会话需要编辑该主机的权限，主机的 **审计日志** 会记录是谁、在何时提出了请求。
 
@@ -165,11 +198,15 @@ adb shell dpm set-device-owner com.oneuptime.androidagent/.admin.AgentDeviceAdmi
 | 重启 | **日志** ，用 `@event.name:device.boot` 查找：设备此前运行了多久、是否正常关机、关机了多久、为什么重启，以及重启循环 |
 | 已安装的应用 | **日志** ，用 `@event.name:android.package.inventory` 查找：每天一次，以及每次安装、更新和移除 |
 | 每个应用的崩溃和 ANR | **异常** ，作为未处理异常，以应用命名；代理读取 [DropBox](#崩溃堆栈和重启原因) 时附带其堆栈 |
-| 制造商、型号、序列号、操作系统版本、安全补丁级别和固件 | 该设备在 **资产清单** 中的条目 |
+| 制造商、型号、序列号、操作系统版本、安全补丁级别和固件 | 该设备在 **资产清单** 中的条目，以及 **安全补丁级别** 筛选条件和列 |
+| 安全补丁级别有多旧 | 指标 `android.os.security_patch.age` ，以天为单位 |
+| 代理仍缺少的权限 | 该设备在 **资产清单** 中的条目，以及 **代理权限** 筛选条件和列 |
 
 在 **主机** 中，设备的操作系统显示为 Android，并带有 Android 的标志。
 
-设备在过去一小时内的启动次数是指标 `android.boot.recent_count` ，不断重启的设备会在每次启动时记录一条警告日志。在 **主机** 中，Android 设备会获得自己的警报模板：Device Unplugged、Low Battery、Device Overheating、Restart Loop 和 Storage Nearly Full，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，并在上报 CPU 使用率后获得 High CPU Utilization。每个警报最先给出的调试命令都是 adb 命令。请参阅 [主机监控](/docs/monitor/host-monitor#android-设备) 。
+当设备的安全补丁级别距今超过 90 天时，它的安全补丁就落后了。Google 每月发布一期 Android 安全公告，Android Enterprise Recommended 要求设备制造商在 90 天内推送每一期的更新，因此落后得更久的设备缺少其制造商本应推送的修复。在 **资产清单** 中， **安全补丁级别** 筛选条件会列出 **需要更新** 的设备； **Security Patch Out of Date** 模板会针对每一台这样的设备发出警报。由设备管理服务导入、未运行代理的 Android 设备，由其连接自己的模板（例如 **Esper Security Patch Out of Date**）根据设备管理服务报告的补丁级别发出警报；运行代理的设备交由这个模板，因此不会重复发出警报。
+
+设备在过去一小时内的启动次数是指标 `android.boot.recent_count` ，不断重启的设备会在每次启动时记录一条警告日志。在 **主机** 中，Android 设备会获得自己的警报模板：Device Unplugged、Low Battery、Device Overheating、Restart Loop、Storage Nearly Full 和 Security Patch Out of Date，以及 Host Stopped Reporting、Host Restarted 和 High Memory Utilization，并在上报 CPU 使用率后获得 High CPU Utilization。每个警报最先给出的调试命令都是 adb 命令。请参阅 [主机监控](/docs/monitor/host-monitor#android-设备) 。
 
 ## 故障排除
 

@@ -476,10 +476,14 @@ describe("Ask AI", () => {
       });
     }
 
-    // Chat-authored commits never land where nobody has to merge them.
+    /*
+     * Chat-authored commits never land where nobody has to merge them: said
+     * in the Code changes section the list of actions points to (#6983).
+     */
     expect(toolbox).toContain("These never touch the default or a protected");
-    expect(actions).toContain(
-      "It never writes to the default branch or a protected one, so a person still merges the change.",
+    expect(actions).toContain("See [Code changes](#code-changes).");
+    expect(flat(englishSection(ASK_AI, "## Code changes"))).toContain(
+      "Ask AI never writes to the default branch or a protected one, so a person still merges the change.",
     );
 
     /*

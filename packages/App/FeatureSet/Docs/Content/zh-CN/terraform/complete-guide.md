@@ -11,7 +11,7 @@
 
 ## 配置提供程序
 
-提供程序接受两项设置。每项都来自提供程序块，否则来自环境变量：
+提供程序通过两项设置进行连接。每项都来自提供程序块，否则来自环境变量：
 
 | 设置 | 环境变量 | 两者都未设置时 |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` 是你的 OneUptime 的地址，不带 `/api`：地址没有协议时，提供程序会加上 `https://`，并在末尾加上 `/api`。`api_key` 是敏感值，因此 Terraform 从不打印它。
+
+第三项设置 `exclusive_lists` 决定配置中的标签包含什么：请参阅[标签和 OneUptime 也会添加的其他列表](#标签和-oneuptime-也会添加的其他列表)。
 
 密钥必须是你所管理项目的 API 密钥，并且有权创建、读取、更改和删除配置中的每种记录：参见 [创建项目 API 密钥](/docs/terraform/quick-start#创建项目-api-密钥)。自托管 OneUptime 的主 API 密钥不属于任何项目，因此用它执行的创建操作会以 `ProjectId required` 失败。
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## 标签和 OneUptime 也会添加的其他列表
+
+OneUptime 会自行向记录的某些列表中添加内容：标签规则会把它的标签添加到它匹配的记录上，值班规则会把它的策略添加到它匹配的事件和警报上，SLO 的监视器规则会关联它们匹配的监视器。参考文档对每个这样的属性都会写明："OneUptime adds to it too, on its own"。设置了这类列表的配置会保留它列出的条目，其余的保持不变：
+
+- **配置列出的条目会被添加**，有人移除后会被重新加上。
+- **你从配置中删去的条目会被移除。** `labels = []` 会移除配置曾列出的所有标签。
+- **OneUptime 或某个人添加的条目会保留**，任何计划都不会把它显示为更改。
+- **在配置中省略时**，该列表归 OneUptime 所有：Terraform 既不向其中添加，也不从中移除。
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+state 保存的是配置列出且记录拥有的标签，而不是记录的全部标签：同名的数据源会读取全部标签。apply 会逐个添加和移除标签，因此在它运行期间规则添加的标签也会保留。
+
+导入会接管记录拥有的所有标签：请把它们全部列出，就像仪表板中该记录的 Terraform 页面那样，否则计划会显示省略的标签将被移除。从提供程序的早期版本升级后，设置了标签的配置的第一次计划会显示这些标签将被设置：apply 会添加记录缺少的标签，不会移除任何标签。
+
+要像早期版本那样，让每个这样的列表与配置列出的内容完全一致，请在提供程序块中设置 `exclusive_lists`。这样 Terraform 会在每次 apply 时移除规则添加的标签：
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

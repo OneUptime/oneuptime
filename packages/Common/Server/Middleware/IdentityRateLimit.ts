@@ -12,6 +12,7 @@ import ClientRateLimitCounter, {
 import Response from "../Utils/Response";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
+import { REAUTHENTICATION_MESSAGES } from "../../Types/Accounts/Reauthentication";
 
 /*
  * Attempt limiting for the anonymous identity routes that accept a
@@ -164,6 +165,24 @@ export enum IdentityRateLimitBucket {
   StatusPageLogin = "status-page-login",
 
   /*
+   * POST /public-dashboard-api/private-user/login/:dashboardId -- a
+   * dashboard private user's password (#10250). The same guessing again,
+   * against yet another set of accounts, so a counter of its own: attempts
+   * on a dashboard's link must not refuse sign-ins to OneUptime or to a
+   * status page from the same address, or the other way round.
+   */
+  DashboardPrivateUserLogin = "dashboard-private-user-login",
+
+  /*
+   * POST /api/form/private-user/login/:formId -- a
+   * form private user's password (#10249). The same guessing again,
+   * against yet another set of accounts, so a counter of its own: attempts
+   * on a form's link must not refuse sign-ins to OneUptime or to a
+   * status page from the same address, or the other way round.
+   */
+  FormPrivateUserLogin = "form-private-user-login",
+
+  /*
    * POST /verify-totp-auth, POST /verify-webauthn-auth,
    * POST /verify-totp-enrolment, the security key's sign-in options
    * (POST /security-key-sign-in-options, #9822) and its enrolment -- the
@@ -216,6 +235,24 @@ export enum IdentityRateLimitBucket {
    * SIGN_UP_BUCKET.
    */
   SignUp = "sign-up",
+
+  /*
+   * POST /identity/mobile-sso-exchange -- the mobile app redeeming the
+   * one-time code an SSO sign-in handed back to it with its PKCE verifier
+   * (#9989, Services/MobileSsoHandOffService). Not a guessing oracle -- the
+   * code is a server-minted random value and works once -- but anonymous.
+   * See MOBILE_SSO_EXCHANGE_BUCKET.
+   */
+  MobileSsoExchange = "mobile-sso-exchange",
+
+  /*
+   * POST /api/user/reauthentication and its WebAuthn options - a signed-in
+   * person confirming it's them before a change to how they sign in
+   * (#10155, Utils/Reauthentication). A password oracle like /login's, for
+   * whoever holds the session, so bounded the same way. See
+   * REAUTHENTICATION_BUCKET.
+   */
+  Reauthentication = "reauthentication",
 }
 
 export enum IdentityRateLimitScope {
@@ -335,6 +372,44 @@ const STATUS_PAGE_LOGIN_BUCKET: BucketConfig = {
 };
 
 /*
+ * Dashboard private user password budget (#10250). The same numbers as the
+ * status page's for the same reasons, with its own settings.
+ */
+const DASHBOARD_PRIVATE_USER_LOGIN_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_DASHBOARD_PRIVATE_USER_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_DASHBOARD_PRIVATE_USER_LOGIN_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_DASHBOARD_PRIVATE_USER_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
+ * Form private user password budget (#10249). The same numbers as the
+ * status page's for the same reasons, with its own settings.
+ */
+const FORM_PRIVATE_USER_LOGIN_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_FORM_PRIVATE_USER_LOGIN_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_FORM_PRIVATE_USER_LOGIN_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_FORM_PRIVATE_USER_LOGIN_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
  * Second step budget.
  *
  * Same shape as the password bucket, and the same numbers, for a different
@@ -424,6 +499,31 @@ const PASSKEY_BUCKET: BucketConfig = {
   ),
   perAccountLimit: PASSKEY_RATE_LIMIT,
   perIpLimit: PASSKEY_RATE_LIMIT,
+};
+
+/*
+ * Mobile SSO code budget (POST /identity/mobile-sso-exchange, #9989).
+ *
+ * Shaped like the passkey bucket: the request names no account - a code, a
+ * verifier and a state - so both counters use the address budget. Nothing
+ * is guessed: a code is 32 random bytes, works once, for two minutes, and
+ * only with its verifier. What this bounds is work. Each SSO sign-in in the
+ * app redeems one code, so an office of phones behind one NAT signing in
+ * the same morning stays far inside it. Its own counter, so that redeeming
+ * codes cannot spend anybody's password attempts, nor sign-in noise refuse
+ * a code the app holds.
+ */
+const MOBILE_SSO_EXCHANGE_RATE_LIMIT: number = parsePositiveIntFromEnv(
+  "IDENTITY_MOBILE_SSO_EXCHANGE_RATE_LIMIT_PER_IP_PER_WINDOW",
+  300,
+);
+const MOBILE_SSO_EXCHANGE_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_MOBILE_SSO_EXCHANGE_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: MOBILE_SSO_EXCHANGE_RATE_LIMIT,
+  perIpLimit: MOBILE_SSO_EXCHANGE_RATE_LIMIT,
 };
 
 /*
@@ -560,6 +660,34 @@ const SIGN_UP_BUCKET: BucketConfig = {
   ),
   perIpLimit: parsePositiveIntFromEnv(
     "IDENTITY_SIGN_UP_RATE_LIMIT_PER_IP_PER_WINDOW",
+    150,
+  ),
+};
+
+/*
+ * Re-authentication budget (#10155).
+ *
+ * Counted on every confirmation and every request for a key's options,
+ * before anything is checked. The account counter is keyed on the signed-in
+ * person and the client address together, never on the person alone - as
+ * every counter here is - so attempts from one network cannot keep the
+ * account's owner from confirming anywhere else. It is a backstop: what
+ * bounds guessing is the session's own count
+ * (REAUTHENTICATION_FAILURES_BEFORE_SIGN_OUT wrong attempts end the session
+ * they came from, Utils/Reauthentication), and somebody confirming tries
+ * once or twice. The numbers of /login, for an office behind one NAT.
+ */
+const REAUTHENTICATION_BUCKET: BucketConfig = {
+  windowSeconds: parsePositiveIntFromEnv(
+    "IDENTITY_REAUTHENTICATION_RATE_LIMIT_WINDOW_SECONDS",
+    15 * 60,
+  ),
+  perAccountLimit: parsePositiveIntFromEnv(
+    "IDENTITY_REAUTHENTICATION_RATE_LIMIT_PER_ACCOUNT_PER_WINDOW",
+    10,
+  ),
+  perIpLimit: parsePositiveIntFromEnv(
+    "IDENTITY_REAUTHENTICATION_RATE_LIMIT_PER_IP_PER_WINDOW",
     150,
   ),
 };
@@ -738,6 +866,14 @@ export default class IdentityRateLimit {
       return STATUS_PAGE_LOGIN_BUCKET;
     }
 
+    if (bucket === IdentityRateLimitBucket.DashboardPrivateUserLogin) {
+      return DASHBOARD_PRIVATE_USER_LOGIN_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.FormPrivateUserLogin) {
+      return FORM_PRIVATE_USER_LOGIN_BUCKET;
+    }
+
     if (bucket === IdentityRateLimitBucket.VerificationEmailResend) {
       return VERIFICATION_EMAIL_RESEND_BUCKET;
     }
@@ -752,6 +888,14 @@ export default class IdentityRateLimit {
 
     if (bucket === IdentityRateLimitBucket.SignUp) {
       return SIGN_UP_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.MobileSsoExchange) {
+      return MOBILE_SSO_EXCHANGE_BUCKET;
+    }
+
+    if (bucket === IdentityRateLimitBucket.Reauthentication) {
+      return REAUTHENTICATION_BUCKET;
     }
 
     return LOGIN_BUCKET;
@@ -792,6 +936,17 @@ export default class IdentityRateLimit {
       return {
         rateLimited: SIGN_UP_RATE_LIMITED_MESSAGE,
         unavailable: SIGN_UP_UNAVAILABLE_MESSAGE,
+      };
+    }
+
+    /*
+     * Somebody confirming it's them is signed in already: "sign-in
+     * attempts" would send them looking for a problem they do not have.
+     */
+    if (bucket === IdentityRateLimitBucket.Reauthentication) {
+      return {
+        rateLimited: REAUTHENTICATION_MESSAGES.tooManyAttempts,
+        unavailable: REAUTHENTICATION_MESSAGES.unavailable,
       };
     }
 

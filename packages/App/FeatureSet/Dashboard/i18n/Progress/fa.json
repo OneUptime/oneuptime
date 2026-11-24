@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 55711,
+    "keys": 60061,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -167,11 +167,13 @@
     "Markdown",
     "Mbps",
     "Memcached",
+    "Microsoft Intune",
     "Mirantis MOSK",
     "Mistral",
     "Mod97",
     "MongoDB",
     "MySQL",
+    "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Nameserver",
     "Namespace",
     "Namespace: {{broker}}",
@@ -310,6 +312,7 @@
     "analytics",
     "arm",
     "arm64",
+    "arn:aws:iam::123456789012:role/OneUptimeSes",
     "aws_lambda · us-east-1 · nodejs 20",
     "build=1.4.2, plan=pro",
     "checkout-.*",

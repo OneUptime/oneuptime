@@ -66,6 +66,7 @@ En AI-regel kan have sine egne noter om de hændelser eller advarsler, den match
 | Svar i Slack og Microsoft Teams | Projektets noter |
 | Postmortem-udkast, til hændelser og episoder | Projektets noter |
 | Triage i AI Insights og triage af sikkerhedssager | Projektets noter |
+| Forklar med AI, på et datasikkerhedsproblem | Projektets noter |
 
 Kald, der kun omformulerer eller vurderer det, de får, læser den ikke: udkast til noter og offentlige noter, opkaldsresuméer, en undersøgelses resumé, hvor sikker den er og dens karakter, og en samtales titel. Det gør de prompts, folk selv skriver, heller ikke, i en arbejdsgangs eller en runbooks AI-trin.
 

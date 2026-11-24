@@ -64,6 +64,7 @@ import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
@@ -127,6 +128,11 @@ export default class MonitorAlert {
     keepResponseContent?: boolean | undefined;
     // The step the check ran: the state timeline's copy names its destination.
     monitorStep?: MonitorStep | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<Array<Alert>> {
     /*
      * check active alerts and if there are open alerts, do not create another
@@ -199,6 +205,8 @@ export default class MonitorAlert {
           : input.rootCause;
 
         // then resolve alert.
+        await input.keepEvaluationLock?.();
+
         await this.resolveOpenAlert({
           openAlert: openAlert,
           rootCause: rootCause,
@@ -468,6 +476,11 @@ export default class MonitorAlert {
      * resolveSeriesAlertsByFingerprint). Per-key create + dedupe still run.
      */
     disableSeriesAbsenceResolution?: boolean | undefined;
+    /*
+     * Called before each write: throws, and so stops the evaluation, once
+     * its monitor's lock is lost (MonitorEvaluationLock, #10108).
+     */
+    keepEvaluationLock?: (() => Promise<void>) | undefined;
   }): Promise<void> {
     const alertLogAttributes: LogAttributes = {
       projectId: input.monitor.projectId?.toString(),
@@ -513,6 +526,7 @@ export default class MonitorAlert {
               input.breachingSeriesFingerprintsByCriteriaId,
             disableSeriesAbsenceResolution:
               input.disableSeriesAbsenceResolution,
+            keepEvaluationLock: input.keepEvaluationLock,
           });
 
     if (!input.criteriaInstance.data?.createAlerts) {
@@ -622,12 +636,42 @@ export default class MonitorAlert {
      */
     let networkDeviceOwners: NetworkDeviceOwners | null = null;
 
+    /*
+     * This criteria's open alerts by their series (undefined: the whole
+     * monitor's), the first of each in the order they were read - the one a
+     * search of the list for the series met first. Read once: a grouped
+     * monitor's series were each searched for in every open alert (#10108).
+     */
+    const criteriaId: string | undefined =
+      input.criteriaInstance.data?.id?.toString() || undefined;
+    const openAlertsBySeries: Map<string | undefined, Alert> = new Map<
+      string | undefined,
+      Alert
+    >();
+
+    for (const alert of openAlerts) {
+      const seriesKey: string | undefined =
+        alert.seriesFingerprint || undefined;
+
+      if (
+        (alert.createdCriteriaId || undefined) === criteriaId &&
+        !openAlertsBySeries.has(seriesKey)
+      ) {
+        openAlertsBySeries.set(seriesKey, alert);
+      }
+    }
+
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
+        // Outside the catch below: a lost lock stops every series.
+        await input.keepEvaluationLock?.();
+
         try {
           const seriesFingerprint: string | undefined =
             seriesMatch?.fingerprint;
           const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+          // Which device it is, for the words only (#9925): never its identity.
+          const seriesContext: JSONObject | undefined = seriesMatch?.context;
           const seriesRootCause: string =
             seriesMatch?.rootCause || input.rootCause;
 
@@ -703,15 +747,8 @@ export default class MonitorAlert {
            * cycle) and normalise both sides to `undefined` on missing so dedupe
            * stays correct instead of creating a duplicate alert each cycle.
            */
-          const alreadyOpenAlert: Alert | undefined = openAlerts.find(
-            (alert: Alert) => {
-              return (
-                (alert.createdCriteriaId || undefined) ===
-                  (input.criteriaInstance.data?.id?.toString() || undefined) &&
-                (alert.seriesFingerprint || undefined) === seriesFingerprint
-              );
-            },
-          );
+          const alreadyOpenAlert: Alert | undefined =
+            openAlertsBySeries.get(seriesFingerprint);
 
           const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);
 
@@ -729,15 +766,29 @@ export default class MonitorAlert {
             const renderedAlertTitle: string =
               alreadyOpenAlert?.title || criteriaAlert.title;
 
+            /*
+             * The open alert that blocks this one is the one for this
+             * criteria AND this series. Name the series, or "for this
+             * criteria" reads as if one disk's open alert held back the
+             * alerts of every other disk on the host.
+             */
+            const seriesSummary: string =
+              SeriesLabelDisplay.buildInlineSummary(seriesLabels);
+
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
               ...EvaluationEventText.from({
                 title: translatableSentence("Alert already active: {{title}}", {
                   title: String(renderedAlertTitle),
                 }),
-                message: translatableSentence(
-                  "Skipped creating a new alert because an active alert exists for this criteria.",
-                ),
+                message: seriesSummary
+                  ? translatableSentence(
+                      "Skipped creating a new alert because an active alert exists for this criteria and series ({{series}}).",
+                      { series: seriesSummary },
+                    )
+                  : translatableSentence(
+                      "Skipped creating a new alert because an active alert exists for this criteria.",
+                    ),
               }),
               relatedCriteriaId: input.criteriaInstance.data?.id,
               relatedAlertId: alreadyOpenAlert?.id?.toString(),
@@ -764,6 +815,7 @@ export default class MonitorAlert {
               dataToProcess: input.dataToProcess,
               monitor: input.monitor,
               seriesLabels,
+              seriesContext,
             });
 
           /*
@@ -788,6 +840,10 @@ export default class MonitorAlert {
             monitorType: input.monitor.monitorType!,
             storageMap,
             seriesLabels,
+            seriesContext,
+            metricNames: MonitorTemplateUtil.getMetricNamesReadBy(
+              input.dataToProcess,
+            ),
           });
 
           alert.title = text.title;

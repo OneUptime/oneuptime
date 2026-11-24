@@ -41,7 +41,7 @@ Clique na sua foto, no canto superior direito, e escolha **Perfil**. A página *
 
 Clique em **Editar: Usuário** e mude o que precisar:
 
-- **E-mail**: o endereço com que você entra. Se você o mudar, o OneUptime envia um link para o novo endereço, e o seu endereço muda assim que você o abrir. Até lá, você entra com o atual, e **Cancelar alteração** interrompe a alteração. O endereço de um administrador principal muda na hora.
+- **E-mail**: o endereço com que você entra. Se você o mudar, o OneUptime envia um link para o novo endereço, e o seu endereço muda assim que você o abrir. Até lá, você entra com o atual, e **Cancelar alteração** interrompe a alteração. O endereço de um administrador principal muda na hora. Se o link expirar, **Enviar o link novamente** envia um novo. Sempre que o seu endereço muda, o OneUptime envia um e-mail para o endereço que você tinha.
 - **Nome completo**: o nome que sua equipe vê em todo o OneUptime.
 - **Fuso horário**: o fuso horário em que o painel mostra e lê os horários, e o dos horários nas notificações enviadas a você.
 - **Idioma**: o idioma do painel em cada navegador em que você entra, e o dos seus acionamentos de plantão. Sem definir, seus acionamentos ficam em inglês e o painel segue o seu navegador.
@@ -146,6 +146,31 @@ O mesmo acontece quando todos os projetos de que você faz parte exigem login ú
 - **Os administradores principais** sempre mantêm suas próprias configurações de **Segurança**.
 - **O que você configurou antes** continua salvo. Um administrador do servidor pode limpá-lo, e também um proprietário de todos os projetos de que você faz parte; você recebe um e-mail quando isso acontece.
 
+### Confirmar que é você
+
+Algumas alterações pedem primeiro que você confirme que é você, mesmo que já tenha entrado, para que ninguém possa fazê-las em um navegador em que você deixou a sessão aberta. O OneUptime pede isso antes de você:
+
+- alterar seu endereço de e-mail ou sua senha;
+- adicionar ou remover uma chave de acesso, uma chave de segurança ou um aplicativo autenticador;
+- obter novos códigos de backup enquanto ainda tiver códigos não usados;
+- desativar a autenticação de dois fatores;
+- excluir sua conta.
+
+A janela **Confirme que é você** pede sua senha e, enquanto a autenticação de dois fatores estiver ativada, sua segunda etapa: um código do seu aplicativo autenticador, sua chave de segurança ou um dos seus códigos de backup. Com uma chave de acesso, clique em **Usar uma chave de acesso**. Se você entra apenas com login único, Google ou Microsoft, clique em **Entrar novamente**: o OneUptime faz seu provedor de identidade pedir que você entre de novo e depois traz você de volta à página. Em seguida, a alteração é feita.
+
+Depois que você confirma, não é perguntado de novo por 10 minutos nesse navegador. Cinco tentativas erradas encerram a sessão desse navegador, mas nunca bloqueiam sua conta: entre novamente e tente outra vez. O OneUptime envia um e-mail quando isso acontece, e sempre que um código de backup confirma que é você.
+
+Em um servidor auto-hospedado, os administradores principais confirmam da mesma forma que são eles antes de alterar como outra pessoa entra, tornar alguém administrador principal, alterar os provedores de login único ou as configurações de e-mail do servidor, ou criar uma chave de API mestra. A chave de API mestra não pode fazer essas alterações.
+
+Entrar novamente só conta quando seu provedor de identidade informa que você entrou depois que o OneUptime enviou você até ele. Se o provedor fizer você entrar com uma sessão que ele já tem, sem pedir sua senha, isso não confirma nada: saia primeiro do provedor e depois clique em **Entrar novamente**. Onde seu servidor permite entrar com um link enviado por e-mail, **Entrar de outra forma** faz isso no lugar. O que o OneUptime pede a cada provedor, e o que um administrador pode mudar quando entrar novamente não confirma nada:
+
+| Provedor | O que o OneUptime pede | Quando não confirma nada |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` e quando você entrou (`AuthnInstant`) | Faça o provedor respeitar a solicitação, por exemplo com Honor Force Authentication no Okta. |
+| OpenID Connect | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Faça o provedor enviar `auth_time`. No Microsoft Entra ID, adicione-o ao token de ID como uma declaração opcional. |
+| Google | Quando você entrou (`auth_time`). Não é possível pedir ao Google que faça você entrar de novo. | Ative Session age claims para o aplicativo de login do Google do servidor, que precisa estar publicado e verificado. |
+| Microsoft | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Adicione `auth_time` ao token de ID do aplicativo de login da Microsoft do servidor como uma declaração opcional. |
+
 ## Seus projetos
 
 Você pode pertencer a quantos projetos quiser. O seletor de projetos, no canto superior esquerdo do painel, lista todos eles: escolha um para trocar.
@@ -178,7 +203,7 @@ Seu tema fica salvo no seu navegador, então configure-o de novo em outro navega
 
 ## Excluir sua conta
 
-Abra **Zona de perigo → Excluir conta**. Você só pode excluir sua conta quando não estiver em nenhum projeto: a página lista os projetos em que você ainda está. Saia deles primeiro, depois clique em **Excluir conta** e confirme. Excluir sua conta é permanente e não pode ser desfeito.
+Abra **Zona de perigo → Excluir conta**. Você só pode excluir sua conta quando não estiver em nenhum projeto: a página lista os projetos em que você ainda está. Saia deles primeiro, depois clique em **Excluir conta** e confirme. Excluir sua conta é permanente e não pode ser desfeito. Antes de excluir sua conta, o OneUptime pede que você confirme que é você.
 
 ## Solução de problemas
 
@@ -191,7 +216,11 @@ Esse endereço já tem uma conta no OneUptime, então o cadastro não criou nem 
 :::
 
 :::details Meu endereço de e-mail não mudou
-O seu endereço só muda quando você abre o link que o OneUptime enviou para o novo endereço. O link funciona por 24 horas: se ele expirou, mude o seu e-mail de novo para receber um novo. Se outra conta já usa esse endereço, o e-mail enviado para lá diz isso, e o seu endereço continua como está.
+O seu endereço só muda quando você abre o link que o OneUptime enviou para o novo endereço. O link funciona por 24 horas: depois que expira, o seu perfil avisa, e **Enviar o link novamente** envia um novo. Se outra conta já usa esse endereço, o e-mail enviado para lá diz isso, e o seu endereço continua como está.
+:::
+
+:::details Recebi um e-mail dizendo que meu endereço de e-mail foi alterado
+O OneUptime envia um e-mail para o endereço que a sua conta tinha sempre que esse endereço muda: quando você abre o link enviado a um novo endereço, quando um administrador do servidor o altera ou quando o provedor de identidade da sua organização o altera. Se foi você quem fez a alteração, não há nada a fazer. Se não foi, alguém que conseguia entrar na sua conta a mudou para um endereço próprio: a partir do seu endereço antigo, fale com o administrador do seu servidor ou, no OneUptime Cloud, com support@oneuptime.com, que podem voltar o endereço. O e-mail mostra só uma parte do novo endereço e não tem nenhum link para desfazer a alteração: um link assim funcionaria para qualquer pessoa que leia a sua caixa de correio antiga.
 :::
 
 :::details Perdi meu aplicativo autenticador

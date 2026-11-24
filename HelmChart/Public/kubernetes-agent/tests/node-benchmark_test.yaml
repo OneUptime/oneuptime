@@ -1,0 +1,784 @@
+# The CIS Kubernetes Benchmark's node and control plane controls, read on the
+# nodes by kube-bench (#9873): compliance.nodeBenchmark.
+#
+# Off by default, and with nothing of it left behind. On, it renders a
+# service account bound to no role and mounting no token, a CronJob per node
+# group and, where the cluster runs its own control plane, one on a control
+# plane node, and a NetworkPolicy that keeps their pods off the network. Each
+# pod runs as root with the node's process namespace and read-only mounts of
+# exactly the directories its benchmark reads, drops every capability but
+# DAC_OVERRIDE, and writes each check's number and result - never the
+# benchmark's text - as its termination message, which the agent's resource
+# snapshots carry to OneUptime.
+#
+# The benchmark follows the platform: EKS's, GKE's and AKS's score the worker
+# nodes and leave the control plane to the provider. "auto" reads EKS and GKE
+# off the API server's version string, which helm-unittest cannot set (it
+# makes v<major>.<minor>.0), so these tests pin each benchmark by name; the
+# Compliance page tells a cluster that ran the generic one on EKS, GKE or AKS
+# what to set. Presets that admit no host access leave it out.
+suite: kube-bench reads the CIS benchmark's node and control plane controls, only when turned on
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/node-benchmark.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- Off by default -----------------------------------------------------------
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing for a release upgraded with --reuse-values from a chart without the values
+    values:
+      - values/reuse-values-14.0.10.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders nothing when turned off explicitly
+    set:
+      compliance.nodeBenchmark.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- On: what it renders ------------------------------------------------------
+  - it: renders a service account, a CronJob for the workers, one for the control plane, and a NetworkPolicy
+    set:
+      compliance.nodeBenchmark.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          name: oneuptime-agent-kubernetes-agent-node-benchmark
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: oneuptime-agent-kubernetes-agent-kube-bench-workers
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: oneuptime-agent-kubernetes-kube-bench-control-plane
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          name: oneuptime-agent-kubernetes-agent-node-benchmark
+          namespace: oneuptime
+          any: true
+
+  - it: gives its service account no token, and binds it to no role
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: kind
+      value: ServiceAccount
+    asserts:
+      - equal:
+          path: automountServiceAccountToken
+          value: false
+      - equal:
+          path: metadata.labels.component
+          value: node-benchmark
+
+  - it: keeps its pods off the network, both ways
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: kind
+      value: NetworkPolicy
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels
+          value:
+            app.kubernetes.io/name: kubernetes-agent
+            app.kubernetes.io/instance: oneuptime-agent
+            component: node-benchmark
+      - equal:
+          path: spec.policyTypes
+          value: [Ingress, Egress]
+      - notExists:
+          path: spec.ingress
+      - notExists:
+          path: spec.egress
+
+  # --- The CronJob ----------------------------------------------------------------
+  - it: runs every six hours, one run at a time, keeping the last run's pod for its results
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "37 */6 * * *"
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+      - equal:
+          path: spec.startingDeadlineSeconds
+          value: 3600
+      - equal:
+          path: spec.successfulJobsHistoryLimit
+          value: 1
+      - equal:
+          path: spec.failedJobsHistoryLimit
+          value: 1
+      - equal:
+          path: spec.jobTemplate.spec.backoffLimit
+          value: 0
+      - equal:
+          path: spec.jobTemplate.spec.activeDeadlineSeconds
+          value: 600
+      - notExists:
+          path: spec.timeZone
+
+  - it: takes its schedule, time zone and deadline from the values
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.schedule: "15 2 * * *"
+      compliance.nodeBenchmark.timeZone: Europe/Berlin
+      compliance.nodeBenchmark.activeDeadlineSeconds: 900
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "15 2 * * *"
+      - equal:
+          path: spec.timeZone
+          value: Europe/Berlin
+      - equal:
+          path: spec.jobTemplate.spec.activeDeadlineSeconds
+          value: 900
+
+  - it: labels its pods as the agent's own node benchmark, which is how OneUptime finds their results
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels.component
+          value: node-benchmark
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["app.kubernetes.io/part-of"]
+          value: oneuptime
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.metadata.labels["helm.sh/chart"]
+          pattern: ^kubernetes-agent-
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["oneuptime.com/node-group"]
+          value: workers
+
+  # --- The pod: as little as kube-bench needs -------------------------------------
+  - it: shares only the node's process namespace, holds no token, and never restarts
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.hostPID
+          value: true
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.hostNetwork
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.hostIPC
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
+          value: false
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-node-benchmark
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.enableServiceLinks
+          value: false
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: Never
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+
+  - it: runs as root, unprivileged, with a read-only root file system and no capability but DAC_OVERRIDE
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].securityContext
+          value:
+            runAsUser: 0
+            privileged: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - DAC_OVERRIDE
+      - lengthEqual:
+          path: spec.jobTemplate.spec.template.spec.containers
+          count: 1
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.initContainers
+
+  - it: mounts only the directories the generic benchmark reads on a worker, each read-only
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 32Mi
+            - name: etc-kubernetes
+              hostPath:
+                path: /etc/kubernetes
+            - name: var-lib-kubelet
+              hostPath:
+                path: /var/lib/kubelet
+            - name: etc-systemd
+              hostPath:
+                path: /etc/systemd
+            - name: lib-systemd
+              hostPath:
+                path: /lib/systemd
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: tmp
+              mountPath: /tmp
+            - name: etc-kubernetes
+              mountPath: /etc/kubernetes
+              readOnly: true
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: etc-systemd
+              mountPath: /etc/systemd
+              readOnly: true
+            - name: lib-systemd
+              mountPath: /lib/systemd
+              readOnly: true
+
+  - it: asks for little, and is capped
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+  - it: runs the pinned kube-bench, the benchmark the chart picked, and writes its results as the termination message
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: docker.io/aquasec/kube-bench:v0.16.0
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          value: ["/bin/sh", "-c"]
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          value:
+            - name: BENCHMARK
+              value: cis-1.12
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].terminationMessagePath
+          value: /dev/termination-log
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].terminationMessagePolicy
+          value: File
+      # kube-bench picks this node's own targets: no --targets, so an external etcd is never failed.
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: 'kube-bench --benchmark "\$BENCHMARK" --json --outputfile "\$result" >"\$log" 2>&1'
+      - notMatchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: --targets
+      # Only the node and control plane targets: the policies are scored from the API.
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: 'select\(\.node_type == "master" or \.node_type == "etcd" or \.node_type == "controlplane" or \.node_type == "node"\)'
+      # Each check's number by its result: never the benchmark's text or remediation.
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: '\.test_number \| tostring'
+      - notMatchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: 'test_desc|remediation|actual_value|expected_result'
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: 'jq -c "\$summary" "\$result" >/dev/termination-log'
+      # A run that could not finish says why - its log's end, without the version warning it always logs, and its exit status - and fails.
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: '\{ grep -v "was not auto-detected" "\$log"; echo "exit status \$status"; \} \| tail -n 4'
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: "error: \\(gsub\\(.*\\) \\| \\.\\[-300:\\]\\)\\}' >/dev/termination-log\\nexit 1"
+
+  - it: runs on a worker where there is one, and on the only node of a one-node cluster
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity
+          value:
+            nodeAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  preference:
+                    matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: DoesNotExist
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+
+  # --- The control plane's run ----------------------------------------------------
+  - it: runs the control plane's on a control plane node, tolerating its taint
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-kube-bench-control-plane
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
+          value:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
+            - matchExpressions:
+                - key: node-role.kubernetes.io/master
+                  operator: Exists
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+            - key: node-role.kubernetes.io/master
+              operator: Exists
+              effect: NoSchedule
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["oneuptime.com/node-group"]
+          value: control-plane
+
+  - it: adds etcd's data directory and the node's user and group names on the control plane, read-only
+    set:
+      compliance.nodeBenchmark.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-kube-bench-control-plane
+    asserts:
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: var-lib-etcd
+            hostPath:
+              path: /var/lib/etcd
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: etc-passwd
+            hostPath:
+              path: /etc/passwd
+              type: File
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: etc-group
+            hostPath:
+              path: /etc/group
+              type: File
+      - lengthEqual:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          count: 8
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          content:
+            name: var-lib-etcd
+            mountPath: /var/lib/etcd
+            readOnly: true
+
+  - it: leaves the control plane's run out when told to
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.controlPlane: false
+    asserts:
+      - hasDocuments:
+          count: 3
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: oneuptime-agent-kubernetes-kube-bench-control-plane
+        not: true
+
+  # --- Each platform's benchmark --------------------------------------------------
+  - it: scores EKS's worker nodes with the CIS Amazon EKS Benchmark, and leaves the control plane to AWS
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: eks-1.8.0
+    asserts:
+      - hasDocuments:
+          count: 3
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: oneuptime-agent-kubernetes-kube-bench-control-plane
+        not: true
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
+          value: eks-1.8.0
+        documentSelector:
+          path: kind
+          value: CronJob
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 32Mi
+            - name: etc-kubernetes
+              hostPath:
+                path: /etc/kubernetes
+            - name: var-lib-kubelet
+              hostPath:
+                path: /var/lib/kubelet
+            - name: etc-systemd
+              hostPath:
+                path: /etc/systemd
+        documentSelector:
+          path: kind
+          value: CronJob
+
+  - it: scores GKE's worker nodes with the CIS GKE Benchmark, which reads GKE's own kubelet directory
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: gke-1.9.0
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
+          value: gke-1.9.0
+        documentSelector:
+          path: kind
+          value: CronJob
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: home-kubernetes
+            hostPath:
+              path: /home/kubernetes
+        documentSelector:
+          path: kind
+          value: CronJob
+      - notContains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: lib-systemd
+            hostPath:
+              path: /lib/systemd
+        documentSelector:
+          path: kind
+          value: CronJob
+
+  - it: scores AKS's worker nodes with the CIS AKS Benchmark, which reads the kubelet's flags in /etc/default
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: aks-1.8
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
+          value: aks-1.8
+        documentSelector:
+          path: kind
+          value: CronJob
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: etc-default
+            hostPath:
+              path: /etc/default
+        documentSelector:
+          path: kind
+          value: CronJob
+      - notContains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: home-kubernetes
+            hostPath:
+              path: /home/kubernetes
+        documentSelector:
+          path: kind
+          value: CronJob
+
+  - it: runs the older generic benchmark when asked, control plane included
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: cis-1.11
+    asserts:
+      - hasDocuments:
+          count: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
+          value: cis-1.11
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-kube-bench-control-plane
+
+  - it: runs on a managed platform's control plane only when told to, though no pod reaches it there
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: eks-1.8.0
+      compliance.nodeBenchmark.controlPlane: true
+    asserts:
+      - hasDocuments:
+          count: 4
+
+  - it: refuses a benchmark the page does not score
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: rh-1.9
+    asserts:
+      - failedTemplate:
+          errorPattern: "compliance.nodeBenchmark.benchmark"
+
+  # --- Where it cannot run ------------------------------------------------------
+  - it: is left out on GKE Autopilot, which admits no host access
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: gke-autopilot
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is left out on EKS Fargate, which runs no pod with host access
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: eks-fargate
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is left out on openshift-restricted, which adds no SCC
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: openshift-restricted
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is left out on OpenShift, whose benchmark needs a cluster reader's rights
+    set:
+      compliance.nodeBenchmark.enabled: true
+      preset: openshift
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is left out without resource specs, which carry its results
+    set:
+      compliance.nodeBenchmark.enabled: true
+      resourceSpecs.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- Node groups ------------------------------------------------------------------
+  - it: runs one pod in each node group, on its nodes
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.controlPlane: false
+      compliance.nodeBenchmark.nodeGroups:
+        - name: general
+          nodeSelector:
+            eks.amazonaws.com/nodegroup: general
+        - name: gpu
+          nodeSelector:
+            eks.amazonaws.com/nodegroup: gpu
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: oneuptime-agent-kubernetes-agent-kube-bench-general
+          any: true
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: oneuptime-agent-kubernetes-agent-kube-bench-gpu
+          any: true
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            eks.amazonaws.com/nodegroup: gpu
+            kubernetes.io/os: linux
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-kube-bench-gpu
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: nvidia.com/gpu
+              operator: Exists
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-kube-bench-gpu
+      # A group that says where it runs is not steered off the control plane.
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.affinity
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-kube-bench-general
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["oneuptime.com/node-group"]
+          value: general
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-kube-bench-general
+
+  - it: takes a node group's own affinity as written
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.nodeGroups:
+        - name: arm
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values: [arm64]
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-arm
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key
+          value: kubernetes.io/arch
+
+  - it: refuses a node group named as the control plane's run is
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.nodeGroups:
+        - name: control-plane
+    asserts:
+      - failedTemplate:
+          errorPattern: "compliance.nodeBenchmark.nodeGroups.0.name"
+
+  - it: refuses a node group whose name a CronJob could not take
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.nodeGroups:
+        - name: GPU_Pool
+    asserts:
+      - failedTemplate:
+          errorPattern: "compliance.nodeBenchmark.nodeGroups.0.name"
+
+  - it: keeps every CronJob's name within the 52 characters a CronJob may have, cutting only a long release name
+    release:
+      name: a-very-long-release-name-for-the-agent-x
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.nodeGroups:
+        - name: twenty-characters-12
+    asserts:
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: a-very-long-release-kube-bench-twenty-characters-12
+          any: true
+      - containsDocument:
+          kind: CronJob
+          apiVersion: batch/v1
+          name: a-very-long-release-name-fo-kube-bench-control-plane
+          any: true
+
+  # --- The image --------------------------------------------------------------------
+  - it: runs the image by its digest when one is set, and from a mirror
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.image.repository: registry.example.com/aquasec/kube-bench
+      compliance.nodeBenchmark.image.digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      compliance.nodeBenchmark.image.pullPolicy: Always
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-kube-bench-workers
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: registry.example.com/aquasec/kube-bench@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: refuses a digest that is not one
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.image.digest: latest
+    asserts:
+      - failedTemplate:
+          errorPattern: "compliance.nodeBenchmark.image.digest"
+
+  - it: refuses a key the chart does not read
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.privileged: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "compliance.nodeBenchmark"

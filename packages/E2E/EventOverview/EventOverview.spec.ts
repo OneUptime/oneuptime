@@ -264,19 +264,19 @@ const INCIDENT_PAGE: EventPage = {
   stats: [
     {
       label: "Declared",
-      value: "Sep 14, 06:01 PM UTC",
+      value: "Sep 14, 6:01 PM UTC",
       note: "3 minutes after impact began",
       description: "By eu-west-1 probe",
     },
     {
       label: "Acknowledged in",
       value: "3 minutes",
-      description: "Sep 14 2026, 06:04 PM UTC",
+      description: "Sep 14, 2026, 6:04 PM UTC",
     },
     {
       label: "Resolved in",
       value: "11 minutes",
-      description: "Sep 14 2026, 06:12 PM UTC",
+      description: "Sep 14, 2026, 6:12 PM UTC",
     },
   ],
   // What it touched leads the column, then who was told about it (#7075).
@@ -334,18 +334,18 @@ const ALERT_PAGE: EventPage = {
   stats: [
     {
       label: "Created",
-      value: "Sep 14, 06:06 PM UTC",
+      value: "Sep 14, 6:06 PM UTC",
       description: "By eu-west-1 probe",
     },
     {
       label: "Acknowledged in",
       value: "2 minutes",
-      description: "Sep 14 2026, 06:08 PM UTC",
+      description: "Sep 14, 2026, 6:08 PM UTC",
     },
     {
       label: "Resolved in",
       value: "9 minutes",
-      description: "Sep 14 2026, 06:15 PM UTC",
+      description: "Sep 14, 2026, 6:15 PM UTC",
     },
   ],
   rightColumn: [
@@ -363,7 +363,7 @@ const ALERT_PAGE: EventPage = {
     "Alert Number",
   ],
   recordId: ALERT_ID,
-  recordCreated: "Sep 14 2026, 06:06 PM UTC",
+  recordCreated: "Sep 14, 2026, 6:06 PM UTC",
   whatHappened: {
     description:
       "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
@@ -404,12 +404,12 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
   stats: [
     {
       label: "Starts",
-      value: "Sep 14 2026, 08:20 PM UTC",
+      value: "Sep 14, 2026, 8:20 PM UTC",
       description: "in 2 hours",
     },
     {
       label: "Ends",
-      value: "Sep 14 2026, 09:20 PM UTC",
+      value: "Sep 14, 2026, 9:20 PM UTC",
       description: "in 3 hours",
     },
     {
@@ -430,7 +430,7 @@ const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
     "Scheduled Maintenance Number",
   ],
   recordId: SCHEDULED_MAINTENANCE_ID,
-  recordCreated: "Sep 10 2026, 09:00 AM UTC",
+  recordCreated: "Sep 10, 2026, 9:00 AM UTC",
 };
 
 const INCIDENT_EPISODE_PAGE: EventPage = {
@@ -460,7 +460,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     // A grouping rule opened it: nobody to name.
     {
       label: "Declared",
-      value: "Sep 14, 05:56 PM UTC",
+      value: "Sep 14, 5:56 PM UTC",
       description: "Automatically",
     },
     { label: "Acknowledged in", value: "8 minutes" },
@@ -479,7 +479,7 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
-  recordCreated: "Sep 14 2026, 05:56 PM UTC",
+  recordCreated: "Sep 14, 2026, 5:56 PM UTC",
   whatHappened: {
     description:
       "Grouped automatically: four checkout incidents opened within 30 minutes of each other.",
@@ -512,7 +512,7 @@ const ALERT_EPISODE_PAGE: EventPage = {
   stats: [
     {
       label: "Created",
-      value: "Sep 14, 05:40 PM UTC",
+      value: "Sep 14, 5:40 PM UTC",
       description: "Automatically",
     },
     { label: "Acknowledged in", value: "15 minutes" },
@@ -531,7 +531,7 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,
-  recordCreated: "Sep 14 2026, 05:40 PM UTC",
+  recordCreated: "Sep 14, 2026, 5:40 PM UTC",
   whatHappened: {
     description:
       "Grouped automatically: payment webhook alerts from the same monitor group.",
@@ -922,7 +922,7 @@ async function expectHeaderActionsOnTheRight(
 
 function sideMenu(page: Page): Locator {
   return page
-    .locator("aside[role='navigation'][aria-label='Main navigation']")
+    .locator("aside[role='navigation'][aria-label='Pages in this section']")
     .first();
 }
 
@@ -2730,10 +2730,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       /*
        * The axis writes its values as the dashboards do, each on one line:
        * "2,600 ms" did not fit its 64 px and was drawn as "2,600" over
-       * "ms" (Ask AI's UI review, #5349).
+       * "ms" (Ask AI's UI review, #5349). It steps half a second a tick,
+       * with the figures that step needs (#10117): recharts' own steps
+       * read "650 ms", "1.3 s", "1.95 s", "2.6 s".
        */
-      await expect(chart).toContainText("2.6 s");
-      await expect(chart).toContainText("650 ms");
+      await expect(chart).toContainText("500 ms");
+      await expect(chart).toContainText("1.0 s");
+      await expect(chart).toContainText("2.5 s");
     },
   },
   {
@@ -5204,6 +5207,15 @@ function modePicker(page: Page): Locator {
   return conversation(page).getByTitle("Choose what the AI is allowed to do");
 }
 
+/*
+ * The picker's menu, drawn on the tooltip layer (LayeredPopover) and placed
+ * against the window, so no box the card sits in cuts it off (#9910): it is
+ * not inside the card's conversation, whose edges it is measured against.
+ */
+function modeMenu(page: Page): Locator {
+  return page.getByRole("menu", { name: "AI permissions" });
+}
+
 function modeCaption(page: Page): Locator {
   return conversation(page).getByTestId("investigation-conversation-mode");
 }
@@ -6504,9 +6516,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         );
 
         await modePicker(page).click();
-        const menu: Locator = conversation(page).getByRole("menu", {
-          name: "AI permissions",
-        });
+        const menu: Locator = modeMenu(page);
         await expect(menu).toBeVisible();
         await expect(modePicker(page)).toHaveAttribute("aria-expanded", "true");
 
@@ -6539,7 +6549,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await openConversation(page, "");
 
       await modePicker(page).click();
-      await conversation(page)
+      await modeMenu(page)
         .getByRole("menuitemradio", { name: /^Read-only/ })
         .click();
 
@@ -6547,7 +6557,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await expect(modeCaption(page)).toHaveText(
         "Only reads and answers. It never changes anything.",
       );
-      await expect(conversation(page).getByRole("menu")).toHaveCount(0);
+      await expect(modeMenu(page)).toHaveCount(0);
 
       await composerBox(page).fill("What changed?");
       await sendButton(page).click();
@@ -6591,7 +6601,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
 
       for (const mode of ["Ask to act", "Read-only", "Auto-run"]) {
         await modePicker(page).click();
-        await conversation(page)
+        await modeMenu(page)
           .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
           .click();
 
@@ -8430,14 +8440,14 @@ test.describe("incident and alert overview", () => {
       "detail-created-at-value",
     );
 
-    await expect(created).toHaveText("Sep 14 2026, 06:06 PM UTC");
+    await expect(created).toHaveText("Sep 14, 2026, 6:06 PM UTC");
     await expect(created).toHaveAttribute(
       "datetime",
       "2026-09-14T18:06:00.000Z",
     );
     await created.hover();
     await expect(page.getByRole("tooltip")).toHaveText(
-      "Sep 14 2026, 06:06:00 PM UTC",
+      "Sep 14, 2026, 6:06:00 PM UTC",
     );
   });
 
@@ -10430,7 +10440,7 @@ test.describe("the header, by its own width", () => {
     await expect(band).toHaveAttribute("data-tone", "warning");
     await expect(band).toContainText("Start overdue");
     await expect(band).toContainText(
-      "Planned to start at Sep 14 2026, 06:00 PM UTC, but it has not been marked as Ongoing yet.",
+      "Planned to start at Sep 14, 2026, 6:00 PM UTC, but it has not been marked as Ongoing yet.",
     );
     await expectHeroDuration(
       hero(page),
@@ -10470,7 +10480,7 @@ test.describe("the header, by its own width", () => {
     );
     await expect(notice).toContainText("Not on status pages yet");
     await expect(notice).toContainText(
-      "It shows on its status pages from Sep 14 2026, 07:30 PM UTC, when their subscribers are told it is scheduled.",
+      "It shows on its status pages from Sep 14, 2026, 7:30 PM UTC, when their subscribers are told it is scheduled.",
     );
     // The state actions stay where they were; the band holds its own.
     await expect(
@@ -10480,7 +10490,7 @@ test.describe("the header, by its own width", () => {
     const details: Locator = card(page, "Maintenance Details");
     await expect(
       details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
-    ).toHaveText("Sep 14 2026, 07:30 PM UTC");
+    ).toHaveText("Sep 14, 2026, 7:30 PM UTC");
     await expect(details).toContainText("Sent when it is published");
 
     expect((await headerColours(page)).unreadable).toEqual([]);
@@ -10700,7 +10710,7 @@ test.describe("the header, by its own width", () => {
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-publish-on-status-pages",
       ),
-    ).toHaveText("Sep 14 2026, 07:30 PM UTC");
+    ).toHaveText("Sep 14, 2026, 7:30 PM UTC");
   });
 
   test("the details say a reminder due before the event is published is not sent (?publish=later), and say nothing once it is (?publish=past)", async ({
@@ -10716,7 +10726,7 @@ test.describe("the header, by its own width", () => {
     // The 1-hour reminder (19:20) comes before the publish time (19:30).
     const details: Locator = card(page, "Maintenance Details");
     await expect(details).toContainText(
-      "Next reminder: Sep 14 2026, 07:20 PM UTC",
+      "Next reminder: Sep 14, 2026, 7:20 PM UTC",
     );
     await expect(
       details.getByTestId("scheduled-maintenance-next-reminder-not-sent"),
@@ -10730,7 +10740,7 @@ test.describe("the header, by its own width", () => {
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-publish-on-status-pages",
       ),
-    ).toHaveText("Sep 14 2026, 12:00 PM UTC");
+    ).toHaveText("Sep 14, 2026, 12:00 PM UTC");
     await expect(
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-next-reminder-not-sent",
@@ -10750,7 +10760,7 @@ test.describe("the header, by its own width", () => {
       card(page, "Maintenance Details").getByTestId(
         "scheduled-maintenance-publish-on-status-pages",
       ),
-    ).toHaveText("Sep 14 2026, 12:00 PM UTC");
+    ).toHaveText("Sep 14, 2026, 12:00 PM UTC");
   });
 
   test("someone who may not change an incident's state sees its state actions locked, each saying which permission (?role=alert-member)", async ({
@@ -11007,15 +11017,15 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     actions: ["Mark as Ongoing", "Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 08:20 PM UTC",
+      value: "Sep 14, 2026, 8:20 PM UTC",
       description: "in 2 hours",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 09:20 PM UTC",
+      value: "Sep 14, 2026, 9:20 PM UTC",
       description: "in 3 hours",
     },
-    readyText: "Next reminder: Sep 14 2026, 07:20 PM UTC",
+    readyText: "Next reminder: Sep 14, 2026, 7:20 PM UTC",
   },
   {
     sm: "ongoing",
@@ -11024,12 +11034,12 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     actions: ["Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 06:05 PM UTC",
+      value: "Sep 14, 2026, 6:05 PM UTC",
       description: "15 minutes ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 07:05 PM UTC",
+      value: "Sep 14, 2026, 7:05 PM UTC",
       description: "in 45 minutes",
     },
     readyText: "Failover started.",
@@ -11041,12 +11051,12 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     actions: ["More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 04:00 PM UTC",
+      value: "Sep 14, 2026, 4:00 PM UTC",
       description: "2 hours ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 05:00 PM UTC",
+      value: "Sep 14, 2026, 5:00 PM UTC",
       description: "1 hour ago",
     },
     readyText: "Failover started.",
@@ -11058,12 +11068,12 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     actions: ["Mark as Ongoing", "Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 06:00 PM UTC",
+      value: "Sep 14, 2026, 6:00 PM UTC",
       description: "20 minutes ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 07:00 PM UTC",
+      value: "Sep 14, 2026, 7:00 PM UTC",
       description: "in 40 minutes",
     },
     readyText: "No upcoming reminders",
@@ -11076,12 +11086,12 @@ const MAINTENANCE_PHASES: ReadonlyArray<MaintenancePhase> = [
     actions: ["Mark as Ended", "More actions"],
     starts: {
       label: "Starts",
-      value: "Sep 14 2026, 04:50 PM UTC",
+      value: "Sep 14, 2026, 4:50 PM UTC",
       description: "2 hours ago",
     },
     ends: {
       label: "Ends",
-      value: "Sep 14 2026, 05:50 PM UTC",
+      value: "Sep 14, 2026, 5:50 PM UTC",
       description: "30 minutes ago",
     },
     readyText: "Failover started.",
@@ -11902,8 +11912,8 @@ test.describe("scheduled maintenance overview", () => {
         await expect(notice).toContainText(phase.overdueNotice);
         await expect(notice).toContainText(
           phase.sm === "overdue"
-            ? "Planned to start at Sep 14 2026, 06:00 PM UTC"
-            : "Planned to end at Sep 14 2026, 05:50 PM UTC",
+            ? "Planned to start at Sep 14, 2026, 6:00 PM UTC"
+            : "Planned to end at Sep 14, 2026, 5:50 PM UTC",
         );
       } else {
         await expect(notice).toHaveCount(0);
@@ -18327,7 +18337,7 @@ test.describe("time to acknowledge after paging", () => {
       "Acknowledged in",
       withUnit(3, "minutes"),
       `${withUnit(2, "minutes")} after paging`,
-      "Sep 14 2026, 06:04 PM UTC",
+      "Sep 14, 2026, 6:04 PM UTC",
     ]);
     const [, value, note, date] = lines;
     // Smaller and lighter than the value, larger than the date: value, note, date.
@@ -18366,7 +18376,7 @@ test.describe("time to acknowledge after paging", () => {
       "Acknowledged in",
       withUnit(2, "minutes"),
       `${withUnit(1, "minute")} after paging`,
-      "Sep 14 2026, 06:08 PM UTC",
+      "Sep 14, 2026, 6:08 PM UTC",
     ]);
     expect(await measurementRows(page)).toEqual([
       {
@@ -19985,7 +19995,8 @@ test.describe("at a glance: when, and what it touched", () => {
     );
     /*
      * The date and the time each hold together; the zone follows, smaller,
-     * after a space a narrow tile may break at.
+     * after a space a narrow tile may break at. A 12-hour clock writes no
+     * zero before the hour (#7652).
      */
     expect(
       await statBar
@@ -19993,7 +20004,7 @@ test.describe("at a glance: when, and what it touched", () => {
         .evaluate((value: Element): string => {
           return value.textContent || "";
         }),
-    ).toBe(`Sep${NO_BREAK_SPACE}14, 06:01${NO_BREAK_SPACE}PM UTC`);
+    ).toBe(`Sep${NO_BREAK_SPACE}14, 6:01${NO_BREAK_SPACE}PM UTC`);
     const zone: Locator = statBar.getByTestId("event-start-tile-zone");
     await expect(zone).toHaveText("UTC");
     const valueSize: number = await statBar
@@ -20039,20 +20050,20 @@ test.describe("at a glance: when, and what it touched", () => {
        * However many lines it takes, each is whole parts: the date, the
        * time, the zone - never "UT" over "C".
        */
-      expect(lines.join(" ")).toBe("Sep 14, 06:01 PM UTC");
+      expect(lines.join(" ")).toBe("Sep 14, 6:01 PM UTC");
       for (const line of lines) {
         expect([
-          "Sep 14, 06:01 PM UTC",
-          "Sep 14, 06:01 PM",
-          "06:01 PM UTC",
+          "Sep 14, 6:01 PM UTC",
+          "Sep 14, 6:01 PM",
+          "6:01 PM UTC",
           "Sep 14,",
-          "06:01 PM",
+          "6:01 PM",
           "UTC",
         ]).toContain(line);
       }
       // Where the tile is wide enough, one line.
       if (width === 390) {
-        expect(lines).toEqual(["Sep 14, 06:01 PM UTC"]);
+        expect(lines).toEqual(["Sep 14, 6:01 PM UTC"]);
       }
       await expectNoSidewaysScroll(page, { tolerance: 1 });
     });
@@ -20071,7 +20082,7 @@ test.describe("at a glance: when, and what it touched", () => {
       INCIDENT_EPISODE_PAGE.statBar,
       0,
     );
-    expect(lines.join(" ")).toBe("Sep 14, 05:56 PM UTC");
+    expect(lines.join(" ")).toBe("Sep 14, 5:56 PM UTC");
     // Balanced lines: the date over the time and its zone, never a lone zone.
     expect(lines).not.toContain("UTC");
     await expectNoSidewaysScroll(page, { tolerance: 1 });

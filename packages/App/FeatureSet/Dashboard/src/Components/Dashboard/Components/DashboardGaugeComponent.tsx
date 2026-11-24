@@ -33,6 +33,9 @@ import {
   getNumericValues,
   getResultsErrorMessage,
 } from "./ValueWidgetData";
+import { RetiredCloudMetricCorner } from "../../Metrics/RetiredCloudMetricNotice";
+import { getRetiredCloudMetricNoticesOfWidget } from "Common/Utils/Metrics/RetiredCloudMetricChartMoves";
+import { RetiredCloudMetricNotice as RetiredCloudMetricNoticeData } from "Common/Utils/Metrics/RetiredCloudMetricMoves";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardGaugeComponent;
@@ -190,30 +193,42 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     useDashboardWidgetPlace(props.isEditMode),
   );
 
+  /*
+   * A query of a metric its cloud deprecates says so in the tile's corner
+   * (#10027), as a chart says it in a line.
+   */
+  const retiredMetricNotices: Array<RetiredCloudMetricNoticeData> =
+    useMemo(() => {
+      return getRetiredCloudMetricNoticesOfWidget(props.component);
+    }, [props.component]);
+
   return (
-    <GaugeWidgetView
-      widthInPx={props.dashboardComponentWidthInPx}
-      heightInPx={props.dashboardComponentHeightInPx}
-      componentId={props.componentId?.toString() || ""}
-      isLoading={isLoading}
-      hasEverLoaded={metricResults.length > 0}
-      error={error}
-      value={aggregatedValue}
-      noDataMessage={
-        getResultsErrorMessage(metricResults) ||
-        translationKey("No data for the selected time range")
-      }
-      isConfigured={isConfigured}
-      setupTitle={translationKey("Gauge Widget")}
-      setupMessage={setupMessage}
-      title={props.component.arguments.gaugeTitle}
-      rawUnit={rawUnit}
-      metricName={metricName}
-      minValue={props.component.arguments.minValue ?? 0}
-      maxValue={props.component.arguments.maxValue ?? 100}
-      warningThreshold={props.component.arguments.warningThreshold}
-      criticalThreshold={props.component.arguments.criticalThreshold}
-    />
+    <RetiredCloudMetricCorner notices={retiredMetricNotices}>
+      <GaugeWidgetView
+        hasCornerMark={retiredMetricNotices.length > 0}
+        widthInPx={props.dashboardComponentWidthInPx}
+        heightInPx={props.dashboardComponentHeightInPx}
+        componentId={props.componentId?.toString() || ""}
+        isLoading={isLoading}
+        hasEverLoaded={metricResults.length > 0}
+        error={error}
+        value={aggregatedValue}
+        noDataMessage={
+          getResultsErrorMessage(metricResults) ||
+          translationKey("No data for the selected time range")
+        }
+        isConfigured={isConfigured}
+        setupTitle={translationKey("Gauge Widget")}
+        setupMessage={setupMessage}
+        title={props.component.arguments.gaugeTitle}
+        rawUnit={rawUnit}
+        metricName={metricName}
+        minValue={props.component.arguments.minValue ?? 0}
+        maxValue={props.component.arguments.maxValue ?? 100}
+        warningThreshold={props.component.arguments.warningThreshold}
+        criticalThreshold={props.component.arguments.criticalThreshold}
+      />
+    </RetiredCloudMetricCorner>
   );
 };
 

@@ -47,11 +47,12 @@ Hver bruker, vert og adresse en sak eller en hendelse nevner, slås opp blant pr
 | En kort eller full form av navnet til en oppføring, som `web-1` og `web-1.acme.internal` | Den oppføringen | Mulig |
 | En offentlig IP-adresse som bare én vert eller nettverksenhet har, eller som bare én skyressurs svarer på | Den oppføringen | Nøyaktig |
 | En privat IP-adresse, eller en som flere oppføringer har | Hver oppføring som har den | Mulig |
-| En skyressurs' egen ID: en AWS-ARN, en Azure-ressurs-ID eller et Google Cloud-ressursnavn | Den skyressursen | Nøyaktig |
+| En skyressurs' egen ID: en AWS-ARN eller et Google Cloud-ressursnavn slik det er skrevet, eller en Azure-ressurs-ID med store eller små bokstaver | Den skyressursen | Nøyaktig |
 | En vert, en offentlig IP-adresse eller verten til en URL som en monitor sjekker | Den monitoren | Nøyaktig |
 | En privat IP-adresse som en monitor sjekker | Den monitoren | Mulig |
 | E-posten til et medlem | Det medlemmet | Nøyaktig |
 | Oppføringen en logglinje ble sendt under, for hendelsene som leses fra loggene dine | Den verten, klyngen, OpenStack-skyen, skyressursen, serverløse funksjonen eller tjenesten | Nøyaktig |
+| Skyressursen eller den serverløse funksjonen en logglinje kom fra, etter dens `cloud.resource_id` eller dens `faas.name`, for hendelsene som leses fra loggene dine | Den skyressursen eller serverløse funksjonen | Nøyaktig |
 | Et rent brukernavn, en filhash eller en prosess | Ingenting: ingen oppføring er nøklet etter dem | - |
 
 - Et mulig treff viser **Mulig treff** ved siden av navnet og sier hvorfor. Det telles aldri på oppføringens side, og en hendelse saken erklærer, knyttes aldri til det.

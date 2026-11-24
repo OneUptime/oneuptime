@@ -585,7 +585,7 @@ describe("a push Google signed, with the connection's key", () => {
       database.providerResourceId,
     ]);
 
-    // The syslog line, the function's message beside its fields, the audit log's one line.
+    // The syslog line, the function's message beside its fields, the audit log's entry whole (#10032).
     expect((records[0]!.record["body"] as JSONObject)["stringValue"]).toBe(
       "kernel: Out of memory: Killed process 1234 (java)",
     );
@@ -604,9 +604,15 @@ describe("a push Google signed, with the connection's key", () => {
     expect(resourceAttribute(records[1]!.resource, "faas.name")).toBe(
       "charge-card",
     );
-    expect((records[2]!.record["body"] as JSONObject)["stringValue"]).toBe(
-      `cloudsql.instances.update projects/${PROJECT}/instances/orders-db`,
-    );
+    // An audit log keeps its entry as its body, so Your logs reads it as a security event.
+    expect(
+      JSON.parse(
+        (records[2]!.record["body"] as JSONObject)["stringValue"] as string,
+      ),
+    ).toEqual(auditLogEntry());
+    expect(attributeOf(records[2]!.record, "gcp.audit.method_name")).toEqual({
+      stringValue: "cloudsql.instances.update",
+    });
     expect(attributeOf(records[2]!.record, "enduser.id")).toEqual({
       stringValue: "alice@acme.com",
     });

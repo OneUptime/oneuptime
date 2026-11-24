@@ -148,19 +148,6 @@ export const TIME_RANGE_PRESET_OPTIONS: Array<TimeRangePickerPresetOption> = [
 ];
 
 /*
- * Both ends of a custom window are written the way the user's machine writes
- * times: on its 12- or 24-hour clock, in the timezone they configured. Reading
- * the digits off the Date itself - which is what this used to do - pinned the
- * label to a 24-hour clock in whatever zone the browser process happened to be
- * in, so a machine set to AM/PM still got "Mar 1, 14:30" back.
- *
- * Both ends carry their year, or neither does: see getTimeRangeButtonLabel.
- */
-function formatDateShort(date: Date, showYear: boolean): string {
-  return OneUptimeDate.getDateAsLocalShortDateTimeString(date, { showYear });
-}
-
-/*
  * What stands between a custom range's two ends ("Mar 1, 10:00 – Mar 2,
  * 13:30").
  */
@@ -182,12 +169,24 @@ export function getTimeRangeLabel(range: TimeRange): string {
  * A range's label on the button: its preset's ("Past 5 Minutes"), or a
  * custom range's two ends ("Mar 1, 10:00 – Mar 2, 13:30").
  *
+ * Both ends are written the way the user's machine writes times: on its 12-
+ * or 24-hour clock, in the timezone they configured. Reading the digits off
+ * the Date itself - which is what this used to do - pinned the label to a
+ * 24-hour clock in whatever zone the browser process happened to be in, so
+ * a machine set to AM/PM still got "Mar 1, 14:30" back.
+ *
  * The ends carry their years when the range is not all in this year, on the
  * reader's calendar (issue #7124): a range of exactly a year read "Nov 12,
  * 9:49 AM – Nov 12, 9:49 AM", as if it had no length, and one across New
  * Year or in an earlier year did not say which year it was. A range within
  * this year keeps the short label. "This year" is the one `now` is in: now,
  * unless a caller says.
+ *
+ * A range within one day names its day once, the end its time alone
+ * (OneUptimeDate.getLocalDateTimeRangeEnds, #7281): "Nov 5, 2025, 5:14 AM –
+ * 6:14 AM", "2025년 11월 5일 오전 5:14 – 오전 6:14". Written in full, the
+ * windows an incident offers ("Around the start", "The hour before it
+ * started") took two lines each at phone width in Russian, Arabic or Korean.
  */
 export function getTimeRangeButtonLabel(
   value: RangeStartAndEndDateTime,
@@ -199,15 +198,15 @@ export function getTimeRangeButtonLabel(
       end: value.startAndEndDate.endValue,
       now: now,
     });
-    const start: string = formatDateShort(
-      value.startAndEndDate.startValue,
-      showYear,
-    );
-    const end: string = formatDateShort(
-      value.startAndEndDate.endValue,
-      showYear,
-    );
-    return `${start}${TIME_RANGE_LABEL_SEPARATOR}${end}`;
+    const ends: { start: string; end: string } =
+      OneUptimeDate.getLocalDateTimeRangeEnds({
+        start: value.startAndEndDate.startValue,
+        end: value.startAndEndDate.endValue,
+        style: "short",
+        showYear: showYear,
+      });
+
+    return `${ends.start}${TIME_RANGE_LABEL_SEPARATOR}${ends.end}`;
   }
 
   return getTimeRangeLabel(value.range);

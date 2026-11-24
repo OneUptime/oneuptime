@@ -42,8 +42,8 @@ import { readAuditLogChange } from "../../../Utils/AuditLog/AuditLogTypedValues"
  *   3  version 2, and five keys after workflowName (#9766): what the
  *      workflow whose step made the change ran as (`workflowRunAs`:
  *      Default, ProjectOwner or CustomRole, and `workflowRunAsCustomRoleName`)
- *      and with whose permissions (`workflowRunAsGivenByUserId` or
- *      `workflowRunAsGivenByApiKeyId`, and `workflowRunAsGivenByName`) -
+ *      and with whose permissions (`workflowRunAsGiverUserId` or
+ *      `workflowRunAsGiverApiKeyId`, and `workflowRunAsGiverName`) -
  *      each null on an entry no workflow made.
  *
  * An export saved before a version existed keeps the one it had, so nothing
@@ -72,15 +72,15 @@ export const AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_SCHEMA_VERSION: AuditLogExportSche
 export const AUDIT_LOG_EXPORT_WORKFLOW_RUN_AS_KEYS: ReadonlyArray<
   | "workflowRunAs"
   | "workflowRunAsCustomRoleName"
-  | "workflowRunAsGivenByUserId"
-  | "workflowRunAsGivenByApiKeyId"
-  | "workflowRunAsGivenByName"
+  | "workflowRunAsGiverUserId"
+  | "workflowRunAsGiverApiKeyId"
+  | "workflowRunAsGiverName"
 > = [
   "workflowRunAs",
   "workflowRunAsCustomRoleName",
-  "workflowRunAsGivenByUserId",
-  "workflowRunAsGivenByApiKeyId",
-  "workflowRunAsGivenByName",
+  "workflowRunAsGiverUserId",
+  "workflowRunAsGiverApiKeyId",
+  "workflowRunAsGiverName",
 ];
 
 export function isAuditLogExportSchemaVersion(
@@ -160,9 +160,9 @@ export interface AuditLogExportRecord {
    */
   workflowRunAs?: string | null | undefined;
   workflowRunAsCustomRoleName?: string | null | undefined;
-  workflowRunAsGivenByUserId?: string | null | undefined;
-  workflowRunAsGivenByApiKeyId?: string | null | undefined;
-  workflowRunAsGivenByName?: string | null | undefined;
+  workflowRunAsGiverUserId?: string | null | undefined;
+  workflowRunAsGiverApiKeyId?: string | null | undefined;
+  workflowRunAsGiverName?: string | null | undefined;
   changes: Array<AuditLogExportChange>;
 }
 

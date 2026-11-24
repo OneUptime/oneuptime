@@ -10,8 +10,9 @@ import React, {
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import TelemetrySearchHelp, {
-  TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES,
+  TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME,
 } from "Common/UI/Components/TelemetryViewer/components/TelemetrySearchHelp";
+import LayeredPopover from "Common/UI/Components/Tooltip/LayeredPopover";
 import { SearchHelpRow } from "Common/UI/Components/TelemetryViewer/types";
 import {
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
@@ -59,6 +60,10 @@ export const SESSION_REPLAY_SEARCH_DEBOUNCE_MS: number = 300;
 export const SESSION_REPLAY_SEARCH_HINT_ID: string = "session-search-hint";
 
 export const SESSION_REPLAY_SEARCH_HELP_TEST_ID: string = "session-search-help";
+
+// The syntax help's id, for the search's aria-owns.
+export const SESSION_REPLAY_SEARCH_HELP_ID: string =
+  "session-search-help-panel";
 
 export interface SessionReplaySearchBarProps {
   filters: SessionReplayAdvancedFilters;
@@ -112,6 +117,9 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
     useRef<HTMLInputElement>(null);
   const inputRef: React.RefObject<HTMLInputElement> =
     props.inputRef || ownInputRef;
+  // The box the help and the hints hang from, on the tooltip layer.
+  const searchRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
   const [text, setText] = useState<string>((): string => {
     return stringifySessionReplaySearchBox(props.filters);
@@ -266,8 +274,26 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
       ? "border-gray-300 shadow-sm"
       : "border-gray-200 shadow-sm";
 
+  /*
+   * The help and the hints are drawn on the tooltip layer, hung from the
+   * box's end (LayeredPopover's isFieldPopup), so the table's card the
+   * header sits in never cuts them off (#9909); the focus, the keys and a
+   * press stay the box's. The box owns the one that is open, so a screen
+   * reader still meets it right after the search.
+   */
+  const ownedPopupId: string | undefined = isHelpShown
+    ? SESSION_REPLAY_SEARCH_HELP_ID
+    : areHintsShown
+      ? SESSION_REPLAY_SEARCH_HINT_ID
+      : undefined;
+
   return (
-    <div className="relative w-full" data-testid="session-search-bar">
+    <div
+      ref={searchRef}
+      className="relative w-full"
+      data-testid="session-search-bar"
+      aria-owns={ownedPopupId}
+    >
       <label
         className={`flex w-full items-center gap-2 rounded-md border bg-white px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} transition-all duration-200 ${boxClassName}`}
       >
@@ -384,9 +410,11 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
 
       {isHelpShown && (
         <TelemetrySearchHelp
+          anchorRef={searchRef}
+          id={SESSION_REPLAY_SEARCH_HELP_ID}
           rows={SESSION_REPLAY_SEARCH_HELP_ROWS as Array<SearchHelpRow>}
           combinedExample={SESSION_REPLAY_SEARCH_HELP_COMBINED_EXAMPLE}
-          align="right"
+          align="end"
           dataTestId={SESSION_REPLAY_SEARCH_HELP_TEST_ID}
           onExampleClick={(example: string): void => {
             cancelPendingCommit();
@@ -398,31 +426,33 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
       )}
 
       {areHintsShown && (
-        <div
-          id={SESSION_REPLAY_SEARCH_HINT_ID}
-          data-testid="session-search-hint"
-          aria-live="polite"
-          className={`${TELEMETRY_SEARCH_HELP_PLACEMENT_CLASS_NAMES.right} space-y-1 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg`}
-        >
-          {hints.map((hint: SearchHint, index: number): ReactElement => {
-            return (
-              <div
-                key={index}
-                className={`flex items-start gap-2 text-xs ${
-                  hint.isWarning ? "text-amber-700" : "text-gray-600"
-                }`}
-              >
-                <Icon
-                  icon={hint.isWarning ? IconProp.Alert : IconProp.Info}
-                  className={`mt-px h-3.5 w-3.5 flex-none ${
-                    hint.isWarning ? "text-amber-500" : "text-gray-400"
+        <LayeredPopover anchorRef={searchRef} align="end" isFieldPopup={true}>
+          <div
+            id={SESSION_REPLAY_SEARCH_HINT_ID}
+            data-testid="session-search-hint"
+            aria-live="polite"
+            className={`${TELEMETRY_SEARCH_HELP_WIDTH_CLASS_NAME} space-y-1 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg`}
+          >
+            {hints.map((hint: SearchHint, index: number): ReactElement => {
+              return (
+                <div
+                  key={index}
+                  className={`flex items-start gap-2 text-xs ${
+                    hint.isWarning ? "text-amber-700" : "text-gray-600"
                   }`}
-                />
-                <span className="text-pretty">{hint.text}</span>
-              </div>
-            );
-          })}
-        </div>
+                >
+                  <Icon
+                    icon={hint.isWarning ? IconProp.Alert : IconProp.Info}
+                    className={`mt-px h-3.5 w-3.5 flex-none ${
+                      hint.isWarning ? "text-amber-500" : "text-gray-400"
+                    }`}
+                  />
+                  <span className="text-pretty">{hint.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        </LayeredPopover>
       )}
     </div>
   );

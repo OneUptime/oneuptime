@@ -12,6 +12,7 @@ import {
   PrometheusVectorSample,
   queryPrometheus,
 } from "./PrometheusQuery";
+import { KubernetesCostMemoryPeaksSource } from "./Types";
 
 /*
  * Per-container memory peaks, read from the cluster's cAdvisor scrape.
@@ -116,6 +117,16 @@ export class PrometheusClient {
 
   public isEnabled(): boolean {
     return Boolean(this.source.current());
+  }
+
+  /*
+   * Where the peaks come from now (#9970): the Prometheus the cluster's own
+   * engine reads, the chart's bundled one, cost.engine.prometheusUrl, or ""
+   * for none. The shipment says it, so the page that advises stopping the
+   * bundled engine can say when that stops the peaks too.
+   */
+  public memoryPeaksFrom(): KubernetesCostMemoryPeaksSource {
+    return this.source.current()?.origin || "";
   }
 
   /**

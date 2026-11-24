@@ -1,4 +1,5 @@
 import {
+  ANDROID_SECURITY_PATCH_MAX_AGE_DAYS,
   ANDROID_TEMPLATE_GROUP_BY,
   HostAlertTemplate,
   HostAlertTemplateArgs,
@@ -20,6 +21,10 @@ import SeriesDebugHints, {
   SeriesDebugCommand,
 } from "../../../Types/Monitor/SeriesContext/SeriesDebugHints";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  EvaluateOverTimeType,
+  FilterType,
+} from "../../../Types/Monitor/CriteriaFilter";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -73,6 +78,7 @@ const ANDROID_IDS: Array<string> = [
   "android-device-overheating",
   "android-restart-loop",
   "android-storage-nearly-full",
+  "android-security-patch-out-of-date",
   "android-high-cpu",
 ];
 
@@ -82,6 +88,7 @@ const AGENT_METRICS: Array<string> = [
   "hw.battery.charge",
   "android.thermal.status",
   "android.boot.recent_count",
+  "android.os.security_patch.age",
   "system.filesystem.utilization",
   "system.cpu.utilization",
   "system.memory.usage",
@@ -108,7 +115,7 @@ describe("the Android templates (issue #9802)", () => {
       expect(template.summary.length).toBeGreaterThan(0);
       expect(template.summary.length).toBeLessThan(80);
       expect(template.description.length).toBeGreaterThan(40);
-      expect(["Availability", "Resource"]).toContain(template.category);
+      expect(["Availability", "Resource", "Host"]).toContain(template.category);
       expect(["Critical", "Warning"]).toContain(template.severity);
       expect(step.data!.hostMonitor!.hostIdentifier).toBe(
         "store-0412-kiosk-02",
@@ -164,6 +171,38 @@ describe("the Android templates (issue #9802)", () => {
     });
   });
 
+  /*
+   * #9965: behind is more than 90 days since the patch level's date, the
+   * time Android Enterprise Recommended gives a maker to ship a bulletin.
+   */
+  test("a device behind on its security patches: more than 90 days, every sample, until one reading is within them", () => {
+    const step: MonitorStep = stepOf("android-security-patch-out-of-date");
+    const [offline, online] = criteriaOf(step);
+
+    expect(ANDROID_SECURITY_PATCH_MAX_AGE_DAYS).toBe(90);
+    expect(metricNamesOf(step)).toEqual(["android.os.security_patch.age"]);
+    expect(offline!.data!.filters[0]).toMatchObject({
+      filterType: FilterType.GreaterThan,
+      value: 90,
+      metricMonitorOptions: {
+        metricAggregationType: EvaluateOverTimeType.AllValues,
+      },
+    });
+    expect(online!.data!.filters[0]).toMatchObject({
+      filterType: FilterType.LessThanOrEqualTo,
+      value: 90,
+      metricMonitorOptions: {
+        metricAggregationType: EvaluateOverTimeType.AnyValue,
+      },
+    });
+    expect(offline!.data!.incidents![0]!.title).toBe(
+      "[Android] Security Patch Out of Date (>90 days) - store-0412-kiosk-02",
+    );
+    expect(
+      getHostAlertTemplateById("android-security-patch-out-of-date")!.summary,
+    ).toBe("The device's security patch is more than 90 days old.");
+  });
+
   test("an Android device's CPU is busy as 1 - idle, which both ways the agent reads it give", () => {
     const formulas: Array<string> = (
       stepOf("android-high-cpu").data!.hostMonitor!.metricViewConfig
@@ -217,6 +256,7 @@ describe("which templates a host is offered", () => {
       "android-device-overheating",
       "android-restart-loop",
       "android-storage-nearly-full",
+      "android-security-patch-out-of-date",
     ]);
   });
 
@@ -300,6 +340,9 @@ describe("an Android alert's first commands", () => {
     expect(commands[0]).toBe("adb shell dumpsys battery");
     expect(commands).toContain("adb shell dumpsys thermalservice");
     expect(commands).toContain("adb shell getprop sys.boot.reason");
+    expect(commands).toContain(
+      "adb shell getprop ro.build.version.security_patch",
+    );
     expect(
       commands.every((command: string) => {
         return command.startsWith("adb shell ");

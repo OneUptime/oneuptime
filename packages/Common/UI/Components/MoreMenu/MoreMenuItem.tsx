@@ -81,7 +81,40 @@ export interface ComponentProps {
    */
   isCheckbox?: boolean | undefined;
   dataTestId?: string | undefined;
+  /*
+   * Actions on what the item is, beside it on its row: a saved view's
+   * Rename and Delete beside the view (#6922). Each is a menu item of its
+   * own, a button the arrow keys reach after the item, named for a screen
+   * reader and in its tooltip - never a control inside the item's button,
+   * and never an icon only a mouse can press.
+   */
+  actions?: Array<MoreMenuItemAction> | undefined;
 }
+
+export interface MoreMenuItemAction {
+  icon: IconProp;
+  /*
+   * What it does, with what it does it to, in the reader's words already:
+   * "Rename view Errors" (translateTemplate("Rename view {{name}}")). Said
+   * by a screen reader and shown in its tooltip, as given.
+   */
+  label: string;
+  onClick: () => void;
+  // Red under the pointer and the keys, for an action that deletes.
+  isDestructive?: boolean | undefined;
+  dataTestId?: string | undefined;
+}
+
+/*
+ * The row an item with actions is drawn in, and each action's button: a
+ * square as tall as the item's text line, quiet until the pointer or the
+ * keys reach it, 44px across under a finger.
+ */
+export const MORE_MENU_ITEM_ROW_CLASS_NAME: string =
+  "mx-1 flex w-[calc(100%-0.5rem)] items-center gap-0.5 rounded-md";
+
+export const MORE_MENU_ITEM_ACTION_CLASS_NAME: string =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors duration-100 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 focus-visible:outline-none";
 
 /*
  * An item's tooltip opens beside the menu, not over it. Above the item, as
@@ -140,15 +173,22 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       ? "cursor-pointer hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:bg-red-50 focus-visible:text-red-700"
       : "cursor-pointer hover:bg-indigo-50 hover:text-gray-900 focus-visible:outline-none focus-visible:bg-indigo-50 focus-visible:text-gray-900";
 
+  const actions: Array<MoreMenuItemAction> = props.actions || [];
+
+  /*
+   * A button shrink-wraps its content whatever its display type, so the width
+   * has to be set explicitly or the hover background stops at the end of the
+   * label instead of spanning the menu. 100% less the mx-1 on either side. With
+   * actions beside it, the row takes that width and the item what the actions
+   * leave.
+   */
+  const boxClassName: string =
+    actions.length > 0 ? "min-w-0 flex-1" : "mx-1 w-[calc(100%-0.5rem)]";
+
   const menuItem: ReactElement = (
-    /*
-     * A button shrink-wraps its content whatever its display type, so the width
-     * has to be set explicitly or the hover background stops at the end of the
-     * label instead of spanning the menu. 100% less the mx-1 on either side.
-     */
     <button
       type="button"
-      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-start text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
+      className={`group flex ${boxClassName} items-center rounded-md px-3 py-2 text-start text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
         props.className || ""
       }`}
       role={
@@ -230,16 +270,14 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
     </button>
   );
 
-  if (!props.tooltip) {
-    return menuItem;
-  }
-
   /*
    * A menu opened with the mouse focuses its first item, and that focus is
    * the script's, not the person's: the item's tooltip waits for the pointer
    * to reach it. Moved to with the keys, it shows at once.
    */
-  if (isExplainedLock) {
+  let item: ReactElement = menuItem;
+
+  if (props.tooltip && isExplainedLock) {
     /*
      * The reason sits outside the button so it describes the item without
      * becoming part of its name - the item is still "Delete", not "Delete You
@@ -250,7 +288,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
      * shows the reason and keeps it until the item is pressed again or the
      * menu closes.
      */
-    return (
+    item = (
       <>
         <Tooltip
           text={props.tooltip}
@@ -271,19 +309,67 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
         </span>
       </>
     );
+  } else if (props.tooltip) {
+    item = (
+      <Tooltip
+        text={props.tooltip}
+        isTextTranslated={props.isTooltipTranslated}
+        isTextUserContent={props.isTooltipUserContent}
+        isShownOnKeyboardFocusOnly={true}
+        placement={MENU_ITEM_TOOLTIP_PLACEMENT}
+        fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}
+      >
+        {menuItem}
+      </Tooltip>
+    );
   }
 
+  if (actions.length === 0) {
+    return item;
+  }
+
+  /*
+   * The item and its actions side by side, each a menu item of its own:
+   * the row is no control, only where they sit (role="none"), so none is
+   * inside another, and the arrow keys walk from the item to each action
+   * and on to the next row (MoreMenu's roving focus reads every menu item).
+   */
   return (
-    <Tooltip
-      text={props.tooltip}
-      isTextTranslated={props.isTooltipTranslated}
-      isTextUserContent={props.isTooltipUserContent}
-      isShownOnKeyboardFocusOnly={true}
-      placement={MENU_ITEM_TOOLTIP_PLACEMENT}
-      fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}
-    >
-      {menuItem}
-    </Tooltip>
+    <div role="none" className={MORE_MENU_ITEM_ROW_CLASS_NAME}>
+      {item}
+      {actions.map(
+        (action: MoreMenuItemAction, index: number): ReactElement => {
+          return (
+            <Tooltip
+              key={`${action.label}-${index}`}
+              text={action.label}
+              isTextTranslated={true}
+              isShownOnKeyboardFocusOnly={true}
+              placement="top"
+              fallbackPlacements={["bottom", "left"]}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                tabIndex={-1}
+                aria-label={action.label}
+                data-testid={action.dataTestId}
+                className={`${MORE_MENU_ITEM_ACTION_CLASS_NAME} ${
+                  action.isDestructive
+                    ? "hover:bg-red-50 hover:text-red-600 focus-visible:bg-red-50 focus-visible:text-red-600"
+                    : "hover:bg-indigo-50 hover:text-indigo-600 focus-visible:bg-indigo-50 focus-visible:text-indigo-600"
+                }`}
+                onClick={() => {
+                  action.onClick();
+                }}
+              >
+                <Icon icon={action.icon} className="h-4 w-4" />
+              </button>
+            </Tooltip>
+          );
+        },
+      )}
+    </div>
   );
 };
 

@@ -107,6 +107,8 @@ Dans **Utilisateurs**, cliquez sur la personne, puis sur **Équipes**.
 
 Cliquez sur **Inviter**, choisissez l'**Équipe**, puis cliquez sur **Inviter** dans la boîte de dialogue. Un membre est aussitôt dans la nouvelle équipe. Une personne qui n'a pas encore rejoint le projet reçoit une invitation de plus, et accepter l'une accepte les deux.
 
+Votre projet envoie par e-mail au plus une invitation par heure à une personne. Une invitation faite moins d'une heure après le dernier e-mail, vers une autre équipe ou après que vous l'avez retirée, est bien créée, mais aucun deuxième e-mail ne part tant qu'elle n'en a pas accepté ou refusé une. **Renvoyer l'invitation**, dans le menu de la ligne de la personne dans **Utilisateurs**, en envoie toujours un.
+
 ### La retirer d'une équipe
 
 Cliquez sur **Supprimer** sur la ligne de l'équipe. Si c'est la dernière équipe qu'elle a rejointe, la retirer la sort du projet, et la boîte de dialogue le dit avant que rien ne change.
@@ -139,7 +141,11 @@ Sur OneUptime Cloud, un projet au forfait Free a de la place pour une personne. 
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-Une adresse peut recevoir 10 invitations par heure, aux projets et aux pages de statut privées ensemble, quel qu'en soit l'expéditeur. Attendez une heure, puis invitez la personne de nouveau.
+Votre projet peut envoyer 10 invitations par heure à une adresse, à ses équipes et à ses pages de statut privées ensemble. Les invitations des autres projets ne comptent pas. Attendez une heure, puis invitez la personne de nouveau.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime n'envoie pas plus de 50 invitations par heure à une adresse depuis tous les projets ensemble, et celle-ci dépasserait ce nombre. Rien n'a été créé. Réessayez dans une heure.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

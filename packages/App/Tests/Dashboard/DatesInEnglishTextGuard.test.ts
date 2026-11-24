@@ -74,6 +74,14 @@ const DISPLAY_HELPERS: ReadonlySet<string> = new Set<string>([
   "getLocalTimeString",
   "getLocalHourAndMinuteFromDate",
   "getHourAndMinuteInTimezoneString",
+  // A time in a schedule's zone, and a clock of the day: "17.00" in Danish.
+  "getTimeStringInTimezone",
+  "getClockTimeString",
+  // A day's name standing alone: "Lun" over a Spanish column (#7660).
+  "getDayOfWeekName",
+  // A run of days, and a window's two ends (#7281, #7721).
+  "getDayRangeInTimezoneString",
+  "getLocalDateTimeRangeEnds",
 ]);
 
 // Helpers of their own the Dashboard writes the same words with.

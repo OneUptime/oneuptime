@@ -24,6 +24,7 @@ import Permission from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
+import { NAME_TAKEN_REFUSAL_CODE } from "../../../Types/Exception/NameTakenException";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { FindOperator } from "typeorm";
 
@@ -387,6 +388,15 @@ describe("a new role", () => {
     ).rejects.toThrow(
       "There is already a role called incident responder in this project. Pick another name.",
     );
+    // With the code a program tells a taken name by (#10065).
+    await expect(
+      callHook(CustomRoleService, "onBeforeCreate", {
+        data: role,
+        props: adminProps,
+      } as CreateBy<CustomRole>),
+    ).rejects.toMatchObject({
+      details: { refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    });
   });
 
   test("renamed, may keep its own name in another case", async () => {

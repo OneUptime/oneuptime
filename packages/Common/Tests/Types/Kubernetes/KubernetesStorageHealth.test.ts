@@ -1,6 +1,7 @@
 import {
   KUBERNETES_IMAGE_FS_DIFFERENCE_SHARE,
   KUBERNETES_STORAGE_READING_FRESH_MS,
+  KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS,
   KUBERNETES_STORAGE_USAGE_THRESHOLDS,
   KUBERNETES_VOLUME_FILL_HORIZON_MS,
   KUBERNETES_VOLUME_FILL_MAX_WINDOW_MS,
@@ -12,6 +13,9 @@ import {
   assessKubernetesNodeStorage,
   assessKubernetesVolumeClaimStorage,
   getKubernetesImageFsUsage,
+  hasKubernetesSeparateImageFs,
+  getKubernetesNodeRootDiskUsage,
+  getKubernetesNodeRootDiskThresholds,
   getKubernetesStorageMeasuredAt,
   getKubernetesVolumeFill,
   getKubernetesVolumeFillReason,
@@ -405,32 +409,70 @@ describe("how fast a claim is filling", () => {
 describe("a node's disks", () => {
   const clock: number = CLOCK.getTime();
 
+  // A node whose images have a disk of their own, 100 GiB with `imageFree` free.
+  function withImageDisk(
+    rootUsed: number,
+    imageFree: number = 90 * GIB,
+  ): KubernetesStorageRow {
+    return node(rootUsed, {
+      latestImageFsCapacityBytes: 100 * GIB,
+      latestImageFsAvailableBytes: imageFree,
+    });
+  }
+
   test("its root filesystem nearly full reads Disk nearly full", () => {
-    expect(assessKubernetesNodeStorage(node(85), clock)).toEqual({
+    expect(assessKubernetesNodeStorage(node(82), clock)).toEqual({
       level: StorageUsageLevel.Warning,
       status: { text: "Disk nearly full" },
       reasons: [
         {
           text: "Disk {{percent}} used, {{free}} free",
-          values: { percent: "85%", free: "15\u00A0GiB" },
+          values: { percent: "82%", free: "18\u00A0GiB" },
         },
       ],
     });
   });
 
-  test("at the kubelet's eviction line (90% used) reads Disk almost full", () => {
+  /*
+   * A root filesystem that holds the node's images, as on most nodes: the
+   * kubelet starts deleting images and evicting pods from it at 85% used
+   * (imagefs.available<15%), so it is almost full there (#10057).
+   */
+  test("holding the images, as a node with no image disk of its own does, it is almost full at the kubelet's 85%", () => {
     const verdict: KubernetesStorageVerdict | null =
-      assessKubernetesNodeStorage(node(90), clock);
+      assessKubernetesNodeStorage(node(85), clock);
+    expect(verdict?.level).toBe(StorageUsageLevel.Critical);
+    expect(verdict?.status).toEqual({ text: "Disk almost full" });
+    expect(verdict?.reasons).toEqual([
+      {
+        text: "Disk {{percent}} used, {{free}} free",
+        values: { percent: "85%", free: "15\u00A0GiB" },
+      },
+    ]);
+    expect(assessKubernetesNodeStorage(node(84), clock)?.level).toBe(
+      StorageUsageLevel.Warning,
+    );
+  });
+
+  test("holding no images, it is almost full at its own eviction line, 90%", () => {
+    expect(assessKubernetesNodeStorage(withImageDisk(85), clock)?.level).toBe(
+      StorageUsageLevel.Warning,
+    );
+    expect(assessKubernetesNodeStorage(withImageDisk(89), clock)?.level).toBe(
+      StorageUsageLevel.Warning,
+    );
+    const verdict: KubernetesStorageVerdict | null =
+      assessKubernetesNodeStorage(withImageDisk(90), clock);
     expect(verdict?.level).toBe(StorageUsageLevel.Critical);
     expect(verdict?.status).toEqual({ text: "Disk almost full" });
   });
 
-  test("an image disk of its own counts at the same lines, the fullest first", () => {
+  test("an image disk of its own is almost full at the kubelet's 85%, the fullest disk first", () => {
     const verdict: KubernetesStorageVerdict | null =
       assessKubernetesNodeStorage(
         node(82, {
           latestImageFsCapacityBytes: 500 * GIB,
-          latestImageFsAvailableBytes: 20 * GIB,
+          latestImageFsAvailableBytes: 75 * GIB,
         }),
         clock,
       );
@@ -438,7 +480,7 @@ describe("a node's disks", () => {
     expect(verdict?.reasons).toEqual([
       {
         text: "Image disk {{percent}} used, {{free}} free",
-        values: { percent: "96%", free: "20\u00A0GiB" },
+        values: { percent: "85%", free: "75\u00A0GiB" },
       },
       {
         text: "Disk {{percent}} used, {{free}} free",
@@ -449,18 +491,13 @@ describe("a node's disks", () => {
 
   test("an image disk alone can make the node nearly full", () => {
     expect(
-      assessKubernetesNodeStorage(
-        node(20, {
-          latestImageFsCapacityBytes: 100 * GIB,
-          latestImageFsAvailableBytes: 15 * GIB,
-        }),
-        clock,
-      )?.status,
+      assessKubernetesNodeStorage(withImageDisk(20, 18 * GIB), clock)?.status,
     ).toEqual({ text: "Disk nearly full" });
   });
 
   test("room on both, or a stale reading: no verdict", () => {
     expect(assessKubernetesNodeStorage(node(60), clock)).toBeNull();
+    expect(assessKubernetesNodeStorage(node(79), clock)).toBeNull();
     expect(
       assessKubernetesNodeStorage(
         node(95, { latestVolumeMeasuredAt: ago(HOUR) }),
@@ -479,6 +516,88 @@ describe("a node's disks", () => {
         }),
       )?.usedPercent,
     ).toBe(50);
+  });
+});
+
+describe("the lines a node's disk is judged at (#10057)", () => {
+  test("a disk that holds the images: nearly full at 80%, almost full at 85%", () => {
+    expect(KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS).toEqual({
+      warningPercent: 80,
+      criticalPercent: 85,
+    });
+    // The claims list keeps its own.
+    expect(KUBERNETES_STORAGE_USAGE_THRESHOLDS).toEqual({
+      warningPercent: 80,
+      criticalPercent: 90,
+    });
+  });
+
+  test("a root filesystem holds the images unless the row reads an image disk of its own", () => {
+    expect(hasKubernetesSeparateImageFs(node(50))).toBe(false);
+    expect(
+      hasKubernetesSeparateImageFs(
+        node(50, {
+          latestImageFsCapacityBytes: null,
+          latestImageFsAvailableBytes: null,
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      hasKubernetesSeparateImageFs(
+        node(50, { latestImageFsCapacityBytes: "0" }),
+      ),
+    ).toBe(false);
+    expect(
+      hasKubernetesSeparateImageFs(
+        node(50, { latestImageFsCapacityBytes: "1099511627776" }),
+      ),
+    ).toBe(true);
+
+    expect(getKubernetesNodeRootDiskThresholds(node(50))).toBe(
+      KUBERNETES_IMAGE_DISK_USAGE_THRESHOLDS,
+    );
+    expect(
+      getKubernetesNodeRootDiskThresholds(
+        node(50, { latestImageFsCapacityBytes: 100 * GIB }),
+      ),
+    ).toBe(KUBERNETES_STORAGE_USAGE_THRESHOLDS);
+  });
+
+  test.each([
+    [79, StorageUsageLevel.Normal, StorageUsageLevel.Normal],
+    [80, StorageUsageLevel.Warning, StorageUsageLevel.Warning],
+    [84, StorageUsageLevel.Warning, StorageUsageLevel.Warning],
+    [85, StorageUsageLevel.Critical, StorageUsageLevel.Warning],
+    [89, StorageUsageLevel.Critical, StorageUsageLevel.Warning],
+    [90, StorageUsageLevel.Critical, StorageUsageLevel.Critical],
+  ])(
+    "a root filesystem %p%% used reads %p holding the images and %p holding none",
+    (
+      used: number,
+      holdingImages: StorageUsageLevel,
+      holdingNone: StorageUsageLevel,
+    ) => {
+      expect(getKubernetesNodeRootDiskUsage(node(used))?.level).toBe(
+        holdingImages,
+      );
+      expect(
+        getKubernetesNodeRootDiskUsage(
+          node(used, {
+            latestImageFsCapacityBytes: 100 * GIB,
+            latestImageFsAvailableBytes: 50 * GIB,
+          }),
+        )?.level,
+      ).toBe(holdingNone);
+    },
+  );
+
+  test("a claim is still almost out of space at 90%, never at 85%", () => {
+    expect(
+      getKubernetesVolumeUsage({
+        latestVolumeCapacityBytes: 100 * GIB,
+        latestVolumeAvailableBytes: 15 * GIB,
+      })?.level,
+    ).toBe(StorageUsageLevel.Warning);
   });
 });
 

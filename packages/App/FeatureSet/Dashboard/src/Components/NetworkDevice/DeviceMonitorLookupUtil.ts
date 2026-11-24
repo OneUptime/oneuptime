@@ -18,6 +18,12 @@ import Search from "Common/Types/BaseDatabase/Search";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
+import {
+  UntiedDeviceMonitor,
+  UntiedDeviceMonitorsAnswer,
+  readUntiedDeviceMonitorsAnswer,
+} from "Common/Utils/NetworkDevice/UntiedDeviceMonitor";
+import { loadDeviceNames } from "./NetworkDeviceNames";
 
 /** What a device's own row says about who reports its health. */
 export interface DeviceBinding {
@@ -50,6 +56,47 @@ export interface DeviceMonitorContext {
    * stays listed whatever its tie.
    */
   removableMonitorIds: Set<string>;
+  /*
+   * The monitors that check the device's address but are tied to no
+   * device, with what their probes see there (issue #9903): the ones the
+   * card offers to add, or says why it cannot.
+   */
+  untiedMonitors: UntiedMonitorsListing;
+}
+
+/*
+ * The monitors that check a device's address but are tied to no device
+ * (issue #9903), none of them listed on the device already, and the names
+ * of the other devices at the address the reader may read, by id (lower
+ * case).
+ */
+export interface UntiedMonitorsListing {
+  monitors: Array<UntiedDeviceMonitor>;
+  // More monitors held the address than the server read.
+  hasMore: boolean;
+  deviceNames: ReadonlyMap<string, string>;
+}
+
+export const NO_UNTIED_MONITORS: UntiedMonitorsListing = {
+  monitors: [],
+  hasMore: false,
+  deviceNames: new Map<string, string>(),
+};
+
+/*
+ * Where the server answers which monitors check a device's address but are
+ * tied to no device (Common/Server/API/NetworkDeviceUntiedMonitorsAPI).
+ */
+export const NETWORK_DEVICE_UNTIED_MONITORS_ROUTE: string =
+  "/network-device/:networkDeviceId/untied-monitors";
+
+export function getUntiedMonitorsRoute(
+  networkDeviceId: ObjectID | string,
+): string {
+  return NETWORK_DEVICE_UNTIED_MONITORS_ROUTE.replace(
+    ":networkDeviceId",
+    encodeURIComponent(networkDeviceId.toString()),
+  );
 }
 
 // The monitors listed for a device, and which of them only by a person's tie.
@@ -195,19 +242,145 @@ export default class DeviceMonitorLookupUtil {
   public static async getDeviceMonitorContext(
     networkDeviceId: ObjectID,
   ): Promise<DeviceMonitorContext> {
-    const binding: DeviceBinding =
-      await DeviceMonitorLookupUtil.getDeviceBinding(networkDeviceId);
+    const readListing: () => Promise<{
+      binding: DeviceBinding;
+      listing: DeviceMonitorListing;
+    }> = async (): Promise<{
+      binding: DeviceBinding;
+      listing: DeviceMonitorListing;
+    }> => {
+      const binding: DeviceBinding =
+        await DeviceMonitorLookupUtil.getDeviceBinding(networkDeviceId);
 
-    const listing: DeviceMonitorListing =
-      await DeviceMonitorLookupUtil.listMonitorsForDevice({
-        networkDeviceId,
+      return {
         binding: binding,
-      });
+        listing: await DeviceMonitorLookupUtil.listMonitorsForDevice({
+          networkDeviceId,
+          binding: binding,
+        }),
+      };
+    };
+
+    // The untied monitors are asked for beside the device's own.
+    const [{ binding, listing }, untiedMonitors]: [
+      { binding: DeviceBinding; listing: DeviceMonitorListing },
+      UntiedMonitorsListing,
+    ] = await Promise.all([
+      readListing(),
+      DeviceMonitorLookupUtil.listUntiedMonitors(networkDeviceId),
+    ]);
 
     return {
       monitors: listing.monitors,
       isMonitorBacked: binding.isMonitorBacked,
       removableMonitorIds: listing.removableMonitorIds,
+      untiedMonitors: DeviceMonitorLookupUtil.withoutListedMonitors({
+        untied: untiedMonitors,
+        listed: listing.monitors,
+      }),
+    };
+  }
+
+  /*
+   * The monitors that check the device's address but are tied to no device,
+   * as the server answers them (fetchUntiedMonitors), with the names of the
+   * other devices their probes cannot tell this one from. Best effort, as
+   * the web UI monitor is: a read that fails lists none, and the device's
+   * own monitors are listed all the same; a name that cannot be read is
+   * left out.
+   */
+  public static async listUntiedMonitors(
+    networkDeviceId: ObjectID,
+  ): Promise<UntiedMonitorsListing> {
+    let answer: UntiedDeviceMonitorsAnswer;
+
+    try {
+      answer =
+        await DeviceMonitorLookupUtil.fetchUntiedMonitors(networkDeviceId);
+    } catch {
+      return NO_UNTIED_MONITORS;
+    }
+
+    const otherDeviceIds: Set<string> = new Set<string>();
+
+    for (const monitor of answer.monitors) {
+      for (const id of monitor.otherDeviceIds || []) {
+        otherDeviceIds.add(id);
+      }
+    }
+
+    let deviceNames: ReadonlyMap<string, string> = new Map<string, string>();
+
+    if (otherDeviceIds.size > 0) {
+      try {
+        deviceNames = await loadDeviceNames(Array.from(otherDeviceIds).sort());
+      } catch {
+        // The devices are not named: the line still says why.
+      }
+    }
+
+    return {
+      monitors: answer.monitors,
+      hasMore: answer.hasMore,
+      deviceNames: deviceNames,
+    };
+  }
+
+  /*
+   * Which monitors check the device's address but are tied to no device,
+   * as the server answers (POST /network-device/:id/untied-monitors, issue
+   * #9903). A failed request is thrown.
+   */
+  public static async fetchUntiedMonitors(
+    networkDeviceId: ObjectID,
+  ): Promise<UntiedDeviceMonitorsAnswer> {
+    const url: URL = URL.fromString(APP_API_URL.toString()).addRoute(
+      getUntiedMonitorsRoute(networkDeviceId),
+    );
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: url,
+        data: {},
+        headers: { ...ModelAPI.getCommonHeaders() },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      throw response;
+    }
+
+    return readUntiedDeviceMonitorsAnswer(response.data);
+  }
+
+  /*
+   * The untied monitors the card has not listed already. A monitor bound
+   * to a monitor-backed device, or its web UI monitor, is the device's for
+   * that reason, tie or none: it is listed among its monitors, never also
+   * offered to add.
+   */
+  public static withoutListedMonitors(data: {
+    untied: UntiedMonitorsListing;
+    listed: ReadonlyArray<Monitor>;
+  }): UntiedMonitorsListing {
+    const listedIds: Set<string> = new Set<string>(
+      data.listed
+        .map((monitor: Monitor): string => {
+          return (monitor._id?.toString() || monitor.id?.toString() || "")
+            .trim()
+            .toLowerCase();
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    return {
+      ...data.untied,
+      monitors: data.untied.monitors.filter(
+        (monitor: UntiedDeviceMonitor): boolean => {
+          return !listedIds.has(monitor.monitorId.toLowerCase());
+        },
+      ),
     };
   }
 

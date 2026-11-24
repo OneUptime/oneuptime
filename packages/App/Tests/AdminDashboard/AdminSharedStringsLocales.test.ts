@@ -245,7 +245,7 @@ describe("the Admin Dashboard's shared strings", () => {
   test("the page's own shared strings are among them: the ⋯ menu, the side menu, a record's ID", () => {
     for (const text of [
       "More options",
-      "Main navigation",
+      "Pages in this section",
       "Skip to main content",
       "Click to copy",
       "Copy to clipboard",

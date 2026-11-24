@@ -46,19 +46,24 @@ const readPermissions: Array<Permission> = [
 /*
  * One device management service (MDM) OneUptime reads a fleet of devices
  * from, through the service's API, on a schedule, with nothing to install on
- * the devices (OneUptime issue #9586): today an Esper tenant, read through
- * Esper's API with a key made in its console.
+ * the devices (OneUptime issue #9586): an Esper tenant, read through Esper's
+ * API with a key made in its console; a Microsoft Intune tenant, read
+ * through Microsoft Graph as an app registration of its own (#9837); or a
+ * Workspace ONE UEM (#10086) or SOTI MobiControl (#10087) server, read
+ * through its REST API at the address the customer gives.
  *
- * Each read lists the tenant's Android devices, their groups and their last
+ * Each read lists the tenant's devices, their groups and their last
  * check-ins - and, on a slower clock, each device's installed apps - into
  * ManagedDevice and ManagedDeviceApp rows, and each device is one host in
- * Inventory (ManagedDeviceIdentity). Esper has no webhooks, so it is read on
- * a schedule. What a read found, what went wrong and when it reads next are
- * kept here, so a failure shows on the connection, never silently.
+ * Inventory (ManagedDeviceIdentity). Neither service sends anything on its
+ * own, so each is read on a schedule. What a read found, what went wrong and
+ * when it reads next are kept here, so a failure shows on the connection,
+ * never silently.
  *
  * `config` holds what is not secret (DeviceManagementConnectionSettings: the
- * tenant and how often to read) and `secrets` the API key, encrypted at rest
- * and never returned.
+ * tenant or server, the client ID, cloud, region or username a service
+ * signs in with, and how often to read) and `secrets` the service's
+ * secrets, encrypted at rest and never returned.
  */
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -77,7 +82,7 @@ const readPermissions: Array<Permission> = [
   pluralName: "Device Management Connections",
   icon: IconProp.DevicePhoneMobile,
   tableDescription:
-    "Esper tenants whose Android devices OneUptime imports through Esper's API, on a schedule: each device, its group, its installed apps and its last check-in.",
+    "Device management services - Esper, Microsoft Intune, Workspace ONE UEM and SOTI MobiControl - whose devices OneUptime imports through the service's API, on a schedule: each device, its group, its installed apps and its last check-in.",
 })
 @TableAccessControl({
   create: adminPermissions,
@@ -164,7 +169,7 @@ export default class DeviceManagementConnection extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Service",
     description:
-      "Which device management service this connection reads: 'esper' (Esper's API). Fixed once created.",
+      "Which device management service this connection reads: 'esper' (Esper's API), 'intune' (Microsoft Intune, through Microsoft Graph), 'workspaceone' (Workspace ONE UEM's REST API) or 'soti' (SOTI MobiControl's REST API). Fixed once created.",
   })
   @Column({
     nullable: false,
@@ -190,7 +195,7 @@ export default class DeviceManagementConnection extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Settings",
     description:
-      "What is not secret: the Esper tenant (the name before .esper.cloud in the console's address) and how often the devices are read (readIntervalInMinutes: 5, 10, 15, 30 or 60).",
+      "What is not secret: the tenant (Esper's: the name before .esper.cloud in the console's address; Intune's: the Microsoft Entra directory ID, or a domain of it; Workspace ONE's and SOTI's: the server's host, like as1234.awmdm.com), for Intune the app registration's clientId and the cloud (public, gcc, usgov or dod), for Workspace ONE how it signs in (authMethod: oauth, with the OAuth client's clientId and the token service's region - na, emea, apac or uat - or basic, with an administrator's username), for SOTI the API client's clientId and the API user's username, and how often the devices are read (readIntervalInMinutes: 5, 10, 15, 30 or 60).",
     example: {
       tenant: "acme",
       readIntervalInMinutes: 15,
@@ -213,7 +218,7 @@ export default class DeviceManagementConnection extends BaseModel {
     encrypted: true,
     title: "Credentials",
     description:
-      'The Esper API key, as a JSON object: {"apiKey": "..."}. Encrypted at rest and never returned by the API. On an update, a key left empty keeps the stored one.',
+      'The service\'s secrets, as a JSON object: {"apiKey": "..."} for Esper, {"clientSecret": "..."} for Intune and for Workspace ONE with an OAuth client, {"password": "...", "apiKey": "..."} (the REST API key) for Workspace ONE with an administrator\'s account, {"clientSecret": "...", "password": "..."} for SOTI. Encrypted at rest and never returned by the API. On an update, a secret left empty keeps the stored one.',
   })
   @Column({
     nullable: false,

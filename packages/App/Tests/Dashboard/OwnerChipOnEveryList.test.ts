@@ -98,6 +98,8 @@ const NO_OWNER_CHIP: Record<string, string> = {
     "The monitors an SLO is measured on, added and removed by hand; the Monitors list filters them by owner.",
   "Pages/NetworkSite/View/Devices.tsx#network-site-devices-table":
     "A site's devices; the Devices list has the Site and Owner chips side by side.",
+  "Pages/NetworkSite/View/ChildSites.tsx#network-site-children-table":
+    "The sites directly under one site; the Sites list has the Parent Site and Owner chips side by side.",
   "Pages/Host/CollectorConfigView.tsx#host-collector-config-hosts-table":
     "The hosts a collector config runs on; the Hosts list filters them by owner.",
   "Pages/Rum/Settings/SessionReplay.tsx#rum-application-session-replay-roster-table":

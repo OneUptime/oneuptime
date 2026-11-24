@@ -11,7 +11,7 @@ Ce guide couvre ce qui vient après votre premier apply : comment le fournisseur
 
 ## Configurer le fournisseur
 
-Le fournisseur prend deux réglages. Chacun vient du bloc du fournisseur, ou sinon d'une variable d'environnement :
+Le fournisseur se connecte avec deux réglages. Chacun vient du bloc du fournisseur, ou sinon d'une variable d'environnement :
 
 | Réglage | Variable d'environnement | Quand aucun des deux n'est renseigné |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` est l'adresse de votre instance OneUptime, sans `/api` : le fournisseur ajoute `https://` quand l'adresse n'a pas de schéma, et `/api` à la fin. `api_key` est sensible : Terraform ne l'affiche donc jamais.
+
+Un troisième réglage, `exclusive_lists`, décide de ce que contiennent les étiquettes d'une configuration : voir [Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi](#les-étiquettes-et-les-autres-listes-auxquelles-oneuptime-ajoute-aussi).
 
 La clé doit être une clé API du projet que vous gérez, autorisée à créer, lire, modifier et supprimer chaque type d'enregistrement de votre configuration : voir [Créer une clé API du projet](/docs/terraform/quick-start#créer-une-clé-api-du-projet). La clé API maître d'une instance OneUptime auto-hébergée n'appartient à aucun projet : une création faite avec elle échoue donc avec `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi
+
+OneUptime ajoute de lui-même à certaines listes d'un enregistrement : une règle d'étiquettes ajoute ses étiquettes aux enregistrements qu'elle cible, une règle d'astreinte ajoute ses politiques aux incidents et aux alertes qu'elle cible, et les règles de moniteurs d'un SLO rattachent les moniteurs qu'elles ciblent. La référence le dit de chacun de ces attributs : "OneUptime adds to it too, on its own". Une configuration qui en définit un tient les entrées qu'elle liste, et laisse le reste :
+
+- **Ce que la configuration liste est ajouté**, et remis si quelqu'un l'enlève.
+- **Ce que vous retirez de la configuration est enlevé.** `labels = []` enlève chaque étiquette que la configuration listait.
+- **Ce que OneUptime ou une personne ajoute reste**, et aucun plan ne le montre comme une modification.
+- **Laissée hors de la configuration**, la liste appartient à OneUptime : Terraform n'y ajoute rien et n'en enlève rien.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+L'état contient les étiquettes que la configuration liste et que l'enregistrement a, pas toutes les étiquettes de l'enregistrement : la source de données du même nom les lit toutes. Un apply ajoute et enlève des étiquettes une à une, donc une étiquette qu'une règle ajoute pendant son exécution reste aussi.
+
+Une importation adopte toutes les étiquettes de l'enregistrement : listez-les toutes, comme le fait la page Terraform de l'enregistrement dans le tableau de bord, sinon le plan montre celles que vous omettez comme enlevées. Après une mise à jour depuis une version antérieure du fournisseur, le premier plan d'une configuration qui définit des étiquettes montre qu'elles sont définies : l'apply ajoute celles qui manquent à l'enregistrement, et n'en enlève aucune.
+
+Pour tenir chacune de ces listes à exactement ce que liste la configuration, comme le faisaient les versions précédentes, définissez `exclusive_lists` dans le bloc du fournisseur. Terraform enlève alors une étiquette qu'une règle ajoute, à chaque apply :
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

@@ -221,7 +221,7 @@ describe("the folded Publishing line", () => {
     expect(summary).toBe(
       `Shown on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(PUBLISH_AT)}.`,
     );
-    expect(summary).toContain("09:00");
+    expect(summary).toContain("9:00 AM");
   });
 
   test("the same instant reads in another reader's timezone as their own clock says it", () => {
@@ -240,10 +240,10 @@ describe("the folded Publishing line", () => {
     );
 
     // 09:00 UTC is half past two in the afternoon in India.
-    expect(inIndia).toContain("02:30 PM");
+    expect(inIndia).toContain("2:30 PM");
     expect(inIndia).toContain("IST");
-    expect(inIndia).not.toContain("09:00");
-    expect(inUtc).toContain("09:00 AM");
+    expect(inIndia).not.toContain("9:00 AM");
+    expect(inUtc).toContain("9:00 AM");
     expect(inIndia).not.toBe(inUtc);
   });
 

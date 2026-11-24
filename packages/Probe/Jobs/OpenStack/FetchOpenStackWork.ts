@@ -191,7 +191,9 @@ export async function postCollectionReport(
 
 /*
  * One upload, gzip-compressed: a large cloud's metrics are megabytes of JSON. Without
- * blocking, because the same process runs this probe's monitors.
+ * blocking, because the same process runs this probe's monitors. The probe's id and key
+ * travel in headers as well as in the body, so the server checks the key before it reads
+ * the report (ProbeAPIRequest.getProbeKeyHeaders).
  */
 async function postCollectionReportPart(
   report: OpenStackCollectionReport,
@@ -218,6 +220,7 @@ async function postCollectionReportPart(
         headers: {
           "Content-Type": "application/json",
           "Content-Encoding": "gzip",
+          ...ProbeAPIRequest.getProbeKeyHeaders(),
         },
         options: {
           ...ProbeAPIRequest.getDefaultRequestOptions(url, {

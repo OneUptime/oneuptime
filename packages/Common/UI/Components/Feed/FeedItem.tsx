@@ -34,6 +34,7 @@ import {
   FEED_BURST_LABELS,
   FeedBurstKind,
 } from "./FeedEntryKind";
+import { wordStateChangeFeedDetails } from "../../../Utils/Monitor/StateChangeFeedCause";
 
 export interface FeedItemProps {
   key: string;
@@ -267,10 +268,21 @@ const FeedItem: FunctionComponent<ComponentProps> = (
   }, [item.textInMarkdown, authorName, hasAuthorLine]);
 
   const hasDetails: boolean = hasFeedEntryDetails(item.moreTextInMarkdown);
-  // Who older owner notifications reached, as a list (tidyFeedEntryDetails).
-  const details: string = useMemo(() => {
-    return tidyFeedEntryDetails(item.moreTextInMarkdown);
-  }, [item.moreTextInMarkdown]);
+  /*
+   * Who older owner notifications reached, as a list (tidyFeedEntryDetails),
+   * and why a state changed in the reader's words, as View Cause says it
+   * (StateChangeFeedCause, #10126): the entry keeps the English it was
+   * posted with. Read once they are unfolded, in the language of the page
+   * as it is then.
+   */
+  const details: string = isDetailsOpen
+    ? tidyFeedEntryDetails(
+        wordStateChangeFeedDetails({
+          details: item.moreTextInMarkdown,
+          translator: translator,
+        }),
+      )
+    : "";
   const color: string = item.color.toString();
   const safeMode: boolean = item.safeMode === true;
 

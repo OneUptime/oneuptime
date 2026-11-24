@@ -54,9 +54,9 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | I Splunk On-Call | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. |
-| Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
-| Rotasjoner | Vaktplaner | Hver rotasjon blir en vaktplan eid av teamet sitt, og hver av vaktene i den et lag med de samme personene, samme start, samme overlevering og de samme vaktdagene og -timene. Den som har vakt i Splunk On-Call nå, har også vakt i OneUptime. |
-| Eskaleringspolicyer | Vaktpolicyer | Eid av policyens team. Hvert trinn blir en eskaleringsregel som varsler de samme rotasjonene og brukerne. Et trinns tidsavbrudd blir ventetiden før det, og trinn uten tidsavbrudd imellom varsler sammen. |
+| Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. Har to team samme navn, overføres det andre elementet med et nummer, for eksempel `Platform 2`, og rapporten viser navnet det ble opprettet med. |
+| Rotasjoner | Vaktplaner | Hver rotasjon blir en vaktplan eid av teamet sitt, og hver av vaktene i den et lag med de samme personene, samme start, samme overlevering og de samme vaktdagene og -timene. Den som har vakt i Splunk On-Call nå, har også vakt i OneUptime. Har to rotasjoner samme navn, overføres det andre elementet med et nummer, for eksempel `Primary 2`, og rapporten viser navnet det ble opprettet med. |
+| Eskaleringspolicyer | Vaktpolicyer | Eid av policyens team. Hvert trinn blir en eskaleringsregel som varsler de samme rotasjonene og brukerne. Et trinns tidsavbrudd blir ventetiden før det, og trinn uten tidsavbrudd imellom varsler sammen. Har to eskaleringspolicyer samme navn, overføres det andre elementet med et nummer, for eksempel `Primary 2`, og rapporten viser navnet det ble opprettet med. |
 
 Vakter i én rotasjon som har vakt samtidig, blir hver sin OneUptime-vaktplan, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet rotasjonen, varsler alle. Vaktplanen beholder tidssonen til rotasjonens første vakt, og en vakt i en annen tidssone får timene sine regnet om til den.
 

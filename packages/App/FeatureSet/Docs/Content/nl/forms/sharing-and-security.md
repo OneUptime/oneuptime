@@ -5,6 +5,7 @@ Een formulier staat open voor iedereen met de link, en elke inzending kan je ber
 :::cards
 - [De link delen](#de-link-delen): Kopieer hem, open hem, en stel hem opnieuw in als hij te ver is verspreid.
 - [Een link voor elk sjabloon](#een-link-voor-elk-sjabloon): Eén bladwijzer per geval, één formulier achter allemaal.
+- [Alleen mensen die inloggen](#alleen-mensen-die-inloggen): Nodig de mensen uit die het formulier mogen openen, of laat je single sign-on ze aanmelden.
 - [Aangepaste domeinen](#aangepaste-domeinen): Bied het formulier aan op je eigen domein, met een gratis certificaat.
 - [Wat een formulier beschermt](#wat-een-formulier-beschermt): Elke controle die een verzoek doorloopt, op volgorde.
 - [Problemen oplossen](#problemen-oplossen): Wat elk bericht op de pagina van het formulier betekent, en wat je moet doen.
@@ -16,6 +17,7 @@ Een formulier staat open voor iedereen met de link, en elke inzending kan je ber
 | --- | --- |
 | **Status** | **Accepteert inzendingen** — of de link van het formulier werkt. |
 | **Deellink** | Elk adres waarop het formulier antwoordt, elk met **Link kopiëren**, en **Link opnieuw instellen**. |
+| **Wie dit formulier kan openen** | **Alleen mensen die inloggen** — of alleen de mensen die je kiest het formulier kunnen openen, zodra ze inloggen. |
 | **Na verzenden** | Het **Bedankbericht** dat mensen zien zodra ze verzenden, onder het nummer van wat het formulier aanmaakte. |
 | **Meer instellingen** | De **IP-toelatingslijst**, ingeklapt tot u die opent. |
 
@@ -28,6 +30,8 @@ De kaart **Deellink** toont elk adres waarop het formulier antwoordt: eerst de [
 - **Link opnieuw instellen** geeft het formulier een nieuwe link, nadat je bevestigt. De oude link werkt meteen niet meer en toont het bericht dat het formulier niet beschikbaar is, dus iedereen met wie je hem deelde, heeft de nieuwe nodig. Gebruik het als een link verder is verspreid dan zou moeten. De aangepaste domeinen van het formulier bevatten geen sleutel, en blijven werken.
 
 Iedereen met de link kan het formulier openen en verzenden, zonder OneUptime-account en zonder aan te melden. Aangemeld zijn verandert niets: OneUptime weet alleen wie inzond aan de naam en het e-mailadres die in het formulier zijn getypt. Behandel de link dus als een telefoonnummer van je bereikbaarheidsdienst. Deel hem waar de mensen die hem moeten gebruiken hem vinden — een intranetpagina, een supportrunbook, een vastgezet chatbericht — en niet op een openbare website, tenzij je inzendingen van iedereen wilt.
+
+Om alleen de mensen die je kiest het formulier te laten openen en verzenden, zet je **Alleen mensen die inloggen** aan — zie [Alleen mensen die inloggen](#alleen-mensen-die-inloggen).
 
 De link bevat een eigen willekeurige sleutel, niet de ID van het formulier. Op een zelf gehoste installatie wordt hij geserveerd vanaf je eigen OneUptime-host, en werkt hij alleen op het adres dat `HTTP_PROTOCOL` en `HOST` instellen: geopend via een andere naam van de server, of via het IP-adres, worden de verzoeken van het formulier geweigerd als afkomstig van een andere website.
 
@@ -48,6 +52,20 @@ Zet **Accepteert inzendingen** uit om geen inzendingen meer aan te nemen zonder 
 Na een inzending zegt de pagina "Bedankt — je antwoord is verzonden." en geeft het nummer van wat er is aangemaakt, en daarna je **Bedankbericht**, in Markdown. Gebruik het om te zeggen wat er nu gebeurt, en waar je terechtkunt als iets dringend is. Zonder bericht toont de pagina alleen het standaardbericht.
 
 Een afbeelding in de beschrijving of het bedankbericht van het formulier wordt getoond aan iedereen die de link opent zolang het formulier op **Accepteert inzendingen** staat. Zet het formulier uit, of haal de afbeelding weg, en de afbeelding is weer privé, tenzij iets anders dat iedereen ziet haar nog bevat.
+
+## Alleen mensen die inloggen
+
+Zet **Alleen mensen die inloggen** aan, onder **Wie dit formulier kan openen** op de pagina **Delen** van het formulier, zodat alleen de mensen die je kiest het formulier openen en verzenden. Bij het aanzetten word je om bevestiging gevraagd. Vanaf dan komt elke bezoeker eerst op een aanmeldpagina, via de link van het formulier en op elk aangepast domein. Die toont de naam van het formulier en verder niets: niet de vragen, de sjablonen of het logo, en niet wie mag inloggen. Na het inloggen toont het formulier wie er is ingelogd, met **Afmelden** ernaast.
+
+Open **Privégebruikers** in het zijmenu van het formulier om de mensen die mogen inloggen per e-mail toe te voegen. Elk krijgt een uitnodiging per e-mail waarvan de link hen een wachtwoord laat kiezen. De link werkt 24 uur, en **Wachtwoord vergeten?** op de aanmeldpagina stuurt een nieuwe. De tabel toont wie **Aangemeld** is, wiens uitnodiging **Uitnodiging verzonden** is en wanneer elk **Laatst ingelogd** was. Iemand verwijderen, of een nieuw wachtwoord, logt diegene bij het volgende verzoek overal uit.
+
+Open **Single Sign-On** om je identiteitsprovider mensen te laten aanmelden, met SAML of OpenID Connect. Elke provider toont de waarden die je in je identiteitsprovider plakt. Wie je identiteitsprovider binnenlaat, wordt bij de eerste aanmelding een privégebruiker. Een provider uitzetten, of verwijderen, logt iedereen uit die hij heeft aangemeld. **SSO vereisen om aan te melden** zet inloggen met een wachtwoord uit: iedereen meldt zich dan aan met single sign-on, en wie met een wachtwoord is ingelogd, wordt bij het volgende verzoek uitgelogd.
+
+Een aanmelding blijft geldig tot ze 30 dagen niet is gebruikt. De cookies worden alleen met de eigen verzoeken van het formulier meegestuurd, zodat geen andere site het formulier ermee kan openen of verzenden, of iemand kan uitloggen. Inlogpogingen zijn beperkt per adres en per account, en de aanmeldpagina en de pagina voor een vergeten wachtwoord antwoorden hetzelfde, of een adres nu mag inloggen of niet.
+
+Een inzending noemt alleen de naam en het e-mailadres die in het formulier zijn ingevuld, zoals bij elk ander formulier, niet de privégebruiker die haar verstuurde. Een afbeelding in de beschrijving of het bedankbericht van het formulier blijft openbaar op haar onraadbare adres zolang het formulier inzendingen accepteert, zoals op een statuspagina die haar bezoekers vraagt in te loggen: zo laden de browsers van de privégebruikers haar.
+
+Op OneUptime Cloud vereisen single sign-on en **SSO vereisen om aan te melden** het **Scale**-abonnement. Via de API zijn privégebruikers en single sign-on-providers eigen records: `/form-private-user`, `/form-sso` en `/form-oidc`, elk met machtigingen die naar hem zijn genoemd.
 
 ## Aangepaste domeinen
 
@@ -119,13 +137,14 @@ Elk verzoek doorloopt deze controles, in deze volgorde:
 2. Het moet binnen de snelheidslimieten blijven.
 3. Het formulier moet bestaan, op **Accepteert inzendingen** staan en horen bij een project met een abonnement dat formulieren omvat.
 4. Het moet van een adres op de **IP-toelatingslijst** komen, als het formulier er een heeft.
-5. Een inzending moet de captcha doorstaan, als de instantie captcha heeft aanstaan.
-6. Elk antwoord moet binnen de groottelimieten blijven en bij zijn vraag passen — zie [Een formulier bouwen](/docs/forms/building#groottelimieten).
-7. Wat de antwoorden en de instellingen opleveren, moet kunnen worden aangemaakt: een incident heeft een ernstniveau nodig, een gebeurtenis een einde na het begin.
-8. Een inzending moet binnen het uurtegoed van het formulier passen — zie [Snelheidslimieten](#snelheidslimieten).
-9. De bestanden moeten binnen het uurtegoed voor bestanden van het formulier passen, vlak voordat ze worden opgeslagen.
+5. Het moet van een van de privégebruikers van het formulier komen, ingelogd, als het formulier op **Alleen mensen die inloggen** staat — zie [Alleen mensen die inloggen](#alleen-mensen-die-inloggen).
+6. Een inzending moet de captcha doorstaan, als de instantie captcha heeft aanstaan.
+7. Elk antwoord moet binnen de groottelimieten blijven en bij zijn vraag passen — zie [Een formulier bouwen](/docs/forms/building#groottelimieten).
+8. Wat de antwoorden en de instellingen opleveren, moet kunnen worden aangemaakt: een incident heeft een ernstniveau nodig, een gebeurtenis een einde na het begin.
+9. Een inzending moet binnen het uurtegoed van het formulier passen — zie [Snelheidslimieten](#snelheidslimieten).
+10. De bestanden moeten binnen het uurtegoed voor bestanden van het formulier passen, vlak voordat ze worden opgeslagen.
 
-Het logo en het favicon van een formulier horen bij het formulier: ze worden meegestuurd in het antwoord dat het opent, in base64, pas nadat het de eerste vier controles heeft doorstaan, en nooit vanaf een eigen adres. Niemand kan ze zonder het formulier ophalen, en geen enkel bestand kan via een formulier op zijn ID worden opgehaald; de bestanden zelf blijven privé. Een formulier toont alleen afbeeldingen die in zijn eigen project zijn geüpload: een bestand uit een ander project wordt geweigerd als het formulier wordt opgeslagen, en wordt nooit naar de pagina ervan gestuurd.
+Het logo en het favicon van een formulier horen bij het formulier: ze worden meegestuurd in het antwoord dat het opent, in base64, pas nadat het de eerste vijf controles heeft doorstaan, en nooit vanaf een eigen adres. Niemand kan ze zonder het formulier ophalen, en geen enkel bestand kan via een formulier op zijn ID worden opgehaald; de bestanden zelf blijven privé. Een formulier toont alleen afbeeldingen die in zijn eigen project zijn geüpload: een bestand uit een ander project wordt geweigerd als het formulier wordt opgeslagen, en wordt nooit naar de pagina ervan gestuurd.
 
 ### IP-toelatingslijst
 

@@ -236,7 +236,8 @@ function deviceAddState(fields) {
     takenCount: 0,
     archivedCount: 0,
     remainingCount: 0,
-    failures: [],
+    // Why devices could not be added, one entry a reason (#10188).
+    failureReasons: [],
     ...fields,
   };
 }
@@ -269,14 +270,16 @@ const DEVICE_ADDS = {
       withoutAddressCount: 4,
       takenCount: 1,
       archivedCount: 1,
-      failures: [
+      failureReasons: [
         {
-          name: "LDS-MS120-02",
           reason: "Another network device has this name.",
+          count: 1,
+          names: ["LDS-MS120-02"],
         },
         {
-          name: "BRS-MR36-05",
           reason: "Your plan allows 250 network devices.",
+          count: 1,
+          names: ["BRS-MR36-05"],
         },
       ],
     });

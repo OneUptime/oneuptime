@@ -136,7 +136,7 @@ Os source maps são mantidos por 90 dias após o envio e depois excluídos autom
 ## Segurança
 
 - Os maps são enviados por um endpoint autenticado e armazenados no seu projeto do OneUptime: nunca são buscados no seu site, então os source maps ocultos continuam ocultos.
-- O conteúdo bruto de um map (que inclui seu código-fonte original quando gerado com `sourcesContent`) só pode ser lido de volta por Proprietários do projeto e Administradores do projeto e por quem tiver a permissão **Read Telemetry Source Map**. Os demais membros da equipe veem apenas os frames resolvidos e as poucas linhas de código ao redor de cada ponto de falha das exceções a que já têm acesso.
+- O conteúdo bruto de um map (que inclui seu código-fonte original quando gerado com `sourcesContent`) só pode ser lido de volta por Proprietários do projeto e Administradores do projeto, por quem tiver Serviços no [nível Administrador](/docs/permissions/index#níveis-de-produto) (`ServiceAdmin`) e por quem tiver a permissão **Read Telemetry Source Map**. Os demais membros da equipe veem apenas os frames resolvidos e as poucas linhas de código ao redor de cada ponto de falha das exceções a que já têm acesso.
 - Excluir um serviço exclui os source maps dele.
 
 ## Solução de problemas

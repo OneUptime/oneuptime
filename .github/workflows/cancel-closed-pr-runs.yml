@@ -58,6 +58,7 @@ jobs:
           - Common Test
           - Compile
           - Crossplane Provider
+          - Data Security AI Eval
           - Dependency Audit
           - Enterprise Edition Test
           - GitOps Revert Suite

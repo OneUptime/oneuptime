@@ -4,6 +4,10 @@ import {
   ARCHIVED_FACET_SELECT,
   getArchivableValueFacetOptions,
 } from "../ArchivableValue/ArchivedValueFacetOptions";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -86,6 +90,8 @@ const toOwnerChipCandidate: (
     id: option.id,
     name: option.name,
     hasProfilePicture: option.hasProfilePicture,
+    // A team that shares its name is told apart in the chip too (#10064).
+    sharedName: option.sharedName,
   };
 };
 
@@ -1208,6 +1214,7 @@ const useResourceOwners: <TResource extends BaseModel>(
           name: true,
           color: true,
           ...ARCHIVED_FACET_SELECT,
+          ...getSharedNameSelect(Label),
         },
         sort: { name: SortOrder.Ascending },
       });
@@ -1222,6 +1229,8 @@ const useResourceOwners: <TResource extends BaseModel>(
             value: l._id as string,
             label: l.name?.toString() || "",
             color: l.color?.toString() || "#9ca3af",
+            // Labels that share a name are told apart (#10064).
+            sharedName: getSharedNameFacts(l),
           };
         },
       });
@@ -1250,7 +1259,12 @@ const useResourceOwners: <TResource extends BaseModel>(
           } as Query<Label>,
           limit: ids.length,
           skip: 0,
-          select: { _id: true, name: true, color: true },
+          select: {
+            _id: true,
+            name: true,
+            color: true,
+            ...getSharedNameSelect(Label),
+          },
           sort: {},
         });
         return result.data.map((l: Label) => {
@@ -1259,6 +1273,7 @@ const useResourceOwners: <TResource extends BaseModel>(
             value: l._id as string,
             label: label,
             color: l.color?.toString() || "#9ca3af",
+            sharedName: getSharedNameFacts(l),
           };
         });
       } catch {

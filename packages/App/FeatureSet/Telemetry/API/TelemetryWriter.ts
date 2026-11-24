@@ -4,6 +4,8 @@ import Express, {
   ExpressRouter,
 } from "Common/Server/Utils/Express";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { REPORT_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import TelemetryFanInWriter, {
   FanInInsertTarget,
   FanInSubmitResult,
@@ -46,9 +48,16 @@ const inflightGate: InflightGate = new InflightGate(
 const resolveTarget: TableTargetResolver =
   createTableTargetResolver(AnalyticsServices);
 
+/*
+ * A forwarding pod's rows are up to 30 MB of JSON a request, millions of
+ * values (RequestBodyLimit). StartServer leaves the body unread, and it is
+ * read and parsed here only once the cluster key - a header - is checked
+ * (#10222): a request without the key is refused with its body unread.
+ */
 router.post(
   "/telemetry-writer/insert",
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
+  RequestBodyAfterAuthentication.readJson(REPORT_REQUEST_BODY_LIMIT),
   async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
     /*
      * Load-shed before touching the fan-in writer: parked submissions hold

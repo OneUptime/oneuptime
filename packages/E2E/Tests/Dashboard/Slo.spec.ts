@@ -102,7 +102,7 @@ const sideMenuSectionToggle: SectionLocatorFunction = (
   title: string,
 ): Locator => {
   return page
-    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("navigation", { name: "Pages in this section" })
     .locator(`xpath=.//h6[normalize-space(.)='${title}']/ancestor::button[1]`);
 };
 
@@ -320,7 +320,7 @@ test.describe("SLOs", () => {
      * Advanced section, folded away until that is opened.
      */
     const archivedLink: Locator = page
-      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("navigation", { name: "Pages in this section" })
       .getByRole("link", { name: "Archived", exact: true });
     const advancedToggle: Locator = sideMenuAdvancedToggle(page);
 
@@ -613,7 +613,7 @@ test.describe("SLOs", () => {
     ).toBeVisible({ timeout: 30000 });
 
     const sideMenu: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
 
     /*
@@ -808,7 +808,7 @@ test.describe("SLOs", () => {
      * overview.
      */
     const sideMenu: Locator = page.getByRole("navigation", {
-      name: "Main navigation",
+      name: "Pages in this section",
     });
     for (const section of SLO_VIEW_FOLDED_SECTIONS) {
       await openSideMenuSection(page, section);
@@ -1383,7 +1383,7 @@ test.describe("SLOs", () => {
      */
     await openSideMenuAdvanced(page);
     await page
-      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("navigation", { name: "Pages in this section" })
       .getByRole("link", { name: "Archived", exact: true })
       .click();
     await page.waitForURL(

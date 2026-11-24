@@ -102,7 +102,11 @@ const PROJECT_FORM: SmtpForm = {
   host: "ModelTable",
   calls: [
     "const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> = getProjectSmtpConfigFormSteps();",
-    "const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> = getProjectSmtpConfigFormFields();",
+    /*
+     * The panel of what to make an Amazon SES role with goes under its Role
+     * ARN (#7378), handed to the builder: the page writes no field itself.
+     */
+    "const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> = getProjectSmtpConfigFormFields({ getAmazonSesRoleSetup: (): ReactElement => { return <AmazonSesRoleSetupPanel />; }, });",
     "formSteps={SMTP_CONFIG_FORM_STEPS}",
     "formFields={SMTP_CONFIG_FORM_FIELDS}",
     "createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}",
@@ -136,9 +140,15 @@ const PROJECT_FORM: SmtpForm = {
     {
       id: "amazon-ses",
       title: "Amazon SES",
+      /*
+       * How it signs in, then its access key or its IAM role (#7378), then
+       * the Region: never more than four rows at once.
+       */
       open: [
+        "amazonSesAuthenticationType",
         "amazonSesAccessKeyId",
         "amazonSesSecretAccessKey",
+        "amazonSesRoleArn",
         "amazonSesRegion",
       ],
       folded: [],
@@ -236,8 +246,10 @@ const PROJECT_SMTP_COLUMNS: Array<string> = [
   "clientSecret",
   "tokenUrl",
   "scope",
+  "amazonSesAuthenticationType",
   "amazonSesAccessKeyId",
   "amazonSesSecretAccessKey",
+  "amazonSesRoleArn",
   "amazonSesRegion",
   "sendgridApiKey",
   "mailgunApiKey",

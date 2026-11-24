@@ -14,6 +14,7 @@ import {
   XAxisAggregateType,
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import YAxis, {
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import {
@@ -328,10 +329,11 @@ const CephRateChart: FunctionComponent<ComponentProps> = (
       min: 0,
       max: "auto",
       precision: YAxisPrecision.NoDecimals,
-      formatter: (value: number): string => {
+      formatter: (value: number, precision?: ValueAxisPrecision): string => {
         if (props.yAxisUnit) {
           return ValueFormatter.formatValue(value, props.yAxisUnit, {
             language: getDateDisplayLanguage(),
+            step: precision?.step,
           });
         }
         return `${formatReaderFigure(Math.round(value), { decimals: 0 })}\u00A0ops/s`;

@@ -124,12 +124,14 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 /*
  * Reads the page makes that these tests leave unanswered: refused at
  * once, as the network refused them, and taken as reads it could not
- * make (Tests/Helpers/RealNetworkRequests.ts).
+ * make (Tests/Helpers/RealNetworkRequests.ts). Which labels share a name
+ * (#9856) is one: unanswered, the list marks none.
  */
 refuseRequestsTo([
   "/incident-severity/count",
   "/incident-state/count",
   "/label/count",
+  "/shared-names/label",
 ]);
 
 interface Row {

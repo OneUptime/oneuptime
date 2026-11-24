@@ -114,7 +114,7 @@ export enum MonitorRecommendationResourceType {
    * Esper tenant, #9835). Its recommendations are Metrics monitors over the
    * check-in readings each read of it writes for its devices
    * (ManagedDeviceAlertTemplates), one monitor per connection alerting once
-   * per device; the set is a constant while Esper is the only service.
+   * per device, by its service; see MonitorRecommendationContext.
    */
   DeviceManagementConnection = "DeviceManagementConnection",
 }
@@ -140,6 +140,22 @@ export enum MonitorRecommendationResourceType {
  * database, and no budget alerts for a RUM application — rather than a guess.
  */
 export interface MonitorRecommendationContext {
+  /*
+   * A device management connection's service (its `provider`: "esper"...),
+   * which picks its templates (getManagedDeviceAlertTemplatesFor): each
+   * service's devices check in on a schedule of their own, so each is told
+   * of after a silence of its own (#9837). `null` / `undefined` is Esper,
+   * as every connection was before.
+   */
+  deviceManagementProvider?: string | null | undefined;
+  /*
+   * How often the connection is read, in minutes (its config's
+   * readIntervalInMinutes): Connection Stopped Reading waits three of them
+   * (#10006). `null` / `undefined` is the default interval. A monitor made
+   * before the interval changed keeps the wait it was made with, and is
+   * still the recommendation (getEquivalentMonitorSteps).
+   */
+  deviceManagementReadIntervalInMinutes?: number | null | undefined;
   /*
    * The services a cloud has reported, by what Keystone's catalog calls them. A template about a
    * service a cloud may not run is offered only to a cloud reporting it. Not known is the same as
@@ -237,6 +253,18 @@ export interface MonitorRecommendationContext {
    */
   kubernetesProvider?: string | null | undefined;
   /*
+   * Whether some node of a Kubernetes cluster keeps its container images on
+   * a disk of its own, as ingest stores it on the node's row (a reading of
+   * its image filesystem, latestImageFsCapacityBytes, only when one scrape
+   * shows it is not the root filesystem). Only then is Node Image Disk Almost
+   * Full recommended (#10056): on a node that keeps its images on its root
+   * filesystem, as most nodes do, it reads that root filesystem, which High
+   * Node Disk Usage already watches, so a cluster of such nodes would get two
+   * alerts for one full disk. Anything but true leaves it out of the
+   * recommendations; the template picker offers it to every cluster.
+   */
+  kubernetesHasSeparateImageDisk?: boolean | null | undefined;
+  /*
    * A host's OS type as the Host keeps it (HostOperatingSystem): `android`
    * for a device the Android agent reports. An Android device is offered
    * the templates only a device has (unplugged, low battery, overheating,
@@ -311,6 +339,14 @@ export interface MonitorRecommendationContext {
    * resourceName).
    */
   cloudResourceName?: string | null | undefined;
+  /*
+   * How often its connection reads it, and the metrics of it its account's
+   * stream writes instead (CloudAlertTemplates.getCloudAlertStreamedMetrics):
+   * each monitor's window follows them (getCloudAlertWindow, #10028). Not
+   * known: the windows its cloud's default interval reads.
+   */
+  cloudReadIntervalInMinutes?: number | null | undefined;
+  cloudStreamedMetrics?: Array<string> | null | undefined;
   /*
    * An App Platforms app's telemetry filter: its environment's
    * resource.cloud.* attributes and its own resource.* attributes, as its
@@ -417,6 +453,16 @@ export interface MonitorRecommendation {
   category: string;
   severity: MonitorRecommendationSeverity;
   getMonitorStep: (args: MonitorRecommendationArgs) => MonitorStep;
+  /*
+   * The other steps a monitor made from it may have and still be it, which
+   * count as created as its own step does: a cloud template's at each
+   * window its connection's read interval may have given it, for a monitor
+   * made before the interval changed (CloudAlertTemplates, #10028). Absent:
+   * its own step alone.
+   */
+  getEquivalentMonitorSteps?:
+    | ((args: MonitorRecommendationArgs) => Array<MonitorStep>)
+    | undefined;
   /*
    * How often the created monitor is evaluated, as a 5-field cron
    * (Monitor.monitoringInterval), when the template says: a cloud resource's

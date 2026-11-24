@@ -30,13 +30,14 @@ import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillin
  * /identity/... to them. Changing one silently breaks sign-in for every
  * customer that uses it, with nothing on our side to notice.
  *
- * PINNED_ROUTES is the full (method, path) list of the seven SSO routers: the
+ * PINNED_ROUTES is the full (method, path) list of the eleven SSO routers: the
  * six that were registered in packages/App/FeatureSet/Identity/API/*.ts at
  * commit 2eeec4a847, read from the live routers' stacks (not from the source
  * text) before they moved to ee/ and back, plus the confirmation page added
- * while they were in ee/, and the SAML Single Logout URLs and the signing
+ * while they were in ee/, the SAML Single Logout URLs and the signing
  * certificate a project's and the instance's SAML providers give identity
- * providers since #9603. The order is the registration order, which is also
+ * providers since #9603, and a dashboard's SAML and OIDC sign-in for the
+ * people who sign in to its public link (#10250). The order is the registration order, which is also
  * Express's match order. Changing this list is changing a public contract: it
  * needs a migration plan for every configured identity provider, not just an
  * updated test. (The SCIM routes are the Enterprise Edition's and are pinned
@@ -78,9 +79,55 @@ jest.mock("../../../FeatureSet/Identity/API/GoogleSignIn", () => {
 jest.mock("../../../FeatureSet/Identity/API/SignInMethods", () => {
   return { __esModule: true, default: { coreRouter: "sign-in-methods" } };
 });
+// "Sign in with SSO"'s Email Me My Sign-in Links (#9987).
+jest.mock("../../../FeatureSet/Identity/API/SsoSignInLinks", () => {
+  return { __esModule: true, default: { coreRouter: "sso-sign-in-links" } };
+});
+// Where the mobile app redeems an SSO sign-in's one-time code (#9989).
+jest.mock("../../../FeatureSet/Identity/API/MobileSsoExchange", () => {
+  return { __esModule: true, default: { coreRouter: "mobile-sso-exchange" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
+// A form's sign-in on its public link (#10249), mounted after the dashboard's.
+jest.mock(
+  "../../../FeatureSet/Identity/API/FormPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "form-private-user" },
+    };
+  },
+);
+// A dashboard's sign-in on its public link (#10250), mounted after the rest.
+jest.mock(
+  "../../../FeatureSet/Identity/API/DashboardPrivateUserAuthentication",
+  () => {
+    return {
+      __esModule: true,
+      default: { coreRouter: "dashboard-private-user" },
+    };
+  },
+);
+
+/*
+ * The core identity routers Identity/Index.ts mounts ahead of the SSO
+ * routers, at the same two prefixes, in mount order. Express asks them
+ * first, so a route of theirs that matched an SSO path would answer it in
+ * the SSO router's place. Each is a marker above; the real router is read
+ * where a test needs its routes.
+ */
+const ROUTERS_MOUNTED_BEFORE_SSO: Array<{ marker: string; module: string }> = [
+  { marker: "authentication", module: "API/Authentication" },
+  { marker: "first-account", module: "API/FirstAccount" },
+  { marker: "reseller", module: "API/Reseller" },
+  { marker: "microsoft-sign-in", module: "API/MicrosoftSignIn" },
+  { marker: "google-sign-in", module: "API/GoogleSignIn" },
+  { marker: "sign-in-methods", module: "API/SignInMethods" },
+  { marker: "sso-sign-in-links", module: "API/SsoSignInLinks" },
+  { marker: "mobile-sso-exchange", module: "API/MobileSsoExchange" },
+];
 
 type PinnedRoute = [method: string, path: string];
 
@@ -141,6 +188,36 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
       ["GET", "/status-page-oidc-callback/:statusPageId/:statusPageOidcId"],
     ],
   },
+  // A dashboard's public link, for the people who sign in to it (#10250).
+  {
+    name: "DashboardSSO",
+    routes: [
+      ["GET", "/dashboard-sso/:dashboardId/:dashboardSsoId"],
+      ["POST", "/dashboard-idp-login/:dashboardId/:dashboardSsoId"],
+    ],
+  },
+  {
+    name: "DashboardOIDC",
+    routes: [
+      ["GET", "/dashboard-oidc/:dashboardId/:dashboardOidcId"],
+      ["GET", "/dashboard-oidc-callback/:dashboardId/:dashboardOidcId"],
+    ],
+  },
+  // A form's public link, for the people who sign in to it (#10249).
+  {
+    name: "FormSSO",
+    routes: [
+      ["GET", "/form-sso/:formId/:formSsoId"],
+      ["POST", "/form-idp-login/:formId/:formSsoId"],
+    ],
+  },
+  {
+    name: "FormOIDC",
+    routes: [
+      ["GET", "/form-oidc/:formId/:formOidcId"],
+      ["GET", "/form-oidc-callback/:formId/:formOidcId"],
+    ],
+  },
   /*
    * Added while the routers were in ee/, so not from the commit above. Nobody
    * pastes this one into an identity provider, but it is written into
@@ -171,7 +248,47 @@ interface RouteLayer {
         stack: Array<{ handle: unknown }>;
       }
     | undefined;
+  regexp?: (RegExp & { fast_slash?: boolean; fast_star?: boolean }) | undefined;
 }
+
+// Whether Express would hand `requestPath` to this route layer for `method`.
+const answers: (
+  layer: RouteLayer,
+  method: string,
+  requestPath: string,
+) => boolean = (
+  layer: RouteLayer,
+  method: string,
+  requestPath: string,
+): boolean => {
+  if (!layer.route || !layer.regexp) {
+    return false;
+  }
+
+  const methods: Record<string, boolean> = layer.route.methods;
+
+  if (!methods[method.toLowerCase()] && !methods["_all"]) {
+    return false;
+  }
+
+  return Boolean(
+    layer.regexp.fast_slash ||
+      layer.regexp.fast_star ||
+      layer.regexp.test(requestPath),
+  );
+};
+
+// A request path a pinned route serves: each parameter given an id.
+const samplePathOf: (route: string) => string = (route: string): string => {
+  return route
+    .split("/")
+    .map((segment: string): string => {
+      return segment.startsWith(":")
+        ? "11111111-1111-4111-8111-111111111111"
+        : segment;
+    })
+    .join("/");
+};
 
 const getLayers: (router: ExpressRouter) => Array<RouteLayer> = (
   router: ExpressRouter,
@@ -285,7 +402,7 @@ const readAppFile: (...parts: Array<string>) => string = (
 };
 
 describe("core SSO routers", () => {
-  test("are the seven SSO routers, in mount order", () => {
+  test("are the eleven SSO routers, in mount order", () => {
     expect(
       SSO_ROUTERS.map((entry: SsoRouterEntry): string => {
         return entry.name;
@@ -304,7 +421,7 @@ describe("core SSO routers", () => {
     },
   );
 
-  test("together serve all 25 SSO routes, in mount order", () => {
+  test("together serve all 33 SSO routes, in mount order", () => {
     const served: Array<PinnedRoute> = SSO_ROUTERS.flatMap(
       (entry: SsoRouterEntry): Array<PinnedRoute> => {
         return getRoutes(entry.router);
@@ -312,7 +429,7 @@ describe("core SSO routers", () => {
     );
 
     expect(served).toEqual(ALL_PINNED);
-    expect(served).toHaveLength(25);
+    expect(served).toHaveLength(33);
   });
 
   test("each is a distinct router, and no (method, path) is served twice", () => {
@@ -322,7 +439,7 @@ describe("core SSO routers", () => {
           return entry.router;
         }),
       ).size,
-    ).toBe(7);
+    ).toBe(11);
     expect(
       new Set(
         ALL_PINNED.map((route: PinnedRoute): string => {
@@ -389,6 +506,69 @@ describe("core SSO routers", () => {
       expect(route[1].startsWith("/status-page-scim/")).toBe(false);
     }
   });
+
+  test.each(ROUTERS_MOUNTED_BEFORE_SSO)(
+    "$module, mounted ahead of them, answers no SSO path in their place",
+    (before: { marker: string; module: string }) => {
+      const router: ExpressRouter = (
+        jest.requireActual(`../../../FeatureSet/Identity/${before.module}`) as {
+          default: ExpressRouter;
+        }
+      ).default;
+      const layers: Array<RouteLayer> = getLayers(router);
+
+      // The real router, with routes of its own to hold to this.
+      expect(
+        layers.some((layer: RouteLayer): boolean => {
+          return Boolean(layer.route);
+        }),
+      ).toBe(true);
+
+      for (const [method, routePath] of ALL_PINNED) {
+        const answeredBy: Array<string> = layers
+          .filter((layer: RouteLayer): boolean => {
+            return answers(layer, method, samplePathOf(routePath));
+          })
+          .map((layer: RouteLayer): string => {
+            return layer.route!.path;
+          });
+
+        expect({ sso: `${method} ${routePath}`, answeredBy }).toEqual({
+          sso: `${method} ${routePath}`,
+          answeredBy: [],
+        });
+      }
+    },
+  );
+
+  test("the check above sees a route that would answer an SSO path", () => {
+    const shadowing: { stack: Array<RouteLayer> } =
+      Express.getRouter() as unknown as { stack: Array<RouteLayer> };
+
+    (shadowing as unknown as ExpressRouter).get(
+      "/sso/:anything/:else",
+      (): void => {},
+    );
+    (shadowing as unknown as ExpressRouter).post(
+      "/mobile-sso-exchange",
+      (): void => {},
+    );
+
+    expect(
+      answers(
+        shadowing.stack[0]!,
+        "GET",
+        samplePathOf("/sso/:projectId/:projectSsoId"),
+      ),
+    ).toBe(true);
+    expect(
+      answers(
+        shadowing.stack[1]!,
+        "GET",
+        samplePathOf("/sso/:projectId/:projectSsoId"),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("the URLs the product hands out are all served", () => {
@@ -401,6 +581,10 @@ describe("the URLs the product hands out are all served", () => {
     "global-oidc-callback",
     "status-page-idp-login",
     "status-page-oidc-callback",
+    "dashboard-idp-login",
+    "dashboard-oidc-callback",
+    "form-idp-login",
+    "form-oidc-callback",
     "global-sso",
     "global-oidc",
   ];
@@ -453,6 +637,24 @@ describe("the URLs the product hands out are all served", () => {
         "OIDC.tsx",
       ],
       prints: [{ head: "status-page-oidc-callback", parameters: 2 }],
+    },
+    {
+      // A dashboard's Single Sign-On page, SAML and OIDC (#10250).
+      file: [
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Components",
+        "PrivateAccess",
+        "PrivateAccessKinds.ts",
+      ],
+      prints: [
+        { head: "dashboard-idp-login", parameters: 2 },
+        { head: "dashboard-oidc-callback", parameters: 2 },
+        // A form's, from the same file (#10249).
+        { head: "form-idp-login", parameters: 2 },
+        { head: "form-oidc-callback", parameters: 2 },
+      ],
     },
     {
       file: [
@@ -542,6 +744,18 @@ describe("the URLs the product hands out are all served", () => {
         statusPageSsoId: "22222222-2222-4222-8222-222222222222",
       }).replyUrl;
     },
+    "DashboardSSO.ts": (): string => {
+      return SamlServiceProviders.forDashboardSso({
+        dashboardId: "11111111-1111-4111-8111-111111111111",
+        dashboardSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+    "FormSSO.ts": (): string => {
+      return SamlServiceProviders.forFormSso({
+        formId: "11111111-1111-4111-8111-111111111111",
+        formSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
   };
 
   // The shape of the path of a built URL after its /identity/.
@@ -585,6 +799,14 @@ describe("the URLs the product hands out are all served", () => {
       { head: "status-page-oidc-callback", parameters: 2 },
       "GET",
     ],
+    ["DashboardSSO.ts", { head: "dashboard-idp-login", parameters: 2 }, "POST"],
+    [
+      "DashboardOIDC.ts",
+      { head: "dashboard-oidc-callback", parameters: 2 },
+      "GET",
+    ],
+    ["FormSSO.ts", { head: "form-idp-login", parameters: 2 }, "POST"],
+    ["FormOIDC.ts", { head: "form-oidc-callback", parameters: 2 }, "GET"],
   ] as Array<[string, PathShape, string]>)(
     "%s sends identity providers back to a route it serves",
     (file: string, callback: PathShape, method: string) => {
@@ -654,6 +876,15 @@ describe("the URLs the product hands out are all served", () => {
       SamlServiceProviders.forStatusPageSso({
         statusPageId: "11111111-1111-4111-8111-111111111111",
         statusPageSsoId: "22222222-2222-4222-8222-222222222222",
+      }).singleLogoutUrl,
+    ).toBeUndefined();
+  });
+
+  test("nor has a dashboard's: it signs visitors in to the dashboard, not to OneUptime", () => {
+    expect(
+      SamlServiceProviders.forDashboardSso({
+        dashboardId: "11111111-1111-4111-8111-111111111111",
+        dashboardSsoId: "22222222-2222-4222-8222-222222222222",
       }).singleLogoutUrl,
     ).toBeUndefined();
   });
@@ -733,6 +964,46 @@ describe("the Identity feature set mounts the SSO routers", () => {
     });
   };
 
+  const MOUNTS_BEFORE_SSO: Array<MountRecord> = [
+    { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
+    { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
+    { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "microsoft-sign-in" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "google-sign-in" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "sign-in-methods" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "sso-sign-in-links" },
+    },
+    {
+      paths: IDENTITY_PREFIXES,
+      router: { coreRouter: "mobile-sso-exchange" },
+    },
+  ];
+
+  test("the routers mounted ahead of the SSO routers are the ones checked to answer no SSO path", () => {
+    expect(
+      MOUNTS_BEFORE_SSO.map((record: MountRecord): unknown => {
+        return record.router;
+      }),
+    ).toEqual(
+      ROUTERS_MOUNTED_BEFORE_SSO.map(
+        (before: { marker: string }): { coreRouter: string } => {
+          return { coreRouter: before.marker };
+        },
+      ),
+    );
+  });
+
   test.each(
     createEditionStateCases().map(
       (state: EditionStateCase): [string, EditionStateCase] => {
@@ -740,7 +1011,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       },
     ),
   )(
-    "at /api/identity and /, after authentication, the first-account check, reseller, Sign in with Microsoft, Continue with Google and the sign-in methods, before ee's routers and status page authentication (%s)",
+    "at /api/identity and /, after authentication, the first-account check, reseller, Sign in with Microsoft, Continue with Google, the sign-in methods, the sign-in links email and the mobile app's code exchange, before ee's routers and status page authentication (%s)",
     async (_label: string, state: EditionStateCase) => {
       const fake: FakeEnterpriseModule | null = state.apply();
 
@@ -751,21 +1022,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       await IdentityFeatureSet.init();
 
       expect(mounted).toEqual([
-        { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
-        { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
-        { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "microsoft-sign-in" },
-        },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "google-sign-in" },
-        },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "sign-in-methods" },
-        },
+        ...MOUNTS_BEFORE_SSO,
         ...SSO_MOUNTS(),
         ...(state.isLoaded
           ? [{ paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER }]
@@ -774,11 +1031,23 @@ describe("the Identity feature set mounts the SSO routers", () => {
           paths: ["/api/identity/status-page", "/status-page"],
           router: { coreRouter: "status-page" },
         },
+        // Only under the public dashboard's API path: nothing at the root.
+        {
+          paths: "/api/dashboard/private-user",
+          router: { coreRouter: "dashboard-private-user" },
+        },
+        // And the form's, under its own API path (#10249).
+        {
+          paths: "/api/form/private-user",
+          router: { coreRouter: "form-private-user" },
+        },
       ]);
 
       // The very same router instances, not copies.
       SSO_ROUTERS.forEach((entry: SsoRouterEntry, index: number): void => {
-        expect(mounted[6 + index]!.router).toBe(entry.router);
+        expect(mounted[MOUNTS_BEFORE_SSO.length + index]!.router).toBe(
+          entry.router,
+        );
       });
     },
   );
@@ -797,10 +1066,14 @@ describe("the Identity feature set mounts the SSO routers", () => {
       { coreRouter: "microsoft-sign-in" },
       { coreRouter: "google-sign-in" },
       { coreRouter: "sign-in-methods" },
+      { coreRouter: "sso-sign-in-links" },
+      { coreRouter: "mobile-sso-exchange" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
       { coreRouter: "status-page" },
+      { coreRouter: "dashboard-private-user" },
+      { coreRouter: "form-private-user" },
     ]);
   });
 
@@ -825,27 +1098,21 @@ describe("the Identity feature set mounts the SSO routers", () => {
     await IdentityFeatureSet.init();
 
     expect(mounted).toEqual([
-      { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
-      { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
-      { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
-      {
-        paths: IDENTITY_PREFIXES,
-        router: { coreRouter: "microsoft-sign-in" },
-      },
-      {
-        paths: IDENTITY_PREFIXES,
-        router: { coreRouter: "google-sign-in" },
-      },
-      {
-        paths: IDENTITY_PREFIXES,
-        router: { coreRouter: "sign-in-methods" },
-      },
+      ...MOUNTS_BEFORE_SSO,
       ...SSO_MOUNTS(),
       { paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER },
       { paths: IDENTITY_PREFIXES, router: EE_VERCEL_SIGN_IN_ROUTER },
       {
         paths: ["/api/identity/status-page", "/status-page"],
         router: { coreRouter: "status-page" },
+      },
+      {
+        paths: "/api/dashboard/private-user",
+        router: { coreRouter: "dashboard-private-user" },
+      },
+      {
+        paths: "/api/form/private-user",
+        router: { coreRouter: "form-private-user" },
       },
     ]);
   });

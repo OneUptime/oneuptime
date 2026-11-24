@@ -3093,9 +3093,13 @@ microsoftTeamsMeetingsApp:
   #   tenantIdKey: tenantId
 
 # Cloud > Connect: this OneUptime's own AWS identity, which signs in to the
-# read-only IAM roles customers create for it - an IAM user's access key,
-# allowed to call sts:AssumeRole and nothing else. With it, an AWS account is
-# connected with a role (nothing secret is stored); without it, with a
+# read-only IAM roles customers create for it. Optional: on Amazon EKS an IAM
+# role on OneUptime's pods is enough - give the service account one with
+# serviceAccount.annotations (IAM roles for service accounts) or an EKS Pod
+# Identity association, and allow it sts:AssumeRole. Set an IAM user's access
+# key here, allowed to call sts:AssumeRole and nothing else, to sign in as
+# that user instead: when set, it wins. With an identity, an AWS account is
+# connected with a role (nothing secret is stored); without one, with a
 # read-only access key. Azure and Google Cloud need nothing here.
 # See https://oneuptime.com/docs/telemetry/cloud-accounts#amazon-web-services
 cloudConnect:

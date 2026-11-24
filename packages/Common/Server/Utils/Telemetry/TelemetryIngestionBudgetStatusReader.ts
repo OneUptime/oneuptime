@@ -9,6 +9,8 @@ import TelemetryIngestionBudgetSettings, {
   TelemetryIngestionBudgetInstanceSettings,
 } from "./TelemetryIngestionBudgetSettings";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionTeamLabelBudget from "../../../Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
+import TelemetryIngestionTeamLabelBudgetService from "../../Services/TelemetryIngestionTeamLabelBudgetService";
 import ObjectID from "../../../Types/ObjectID";
 import {
   computeTelemetryIngestionBudgetPercentUsed,
@@ -18,8 +20,11 @@ import {
   hasAnyTelemetryIngestionBudgetSetting,
   readTelemetryIngestionBudgetStoredSettings,
   resolveTelemetryIngestionBudget,
+  resolveTelemetryIngestionTeamLabelBudget,
   TELEMETRY_INGESTION_BUDGET_COLUMN_NAMES,
+  TELEMETRY_INGESTION_BUDGET_COLUMNS,
   TELEMETRY_INGESTION_BUDGET_SIGNALS,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
   TelemetryIngestionBudgetDay,
   TelemetryIngestionBudgetResolved,
   TelemetryIngestionBudgetResolvedScope,
@@ -58,6 +63,71 @@ interface BudgetedKey {
   id: string;
   name: string;
   budgets: TelemetryIngestionBudgetStoredSettings;
+}
+
+// A team's or a label's budget (#6386), as the status names it.
+interface BudgetedTeamOrLabel {
+  scope: TelemetryIngestionBudgetScope;
+  // The team's id, or the label's.
+  id: string;
+  name: string;
+  color: string | null;
+  budgets: TelemetryIngestionBudgetStoredSettings;
+}
+
+const SELECT_TEAM_LABEL_BUDGETS: Record<string, unknown> = Object.fromEntries([
+  ["_id", true],
+  ["teamId", true],
+  ["labelId", true],
+  ["team", { name: true }],
+  ["label", { name: true, color: true }],
+  ...TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.map(
+    (signal: TelemetryIngestionBudgetSignal): [string, boolean] => {
+      return [TELEMETRY_INGESTION_BUDGET_COLUMNS[signal].dailyBudgetInGB, true];
+    },
+  ),
+]);
+
+/*
+ * The limits a team's or a label's signal resolves to: its own daily
+ * budget, held to the project's, and no rate (they have none).
+ */
+const getTeamLabelLimits: (data: {
+  signal: TelemetryIngestionBudgetSignal;
+  instance: TelemetryIngestionBudgetInstanceSettings;
+  project: TelemetryIngestionBudgetStoredSettings | null;
+  owner: BudgetedTeamOrLabel;
+}) => TelemetryIngestionBudgetResolvedScope = (data: {
+  signal: TelemetryIngestionBudgetSignal;
+  instance: TelemetryIngestionBudgetInstanceSettings;
+  project: TelemetryIngestionBudgetStoredSettings | null;
+  owner: BudgetedTeamOrLabel;
+}): TelemetryIngestionBudgetResolvedScope => {
+  const resolved: TelemetryIngestionBudgetResolved =
+    resolveTelemetryIngestionBudget({
+      signal: data.signal,
+      instance: data.instance.budgets,
+      project: data.project,
+      ingestionKey: null,
+    });
+
+  return {
+    dailyBudget: resolveTelemetryIngestionTeamLabelBudget({
+      scope: data.owner.scope,
+      ownDailyBudgetInGB: data.owner.budgets[data.signal].dailyBudgetInGB,
+      projectDailyBudget: resolved.project.dailyBudget,
+    }),
+    rateLimit: { bytes: null, source: null },
+  };
+};
+
+// A scope of the status, and the signals it is shown with.
+interface StatusScope {
+  scope: TelemetryIngestionBudgetScope;
+  scopeId: string;
+  key: BudgetedKey | null;
+  owner: BudgetedTeamOrLabel | null;
+  signals: ReadonlyArray<TelemetryIngestionBudgetSignal>;
 }
 
 // One signal's status in one scope, from its limits and its counters. Pure.
@@ -150,6 +220,8 @@ export default class TelemetryIngestionBudgetStatusReader {
     const keys: Array<BudgetedKey> = await this.readBudgetedKeys(
       data.projectId,
     );
+    const owners: Array<BudgetedTeamOrLabel> =
+      await this.readBudgetedTeamsAndLabels(data.projectId);
 
     const day: TelemetryIngestionBudgetDay = getTelemetryIngestionBudgetDay({
       now: now,
@@ -157,38 +229,42 @@ export default class TelemetryIngestionBudgetStatusReader {
       timezone: instance.timezone,
     });
 
-    // Every scope's counters, project first, then each key, five signals each.
-    const scopes: Array<{
-      scope: TelemetryIngestionBudgetScope;
-      scopeId: string;
-      key: BudgetedKey | null;
-    }> = [
+    /*
+     * Every scope's counters, project first, then each key, five signals
+     * each, then each team and label, with the four signals they budget.
+     */
+    const scopes: Array<StatusScope> = [
       {
         scope: TelemetryIngestionBudgetScope.Project,
         scopeId: data.projectId.toString(),
         key: null,
+        owner: null,
+        signals: TELEMETRY_INGESTION_BUDGET_SIGNALS,
       },
-      ...keys.map(
-        (
-          key: BudgetedKey,
-        ): {
-          scope: TelemetryIngestionBudgetScope;
-          scopeId: string;
-          key: BudgetedKey | null;
-        } => {
-          return {
-            scope: TelemetryIngestionBudgetScope.IngestionKey,
-            scopeId: key.id,
-            key: key,
-          };
-        },
-      ),
+      ...keys.map((key: BudgetedKey): StatusScope => {
+        return {
+          scope: TelemetryIngestionBudgetScope.IngestionKey,
+          scopeId: key.id,
+          key: key,
+          owner: null,
+          signals: TELEMETRY_INGESTION_BUDGET_SIGNALS,
+        };
+      }),
+      ...owners.map((owner: BudgetedTeamOrLabel): StatusScope => {
+        return {
+          scope: owner.scope,
+          scopeId: owner.id,
+          key: null,
+          owner: owner,
+          signals: TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
+        };
+      }),
     ];
 
     const dayKeys: Array<TelemetryIngestionBudgetDayKeyParts> = [];
 
     for (const scope of scopes) {
-      for (const signal of TELEMETRY_INGESTION_BUDGET_SIGNALS) {
+      for (const signal of scope.signals) {
         dayKeys.push({
           dayId: day.id,
           scope: scope.scope,
@@ -204,13 +280,9 @@ export default class TelemetryIngestionBudgetStatusReader {
     let index: number = 0;
 
     const statuses: Array<TelemetryIngestionBudgetScopeStatus> = scopes.map(
-      (scope: {
-        scope: TelemetryIngestionBudgetScope;
-        scopeId: string;
-        key: BudgetedKey | null;
-      }): TelemetryIngestionBudgetScopeStatus => {
+      (scope: StatusScope): TelemetryIngestionBudgetScopeStatus => {
         const signals: Array<TelemetryIngestionBudgetSignalStatus> =
-          TELEMETRY_INGESTION_BUDGET_SIGNALS.map(
+          scope.signals.map(
             (
               signal: TelemetryIngestionBudgetSignal,
             ): TelemetryIngestionBudgetSignalStatus => {
@@ -220,12 +292,19 @@ export default class TelemetryIngestionBudgetStatusReader {
 
               return buildTelemetryIngestionBudgetSignalStatus({
                 signal: signal,
-                limits: getScopeLimits({
-                  signal: signal,
-                  instance: instance,
-                  project: project,
-                  key: scope.key,
-                }),
+                limits: scope.owner
+                  ? getTeamLabelLimits({
+                      signal: signal,
+                      instance: instance,
+                      project: project,
+                      owner: scope.owner,
+                    })
+                  : getScopeLimits({
+                      signal: signal,
+                      instance: instance,
+                      project: project,
+                      key: scope.key,
+                    }),
                 counters: signalCounters,
                 warningPercent: instance.warningPercent,
               });
@@ -238,6 +317,18 @@ export default class TelemetryIngestionBudgetStatusReader {
             ? {
                 ingestionKeyId: scope.key.id,
                 ingestionKeyName: scope.key.name,
+              }
+            : {}),
+          ...(scope.owner &&
+          scope.owner.scope === TelemetryIngestionBudgetScope.Team
+            ? { teamId: scope.owner.id, teamName: scope.owner.name }
+            : {}),
+          ...(scope.owner &&
+          scope.owner.scope === TelemetryIngestionBudgetScope.Label
+            ? {
+                labelId: scope.owner.id,
+                labelName: scope.owner.name,
+                ...(scope.owner.color ? { labelColor: scope.owner.color } : {}),
               }
             : {}),
           signals: signals,
@@ -253,7 +344,8 @@ export default class TelemetryIngestionBudgetStatusReader {
       warningPercent: instance.warningPercent,
       countersAvailable: counters !== null,
       project: statuses[0]!,
-      ingestionKeys: statuses.slice(1),
+      ingestionKeys: statuses.slice(1, 1 + keys.length),
+      teamsAndLabels: statuses.slice(1 + keys.length),
     };
   }
 
@@ -342,5 +434,61 @@ export default class TelemetryIngestionBudgetStatusReader {
     return keys.sort((a: BudgetedKey, b: BudgetedKey): number => {
       return a.name.localeCompare(b.name);
     });
+  }
+
+  /*
+   * The project's teams and labels with a budget of their own (#6386),
+   * teams first, each by name.
+   */
+  private static async readBudgetedTeamsAndLabels(
+    projectId: ObjectID,
+  ): Promise<Array<BudgetedTeamOrLabel>> {
+    const rows: Array<TelemetryIngestionTeamLabelBudget> =
+      await TelemetryIngestionTeamLabelBudgetService.findBy({
+        query: { projectId: projectId },
+        select: SELECT_TEAM_LABEL_BUDGETS as never,
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+
+    const owners: Array<BudgetedTeamOrLabel> = [];
+
+    for (const row of rows) {
+      const budgets: TelemetryIngestionBudgetStoredSettings =
+        readTelemetryIngestionBudgetStoredSettings(row);
+
+      if (!hasAnyTelemetryIngestionBudgetSetting(budgets)) {
+        continue;
+      }
+
+      if (row.teamId) {
+        owners.push({
+          scope: TelemetryIngestionBudgetScope.Team,
+          id: row.teamId.toString(),
+          name: typeof row.team?.name === "string" ? row.team.name : "",
+          color: null,
+          budgets: budgets,
+        });
+      } else if (row.labelId) {
+        owners.push({
+          scope: TelemetryIngestionBudgetScope.Label,
+          id: row.labelId.toString(),
+          name: typeof row.label?.name === "string" ? row.label.name : "",
+          color: row.label?.color ? row.label.color.toString() : null,
+          budgets: budgets,
+        });
+      }
+    }
+
+    return owners.sort(
+      (a: BudgetedTeamOrLabel, b: BudgetedTeamOrLabel): number => {
+        if (a.scope !== b.scope) {
+          return a.scope === TelemetryIngestionBudgetScope.Team ? -1 : 1;
+        }
+
+        return a.name.localeCompare(b.name);
+      },
+    );
   }
 }

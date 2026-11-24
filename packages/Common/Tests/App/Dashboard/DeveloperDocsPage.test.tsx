@@ -36,6 +36,7 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -624,6 +625,198 @@ describe("an incident's API page", () => {
 
     expect(tasks.textContent).toContain("/api/incident-internal-note");
     expect(tasks.textContent).not.toContain("/api/incident-state-timeline");
+  });
+});
+
+/*
+ * A CUSTOM ROLE'S DELETE IT STEP (#10031): OneUptime deletes a role that
+ * workflows run as only when the delete says what they run as instead, so
+ * the step says so and has a tab for each way, with the request body on
+ * the API page and the flags on the CLI page.
+ */
+describe("a custom role's Delete it step", () => {
+  const ROLE_ID: string = "5a0e0000-0000-4000-8000-0000000000aa";
+
+  function customRole(): CustomRole {
+    const item: CustomRole = new CustomRole();
+    item._id = ROLE_ID;
+    item.name = "Incident Automation";
+    item.description = "What the incident workflows may do.";
+    return item;
+  }
+
+  function deleteStep(): HTMLElement {
+    const step: HTMLElement | undefined = screen
+      .getAllByTestId(/^setup-guide-step-\d+$/)
+      .find((candidate: HTMLElement): boolean => {
+        return (candidate.textContent || "").includes("Delete it");
+      });
+
+    expect(step).toBeDefined();
+
+    return step!;
+  }
+
+  function tabLabels(step: HTMLElement): Array<string> {
+    return within(step)
+      .getAllByRole("tab")
+      .map((tab: HTMLElement): string => {
+        return tab.textContent || "";
+      });
+  }
+
+  async function renderRolePage(page: DeveloperDocsPageType): Promise<void> {
+    routeId = ROLE_ID;
+    getItemMock.mockResolvedValue(customRole());
+
+    renderPage({
+      modelType: CustomRole,
+      scope: DeveloperDocsScope.View,
+      page,
+    });
+
+    // The read step's command: the record is fetched and the code is drawn.
+    await screen.findAllByText(
+      page === DeveloperDocsPageType.Api
+        ? /get-item/
+        : /oneuptime custom-role get/,
+    );
+  }
+
+  test("on the API page: says when a delete needs more, and starts on the plain delete", async () => {
+    await renderRolePage(DeveloperDocsPageType.Api);
+
+    const step: HTMLElement = deleteStep();
+
+    await waitFor(() => {
+      expect(step.textContent).toContain("curl -X DELETE");
+    });
+
+    expect(step).toHaveTextContent(
+      "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of <custom-role-id>.",
+    );
+    expect(tabLabels(step)).toEqual([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    expect(
+      within(step).getByRole("tab", { name: "No workflow runs as it" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(step.textContent).toContain(
+      `curl -X DELETE https://oneuptime.acme.com/api/custom-role/${ROLE_ID}`,
+    );
+    expect(step.textContent).not.toContain("miscDataProps");
+  });
+
+  test("on the API page: each way's tab shows its request body", async () => {
+    await renderRolePage(DeveloperDocsPageType.Api);
+
+    const step: HTMLElement = deleteStep();
+
+    fireEvent.click(
+      within(step).getByRole("tab", { name: "Default permissions" }),
+    );
+
+    expect(step.textContent).toContain('"miscDataProps"');
+    expect(step.textContent).toContain('"workflowsRunAs": "Default"');
+    expect(step.textContent).not.toContain("workflowsRunAsCustomRoleId");
+
+    fireEvent.click(
+      within(step).getByRole("tab", { name: "Another custom role" }),
+    );
+
+    expect(step.textContent).toContain('"workflowsRunAs": "CustomRole"');
+    expect(step.textContent).toContain(
+      '"workflowsRunAsCustomRoleId": "<custom-role-id>"',
+    );
+  });
+
+  test("on the CLI page: the same step, with the CLI's flags for each way", async () => {
+    await renderRolePage(DeveloperDocsPageType.Cli);
+
+    const step: HTMLElement = deleteStep();
+
+    await waitFor(() => {
+      expect(step.textContent).toContain("oneuptime custom-role delete");
+    });
+    expect(tabLabels(step)).toEqual([
+      "No workflow runs as it",
+      "Default permissions",
+      "Another custom role",
+    ]);
+    expect(step.textContent).toContain(
+      `oneuptime custom-role delete ${ROLE_ID}`,
+    );
+    expect(step.textContent).not.toContain("--workflows-run-as");
+
+    fireEvent.click(
+      within(step).getByRole("tab", { name: "Default permissions" }),
+    );
+
+    expect(step.textContent).toContain("--workflows-run-as Default");
+
+    fireEvent.click(
+      within(step).getByRole("tab", { name: "Another custom role" }),
+    );
+
+    expect(step.textContent).toContain("--workflows-run-as CustomRole");
+    expect(step.textContent).toContain(
+      "--workflows-run-as-custom-role-id '<custom-role-id>'",
+    );
+    expect(step.textContent).not.toContain("curl -X");
+  });
+
+  test("its tabs are in the reader's language where it has them; the code stays as the API and the CLI take it", async () => {
+    mockTranslations = {
+      "Delete it": "Löschen",
+      "No workflow runs as it": "Kein Arbeitsablauf läuft als sie",
+      "Default permissions": "Standardberechtigungen",
+      "Another custom role": "Andere benutzerdefinierte Rolle",
+    };
+
+    await renderRolePage(DeveloperDocsPageType.Cli);
+
+    const step: HTMLElement = screen
+      .getAllByTestId(/^setup-guide-step-\d+$/)
+      .find((candidate: HTMLElement): boolean => {
+        return (candidate.textContent || "").includes("Löschen");
+      })!;
+
+    expect(tabLabels(step)).toEqual([
+      "Kein Arbeitsablauf läuft als sie",
+      "Standardberechtigungen",
+      "Andere benutzerdefinierte Rolle",
+    ]);
+
+    fireEvent.click(
+      within(step).getByRole("tab", { name: "Standardberechtigungen" }),
+    );
+
+    await waitFor(() => {
+      expect(step.textContent).toContain("--workflows-run-as Default");
+    });
+  });
+
+  test("another resource's page keeps its plain delete, with no tabs", async () => {
+    routeId = INCIDENT_ID;
+    getItemMock.mockResolvedValue(incident());
+
+    renderPage({
+      modelType: Incident,
+      scope: DeveloperDocsScope.View,
+      page: DeveloperDocsPageType.Api,
+    });
+
+    await screen.findAllByText(/get-item/);
+
+    const step: HTMLElement = deleteStep();
+
+    expect(step).toHaveTextContent("This deletes the incident for good.");
+    expect(within(step).queryAllByRole("tab")).toEqual([]);
+    expect(step.textContent).toContain(
+      `curl -X DELETE https://oneuptime.acme.com/api/incident/${INCIDENT_ID}`,
+    );
   });
 });
 

@@ -4,6 +4,7 @@ import User from "Common/Models/DatabaseModels/User";
 import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import Email from "Common/Types/Email";
+import HashedString from "Common/Types/HashedString";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -22,6 +23,9 @@ import Text from "Common/Types/Text";
  *
  * and the same for TeamMemberService, TeamService and
  * UserProjectSsoConsentService; scimWorld.reset() before each test.
+ *
+ * Every call to a fake service is kept in scimWorld.calls, by service and
+ * method, so a suite can hold two runs to the same reads and writes.
  */
 
 export interface WorldUser {
@@ -30,6 +34,13 @@ export interface WorldUser {
   // "" for an account with no name.
   name: string;
   isMasterAdmin: boolean;
+  /*
+   * Whether the account has a password: someone signed up to it, or SCIM
+   * made it with a random one. None for an account an invitation made that
+   * nobody has claimed yet - what TeamMemberService mints a registration
+   * token for (#10180).
+   */
+  hasPassword?: boolean | undefined;
 }
 
 export interface WorldMembership {
@@ -38,6 +49,13 @@ export interface WorldMembership {
   userId: string;
   teamId: string;
   hasAcceptedInvitation: boolean;
+  // The name the membership shows in place of a pending person's (TeamMember.inviteeName).
+  inviteeName: string | null;
+  /*
+   * miscDataProps.email: the create asked TeamMemberService to send the
+   * invitation email, to this address.
+   */
+  invitationEmailRequestedFor: string | null;
   createdAt: Date;
 }
 
@@ -54,6 +72,13 @@ class InMemorySCIMWorld {
   public memberships: Array<WorldMembership> = [];
   public teams: Array<WorldTeam> = [];
   public consents: Array<{ userId: string; projectId: string }> = [];
+  // "TeamMemberService.findBy", "UserService.createByEmail"...: every call, in order.
+  public calls: Array<string> = [];
+  /*
+   * How long each read takes, in milliseconds: none, unless a suite slows
+   * the database down to time two requests against each other.
+   */
+  public readDelayMs: number = 0;
 
   private clock: number = Date.parse("2026-01-01T00:00:00.000Z");
 
@@ -62,6 +87,8 @@ class InMemorySCIMWorld {
     this.memberships = [];
     this.teams = [];
     this.consents = [];
+    this.calls = [];
+    this.readDelayMs = 0;
   }
 
   public tick(): Date {
@@ -77,6 +104,7 @@ class InMemorySCIMWorld {
     email: string;
     name?: string | null;
     isMasterAdmin?: boolean;
+    hasPassword?: boolean;
   }): string {
     const id: string = idOf(ObjectID.generate());
     this.users.push({
@@ -84,6 +112,7 @@ class InMemorySCIMWorld {
       email: data.email.toLowerCase(),
       name: data.name === null ? "" : data.name || data.email.split("@")[0]!,
       isMasterAdmin: Boolean(data.isMasterAdmin),
+      hasPassword: Boolean(data.hasPassword),
     });
     return id;
   }
@@ -105,6 +134,7 @@ class InMemorySCIMWorld {
     projectId: string;
     teamId: string;
     accepted?: boolean;
+    inviteeName?: string | null;
   }): void {
     this.memberships.push({
       id: idOf(ObjectID.generate()),
@@ -112,6 +142,8 @@ class InMemorySCIMWorld {
       userId: idOf(data.userId),
       teamId: idOf(data.teamId),
       hasAcceptedInvitation: data.accepted !== false,
+      inviteeName: data.inviteeName || null,
+      invitationEmailRequestedFor: null,
       createdAt: this.tick(),
     });
   }
@@ -193,6 +225,9 @@ const toUser: (row: WorldUser) => User = (row: WorldUser): User => {
     user.name = new Name(row.name);
   }
   user.isMasterAdmin = row.isMasterAdmin;
+  if (row.hasPassword) {
+    user.password = new HashedString("set", true);
+  }
   return user;
 };
 
@@ -204,6 +239,9 @@ const toMember: (row: WorldMembership) => TeamMember = (
   member.userId = new ObjectID(row.userId);
   member.teamId = new ObjectID(row.teamId);
   member.hasAcceptedInvitation = row.hasAcceptedInvitation;
+  if (row.inviteeName) {
+    member.inviteeName = row.inviteeName;
+  }
   member.createdAt = row.createdAt;
 
   const user: WorldUser | undefined = scimWorld.users.find(
@@ -278,6 +316,7 @@ export const fakeUserService: Record<string, unknown> = {
       email: args.email.toString(),
       name: args.name?.toString() || "",
       isMasterAdmin: false,
+      hasPassword: Boolean(args.generateRandomPassword),
     };
     scimWorld.users.push(row);
     return toUser(row);
@@ -333,13 +372,22 @@ export const fakeTeamMemberService: Record<string, unknown> = {
       })
       .map(toMember);
   },
-  create: async (args: { data: TeamMember }): Promise<TeamMember> => {
+  create: async (args: {
+    data: TeamMember;
+    miscDataProps?: Record<string, unknown>;
+  }): Promise<TeamMember> => {
+    const email: unknown = args.miscDataProps?.["email"];
+
     const row: WorldMembership = {
       id: idOf(ObjectID.generate()),
       projectId: idOf(args.data.projectId),
       userId: idOf(args.data.userId),
       teamId: idOf(args.data.teamId),
       hasAcceptedInvitation: Boolean(args.data.hasAcceptedInvitation),
+      // As TeamMemberService keeps a create's inviteeName: trimmed, or none.
+      inviteeName: args.data.inviteeName?.trim() || null,
+      invitationEmailRequestedFor:
+        typeof email === "string" && email ? email : null,
       createdAt: scimWorld.tick(),
     };
 
@@ -365,6 +413,25 @@ export const fakeTeamMemberService: Record<string, unknown> = {
     );
 
     return before - scimWorld.memberships.length;
+  },
+  // The columns SCIM writes on a membership after it is made: its typed name.
+  updateBy: async (args: {
+    query: Record<string, unknown>;
+    data: { inviteeName?: string };
+  }): Promise<number> => {
+    const rows: Array<WorldMembership> = scimWorld.memberships.filter(
+      (item: WorldMembership): boolean => {
+        return matchesQuery(item, args.query);
+      },
+    );
+
+    for (const row of rows) {
+      if (args.data.inviteeName !== undefined) {
+        row.inviteeName = args.data.inviteeName || null;
+      }
+    }
+
+    return rows.length;
   },
 };
 
@@ -443,3 +510,38 @@ export const fakeUserProjectSsoConsentService: Record<string, unknown> = {
     );
   },
 };
+
+/*
+ * Every call to a fake service goes into scimWorld.calls, by service and
+ * method: the reads and writes a request made, for a suite to compare.
+ */
+const recordCallsOf: (
+  serviceName: string,
+  service: Record<string, unknown>,
+) => void = (serviceName: string, service: Record<string, unknown>): void => {
+  for (const method of Object.keys(service)) {
+    const call: (...args: Array<unknown>) => unknown = service[method] as (
+      ...args: Array<unknown>
+    ) => unknown;
+
+    const isRead: boolean =
+      method.startsWith("find") || method === "hasConsent";
+
+    service[method] = async (...args: Array<unknown>): Promise<unknown> => {
+      scimWorld.calls.push(`${serviceName}.${method}`);
+
+      if (isRead && scimWorld.readDelayMs > 0) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, scimWorld.readDelayMs);
+        });
+      }
+
+      return await call(...args);
+    };
+  }
+};
+
+recordCallsOf("UserService", fakeUserService);
+recordCallsOf("TeamMemberService", fakeTeamMemberService);
+recordCallsOf("TeamService", fakeTeamService);
+recordCallsOf("UserProjectSsoConsentService", fakeUserProjectSsoConsentService);

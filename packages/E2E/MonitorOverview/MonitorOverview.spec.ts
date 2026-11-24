@@ -897,7 +897,7 @@ test.describe("probe checks", () => {
       "Created",
     );
     // In the browser's zone, UTC, named as it is (#8475).
-    await expect(createdValue).toHaveText("Mar 02 2026, 09:30 AM UTC");
+    await expect(createdValue).toHaveText("Mar 2, 2026, 9:30 AM UTC");
     await expect(createdValue).toHaveAttribute(
       "datetime",
       "2026-03-02T09:30:00.000Z",
@@ -931,7 +931,7 @@ test.describe("probe checks", () => {
     // The time to the second, on hover.
     await createdValue.hover();
     await expect(page.getByRole("tooltip")).toHaveText(
-      "Mar 02 2026, 09:30:00 AM UTC",
+      "Mar 2, 2026, 9:30:00 AM UTC",
     );
   });
 

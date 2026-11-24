@@ -53,10 +53,29 @@ import { Translator } from "../../../../Utils/TranslateTemplate";
 import useTranslator from "../../../../Utils/UseTranslator";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import {
+  ChartOwnScale,
+  ChartSecondYAxis,
+  SECOND_Y_AXIS_ID,
+  getCategoryValueFormatter,
+  getCategoryYAxisProps,
+  getMarkYAxisProps,
+  getOwnScaleYAxisId,
+} from "../Utils/SecondYAxis";
+import {
+  ChartValueAxesPlan,
+  useValueAxesTicks,
+} from "../Utils/UseValueAxesTicks";
+import PlotHeightProbe, {
+  PlotRoom,
+  usePlotRoom,
+} from "../Utils/PlotHeightProbe";
+import { ValueAxisFormatter } from "../../Types/YAxis/YAxis";
+import {
   PreparedTooltipEntries,
   prepareTooltipEntries,
 } from "../Utils/TooltipEntries";
 import { useOnWindowResize } from "../Utils/UseWindowOnResize";
+import { getLegendExtraRowsHeight } from "../Utils/LegendExtraRows";
 
 //#region Shape
 
@@ -510,6 +529,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ) => React.ReactElement = (
   { payload }: any,
   categoryColors: Map<string, ChartColorValue>,
@@ -519,6 +539,7 @@ const ChartLegend: (
   enableLegendSlider?: boolean,
   legendPosition?: "left" | "center" | "right",
   yAxisWidth?: number,
+  onExtraRowsHeightChange?: (extraRowsHeightInPx: number) => void,
 ) => {
   const legendRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
@@ -530,6 +551,7 @@ const ChartLegend: (
       return height ? Number(height) + 15 : 60;
     };
     setLegendHeight(calculateHeight(legendRef.current?.clientHeight));
+    onExtraRowsHeightChange?.(getLegendExtraRowsHeight(legendRef.current));
   });
 
   const filteredPayload: any[] = payload.filter((item: any) => {
@@ -589,6 +611,14 @@ interface ChartTooltipProps {
   payload: PayloadItem[];
   label: string;
   valueFormatter: (value: number) => string;
+  /*
+   * How a category's value is written when it is not as valueFormatter
+   * writes it: a series on the chart's second axis, in that axis's unit
+   * (SecondYAxis).
+   */
+  categoryValueFormatter?:
+    | ((category: string) => (value: number) => string)
+    | undefined;
 }
 
 const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
@@ -596,6 +626,7 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
   payload,
   label,
   valueFormatter,
+  categoryValueFormatter,
 }: ChartTooltipProps): React.ReactElement | null => {
   const translator: Translator = useTranslator();
 
@@ -672,7 +703,9 @@ const ChartTooltip: React.FunctionComponent<ChartTooltipProps> = ({
                       "text-gray-900",
                     )}
                   >
-                    {valueFormatter(value)}
+                    {(categoryValueFormatter
+                      ? categoryValueFormatter(category)
+                      : valueFormatter)(value)}
                   </p>
                 </div>
               );
@@ -711,7 +744,18 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
   index: string;
   categories: string[];
   colors?: ChartColorValue[];
-  valueFormatter?: (value: number) => string;
+  /*
+   * How the value axis writes a tick, and the tooltip a value. Handed a
+   * precision when the chart steps the axis itself (ValueAxisTicks).
+   */
+  valueFormatter?: ValueAxisFormatter;
+  /*
+   * For a value axis of spans of time, the seconds one value stands for
+   * (1 for seconds, 0.001 for milliseconds): it steps in natural units of
+   * time, 15 sec, 5 min, 30 min, 6 h (issue #10118). Left out, the axis
+   * steps in round decimal steps.
+   */
+  valueDurationUnitInSeconds?: number | undefined;
   startEndOnly?: boolean;
   showXAxis?: boolean;
   showYAxis?: boolean;
@@ -753,6 +797,35 @@ interface BarChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * drag-to-select produced, on this chart or a neighbouring one.
    */
   onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * A second value axis, on the right, for the categories it names, each
+   * bar of which is drawn against it (SecondYAxis, issue #10042). Read by a
+   * horizontal chart of values only: a vertical one draws its values along
+   * the bottom, and one of shares (percent) every bar as a share of 100%.
+   */
+  secondYAxis?: ChartSecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, each for the categories it
+   * names (ChartOwnScale, issue #10080): a unit neither axis can say.
+   */
+  ownScales?: Array<ChartOwnScale> | undefined;
+  /*
+   * How the tooltip writes a category's value, by category, for a series
+   * whose unit is neither axis's. Left out, a category's value is written
+   * as the axis it is drawn against writes its ticks.
+   */
+  categoryValueFormatters?:
+    | Record<string, (value: number) => string>
+    | undefined;
+  /*
+   * Told how much taller than one row the legend is (0 while its items fit
+   * on one line), each time the legend is measured: a host that keeps its
+   * plot's height when the legend wraps grows by that much (the wrapper's
+   * growsWhenLegendWraps, issue #7125).
+   */
+  onLegendExtraRowsHeightChange?:
+    | ((extraRowsHeightInPx: number) => void)
+    | undefined;
 }
 
 const BarChart: React.ForwardRefExoticComponent<
@@ -799,8 +872,27 @@ const BarChart: React.ForwardRefExoticComponent<
       referenceLines,
       onTimeRangeSelect,
       onTimeRangeReset,
+      categoryValueFormatters,
+      secondYAxis: requestedSecondYAxis,
+      ownScales: requestedOwnScales,
+      onLegendExtraRowsHeightChange,
+      valueDurationUnitInSeconds,
       ...other
     } = props;
+    /*
+     * Values run along the bottom of a vertical chart, and a chart of shares
+     * (percent) draws every bar as a share of its bucket's whole: neither has
+     * a second axis on the right.
+     */
+    const secondYAxis: ChartSecondYAxis | undefined =
+      layout !== "vertical" && type !== "percent"
+        ? requestedSecondYAxis
+        : undefined;
+    // Nor scales of their own (issue #10080).
+    const ownScales: Array<ChartOwnScale> | undefined =
+      layout !== "vertical" && type !== "percent"
+        ? requestedOwnScales
+        : undefined;
     const CustomTooltip: React.ComponentType<any> | undefined = customTooltip;
     const paddingValue: number =
       (!showXAxis && !showYAxis) || (startEndOnly && !showYAxis) ? 0 : 20;
@@ -882,11 +974,66 @@ const BarChart: React.ForwardRefExoticComponent<
         onValueChange?.(null);
       }
     });
-    const yAxisDomain: AxisDomain = getYAxisDomain(
+    const yAxisDomainEnds: [number | "auto", number | "auto"] = getYAxisDomain(
       autoMinValue,
       minValue,
       maxValue,
     );
+    const secondYAxisDomainEnds: [number | "auto", number | "auto"] =
+      secondYAxis
+        ? getYAxisDomain(
+            secondYAxis.autoMinValue,
+            secondYAxis.minValue,
+            secondYAxis.maxValue,
+          )
+        : [0, "auto"];
+    const yAxisDomain: AxisDomain = yAxisDomainEnds;
+    const secondYAxisDomain: AxisDomain = secondYAxisDomainEnds;
+    /*
+     * Each value axis stepped evenly in round steps of its unit, and as
+     * wide as its widest tick (issues #10079, #10117): stacked bars reach each
+     * stack's sums. The value axis of a vertical chart runs along its
+     * bottom, and a chart of shares always reads 0% to 100%: recharts steps
+     * both as it always has.
+     */
+    // The ticks the plot has room for, once recharts has laid it out.
+    const plotRoom: PlotRoom = usePlotRoom();
+    const valueAxes: ChartValueAxesPlan = useValueAxesTicks({
+      data: data,
+      categories: categories,
+      secondYAxis: secondYAxis,
+      ownScales: ownScales,
+      referenceLines: referenceLines,
+      firstDomain: yAxisDomainEnds,
+      secondDomain: secondYAxisDomainEnds,
+      allowDecimals: allowDecimals,
+      valueFormatter: valueFormatter,
+      durationUnitInSeconds: valueDurationUnitInSeconds,
+      mostTicks: plotRoom.mostTicks,
+      yAxisWidth: yAxisWidth,
+      isStacked: type === "stacked",
+      isFirstAxisLeftToRecharts: layout === "vertical" || type === "percent",
+    });
+    /*
+     * Each category's value in the tooltip, in the unit of the axis it is
+     * on, to that axis's resolution where its own figures cannot tell two
+     * ticks apart.
+     */
+    const categoryValueFormatter: (
+      category: string,
+    ) => (value: number) => string = (
+      category: string,
+    ): ((value: number) => string) => {
+      return getCategoryValueFormatter({
+        category: category,
+        valueFormatter: valueFormatter,
+        secondYAxis: secondYAxis,
+        ownScales: ownScales,
+        categoryValueFormatters: categoryValueFormatters,
+        firstAxisPrecision: valueAxes.first.ticks.tooltipPrecision,
+        secondAxisPrecision: valueAxes.second?.ticks.tooltipPrecision,
+      });
+    };
     const hasOnValueChange: boolean = Boolean(onValueChange);
     const stacked: boolean = type === "stacked" || type === "percent";
 
@@ -1026,6 +1173,8 @@ const BarChart: React.ForwardRefExoticComponent<
               layout={layout}
               barCategoryGap={barCategoryGap ?? "10%"}
             >
+              {/* Hands the axes the plot's height, so a short one takes fewer ticks. */}
+              <PlotHeightProbe onPlotHeight={plotRoom.onPlotHeight} />
               {showGridLines ? (
                 <CartesianGrid
                   className={cx("stroke-gray-100")}
@@ -1078,7 +1227,9 @@ const BarChart: React.ForwardRefExoticComponent<
                       type: "number" as const,
                       domain: yAxisDomain as AxisDomain,
                       tickFormatter:
-                        type === "percent" ? valueToPercent : valueFormatter,
+                        type === "percent"
+                          ? valueToPercent
+                          : valueAxes.first.tickFormatter,
                       allowDecimals: allowDecimals,
                     })}
               >
@@ -1093,7 +1244,7 @@ const BarChart: React.ForwardRefExoticComponent<
                 )}
               </XAxis>
               <YAxis
-                width={yAxisWidth}
+                width={valueAxes.first.width}
                 hide={!showYAxis}
                 axisLine={false}
                 tickLine={false}
@@ -1117,9 +1268,15 @@ const BarChart: React.ForwardRefExoticComponent<
                 {...(layout !== "vertical"
                   ? {
                       type: "number" as const,
-                      domain: yAxisDomain as AxisDomain,
+                      domain: (valueAxes.first.ticks.domain ||
+                        yAxisDomain) as AxisDomain,
+                      ...(valueAxes.first.ticks.ticks
+                        ? { ticks: valueAxes.first.ticks.ticks }
+                        : {}),
                       tickFormatter:
-                        type === "percent" ? valueToPercent : valueFormatter,
+                        type === "percent"
+                          ? valueToPercent
+                          : valueAxes.first.tickFormatter,
                       allowDecimals: allowDecimals,
                     }
                   : {
@@ -1148,6 +1305,69 @@ const BarChart: React.ForwardRefExoticComponent<
                   </Label>
                 )}
               </YAxis>
+              {secondYAxis ? (
+                /*
+                 * The second value axis, on the right, written in its own
+                 * unit: its ticks sit just off the plot, as the first's do.
+                 */
+                <YAxis
+                  yAxisId={SECOND_Y_AXIS_ID}
+                  orientation="right"
+                  width={valueAxes.second?.width ?? secondYAxis.width}
+                  axisLine={false}
+                  tickLine={false}
+                  fill=""
+                  stroke=""
+                  className={cx("tabular-nums", "fill-gray-500")}
+                  tick={{
+                    transform: "translate(4, 0)",
+                    fontSize: 10,
+                    fontWeight: 500,
+                    fill: "var(--ou-chart-tick)",
+                  }}
+                  type="number"
+                  domain={
+                    (valueAxes.second?.ticks.domain ||
+                      secondYAxisDomain) as AxisDomain
+                  }
+                  {...(valueAxes.second?.ticks.ticks
+                    ? { ticks: valueAxes.second.ticks.ticks }
+                    : {})}
+                  tickFormatter={
+                    valueAxes.second
+                      ? valueAxes.second.tickFormatter
+                      : (value: number): string => {
+                          return secondYAxis.valueFormatter(value);
+                        }
+                  }
+                  allowDecimals={allowDecimals}
+                />
+              ) : null}
+              {(ownScales || []).map(
+                (ownScale: ChartOwnScale): React.ReactElement => {
+                  /*
+                   * A scale of its own (issue #10080): a value axis recharts
+                   * steps over its categories' values and draws no tick of,
+                   * taking no room.
+                   */
+                  return (
+                    <YAxis
+                      key={`own-scale-${ownScale.id}`}
+                      yAxisId={getOwnScaleYAxisId(ownScale.id)}
+                      hide={true}
+                      type="number"
+                      domain={
+                        getYAxisDomain(
+                          ownScale.autoMinValue,
+                          ownScale.minValue,
+                          ownScale.maxValue,
+                        ) as AxisDomain
+                      }
+                      allowDecimals={allowDecimals}
+                    />
+                  );
+                },
+              )}
               <Tooltip
                 wrapperStyle={{ outline: "none", zIndex: 10 }}
                 isAnimationActive={true}
@@ -1199,6 +1419,7 @@ const BarChart: React.ForwardRefExoticComponent<
                         payload={cleanPayload}
                         label={label}
                         valueFormatter={valueFormatter}
+                        categoryValueFormatter={categoryValueFormatter}
                       />
                     )
                   ) : null;
@@ -1236,7 +1457,8 @@ const BarChart: React.ForwardRefExoticComponent<
                         : undefined,
                       enableLegendSlider,
                       legendPosition,
-                      yAxisWidth,
+                      valueAxes.first.width,
+                      onLegendExtraRowsHeightChange,
                     );
                   }}
                 />
@@ -1246,6 +1468,11 @@ const BarChart: React.ForwardRefExoticComponent<
                   category,
                 ) as ChartColorValue;
                 const isCustomColor: boolean = isHexColorValue(barColor);
+                const axisProps: { yAxisId?: string } = getCategoryYAxisProps(
+                  category,
+                  secondYAxis,
+                  ownScales,
+                );
                 return (
                   <Bar
                     className={cx(
@@ -1256,7 +1483,18 @@ const BarChart: React.ForwardRefExoticComponent<
                     name={category}
                     type="linear"
                     dataKey={category}
-                    {...(stacked ? { stackId: "stack" } : {})}
+                    {...axisProps}
+                    /*
+                     * Bars stack only with bars on their own axis: a value in
+                     * bytes is never piled on one in percent.
+                     */
+                    {...(stacked
+                      ? {
+                          stackId: axisProps.yAxisId
+                            ? `stack-${axisProps.yAxisId}`
+                            : "stack",
+                        }
+                      : {})}
                     isAnimationActive={false}
                     /*
                      * Custom hex → apply the color inline (Tailwind has no class
@@ -1278,10 +1516,25 @@ const BarChart: React.ForwardRefExoticComponent<
                   return (
                     <React.Fragment key={`ref-${refIndex}`}>
                       {shade ? (
-                        <ReferenceArea {...shade} stroke="none" />
+                        <ReferenceArea
+                          {...shade}
+                          {...getMarkYAxisProps(
+                            refLine.isOnSecondYAxis,
+                            secondYAxis,
+                            refLine.ownScaleId,
+                            ownScales,
+                          )}
+                          stroke="none"
+                        />
                       ) : null}
                       <ReferenceLine
                         y={refLine.value}
+                        {...getMarkYAxisProps(
+                          refLine.isOnSecondYAxis,
+                          secondYAxis,
+                          refLine.ownScaleId,
+                          ownScales,
+                        )}
                         stroke={refLine.color}
                         strokeDasharray={refLine.strokeDasharray || "4 4"}
                         strokeWidth={1.5}

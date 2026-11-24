@@ -176,6 +176,13 @@ interface Probe {
   FetchListAndProbe: AnyModule;
   // Schedules the job that fetches and runs the monitor tests people start.
   initMonitorTestJob: () => void;
+  /*
+   * Upload a vCenter's or an OpenStack cloud's collection (#10222): loaded
+   * only for a probe started with `collections`, as their collectors take
+   * a while to load.
+   */
+  postVMwareCollectionReport?: (report: AnyModule) => Promise<boolean>;
+  postOpenStackCollectionReport?: (report: AnyModule) => Promise<boolean>;
   LocalCache: AnyModule;
   logger: AnyModule;
 }
@@ -190,6 +197,8 @@ function startProbe(data: {
   registerProbeKey?: string;
   // The proxy the probe sends its requests through (HTTP_PROXY_URL).
   httpProxyUrl?: string;
+  // Whether to load the jobs that upload collections.
+  collections?: boolean;
 }): Probe {
   const saved: Record<string, string | undefined> = {
     ONEUPTIME_URL: process.env["ONEUPTIME_URL"],
@@ -230,6 +239,16 @@ function startProbe(data: {
           .FetchListAndProbe,
         initMonitorTestJob: require("../../Jobs/Monitor/FetchMonitorTest")
           .default,
+        ...(data.collections
+          ? {
+              postVMwareCollectionReport:
+                require("../../Jobs/VMware/FetchVMwareWork")
+                  .postCollectionReport,
+              postOpenStackCollectionReport:
+                require("../../Jobs/OpenStack/FetchOpenStackWork")
+                  .postCollectionReport,
+            }
+          : {}),
         LocalCache: require("Common/Server/Infrastructure/LocalCache").default,
         logger: require("Common/Server/Utils/Logger").default,
       };
@@ -663,5 +682,58 @@ describe.each([
       expect(printed.join("\n")).toContain('\\"probeKey\\":\\"');
       expectNoKeyIn(probe);
     });
+
+    /*
+     * A collection upload carries the key in a header too (#10222), which
+     * a failed request is logged with: the header's value is left out of
+     * every log, as a body's key is.
+     */
+    test("logs a failed collection upload without its key, the one in its headers included", async () => {
+      const probe: Probe = startProbe({
+        oneuptimeUrl: await closedPortOrigin(),
+        probeKey: probeKey,
+        collections: true,
+      });
+
+      probe.LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID);
+
+      expect(
+        await probe.postVMwareCollectionReport!({
+          vmwareVCenterId: "44444444-4444-4444-8444-444444444444",
+          settingsVersion: 3,
+          collectedAt: "2026-11-20T12:00:00.000Z",
+          status: "Failed",
+          errorMessage: "Refused.",
+          durationInMs: 10,
+        }),
+      ).toBe(false);
+
+      expect(
+        await probe.postOpenStackCollectionReport!({
+          openStackCloudId: "55555555-5555-4555-8555-555555555555",
+          settingsVersion: 3,
+          collectedAt: "2026-11-20T12:00:00.000Z",
+          status: "Failed",
+          errorMessage: "Refused.",
+          durationInMs: 10,
+        }),
+      ).toBe(false);
+
+      // Each failure is logged, with where the request went.
+      expect(printed.join("\n")).toContain(
+        "Error reporting the collection of vCenter",
+      );
+      expect(printed.join("\n")).toContain(
+        "Error reporting the collection of cloud",
+      );
+      expect(printed.join("\n")).toContain("/probe/vmware/collection");
+      // The request is logged with its headers, the key's among them.
+      expect(printed.join("\n")).toContain("x-oneuptime-probe-key");
+      expectNoKeyIn(probe);
+
+      for (const form of [probeKey, encodeURIComponent(probeKey)]) {
+        expect(printed.join("\n")).not.toContain(form);
+      }
+    }, 60000);
   },
 );

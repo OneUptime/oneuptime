@@ -259,6 +259,29 @@ export interface TerraformAttribute {
    * is written (StaticFiles/changestogether.go, #9814).
    */
   changesOnlyWith?: string | undefined;
+  /*
+   * OneUptime keeps the attribute once the record exists (the spec's
+   * x-oneuptime-server-owned, from the model's TableColumnMetadata
+   * .serverOwned), so the provider never fights it over the value (#9985):
+   *   - "always": only OneUptime writes it - a heartbeat's time, a count, a
+   *     flag - so it is read only (computed), and no create or update sends
+   *     it;
+   *   - "after-create": a create may give its first value - the status a
+   *     new monitor starts in - and OneUptime moves it on from there. It is
+   *     optional and computed, a create sends it, no update does, and once
+   *     the record exists the plan keeps the state's value whatever the
+   *     configuration says (StaticFiles/serverowned.go): never a change,
+   *     never a replacement;
+   *   - "shared": people set it and OneUptime changes it too - the labels a
+   *     label rule adds, an exception OneUptime resolves (#10052). It is an
+   *     ordinary optional attribute that a create and an update send, with
+   *     two differences (StaticFiles/shared.go): left out of a
+   *     configuration, the plan keeps OneUptime's value even where the
+   *     attribute has a default; and under Crossplane a manifest's value is
+   *     sent when it changes, not every time OneUptime moves the record's,
+   *     and a list keeps the entries OneUptime added.
+   */
+  serverOwned?: TerraformServerOwned | undefined;
   forceNew?: boolean;
   default?: any;
   apiFieldName?: string; // Original OpenAPI field name for API requests
@@ -277,6 +300,15 @@ export interface TerraformAttribute {
    * digits (StaticFiles/phone.go).
    */
   isPhone?: boolean;
+  /*
+   * A permission's key, such as IncidentMember (the spec's
+   * x-oneuptime-type Permission): a team's, an API key's or a custom
+   * role's permission. A plain string, which the provider took as JSON
+   * until OneUptime#10300, so it still takes the key written with
+   * jsonencode() as the same permission, from a configuration and from
+   * state (StaticFiles/permissionkey.go).
+   */
+  isPermission?: boolean;
   isMonitorSteps?: boolean; // MonitorSteps wrapper — emitted as a typed nested attribute (monitorsteps.go)
   enumValues?: string[]; // Allowed values from the spec's enum — emitted as a OneOf validator
   /*
@@ -317,6 +349,38 @@ export interface TerraformAttribute {
    */
   deleteChoice?: TerraformDeleteChoice | undefined;
 }
+
+/*
+ * An attribute people set and OneUptime changes too (serverOwned "shared"),
+ * as a resource's ModifyPlan names it to PlanShared (StaticFiles/shared.go):
+ * its Terraform name, and whether it is a list or a set held entry by entry.
+ */
+export interface SharedAttribute {
+  name: string;
+  entries: boolean;
+}
+
+/*
+ * A list of related records people and OneUptime both add to (a shared
+ * attribute held entry by entry: a record's labels), as a resource's
+ * generated code holds it to the entries a configuration declares and
+ * updates it entry by entry (StaticFiles/entries.go, #10134, #10135).
+ */
+export interface HeldEntryAttribute {
+  // Its Terraform name: labels.
+  name: string;
+  // Its field of the resource's model: Labels.
+  fieldName: string;
+  // The API's name of it, in an update's addToList and removeFromList.
+  apiName: string;
+  type: "set" | "list";
+}
+
+// The spec's x-oneuptime-server-owned: who keeps the value once the record exists.
+export type TerraformServerOwned = "always" | "after-create" | "shared";
+
+export const TERRAFORM_SERVER_OWNED_KINDS: ReadonlyArray<TerraformServerOwned> =
+  ["always", "after-create", "shared"];
 
 export interface TerraformPersonAttribute {
   // The companion's Terraform name: user_email, owner_user_emails.

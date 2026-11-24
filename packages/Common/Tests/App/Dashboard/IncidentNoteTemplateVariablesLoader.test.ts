@@ -192,7 +192,7 @@ describe("fetchIncidentNoteTemplateVariables", () => {
     expect(variables["incident.number"]).toBe("INC-42");
     expect(variables["incident.severity"]).toBe("Critical");
     expect(variables["incident.state"]).toBe("Investigating");
-    expect(variables["incident.startedAt"]).toMatch(/^Sep 27 2026, /);
+    expect(variables["incident.startedAt"]).toMatch(/^Sep 27, 2026, /);
     // In natural order, as labels are listed everywhere (Utils/LabelOrder).
     expect(variables["incident.labels"]).toBe("Payments, Region East");
     // Only the pages the author can see are named.

@@ -244,7 +244,13 @@
     "signInWithProvider": "{{name}} でサインイン",
     "requiredSubtitle": "このサーバーではシングルサインオン（SSO）が必須です。",
     "requiredNotSetUp": "このサーバーではシングルサインオンがまだ設定されていません。サーバー管理者に設定を依頼してください。",
-    "useDifferentEmail": "別のメールアドレスを使用"
+    "useDifferentEmail": "別のメールアドレスを使用",
+    "lastUsedTitle": "このデバイスで前回使用",
+    "forgetLastUsed": "このプロバイダーを削除",
+    "emailLinksPrompt": "このアドレスが所属するすべての組織の SSO サインインリンクを、このアドレスにメールで送信できます。",
+    "emailLinksButton": "サインインリンクをメールで受け取る",
+    "emailLinksSent": "このアドレスがシングルサインオンを使用する組織に所属している場合は、SSO サインインリンクをメールで送信しました。",
+    "emailLinksCaptchaRequired": "リンクをリクエストする前に、キャプチャを完了してください。"
   },
   "adminLogin": {
     "title": "マスター管理者のサインイン",
@@ -281,6 +287,29 @@
     "templateDescription": "テンプレートを選ぶとフォームに入力されます。送信前にどの回答も変更できます。",
     "templateNone": "テンプレートなし",
     "uploadingFiles": "ファイルをアップロードしています…"
+  },
+  "formSignIn": {
+    "prompt": "このフォームを開くにはサインインしてください。",
+    "ssoOnlyPrompt": "このフォームを開くには、組織のシングルサインオンでサインインしてください。",
+    "noWayIn": "このフォームにはまだサインイン方法が設定されていません。共有した人に問い合わせてください。",
+    "email": "メール",
+    "password": "パスワード",
+    "forgotPassword": "パスワードをお忘れですか？",
+    "signIn": "サインイン",
+    "or": "または",
+    "signInWithProvider": "{{provider}} でサインイン",
+    "forgotTitle": "パスワードをお忘れですか？",
+    "forgotPrompt": "メールアドレスを入力すると、新しいパスワードを選ぶためのリンクをお送りします。",
+    "sendLink": "リンクを送信",
+    "forgotSent": "このアドレスでこのフォームにサインインできる場合は、新しいパスワードを選ぶためのリンクをお送りしました。リンクは 24 時間有効です。",
+    "backToSignIn": "サインインに戻る",
+    "resetTitle": "新しいパスワードを選ぶ",
+    "resetPrompt": "このフォームへのサインインに使うパスワードを入力してください。",
+    "newPassword": "新しいパスワード",
+    "savePassword": "パスワードを保存",
+    "resetDone": "パスワードを保存しました。そのパスワードでサインインしてフォームを開いてください。",
+    "signedInAs": "{{email}} としてサインイン中",
+    "signOut": "サインアウト"
   },
   "errors": {
     "forbidden": {

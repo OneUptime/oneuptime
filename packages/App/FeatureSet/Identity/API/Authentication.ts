@@ -8,10 +8,13 @@ import SignUpAttempt, {
   SignUpAttemptRecord,
 } from "../Utils/SignUpAttempt";
 import SignUpInvitationUtil from "../Utils/SignUpInvitation";
+import InvitationSsoSignIn from "../Utils/InvitationSsoSignIn";
+import { INVITATION_SSO_SIGN_IN_ROUTE } from "Common/Types/Accounts/InvitationSsoSignIn";
 import UserResponse from "../Utils/UserResponse";
 import {
   SIGN_UP_INVITATION_PROJECT_KEY,
   SIGN_UP_INVITATION_ROUTE,
+  SIGN_UP_INVITATION_SSO_ROUTE,
   SignUpInvitation,
   toSignUpInvitationAnswerJSON,
 } from "Common/Types/Accounts/SignUpInvitation";
@@ -95,6 +98,10 @@ import {
 } from "Common/Types/ServerSending/ServerSendingWords";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
 import SsoManagedSignIn from "Common/Server/Utils/SsoManagedSignIn";
 import UserService from "Common/Server/Services/UserService";
@@ -689,6 +696,92 @@ router.post(
         res,
         toSignUpInvitationAnswerJSON(invitation),
       );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * POST /sign-up-invitation/sso: the sign-up page an invitation opens, as
+ * its person picks one of the project's single sign-on providers (#9898,
+ * Common/Types/Accounts/SignUpInvitation), with the invited address, its
+ * registration token and the project the page showed. On OneUptime Cloud
+ * the token is taken as the mailbox's confirmation of that project's
+ * single sign-on (SignUpInvitationUtil.confirmSsoSignIn), so the provider
+ * signs them in the first time, with no second email; on a self-hosted
+ * server, which asks no mailbox, nothing is written. Nobody is signed in to
+ * ask: the token is the proof of the invited mailbox.
+ *
+ * Every request is answered alike - the same empty success, with no
+ * caching - whatever came of it: a token that is wrong, spent, expired or
+ * another address's, an account that has signed up, is blocked or is an
+ * administrator's, a project with nothing waiting, and a confirmation are
+ * one answer, so asking tells nobody anything, not even whether the
+ * address has an account. The page goes on to the provider either way.
+ * Behind the invitation answer's limiter, on its bucket: the same page asks
+ * both, with the same token, and a live token is all either reads more
+ * for.
+ */
+router.post(
+  SIGN_UP_INVITATION_SSO_ROUTE,
+  signUpInvitationRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      await SignUpInvitationUtil.confirmSsoSignIn({
+        email: req.body?.["email"],
+        token: req.body?.["token"],
+        projectId: req.body?.["projectId"],
+      });
+
+      return Response.sendEmptySuccessResponse(req, res);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * POST /invitation-sso-sign-in: the project's SSO page an invitation opens
+ * for someone who has signed up already, as its person picks one of the
+ * project's providers (#10178, Common/Types/Accounts/InvitationSsoSignIn),
+ * with the invitation's single-use link - its token and signature - and the
+ * project. On OneUptime Cloud the link is taken as the mailbox's
+ * confirmation of that project's single sign-on (InvitationSsoSignIn), with
+ * the checks the sign-up page's link is held to, so the provider signs them
+ * in the first time, with no second email; on a self-hosted server nothing
+ * is written. Nobody is signed in to ask: the link is the proof of the
+ * invited mailbox, and its signature is checked before anything is read.
+ *
+ * Every request is answered alike - the same empty success, with no
+ * caching - whatever came of it, as /sign-up-invitation/sso is, and behind
+ * the same limiter, on its bucket. The page goes on to the provider either
+ * way.
+ */
+router.post(
+  INVITATION_SSO_SIGN_IN_ROUTE,
+  signUpInvitationRateLimit,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      Response.setNoCacheHeaders(res);
+
+      await InvitationSsoSignIn.confirm({
+        token: req.body?.["token"],
+        signature: req.body?.["signature"],
+        projectId: req.body?.["projectId"],
+      });
+
+      return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
       return next(err);
     }
@@ -1936,8 +2029,17 @@ const confirmEmailChange: ConfirmEmailChangeFunction = async (data: {
         isEmailVerified: true,
         newUnverifiedTemporaryEmail: null!,
       },
+      /*
+       * The account's own change, made by opening its link: the address it
+       * leaves is told so, with where the link was opened (#9907,
+       * UserService.tellPreviousAddressesOfChange).
+       */
+      miscDataProps: {
+        [EMAIL_ADDRESS_CHANGED_BY_KEY]: EmailAddressChangedBy.AccountOwner,
+      },
       props: {
         isRoot: true,
+        requestOrigin: RequestOriginUtil.fromRequest(req),
       },
     });
   } catch (err) {

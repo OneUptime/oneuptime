@@ -1,13 +1,18 @@
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { IDENTITY_URL, APP_API_URL } from "Common/UI/Config";
-import { SIGN_UP_INVITATION_ROUTE } from "Common/Types/Accounts/SignUpInvitation";
+import {
+  SIGN_UP_INVITATION_ROUTE,
+  SIGN_UP_INVITATION_SSO_ROUTE,
+} from "Common/Types/Accounts/SignUpInvitation";
+import { INVITATION_SSO_SIGN_IN_ROUTE } from "Common/Types/Accounts/InvitationSsoSignIn";
 import {
   MOBILE_PASSKEY_ENROLMENT_OPTIONS_ROUTE,
   SECURITY_KEY_ENROLMENT_OPTIONS_ROUTE,
   VERIFY_SECURITY_KEY_ENROLMENT_ROUTE,
 } from "Common/Types/Accounts/SecondStepEnrolment";
 import { SECURITY_KEY_SIGN_IN_OPTIONS_ROUTE } from "Common/Types/Accounts/SecurityKeySignIn";
+import { SEND_SSO_SIGN_IN_LINKS_ROUTE } from "Common/Types/Accounts/SsoSignInLinks";
 import { getProjectSignInMethodsRoute } from "Common/Types/SSO/SignInMethods";
 
 export const SIGNUP_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
@@ -33,6 +38,25 @@ export const FIRST_ACCOUNT_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
 export const SIGN_UP_INVITATION_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route(SIGN_UP_INVITATION_ROUTE));
+
+/*
+ * The same page, as its person picks one of the project's single sign-on
+ * providers (#9898): the invitation's link, sent on OneUptime Cloud as the
+ * mailbox's confirmation of that project's sign-in.
+ */
+export const SIGN_UP_INVITATION_SSO_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(SIGN_UP_INVITATION_SSO_ROUTE));
+
+/*
+ * A project's SSO page opened from an invitation by someone who has signed
+ * up already, as they pick one of its providers (#10178): the invitation's
+ * single-use link, sent on OneUptime Cloud as the mailbox's confirmation of
+ * the project's sign-in.
+ */
+export const INVITATION_SSO_SIGN_IN_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(INVITATION_SSO_SIGN_IN_ROUTE));
 
 export const PASSKEY_LOGIN_OPTIONS_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
@@ -150,6 +174,15 @@ export const getProjectSignInMethodsApiUrl: (projectId: string) => URL = (
     new Route(getProjectSignInMethodsRoute(projectId)),
   );
 };
+
+/*
+ * Emails an address the SSO sign-in links of the organizations its account
+ * belongs to (Common/Types/Accounts/SsoSignInLinks, #9987). It answers every
+ * address alike, so the page says the same thing whatever it was.
+ */
+export const SEND_SSO_SIGN_IN_LINKS_API_URL: URL = URL.fromURL(
+  IDENTITY_URL,
+).addRoute(new Route(SEND_SSO_SIGN_IN_LINKS_ROUTE));
 
 export const GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,

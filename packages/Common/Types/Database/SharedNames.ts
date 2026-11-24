@@ -4,14 +4,15 @@ import { JSONObject } from "../JSON";
  * WHICH RECORDS OF A PROJECT SHARE A NAME (#9746): what a list asks the
  * server, to mark them.
  *
- * Since #9674 (teams) and #9742 (on-call policies and schedules) a record
- * cannot take a name another record of its kind in the project has. The
- * records that shared one before keep it - no data migration renames them,
- * since whatever finds them by name would break - and can be renamed apart.
- * Nothing said which they were: an admin found out in a picker, where two
- * "Tenants" look alike. Their lists now mark them, read from the server
- * (UniqueNameInProject.findRecordsSharingName): a list's page may hold only
- * one of two twins.
+ * Since #9674 (teams), #9723 (labels, renamed) and #9742 (on-call policies
+ * and schedules) a record cannot take a name another record of its kind in
+ * the project has. The records that shared one before keep it - no data
+ * migration renames them, since whatever finds them by name would break -
+ * and can be renamed apart. Nothing said which they were: an admin found
+ * out in a picker, where two "Tenants" look alike. Their lists now mark
+ * them, read from the server (UniqueNameInProject.findRecordsSharingName):
+ * a list's page may hold only one of two twins. Labels are marked too
+ * (#9856), on Project Settings > Labels.
  *
  * GET /shared-names/:kind answers, for the request's project, the groups of
  * records the reader may read whose names read as one name. React-free and
@@ -21,6 +22,7 @@ import { JSONObject } from "../JSON";
 // The kinds whose names are one record's in a project, as the route names them.
 export enum SharedNameKind {
   Team = "team",
+  Label = "label",
   OnCallPolicy = "on-call-policy",
   OnCallSchedule = "on-call-schedule",
 }

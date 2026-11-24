@@ -1467,7 +1467,7 @@ describe("CustomFieldColumns date custom fields", () => {
       });
 
       expect(container.textContent).toEqual("Aug 17, 14:30");
-      expect(dateOf(container).title).toEqual("Aug 17 2026, 14:30 UTC");
+      expect(dateOf(container).title).toEqual("Aug 17, 2026, 14:30 UTC");
     });
 
     test("writes another year's instant by its day and year, the time under the pointer", () => {
@@ -1477,7 +1477,7 @@ describe("CustomFieldColumns date custom fields", () => {
       });
 
       expect(container.textContent).toEqual("Aug 17, 2025");
-      expect(dateOf(container).title).toEqual("Aug 17 2025, 14:30 UTC");
+      expect(dateOf(container).title).toEqual("Aug 17, 2025, 14:30 UTC");
     });
 
     test("renders the very same stored string differently for Date and DateTime", () => {
@@ -1514,7 +1514,7 @@ describe("CustomFieldColumns date custom fields", () => {
       });
 
       expect(container.textContent).toEqual("Aug 17, 10:30");
-      expect(dateOf(container).title).toEqual("Aug 17 2026, 10:30 EDT");
+      expect(dateOf(container).title).toEqual("Aug 17, 2026, 10:30 EDT");
     });
 
     test("reads an offset-form ISO string as the same instant as the Z form", () => {
@@ -1529,7 +1529,7 @@ describe("CustomFieldColumns date custom fields", () => {
       });
 
       expect(container.textContent).toEqual("Aug 17, 14:30");
-      expect(dateOf(container).title).toEqual("Aug 17 2026, 14:30 UTC");
+      expect(dateOf(container).title).toEqual("Aug 17, 2026, 14:30 UTC");
       expect(dateOf(container).dateTime).toEqual(storedIsoValue);
     });
 
@@ -1710,7 +1710,7 @@ describe("CustomFieldColumns date custom fields", () => {
       );
 
       expect(cell.textContent).toEqual("Aug 17, 14:30");
-      expect(dateOf(cell).title).toEqual("Aug 17 2026, 14:30 UTC");
+      expect(dateOf(cell).title).toEqual("Aug 17, 2026, 14:30 UTC");
     });
 
     test("renders the placeholder for a row with no date stored", () => {

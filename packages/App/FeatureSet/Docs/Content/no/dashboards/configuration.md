@@ -60,6 +60,7 @@ Hvem som kan se et dashbord utenfor prosjektet, er ett valg på siden **Deling**
 1. **Bare personer i dette prosjektet** (standard): dashbordet har ingen offentlig lenke; den offentlige adressen viser en side med "ikke funnet".
 2. **Alle med lenken**: alle som har den offentlige lenken, kan se det uten å logge på.
 3. **Alle med lenken og et passord**: besøkende skriver inn et passord før dashbordet vises.
+4. **Bare personer som logger inn**: bare de private brukerne du inviterer, og personene den enkle påloggingen deres slipper inn, ser det når de har logget på.
 
 Under **Flere innstillinger** på samme side avviser **IP-tillatelsesliste** (abonnementet Scale) forespørsler til den offentlige lenken fra enhver IP-adresse som ikke står på den. Det mest låste offentlige oppsettet er **Alle med lenken og et passord** med en IP-tillatelsesliste: nyttig for partnerportaler der du vil ha begge lagene.
 

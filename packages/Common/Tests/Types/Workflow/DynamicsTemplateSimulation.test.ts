@@ -460,6 +460,84 @@ describe.each(KINDS)(
       expect(title.endsWith("…")).toBe(true);
     });
 
+    /*
+     * #9358: a monitor's alert or incident is linked to the monitor and to
+     * what it watches. With a Configuration Item Column, the case names the
+     * one resource the column takes: the cluster, not the monitor. Left
+     * blank, as most leave it, the case is opened as before, and nothing of
+     * the setting reaches Dynamics 365.
+     */
+    const withMonitorAndCluster: (world: TemplateWorld) => JSONObject = (
+      world: TemplateWorld,
+    ): JSONObject => {
+      const trigger: JSONObject = recordTrigger(kind, world);
+      const model: JSONObject = trigger["model"] as JSONObject;
+      const monitor: JSONObject = {
+        _id: "dddddddd-0000-4000-8000-000000000001",
+        name: "STG IMS AKS - Warning Events",
+      };
+
+      model[kind.noun === "incident" ? "monitors" : "monitor"] =
+        kind.noun === "incident" ? [monitor] : monitor;
+      model["kubernetesClusters"] = [
+        { _id: "dddddddd-0000-4000-8000-000000000002", name: "STG IMS AKS" },
+      ];
+
+      return trigger;
+    };
+
+    test(`${createCase}: with a Configuration Item Column, the case names the cluster the monitor watches`, async () => {
+      const run: TemplateRun = await runNewTemplate({
+        templateId: createCase,
+        variables: {
+          ...VARIABLES,
+          dynamicsConfigurationItemColumn: "new_configurationitem",
+        },
+        setUp: (world: TemplateWorld): void => {
+          kind.add(world, {});
+        },
+        trigger: withMonitorAndCluster,
+        tool: dynamicsTool(undefined),
+      });
+      const columns: JSONObject = writes()[0]?.body as JSONObject;
+
+      expect(run.trace.failedSteps).toEqual([]);
+      expect(columns["new_configurationitem"]).toBe("STG IMS AKS");
+      expect(String(columns["description"])).toContain(
+        "\nAffected resources: monitor STG IMS AKS - Warning Events, Kubernetes cluster STG IMS AKS\n",
+      );
+    });
+
+    test(`${createCase}: with the Configuration Item Column left blank, the case names its resources, and nothing else changes`, async () => {
+      const run: TemplateRun = await runNewTemplate({
+        templateId: createCase,
+        variables: VARIABLES,
+        setUp: (world: TemplateWorld): void => {
+          kind.add(world, {});
+        },
+        trigger: withMonitorAndCluster,
+        tool: dynamicsTool(undefined),
+      });
+      const columns: JSONObject = writes()[0]?.body as JSONObject;
+
+      expect(run.trace.failedSteps).toEqual([]);
+      expect(Object.keys(columns).sort()).toEqual(
+        [
+          "title",
+          "description",
+          "prioritycode",
+          "caseorigincode",
+          "casetypecode",
+          "customerid_account@odata.bind",
+          LINK_COLUMN,
+        ].sort(),
+      );
+      expect(JSON.stringify(columns)).not.toContain("{{");
+      expect(String(columns["description"])).toContain(
+        "Affected resources: monitor STG IMS AKS - Warning Events, Kubernetes cluster STG IMS AKS",
+      );
+    });
+
     test(`${updateCase}: resolving the ${kind.noun} closes its case with CloseIncident, as Problem Solved`, async () => {
       const run: TemplateRun = await outbound(updateCase, {
         record: { stateName: "Resolved" },

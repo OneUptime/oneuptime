@@ -14,8 +14,19 @@ import CloudConnectionService from "../../../../Server/Services/CloudConnectionS
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import MetricService from "../../../../Server/Services/MetricService";
 import { AssumedRoleCache } from "../../../../Server/Utils/CloudConnection/Aws/AwsSts";
-import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import {
+  CloudConnectionPullState,
+  CloudConnectionSettings,
+  GcpSplitUnranked,
+} from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
+import { getGcpSplitRankKey } from "../../../../Server/Utils/CloudConnection/Gcp/GcpCloudConnector";
+import {
+  AWS_CLOUDWATCH_UNITS,
+  AWS_UNIT_LOOK_BACK_DAYS,
+  pickAwsMetricUnit,
+} from "../../../../Server/Utils/CloudConnection/Aws/AwsCloudWatch";
 import CloudResourceMetrics, {
+  CLOUD_PUBLISHED_METRICS_UNIT_PROBES,
   CloudResourceMetricsDependencies,
   getAwsDefaultStatistic,
   getAwsDimensionsOfAttributes,
@@ -35,6 +46,7 @@ import {
   readCloudAddedMetrics,
   toStoredCloudAddedMetrics,
 } from "../../../../Types/Cloud/CloudAddedMetrics";
+import { getAwsDocumentedMetricUnit } from "../../../../Types/Cloud/AwsMetricUnits";
 import { CloudKeyMetricCondition } from "../../../../Types/Cloud/CloudKeyMetricCondition";
 import { AWS_KEY_METRICS } from "../../../../Types/Cloud/CloudKeyMetrics";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
@@ -48,6 +60,11 @@ import {
   CloudUnreportedKeyMetricReport,
   CloudUnreportedReason,
 } from "../../../../Types/Cloud/CloudUnreportedKeyMetrics";
+import {
+  CloudMetricCollectionState,
+  CloudMetricNotReadKind,
+  CloudResourceMetricCollection,
+} from "../../../../Types/Cloud/CloudResourceMetricCollection";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -63,6 +80,7 @@ import {
   FakeGcpLive,
   LIVE_ACCOUNT,
   awsJson,
+  awsJsonError,
   createFakeAwsLive,
   createFakeAzureLive,
   createFakeGcpLive,
@@ -212,6 +230,20 @@ const SITE_DEFINITIONS: Array<JSONObject> = [
   }),
   definition("Http3xx", { primaryAggregationType: "Total", unit: "Count" }),
   definition("InstanceSplit", { isDimensionRequired: true }),
+  // Read only split, by a dimension it lists (#9808): added split.
+  definition("Http406", {
+    primaryAggregationType: "Total",
+    unit: "Count",
+    isDimensionRequired: true,
+    dimensions: [{ value: "Instance", localizedValue: "Instance" }],
+  }),
+  definition("Gen0Collections", {
+    primaryAggregationType: "Total",
+    dimensions: [
+      { value: "Instance", localizedValue: "Instance" },
+      { value: "Bad Name", localizedValue: "Bad Name" },
+    ],
+  }),
   definition("DailyOnly", {
     metricAvailabilities: [{ timeGrain: "P1D", retention: "P93D" }],
   }),
@@ -355,7 +387,18 @@ describe("an Azure resource's metrics", () => {
         block: undefined,
       },
       {
+        name: "Gen0Collections",
+        status: CloudPublishedMetricStatus.Available,
+        block: undefined,
+      },
+      {
         name: "Http3xx",
+        status: CloudPublishedMetricStatus.Available,
+        block: undefined,
+      },
+      // Read only split, by a dimension it lists: added split (#9808).
+      {
+        name: "Http406",
         status: CloudPublishedMetricStatus.Available,
         block: undefined,
       },
@@ -382,6 +425,21 @@ describe("an Azure resource's metrics", () => {
     ]);
 
     const memory: CloudPublishedMetric = listing.metrics[0]!;
+    const of: (name: string) => CloudPublishedMetric = (
+      name: string,
+    ): CloudPublishedMetric => {
+      return listing.metrics.find((metric: CloudPublishedMetric) => {
+        return metric.name === name;
+      })!;
+    };
+
+    // Each dimension a split call can name, in its definition's words.
+    expect(of("Http406").splits).toEqual([{ name: "Instance" }]);
+    expect(of("Http406").isSplitRequired).toBe(true);
+    expect(of("Gen0Collections").splits).toEqual([{ name: "Instance" }]);
+    expect(of("Gen0Collections").isSplitRequired).toBeUndefined();
+    // Required, but no dimension listed: still cannot be added.
+    expect(of("InstanceSplit").splits).toBeUndefined();
 
     expect(memory).toEqual(
       expect.objectContaining({
@@ -561,47 +619,48 @@ describe("an AWS resource's metrics", () => {
     "resource.cloud.region": "us-east-1",
   };
 
-  function awsFake(): FakeAwsLive {
-    return createFakeAwsLive({
-      "monitoring:ListMetrics": () => {
-        return awsJson({
-          Metrics: [
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "SwapUsage",
-              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
-            },
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "CPUUtilization",
-              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
-            },
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "ReadThroughput",
-              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
-            },
-            // A split of the same database: not its own series.
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "SwapUsage",
-              Dimensions: [
-                { Name: "DBInstanceIdentifier", Value: "orders" },
-                { Name: "Role", Value: "WRITER" },
-              ],
-            },
-            {
-              Namespace: "AWS/RDS",
-              MetricName: "OnlyOnASplit",
-              Dimensions: [
-                { Name: "DBInstanceIdentifier", Value: "orders" },
-                { Name: "Role", Value: "WRITER" },
-              ],
-            },
+  // The database's metrics, as ListMetrics lists them over two weeks.
+  function listMetricsAnswer(): ReturnType<typeof awsJson> {
+    return awsJson({
+      Metrics: [
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "SwapUsage",
+          Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+        },
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "CPUUtilization",
+          Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+        },
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "ReadThroughput",
+          Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+        },
+        // A split of the same database: not its own series.
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "SwapUsage",
+          Dimensions: [
+            { Name: "DBInstanceIdentifier", Value: "orders" },
+            { Name: "Role", Value: "WRITER" },
           ],
-        });
-      },
+        },
+        {
+          Namespace: "AWS/RDS",
+          MetricName: "OnlyOnASplit",
+          Dimensions: [
+            { Name: "DBInstanceIdentifier", Value: "orders" },
+            { Name: "Role", Value: "WRITER" },
+          ],
+        },
+      ],
     });
+  }
+
+  function awsFake(): FakeAwsLive {
+    return createFakeAwsLive({ "monitoring:ListMetrics": listMetricsAnswer });
   }
 
   beforeEach(() => {
@@ -640,15 +699,126 @@ describe("an AWS resource's metrics", () => {
         return `${metric.name}:${metric.status}:${metric.aggregation}`;
       }),
     ).toEqual([
+      // Published only per Role (#9808): added split by it.
+      "OnlyOnASplit:available:Average",
       "ReadThroughput:available:Average",
       "SwapUsage:available:Average",
       "CPUUtilization:key:Average",
     ]);
-    expect(listing.metrics[1]!.dimensions).toEqual([
+    expect(listing.metrics[2]!.dimensions).toEqual([
       { name: "DBInstanceIdentifier", value: "orders" },
     ]);
     expect(listing.canEdit).toBe(false);
     expect(listing.azureMetricsInCall).toBeUndefined();
+  });
+
+  /*
+   * #9808: CloudWatch lists a metric's series of one dimension more than
+   * the resource's own - SwapUsage per Role - and the list offers each such
+   * dimension to split by, with how many values the resource has; one it
+   * publishes only so is added only split.
+   */
+  test("lists what each metric can be split by, its values now, and one it publishes only split", async () => {
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(awsFake().transport),
+      });
+    const of: (name: string) => CloudPublishedMetric = (
+      name: string,
+    ): CloudPublishedMetric => {
+      return listing.metrics.find((metric: CloudPublishedMetric) => {
+        return metric.name === name;
+      })!;
+    };
+
+    expect(of("SwapUsage").splits).toEqual([{ name: "Role", values: 1 }]);
+    expect(of("SwapUsage").isSplitRequired).toBeUndefined();
+    expect(of("OnlyOnASplit").splits).toEqual([{ name: "Role", values: 1 }]);
+    expect(of("OnlyOnASplit").isSplitRequired).toBe(true);
+    expect(of("ReadThroughput").splits).toBeUndefined();
+  });
+
+  test("adding one split keeps its split; a split it does not list, or none where one is needed, is refused", async () => {
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "OnlyOnASplit",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Resource,
+      splitBy: "Role",
+      dependencies: dependencies(awsFake().transport),
+    });
+
+    expect(result.added.splitBy).toBe("Role");
+    expect(result.added.dimensions).toEqual([
+      { name: "DBInstanceIdentifier", value: "orders" },
+    ]);
+    expect(savedAdditions()[0]!.splitBy).toBe("Role");
+
+    saved = [];
+
+    expect(
+      await refusalOf(() => {
+        return CloudResourceMetrics.add({
+          projectId: PROJECT,
+          cloudResourceId: RESOURCE,
+          props: { isRoot: true },
+          name: "OnlyOnASplit",
+          namespace: "AWS/RDS",
+          scope: CloudAddedMetricScope.Resource,
+          dependencies: dependencies(awsFake().transport),
+        });
+      }),
+    ).toBe(CLOUD_ADDED_METRIC_REFUSALS["splitRequired"]);
+    expect(
+      await refusalOf(() => {
+        return CloudResourceMetrics.add({
+          projectId: PROJECT,
+          cloudResourceId: RESOURCE,
+          props: { isRoot: true },
+          name: "SwapUsage",
+          namespace: "AWS/RDS",
+          scope: CloudAddedMetricScope.Resource,
+          splitBy: "AvailabilityZone",
+          dependencies: dependencies(awsFake().transport),
+        });
+      }),
+    ).toBe(CLOUD_ADDED_METRIC_REFUSALS["invalidSplit"]);
+    expect(saved).toHaveLength(0);
+  });
+
+  test("a metric added split learns its unit from a series of the split, where its own has none", async () => {
+    const fake: FakeAwsLive = awsFakeWithUnits({ OnlyOnASplit: "Count" });
+
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "OnlyOnASplit",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Resource,
+      splitBy: "Role",
+      dependencies: dependencies(fake.transport),
+    });
+    const probe: AwsLiveCall = fake.callsTo("monitoring:GetMetricData")[0]!;
+    const query: JSONObject = (
+      probe.json["MetricDataQueries"] as Array<JSONObject>
+    )[0]!;
+
+    expect(result.added.unit).toBe("Count");
+    expect(
+      ((query["MetricStat"] as JSONObject)["Metric"] as JSONObject)[
+        "Dimensions"
+      ],
+    ).toEqual([
+      { Name: "DBInstanceIdentifier", Value: "orders" },
+      { Name: "Role", Value: "WRITER" },
+    ]);
   });
 
   test("adding one for the resource keeps its account, Region and series", async () => {
@@ -674,6 +844,427 @@ describe("an AWS resource's metrics", () => {
         dimensions: [{ name: "DBInstanceIdentifier", value: "orders" }],
       }),
     );
+  });
+
+  /*
+   * #9809: CloudWatch answers a GetMetricData query that names a unit only
+   * with the data published with that unit, as here: each metric's
+   * datapoints carry the unit of `publishedWith`, a day's sample count a
+   * point over the fortnight asked.
+   */
+  function unitProbe(
+    publishedWith: Record<string, string | Array<[string, number]>>,
+  ): (call: AwsLiveCall) => ReturnType<typeof awsJson> {
+    return (call: AwsLiveCall) => {
+      const queries: Array<JSONObject> = call.json[
+        "MetricDataQueries"
+      ] as Array<JSONObject>;
+
+      return awsJson({
+        MetricDataResults: queries.map((query: JSONObject): JSONObject => {
+          const stat: JSONObject = query["MetricStat"] as JSONObject;
+          const name: string = String(
+            (stat["Metric"] as JSONObject)["MetricName"],
+          );
+          const published: string | Array<[string, number]> | undefined =
+            publishedWith[name];
+          const units: Array<[string, number]> =
+            typeof published === "string"
+              ? [[published, 1440]]
+              : published || [];
+          const samples: number =
+            units.find((entry: [string, number]): boolean => {
+              return entry[0] === stat["Unit"];
+            })?.[1] || 0;
+
+          return {
+            Id: query["Id"],
+            Label: name,
+            StatusCode: "Complete",
+            Timestamps: samples ? [1763337600, 1763424000] : [],
+            Values: samples ? [samples, samples] : [],
+          };
+        }),
+      });
+    };
+  }
+
+  function awsFakeWithUnits(
+    publishedWith: Record<string, string | Array<[string, number]>>,
+  ): FakeAwsLive {
+    return createFakeAwsLive({
+      "monitoring:ListMetrics": listMetricsAnswer,
+      "monitoring:GetMetricData": unitProbe(publishedWith),
+    });
+  }
+
+  test("adding one learns its unit from its datapoints: one GetMetricData call, a query per CloudWatch unit, on its own series", async () => {
+    const fake: FakeAwsLive = awsFakeWithUnits({ SwapUsage: "Bytes" });
+
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "SwapUsage",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Resource,
+      dependencies: dependencies(fake.transport),
+    });
+    const probes: Array<AwsLiveCall> = fake.callsTo("monitoring:GetMetricData");
+
+    expect(result.added.unit).toBe("Bytes");
+    expect(savedAdditions()[0]!.unit).toBe("Bytes");
+    expect(probes).toHaveLength(1);
+    expect(probes[0]!.region).toBe("us-east-1");
+
+    const queries: Array<JSONObject> = probes[0]!.json[
+      "MetricDataQueries"
+    ] as Array<JSONObject>;
+
+    expect(
+      queries.map((query: JSONObject): unknown => {
+        return (query["MetricStat"] as JSONObject)["Unit"];
+      }),
+    ).toEqual([...AWS_CLOUDWATCH_UNITS]);
+
+    for (const query of queries) {
+      const stat: JSONObject = query["MetricStat"] as JSONObject;
+
+      expect(stat["Stat"]).toBe("SampleCount");
+      expect(stat["Period"]).toBe(86400);
+      expect(stat["Metric"]).toEqual({
+        Namespace: "AWS/RDS",
+        MetricName: "SwapUsage",
+        Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+      });
+    }
+
+    // The fortnight ListMetrics lists a quiet metric for, up to now.
+    expect(probes[0]!.json["EndTime"]).toBe(NOW.getTime() / 1000);
+    expect(probes[0]!.json["StartTime"]).toBe(
+      NOW.getTime() / 1000 - AWS_UNIT_LOOK_BACK_DAYS * 86400,
+    );
+  });
+
+  test("a type's addition learns its unit from the series of the resource it is added from", async () => {
+    const fake: FakeAwsLive = awsFakeWithUnits({
+      ReadThroughput: "Bytes/Second",
+    });
+
+    const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      name: "ReadThroughput",
+      namespace: "AWS/RDS",
+      scope: CloudAddedMetricScope.Type,
+      dependencies: dependencies(fake.transport),
+    });
+
+    expect(result.added.unit).toBe("Bytes/Second");
+    expect(result.added.dimensions).toBeUndefined();
+  });
+
+  test("a metric published with two units is kept with the one of most samples", () => {
+    expect(
+      pickAwsMetricUnit([
+        { id: "u14", timestamps: [1, 2], values: [3, 2] },
+        { id: "u26", timestamps: [1], values: [1440] },
+        { id: "u3", timestamps: [], values: [] },
+      ]),
+    ).toBe("None");
+    expect(
+      pickAwsMetricUnit([
+        { id: "u14", timestamps: [1, 2], values: [700, 800] },
+        { id: "u26", timestamps: [1], values: [1440] },
+      ]),
+    ).toBe("Count");
+    // Nothing published, or answers that are no probe's.
+    expect(pickAwsMetricUnit([])).toBe("");
+    expect(
+      pickAwsMetricUnit([
+        { id: "u3", timestamps: [1], values: [0] },
+        { id: "q0", timestamps: [1], values: [5] },
+        { id: "u99", timestamps: [1], values: [5] },
+      ]),
+    ).toBe("");
+  });
+
+  test("no datapoints in a fortnight, or a probe the role refuses: added all the same, with the unit AWS documents or none", async () => {
+    for (const probe of [
+      unitProbe({}),
+      (): ReturnType<typeof awsJson> => {
+        return awsJsonError(400, "AccessDenied", "not authorized");
+      },
+    ]) {
+      saved = [];
+
+      const fake: FakeAwsLive = createFakeAwsLive({
+        "monitoring:ListMetrics": listMetricsAnswer,
+        "monitoring:GetMetricData": probe,
+      });
+
+      const swap: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        name: "SwapUsage",
+        namespace: "AWS/RDS",
+        scope: CloudAddedMetricScope.Resource,
+        dependencies: dependencies(fake.transport),
+      });
+
+      expect(swap.added.unit).toBe(
+        getAwsDocumentedMetricUnit("AWS/RDS", "SwapUsage"),
+      );
+      expect(savedAdditions()).toHaveLength(1);
+    }
+  });
+
+  test("the list says each metric's unit: an addition's as it was kept, a key metric's from the catalog, any other's as AWS documents it", async () => {
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics([
+        added({
+          provider: CloudProvider.AWS,
+          resourceType: "AWS::RDS::DBInstance",
+          namespace: "AWS/RDS",
+          name: "SwapUsage",
+          aggregation: "Average",
+          grain: undefined,
+          unit: "Bytes",
+        }),
+      ]) as never,
+    });
+
+    const fake: FakeAwsLive = awsFakeWithUnits({});
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+    const unitOf: (name: string) => string = (name: string): string => {
+      return (
+        listing.metrics.find((metric: CloudPublishedMetric): boolean => {
+          return metric.name === name;
+        })?.unit ?? "missing"
+      );
+    };
+
+    expect(unitOf("SwapUsage")).toBe("Bytes");
+    expect(unitOf("CPUUtilization")).toBe("Percent");
+    expect(unitOf("ReadThroughput")).toBe(
+      getAwsDocumentedMetricUnit("AWS/RDS", "ReadThroughput"),
+    );
+    // An addition with its unit is never asked again.
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(0);
+    expect(saved).toHaveLength(0);
+  });
+
+  test("an addition kept with no unit is asked again when it is listed, and kept with the unit its datapoints now carry", async () => {
+    const swap: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "SwapUsage",
+      aggregation: "Average",
+      grain: undefined,
+      unit: "",
+    });
+    const other: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "BinLogDiskUsage",
+      aggregation: "Average",
+      grain: undefined,
+      unit: "",
+    });
+
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics([swap, other]) as never,
+    });
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+
+    const fake: FakeAwsLive = awsFakeWithUnits({ SwapUsage: "Bytes" });
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+
+    expect(
+      listing.metrics.find((metric: CloudPublishedMetric): boolean => {
+        return metric.name === "SwapUsage";
+      })?.unit,
+    ).toBe("Bytes");
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(1);
+    // Kept with it; the other addition, not listed for this resource, as it was.
+    expect(
+      savedAdditions().map((metric: CloudAddedMetric): string => {
+        return `${metric.name}:${metric.unit}`;
+      }),
+    ).toEqual(["SwapUsage:Bytes", "BinLogDiskUsage:"]);
+  });
+
+  test("a listing asks the unit of two additions at most", async () => {
+    const names: Array<string> = ["SwapUsage", "ReadThroughput", "OtherOne"];
+
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics(
+        names.map((name: string): CloudAddedMetric => {
+          return added({
+            provider: CloudProvider.AWS,
+            resourceType: "AWS::RDS::DBInstance",
+            namespace: "AWS/RDS",
+            name,
+            aggregation: "Average",
+            grain: undefined,
+            unit: "",
+          });
+        }),
+      ) as never,
+    });
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+
+    const fake: FakeAwsLive = createFakeAwsLive({
+      "monitoring:ListMetrics": () => {
+        return awsJson({
+          Metrics: names.map((name: string): JSONObject => {
+            return {
+              Namespace: "AWS/RDS",
+              MetricName: name,
+              Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+            };
+          }),
+        });
+      },
+      "monitoring:GetMetricData": unitProbe({
+        SwapUsage: "Bytes",
+        ReadThroughput: "Bytes/Second",
+        OtherOne: "Count",
+      }),
+    });
+
+    await CloudResourceMetrics.listPublished({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+      canEdit: true,
+      dependencies: dependencies(fake.transport),
+    });
+
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(
+      CLOUD_PUBLISHED_METRICS_UNIT_PROBES,
+    );
+    expect(
+      savedAdditions().filter((metric: CloudAddedMetric): boolean => {
+        return Boolean(metric.unit);
+      }),
+    ).toHaveLength(CLOUD_PUBLISHED_METRICS_UNIT_PROBES);
+  });
+
+  /*
+   * #10077: the reads learn an addition's unit from its datapoints and keep
+   * it in the account's read state, so the listing shows it, and asks
+   * nothing of an addition whose unit a read learned - an organization's
+   * account's in its own state.
+   */
+  test("a unit the reads learned is the one listed, and the listing asks nothing more of it", async () => {
+    const swap: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "SwapUsage",
+      aggregation: "Average",
+      grain: undefined,
+      // Kept with none when it was added: nothing published in the fortnight.
+      unit: "",
+    });
+    const burst: CloudAddedMetric = added({
+      provider: CloudProvider.AWS,
+      resourceType: "AWS::RDS::DBInstance",
+      namespace: "AWS/RDS",
+      name: "BurstBalance",
+      aggregation: "Average",
+      grain: undefined,
+      // Kept with one; the reads found the publisher sends another now.
+      unit: "Percent",
+    });
+
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      addedMetrics: toStoredCloudAddedMetrics([swap, burst]) as never,
+      pullState: {
+        accountStates: {
+          [LIVE_ACCOUNT]: {
+            awsAddedMetricUnits: {
+              [swap.key]: { unit: "Bytes", checkedAt: NOW.toISOString() },
+              [burst.key]: { unit: "Count", checkedAt: NOW.toISOString() },
+            },
+          },
+        },
+      } as never,
+    });
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockImplementation((async () => {
+        return connection;
+      }) as never);
+
+    const fake: FakeAwsLive = createFakeAwsLive({
+      "monitoring:ListMetrics": () => {
+        return awsJson({
+          Metrics: ["SwapUsage", "BurstBalance"].map(
+            (name: string): JSONObject => {
+              return {
+                Namespace: "AWS/RDS",
+                MetricName: name,
+                Dimensions: [{ Name: "DBInstanceIdentifier", Value: "orders" }],
+              };
+            },
+          ),
+        });
+      },
+      "monitoring:GetMetricData": unitProbe({ SwapUsage: "Kilobytes" }),
+    });
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+    const unitOf: (name: string) => string | undefined = (
+      name: string,
+    ): string | undefined => {
+      return listing.metrics.find((metric: CloudPublishedMetric): boolean => {
+        return metric.name === name;
+      })?.unit;
+    };
+
+    expect(unitOf("SwapUsage")).toBe("Bytes");
+    expect(unitOf("BurstBalance")).toBe("Count");
+    // Learned by the reads: no listing probe, nothing saved again.
+    expect(fake.callsTo("monitoring:GetMetricData")).toHaveLength(0);
+    expect(savedAdditions()).toHaveLength(0);
   });
 
   test("a resource whose dimensions are not known yet is not listed", async () => {
@@ -840,6 +1431,78 @@ describe("a Google Cloud resource's metrics", () => {
     ]);
   });
 
+  /*
+   * #10164: a split its connection's reads found PromQL cannot rank says
+   * so, with what the hour's list returned of each resource, so its cost
+   * counts the learning's every value.
+   */
+  test("a split its reads found PromQL cannot rank says so, with what the hour's list returns of a resource", async () => {
+    const METRIC: string =
+      "cloudsql.googleapis.com/database/postgresql/statements_executed_count";
+    const unranked: GcpSplitUnranked = {
+      at: new Date().toISOString(),
+      projectId: "acme-prod",
+      metricType: METRIC,
+      aligner: "ALIGN_RATE",
+      label: "operation_type",
+      valuesPerResource: 42,
+    };
+
+    // The reads' own state, kept on the row as CloudConnectionPullRunner keeps it.
+    const pullState: CloudConnectionPullState = {
+      gcpSplitUnranked: { [getGcpSplitRankKey(unranked)]: unranked },
+    };
+
+    connection = connectionRow({
+      provider: CloudProvider.GCP,
+      pullState: pullState as unknown as JSONObject,
+    });
+
+    const fake: FakeGcpLive = createFakeGcpLive({
+      monitoring: (url: URL) => {
+        if (!url.pathname.endsWith("/metricDescriptors")) {
+          return json({ timeSeries: [] });
+        }
+
+        return json({
+          metricDescriptors: [
+            descriptor(METRIC, {
+              metricKind: "DELTA",
+              labels: [
+                { key: "operation_type", valueType: "STRING" },
+                { key: "user_name", valueType: "STRING" },
+              ],
+            }),
+          ],
+        });
+      },
+    });
+
+    const listing: CloudPublishedMetricsListing =
+      await CloudResourceMetrics.listPublished({
+        projectId: PROJECT,
+        cloudResourceId: RESOURCE,
+        props: { isRoot: true },
+        canEdit: true,
+        dependencies: dependencies(fake.transport),
+      });
+    const listed: CloudPublishedMetric | undefined = listing.metrics.find(
+      (metric: CloudPublishedMetric): boolean => {
+        return metric.name === METRIC;
+      },
+    );
+
+    expect(listed?.splits).toEqual([
+      {
+        name: "operation_type",
+        isLearnedFromEveryValue: true,
+        learnedValuesPerResource: 42,
+      },
+      // Another label of it: PromQL was never refused by it.
+      { name: "user_name" },
+    ]);
+  });
+
   test("adding one for the resource keeps its project and identifying labels", async () => {
     const result: { added: CloudAddedMetric } = await CloudResourceMetrics.add({
       projectId: PROJECT,
@@ -968,6 +1631,58 @@ describe("what refuses a listing", () => {
     );
   });
 });
+
+const EARLIER_TODAY: string = "2026-11-19T10:00:00.000Z";
+const TOMORROW: string = "2026-11-20T12:00:00.000Z";
+
+// A connection's last read as its summary keeps it.
+function readSummary(status: "success" | "partial" | "failed"): JSONObject {
+  return {
+    status,
+    accounts: [],
+    resourceCount: 1,
+    resourceTypes: [],
+    regions: [],
+    newResources: 0,
+    archivedResources: 0,
+    pointsWritten: 0,
+    changesRecorded: 0,
+    requestCount: 1,
+    warnings: [],
+    durationMs: 1,
+    finishedAt: NOW.toISOString(),
+  };
+}
+
+function explainKeys(
+  keys: Array<string>,
+): Promise<Array<CloudUnreportedKeyMetricReport>> {
+  return CloudResourceMetrics.explainUnreported({
+    projectId: PROJECT,
+    cloudResourceId: RESOURCE,
+    props: { isRoot: true },
+    keys,
+    dependencies: {
+      now: () => {
+        return NOW;
+      },
+      findLastReported: async () => {
+        return new Map<string, Date>();
+      },
+    },
+  });
+}
+
+function reasonsOf(
+  reports: Array<CloudUnreportedKeyMetricReport>,
+  key: string,
+): CloudUnreportedKeyMetricReport["reasons"] {
+  return (
+    reports.find((report: CloudUnreportedKeyMetricReport): boolean => {
+      return report.key === key;
+    })?.reasons || []
+  );
+}
 
 describe("why key metrics were not reported", () => {
   test("since when each last reported, never when the look-back holds the resource's whole life, and the reasons OneUptime knows", async () => {
@@ -1200,6 +1915,257 @@ describe("why key metrics were not reported", () => {
       }),
     ).toEqual([]);
     expect(asked).toBe(0);
+  });
+
+  test("what the last read could not read of an Azure resource says why, in Azure's words: a metric it does not serve, one it was too busy for (#10291)", async () => {
+    resource = resourceRow({
+      cloudResourceType: "Microsoft.Compute/virtualMachines",
+      telemetryAttributes: { "azuremonitor.resource_id": SITE },
+    });
+    connection = connectionRow({
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            metrics: {
+              "available memory bytes": {
+                name: "Available Memory Bytes",
+                kind: CloudMetricNotReadKind.Throttled,
+                error:
+                  "Query was throttled with reason: ServerBusy. Too many queries are in flight.",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+              },
+              "percentage cpu": {
+                name: "Percentage CPU",
+                kind: CloudMetricNotReadKind.Unsupported,
+                error: "Sampling type is not found.",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+                until: TOMORROW,
+              },
+            },
+          },
+        },
+      },
+      lastPullResult: readSummary("partial"),
+    });
+
+    const reports: Array<CloudUnreportedKeyMetricReport> = await explainKeys([
+      "available memory bytes",
+      "percentage cpu",
+    ]);
+
+    expect(reasonsOf(reports, "available memory bytes")[0]).toEqual({
+      reason: CloudUnreportedReason.CloudBusy,
+      error:
+        "Query was throttled with reason: ServerBusy. Too many queries are in flight.",
+      since: EARLIER_TODAY,
+    });
+    expect(reasonsOf(reports, "percentage cpu")[0]).toEqual({
+      reason: CloudUnreportedReason.NotServed,
+      error: "Sampling type is not found.",
+      since: EARLIER_TODAY,
+      until: TOMORROW,
+    });
+  });
+
+  test("an Azure resource none of whose calls was answered says so of each of its metrics, with Azure's words and since when; a failed read says only that", async () => {
+    resource = resourceRow({
+      cloudResourceType: "Microsoft.Compute/virtualMachines",
+      telemetryAttributes: { "azuremonitor.resource_id": SITE },
+    });
+    connection = connectionRow({
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            failed: {
+              error: "Azure metrics request failed with HTTP 529: busy",
+              since: EARLIER_TODAY,
+              at: NOW.toISOString(),
+            },
+          },
+        },
+      },
+      lastPullResult: readSummary("partial"),
+    });
+
+    expect(
+      reasonsOf(await explainKeys(["percentage cpu"]), "percentage cpu")[0],
+    ).toEqual({
+      reason: CloudUnreportedReason.ReadFailed,
+      fix: "cloud-connect",
+      error: "Azure metrics request failed with HTTP 529: busy",
+      since: EARLIER_TODAY,
+    });
+
+    // The connection's last read failed as a whole: that, not an older read's news.
+    connection.lastPullResult = readSummary("failed");
+
+    expect(
+      reasonsOf(await explainKeys(["percentage cpu"]), "percentage cpu")[0],
+    ).toEqual({
+      reason: CloudUnreportedReason.ReadFailed,
+      fix: "cloud-connect",
+    });
+  });
+});
+
+describe("how an Azure resource's metrics were collected (#10291)", () => {
+  const collect: () => Promise<CloudResourceMetricCollection | null> = () => {
+    return CloudResourceMetrics.collectionOf({
+      projectId: PROJECT,
+      cloudResourceId: RESOURCE,
+      props: { isRoot: true },
+    });
+  };
+
+  test("read in full: when its connection last read it", async () => {
+    resource = resourceRow();
+    connection = connectionRow({ lastPullResult: readSummary("success") });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Collected,
+      lastReadAt: NOW.toISOString(),
+      metrics: [],
+    });
+  });
+
+  test("some of its metrics not read: each, what will not pass first, in Azure's words", async () => {
+    resource = resourceRow();
+    connection = connectionRow({
+      lastPullResult: readSummary("partial"),
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            metrics: {
+              cpupercentage: {
+                name: "CpuPercentage",
+                kind: CloudMetricNotReadKind.Throttled,
+                error: "ServerBusy",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+              },
+              bytehitratio: {
+                name: "ByteHitRatio",
+                kind: CloudMetricNotReadKind.Unsupported,
+                error: "Sampling type is not found.",
+                since: EARLIER_TODAY,
+                at: NOW.toISOString(),
+                until: TOMORROW,
+              },
+            },
+          },
+          // Another resource's: none of this one's.
+          "/subscriptions/other/resource": {
+            failed: {
+              error: "x",
+              since: EARLIER_TODAY,
+              at: NOW.toISOString(),
+            },
+          },
+        },
+      },
+    });
+
+    const collection: CloudResourceMetricCollection | null = await collect();
+
+    expect(collection?.state).toBe(CloudMetricCollectionState.Partial);
+    expect(collection?.lastReadAt).toBe(NOW.toISOString());
+    expect(
+      collection?.metrics.map((metric: { name: string }): string => {
+        return metric.name;
+      }),
+    ).toEqual(["ByteHitRatio", "CpuPercentage"]);
+    expect(collection?.metrics[0]).toEqual({
+      name: "ByteHitRatio",
+      kind: CloudMetricNotReadKind.Unsupported,
+      error: "Sampling type is not found.",
+      since: EARLIER_TODAY,
+      at: NOW.toISOString(),
+      until: TOMORROW,
+    });
+  });
+
+  test("none of it read: since when, and why", async () => {
+    resource = resourceRow();
+    connection = connectionRow({
+      lastPullResult: readSummary("partial"),
+      pullState: {
+        azureMetricStatus: {
+          [SITE.toLowerCase()]: {
+            failed: {
+              error: "Azure metrics request failed with HTTP 529: busy",
+              since: EARLIER_TODAY,
+              at: NOW.toISOString(),
+            },
+          },
+        },
+      },
+    });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Failed,
+      lastReadAt: null,
+      failedSince: EARLIER_TODAY,
+      error: "Azure metrics request failed with HTTP 529: busy",
+      metrics: [],
+    });
+  });
+
+  test("its connection's last read failed: the connection's error, and its last good read", async () => {
+    resource = resourceRow();
+    connection = connectionRow({
+      lastPullResult: readSummary("failed"),
+      lastError: "The app's client secret has expired.",
+      lastSuccessfulPullAt: new Date(EARLIER_TODAY),
+    });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Failed,
+      lastReadAt: EARLIER_TODAY,
+      error: "The app's client secret has expired.",
+      metrics: [],
+    });
+  });
+
+  test("never read, or found after the last read: its first read is to come; its connection off: not read", async () => {
+    resource = resourceRow();
+    connection = connectionRow();
+
+    expect((await collect())?.state).toBe(CloudMetricCollectionState.Waiting);
+
+    resource = resourceRow({ createdAt: new Date(NOW.getTime() + 60000) });
+    connection = connectionRow({ lastPullResult: readSummary("success") });
+
+    expect((await collect())?.state).toBe(CloudMetricCollectionState.Waiting);
+
+    connection = connectionRow({
+      isEnabled: false,
+      lastPullResult: readSummary("success"),
+    });
+
+    expect(await collect()).toEqual({
+      state: CloudMetricCollectionState.Off,
+      lastReadAt: null,
+      metrics: [],
+    });
+  });
+
+  test("another cloud's resource, or one no connection reads: nothing to say", async () => {
+    resource = resourceRow({
+      cloudProvider: CloudProvider.AWS,
+      cloudResourceType: "AWS::EC2::Instance",
+    });
+    connection = connectionRow({
+      provider: CloudProvider.AWS,
+      lastPullResult: readSummary("success"),
+    });
+
+    expect(await collect()).toBeNull();
+
+    resource = resourceRow({ cloudConnectionId: undefined });
+
+    expect(await collect()).toBeNull();
   });
 });
 

@@ -9,17 +9,24 @@ import AppLink from "../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../Components/MonitorStatus/MonitorStatusElement";
 import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import ImportSitesFromCsvModal from "../../Components/NetworkSite/ImportSitesFromCsvModal";
+import DeleteEmptySitesModal from "../../Components/NetworkSite/DeleteEmptySitesModal";
+import { DELETE_EMPTY_SITES_ACTION } from "../../Components/NetworkSite/DeleteEmptySitesWords";
 import SiteCoordinates from "../../Components/NetworkSite/SiteCoordinates";
 import {
   fetchAllNetworkSiteTypeOptions,
   fetchParentNetworkSiteOptions,
 } from "../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import SiteHierarchyTree from "../../Components/NetworkSite/SiteHierarchyTree";
+import useBulkParentSiteActions from "../../Components/NetworkSite/useBulkParentSiteActions";
+import useBulkDefaultProbeActions from "../../Components/NetworkSite/useBulkDefaultProbeActions";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import SiteSummaryCards from "../../Components/NetworkSite/SiteSummaryCards";
 import {
+  SITE_LABELS_FIELD_DESCRIPTION,
   SITE_MORE_FIELDS,
   SITE_TYPE_FIELD_DESCRIPTION,
 } from "./SiteFormSections";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import { getDeviceListRouteForFacet } from "../../Components/NetworkDevice/DeviceListFacetRoute";
 import {
   SITE_SUMMARY_TILES,
@@ -54,6 +61,8 @@ import {
 import Route from "Common/Types/API/Route";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import NetworkSiteOwnerTeam from "Common/Models/DatabaseModels/NetworkSiteOwnerTeam";
+import NetworkSiteOwnerUser from "Common/Models/DatabaseModels/NetworkSiteOwnerUser";
 import NetworkSnmpCredentialProfile from "Common/Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
@@ -66,11 +75,19 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -109,6 +126,18 @@ const NetworkSites: FunctionComponent<
     useRef<boolean>(false);
 
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
+  const [showDeleteEmptySites, setShowDeleteEmptySites] =
+    useState<boolean>(false);
+
+  /*
+   * Delete Empty Sites, for who may delete sites: hundreds of sites with
+   * nothing in them, left by an add of Meraki devices that could add none
+   * (#10188), go in one confirmation instead of one by one.
+   */
+  const deleteGate: PermissionGateResult = PermissionGate.check(
+    new NetworkSite(),
+    ModelAction.Delete,
+  );
 
   /*
    * The chips above the table. Built once — every option list is fetched by the
@@ -360,6 +389,9 @@ const NetworkSites: FunctionComponent<
   }, []);
 
   const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
     filterBar,
     emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
@@ -370,12 +402,51 @@ const NetworkSites: FunctionComponent<
     facetSaveState,
     restoreFacetState,
   } = useResourceOwners<NetworkSite>({
-    // Sites have neither owners nor labels — no junction models, no labels column.
-    showOwnerFacet: false,
-    showLabelsFacet: false,
+    /*
+     * The Owner and Labels chips (#10188), with the columns that explain
+     * them, hidden by default so the list still fits a laptop's width: 700
+     * stores a Meraki import added are found by who owns them and by their
+     * labels, and selected so, all of them at once.
+     */
+    ownerUserModelType: NetworkSiteOwnerUser,
+    ownerTeamModelType: NetworkSiteOwnerTeam,
+    resourceIdField: "networkSiteId",
+    showLabelsFacet: true,
     extraFacets: siteFacets,
     persistKey: NETWORK_SITES_TABLE_ID,
   });
+
+  /*
+   * BULK ACTIONS (#10188): what a Meraki import's hundreds of sites are
+   * placed and set up by, a selection at a time - every page of it, with
+   * Select All. Set and Clear Parent Site, Set and Clear Default Probe, Add
+   * and Remove Labels and Add and Remove Owner, as the device list offers
+   * its own; Delete is ModelTable's, for who may delete sites.
+   */
+  const { bulkActions: parentSiteBulkActions, modals: parentSiteModals } =
+    useBulkParentSiteActions({
+      // The hierarchy and the summary cards read the moved sites again.
+      onDone: () => {
+        setRefreshToggle(Date.now().toString());
+      },
+    });
+
+  const { bulkActions: defaultProbeBulkActions, modals: defaultProbeModals } =
+    useBulkDefaultProbeActions();
+
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<NetworkSite>({
+      modelType: NetworkSite,
+      // Several at once: a site's labels are read by nothing its siblings share.
+      concurrency: BULK_ACTION_CONCURRENCY,
+    });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<NetworkSite>({
+      ownerUserModelType: NetworkSiteOwnerUser,
+      ownerTeamModelType: NetworkSiteOwnerTeam,
+      resourceIdField: "networkSiteId",
+    });
 
   type OnSummaryTileClickFunction = (
     tile: SiteSummaryTile,
@@ -471,6 +542,17 @@ const NetworkSites: FunctionComponent<
       <ModelTable<NetworkSite>
         refreshToggle={refreshToggle}
         query={mergeFiltersIntoQuery(BASE_SITE_QUERY)}
+        onFetchSuccess={(data: Array<NetworkSite>) => {
+          onResourcesFetched(data);
+        }}
+        bulkActions={{
+          buttons: [
+            ...parentSiteBulkActions,
+            ...defaultProbeBulkActions,
+            ...labelBulkActions,
+            ...ownerBulkActions,
+          ],
+        }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         topContent={filterBar}
@@ -522,6 +604,18 @@ const NetworkSites: FunctionComponent<
                 setShowImportModal(true);
               },
             } as CardButtonSchema,
+            ...(deleteGate.isAllowed
+              ? [
+                  {
+                    title: DELETE_EMPTY_SITES_ACTION,
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    icon: IconProp.Trash,
+                    onClick: () => {
+                      setShowDeleteEmptySites(true);
+                    },
+                  } as CardButtonSchema,
+                ]
+              : []),
           ],
         }}
         showViewIdButton={true}
@@ -666,6 +760,11 @@ const NetworkSites: FunctionComponent<
             required: false,
             placeholder: "-89.6501",
           },
+          getLabelsFormField<NetworkSite>({
+            stepId: "site-details",
+            collapsibleSection: SITE_MORE_FIELDS,
+            description: SITE_LABELS_FIELD_DESCRIPTION,
+          }),
           {
             field: {
               parentSite: true,
@@ -854,9 +953,51 @@ const NetworkSites: FunctionComponent<
             type: FieldType.DateTime,
             hideOnMobile: true,
           },
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            hideOnMobile: true,
+            // Hidden by default: the Labels chip above and Customize Columns have it.
+            isHiddenByDefault: true,
+            getElement: (item: NetworkSite): ReactElement => {
+              return <LabelsElement labels={item.labels || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            // Hidden by default like Labels: the Owner chip above still has it.
+            isHiddenByDefault: true,
+            getElement: (item: NetworkSite): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
         selectMoreFields={{
           longitude: true,
+          /*
+           * What the bulk actions judge a site by, every page of a Select
+           * All too: whether it is under a site already, has a type to sit
+           * under one, and has a default probe.
+           */
+          parentSiteId: true,
+          networkSiteTypeId: true,
+          probeId: true,
         }}
         onViewPage={(item: NetworkSite): Promise<Route> => {
           return Promise.resolve(
@@ -871,6 +1012,23 @@ const NetworkSites: FunctionComponent<
           );
         }}
       />
+
+      {parentSiteModals}
+      {defaultProbeModals}
+      {labelBulkActionModals}
+      {ownerBulkActionModals}
+
+      {showDeleteEmptySites && (
+        <DeleteEmptySitesModal
+          onClose={() => {
+            setShowDeleteEmptySites(false);
+          }}
+          onDeleted={() => {
+            // The list, the summary cards and the hierarchy read again.
+            setRefreshToggle(Date.now().toString());
+          }}
+        />
+      )}
 
       {showImportModal && (
         <ImportSitesFromCsvModal

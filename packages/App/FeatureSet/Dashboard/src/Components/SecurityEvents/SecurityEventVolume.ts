@@ -105,6 +105,13 @@ export function buildSecurityEventVolumeAggregateBy(data: {
   query: Query<SecurityEvent>;
   startDate: Date;
   endDate: Date;
+  /*
+   * The zone the window's days are the reader's in
+   * (AggregationIntervalUtil.getReaderTimezone of the window): undefined
+   * for buckets of an hour and shorter, and for a zone the Timezone list
+   * does not hold, which keep UTC's grid.
+   */
+  timezone?: Timezone | undefined;
 }): AggregateBy<SecurityEvent> {
   return {
     query: data.query,
@@ -114,11 +121,13 @@ export function buildSecurityEventVolumeAggregateBy(data: {
     startTimestamp: data.startDate,
     endTimestamp: data.endDate,
     /*
-     * UTC's days: buildSecurityEventVolume lays a Day window out on the
-     * epoch grid (GRID_ALIGNED_INTERVALS) and snaps each row onto it, so
-     * its buckets must start where that grid does.
+     * The reader's days (#7923): a day bucket starts at their midnight, and
+     * buildSecurityEventVolume lays the window's days out on the same
+     * calendar, so every row lands on the day it was counted in. UTC's when
+     * the window's buckets are an hour or shorter (the same instants
+     * everywhere) or the reader's zone is not on the list.
      */
-    timezone: Timezone.UTC,
+    timezone: data.timezone || Timezone.UTC,
     groupBy: { severityName: true },
     // Eight severities over at most a few hundred buckets fits many times over.
     limit: LIMIT_PER_PROJECT,
@@ -171,6 +180,12 @@ export interface SecurityEventVolume {
   buckets: Array<HistogramBucket>;
   interval: AggregationInterval;
   intervalMs: number;
+  /*
+   * The zone the day buckets were cut in, for a window of days: a day the
+   * clocks change on is 23 or 25 hours long, and a click on its bar zooms
+   * to its next midnight there (#7923). Unset for every other interval.
+   */
+  bucketTimezone?: Timezone | undefined;
   total: number;
   // Severities with at least one event, in SECURITY_EVENT_VOLUME_SEVERITIES order.
   countsBySeverity: Array<SecurityEventSeverityCount>;
@@ -198,6 +213,8 @@ export function buildSecurityEventVolume(data: {
   rows: Array<AggregatedModel>;
   startDate: Date;
   endDate: Date;
+  // The zone the aggregate was asked to cut its days in, if any.
+  timezone?: Timezone | undefined;
 }): SecurityEventVolume {
   const interval: AggregationInterval = intervalForWindow(
     data.startDate,
@@ -206,14 +223,34 @@ export function buildSecurityEventVolume(data: {
   const intervalMs: number =
     AggregationIntervalUtil.getAggregationIntervalMs(interval);
   const isGridAligned: boolean = GRID_ALIGNED_INTERVALS.includes(interval);
+  /*
+   * A day is the reader's, laid out on their calendar: from their midnight,
+   * 23 or 25 hours where the clocks change. UTC's without a zone.
+   */
+  const dayTimezone: Timezone | undefined =
+    interval === AggregationInterval.Day
+      ? data.timezone || Timezone.UTC
+      : undefined;
 
   const snap: (ms: number) => number = (ms: number): number => {
     return isGridAligned
       ? AggregationIntervalUtil.floorDateToIntervalGrid(
           new Date(ms),
           interval,
+          dayTimezone,
         ).getTime()
       : ms;
+  };
+
+  // The slot after `slot`: the next midnight for a day, a step for the rest.
+  const nextSlot: (slot: number) => number = (slot: number): number => {
+    return dayTimezone
+      ? AggregationIntervalUtil.getBucketEnd({
+          bucketStart: new Date(slot),
+          interval: AggregationInterval.Day,
+          timezone: dayTimezone,
+        }).getTime()
+      : slot + intervalMs;
   };
 
   // bucket start (ms) -> severity -> count
@@ -254,21 +291,16 @@ export function buildSecurityEventVolume(data: {
   const slots: Set<number> = new Set<number>(countsBySlot.keys());
 
   if (isGridAligned) {
-    const firstSlot: number = snap(data.startDate.getTime());
     const endMs: number = data.endDate.getTime();
+    let slot: number = snap(data.startDate.getTime());
 
     for (
       let index: number = 0;
-      index < MAX_SECURITY_EVENT_VOLUME_SLOTS;
+      index < MAX_SECURITY_EVENT_VOLUME_SLOTS && slot <= endMs;
       index++
     ) {
-      const slot: number = firstSlot + index * intervalMs;
-
-      if (slot > endMs) {
-        break;
-      }
-
       slots.add(slot);
+      slot = nextSlot(slot);
     }
   }
 
@@ -317,6 +349,7 @@ export function buildSecurityEventVolume(data: {
     buckets: buckets,
     interval: interval,
     intervalMs: intervalMs,
+    ...(dayTimezone ? { bucketTimezone: dayTimezone } : {}),
     total: total,
     countsBySeverity: countsBySeverity,
   };
@@ -326,10 +359,12 @@ export function buildSecurityEventVolumeFromResult(data: {
   result: AggregatedResult;
   startDate: Date;
   endDate: Date;
+  timezone?: Timezone | undefined;
 }): SecurityEventVolume {
   return buildSecurityEventVolume({
     rows: data.result?.data || [],
     startDate: data.startDate,
     endDate: data.endDate,
+    timezone: data.timezone,
   });
 }

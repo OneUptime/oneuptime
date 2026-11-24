@@ -26,11 +26,14 @@ import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import {
   DurationTextUnit,
+  ReaderDateTimeFormat,
   formatDurationUnit,
   formatRelativeAmount,
   formatUnitAmount,
+  getDateTimeFormat,
   getHourOption,
   RelativeDateUnit,
+  writeStandAloneDayName,
 } from "Common/Types/DateLanguage";
 import {
   FeedClock,
@@ -162,19 +165,23 @@ export function formatBackupDateTime(date: Date, clock: FeedClock): string {
     return "";
   }
 
-  try {
-    return new Intl.DateTimeFormat(getFeedLocale(clock.language), {
+  // The wall clock from OneUptime's own zone data, as every date (#10038).
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getFeedLocale(clock.language),
+    timezones: [clock.timezone],
+    options: {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: getHourOption(clock.use12HourClock),
       minute: "2-digit",
       hour12: clock.use12HourClock,
-      timeZone: clock.timezone,
-    }).format(value);
-  } catch {
-    return value.toISOString().slice(0, 16).replace("T", " ");
-  }
+    },
+  });
+
+  return format
+    ? format.format(value)
+    : value.toISOString().slice(0, 16).replace("T", " ");
 }
 
 // "3 hours ago".
@@ -217,17 +224,21 @@ export function formatBackupTimeUntil(date: Date, clock: FeedClock): string {
   return `in ${count}${NO_BREAK_SPACE}${count === 1 ? names[0] : names[1]}`;
 }
 
-// Sunday (0) to Saturday (6), in the reader's language.
+/*
+ * Sunday (0) to Saturday (6), in the reader's language, as an item of the
+ * schedule's day menu: "Domingo" in Spanish, "søndag" in Danish, as CLDR
+ * has each language write a day in a menu (#7660).
+ */
 export function getWeekdayName(dayOfWeek: number, language: string): string {
   // 2023-01-01 was a Sunday.
   const date: Date = new Date(Date.UTC(2023, 0, 1 + (dayOfWeek % 7), 12));
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getFeedLocale(language),
+    timezones: ["UTC"],
+    options: { weekday: "long" },
+  });
 
-  try {
-    return new Intl.DateTimeFormat(getFeedLocale(language), {
-      weekday: "long",
-      timeZone: "UTC",
-    }).format(date);
-  } catch {
+  if (!format) {
     return [
       "Sunday",
       "Monday",
@@ -238,6 +249,12 @@ export function getWeekdayName(dayOfWeek: number, language: string): string {
       "Saturday",
     ][dayOfWeek % 7]!;
   }
+
+  return writeStandAloneDayName({
+    name: format.format(date),
+    language: language,
+    context: "menu",
+  });
 }
 
 /*
@@ -258,34 +275,49 @@ export function getLocalTimeOfUtcHour(data: {
     ),
   );
 
-  try {
-    return new Intl.DateTimeFormat(getFeedLocale(data.clock.language), {
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+    locale: getFeedLocale(data.clock.language),
+    timezones: [data.clock.timezone],
+    options: {
       hour: getHourOption(data.clock.use12HourClock),
       minute: "2-digit",
       hour12: data.clock.use12HourClock,
-      timeZone: data.clock.timezone,
-    }).format(date);
-  } catch {
-    return formatBackupTimeOfDay({ hours: data.hour, minutes: 0 });
-  }
+    },
+  });
+
+  return format
+    ? format.format(date)
+    : formatBackupTimeOfDay({ hours: data.hour, minutes: 0 });
 }
 
-// Whether the reader's clock reads as UTC's now (London in winter, a server in UTC).
+/*
+ * Whether the reader's clock reads as UTC's now (London in winter, a server
+ * in UTC), from OneUptime's own zone data (#10038).
+ */
 export function isClockOnUtc(clock: FeedClock): boolean {
-  const read: (timeZone: string) => string = (timeZone: string): string => {
-    return new Intl.DateTimeFormat("en-GB", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone,
-    }).format(clock.now);
+  const read: (timeZone: string) => string | null = (
+    timeZone: string,
+  ): string | null => {
+    const format: ReaderDateTimeFormat | null = getDateTimeFormat({
+      locale: "en-GB",
+      timezones: [timeZone],
+      options: {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      },
+    });
+
+    return format ? format.format(clock.now) : null;
   };
 
   try {
-    return read(clock.timezone) === read("UTC");
+    const local: string | null = read(clock.timezone);
+
+    return local !== null && local === read("UTC");
   } catch {
     return false;
   }

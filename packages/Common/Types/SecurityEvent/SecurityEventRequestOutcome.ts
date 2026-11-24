@@ -62,6 +62,13 @@ export function getRequestOutcomeRank(value: string | undefined): number {
  * reads them the way it reads any request, and oneuptime.* for what only
  * the trace says. The UI writes its sentences from these, so a reader's
  * language words them.
+ *
+ * The client address a scrub rule hid (#10397) is said by the last five,
+ * set together (Utils/SecurityEvent/ScrubbedAddress.ts): that a scrub rule
+ * hid it ("scrub-rule"), what the rule left ("[REDACTED]", a mask, a Hash
+ * rule's token), where in the record ("log-body", "log-attributes",
+ * "span-attributes"), and the project's rule that explains it - its id and
+ * its name. Never the address itself.
  */
 export const SECURITY_REQUEST_ATTRIBUTES: {
   method: string;
@@ -80,6 +87,11 @@ export const SECURITY_REQUEST_ATTRIBUTES: {
   databaseStatement: string;
   databaseDurationMs: string;
   requestedDelaySeconds: string;
+  clientAddressHidden: string;
+  clientAddressScrubbed: string;
+  clientAddressScrubbedIn: string;
+  clientAddressScrubRuleId: string;
+  clientAddressScrubRule: string;
 } = {
   method: "http.request.method",
   url: "url.original",
@@ -97,6 +109,11 @@ export const SECURITY_REQUEST_ATTRIBUTES: {
   databaseStatement: "oneuptime.database.statement",
   databaseDurationMs: "oneuptime.database.duration_ms",
   requestedDelaySeconds: "oneuptime.attack.requested_delay_seconds",
+  clientAddressHidden: "oneuptime.request.client_address_hidden",
+  clientAddressScrubbed: "oneuptime.request.client_address_scrubbed",
+  clientAddressScrubbedIn: "oneuptime.request.client_address_scrubbed_in",
+  clientAddressScrubRuleId: "oneuptime.request.client_address_scrub_rule_id",
+  clientAddressScrubRule: "oneuptime.request.client_address_scrub_rule",
 };
 
 export default SecurityEventRequestOutcome;

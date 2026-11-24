@@ -344,6 +344,11 @@ const getMeasureStartThreshold: (measure: CheckOn | undefined) => number = (
     return 1;
   }
 
+  // Android vitals' own bar for the share of a day's users (#9924).
+  if (measure === CheckOn.InstallsWithExceptionsPercent) {
+    return 1.09;
+  }
+
   return 0;
 };
 

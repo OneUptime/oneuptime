@@ -35,8 +35,10 @@ Server ingestion key in `x-oneuptime-token`:
 | Crashes and ANRs of every app | `app.crash` and `device.anr` log events, with `exception.*` | Unhandled exceptions in OneUptime. Needs READ_LOGS |
 | Crash stacks, native crashes, ANR traces, watchdogs, reboot reasons | The same events from DropBox (`android.dropbox.tag`), with the whole stack; `device.boot` with `android.boot.reason` | Every app's, read from DropBox (`dropbox/`). Needs READ_LOGS (READ_DROPBOX_DATA on Android 15 and later) and usage access. Redacted (`logs/Redactor.kt`) |
 | Restart loops | `android.boot.recent_count` | Boots in the last hour, for the Restart Loop template |
+| Security patch age | `android.os.security_patch.age` | Days since the patch level's date (`device/SecurityPatchAge.kt`), for the Security Patch Out of Date template: more than 90 is behind |
+| Grants still missing | `oneuptime.agent.permissions.missing`, a resource attribute | READ_LOGS, READ_DROPBOX_DATA and GET_USAGE_STATS still to grant, or `none` (`agent/AgentPermissions.kt`): Inventory's Agent Permissions filter |
 | Logcat | Log records with `android.log.tag`, `android.package.name` | Android 12 and earlier, at Warning and above by default. Needs READ_LOGS |
-| Log sessions | Every app's lines, with `oneuptime.agent.log_session.id` | For the minutes OneUptime asks, once the person at the device allows it (`logsession/`) |
+| Log sessions | Every app's lines, with `oneuptime.agent.log_session.id` | For the minutes OneUptime asks, once the person at the device allows it (`logsession/`), with the requester's note shown on the request (`logsession/LogSessionNote.kt`) |
 
 The resource (`otlp/DeviceResource.kt`) names the device in `host.name`, sets
 `os.type=linux`, and never sets `device.id`, `device.model.identifier` or

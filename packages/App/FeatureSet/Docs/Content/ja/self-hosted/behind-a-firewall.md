@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | GET | `/l/*` | SMS、WhatsApp、Telegram のメッセージ内の短縮リンク |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | 呼び出しの内容と **Acknowledge** ボタンを表示するページ |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** ボタン |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | **Acknowledge** ボタン |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | 任意: 呼び出しを次の人にパスするページ |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | 任意: そのページのボタン |
 | GET | `/oneuptime-assets/*` | これらのページのフォント、スタイル、ロゴ |

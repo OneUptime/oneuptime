@@ -69,6 +69,10 @@ import WorkspaceActionAnswers, {
   WorkspaceLatePress,
 } from "../WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
+import WorkspaceSharedNames, {
+  WorkspaceNamedOption,
+} from "../WorkspaceSharedNames";
+import { getSharedNameSelect } from "../../../../Types/Database/SharedNameMarks";
 import WorkspaceConnectRequest, {
   WorkspaceConnectButton,
   WorkspaceConnectRequestAgainKind,
@@ -1169,17 +1173,24 @@ export default class MattermostActions {
             },
             select: {
               name: true,
+              // What tells two policies of one name apart (#10314).
+              ...getSharedNameSelect(OnCallDutyPolicy),
             },
             limit: LIMIT_PER_PROJECT,
           });
 
-        const options: Array<{ label: string; value: string }> = policies
-          .filter((policy: OnCallDutyPolicy): boolean => {
-            return Boolean(policy._id && policy.name);
+        // Two policies of one name told apart in their labels (#10314).
+        const options: Array<{ label: string; value: string }> = (
+          await WorkspaceSharedNames.getOptions({
+            records: policies.filter((policy: OnCallDutyPolicy): boolean => {
+              return Boolean(policy._id && policy.name);
+            }),
+            readerUserId: data.requester.props.userId,
+            maxLength: MattermostUtil.BUTTON_TITLE_MAX_LENGTH,
           })
-          .map((policy: OnCallDutyPolicy) => {
-            return { label: policy.name!, value: policy._id!.toString() };
-          });
+        ).map((option: WorkspaceNamedOption) => {
+          return { label: option.label, value: option.value };
+        });
 
         if (options.length === 0) {
           throw new MattermostRefusal(

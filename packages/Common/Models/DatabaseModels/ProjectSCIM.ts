@@ -13,6 +13,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -285,6 +286,7 @@ export default class ProjectSCIM extends BaseModel {
     title: "OAuth Client Secret Expires At",
     description:
       "When the connection's OAuth 2.0 client secret stops working. No access token is issued with an expired secret.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -323,6 +325,7 @@ export default class ProjectSCIM extends BaseModel {
     title: "Previous OAuth Client Secret Expires At",
     description:
       "When the previous OAuth 2.0 client secret stops working, unless it is deleted before.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

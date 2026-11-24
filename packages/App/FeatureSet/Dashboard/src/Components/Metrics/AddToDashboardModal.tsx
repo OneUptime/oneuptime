@@ -32,8 +32,7 @@ import Toast from "Common/UI/Utils/Toast";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Navigation from "Common/UI/Utils/Navigation";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
+import { getDashboardWidgetRoute } from "../Dashboard/DashboardWidgetRoute";
 import ObjectID from "Common/Types/ObjectID";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { JSONObject } from "Common/Types/JSON";
@@ -202,8 +201,12 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
       /*
        * Said in the corner, with the way to the dashboard: "Chart Added" was
        * a dialog over the explorer the person was still working in (#9120).
+       * Open Dashboard opens it at the chart just added, wherever on the
+       * board it was placed (#10084): the first free spot that fits it is
+       * often at the board's foot.
        */
       const addedToId: ObjectID = dashboardId;
+      const addedChartId: string = chartComponent.componentId.toString();
 
       Toast.success(translator.translateText("Chart Added") || "Chart Added", {
         description: fullDashboard.name
@@ -218,8 +221,9 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
           title: translator.translateText("Open Dashboard") || "Open Dashboard",
           onClick: () => {
             Navigation.navigate(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.DASHBOARD_VIEW]!, {
-                modelId: addedToId,
+              getDashboardWidgetRoute({
+                dashboardId: addedToId,
+                widgetId: addedChartId,
               }),
             );
           },

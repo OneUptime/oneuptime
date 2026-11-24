@@ -43,10 +43,11 @@ NOTHING_TO_PUBLISH=false
 PUSH_URL=""
 
 # Go's soft memory limit, for every Go command this script runs: go vet, go
-# test and GoReleaser's cross-compiles, one target after another. The
-# provider's internal/provider is one package of ~985 files, and without a
-# limit one compile of it alone took ~15 GB of a 16 GB CI runner. The
-# generator sets the same value for its own Go commands
+# test and GoReleaser's cross-compiles, one target after another. A guard
+# rail: compiled as one package of ~985 files, the provider took ~15 GB of a
+# 16 GB CI runner without a limit; split into packages
+# (Scripts/TerraformProvider/Core/ProviderShards.ts), a compile holds under
+# 1 GiB. The generator sets the same value for its own Go commands
 # (Scripts/TerraformProvider/Core/GoCommand.ts); a caller's own value wins.
 export GOMEMLIMIT="${GOMEMLIMIT:-10GiB}"
 
@@ -605,12 +606,14 @@ build_release_assets() {
     # uploaded separately, only after this build fully succeeds.
     #
     # --parallelism 1 forces GoReleaser to cross-compile one target at a time.
-    # The generated provider is a single ~600K-line `package provider`, so each
-    # Go compilation is memory-heavy. GoReleaser defaults parallelism to the CPU
-    # count (4 on GitHub's ubuntu-latest), which compiles 4 targets at once and
-    # exhausts the runner's 16GB RAM -> the host kills the runner mid-build
-    # ("The runner has received a shutdown signal" / exit 143). Serializing the
-    # builds keeps peak memory to a single compile and prevents the OOM.
+    # The generated provider was a single ~600K-line `package provider`, so
+    # each Go compilation was memory-heavy. GoReleaser defaults parallelism to
+    # the CPU count (4 on GitHub's ubuntu-latest), which compiled 4 targets at
+    # once and exhausted the runner's 16GB RAM -> the host killed the runner
+    # mid-build ("The runner has received a shutdown signal" / exit 143). The
+    # provider is split into packages now (ProviderShards.ts), and each target's
+    # build already compiles four of them at a time on the runner's four CPUs,
+    # so the targets still build one after another.
     goreleaser release \
         --clean \
         --parallelism 1 \

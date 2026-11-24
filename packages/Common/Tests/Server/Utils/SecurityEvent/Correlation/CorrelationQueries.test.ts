@@ -902,3 +902,135 @@ detection:
     jest.restoreAllMocks();
   });
 });
+
+/*
+ * #10337: a scheduled run reads a correlation's window as what ARRIVED in
+ * the run found it (DetectionRunArrival) - by createdAt where real time
+ * reads by id: what had arrived by the run's end, what had arrived by the
+ * rule's last run, and what arrived in between, within a day of when it
+ * happened. A burst, a sequence or a new value fires once, by the run whose
+ * arrivals made it hold, whenever they happened.
+ */
+describe("a correlation's reads in a scheduled run, by what arrived", () => {
+  const RUN: NonNullable<CorrelationReadWindow["arrival"]> = {
+    kind: "run",
+    arrivedAfter: new Date("2026-10-21T10:07:00.000Z"),
+    arrivedUntil: new Date("2026-10-21T10:12:00.000Z"),
+    candidateStartTime: new Date("2026-10-21T10:00:00.000Z"),
+    candidateEndTime: new Date("2026-10-21T10:05:00.000Z"),
+  };
+
+  const AS_IT_STOOD: RegExp = /createdAt <= \{p\d+:DateTime\}/;
+  const ARRIVED_IN_THE_RUN: RegExp =
+    /\(createdAt > \{p\d+:DateTime\} AND createdAt <= \{p\d+:DateTime\} AND time >= createdAt - toIntervalSecond\(\{p\d+:Int32\}\)\)/;
+
+  test("a count: counted with what had arrived by the run's end and by the last run, firing a group the run's arrivals made hold", () => {
+    const eventCount: Extract<
+      DetectionRuleDefinition,
+      { kind: "correlation" }
+    > = correlation(`title: Brute force
+correlation:
+  type: event_count
+  rules: [failed_sign_in]
+  group-by: [principalIp]
+  timespan: 10m
+  condition:
+    gte: 10
+---
+${FAILED}`);
+
+    const statement: Statement = CorrelationQueries.buildCountStatement({
+      window: { ...WINDOW, arrival: RUN },
+      correlation: eventCount.correlation,
+      steps: eventCount.steps,
+      countDistinct: false,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 101,
+    });
+    const query: string = statement.query;
+
+    expect(query).toMatch(
+      /countIf\(createdAt <= \{p\d+:DateTime\}\) AS __cb, countIf\(\(createdAt > \{p\d+:DateTime\} AND createdAt <= \{p\d+:DateTime\} AND time >= createdAt - toIntervalSecond\(\{p\d+:Int32\}\)\)\) AS __k/,
+    );
+    expect(query).toMatch(AS_IT_STOOD);
+    expect(query).toMatch(ARRIVED_IN_THE_RUN);
+    expect(query).toMatch(
+      /HAVING __g0 != '' AND eventsInRun > 0 AND matchCount >= \{p\d+:Int32\} AND candidateEvents > 0 AND NOT \(eventsBefore > 0 AND matchCountBefore >= \{p\d+:Int32\}\)/,
+    );
+    // Nothing by id: a run's events are not a write's.
+    expect(query).not.toContain("_id");
+
+    const values: Array<unknown> = boundValues(statement);
+
+    expect(values).toContain("2026-10-21 10:07:00");
+    expect(values).toContain("2026-10-21 10:12:00");
+    expect(values).toContain(24 * 60 * 60);
+  });
+
+  test("a sequence: each step's times again with what had arrived by the last run, for groups the run's arrivals name", () => {
+    const sequence: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: Failures then success
+correlation:
+  type: temporal_ordered
+  rules: [failed_sign_in, successful_sign_in]
+  group-by: [principalUser]
+  timespan: 10m
+---
+${FAILED}
+---
+${SUCCEEDED}`);
+
+    const query: string = CorrelationQueries.buildTemporalStatement({
+      window: { ...WINDOW, arrival: RUN },
+      correlation: sequence.correlation,
+      steps: sequence.steps,
+      stepMinimums: [5, 1],
+      minimumSteps: 2,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 2000,
+    }).query;
+
+    expect(query).toMatch(/\) AND createdAt <= \{p\d+:DateTime\}\) AS __tb0, /);
+    expect(query).toMatch(/\) AND createdAt <= \{p\d+:DateTime\}\) AS __tb1, /);
+    expect(query).toMatch(ARRIVED_IN_THE_RUN);
+    expect(query).toContain(
+      "AND (toString(principalUser)) IN (SELECT toString(principalUser) FROM oneuptime.SecurityEvent WHERE ",
+    );
+    expect(query).not.toContain("_id");
+  });
+
+  test("a new value: a pair none of whose events had arrived by the last run, against the history as the run found it", () => {
+    const newValue: Extract<DetectionRuleDefinition, { kind: "correlation" }> =
+      correlation(`title: New address
+correlation:
+  type: new_value
+  rules: [successful_sign_in]
+  group-by: [principalUser]
+  timespan: 30d
+  condition:
+    field: principalIp
+---
+${SUCCEEDED}`);
+
+    const statement: Statement = CorrelationQueries.buildNewValueStatement({
+      window: { ...WINDOW, arrival: RUN },
+      historyFrom: new Date("2026-09-21T10:00:00.000Z"),
+      correlation: newValue.correlation,
+      steps: newValue.steps,
+      tableName: "oneuptime.SecurityEvent",
+      limit: 50,
+    });
+    const query: string = statement.query;
+
+    expect(query).toMatch(
+      /min\(createdAt\) AS __firstArrivedAt, countIf\(\(createdAt > \{p\d+:DateTime\} AND createdAt <= \{p\d+:DateTime\} AND time >= createdAt - toIntervalSecond\(\{p\d+:Int32\}\)\)\) AS __k FROM /,
+    );
+    expect(query).toMatch(
+      /HAVING __g0 != '' AND __v0 != '' AND __k > 0 AND __firstArrivedAt > \{p\d+:DateTime\}\) SELECT /,
+    );
+    // The run and both reads of the history take the window as the run found it.
+    expect(occurrences(query, "createdAt <= {p")).toBeGreaterThanOrEqual(3);
+    expect(query).not.toContain("_id");
+    expect(boundValues(statement)).toContain("2026-10-21 10:07:00");
+  });
+});

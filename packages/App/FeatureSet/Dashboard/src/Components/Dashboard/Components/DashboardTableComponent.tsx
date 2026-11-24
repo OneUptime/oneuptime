@@ -80,6 +80,9 @@ import {
   isMetricTableSetUp,
   placeMetricTableResults,
 } from "./MetricWidgetQuery";
+import { RetiredCloudMetricBadge } from "../../Metrics/RetiredCloudMetricNotice";
+import { getRetiredCloudMetricNoticesOfWidget } from "Common/Utils/Metrics/RetiredCloudMetricChartMoves";
+import { RetiredCloudMetricNotice as RetiredCloudMetricNoticeData } from "Common/Utils/Metrics/RetiredCloudMetricMoves";
 
 // The table's header line: its title, and its controls beside or under it.
 export const DASHBOARD_TABLE_HEADER_TEST_ID: string = "dashboard-table-header";
@@ -166,6 +169,12 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
 
   const args: DashboardTableComponent["arguments"] =
     props.component.arguments || {};
+
+  // The columns that read a metric its cloud deprecates (#10027).
+  const retiredMetricNotices: Array<RetiredCloudMetricNoticeData> =
+    useMemo(() => {
+      return getRetiredCloudMetricNoticesOfWidget(props.component);
+    }, [props.component]);
 
   const widgetGroupByAttributes: Array<TableGroupByAttribute> = useMemo(() => {
     if (args.groupByAttributes && args.groupByAttributes.length > 0) {
@@ -814,6 +823,12 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
           className="flex min-w-0 max-w-full items-center gap-3"
           data-testid={DASHBOARD_TABLE_CONTROLS_TEST_ID}
         >
+          {/*
+           * A column of a metric its cloud deprecates, which the connection
+           * reads only for what still reads it, says so beside the table's
+           * controls (#10027), as a chart says it in a line.
+           */}
+          <RetiredCloudMetricBadge notices={retiredMetricNotices} />
           {isGroupedMode && (
             <div
               className={`group relative inline-flex min-w-0 items-center w-56 max-w-full transition-shadow ${

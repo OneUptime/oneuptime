@@ -5,7 +5,7 @@
 :::cards
 - [OneUptime 需要什麼](#oneuptime-需要什麼): 兩個資源屬性，以伺服器金鑰傳送。
 - [設定你的平台](#設定你的平台): Android、iOS、React Native 及其他平台。
-- [iOS 當機和卡頓](#ios-當機和卡頓): MetricKit 的診斷，顯示在例外中和概覽上。
+- [iOS 當機和卡頓](#ios-當機和卡頓): MetricKit 和 KSCrash 的報告，顯示在例外中，並由你的 dSYM 命名。
 - [確認資料抵達](#確認資料抵達): 先測試金鑰，再找到應用程式。
 - [行動端的工作階段重播](#行動端的工作階段重播): React Native 應用程式的錄製。
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model` 會提供 `iPhone` 這類簡短名稱，讓 **用戶端** 頁面每種裝置只有一列。
+`UIDevice.current.model` 會提供 `iPhone` 這類簡短名稱，讓 **用戶端** 頁面每種裝置只有一列。 `identifierForVendor` 是 OneUptime 計算無當機安裝時所依據的安裝，詳見 [記錄工作階段](#記錄工作階段) 。
 @tab React Native
 React Native 執行的是 OpenTelemetry JavaScript SDK，因此請依照 [瀏覽器端設定](/docs/rum/browser-setup) 建立提供者、OTLP 匯出器和批次處理器，並做三項變更：以 **伺服器** 金鑰傳送、拿掉 `browserDetector` 和 `DocumentLoadInstrumentation` ，以及自行設定裝置屬性。
 
@@ -178,7 +179,9 @@ opentelemetry-swift 2.3 及更新版本透過其 MetricKit 檢測回報 iOS 應�
 | 當機 | `metrickit.diagnostic.crash` | 一個未處理的例外，其類型取決於結束應用程式的原因：在 iOS 17 及更新版本上為 Objective-C 例外，否則為 Mach 例外（ `EXC_BAD_ACCESS` ），再否則為訊號（ `SIGSEGV` ） |
 | 卡頓 | `metrickit.diagnostic.hang` | 一個類型為 **Hang** 的未處理例外，也就是 iOS 上與 ANR 相對應的情況，它會記下卡頓持續了多久 |
 
-概覽的 **當機** 圖塊會計算這些當機，其 **ANR** 圖塊會把卡頓與 Android 的 ANR 一起計算。每條堆疊追蹤都會像當機報告那樣依執行緒繪製，當機或卡頓的執行緒排在最前面。這些框架沒有經過符號化：每個框架會列出它所在的二進位檔，以及程式碼在其中的位移量， **Binary Images** 列出每個二進位檔的 UUID，據此可知要用哪個建置的 dSYM 對它進行符號化。
+概覽的 **當機** 圖塊會計算這些當機，其 **ANR** 圖塊會把卡頓與 Android 的 ANR 一起計算。每條堆疊追蹤都會像當機報告那樣依執行緒繪製，當機或卡頓的執行緒排在最前面。上傳某個建置的 dSYM 之後，你的應用程式程式碼中的框架會以其函式命名，例如 `CartViewController.checkout()` ，見 [上傳 dSYM](#上傳-dsym) 。其餘的框架會列出它所在的二進位檔，以及程式碼在其中的位移量， **Binary Images** 列出每個二進位檔的 UUID，據此可知是哪個建置的 dSYM 為它命名。
+
+當機和卡頓會依當機或卡頓的執行緒上你的應用程式的框架分組：有 dSYM 命名的框架依函式分組，因此同一個當機從一個版本到下一個版本始終是同一個例外；沒有 dSYM 命名的框架依其在二進位檔中的位移量分組，而位移量每次建置都會改變。報告在送達時命名，所以請在發布某個建置之前上傳它的 dSYM：在 dSYM 之前送達的當機會保留其位移量。
 
 :::steps
 ### 除了 span，也匯出日誌
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### 記錄工作階段
 
-**工作階段** 和 **無當機工作階段** 圖塊會計算你的 span 上的 `session.id` 。opentelemetry-swift 的 `Sessions` 產品會設定它：把 `SessionSpanProcessor` 加到追蹤器提供者，並用 `SessionLogRecordProcessor` 包裝日誌處理器，讓診斷也帶有工作階段。它的各個版本目前還不會設定 `app.installation.id` ，因此 iOS 應用程式的 **無當機工作階段** 圖塊顯示的是有多少工作階段當機，而不是無當機安裝的佔比。
+**工作階段** 和 **無當機工作階段** 圖塊會計算你的 span 上的 `session.id` 。opentelemetry-swift 的 `Sessions` 產品會設定它：把 `SessionSpanProcessor` 加到追蹤器提供者，並用 `SessionLogRecordProcessor` 包裝日誌處理器，讓診斷也帶有工作階段。
+
+**無當機工作階段** 下方的那一行顯示未當機的安裝所佔的比例， **Daily Crash Rate** 和 **Daily ANR Rate** 則根據當機的安裝所佔的比例發出警示。一次安裝就是上方資源中的 `device.id` ，也就是應用程式的供應商識別碼：每台裝置上你的所有應用程式共用一個，只要其中任何一個仍然安裝就會保留，因此重新安裝你唯一的應用程式會產生新的安裝，而重新安裝兩個應用程式中的一個則不會。設定了 `app.installation.id` 的 opentelemetry-swift 版本則改為依它計算。
+
+### 上傳 dSYM
+
+Xcode 在封存應用程式時會為應用程式的每個二進位檔寫出一個 dSYM，App Store Connect 也會在 **Download dSYMs** 下把它們交還給你。每次封存後，從 CI 或 Xcode 建置階段，用 [OneUptime CLI](/docs/cli/index) 和你的建置專用的伺服器金鑰上傳它們：設定了 **固定的服務名稱** 的金鑰（例如隨你的應用程式一起發布的金鑰）會被拒絕，因為一個 dSYM 會為專案中每個發布其二進位檔的應用程式的框架命名。
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+CLI 會讀取 `.dSYM` 套件、包含它們的資料夾和 zip，以及所在位置的 DWARF 檔案，只傳送每個二進位檔的 UUID、架構和函式名稱：大型應用程式的 dSYM 有數百 MB，而其中的名稱只有幾 MB。不使用 CLI 時，請按原樣傳送 dSYM 的 DWARF 檔案，或 `.dSYM` 套件的 zip，每個檔案最大 50 MB：
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+每個二進位檔依其 UUID 保留 400 天，因此幾個月後仍裝在使用者手機上的版本依然會被命名，而再次上傳某個建置會取代為它保留的內容。dSYM 屬於專案，而不屬於某一個應用程式：你的兩個應用程式都內嵌的 framework 在兩個應用程式中都會被命名。
 :::
 
 > [!NOTE]
 > Apple 會在應用程式之後的某次啟動時把 MetricKit 的診斷交給應用程式：在 iOS 15 及更新版本上會立即交付，更早的版本則每天一次。因此當機或卡頓可能在發生幾分鐘或一天後才送達，並在送達時才被計數。iOS 應用程式概覽上的「過去一小時 0 次當機」還不算好消息。診斷帶有的是回報它的工作階段，而不是它所結束的工作階段。
 
 opentelemetry-swift 不會在應用程式啟動時記錄 span，因此在你的應用程式自行記錄一個之前， **應用程式啟動** 和 **冷啟動（p95）** 圖塊會一直是空的：這個 span 名為 `AppStart` ， `start.type` 設為 `cold` 、 `warm` 或 `hot` ，時間範圍從程序啟動到第一個畫面準備就緒。
+
+### 當 KSCrash 也回報當機時
+
+opentelemetry-swift 也可以透過 KSCrash 回報當機，KSCrash 會在應用程式下次開啟時，把報告以一筆 `device.crash` 日誌記錄的形式傳送，並附上應用程式當機的時間。同時註冊了兩者的應用程式會把每次當機回報兩次：KSCrash 在下次啟動時回報，MetricKit 在下次啟動時或最多一天後回報。OneUptime 只把這樣的當機計數一次：先送達的報告就是這次出現，第二份報告作為同一次當機的證據，保存在同一個例外中它的旁邊，不計入任何圖塊、圖表或監測器。在例外的 **發生次數** 中，這次出現會顯示 **回報了兩次** 。
+
+只有在以下條件全部成立時，兩份報告才會被視為同一次當機：
+
+- 它們來自兩個回報來源：KSCrash 和 MetricKit。兩者都不會把一次當機回報兩次，所以來自同一個來源的兩份報告就是兩次當機。
+- 它們來自同一次安裝：相同的 `app.installation.id` 或 `device.id` 。
+- 它們相隔不超過 26 小時：MetricKit 為當機標記的是它所回報那一天的結束時間，KSCrash 標記的是當機發生的時刻。
+- 在訊號、Mach 例外和 Objective-C 例外上，凡是兩者都列出的，都必須一致。
+- 當機的執行緒從執行緒開始處向內逐框架一致，依二進位檔和位移量比較，涵蓋任一報告列出的你的應用程式程式碼的每個框架。完全發生在 Apple 程式碼中的當機，必須至少有三個框架一致，而且所有框架都一致。
+
+每份報告只配對一次，與時間上最接近的報告配對，因此同一次安裝上同一個錯誤相隔幾分鐘的兩次當機是兩次出現，各自帶有自己的第二份報告。當 OneUptime 無法把一份報告與同一安裝的其他報告比較時，就會計入它，因此一次當機最壞會被計數兩次，但絕不會遺失。
 
 ## 確認資料抵達
 

@@ -30,6 +30,7 @@ flowchart TB
 - **En ansluten Azure-prenumeration.** Anslut den först under **Moln → Anslut**: se [Anslut ett molnkonto](/docs/telemetry/cloud-accounts).
 - **En Projektägare eller Projektadministratör.** Bara de kan slå på läsning och sluta strömma.
 - **Azure Cloud Shell**, inloggad som **Owner** för prenumerationerna, eller som **Contributor** som också är **User Access Administrator**: kommandot skapar en resursgrupp och en rolltilldelning, och ändrar diagnostikinställningar.
+- **För Microsoft Entra ID:s loggar, en Security Administrator** i klientorganisationen som också är **Owner** eller **Contributor** för resursgruppen som kommandot skapar: bara de får skicka klientorganisationens loggar till en händelsehubb.
 - **En väg ut till Azure, på en egen OneUptime-installation.** OneUptime läser varje namnrymd på `<namespace>.servicebus.windows.net` på port 9093, och namnrymderna tar emot anslutningar från internet.
 
 ## Konfigurera strömning
@@ -43,6 +44,8 @@ Gå till **Moln → Anslut** och välj **Strömma mätvärden och loggar** på A
 
 **Mätvärden** strömmar varje resurs nyckelmätvärden, minut för minut, de mätvärden som OneUptime visar och bedömer varje resurs efter, utom [dem som en diagnostikinställning inte kan skicka](#vad-som-kommer), som anslutningen fortsätter att läsa. **Mätvärden och loggar** lägger till varje resurs egna loggar, varje kategori som Azure för för den, och **Loggar** strömmar bara resursloggar.
 
+Under **För Säkerhetshändelser** får **Varje prenumerations aktivitetslogg** kommandot att skicka varje prenumerations ändringar, larm från Defender for Cloud och avslag från Azure Policy till den första regionens händelsehubb, och **Microsoft Entra ID:s inloggnings- och granskningsloggar** lägger till ett andra kommando, för en Security Administrator i din klientorganisation. [Säkerhetshändelser](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar) läser båda.
+
 ### Slå på läsning
 
 Välj **Slå på läsning**. OneUptime letar efter händelsehubbarna varje minut och väntar på dem tills kommandot har skapat dem.
@@ -50,6 +53,10 @@ Välj **Slå på läsning**. OneUptime letar efter händelsehubbarna varje minut
 ### Kör kommandot i Azure Cloud Shell
 
 Kopiera kommandot, kör det i Azure Cloud Shell och vänta tills det är klart. Det anger varje region där det skapade en händelsehubb, hur många resurser som skickar till dem och vilka resurser det utelämnade, med Azures orsak.
+
+### Kör kommandot för Microsoft Entra ID, om du valde det
+
+När det första kommandot är klart kör en Security Administrator i klientorganisationen det andra i Azure Cloud Shell. Det ger klientorganisationen en diagnostikinställning som skickar Microsoft Entra ID:s inloggnings-, gransknings- och riskloggar till den första regionens händelsehubb, och säger vad Azure bad om när den nekar.
 
 ### Vänta på de första händelserna
 
@@ -83,7 +90,13 @@ En Service Bus- eller Event Hubs-namnrymd strömmar inga mätvärden. Läsningar
 
 En logg arkiveras under sin resurs efter resursens ARM-id, som bärs som `cloud.resource_id`, och behåller sin kategori, åtgärd, resultat och egenskaper som attribut, till exempel `azure.category`.
 
-Virtuella datorer, skalningsuppsättningar, diskar, nätverksgränssnitt, virtuella nätverk, privata slutpunkter, NAT-gatewayer, DNS-zoner och App Service-planer skickar inga egna resursloggar, så deras sidor har ingen flik **Loggar**. Ett lagringskontos loggar är dess tjänsters, och en containerapps loggar är dess miljös.
+En post i aktivitetsloggen i kategorin `Administrative`, `Security` eller `Policy`, och en inloggnings-, gransknings- eller riskpost från Microsoft Entra ID, kommer hel, som loggens brödtext, även en som gäller en resursgrupp, en prenumeration eller klientorganisationen i stället för en resurs. Med [Hitta säkerhetshändelser i dina loggar](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar) påslaget läses varje post som en säkerhetshändelse, precis som en från en loggpipeline, och lagras en gång, hur många vägar den än når OneUptime. Med **Varje prenumerations aktivitetslogg** påslaget ger kommandot varje prenumeration en diagnostikinställning som skickar dess aktivitetslogg till den första regionens händelsehubb, och kommandot för Microsoft Entra ID ger klientorganisationen en.
+
+Ett Key Vaults `AuditEvent`, ett lagringskontos `StorageRead`, `StorageWrite` och `StorageDelete` och en Azure SQL-databas `SQLSecurityAuditEvents` kommer också hela, var och en arkiverad under sin resurs, och Säkerhetshändelser läser dem som spelar roll för säkerheten: se [Azure-resursers egna granskningsloggar](/docs/telemetry/security-events#azure-resursers-egna-granskningsloggar). En Azure SQL-databas skickar sin granskning först när granskningen är påslagen, med Azure Monitor som mål.
+
+Virtuella datorer, skalningsuppsättningar, diskar, nätverksgränssnitt, virtuella nätverk, privata slutpunkter, NAT-gatewayer, DNS-zoner och App Service-planer skickar inga egna resursloggar, så deras sidor har ingen flik **Loggar**. En containerapps loggar är dess miljös.
+
+Ett lagringskontos loggar är dess blob-, fil-, kö- och tabelltjänsters: kommandot ger varje tjänst en egen diagnostikinställning, och deras loggar arkiveras under kontot, på dess flik **Loggar**. De är varje förfrågan som kontot besvarar, så ett upptaget konto skickar många.
 
 ## Vad kommandot skapar
 
@@ -96,6 +109,9 @@ Resursgruppen heter `oneuptime-stream-` följt av de 8 första tecknen i anslutn
 | En händelsehubb i var och en, `oneuptime`, med 2 partitioner | Sparar händelserna tills OneUptime läser dem |
 | Rollen **Azure Event Hubs Data Receiver** för anslutningens app, bara på resursgruppen | Låter appen läsa händelsehubbarna, och inget annat |
 | En diagnostikinställning på varje resurs, `OneUptime-<suffix>` | Skickar resursens mätvärden, loggar eller båda till händelsehubben i dess region |
+| Med loggar, en diagnostikinställning på var och en av ett lagringskontos blob-, fil-, kö- och tabelltjänster, `OneUptime-<suffix>` | Skickar tjänsternas loggar till händelsehubben i kontots region |
+| Med **Varje prenumerations aktivitetslogg**, en diagnostikinställning på varje prenumeration, `OneUptime-<suffix>` | Skickar dess poster i `Administrative`, `Security` och `Policy` till den första regionens händelsehubb |
+| Med kommandot för Microsoft Entra ID, klientorganisationens diagnostikinställning, `OneUptime-<suffix>` | Skickar dess inloggnings-, gransknings- och riskloggar till den första regionens händelsehubb |
 
 En resurs i en global region, till exempel Front Door, skickar till den första regionens händelsehubb. En resurs som Azure bara för mätvärden eller bara loggar för konfigureras med det den har, och en som redan har 5 diagnostikinställningar, det högsta som Azure tillåter, utelämnas. Azure fakturerar varje namnrymds dataflödesenhet per timme, och de händelser som diagnostikinställningarna skickar.
 
@@ -108,20 +124,31 @@ Välj **Sluta strömma** på prenumerationens rad under **Moln → Anslut**. One
 
 ### Ta bort det som kommandot skapade
 
-Händelsehubbarna och diagnostikinställningarna finns kvar i Azure, och Azure fakturerar dem, tills de tas bort. Dialogen visar kommandot: det tar bort varje resurs diagnostikinställning och sedan resursgruppen, i vilken prenumeration den än ligger.
+Händelsehubbarna och diagnostikinställningarna finns kvar i Azure, och Azure fakturerar dem, tills de tas bort. Dialogen visar kommandot: det tar bort diagnostikinställningen på varje resurs, på lagringskontonas tjänster och på varje prenumeration, och sedan resursgruppen, i vilken prenumeration den än ligger. Det tar också bort Microsoft Entra ID:s inställning när du får det, och säger annars vem som får det.
 
 ```bash
 oneuptime_stream_stop() {
-  local SUB ID N=0
+  local SUB ID TYPE SERVICE N=0
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
-    while IFS= read -r ID; do
+    while IFS=$'\t' read -r ID TYPE; do
       if [ -z "$ID" ]; then continue; fi
       az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID" --output none 2> /dev/null &
       N=$((N + 1))
       if [ $((N % 4)) -eq 0 ]; then wait; fi
-    done < <(az resource list --subscription "$SUB" --query "[].id" --output tsv)
+      if [ "${TYPE,,}" = microsoft.storage/storageaccounts ]; then
+        for SERVICE in blobServices fileServices queueServices tableServices; do
+          az monitor diagnostic-settings delete --name OneUptime-6f1c3a2e --resource "$ID/$SERVICE/default" --output none 2> /dev/null &
+          N=$((N + 1))
+          if [ $((N % 4)) -eq 0 ]; then wait; fi
+        done
+      fi
+    done < <(az resource list --subscription "$SUB" --query "[].[id, type]" --output tsv)
+    az monitor diagnostic-settings subscription delete --subscription "$SUB" --name OneUptime-6f1c3a2e --yes --output none 2> /dev/null
   done
   wait
+  if az rest --method get --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null; then
+    az rest --method delete --url "/providers/microsoft.aadiam/diagnosticSettings/OneUptime-6f1c3a2e?api-version=2017-04-01" --output none 2> /dev/null && echo "Deleted Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e." || echo "Microsoft Entra ID's diagnostic setting OneUptime-6f1c3a2e is left: a Security Administrator of the tenant deletes it, under Diagnostic settings in the Microsoft Entra admin center."
+  fi
   for SUB in '11111111-aaaa-4aaa-8aaa-111111111111' '22222222-bbbb-4bbb-8bbb-222222222222'; do
     if [ "$(az group exists --subscription "$SUB" --name oneuptime-stream-6f1c3a2e 2> /dev/null)" = true ]; then
       az group delete --subscription "$SUB" --name oneuptime-stream-6f1c3a2e --yes --no-wait && echo "Deleting oneuptime-stream-6f1c3a2e in $SUB."
@@ -160,6 +187,10 @@ Dialogen och radens knappbeskrivning säger varför. När appen inte får läsa 
 
 :::details Kommandot utelämnade resurser
 Det listar dem, var och en med Azures orsak. En resurs av en typ utan diagnostikinställningar skickar inget, och på en som redan har 5 diagnostikinställningar måste en av dem tas bort först. Kör sedan kommandot igen.
+:::
+
+:::details Aktivitetsloggen eller Microsoft Entra ID:s loggar utelämnades
+Kommandot säger vad Azure bad om. En prenumerations diagnostikinställning kräver `Microsoft.Insights/diagnosticSettings/write` på prenumerationen, som dess Owner, Contributor och Monitoring Contributor har, och klientorganisationens kräver en Security Administrator i klientorganisationen. Båda kräver `Microsoft.EventHub/namespaces/authorizationRules/listKeys/action` på resursgruppen som kommandot skapar, som dess Owner och Contributor har. Kör sedan kommandot igen.
 :::
 
 ## Nästa steg

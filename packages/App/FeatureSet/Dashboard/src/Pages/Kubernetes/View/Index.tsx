@@ -120,6 +120,7 @@ import {
   XAxisAggregateType,
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import YAxis, {
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
@@ -410,20 +411,27 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   };
 
   return (
-    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
-      <LineChartElement
-        data={withTranslatedSeriesNames(props.data, translator)}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        curve={props.curve ?? ChartCurve.MONOTONE}
-        sync={true}
-        syncid={props.syncId}
-        heightInPx={180}
-        showLegend={props.showLegend ?? false}
-        referenceRegions={props.referenceRegions}
-        connectNulls={props.connectNulls}
-      />
+      {/*
+       * At the foot of its card: a row of cards grows to its tallest - a
+       * legend on two lines, in German or on a phone - and the plots and
+       * time axes still line up under the hover line they share (#7125).
+       */}
+      <div className="mt-auto">
+        <LineChartElement
+          data={withTranslatedSeriesNames(props.data, translator)}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          curve={props.curve ?? ChartCurve.MONOTONE}
+          sync={true}
+          syncid={props.syncId}
+          heightInPx={180}
+          showLegend={props.showLegend ?? false}
+          referenceRegions={props.referenceRegions}
+          connectNulls={props.connectNulls}
+        />
+      </div>
     </div>
   );
 };
@@ -1925,9 +1933,10 @@ const KubernetesClusterOverview: FunctionComponent<
         min: 0,
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
-        formatter: (value: number): string => {
+        formatter: (value: number, precision?: ValueAxisPrecision): string => {
           return ValueFormatter.formatValue(value, "By", {
             language: getDateDisplayLanguage(),
+            step: precision?.step,
           });
         },
       },
@@ -1940,9 +1949,10 @@ const KubernetesClusterOverview: FunctionComponent<
         min: 0,
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
-        formatter: (value: number): string => {
+        formatter: (value: number, precision?: ValueAxisPrecision): string => {
           return ValueFormatter.formatValue(value, "By/s", {
             language: getDateDisplayLanguage(),
+            step: precision?.step,
           });
         },
       },

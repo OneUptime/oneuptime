@@ -283,6 +283,11 @@ const WORKFLOWS_MENU: ReadonlyArray<MenuPage> = [
     path: `${WORKFLOWS_PATH}/developer/terraform`,
   },
   {
+    title: "Crossplane",
+    section: "Developer",
+    path: `${WORKFLOWS_PATH}/developer/crossplane`,
+  },
+  {
     title: "API",
     section: "Developer",
     path: `${WORKFLOWS_PATH}/developer/api`,
@@ -312,6 +317,11 @@ const WORKFLOW_MENU: ReadonlyArray<MenuPage> = [
     title: "Terraform",
     section: "Developer",
     path: `${WORKFLOW_PATH}/developer/terraform`,
+  },
+  {
+    title: "Crossplane",
+    section: "Developer",
+    path: `${WORKFLOW_PATH}/developer/crossplane`,
   },
   {
     title: "API",
@@ -555,13 +565,13 @@ describe("a workflow's own menu", () => {
     expect(sectionTitlesInOrder()).not.toContain("Owners");
   });
 
-  test("lists all twelve pages once, in order", async () => {
+  test("lists all thirteen pages once, in order", async () => {
     await renderWorkflowMenu();
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    expect(hrefs).toHaveLength(12);
-    expect(new Set(hrefs).size).toBe(12);
+    expect(hrefs).toHaveLength(13);
+    expect(new Set(hrefs).size).toBe(13);
     expect(hrefs).toEqual(
       WORKFLOW_MENU.map((page: MenuPage): string => {
         return page.path;

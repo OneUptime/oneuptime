@@ -31,6 +31,8 @@ import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
 import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import RecordAccessRoute from "./RecordAccessRoute";
+import { RecordAccessKind } from "../../Types/RecordAccess/RecordAccess";
 
 export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
   public constructor() {
@@ -59,6 +61,17 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
       router: this.router,
       apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
       event: OwnerRulePreviewEvent.Alert,
+    });
+
+    /*
+     * What the reader may do on this record and its parts, each operation
+     * allowed or refused with why, by the checks a write runs
+     * (Types/RecordAccess/RecordAccess): what every lock on its page reads.
+     */
+    RecordAccessRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      kind: RecordAccessKind.Alert,
     });
   }
 

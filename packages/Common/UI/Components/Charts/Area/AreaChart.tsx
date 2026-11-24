@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
-import YAxis from "../Types/YAxis/YAxis";
+import YAxis, { OwnScaleYAxis, SecondYAxis } from "../Types/YAxis/YAxis";
 import ChartCurve from "../Types/ChartCurve";
 import ChartDataPoint, {
   CHART_DATA_POINT_X_AXIS_KEY,
@@ -27,8 +27,11 @@ import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import ExemplarPoint from "../Types/ExemplarPoint";
 import XAxisUtil from "../Utils/XAxis";
 import XAxisType from "../Types/XAxis/XAxisType";
+import { getTimeAxisTickInterval } from "../Utils/TimeAxisTicks";
+import { LegendGrowth, useLegendGrowth } from "../Utils/UseLegendGrowth";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
-import { getYAxisWidthInPx } from "../Utils/YAxisWidth";
+import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
+import Dictionary from "../../../../Types/Dictionary";
 import {
   ChartTimeRangeZoomContextValue,
   ChartTimeRangeZoomHandlers,
@@ -90,6 +93,11 @@ export interface ComponentProps {
         bucketStart: Date,
         bucketEnd: Date,
         valuesAtBucket: Record<string, number | string>,
+        /*
+         * A series' value as the tooltip writes it, by the name it is drawn
+         * with: to the figures its axis's ticks are written with (#10079).
+         */
+        formatValue?: (seriesName: string, value: number) => string,
       ) => void)
     | undefined;
   /*
@@ -98,6 +106,16 @@ export interface ComponentProps {
    */
   ghostSeriesNames?: Array<string> | undefined;
   showLegend?: boolean | undefined;
+  /*
+   * A chart drawn at a fixed heightInPx keeps its plot that tall when its
+   * legend wraps onto more lines than one: it grows by those lines, instead
+   * of taking them from the plot (UseLegendGrowth, issues #6562, #7125).
+   * Three long series names on a phone took a 176px card chart's plot from
+   * 78px down to 30px (Product Analytics' Active users). false keeps the
+   * height heightInPx gives, the legend's lines coming out of it: for a
+   * chart that has to fit a box of its own size (a dashboard widget).
+   */
+  growsWhenLegendWraps?: boolean | undefined;
   /**
    * Render a shaded "expected range" band underneath the plotted lines.
    * The caller passes two series in `data` carrying the lower and upper
@@ -113,6 +131,25 @@ export interface ComponentProps {
    * position (index % length).
    */
   colors?: Array<ChartColorValue> | undefined;
+  /*
+   * A second value axis, on the right, for the series it names (issue
+   * #10042): bytes overlaid on a chart in percent. Each axis is as wide as
+   * its own ticks, and the tooltip writes a series' values as its axis does.
+   */
+  secondYAxis?: SecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, for the series each names
+   * (issue #10080): an overlaid query in a unit neither axis can say. Each
+   * series' line keeps its shape, the axes keep theirs, and the tooltip
+   * writes its values with its scale's formatter.
+   */
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
+  /*
+   * How the tooltip writes a series' values, by its name, for a series whose
+   * unit is neither axis's. Left out, a series' values are written as the
+   * axis it is drawn against writes its ticks.
+   */
+  seriesValueFormatters?: Dictionary<(value: number) => string> | undefined;
 }
 
 export interface AreaInternalProps extends ComponentProps {
@@ -123,6 +160,12 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
   props: AreaInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+  // Taller by the legend's extra lines, unless it must fit its box.
+  const legendGrowth: LegendGrowth = useLegendGrowth({
+    heightInPx: props.heightInPx,
+    growsWhenLegendWraps: props.growsWhenLegendWraps,
+    showLegend: props.showLegend,
+  });
 
   /*
    * Drag-to-zoom: the host's own handlers, or else the enclosing page's
@@ -223,16 +266,18 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
   /*
    * The value axis is as wide as the widest tick it draws, and never under
    * the 64 pixels it always had: a tick too wide for it broke over two
-   * lines and was cut at the card's edge (YAxisWidth, #8049).
+   * lines and was cut at the card's edge (YAxisWidth, #8049). A second axis
+   * is measured over its own series, and the first over the rest.
    */
-  const yAxisWidthInPx: number = useMemo(() => {
-    return getYAxisWidthInPx({
+  const valueAxes: ChartValueAxes = useMemo(() => {
+    return getChartValueAxes({
       data: props.data,
-      formatter: props.yAxis.options.formatter,
-      min: props.yAxis.options.min,
-      max: props.yAxis.options.max,
+      yAxis: props.yAxis,
+      secondYAxis: props.secondYAxis,
+      ownScaleYAxes: props.ownScaleYAxes,
     });
-  }, [props.data, props.yAxis]);
+  }, [props.data, props.yAxis, props.secondYAxis, props.ownScaleYAxes]);
+  const yAxisWidthInPx: number = valueAxes.firstYAxisWidthInPx;
 
   const hasNoData: boolean =
     !props.data ||
@@ -264,11 +309,20 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
        * navbar on half-scrolled charts.
        */
       className="relative isolate flex flex-1"
-      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+      style={
+        legendGrowth.chartHeightInPx
+          ? { height: `${legendGrowth.chartHeightInPx}px` }
+          : undefined
+      }
     >
       <AreaChart
         data={records}
         tickGap={30}
+        // A day axis labels its first and last day (TimeAxisTicks, #7126).
+        intervalType={getTimeAxisTickInterval(props.xAxis)}
+        onLegendExtraRowsHeightChange={
+          legendGrowth.onLegendExtraRowsHeightChange
+        }
         index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         colors={
@@ -277,6 +331,8 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
             : AreaChartPalette
         }
         valueFormatter={props.yAxis.options.formatter || undefined}
+        // A duration axis steps in natural units of time (issue #10118).
+        valueDurationUnitInSeconds={props.yAxis.options.durationUnitInSeconds}
         showTooltip={true}
         showLegend={props.showLegend !== false}
         connectNulls={true}
@@ -308,6 +364,9 @@ const AreaChartElement: FunctionComponent<AreaInternalProps> = (
         ghostCategories={props.ghostSeriesNames}
         anomalyBandLowerKey={bandLower}
         anomalyBandUpperKey={bandUpper}
+        secondYAxis={valueAxes.secondYAxis}
+        ownScales={valueAxes.ownScales}
+        categoryValueFormatters={props.seriesValueFormatters}
       />
       {hasNoData && <NoDataMessage />}
     </div>

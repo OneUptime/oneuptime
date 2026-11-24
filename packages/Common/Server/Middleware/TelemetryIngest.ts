@@ -53,6 +53,7 @@ import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import TelemetryIngestionKeyLastUsed from "../Utils/Telemetry/TelemetryIngestionKeyLastUsed";
+import type TelemetryIngestAttribution from "../Utils/Telemetry/TelemetryIngestAttribution";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -94,6 +95,23 @@ export interface TelemetryRequest extends ExpressRequest {
    * undefined when no gate ran, and the queue decides.
    */
   telemetryIngestionBudgetCharge?: TelemetryIngestionBudgetCharge | null;
+
+  /*
+   * The size an ingestion budget counts this request at, set where it is
+   * not the size of the body the worker reads back: an OTLP/gRPC export's
+   * protobuf size, which the worker - holding the export as JSON - cannot
+   * measure. The worker shares it out over the batch's resources
+   * (TelemetryIngestAttribution, #6355, #6386).
+   */
+  telemetryIngestBytes?: number | undefined;
+
+  /*
+   * On the copy a queue worker processes: the batch's attribution to the
+   * teams, labels and usage of the resources it is filed under
+   * (TelemetryIngestAttribution), or null when its project needs none. The
+   * ingest services ask it about each resource and settle it once done.
+   */
+  telemetryIngestAttribution?: TelemetryIngestAttribution | null | undefined;
 }
 
 /*

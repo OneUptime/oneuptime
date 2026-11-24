@@ -33,6 +33,8 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
       role="menu"
       aria-orientation="vertical"
       aria-labelledby={buttonId}
+      // What its button's aria-controls names (HeaderIconDropdownButton).
+      id={buttonId ? `${buttonId}-menu` : undefined}
     >
       {props.children}
     </div>

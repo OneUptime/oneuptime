@@ -94,7 +94,7 @@ describe("the signals", () => {
         isCostIncluded: true,
       }),
     ).toBe(
-      "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+      "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.",
     );
     expect(TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP).toContain(
       TELEMETRY_USAGE_SIGNAL_TOOLTIPS[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]!,

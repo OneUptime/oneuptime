@@ -44,6 +44,12 @@ jest.mock(
 jest.mock("../../../../Server/Services/TelemetryIngestionKeyService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
+jest.mock(
+  "../../../../Server/Services/TelemetryIngestionTeamLabelBudgetService",
+  () => {
+    return { __esModule: true, default: { findAllBy: jest.fn() } };
+  },
+);
 jest.mock("../../../../Server/Services/MetricService", () => {
   return { __esModule: true, default: { insertJsonRows: jest.fn() } };
 });
@@ -92,6 +98,7 @@ import TelemetryIngestionBudgetCounter, {
 } from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetCounter";
 import TelemetryIngestionBudgetSettings from "../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetSettings";
 import TelemetryIngestionKeyService from "../../../../Server/Services/TelemetryIngestionKeyService";
+import TelemetryIngestionTeamLabelBudgetService from "../../../../Server/Services/TelemetryIngestionTeamLabelBudgetService";
 import MetricService from "../../../../Server/Services/MetricService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
@@ -114,6 +121,8 @@ type MockFn = jest.Mock;
 const GB: number = TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB;
 const PROJECT_ID: string = "11111111-1111-4111-8111-1111111111a1";
 const KEY_ID: string = "11111111-1111-4111-8111-1111111111a2";
+const TEAM_ID: string = "11111111-1111-4111-8111-1111111111a3";
+const LABEL_ID: string = "11111111-1111-4111-8111-1111111111a4";
 const NOW: Date = new Date("2026-11-09T12:00:00Z");
 
 const counters: (
@@ -145,6 +154,20 @@ const keyMember: TelemetryIngestionBudgetActiveMember = {
   projectId: PROJECT_ID,
   scope: TelemetryIngestionBudgetScope.IngestionKey,
   scopeId: KEY_ID,
+  signalSlug: "logs",
+};
+
+const teamMember: TelemetryIngestionBudgetActiveMember = {
+  projectId: PROJECT_ID,
+  scope: TelemetryIngestionBudgetScope.Team,
+  scopeId: TEAM_ID,
+  signalSlug: "logs",
+};
+
+const labelMember: TelemetryIngestionBudgetActiveMember = {
+  projectId: PROJECT_ID,
+  scope: TelemetryIngestionBudgetScope.Label,
+  scopeId: LABEL_ID,
   signalSlug: "logs",
 };
 
@@ -328,6 +351,179 @@ describe("buildScopeRows", () => {
       ingestionKeyId: KEY_ID,
       ingestionKeyName: "collector-prod",
     });
+  });
+});
+
+// A team's or a label's budget (#6386).
+describe("a team's or a label's rows and emails", () => {
+  const teamScope: TelemetryIngestionBudgetSweepScope = {
+    ...projectScope,
+    member: teamMember,
+    limits: {
+      dailyBudget: {
+        bytes: 2 * GB,
+        source: TelemetryIngestionBudgetLimitSource.Team,
+      },
+      rateLimit: { bytes: null, source: null },
+    },
+    teamOrLabelName: "Payments",
+  };
+
+  test("names the team, or the label, on its rows, still keyed to the project", () => {
+    const rows: Array<JSONObject> =
+      TelemetryIngestionBudgetMetrics.buildScopeRows({
+        scope: teamScope,
+        counters: counters({ usedBytes: GB }),
+        ingestionDate: NOW,
+        retentionDate: NOW,
+      });
+
+    expect(rows[0]!["primaryEntityId"]).toBe(PROJECT_ID);
+    expect(rows[0]!["attributes"]).toEqual({
+      projectId: PROJECT_ID,
+      signal: "logs",
+      scope: "team",
+      teamId: TEAM_ID,
+      teamName: "Payments",
+    });
+
+    const labelRows: Array<JSONObject> =
+      TelemetryIngestionBudgetMetrics.buildScopeRows({
+        scope: {
+          ...teamScope,
+          member: labelMember,
+          teamOrLabelName: "production",
+        },
+        counters: counters({ usedBytes: GB }),
+        ingestionDate: NOW,
+        retentionDate: NOW,
+      });
+
+    expect(labelRows[0]!["attributes"]).toEqual({
+      projectId: PROJECT_ID,
+      signal: "logs",
+      scope: "label",
+      labelId: LABEL_ID,
+      labelName: "production",
+    });
+  });
+
+  test("tells the owners a team's budget is used up: its services' telemetry is dropped, and the rest keeps sending", () => {
+    const notice: { subject: string; html: string } | null =
+      TelemetryIngestionBudgetMetrics.getNotice({
+        kind: TelemetryIngestionBudgetNoticeKind.Exhausted,
+        projectId: PROJECT_ID,
+        projectName: "Acme",
+        scope: teamScope,
+        counters: counters({ usedBytes: 2 * GB }),
+        warningPercent: 80,
+        resetsAt: new Date("2026-11-10T00:00:00Z"),
+      });
+
+    expect(notice!.subject).toBe(
+      'Logs ingestion budget used up for the team "Payments" in Acme',
+    );
+    expect(notice!.html).toContain(
+      "OneUptime is dropping logs from the services the team owns until the budget resets at 2026-11-10 00:00 UTC.",
+    );
+    expect(notice!.html).toContain(
+      "Their senders are not told, and the rest of the project keeps sending.",
+    );
+    expect(notice!.html).toContain("Project Owners and Project Admins");
+  });
+
+  test("warns the owners about a label's budget, by the label's name", () => {
+    const notice: { subject: string; html: string } | null =
+      TelemetryIngestionBudgetMetrics.getNotice({
+        kind: TelemetryIngestionBudgetNoticeKind.Warning,
+        projectId: PROJECT_ID,
+        projectName: "Acme",
+        scope: {
+          ...teamScope,
+          member: labelMember,
+          teamOrLabelName: "<production>",
+        },
+        counters: counters({ usedBytes: 1.7 * GB }),
+        warningPercent: 80,
+        resetsAt: new Date("2026-11-10T00:00:00Z"),
+      });
+
+    expect(notice!.subject).toBe(
+      'Logs ingestion budget 85% used for the label "<production>" in Acme',
+    );
+    expect(notice!.html).toContain("services with the label");
+    expect(notice!.html).not.toContain("<production>");
+  });
+
+  test("the sweep reads the team's and the label's budgets, each held to the project's, in one read", async () => {
+    (
+      TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn
+    ).mockResolvedValue([teamMember, labelMember] as never);
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue([
+      counters({ usedBytes: GB }),
+      counters({ usedBytes: 3 * GB }),
+    ] as never);
+    (
+      TelemetryIngestionTeamLabelBudgetService.findAllBy as unknown as MockFn
+    ).mockResolvedValue([
+      {
+        projectId: new ObjectID(PROJECT_ID),
+        teamId: new ObjectID(TEAM_ID),
+        team: { name: "Payments" },
+        logsDailyIngestionBudgetInGB: 2,
+      },
+      {
+        projectId: new ObjectID(PROJECT_ID),
+        labelId: new ObjectID(LABEL_ID),
+        label: { name: "production" },
+        // More than the project's 10: held to 10.
+        logsDailyIngestionBudgetInGB: 50,
+      },
+    ] as never);
+
+    const summary: TelemetryIngestionBudgetSweepSummary =
+      await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW });
+
+    expect(summary.scopesScanned).toBe(2);
+    expect(
+      TelemetryIngestionTeamLabelBudgetService.findAllBy,
+    ).toHaveBeenCalledTimes(1);
+
+    const percents: Array<[unknown, unknown]> = (
+      (MetricService.insertJsonRows as unknown as MockFn).mock
+        .calls[0]![0] as Array<JSONObject>
+    )
+      .filter((row: JSONObject) => {
+        return row["name"] === TelemetryIngestionBudgetMetricType.UsedPercent;
+      })
+      .map((row: JSONObject): [unknown, unknown] => {
+        return [(row["attributes"] as JSONObject)["scope"], row["value"]];
+      });
+
+    // 1 of the team's 2 GB, 3 of the label's 10 (its 50, held to the project's).
+    expect(percents).toEqual([
+      ["team", 50],
+      ["label", 30],
+    ]);
+  });
+
+  test("a budget deleted since it counted is not reported", async () => {
+    (
+      TelemetryIngestionBudgetCounter.listActiveMembers as unknown as MockFn
+    ).mockResolvedValue([teamMember] as never);
+    (
+      TelemetryIngestionBudgetCounter.readDayCounters as unknown as MockFn
+    ).mockResolvedValue([counters({ usedBytes: GB })] as never);
+    (
+      TelemetryIngestionTeamLabelBudgetService.findAllBy as unknown as MockFn
+    ).mockResolvedValue([] as never);
+
+    const summary: TelemetryIngestionBudgetSweepSummary =
+      await TelemetryIngestionBudgetMetrics.publishAll({ now: NOW });
+
+    expect(summary.rowsWritten).toBe(0);
   });
 });
 

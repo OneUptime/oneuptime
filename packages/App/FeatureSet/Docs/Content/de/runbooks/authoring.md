@@ -64,7 +64,7 @@ Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel
 | [kubectl](#kubectl) | Einem Runner | Einen Runner und eine kubeconfig-Variable oder den eigenen Zugriff des Runners |
 | [AI](#ai) | Dem OneUptime Worker | Einen LLM-Anbieter |
 
-In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port, Passphrase des Schlüssels und Host-Schlüssel eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
+In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header und Zertifikatseinstellungen eines HTTP-Aufrufs, Port, Passphrase des Schlüssels und Host-Schlüssel eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Ein ausgehender HTTP-Aufruf, ausgeführt vom OneUptime Worker. Es wird kein Runn
 | **Methode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` oder `HEAD`. | `GET` |
 | **URL** | Der aufzurufende Endpunkt. | Leer |
 | **Header (JSON)** | Unter **Weitere Felder**. Ein JSON-Objekt, etwa `{ "Authorization": "Bearer ..." }`. Header, die kein gültiges JSON sind, lassen den Schritt fehlschlagen. | Keine |
+| **Selbstsignierte Zertifikate zulassen** | Unter **Weitere Felder**. Ist der Schalter an, nimmt der Schritt jedes Zertifikat, das der Server zeigt, sodass ein selbstsigniertes funktioniert, prüft dann aber weder den Hostnamen noch den Gültigkeitszeitraum, und jeder auf dem Netzwerkpfad könnte die Anfrage samt ihren Geheimnissen lesen und die Antwort ändern. | Aus |
+| **CA-Zertifikat** | Unter **Weitere Felder**, solange **Selbstsignierte Zertifikate zulassen** aus ist. Das Zertifikat im PEM-Format der CA, die das Zertifikat des Servers signiert hat, oder das eigene des Servers, wenn es selbstsigniert ist. Der Schritt vertraut dann nur diesem Zertifikat und prüft weiterhin den Hostnamen und den Gültigkeitszeitraum. | Keins |
 | **Body** | Wird bei `POST`, `PUT`, `PATCH` und `DELETE` angezeigt. Wird als JSON gesendet, wenn er sich als JSON parsen lässt, sonst als Text. | Keiner |
 | **Anfrage-Timeout** | Wie lange auf die Antwort des Endpunkts gewartet wird, bevor der Schritt fehlschlägt. | 30 Sekunden |
 
@@ -113,6 +115,21 @@ Nützlich für: einen PagerDuty-Vorfall öffnen, an einen Slack-Webhook posten, 
 
 > [!TIP]
 > Halten Sie Tokens aus dem Schritt heraus. Speichern Sie sie als geheime [Runbook-Variablen](/docs/runbooks/variables) und schreiben Sie `{{global.variables.NAME}}` dorthin, wo der Wert hingehört, in die URL, die Header oder den Body. OneUptime sendet die Anfrage selbst, setzt also auch Geheimnisse ein, und die Antwort, die der Schritt erfasst, zeigt an ihrer Stelle `[REDACTED]`. In JSON-Headern oder einem JSON-Body kommt ein Wert in seinen String, sodass ein Anführungszeichen oder ein Zeilenumbruch darin das JSON nicht zerbricht.
+
+Ein Server mit einem Zertifikat, das er selbst signiert hat oder das Ihre eigene CA signiert hat, wird abgelehnt, bis der Schritt ihm vertraut, und es wird nichts gesendet. Der Fehler des Schritts sagt, was zu ändern ist: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Fügen Sie das Zertifikat, das es signiert hat, unter **CA-Zertifikat** ein: das der CA oder das eigene des Servers, wenn es selbstsigniert ist. Der Schritt prüft das Zertifikat des Servers dann dagegen, samt Hostnamen und Gültigkeitszeitraum, sodass ein Server, der sich nur als Ihrer ausgibt, weiterhin abgelehnt wird. Schalten Sie **Selbstsignierte Zertifikate zulassen** nur ein, wenn Sie keines einfügen können. Beides gilt nur für die Anfrage dieses Schritts, nie für einen anderen Schritt, eine andere Anfrage von OneUptime oder die Verbindung zu einem ausgehenden Proxy.
+
+> [!TIP]
+> Um stattdessen Ihrer eigenen CA für alle Anfragen auf einmal zu vertrauen, Monitore eingeschlossen, setzt eine selbst gehostete Installation `NODE_EXTRA_CA_CERTS` auf ihren Containern.
+
+Über die API und Terraform ist der Schalter `allowSelfSignedCertificates` in der Konfiguration des Schritts, `true` oder `false`, und das CA-Zertifikat ihr `caCertificate`, das PEM als Text. Ein Speichern wird abgelehnt, wenn `caCertificate` kein Zertifikat ist oder einen privaten Schlüssel enthält.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

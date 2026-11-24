@@ -5,7 +5,7 @@ Instrumente um aplicativo Android, iOS ou React Native com o OpenTelemetry para 
 :::cards
 - [O que o OneUptime precisa](#o-que-o-oneuptime-precisa): Dois atributos de recurso, enviados com uma chave Servidor.
 - [Configurar sua plataforma](#configurar-sua-plataforma): Android, iOS, React Native e as demais.
-- [Falhas e travamentos no iOS](#falhas-e-travamentos-no-ios): Os diagnósticos do MetricKit em Exceções e na Visão geral.
+- [Falhas e travamentos no iOS](#falhas-e-travamentos-no-ios): Os relatórios do MetricKit e do KSCrash em Exceções, nomeados pelos seus dSYMs.
 - [Verificar se chega](#verificar-se-chega): Testar a chave e depois encontrar o aplicativo.
 - [Session Replay em dispositivos móveis](#session-replay-em-dispositivos-móveis): Gravações para aplicativos React Native.
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model` devolve um nome curto como `iPhone`, o que mantém a página **Clientes** com uma linha por tipo de dispositivo.
+`UIDevice.current.model` devolve um nome curto como `iPhone`, o que mantém a página **Clientes** com uma linha por tipo de dispositivo. `identifierForVendor` é a instalação pela qual o OneUptime conta as instalações sem falhas, como diz [Marcar as sessões](#marcar-as-sessões).
 @tab React Native
 O React Native executa o SDK JavaScript do OpenTelemetry, então monte o provider, o exportador OTLP e o processador de lotes como em [Configuração para navegadores](/docs/rum/browser-setup), com três mudanças: envie com uma chave **Servidor**, deixe de fora `browserDetector` e `DocumentLoadInstrumentation`, e defina os atributos de dispositivo você mesmo.
 
@@ -178,7 +179,9 @@ O opentelemetry-swift 2.3 e posteriores reportam as falhas e os travamentos de u
 | Uma falha | `metrickit.diagnostic.crash` | Uma exceção não tratada, com o tipo do que encerrou o aplicativo: a exceção Objective-C no iOS 17 e posteriores, senão a exceção Mach (`EXC_BAD_ACCESS`), senão o sinal (`SIGSEGV`) |
 | Um travamento | `metrickit.diagnostic.hang` | Uma exceção não tratada do tipo **Hang**, a contraparte de um ANR no iOS, que guarda quanto tempo o travamento durou |
 
-O bloco **Falhas** da Visão geral conta as falhas, e o bloco **ANRs** dela conta os travamentos junto com os ANRs do Android. Cada stack trace é desenhado como as threads de um relatório de falha, primeiro a thread que falhou ou travou. Os frames não são simbolizados: cada um nomeia o binário dele e a posição do código dentro desse binário, e **Binary Images** lista o UUID de cada binário, que indica o dSYM de qual build o simboliza.
+O bloco **Falhas** da Visão geral conta as falhas, e o bloco **ANRs** dela conta os travamentos junto com os ANRs do Android. Cada stack trace é desenhado como as threads de um relatório de falha, primeiro a thread que falhou ou travou. Um frame do código do seu aplicativo é nomeado pela função dele, como `CartViewController.checkout()`, assim que o dSYM do build dele é enviado, como em [Enviar seus dSYMs](#enviar-seus-dsyms). Todos os outros frames nomeiam o binário deles e a posição do código dentro desse binário, e **Binary Images** lista o UUID de cada binário, que indica o dSYM de qual build o nomeia.
+
+As falhas e os travamentos são agrupados pelos frames do seu aplicativo na thread que falhou ou travou: pelas funções deles onde um dSYM os nomeou, para que uma falha continue sendo uma única exceção de uma versão para a seguinte, e pelos deslocamentos deles no binário onde nenhum o fez, que mudam a cada build. Um relatório é nomeado quando chega, então envie os dSYMs de um build antes de publicá-lo: uma falha que chegou antes do dSYM dela mantém os deslocamentos.
 
 :::steps
 ### Exportar logs além de spans
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### Marcar as sessões
 
-Os blocos **Sessões** e **Sessões sem falhas** contam o `session.id` dos seus spans. O produto `Sessions` do opentelemetry-swift o define: adicione `SessionSpanProcessor` ao tracer provider e envolva o processador de logs em `SessionLogRecordProcessor`, para que os diagnósticos também tragam uma sessão. As versões dele ainda não definem nenhum `app.installation.id`, então o bloco **Sessões sem falhas** de um aplicativo iOS mostra quantas sessões tiveram falha em vez das instalações sem falhas.
+Os blocos **Sessões** e **Sessões sem falhas** contam o `session.id` dos seus spans. O produto `Sessions` do opentelemetry-swift o define: adicione `SessionSpanProcessor` ao tracer provider e envolva o processador de logs em `SessionLogRecordProcessor`, para que os diagnósticos também tragam uma sessão.
+
+A linha sob **Sessões sem falhas** mostra a parcela das instalações que não tiveram falha, e **Daily Crash Rate** e **Daily ANR Rate** alertam sobre a parcela que teve. Uma instalação é o `device.id` do recurso acima, o identificador do aplicativo para o fornecedor: um por dispositivo para todos os seus aplicativos, mantido enquanto algum deles continuar instalado, então reinstalar seu único aplicativo cria uma nova instalação, e reinstalar um de dois não. Uma versão do opentelemetry-swift que define `app.installation.id` é contada por ele em vez disso.
+
+### Enviar seus dSYMs
+
+O Xcode grava um dSYM para cada binário do seu aplicativo quando arquiva o aplicativo, e o App Store Connect os devolve em **Download dSYMs**. Envie-os após cada arquivamento, a partir da CI ou de uma fase de build do Xcode, com a [CLI do OneUptime](/docs/cli/index) e uma chave Servidor própria do seu build: uma chave com um **Nome do serviço fixado**, como a que vai dentro do seu aplicativo, é recusada, porque um dSYM nomeia os frames de cada aplicativo do projeto que distribui o binário dele.
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+A CLI lê pacotes `.dSYM`, pastas e zips deles, e arquivos DWARF onde estiverem, e envia apenas o UUID, a arquitetura e os nomes de funções de cada binário: os dSYMs de um aplicativo grande têm centenas de megabytes, os nomes deles, alguns poucos. Sem a CLI, envie o arquivo DWARF de um dSYM, ou um zip de pacotes `.dSYM`, como está, com até 50 MB por arquivo:
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+Cada binário é mantido pelo UUID dele por 400 dias, então uma versão que ainda está nos telefones das pessoas meses depois continua sendo nomeada, e enviar um build de novo substitui o que foi mantido para ele. Um dSYM pertence ao projeto, não a um aplicativo: um framework que dois dos seus aplicativos incorporam é nomeado em ambos.
 :::
 
 > [!NOTE]
 > A Apple entrega os diagnósticos do MetricKit ao aplicativo em uma inicialização posterior, imediatamente no iOS 15 e posteriores e uma vez por dia antes disso, então uma falha ou um travamento pode chegar minutos ou um dia depois de acontecer, e é contado quando chega. "0 falhas na última hora" na Visão geral de um aplicativo iOS ainda não é uma boa notícia. Um diagnóstico traz a sessão que o reportou, não a que ele encerrou.
 
 O opentelemetry-swift não registra nenhum span quando o aplicativo inicia, então os blocos **Inicializações do app** e **Inicialização a frio (p95)** ficam vazios até o seu aplicativo registrar um: um span chamado `AppStart`, com `start.type` definido como `cold`, `warm` ou `hot`, do início do processo até a primeira tela ficar pronta.
+
+### Quando o KSCrash também reporta uma falha
+
+O opentelemetry-swift também pode reportar falhas pelo KSCrash, que envia o relatório dele como um registro de log `device.crash` na próxima vez que o aplicativo é aberto, com a hora em que o aplicativo falhou. Um aplicativo que registra os dois reporta cada falha duas vezes: o KSCrash na próxima inicialização, o MetricKit na próxima inicialização ou até um dia depois. O OneUptime conta essa falha uma vez: o primeiro relatório a chegar é a ocorrência, e o segundo é mantido ao lado dela, na mesma exceção, como evidência da mesma falha, sem ser contado em nenhum bloco, gráfico ou monitor. Nas **Ocorrências** da exceção, a ocorrência mostra **Relatado duas vezes**.
+
+Dois relatórios só são tomados por uma única falha quando tudo isto vale:
+
+- Eles vêm dos dois relatores, KSCrash e MetricKit. Nenhum dos dois reporta uma falha duas vezes, então dois relatórios do mesmo relator são duas falhas.
+- Eles vêm da mesma instalação: o mesmo `app.installation.id`, ou `device.id`.
+- Eles estão a no máximo 26 horas de distância: o MetricKit marca uma falha com o fim do dia sobre o qual reporta, o KSCrash com o momento da falha.
+- Eles concordam no sinal, na exceção Mach e na exceção Objective-C, sempre que os dois nomeiam uma.
+- As threads que falharam concordam frame a frame a partir de onde a thread começou, para dentro, por binário e deslocamento, em cada frame do código do seu aplicativo que qualquer um dos dois nomeie. Uma falha inteiramente no código da Apple precisa concordar em pelo menos três frames, e em todos eles.
+
+Cada relatório é pareado uma vez, com o mais próximo no tempo, então duas falhas do mesmo bug em uma instalação, com minutos de diferença, são duas ocorrências, cada uma com o seu segundo relatório. Quando o OneUptime não consegue comparar um relatório com os outros da instalação dele, ele o conta, então uma falha é contada duas vezes no pior caso, nunca perdida.
 
 ## Verificar se chega
 

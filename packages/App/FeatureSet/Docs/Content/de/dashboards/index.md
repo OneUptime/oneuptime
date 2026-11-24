@@ -61,6 +61,8 @@ Das Seitenmenü der Liste enthält die Seiten, die sich um all Ihre Dashboards k
 | **Freigabe** | Wer es sehen kann, sein öffentlicher Link und eine IP-Zulassungsliste unter Weitere Einstellungen. |
 | **Branding** | Seitentitel, Beschreibung, Logo, Design und Favicon des öffentlichen Dashboards. |
 | **Benutzerdefinierte Domains** | Das öffentliche Dashboard unter Ihrer eigenen Domain bereitstellen. |
+| **Private Benutzer** | Die Personen, die sich am öffentlichen Link anmelden dürfen, wenn nur angemeldete Personen es sehen können. |
+| **Single Sign-On** | Die SAML- und OpenID-Connect-Anbieter, mit denen sie sich anmelden, und **SSO für die Anmeldung erzwingen**. |
 | **Einstellungen** | Das Dashboard duplizieren, exportieren oder archivieren. |
 | **Eigentümer** | Die Benutzer und Teams, denen es gehört. |
 | **Audit-Protokolle** | Jede Änderung am Dashboard und wer sie vorgenommen hat. |
@@ -103,4 +105,5 @@ Das Ziel: eine Seite für den Checkout-Dienst mit seiner Latenz, seiner Fehlerqu
 - [Dashboard-Widgets](/docs/dashboards/widgets): Jedes Widget und welches Sie wählen.
 - [Dashboard-Variablen & Filter](/docs/dashboards/variables): Ein Dashboard für jeden Dienst, jeden Host oder jeden Kunden.
 - [Teilen & öffentliche Dashboards](/docs/dashboards/sharing): Öffentliche Links, Passwörter, IP-Zulassungslisten und eigene Domains.
+- [Import aus Grafana und Datadog](/docs/dashboards/import): Ein Dashboard oder die Warnungsregeln übernehmen, die Sie in Grafana oder Datadog erstellt haben.
 :::

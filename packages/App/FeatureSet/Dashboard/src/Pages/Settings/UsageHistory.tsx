@@ -14,7 +14,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -28,6 +33,20 @@ import ModelTableColumn from "Common/UI/Components/ModelTable/Column";
 import TelemetryIngestionBudgetStatusCard from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
 import { fetchProjectTelemetryIngestionBudgetStatus } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { isExceptionBillingProductType } from "Common/Types/Telemetry/ExceptionSource";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import {
+  FOLDED_SECTION_ON,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import TeamLabelBudgetsTable, {
+  TEAM_LABEL_BUDGETS_CARD_TITLE,
+} from "../../Components/TelemetryIngestionBudget/TeamLabelBudgetsTable";
+import TelemetryUsageMetricsSwitch, {
+  TELEMETRY_USAGE_METRICS_CARD_TITLE,
+} from "../../Components/TelemetryUsage/TelemetryUsageMetricsSwitch";
+
+export const USAGE_MORE_SETTINGS_TEST_ID: string = "usage-more-settings";
 
 export type ComponentProps = PageComponentProps;
 
@@ -49,6 +68,10 @@ const Settings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // What the More settings fold names while folded (issues #6355, #6386).
+  const [teamLabelBudgetCount, setTeamLabelBudgetCount] = useState<number>(0);
+  const [isPublishingUsageMetrics, setIsPublishingUsageMetrics] =
+    useState<boolean>(false);
 
   return (
     <Fragment>
@@ -228,9 +251,11 @@ const Settings: FunctionComponent<ComponentProps> = (
           },
           /*
            * What the row is billed for. A Traces row is billed for its spans
-           * and its exceptions together, so it says, under that, how much
-           * of it the exceptions were - the overview above shows them apart
-           * (issue #6356). A row counted before then says nothing more.
+           * and the exceptions found in them, and a Logs row for its log
+           * records and the exceptions found in them (issue #6590), so each
+           * says, under that, how much of it the exceptions were - the
+           * overview above shows them apart (issue #6356). A row counted
+           * before then says nothing more.
            */
           {
             field: {
@@ -245,12 +270,21 @@ const Settings: FunctionComponent<ComponentProps> = (
                   ?.value || 0,
               );
 
+              const dataIngestedInGB: Decimal | undefined = item[
+                "dataIngestedInGB"
+              ] as Decimal | undefined;
+
+              // A row read without its amount (a column the reader may not read) says so.
+              if (!dataIngestedInGB) {
+                return <TableEmptyValue />;
+              }
+
               return (
                 <div>
                   <div>{`${DiskSize.convertToDecimalPlaces(
-                    (item["dataIngestedInGB"] as Decimal).value as number,
+                    dataIngestedInGB.value as number,
                   )}\u00A0GB`}</div>
-                  {item["productType"] === ProductType.Traces &&
+                  {isExceptionBillingProductType(item["productType"]) &&
                   exceptionDataIngestedInGB > 0 ? (
                     <div
                       className="text-xs text-gray-500"
@@ -306,6 +340,40 @@ const Settings: FunctionComponent<ComponentProps> = (
             : []),
         ]}
       />
+
+      {/*
+       * The project's own usage settings, which most projects never change,
+       * folded under More settings: budgets for its teams and labels inside
+       * its own (#6386), and its usage as metrics (#6355). Folded, the
+       * header says how many budgets there are, and whether usage is
+       * published.
+       */}
+      <AdvancedPageSection
+        items={[
+          foldedSectionItem(TEAM_LABEL_BUDGETS_CARD_TITLE, {
+            isSet: teamLabelBudgetCount > 0,
+            value: String(teamLabelBudgetCount),
+          }),
+          foldedSectionItem(TELEMETRY_USAGE_METRICS_CARD_TITLE, {
+            isSet: isPublishingUsageMetrics,
+            value: FOLDED_SECTION_ON,
+            translateValue: true,
+          }),
+        ]}
+        dataTestId={USAGE_MORE_SETTINGS_TEST_ID}
+      >
+        <TeamLabelBudgetsTable
+          onCountChange={(count: number) => {
+            setTeamLabelBudgetCount(count);
+          }}
+        />
+
+        <TelemetryUsageMetricsSwitch
+          onChange={(isOn: boolean) => {
+            setIsPublishingUsageMetrics(isOn);
+          }}
+        />
+      </AdvancedPageSection>
     </Fragment>
   );
 };

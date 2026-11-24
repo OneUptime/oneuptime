@@ -161,6 +161,24 @@ describe("the Hardening Guide's HTTP/2 section", () => {
     }
   });
 
+  /*
+   * #9973: restarts and upgrades keep HTTP/2 off, so the install's own
+   * tools remind of it while it is: npm start and npm run doctor
+   * (Scripts/Install/Doctor.js) and helm install and helm upgrade (the
+   * chart's NOTES.txt).
+   */
+  it("says that npm start, npm run doctor and helm say that it is off, as they do", () => {
+    expect(proseOf("en")).toContain(
+      "Until then, `npm start` and `npm run doctor` on Docker Compose, and `helm install` and `helm upgrade` on Kubernetes, say that it is off.",
+    );
+    expect(read("Scripts/Install/Doctor.js")).toContain(
+      "`HTTP/2 is off for ${host} (NGINX_HTTP2=${value} in ${CONFIG_FILE})",
+    );
+    expect(read("HelmChart/Public/oneuptime/templates/NOTES.txt")).toContain(
+      "HTTP/2 is off for {{ $http2Host }} (nginx.http2: false)",
+    );
+  });
+
   it.each(DOCS_LANGUAGES)(
     "tells nobody in %s to edit the config inside a running container",
     (language: string) => {

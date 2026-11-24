@@ -625,11 +625,17 @@ the account and its gotchas. Use the same account.
      personal Microsoft accounts", Web redirect URI
      `https://oneuptime.com/identity/microsoft/callback`, delegated
      `User.Read` only (anything needing admin consent would block buyers),
-     optional ID token claims **`email`** and **`xms_edov`**, and a client
-     secret: `MICROSOFT_SIGN_IN_CLIENT_ID` / `_SECRET`. This is what certifies
-     policy 1000.3 (buyers sign in with the account they bought with). Without
-     `xms_edov` every work or school account is refused, by design: an email
-     address Microsoft does not vouch for is never matched to a OneUptime user.
+     optional ID token claims **`email`**, **`xms_edov`** and **`auth_time`**,
+     and a client secret: `MICROSOFT_SIGN_IN_CLIENT_ID` / `_SECRET`. This is
+     what certifies policy 1000.3 (buyers sign in with the account they bought
+     with). Without `xms_edov` every work or school account is refused, by
+     design: an email address Microsoft does not vouch for is never matched to
+     a OneUptime user. Without `auth_time`, Sign In Again (#10217) never
+     confirms it's someone who signs in only with Microsoft: it sends them
+     with `prompt=login` and `max_age=0`, and counts the sign-in only when the
+     ID token says they signed in after it sent them there
+     ([MicrosoftSignInClient.ts](../MicrosoftSignIn/MicrosoftSignInClient.ts)).
+     Add it under **Token configuration > Add optional claim > ID**.
      An existing OneUptime account whose address was never verified is sent a
      verification link instead of being signed in, as with Global OIDC; users
      with two-factor authentication, and master admins, sign in with their

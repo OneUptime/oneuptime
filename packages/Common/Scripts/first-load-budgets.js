@@ -97,7 +97,8 @@ const PAGES = [
     // 2026-11-04: 786,737 bytes, loading code, Markdown and file fields only for a form that has one (#5619).
     // 2026-11-11: 773,606 bytes, hashing with crypto-js's SHA-256 alone, and loading the rules that set code apart in Arabic and Persian sentences only for those languages.
     // 2026-11-16: 727,932 bytes (783,588 on main that day, 4.8 KiB under 770 KiB), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
-    ceiling: 725 * KIB,
+    // 2026-11-23: 751,547 bytes, and the ceiling raised to about 2% above it. Since 17.1.0 (740,372 bytes) the form it draws asks the User model's lists which fields to draw and whether anybody may send it, and every model's lists are read with the product levels (#10289), with the product tables those read (5.4 KiB); the permissions they name, the levels' own among them (2.9 KiB); every date is written from OneUptime's time zone data, in the reader's language (1.6 KiB); any request may meet the refusal that waits for "confirm it's you" (#10155, 1.1 KiB); and the form's API client adds or takes off a list's single entries (0.9 KiB) and reads through a relation only what its reader may (0.5 KiB). The captcha loads only while the server asks for one (6.8 KiB), and the tables of no product not at all (1 KiB).
+    ceiling: 750 * KIB,
   },
   {
     frontend: "Accounts",
@@ -137,7 +138,8 @@ const PAGES = [
     // 2026-11-15: 1,497,302 bytes, loading a widget's settings only when they open - a public dashboard, which has no edit mode, never does - and the API client and a form's default names without the probe's and the lists' code.
     // 2026-11-16: 1,455,800 bytes (1,503,403 on main that day), reading JSON and the Monitor model without every monitor type (#8821), and loading a rule's condition builder only for a rule's form (#7615).
     // 2026-11-18: 1,315,342 bytes (1,443,146 on main that day), bundling one copy of recharts where Common's charts and the Dashboard's widgets each brought their own (#9335).
-    ceiling: 1310 * KIB,
+    // 2026-11-23: 1,377,224 bytes, and the ceiling raised to about 2% above it. Since 17.1.0 (1,329,669 bytes) its widgets draw more of their charts: a value axis stepped so no two ticks read alike, a PromQL query read as written (#6796), a retired cloud metric's query moved onto its successor, a Data Source widget's queries read in one place (about 12 KiB); the models they read have the product levels their lists are read with (#10289, 4.8 KiB), the permissions those name (2.8 KiB) and their resources' new fields (about 3 KiB); a dashboard that asks its visitors to sign in (#10250) words its sign-in pages in each of the 18 languages the page has every word of from its first render (Common/UI/Utils/VisitorLanguage: 6.4 KiB); every date is written from OneUptime's time zone data; and any request may meet the "confirm it's you" refusal (#10155, 1.1 KiB). The sign-in pages themselves load only when one is drawn (1.6 KiB), and the tables of no product not at all (1 KiB).
+    ceiling: 1375 * KIB,
   },
 ];
 

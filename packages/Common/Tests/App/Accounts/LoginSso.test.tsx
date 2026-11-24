@@ -25,6 +25,9 @@ import API from "../../../UI/Utils/API/API";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import GlobalConfigUtil, {
+  GlobalConfigVars,
+} from "../../../UI/Utils/GlobalConfig";
 import LoginUtil from "../../../UI/Utils/Login";
 import Navigation from "../../../UI/Utils/Navigation";
 import UiAnalytics from "../../../UI/Utils/Analytics";
@@ -488,6 +491,20 @@ describe("Accounts single sign-on, in every edition", () => {
     emailLookupGate = null;
 
     jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
+    /*
+     * Whether the server can send email: a lookup that finds nothing offers
+     * to email the address its organizations' links (#9987), only where it
+     * can (LoginSsoEmailLinks.test.tsx).
+     */
+    jest
+      .spyOn(GlobalConfigUtil, "fetchVars")
+      .mockImplementation(async (): Promise<GlobalConfigVars> => {
+        return {
+          disableUserProjectCreation: false,
+          disablePushNotifications: false,
+          canSendEmail: true,
+        };
+      });
     navigateSpy = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation(() => {});

@@ -3,7 +3,7 @@
  *
  *   node Scripts/TimeZoneData/CheckTimeZoneData.js [--output <directory>]
  *
- * OneUptime computes and shows times with four copies of the tz database,
+ * OneUptime computes and shows times with three copies of the tz database,
  * each updated on its own schedule (issue #9999: British Columbia moved to
  * permanent UTC-7 in tzdata 2026b, and OneUptime still carried 2024b seven
  * months later):
@@ -14,9 +14,12 @@
  *   - the ICU inside Node.js in each image's base (the Dockerfile.tpl FROM
  *     lines), which writes dates in the reader's language on the server;
  *   - ClickHouse's built-in data, which cuts charts' days in the reader's
- *     zone (docker-compose.base.yml's image, as the Helm chart pins too);
- *   - the zoneinfo in the Postgres image, which cuts a status page's uptime
- *     days in the visitor's zone (docker-compose.base.yml's image).
+ *     zone (docker-compose.base.yml's image, as the Helm chart pins too).
+ *
+ * Postgres's zoneinfo is no copy OneUptime reads: a status page's uptime
+ * days are cut with moment's data and handed to it as instants
+ * (UptimeDayGrid, issue #10039), so no zone reaches the database, whichever
+ * Postgres - a node's old image, a managed one - runs it.
  *
  * It reads IANA's latest release (data.iana.org), the release each copy
  * carries (moment's from the npm package the lockfile pins, the others by
@@ -175,13 +178,6 @@ function composeImage(composeText, service) {
   throw new Error(`docker-compose.base.yml's ${service} names no image.`);
 }
 
-// "# version 2026f", the first line of zoneinfo's tzdata.zi -> "2026f".
-function releaseFromTzdataZi(firstLine) {
-  const match = /^#\s*version\s+(\S+)/.exec(String(firstLine || "").trim());
-
-  return match ? match[1] : null;
-}
-
 /*
  * Each copy against IANA's latest: "current", "behind" (still within the
  * grace period) or "overdue" (behind for longer), or "unread" when the check
@@ -279,7 +275,7 @@ function issueBody(check) {
 
   lines.push("");
   lines.push(
-    "The tests that pin British Columbia's 2026b change in each copy (issue #9999): `packages/Common/Tests/Types/TimezoneBritishColumbia.test.ts`, `packages/App/Tests/Telemetry/BritishColumbiaZoneClickhouse.test.ts` and `packages/Common/Tests/Server/Services/MonitorStatusTimelineBritishColumbiaPostgres.test.ts`.",
+    "The tests that pin British Columbia's 2026b change (issue #9999): `packages/Common/Tests/Types/TimezoneBritishColumbia.test.ts` (moment-timezone), `packages/App/Tests/Telemetry/BritishColumbiaZoneClickhouse.test.ts` (ClickHouse) and `packages/Common/Tests/Server/Services/MonitorStatusTimelineBritishColumbiaPostgres.test.ts` (a status page's days, cut with moment's data on any Postgres, issue #10039).",
   );
 
   return `${lines.join("\n")}\n`;
@@ -406,7 +402,6 @@ function sourcesToRead() {
     }),
   );
   const clickhouseImage = composeImage(compose, "clickhouse");
-  const postgresImage = composeImage(compose, "postgres");
 
   return [
     {
@@ -443,21 +438,6 @@ function sourcesToRead() {
           "-q",
           "SELECT value FROM system.build_options WHERE name = 'TZDATA_VERSION'",
         ]);
-      },
-    },
-    {
-      name: `Postgres ${postgresImage.split(":").pop()}`,
-      role: "A status page's uptime days in the visitor's zone",
-      where: "docker-compose.base.yml",
-      update:
-        "wait for the postgres image to be rebuilt with Debian's new tzdata package (it is, within weeks); people running OneUptime pull it with their next upgrade.",
-      read: () => {
-        return releaseFromTzdataZi(
-          dockerRun(postgresImage, "sh", [
-            "-c",
-            "head -n 1 /usr/share/zoneinfo/tzdata.zi",
-          ]),
-        );
       },
     },
   ];
@@ -534,7 +514,6 @@ module.exports = {
   nodeImagesFromDockerfiles,
   parseRelease,
   readIanaRelease,
-  releaseFromTzdataZi,
   sourcesToRead,
 };
 

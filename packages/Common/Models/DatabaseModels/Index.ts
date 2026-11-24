@@ -24,6 +24,8 @@ import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
 import NetworkSite from "./NetworkSite";
+import NetworkSiteOwnerTeam from "./NetworkSiteOwnerTeam";
+import NetworkSiteOwnerUser from "./NetworkSiteOwnerUser";
 import NetworkSiteType from "./NetworkSiteType";
 import NetworkEndpoint from "./NetworkEndpoint";
 import NetworkSiteStatusTimeline from "./NetworkSiteStatusTimeline";
@@ -173,6 +175,10 @@ import IncidentStateTimeline from "./IncidentStateTimeline";
 import Form from "./Form";
 import FormSubmission from "./FormSubmission";
 import FormDomain from "./FormDomain";
+import FormPrivateUser from "./FormPrivateUser";
+import FormPrivateUserSession from "./FormPrivateUserSession";
+import FormSSO from "./FormSso";
+import FormOIDC from "./FormOidc";
 import IncidentTemplate from "./IncidentTemplate";
 import IncidentTemplateOwnerTeam from "./IncidentTemplateOwnerTeam";
 import IncidentTemplateOwnerUser from "./IncidentTemplateOwnerUser";
@@ -249,6 +255,8 @@ import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityBlock from "./SecurityBlock";
+import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -404,6 +412,7 @@ import WorkspaceNotificationLog from "./WorkspaceNotificationLog";
 import WorkspaceLiveMessage from "./WorkspaceLiveMessage";
 import WorkspacePublicNoteApprovalMessage from "./WorkspacePublicNoteApprovalMessage";
 import WorkspaceHomeChoice from "./WorkspaceHomeChoice";
+import GuidedSetupRun from "./GuidedSetupRun";
 import OwnerNotificationDelivery from "./OwnerNotificationDelivery";
 // Status Page
 import StatusPage from "./StatusPage";
@@ -492,10 +501,12 @@ import UserWebAuthn from "./UserWebAuthn";
 
 import TelemetryIngestionKey from "./TelemetryIngestionKey";
 import TelemetryIngestionKeyRefusal from "./TelemetryIngestionKeyRefusal";
+import TelemetryIngestionTeamLabelBudget from "./TelemetryIngestionTeamLabelBudget";
 
 import TelemetryException from "./TelemetryException";
 import TelemetryExceptionActivity from "./TelemetryExceptionActivity";
 import TelemetrySourceMap from "./TelemetrySourceMap";
+import TelemetryDsym from "./TelemetryDsym";
 import InventoryItem from "./InventoryItem";
 import InventoryItemCustomField from "./InventoryItemCustomField";
 import InventoryItemRelationship from "./InventoryItemRelationship";
@@ -621,6 +632,10 @@ import DashboardLabelRule from "./DashboardLabelRule";
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 import DashboardDomain from "./DashboardDomain";
+import DashboardPrivateUser from "./DashboardPrivateUser";
+import DashboardPrivateUserSession from "./DashboardPrivateUserSession";
+import DashboardSSO from "./DashboardSso";
+import DashboardOIDC from "./DashboardOidc";
 import DashboardPlaylist from "./DashboardPlaylist";
 import DashboardOwnerTeam from "./DashboardOwnerTeam";
 import DashboardOwnerUser from "./DashboardOwnerUser";
@@ -765,6 +780,8 @@ const AllModelTypes: Array<{
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,
+  SecurityBlock,
+  SecurityBlockEnforcement,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,
@@ -835,6 +852,10 @@ const AllModelTypes: Array<{
   Form,
   FormSubmission,
   FormDomain,
+  FormPrivateUser,
+  FormPrivateUserSession,
+  FormSSO,
+  FormOIDC,
 
   AlertState,
   Alert,
@@ -1038,6 +1059,7 @@ const AllModelTypes: Array<{
   WorkspaceLiveMessage,
   WorkspacePublicNoteApprovalMessage,
   WorkspaceHomeChoice,
+  GuidedSetupRun,
   OwnerNotificationDelivery,
   CallLog,
   EmailLog,
@@ -1166,10 +1188,12 @@ const AllModelTypes: Array<{
 
   TelemetryIngestionKey,
   TelemetryIngestionKeyRefusal,
+  TelemetryIngestionTeamLabelBudget,
 
   TelemetryException,
   TelemetryExceptionActivity,
   TelemetrySourceMap,
+  TelemetryDsym,
   InventoryItem,
   InventoryItemCustomField,
   InventoryItemRelationship,
@@ -1179,6 +1203,10 @@ const AllModelTypes: Array<{
   // Dashboards
   Dashboard,
   DashboardDomain,
+  DashboardPrivateUser,
+  DashboardPrivateUserSession,
+  DashboardSSO,
+  DashboardOIDC,
   DashboardOwnerTeam,
   DashboardOwnerUser,
   DashboardPlaylist,
@@ -1242,6 +1270,8 @@ const AllModelTypes: Array<{
   PacketCapture,
   NetworkInterface,
   NetworkSite,
+  NetworkSiteOwnerTeam,
+  NetworkSiteOwnerUser,
   NetworkSiteType,
   NetworkEndpoint,
   NetworkSiteStatusTimeline,

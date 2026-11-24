@@ -179,7 +179,7 @@ describe("admin dashboard header on small screens", () => {
 
     expect(
       describeVisibility(
-        screen.getByRole("link", { name: "Sign Out" }),
+        screen.getByRole("menuitem", { name: "Sign Out" }),
         PHONE_WIDTH_IN_PX,
       ),
     ).toBe("visible at 375px");
@@ -191,11 +191,11 @@ describe("admin dashboard header on small screens", () => {
       ),
     ).toBe("visible at 375px");
 
-    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Dark" }));
 
     expect(document.documentElement).toHaveClass("dark");
 
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "System" }));
 
     expect(window.localStorage.getItem("oneuptime-dashboard-theme")).toBe(
       "system",
@@ -214,16 +214,17 @@ describe("admin dashboard header on small screens", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /User Profile/ }));
 
-    const exitEntries: Array<HTMLElement> = screen.getAllByRole("button", {
-      name: "Exit Admin",
-    });
+    // The menu's copy, a menu item (#7237), is the one a phone can reach.
+    const exitEntries: Array<HTMLElement> = [
+      ...screen.getAllByRole("button", { name: "Exit Admin" }),
+      ...screen.getAllByRole("menuitem", { name: "Exit Admin" }),
+    ];
 
-    // The menu copy is the one a phone can actually reach.
     expect(
       exitEntries.filter((entry: HTMLElement) => {
         return isVisibleAtWidth(entry, PHONE_WIDTH_IN_PX);
       }),
-    ).toHaveLength(1);
+    ).toEqual([screen.getByRole("menuitem", { name: "Exit Admin" })]);
   });
 
   test("someone who is not a master admin still gets log out on a phone", async () => {
@@ -235,7 +236,7 @@ describe("admin dashboard header on small screens", () => {
 
     expect(
       describeVisibility(
-        screen.getByRole("link", { name: "Sign Out" }),
+        screen.getByRole("menuitem", { name: "Sign Out" }),
         PHONE_WIDTH_IN_PX,
       ),
     ).toBe("visible at 375px");

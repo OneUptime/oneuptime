@@ -63,7 +63,7 @@ Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen: een 
 Klik op een rij. De details openen naast de lijst.
 :::
 
-Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen. **Link kopiëren** in de details van een regel kopieert zo'n link, met de lijst waaruit u hem kopieerde eronder, over hetzelfde tijdsbereik.
+Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde logboeken. Een link naar één logregel, zoals **Logboekregel bekijken** bij een beveiligingsgebeurtenis, opent die regel boven de lijst, gelezen met uw eigen machtigingen. **Link kopiëren** in de details van een regel kopieert zo'n link, met de lijst waaruit u hem kopieerde eronder, over hetzelfde tijdsbereik. Ook elke rij van de lijst heeft **Link kopiëren**, naast het bericht, zodat u de link van een regel kopieert zonder hem te openen.
 
 ## Een logboek lezen
 
@@ -112,7 +112,9 @@ Opgeslagen weergaven horen bij het project, dus iedereen erin ziet dezelfde weer
 
 ## Uw logboeken in grafieken zetten
 
-Zet de lijst op **Analyses** om logboeken te tellen in plaats van te lezen. Kies een tijdreeks, een toplijst of een tabel; tel elk logboek, of de unieke waarden van één veld; en groepeer op ernst, service, trace, span of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont de bovenste 5, 10, 25 of 50 groepen.
+Zet de lijst op **Analyses** om logboeken in grafieken te zetten in plaats van te lezen. Kies een tijdreeks, een toplijst of een tabel, en wat die meet: elk logboek geteld, de unieke waarden van één veld, of de som, het gemiddelde, de mediaan, P90, P95, P99, het minimum of het maximum van een numeriek attribuut, zoals de P95 van `duration_ms`. Groepeer op ernst, service, trace, span of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont de bovenste 5, 10, 25 of 50 groepen.
+
+Een numeriek attribuut wordt alleen gelezen waar de waarde een getal is: een geheel getal of een decimaal getal, met of zonder teken, in wetenschappelijke notatie of niet, zoals `42`, `-7`, `3.14` of `1e3`. Een logboek zonder het attribuut, of met iets anders erin, zoals `12ms` of `n/a`, wordt weggelaten in plaats van als 0 gelezen. Een percentiel wordt berekend uit maximaal 8.192 waarden per punt, dus een punt met meer logboeken heeft een nauwe schatting in plaats van de exacte waarde.
 
 Klik op **Lijst** om terug te gaan naar de regels zelf.
 
@@ -192,6 +194,7 @@ Druk in de Kijker op `?` om ze te zien.
 | --- | --- |
 | `j` / `k` | Naar het volgende of vorige logboek gaan. |
 | Enter | Het geselecteerde logboek openen of sluiten. |
+| `l` | Een link naar het geselecteerde logboek kopiëren. |
 | Esc | Het detailpaneel sluiten. |
 | `/` | Naar het zoekvak springen. |
 | ⌘ + Enter of Ctrl + Enter | De zoekopdracht toepassen. |

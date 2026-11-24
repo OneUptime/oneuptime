@@ -802,3 +802,65 @@ describe("the wire format is exactly what the server builds", () => {
     expect(expiry.toISOString()).toBe(EXPIRES_AT);
   });
 });
+
+/*
+ * #9989: a server since then hands the sign-in back as a one-time code and
+ * the app's own state - what MobileSsoHandOffService.createAuthorizationCode
+ * builds - never as tokens. The parser reads it as a code, nothing more:
+ * ./session redeems it for the sign-in whose state it is.
+ */
+describe("A one-time code callback", () => {
+  // 32 random bytes in base64url, as the server makes a code.
+  const CODE: string = "q7Zp0kXc4D-_mN2a9VbL1sR8tYwE3uI6oHgFjKdC5xQ";
+  const STATE: string = "0f".repeat(32);
+
+  test("is read as a code and its state", () => {
+    expect(
+      parseSsoCallbackUrl(`${SSO_CALLBACK_URL}?code=${CODE}&state=${STATE}`),
+    ).toEqual({ status: "code", code: CODE, state: STATE });
+  });
+
+  test("is read the same with the slash some platforms add", () => {
+    expect(
+      parseSsoCallbackUrl(`${SSO_CALLBACK_URL}/?code=${CODE}&state=${STATE}`),
+    ).toEqual({ status: "code", code: CODE, state: STATE });
+  });
+
+  test.each([
+    ["no state", `code=${CODE}`],
+    ["an empty state", `code=${CODE}&state=`],
+    ["a short code", `code=${CODE.slice(1)}&state=${STATE}`],
+    ["a long code", `code=${CODE}A&state=${STATE}`],
+    ["a code with other characters", `code=${CODE.slice(1)}%2B&state=${STATE}`],
+    [
+      "tokens beside it",
+      `code=${CODE}&state=${STATE}&accessToken=a&refreshToken=b&refreshTokenExpiresAt=c`,
+    ],
+    ["an access token beside it", `code=${CODE}&state=${STATE}&accessToken=a`],
+  ])(
+    "is no callback the server built, with %s",
+    (_label: string, query: string) => {
+      const result: SsoCallbackResult = parseSsoCallbackUrl(
+        `${SSO_CALLBACK_URL}?${query}`,
+      );
+
+      expect(result.status).toBe("invalid");
+    },
+  );
+
+  test("an error still wins over a code", () => {
+    expect(
+      parseSsoCallbackUrl(
+        `${SSO_CALLBACK_URL}?error=sso_mobile_sign_in_expired&code=${CODE}&state=${STATE}`,
+      ).status,
+    ).toBe("error");
+  });
+
+  test("the first of a repeated code is the one read, as for every parameter", () => {
+    expect(
+      parseSsoCallbackUrl(
+        `${SSO_CALLBACK_URL}?code=${CODE}&state=${STATE}&code=${"x".repeat(43)}`,
+      ),
+    ).toEqual({ status: "code", code: CODE, state: STATE });
+  });
+});

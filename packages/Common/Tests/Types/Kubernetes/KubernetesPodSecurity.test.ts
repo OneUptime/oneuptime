@@ -315,6 +315,8 @@ describe("readPodSecurity", () => {
       version: POD_SECURITY_BLOCK_VERSION,
       containers: [{ name: "web", list: "containers" }],
       volumes: [],
+      // Its containers' limits were read: it sets none (#9875).
+      resourcesRead: true,
     });
   });
 
@@ -342,6 +344,7 @@ describe("readPodSecurity", () => {
         version: POD_SECURITY_BLOCK_VERSION,
         containers: [],
         volumes: [],
+        resourcesRead: true,
       });
     }
   });
@@ -511,6 +514,7 @@ describe("a pod as the agent sends it", () => {
         },
       ],
       volumes: [{ name: "root", type: "hostPath", hostPath: "/" }],
+      resourcesRead: true,
     });
     // What the pages read stays as it was.
     expect(pod?.spec.containers[0]?.name).toBe("node-exporter");

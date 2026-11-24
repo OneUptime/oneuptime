@@ -12,11 +12,23 @@ import IncidentSlaRuleService from "./IncidentSlaRuleService";
 import IncidentService from "./IncidentService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
-import { OnFind } from "../Types/Database/Hooks";
+import { OnCreate, OnFind } from "../Types/Database/Hooks";
 import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentRelatedRecordPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import CreateBy from "../Types/Database/CreateBy";
+import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentStateService from "./IncidentStateService";
+import IncidentStateTimelineService from "./IncidentStateTimelineService";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import IncidentSlaStartUtil, {
+  IncidentSlaStart,
+  IncidentSlaTimelineRow,
+} from "../../Utils/Incident/IncidentSlaStart";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -43,6 +55,157 @@ export class Service extends ProjectReferencesService<Model> {
       findBy.props,
     );
     return { findBy, carryForward: null };
+  }
+
+  /*
+   * AN SLA A PERSON ADDS TO AN INCIDENT names the incident and the rule:
+   * Incidents > SLA > Add SLA rule, the API, Terraform. Everything else it
+   * holds is OneUptime's to work out from those two (IncidentSlaStartUtil) -
+   * when it started, its deadlines, whether the incident was already
+   * responded to and resolved, and where it stands - and no create through
+   * the API gives it (ColumnsOnlyOneUptimeWrites, #10053). The page used to
+   * work it out in the browser and send it.
+   *
+   * Filled in only when the create leaves the start out: the SLA OneUptime
+   * starts for the rule an incident matches (createSlaForIncident) comes
+   * worked out already. An incident or a rule that is not the project's is
+   * left for the create's checks to refuse.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    // The incident and the rule are the project's first (ProjectReferencesService).
+    await super.onBeforeCreate(createBy);
+    const sla: Model = createBy.data;
+    const record: Record<string, unknown> = sla as unknown as Record<
+      string,
+      unknown
+    >;
+
+    /*
+     * The incident and the rule, under either of their names - an ID
+     * column or the relation (`"incident": { "_id": ... }`) - which must
+     * name the same record when both are sent (RelationIdUtil
+     * .readConsistent, ReferenceNamesReadTogether).
+     */
+    const incidentId: ObjectID | null = RelationIdUtil.readConsistent(
+      record,
+      ["incidentId", "incident"],
+      "incident",
+    );
+    const ruleId: ObjectID | null = RelationIdUtil.readConsistent(
+      record,
+      ["incidentSlaRuleId", "incidentSlaRule"],
+      "SLA rule",
+    );
+
+    if (!sla.slaStartedAt && incidentId && ruleId) {
+      const projectId: ObjectID | null | undefined =
+        sla.projectId || createBy.props.tenantId;
+
+      if (projectId) {
+        await this.fillInFromRule({
+          sla: sla,
+          incidentId: incidentId,
+          ruleId: ruleId,
+          projectId: projectId,
+        });
+      }
+    }
+
+    return { createBy: createBy, carryForward: undefined };
+  }
+
+  /*
+   * Fills in what an SLA starts with, from its incident and its rule, as
+   * OneUptime's values (ServerSetColumns).
+   */
+  private async fillInFromRule(data: {
+    sla: Model;
+    incidentId: ObjectID;
+    ruleId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const incident: Incident | null = await IncidentService.findOneBy({
+      query: { _id: data.incidentId, projectId: data.projectId },
+      select: { _id: true, declaredAt: true, createdAt: true },
+      props: { isRoot: true },
+    });
+
+    const rule: IncidentSlaRule | null = await IncidentSlaRuleService.findOneBy(
+      {
+        query: { _id: data.ruleId, projectId: data.projectId },
+        select: {
+          _id: true,
+          responseTimeInMinutes: true,
+          resolutionTimeInMinutes: true,
+        },
+        props: { isRoot: true },
+      },
+    );
+
+    if (!incident || !rule) {
+      return;
+    }
+
+    const timeline: Array<IncidentStateTimeline> =
+      await IncidentStateTimelineService.findBy({
+        query: { incidentId: incident.id!, projectId: data.projectId },
+        select: {
+          _id: true,
+          startsAt: true,
+          incidentStateId: true,
+          incidentState: { _id: true, isCreatedState: true },
+        },
+        sort: { startsAt: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const states: Array<IncidentState> = await IncidentStateService.findBy({
+      query: { projectId: data.projectId },
+      select: { _id: true, isResolvedState: true, order: true },
+      sort: { order: SortOrder.Ascending },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const rows: Array<IncidentSlaTimelineRow> = timeline.map(
+      (row: IncidentStateTimeline): IncidentSlaTimelineRow => {
+        return {
+          incidentStateId: row.incidentStateId,
+          startsAt: row.startsAt,
+          isCreatedState: Boolean(row.incidentState?.isCreatedState),
+        };
+      },
+    );
+
+    const start: IncidentSlaStart = IncidentSlaStartUtil.compute({
+      declaredAt:
+        incident.declaredAt ||
+        incident.createdAt ||
+        OneUptimeDate.getCurrentDate(),
+      responseTimeInMinutes: rule.responseTimeInMinutes,
+      resolutionTimeInMinutes: rule.resolutionTimeInMinutes,
+      respondedAt: IncidentSlaStartUtil.getRespondedAt(rows),
+      resolvedAt: IncidentSlaStartUtil.getResolvedAt({
+        timeline: rows,
+        states: states,
+      }),
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
+    ServerSetColumns.set(data.sla, {
+      slaStartedAt: start.slaStartedAt,
+      status: start.status,
+      responseDeadline: start.responseDeadline,
+      resolutionDeadline: start.resolutionDeadline,
+      respondedAt: start.respondedAt,
+      resolvedAt: start.resolvedAt,
+    });
   }
 
   @CaptureSpan()
@@ -122,8 +285,20 @@ export class Service extends ProjectReferencesService<Model> {
     // Create SLA record
     const sla: Model = new Model();
     sla.projectId = data.projectId;
-    sla.incidentId = data.incidentId;
-    sla.incidentSlaRuleId = matchingRule.id;
+    /*
+     * The incident and the rule are OneUptime's to name here, so each is
+     * written under its ID column alone (RelationIdUtil.stamp).
+     */
+    const record: Record<string, unknown> = sla as unknown as Record<
+      string,
+      unknown
+    >;
+    RelationIdUtil.stamp(record, ["incidentId", "incident"], data.incidentId);
+    RelationIdUtil.stamp(
+      record,
+      ["incidentSlaRuleId", "incidentSlaRule"],
+      matchingRule.id,
+    );
     sla.slaStartedAt = slaStartedAt;
     sla.status = IncidentSlaStatus.OnTrack;
 

@@ -2393,7 +2393,14 @@ export default class PublicDashboardResourceListPolicy {
     return variables;
   }
 
-  private static validateRequestedVariableSelections(
+  /*
+   * A request's variable selections, bounded: at most so many, each under
+   * an id of its own, each value text of a bounded length. Keyed by the
+   * id; a value the request did not send is undefined. Public so the
+   * public PromQL route bounds a visitor's picks exactly as this route
+   * does (PublicDashboardPromQLPolicy, issue #10226).
+   */
+  public static validateRequestedVariableSelections(
     requestedVariables: unknown,
   ): Map<string, Record<string, unknown>> {
     const selections: Map<string, Record<string, unknown>> = new Map<

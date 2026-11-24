@@ -1,3 +1,5 @@
+import { PlanType } from "./SubscriptionPlan";
+
 /*
  * The public pay-as-you-go rates, as advertised on
  * https://oneuptime.com/pricing.
@@ -41,6 +43,26 @@ export const TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS: number = 7;
  * see MonitorTypeHelper.isBilledAsActiveMonitor.
  */
 export const ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH: number = 1;
+
+/*
+ * Whether a project is told the price of what it is about to add: only on
+ * the Free plan of an install that bills (OneUptime Cloud), the one case
+ * where a person adds pay-as-you-go charges without having agreed to a paid
+ * plan. A plan that includes what it adds, and an install without billing,
+ * are told nothing.
+ *
+ * Fails closed: no billing, no plan, or a plan the install does not know
+ * says nothing - quoting a price to someone who will never see an invoice
+ * is worse than staying quiet. One rule for every place that quotes one:
+ * the Dashboard's guided setups (Utils/PayAsYouGo's isProjectOnFreePlan)
+ * and Ask AI's setup card (#9995).
+ */
+export function isPayAsYouGoPriceQuoted(data: {
+  isBillingEnabled: boolean;
+  plan: PlanType | null | undefined;
+}): boolean {
+  return data.isBillingEnabled && data.plan === PlanType.Free;
+}
 
 /*
  * Data Observability's watched tables. Every project watches its first tables

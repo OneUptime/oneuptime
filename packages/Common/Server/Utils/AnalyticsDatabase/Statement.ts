@@ -42,16 +42,33 @@ export type StatementParameter = {
  * sent hex encoded, and ClickHouse decodes it:
  *
  *   {p0:String}          is sent as   unhex({p0:String})
- *   {p1:Array(String)}   is sent as   [unhex({p1_0:String}), unhex({p1_1:String})]
+ *   {p1:Array(String)}   is sent as   CAST(unhex({p1:String}), 'Array(String)')
  *
  * ClickHouse writes down a query with its parameters filled in: in the
  * error it logs when the query fails, and in system.query_log. Sent as
  * they are, a scan's words make its own query read as the attack it looks
  * for, and the scan finds that line in the logs it reads (issue #6419).
- * Hex reads as nothing, and the query finds the same rows: unhex of a
- * constant is a constant, so a skip index still prunes, and IN and
- * multiSearchAny still take it. An array is decoded element by element,
- * because the older analyzer takes no arrayMap where IN needs a constant.
+ * Hex reads as nothing, and the query finds the same rows: unhex and CAST
+ * of a constant are constants, so a skip index still prunes, and IN, has
+ * and multiSearchAny still take it, with either analyzer. (arrayMap over
+ * the elements would not do: the older analyzer takes no arrayMap where IN
+ * needs a constant.)
+ *
+ * AN ARRAY IS ONE PARAMETER, however many elements it holds: the hex of
+ * the array as ClickHouse writes one, ['a','it\'s'] (toArrayText), which
+ * the CAST reads back byte for byte. Each parameter is a field of the
+ * request's URL, and ClickHouse 26.7 refuses a request of more than 1,000
+ * fields (http_max_fields): sent one parameter per element, the log
+ * scan's read took 992 of them for its words alone, and read nothing
+ * (issue #10520).
+ *
+ * A LONG VALUE IS SENT IN PIECES. ClickHouse refuses a field longer than
+ * 128 KiB (http_max_field_value_size), and hex is twice the text: hex
+ * longer than MAX_HEX_PARAMETER_LENGTH is cut into pieces of that length,
+ * each its own parameter, joined back before anything reads it:
+ *
+ *   concat(unhex({p0_0:String}), unhex({p0_1:String}))
+ *   CAST(concat(unhex({p1_0:String}), unhex({p1_1:String})), 'Array(String)')
  */
 type RenderedParameter =
   | { kind: "qualified"; column: QualifiedColumn }
@@ -60,8 +77,18 @@ type RenderedParameter =
       dataType: string;
       parameter: StatementParameter | string;
     }
-  | { kind: "hex"; value: string }
-  | { kind: "hexArray"; values: Array<string> };
+  // A text: its hex, in one piece or more.
+  | { kind: "hex"; pieces: Array<string> }
+  // An array of texts: the hex of its text (toArrayText), in one piece or more.
+  | { kind: "hexArray"; pieces: Array<string> };
+
+/*
+ * The longest a hex encoded parameter is sent: under the 128 KiB ClickHouse
+ * takes of one field (http_max_field_value_size), with room to spare. Hex is
+ * never URL-encoded, so a piece takes exactly this in the URL. Even, so every
+ * piece is whole bytes.
+ */
+export const MAX_HEX_PARAMETER_LENGTH: number = 100 * 1024;
 
 function isText(value: unknown): value is string {
   return typeof value === "string";
@@ -86,8 +113,34 @@ function toTexts(value: unknown): Array<string> | null {
   return texts;
 }
 
-function toHex(text: string): string {
-  return Buffer.from(text, "utf8").toString("hex");
+/*
+ * An array of texts as ClickHouse writes one, which CAST(... AS
+ * Array(String)) reads back: each text between quotes, a quote and a
+ * backslash in it escaped, and every other character as it is.
+ */
+export function toArrayText(texts: ReadonlyArray<string>): string {
+  return `[${texts
+    .map((text: string): string => {
+      return `'${text.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
+    })
+    .join(",")}]`;
+}
+
+// A text's UTF-8 as hex, in pieces of at most MAX_HEX_PARAMETER_LENGTH.
+function toHexPieces(text: string): Array<string> {
+  const hex: string = Buffer.from(text, "utf8").toString("hex");
+  const pieces: Array<string> = [];
+
+  for (
+    let start: number = 0;
+    start < hex.length;
+    start += MAX_HEX_PARAMETER_LENGTH
+  ) {
+    pieces.push(hex.slice(start, start + MAX_HEX_PARAMETER_LENGTH));
+  }
+
+  // The empty text is one piece, empty.
+  return pieces.length > 0 ? pieces : [""];
 }
 
 /*
@@ -162,11 +215,14 @@ export class Statement implements BaseQueryParams {
             returnObject[`p${index}_c`] = rendered.column.column;
             return;
           case "hex":
-            returnObject[`p${index}`] = rendered.value;
-            return;
           case "hexArray":
-            rendered.values.forEach((value: string, element: number): void => {
-              returnObject[`p${index}_${element}`] = value;
+            if (rendered.pieces.length === 1) {
+              returnObject[`p${index}`] = rendered.pieces[0];
+              return;
+            }
+
+            rendered.pieces.forEach((piece: string, position: number): void => {
+              returnObject[`p${index}_${position}`] = piece;
             });
             return;
           default:
@@ -221,14 +277,14 @@ export class Statement implements BaseQueryParams {
         isText(serialized) &&
         (parameter.sendAsHex || holdsSecurityScanWord(serialized))
       ) {
-        return { kind: "hex", value: toHex(serialized) };
+        return { kind: "hex", pieces: toHexPieces(serialized) };
       }
 
       const texts: Array<string> | null =
         dataType === "Array(String)" ? toTexts(serialized) : null;
 
       if (texts && (parameter.sendAsHex || texts.some(holdsSecurityScanWord))) {
-        return { kind: "hexArray", values: texts.map(toHex) };
+        return { kind: "hexArray", pieces: toHexPieces(toArrayText(texts)) };
       }
     }
 
@@ -243,16 +299,25 @@ export class Statement implements BaseQueryParams {
       case "qualified":
         return `{p${index}_t:Identifier}.{p${index}_c:Identifier}`;
       case "hex":
-        return `unhex({p${index}:String})`;
+        return Statement.toUnhex(rendered.pieces, index);
       case "hexArray":
-        return `[${rendered.values
-          .map((_value: string, element: number): string => {
-            return `unhex({p${index}_${element}:String})`;
-          })
-          .join(", ")}]`;
+        return `CAST(${Statement.toUnhex(rendered.pieces, index)}, 'Array(String)')`;
       default:
         return `{p${index}:${rendered.dataType}}`;
     }
+  }
+
+  // The text hex pieces decode to: one piece's unhex, or the pieces' joined.
+  private static toUnhex(pieces: Array<string>, index: number): string {
+    if (pieces.length === 1) {
+      return `unhex({p${index}:String})`;
+    }
+
+    return `concat(${pieces
+      .map((_piece: string, position: number): string => {
+        return `unhex({p${index}_${position}:String})`;
+      })
+      .join(", ")})`;
   }
 
   public serializseValue(

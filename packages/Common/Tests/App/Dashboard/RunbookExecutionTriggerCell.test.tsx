@@ -121,7 +121,7 @@ describe("the Triggered by column", () => {
     expect(root).toHaveAttribute("data-trigger", RunbookTriggerType.Schedule);
     expect(within(root).getByText("Schedule")).toBeInTheDocument();
     expect(
-      within(root).getByText("Due at Oct 15 2026, 09:00 UTC"),
+      within(root).getByText("Due at Oct 15, 2026, 09:00 UTC"),
     ).toBeInTheDocument();
     expect(screen.queryByText("Manual / unknown")).not.toBeInTheDocument();
   });

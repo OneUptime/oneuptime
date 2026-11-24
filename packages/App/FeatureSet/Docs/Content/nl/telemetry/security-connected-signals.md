@@ -47,11 +47,12 @@ Elke gebruiker, host en elk adres dat een zaak of een gebeurtenis noemt, wordt o
 | Een korte of volledige vorm van de naam van een record, zoals `web-1` en `web-1.acme.internal` | Dat record | Mogelijk |
 | Een openbaar IP-adres dat maar één host of netwerkapparaat heeft, of waarop maar één cloud-resource antwoordt | Dat record | Exact |
 | Een privé-IP-adres, of een dat meer dan één record heeft | Elk record dat het heeft | Mogelijk |
-| De eigen ID van een cloud-resource: een AWS-ARN, een Azure-resource-ID of een Google Cloud-resourcenaam | Die cloud-resource | Exact |
+| De eigen ID van een cloud-resource: een AWS-ARN of een Google Cloud-resourcenaam zoals die geschreven is, of een Azure-resource-ID in hoofdletters of kleine letters | Die cloud-resource | Exact |
 | Een host, een openbaar IP-adres of de host van een URL die een monitor controleert | Die monitor | Exact |
 | Een privé-IP-adres dat een monitor controleert | Die monitor | Mogelijk |
 | Het e-mailadres van een lid | Dat lid | Exact |
 | Het record waaronder een logregel is verzonden, voor de gebeurtenissen gelezen uit uw logboeken | Die host, dat cluster, die OpenStack-cloud, die cloud-resource, die serverless functie of die service | Exact |
+| De cloud-resource of de serverless functie waar een logregel vandaan kwam, via haar `cloud.resource_id` of haar `faas.name`, voor de gebeurtenissen gelezen uit uw logboeken | Die cloud-resource of die serverless functie | Exact |
 | Een kale gebruikersnaam, een bestandshash of een proces | Niets: geen record wordt erop geïndexeerd | - |
 
 - Een mogelijke overeenkomst toont **Mogelijke overeenkomst** naast de naam en zegt waarom. Ze wordt nooit meegeteld op de pagina van het record, en een incident dat de zaak meldt, wordt er nooit aan gekoppeld.

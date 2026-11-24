@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RequestOrigin from "../../../Types/RequestOrigin";
 import Timezone from "../../../Types/Timezone";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * ---------------------------------------------------------------------------
@@ -123,6 +124,9 @@ function sentMails(): Array<SentMail> {
 }
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   sendMail = jest
     .spyOn(MailService, "sendMail")
     .mockResolvedValue(undefined as never);
@@ -505,8 +509,15 @@ describe("from the read before the write to the email after it", () => {
   });
 });
 
-describe("the accounts a password write changes are read with their time zone", () => {
-  test("onBeforeUpdate reads each one's address, time zone and whether it had a password", async () => {
+describe("the accounts a password write changes are read with their time zone and language", () => {
+  /*
+   * Exactly these columns, no more: the address and time zone the Password
+   * Changed email needs, whether there was a password to change, and the
+   * language each account's emails are written in - the email to the
+   * address an account had once it changes (#9907) and the link to a new
+   * one (#10157) are read from the same rows.
+   */
+  test("onBeforeUpdate reads each one's address, time zone, language and whether it had a password", async () => {
     const findRows: jest.SpyInstance = jest
       .spyOn(
         userService() as unknown as Record<string, () => unknown>,
@@ -523,6 +534,7 @@ describe("the accounts a password write changes are read with their time zone", 
       _id: true,
       email: true,
       timezone: true,
+      language: true,
       password: true,
     });
   });
@@ -555,6 +567,7 @@ describe("the accounts a password write changes are read with their time zone", 
       _id: true,
       email: true,
       timezone: true,
+      language: true,
     });
   });
 });

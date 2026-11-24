@@ -9,7 +9,7 @@ O agente Kubernetes do OneUptime é um chart Helm que coleta as métricas, os ev
 - [Instale o agente](#instale-o-agente): Quatro etapas com Helm.
 - [Instale como complemento do Amazon EKS](#instale-como-complemento-do-amazon-eks): Pelo console do EKS, sem Helm.
 - [OpenShift](#openshift): O preset, as security context constraints que ele cria e os alertas do próprio OpenShift.
-- [Reforço de segurança do cluster](#reforço-de-segurança-do-cluster): Pontuações dos Padrões de Segurança de Pods e do CIS Benchmark, e as permissões do próprio agente.
+- [Reforço de segurança do cluster](#reforço-de-segurança-do-cluster): Pontuações dos Padrões de Segurança de Pods, do CIS Benchmark e do NSA/CISA Hardening Guide, as verificações de nós do kube-bench e as permissões do próprio agente.
 - [Opções de configuração](#opções-de-configuração): Filtros, amostragem, plano de controle, service mesh, custos e rótulos.
 - [Agente de IA do Kubernetes](#agente-de-ia-do-kubernetes): `kubectl` somente leitura para a OneUptime AI, e correções quando você as permitir.
 - [Envie menos](#reduzindo-o-volume-de-dados-coletados): As alavancas, em ordem de impacto.
@@ -202,6 +202,7 @@ Defina-os em **Optional configuration settings**, no console do EKS, ou com `--c
 - `logs.enabled`, `ebpf.enabled` e `aiAgent.enabled`: logs de pods, traces de eBPF e o [agente de IA do Kubernetes](#agente-de-ia-do-kubernetes), os três ativados por padrão.
 - `kubeStateMetrics.enabled`: kube-state-metrics, desativado por padrão.
 - `cost.enabled`: [observabilidade de custos](/docs/telemetry/kubernetes-cost), `auto` por padrão: ativada, exceto com o preset `eks-fargate`.
+- `kubeletstats.nodesProxy`: se o ClusterRole do agente concede `nodes/proxy`, que dá acesso à API inteira do kubelet e é reprovado no CIS 5.1.10. `auto`, o padrão, o concede no EKS 1.34 e 1.35, cujos nós podem executar kubelets anteriores à 1.33. Defina `false` quando todos os nós executarem a 1.33 ou posterior (`kubectl get nodes` mostra a versão de cada nó): um nó cujo kubelet seja anterior deixaria então de enviar todas as métricas de nó, pod, contêiner e volume que o kubelet dele informa.
 
 ```bash
 aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
@@ -316,19 +317,53 @@ Pesquise-os em **Registros**, ou descarte os que não quer com um filtro de desc
 
 ## Reforço de segurança do cluster
 
-A página **Conformidade** de um cluster, em **Segurança**, pontua o próprio cluster na seção **Reforço de segurança do cluster**, em relação a três estruturas. Ela lê o que o agente já envia: os pods do cluster, os namespaces dele e, para o CIS Benchmark, o RBAC, as contas de serviço e as NetworkPolicies dele. O menu do cluster mostra a página assim que o agente informa os pods do cluster, quer o cluster execute um banco de dados, quer não.
+A página **Conformidade** de um cluster, em **Segurança**, pontua o próprio cluster na seção **Reforço de segurança do cluster**, em relação a quatro estruturas. Ela lê o que o agente já envia: os pods do cluster, os namespaces dele e, para o CIS Benchmark e o guia da NSA/CISA, o RBAC, as contas de serviço e as NetworkPolicies dele. Com o kube-bench ativado, ela também pontua o que só os nós conseguem responder: veja [Controles de nós e do plano de controle](#controles-de-nós-e-do-plano-de-controle). O menu do cluster mostra a página assim que o agente informa os pods do cluster, quer o cluster execute um banco de dados, quer não.
 
 | Estrutura | O que ela pontua |
 | --- | --- |
 | **Padrões de Segurança de Pods: Baseline** | Cada carga de trabalho em execução no cluster, em relação à política Baseline da versão do Kubernetes do cluster: contêineres privilegiados, os namespaces, as portas e os caminhos do host, capacidades adicionadas e todos os outros campos que a política cita, lidos da especificação de cada pod |
 | **Padrões de Segurança de Pods: Restricted** | As mesmas cargas de trabalho, em relação à política Restricted: os controles da Baseline e, além deles, só os tipos de volume que ela permite, execução como um usuário diferente de root, nenhum escalonamento de privilégios, um perfil seccomp e todas as capacidades removidas |
-| **CIS Kubernetes Benchmark v2.0** | Os 27 controles da seção 5 que a API do Kubernetes consegue responder: vinculações que concedem cluster-admin, acesso a Secrets, `nodes/proxy` e os outros direitos que os controles dele citam, funções com curingas, as contas de serviço padrão, o Pod Security Admission ou um motor de políticas em cada namespace, NetworkPolicies, e o que cada pod executa |
+| **CIS Kubernetes Benchmark v2.0** | Os 27 controles da seção 5 que a API do Kubernetes consegue responder: vinculações que concedem cluster-admin, acesso a Secrets, `nodes/proxy` e os outros direitos que os controles dele citam, funções com curingas, as contas de serviço padrão, o Pod Security Admission ou um motor de políticas em cada namespace, NetworkPolicies, e o que cada pod executa. Com o kube-bench ativado, também os controles de nós e do plano de controle que ele verifica nos nós |
+| **NSA/CISA Kubernetes Hardening Guide v1.2** | As recomendações do guia que o OneUptime consegue ler: contêineres que não são executados como root, sistemas de arquivos imutáveis, nenhum contêiner privilegiado nem namespace do host e limites de recursos em todo contêiner, lidos da especificação de cada pod; uma NetworkPolicy que nega tudo por padrão, nos dois sentidos, em cada namespace que executa pods; privilégio mínimo no RBAC; e, com o kube-bench ativado, as configurações de TLS, autenticação, autorização e auditoria do plano de controle e dos kubelets |
 
 O bloco de cada estrutura mostra a pontuação dela, e quantas cargas de trabalho ela avaliou e quantas falham. Os controles dela listam primeiro os que falham: cada um diz o que encontra de errado e como corrigir isso, e lista as cargas de trabalho, funções, vinculações, contas de serviço ou namespaces que falham nele, cada um com um link para a própria página, até o contêiner ou o volume e o campo, como `securityContext.privileged`. Onde a Segurança de dados pontua os bancos de dados executados no cluster, eles continuam abaixo, em **Bancos de dados deste cluster**.
 
 Os Padrões de Segurança de Pods são pontuados para a própria versão do Kubernetes do cluster: a do kubelet mais recente dele, até a versão mais recente que o OneUptime conhece. Um controle que uma versão posterior adicionou só conta a partir dessa versão, e a página diz com base em qual versão pontuou.
 
-Os outros 104 controles do benchmark verificam os arquivos e os kubelets dos nós ou as flags do plano de controle, ou precisam da revisão de uma pessoa. Nenhuma API os responde, então eles são listados em **Sem pontuação aqui**, agrupados pelo motivo, e nunca são aprovados nem reprovados. Em um plano de controle gerenciado, como EKS, GKE ou AKS, a página diz que eles são do benchmark do provedor.
+Sem o kube-bench, os outros 104 controles do benchmark verificam os arquivos e os kubelets dos nós ou as flags do plano de controle, ou precisam da revisão de uma pessoa. Nenhuma API os responde, então eles são listados em **Sem pontuação aqui**, agrupados pelo motivo, e nunca são aprovados nem reprovados. Em um plano de controle gerenciado, como EKS, GKE ou AKS, a página diz que eles são do benchmark do provedor.
+
+As recomendações do guia da NSA/CISA que nada do que o OneUptime lê consegue responder, como procurar vulnerabilidades nas imagens ou criptografar os Secrets em repouso, são listadas da mesma forma no **Sem pontuação aqui** do próprio guia, cada uma com a sua seção do guia. Um controle cuja fonte o cluster não enviou, como uma configuração do kubelet antes de o kube-bench ser executado, fica *não avaliado* e não conta nem a favor nem contra.
+
+### Controles de nós e do plano de controle
+
+Os controles de nós e do plano de controle do benchmark, as flags do API server, do controller manager, do scheduler, do etcd e do kubelet e as permissões dos arquivos deles, só podem ser lidos nos nós. Com `compliance.nodeBenchmark.enabled`, o agente executa o [kube-bench](https://github.com/aquasecurity/kube-bench) neles a cada seis horas, e a página pontua cada verificação que ele faz como um controle do CIS Benchmark, que lista cada nó que falha nele, com os interruptores e o **Aceitar** que todo controle tem. Ele vem desativado por padrão, por causa do que exige:
+
+- O pod de cada execução roda como root no namespace de processos do nó (`hostPID`), de que o kube-bench precisa para ler as linhas de comando dos componentes. Ele não é privilegiado: remove todas as capacidades do Linux, exceto `DAC_OVERRIDE`, proíbe o escalonamento de privilégios e roda com um sistema de arquivos raiz somente leitura.
+- Ele monta os diretórios do Kubernetes do nó como somente leitura: `/etc/kubernetes`, que em um nó do plano de controle guarda a chave da CA do cluster e o `admin.conf`, e `/var/lib/kubelet`, que guarda os volumes de todos os pods desse nó, entre eles os Secrets.
+- A imagem dele é da Aqua Security, não do OneUptime. Fixe-a por digest com `compliance.nodeBenchmark.image.digest` e espelhe-a com `compliance.nodeBenchmark.image.repository`.
+- A conta de serviço dele não monta nenhum token e não está vinculada a nenhuma função, e uma NetworkPolicy mantém os pods dele fora da rede. Ele grava o número e o resultado de cada verificação como a mensagem de término do contêiner, que os snapshots de recursos do agente já enviam.
+
+```bash
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set compliance.nodeBenchmark.enabled=true
+```
+
+Para executá-lo agora, em vez de esperar o próximo horário do agendamento:
+
+```bash
+kubectl create job --from=cronjob/kubernetes-agent-kube-bench-workers kube-bench-now -n oneuptime-agent
+```
+
+O kube-bench executa o benchmark da plataforma do cluster, escolhido a partir da versão do Kubernetes dele: o CIS Amazon EKS Benchmark no EKS, o CIS GKE Benchmark no GKE e o benchmark genérico nas demais. No AKS, adicione `--set compliance.nodeBenchmark.benchmark=aks-1.8`; onde um cluster gerenciado executou o benchmark genérico, a página diz qual definir. Em um plano de controle gerenciado, o kube-bench pontua os nós de trabalho, e os controles do plano de controle continuam sendo do provedor, já que nenhum pod consegue lê-los. Ele fica de fora no GKE Autopilot, no EKS Fargate e no OpenShift. O README do chart lista todos os valores e o que o benchmark de cada plataforma deixa sem resposta.
+
+**Nós lidos pelo kube-bench** lista os nós em que ele foi executado pela última vez, com o benchmark que executou, quando, e por que uma execução não pôde terminar. As verificações que o benchmark dele marca como manuais são listadas pelo número em **Sem pontuação aqui**, para a revisão de uma pessoa.
+
+### Aceite uma descoberta
+
+**Aceitar**, em uma descoberta que falha, pergunta o motivo e então conta esse objeto como aprovado no controle, ou em todos os controles da estrutura, até a aceitação expirar ou você clicar em **Revogar**. Cada controle lista as descobertas aceitas dele à parte, e **Descobertas aceitas** lista todas, com quem aceitou cada uma, quando e por quê.
+
+Quando uma carga de trabalho que falha é do próprio agente, o coletor de nó, a instrumentação eBPF, o profiler ou o kube-bench, a descoberta diz isso, por que o agente precisa do que o controle reprova e o valor que o remove. **Aceitar com este motivo** abre a caixa de diálogo com esse motivo já preenchido, para todos os controles da estrutura.
 
 ### Desative uma estrutura, um controle ou um namespace
 
@@ -340,7 +375,7 @@ Desative o que não se aplica a um cluster. Cada interruptor é do próprio clus
 
 ### Exporte uma estrutura
 
-**Exportar CSV** e **Exportar JSON** baixam o relatório de uma estrutura: cada controle, se ele é aprovado, o que o reprova e como corrigir isso, e a versão do Kubernetes com base na qual ele foi pontuado.
+**Exportar CSV** e **Exportar JSON** baixam o relatório de uma estrutura: cada controle, se ele é aprovado, o que o reprova e como corrigir isso, o que não é pontuado e por quê, e a versão do Kubernetes com base na qual ele foi pontuado. O JSON do CIS Benchmark também traz os nós que o kube-bench leu.
 
 ### O que o agente lê para isso
 
@@ -356,6 +391,8 @@ O agente lê cada kubelet pelos sub-recursos com que o kubelet autoriza os camin
 | `cost.prometheus.nodesProxy` | `auto` (o padrão) o concede só no preset `eks-fargate`, onde nenhum pod alcança o kubelet de um nó e o Prometheus de custos lê o cAdvisor pelo API server. Em todos os outros casos, ele lê o kubelet de cada nó na porta 10250 |
 
 Onde a própria vinculação do agente é reprovada no 5.1.10, a página diz que a vinculação é do agente, por que ela concede `nodes/proxy` e o valor que o remove.
+
+No complemento do Amazon EKS, que não aceita um `--set` do Helm, a página indica em vez disso o valor de configuração do complemento: `{"kubeletstats": {"nodesProxy": false}}`, quando todos os nós executarem a 1.33 ou posterior. O complemento não tem `cost.prometheus.nodesProxy`: com o preset `eks-fargate` e os custos ativados, só `{"cost": {"enabled": false}}` remove `nodes/proxy`.
 
 ## Opções de configuração
 

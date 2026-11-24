@@ -84,6 +84,25 @@ describe("how the invitation names them", () => {
   );
 
   test.each([
+    ["de", false, "Ada Walker hat Sie zu Walk Co eingeladen"],
+    ["de", true, "Ada Walker hat Sie zu Walk Co hinzugefügt"],
+    ["fr", false, "Ada Walker vous a invité à rejoindre Walk Co"],
+    ["en", false, "Ada Walker invited you to Walk Co"],
+  ])(
+    "in %s, accepted %p, the subject is written in that language (#9897)",
+    (language: string, isAccepted: boolean, subject: string) => {
+      expect(
+        InvitationInviterUtil.getSubject({
+          projectName: "Walk Co",
+          inviter: ADA,
+          isAccepted: isAccepted,
+          language: language,
+        }),
+      ).toBe(subject);
+    },
+  );
+
+  test.each([
     [false, "You have been invited to Walk Co"],
     [true, "You have been added to Walk Co"],
   ])(
@@ -193,7 +212,32 @@ describe("who made the invitation", () => {
 
     expect(read.id.toString()).toBe(ADA_ID.toString());
     expect(read.props).toEqual({ isRoot: true });
-    expect(read.select).toEqual({ _id: true, name: true, email: true });
+    // And her language: what the invitation is written in when the invitee picked none (#9897).
+    expect(read.select).toEqual({
+      _id: true,
+      name: true,
+      email: true,
+      language: true,
+    });
+  });
+
+  test("with the language the inviter's account picked, and none when it picked none (#9897)", async () => {
+    const ada: User = account("Ada Walker", "ada@walk.co");
+    ada.language = "de";
+
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(ada);
+
+    await expect(
+      InvitationInviterUtil.read({ props: PERSON, inviteeUserId: GRACE_ID }),
+    ).resolves.toEqual({ ...ADA, language: "de" });
+
+    expect(
+      InvitationInviterUtil.fromUser(account("Ada Walker", "ada@walk.co")),
+    ).toEqual(ADA);
+    expect(
+      "language" in
+        InvitationInviterUtil.fromUser(account("Ada Walker", "ada@walk.co"))!,
+    ).toBe(false);
   });
 
   test.each([

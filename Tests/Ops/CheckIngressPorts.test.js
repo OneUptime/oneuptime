@@ -301,8 +301,11 @@ describe("which installs are told", () => {
       expect([setting, template.get(setting)]).toEqual([setting, defaultPort]);
     }
 
-    expect(compose).toContain('      - "${ONEUPTIME_HTTP_PORT}:7849"\n');
-    expect(compose).toContain('      - "${STATUS_PAGE_HTTPS_PORT}:7850"\n');
+    // An empty or unset setting is published on its default port (#10170).
+    expect(compose).toContain('      - "${ONEUPTIME_HTTP_PORT:-80}:7849"\n');
+    expect(compose).toContain(
+      '      - "${STATUS_PAGE_HTTPS_PORT:-443}:7850"\n',
+    );
   });
 });
 

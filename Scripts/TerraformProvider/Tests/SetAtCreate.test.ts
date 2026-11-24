@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
 import { OpenAPISpec } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 
 /*
  * WHAT AN UPDATE'S PLAN KNOWS.
@@ -182,11 +183,11 @@ beforeAll(async () => {
     buildSpec(),
   ).generateResources();
   teamGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_team.go"),
+    path.join(outputDir, providerGoFilePath("resource_team.go")),
     "utf-8",
   );
   incidentGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_incident.go"),
+    path.join(outputDir, providerGoFilePath("resource_incident.go")),
     "utf-8",
   );
 });

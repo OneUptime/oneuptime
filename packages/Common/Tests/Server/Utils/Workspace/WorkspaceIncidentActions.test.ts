@@ -49,6 +49,7 @@ import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import NotFoundException from "../../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
@@ -1466,8 +1467,9 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
       );
   }
 
-  function stubWrites(): {
+  function stubWrites(data?: { rowsUpdated?: number | undefined }): {
     create: SpyInstance<typeof IncidentMemberService.create>;
+    update: SpyInstance<typeof IncidentMemberService.updateOneById>;
     remove: SpyInstance<typeof IncidentMemberService.deleteOneById>;
     order: Array<string>;
   } {
@@ -1479,6 +1481,12 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
         order.push("create");
         return new IncidentMember();
       });
+    const update: SpyInstance<typeof IncidentMemberService.updateOneById> = jest
+      .spyOn(IncidentMemberService, "updateOneById")
+      .mockImplementation(async (): Promise<number> => {
+        order.push("update");
+        return data?.rowsUpdated ?? 1;
+      });
     const remove: SpyInstance<typeof IncidentMemberService.deleteOneById> = jest
       .spyOn(IncidentMemberService, "deleteOneById")
       .mockImplementation(async (): Promise<number> => {
@@ -1486,8 +1494,17 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
         return 1;
       });
 
-    return { create, remove, order };
+    return { create, update, remove, order };
   }
+
+  // Incident Commander, held by Lee too: from before it took one person.
+  const LEE_AS_COMMANDER: IncidentMember = holderRow({
+    memberId: LEE_MEMBER_ID,
+    userId: LEE_ID,
+    roleId: COMMANDER_ROLE_ID,
+    roleName: "Incident Commander",
+    name: "Lee Wong",
+  });
 
   test("a role that takes several people: they are added, nobody is taken off", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
@@ -1517,10 +1534,11 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
     expect(created.incidentRoleId).toEqual(SCRIBE_ROLE_ID);
     expect(created.projectId).toEqual(PROJECT_ID);
     expect(writes.create.mock.calls[0]![0].props).toBe(props);
+    expect(writes.update).not.toHaveBeenCalled();
     expect(writes.remove).not.toHaveBeenCalled();
   });
 
-  test("a role that takes one person moves to them: added first, then whoever had it taken off", async () => {
+  test("a role that takes one person moves to them in one change: the holder's own row names them, as the Dashboard's Reassign does (#10270)", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
     stubRole(COMMANDER);
     stubHolders([ANA_AS_COMMANDER, LEE_AS_SCRIBE]);
@@ -1541,15 +1559,42 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
       isHeldAlready: false,
       replacedNames: ["Ana Ruiz"],
     });
-    // Never without a commander: the new one first.
-    expect(writes.order).toEqual(["create", "delete"]);
-    expect(writes.remove).toHaveBeenCalledWith({
+    // Never without a commander, never with two: one write, nothing added or taken off.
+    expect(writes.order).toEqual(["update"]);
+    expect(writes.update).toHaveBeenCalledWith({
       id: ANA_MEMBER_ID,
+      data: { userId: USER_ID },
       props: props,
     });
+    expect(writes.create).not.toHaveBeenCalled();
+    expect(writes.remove).not.toHaveBeenCalled();
   });
 
-  test("taking somebody off a role needs the member's own permission to: refused before anything is written", async () => {
+  test("#10191's customer, who may change role rows but take nobody off one, hands the commander's role on", async () => {
+    const props: DatabaseCommonInteractionProps = memberProps([
+      Permission.IncidentViewer,
+      Permission.CreateIncidentMember,
+      Permission.EditIncidentMember,
+    ]);
+    stubRole(COMMANDER);
+    stubHolders([ANA_AS_COMMANDER]);
+    stubPersonName("Nawaz Dhandala");
+    const writes: ReturnType<typeof stubWrites> = stubWrites();
+
+    expect(
+      (
+        await WorkspaceIncidentActions.assignRole({
+          event: incidentEvent(),
+          roleId: COMMANDER_ROLE_ID,
+          userId: USER_ID,
+          props: props,
+        })
+      ).replacedNames,
+    ).toEqual(["Ana Ruiz"]);
+    expect(writes.order).toEqual(["update"]);
+  });
+
+  test("handing a role on needs the member's own permission to change role rows: refused before anything is written", async () => {
     stubRole(COMMANDER);
     stubHolders([ANA_AS_COMMANDER]);
     stubPersonName("Nawaz Dhandala");
@@ -1560,20 +1605,108 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
         event: incidentEvent(),
         roleId: COMMANDER_ROLE_ID,
         userId: USER_ID,
-        // May add incident members, may not remove them.
+        // May add people to roles and take them off, may not change a role's row.
         props: memberProps([
           Permission.IncidentViewer,
           Permission.CreateIncidentMember,
+          Permission.DeleteIncidentMember,
         ]),
       });
 
-    // The role, who would come off it, and what allows it - once each.
+    // The role, who holds it, and what allows it - once each.
     await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
     await expect(refusal).rejects.toThrow(
-      "Incident Commander takes one person, and you do not have permission to take Ana Ruiz off it. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Delete Incident Member.",
+      "Incident Commander takes one person, and you do not have permission to reassign it from Ana Ruiz. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Edit Incident Member.",
     );
-    expect(writes.create).not.toHaveBeenCalled();
-    expect(writes.remove).not.toHaveBeenCalled();
+    expect(writes.order).toEqual([]);
+  });
+
+  test("a holder's row out of the member's reach changes nothing, and is said as the Dashboard says it - never answered as done", async () => {
+    const props: DatabaseCommonInteractionProps = memberProps();
+    stubRole(COMMANDER);
+    stubHolders([ANA_AS_COMMANDER]);
+    stubPersonName("Nawaz Dhandala");
+    stubWrites({ rowsUpdated: 0 });
+    const unwritten: SpyInstance<
+      typeof IncidentMemberService.getUnwrittenByIdError
+    > = jest
+      .spyOn(IncidentMemberService, "getUnwrittenByIdError")
+      .mockResolvedValue(
+        new NotAuthorizedException(
+          "You do not have permission to update this incident member.",
+        ),
+      );
+
+    await expect(
+      WorkspaceIncidentActions.assignRole({
+        event: incidentEvent(),
+        roleId: COMMANDER_ROLE_ID,
+        userId: USER_ID,
+        props: props,
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to update this incident member.",
+    );
+    expect(unwritten).toHaveBeenCalledWith({
+      id: ANA_MEMBER_ID,
+      props: props,
+      type: DatabaseRequestType.Update,
+    });
+  });
+
+  test("held by several, from before it took one person: the new person is added, then the others taken off", async () => {
+    const props: DatabaseCommonInteractionProps = memberProps();
+    stubRole(COMMANDER);
+    stubHolders([ANA_AS_COMMANDER, LEE_AS_COMMANDER]);
+    stubPersonName("Nawaz Dhandala");
+    const writes: ReturnType<typeof stubWrites> = stubWrites();
+
+    expect(
+      (
+        await WorkspaceIncidentActions.assignRole({
+          event: incidentEvent(),
+          roleId: COMMANDER_ROLE_ID,
+          userId: USER_ID,
+          props: props,
+        })
+      ).replacedNames,
+    ).toEqual(["Ana Ruiz", "Lee Wong"]);
+    // Never without a commander: the new one first.
+    expect(writes.order).toEqual(["create", "delete", "delete"]);
+    expect(writes.remove).toHaveBeenNthCalledWith(1, {
+      id: ANA_MEMBER_ID,
+      props: props,
+    });
+    expect(writes.remove).toHaveBeenNthCalledWith(2, {
+      id: LEE_MEMBER_ID,
+      props: props,
+    });
+  });
+
+  test("held by several, taking them off needs the member's own permission to: refused before anything is written", async () => {
+    stubRole(COMMANDER);
+    stubHolders([ANA_AS_COMMANDER, LEE_AS_COMMANDER]);
+    stubPersonName("Nawaz Dhandala");
+    const writes: ReturnType<typeof stubWrites> = stubWrites();
+
+    const refusal: Promise<WorkspaceRoleAssignment> =
+      WorkspaceIncidentActions.assignRole({
+        event: incidentEvent(),
+        roleId: COMMANDER_ROLE_ID,
+        userId: USER_ID,
+        // May add incident members and change them, may not remove them.
+        props: memberProps([
+          Permission.IncidentViewer,
+          Permission.CreateIncidentMember,
+          Permission.EditIncidentMember,
+        ]),
+      });
+
+    await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
+    await expect(refusal).rejects.toThrow(
+      "Incident Commander takes one person, and you do not have permission to take Ana Ruiz and Lee Wong off it. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Delete Incident Member.",
+    );
+    expect(writes.order).toEqual([]);
   });
 
   test("somebody who holds the role already: nothing written", async () => {

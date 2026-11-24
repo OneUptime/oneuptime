@@ -17,4 +17,5 @@
     <color name="status_error">#FFF87171</color>
     <color name="status_idle">#FF9CA3AF</color>
     <color name="code_background">#FF1F2937</color>
+    <color name="note_background">#FF1E1B4B</color>
 </resources>

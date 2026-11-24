@@ -32,7 +32,10 @@ import CloudLiveReadRateLimit from "../../../../Server/Utils/CloudConnection/Liv
 import logger from "../../../../Server/Utils/Logger";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAuthMethod } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
-import { CloudConnectionSetupScope } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  CloudConnectionSetupScope,
+  getAwsExternalIdForProject,
+} from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
@@ -49,6 +52,7 @@ import {
   LIVE_ACCOUNT,
   LIVE_NOW,
   assumeRoleAnswer,
+  assumeRoleTrusting,
   awsJson,
   awsJsonError,
   awsXmlError,
@@ -638,9 +642,7 @@ describe("an AWS Organization's account", () => {
       },
     });
     const fake: FakeAwsLive = createFakeAwsLive({
-      "sts:AssumeRole": (call: AwsLiveCall): FakeResponse => {
-        return assumeRoleAnswer(call.form.get("RoleArn")!.split(":")[4]!);
-      },
+      "sts:AssumeRole": assumeRoleTrusting(PROJECT.toString()),
       "ecs:DescribeServices": describeServices(),
     });
 
@@ -652,8 +654,19 @@ describe("an AWS Organization's account", () => {
     );
 
     expect(outcome.ok).toBe(true);
-    expect(fake.callsTo("sts:AssumeRole")[0]!.form.get("RoleArn")).toBe(
-      `arn:aws:iam::${LIVE_ACCOUNT}:role/OneUptimeReadOnly-5f3a9c1e`,
+    // The role is checked (an external id no project has, refused), then signed in to.
+    const signIns: Array<AwsLiveCall> = fake.callsTo("sts:AssumeRole");
+    expect(signIns).toHaveLength(2);
+    for (const signIn of signIns) {
+      expect(signIn.form.get("RoleArn")).toBe(
+        `arn:aws:iam::${LIVE_ACCOUNT}:role/OneUptimeReadOnly-5f3a9c1e`,
+      );
+    }
+    expect(signIns[0]!.form.get("ExternalId")).not.toBe(
+      getAwsExternalIdForProject(PROJECT.toString()),
+    );
+    expect(signIns[1]!.form.get("ExternalId")).toBe(
+      getAwsExternalIdForProject(PROJECT.toString()),
     );
     const ecs: AwsLiveCall = fake.callsTo("ecs:DescribeServices")[0]!;
     expect(headerOf(ecs.request, "Authorization")).toContain(
@@ -717,6 +730,43 @@ describe("an AWS Organization's account", () => {
     );
     expect(outcome.errorMessage).not.toContain("may not call");
     expect(outcome.errorMessage).not.toContain("[redacted");
+  });
+
+  test("a role that lets OneUptime in with any external id is refused before anything is read, in OneUptime's words (#10405)", async () => {
+    connection = connectionRow({
+      pullState: {
+        organizationAccounts: [{ id: LIVE_ACCOUNT, name: "Production" }],
+      },
+    });
+    const fake: FakeAwsLive = createFakeAwsLive({
+      // Made by hand without the condition: any external id is let in.
+      "sts:AssumeRole": (call: AwsLiveCall): FakeResponse => {
+        return assumeRoleAnswer(call.form.get("RoleArn")!.split(":")[4]!);
+      },
+      "ecs:DescribeServices": describeServices(),
+    });
+
+    const outcome: CloudLiveReadOutcome = await run(
+      `cloud describe ${ECS_ARN}`,
+      {
+        fake,
+      },
+    );
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errorMessage).toContain(
+      "This role lets OneUptime sign in without your project's external ID",
+    );
+    expect(outcome.errorMessage).toContain(
+      `"Condition":{"StringEquals":{"sts:ExternalId":"${getAwsExternalIdForProject(
+        PROJECT.toString(),
+      )}"}}`,
+    );
+    // Not said as AWS refusing a sign-in: AWS let OneUptime in, OneUptime refused.
+    expect(outcome.errorMessage).not.toContain("did not let");
+    // The check alone: never the project's own sign-in, and nothing read.
+    expect(fake.callsTo("sts:AssumeRole")).toHaveLength(1);
+    expect(fake.callsTo("ecs:DescribeServices")).toHaveLength(0);
   });
 });
 

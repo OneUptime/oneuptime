@@ -21,6 +21,17 @@
  *     it, and with nothing that lets it fail without failing the job;
  *   - with the generator's unit tests still running when it fails, so one
  *     run reports both.
+ *
+ * It is the generator's only type check. Generation itself checks nothing:
+ * `npm run generate-terraform-provider` runs the generator transpile-only.
+ * With ts-node's type checker, Node.js held about 2.1 GiB while Go compiled
+ * the provider, and 1.1 GiB without it, for a provider byte for byte the
+ * same (#7592). Every other job that generates the provider runs code this
+ * check has already checked: on the same pull request, or on main and in a
+ * release after the pull requests that brought it there - the release's own
+ * pull request into `release` among them - and nightly on main. A job that
+ * starts to generate the provider is named below with why that holds for
+ * it, or type-checks the generator itself.
  */
 
 const fs = require("fs");
@@ -32,6 +43,9 @@ const {
   stepCommandFromRoot,
   stepWorkingDirectory,
 } = require("./Utils/WorkflowStep");
+const {
+  jobsThatGenerateTheProvider,
+} = require("./Utils/TerraformProviderJobs");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const WORKFLOW = ".github/workflows/terraform-provider-generation.yml";
@@ -46,6 +60,27 @@ const GENERATE = "npm run generate-terraform-provider";
 const INSTALLS_THE_TYPE_CHECK_NEEDS = ["packages/Common", "Scripts", GENERATOR];
 
 const NOT_CANCELLED = "${{ !cancelled() }}";
+
+// How the root's package.json runs the generator: without a type check.
+const GENERATE_SCRIPT =
+  "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register/transpile-only ./Scripts/TerraformProvider/GenerateProvider.ts";
+
+/*
+ * The jobs that generate the provider without type-checking the generator
+ * themselves, and the runs of the type check that checked their code first.
+ */
+const CHECKED_BEFORE_THEY_RUN = {
+  "crossplane-provider.yml crossplane-e2e":
+    "its pull requests run the type check too, as do main's nightly run and the release's pull request",
+  "release.yml publish-crossplane-provider":
+    "it publishes what the release's pull request into `release` type-checked",
+  "release.yml publish-terraform-provider":
+    "it publishes what the release's pull request into `release` type-checked",
+  "terraform-provider-e2e.yml terraform-e2e-tests":
+    "it runs on the pull requests the type check runs on, on main nightly beside it, and in the release run after the release's pull request",
+  "test-release.yaml publish-terraform-provider":
+    "it runs on main, after the pull request that brought each change there",
+};
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -183,5 +218,70 @@ describe(`${WORKFLOW} type-checks the generator`, () => {
     expect(unitTests.jobName).toBe(typeCheck.jobName);
     expect(unitTests.index).toBeGreaterThan(typeCheck.index);
     expect(unitTests.step.if).toBe(NOT_CANCELLED);
+  });
+});
+
+describe("npm run generate-terraform-provider", () => {
+  const rootPackage = JSON.parse(read("package.json"));
+
+  test("runs the generator transpile-only, so this workflow's step is its type check", () => {
+    expect(rootPackage.scripts["generate-terraform-provider"]).toBe(
+      GENERATE_SCRIPT,
+    );
+  });
+});
+
+describe("every job that generates the Terraform provider", () => {
+  const jobs = jobsThatGenerateTheProvider();
+  const names = jobs.map(({ name }) => {
+    return name;
+  });
+
+  function typeChecksTheGenerator(job) {
+    return (job.steps || []).some((step) => {
+      return stepCommandFromRoot(step).trim() === TYPE_CHECK;
+    });
+  }
+
+  test("is found, this workflow's among them", () => {
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "terraform-provider-generation.yml generate-terraform-provider",
+        ...Object.keys(CHECKED_BEFORE_THEY_RUN),
+      ]),
+    );
+  });
+
+  test.each(names)(
+    "%s type-checks the generator, or runs code the type check checked first",
+    (name) => {
+      const { job } = jobs.find((entry) => {
+        return entry.name === name;
+      });
+
+      expect({
+        job: name,
+        checked:
+          typeChecksTheGenerator(job) ||
+          CHECKED_BEFORE_THEY_RUN[name] !== undefined,
+      }).toEqual({ job: name, checked: true });
+    },
+  );
+
+  test("each job named as checked first still generates it, and has no type check of its own", () => {
+    for (const name of Object.keys(CHECKED_BEFORE_THEY_RUN)) {
+      const entry = jobs.find((found) => {
+        return found.name === name;
+      });
+
+      expect({ job: name, generates: entry !== undefined }).toEqual({
+        job: name,
+        generates: true,
+      });
+      expect({
+        job: name,
+        typeChecks: typeChecksTheGenerator(entry.job),
+      }).toEqual({ job: name, typeChecks: false });
+    }
   });
 });

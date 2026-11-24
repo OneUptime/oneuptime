@@ -12,9 +12,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The apps installed on a managed device, with their versions, on the
- * device's Inventory page: what Esper reported the last time it read the
- * device's apps (every 6 hours). The app the device runs in kiosk mode, and
- * the apps Esper installed and manages, say so.
+ * device's Inventory page: what its device manager reported the last time
+ * it read the device's apps (every 6 hours) - Esper's installed apps, or
+ * the apps Microsoft Intune discovered (#9837). The app the device runs in
+ * kiosk mode, and the apps Esper installed and manages, say so.
  */
 
 export interface ComponentProps {
@@ -47,9 +48,9 @@ const ManagedDeviceAppsTable: FunctionComponent<ComponentProps> = (
       cardProps={{
         title: "Installed Apps",
         description:
-          "The apps on this device and their versions, as Esper reported them. Read every 6 hours.",
+          "The apps on this device and their versions, as its device manager reported them. Read every 6 hours.",
       }}
-      noItemsMessage="No apps read yet. Esper's list of them arrives within a few minutes of the first read."
+      noItemsMessage="No apps read yet. They arrive within a few minutes of the first read."
       filters={[
         {
           field: { versionName: true },

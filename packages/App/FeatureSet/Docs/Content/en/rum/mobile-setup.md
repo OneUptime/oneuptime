@@ -5,7 +5,7 @@ Instrument an Android, iOS or React Native app with OpenTelemetry so it reports 
 :::cards
 - [What OneUptime needs](#what-oneuptime-needs): Two resource attributes, sent with a Server key.
 - [Set up your platform](#set-up-your-platform): Android, iOS, React Native and the rest.
-- [iOS crashes and hangs](#ios-crashes-and-hangs): MetricKit's diagnostics in Exceptions and on the Overview.
+- [iOS crashes and hangs](#ios-crashes-and-hangs): MetricKit's and KSCrash's reports in Exceptions, named by your dSYMs.
 - [Check that it arrives](#check-that-it-arrives): Test the key, then find the app.
 - [Session Replay on mobile](#session-replay-on-mobile): Recordings for React Native apps.
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model` gives a short name such as `iPhone`, which keeps the **Clients** page to one row per kind of device.
+`UIDevice.current.model` gives a short name such as `iPhone`, which keeps the **Clients** page to one row per kind of device. `identifierForVendor` is the install OneUptime counts crash-free installs by, as [Record sessions](#record-sessions) says.
 @tab React Native
 React Native runs the OpenTelemetry JavaScript SDK, so build the provider, the OTLP exporter and the batch processor as in [Browser Setup](/docs/rum/browser-setup), with three changes: send with a **Server** key, leave out `browserDetector` and `DocumentLoadInstrumentation`, and set the device attributes yourself.
 
@@ -178,7 +179,9 @@ opentelemetry-swift 2.3 and later report an iOS app's crashes and hangs through 
 | A crash | `metrickit.diagnostic.crash` | An unhandled exception, typed by what ended the app: the Objective-C exception on iOS 17 and later, else the Mach exception (`EXC_BAD_ACCESS`), else the signal (`SIGSEGV`) |
 | A hang | `metrickit.diagnostic.hang` | An unhandled exception of type **Hang**, the iOS counterpart of an ANR, which keeps how long the hang lasted |
 
-The Overview's **Crashes** tile counts the crashes, and its **ANRs** tile counts the hangs with Android's ANRs. Each stack trace is drawn as the threads of a crash report, the thread that crashed or hung first. The frames are not symbolicated: each names its binary and how far into it the code was, and **Binary Images** lists each binary's UUID, which says which build's dSYM symbolicates it.
+The Overview's **Crashes** tile counts the crashes, and its **ANRs** tile counts the hangs with Android's ANRs. Each stack trace is drawn as the threads of a crash report, the thread that crashed or hung first. A frame of your app's code is named by its function, such as `CartViewController.checkout()`, once the dSYM of its build is uploaded, as in [Upload your dSYMs](#upload-your-dsyms). Every other frame names its binary and how far into it the code was, and **Binary Images** lists each binary's UUID, which says which build's dSYM names it.
+
+Crashes and hangs are grouped by your app's frames on the thread that crashed or hung: by their functions where a dSYM named them, so a crash stays one exception from one release to the next, and by their offsets into the binary where none did, which change with every build. A report is named as it arrives, so upload a build's dSYMs before you ship it: a crash that arrived before its dSYM keeps its offsets.
 
 :::steps
 ### Export logs as well as spans
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### Record sessions
 
-The **Sessions** and **Crash-free sessions** tiles count the `session.id` on your spans. opentelemetry-swift's `Sessions` product sets it: add `SessionSpanProcessor` to the tracer provider, and wrap the log processor in `SessionLogRecordProcessor`, so diagnostics carry a session too. Its releases set no `app.installation.id` yet, so an iOS app's **Crash-free sessions** tile says how many sessions crashed rather than its crash-free installs.
+The **Sessions** and **Crash-free sessions** tiles count the `session.id` on your spans. opentelemetry-swift's `Sessions` product sets it: add `SessionSpanProcessor` to the tracer provider, and wrap the log processor in `SessionLogRecordProcessor`, so diagnostics carry a session too.
+
+The line under **Crash-free sessions** reads the share of installs that did not crash, and **Daily Crash Rate** and **Daily ANR Rate** alert on the share that did. An install is the `device.id` of the resource above, the app's identifier for vendor: one per device for all of your apps, kept while any of them stays installed, so reinstalling your only app makes a new install and reinstalling one of two does not. A release of opentelemetry-swift that sets `app.installation.id` is counted by that instead.
+
+### Upload your dSYMs
+
+Xcode writes a dSYM for each of your app's binaries when it archives the app, and App Store Connect gives them back under **Download dSYMs**. Upload them after each archive, from CI or an Xcode build phase, with the [OneUptime CLI](/docs/cli/index) and a Server key of your build's: a key with a **Pinned Service Name**, such as the one your app ships with, is refused, because a dSYM names the frames of every app in the project that ships its binary.
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+The CLI reads `.dSYM` bundles, folders and zips of them, and DWARF files where they are, and sends only each binary's UUID, architecture and function names: a large app's dSYMs are hundreds of megabytes, their names a few. Without the CLI, send a dSYM's DWARF file, or a zip of `.dSYM` bundles, as it is, up to 50 MB a file:
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+Each binary is kept by its UUID for 400 days, so a release still on people's phones months later is still named, and uploading a build again replaces what was kept for it. A dSYM belongs to the project, not to one app: a framework two of your apps embed is named in both.
 :::
 
 > [!NOTE]
 > Apple hands MetricKit's diagnostics to the app on a later launch, at once on iOS 15 and later and once a day before, so a crash or a hang can arrive minutes or a day after it happened, and is counted when it arrives. "0 crashes in the past hour" on an iOS app's Overview is not yet good news. A diagnostic carries the session that reported it, not the one it ended.
 
 opentelemetry-swift records no span when the app starts, so the **App starts** and **Cold start (p95)** tiles stay empty until your app records one: a span named `AppStart`, with `start.type` set to `cold`, `warm` or `hot`, from the process starting to the first screen being ready.
+
+### When KSCrash reports a crash too
+
+opentelemetry-swift can also report crashes through KSCrash, which sends its report as a `device.crash` log record when the app is next opened, with the time the app crashed. An app that registers both reports each crash twice: KSCrash on the next launch, MetricKit on the next launch or up to a day later. OneUptime counts such a crash once: the first report to arrive is the occurrence, and the second is kept beside it, in the same exception, as evidence of the same crash, counted in no tile, chart or monitor. In the exception's **Occurrences**, the occurrence reads **Reported twice**.
+
+Two reports are taken for one crash only when all of these hold:
+
+- They come from the two reporters, KSCrash and MetricKit. Neither reports one crash twice, so two reports from one are two crashes.
+- They come from the same install: the same `app.installation.id`, or `device.id`.
+- They are no more than 26 hours apart: MetricKit stamps a crash with the end of the day it reports on, KSCrash with the moment of the crash.
+- They agree on the signal, the Mach exception and the Objective-C exception, wherever both name one.
+- The threads that crashed agree frame by frame from where the thread started inward, by binary and offset, over every frame of your app's code that either names. A crash entirely in Apple's code must agree on at least three frames, and on all of them.
+
+Each report is paired once, with the nearest in time, so two crashes of the same bug on one install, minutes apart, are two occurrences, each with its second report. When OneUptime cannot compare a report with its install's others, it counts it, so a crash is counted twice at worst, never lost.
 
 ## Check that it arrives
 

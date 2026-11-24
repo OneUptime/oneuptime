@@ -20,6 +20,11 @@ import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
 import ObjectID from "../../../Types/ObjectID";
+import Label from "../../../Models/DatabaseModels/Label";
+import {
+  SHARED_NAME_DETAIL_TEST_ID,
+  SHARED_NAME_PILL_TEST_ID,
+} from "../../../UI/Components/Dropdown/SharedNameOptionLines";
 import { VariableValueChange } from "../../../UI/Components/Dashboard/DashboardVariableControl";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
@@ -291,6 +296,66 @@ function chooseDropdown(name: string, option: string): void {
 }
 
 describe("Project Labels variable authoring", () => {
+  /*
+   * Two labels of one name, named alike before names were held to one label
+   * each (#10314): the editor's picker tells them apart, by what sets each
+   * apart; what is saved - the dashboard's toolbar and its shared pages
+   * show it - keeps each label's name and id alone.
+   */
+  test("two labels of one name are told apart while choosing, and the saved choices keep names and ids alone", async () => {
+    getListMock.mockResolvedValue({
+      data: [
+        Object.assign(new Label(), {
+          _id: FIRST,
+          name: "Production",
+          description: "EU workloads",
+        }),
+        Object.assign(new Label(), {
+          _id: SECOND,
+          name: "production",
+          description: "US workloads",
+        }),
+      ],
+      count: 2,
+      skip: 0,
+      limit: 1000,
+    });
+
+    const saved: Array<Array<DashboardVariable>> = renderEditor(
+      labelVariable({ labelOptions: [] }),
+    );
+    const picker: HTMLElement = await screen.findByRole("combobox", {
+      name: "Allowed project labels",
+    });
+
+    // The read asks for what tells them apart.
+    expect(
+      (getListMock.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual({ _id: true, name: true, description: true, createdAt: true });
+
+    openDropdown(picker);
+
+    expect(screen.getAllByTestId(SHARED_NAME_PILL_TEST_ID)).toHaveLength(2);
+    expect(
+      screen
+        .getAllByTestId(SHARED_NAME_DETAIL_TEST_ID)
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["EU workloads", "US workloads"]);
+
+    fireEvent.click(screen.getAllByRole("option")[1]!);
+    closeDropdown(picker);
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    expect(saved[0]?.[0]?.labelOptions).toEqual([
+      { label: "production", value: SECOND },
+    ]);
+    // Nothing of what the editor saw while choosing is kept.
+    expect(saved[0]?.[0]?.labelOptions?.[0]).not.toHaveProperty("sharedName");
+  });
+
   test("switching sources clears incompatible settings and preserves the variable ID", () => {
     const saved: Array<Array<DashboardVariable>> = renderEditor(
       labelVariable({

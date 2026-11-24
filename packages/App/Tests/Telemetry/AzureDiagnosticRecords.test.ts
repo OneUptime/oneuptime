@@ -6,6 +6,7 @@ import {
   AZURE_LOG_LEVELS,
   AzureDiagnosticDecoded,
   decodeAzureDiagnosticEvents,
+  getAzureLogOwnerResourceId,
   readAggregationValue,
   readAzureLogBody,
 } from "../../FeatureSet/Telemetry/Utils/AzureEventHubs/AzureDiagnosticRecords";
@@ -438,13 +439,14 @@ describe("a resource log", () => {
     expect(logs[0]!.resource["cloud.platform"]).toBeUndefined();
   });
 
-  test("says what it says: an audit event's operation and result, its fields beside it, never its caller's claims", () => {
+  test("keeps a key vault's audit event whole, its fields beside it - its caller's claims in its body alone", () => {
     const { record } = logsOf(decode([eventOf([vaultAuditRecord()])]))[0]!;
     const fields: Record<string, unknown> = attributes(record["attributes"]);
 
-    expect((record["body"] as JSONObject)["stringValue"]).toBe(
-      "SecretGet: Success (OK)",
-    );
+    // Its own audit log is read as security events (#10110): who read the secret is in it.
+    expect(
+      JSON.parse(String((record["body"] as JSONObject)["stringValue"])),
+    ).toEqual(vaultAuditRecord());
     expect(record["severityText"]).toBe("INFO");
     expect(record["timeUnixNano"]).toBe(
       `${Date.UTC(2026, 10, 6, 9, 59, 12, 123)}000000`,
@@ -460,7 +462,84 @@ describe("a resource log", () => {
       "azure.properties.httpStatusCode": "200",
       "azure.properties.isAccessPolicyMatch": true,
     });
-    expect(JSON.stringify(record)).not.toContain("alice@acme.com");
+    expect(JSON.stringify(record["attributes"])).not.toContain(
+      "alice@acme.com",
+    );
+  });
+
+  test("a storage service's logs are filed under its account; anything else's under itself", () => {
+    for (const service of [
+      "blobServices",
+      "fileServices",
+      "queueServices",
+      "tableServices",
+    ]) {
+      expect(
+        getAzureLogOwnerResourceId(`${STORAGE_ID}/${service}/default`),
+      ).toBe(STORAGE_ID);
+      // As Azure Monitor writes it: in capitals.
+      expect(
+        getAzureLogOwnerResourceId(
+          `${STORAGE_ID}/${service}/default`.toUpperCase(),
+        ),
+      ).toBe(STORAGE_ID.toUpperCase());
+    }
+
+    for (const id of [
+      STORAGE_ID,
+      VAULT_ID,
+      `${STORAGE_ID}/blobServices/default/containers/invoices`,
+      `${STORAGE_ID}/blobServices/other`,
+      `${STORAGE_ID}/privateEndpointConnections/default`,
+      `${SITE_ID}/slots/staging`,
+      "",
+    ]) {
+      expect(getAzureLogOwnerResourceId(id)).toBe(id);
+    }
+  });
+
+  test("a storage service's log reaches its account's Logs tab, and keeps the service's own ID", () => {
+    const [log] = logsOf(
+      decode([
+        eventOf([
+          {
+            time: "2026-11-06T09:59:21.0000000Z",
+            resourceId: `${STORAGE_ID}/blobServices/default`.toUpperCase(),
+            category: "StorageRead",
+            operationName: "GetBlob",
+            statusCode: 200,
+            statusText: "Success",
+            callerIpAddress: "10.0.0.4:52111",
+            correlationId: "aaaa0000-bb11-2222-33cc-444444dddddd",
+            identity: { type: "OAuth" },
+            properties: { accountName: "acmedata", serviceType: "blob" },
+          },
+        ]),
+      ]),
+    );
+
+    expect(log!.resource).toMatchObject({
+      "cloud.resource_id": STORAGE_ID,
+      "azure.resource.id": `${STORAGE_ID}/blobServices/default`.toUpperCase(),
+      "cloud.region": "eastus",
+    });
+  });
+
+  test("any other category's record is still a one-line log: what it says, or its operation and result", () => {
+    const { record } = logsOf(
+      decode([
+        eventOf([
+          vaultAuditRecord({
+            category: "AzurePolicyEvaluationDetails",
+            operationName: "VaultGet",
+          }),
+        ]),
+      ]),
+    )[0]!;
+
+    expect((record["body"] as JSONObject)["stringValue"]).toBe(
+      "VaultGet: Success (OK)",
+    );
   });
 
   test("an App Service line's message is its body; a function's log takes its own level", () => {

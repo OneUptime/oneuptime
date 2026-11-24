@@ -6,8 +6,8 @@ Prometheus、Loki クライアント、Splunk フォワーダー、Datadog Agent
 - [Prometheus remote write](#prometheus-remote-write): Prometheus、Grafana Alloy、または任意の remote write 送信元からのメトリクス。
 - [Loki](#loki): Promtail、Grafana Alloy、Fluent Bit、Vector からのログ。
 - [Splunk HTTP Event Collector](#splunk-http-event-collector): 任意の HEC クライアントからのログとメトリクスイベント。
-- [Datadog Agent](#datadog-agent): Datadog Agent からのメトリクスとログ。
-- [Sentry SDK](#sentry-sdk): 任意の Sentry SDK からのエラー、トランザクション、ログ。
+- [Datadog Agent](#datadog-agent): Datadog Agent からのメトリクス、ログ、APM トレース。
+- [Sentry SDK](#sentry-sdk): 任意の Sentry SDK からのエラー、トランザクション、ログ、cron チェックイン、フィードバック、プロファイル。
 :::
 
 ## 仕組み
@@ -24,7 +24,7 @@ flowchart TB
     end
     tools -->|"各ツール独自のプロトコル + 取り込みキー"| endpoint["OneUptime の互換エンドポイント"]
     endpoint --> otlp["OpenTelemetry のデータとして保存"]
-    otlp --> signals["ログ、メトリクス、トレース、例外"]
+    otlp --> signals["ログ、メトリクス、トレース、例外、プロファイル"]
 ```
 
 各エンドポイントは、そのツール自身の形式で応答します。Prometheus と Loki には `204`、HEC には `{"text": "Success", "code": 0}`、Datadog には `202`、Sentry にはイベント ID を返すので、ツールはこれまでと同じように成功と失敗を報告します。その後、データは OpenTelemetry SDK から届いたデータとまったく同じように処理されます。
@@ -59,6 +59,7 @@ remote_write:
   - url: https://oneuptime.com/telemetry/prometheus/api/v1/write
     authorization:
       credentials: YOUR_TELEMETRY_KEY
+    send_exemplars: true
 ```
 
 Grafana Alloy では、`prometheus.remote_write` コンポーネントを追加し、スクレイプした結果をそこに転送します。
@@ -70,17 +71,25 @@ prometheus.remote_write "oneuptime" {
     bearer_token = "YOUR_TELEMETRY_KEY"
   }
 }
+
+prometheus.scrape "app" {
+  targets    = [{"__address__" = "localhost:8080"}]
+  forward_to = [prometheus.remote_write.oneuptime.receiver]
+}
 ```
 
-remote write 1.0 と 2.0 のどちらも受け付けます。どの送信元も送っているとおり、snappy で圧縮された形式です。
+remote write 1.0 と 2.0 のどちらも受け付けます。どの送信元も送っているとおり、snappy で圧縮された形式です。各系列の型、単位、説明も送る 2.0 を使うには、`protobuf_message: io.prometheus.write.v2.Request`（Prometheus 3）または `protobuf_message = "io.prometheus.write.v2.Request"`（Alloy）を設定します。Prometheus は、エグザンプラーを保存するようにすると（`--enable-feature=exemplar-storage`）、`send_exemplars: true` でそれを送ります。Alloy は既定で送ります。
 
 ### 系列がどうなるか
 
 - **名前とラベルはそのまま残ります。** `http_requests_total{job="checkout", code="500"}` は、属性 `job` と `code` を持つメトリクス `http_requests_total` になるため、Grafana から移したクエリでも見つかります。
 - **ジョブがサービスになります。** OpenTelemetry が定める Prometheus の対応付けルールのとおり、各 `job` はサービスに、各 `instance` はそのサービスインスタンスになります。
 - **型は保持されます。** カウンター、およびヒストグラムのバケットとカウントは累積和になるため、レートが正しくグラフに描かれます。型は送信元が含めるメタデータから決まります。メタデータがない場合、名前が `_total` で終わるものはカウンター、`le` ラベルを持つ `_bucket` はヒストグラムのバケットになります。
+- **クラシックヒストグラムはパーセンタイルをグラフにできます。** クラシックヒストグラムは `_bucket`、`_count`、`_sum` の系列のまま保持されます。[メトリクスエクスプローラー](/docs/telemetry/metrics-explorer) でその `_bucket` メトリクスを P50 から P99 でグラフにすると、各バケットがどのリクエストで届いたかにかかわらず、スクレイプごとのバケットが 1 つのヒストグラムとして読み取られます。[PromQL](/docs/telemetry/promql) では、`histogram_quantile(0.95, sum by (le) (rate(<name>_bucket[5m])))` が Prometheus と同じ値を返します。
 - **ネイティブヒストグラム** は指数ヒストグラムになり、カスタムバケットを持つネイティブヒストグラムはヒストグラムになります。
-- **保持されないもの:** staleness マーカーとそのほかの NaN または無限大のサンプル、カウンターの `_created` 系列、エグザンプラー。
+- **エグザンプラーはトレースにリンクします。** `trace_id`（または `traceID`）ラベルを持つエグザンプラーは、そのデータポイントをそのトレースとスパンに結び付けます。メトリクスのグラフでその点をクリックすると、トレースやそのログを表示できます。エグザンプラーの値とそのほかのラベルは保持されず、データポイントが別のリクエストで届いたエグザンプラーも保持されません。
+- **保持されないもの:** staleness マーカーとそのほかの NaN または無限大の値、カウンターの `_created` 系列。それでも書き込み済みとして数えられるため、送信元は失敗したサンプルを報告しません。
+- **拒否されるもの:** どのバージョンの remote write でも許されないデータです。たとえば、メトリクス名のない系列や、タイムスタンプが負のサンプルです。リクエストの残りは保存され、送信元には拒否された内容を示す `400` が返ります。
 
 ## Loki
 
@@ -106,6 +115,8 @@ Fluent Bit の `loki` 出力では、ホストとパスを別々に指定しま�
     Http_Passwd  YOUR_TELEMETRY_KEY
     Labels       job=fluent-bit
 ```
+
+OneUptime は Loki と同じように応答します。push を保存すると `204`、読み取れない push には `400`、下の制限を超える push には `413`、キーがない、または不明な場合は `401`、1 日の予算を使い切った場合は `403`、レートを超えた場合は `Retry-After` 付きの `429`、今すぐ受け取れない場合は `503` です。Promtail、Alloy、Vector は `429` または `503` を再試行し、それ以外で拒否されたバッチは理由をログに記録して破棄します。Fluent Bit は `400` を破棄し、それ以外は `Retry_Limit` まで再試行します。
 
 ### ストリームがどうなるか
 
@@ -148,7 +159,7 @@ curl https://oneuptime.com/telemetry/services/collector/event \
 
 ## Datadog Agent
 
-取り込みキーを API キーとして、Agent のメトリクスとログを OneUptime に向けます。
+取り込みキーを API キーとして、Agent のメトリクス、ログ、APM トレースを OneUptime に向けます。
 
 ```yaml title="datadog.yaml"
 api_key: YOUR_TELEMETRY_KEY_WITHOUT_HYPHENS
@@ -158,13 +169,14 @@ logs_config:
   use_http: true
   logs_dd_url: oneuptime.com:443
 apm_config:
-  enabled: false
+  enabled: true
+  apm_dd_url: https://oneuptime.com/telemetry/datadog
 process_config:
   process_collection:
     enabled: false
 ```
 
-Agent は `dd_url` に独自のパスを付け加え、ログは `logs_dd_url` が指定するホストとポートの `/api/v2/logs` に送ります。OneUptime がルートでそれらのパスに応答するのは、`DD-API-KEY` ヘッダーを含むリクエストに対してだけです。変更後は Agent を再起動してください。OneUptime がキーを受け付けると、`datadog-agent status` に API キーが有効と表示されます。
+Agent は `dd_url` と `apm_dd_url` に独自のパスを付け加え、ログは `logs_dd_url` が指定するホストとポートの `/api/v2/logs` に送ります。OneUptime がルートでそれらのパスに応答するのは、`DD-API-KEY` ヘッダーを含むリクエストに対してだけです。変更後は Agent を再起動してください。OneUptime がキーを受け付けると、`datadog-agent status` に API キーが有効と表示されます。
 
 ### Agent のデータがどうなるか
 
@@ -172,10 +184,22 @@ Agent は `dd_url` に独自のパスを付け加え、ログは `logs_dd_url` �
 - **ディストリビューション** は、カウント、合計、最小値、最大値を持つサマリーになります。
 - **サービスチェック** は、チェック名を名前とするメトリクスになり、その値はチェックのステータスです: 0 が OK、1 が警告、2 が重大、3 が不明。
 - **ログ** はメッセージ、ステータス、ホスト、サービスを保持し、残りのフィールドは属性になります。
-- **タグは属性になり**、`service`、`env`、`version` タグがそれぞれサービス、その環境、そのバージョンを示します。
-- **まだ読み取られないもの:** APM トレース、プロセス、コンテナ、ネットワークデータ、プロファイル。上の例のように、`datadog.yaml` でオフにしておいてください。
+- **APM トレース** は「トレース」に表示されます。各スパンはそのリソース (`GET /users/:id` やクエリ) で名付けられ、そのサービスに属します。`checkout-postgres` のように、インテグレーションが独自のサービス名を付けたスパンは、呼び出しを行ったサービスに属します。オペレーション名と種類は `datadog.operation_name` と `datadog.span_type` として保持されます。
+- **スパン内のエラー** は、トレーサーが記録したスタックトレースとともに「例外」に表示されます。
+- **タグは属性になり**、`service`、`env`、`version` タグがそれぞれサービス、その環境、そのバージョンを示します。スパンの HTTP タグとデータベースタグは、OpenTelemetry の名前でも書き込まれます。`http.status_code` は `http.response.status_code` として、`db.type` は `db.system.name` として書き込まれます。
+- **まだ読み取られないもの:** プロセス、コンテナ、ネットワークデータ、プロファイル。上の例のように、`datadog.yaml` でオフにしておいてください。Agent の APM 統計は受け付けますが保持しません。OneUptime はスパンから独自に計算します。
 
 Datadog の HTTP API クライアント (`/api/v2/logs` に POST するログライブラリや、系列を POST するスクリプトなど) も、`DD-API-KEY` ヘッダーを付けて同じエンドポイントに送れます。
+
+### Agent なしで送る
+
+dd-trace-go は、取り込みキーを Agent URL のパスワードにして、トレースを OneUptime に直接送れます。
+
+```bash
+DD_TRACE_AGENT_URL=https://oneuptime:YOUR_TELEMETRY_KEY@oneuptime.com/telemetry/datadog
+```
+
+Python と Node.js のトレーサーは URL のパスとパスワードを省いてしまうため、それらのトレースは Agent 経由で送ってください。
 
 ## Sentry SDK
 
@@ -204,13 +228,18 @@ DSN の末尾の `1` は Sentry の SDK が必要とするもので、読み取�
 - **エラー** は、スタックトレースと原因となった例外とともに「例外」に表示され、ほかの例外と同じようにまとめられます。各エラーは、そのトレース上で、アクティブだったスパンの下のスパンになります。
 - **トランザクション** とそのスパンは「トレース」に表示されます。
 - **Sentry のログ** と、`capture_message` で取得したメッセージは「ログ」に表示されます。
+- **cron チェックイン** は「ログ」に 1 件ずつ表示され、モニターのスラッグは `sentry.monitor.slug`、ステータスは `sentry.check_in.status` に入ります。失敗、タイムアウト、未実行のチェックインは Error レベルで記録されます。ジョブが失敗したときや実行されなかったときに知るには、そのスラッグで[ログ モニター](/docs/monitor/logs-monitor)を作成してください。
+- **ユーザーフィードバック** は、Sentry のフィードバックウィジェットや `capture_user_feedback` から送られ、送信元のトレースの中で「ログ」に表示されます。その `sentry.feedback.associated_event_id` は、対象となるエラーの `sentry.event_id` です。
+- **プロファイル** は、トランザクションのものも継続的プロファイリングのものも、ウォールタイムのプロファイルとして「プロファイル」に表示され、そのトランザクションのトレースにリンクされます。Android のプロファイルはまだ読み取られません。
 - **サービス** は `service` タグ、それがなければリリース名の `@` より前の部分です。`checkout@1.4.2` なら `checkout` です。リリースはサービスのバージョンになり、環境は保持されます。
-- **保持されないもの:** セッション、リプレイ、添付ファイル、プロファイル、チェックイン。SDK はこれらを引き続き送りますが、OneUptime は受け付けたうえで破棄します。
+- **保持されないもの:** セッション、リプレイ、添付ファイル。SDK はこれらを引き続き送りますが、OneUptime は受け付けたうえで破棄します。
 
 ## 制限と取り込み予算
 
-- **リクエストサイズ**: OneUptime のイングレスは `/telemetry` 配下で最大 4 MB のリクエストを受け付け、展開後の本文は 1 つあたり最大 64 MB です。
-- **取り込み予算**: Prometheus remote write と Loki は、本文を読み取る前にメトリクスまたはログの予算と照合され、予算を使い切っていると `403` で拒否されます。HEC のバッチ、Datadog のペイロード、Sentry のエンベロープには複数のシグナルが含まれることがあるため、各シグナルは保存時にそれぞれの予算に計上され、その予算を使い切っていれば破棄されます。
+- **リクエストサイズ**: OneUptime のイングレスは `/telemetry` 配下で最大 4 MB のリクエストを受け付け、展開後の本文は 1 つあたり最大 64 MB です。Prometheus remote write のリクエストは、展開後に最大 32 MB、含められる系列、ラベル、サンプルは合わせて最大 500,000 個です。これにより、1 つのリクエストでサーバーのメモリを使い切ることはできません。Prometheus と Alloy は既定で 1 リクエストあたり 2,000 サンプルを送るため、どちらの上限にも遠く及びません。上限を超えたリクエストは `413` で拒否されるので、その場合は `queue_config` の `max_samples_per_send` を下げてください。
+- **Loki の push**: push は展開後に最大 32 MB、含められるエントリ、ラベル、構造化メタデータは合わせて最大 500,000 個で、ストリームのラベルはそのエントリごとに 1 回ずつ数えます。Promtail と Alloy は既定で 1 MB のバッチを送るため、どちらの上限にも遠く及びません。上限を超えた push は `413` で拒否されるので、その場合はクライアントのバッチサイズを下げてください。
+- **JSON、MessagePack、Datadog のペイロード**: JSON または MessagePack の本文に含められる値 (オブジェクト、配列、文字列、数値) は最大 1,000,000 個、Datadog Agent の protobuf ペイロードに含められる系列、ポイント、スパン、タグ、スケッチは最大 500,000 個です。どれも読み取る前に数えられ、上限を超えたリクエストは `413` で拒否されます。
+- **取り込み予算**: Prometheus remote write と Loki は、本文を読み取る前にメトリクスまたはログの予算と照合され、予算を使い切っていると `403` で拒否されます。その後、すべてのリクエストは OTLP のリクエストと同じく展開後のサイズで計上され、チームやラベルの予算にも計上されます。HEC のバッチ、Datadog のペイロード、Sentry のエンベロープには複数のシグナルが含まれることがあるため、各シグナルは保存時にそれぞれの予算に計上され、その予算を使い切っていれば破棄されます。HEC のバッチのログとメトリクスイベントはそのサイズを分け合い、Sentry のエンベロープのアイテムはそれぞれのシグナルに計上されます。プロファイルはプロファイルの予算に、チェックインとフィードバックはログの予算に計上され、保持されない添付ファイル、リプレイ、セッションはどこにも計上されません。
 
 ## トラブルシューティング
 
@@ -225,6 +254,10 @@ Sentry の SDK は、キーにハイフンを含む DSN を拒否します。キ
 ### Datadog のメトリクスは届くが、ログが届かない
 
 `logs_config.use_http` が `true` であること、そして `logs_config.logs_dd_url` が URL ではなくホストとポートであることを確認してください。`use_http` が設定されていないと、Agent はログを TCP で送ります。
+
+### Datadog のログがトレースにリンクされない
+
+トレーサーがログに書き込んだのは、トレース ID の下位 64 ビットだけです。ID 全体を書き込むように、トレーサーで `DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED=true` を設定してください。
 
 ### Prometheus が 415 を報告する
 

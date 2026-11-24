@@ -632,28 +632,50 @@ Up to and including 1.7.0, Android builds ran without R8, so Play showed only a
 missing-deobfuscation-file warning and no mapping existed. Play's release
 dashboard then scored 1.6.0's code at 1% obfuscated: from February 2027 an app
 under 25% in any DEX optimization category may lose visibility and publishing
-capabilities (#9955). Since the release after 1.7.0, `app.json` turns R8 on for
+capabilities (#9955). Since 1.7.1, `app.json` turns R8 on for
 release builds (`expo-build-properties`, `android.enableMinifyInReleaseBuilds`),
 and `src/__tests__/androidReleaseOptimization.test.ts` holds it there. Resource
 shrinking stays off: the critical alarm sounds in `res/raw` are named by file
 name when their notification channels are created, which the shrinker cannot
 see.
 
-Each production build keeps its R8 mapping among the build's artifacts
-(`eas.json`, `buildArtifactPaths`): download it from the build's page on
-expo.dev, then upload it in Play Console under **App bundle explorer**, the
-release's version, **Downloads**, **ReTrace mapping file**, so crash reports
-stay readable. Before the first release built with R8, smoke-test a release
-build on a device or the Android emulator - sign-in and single sign-on, a push
-page and its actions, critical alerts, the biometric lock, and a fold - since a
-missing keep rule fails only at run time.
+The Android Gradle plugin embeds the R8 mapping and the native debug symbols in
+the AAB (`BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`),
+and Play takes them from there: for 1.7.1, the first release built with R8, the
+release preview showed no deobfuscation warning, and **App bundle explorer**,
+version 10, **Downloads** listed the **ReTrace mapping file** (29.2 MB) and the
+native debug symbols with no separate upload. Check that row on each release
+and upload the mapping there by hand only if it is missing. The copy among the
+build's artifacts (`eas.json`, `buildArtifactPaths`) is for retracing stack
+traces locally. Play's bundle comparison for 1.7.1 against 1.7.0: DEX code
+optimization High (was Low), 89% obfuscated (was 1%), 9.34 MB of DEX (was
+25.2 MB), 16.3 MB for new installs (was 21.6 MB).
+
+A missing keep rule fails only at run time, so smoke-test a release build on a
+device or the Android emulator whenever the R8 setup or a native library
+changes - sign-in and single sign-on, a push page and its actions, critical
+alerts, the biometric lock, and a fold. EAS store builds do not allow cleartext
+HTTP, so they reach only HTTPS servers. For 1.7.1 the store build connected to
+`https://oneuptime.com`, and a local `./gradlew assembleRelease` build with a
+byte-identical R8 mapping (it allowed HTTP) connected to a plain-HTTP mock
+serving `tests/ui/fixtures.js` through `adb reverse`, signed in, loaded Home,
+filtered incidents and opened one. Push pages, SSO, the biometric lock and folds
+were not covered. On a busy Mac the Play-image emulator needed
+`-cores 6 -memory 8192` before its system process stopped raising ANRs, and a
+new AVD that started without hardware acceleration (the emulator logs `hvf is
+not enabled`) was unusable.
+
+Play also asks every app for an app-level trader status (**App content**,
+**App-level trader status and Terms of Service**). The developer account,
+HackerBay Inc, is a verified trader; OneUptime On-Call answers **Yes, my trader
+status applies to this app** with `https://oneuptime.com/legal/terms`.
 
 Publishing overview runs quick checks before it sends a release for review.
 On 1.7.0 it reported "Required hardware feature declarations are restricting
 your app's availability" for `android.hardware.wifi`, which Play infers from
 the `ACCESS_WIFI_STATE` permission `@react-native-community/netinfo` asks for;
 1.7.0 went to review with it acknowledged (no device was lost against 1.6.0).
-Since the release after 1.7.0, `plugins/withOptionalHardwareFeatures.js`
+Since 1.7.1, `plugins/withOptionalHardwareFeatures.js`
 declares Wi-Fi not required (`src/__tests__/optionalHardwareFeatures.test.ts`).
 A feature the check names again belongs in that plugin's list, not in an
 "ignore" in the console.
@@ -722,6 +744,18 @@ In Chrome, open the existing app in App Store Connect:
 3. Address required privacy, age-rating, export-compliance, and app-content fields
    according to the actual app. `ITSAppUsesNonExemptEncryption` was `false` for
    1.1.0; reassess it if encryption behavior changes instead of blindly answering.
+   For 1.7.0 Apple had added age-rating questions, and **Add for Review**
+   refused with "You must respond to the required age ratings questions" until
+   **App Information**, **Age Ratings** was answered again: every feature
+   (parental controls, age assurance, web access, user-generated content,
+   social media, messaging, advertising) No, every content category None or No,
+   no age category override; the rating stays 4+. **General**, **App
+   Compliance** holds two China mainland declarations every app there must
+   complete by 31 January 2027: **Security Assessment** and **AI Generated or
+   Synthetic Content**. Both were answered **No** on 19 November 2026 (Active):
+   the app distributes no AI-generated content and has no end-to-end encrypted
+   messaging; its notes are internal to a project. Reassess both if the app
+   gains either feature, which then needs filings in China.
 4. Under **Build**, click **Add Build**, select the new version/build (for 1.1.0,
    build 2), click **Done**, then **Save**. If absent, check TestFlight processing
    or errors before attempting another upload.

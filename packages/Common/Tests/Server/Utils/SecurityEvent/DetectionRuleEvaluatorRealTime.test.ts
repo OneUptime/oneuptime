@@ -32,7 +32,9 @@ import AlertSeverityService from "../../../../Server/Services/AlertSeverityServi
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
 import SecurityEventService, {
+  DetectionArrivalRead,
   DetectionMatchGroup,
+  DetectionWriteArrival,
   FindDetectionMatchesData,
 } from "../../../../Server/Services/SecurityEventService";
 import OTelIngestService, {
@@ -119,6 +121,21 @@ function rule(sigmaRuleYaml: string = SINGLE): DetectionRule {
   model.isRealTime = true;
   model.lastEvaluatedAt = new Date("2026-10-01T00:00:00.000Z");
   return model;
+}
+
+// A real-time read's arrival: one write's events, by id - never a scheduled run's.
+function writeArrival(
+  arrival: DetectionArrivalRead | undefined,
+): DetectionWriteArrival | undefined {
+  if (!arrival) {
+    return undefined;
+  }
+
+  if (arrival.kind === "run") {
+    throw new Error("A real-time read judges a write's events, not a run's.");
+  }
+
+  return arrival;
 }
 
 function restriction(): Statement {
@@ -275,7 +292,25 @@ describe("a real-time run", () => {
     expect(findMatches).not.toHaveBeenCalled();
   });
 
-  test("a correlation's handover reads its window as a scheduled run would", async () => {
+  /*
+   * A handover (RealTimeJobs) names a window and nothing else: what ARRIVED
+   * from where the schedule stopped until every process screens for the
+   * rule, judged as a scheduled run judges what arrived (#10337) - so an
+   * event that happened before the schedule stopped and arrived after is
+   * judged too - leaving the schedule as it was.
+   */
+  test("a correlation's handover judges what arrived in its window, window of its interval by window, as a scheduled run judges", async () => {
+    const windowStart: Date = new Date(
+      Math.floor(START.getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000) -
+        60 * 60 * 1000,
+    );
+    const windows: Spy = getJestSpyOn(
+      SecurityEventService,
+      "findDetectionArrivalWindows",
+    ).mockResolvedValue([
+      // A late event's window: an hour before the handover's arrivals.
+      { windowStart, firstArrivedAt: new Date(START.getTime() + 1000) },
+    ] as never);
     const findMatches: Spy = getJestSpyOn(
       CorrelationRuleMatcher,
       "findMatches",
@@ -290,12 +325,62 @@ describe("a real-time run", () => {
       endTime: END,
     });
 
+    const arrivedAfter: Date = new Date(
+      Math.floor(START.getTime() / 1000) * 1000,
+    );
+    const arrivedUntil: Date = new Date(
+      Math.floor(END.getTime() / 1000) * 1000,
+    );
+
+    expect(
+      (windows.mock.calls[0]![0] as { arrivedAfter: Date; arrivedUntil: Date })
+        .arrivedAfter,
+    ).toEqual(arrivedAfter);
+
     const input: CorrelationRuleMatchInput = findMatches.mock
       .calls[0]![0] as CorrelationRuleMatchInput;
 
-    expect(input.startTime).toEqual(START);
-    expect(input.endTime).toEqual(END);
-    expect(input.arrival).toBeUndefined();
+    expect(input.startTime).toEqual(windowStart);
+    expect(input.endTime).toEqual(
+      new Date(windowStart.getTime() + 5 * 60 * 1000),
+    );
+    expect(input.arrival).toEqual({
+      kind: "run",
+      arrivedAfter,
+      arrivedUntil,
+      candidateStartTime: input.startTime,
+      candidateEndTime: input.endTime,
+    });
+    // Real time runs on no interval: nothing of the schedule is written.
+    for (const call of updateOneById.mock.calls) {
+      expect("lastEvaluatedAt" in (call[0] as { data: JSONObject }).data).toBe(
+        false,
+      );
+    }
+  });
+
+  test("the handover of a rule that fires on each match judges every event that arrived in it, whenever it happened", async () => {
+    await DetectionRuleEvaluator.evaluateRealTime(rule(), {
+      startTime: START,
+      endTime: END,
+    });
+
+    const data: FindDetectionMatchesData = findDetectionMatches.mock
+      .calls[0]![0] as FindDetectionMatchesData;
+
+    // By when it arrived, from a day before the first arrival.
+    expect(data.whereFragment.query).toContain("createdAt > {");
+    expect(data.whereFragment.query).toContain("createdAt <= {");
+    expect(data.startTime.getTime()).toBe(
+      Math.floor(START.getTime() / 1000) * 1000 - 24 * 60 * 60 * 1000,
+    );
+    expect(data.arrival).toBeUndefined();
+
+    for (const call of updateOneById.mock.calls) {
+      expect("lastEvaluatedAt" in (call[0] as { data: JSONObject }).data).toBe(
+        false,
+      );
+    }
   });
 
   test("evaluateRealTime records a failure as the rule's Last Error, never its schedule", async () => {
@@ -421,7 +506,9 @@ describe("a rule that counts, in real time", () => {
     const read: FindDetectionMatchesData = findDetectionMatches.mock
       .calls[0]![0] as FindDetectionMatchesData;
 
-    expect(read.arrival?.firstId).toBe("019a4f00-0001-7000-8000-000000000001");
+    expect(writeArrival(read.arrival)?.firstId).toBe(
+      "019a4f00-0001-7000-8000-000000000001",
+    );
     expect(read.distinctCountExpression).not.toBeNull();
   });
 
@@ -446,8 +533,10 @@ describe("a rule that counts, in real time", () => {
       }),
     ).toEqual(["2026-11-04T09:55:00.000Z", "2026-11-04T10:00:00.000Z"]);
     expect(
-      (findDetectionMatches.mock.calls[0]![0] as FindDetectionMatchesData)
-        .arrival?.candidateIds,
+      writeArrival(
+        (findDetectionMatches.mock.calls[0]![0] as FindDetectionMatchesData)
+          .arrival,
+      )?.candidateIds,
     ).toEqual(["019a4f00-0003-7000-8000-000000000003"]);
     // Each window's match opened an alert and a case.
     expect(result?.alertsCreated).toBe(2);
@@ -553,7 +642,9 @@ describe("a rule that counts, in real time", () => {
 
     expect(input.startTime.toISOString()).toBe("2026-11-04T10:00:00.000Z");
     expect(input.endTime.toISOString()).toBe("2026-11-04T10:05:00.000Z");
-    expect(input.arrival?.lastId).toBe("019a4f00-0002-7000-8000-000000000002");
+    expect(writeArrival(input.arrival)?.lastId).toBe(
+      "019a4f00-0002-7000-8000-000000000002",
+    );
     expect(input.restrictTo).toBeUndefined();
     // What a scheduled run does with a match.
     expect(result?.alertsCreated).toBe(1);
@@ -579,9 +670,9 @@ describe("getDetectionRuleCountWindows", () => {
         return {
           start: window.window.startTime.toISOString(),
           end: window.window.endTime.toISOString(),
-          ids: window.arrival.candidateIds,
-          firstId: window.arrival.firstId,
-          lastId: window.arrival.lastId,
+          ids: writeArrival(window.arrival)!.candidateIds,
+          firstId: writeArrival(window.arrival)!.firstId,
+          lastId: writeArrival(window.arrival)!.lastId,
           from: window.arrival.candidateStartTime.toISOString(),
           until: window.arrival.candidateEndTime.toISOString(),
         };

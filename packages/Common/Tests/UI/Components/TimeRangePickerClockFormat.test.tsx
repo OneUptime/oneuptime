@@ -142,9 +142,7 @@ describe.each(SURFACES)(
         pin(true);
         surface.render(CUSTOM_AFTERNOON);
 
-        expect(buttonText(surface.prefix)).toBe(
-          "Mar 1, 2:30 PM – Mar 1, 6:45 PM",
-        );
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 2:30 PM – 6:45 PM");
       });
 
       test("never leaves a bare 24-hour reading on the button", () => {
@@ -168,9 +166,7 @@ describe.each(SURFACES)(
           ),
         });
 
-        expect(buttonText(surface.prefix)).toBe(
-          "Mar 1, 8:00 AM – Mar 1, 8:00 PM",
-        );
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 8:00 AM – 8:00 PM");
       });
 
       test("writes a whole day from 12 AM to 11:59 PM", () => {
@@ -183,9 +179,7 @@ describe.each(SURFACES)(
           ),
         });
 
-        expect(buttonText(surface.prefix)).toBe(
-          "Mar 1, 12:00 AM – Mar 1, 11:59 PM",
-        );
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 12:00 AM – 11:59 PM");
       });
     });
 
@@ -194,7 +188,7 @@ describe.each(SURFACES)(
         pin(false);
         surface.render(CUSTOM_AFTERNOON);
 
-        expect(buttonText(surface.prefix)).toBe("Mar 1, 14:30 – Mar 1, 18:45");
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 14:30 – 18:45");
       });
 
       test("puts no day period on the button", () => {
@@ -214,7 +208,7 @@ describe.each(SURFACES)(
           ),
         });
 
-        expect(buttonText(surface.prefix)).toBe("Mar 1, 08:00 – Mar 1, 09:05");
+        expect(buttonText(surface.prefix)).toBe("Mar 1, 08:00 – 09:05");
       });
     });
 
@@ -287,10 +281,10 @@ describe.each(SURFACES)(
       };
 
       test.each<[string, string]>([
-        ["ko", "3월 1일 오전 8:00 – 3월 1일 오전 9:05"],
-        ["zh-TW", "3月1日 上午8:00 – 3月1日 上午9:05"],
-        ["hi", "1 मार्च, 8:00 am – 1 मार्च, 9:05 am"],
-        ["ar", "1 مارس، 8:00 ص – 1 مارس، 9:05 ص"],
+        ["ko", "3월 1일 오전 8:00 – 오전 9:05"],
+        ["zh-TW", "3月1日 上午8:00 – 上午9:05"],
+        ["hi", "1 मार्च, 8:00 am – 9:05 am"],
+        ["ar", "1 مارس، 8:00 ص – 9:05 ص"],
       ])(
         "%s on a 12-hour machine has no leading zero: %s",
         (language: string, expected: string) => {
@@ -303,10 +297,10 @@ describe.each(SURFACES)(
       );
 
       test.each<[string, string]>([
-        ["ko", "3월 1일 08:00 – 3월 1일 09:05"],
-        ["zh-TW", "3月1日 08:00 – 3月1日 09:05"],
-        ["hi", "1 मार्च, 08:00 – 1 मार्च, 09:05"],
-        ["ar", "1 مارس، 08:00 – 1 مارس، 09:05"],
+        ["ko", "3월 1일 08:00 – 09:05"],
+        ["zh-TW", "3月1日 08:00 – 09:05"],
+        ["hi", "1 मार्च, 08:00 – 09:05"],
+        ["ar", "1 مارس، 08:00 – 09:05"],
       ])(
         "%s on a 24-hour machine keeps it: %s",
         (language: string, expected: string) => {
@@ -324,7 +318,7 @@ describe.each(SURFACES)(
         surface.render(CUSTOM_AFTERNOON);
 
         expect(spaced(buttonText(surface.prefix))).toBe(
-          "3월 1일 오후 2:30 – 3월 1일 오후 6:45",
+          "3월 1일 오후 2:30 – 오후 6:45",
         );
       });
     });
@@ -400,7 +394,7 @@ describe("applying a window from the modal", () => {
       />,
     );
 
-    expect(buttonText(prefix)).toBe("Mar 1, 2:30 PM – Mar 1, 6:45 PM");
+    expect(buttonText(prefix)).toBe("Mar 1, 2:30 PM – 6:45 PM");
   });
 
   test("re-labels the same applied window on a 24-hour machine", () => {
@@ -439,7 +433,7 @@ describe("applying a window from the modal", () => {
       />,
     );
 
-    expect(buttonText(prefix)).toBe("Mar 1, 14:30 – Mar 1, 18:45");
+    expect(buttonText(prefix)).toBe("Mar 1, 14:30 – 18:45");
   });
 });
 
@@ -504,8 +498,7 @@ describe("the picker never hand-rolls a date format again", () => {
   });
 
   test("goes through the shared timezone- and clock-aware formatter", () => {
-    expect(PICKER_SOURCE).toContain(
-      "OneUptimeDate.getDateAsLocalShortDateTimeString",
-    );
+    // Which writes each end as getDateAsLocalShortDateTimeString does (#7281).
+    expect(PICKER_SOURCE).toContain("OneUptimeDate.getLocalDateTimeRangeEnds");
   });
 });

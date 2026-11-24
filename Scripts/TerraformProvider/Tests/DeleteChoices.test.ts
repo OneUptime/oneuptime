@@ -9,6 +9,7 @@ import {
   TerraformAttribute,
   TerraformResource,
 } from "../Core/Types";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import { CUSTOM_ROLE_DELETE_CHOICES } from "Common/Utils/DeveloperDocs/DeleteChoices";
 
 /*
@@ -252,11 +253,11 @@ beforeAll(async () => {
   await new DocumentationGenerator(config, buildSpec()).generateDocumentation();
 
   customRoleGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_custom_role.go"),
+    path.join(outputDir, providerGoFilePath("resource_custom_role.go")),
     "utf-8",
   );
   labelGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_label.go"),
+    path.join(outputDir, providerGoFilePath("resource_label.go")),
     "utf-8",
   );
   customRoleDoc = fs.readFileSync(
@@ -407,7 +408,7 @@ describe("the generated resource", () => {
     expect(role).not.toContain("Computed: true");
     // A custom role's ID, and only with workflows_run_as_on_delete = "CustomRole".
     expect(role).toContain(
-      `Validators: append(recordIDValidators("oneuptime_custom_role"), deleteChoiceRequiredWith("${RUN_AS}", "CustomRole"))`,
+      `Validators: append(RecordIDValidators("oneuptime_custom_role"), DeleteChoiceRequiredWith("${RUN_AS}", "CustomRole"))`,
     );
   });
 
@@ -425,15 +426,15 @@ describe("the generated resource", () => {
   test("the delete sends what state holds, in the DELETE's body", () => {
     const code: string = method(customRoleGo, "CustomRoleResource", "Delete");
 
-    expect(code).toContain("deleteChoices := []deleteChoice{");
+    expect(code).toContain("deleteChoices := []DeleteChoice{");
     expect(code).toContain(
-      `{key: "workflowsRunAs", attribute: "${RUN_AS}", value: data.WorkflowsRunAsOnDelete},`,
+      `{Key: "workflowsRunAs", Attribute: "${RUN_AS}", Value: data.WorkflowsRunAsOnDelete},`,
     );
     expect(code).toContain(
-      `{key: "workflowsRunAsCustomRoleId", attribute: "${RUN_AS_ROLE}", value: data.WorkflowsRunAsCustomRoleIdOnDelete},`,
+      `{Key: "workflowsRunAsCustomRoleId", Attribute: "${RUN_AS_ROLE}", Value: data.WorkflowsRunAsCustomRoleIdOnDelete},`,
     );
     expect(code).toContain(
-      'r.client.DeleteWithBody(ctx, "/custom-role/" + data.Id.ValueString() + "", deleteChoicesBody(deleteChoices))',
+      'r.client.DeleteWithBody(ctx, "/custom-role/" + data.Id.ValueString() + "", DeleteChoicesBody(deleteChoices))',
     );
     expect(code).not.toContain("r.client.Delete(ctx");
   });
@@ -454,7 +455,7 @@ describe("the generated resource", () => {
       `To say it in Terraform, set ${RUN_AS} on this oneuptime_custom_role - with ${RUN_AS_ROLE} when ${RUN_AS} is "CustomRole" - and run terraform apply, then destroy it again: Terraform deletes a resource with what its state holds.`,
     );
     expect(code).toContain(
-      `fmt.Sprintf("Unable to delete custom_role: %s%s", err, deleteChoicesHint(err, deleteChoices, "To say it in Terraform, set ${RUN_AS} on this oneuptime_custom_role - with ${RUN_AS_ROLE} when ${RUN_AS} is \\"CustomRole\\" - and run terraform apply, then destroy it again: Terraform deletes a resource with what its state holds."))`,
+      `fmt.Sprintf("Unable to delete custom_role: %s%s", err, DeleteChoicesHint(err, deleteChoices, "To say it in Terraform, set ${RUN_AS} on this oneuptime_custom_role - with ${RUN_AS_ROLE} when ${RUN_AS} is \\"CustomRole\\" - and run terraform apply, then destroy it again: Terraform deletes a resource with what its state holds."))`,
     );
     // A failed delete keeps the resource in state.
     expect(code).toContain("return\n    }");
@@ -466,7 +467,7 @@ describe("the generated resource", () => {
     expect(code).toContain(
       'r.client.Delete(ctx, "/label/" + data.Id.ValueString() + "")',
     );
-    expect(code).not.toContain("deleteChoice");
+    expect(code).not.toContain("DeleteChoice");
     expect(code).toContain('fmt.Sprintf("Unable to delete label: %s", err)');
   });
 
@@ -478,7 +479,7 @@ describe("the generated resource", () => {
       "acceptance_custom_role_test.go",
     ]) {
       expect(
-        fs.existsSync(path.join(outputDir, "internal/provider", file)),
+        fs.existsSync(path.join(outputDir, providerGoFilePath(file))),
       ).toBe(true);
     }
   });

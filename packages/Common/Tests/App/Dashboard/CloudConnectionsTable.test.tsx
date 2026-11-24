@@ -75,6 +75,15 @@ import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { AWS_STREAM_TEMPLATE_VERSION } from "../../../Types/Cloud/CloudKeyMetrics";
 import { CloudConnectionFailureKind } from "../../../Types/CloudConnection/CloudConnectionTest";
+import {
+  AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL,
+  AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS,
+} from "../../../Types/CloudConnection/AwsRoleExternalIdRefusal";
+import {
+  getAwsExternalIdConditionText,
+  getAwsExternalIdForProject,
+} from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import { getRefusalText } from "../../../Types/Exception/RefusalWithValues";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -1024,6 +1033,54 @@ describe("its actions", () => {
     );
     expect(screen.getByTestId("cloud-connection-error")).toHaveTextContent(
       "AccessDenied: User is not authorized to perform sts:AssumeRole",
+    );
+  });
+
+  /*
+   * An AWS role that lets OneUptime in without the project's external id
+   * (#10405) is said with words of its own (#10425), not as a setting the
+   * form names, and the stored refusal under them names the condition to
+   * add.
+   */
+  test("View error says an AWS role without the project's external ID in words of its own, the condition under them", async () => {
+    const condition: string = getAwsExternalIdConditionText(
+      getAwsExternalIdForProject(PROJECT_ID),
+    );
+    const refusal: string = getRefusalText(
+      AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL,
+      { condition },
+    );
+
+    renderTable();
+
+    await act(async () => {
+      await action("View error").onClick(
+        connection({
+          lastError: refusal,
+          lastPulledAt: new Date("2026-10-21T10:00:00Z"),
+          lastPullResult: readResult({
+            status: "failed",
+            failureKind: CloudConnectionFailureKind.Settings,
+          }),
+        }),
+        getJestMockFunction(),
+      );
+    });
+
+    const words: HTMLElement = screen.getByTestId(
+      "cloud-connection-error-words",
+    );
+
+    expect(words).toHaveTextContent(
+      AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS.headline,
+    );
+    expect(words).toHaveTextContent(AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS.advice);
+    expect(words).not.toHaveTextContent("A setting is not right.");
+    expect(screen.getByTestId("cloud-connection-error")).toHaveTextContent(
+      condition,
+    );
+    expect(screen.getByTestId("cloud-connection-error").textContent).toBe(
+      refusal,
     );
   });
 

@@ -476,6 +476,8 @@ const PROSE_LEADS: Array<string> = [
   "The background check of Incoming Request monitors reads only the request as it came.",
   // Other changes in 17.
   "Rows that share a number are read in the order of their IDs, and a gap in the numbers changes nothing.",
+  "A recurring maintenance template keeps its events' time of day when the clocks change, and a monthly one keeps its day of the month.",
+  "Network sites have owners, and the `Owned` scope narrows them.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

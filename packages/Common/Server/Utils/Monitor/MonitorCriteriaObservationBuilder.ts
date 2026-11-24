@@ -255,6 +255,8 @@ export default class MonitorCriteriaObservationBuilder {
       case CheckOn.ExceptionCountIncreasePercent:
       case CheckOn.SessionsWithExceptionsPercent:
       case CheckOn.SessionCount:
+      case CheckOn.InstallsWithExceptionsPercent:
+      case CheckOn.InstallCount:
         return MonitorCriteriaObservationBuilder.describeExceptionCountObservation(
           {
             dataToProcess: input.dataToProcess,
@@ -1869,6 +1871,22 @@ export default class MonitorCriteriaObservationBuilder {
           exceptionResponse.sessionCount || 0,
           "session was",
           "sessions were",
+        )} in the window.`;
+      case CheckOn.InstallsWithExceptionsPercent:
+        if (
+          typeof exceptionResponse.installsWithExceptionsPercent !== "number"
+        ) {
+          return "No install in the window to take a share of: the spans named no app.installation.id or device.id, or none arrived.";
+        }
+
+        return `${exceptionResponse.installsWithExceptionsPercent}% of the window's installs had a matching exception: ${
+          exceptionResponse.installsWithExceptionsCount || 0
+        } of ${plural(exceptionResponse.installCount || 0, "install", "installs")}.`;
+      case CheckOn.InstallCount:
+        return `${plural(
+          exceptionResponse.installCount || 0,
+          "install was",
+          "installs were",
         )} in the window.`;
       default:
         return `Exception count was ${exceptionResponse.exceptionCount}.`;

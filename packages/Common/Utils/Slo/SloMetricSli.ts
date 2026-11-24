@@ -421,3 +421,52 @@ export const getSloMetricQueryFingerprintParts: (
     filter: config.filter || null,
   };
 };
+
+/*
+ * WHY A METRIC SLO COUNTED NOTHING, WHEN ITS METRIC'S POINTS SAY (#10027).
+ *
+ * A Metric SLO counts a counter's Sum points or a histogram's Histogram
+ * points (SloMetricCounting), so a metric of any other kind - a gauge, as
+ * every cloud metric OneUptime reads is - counts nothing, and so does a
+ * counter counted as a histogram or a histogram counted as a counter. The
+ * evaluation says which in the SLO's feed, from the kind of the metric's
+ * newest point; null when that kind is the one it counts, or not known.
+ */
+export const SLO_METRIC_GAUGE_REASON: string =
+  "This SLO's metric is a gauge, which has no events to count: a Metric SLO counts a counter's or a histogram's events, and every cloud metric OneUptime reads is a gauge. Measure it by a metric monitor's uptime instead, or choose a counter or a histogram its services send.";
+
+export const SLO_METRIC_UNCOUNTABLE_REASON: string =
+  "This SLO's metric is neither a counter nor an explicit-bucket histogram, so it has no events to count. Choose a counter or a histogram its services send.";
+
+export const SLO_METRIC_HISTOGRAM_AS_COUNTER_REASON: string =
+  'This SLO counts its metric as a counter, and its metric is a histogram. Choose "A histogram, by a value" under Good Events in its Settings.';
+
+export const SLO_METRIC_COUNTER_AS_HISTOGRAM_REASON: string =
+  'This SLO counts its metric as a histogram, and its metric is a counter. Choose "A counter, by a condition" under Good Events in its Settings.';
+
+export const getSloMetricUncountedReason: (data: {
+  metricPointType: string | null | undefined;
+  kind: SloMetricKind | null | undefined;
+}) => string | null = (data: {
+  metricPointType: string | null | undefined;
+  kind: SloMetricKind | null | undefined;
+}): string | null => {
+  switch (data.metricPointType) {
+    case undefined:
+    case null:
+    case "":
+      return null;
+    case "Sum":
+      return data.kind === SloMetricKind.Histogram
+        ? SLO_METRIC_COUNTER_AS_HISTOGRAM_REASON
+        : null;
+    case "Histogram":
+      return data.kind === SloMetricKind.Counter
+        ? SLO_METRIC_HISTOGRAM_AS_COUNTER_REASON
+        : null;
+    case "Gauge":
+      return SLO_METRIC_GAUGE_REASON;
+    default:
+      return SLO_METRIC_UNCOUNTABLE_REASON;
+  }
+};

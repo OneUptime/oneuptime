@@ -15,7 +15,11 @@ import {
   buildProfilesRoute,
   parseProfilesUrlState,
 } from "../../Utils/ProfilesUrlState";
-import { getDashboardPageTemplate, getDocsPageAddress } from "./AskAiPageLinks";
+import {
+  getDashboardPageRecordId,
+  getDashboardPageTemplate,
+  getDocsPageAddress,
+} from "./AskAiPageLinks";
 import { DOCS_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 
@@ -190,12 +194,17 @@ export function getRouteForCitationTarget(
 
   /*
    * A page of the Dashboard an answer sends the reader to (issue #6828):
-   * only when its route is one of RouteMap's, in this project.
+   * only when its route is one of RouteMap's, in this project - and a page
+   * of one record (#7065) only with that record's id, which fills it.
    */
   if (target.type === AIChatCitationTargetType.DashboardPage) {
     const template: string | undefined = getDashboardPageTemplate(target);
+    const recordId: string | undefined = getDashboardPageRecordId(target);
     return template
-      ? RouteUtil.populateRouteParams(new Route(template))
+      ? RouteUtil.populateRouteParams(
+          new Route(template),
+          recordId ? { modelId: recordId } : undefined,
+        )
       : undefined;
   }
 

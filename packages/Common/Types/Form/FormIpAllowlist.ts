@@ -73,42 +73,18 @@ const isIPv6Address: IsVersionFunction = (value: string): boolean => {
   return IP.isIP(value) && new IP(value).isIPv6();
 };
 
-/*
- * An IPv4-mapped IPv6 address (RFC 4291 2.5.5.2) as IpCanonicalUtil spells
- * every one of them - "::ffff:203.0.113.7", "::FFFF:cb00:7107" and
- * "0:0:0:0:0:ffff:cb00:7107" all come out as "::ffff:cb00:7107" - with its
- * two groups, the IPv4 address's high and low halves.
- */
-const IPV4_MAPPED_PATTERN: RegExp = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/;
-
 export type GetIpv4OfMappedAddressFunction = (value: string) => string | null;
 
 /**
  * The IPv4 address an IPv4-mapped IPv6 address stands for - "203.0.113.7"
  * for "::ffff:203.0.113.7" or "::ffff:cb00:7107", however it is written -
- * or null for anything else, an IPv4 address included.
+ * or null for anything else, an IPv4 address included. One reading for
+ * every caller: IpCanonicalUtil.getIpv4OfMappedAddress.
  */
 export const getIpv4OfMappedAddress: GetIpv4OfMappedAddressFunction = (
   value: string,
 ): string | null => {
-  const address: string = value.trim();
-
-  if (!isIPv6Address(address)) {
-    return null;
-  }
-
-  const mapped: RegExpExecArray | null = IPV4_MAPPED_PATTERN.exec(
-    IpCanonicalUtil.canonicalize(address),
-  );
-
-  if (!mapped) {
-    return null;
-  }
-
-  const high: number = parseInt(mapped[1]!, 16);
-  const low: number = parseInt(mapped[2]!, 16);
-
-  return [high >> 8, high & 255, low >> 8, low & 255].join(".");
+  return IpCanonicalUtil.getIpv4OfMappedAddress(value);
 };
 
 type GetEntryProblemFunction = (entry: string) => string | null;

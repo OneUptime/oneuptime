@@ -13,6 +13,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -245,6 +246,7 @@ export default class WorkspaceUserGroup extends BaseModel {
     description:
       "The group's id in the workspace: a Slack user group id, such as S0604QSJC, or a Microsoft Teams tag id.",
     example: "S0604QSJC",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: false,
@@ -316,6 +318,7 @@ export default class WorkspaceUserGroup extends BaseModel {
     description:
       "The group's name in the workspace, such as Payments on-call. Read from Slack or Microsoft Teams when the group is linked.",
     example: "Payments on-call",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,
@@ -352,6 +355,7 @@ export default class WorkspaceUserGroup extends BaseModel {
     description:
       "Slack only: the handle people type to mention the group, without the @, such as payments-oncall.",
     example: "payments-oncall",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     nullable: true,

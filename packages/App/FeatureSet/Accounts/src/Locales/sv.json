@@ -244,7 +244,13 @@
     "signInWithProvider": "Logga in med {{name}}",
     "requiredSubtitle": "Den här servern kräver enkel inloggning (SSO).",
     "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den.",
-    "useDifferentEmail": "Använd en annan e-postadress"
+    "useDifferentEmail": "Använd en annan e-postadress",
+    "lastUsedTitle": "Senast använd på den här enheten",
+    "forgetLastUsed": "Glöm den här leverantören",
+    "emailLinksPrompt": "Vi kan mejla den här adressen SSO-inloggningslänkarna för alla organisationer som den tillhör.",
+    "emailLinksButton": "Skicka mina inloggningslänkar",
+    "emailLinksSent": "Om den här adressen tillhör en organisation som använder enkel inloggning har vi skickat SSO-inloggningslänkarna till den.",
+    "emailLinksCaptchaRequired": "Slutför captchan innan du ber om länkarna."
   },
   "adminLogin": {
     "title": "Inloggning för huvudadministratörer",
@@ -281,6 +287,29 @@
     "templateDescription": "Välj en mall för att fylla i formuläret. Du kan ändra varje svar innan du skickar in.",
     "templateNone": "Ingen mall",
     "uploadingFiles": "Dina filer laddas upp…"
+  },
+  "formSignIn": {
+    "prompt": "Logga in för att öppna det här formuläret.",
+    "ssoOnlyPrompt": "Logga in med din organisations enkla inloggning för att öppna det här formuläret.",
+    "noWayIn": "Inget sätt att logga in har ställts in för det här formuläret än. Fråga personen som delade det med dig.",
+    "email": "E-post",
+    "password": "Lösenord",
+    "forgotPassword": "Glömt lösenordet?",
+    "signIn": "Logga in",
+    "or": "eller",
+    "signInWithProvider": "Logga in med {{provider}}",
+    "forgotTitle": "Har du glömt ditt lösenord?",
+    "forgotPrompt": "Ange din e-postadress så skickar vi en länk där du väljer ett nytt lösenord.",
+    "sendLink": "Skicka länk",
+    "forgotSent": "Om den här adressen kan logga in på det här formuläret är en länk för att välja ett nytt lösenord på väg. Länken fungerar i 24 timmar.",
+    "backToSignIn": "Tillbaka till inloggning",
+    "resetTitle": "Välj ett nytt lösenord",
+    "resetPrompt": "Ange lösenordet du ska logga in på det här formuläret med.",
+    "newPassword": "Nytt lösenord",
+    "savePassword": "Spara lösenord",
+    "resetDone": "Ditt lösenord är sparat. Logga in med det för att öppna formuläret.",
+    "signedInAs": "Inloggad som {{email}}",
+    "signOut": "Logga ut"
   },
   "errors": {
     "forbidden": {

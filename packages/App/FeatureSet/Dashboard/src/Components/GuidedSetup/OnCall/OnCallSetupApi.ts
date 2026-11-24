@@ -92,6 +92,11 @@ import {
   getFirstOnCallPolicyName,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SharedNameFacts,
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import Phone from "Common/Types/Phone";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -126,9 +131,17 @@ export interface ProjectPhoneFacts {
   balanceInUSDCents: number | null;
 }
 
+// A policy the step offers to pick.
+export interface PolicyChoice {
+  id: string;
+  name: string;
+  // What tells it from another policy of its name (#10314).
+  sharedName?: SharedNameFacts | undefined;
+}
+
 // The project's policies, and what this person may do with them.
 export interface PolicyChoiceFacts {
-  policies: Array<{ id: string; name: string }>;
+  policies: Array<PolicyChoice>;
   mayCreatePolicy: boolean;
   mayAddRules: boolean;
   mayEditLevels: boolean;
@@ -453,7 +466,12 @@ export default class OnCallSetupApi {
         query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        select: { _id: true, name: true },
+        select: {
+          _id: true,
+          name: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
+        },
         sort: { name: SortOrder.Ascending },
       });
 
@@ -462,10 +480,11 @@ export default class OnCallSetupApi {
         .filter((policy: OnCallDutyPolicy): boolean => {
           return Boolean(policy.id);
         })
-        .map((policy: OnCallDutyPolicy): { id: string; name: string } => {
+        .map((policy: OnCallDutyPolicy): PolicyChoice => {
           return {
             id: policy.id!.toString(),
             name: policy.name || "",
+            sharedName: getSharedNameFacts(policy),
           };
         }),
       mayCreatePolicy:
@@ -725,7 +744,8 @@ export default class OnCallSetupApi {
    * Adds people and teams to a policy's first escalation rule, or makes
    * that rule when the policy has none (Level 1, FirstResponders' wait).
    * The records are Common's (OnCallPolicyRecords), which Ask AI's
-   * add_to_on_call_policy writes too (#7244).
+   * add_to_on_call_policy writes too (#7244). Those the rule pages already
+   * are not added again (#10411).
    */
   public static async addToFirstLevel(data: {
     policyId: string;
@@ -753,12 +773,73 @@ export default class OnCallSetupApi {
       return;
     }
 
+    const ruleId: ObjectID = new ObjectID(data.firstLevelId);
+
+    /*
+     * A level takes each person and team once (#10411), and refuses a second
+     * row: whoever it pages by now - picked again, or added from another tab
+     * since the policy was read - is left as they are, and not added again.
+     */
+    const [usersOnLevel, teamsOnLevel]: [
+      ListResult<OnCallDutyPolicyEscalationRuleUser>,
+      ListResult<OnCallDutyPolicyEscalationRuleTeam>,
+    ] = await Promise.all([
+      ModelAPI.getList<OnCallDutyPolicyEscalationRuleUser>({
+        modelType: OnCallDutyPolicyEscalationRuleUser,
+        query: { onCallDutyPolicyEscalationRuleId: ruleId },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: { _id: true, userId: true },
+        sort: {},
+      }),
+      ModelAPI.getList<OnCallDutyPolicyEscalationRuleTeam>({
+        modelType: OnCallDutyPolicyEscalationRuleTeam,
+        query: { onCallDutyPolicyEscalationRuleId: ruleId },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: { _id: true, teamId: true },
+        sort: {},
+      }),
+    ]);
+
+    const onLevel: (ids: Array<string | undefined>) => Set<string> = (
+      ids: Array<string | undefined>,
+    ): Set<string> => {
+      return new Set<string>(
+        ids
+          .filter((id: string | undefined): id is string => {
+            return Boolean(id);
+          })
+          .map((id: string): string => {
+            return id.toLowerCase();
+          }),
+      );
+    };
+    const usersThere: Set<string> = onLevel(
+      usersOnLevel.data.map(
+        (row: OnCallDutyPolicyEscalationRuleUser): string | undefined => {
+          return row.userId?.toString();
+        },
+      ),
+    );
+    const teamsThere: Set<string> = onLevel(
+      teamsOnLevel.data.map(
+        (row: OnCallDutyPolicyEscalationRuleTeam): string | undefined => {
+          return row.teamId?.toString();
+        },
+      ),
+    );
+
     const members: OnCallPolicyLevelMembers = buildLevelMembers({
       projectId: projectId,
       policyId: policyId,
-      ruleId: new ObjectID(data.firstLevelId),
-      userIds: data.userIds,
-      teamIds: data.teamIds,
+      ruleId: ruleId,
+      userIds: data.userIds.filter((userId: string): boolean => {
+        return !usersThere.has(userId.toLowerCase());
+      }),
+      teamIds: data.teamIds.filter((teamId: string): boolean => {
+        return !teamsThere.has(teamId.toLowerCase());
+      }),
     });
 
     for (const row of members.users) {

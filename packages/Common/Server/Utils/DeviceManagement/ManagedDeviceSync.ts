@@ -1,5 +1,9 @@
 import ManagedDevice from "../../../Models/DatabaseModels/ManagedDevice";
 import ManagedDeviceApp from "../../../Models/DatabaseModels/ManagedDeviceApp";
+import {
+  ManagedDevicePlatform,
+  isManagedDevicePlatform,
+} from "../../../Types/DeviceManagement/ManagedDevicePlatform";
 import { JSONObject } from "../../../Types/JSON";
 import {
   ProviderApp,
@@ -35,6 +39,11 @@ const DAY_MS: number = 24 * 60 * 60 * 1000;
 
 // The columns of a device a read writes from what the service says.
 export interface ManagedDeviceFields {
+  /*
+   * Null on a row written before the platform was kept (which reads as
+   * Android): the next read writes it, without counting it as a change.
+   */
+  platform: ManagedDevicePlatform | null;
   deviceName: string;
   alias: string;
   serialNumber: string;
@@ -84,6 +93,11 @@ export const COUNTED_DEVICE_FIELDS: ReadonlyArray<keyof ManagedDeviceFields> = [
 
 const ALL_DEVICE_FIELDS: ReadonlyArray<keyof ManagedDeviceFields> = [
   ...COUNTED_DEVICE_FIELDS,
+  /*
+   * A device's platform never changes; a row written before it was kept
+   * gains it with no change to count.
+   */
+  "platform",
   "providerState",
   "batteryLevel",
   "ipAddresses",
@@ -195,6 +209,7 @@ export function toManagedDeviceFields(data: {
     data.stored?.groupId === device.groupId;
 
   return {
+    platform: device.platform,
     deviceName: device.deviceName,
     alias: device.alias,
     serialNumber: device.serialNumber,
@@ -235,6 +250,7 @@ export function toStoredManagedDevice(row: ManagedDevice): StoredManagedDevice {
     id: row._id ? row._id.toString() : "",
     providerDeviceId: text(row.providerDeviceId),
     fields: {
+      platform: isManagedDevicePlatform(row.platform) ? row.platform : null,
       deviceName: text(row.deviceName),
       alias: text(row.alias),
       serialNumber: text(row.serialNumber),

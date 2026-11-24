@@ -542,7 +542,7 @@ exit 7
     path.join(dir, "collector-config.yaml"),
     [
       "exporters:",
-      "  otlphttp:",
+      "  otlp_http:",
       `    endpoint: "${BASE_URL}/otlp"`,
       "    headers:",
       '      "x-oneuptime-token": "${env:ONEUPTIME_API_KEY}"',

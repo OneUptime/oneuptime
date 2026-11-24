@@ -27,7 +27,7 @@ import GenericObject from "../../../../Types/GenericObject";
 /*
  * Every date a table draws (Table/TableDate): short in the cell - "Oct 7,
  * 2:05 PM", the year only when it is not this year's, and no zone - and
- * whole under the pointer, "Oct 07 2026, 02:05 PM BST".
+ * whole under the pointer, "Oct 7, 2026, 2:05 PM BST".
  *
  * "Incidents, Alerts, Runners, Threat Intel and Execution Logs still scroll
  * at 1280: compact dates" - a date with its time took some 180px in every
@@ -77,7 +77,7 @@ describe("TableDate", () => {
 
     expect(time.tagName).toBe("TIME");
     expect(time).toHaveTextContent("Oct 7, 2:05 PM");
-    expect(time).toHaveAttribute("title", "Oct 07 2026, 02:05 PM BST");
+    expect(time).toHaveAttribute("title", "Oct 7, 2026, 2:05 PM BST");
     expect(time).toHaveAttribute("datetime", THIS_YEAR_ISO);
   });
 
@@ -87,7 +87,7 @@ describe("TableDate", () => {
     const time: HTMLElement = screen.getByTestId(TABLE_DATE_TEST_ID);
 
     expect(time).toHaveTextContent("Dec 30, 2025");
-    expect(time).toHaveAttribute("title", "Dec 30 2025, 10:10 PM GMT");
+    expect(time).toHaveAttribute("title", "Dec 30, 2025, 10:10 PM GMT");
   });
 
   test("a day without a time: no time anywhere", () => {
@@ -97,7 +97,7 @@ describe("TableDate", () => {
 
     expect(time).toHaveTextContent("Oct 7");
     expect(time.textContent).not.toContain(":");
-    expect(time).toHaveAttribute("title", "Oct 07, 2026");
+    expect(time).toHaveAttribute("title", "Oct 7, 2026");
   });
 
   test("takes a Date as well as the text of one", () => {
@@ -119,7 +119,7 @@ describe("TableDate", () => {
   test("the texts it writes", () => {
     expect(getTableDateTexts({ value: THIS_YEAR_ISO })).toEqual({
       text: "Oct 7, 2:05 PM",
-      fullText: "Oct 07 2026, 02:05 PM BST",
+      fullText: "Oct 7, 2026, 2:05 PM BST",
       isoText: THIS_YEAR_ISO,
     });
   });
@@ -177,7 +177,7 @@ describe("a table's date columns", () => {
         return date.textContent || "";
       }),
     ).toEqual(["Oct 7, 2:05 PM", "Dec 30, 2025"]);
-    expect(dates[0]).toHaveAttribute("title", "Oct 07 2026, 02:05 PM BST");
+    expect(dates[0]).toHaveAttribute("title", "Oct 7, 2026, 2:05 PM BST");
     expect(dates[1]).toHaveAttribute("title", "Dec 30, 2025");
 
     // In the row's cells, not a zone in sight.

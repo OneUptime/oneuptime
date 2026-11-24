@@ -1,3 +1,4 @@
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -112,7 +113,10 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (data.postedFromSlackMessageId) {
-      internalNote.postedFromSlackMessageId = data.postedFromSlackMessageId;
+      // The message it came from: OneUptime's to write (ServerSetColumns, #10053).
+      ServerSetColumns.set(internalNote, {
+        postedFromSlackMessageId: data.postedFromSlackMessageId,
+      });
     }
 
     return await SavedChatMessageNote.create({

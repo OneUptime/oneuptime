@@ -122,7 +122,7 @@ const blankProfilePicture = path.join(
  */
 /*
  * What the page is told before its bundle runs. The fixture's query
- * parameters (seed, as, billing, theme, email, test) are kept in the tab's
+ * parameters (seed, as, billing, theme, email, test, world, refuse) are kept in the tab's
  * sessionStorage, so a
  * page that reloads itself, or one an in-app link took to an address
  * without them, is drawn for the same project and person.
@@ -136,7 +136,7 @@ const VAPID_PUBLIC_KEY =
   "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U";
 
 const BOOT = `(function () {
-  var names = ["seed", "as", "billing", "theme", "email", "test"];
+  var names = ["seed", "as", "billing", "theme", "email", "test", "world", "refuse"];
   var query = new URLSearchParams(window.location.search);
   var kept = {};
   try { kept = JSON.parse(window.sessionStorage.getItem("__journeyParams") || "{}"); } catch (e) {}
@@ -185,9 +185,50 @@ async function main() {
     return;
   }
 
+  /*
+   * A WORLD (?world=<name>): what the fixture's server keeps for every tab
+   * and browser that names it - the journal of writes (Fixture/Store.js)
+   * and each guided setup's run (#7253) - so two browser contexts are two
+   * devices of one person, as a real server makes them. Text by key, in
+   * memory, gone when the fixture stops. A tab with no world keeps its own,
+   * in its sessionStorage, as before.
+   */
+  const worlds = new Map();
+  const WORLD_PATH =
+    /^\/__fixture\/worlds\/([A-Za-z0-9_-]{1,64})\/([A-Za-z0-9_:.-]{1,128})$/;
+
+  function answerWorld(request, response, match) {
+    const world = worlds.get(match[1]) || new Map();
+    worlds.set(match[1], world);
+    response.setHeader("Content-Type", "application/json");
+    if (request.method === "GET") {
+      response.end(world.has(match[2]) ? world.get(match[2]) : "null");
+      return;
+    }
+    if (request.method === "DELETE") {
+      world.delete(match[2]);
+      response.end("null");
+      return;
+    }
+    let text = "";
+    request.setEncoding("utf8");
+    request.on("data", (chunk) => {
+      text += chunk;
+    });
+    request.on("end", () => {
+      world.set(match[2], text || "null");
+      response.end(text || "null");
+    });
+  }
+
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, `http://127.0.0.1:${port}`);
     response.setHeader("Cache-Control", "no-store");
+    const worldMatch = WORLD_PATH.exec(url.pathname);
+    if (worldMatch) {
+      answerWorld(request, response, worldMatch);
+      return;
+    }
     response.setHeader(
       "Content-Security-Policy",
       "connect-src 'self'; font-src 'self' data:;",

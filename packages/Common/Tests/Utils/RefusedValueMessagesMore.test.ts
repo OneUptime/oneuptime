@@ -74,7 +74,11 @@ describe("a long refused value is cut in the message", () => {
 
     expect(
       messageOf(() => {
-        return Recurring.getNextDate(new Date(), rotation);
+        return Recurring.getOccurrence({
+          startDate: new Date(),
+          recurring: rotation,
+          index: 1,
+        });
       }),
     ).toBe(`Invalid Interval Type: ${CUT}`);
     expect(

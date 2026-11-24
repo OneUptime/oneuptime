@@ -289,3 +289,79 @@ describe("IpCanonicalUtil.canonicalize, after its expansion was shared", () => {
     expect(IpCanonicalUtil.canonicalize("1:0:0:2:0:0:0:3")).toBe("1:0:0:2::3");
   });
 });
+
+describe("IpCanonicalUtil.getIpv6Groups (#10393)", () => {
+  test("reads an IPv6 literal as its eight groups, however it is written", () => {
+    expect(IpCanonicalUtil.getIpv6Groups("2001:db8::1")).toEqual([
+      0x2001, 0xdb8, 0, 0, 0, 0, 0, 1,
+    ]);
+    expect(IpCanonicalUtil.getIpv6Groups("::")).toEqual([
+      0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    // The first group is the address's own: "::abcd" is under ::/16.
+    expect(IpCanonicalUtil.getIpv6Groups("::abcd")).toEqual([
+      0, 0, 0, 0, 0, 0, 0, 0xabcd,
+    ]);
+    expect(IpCanonicalUtil.getIpv6Groups("::ffff:203.0.113.7")).toEqual([
+      0, 0, 0, 0, 0, 0xffff, 0xcb00, 0x7107,
+    ]);
+    expect(IpCanonicalUtil.getIpv6Groups(" 2001:DB8::1 ")).toEqual([
+      0x2001, 0xdb8, 0, 0, 0, 0, 0, 1,
+    ]);
+  });
+
+  test("reads past a link-local address's zone", () => {
+    expect(IpCanonicalUtil.getIpv6Groups("fe80::1%eth0")).toEqual([
+      0xfe80, 0, 0, 0, 0, 0, 0, 1,
+    ]);
+  });
+
+  test("is null for what is no IPv6 literal", () => {
+    for (const value of [
+      "203.0.113.7",
+      "2a00::1::2",
+      "2a00:12345::1",
+      "1:2:3:4:5:6:7",
+      "1:2:3:4:5:6:7:8:9",
+      "12:30:45",
+      "00:1a:2b:3c:4d:5e",
+      "2001:db8::/32",
+      "[2001:db8::1]",
+      "example.com",
+      "",
+    ]) {
+      expect({ value, groups: IpCanonicalUtil.getIpv6Groups(value) }).toEqual({
+        value,
+        groups: null,
+      });
+    }
+  });
+});
+
+describe("IpCanonicalUtil.getIpv4OfMappedAddress (#10393)", () => {
+  test.each([
+    ["::ffff:203.0.113.7", "203.0.113.7"],
+    ["::FFFF:203.0.113.7", "203.0.113.7"],
+    ["::ffff:cb00:7107", "203.0.113.7"],
+    ["0:0:0:0:0:ffff:cb00:7107", "203.0.113.7"],
+    ["::ffff:8.8.8.8", "8.8.8.8"],
+  ])("reads %s as %s", (value: string, ipv4: string) => {
+    expect(IpCanonicalUtil.getIpv4OfMappedAddress(value)).toBe(ipv4);
+  });
+
+  test("is null for every other prefix that carries an IPv4 address, and for an IPv4 address", () => {
+    for (const value of [
+      "203.0.113.7",
+      "64:ff9b::203.0.113.7",
+      "2002:cb00:7107::1",
+      "::203.0.113.7",
+      "::ffff:0:203.0.113.7",
+      "2001:db8::1",
+    ]) {
+      expect({
+        value,
+        ipv4: IpCanonicalUtil.getIpv4OfMappedAddress(value),
+      }).toEqual({ value, ipv4: null });
+    }
+  });
+});

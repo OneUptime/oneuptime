@@ -368,16 +368,22 @@ describe("Ask AI: keys and focus", () => {
     expect(tab).toBeGreaterThan(trap);
   });
 
+  /*
+   * Each draws its menu through the tooltip layer's LayeredPopover, whose
+   * Escape closes the menu and is spent there (#9910): the pickers' own
+   * suites press it inside a dialog and see the dialog stay open.
+   */
   test("the menus inside it spend their own Esc, so it does not close with them", () => {
     for (const picker of ["PermissionModePicker.tsx", "ProviderPicker.tsx"]) {
       const source: string = squash(readCode(AI_CHAT_DIR, picker));
 
       expect({
         picker,
-        spent: source.includes(
-          'if (event.key === "Escape") { event.preventDefault(); setIsOpen(false);',
+        layered: source.includes(
+          "<LayeredPopover anchorRef={buttonRef} onClose={close}",
         ),
-      }).toEqual({ picker, spent: true });
+        ownEscape: source.includes('event.key === "Escape"'),
+      }).toEqual({ picker, layered: true, ownEscape: false });
     }
   });
 
@@ -416,11 +422,16 @@ describe("the composer stays at the panel's foot", () => {
     );
   });
 
-  test("the menus of its controls are placed against its row, which has room for them", () => {
+  /*
+   * They were placed against its row, which had room for them, and the
+   * panel's edge could still cut them; on the tooltip layer they are placed
+   * against the window (#9910), so nothing is placed against the row.
+   */
+  test("the menus of its controls are drawn on the tooltip layer, which the panel cannot cut", () => {
     const composer: string = squash(readCode(AI_CHAT_DIR, "ChatInput.tsx"));
 
     expect(composer).toContain(
-      '<div className="relative flex items-center justify-between gap-2 px-2 pb-2 pt-1">',
+      '<div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">',
     );
 
     for (const picker of ["PermissionModePicker.tsx", "ProviderPicker.tsx"]) {
@@ -428,12 +439,13 @@ describe("the composer stays at the panel's foot", () => {
 
       expect({
         picker,
-        placed: source.includes("<div ref={containerRef}>"),
-      }).toEqual({ picker, placed: true });
-      expect({ picker, fits: source.includes("max-w-full") }).toEqual({
+        layered: source.includes("<LayeredPopover"),
+        inPlace: source.includes("absolute"),
+      }).toEqual({ picker, layered: true, inPlace: false });
+      expect({
         picker,
-        fits: true,
-      });
+        fits: source.includes("max-w-[calc(100vw-1rem)]"),
+      }).toEqual({ picker, fits: true });
     }
   });
 });

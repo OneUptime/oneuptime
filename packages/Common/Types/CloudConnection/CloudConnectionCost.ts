@@ -1,3 +1,7 @@
+import {
+  CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+  GCP_SPLIT_LEARN_EVERY_MINUTES,
+} from "../Cloud/CloudAddedMetrics";
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import {
   AZURE_FIVE_MINUTE_READ_MINUTES,
@@ -128,6 +132,20 @@ export function countRetiredMetrics(data: {
  *   - Google Cloud: one more time series per resource each read, free
  *     within a billing account's first 1,000,000 a month.
  *
+ * Split by a dimension (#9808), it is a series per value: on AWS a metric
+ * read each, on Google Cloud a time series each - `seriesPerResource` of
+ * them, the values the resource has, at most the cap - while Azure answers
+ * every value in one call of its own, which never rides in the key
+ * metrics' call: its filter would split those too.
+ *
+ * Google Cloud bills every series a call returns, so a split is read for
+ * each resource's busiest values alone, which a PromQL topk learns once an
+ * hour, returning those alone (#10076): a resource costs the cap's series a
+ * read, and as many again each hour - at most, since one with fewer values
+ * returns fewer (`isAtMost`). Where PromQL cannot rank its values (#10164),
+ * the hour's learning lists them all: every value of each resource an hour
+ * (`gcpLearnedValuesPerResource`).
+ *
  * The cost is at the cloud's list price before any free allowance: whether
  * the allowance covers it depends on the rest of the account's use.
  */
@@ -137,6 +155,13 @@ export interface CloudAddedMetricCostEstimate {
   monthlyCostUsd: number;
   // Azure: it rides in a call the resource makes anyway, at no cost.
   ridesInExistingCall: boolean;
+  // Google Cloud, split: the most it costs, a resource of fewer values costing less.
+  isAtMost?: boolean | undefined;
+}
+
+// Google Cloud: the hourly learnings of a split's busiest values a month (#10076).
+export function getGcpSplitLearnsPerMonth(): number {
+  return Math.ceil(MINUTES_PER_MONTH / GCP_SPLIT_LEARN_EVERY_MINUTES);
 }
 
 // Minutes between two of a grain's calls (an Azure ISO 8601 grain).
@@ -157,12 +182,32 @@ export function estimateCloudAddedMetricCost(data: {
   azureGrain?: string | undefined;
   azureMetricsInCall?: number | undefined;
   azureHasFiveMinuteCall?: boolean | undefined;
+  /*
+   * Read split by a dimension (#9808): whether it is, and the series of
+   * each resource it reads, one a value. Unsplit, one.
+   */
+  isSplit?: boolean | undefined;
+  seriesPerResource?: number | undefined;
+  /*
+   * Google Cloud, split: a metric PromQL cannot rank (#10164), learned from
+   * a list of the hour that returns every value of each resource once - the
+   * values a resource has, which the connection's reads found. Unset: a
+   * PromQL topk, the cap's series a resource.
+   */
+  gcpLearnedValuesPerResource?: number | undefined;
 }): CloudAddedMetricCostEstimate {
   const resources: number = Math.max(0, data.resources);
   const reads: number = getReadsPerMonth(data.readIntervalInMinutes);
+  // A split reads at most the cap's values of a resource, whatever it has.
+  const series: number = data.isSplit
+    ? Math.min(
+        CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
+        Math.max(1, Math.floor(data.seriesPerResource || 1)),
+      )
+    : 1;
 
   if (data.provider === CloudProvider.AWS) {
-    const units: number = resources * reads;
+    const units: number = resources * series * reads;
 
     return {
       monthlyUnits: units,
@@ -179,7 +224,10 @@ export function estimateCloudAddedMetricCost(data: {
       grain === "PT1M" &&
       (data.azureMetricsInCall || 0) < AZURE_MAX_METRICS_PER_RESOURCE;
 
-    if (ridesInMinuteCall || (isFiveMinutes && data.azureHasFiveMinuteCall)) {
+    if (
+      !data.isSplit &&
+      (ridesInMinuteCall || (isFiveMinutes && data.azureHasFiveMinuteCall))
+    ) {
       return { monthlyUnits: 0, monthlyCostUsd: 0, ridesInExistingCall: true };
     }
 
@@ -197,12 +245,24 @@ export function estimateCloudAddedMetricCost(data: {
     };
   }
 
-  const units: number = resources * reads;
+  /*
+   * A split's reads, and its hourly learning of each resource's busiest
+   * values: the cap's series by PromQL, or every value where PromQL cannot
+   * rank them.
+   */
+  const learnedSeries: number =
+    data.gcpLearnedValuesPerResource !== undefined
+      ? Math.max(1, Math.ceil(data.gcpLearnedValuesPerResource))
+      : series;
+  const units: number = data.isSplit
+    ? resources * (series * reads + learnedSeries * getGcpSplitLearnsPerMonth())
+    : resources * reads;
 
   return {
     monthlyUnits: units,
     monthlyCostUsd: (units / 1000000) * GCP_USD_PER_MILLION_TIME_SERIES,
     ridesInExistingCall: false,
+    ...(data.isSplit ? { isAtMost: true } : {}),
   };
 }
 

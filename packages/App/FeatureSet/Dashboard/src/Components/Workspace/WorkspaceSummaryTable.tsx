@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import { getSharedNameSelect } from "Common/UI/Utils/SharedNameOptions";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -258,7 +259,14 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       const labelsResult: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, color: true, isArchived: true },
+        select: {
+          name: true,
+          _id: true,
+          color: true,
+          isArchived: true,
+          // What tells labels of one name apart (#10064).
+          ...getSharedNameSelect(Label),
+        },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         sort: { name: SortOrder.Ascending },

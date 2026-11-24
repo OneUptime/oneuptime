@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "created_at": "2020-09-16",
+  "last_updated_at": "2026-04-09",
+  "title": "Upstream 5xx errors are high",
+  "tags": [
+    "integration:nginx"
+  ],
+  "description": "“5xx upstream request errors” are indicating server issues from backend servers. This monitor tracks the count of 5xx responses from NGINX's upstream peers to identify server-related issues in your web or application infrastructure.",
+  "definition": {
+    "message": "{{#is_alert}}\n## 🚨 What's happening\n\nAn anomaly has been detected in the number of 5xx HTTP responses from NGINX upstream **{{upstream.name}}** (anomaly score: `{{value}}`, threshold: `{{threshold}}`). The 5xx error rate is significantly higher than normal, indicating that backend servers are failing to handle a notable portion of requests.\n\nFirst triggered at **{{first_triggered_at}}**, active for **{{triggered_duration_sec}}** seconds.\n{{/is_alert}}{{#is_recovery}}\n## ✅ Recovered\n\nThe 5xx anomaly for upstream **{{upstream.name}}** has resolved. Current value: `{{value}}`.\n{{/is_recovery}}\n{{^is_recovery}}\n***\n\n## 📈 Impact\n\n5xx errors indicate server-side failures that cause direct service disruptions for users. Dependent services that rely on successful responses from this NGINX upstream may experience cascading failures or degraded functionality.\n\n***\n\n## Runbook\n\n### Initial Troubleshooting Steps\n\n1. **Identify the affected upstream** from the alert (`{{upstream.name}}`).\n2. Open [**Metrics Explorer**](/metric/explorer) and inspect `nginx.upstream.peers.responses.5xx` broken down by `upstream`.\n3. Review NGINX error logs for connection failures or backend errors:\n   ```bash\n   tail -f /var/log/nginx/error.log\n   ```\n4. Check upstream backend service health and application logs.\n5. Correlate the spike with recent deployments or infrastructure changes.\n\n### Cause and Resolution\n\n| Cause | Resolution |\n| ----- | ---------- |\n| Backend server is down or crashed (502) | Verify the upstream service is running; restart the service if needed and check its logs. |\n| Gateway timeout due to slow upstream (504) | Check upstream response times; increase `proxy_read_timeout` if the upstream is legitimately slow. |\n| Application-level errors (500) | Inspect upstream application logs for unhandled exceptions or crashes; roll back recent deployments if correlated. |\n| Service unavailable due to overload (503) | Check upstream server resource utilization; scale out or enable load balancing across more peers. |\n| Resource exhaustion on upstream servers | Review CPU, memory, and connection pool usage on the backend; tune resource limits and autoscaling. |\n\n### Related links\n\n* [Documentation](https://docs.datadoghq.com/integrations/nginx/)\n* [Logs](/logs?query=upstream:{{upstream.name}})\n* [Metrics Explorer (nginx.upstream.peers.responses.5xx)](/metric/explorer?exp_metric=nginx.upstream.peers.responses.5xx&exp_scope=upstream:{{upstream.name}}&exp_agg=avg&exp_type=line)\n\n### Who should be notified?\n\nAssign the appropriate notification handle for this alert (e.g., `@slack-infra`, `@pagerduty-nginx`):\n`@your-team-handle`\n{{/is_recovery}}",
+    "name": "[NGINX] 5xx Errors higher than usual",
+    "options": {
+      "escalation_message": "",
+      "include_tags": true,
+      "locked": false,
+      "new_host_delay": 300,
+      "no_data_timeframe": null,
+      "notify_audit": false,
+      "notify_no_data": false,
+      "renotify_interval": 0,
+      "require_full_window": false,
+      "threshold_windows": {
+        "recovery_window": "last_15m",
+        "trigger_window": "last_15m"
+      },
+      "thresholds": {
+        "critical": 1,
+        "critical_recovery": 0
+      },
+      "timeout_h": 0
+    },
+    "query": "avg(last_1h):anomalies(avg:nginx.upstream.peers.responses.5xx{*} by {upstream}, 'basic', 2, direction='above', alert_window='last_15m', interval=60, count_default_zero='true') >= 1",
+    "tags": [
+      "integration:nginx"
+    ],
+    "type": "query alert"
+  }
+}

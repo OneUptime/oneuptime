@@ -282,6 +282,9 @@ describe("a cloud resource's Recommendations tab", () => {
       cloudReadings: true,
       cloudProperties: true,
       cloudConnectionId: true,
+      // What its account's stream is read by: a streamed metric keeps its window.
+      cloudAccountId: true,
+      cloudRegion: true,
     });
   });
 

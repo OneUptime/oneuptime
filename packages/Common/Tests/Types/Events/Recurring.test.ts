@@ -172,166 +172,193 @@ describe("Recurring", () => {
     });
   });
 
-  describe("getNextDate", () => {
-    test("returns a future start date unchanged", () => {
-      const futureDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        5,
-      );
+  /*
+   * The nth occurrence of a recurrence, on the wall clock of its zone
+   * (#10037). getNextDate, which stepped fixed milliseconds - a day of 24
+   * hours, a month of 30.4375 days - is gone: a maintenance template was its
+   * last caller, and a daily 02:00 window moved to 01:00 for the winter.
+   */
+  describe("getOccurrence", () => {
+    test("the 0th occurrence is the anchor itself, as it was saved", () => {
+      const anchor: Date = OneUptimeDate.fromString("2026-11-01T06:30:00.000Z");
 
-      const next: Date = Recurring.getNextDate(
-        futureDate,
-        makeRecurring(EventInterval.Day, 1),
-      );
-
-      expect(next.getTime()).toBe(futureDate.getTime());
+      expect(
+        Recurring.getOccurrence({
+          startDate: anchor,
+          recurring: makeRecurring(EventInterval.Day, 1),
+          index: 0,
+          timezone: "America/New_York",
+        }).getTime(),
+      ).toBe(anchor.getTime());
     });
 
-    test("advances a past start date to the future", () => {
-      const pastDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        -10,
-      );
-
-      const next: Date = Recurring.getNextDate(
-        pastDate,
-        makeRecurring(EventInterval.Day, 1),
-      );
-
-      expect(next.getTime()).toBeGreaterThan(pastDate.getTime());
-      expect(next.getTime()).toBeGreaterThanOrEqual(
-        OneUptimeDate.getCurrentDate().getTime() - 1000,
-      );
+    test("steps whole calendar units of the anchor's wall clock, from the anchor every time", () => {
+      expect(
+        [1, 2, 3, 13].map((index: number): string => {
+          return Recurring.getOccurrence({
+            startDate: OneUptimeDate.fromString("2026-01-31T09:00:00.000Z"),
+            recurring: makeRecurring(EventInterval.Month, 1),
+            index: index,
+            timezone: "UTC",
+          }).toISOString();
+        }),
+      ).toEqual([
+        "2026-02-28T09:00:00.000Z",
+        "2026-03-31T09:00:00.000Z",
+        "2026-04-30T09:00:00.000Z",
+        "2027-02-28T09:00:00.000Z",
+      ]);
     });
 
-    test("advances a past start date by whole hourly intervals", () => {
-      const intervalMillis: number = 2 * 3600000;
-      const pastDate: Date = new Date(
-        OneUptimeDate.getCurrentDate().getTime() - intervalMillis * 5,
-      );
-
-      const next: Date = Recurring.getNextDate(
-        pastDate,
-        makeRecurring(EventInterval.Hour, 2),
-      );
-
-      expect(next.getTime()).toBeGreaterThanOrEqual(
-        OneUptimeDate.getCurrentDate().getTime() - 1000,
-      );
-      expect((next.getTime() - pastDate.getTime()) % intervalMillis).toBe(0);
+    test("multiplies the index by the interval's count", () => {
+      expect(
+        Recurring.getOccurrence({
+          startDate: OneUptimeDate.fromString("2026-01-05T09:00:00.000Z"),
+          recurring: makeRecurring(EventInterval.Week, 2),
+          index: 3,
+          timezone: "UTC",
+        }).toISOString(),
+      ).toBe("2026-02-16T09:00:00.000Z");
     });
 
-    test("advances a past start date by whole weekly intervals", () => {
-      const intervalMillis: number = 604800000;
-      const pastDate: Date = new Date(
-        OneUptimeDate.getCurrentDate().getTime() - intervalMillis * 3,
-      );
-
-      const next: Date = Recurring.getNextDate(
-        pastDate,
-        makeRecurring(EventInterval.Week, 1),
-      );
-
-      expect(next.getTime()).toBeGreaterThanOrEqual(
-        OneUptimeDate.getCurrentDate().getTime() - 1000,
-      );
-      expect((next.getTime() - pastDate.getTime()) % intervalMillis).toBe(0);
+    test("keeps 09:00 in New York on both sides of a clock change", () => {
+      expect(
+        [0, 1].map((index: number): string => {
+          return Recurring.getOccurrence({
+            startDate: OneUptimeDate.fromString("2026-10-31T13:00:00.000Z"),
+            recurring: makeRecurring(EventInterval.Day, 1),
+            index: index,
+            timezone: "America/New_York",
+          }).toISOString();
+        }),
+      ).toEqual(["2026-10-31T13:00:00.000Z", "2026-11-01T14:00:00.000Z"]);
     });
 
-    test("advances a past start date by whole monthly intervals", () => {
-      const intervalMillis: number = 2629800000;
-      const pastDate: Date = new Date(
-        OneUptimeDate.getCurrentDate().getTime() - intervalMillis * 4,
-      );
-
-      const next: Date = Recurring.getNextDate(
-        pastDate,
-        makeRecurring(EventInterval.Month, 1),
-      );
-
-      expect(next.getTime()).toBeGreaterThanOrEqual(
-        OneUptimeDate.getCurrentDate().getTime() - 1000,
-      );
-      expect((next.getTime() - pastDate.getTime()) % intervalMillis).toBe(0);
+    test("moves a time the clocks skip on by the jump", () => {
+      expect(
+        Recurring.getOccurrence({
+          // 02:30 EST on 13 March 2027.
+          startDate: OneUptimeDate.fromString("2027-03-13T07:30:00.000Z"),
+          recurring: makeRecurring(EventInterval.Day, 1),
+          index: 1,
+          timezone: "America/New_York",
+        }).toISOString(),
+        // 03:30 EDT: 02:30 does not exist on 14 March.
+      ).toBe("2027-03-14T07:30:00.000Z");
     });
 
-    test("advances a past start date by whole yearly intervals", () => {
-      const intervalMillis: number = 31557600000;
-      const pastDate: Date = new Date(
-        OneUptimeDate.getCurrentDate().getTime() - intervalMillis * 2,
-      );
+    test("reads a time the clocks pass twice as the first of the two, whichever side the anchor is on", () => {
+      const firstOneThirty: string = "2026-11-01T05:30:00.000Z";
 
-      const next: Date = Recurring.getNextDate(
-        pastDate,
-        makeRecurring(EventInterval.Year, 1),
-      );
-
-      expect(next.getTime()).toBeGreaterThanOrEqual(
-        OneUptimeDate.getCurrentDate().getTime() - 1000,
-      );
-      expect((next.getTime() - pastDate.getTime()) % intervalMillis).toBe(0);
+      // From 01:30 EDT the day before, and from 01:30 EST on 1 January.
+      expect(
+        Recurring.getOccurrence({
+          startDate: OneUptimeDate.fromString("2026-10-31T05:30:00.000Z"),
+          recurring: makeRecurring(EventInterval.Day, 1),
+          index: 1,
+          timezone: "America/New_York",
+        }).toISOString(),
+      ).toBe(firstOneThirty);
+      expect(
+        Recurring.getOccurrence({
+          startDate: OneUptimeDate.fromString("2026-01-01T06:30:00.000Z"),
+          recurring: makeRecurring(EventInterval.Month, 1),
+          index: 10,
+          timezone: "America/New_York",
+        }).toISOString(),
+      ).toBe(firstOneThirty);
     });
 
-    test("leaves a start date equal to now unchanged (zero intervals to add)", () => {
-      /*
-       * getNextDate() reads the clock internally via getCurrentDate(). Pin it so
-       * the start date and the internal "now" resolve to the exact same instant;
-       * otherwise a sub-millisecond gap between the two clock reads makes diff a
-       * tiny positive number and Math.ceil() rounds it up to a full extra day.
-       */
-      const now: Date = OneUptimeDate.fromString("2023-01-01T00:00:00.000Z");
-      const getCurrentDateSpy: jest.SpyInstance = jest
-        .spyOn(OneUptimeDate, "getCurrentDate")
-        .mockReturnValue(now);
-
-      try {
-        const next: Date = Recurring.getNextDate(
-          now,
-          makeRecurring(EventInterval.Day, 1),
-        );
-
-        // The <= branch is entered, diff is 0, so Math.ceil(0) === 0 intervals are added.
-        expect(next.getTime()).toBe(now.getTime());
-      } finally {
-        getCurrentDateSpy.mockRestore();
-      }
+    test("counts hours as elapsed time, across a clock change too", () => {
+      expect(
+        Recurring.getOccurrence({
+          startDate: OneUptimeDate.fromString("2026-11-01T04:00:00.000Z"),
+          recurring: makeRecurring(EventInterval.Hour, 1),
+          index: 3,
+          timezone: "America/New_York",
+        }).toISOString(),
+      ).toBe("2026-11-01T07:00:00.000Z");
     });
 
-    test("throws BadDataException for an unknown interval type when the start date is in the past", () => {
-      const pastDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        -10,
-      );
+    test("reads a zone it does not know as UTC, in a browser and on a server alike", () => {
+      expect(
+        Recurring.getOccurrence({
+          startDate: OneUptimeDate.fromString("2026-10-31T13:00:00.000Z"),
+          recurring: makeRecurring(EventInterval.Day, 1),
+          index: 1,
+          timezone: "Europe/Atlantis",
+        }).toISOString(),
+      ).toBe("2026-11-01T13:00:00.000Z");
+    });
 
+    test("throws BadDataException for an unknown interval type", () => {
       const recurring: Recurring = makeRecurring(EventInterval.Day, 1);
       recurring.intervalType = "Fortnight" as unknown as EventInterval;
 
       expect(() => {
-        Recurring.getNextDate(pastDate, recurring);
+        Recurring.getOccurrence({
+          startDate: baseDate,
+          recurring: recurring,
+          index: 1,
+        });
       }).toThrowError(BadDataException);
     });
+  });
 
-    test("does not reach the interval switch for a future start date even with an unknown interval type", () => {
-      const futureDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        5,
+  describe("getOccurrenceIndexAfter", () => {
+    test("is 0 while the anchor is still ahead", () => {
+      expect(
+        Recurring.getOccurrenceIndexAfter({
+          startDate: OneUptimeDate.fromString("2026-08-01T09:00:00.000Z"),
+          recurring: makeRecurring(EventInterval.Month, 1),
+          afterDate: OneUptimeDate.fromString("2026-07-15T00:00:00.000Z"),
+          timezone: "UTC",
+        }),
+      ).toBe(0);
+    });
+
+    test("is the first occurrence strictly after the time, also on an occurrence's own time", () => {
+      const startDate: Date = OneUptimeDate.fromString(
+        "2026-01-01T09:00:00.000Z",
       );
 
-      const recurring: Recurring = makeRecurring(EventInterval.Day, 1);
-      recurring.intervalType = "Fortnight" as unknown as EventInterval;
+      expect(
+        Recurring.getOccurrenceIndexAfter({
+          startDate: startDate,
+          recurring: makeRecurring(EventInterval.Day, 1),
+          afterDate: OneUptimeDate.fromString("2026-01-11T09:00:00.000Z"),
+          timezone: "UTC",
+        }),
+      ).toBe(11);
+      expect(
+        Recurring.getOccurrenceIndexAfter({
+          startDate: startDate,
+          recurring: makeRecurring(EventInterval.Day, 1),
+          afterDate: OneUptimeDate.fromString("2026-01-11T08:59:59.999Z"),
+          timezone: "UTC",
+        }),
+      ).toBe(10);
+    });
 
-      const next: Date = Recurring.getNextDate(futureDate, recurring);
-
-      expect(next.getTime()).toBe(futureDate.getTime());
+    test("jumps a schedule left alone for years in one step, to the right occurrence", () => {
+      expect(
+        Recurring.getOccurrenceIndexAfter({
+          startDate: OneUptimeDate.fromString("2020-01-31T09:00:00.000Z"),
+          recurring: makeRecurring(EventInterval.Month, 1),
+          afterDate: OneUptimeDate.fromString("2026-03-01T00:00:00.000Z"),
+          timezone: "Europe/Berlin",
+        }),
+        // 31 January 2020 + 74 months is 31 March 2026.
+      ).toBe(74);
     });
   });
 
   /*
-   * getNextDate approximates a month as 30.4375 days, which walks a monthly
-   * schedule backwards through the calendar (1 Jul -> 31 Jul -> 30 Aug) and
-   * eventually skips a month outright. getNextDateAfter steps in whole calendar
-   * units instead, which is what a status page report scheduled for "the 1st of
-   * every month" needs.
+   * A month of 30.4375 days walks a monthly schedule backwards through the
+   * calendar (1 Jul -> 31 Jul -> 30 Aug) and eventually skips a month
+   * outright. getNextDateAfter steps in whole calendar units instead, which
+   * is what a status page report scheduled for "the 1st of every month"
+   * needs.
    */
   describe("getNextDateAfter", () => {
     test("keeps a monthly schedule on the same day of the month", () => {

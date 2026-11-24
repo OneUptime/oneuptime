@@ -35,6 +35,10 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceSharedNames, {
+  WorkspaceNamedOption,
+} from "../../WorkspaceSharedNames";
+import { getSharedNameSelect } from "../../../../../Types/Database/SharedNameMarks";
 import WorkspaceMemberActions, {
   WorkspaceEventStanding,
   WorkspaceEventStateOption,
@@ -518,6 +522,8 @@ export default class SlackScheduledMaintenanceActions {
         },
         select: {
           name: true,
+          // What tells two labels of one name apart (#10314).
+          ...getSharedNameSelect(Label),
         },
         limit: LIMIT_PER_PROJECT,
       }),
@@ -571,14 +577,16 @@ export default class SlackScheduledMaintenanceActions {
       blocks.push(monitorStatusDropdown);
     }
 
-    const labelsDropdownOptions: Array<DropdownOption> = labelsForProject.map(
-      (label: Label) => {
-        return {
-          label: label.name || "",
-          value: label._id?.toString() || "",
-        };
-      },
-    );
+    // Two labels of one name told apart in their labels (#10314).
+    const labelsDropdownOptions: Array<DropdownOption> = (
+      await WorkspaceSharedNames.getOptions({
+        records: labelsForProject,
+        readerUserId: props.userId,
+        maxLength: SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+      })
+    ).map((option: WorkspaceNamedOption): DropdownOption => {
+      return { label: option.label, value: option.value };
+    });
 
     const labelsDropdown: WorkspaceDropdownBlock = {
       _type: "WorkspaceDropdownBlock",

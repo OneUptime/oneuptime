@@ -38,6 +38,18 @@ import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
+import {
+  SharedNameMark,
+  getSharedNameFacts,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+  SharedNameValueDetail,
+} from "../Dropdown/SharedNameOptionLines";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -876,10 +888,30 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (raw["isArchived"] === true) {
         option.isArchived = true;
       }
+      /*
+       * A team, a label, an on-call policy or a schedule, listed by its
+       * name: what tells it from another of the same name (#10064).
+       */
+      if (labelField === "name") {
+        const sharedName: DropdownOption["sharedName"] =
+          getSharedNameFacts(item);
+
+        if (sharedName) {
+          option.sharedName = sharedName;
+        }
+      }
       return option;
     },
     [labelField, valueField, colorField],
   );
+
+  /*
+   * The columns each read selects beside the name, so records of one name
+   * can be told apart: nothing for a model of any other kind, or a list
+   * that is not by name.
+   */
+  const sharedNameSelect: Record<string, true> =
+    labelField === "name" ? getSharedNameSelect(modelType) : {};
 
   /*
    * Server-side search. Runs when the popover is open on the options tab.
@@ -907,6 +939,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           const baseSelect: Record<string, true> = {
             _id: true,
             [labelField]: true,
+            ...sharedNameSelect,
           } as Record<string, true>;
           if (colorField) {
             baseSelect[colorField] = true;
@@ -981,6 +1014,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         const baseSelect: Record<string, true> = {
           _id: true,
           [labelField]: true,
+          ...sharedNameSelect,
           // An archived value a record still has is marked as one.
           ...ArchivedValuePicker.getSelectedValueSelect(modelType),
         } as Record<string, true>;
@@ -1055,7 +1089,13 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           query: {} as Query<Label>,
           limit: LIMIT_PER_PROJECT,
           skip: 0,
-          select: { _id: true, name: true, color: true } as never,
+          select: {
+            _id: true,
+            name: true,
+            color: true,
+            // What tells labels of one name apart (#10064).
+            ...getSharedNameSelect(Label),
+          } as never,
           sort: { name: SortOrder.Ascending } as never,
         });
         if (cancelled) {
@@ -1081,6 +1121,23 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       cancelled = true;
     };
   }, [labelsTabEnabled, activeTab, labelsLoaded, modelAPI]);
+
+  /*
+   * The labels of the Labels tab that share a name (#10064), each with the
+   * pill its list draws and what sets it apart.
+   */
+  const labelSharedNameMarks: Map<string, SharedNameMark> = useMemo(() => {
+    return getSharedNameMarks(
+      allLabels.map((label: Label) => {
+        return {
+          value: label._id?.toString() || "",
+          label: label.name || "",
+          sharedName: getSharedNameFacts(label),
+        };
+      }),
+      translator,
+    );
+  }, [allLabels, translator.language]);
 
   const filteredLabels: Array<Label> = useMemo(() => {
     const q: string = searchQuery.trim().toLowerCase();
@@ -1115,23 +1172,34 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         getOptionText(opt).toLowerCase().includes(q)
       );
     };
-    const seen: Set<string> = new Set();
+    const seen: Map<string, number> = new Map();
     const out: Array<DropdownOption> = [];
     for (const opt of initialFlat) {
       const key: string = valueKey(opt.value);
       if (seen.has(key) || !matches(opt)) {
         continue;
       }
-      seen.add(key);
+      seen.set(key, out.length);
       out.push(opt);
     }
     if (modelType) {
       for (const opt of searchResults) {
         const key: string = valueKey(opt.value);
-        if (seen.has(key) || !matches(opt)) {
+        if (!matches(opt)) {
           continue;
         }
-        seen.add(key);
+        const at: number | undefined = seen.get(key);
+        if (at !== undefined) {
+          /*
+           * The form's own list knew the option without what tells it
+           * from another of its name: the search's read does (#10064).
+           */
+          if (!out[at]!.sharedName && opt.sharedName) {
+            out[at] = { ...out[at]!, sharedName: opt.sharedName };
+          }
+          continue;
+        }
+        seen.set(key, out.length);
         out.push(opt);
       }
     }
@@ -1270,6 +1338,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       const baseSelect: Record<string, true> = {
         _id: true,
         [labelField]: true,
+        ...sharedNameSelect,
       } as Record<string, true>;
       if (colorField) {
         baseSelect[colorField] = true;
@@ -1371,6 +1440,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       const baseSelect: Record<string, true> = {
         _id: true,
         [labelField]: true,
+        ...sharedNameSelect,
       } as Record<string, true>;
       if (colorField) {
         baseSelect[colorField] = true;
@@ -1461,6 +1531,34 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
      * recomputes against the freshly-seeded cache.
      */
   }, [selectedKeys, initialFlat, inboundOptions, props.notFoundLabel]);
+
+  /*
+   * Records that share a name (#10064), among every one the dropdown
+   * knows - the list and what is picked, which a multi-select takes out of
+   * the list - each with its list's pill and what sets it apart.
+   */
+  const sharedNameMarks: Map<string, SharedNameMark> = useMemo(() => {
+    const known: Map<string, DropdownOption> = new Map();
+
+    for (const opt of [...optionsList, ...selectedOptions]) {
+      const key: string = valueKey(opt.value);
+      const before: DropdownOption | undefined = known.get(key);
+
+      if (!before || (!before.sharedName && opt.sharedName)) {
+        known.set(key, opt);
+      }
+    }
+
+    return getSharedNameMarks(Array.from(known.values()), translator);
+  }, [optionsList, selectedOptions, translator.language]);
+
+  const getSharedNameMark: (
+    opt: DropdownOption,
+  ) => SharedNameMark | undefined = (
+    opt: DropdownOption,
+  ): SharedNameMark | undefined => {
+    return sharedNameMarks.get(getSharedNameOptionKey(opt.value));
+  };
 
   /*
    * Visual label color extracted from option.color (which can be either a
@@ -1625,6 +1723,13 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     dataTestId="entity-dropdown-archived-tag"
                   />
                 )}
+                {/*
+                 * One of records that share a name: what sets it apart,
+                 * so two picked twins read as two (#10064).
+                 */}
+                {getSharedNameMark(opt) && (
+                  <SharedNameValueDetail mark={getSharedNameMark(opt)!} />
+                )}
                 {!props.disabled && (
                   <button
                     type="button"
@@ -1764,6 +1869,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 </span>
                 {selectedOptions[0]!.isArchived && (
                   <ArchivedTag dataTestId="entity-dropdown-archived-tag" />
+                )}
+                {getSharedNameMark(selectedOptions[0]!) && (
+                  <SharedNameValueDetail
+                    mark={getSharedNameMark(selectedOptions[0]!)!}
+                  />
                 )}
               </span>
               <div className="flex items-center gap-1 text-gray-400">
@@ -2093,6 +2203,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                     const isCurrentSelection: boolean =
                       !isMulti && selectedKeys[0] === key;
                     const colorStr: string | undefined = optionColorString(opt);
+                    const sharedNameMark: SharedNameMark | undefined =
+                      getSharedNameMark(opt);
                     return (
                       <button
                         key={key}
@@ -2134,9 +2246,33 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                          * shrinking alike cut a short name ("infra") to
                          * "in..." beside a long description on a phone.
                          */}
-                        <span className="min-w-0 flex-1 truncate">
-                          {getOptionText(opt)}
-                        </span>
+                        {sharedNameMark ? (
+                          /*
+                           * One of records that share a name (#10064): the
+                           * pill its list draws beside the name, and under
+                           * it what sets this one apart.
+                           */
+                          <span className="min-w-0 flex-1">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="min-w-0 truncate">
+                                {getOptionText(opt)}
+                              </span>
+                              <SharedNamePill mark={sharedNameMark} />
+                            </span>
+                            <SharedNameDetail
+                              mark={sharedNameMark}
+                              className={`block truncate text-xs ${
+                                isHighlighted
+                                  ? "text-indigo-100"
+                                  : "text-gray-500"
+                              }`}
+                            />
+                          </span>
+                        ) : (
+                          <span className="min-w-0 flex-1 truncate">
+                            {getOptionText(opt)}
+                          </span>
+                        )}
                         {opt.description && (
                           <span
                             className={`max-w-[50%] flex-none truncate text-xs ${
@@ -2333,10 +2469,28 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                                 aria-hidden="true"
                               />
                             )}
-                            <span className="truncate">
-                              {label.name ||
-                                translator.translateText("Unnamed Label")}
-                            </span>
+                            {labelSharedNameMarks.get(labelId) ? (
+                              <span className="min-w-0 flex-1">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <span className="min-w-0 truncate">
+                                    {label.name ||
+                                      translator.translateText("Unnamed Label")}
+                                  </span>
+                                  <SharedNamePill
+                                    mark={labelSharedNameMarks.get(labelId)!}
+                                  />
+                                </span>
+                                <SharedNameDetail
+                                  mark={labelSharedNameMarks.get(labelId)!}
+                                  className="block truncate text-xs text-gray-500"
+                                />
+                              </span>
+                            ) : (
+                              <span className="truncate">
+                                {label.name ||
+                                  translator.translateText("Unnamed Label")}
+                              </span>
+                            )}
                           </button>
                           {preview !== undefined && (
                             <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

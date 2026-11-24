@@ -35,7 +35,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
-const { processorNamesFor } = require("./CumulativeToDeltaProcessor");
+const { componentNamesFor } = require("./CollectorComponentTypes");
 
 const PIPELINE = "metrics/restarts-increase";
 // The pipeline the increases join, which sends them.
@@ -52,21 +52,22 @@ const LIFTED_PROCESSORS = [
 
 /*
  * The metrics pipeline's processors, as the chart renders them for the
- * script (eBPF on, as by default): this runs all but memory_limiter and
- * batch, with K8S_ATTRIBUTES_STAND_IN in k8sattributes' place.
+ * script (eBPF on, as by default), by the types the chart's pinned collector
+ * knows: this runs all but memory_limiter and batch, with
+ * K8S_ATTRIBUTES_STAND_IN in k8s_attributes' place.
  */
 const METRICS_PIPELINE_PROCESSORS = [
   "memory_limiter",
   "transform/job-failures-increase",
   "cumulative_to_delta/job-failures-increase",
   "transform/pod-level-mark",
-  "k8sattributes",
+  "k8s_attributes",
   "transform/pod-level-unmark",
   "resource",
   "filter/ebpf-node-inspector",
   "batch",
 ];
-const K8S_ATTRIBUTES = "k8sattributes";
+const K8S_ATTRIBUTES = "k8s_attributes";
 const K8S_ATTRIBUTES_STAND_IN = "transform/k8sattributes-stand-in";
 
 const RESTARTS_METRIC = "k8s.container.restarts";
@@ -507,13 +508,14 @@ function readRenderedDeployment(renderedFile) {
  * collector does, with no image).
  */
 function liftedMetricsProcessors(image) {
-  return processorNamesFor(METRICS_PIPELINE_PROCESSORS, image)
-    .filter((name) => {
+  return componentNamesFor(
+    METRICS_PIPELINE_PROCESSORS.filter((name) => {
       return name !== "memory_limiter" && name !== "batch";
-    })
-    .map((name) => {
+    }).map((name) => {
       return name === K8S_ATTRIBUTES ? K8S_ATTRIBUTES_STAND_IN : name;
-    });
+    }),
+    image,
+  );
 }
 
 /*
@@ -521,17 +523,19 @@ function liftedMetricsProcessors(image) {
  * collector config, after checking that they are wired as the chart says:
  * the restarts pipeline from k8s_cluster through its processors into the
  * connector, the metrics pipeline from k8s_cluster and the connector
- * through k8sattributes to the exporter. Named as the collector `image`
- * knows them (cumulativetodelta before 0.157.0, which a --reuse-values
- * upgrade runs), so a chart that rendered the other name for that image
- * fails here; with no image, as the chart's pinned collector names them.
+ * through k8s_attributes to the exporter. Named as the collector `image`
+ * knows them (Utils/CollectorComponentTypes.js: cumulativetodelta,
+ * k8sattributes and otlphttp on the 0.96.0 a --reuse-values upgrade runs), so
+ * a chart that rendered the other name for that image fails here; with no
+ * image, as the chart's pinned collector names them.
  */
 function behaviourConfig(collector, image) {
-  const liftedProcessors = processorNamesFor(LIFTED_PROCESSORS, image);
-  const metricsPipelineProcessors = processorNamesFor(
+  const liftedProcessors = componentNamesFor(LIFTED_PROCESSORS, image);
+  const metricsPipelineProcessors = componentNamesFor(
     METRICS_PIPELINE_PROCESSORS,
     image,
   );
+  const exporters = componentNamesFor(["otlp_http"], image);
   const pipeline = collector.service.pipelines[PIPELINE];
   if (!pipeline) {
     fail(`the cluster collector has no ${PIPELINE} pipeline`);
@@ -563,7 +567,7 @@ function behaviourConfig(collector, image) {
   if (metrics.processors.join(",") !== metricsPipelineProcessors.join(",")) {
     fail(`${METRICS_PIPELINE} runs ${metrics.processors.join(", ")}`);
   }
-  if (metrics.exporters.join(",") !== "otlphttp") {
+  if (metrics.exporters.join(",") !== exporters.join(",")) {
     fail(`${METRICS_PIPELINE} exports to ${metrics.exporters.join(", ")}`);
   }
   // And no other pipeline takes them from the connector.

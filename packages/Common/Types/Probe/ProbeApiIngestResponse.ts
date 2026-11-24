@@ -15,6 +15,12 @@ export interface PerSeriesCriteriaMatch {
   fingerprint: string;
   labels: JSONObject;
   rootCause: string;
+  /*
+   * What else is known about the series, for its alert's or incident's
+   * words only (SeriesLabelDisplay): a device's name and model beside the
+   * install it is grouped by (#9925). Never part of `fingerprint`.
+   */
+  context?: JSONObject | undefined;
   /** The context of the first filter this series matched. */
   metricContext?: MetricCriteriaContext | undefined;
   /**

@@ -19,6 +19,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -662,6 +663,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     description: "Status of this execution",
     canReadOnRelationQuery: false,
     example: "Executing",
+    serverOwned: ServerOwned.Always,
   })
   @Index()
   @Column({
@@ -700,6 +702,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     canReadOnRelationQuery: false,
     example:
       "On-call policy execution started. Notifying primary on-call team members.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: false,
@@ -1006,6 +1009,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Acknowledged At",
     description: "When was this policy execution acknowledged?",
     example: "2024-01-15T10:45:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -1125,6 +1129,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     description: "Which escalation rule was executed?",
     canReadOnRelationQuery: true,
     example: 2,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -1152,6 +1157,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     description: "When was the escalation rule executed?",
     canReadOnRelationQuery: true,
     example: "2024-01-15T10:30:00.000Z",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -1245,6 +1251,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     title: "Last Executed Escalation Rule ID",
     description: "ID of your On-Call Policy Last Executed Escalation Rule.",
     example: "e5f6a7b8-c9d0-1234-ef01-345678901234",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1274,6 +1281,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     description:
       "How many minutes should we wait before executing the next escalation rule?",
     example: 15,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1312,6 +1320,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     description: "How many times did we execute this on-call policy?",
     defaultValue: 1,
     example: 3,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,

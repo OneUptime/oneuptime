@@ -6,6 +6,9 @@ import { ExpressRequest, ExpressResponse } from "../../../Server/Utils/Express";
 import ObjectID from "../../../Types/ObjectID";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+import Reauthentication from "../../../Server/Utils/Reauthentication/Reauthentication";
+import ReauthenticationRequiredException from "../../../Types/Exception/ReauthenticationRequiredException";
 
 /* These tests exercise the route contract; persistence is covered separately. */
 jest.mock("../../../Server/API/BaseAPI", () => {
@@ -23,7 +26,20 @@ jest.mock("../../../Server/API/BaseAPI", () => {
 });
 
 jest.mock("../../../Server/API/CommonAPI", () => {
-  return { __esModule: true, default: {} };
+  return {
+    __esModule: true,
+    default: {
+      // The session the route asks to have confirmed (#10155).
+      getDatabaseCommonInteractionProps: jest.fn(
+        async (req: { userAuthorization?: { userId?: unknown } }) => {
+          return {
+            userId: req.userAuthorization?.userId,
+            sessionId: "session-of-the-request",
+          };
+        },
+      ),
+    },
+  };
 });
 
 jest.mock("../../../Server/Middleware/UserAuthorization", () => {
@@ -87,6 +103,9 @@ describe("passkey registration API", () => {
   });
 
   beforeEach(() => {
+    // Every session here has confirmed it's its person's (#10155).
+    confirmEverySession();
+
     jest.clearAllMocks();
     generate = getJestSpyOn(
       UserWebAuthnService,
@@ -156,6 +175,57 @@ describe("passkey registration API", () => {
       isPasskey: false,
     });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A key or a passkey is a way in, so its options wait until the session
+   * confirms it's its person's (#10155): asked before the browser's prompt,
+   * with the request's own session.
+   */
+  test("asks the request's session to have confirmed it's its person's before making options", async () => {
+    const confirmed: jest.SpyInstance = confirmEverySession() as never;
+    const next: jest.Mock = jest.fn();
+
+    await mockRouter.match("post", ROUTE).handlerFunction(
+      {
+        body: { isPasskey: true },
+        userAuthorization: { userId: USER_ID },
+      } as any,
+      {} as ExpressResponse,
+      next,
+    );
+
+    expect(confirmed).toHaveBeenCalledWith({
+      userId: USER_ID,
+      sessionId: "session-of-the-request",
+    });
+    expect(confirmed.mock.invocationCallOrder[0]!).toBeLessThan(
+      generate.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a session that has not confirmed gets the refusal, and no options are made", async () => {
+    const refusal: ReauthenticationRequiredException =
+      new ReauthenticationRequiredException();
+
+    getJestSpyOn(Reauthentication, "assertConfirmed").mockRejectedValue(
+      refusal,
+    );
+
+    const next: jest.Mock = jest.fn();
+
+    await mockRouter.match("post", ROUTE).handlerFunction(
+      {
+        body: { isPasskey: true },
+        userAuthorization: { userId: USER_ID },
+      } as any,
+      {} as ExpressResponse,
+      next,
+    );
+
+    expect(next).toHaveBeenCalledWith(refusal);
+    expect(generate).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 
   test("forwards storage failures without returning unusable options", async () => {

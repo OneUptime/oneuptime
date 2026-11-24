@@ -4,7 +4,10 @@ import OneUptimeDate from "Common/Types/Date";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
-import { KubernetesCostPricingSource } from "Common/Types/Kubernetes/KubernetesCostPricing";
+import {
+  KubernetesCostMemoryPeaksSource,
+  KubernetesCostPricingSource,
+} from "Common/Types/Kubernetes/KubernetesCostPricing";
 import { keyForKubernetesCluster } from "Common/Utils/Telemetry/EntityKey";
 import {
   KubernetesCostAllocationIngestRow,
@@ -57,6 +60,20 @@ jest.mock("Common/Server/Services/KubernetesCostAllocationService", () => {
     __esModule: true,
     default: {
       existsBy: jest.fn(),
+      // #9969: what a window holds, and the rows a correction writes.
+      findWindowSlices: jest.fn(),
+      insertJsonRows: jest.fn(),
+    },
+  };
+});
+
+// A correction is made under a lock per window (#9969).
+jest.mock("Common/Server/Infrastructure/Semaphore", () => {
+  return {
+    __esModule: true,
+    default: {
+      lock: jest.fn(),
+      release: jest.fn(),
     },
   };
 });
@@ -125,6 +142,8 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryFanInWriter", () => {
 
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import KubernetesCostAllocationService from "Common/Server/Services/KubernetesCostAllocationService";
+import Semaphore from "Common/Server/Infrastructure/Semaphore";
+import { KubernetesCostStoredSlice } from "Common/Types/Kubernetes/KubernetesCostCorrection";
 import OpenTelemetryIngestService from "Common/Server/Services/OpenTelemetryIngestService";
 import MetricService from "Common/Server/Services/MetricService";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
@@ -136,7 +155,10 @@ import {
 } from "Common/Models/AnalyticsModels/Metric";
 import Dictionary from "Common/Types/Dictionary";
 import logger from "Common/Server/Utils/Logger";
-import { KubernetesCostMetric } from "Common/Types/Kubernetes/KubernetesCostMetrics";
+import {
+  KubernetesCostMetric,
+  KubernetesCostMetricSourceRow,
+} from "Common/Types/Kubernetes/KubernetesCostMetrics";
 import KubernetesCostIngestService, {
   KubernetesCostStorageFlushError,
 } from "../../FeatureSet/Telemetry/Services/KubernetesCostIngestService";
@@ -150,6 +172,12 @@ const updateLastSeenMock: MockedFn =
   KubernetesClusterService.updateLastSeen as unknown as MockedFn;
 const existsByMock: MockedFn =
   KubernetesCostAllocationService.existsBy as unknown as MockedFn;
+const findWindowSlicesMock: MockedFn =
+  KubernetesCostAllocationService.findWindowSlices as unknown as MockedFn;
+const insertCorrectionMock: MockedFn =
+  KubernetesCostAllocationService.insertJsonRows as unknown as MockedFn;
+const lockMock: MockedFn = Semaphore.lock as unknown as MockedFn;
+const releaseMock: MockedFn = Semaphore.release as unknown as MockedFn;
 const buildMetadataMock: MockedFn =
   OpenTelemetryIngestService.buildResourceMetadataForNonService as unknown as MockedFn;
 const submitMock: MockedFn = TelemetryFanInWriter.submit as unknown as MockedFn;
@@ -500,6 +528,7 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
           bundledEngineUnused: true,
           pricingSource: KubernetesCostPricingSource.ListPrices,
           pricingProvider: "AWS",
+          memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Bundled,
         },
         allocations: [
           makeAllocation(),
@@ -514,6 +543,10 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
       expect(row["bundledEngineUnused"]).toBe(true);
       expect(row["pricingSource"]).toBe("list-prices");
       expect(row["pricingProvider"]).toBe("AWS");
+      // #9970: where its memory peak came from.
+      expect(row["memoryPeaksFrom"]).toBe("bundled");
+      // A first reading of its window, not a correction (#9969).
+      expect(row["isCostAdjustment"]).toBe(false);
     }
   });
 
@@ -532,6 +565,29 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     expect(row["bundledEngineUnused"]).toBe(false);
     expect(row["pricingSource"]).toBe("");
     expect(row["pricingProvider"]).toBe("");
+    expect(row["memoryPeaksFrom"]).toBe("");
+    expect(row["isCostAdjustment"]).toBe(false);
+  });
+
+  test("an agent older than #9970 says nothing of its memory peaks: none named", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        costEngine: {
+          engine: "Kubecost",
+          service: "kubecost/kubecost-frontend",
+          bundledEngineUnused: true,
+          pricingSource: "default-rates",
+          pricingProvider: "",
+        } as unknown as KubernetesCostIngestPayload["costEngine"],
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const row: JSONObject = getSubmittedRows()[0]!;
+
+    expect(row["bundledEngineUnused"]).toBe(true);
+    expect(row["memoryPeaksFrom"]).toBe("");
   });
 
   test("keeps only what an agent could have said of its engine", async () => {
@@ -545,6 +601,7 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
           bundledEngineUnused: "yes",
           pricingSource: "free",
           pricingProvider: "AWS",
+          memoryPeaksFrom: "thanos",
         } as unknown as KubernetesCostIngestPayload["costEngine"],
         allocations: [makeAllocation()],
       }),
@@ -558,6 +615,7 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     // A source the server does not know is unknown, and names no cloud.
     expect(row["pricingSource"]).toBe("unknown");
     expect(row["pricingProvider"]).toBe("");
+    expect(row["memoryPeaksFrom"]).toBe("");
   });
 
   test("sanitizes numbers: non-finite and non-numeric become 0, numeric strings parse", async () => {
@@ -1322,5 +1380,592 @@ describe("KubernetesCostIngestService cost metrics", () => {
         ],
       ).toBe("prod-cluster-canonical");
     }
+  });
+});
+
+/*
+ * #9969: a Kubecost that reads the cloud's bill reconciles each hour with it
+ * about two days on, and the agent ships the hour's later reading as a
+ * correction. Ingest writes the difference from what the window holds, per
+ * workload, pod and container, as rows of their own: nothing is counted
+ * twice, and a plain sum of the window is the reconciled figure.
+ */
+describe("KubernetesCostIngestService corrections", () => {
+  const KUBECOST: KubernetesCostIngestPayload["costEngine"] = {
+    engine: "Kubecost",
+    service: "kubecost/kubecost-cost-analyzer",
+    bundledEngineUnused: false,
+    pricingSource: KubernetesCostPricingSource.BillingIntegration,
+    pricingProvider: "AWS",
+    memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Engine,
+  };
+
+  // What the window holds for makeAllocation()'s container: its first reading.
+  function slice(
+    overrides: Partial<KubernetesCostStoredSlice> = {},
+  ): KubernetesCostStoredSlice {
+    return {
+      namespace: "prod",
+      controllerKind: "deployment",
+      controllerName: "api",
+      podName: "api-abc",
+      containerName: "api",
+      nodeName: "node-1",
+      providerId: "i-0123",
+      labels: { team: "payments" },
+      costEngine: "Kubecost",
+      costEngineService: "kubecost/kubecost-cost-analyzer",
+      cpuCost: 0.05,
+      gpuCost: 0,
+      ramCost: 0.02,
+      pvCost: 0,
+      networkCost: 0,
+      loadBalancerCost: 0,
+      sharedCost: 0,
+      externalCost: 0,
+      totalCost: 0.07,
+      // As ingest weighed the first reading: (0.05 + 0.02) at 0.5.
+      efficiencyWeight: 0.07,
+      weightedEfficiency: 0.035,
+      ...overrides,
+    };
+  }
+
+  function correction(
+    allocations: Array<KubernetesCostAllocationIngestRow>,
+    overrides: Partial<KubernetesCostIngestPayload> = {},
+  ): KubernetesCostIngestJobData {
+    return makeJobData({
+      clusterName: "prod-cluster",
+      costEngine: KUBECOST,
+      shipmentId: "correction-1",
+      shipmentChunk: 0,
+      correction: true,
+      allocations,
+      ...overrides,
+    });
+  }
+
+  function writtenRows(callIndex: number = 0): Array<JSONObject> {
+    return insertCorrectionMock.mock.calls[callIndex]![0] as Array<JSONObject>;
+  }
+
+  function metricValue(name: string): Array<number> {
+    return ((insertMetricsMock.mock.calls[0]?.[0] as Array<JSONObject>) || [])
+      .filter((row: JSONObject): boolean => {
+        return row["name"] === name;
+      })
+      .map((row: JSONObject): number => {
+        return row["value"] as number;
+      });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    findOrCreateMock.mockResolvedValue({
+      id: CLUSTER_ID,
+      clusterIdentifier: "prod-cluster",
+    } as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    buildMetadataMock.mockResolvedValue({
+      dataRententionInDays: RETENTION_DAYS,
+      serviceRetentionConfig: null,
+      serviceRetentionInDays: null,
+      projectRetentionConfig: null,
+      projectRetentionInDays: 30,
+    } as never);
+    findWindowSlicesMock.mockResolvedValue([slice()] as never);
+    insertCorrectionMock.mockResolvedValue(undefined as never);
+    lockMock.mockResolvedValue({ id: "mutex" } as never);
+    releaseMock.mockResolvedValue(undefined as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    insertMetricsMock.mockResolvedValue(undefined as never);
+    indexCatalogMock.mockResolvedValue(undefined as never);
+    KubernetesCostIngestService.resetCatalogRegistrationsForTests();
+  });
+
+  test("writes the difference from what the window holds, as a row of its own", async () => {
+    // Kubecost reconciled the hour: a savings plan took 40% off.
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({ cpuCost: 0.03, ramCost: 0.012, totalCost: 0.042 }),
+      ]),
+    );
+
+    expect(findWindowSlicesMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      kubernetesClusterId: CLUSTER_ID,
+      windowStart: OneUptimeDate.fromString("2026-07-24T10:00:00Z"),
+      windowEnd: OneUptimeDate.fromString("2026-07-24T11:00:00Z"),
+    });
+
+    const rows: Array<JSONObject> = writtenRows();
+    expect(rows).toHaveLength(1);
+
+    const row: JSONObject = rows[0]!;
+    expect(row["isCostAdjustment"]).toBe(true);
+    expect(row["cpuCost"]).toBeCloseTo(-0.02, 12);
+    expect(row["ramCost"]).toBeCloseTo(-0.008, 12);
+    expect(row["totalCost"]).toBeCloseTo(-0.028, 12);
+    // Weighed by the reconciled costs: (0.03 + 0.012) at 0.5, less what was.
+    expect(row["efficiencyWeight"]).toBeCloseTo(0.042 - 0.07, 12);
+    expect(row["weightedEfficiency"]).toBeCloseTo(0.021 - 0.035, 12);
+    // The same window, workload, pod and container.
+    expect(row["windowStart"]).toBe("2026-07-24 10:00:00");
+    expect(row["namespace"]).toBe("prod");
+    expect(row["controllerKind"]).toBe("deployment");
+    expect(row["controllerName"]).toBe("api");
+    expect(row["podName"]).toBe("api-abc");
+    expect(row["containerName"]).toBe("api");
+    // It says who priced it, as the first reading does.
+    expect(row["costEngine"]).toBe("Kubecost");
+    expect(row["pricingSource"]).toBe("billing-integration");
+    expect(row["shipmentId"]).toBe("correction-1");
+    // Its retention is its window's, as every row's.
+    expect(row["retentionDate"]).toBe("2026-08-08 10:00:00");
+  });
+
+  test("a correction row holds no usage, so no count or average sees it", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({
+          cpuCost: 0.03,
+          ramCost: 0.012,
+          totalCost: 0.042,
+          cpuCoreHours: 1.5,
+          cpuCoreRequestAverage: 2,
+          cpuCoreUsageAverage: 0.4,
+          ramBytesRequestAverage: 1024,
+          ramBytesUsageMax: 2048,
+        }),
+      ]),
+    );
+
+    const row: JSONObject = writtenRows()[0]!;
+
+    for (const column of [
+      "cpuCoreHours",
+      "cpuCoreRequestAverage",
+      "cpuCoreUsageAverage",
+      "cpuCoreLimitAverage",
+      "gpuHours",
+      "ramByteHours",
+      "ramBytesRequestAverage",
+      "ramBytesUsageAverage",
+      "ramBytesLimitAverage",
+      "ramBytesUsageMax",
+      "pvByteHours",
+      "cpuEfficiency",
+      "ramEfficiency",
+      "totalEfficiency",
+    ]) {
+      expect([column, row[column]]).toEqual([column, 0]);
+    }
+  });
+
+  test("a correction row keeps the labels and node the window holds, so it groups with them", async () => {
+    findWindowSlicesMock.mockResolvedValue([
+      slice({ labels: { team: "platform" }, nodeName: "node-7" }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.5 })]),
+    );
+
+    const row: JSONObject = writtenRows()[0]!;
+    expect(row["labels"]).toEqual({ team: "platform" });
+    expect(row["labelKeys"]).toEqual(["team"]);
+    expect(row["nodeName"]).toBe("node-7");
+  });
+
+  test("is written once flushed, under a lock per window, which is given back", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.5 })]),
+    );
+
+    expect(insertCorrectionMock.mock.calls[0]![1]).toEqual({
+      clickhouseSettings: { wait_for_async_insert: 1 },
+    });
+    expect(lockMock).toHaveBeenCalledTimes(1);
+    expect(lockMock.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        namespace: "kubernetes-cost-correction",
+        key: `${PROJECT_ID.toString()}-${CLUSTER_ID.toString()}-${OneUptimeDate.fromString("2026-07-24T10:00:00Z").getTime()}`,
+      }),
+    );
+    expect(releaseMock).toHaveBeenCalledWith({ id: "mutex" });
+    // Never through the first readings' path, which skips a window it has.
+    expect(existsByMock).not.toHaveBeenCalled();
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test("a write that fails gives the lock back and fails the job, to be tried again", async () => {
+    insertCorrectionMock.mockRejectedValue(
+      new Error("ClickHouse down") as never,
+    );
+
+    await expect(
+      KubernetesCostIngestService.processFromQueue(
+        correction([makeAllocation({ totalCost: 0.5 })]),
+      ),
+    ).rejects.toThrow("ClickHouse down");
+
+    expect(releaseMock).toHaveBeenCalledTimes(1);
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+  });
+
+  test("a reading that matches what the window holds writes nothing", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation()]),
+    );
+
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+  });
+
+  test("the same reading again, once its correction landed, changes nothing", async () => {
+    // The first reading plus the correction it brought: the reading itself.
+    findWindowSlicesMock.mockResolvedValue([
+      slice({
+        cpuCost: 0.03,
+        ramCost: 0.012,
+        totalCost: 0.042,
+        efficiencyWeight: 0.042,
+        weightedEfficiency: 0.021,
+      }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({ cpuCost: 0.03, ramCost: 0.012, totalCost: 0.042 }),
+      ]),
+    );
+
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+  });
+
+  test("a correction that went in twice is taken back by the next reading", async () => {
+    // 0.07 shipped, then -0.028 written twice: the window reads 0.014.
+    findWindowSlicesMock.mockResolvedValue([
+      slice({ totalCost: 0.014, cpuCost: 0.01, ramCost: 0.004 }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({ cpuCost: 0.03, ramCost: 0.012, totalCost: 0.042 }),
+      ]),
+    );
+
+    const row: JSONObject = writtenRows()[0]!;
+    expect(row["totalCost"]).toBeCloseTo(0.028, 12);
+    expect(row["cpuCost"]).toBeCloseTo(0.02, 12);
+  });
+
+  test("float noise is no correction", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.07 + 1e-13 })]),
+    );
+
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+  });
+
+  test("a container the window does not have is written whole, usage and all", async () => {
+    // The window holds another container: this one was collected late.
+    findWindowSlicesMock.mockResolvedValue([
+      slice({ podName: "api-def" }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ cpuCoreHours: 1.5, totalCost: 0.07 })]),
+    );
+
+    const rows: Array<JSONObject> = writtenRows();
+    expect(rows).toHaveLength(1);
+
+    const row: JSONObject = rows[0]!;
+    expect(row["podName"]).toBe("api-abc");
+    expect(row["isCostAdjustment"]).toBe(false);
+    expect(row["cpuCoreHours"]).toBe(1.5);
+    expect(row["totalCost"]).toBe(0.07);
+    expect(row["labels"]).toEqual({ team: "payments" });
+  });
+
+  test("a window that holds nothing is left alone: a correction never stands in for a first reading", async () => {
+    // What a restarted agent's reading of an hour from before it ran finds.
+    findWindowSlicesMock.mockResolvedValue([] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ cpuCoreHours: 1.5, totalCost: 0.07 })]),
+    );
+
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+    // Routine, so not a warning.
+    expect(logger.warn as unknown as MockedFn).not.toHaveBeenCalled();
+    expect(
+      (logger.debug as unknown as MockedFn).mock.calls.some(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).includes(
+            "the window holds nothing to correct",
+          );
+        },
+      ),
+    ).toBe(true);
+    // And the lock is given back.
+    expect(releaseMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a container the window has and the reading lacks is left as it is", async () => {
+    findWindowSlicesMock.mockResolvedValue([
+      slice(),
+      slice({ podName: "api-def", totalCost: 0.3 }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.05 })]),
+    );
+
+    const rows: Array<JSONObject> = writtenRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!["podName"]).toBe("api-abc");
+  });
+
+  test("the idle row is corrected too, and weighs nothing in efficiency", async () => {
+    findWindowSlicesMock.mockResolvedValue([
+      slice({
+        namespace: "__idle__",
+        controllerKind: "",
+        controllerName: "",
+        podName: "",
+        containerName: "",
+        totalCost: 1,
+        cpuCost: 0.6,
+        ramCost: 0.4,
+        efficiencyWeight: 0,
+        weightedEfficiency: 0,
+      }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({
+          namespace: "__idle__",
+          controllerKind: "",
+          controllerName: "",
+          podName: "",
+          containerName: "",
+          totalCost: 0.7,
+          cpuCost: 0.42,
+          ramCost: 0.28,
+        }),
+      ]),
+    );
+
+    const row: JSONObject = writtenRows()[0]!;
+    expect(row["totalCost"]).toBeCloseTo(-0.3, 12);
+    expect(row["efficiencyWeight"]).toBe(0);
+    expect(row["weightedEfficiency"]).toBe(0);
+    expect(metricValue("oneuptime.kubernetes.cost.idle")).toEqual([
+      expect.closeTo(-0.3, 12),
+    ]);
+  });
+
+  test("brings the cost metrics in line by the same differences, and leaves efficiency as it was", async () => {
+    findWindowSlicesMock.mockResolvedValue([
+      slice(),
+      slice({ podName: "api-def", totalCost: 0.3 }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({ cpuCost: 0.03, ramCost: 0.012, totalCost: 0.042 }),
+        makeAllocation({ podName: "api-def", totalCost: 0.3 }),
+      ]),
+    );
+
+    // The cluster's total and the workload's cost move by the difference.
+    expect(metricValue("oneuptime.kubernetes.cost.total")).toEqual([
+      expect.closeTo(-0.028, 12),
+    ]);
+    expect(metricValue("oneuptime.kubernetes.cost.workload")).toEqual([
+      expect.closeTo(-0.028, 12),
+    ]);
+    // Nothing changed for idle, and efficiency is a Gauge: none written.
+    expect(metricValue("oneuptime.kubernetes.cost.idle")).toEqual([]);
+    expect(metricValue("oneuptime.kubernetes.cost.efficiency")).toEqual([]);
+
+    const point: JSONObject = (
+      insertMetricsMock.mock.calls[0]![0] as Array<JSONObject>
+    )[0]!;
+    // At the window's start, as its first reading's points are.
+    expect(point["time"]).toBe("2026-07-24 10:00:00");
+    expect(point["aggregationTemporality"]).toBe(AggregationTemporality.Delta);
+  });
+
+  test("a window another engine priced is left alone", async () => {
+    findWindowSlicesMock.mockResolvedValue([
+      slice({ costEngine: "OpenCost", costEngineService: "" }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.5 })]),
+    );
+
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+    expect(insertMetricsMock).not.toHaveBeenCalled();
+    expect(
+      (logger.warn as unknown as MockedFn).mock.calls.some(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).includes(
+            "the window was priced by OpenCost, the reading by Kubecost (kubecost/kubecost-cost-analyzer)",
+          );
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("a window an agent that named no engine priced is corrected", async () => {
+    findWindowSlicesMock.mockResolvedValue([
+      slice({ costEngine: "", costEngineService: "" }),
+    ] as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.5 })]),
+    );
+
+    expect(writtenRows()).toHaveLength(1);
+  });
+
+  test("a reading that does not say which engine priced it changes nothing", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      correction([makeAllocation({ totalCost: 0.5 })], {
+        costEngine: undefined,
+      }),
+    );
+
+    expect(insertCorrectionMock).not.toHaveBeenCalled();
+  });
+
+  test("a reading of several windows corrects each against what it holds, one lock each", async () => {
+    findWindowSlicesMock.mockImplementation(((data: {
+      windowStart: Date;
+    }): Promise<Array<KubernetesCostStoredSlice>> => {
+      return Promise.resolve(
+        data.windowStart.getTime() ===
+          OneUptimeDate.fromString("2026-07-24T10:00:00Z").getTime()
+          ? [slice()]
+          : [
+              slice({
+                totalCost: 0.2,
+              }),
+            ],
+      );
+    }) as never);
+
+    await KubernetesCostIngestService.processFromQueue(
+      correction([
+        makeAllocation({ totalCost: 0.1 }),
+        makeAllocation({
+          windowStart: "2026-07-24T11:00:00Z",
+          windowEnd: "2026-07-24T12:00:00Z",
+          totalCost: 0.1,
+        }),
+      ]),
+    );
+
+    expect(findWindowSlicesMock).toHaveBeenCalledTimes(2);
+    expect(lockMock).toHaveBeenCalledTimes(2);
+    expect(releaseMock).toHaveBeenCalledTimes(2);
+    expect(writtenRows(0)[0]!["totalCost"]).toBeCloseTo(0.03, 12);
+    expect(writtenRows(1)[0]!["totalCost"]).toBeCloseTo(-0.1, 12);
+  });
+
+  test("a first reading never goes the corrections' way", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        costEngine: KUBECOST,
+        shipmentId: "first",
+        shipmentChunk: 0,
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(findWindowSlicesMock).not.toHaveBeenCalled();
+    expect(lockMock).not.toHaveBeenCalled();
+    expect(submitMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("KubernetesCostIngestService.buildCorrection", () => {
+  test("one row per container even when a reading names one twice", () => {
+    const row: JSONObject = {
+      namespace: "prod",
+      controllerKind: "deployment",
+      controllerName: "api",
+      podName: "api-abc",
+      containerName: "api",
+      totalCost: 0.5,
+    };
+    const source: KubernetesCostMetricSourceRow = {
+      windowStart: new Date("2026-07-24T10:00:00Z"),
+      windowEnd: new Date("2026-07-24T11:00:00Z"),
+      namespace: "prod",
+      controllerKind: "deployment",
+      controllerName: "api",
+      podName: "api-abc",
+      totalCost: 0.5,
+      cpuCost: 0,
+      ramCost: 0,
+      totalEfficiency: 0,
+    };
+
+    const result: ReturnType<
+      typeof KubernetesCostIngestService.buildCorrection
+    > = KubernetesCostIngestService.buildCorrection({
+      reading: [
+        { row, metricSource: source },
+        { row: { ...row, totalCost: 9 }, metricSource: source },
+      ],
+      // The window holds another container; this one is new to it.
+      stored: [
+        {
+          namespace: "prod",
+          controllerKind: "deployment",
+          controllerName: "api",
+          podName: "api-def",
+          containerName: "api",
+          nodeName: "",
+          providerId: "",
+          labels: {},
+          costEngine: "Kubecost",
+          costEngineService: "",
+          cpuCost: 0,
+          gpuCost: 0,
+          ramCost: 0,
+          pvCost: 0,
+          networkCost: 0,
+          loadBalancerCost: 0,
+          sharedCost: 0,
+          externalCost: 0,
+          totalCost: 0.1,
+          efficiencyWeight: 0,
+          weightedEfficiency: 0,
+        },
+      ],
+      costEngine: {
+        engine: "Kubecost",
+        service: "",
+        bundledEngineUnused: false,
+        pricingSource: KubernetesCostPricingSource.BillingIntegration,
+        pricingProvider: "AWS",
+        memoryPeaksFrom: KubernetesCostMemoryPeaksSource.None,
+      },
+    });
+
+    expect(result.refused).toBeNull();
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]!["totalCost"]).toBe(0.5);
   });
 });

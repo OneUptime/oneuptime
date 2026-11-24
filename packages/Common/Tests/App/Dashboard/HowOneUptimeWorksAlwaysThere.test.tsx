@@ -305,13 +305,8 @@ describe("Help starts with learning", () => {
 
     expect(
       within(learn)
-        .getAllByRole("link")
-        .concat(within(learn).queryAllByRole("button"))
-        .sort((a: HTMLElement, b: HTMLElement): number => {
-          return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
-            ? -1
-            : 1;
-        })
+        // The menu's items, links and actions alike, in the order drawn.
+        .getAllByRole("menuitem")
         .map((entry: HTMLElement): string => {
           return entry.textContent || "";
         }),

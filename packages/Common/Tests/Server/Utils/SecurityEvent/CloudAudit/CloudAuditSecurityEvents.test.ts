@@ -209,16 +209,23 @@ describe("CloudAuditSecurityEvents - each cloud's records, read as Your logs rea
 
     expect(google!.eventUid).toBe("gcp-audit:1a2b3c4d5e");
     expect(google!.attributes[CLOUD_AUDIT_ACCOUNT_ATTRIBUTE]).toBe("acme-prod");
-    expect(azure!.eventUid).toBe(
+    /*
+     * An Activity Log record by what both its shapes say (#10032) - the
+     * export to an Event Hub has no eventDataId - and looked up by the
+     * eventDataId it was stored by before.
+     */
+    expect(azure!.eventUid).toMatch(/^azure-activity:[0-9a-f]{40}$/);
+    expect(azure!.eventUidAliases).toEqual([
       "azure-activity:a0b1c2d3-0000-4000-8000-000000000008",
-    );
+    ]);
     expect(azure!.principalIp).toBe("198.51.100.66");
   });
 
-  test("a record the cloud gave no id of its own is left out: it could not be stored once", () => {
+  test("a record the cloud gave no id of its own, nor what one is made of, is left out: it could not be stored once", () => {
     const azureWithoutId: JSONObject = azureActivityApiEvent();
 
     delete azureWithoutId["eventDataId"];
+    delete azureWithoutId["correlationId"];
 
     expect(
       CloudAuditSecurityEvents.parseRecords({

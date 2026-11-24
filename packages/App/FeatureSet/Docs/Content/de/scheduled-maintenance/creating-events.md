@@ -65,7 +65,7 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 | **Monitore**                         | **Betroffene Ressourcen** | Keine                    | Die Monitore, die nicht geprüft werden, solange das Ereignis läuft.              |
 | **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen. Wird abgefragt, sobald ein Monitor gewählt ist. |
 | **Andere betroffene Ressourcen**     | **Betroffene Ressourcen** | Keine                    | Hosts, Cluster, Datenbanken, Netzwerkstandorte, Dienste und mehr.                |
-| **Ereignis auf diesen Status-Seiten anzeigen** | **Betroffene Ressourcen** | Keine          | Die Statusseiten, die das Ereignis zeigen und ihre Abonnenten informieren.       |
+| **Ereignis auf diesen Status-Seiten anzeigen** | **Betroffene Ressourcen** | Keine          | Die einzigen Statusseiten, die das Ereignis zeigen oder ihre Abonnenten informieren können. |
 | **Abonnentenbenachrichtigungen**     | **Betroffene Ressourcen** | Sofort veröffentlicht, alle drei Momente an, keine Erinnerungen | Wann das Ereignis auf diesen Seiten erscheint und wann ihre Abonnenten informiert werden. |
 
 Zwei Dinge füllen das Formular unterwegs für Sie aus:
@@ -104,8 +104,9 @@ Planen Sie die Arbeit so früh, wie Sie möchten, und behalten Sie sie in Ihrem 
 | Sein **Endet am**          | Es endet                                                             | Vorbei                 |
 
 - **Bis dahin erfahren Abonnenten nichts.** Erinnerungen vor dem Ereignis, Statusänderungen und öffentliche Notizen werden ihnen nicht gesendet, solange das Ereignis wartet.
-- **Seine Seite sagt es.** Sein Kopfbereich zeigt **Noch nicht auf Statusseiten** mit dem Zeitpunkt, ab dem es erscheint, und **Jetzt veröffentlichen** veröffentlicht es sofort, nach einer Rückfrage. Seine **Einstellungen** sagen dasselbe, und die Liste der Ereignisse zeigt den Zeitpunkt unter seinen Statusseiten.
+- **Seine Seite sagt es.** Sein Kopfbereich zeigt **Noch nicht auf Statusseiten** mit dem Zeitpunkt, ab dem es erscheint, und **Jetzt veröffentlichen** veröffentlicht es sofort, nach einer Rückfrage. Zeigt keine seiner Statusseiten Wartungsereignisse, sagt der Kopfbereich das statt des Zeitpunkts. Seine **Einstellungen** sagen dasselbe, und die Liste der Ereignisse zeigt den Zeitpunkt unter seinen Statusseiten.
 - **Ändern oder sofort veröffentlichen.** Verschieben Sie **Veröffentlichen am** im Schritt **Statusseiten** von **Bearbeiten**, oder wählen Sie **Sofort**. Schalten Sie **Auf Statusseite sichtbar** in seinen **Einstellungen** aus, um es unabhängig vom Zeitpunkt von seinen Statusseiten fernzuhalten.
+- **Was seine Statusseiten tun.** Im selben Schritt sagt ein Hinweis unter den Statusseiten, wenn die gewählten Seiten das Ereignis niemandem zeigen oder niemanden informieren werden, und warum, und ein Hinweis unter **Erinnerungen vor dem Ereignis** sagt, welche Erinnerungen nicht gesendet werden. Die Karte **Wartungsdetails** sagt es unter **Auf Status-Seiten angezeigt**, wenn keine von ihnen Wartungsereignisse zeigt.
 
 ## Ein Ereignis später ändern
 

@@ -196,6 +196,12 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   lastSuccessfulBackupAt: true,
   lastBackupBytes: true,
   lastBackupDurationSeconds: true,
+  // Who or what stopped a stopped guest, from the task log (#10017).
+  lastPowerTaskType: true,
+  lastPowerTaskUser: true,
+  lastPowerTaskStatus: true,
+  lastPowerTaskAt: true,
+  powerTaskReadAt: true,
 };
 
 /**

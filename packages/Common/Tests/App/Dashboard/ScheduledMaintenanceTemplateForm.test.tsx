@@ -145,9 +145,12 @@ import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import {
+  TEMPLATE_TIMEZONE_DESCRIPTION,
   getFormSteps,
   getTemplateFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Settings/ScheduledMaintenanceTemplates";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import { PublicNoteNothingSentReason } from "../../../Types/StatusPage/PublicNoteReach";
 import MaintenanceStatusPagesCopy from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/MaintenanceStatusPagesCopy";
@@ -306,6 +309,52 @@ function createdTemplate(): ScheduledMaintenanceTemplate {
       model: ScheduledMaintenanceTemplate;
     }
   ).model;
+}
+
+// The form, filled to its Recurring step.
+async function renderToRecurringStep(): Promise<void> {
+  renderTemplateForm();
+  await screen.findByRole("navigation", { name: "Progress" });
+  await fillTemplateInfo();
+  await goToNextStep("Maintenance Details");
+  fireEvent.change(labelledControl("Title"), {
+    target: { value: "Database maintenance" },
+  });
+  await act(async () => {});
+  await goToNextStep("Resources Affected");
+  await goToNextStep("Recurring");
+}
+
+// The time zone's picker, named by its field's label.
+function timezonePicker(): HTMLElement {
+  return screen.getByRole("combobox", { name: /Timezone/ });
+}
+
+// The interval's unit picker: the step's other picker, which no label names.
+function intervalUnitPicker(): HTMLElement {
+  const pickers: Array<HTMLElement> = within(form())
+    .getAllByRole("combobox")
+    .filter((picker: HTMLElement): boolean => {
+      return !picker.getAttribute("aria-labelledby");
+    });
+
+  expect(pickers).toHaveLength(1);
+
+  return pickers[0]!;
+}
+
+// Every `count` `unit`s, as a person types the number and picks the unit.
+async function fillInterval(count: string, unit: string): Promise<void> {
+  fireEvent.change(form().querySelector("input[type='number']")!, {
+    target: { value: count },
+  });
+  await act(async () => {});
+
+  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+  await user.click(intervalUnitPicker());
+  await user.click(await screen.findByRole("option", { name: unit }));
+  await act(async () => {});
 }
 
 beforeEach(() => {
@@ -571,33 +620,63 @@ describe("Create Scheduled Maintenance Template", () => {
     expect(form()).not.toHaveTextContent("Should subscribers be notified");
   });
 
+  /*
+   * Once Recurring Event is on, the schedule takes two steps: how often and
+   * on which clock, then the first event's times - six fields on one step
+   * would overload it (#10037).
+   */
   test("a recurring template asks for its whole schedule before it is saved", async () => {
-    renderTemplateForm();
-    await screen.findByRole("navigation", { name: "Progress" });
-    await fillTemplateInfo();
-    await goToNextStep("Maintenance Details");
-    fireEvent.change(labelledControl("Title"), {
-      target: { value: "Database maintenance" },
-    });
-    await act(async () => {});
-    await goToNextStep("Resources Affected");
-    await goToNextStep("Recurring");
+    await renderToRecurringStep();
 
-    // Off, the schedule is not asked for.
+    // Off, the schedule is not asked for, and Recurring is the last step.
+    expect(
+      form().querySelectorAll("input[type='datetime-local']"),
+    ).toHaveLength(0);
+    expect(stepTitles()).toEqual([
+      "Template Info",
+      "Maintenance Details",
+      "Resources Affected",
+      "Recurring",
+    ]);
+
+    fireEvent.click(screen.getByRole("switch", { name: "Recurring Event" }));
+    await act(async () => {});
+
+    expect(stepTitles()).toEqual([
+      "Template Info",
+      "Maintenance Details",
+      "Resources Affected",
+      "Recurring",
+      "First Event",
+    ]);
+
+    for (const title of ["How often should this event recur?", "Timezone"]) {
+      // Required now: no "(Optional)" beside it.
+      expect(labelText(title)).toBe(title);
+    }
+
+    // The first event's times wait for the next step.
     expect(
       form().querySelectorAll("input[type='datetime-local']"),
     ).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole("switch", { name: "Recurring Event" }));
-    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(
+      await screen.findByText(
+        "How often should this event recur? is required.",
+      ),
+    ).toBeInTheDocument();
+    expect(currentStepTitle()).toBe("Recurring");
+
+    await fillInterval("2", "Week");
+    await goToNextStep("First Event");
 
     for (const title of [
       "First Event Scheduled At",
       "First Event Starts At",
       "First Event Ends At",
-      "How often should this event recur?",
     ]) {
-      // Required now: no "(Optional)" beside it.
       expect(labelText(title)).toBe(title);
     }
 
@@ -607,6 +686,109 @@ describe("Create Scheduled Maintenance Template", () => {
       await screen.findByText("First Event Scheduled At is required."),
     ).toBeInTheDocument();
     expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The clock the schedule is read on starts on the reader's own - the
+   * clock the first event's times are typed on - so nobody has to touch it,
+   * and a template is saved with the one picked (#10037).
+   */
+  describe("its time zone", () => {
+    afterEach(() => {
+      OneUptimeDate.setUserTimezone(null);
+    });
+
+    async function fillFirstEventAndCreate(): Promise<void> {
+      await goToNextStep("First Event");
+
+      for (const [title, value] of [
+        ["First Event Scheduled At", "2030-06-03T09:00"],
+        ["First Event Starts At", "2030-06-08T02:00"],
+        ["First Event Ends At", "2030-06-08T04:00"],
+      ] as Array<[string, string]>) {
+        fireEvent.change(labelledControl(title), {
+          target: { value: value },
+        });
+        await act(async () => {});
+      }
+
+      fireEvent.click(screen.getByRole("button", { name: "Create Template" }));
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+    }
+
+    test("starts on the reader's own time zone, and the template is saved with it", async () => {
+      OneUptimeDate.setUserTimezone(Timezone.EuropeBerlin);
+
+      await renderToRecurringStep();
+      fireEvent.click(screen.getByRole("switch", { name: "Recurring Event" }));
+      await act(async () => {});
+
+      expect(timezonePicker().closest(".ou-select__control")).toHaveTextContent(
+        "Europe/Berlin",
+      );
+      expect(
+        within(form()).getByText(TEMPLATE_TIMEZONE_DESCRIPTION),
+      ).toBeInTheDocument();
+
+      await fillInterval("1", "Week");
+      await fillFirstEventAndCreate();
+
+      const template: ScheduledMaintenanceTemplate = createdTemplate();
+
+      expect(template.timezone).toBe(Timezone.EuropeBerlin);
+      expect(template.isRecurringEvent).toBe(true);
+      expect(template.recurringInterval?.toString()).toBe("1 Week");
+      // Typed on Berlin's clock: 02:00 CEST.
+      expect(new Date(template.firstEventStartsAt!).toISOString()).toBe(
+        "2030-06-08T00:00:00.000Z",
+      );
+    });
+
+    test("another time zone can be picked, and the template is saved with that one", async () => {
+      OneUptimeDate.setUserTimezone(Timezone.EuropeBerlin);
+
+      await renderToRecurringStep();
+      fireEvent.click(screen.getByRole("switch", { name: "Recurring Event" }));
+      await act(async () => {});
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      await user.click(timezonePicker());
+      await user.type(timezonePicker(), "New_York");
+      await user.click(
+        await screen.findByRole("option", { name: /America\/New_York/ }),
+      );
+
+      await fillInterval("1", "Day");
+      await fillFirstEventAndCreate();
+
+      expect(createdTemplate().timezone).toBe(Timezone.AmericaNew_York);
+    });
+
+    test("the field offers each clock once, under its current name", () => {
+      const field: { dropdownOptions?: Array<{ value: unknown }> } | undefined =
+        getTemplateFormFields({ isViewPage: false }).find(
+          (candidate: { title?: string | undefined }): boolean => {
+            return candidate.title === "Timezone";
+          },
+        ) as { dropdownOptions?: Array<{ value: unknown }> } | undefined;
+
+      const values: Array<unknown> = (field?.dropdownOptions || []).map(
+        (option: { value: unknown }): unknown => {
+          return option.value;
+        },
+      );
+
+      expect(values).toContain(Timezone.UTC);
+      expect(values).toContain(Timezone.AmericaVancouver);
+      expect(values).toContain(Timezone.AsiaKolkata);
+      // A legacy name is not a second entry for the same clock.
+      expect(values).not.toContain(Timezone.AsiaCalcutta);
+      expect(new Set(values).size).toBe(values.length);
+    });
   });
 
   /*
@@ -631,7 +813,7 @@ describe("Create Scheduled Maintenance Template", () => {
     fireEvent.click(screen.getByRole("switch", { name: "Recurring Event" }));
     await act(async () => {});
 
-    const picker: HTMLElement = within(form()).getByRole("combobox");
+    const picker: HTMLElement = intervalUnitPicker();
 
     fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
 
@@ -868,6 +1050,34 @@ describe("the template's page", () => {
     );
     expect(nextEvent.showIf!(templateWith({ isRecurringEvent: false }))).toBe(
       false,
+    );
+  });
+
+  test("shows the time zone its schedule is read in while the template recurs, and only then, saying what it does", async () => {
+    const fields: Array<DetailField> = await detailFields();
+    const timezone: DetailField & { description?: unknown } = fieldTitled(
+      fields,
+      "Timezone",
+    );
+
+    expect(timezone.field).toEqual({ timezone: true });
+    expect(timezone.description).toBe(TEMPLATE_TIMEZONE_DESCRIPTION);
+    expect(timezone.showIf!(templateWith({ isRecurringEvent: true }))).toBe(
+      true,
+    );
+    expect(timezone.showIf!(templateWith({ isRecurringEvent: false }))).toBe(
+      false,
+    );
+
+    // Beside the switch, before the first event's times.
+    const titles: Array<string | undefined> = fields.map(
+      (field: DetailField): string | undefined => {
+        return field.title;
+      },
+    );
+
+    expect(titles.indexOf("Timezone")).toBe(
+      titles.indexOf("Is Recurring Event") + 1,
     );
   });
 

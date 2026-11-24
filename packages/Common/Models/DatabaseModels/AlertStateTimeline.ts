@@ -15,6 +15,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -594,6 +595,7 @@ export default class AlertStateTimeline extends BaseModel {
     title: "Ends At",
     description: "When did this status change end?",
     example: "2024-01-15T12:30:00.000Z",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Date,

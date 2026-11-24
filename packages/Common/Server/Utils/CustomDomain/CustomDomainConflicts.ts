@@ -1,7 +1,7 @@
 import DashboardDomainService from "../../Services/DashboardDomainService";
 import FormDomainService from "../../Services/FormDomainService";
 import StatusPageDomainService from "../../Services/StatusPageDomainService";
-import BadDataException from "../../../Types/Exception/BadDataException";
+import ValueTakenException from "../../../Types/Exception/ValueTakenException";
 
 /*
  * One name, one thing to show. A custom domain - a status page's, a
@@ -111,7 +111,14 @@ export default class CustomDomainConflicts {
           fullDomain: fullDomain,
         })
       ) {
-        throw new BadDataException(getCustomDomainInUseMessage(fullDomain));
+        /*
+         * With the code of a taken value (#10319): a domain moved from a
+         * dashboard to a status page in one Terraform apply is one deleted
+         * and one created, side by side.
+         */
+        throw new ValueTakenException(getCustomDomainInUseMessage(fullDomain), {
+          field: "fullDomain",
+        });
       }
     }
   }

@@ -6,6 +6,7 @@ import {
   AIChatWidgetSpan,
   AIChatWidgetStat,
   AIChatWidgetType,
+  isAIChatReadResourceCard,
 } from "../../../Types/AI/AIChatTypes";
 import { ResourceCardFact } from "../../../Types/AI/ResourceCardFacts";
 import { JSONObject } from "../../../Types/JSON";
@@ -275,6 +276,65 @@ function resourceCardToMarkdown(widget: AIChatWidget): Array<string> {
   return lines;
 }
 
+/*
+ * Whether a widget is a card a read left, with a name to head it (issue
+ * #7395). The chat draws no title over such a card - its kind and its name
+ * are its title ("MONITOR", "payments-api") - so the export heads it with
+ * its name, once, rather than "Monitor payments-api" over the same two
+ * again, as the PDF does since PR #7322 (PdfWidgets' hasHeader). A write's
+ * card, and a card saved before cards said which, keep their title: it
+ * says what was done ("Alert created").
+ */
+function isNamedReadCard(widget: AIChatWidget): boolean {
+  return (
+    widget.type === AIChatWidgetType.ResourceCard &&
+    isAIChatReadResourceCard(widget.data) &&
+    Boolean(widget.data.heading?.trim())
+  );
+}
+
+/*
+ * A read's card: its name as the heading, so the document's outline lists
+ * every card once, by what it is; its kind in italics beside its line, as
+ * the card draws the kind above the name; then its facts. The name and the
+ * line are data - a monitor's name, a status the project named - placed
+ * with mdText, so nothing in them reads as Markdown it is not, a heading
+ * least of all.
+ */
+function readCardToMarkdown(widget: AIChatWidget): string {
+  const lines: Array<string> = [
+    mdText`#### ${widget.data.heading!.trim()}`.toString(),
+    "",
+  ];
+
+  if (widget.description) {
+    lines.push(`_${widget.description}_`, "");
+  }
+
+  const kindAndLine: Array<string> = [];
+
+  if (widget.data.resourceType) {
+    kindAndLine.push(`_${widget.data.resourceType.toUpperCase()}_`);
+  }
+  if (widget.data.subheading) {
+    kindAndLine.push(mdText`${widget.data.subheading}`.toString());
+  }
+  if (kindAndLine.length > 0) {
+    lines.push(kindAndLine.join(" · "));
+  }
+
+  const fields: Array<ResourceCardFact> = getExportedResourceCardFacts(widget);
+
+  if (fields.length > 0) {
+    lines.push("");
+    for (const field of fields) {
+      lines.push(`- **${field.label}:** ${field.value}`);
+    }
+  }
+
+  return lines.join("\n").trim();
+}
+
 function widgetBodyToMarkdown(widget: AIChatWidget): Array<string> {
   if (isChartWidget(widget.type)) {
     return chartToMarkdown(widget);
@@ -297,6 +357,10 @@ function widgetBodyToMarkdown(widget: AIChatWidget): Array<string> {
 }
 
 export function widgetToMarkdown(widget: AIChatWidget): string {
+  if (isNamedReadCard(widget)) {
+    return readCardToMarkdown(widget);
+  }
+
   const lines: Array<string> = [`#### ${widget.title}`, ""];
 
   if (widget.description) {

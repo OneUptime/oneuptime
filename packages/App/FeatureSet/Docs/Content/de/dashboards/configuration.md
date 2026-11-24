@@ -60,6 +60,7 @@ Wer ein Dashboard außerhalb des Projekts sehen kann, ist eine einzige Wahl auf 
 1. **Nur Personen in diesem Projekt** (Standard) — Das Dashboard hat keinen öffentlichen Link; seine öffentliche Adresse zeigt eine Seite „nicht gefunden“.
 2. **Alle mit dem Link** — Wer den öffentlichen Link hat, kann es sehen, ohne sich anzumelden.
 3. **Alle mit dem Link und einem Passwort** — Besucher geben ein Passwort ein, bevor das Dashboard erscheint.
+4. **Nur angemeldete Personen** — nur die privaten Benutzer, die Sie einladen, und die Personen, die Ihr Single Sign-On einlässt, sehen es, sobald sie sich angemeldet haben.
 
 Unter **Weitere Einstellungen** auf derselben Seite weist die **IP-Zulassungsliste** (Tarif Scale) Anfragen an den öffentlichen Link von jeder IP-Adresse ab, die nicht darauf steht. Die am stärksten abgeschottete öffentliche Einrichtung ist **Alle mit dem Link und einem Passwort** mit einer IP-Zulassungsliste — nützlich für Partnerportale, bei denen Sie beide Schichten wollen.
 

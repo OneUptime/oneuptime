@@ -63,7 +63,7 @@ Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip: uma
 Clique em uma linha. Os detalhes dela abrem ao lado da lista.
 :::
 
-Sua pesquisa, seus chips e o intervalo de tempo ficam no endereço da página, então uma atualização, um favorito ou um link compartilhado abre os mesmos registros. Um link para uma única linha de log, como **Ver linha de log** em um evento de segurança, abre essa linha acima da lista, e você a lê com as suas próprias permissões. **Copiar link**, nos detalhes de uma linha, copia um link assim, com a lista de onde você o copiou abaixo dela, no mesmo intervalo de tempo.
+Sua pesquisa, seus chips e o intervalo de tempo ficam no endereço da página, então uma atualização, um favorito ou um link compartilhado abre os mesmos registros. Um link para uma única linha de log, como **Ver linha de log** em um evento de segurança, abre essa linha acima da lista, e você a lê com as suas próprias permissões. **Copiar link**, nos detalhes de uma linha, copia um link assim, com a lista de onde você o copiou abaixo dela, no mesmo intervalo de tempo. Cada linha da lista também tem **Copiar link**, ao lado da mensagem, para copiar o link de uma linha sem abri-la.
 
 ## Ler um registro
 
@@ -112,7 +112,9 @@ As visualizações salvas pertencem ao projeto, então todos nele veem as mesmas
 
 ## Transformar seus registros em gráficos
 
-Mude a lista para **Análises** para contar registros em vez de lê-los. Escolha uma série temporal, uma lista dos principais ou uma tabela; conte cada registro, ou os valores únicos de um campo; e agrupe por gravidade, serviço, traço, span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra os 5, 10, 25 ou 50 primeiros grupos.
+Mude a lista para **Análises** para mostrar os registros em gráficos em vez de lê-los. Escolha uma série temporal, uma lista dos principais ou uma tabela, e o que ela mede: cada registro contado, os valores únicos de um campo, ou a soma, a média, a mediana, o P90, o P95, o P99, o mínimo ou o máximo de um atributo numérico, como o P95 de `duration_ms`. Agrupe por gravidade, serviço, traço, span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra os 5, 10, 25 ou 50 primeiros grupos.
+
+Um atributo numérico só é lido onde seu valor é um número: um inteiro ou um decimal, com ou sem sinal, em notação científica ou não, como `42`, `-7`, `3.14` ou `1e3`. Um registro sem o atributo, ou com qualquer outra coisa nele, como `12ms` ou `n/a`, fica de fora em vez de ser lido como 0. Um percentil é calculado a partir de até 8.192 valores por ponto, então um ponto com mais registros tem uma estimativa próxima em vez do valor exato.
 
 Clique em **Lista** para voltar às próprias linhas.
 
@@ -192,6 +194,7 @@ Pressione `?` no Visualizador para vê-los.
 | --- | --- |
 | `j` / `k` | Ir para o registro seguinte ou anterior. |
 | Enter | Abrir ou fechar o registro selecionado. |
+| `l` | Copiar um link para o registro selecionado. |
 | Esc | Fechar o painel de detalhes. |
 | `/` | Ir para a caixa de pesquisa. |
 | ⌘ + Enter ou Ctrl + Enter | Aplicar a pesquisa. |

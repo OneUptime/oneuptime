@@ -32,7 +32,7 @@ I campi di un kind sono gli argomenti della risorsa Terraform, in camelCase, sot
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` mostra il record così come lo ha OneUptime, con il suo `id`. Un campo che lasci fuori e che OneUptime compila, come un valore predefinito, viene copiato in `spec.forProvider` dopo la creazione del record, così il controllo successivo non trova nulla da modificare.
+`status.atProvider` mostra il record così come lo ha OneUptime, con il suo `id`. Un campo che lasci fuori e che OneUptime compila, come un valore predefinito, viene copiato in `spec.forProvider` dopo la creazione del record, così il controllo successivo non trova nulla da modificare. Un campo che OneUptime tiene aggiornato da sé, o cambia a sua volta, non viene mai copiato: vedi [Campi che OneUptime tiene aggiornati](#campi-che-oneuptime-tiene-aggiornati).
 
 ## Fare riferimento ad altre risorse
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-L'ID del record si trova nel blocco `import` che la sua pagina **Sviluppatori → Terraform** scrive nella dashboard, e `oneuptime <resource> list` elenca gli ID di un tipo di record con la [CLI di OneUptime](/docs/cli/resource-operations#elencare-i-record). Quando la risorsa è pronta, `status.atProvider` mostra il record. Per gestirlo da quel momento in poi, scrivi i suoi campi in `spec.forProvider` e imposta `managementPolicies` su `["*"]`.
+La pagina **Sviluppatori → Crossplane** del record, nella dashboard, scrive questo manifest per te, con il suo ID, e uno che prende in carico il record con i suoi campi così come sono. `oneuptime <resource> list` elenca gli ID di un tipo di record con la [CLI di OneUptime](/docs/cli/resource-operations#elencare-i-record). Quando la risorsa è pronta, `status.atProvider` mostra il record. Per gestirlo da quel momento in poi, scrivi i suoi campi in `spec.forProvider` e imposta `managementPolicies` su `["*"]`.
 
 ## Segreti
 
@@ -104,7 +104,7 @@ Un campo che contiene un segreto, come la passphrase della chiave client TLS di 
 
 ## Modifiche fatte fuori da Kubernetes
 
-Il provider confronta ogni risorsa con il suo record ogni 10 minuti e ripristina tutto ciò che qualcuno ha cambiato in OneUptime. Per controllare più spesso, dai al provider una configurazione di runtime con `--poll`:
+Il provider confronta ogni risorsa con il suo record ogni 10 minuti e ripristina tutto ciò che qualcuno ha cambiato in OneUptime, tranne in un campo che anche OneUptime cambia (vedi sotto). Per controllare più spesso, dai al provider una configurazione di runtime con `--poll`:
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -132,7 +132,19 @@ spec:
     name: oneuptime
 ```
 
-Per affidare un campo alla dashboard dopo la creazione del record, scrivilo in `spec.initProvider` invece che in `spec.forProvider`: viene usato per creare il record e non viene mai ripristinato. Per affidare alla dashboard l'intero record, togli `Update` dalle politiche di gestione della risorsa: `["Observe", "Create", "Delete", "LateInitialize"]`.
+Per affidare un campo alla dashboard dopo la creazione del record, scrivilo in `spec.initProvider` invece che in `spec.forProvider`: il record viene creato con quel campo, e il provider non lo copia mai in `spec.forProvider` né lo ripristina. Vale per ogni campo facoltativo; uno di cui il record ha bisogno, come il `name` di un monitor, va in `spec.forProvider`. Per affidare alla dashboard l'intero record, togli `Update` dalle politiche di gestione della risorsa: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Campi che OneUptime tiene aggiornati
+
+Tenere aggiornati alcuni campi, o cambiarli a sua volta, spetta a OneUptime, e il provider non tocca le modifiche di OneUptime: non copia mai questi campi in `spec.forProvider` e non li ripristina mai.
+
+- Un campo che scrive soltanto OneUptime, come quando un monitor di telemetria è stato eseguito l'ultima volta (`telemetryMonitorLastMonitorAt`) o quanti nodi ha un cluster Kubernetes (`nodeCount`), compare solo in `status.atProvider`.
+- Un campo che ha un valore iniziale, come il `currentMonitorStatusId` di un monitor o il `currentIncidentStateId` di un incidente, si può indicare per creare il record, in `spec.initProvider` o in `spec.forProvider`. Poi è OneUptime a cambiarlo, come i controlli di un monitor ne cambiano lo stato, e `status.atProvider` mostra il valore attuale.
+- Un campo che cambiate sia tu sia OneUptime, come le `labels` di un record, a cui le regole per le etichette aggiungono voci, l'`isResolved` di un'eccezione o il `siteId` di un dispositivo di rete, che il rilevamento sposta, lo scrivi tu in `spec.forProvider`. Il provider lo invia per creare il record, e di nuovo ogni volta che il suo valore nel manifest cambia, e non tocca una modifica che OneUptime apporta nel frattempo. Un elenco come `labels` mantiene le voci che OneUptime ha aggiunto, recupera una voce che il manifest elenca e che qualcuno ha tolto, e perde una voce che togli dal manifest.
+
+`kubectl explain` lo dice nella descrizione di ogni campo che ha un valore iniziale o che anche OneUptime cambia. Una risorsa in cui una versione precedente del provider ha riempito `spec.forProvider` con questi campi smette da sola di scontrarsi con OneUptime, senza nulla da modificare.
+
+Il provider conserva nell'annotazione `crossplane.oneuptime.com/last-applied` della risorsa i valori che un manifest ha applicato l'ultima volta ai campi che anche OneUptime cambia. In un elenco che una versione precedente del provider ha riempito, come `labels`, una voce che togli resta nel record come voce di OneUptime; una voce che il manifest elenca dopo che hai cambiato l'elenco per la prima volta è tua, e viene tolta dal record quando la togli.
 
 ## Eliminare una risorsa
 

@@ -14,6 +14,7 @@ import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
@@ -240,7 +241,7 @@ export default class DataAsset extends BaseModel {
     modelType: DataStore,
     title: "Data Store",
     description:
-      "The data store this asset is in. Reading it takes Data Security's permissions; the store's name and kind are copied onto the asset for everyone else.",
+      "The data store this asset is in. Through it, everyone who reads the asset reads which store it is: its name, kind and environment. The store's security facts, such as its sensitivity, exposure and risk score, take Data Security's permissions.",
   })
   @ManyToOne(
     () => {
@@ -379,6 +380,7 @@ export default class DataAsset extends BaseModel {
     allowedValues: Object.values(DataAssetKind),
     isDefaultValueColumn: true,
     defaultValue: DataAssetKind.Table,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -409,6 +411,7 @@ export default class DataAsset extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter tables by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

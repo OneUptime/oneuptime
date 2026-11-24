@@ -30,7 +30,7 @@ A ordem faz parte da regra. Um novo monitor lista seus critérios do pior caso p
 Um critério que corresponde mas não altera nenhum status ainda decide a verificação: o monitor mantém o status que tem, e os critérios abaixo esperam a próxima verificação. O **Status Padrão do Monitor** só se aplica quando nenhum critério corresponde. Em um novo monitor ele é **Operacional**; altere-o em **Mais campos**, abaixo dos critérios.
 
 > [!NOTE]
-> Um monitor que abre um incidente ou alerta por host, contêiner, disco ou interface julga todos os critérios a cada verificação, de modo que dois hosts podem corresponder a dois critérios diferentes ao mesmo tempo. É um monitor cuja consulta tem um **Agrupar Por**, como um monitor de métricas ou de logs, ou um critério que indica `*` para cada disco ou interface. Um monitor de requisições recebidas que agrupa incidentes por um campo do payload ainda para na primeira correspondência.
+> Um monitor que abre um incidente ou alerta por host, contêiner, disco ou interface julga todos os critérios a cada verificação, de modo que dois hosts podem corresponder a dois critérios diferentes ao mesmo tempo. É um monitor cuja consulta tem um **Agrupar Por**, como um monitor de métricas ou de logs, ou um critério que indica `*` para cada disco ou interface. O mesmo vale para um monitor de métricas que observa uma expressão PromQL: cada série que a expressão retorna é julgada por si. Um monitor de requisições recebidas que agrupa incidentes por um campo do payload ainda para na primeira correspondência.
 
 ## O que um critério contém
 

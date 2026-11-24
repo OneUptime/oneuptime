@@ -419,6 +419,8 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         expect.anything(),
         { type: "api-key", apiKey: "key-from-newer-client" },
+        // Handed the answer's headers: a create names the fields it left out (#10136).
+        expect.any(Function),
       );
     });
 
@@ -1345,9 +1347,10 @@ describe("MCP RouteHandler (stateless mode)", () => {
       expect(payload.success).toBe(true);
 
       /*
-       * Signature: (tableName, operation, modelType, apiPath, args, credential).
-       * The key travels as an API-key credential, so the tool layer can tell
-       * it from a client that signed in with OAuth.
+       * Signature: (tableName, operation, modelType, apiPath, args,
+       * credential, onAnswerHeaders). The key travels as an API-key
+       * credential, so the tool layer can tell it from a client that signed
+       * in with OAuth; the last is handed the answer's headers (#10136).
        */
       expect(
         OneUptimeApiService.executeOperation as jest.Mock,
@@ -1361,6 +1364,7 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         expect.anything(),
         { type: "api-key", apiKey: "secret-key-123" },
+        expect.any(Function),
       );
     });
 
@@ -1389,7 +1393,71 @@ describe("MCP RouteHandler (stateless mode)", () => {
         expect.anything(),
         expect.anything(),
         { type: "api-key", apiKey: "bearer-key-456" },
+        expect.any(Function),
       );
+    });
+
+    it("a create's answer names the fields OneUptime left out, as the API's answer header says (#10136)", async () => {
+      (OneUptimeApiService.executeOperation as jest.Mock).mockImplementation(
+        (async (...callArgs: Array<unknown>): Promise<unknown> => {
+          // The API's answer to the create, its header as Node hands it on.
+          const onAnswerHeaders: (headers: Record<string, string>) => void =
+            callArgs[6] as (headers: Record<string, string>) => void;
+
+          onAnswerHeaders({
+            "x-oneuptime-fields-left-out": "lastRollupAt, slug",
+          });
+
+          return { _id: "proj_4", name: "Delta" };
+        }) as never,
+      );
+
+      const res: McpResult = await postMcp(
+        portA,
+        {
+          jsonrpc: "2.0",
+          id: 7,
+          method: "tools/call",
+          params: { name: "create_project", arguments: { name: "Delta" } },
+        },
+        { "x-api-key": "secret-key-123" },
+      );
+
+      expect(res.status).toBe(200);
+      const payload: any = JSON.parse(res.json.result.content[0].text);
+
+      expect(payload.success).toBe(true);
+      expect(payload.fieldsLeftOut).toEqual(["lastRollupAt", "slug"]);
+      expect(payload.message).toBe(
+        "Successfully created Project. OneUptime left out lastRollupAt and slug: only OneUptime writes them, so the new record has OneUptime's values.",
+      );
+    });
+
+    it("a create whose answer names no field left out says nothing of it", async () => {
+      (OneUptimeApiService.executeOperation as jest.Mock).mockImplementation(
+        (async (...callArgs: Array<unknown>): Promise<unknown> => {
+          (callArgs[6] as (headers: Record<string, string>) => void)({});
+
+          return { _id: "proj_5", name: "Epsilon" };
+        }) as never,
+      );
+
+      const res: McpResult = await postMcp(
+        portA,
+        {
+          jsonrpc: "2.0",
+          id: 8,
+          method: "tools/call",
+          params: { name: "create_project", arguments: { name: "Epsilon" } },
+        },
+        { "x-api-key": "secret-key-123" },
+      );
+
+      const payload: any = JSON.parse(res.json.result.content[0].text);
+
+      expect(payload.success).toBe(true);
+      expect(payload.fieldsLeftOut).toBeUndefined();
+      expect(payload.message).toBe("Successfully created Project");
     });
   });
 

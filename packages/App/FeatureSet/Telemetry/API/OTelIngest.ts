@@ -9,11 +9,17 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware";
+/*
+ * OneUptime's own ingest metrics (telemetry.ingest.request.*), shared with
+ * the compatible endpoints. Stacked below parseBody, so the payload size is
+ * read from the body it read, and before the ingestion-key guard, so auth
+ * failures still get counted as "rejected".
+ */
+import { ingestMetricsMiddleware } from "../Middleware/IngestRequestMetrics";
 import OtelTracesIngestService from "../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../Services/OtelMetricsIngestService";
 import OtelLogsIngestService from "../Services/OtelLogsIngestService";
 import OtelProfilesIngestService from "../Services/OtelProfilesIngestService";
-import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import { JSONObject } from "Common/Types/JSON";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
 import StatusCode from "Common/Types/API/StatusCode";
@@ -21,80 +27,6 @@ import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngesti
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 
 const router: ExpressRouter = Express.getRouter();
-
-/**
- * Records a signal-tagged ingest metric (count + duration + payload bytes).
- * Stacks below the parseBody/getProductType middlewares so payload size is
- * available, and runs before the ingestion-key guard so that auth failures
- * still get counted as "rejected".
- */
-const ingestMetricsMiddleware: (
-  signal: "traces" | "metrics" | "logs" | "profiles",
-) => (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => void = (
-  signal: "traces" | "metrics" | "logs" | "profiles",
-) => {
-  return (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): void => {
-    const startNs: bigint = process.hrtime.bigint();
-
-    // Best-effort payload size (parseBody has already populated req.body).
-    const body: unknown = (req as { body?: unknown }).body;
-    let payloadBytes: number = 0;
-    if (body instanceof Uint8Array) {
-      payloadBytes = body.byteLength;
-    } else if (Buffer.isBuffer(body)) {
-      payloadBytes = body.length;
-    } else if (typeof body === "string") {
-      payloadBytes = Buffer.byteLength(body);
-    }
-
-    if (payloadBytes > 0) {
-      AppMetrics.getIngestPayloadBytes().record(payloadBytes, {
-        "telemetry.signal": signal,
-      });
-    }
-
-    let recorded: boolean = false;
-    const recordOnce: () => void = (): void => {
-      if (recorded) {
-        return;
-      }
-      recorded = true;
-
-      const elapsedNs: bigint = process.hrtime.bigint() - startNs;
-      const durationMs: number = Number(elapsedNs) / 1e6;
-      /*
-       * The status the route answered with. A request whose client left
-       * before any answer was sent reaches here on "close" with Node's
-       * default of 200, which is not an answer: it is counted as an error,
-       * not as accepted - its sender saw no success, and will retry it.
-       */
-      const statusCode: number = res.headersSent ? res.statusCode || 0 : 0;
-      const outcome: string =
-        statusCode >= 200 && statusCode < 300
-          ? "accepted"
-          : statusCode >= 400 && statusCode < 500
-            ? "rejected"
-            : "error";
-
-      const attributes: Record<string, string> = {
-        "telemetry.signal": signal,
-        outcome,
-      };
-
-      AppMetrics.getIngestCounter().add(1, attributes);
-      AppMetrics.getIngestDuration().record(durationMs, attributes);
-    };
-
-    res.on("finish", recordOnce);
-    res.on("close", recordOnce);
-
-    next();
-  };
-};
 
 /**
  *

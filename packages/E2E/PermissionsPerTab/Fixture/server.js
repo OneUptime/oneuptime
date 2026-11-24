@@ -200,8 +200,34 @@ const labelRows = (project) => {
   });
 };
 
+/*
+ * Which labels share a name (#9856): GET /shared-names/label, which Settings
+ * > Labels asks with every read of its rows, to mark them. Answered as the
+ * server finds them (UniqueNameInProject.findRecordsSharingName): the
+ * project's labels grouped by their names as they read, in lower case, each
+ * group of two or more. None here: every label has its own name.
+ */
+const sharedLabelNames = (project) => {
+  const byName = new Map();
+
+  for (const label of labelsOf(project)) {
+    const key = label.name.replace(/\s+/g, " ").trim().toLowerCase();
+    byName.set(key, [...(byName.get(key) || []), label.id]);
+  }
+
+  return {
+    groups: [...byName.values()].filter((ids) => {
+      return ids.length > 1;
+    }),
+  };
+};
+
 // What the API answers, by model and operation. Null for what it does not model.
 const answerFor = (route, project, body) => {
+  if (route === "shared-names/label") {
+    return sharedLabelNames(project);
+  }
+
   if (route === "label/get-list") {
     const isArchivedQuery = Boolean(
       body && body.query && body.query.isArchived === true,

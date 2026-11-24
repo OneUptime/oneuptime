@@ -65,6 +65,21 @@ for (const name of API_NAMES) {
 
 let maySecondLevel: boolean = true;
 
+/*
+ * The server's guided setup runs (#7253), in memory: the store reads and
+ * writes them as it would the server's (GuidedSetupRunServerMock).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupRunApi",
+  () => {
+    return (
+      jest.requireActual("./GuidedSetupRunServerMock") as {
+        guidedSetupRunApiModule: unknown;
+      }
+    ).guidedSetupRunApiModule;
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi",
   () => {
@@ -547,6 +562,11 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  guidedSetupRunServer,
+  readKeptRunValues,
+} from "./GuidedSetupRunServerMock";
+import { GuidedSetupResourceStatus } from "../../../Types/GuidedSetup/GuidedSetupRun";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -646,7 +666,7 @@ const storedRun: () => Record<string, unknown> = (): Record<
   string,
   unknown
 > => {
-  return JSON.parse(window.localStorage.getItem(RUN_KEY) || "{}") as Record<
+  return readKeptRunValues(window.localStorage.getItem(RUN_KEY)) as Record<
     string,
     unknown
   >;
@@ -705,6 +725,7 @@ const sent: (name: ProductEventName) => Array<Record<string, unknown>> = (
 };
 
 beforeEach(() => {
+  guidedSetupRunServer.reset();
   window.localStorage.clear();
   billingEnabled = true;
   maySecondLevel = true;
@@ -779,11 +800,18 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// What the setup sets up, beside the steps (#8897), in the order listed.
+/*
+ * What the setup sets up, beside the steps (#8897), in the order listed:
+ * each step's outcome, whatever records the panel lists under it (#10276).
+ */
 const outcomesBeside: () => Array<string> = (): Array<string> => {
   return Array.from(
-    screen.getByTestId("guided-setup-aside").querySelectorAll("li"),
-  ).map((item: HTMLLIElement): string => {
+    screen
+      .getByTestId("guided-setup-aside")
+      .querySelectorAll(
+        '[data-testid^="guided-setup-outcome-"][data-testid$="-text"]',
+      ),
+  ).map((item: Element): string => {
     return item.textContent || "";
   });
 };
@@ -1320,10 +1348,20 @@ describe("how should we reach you", () => {
     });
     await press("on-call-setup-send-code");
 
-    expect(
-      screen.getByText("SMS notifications are disabled for this project."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "SMS notifications are disabled for this project.",
+    );
     expect(screen.queryByTestId("verify-dialog")).toBeNull();
+    // The panel says the number was not added, and why (#10276).
+    expect(
+      screen.getByTestId("guided-setup-resource-phone_number"),
+    ).toHaveAttribute("data-status", "failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-phone_number-error"),
+    ).toHaveTextContent("SMS notifications are disabled for this project.");
+    expect(
+      screen.getByTestId("guided-setup-resource-phone_number-name"),
+    ).toHaveTextContent("•••4567");
   });
 
   test("nothing reaches you: the step does not move on, and says why", async () => {
@@ -2146,6 +2184,69 @@ describe("the test page", () => {
 });
 
 describe("coming back", () => {
+  test("a run only the server kept - a laptop's, opened on a phone - opens at the step it was on (#7253)", async () => {
+    guidedSetupRunServer.seed("on_call", {
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+    });
+    await renderSetup();
+
+    expect(stepState("reach_you")).toBe("done");
+    expect(stepState("who_else")).toBe("done");
+    expect(stepState("no_answer")).toBe("open");
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    // The panel says what the run made, read from the records.
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy"),
+    ).toHaveAttribute("data-status", "created");
+  });
+
+  test("the panel says the policy was made, being made or failed, as the run kept it on the server (#10276)", async () => {
+    guidedSetupRunServer.seed(
+      "on_call",
+      { reachConfirmed: true },
+      {
+        on_call_policy: {
+          status: GuidedSetupResourceStatus.Failed,
+          name: "Default on-call policy",
+          error: "OneUptime is busy and could not save this.",
+          at: "2026-11-20T10:00:00.000Z",
+        },
+      },
+    );
+    await renderSetup();
+
+    expect(stepState("who_else")).toBe("open");
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy"),
+    ).toHaveAttribute("data-status", "failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy-error"),
+    ).toHaveTextContent("OneUptime is busy and could not save this.");
+  });
+
+  test("Set up another policy starts afresh on the server too, keeping who is reached", async () => {
+    guidedSetupRunServer.seed("on_call", {
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      noAnswerDone: true,
+      testSkipped: true,
+    });
+    await renderSetup();
+    await press("on-call-setup-start-over");
+
+    await waitFor(() => {
+      expect(guidedSetupRunServer.valuesOf("on_call")).toEqual({
+        reachConfirmed: true,
+      });
+    });
+    expect(
+      guidedSetupRunServer.calls.map((call: { kind: string }) => {
+        return call.kind;
+      }),
+    ).toContain("forget");
+  });
+
   test("opens the first step not done, from the records, with nothing made twice", async () => {
     keepRun({
       reachConfirmed: true,
@@ -4067,5 +4168,158 @@ describe("read in another language (#7252)", () => {
       expect(alert).not.toContain("Check your connection");
       expect(api["createPolicy"]).not.toHaveBeenCalled();
     });
+  });
+});
+
+/*
+ * WHAT THE SETUP MAKES, AS IT MAKES IT (#10276): "Exactly the same with the
+ * on-call policy as well. Show me on the side the resources created and the
+ * status." Each record under the step that makes it, kept with the run on
+ * the server (#7253).
+ */
+describe("the records it makes, beside the steps (#10276)", () => {
+  const resourceStatus: (key: string) => string | null = (
+    key: string,
+  ): string | null => {
+    return screen
+      .getByTestId(`guided-setup-resource-${key}`)
+      .getAttribute("data-status");
+  };
+
+  test("a new project: the person's notification methods in use, and the rest waiting", async () => {
+    await renderSetup();
+
+    expect(resourceStatus("notification_methods")).toBe("existing");
+    for (const key of [
+      "on_call_policy",
+      "escalation_rule",
+      "on_call_rules",
+      "no_answer",
+      "test_page",
+    ]) {
+      expect(resourceStatus(key)).toBe("waiting");
+    }
+    // No number yet, and none being added: no row for one.
+    expect(
+      screen.queryByTestId("guided-setup-resource-phone_number"),
+    ).toBeNull();
+  });
+
+  test("a new policy, its first escalation rule and its rules: made together, with a link to each", async () => {
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    for (const key of ["on_call_policy", "escalation_rule", "on_call_rules"]) {
+      expect(resourceStatus(key)).toBe("created");
+    }
+    expect(
+      screen.getByTestId("guided-setup-resource-escalation_rule-detail"),
+    ).toHaveTextContent("Pages Ana Lopez first.");
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy-open"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/on-call-duty/policies/${POLICY_ID}`,
+    );
+
+    await waitFor(() => {
+      expect(guidedSetupRunServer.resourcesOf("on_call")).toMatchObject({
+        on_call_policy: { status: "created", recordId: POLICY_ID },
+        escalation_rule: { status: "created" },
+        on_call_rules: { status: "created" },
+      });
+    });
+  });
+
+  test("a policy that could not be made: it says why, and Try again makes one - never two", async () => {
+    keepRun({ reachConfirmed: true });
+    api["createPolicy"]!.mockRejectedValueOnce(
+      new Error("OneUptime is busy and could not save this."),
+    );
+    await renderSetup();
+    await press("on-call-setup-who-save");
+
+    expect(resourceStatus("on_call_policy")).toBe("failed");
+    expect(
+      screen.getByTestId("guided-setup-resource-on_call_policy-error"),
+    ).toHaveTextContent("OneUptime is busy and could not save this.");
+    expect(resourceStatus("escalation_rule")).toBe("waiting");
+
+    await press("guided-setup-resource-on_call_policy-retry");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(2);
+    expect(resourceStatus("on_call_policy")).toBe("created");
+  });
+
+  test("one of the project's policies, picked: In use, with nothing made beside it", async () => {
+    api["loadPolicyChoices"]!.mockResolvedValue({
+      policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
+      mayCreatePolicy: true,
+      mayAddRules: true,
+      mayEditLevels: true,
+    });
+    keepRun({ reachConfirmed: true });
+    await renderSetup();
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(resourceStatus("on_call_policy")).toBe("existing");
+    expect(resourceStatus("escalation_rule")).toBe("existing");
+  });
+
+  test("someone else after the wait: the second escalation rule, being made, then made", async () => {
+    keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+    await renderSetup();
+
+    expect(resourceStatus("no_answer")).toBe("waiting");
+
+    await pressText("Add Ben to on-call-setup-next-people");
+    api["loadPolicy"]!.mockResolvedValue(
+      policyRecord({
+        levels: [
+          ...policyRecord().levels,
+          {
+            id: "level-2",
+            order: 2,
+            escalateAfterInMinutes: 30,
+            userIds: ["user-ben"],
+            names: ["Ben Ito"],
+            responderCount: 1,
+          },
+        ],
+      }),
+    );
+    await press("on-call-setup-no-answer-save");
+
+    expect(resourceStatus("no_answer")).toBe("created");
+    expect(
+      screen.getByTestId("guided-setup-resource-no_answer-detail"),
+    ).toHaveTextContent("After 30 minutes, Ben Ito is paged.");
+  });
+
+  test("a second escalation rule that could not be saved: why, and Try again", async () => {
+    keepRun({ reachConfirmed: true, policyId: POLICY_ID });
+    api["addSecondLevel"]!.mockRejectedValueOnce(
+      new Error("OneUptime is busy and could not save this."),
+    );
+    await renderSetup();
+    await pressText("Add Ben to on-call-setup-next-people");
+    await press("on-call-setup-no-answer-save");
+
+    expect(resourceStatus("no_answer")).toBe("failed");
+
+    await press("guided-setup-resource-no_answer-retry");
+
+    expect(api["addSecondLevel"]).toHaveBeenCalledTimes(2);
+  });
+
+  test("nothing more when nobody answers: Skipped, the person's choice", async () => {
+    keepRun({ reachConfirmed: true, policyId: POLICY_ID, noAnswerDone: true });
+    getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Paging));
+    await renderSetup();
+
+    expect(resourceStatus("no_answer")).toBe("skipped");
   });
 });

@@ -64,7 +64,7 @@ Hvert trinn har disse feltene. Et automatisert trinn viser **Tittel** og innstil
 | [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen tilgang |
 | [AI](#ai) | OneUptime Worker | En LLM-leverandør |
 
-I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Runner**, for et trinn som kjører på en, deretter **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne til et HTTP-kall, porten, passordfrasen for nøkkelen og vertsnøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene. Sammenslått nevner det Runneren til trinnet, så du ser hvor et trinn kjører uten å åpne det.
+I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Runner**, for et trinn som kjører på en, deretter **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne og sertifikatinnstillingene til et HTTP-kall, porten, passordfrasen for nøkkelen og vertsnøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene. Sammenslått nevner det Runneren til trinnet, så du ser hvor et trinn kjører uten å åpne det.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Et utgående HTTP-kall, gjort av OneUptime Worker. Ingen Runner trengs.
 | **Metode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` eller `HEAD`. | `GET` |
 | **URL** | Endepunktet som skal kalles. | Tom |
 | **Overskrifter (JSON)** | Under **Flere felt**. Et JSON-objekt, for eksempel `{ "Authorization": "Bearer ..." }`. Headere som ikke er gyldig JSON, får trinnet til å feile. | Ingen |
+| **Tillat selvsignerte sertifikater** | Under **Flere felt**. Når den er på, tar trinnet ethvert sertifikat serveren viser, så et selvsignert fungerer, men det kontrollerer verken vertsnavnet eller gyldighetsdatoene, og alle på nettverksstien kan lese forespørselen, hemmeligheter inkludert, og endre svaret. | Av |
+| **CA-sertifikat** | Under **Flere felt**, så lenge **Tillat selvsignerte sertifikater** er av. Sertifikatet, i PEM, til CA-en som signerte serverens sertifikat, eller serverens eget når det er selvsignert. Trinnet stoler da bare på det sertifikatet, og kontrollerer fortsatt vertsnavnet og gyldighetsdatoene. | Ingen |
 | **Brødtekst** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON når den kan leses som JSON, ellers som tekst. | Ingen |
 | **Tidsavbrudd for forespørsel** | Hvor lenge det ventes på svar fra endepunktet før trinnet feiler. | 30 sekunder |
 
@@ -113,6 +115,21 @@ Nyttig til: å åpne en PagerDuty-hendelse, poste til en Slack-webhook, kalle AP
 
 > [!TIP]
 > Hold tokener utenfor trinnet. Lagre dem som hemmelige [runbook-variabler](/docs/runbooks/variables), og skriv `{{global.variables.NAME}}` der verdien skal stå, i URL-en, headerne eller bodyen. OneUptime sender forespørselen selv, så det setter også inn hemmeligheter, og svaret trinnet registrerer viser `[REDACTED]` i stedet. I JSON-headere eller en JSON-body settes en verdi inn i strengen sin, så et anførselstegn eller et linjeskift i den ikke ødelegger JSON-en.
+
+En server med et sertifikat den har signert selv, eller som din egen CA har signert, avvises til trinnet stoler på den, og ingenting sendes. Feilen til trinnet sier hva du må endre: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Lim inn sertifikatet som signerte det, i **CA-sertifikat**: CA-ens, eller serverens eget når det er selvsignert. Trinnet kontrollerer da serverens sertifikat mot det, vertsnavn og gyldighetsdatoer inkludert, så en server som bare utgir seg for å være din, fortsatt avvises. Slå på **Tillat selvsignerte sertifikater** bare når du ikke kan lime inn et. Begge gjelder bare forespørselen til dette trinnet, aldri et annet trinn, en annen forespørsel fra OneUptime eller tilkoblingen til en utgående proxy.
+
+> [!TIP]
+> For heller å stole på din egen CA for alle forespørsler på én gang, monitorer inkludert, setter en selvhostet installasjon `NODE_EXTRA_CA_CERTS` på containerne sine.
+
+Gjennom API-et og Terraform er bryteren `allowSelfSignedCertificates` i trinnets konfigurasjon, `true` eller `false`, og CA-sertifikatet er dens `caCertificate`, PEM-en som tekst. En lagring avvises når `caCertificate` ikke er et sertifikat eller inneholder en privat nøkkel.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

@@ -40,6 +40,15 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+} from "Common/UI/Components/Dropdown/SharedNameOptionLines";
+import {
+  SharedNameMark,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+} from "Common/UI/Utils/SharedNameOptions";
 
 export {
   FILTER_OPERATOR_LABELS,
@@ -450,6 +459,14 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
       });
     }, [isAsync, searchText, loadedOptions]);
 
+  /*
+   * Teams or labels of the list that share a name (#10064), each with the
+   * pill its list draws and what sets it apart (SharedNameOptions).
+   */
+  const sharedNameMarks: Map<string, SharedNameMark> = useMemo(() => {
+    return getSharedNameMarks(loadedOptions, translator);
+  }, [loadedOptions, translator.language]);
+
   const groupedOptions: Array<{
     group: string | undefined;
     items: Array<FilterChipDropdownOption>;
@@ -774,6 +791,12 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                       const optionValue: string = option.value;
                       const isSelected: boolean =
                         selectedValues.includes(optionValue);
+                      const sharedNameMark: SharedNameMark | undefined =
+                        option.sharedName
+                          ? sharedNameMarks.get(
+                              getSharedNameOptionKey(optionValue),
+                            )
+                          : undefined;
                       return (
                         <button
                           key={optionValue}
@@ -797,12 +820,35 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                              * it under the pointer.
                              */}
                             <span className="min-w-0">
-                              <span
-                                className="block truncate font-medium"
-                                onMouseEnter={showFullValueWhenCutShort}
-                              >
-                                {option.label}
-                              </span>
+                              {sharedNameMark ? (
+                                /*
+                                 * One of records that share a name: the
+                                 * pill its list draws, and under it what
+                                 * sets this one apart (#10064).
+                                 */
+                                <>
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <span
+                                      className="block min-w-0 truncate font-medium"
+                                      onMouseEnter={showFullValueWhenCutShort}
+                                    >
+                                      {option.label}
+                                    </span>
+                                    <SharedNamePill mark={sharedNameMark} />
+                                  </span>
+                                  <SharedNameDetail
+                                    mark={sharedNameMark}
+                                    className="block truncate text-xs text-gray-500"
+                                  />
+                                </>
+                              ) : (
+                                <span
+                                  className="block truncate font-medium"
+                                  onMouseEnter={showFullValueWhenCutShort}
+                                >
+                                  {option.label}
+                                </span>
+                              )}
                               {option.sublabel && (
                                 <span
                                   className="block truncate text-xs text-gray-500"

@@ -14,6 +14,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../../Types/Billing/SubscriptionPlan";
 import Columns from "../../../../Types/Database/Columns";
+import ServerOwned from "../../../../Types/Database/ServerOwned";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Dictionary from "../../../../Types/Dictionary";
@@ -376,6 +377,21 @@ export default class ColumnPermissions {
           tableColumnMetadata.computed &&
           (columnsSetByServer.includes(key) ||
             ServerSetColumns.isMarked(data, key))
+        ) {
+          continue;
+        }
+
+        /*
+         * A column only OneUptime writes, holding the value OneUptime's own
+         * code filled in for the person it writes as (ServerSetColumns): the
+         * serial number a network controller reported for a device it adds,
+         * a device a person links to a Meraki appliance. Its lists need not
+         * name the person: no person writes it (ColumnsOnlyOneUptimeWrites
+         * takes every value they send out of the write, #10053).
+         */
+        if (
+          tableColumnMetadata.serverOwned === ServerOwned.Always &&
+          ServerSetColumns.isMarked(data, key)
         ) {
           continue;
         }

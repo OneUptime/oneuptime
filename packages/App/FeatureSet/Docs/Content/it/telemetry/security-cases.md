@@ -369,7 +369,7 @@ I due passi degli archivi dati agiscono sugli archivi dati di cui tratta il caso
 
 #### Entità protette
 
-**Entità protette**, sotto **Playbook** nel menu, elenca gli utenti e gli host a cui nessun playbook applica il contenimento, come gli account di accesso di emergenza, i controller di dominio e i gateway VPN. Un valore corrisponde a prescindere da maiuscole e minuscole, e `*` sta per qualsiasi sequenza di caratteri: `svc-*` protegge ogni account di servizio. Un passo segnala un utente o un host protetto come protetto e non lo tocca. Sono gli Amministratori della sicurezza a gestire l'elenco.
+**Entità protette**, sotto **Playbook** nel menu, elenca gli utenti, gli host e gli indirizzi IP a cui nessun playbook applica il contenimento e che la blocklist non blocca mai, come gli account di accesso di emergenza, i controller di dominio, i gateway VPN e gli indirizzi degli uffici. Un valore corrisponde a prescindere da maiuscole e minuscole, e `*` sta per qualsiasi sequenza di caratteri: `svc-*` protegge ogni account di servizio. Una voce di indirizzo è un indirizzo o un intervallo, come `203.0.113.0/24`, che protegge ogni indirizzo al suo interno. Un passo segnala un utente o un host protetto come protetto e non lo tocca. Sono gli Amministratori della sicurezza a gestire l'elenco.
 
 #### Approvazione
 
@@ -378,6 +378,14 @@ Gli otto passi che tagliano fuori qualcuno attendono un'approvazione. Solo un Am
 #### Annullamento
 
 I passi di annullamento agiscono sugli utenti o sugli host di cui tratta il caso, come i passi che annullano. Una volta che l'esecuzione si è fermata, un utente o un host contenuto ha anche un proprio pulsante sul suo passo: **Riattiva**, **Rimuovi il contenimento**, **Rilascia** o **Attiva**. Una disconnessione non si può annullare. Ogni annullamento resta nella cronologia del caso e nel log di audit del progetto.
+
+### Blocklist
+
+**Blocklist**, sotto **Playbook** nel menu, elenca gli indirizzi IP e gli intervalli che il tuo progetto blocca: perché, fino a quando, il loro caso e chi o cosa li ha aggiunti. **Blocca indirizzo** blocca un indirizzo o un intervallo per 24 ore, a meno che tu non scelga 1 ora, 7 giorni o 30 giorni. Solo un Amministratore della sicurezza, un Amministratore del progetto o un Proprietario del progetto può mantenere un blocco finché qualcuno non lo revoca, o bloccare un intervallo più ampio di un /24 (un /48 per IPv6), e nessuno blocca un intervallo più ampio di un /8 (un /16 per IPv6). **Revoca** termina un blocco, su una riga o su più righe insieme, e **Prolunga** ne sposta la fine.
+
+Gli indirizzi del tuo progetto non vengono mai bloccati: le voci di **Entità protette**, i tuoi host, nodi Kubernetes, risorse cloud, dispositivi di rete ed endpoint, i tuoi nomi indirizzo e le tue sonde, le sonde di OneUptime Cloud, gli intervalli che non sono su internet e la rete perimetrale davanti alla tua app. Un blocco che ne toccherebbe uno viene rifiutato, indicando che cosa è l'indirizzo, e **Entità protette** li elenca sotto **Protezione automatica**. Quando OneUptime non riesce a stabilire se un indirizzo è tuo, non lo blocca.
+
+**Applicato su** mostra ogni punto in cui un blocco viene applicato e se lì regge. Finché nulla applica la blocklist, la pagina lo dice, e un blocco viene registrato ma non blocca nulla. Ogni blocco, revoca e scadenza resta nel log di audit del progetto e, quando c'è un caso, nella cronologia del suo caso.
 
 ### Messaggi
 
@@ -433,7 +441,7 @@ Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i r
 ## Automatizzare
 
 - **Flussi di lavoro**: la creazione, la modifica o l'eliminazione di un caso o di una nota può avviare un flusso di lavoro. Un passo **Esegui un flusso di lavoro** avvia un flusso di lavoro il cui trigger è un webhook.
-- **API**: casi, note, attività, prove, rilevamenti, playbook, esecuzioni, entità protette e priorità e stati dei casi hanno la stessa API REST del resto di OneUptime, sotto `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` e `/security-case-status`. Vedi [Riferimento API](/docs/api-reference/api-reference).
+- **API**: casi, note, attività, prove, rilevamenti, playbook, esecuzioni, entità protette, blocchi e priorità e stati dei casi hanno la stessa API REST del resto di OneUptime, sotto `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-block`, `/security-case-priority` e `/security-case-status`. Vedi [Riferimento API](/docs/api-reference/api-reference).
 - Agenti IA: il server MCP ha strumenti per casi, note, attività, prove, rilevamenti, playbook e priorità e stati dei casi. Vedi [Server MCP](/docs/ai/mcp-server).
 - Terraform: le risorse `oneuptime_security_case_priority` e `oneuptime_security_case_status` gestiscono come codice le priorità e gli stati di un progetto.
 

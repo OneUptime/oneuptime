@@ -1,4 +1,6 @@
 import OneUptimeDate from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
+import { getHistogramBarEndMs } from "./HistogramDayBars";
 
 export interface HistogramSelectionWindow {
   startTime: Date;
@@ -15,6 +17,13 @@ export interface HistogramSelectionInput {
    * the selection can only run from label to label.
    */
   bucketIntervalMs?: number | undefined;
+  /*
+   * The zone the bars were cut in when each is a day of it (the answer's
+   * bucketTimezone, #7923): the last bar then ends at that zone's next
+   * midnight, 23 or 25 hours on the day the clocks change. Unset, a day bar
+   * is UTC's, 24 hours.
+   */
+  bucketTimezone?: Timezone | undefined;
 }
 
 type GetHistogramSelectionWindowFunction = (
@@ -45,15 +54,17 @@ export const getHistogramSelectionWindow: GetHistogramSelectionWindowFunction =
       return null;
     }
 
-    const intervalMs: number =
-      typeof input.bucketIntervalMs === "number" &&
-      Number.isFinite(input.bucketIntervalMs) &&
-      input.bucketIntervalMs > 0
-        ? input.bucketIntervalMs
-        : 0;
-
     const startMs: number = Math.min(fromMs, toMs);
-    const endMs: number = Math.max(fromMs, toMs) + intervalMs;
+    const lastBarStartMs: number = Math.max(fromMs, toMs);
+    // To the end of the last bar: its own length, a day bar's in its zone.
+    const lastBarEndMs: number = getHistogramBarEndMs({
+      startMs: lastBarStartMs,
+      bucketIntervalMs: input.bucketIntervalMs,
+      bucketTimezone: input.bucketTimezone,
+    });
+    const endMs: number = Number.isFinite(lastBarEndMs)
+      ? lastBarEndMs
+      : lastBarStartMs;
 
     if (endMs <= startMs) {
       return null;

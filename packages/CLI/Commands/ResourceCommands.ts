@@ -1,6 +1,8 @@
 import { Command, Option } from "commander";
 import { ResourceInfo, ResolvedCredentials } from "../Types/CLITypes";
 import { executeApiRequest, ApiOperation } from "../Core/ApiClient";
+import FieldsLeftOut from "Common/Types/API/FieldsLeftOut";
+import Headers from "Common/Types/API/Headers";
 import { CLIOptions, getResolvedCredentials } from "../Core/ConfigManager";
 import {
   createJsonOption,
@@ -446,6 +448,8 @@ function registerCreateCommand(
             missingMessage: `Give the new ${resource.singularName}'s fields: with their flags (\`oneuptime ${resource.name} create --help\` lists them), or as JSON with --data or --file.`,
           });
 
+          let fieldsLeftOut: Array<string> = [];
+
           const result: JSONValue = await executeApiRequest({
             apiUrl: creds.apiUrl,
             apiKey: creds.apiKey,
@@ -453,10 +457,24 @@ function registerCreateCommand(
             operation: "create" as ApiOperation,
             data: write.data,
             miscDataProps: write.miscDataProps,
+            onAnswerHeaders: (headers: Headers): void => {
+              fieldsLeftOut = FieldsLeftOut.fromHeaders(headers);
+            },
           });
 
           // eslint-disable-next-line no-console
           console.log(formatOutput(result, resolveOutputFormat(cmd)));
+
+          /*
+           * What the create left out because only OneUptime writes it, as
+           * a copy of a record read before carries it (#10136): on
+           * standard error, so standard output holds only the record.
+           */
+          const leftOut: string | null = FieldsLeftOut.getNote(fieldsLeftOut);
+
+          if (leftOut) {
+            printWarning(leftOut);
+          }
         } catch (error) {
           handleError(error, {
             resource: resource.name,

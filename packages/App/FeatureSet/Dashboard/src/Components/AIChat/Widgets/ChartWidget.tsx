@@ -8,6 +8,7 @@ import {
 } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxis, {
+  ValueAxisPrecision,
   YAxisPrecision,
 } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
@@ -58,12 +59,18 @@ interface ChartZoomWindow {
  * unit's symbol, as the dashboards write metric values (ValueFormatter) -
  * "650 ms", "2.6 s", "1.2M". The y-axis has 64 px for a label: "2,600 ms"
  * did not fit, and broke into "2,600" over "ms" on every latency chart.
+ * On the axis, with the figures its round step needs (`precision`, issues
+ * #10117 and #10118): "1.0 s", "1.5 s", and a span of time in units of time.
  */
 export function formatChartValue(
   value: number,
   unit?: string | undefined,
+  precision?: ValueAxisPrecision | undefined,
 ): string {
-  return ValueFormatter.formatValueCompact(value, unit || "").formatted;
+  return ValueFormatter.formatValueCompact(value, unit || "", {
+    step: precision?.step,
+    largestTick: precision?.largestTick,
+  }).formatted;
 }
 
 const ChartWidget: FunctionComponent<ComponentProps> = (
@@ -291,10 +298,14 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
       type: YAxisType.Number,
       min: isBar ? 0 : "auto",
       max: "auto",
-      formatter: (value: number) => {
-        return formatChartValue(value, widget.data.unit);
+      formatter: (value: number, precision?: ValueAxisPrecision) => {
+        return formatChartValue(value, widget.data.unit, precision);
       },
       precision: YAxisPrecision.TwoDecimals,
+      // A latency or a run time steps in natural units of time (#10118).
+      durationUnitInSeconds: ValueFormatter.getDurationUnitInSeconds(
+        widget.data.unit,
+      ),
     },
   };
 

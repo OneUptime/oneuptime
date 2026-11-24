@@ -53,6 +53,14 @@
 #      reads Kubecost 2 instead. The cost-engine job the chart renders asks
 #      the agent, and scrapes Kubecost's prices; the job it rendered before
 #      the fix scrapes the bundled OpenCost's, beside Kubecost's allocations.
+#      The OpenCost agent's shipment says where its memory peaks come from
+#      (#9970): the Prometheus its engine reads.
+#   7. A later reading of a closed hour (#9969), what the agent's corrections
+#      of a Kubecost's reconciled hours rest on: asked again for an hour,
+#      each engine answers for that hour alone (whole, or short of its end
+#      just after it closes), names each container once and every container
+#      it named before, and for an hour from before the cluster existed
+#      answers with nothing, which the agent takes as nothing to correct with.
 
 # shellcheck source=../lib/harness.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib" && pwd)/harness.sh"
@@ -637,6 +645,9 @@ check_shipment() {
     if [ -n "$shipment" ]; then
         pass "opencost-api: a shipped window's rows carry memory peaks from the Prometheus OpenCost reads ($(grep -oE '"rows":[0-9]+,"withPeak":[0-9]+' <<<"$shipment"))"
         assert_present "opencost-api: and say OpenCost's default rates priced them" "$shipment" '"pricingSource":"default-rates"'
+        # #9970: and where those peaks come from, the Prometheus the engine
+        # reads, which the note on stopping the bundled engine reads.
+        assert_present "opencost-api: and say their memory peaks come from the engine's own Prometheus" "$shipment" '"memoryPeaksFrom":"engine"'
     else
         fail "opencost-api: no shipment with memory peaks reached the stand-in for OneUptime"
         shipments_of_opencost | tail -n 3 | sed 's/^/        /'
@@ -870,6 +881,169 @@ check_collector() {
     fi
 }
 
+# --- A later reading of a closed hour (#9969) ----------------------------------
+#
+# The cost agent reads again each hour a Kubecost that reads the cloud's bill
+# priced, 36 hours, 47 hours and four days after it closed, and brings what
+# OneUptime holds in line with it container by container. No Kubecost reads a bill on kind, so this measures
+# what that rests on, by this checkout's CostEngineClient and
+# readingCoversWindow, in an agent's pod:
+#
+#   - asked again for a closed hour, an engine answers for that hour and no
+#     wider (a day's set would be taken for the hour, 24 times over);
+#   - it names each container once, and every container it named the first
+#     time (a correction is made per container, and one that vanished from a
+#     later reading is left as it was);
+#   - asked for an hour it holds nothing of, here one before this cluster
+#     existed, as an hour past Kubecost's hourly figures would be, it answers
+#     with nothing, which leaves the hour as OneUptime has it.
+
+READING_CASES="kc2-frontend kc3-frontend opencost-api"
+# How long apart the two readings of the hour are.
+REREAD_SECONDS="${REREAD_SECONDS:-300}"
+# How long to wait for a closed hour every engine has rows for: on a fresh
+# cluster, the first hour that closes after the engines start, and the hour
+# or so a Kubecost's aggregator may take to collect it.
+CLOSED_HOUR_WAIT_SECONDS="${CLOSED_HOUR_WAIT_SECONDS:-5400}"
+
+# The agent's own reading of one hour of a case's engine, as JSON: its rows,
+# how many lie within the hour, its distinct containers, readingCoversWindow's
+# verdict (null when whole) and the containers, sorted; or the error the
+# engine answered with. The agent's log lines go to stdout too, so the reading
+# is the line marked READING.
+later_reading() {
+    # later_reading <case> <window start, epoch ms>
+    local url
+    url="$(awk -F'|' -v name="$1" '$1 == name {print $2}' <<<"$CASES")"
+    kubectl -n "$(case_namespace "$1")" exec deploy/cost-agent -- env LOG_LEVEL=error node -e '
+const { CostEngineClient } = require("/app/CostEngineClient.js");
+const { readingCoversWindow } = require("/app/CostEngineResolver.js");
+const [url, startMs] = process.argv.slice(1);
+const windowStart = new Date(Number(startMs));
+const windowEnd = new Date(Number(startMs) + 3600000);
+const bound = (allocation, key) => {
+  return Date.parse((allocation.window && allocation.window[key]) || allocation[key] || "");
+};
+new CostEngineClient({ baseUrl: url })
+  .fetchAllocations({ windowStart, windowEnd })
+  .then((allocations) => {
+    const within = allocations.filter((allocation) => {
+      const start = bound(allocation, "start");
+      const end = bound(allocation, "end");
+      return (!Number.isFinite(start) || start >= windowStart.getTime() - 60000) &&
+        (!Number.isFinite(end) || end <= windowEnd.getTime() + 60000);
+    }).length;
+    const containers = allocations.map((allocation) => {
+      const p = allocation.properties || {};
+      return [p.namespace, p.controllerKind, p.controller, p.pod, p.container].map((part) => part || "").join("/");
+    }).sort();
+    console.log("READING " + JSON.stringify({
+      rows: allocations.length,
+      within,
+      distinct: new Set(containers).size,
+      verdict: readingCoversWindow({ allocations, windowStart, windowEnd, clusterId: "" }),
+      containers,
+    }));
+  })
+  .catch((err) => {
+    console.log("READING " + JSON.stringify({ error: String((err && err.message) || err) }));
+  });
+' "$url" "$2" 2>/dev/null | sed -n 's/^READING //p' | tail -n 1 || true
+}
+
+# One field of a reading, for the checks below.
+reading_field() {
+    # reading_field <reading JSON> <field>
+    python3 -I -c '
+import json, sys
+try:
+    value = json.loads(sys.argv[1]).get(sys.argv[2])
+except ValueError:
+    value = "unreadable"
+print("null" if value is None else value)' "$1" "$2"
+}
+
+check_later_readings() {
+    local name hour latest back first second old answered missing waiting deadline
+    # The hour both readings ask for, pinned: the latest of the last three
+    # closed hours every engine has rows for. On a fresh cluster the hours
+    # before the engines ran have none, and an aggregator may collect a
+    # closed hour an hour or more after it closes: wait for one.
+    deadline=$((SECONDS + CLOSED_HOUR_WAIT_SECONDS))
+    latest=$(( ($(date -u +%s) / 3600 - 1) * 3600 * 1000 ))
+    hour="$latest"
+    waiting="$READING_CASES"
+    log "Waiting for a closed hour every engine has rows for..."
+    until [ "$SECONDS" -ge "$deadline" ]; do
+        latest=$(( ($(date -u +%s) / 3600 - 1) * 3600 * 1000 ))
+        for back in 0 1 2; do
+            hour=$((latest - back * 3600 * 1000))
+            waiting=""
+            for name in $READING_CASES; do
+                if ! [ "$(reading_field "$(later_reading "$name" "$hour")" rows)" -gt 0 ] 2>/dev/null; then
+                    waiting="${waiting} ${name}"
+                fi
+            done
+            [ -z "$waiting" ] && break 2
+        done
+        sleep 60
+    done
+    if [ -n "$waiting" ]; then
+        hour="$latest"
+        log "No closed hour of the last three has rows from every engine; checking the latest"
+    fi
+
+    log "Reading the hour from $(date -u -d "@$((hour / 1000))" +%H:%M) UTC of each engine again, ${REREAD_SECONDS}s apart..."
+    for name in $READING_CASES; do
+        later_reading "$name" "$hour" >"${WORK_DIR}/reading-${name}.json"
+    done
+    sleep "$REREAD_SECONDS"
+
+    for name in $READING_CASES; do
+        first="$(cat "${WORK_DIR}/reading-${name}.json")"
+        second="$(later_reading "$name" "$hour")"
+
+        if [ "$(reading_field "$second" rows)" -gt 0 ] 2>/dev/null && \
+            [ "$(reading_field "$second" rows)" = "$(reading_field "$second" within)" ]; then
+            pass "${name}: asked again for a closed hour, every one of its $(reading_field "$second" rows) rows lies within that hour"
+        else
+            fail "${name}: asked again for a closed hour, it answered rows outside it, or none (rows, within: $(reading_field "$second" rows), $(reading_field "$second" within); $(reading_field "$second" error))"
+        fi
+
+        assert_eq "${name}: and names each container once" \
+            "$(reading_field "$second" rows)" "$(reading_field "$second" distinct)"
+
+        # The hour's own rows: whole, or, just after the hour closes, short of
+        # its end while the engine collects it. Never another window's set.
+        # The agent corrects an hour only with a whole reading, and reads it
+        # again 36 hours after it closed, by when the engine holds all of it.
+        case "$(reading_field "$second" verdict)" in
+            null)
+                pass "${name}: the reading is the hour's own and whole, which the agent would correct the hour with" ;;
+            *"stop at"*)
+                pass "${name}: the reading is the hour's own, short of its end while the engine collects it, which the agent passes over ($(reading_field "$second" verdict))" ;;
+            *)
+                fail "${name}: the reading is not the hour's own: $(reading_field "$second" verdict)" ;;
+        esac
+
+        missing="$(python3 -I -c '
+import json, sys
+first = set(json.loads(sys.argv[1]).get("containers") or [])
+second = set(json.loads(sys.argv[2]).get("containers") or [])
+print(len(first - second))' "$first" "$second" 2>/dev/null || echo "unreadable")"
+        assert_eq "${name}: the later reading names every container the first one did ($(reading_field "$first" rows), then $(reading_field "$second" rows) rows)" \
+            "0" "$missing"
+
+        old="$(later_reading "$name" "$((hour - 72 * 3600 * 1000))")"
+        answered="$(reading_field "$old" error)"
+        if [ "$answered" = "null" ]; then answered=""; else answered=" (the engine answered: ${answered})"; fi
+        assert_eq "${name}: an hour from before this cluster existed answers with no row${answered}" \
+            "0" "$(reading_field "$old" rows)"
+        assert_present "${name}: which the agent takes as nothing to correct the hour with" \
+            "$(reading_field "$old" verdict)" "nothing for the window"
+    done
+}
+
 # --- Run --------------------------------------------------------------------
 
 for tool in docker node npm python3; do
@@ -900,5 +1074,6 @@ check_bundled
 start_collector
 check_collector
 check_shipment
+check_later_readings
 
 harness_report

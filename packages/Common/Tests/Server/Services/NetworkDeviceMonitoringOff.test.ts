@@ -8,6 +8,7 @@ import NetworkSiteService, {
   getNothingReportsRootCause,
 } from "../../../Server/Services/NetworkSiteService";
 import NetworkSiteStatusTimelineService from "../../../Server/Services/NetworkSiteStatusTimelineService";
+import NetworkSiteOwnerUserService from "../../../Server/Services/NetworkSiteOwnerUserService";
 import logger from "../../../Server/Utils/Logger";
 import NetworkSiteMaintenanceSuppression from "../../../Server/Utils/NetworkSite/NetworkSiteMaintenanceSuppression";
 import { DeviceHealthGroup } from "../../../Server/Utils/NetworkDevice/DeviceHealthAggregation";
@@ -601,6 +602,12 @@ function stubTheWorld(): Spies {
 
   jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue({
     id: new ObjectID(SEVERITY_ID),
+  } as never);
+
+  // Nobody owns these sites, so a site's alert gets no owners (#10188).
+  jest.spyOn(NetworkSiteOwnerUserService, "getSiteOwners").mockResolvedValue({
+    ownerUserIds: [],
+    ownerTeamIds: [],
   } as never);
 
   const alertsCreated: SpyInstance<typeof AlertService.create> = jest

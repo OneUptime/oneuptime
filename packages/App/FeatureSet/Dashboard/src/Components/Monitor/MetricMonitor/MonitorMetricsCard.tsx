@@ -37,6 +37,10 @@ import { MetricInvestigationThreshold } from "../../Metrics/Investigation/Metric
 import useMetricInvestigation, {
   MetricInvestigationState,
 } from "../../Metrics/Investigation/UseMetricInvestigation";
+import useInvestigationTimeRange, {
+  InvestigationTimeRangeState,
+} from "../../Metrics/Investigation/UseInvestigationTimeRange";
+import PromQLInvestigation from "../../Metrics/Investigation/PromQLInvestigation";
 import { getMonitorPageRoute } from "../Overview/MonitorOverviewLinks";
 import { shouldAttemptRead } from "../../../Utils/OverviewSection";
 import PageMap from "../../../Utils/PageMap";
@@ -114,6 +118,37 @@ interface StepMetricsProps {
   stepPicker: ReactElement | undefined;
 }
 
+// When the monitor's status changed, as marks on its charts.
+const getStatusChangeMoments: (
+  statusChanges: Array<MonitorStatusChange>,
+  translator: Translator,
+) => Array<ChartTimeReferenceLineProps> = (
+  statusChanges: Array<MonitorStatusChange>,
+  translator: Translator,
+): Array<ChartTimeReferenceLineProps> => {
+  return statusChanges.map(
+    (change: MonitorStatusChange): ChartTimeReferenceLineProps => {
+      return {
+        date: change.date,
+        // A status's name as the project wrote it; the seeded ones translate.
+        label: change.statusName
+          ? translateRecordName(
+              translator,
+              StateListType.MonitorStatus,
+              change.statusName,
+            )
+          : translator.translateText(STATUS_CHANGED_LABEL) ||
+            STATUS_CHANGED_LABEL,
+        subtitle:
+          translator.translateText(STATUS_CHANGE_SUBTITLE) ||
+          STATUS_CHANGE_SUBTITLE,
+        color: change.color || STATUS_CHANGE_COLOR,
+        kind: ChartEventKind.Generic,
+      };
+    },
+  );
+};
+
 // One step's metrics: an investigation of their own, kept in the URL.
 const MonitorStepMetrics: FunctionComponent<StepMetricsProps> = (
   props: StepMetricsProps,
@@ -171,27 +206,7 @@ const MonitorStepMetrics: FunctionComponent<StepMetricsProps> = (
   const statusChangesKey: string = JSON.stringify(statusChanges);
 
   const moments: Array<ChartTimeReferenceLineProps> = useMemo(() => {
-    return statusChanges.map(
-      (change: MonitorStatusChange): ChartTimeReferenceLineProps => {
-        return {
-          date: change.date,
-          // A status's name as the project wrote it; the seeded ones translate.
-          label: change.statusName
-            ? translateRecordName(
-                translator,
-                StateListType.MonitorStatus,
-                change.statusName,
-              )
-            : translator.translateText(STATUS_CHANGED_LABEL) ||
-              STATUS_CHANGED_LABEL,
-          subtitle:
-            translator.translateText(STATUS_CHANGE_SUBTITLE) ||
-            STATUS_CHANGE_SUBTITLE,
-          color: change.color || STATUS_CHANGE_COLOR,
-          kind: ChartEventKind.Generic,
-        };
-      },
-    );
+    return getStatusChangeMoments(statusChanges, translator);
   }, [statusChangesKey, translator]);
 
   const resourceName: string = getMonitorResourceName(
@@ -268,6 +283,109 @@ const MonitorStepMetrics: FunctionComponent<StepMetricsProps> = (
       monitorId={props.monitorId.toString()}
       thresholds={thresholds}
       beforeToolbar={beforeToolbar}
+      emptyState={emptyState}
+    />
+  );
+};
+
+/*
+ * One step written in PromQL (issue #10227): its expression charted over
+ * the card's range - every series it returns - with the values its
+ * criteria alert at as lines, the side that alerts shaded, and its status
+ * changes, incidents and alerts marked, read as the person viewing may read
+ * it, for the services the monitor reads. The time range is kept in the URL
+ * as every step's is.
+ */
+const MonitorStepPromQLMetrics: FunctionComponent<StepMetricsProps> = (
+  props: StepMetricsProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const reads: MonitorMetricStep["reads"] = props.metricStep.reads;
+
+  // By value, as for the queries' charts: an equal step read again keeps them.
+  const monitorThresholds: Array<MonitorMetricThreshold> =
+    MonitorStepMetricThresholds.getThresholds({
+      monitorType: props.monitorType,
+      monitorStep: props.metricStep.step,
+      defaultMonitorStatusId: props.defaultMonitorStatusId,
+    });
+  const thresholdsKey: string = JSON.stringify(monitorThresholds);
+  const thresholds: Array<MetricInvestigationThreshold> = useMemo(() => {
+    return toMetricInvestigationThresholds(monitorThresholds);
+  }, [thresholdsKey]);
+
+  const time: InvestigationTimeRangeState = useInvestigationTimeRange({
+    defaultSelection: {
+      kind: MetricInvestigationTimeKind.Relative,
+      range: getMonitorMetricDefaultRange(reads),
+    },
+    urlParamPrefix: getMonitorMetricUrlParamPrefix(props.stepPosition),
+  });
+
+  // The page's Refresh, and a change of status, read the chart again.
+  const lastRefreshToken: MutableRefObject<number> = useRef<number>(
+    props.refreshToken,
+  );
+
+  useEffect(() => {
+    if (lastRefreshToken.current === props.refreshToken) {
+      return;
+    }
+
+    lastRefreshToken.current = props.refreshToken;
+    time.refresh();
+  }, [props.refreshToken]);
+
+  const statusChanges: Array<MonitorStatusChange> = useMonitorStatusChanges({
+    monitorId: props.monitorId,
+    window: time.window,
+    refreshToken: time.refreshNonce,
+  });
+
+  const statusChangesKey: string = JSON.stringify(statusChanges);
+
+  const moments: Array<ChartTimeReferenceLineProps> = useMemo(() => {
+    return getStatusChangeMoments(statusChanges, translator);
+  }, [statusChangesKey, translator]);
+
+  const emptyState: ReactElement = (
+    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm">
+      <p className="font-medium text-gray-900">
+        {translator.translateText(
+          "No series matched this query in the time range.",
+        )}
+      </p>
+      <p className="mt-1.5 text-gray-600">
+        <Link
+          to={getMonitorPageRoute({
+            pageMap: PageMap.MONITOR_VIEW_CRITERIA,
+            monitorId: props.monitorId,
+          })}
+          className="font-medium text-indigo-600 hover:underline"
+        >
+          {translator.translateText("Open criteria")}
+        </Link>
+      </p>
+    </div>
+  );
+
+  return (
+    <PromQLInvestigation
+      time={time}
+      query={reads.promQLQuery || ""}
+      title={MONITOR_METRICS_CARD_TITLE}
+      description={
+        thresholds.length > 0
+          ? translator.translateText(
+              "What this monitor checks, and the values it alerts at.",
+            )
+          : translator.translateText("What this monitor checks.")
+      }
+      serviceIds={reads.telemetryServiceIds}
+      thresholds={thresholds}
+      moments={moments}
+      monitorId={props.monitorId.toString()}
+      beforeToolbar={props.stepPicker}
       emptyState={emptyState}
     />
   );
@@ -383,8 +501,14 @@ const MonitorMetricsCard: FunctionComponent<ComponentProps> = (
       </div>
     ) : undefined;
 
+  // A step written in PromQL charts its expression (issue #10227).
+  const StepMetrics: FunctionComponent<StepMetricsProps> = current.reads
+    .promQLQuery
+    ? MonitorStepPromQLMetrics
+    : MonitorStepMetrics;
+
   return (
-    <MonitorStepMetrics
+    <StepMetrics
       // Another step is another investigation, with its own defaults.
       key={current.step.data?.id || `step-${current.index}`}
       monitorId={props.monitorId}

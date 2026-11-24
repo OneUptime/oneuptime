@@ -42,6 +42,12 @@ export const KEY_BUDGETS_USED_UP: PluralTemplate = {
   other:
     "{{signal}}: {{count}} ingestion keys have used up their own budgets for today, so data sent with them is refused until {{resetsAt}}.",
 };
+// A team's or a label's budget used up (#6386): its services' data is dropped.
+export const TEAM_LABEL_BUDGETS_USED_UP: PluralTemplate = {
+  one: "{{signal}}: {{count}} team or label has used up its own budget for today, so data from its services is dropped until {{resetsAt}}.",
+  other:
+    "{{signal}}: {{count}} teams and labels have used up their own budgets for today, so data from their services is dropped until {{resetsAt}}.",
+};
 export const SEE_BUDGETS: string = translationKey("See budgets");
 
 export const TELEMETRY_INGESTION_BUDGET_BANNER_TEST_ID: string =
@@ -140,6 +146,29 @@ export const getTelemetryIngestionBudgetBannerNotice: (data: {
       text: data.translator.translatePlural(
         KEY_BUDGETS_USED_UP,
         exhaustedKeys,
+        {
+          signal: signalTitle,
+          resetsAt: resetsAt,
+        },
+      ),
+    };
+  }
+
+  const exhaustedTeamsAndLabels: number = (
+    data.status.teamsAndLabels || []
+  ).filter((scope: TelemetryIngestionBudgetScopeStatus): boolean => {
+    return (
+      findSignal(scope, data.signal)?.state ===
+      TelemetryIngestionBudgetState.Exhausted
+    );
+  }).length;
+
+  if (exhaustedTeamsAndLabels > 0) {
+    return {
+      type: AlertType.WARNING,
+      text: data.translator.translatePlural(
+        TEAM_LABEL_BUDGETS_USED_UP,
+        exhaustedTeamsAndLabels,
         {
           signal: signalTitle,
           resetsAt: resetsAt,

@@ -111,8 +111,9 @@ describe("the one front door closes", () => {
     expect(PANEL).toContain(
       '{view === "unavailable" && chat.unavailableReason ? (',
     );
+    // With the question it was opened with, looked up in the docs (#7063).
     expect(PANEL).toContain(
-      "<AIChatUnavailableView reason={chat.unavailableReason} />",
+      "<AIChatUnavailableView reason={chat.unavailableReason} question={chat.inputValue} />",
     );
   });
 

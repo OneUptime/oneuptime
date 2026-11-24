@@ -6,6 +6,8 @@ import {
   EXCEPTION_CLI_RESOURCE,
   MOBILE_ANR_RATE_PERCENT,
   MOBILE_CRASH_RATE_PERCENT,
+  MOBILE_FAULT_DAILY_RATE_WINDOW_SECONDS,
+  MOBILE_FAULT_RATE_MINIMUM_INSTALLS,
   MOBILE_FAULT_RATE_MINIMUM_SESSIONS,
   MOBILE_FAULT_RATE_WINDOW_SECONDS,
   RumAlertTemplate,
@@ -190,6 +192,9 @@ const SEVERITY_CASES: Array<{
   // Their rates (#9716): the same two core vitals, read over sessions.
   { id: "rum-app-crash-rate", category: "Errors", severity: "Critical" },
   { id: "rum-app-anr-rate", category: "Errors", severity: "Critical" },
+  // Per install over a day (#9924): what Android vitals itself judges.
+  { id: "rum-app-daily-crash-rate", category: "Errors", severity: "Critical" },
+  { id: "rum-app-daily-anr-rate", category: "Errors", severity: "Critical" },
   { id: "rum-slow-cold-start", category: "Performance", severity: "Warning" },
   { id: "rum-frozen-frames", category: "Performance", severity: "Warning" },
   {
@@ -327,6 +332,8 @@ const MOBILE_TEMPLATE_IDS: Array<string> = [
   "rum-app-not-responding",
   "rum-app-crash-rate",
   "rum-app-anr-rate",
+  "rum-app-daily-crash-rate",
+  "rum-app-daily-anr-rate",
   "rum-failed-user-operations",
   "rum-slow-cold-start",
   "rum-frozen-frames",
@@ -340,6 +347,8 @@ const MOBILE_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-app-not-responding",
   "rum-app-crash-rate",
   "rum-app-anr-rate",
+  "rum-app-daily-crash-rate",
+  "rum-app-daily-anr-rate",
   "rum-slow-cold-start",
   "rum-frozen-frames",
   "rum-app-stopped-reporting",
@@ -356,8 +365,8 @@ const BROWSER_ONLY_TEMPLATE_IDS: Array<string> = [
   "rum-unhandled-exceptions",
 ];
 
-// Every template there is: 5 web vitals, 2 shared, 8 mobile, 4 budgets.
-const ALL_TEMPLATE_COUNT: number = 19;
+// Every template there is: 5 web vitals, 2 shared, 10 mobile, 4 budgets.
+const ALL_TEMPLATE_COUNT: number = 21;
 
 const DAILY_TEMPLATE_IDS: Array<string> = [
   "rum-session-replay-daily-budget-nearly-spent",
@@ -458,6 +467,8 @@ describe("RumAlertTemplates", () => {
       "rum-app-not-responding",
       "rum-app-crash-rate",
       "rum-app-anr-rate",
+      "rum-app-daily-crash-rate",
+      "rum-app-daily-anr-rate",
       "rum-failed-user-operations",
       "rum-unhandled-exceptions",
       "rum-slow-cold-start",
@@ -1721,6 +1732,138 @@ describe("getRumAlertTemplateById", () => {
       expect(template?.category).toBe("Session Replay");
     },
   );
+});
+
+/*
+ * #9924: the same two rates per install over a day - the share of the day's
+ * installs a crash, or a freeze, happened on - the user-perceived rates
+ * Android vitals judges and the Play Console shows.
+ */
+describe("the daily crash and ANR rate templates, per install", () => {
+  const DAILY_CASES: Array<{
+    id: string;
+    hourly: string;
+    percent: number;
+    title: string;
+  }> = [
+    {
+      id: "rum-app-daily-crash-rate",
+      hourly: "rum-app-crash-rate",
+      percent: MOBILE_CRASH_RATE_PERCENT,
+      title: "[RUM] App daily crash rate - Storefront",
+    },
+    {
+      id: "rum-app-daily-anr-rate",
+      hourly: "rum-app-anr-rate",
+      percent: MOBILE_ANR_RATE_PERCENT,
+      title: "[RUM] App daily ANR rate - Storefront",
+    },
+  ];
+
+  test("Android vitals' rates per daily user, judged on a day of at least 250 installs", () => {
+    expect(MOBILE_FAULT_DAILY_RATE_WINDOW_SECONDS).toBe(86400);
+    expect(MOBILE_FAULT_RATE_MINIMUM_INSTALLS).toBe(250);
+    // One install alone stays under both rates, so it never reads as one.
+    expect((1 / MOBILE_FAULT_RATE_MINIMUM_INSTALLS) * 100).toBeLessThan(
+      MOBILE_ANR_RATE_PERCENT,
+    );
+  });
+
+  test.each(DAILY_CASES)(
+    "$id counts what its hourly rate counts, over a day",
+    ({ id, hourly }: { id: string; hourly: string }) => {
+      const daily: MonitorStep = getTemplate(id).getMonitorStep(buildArgs());
+      const perSession: MonitorStep =
+        getTemplate(hourly).getMonitorStep(buildArgs());
+
+      expect(daily.data?.exceptionMonitor).toEqual({
+        ...perSession.data?.exceptionMonitor,
+        lastXSecondsOfExceptions: 86400,
+      });
+    },
+  );
+
+  test.each(DAILY_CASES)(
+    "$id alerts above its rate of a day's installs, and is healthy under it or with too few",
+    ({ id, percent }: { id: string; percent: number }) => {
+      const template: RumAlertTemplate = getTemplate(id);
+      const [breach, recovery]: Array<MonitorCriteriaInstance> = getCriteria(
+        template.getMonitorStep(buildArgs()),
+      );
+
+      expect(template.monitorType).toBe(MonitorType.Exceptions);
+      expect(template.clients).toEqual(["mobile"]);
+      expect(template.category).toBe("Errors");
+      expect(template.severity).toBe("Critical");
+
+      expect(breach?.data?.filterCondition).toBe(FilterCondition.All);
+      expect(breach?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.InstallsWithExceptionsPercent,
+          filterType: FilterType.GreaterThan,
+          value: percent,
+        },
+        {
+          checkOn: CheckOn.InstallCount,
+          filterType: FilterType.GreaterThanOrEqualTo,
+          value: 250,
+        },
+      ]);
+
+      expect(recovery?.data?.filterCondition).toBe(FilterCondition.Any);
+      expect(recovery?.data?.filters).toEqual([
+        {
+          checkOn: CheckOn.InstallsWithExceptionsPercent,
+          filterType: FilterType.LessThanOrEqualTo,
+          value: percent,
+        },
+        {
+          checkOn: CheckOn.InstallCount,
+          filterType: FilterType.LessThan,
+          value: 250,
+        },
+      ]);
+      expect(recovery?.data?.incidents).toEqual([]);
+      expect(recovery?.data?.alerts).toEqual([]);
+    },
+  );
+
+  test.each(DAILY_CASES)(
+    "$id titles its alert, and hands the engineer its hourly rate's first command",
+    ({ id, hourly, title }: { id: string; hourly: string; title: string }) => {
+      const [breach]: Array<MonitorCriteriaInstance> = getCriteria(
+        getTemplate(id).getMonitorStep(buildArgs()),
+      );
+      const [hourlyBreach]: Array<MonitorCriteriaInstance> = getCriteria(
+        getTemplate(hourly).getMonitorStep(buildArgs()),
+      );
+      const command: string = hourlyBreach!
+        .data!.incidents[0]!.description!.split("```\n")[1]!
+        .split("\n```")[0]!;
+
+      expect(breach?.data?.incidents[0]?.title).toBe(title);
+      expect(breach?.data?.alerts[0]?.title).toBe(title);
+      expect(command).toContain("oneuptime exception list");
+      expect(breach?.data?.incidents[0]?.description).toContain(
+        `\`\`\`\n${command}\n\`\`\``,
+      );
+      expect(breach?.data?.incidents[0]?.description).toContain(
+        "in the past day",
+      );
+    },
+  );
+
+  test("its descriptions say what an install is read from, and point an app without one at the session rate", () => {
+    for (const { id, hourly } of DAILY_CASES) {
+      const description: string = getTemplate(id).description;
+
+      expect(description).toContain("installs in a day");
+      expect(description).toContain(
+        "OpenTelemetry Android and opentelemetry-swift",
+      );
+      expect(description).toContain(getTemplate(hourly).name);
+    }
+  });
 });
 
 /*

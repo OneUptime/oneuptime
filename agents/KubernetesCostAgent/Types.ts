@@ -70,6 +70,17 @@ export type KubernetesCostPricingSource =
   | "unknown";
 
 /*
+ * Where the memory peaks for right-sizing come from (#9970): the Prometheus
+ * the cluster's own engine reads, the chart's bundled one, the one
+ * cost.engine.prometheusUrl names, or none.
+ */
+export type KubernetesCostMemoryPeaksSource =
+  | "engine"
+  | "bundled"
+  | "configured"
+  | "";
+
+/*
  * Which engine priced a shipment's rows, and how. See
  * Common/Types/Kubernetes/KubernetesCostIngest.ts.
  */
@@ -93,6 +104,12 @@ export interface KubernetesCostEngineInfo {
    * billing-integration; empty otherwise.
    */
   pricingProvider: string;
+  /*
+   * Where the rows' memory peaks come from (#9970), as the poller says it.
+   * "bundled" beside bundledEngineUnused: stopping the bundled engine stops
+   * the Prometheus they come from too. Absent from the resolver's own word.
+   */
+  memoryPeaksFrom?: KubernetesCostMemoryPeaksSource | undefined;
 }
 
 export interface KubernetesCostIngestPayload {
@@ -110,6 +127,12 @@ export interface KubernetesCostIngestPayload {
    */
   shipmentId?: string | undefined;
   shipmentChunk?: number | undefined;
+  /*
+   * True when the rows are a later reading of windows shipped before
+   * (#9969, EngineCorrections): the server brings what it holds for each
+   * window in line with them instead of skipping a window it has.
+   */
+  correction?: boolean | undefined;
   allocations: Array<KubernetesCostAllocationIngestRow>;
 }
 
@@ -119,6 +142,19 @@ export interface KubernetesCostIngestPayload {
  * an ok/degraded verdict, so the judgement is testable without a clock, a
  * socket or either collaborator.
  */
+
+/*
+ * Later readings of the hours a Kubecost reconciles with a cloud bill
+ * (#9969, EngineCorrections), for /healthz.
+ */
+export interface CorrectionStatus {
+  // Hours waiting to be read again.
+  windowsToReadAgain: number;
+  // Later readings that differed from what was shipped, and went out.
+  windowsCorrected: number;
+  // Why the last reading could not be made or sent, if it could not.
+  lastCorrectionError: string | null;
+}
 
 export interface PollerStatus {
   /** When the poller was constructed (ms epoch). */
@@ -132,6 +168,8 @@ export interface PollerStatus {
   /** Ticks that have thrown back-to-back; reset by any clean tick. */
   consecutivePollFailures: number;
   lastPollError: string | null;
+  // Absent until a window is owed a later reading.
+  corrections?: CorrectionStatus | undefined;
 }
 
 export interface ShipperStatus {
@@ -234,7 +272,32 @@ export interface CostEngineSource {
     windowEnd: Date;
     allocations: Array<EngineAllocation>;
   }): Promise<boolean>;
+  /*
+   * A later reading of a window the engine at `engineUrl` priced, once it
+   * has reconciled its prices with a cloud bill (#9969, EngineCorrections).
+   * Absent: windows are never read again. Never throws.
+   */
+  rereadAllocations?(data: {
+    windowStart: Date;
+    windowEnd: Date;
+    engineUrl: string;
+  }): Promise<CorrectionReading>;
 }
+
+/*
+ * A later reading of a window (#9969). "read": the whole window, to correct
+ * it with. "nothing": the engine answered, but with nothing whole, so the
+ * window stays as it is. "elsewhere": the engine that priced it is not the
+ * one in use, or no longer reconciles: it is asked again later, and the
+ * windows of the engine in use are read meanwhile. "unavailable": the engine
+ * did not answer: it is asked again at the next tick, and so is every other
+ * window, rather than each wait out its own timeout now.
+ */
+export type CorrectionReading =
+  | { status: "read"; allocations: Array<EngineAllocation> }
+  | { status: "nothing"; reason: string }
+  | { status: "elsewhere"; reason: string }
+  | { status: "unavailable"; reason: string };
 
 // One http_sd target group, as Prometheus reads it.
 export interface ScrapeTargetGroup {

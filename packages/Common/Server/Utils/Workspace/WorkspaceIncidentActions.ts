@@ -1022,10 +1022,16 @@ export default class WorkspaceIncidentActions {
   /*
    * Gives a person a role on the incident, as the member: the incident
    * member the dashboard's Roles card adds, so the feed says who was added
-   * as what, and the incident's channels invite them as for any other. A
-   * role that takes one person (Incident Commander) moves to them: whoever
-   * had it is taken off it first - only when the member may take people
-   * off roles, so it never ends up with two.
+   * as what, and the incident's channels invite them as for any other.
+   *
+   * A role that takes one person (Incident Commander) moves to them. Held
+   * by one person, it is handed on as the Dashboard's Reassign hands it on
+   * (#10191, #10270): the holder's own row names the new person, in one
+   * change the member must be allowed to make (Edit Incident Member), so
+   * the role is never without a holder nor with two, and the feed says it
+   * once, from whom to whom. Held by several - from before a role took
+   * one person - the new person is added and the others are taken off,
+   * only when the member may take people off roles.
    */
   @CaptureSpan()
   public static async assignRole(data: {
@@ -1106,43 +1112,58 @@ export default class WorkspaceIncidentActions {
     const replaced: Array<WorkspaceIncidentRoleHolder> =
       role.canAssignMultipleUsers ? [] : holders;
 
-    /*
-     * Taking somebody off a role is the member's to be allowed, first. Told
-     * in one go - the role, who would come off it, and the permissions that
-     * allow it - not as the table's own refusal, which names "Incident
-     * Member" rather than the role.
-     */
-    if (replaced.length > 0) {
-      try {
-        ModelPermission.checkTableWritePermission(
-          IncidentMember,
-          data.props,
-          DatabaseRequestType.Delete,
-        );
-      } catch (err) {
-        if (err instanceof NotAuthorizedException) {
-          const needed: Array<string> = PermissionHelper.getPermissionTitles(
-            TablePermission.getTablePermission(
-              IncidentMember,
-              DatabaseRequestType.Delete,
-            ),
-          );
+    const replacedNames: Array<string> = replaced.map(
+      (holder: WorkspaceIncidentRoleHolder): string => {
+        return holder.name;
+      },
+    );
 
-          throw new NotAuthorizedException(
-            `${roleName} takes one person, and you do not have permission to take ${WorkspaceIncidentActions.joinNames(
-              replaced.map((holder: WorkspaceIncidentRoleHolder): string => {
-                return holder.name;
-              }),
-            )} off it.${
-              needed.length > 0
-                ? ` You need one of these permissions: ${needed.join(", ")}.`
-                : ""
-            }`,
-          );
-        }
+    if (replaced.length === 1) {
+      const holder: WorkspaceIncidentRoleHolder = replaced[0]!;
 
-        throw err;
+      WorkspaceIncidentActions.checkMayMoveRole({
+        roleName: roleName,
+        holderNames: replacedNames,
+        requestType: DatabaseRequestType.Update,
+        props: data.props,
+      });
+
+      const updated: number = await IncidentMemberService.updateOneById({
+        id: holder.memberId,
+        data: {
+          userId: data.userId,
+        },
+        props: data.props,
+      });
+
+      /*
+       * Nothing changed: the holder's row is out of the member's reach
+       * (its labels, a private incident's owners) or was taken off
+       * meanwhile - said as the Dashboard says it, never answered as done.
+       */
+      if (updated === 0) {
+        throw await IncidentMemberService.getUnwrittenByIdError({
+          id: holder.memberId,
+          props: data.props,
+          type: DatabaseRequestType.Update,
+        });
       }
+
+      return {
+        roleName: roleName,
+        personName: personName,
+        isHeldAlready: false,
+        replacedNames: replacedNames,
+      };
+    }
+
+    if (replaced.length > 0) {
+      WorkspaceIncidentActions.checkMayMoveRole({
+        roleName: roleName,
+        holderNames: replacedNames,
+        requestType: DatabaseRequestType.Delete,
+        props: data.props,
+      });
     }
 
     const member: IncidentMember = new IncidentMember();
@@ -1167,12 +1188,55 @@ export default class WorkspaceIncidentActions {
       roleName: roleName,
       personName: personName,
       isHeldAlready: false,
-      replacedNames: replaced.map(
-        (holder: WorkspaceIncidentRoleHolder): string => {
-          return holder.name;
-        },
-      ),
+      replacedNames: replacedNames,
     };
+  }
+
+  /*
+   * Moving a role that takes one person is the member's to be allowed,
+   * first: handing it on (an update of its holder's row), or taking the
+   * holders of a role held by several off it (deletes). Told in one go -
+   * the role, who holds it, and the permissions that allow it - not as the
+   * table's own refusal, which names "Incident Member" rather than the
+   * role.
+   */
+  private static checkMayMoveRole(data: {
+    roleName: string;
+    holderNames: Array<string>;
+    requestType: DatabaseRequestType.Update | DatabaseRequestType.Delete;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    try {
+      ModelPermission.checkTableWritePermission(
+        IncidentMember,
+        data.props,
+        data.requestType,
+      );
+    } catch (err) {
+      if (!(err instanceof NotAuthorizedException)) {
+        throw err;
+      }
+
+      const needed: Array<string> = PermissionHelper.getPermissionTitles(
+        TablePermission.getTablePermission(IncidentMember, data.requestType),
+      );
+
+      const names: string = WorkspaceIncidentActions.joinNames(
+        data.holderNames,
+      );
+
+      throw new NotAuthorizedException(
+        `${data.roleName} takes one person, and you do not have permission to ${
+          data.requestType === DatabaseRequestType.Update
+            ? `reassign it from ${names}`
+            : `take ${names} off it`
+        }.${
+          needed.length > 0
+            ? ` You need one of these permissions: ${needed.join(", ")}.`
+            : ""
+        }`,
+      );
+    }
   }
 
   /*

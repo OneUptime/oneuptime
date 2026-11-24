@@ -17,6 +17,8 @@ jest.mock("../Utils/MCPLogger");
 import { getFilterProblem } from "../Tools/FilterCheck";
 import { generateAllTools } from "../Tools/ToolGenerator";
 import { McpToolInfo } from "../Types/McpTypes";
+import ModelType from "../Types/ModelType";
+import OneUptimeOperation from "../Types/OneUptimeOperation";
 
 const A_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
 const A_TIME: string = "2026-07-01T00:00:00.000Z";
@@ -163,4 +165,57 @@ describe("the filter check", () => {
       }),
     ).toContain('title {"$regex":"checkout"}');
   });
+});
+
+/*
+ * A permission (IncidentMember) and a custom field's type (Text) are
+ * strings. The API spec documented both as objects when the check was
+ * written, so it took them for columns that store one and let any plain
+ * object through to match nothing (#10300). No tool lists their tables yet:
+ * these are the tools such a table would have.
+ */
+describe("a column the spec documented as an object, which holds a string", () => {
+  function listToolOf(tableName: string): McpToolInfo {
+    return {
+      name: `list_${tableName}`,
+      description: `Lists ${tableName}.`,
+      inputSchema: { type: "object", properties: {} },
+      modelName: tableName,
+      operation: OneUptimeOperation.List,
+      modelType: ModelType.Database,
+      singularName: tableName,
+      pluralName: tableName,
+      tableName,
+    };
+  }
+
+  test.each([
+    ["a team's permission", "TeamPermission", "permission", "IncidentMember"],
+    ["an API key's", "ApiKeyPermission", "permission", "IncidentMember"],
+    ["a custom role's", "CustomRolePermission", "permission", "IncidentMember"],
+    ["a custom field's type", "IncidentCustomField", "customFieldType", "Text"],
+  ])(
+    "%s: a value or an operator is let through, another object refused",
+    (_label: string, tableName: string, column: string, value: string) => {
+      const list: McpToolInfo = listToolOf(tableName);
+
+      expect(getFilterProblem(list, { [column]: value })).toBeNull();
+      expect(
+        getFilterProblem(list, { [column]: { _type: "EqualTo", value } }),
+      ).toBeNull();
+      expect(
+        getFilterProblem(list, { [column]: { _type: "IsNull" } }),
+      ).toBeNull();
+
+      expect(getFilterProblem(list, { [column]: { $eq: value } })).toContain(
+        `Not a value or an operator OneUptime reads: ${column} {"$eq":"${value}"}.`,
+      );
+      // The object the spec used to show for a permission matches nothing.
+      expect(
+        getFilterProblem(list, {
+          [column]: { read: true, write: false, delete: false },
+        }),
+      ).toContain(`${column} {"read":true,"write":false,"delete":false}`);
+    },
+  );
 });

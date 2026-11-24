@@ -1,3 +1,4 @@
+import { SharedNameKind } from "../../../../Types/Database/SharedNames";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import {
@@ -331,10 +332,23 @@ describe("On-Call Duty Policy notification rule conditions (#3459)", () => {
           checkOn: NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
         });
 
-      // A label's name is its owner's, drawn as written (#7782).
+      /*
+       * A label's name is its owner's, drawn as written (#7782), with what
+       * tells it apart from a label that shares its name (#10064).
+       */
       expect(options).toEqual([
-        { value: POLICY_LABEL_ID, label: "Payments", isUserContent: true },
-        { value: OTHER_LABEL_ID, label: "Search", isUserContent: true },
+        {
+          value: POLICY_LABEL_ID,
+          label: "Payments",
+          isUserContent: true,
+          sharedName: { kind: SharedNameKind.Label },
+        },
+        {
+          value: OTHER_LABEL_ID,
+          label: "Search",
+          isUserContent: true,
+          sharedName: { kind: SharedNameKind.Label },
+        },
       ]);
     });
 

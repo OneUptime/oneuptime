@@ -238,6 +238,16 @@ export default class DataPipeline extends BaseModel {
     type: TableColumnType.ShortText,
     required: false,
     computed: true,
+    /*
+     * Read through a relation, as the job's name is: a table's Lineage says
+     * how the latest run of the pipeline behind each edge went, and when it
+     * started (#10238's guard found the read refused). Every model that
+     * reads a pipeline through a relation is read by its own readers, but
+     * the two owner tables, whose Read Data Pipeline Owner permissions see
+     * the run's state and time beside its name. Its error, free text a run
+     * writes, is not: the Lineage reads it from the pipeline itself.
+     */
+    canReadOnRelationQuery: true,
     title: "Last Run State",
     description: "How the latest run stands: Running, Complete, Fail or Abort.",
   })
@@ -253,6 +263,8 @@ export default class DataPipeline extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     computed: true,
+    // Read through a relation, beside how the run stands (lastRunState).
+    canReadOnRelationQuery: true,
     title: "Last Run Started At",
     description: "When the latest run started.",
   })

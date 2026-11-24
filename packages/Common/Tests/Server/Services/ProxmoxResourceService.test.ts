@@ -3139,6 +3139,20 @@ const MODEL_UPSERT_CONFLICT_SQL: string = [
     '"lastSeenAt" = EXCLUDED."lastSeenAt"',
     '"isNativePush" = EXCLUDED."isNativePush"',
     '"notReportingMarkedAt" = NULL',
+    /*
+     * A guest's last power task, from the task log, goes once a scrape as
+     * new as the reading or newer sees the guest running (#10017). No node
+     * has one, so the model leaves it out.
+     */
+    ...[
+      "lastPowerTaskType",
+      "lastPowerTaskUser",
+      "lastPowerTaskStatus",
+      "lastPowerTaskAt",
+      "powerTaskReadAt",
+    ].map((column: string): string => {
+      return `"${column}" = CASE WHEN (EXCLUDED."isUp" IS TRUE AND "ProxmoxResource"."powerTaskReadAt" <= EXCLUDED."lastSeenAt") THEN NULL ELSE "ProxmoxResource"."${column}" END`;
+    }),
     '"updatedAt" = now()',
   ].join(", "),
   'WHERE EXCLUDED."lastSeenAt" >= "ProxmoxResource"."lastSeenAt"',

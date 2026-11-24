@@ -56,9 +56,9 @@ Rapporten tæller, hvad der blev oprettet, inviteret og ikke overført, og viser
 | I Grafana OnCall | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brugere | Projektmedlemmer | Matches på e-mailadresse. Alle, der ikke er i projektet endnu, inviteres til det team, du vælger. |
-| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. |
-| Vagtplaner | Vagtplaner | Hver rotation bliver et lag med de samme personer, den samme start, den samme overdragelse og de samme vagttimer, i vagtplanens tidszone, ejet af vagtplanens team. En rotation på et højere lag går stadig forud for lagene under det. |
-| Eskaleringskæder | Vagtpolitikker | De trin, der giver besked til personer, et team eller den, der har vagt i en vagtplan, bliver eskaleringsregler, og et ventetrin bliver ventetiden før den næste regel. Et trin, der gentager kæden, bliver politikkens gentagelser. |
+| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. Har to teams samme navn, overføres det andet element med et nummer, fx `Platform 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Vagtplaner | Vagtplaner | Hver rotation bliver et lag med de samme personer, den samme start, den samme overdragelse og de samme vagttimer, i vagtplanens tidszone, ejet af vagtplanens team. En rotation på et højere lag går stadig forud for lagene under det. Har to vagtplaner samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Eskaleringskæder | Vagtpolitikker | De trin, der giver besked til personer, et team eller den, der har vagt i en vagtplan, bliver eskaleringsregler, og et ventetrin bliver ventetiden før den næste regel. Et trin, der gentager kæden, bliver politikkens gentagelser. Har to eskaleringskæder samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
 
 Rotationer på samme lag, der har vagt samtidig, og en rotation, der sætter flere personer på vagt på én gang, bliver hver deres egen OneUptime-vagtplan, fordi en OneUptime-vagtplan har én person på vagt ad gangen. Hver vagtpolitik, der tilkaldte vagtplanen, tilkalder dem alle.
 

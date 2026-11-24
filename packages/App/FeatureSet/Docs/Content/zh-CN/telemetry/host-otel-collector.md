@@ -99,10 +99,69 @@ receivers:
           process.memory.utilization:
             enabled: true
 
-  # The systemd journal: every unit's logs, info and above.
+  # The systemd journal: every unit's logs, info and above. Each line is sent
+  # as its message, at its level, with the unit it is about and - for a unit
+  # that failed - systemd's own result and exit status, which the Systemd
+  # Units page reads why it failed from. The rest of an entry (its command
+  # line, user and group ids, cursor) stays on this host.
   journald:
-    directory: /var/log/journal
     priority: info
+    # A line holding a control character arrives as text, not as numbers.
+    convert_message_bytes: true
+    operators:
+      # What systemd itself says about a unit comes from PID 1, naming it in UNIT.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT != nil'
+        from: body.UNIT
+        to: attributes["systemd.unit.name"]
+      - type: move
+        if: 'attributes["systemd.unit.name"] == nil and body._SYSTEMD_UNIT != nil'
+        from: body._SYSTEMD_UNIT
+        to: attributes["systemd.unit.name"]
+      # Why a unit failed, in systemd's words: its result and how its process ended.
+      - type: move
+        if: 'body._PID == "1" and body.UNIT_RESULT != nil'
+        from: body.UNIT_RESULT
+        to: attributes["systemd.unit.result"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_CODE != nil'
+        from: body.EXIT_CODE
+        to: attributes["systemd.unit.exit_code"]
+      - type: move
+        if: 'body._PID == "1" and body.EXIT_STATUS != nil'
+        from: body.EXIT_STATUS
+        to: attributes["systemd.unit.exit_status"]
+      - type: move
+        if: 'body.SYSLOG_IDENTIFIER != nil'
+        from: body.SYSLOG_IDENTIFIER
+        to: attributes["syslog.identifier"]
+      - type: move
+        if: 'body._PID != nil'
+        from: body._PID
+        to: attributes["process.pid"]
+      # The journal's priority as the line's severity: syslog's levels.
+      - type: severity_parser
+        if: 'body.PRIORITY != nil'
+        parse_from: body.PRIORITY
+        preset: none
+        overwrite_text: true
+        mapping:
+          fatal: "0"
+          error3: "1"
+          error2: "2"
+          error: "3"
+          warn: "4"
+          info2: "5"
+          info: "6"
+          debug: "7"
+      # Nothing else of the entry leaves the host: the message is the line.
+      - type: retain
+        fields:
+          - body.MESSAGE
+      - type: move
+        from: body.MESSAGE
+        to: body
+        on_error: send_quiet
 
   # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
   systemd:
@@ -543,18 +602,20 @@ OneUptime 会扫描 error 和 fatal 级别的日志行中的堆栈追踪，并�
 
 ### systemd journal
 
-在 systemd 主机上，`journald` 接收器在一个地方读取所有单元的日志，并带有它们的结构化字段。上面的 Linux 配置读取所有 `info` 及以上级别的日志；要缩小到部分单元：
+在 systemd 主机上，`journald` 接收器在一个地方读取所有单元的日志。上面的 Linux 配置读取所有 `info` 及以上级别的日志，它的 `operators` 把每个条目作为其消息、按其 syslog 级别、归入它所涉及的单元发送（`systemd.unit.name`）。对于失败的单元，它们还会加上 systemd 自己给出的结果和其进程的结束方式（`systemd.unit.result`、`systemd.unit.exit_code`、`systemd.unit.exit_status`），主机的 **Systemd 单元** 页面据此说明该单元失败的原因。条目的其他内容都不会离开机器：没有命令行、用户或游标。
+
+修改接收器时请保留这些 operators：没有它们，每一行都会作为完整的 journal 条目以 JSON 形式到达，不归入任何单元，失败单元的页面也就无法说明它失败的原因。要只读取部分单元，请在 `units` 下列出它们：
 
 ```yaml
 receivers:
   journald:
-    directory: /var/log/journal
     units:
       # Drop this list to ingest everything; restrict it to limit volume.
       - ssh.service
       - cron.service
       - nginx.service
     priority: info
+    # Keep convert_message_bytes and the operators of the config above.
 ```
 
 该接收器运行每台 systemd 主机都有的 `journalctl`，Collector 的用户必须属于 `systemd-journal` 组。
@@ -928,11 +989,11 @@ Kubernetes 节点在 OneUptime 中不是主机：它们的遥测带有 Kubernete
 ```yaml
 receivers:
   journald:
-    directory: /var/log/journal
     units:
       - ssh.service
       - nginx.service
     priority: warning # info and debug are dropped before export
+    # Keep convert_message_bytes and the operators of the config above.
 ```
 
 - 用 `query:` 把大流量的 `Security` 事件通道缩小到你审计的事件 ID（如 [Windows 事件日志](#windows-事件日志) 中所示），或者干脆去掉该通道。

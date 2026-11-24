@@ -108,7 +108,7 @@ describe("the email a scheduled hunt sends", () => {
     expect(html).toContain(
       "The scheduled hunt Encoded PowerShell found 3 security events.",
     );
-    expect(html.split("Oct 28 2026").length - 1).toBe(1);
+    expect(html.split("Oct 28, 2026").length - 1).toBe(1);
     expect(html).toContain(
       "processname:powershell.exe commandline:-enc (and 2 filters)",
     );

@@ -602,12 +602,12 @@ const MONTHS: Array<string> = [
   "Dec",
 ];
 
-// A bucket's date as the bar must name it: its UTC date, marked as UTC.
+/*
+ * A bucket's date as the bar must name it: its UTC date, marked as UTC,
+ * its day without a zero as every English date (#7652).
+ */
 function utcDayLabel(date: Date): string {
-  return `${MONTHS[date.getUTCMonth()]} ${String(date.getUTCDate()).padStart(
-    2,
-    "0",
-  )}, ${date.getUTCFullYear()} (UTC)`;
+  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()} (UTC)`;
 }
 
 // jsdom reports a style colour as rgb().

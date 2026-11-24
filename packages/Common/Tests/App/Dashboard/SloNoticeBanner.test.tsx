@@ -21,6 +21,7 @@ import SloEvaluationSwitchCopy, {
   TURN_SLO_EVALUATION_ON_BUTTON_TEST_ID,
   TURN_SLO_EVALUATION_ON_ERROR_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
+import Metric from "../../../Models/AnalyticsModels/Metric";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -34,6 +35,7 @@ import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
 import Icon from "../../../UI/Components/Icon/Icon";
 import { announceModelSwitchSaved } from "../../../UI/Components/ModelSwitch/ModelSwitchEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { SLO_MONITOR_FIRST_CHECK_SELECT } from "../../../Utils/Slo/SloMonitorsFirstCheck";
 import PermissionGate, {
@@ -883,5 +885,116 @@ describe("SloNoticeBanner turns evaluation back on in place", () => {
       "href",
       SETTINGS_PATH,
     );
+  });
+});
+
+/*
+ * #10027: a Metric SLO counts a counter's or a histogram's events, and every
+ * cloud metric is written as a gauge: one on a gauge says so, instead of
+ * waiting for its metric for ever.
+ */
+describe("SloNoticeBanner of a Metric SLO", () => {
+  const SERVICE: JSONObject = { _id: "6d000000-0000-4000-8000-000000000001" };
+
+  // Its metric's newest point, of this kind.
+  function serveNewestPoint(
+    pointType: string | null,
+  ): ReturnType<typeof jest.spyOn> {
+    const point: Metric = new Metric();
+
+    if (pointType) {
+      (point as unknown as Record<string, unknown>)["metricPointType"] =
+        pointType;
+    }
+
+    return jest.spyOn(AnalyticsModelAPI, "getList").mockResolvedValue({
+      data: pointType ? [point] : [],
+      count: pointType ? 1 : 0,
+      skip: 0,
+      limit: 1,
+    } as never);
+  }
+
+  function serveMetricSlo(metricName: string): void {
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      sliType: SliType.Metric,
+      services: [SERVICE],
+      monitors: [],
+      metricQueryConfig: {
+        metricName,
+        kind: "Counter",
+        goodFilter: "@http.response.status_code:<500",
+      },
+    });
+  }
+
+  test("on a gauge, says plainly that a gauge cannot be counted, and opens Settings", async () => {
+    serveMetricSlo("azure_percentage_cpu_average");
+    const newestPoint: ReturnType<typeof jest.spyOn> =
+      serveNewestPoint("Gauge");
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    expect(
+      await screen.findByText("Its metric is a gauge, which cannot be counted"),
+    ).toBeInTheDocument();
+
+    const banner: HTMLElement = await findBanner();
+
+    expect(banner).toHaveAttribute("role", "alert");
+    expect(banner).toHaveTextContent(
+      "To measure one, create a metric monitor on it and choose monitor uptime as what this SLO measures",
+    );
+    expect(screen.getByRole("link", { name: "Open Settings" })).toHaveAttribute(
+      "href",
+      SETTINGS_PATH,
+    );
+    expect(screen.queryByText("Waiting for its metric")).toBeNull();
+
+    // The kind of its newest point, read once: one row, nothing else of it.
+    expect(newestPoint).toHaveBeenCalledTimes(1);
+    expect(newestPoint.mock.calls[0]![0]).toMatchObject({
+      select: { metricPointType: true },
+      limit: 1,
+    });
+  });
+
+  test("on a counter, or a metric not seen yet, it still waits for its metric", async () => {
+    for (const [metricName, pointType] of [
+      ["http_requests_total", "Sum"],
+      ["checkout_requests_total", null],
+    ] as Array<[string, string | null]>) {
+      serveMetricSlo(metricName);
+      serveNewestPoint(pointType);
+
+      const { unmount } = render(<SloNoticeBanner sloId={SLO_ID} />);
+
+      expect(
+        await screen.findByText("Waiting for its metric"),
+      ).toBeInTheDocument();
+      // Let the kind's read commit: it changes nothing.
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(
+        screen.queryByText("Its metric is a gauge, which cannot be counted"),
+      ).toBeNull();
+
+      unmount();
+      jest.restoreAllMocks();
+    }
+  });
+
+  test("a monitor uptime SLO reads no metric's kind", async () => {
+    const getItem: ReturnType<typeof jest.spyOn> = serveSlo({});
+    const newestPoint: ReturnType<typeof jest.spyOn> =
+      serveNewestPoint("Gauge");
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await expectNoBanner(getItem);
+
+    expect(newestPoint).not.toHaveBeenCalled();
   });
 });

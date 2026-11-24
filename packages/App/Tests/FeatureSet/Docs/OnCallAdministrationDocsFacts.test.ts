@@ -2827,7 +2827,8 @@ describe("user overrides", () => {
    * a role's; it writes overrides but does not read them; the service
    * refuses anyone else, and an API key, in no team, reaches nobody; the
    * pickers list those teams' people, and an override naming anyone else
-   * has its buttons locked.
+   * has its buttons locked - Skip until... beside anyone else on a layer
+   * too (#9884), and in the mobile app as on the Dashboard (#9883).
    */
   it("says Manage On-Call Policy User Overrides for Own Team reaches only the people of the teams given it, as the service and the pages hold it", () => {
     const override: OnCallDutyPolicyUserOverride =
@@ -2878,6 +2879,25 @@ describe("user overrides", () => {
     expect(page).toContain(
       "**Who is away?** and **Who covers?** list only those teams' people and say why, and **Edit**, **End Now** and **Delete** are locked, saying why, on an override that names anyone else.",
     );
+
+    // Skip until... on a layer (#9884), and the mobile app's screens (#9883).
+    expect(page).toContain(
+      "**Skip until…** on a schedule's layers is locked beside anyone else, saying why, and the mobile app lists and locks the same way.",
+    );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/Layers.tsx",
+      ),
+    ).toContain("getUserOverrideTeamAwayLock({");
+    expect(
+      readPackageFile("MobileApp/src/screens/CreateOnCallOverrideScreen.tsx"),
+    ).toContain("getOverrideTeamHint(teamPeople.teamNames)");
+    expect(
+      readPackageFile("MobileApp/src/screens/OnCallOverridesScreen.tsx"),
+    ).toContain("return getOverrideTeamLock({");
+    expect(
+      readPackageFile("MobileApp/src/screens/EditOnCallOverrideScreen.tsx"),
+    ).toContain('testID="edit-override-team-locked"');
     expect(page).toContain(
       `To see the overrides, they still need **${PermissionHelper.getTitle(
         Permission.ReadOnCallDutyPolicyUserOverride,

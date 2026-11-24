@@ -1,4 +1,12 @@
-import { expect, Locator, Page, Route, test } from "@playwright/test";
+import {
+  Browser,
+  BrowserContext,
+  expect,
+  Locator,
+  Page,
+  Route,
+  test,
+} from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
@@ -158,6 +166,22 @@ function button(
   return within.getByRole("button", { name: words(lang, english) });
 }
 
+/*
+ * THE PANEL OF WHAT THE SETUP MAKES (#10276): each record's status, by its
+ * key, as the panel beside the steps draws it - in any language.
+ */
+async function expectRecords(
+  page: Page,
+  statuses: Record<string, string>,
+): Promise<void> {
+  for (const [key, status] of Object.entries(statuses)) {
+    await expect(
+      page.getByTestId(`guided-setup-resource-${key}`),
+      `the panel's ${key}`,
+    ).toHaveAttribute("data-status", status);
+  }
+}
+
 const LOOKS: Array<Look> = [];
 
 for (const lang of ["de", "fa"] as Array<Language>) {
@@ -209,6 +233,12 @@ for (const each of LOOKS) {
     await expect(
       page.getByTestId("on-call-setup-reach-phone-value"),
     ).toBeVisible();
+    // The number added here, made; the person's methods, in use (#10276).
+    await expectRecords(page, {
+      notification_methods: "existing",
+      phone_number: "created",
+      on_call_policy: "waiting",
+    });
     await look(page, each, "1-reach-done");
     await page.getByTestId("on-call-setup-reach-continue").click();
 
@@ -245,6 +275,12 @@ for (const each of LOOKS) {
     );
 
     await expect(reminders).toHaveCount(1);
+    // The policy, its first escalation rule and its rules: made together.
+    await expectRecords(page, {
+      on_call_policy: "created",
+      escalation_rule: "created",
+      on_call_rules: "created",
+    });
     await look(page, each, "2-who-not-reachable-yet");
     await page.getByTestId("on-call-setup-who-continue").click();
 
@@ -266,10 +302,13 @@ for (const each of LOOKS) {
 
     // 4. Send a test page: acknowledged from the email at once.
     await expect(step(page, "test")).toHaveAttribute("data-state", "open");
+    // Grace, after the wait: the second escalation rule, made.
+    await expectRecords(page, { no_answer: "created", test_page: "waiting" });
     await look(page, each, "4-test");
     await button(step(page, "test"), each.lang, "Test this policy").click();
     await button(page.getByRole("dialog"), each.lang, "Send test page").click();
     await expect(page.getByTestId("on-call-setup-test-continue")).toBeVisible();
+    await expectRecords(page, { test_page: "created" });
     await look(page, each, "4-test-acknowledged");
     await page.getByTestId("on-call-setup-test-continue").click();
 
@@ -327,5 +366,99 @@ for (const width of [1280, 390]) {
       words("fa", "Set up SMS and calls"),
     );
     await look(page, each, "admin-without-twilio-reach");
+  });
+}
+
+/*
+ * ANOTHER DEVICE PICKS THE RUN UP (#7253): a laptop adds a number and makes
+ * the policy; a phone - a browser of its own, nothing kept in it - opens the
+ * setup at the step the laptop left, with the same panel of what it made.
+ * The two share one world of the fixture's server (?world=).
+ */
+for (const [laptop, phone] of [
+  [
+    { lang: "de", theme: "light", width: 1280 },
+    { lang: "de", theme: "dark", width: 390 },
+  ],
+  [
+    { lang: "fa", theme: "dark", width: 1280 },
+    { lang: "fa", theme: "light", width: 390 },
+  ],
+] as Array<[Look, Look]>) {
+  test(`another device picks the run up: ${nameOf(laptop)} then ${nameOf(phone)}`, async ({
+    page,
+    browser,
+  }: {
+    page: Page;
+    browser: Browser;
+  }) => {
+    test.setTimeout(240000);
+    const world: string = `oc-${laptop.lang}-${Date.now()}`;
+
+    await open(page, laptop, `?billing=on&seed=phones&world=${world}`);
+    await page.getByTestId("on-call-setup-reach-continue").click();
+    await expect(step(page, "who_else")).toHaveAttribute("data-state", "open");
+    await page.getByTestId("on-call-setup-who-save").click();
+    await expectRecords(page, { on_call_policy: "created" });
+    await expect(page.getByTestId("guided-setup-sync")).toHaveAttribute(
+      "data-sync",
+      "saved",
+    );
+
+    const context: BrowserContext = await browser.newContext();
+    const second: Page = await context.newPage();
+
+    second.on("pageerror", (error: Error) => {
+      pageErrors.push(error.message);
+    });
+    await second.route(
+      (url: URL) => {
+        return url.origin !== ORIGIN;
+      },
+      async (route: Route) => {
+        leftTheMachine.push(route.request().url());
+        await route.abort();
+      },
+    );
+    await second.clock.setFixedTime(NOW);
+
+    try {
+      await open(second, phone, `?billing=on&seed=phones&world=${world}`);
+
+      await expect(step(second, "reach_you")).toHaveAttribute(
+        "data-state",
+        "done",
+      );
+      await expect(step(second, "who_else")).not.toHaveAttribute(
+        "data-state",
+        "upcoming",
+      );
+      await expectRecords(second, {
+        on_call_policy: "created",
+        escalation_rule: "created",
+        on_call_rules: "created",
+      });
+      await look(second, phone, "another-device-picks-it-up");
+
+      // One policy in the world: nothing made twice.
+      const writes: Array<{ kind: string; table: string }> =
+        await second.evaluate(() => {
+          return (
+            window as unknown as {
+              __journeyFixture: {
+                writes: Array<{ kind: string; table: string }>;
+              };
+            }
+          ).__journeyFixture.writes;
+        });
+
+      expect(
+        writes.filter((write: { kind: string; table: string }) => {
+          return write.table === "OnCallDutyPolicy" && write.kind === "create";
+        }),
+      ).toHaveLength(1);
+    } finally {
+      await context.close();
+    }
   });
 }

@@ -9,6 +9,7 @@ import DashboardComponentType, {
   DataSourceComponentTypes,
 } from "../../../../Types/Dashboard/DashboardComponentType";
 import DataSourceQueryConfig from "../../../../Types/DataSource/DataSourceQueryConfig";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../../Types/DataSource/ProjectMetricsDataSource";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { ObjectType } from "../../../../Types/JSON";
 import DashboardDataSourceChartComponentUtil from "../../../../Utils/Dashboard/Components/DashboardDataSourceChartComponent";
@@ -239,11 +240,13 @@ for (const widgetCase of WIDGET_CASES) {
       expect(queries).toHaveLength(1);
 
       /*
-       * Blank on both fields: an empty dataSourceId is what the widget reads
-       * as "not configured yet", and a non-empty default query would be run
-       * against whichever source the user picks first.
+       * The query is blank, which is what the widget reads as "not
+       * configured yet": a non-empty default would be run against whichever
+       * source the user picks. Its source is the project's own metrics
+       * (issue #7713), which every project has, so writing PromQL is all a
+       * new widget needs.
        */
-      expect(queries[0]?.dataSourceId).toBe("");
+      expect(queries[0]?.dataSourceId).toBe(PROJECT_METRICS_DATA_SOURCE_ID);
       expect(queries[0]?.query).toBe("");
     });
 
@@ -266,7 +269,7 @@ for (const widgetCase of WIDGET_CASES) {
         widgetCase.getSeededQueries(roundTripped);
 
       expect(queries).toHaveLength(1);
-      expect(queries[0]?.dataSourceId).toBe("");
+      expect(queries[0]?.dataSourceId).toBe(PROJECT_METRICS_DATA_SOURCE_ID);
       expect(queries[0]?.query).toBe("");
       expect(queries[0]?.id).toBe(
         widgetCase.getSeededQueries(component)[0]?.id,

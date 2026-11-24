@@ -34,22 +34,30 @@ const access: Dictionary<ColumnAccessControl> =
   playlist.getColumnAccessControlForAllColumns();
 const columns: Dictionary<TableColumnMetadata> = getTableColumns(playlist);
 
+/*
+ * Each list ends with Dashboards' levels (#10289), which follow the
+ * project-wide roles on Dashboards' records: Dashboard Admin makes a
+ * playlist as Project Admin does, Dashboard Viewer plays one as Viewer does.
+ */
 const CREATORS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.CreateDashboardPlaylist,
+  Permission.DashboardAdmin,
 ];
 
 const EDITORS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.EditDashboardPlaylist,
+  Permission.DashboardAdmin,
 ];
 
 const DELETERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.DeleteDashboardPlaylist,
+  Permission.DashboardAdmin,
 ];
 
 const READERS: Array<Permission> = [
@@ -61,6 +69,9 @@ const READERS: Array<Permission> = [
   Permission.SettingsMember,
   Permission.SettingsViewer,
   Permission.ReadDashboardPlaylist,
+  Permission.DashboardAdmin,
+  Permission.DashboardMember,
+  Permission.DashboardViewer,
 ];
 
 // What the people who set a playlist up write, and everyone who reads it sees.

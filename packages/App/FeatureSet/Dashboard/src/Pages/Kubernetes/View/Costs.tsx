@@ -53,8 +53,10 @@ import {
 import KubernetesRightSizingCard from "./KubernetesRightSizingCard";
 import KubernetesCostTrendChart from "./KubernetesCostTrendChart";
 import KubernetesCostPricingNote from "./KubernetesCostPricingNote";
-import { fetchKubernetesCostEngine } from "../Utils/KubernetesCostEngine";
-import { KubernetesCostEngineInfo } from "Common/Types/Kubernetes/KubernetesCostPricing";
+import {
+  KubernetesCostEngineView,
+  fetchKubernetesCostEngine,
+} from "../Utils/KubernetesCostEngine";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import {
@@ -127,8 +129,11 @@ const KubernetesClusterCosts: FunctionComponent<
     [],
   );
   const [workloadRows, setWorkloadRows] = useState<Array<WorkloadCostRow>>([]);
-  // Which engine priced the window's newest hour, and at what prices.
-  const [costEngine, setCostEngine] = useState<KubernetesCostEngineInfo | null>(
+  /*
+   * Which engine priced the window's newest hour, at what prices, and how
+   * far a Kubecost reconciled them with the cloud bill.
+   */
+  const [costEngine, setCostEngine] = useState<KubernetesCostEngineView | null>(
     null,
   );
 

@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
@@ -367,6 +368,7 @@ export default class ServiceLevelObjective extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -652,6 +654,7 @@ export default class ServiceLevelObjective extends BaseModel {
     title: "Monitors",
     description:
       "Monitors whose uptime is measured by this Service Level Objective (for Monitor Uptime SLIs).",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

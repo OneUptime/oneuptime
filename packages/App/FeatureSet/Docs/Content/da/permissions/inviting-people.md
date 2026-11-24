@@ -107,6 +107,8 @@ Under **Brugere** klikker du på personen og derefter på **Teams**.
 
 Klik på **Inviter**, vælg **Team**, og klik på **Inviter** i dialogen. Et medlem er med i det nye team med det samme. Den, der ikke er kommet med endnu, får en invitation mere, og når den ene accepteres, accepteres begge.
 
+Dit projekt sender en person højst én invitation pr. e-mail i timen. En invitation inden for en time efter den seneste e-mail, til et andet team eller efter at du har fjernet personen, bliver oprettet, men der sendes ingen ny e-mail, før personen accepterer eller afviser en af dem. **Send invitation igen** i rækkemenuen for personen under **Brugere** sender stadig en e-mail.
+
 ### Tag personen ud af et team
 
 Klik på **Fjern** i teamets række. Er det det sidste team, personen er kommet med i, tager fjernelsen personen ud af projektet, og dialogen siger det, før noget ændres.
@@ -139,7 +141,11 @@ I OneUptime Cloud har et projekt på Free-planen plads til én person. Skift pla
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-Én adresse kan få 10 invitationer i timen, til projekter og private statussider tilsammen, uanset hvem der sender dem. Vent en time, og inviter så personen igen.
+Dit projekt kan sende én adresse 10 invitationer i timen, til projektets teams og private statussider tilsammen. Andre projekters invitationer tæller ikke med. Vent en time, og inviter så personen igen.
+:::
+
+:::details "This invitation cannot be sent right now"
+OneUptime sender højst 50 invitationer i timen til én adresse fra alle projekter tilsammen, og denne invitation ville overskride det. Der blev ikke oprettet noget. Prøv igen om en time.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

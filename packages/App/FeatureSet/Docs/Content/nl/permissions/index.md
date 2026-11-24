@@ -129,6 +129,26 @@ Facturatie heeft drie eigen rollen. `BillingViewer` leest de facturatie van het 
 
 Alle {{PERMISSION_ROLE_COUNT}} rollen staan in de [Machtigingsreferentie](/docs/permissions/reference).
 
+### Productniveaus
+
+Een productniveau geeft een team één product, op één niveau, en verder niets van het project: `CloudAdmin`, `NetworkViewer`, `HostMember`. Elk niveau doet met de eigen records van het product wat een projectbrede rol met elk record doet:
+
+- **Kijker** leest daar wat de rol Kijker leest, en wijzigt niets.
+- **Lid** maakt ook de records van het product aan, wijzigt en verwijdert ze, zoals een Projectlid doet.
+- **Beheerder** doet daar ook wat een Projectbeheerder doet: de instellingen van het product, zijn verbindingen en inloggegevens, en zijn label- en eigenaarregels.
+
+Een niveau reikt nooit tot een ander product, en ook niet tot de instellingen, teams, leden, API-sleutels, SSO of facturatie van het project.
+
+:::steps
+1. Open de pagina **Machtigingen** van het team.
+2. Kies onder **Producttoegang** een niveau voor elk product waarmee het team werkt. Maak het niveau van een product leeg om het team dat product weer af te nemen.
+:::
+
+- **Monitoren, Incidenten en de andere onderdelen met eigen rollen** geeft u met **Rol toevoegen**, onder **Eén onderdeel**. Dat geldt ook voor de Telemetry-rollen, voor Logboeken, Metrieken, Traces, Profielen en Uitzonderingen, en voor de Security-rollen.
+- **AI / LLM, Inventaris en Formulieren** hebben alleen de niveaus Kijker en Beheerder, omdat een Projectlid daar niets wijzigt.
+- **Een niveau is een machtiging zoals elke andere.** U kunt het in de tabel met machtigingen beperken tot enkele labels of tot eigen records, het blokkeren, het in een aangepaste rol opnemen of het aan een API-sleutel geven. Zoals bij elke machtiging kunt u een niveau alleen geven als u het zelf hebt, tenzij u Projecteigenaar bent.
+- **Een niveau leest de records van het product, niet de telemetrie ervan.** Een team met `HostViewer` ziet de hosts van het project, en heeft voor hun grafieken ook `TelemetryViewer` nodig.
+
 ### Granulaire machtigingen
 
 Elk afzonderlijk vermogen is ook los toe te kennen — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` en {{PERMISSION_TOTAL_COUNT}} andere. Gebruik deze als een rol te breed is en u precies één ding wilt toekennen.
@@ -202,7 +222,7 @@ Elke toegestane machtiging wordt toegekend met een bereik: wanneer u haar toevoe
 
 Een rol krijgt alle drie de antwoorden aangeboden. Een losse machtiging, toegevoegd met **Machtiging toevoegen**, krijgt overal een bereik aangeboden waar een bereik haar beperkt, met alleen de antwoorden die dat doen: **Create Workflow** kan worden beperkt tot de workflows die een team bezit, of tot enkele labels, net als **Edit Workflow**, terwijl een machtiging op iets dat iedereen deelt, zoals **Create Label**, geen bereik aanbiedt, omdat geen enkel bereik haar zou beperken. De losse machtiging van een API-sleutel neemt labels overal waar labels haar beperken. Een blokkade is nooit beperkt tot eigen resources: ze neemt een machtiging overal weg of, met labels, van de resources die ze dragen.
 
-**Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt elke resource die eigenaren kan hebben — monitors, incidenten, dashboards, diensten, monitorgroepen, bereikbaarheidsschema's en dergelijke — en wat erbij hoort, zoals de lagen van een schema. Sondes, Runners, AI-agenten, bereikbaarheidsschema's en incident- en onderhoudssjablonen zijn waarmee andere resources worden ingericht, dus een machtiging met bereik Eigen leest ze nog steeds allemaal en u kunt er elk van kiezen; ze wijzigt en verwijdert alleen die waarvan u of uw teams eigenaar zijn. De sleutel van een Runner, waarmee wie hem heeft als die Runner kan optreden, is alleen te zien bij de Runners waarvan u of uw teams eigenaar zijn. Projectconfiguratie (incidentstatussen, labels) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal. Ook de eigen pagina's van Data Observability houden zich aan uw bereik: het **Overzicht**, **Problemen** en het getal naast **Overzicht** tellen en tonen alleen de tabellen, controles en pipelines die u mag lezen, en een actie op één tabel of controle, zoals **Nu uitvoeren**, bereikt alleen een tabel of controle die u mag lezen of wijzigen.
+**Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt elke resource die eigenaren kan hebben — monitors, incidenten, dashboards, diensten, monitorgroepen, bereikbaarheidsschema's en dergelijke — en wat erbij hoort, zoals de lagen van een schema. Sondes, Runners, AI-agenten, bereikbaarheidsschema's, netwerklocaties en incident- en onderhoudssjablonen zijn waarmee andere resources worden ingericht, dus een machtiging met bereik Eigen leest ze nog steeds allemaal en u kunt er elk van kiezen; ze wijzigt en verwijdert alleen die waarvan u of uw teams eigenaar zijn. De sleutel van een Runner, waarmee wie hem heeft als die Runner kan optreden, is alleen te zien bij de Runners waarvan u of uw teams eigenaar zijn. Projectconfiguratie (incidentstatussen, labels) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal. Ook de eigen pagina's van Data Observability houden zich aan uw bereik: het **Overzicht**, **Problemen** en het getal naast **Overzicht** tellen en tonen alleen de tabellen, controles en pipelines die u mag lezen, en een actie op één tabel of controle, zoals **Nu uitvoeren**, bereikt alleen een tabel of controle die u mag lezen of wijzigen.
 
 De machtiging met bereik Eigen van een team reikt tot wat van dat team is, niet tot wat van de andere teams van de persoon is. Iemand in twee teams, het ene met `IncidentMember` met bereik Eigen en het andere met `Viewer` met bereik Eigen, wijzigt de incidenten die van het eerste team zijn en die van zichzelf, en bekijkt de incidenten die van het tweede team zijn alleen. Een machtiging met bereik Eigen voegt ook alleen eigenaren toe aan resources die van de persoon zijn of van het team waaraan ze is gegeven, dus het eerste team kan geen eigenaar worden van de incidenten van het tweede team om dit te omzeilen. De machtiging met bereik Eigen van een aangepaste rol reikt tot wat van elk team is dat de rol heeft gekregen.
 

@@ -88,6 +88,7 @@
     <string name="log_session_title">لاگ‌ها برای عیب‌یابی</string>
     <string name="log_session_request_by">لاگ‌های همهٔ برنامه‌های این دستگاه به مدت %2$s و از سطح %3$s به بالا، از سوی %1$s در OneUptime درخواست شده است.</string>
     <string name="log_session_request">لاگ‌های همهٔ برنامه‌های این دستگاه به مدت %1$s و از سطح %2$s به بالا، از سوی OneUptime درخواست شده است.</string>
+    <string name="log_session_note">«%1$s»</string>
     <string name="log_session_android_prompt">سپس Android از شما می‌پرسد که آیا اجازهٔ دسترسی به همهٔ گزارش‌های دستگاه را می‌دهید. آنجا هم اجازه دهید.</string>
     <string name="log_session_allow">اجازه دادن</string>
     <string name="log_session_decline">رد کردن</string>

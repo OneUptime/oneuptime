@@ -32,6 +32,14 @@ import {
   getHttpStepVariableTexts,
   redactHttpStepSecrets,
 } from "Common/Types/Runbook/HttpStepVariables";
+import {
+  CaCertificateProblem,
+  HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
+  HttpStepCertificateSettings,
+  getHttpStepCertificateFailureMessage,
+  getHttpStepCertificateSettings,
+} from "Common/Types/Runbook/HttpStepCertificates";
+import { getCaCertificateProblem } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
 import { getSshHostKeyProblem } from "Common/Types/Runbook/SshHostKey";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
@@ -450,7 +458,10 @@ export const HTTP_STEP_VARIABLES_UNREAD_MESSAGE: string =
  * servers, with the runbook variables its URL, headers and body name filled
  * in (Common/Types/Runbook/HttpStepVariables) - a secret too, since no
  * Runner is involved. What it records - the response's status, headers and
- * body, or the error - has every secret it was given hidden.
+ * body, or the error - has every secret it was given hidden. The server's
+ * certificate is checked as the step says: as every request's, against the
+ * step's own CA certificate, or not at all, for this request alone
+ * (Common/Types/Runbook/HttpStepCertificates).
  */
 export async function runHttpStep(
   step: RunbookStep,
@@ -552,6 +563,34 @@ export async function runHttpStep(
     }
   }
 
+  /*
+   * How the server's certificate is checked: as every request's, against
+   * the step's own CA certificate, or not at all
+   * (Common/Types/Runbook/HttpStepCertificates). A CA certificate a save
+   * would refuse is refused here too, before anything is sent: Node takes
+   * text that is not a certificate without a word, and the step would fail
+   * on the certificate it was meant to trust.
+   */
+  const certificates: HttpStepCertificateSettings =
+    getHttpStepCertificateSettings(storedConfig);
+
+  if (certificates.caCertificate) {
+    const problem: CaCertificateProblem | null = getCaCertificateProblem(
+      certificates.caCertificate,
+    );
+
+    if (problem) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem],
+      };
+    }
+  }
+
+  // The URL as the guard approved it, once it has: what an error names.
+  let target: URL | undefined = undefined;
+
   try {
     /*
      * url/method/headers/body come verbatim out of the Runbook's steps JSON,
@@ -571,11 +610,26 @@ export async function runHttpStep(
      * every other request of the worker does, whether the proxy is named by
      * address or by host name; a host in NO_PROXY is dialled directly, at
      * the address the guard checked.
+     *
+     * The agents, not axios, go through the proxy (`proxy: false` below):
+     * axios's own tunnel hands the https agent's options to its connection
+     * to an https:// proxy, so the step's certificate settings would loosen
+     * or break that connection too. Node's tunnel keeps them to the
+     * connection to the target, and the agents are this request's alone.
      */
     const { url, httpAgent, httpsAgent } =
-      await DataSourceEgressGuard.assertUrlAllowedAndPin(config.url || "", {
-        targetLabel: "Runbook HTTP step",
-      });
+      await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(
+        config.url || "",
+        {
+          targetLabel: "Runbook HTTP step",
+        },
+        {
+          rejectUnauthorized: !certificates.skipsCertificateChecks,
+          ca: certificates.caCertificate,
+        },
+      );
+
+    target = url;
 
     let response: AxiosResponse;
 
@@ -592,6 +646,8 @@ export async function runHttpStep(
         maxContentLength: HTTP_STEP_MAX_RESPONSE_BYTES,
         httpAgent,
         httpsAgent,
+        // The agents go through the outbound proxy themselves (above).
+        proxy: false,
         validateStatus: () => {
           return true;
         },
@@ -633,12 +689,87 @@ export async function runHttpStep(
       };
     }
 
+    const code: string | undefined = getErrorCode(err);
+
+    /*
+     * A certificate the step refused says why, and what in the step would
+     * let it through - Node's own words end with advice for whoever runs
+     * Node ("try running Node.js with --use-system-ca").
+     */
+    const certificateMessage: string | null = target
+      ? getHttpStepCertificateFailureMessage({
+          code,
+          host: target.hostname,
+          settings: certificates,
+        })
+      : null;
+
+    if (certificateMessage) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: redact(certificateMessage),
+      };
+    }
+
+    if (target && code === "ERR_PROXY_TUNNEL") {
+      return {
+        success: false,
+        output: "",
+        errorMessage: redact(
+          getHttpStepProxyTunnelMessage({
+            target,
+            nodeMessage: err instanceof Error ? err.message : String(err),
+          }),
+        ),
+      };
+    }
+
     return {
       success: false,
       output: "",
       errorMessage: redact(err instanceof Error ? err.message : String(err)),
     };
   }
+}
+
+// The code a failed request came with: axios's, or the socket's under it.
+function getErrorCode(err: unknown): string | undefined {
+  const withCode: { code?: unknown; cause?: { code?: unknown } } = (err ||
+    {}) as { code?: unknown; cause?: { code?: unknown } };
+
+  if (typeof withCode.code === "string") {
+    return withCode.code;
+  }
+
+  return typeof withCode.cause?.code === "string"
+    ? withCode.cause.code
+    : undefined;
+}
+
+// What an outbound proxy answered a tunnel it would not open with.
+const PROXY_TUNNEL_ANSWER: RegExp = /: (HTTP\/\d(?:\.\d)? \d{3}[^\r\n]*)$/;
+
+/*
+ * What an HTTPS request step says when the outbound proxy would not open a
+ * tunnel to the target: that the proxy refused, not the target, and what
+ * the proxy answered. Node's own message names the proxy's address, which
+ * is the operator's and not the step's: it is left out.
+ */
+export function getHttpStepProxyTunnelMessage(data: {
+  target: URL;
+  nodeMessage: string;
+}): string {
+  const port: string =
+    data.target.port || (data.target.protocol === "https:" ? "443" : "80");
+  const answer: string | undefined = PROXY_TUNNEL_ANSWER.exec(
+    data.nodeMessage || "",
+  )?.[1];
+  const destination: string = `${data.target.hostname}:${port}`;
+
+  return answer
+    ? `The outbound proxy did not open a connection to ${destination}: it answered ${answer}. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`
+    : `The outbound proxy did not open a connection to ${destination}, so the request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`;
 }
 
 export async function runBashStep(

@@ -65,7 +65,7 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 | **Moniteurs**                        | **Ressources affectées** | Aucun                     | Les moniteurs qui ne sont pas vérifiés pendant que l'événement est en cours.     |
 | **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement. Demandé dès qu'un moniteur est choisi. |
 | **Autres ressources affectées**      | **Ressources affectées** | Aucune                    | Hôtes, clusters, bases de données, sites réseau, services et plus.               |
-| **Afficher l'événement sur ces pages de statut** | **Ressources affectées** | Aucune    | Les pages de statut qui affichent l'événement et préviennent leurs abonnés.      |
+| **Afficher l'événement sur ces pages de statut** | **Ressources affectées** | Aucune    | Les seules pages de statut qui peuvent afficher l'événement ou prévenir leurs abonnés. |
 | **Notifications aux abonnés**        | **Ressources affectées** | Publié immédiatement, les trois moments activés, aucun rappel | Quand l'événement s'affiche sur ces pages, et quand leurs abonnés sont prévenus. |
 
 Deux choses remplissent le formulaire pour vous en cours de route :
@@ -104,8 +104,9 @@ Planifiez le travail aussi tôt que vous le souhaitez, et gardez-le au sein de v
 | Son **Se termine le**    | Il se termine                                                    | Passé                   |
 
 - **D'ici là, les abonnés n'en savent rien.** Les rappels avant l'événement, les changements d'état et les notes publiques ne leur sont pas envoyés tant que l'événement attend.
-- **Sa page le dit.** Son en-tête indique **Pas encore sur les pages de statut**, avec l'heure à partir de laquelle il s'affiche, et **Publier maintenant** le publie aussitôt, après confirmation. Ses **Paramètres** disent la même chose, et la liste des événements affiche l'heure sous ses pages de statut.
+- **Sa page le dit.** Son en-tête indique **Pas encore sur les pages de statut**, avec l'heure à partir de laquelle il s'affiche, et **Publier maintenant** le publie aussitôt, après confirmation. Quand aucune de ses pages de statut n'affiche les événements de maintenance, l'en-tête le dit à la place de l'heure. Ses **Paramètres** disent la même chose, et la liste des événements affiche l'heure sous ses pages de statut.
 - **Le modifier, ou le publier tout de suite.** Déplacez le **Publier le** à l'étape **Pages de statut** de **Modifier**, ou choisissez **Immédiatement**. Désactivez **Visible sur la page de statut** dans ses **Paramètres** pour le garder hors de ses pages de statut quelle que soit l'heure.
+- **Ce que font ses pages de statut.** À la même étape, une note sous les pages de statut indique quand les pages choisies ne montreront l'événement à personne ou ne préviendront personne, et pourquoi, et une note sous **Rappels avant l'événement** indique quels rappels ne sont pas envoyés. La carte **Détails de la maintenance** le dit sous **Affiché sur les pages de statut** quand aucune d'elles n'affiche les événements de maintenance.
 
 ## Modifier un événement ensuite
 

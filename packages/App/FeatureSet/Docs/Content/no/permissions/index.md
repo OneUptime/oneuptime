@@ -129,6 +129,26 @@ Fakturering har tre egne roller. `BillingViewer` leser prosjektets fakturering �
 
 Alle {{PERMISSION_ROLE_COUNT}} roller står i [Tillatelsesreferansen](/docs/permissions/reference).
 
+### Produktnivåer
+
+Et produktnivå gir et team ett produkt, på ett nivå, og ingenting annet av prosjektet: `CloudAdmin`, `NetworkViewer`, `HostMember`. Hvert nivå gjør med produktets egne poster det en prosjektomfattende rolle gjør med alle poster:
+
+- **Leser** leser der det samme som rollen Leser, og endrer ingenting.
+- **Medlem** oppretter, endrer og sletter også produktets poster, slik et Prosjektmedlem gjør.
+- **Administrator** gjør der også det en Prosjektadministrator gjør: produktets innstillinger, tilkoblingene og påloggingsinformasjonen dets, og etikett- og eierreglene dets.
+
+Et nivå når aldri et annet produkt, og heller ikke prosjektets innstillinger, team, medlemmer, API-nøkler, SSO eller fakturering.
+
+:::steps
+1. Åpne teamets side **Tillatelser**.
+2. Velg under **Produkttilgang** et nivå for hvert produkt teamet jobber med. Tøm et produkts nivå for å ta produktet fra teamet igjen.
+:::
+
+- **Monitorer, Hendelser og de andre områdene med egne roller** gis med **Legg til rolle**, under **Ett område**. Det samme gjelder Telemetry-rollene, for Logger, Målinger, Spor, Profiler og Unntak, og Security-rollene.
+- **AI / LLM, Inventar og Skjemaer** har bare nivåene Leser og Administrator, fordi et Prosjektmedlem ikke endrer noe i dem.
+- **Et nivå er en tillatelse som alle andre.** Du kan begrense det til noen etiketter eller til eide poster i tabellen med tillatelser, blokkere det, legge det i en egendefinert rolle eller gi det til en API-nøkkel. Som med alle tillatelser kan du bare gi et nivå hvis du har det selv, med mindre du er Prosjekteier.
+- **Et nivå leser produktets poster, ikke telemetrien dets.** Et team med `HostViewer` ser prosjektets verter, og trenger også `TelemetryViewer` for diagrammene deres.
+
 ### Granulære tillatelser
 
 Hver enkelt evne kan også tildeles alene — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` og {{PERMISSION_TOTAL_COUNT}} andre. Bruk disse når en rolle er for bred og du må gi akkurat én ting.
@@ -202,7 +222,7 @@ Hver tillatt rettighet gis med et omfang: når du legger den til, ligger **Omfan
 
 En rolle tilbys alle tre svarene. En enkelt tillatelse, lagt til med **Legg til tillatelse**, tilbys et omfang overalt der et omfang snevrer den inn, med bare svarene som gjør det: **Create Workflow** kan begrenses til arbeidsflytene et team eier, eller til noen etiketter, akkurat som **Edit Workflow** kan, mens en tillatelse på noe alle deler, som **Create Label**, ikke tilbyr noe omfang, fordi ingen ville snevre den inn. En API-nøkkels enkelttillatelse tar etiketter overalt der etiketter snevrer den inn. En blokkering er aldri begrenset til eide ressurser: den tar en tillatelse bort overalt eller, med etiketter, fra ressursene som har dem.
 
-**Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av monitorene det har ansvaret for. Det snevrer inn alle ressurser som kan ha eiere — monitorer, hendelser, dashbord, tjenester, monitorgrupper, vaktplaner og lignende — og det som hører til dem, som lagene i en vaktplan. Sonder, Runnere, AI-agenter, vaktplaner og hendelses- og vedlikeholdsmaler er det andre ressurser settes opp med, så en tillatelse med omfanget Eide leser fortsatt alle sammen, og du kan velge hvilken som helst av dem; den endrer og sletter bare dem du eller teamene dine eier. En Runners nøkkel, som lar den som har den, opptre som Runneren, vises bare på Runnerne du eller teamene dine eier. Prosjektkonfigurasjon (hendelsestilstander, etiketter) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der. Data Observabilitys egne sider holder seg også til omfanget ditt: **Oversikt**, **Problemer** og tallet ved **Oversikt** teller og viser bare tabellene, sjekkene og pipelinene du kan lese, og en handling på én tabell eller sjekk, som **Kjør nå**, når bare en du kan lese eller endre.
+**Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av monitorene det har ansvaret for. Det snevrer inn alle ressurser som kan ha eiere — monitorer, hendelser, dashbord, tjenester, monitorgrupper, vaktplaner og lignende — og det som hører til dem, som lagene i en vaktplan. Sonder, Runnere, AI-agenter, vaktplaner, nettverkslokasjoner og hendelses- og vedlikeholdsmaler er det andre ressurser settes opp med, så en tillatelse med omfanget Eide leser fortsatt alle sammen, og du kan velge hvilken som helst av dem; den endrer og sletter bare dem du eller teamene dine eier. En Runners nøkkel, som lar den som har den, opptre som Runneren, vises bare på Runnerne du eller teamene dine eier. Prosjektkonfigurasjon (hendelsestilstander, etiketter) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der. Data Observabilitys egne sider holder seg også til omfanget ditt: **Oversikt**, **Problemer** og tallet ved **Oversikt** teller og viser bare tabellene, sjekkene og pipelinene du kan lese, og en handling på én tabell eller sjekk, som **Kjør nå**, når bare en du kan lese eller endre.
 
 Et teams tillatelse med omfanget Eide rekker til det teamet eier, ikke til det personens andre team eier. Den som er med i to team, det ene med `IncidentMember` med omfanget Eide og det andre med `Viewer` med omfanget Eide, endrer hendelsene det første teamet eier og de vedkommende eier selv, og ser bare hendelsene det andre teamet eier. En tillatelse med omfanget Eide legger også bare til eiere på ressurser som personen eller teamet den er gitt til, eier, så det første teamet kan ikke gjøres til eier av det andre teamets hendelser for å komme rundt dette. En egendefinert rolles tillatelse med omfanget Eide rekker til det hvert team som har fått rollen, eier.
 

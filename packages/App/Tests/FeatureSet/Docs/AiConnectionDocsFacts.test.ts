@@ -14,6 +14,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
+import { withoutProductLevels } from "./DocsProductLevels";
 import LlmObservabilityConnection from "Common/Models/DatabaseModels/LlmObservabilityConnection";
 import {
   LlmConnectionCatalog,
@@ -36,6 +37,7 @@ import {
   LlmProviderUsageMetricNames,
 } from "Common/Types/LlmObservability/LlmProviderUsageMetrics";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   LlmCompletionJsonAttributeKeys,
   LlmConversationIdAttributeKeys,
@@ -789,9 +791,20 @@ describe("connecting, on both pages", () => {
       connection.getUpdatePermissions(),
       connection.getDeletePermissions(),
     ]) {
-      expect([...permissions].sort()).toEqual(
-        [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),
-      );
+      /*
+       * The AI / LLM product's Admin level (#10289) connects, changes and
+       * removes them too, as Project Admin does: the permissions page
+       * describes a product's levels once for every product, its
+       * connections and credentials included, as the other pages leave
+       * them to it.
+       */
+      expect(permissions).toContain(Permission.LlmObservabilityAdmin);
+      expect(
+        withoutProductLevels({
+          permissions: permissions,
+          product: ProductKey.Llm,
+        }).sort(),
+      ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin].sort());
     }
 
     for (const page of [PROVIDER_ACCOUNTS, COMPANY_TOOLS]) {

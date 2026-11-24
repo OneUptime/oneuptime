@@ -325,8 +325,14 @@ describe("parseHostAndPort — rejected values", () => {
     ["[redacted]:5432"],
     ["[HASHED:ab12cd34]"],
     ["[HASHED:ab]"],
+    // A Hash rule's token keyed per project: 16 hex characters (#10394).
+    ["[HASHED:5e29db14e508e09a]"],
+    ["[HASHED:5e29db14e508e09a]:5432"],
     ["***.***.***.***"],
     ["***.***.***.***:5432"],
+    // An IPv6 address masked (#10393), alone and in brackets with a port.
+    ["****:****:****:****:****:****:****:****"],
+    ["[****:****:****:****:****:****:****:****]:5432"],
     // Garbage.
     ["*"],
     [""],

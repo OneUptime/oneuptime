@@ -32,7 +32,7 @@ A kind's fields are the Terraform resource's arguments, in camelCase, under `spe
 kubectl explain monitors.spec.forProvider --api-version=crossplane.oneuptime.com/v1alpha1
 ```
 
-`status.atProvider` shows the record as OneUptime has it, with its `id`. A field you leave out that OneUptime fills in, such as a default, is copied into `spec.forProvider` after the record is created, so that the next check finds nothing to change.
+`status.atProvider` shows the record as OneUptime has it, with its `id`. A field you leave out that OneUptime fills in, such as a default, is copied into `spec.forProvider` after the record is created, so that the next check finds nothing to change. A field OneUptime keeps up to date itself, or changes too, never is: see [Fields OneUptime keeps](#fields-oneuptime-keeps).
 
 ## Refer to other resources
 
@@ -68,7 +68,7 @@ spec:
   forProvider: {}
 ```
 
-The record's ID is in the `import` block its **Developer → Terraform** page writes in the dashboard, and `oneuptime <resource> list` lists the IDs of a kind of record with the [OneUptime CLI](/docs/cli/resource-operations#list-records). Once the resource is ready, `status.atProvider` shows the record. To manage it from then on, write its fields in `spec.forProvider` and set `managementPolicies` to `["*"]`.
+The record's **Developer → Crossplane** page in the dashboard writes this manifest for you, with its ID, and one that takes the record over with its fields as they are. `oneuptime <resource> list` lists the IDs of a kind of record with the [OneUptime CLI](/docs/cli/resource-operations#list-records). Once the resource is ready, `status.atProvider` shows the record. To manage it from then on, write its fields in `spec.forProvider` and set `managementPolicies` to `["*"]`.
 
 ## Secrets
 
@@ -104,7 +104,7 @@ A field that holds a secret, such as the passphrase of a monitor step's TLS clie
 
 ## Changes made outside Kubernetes
 
-The provider checks every resource against its record every 10 minutes and puts back whatever someone changed in OneUptime. To check more often, give the provider a runtime configuration with `--poll`:
+The provider checks every resource against its record every 10 minutes and puts back whatever someone changed in OneUptime, except in a field OneUptime changes too (below). To check more often, give the provider a runtime configuration with `--poll`:
 
 ```yaml title="runtime-config.yaml"
 apiVersion: pkg.crossplane.io/v1beta1
@@ -132,7 +132,19 @@ spec:
     name: oneuptime
 ```
 
-To let the dashboard own a field after the record is created, write it in `spec.initProvider` instead of `spec.forProvider`: it is used to create the record and never put back. To let the dashboard own the whole record, leave `Update` out of its management policies: `["Observe", "Create", "Delete", "LateInitialize"]`.
+To let the dashboard own a field after the record is created, write it in `spec.initProvider` instead of `spec.forProvider`: the record is created with it, and the provider never copies it into `spec.forProvider` or puts it back. This works for every optional field; one the record needs, such as a monitor's `name`, belongs in `spec.forProvider`. To let the dashboard own the whole record, leave `Update` out of its management policies: `["Observe", "Create", "Delete", "LateInitialize"]`.
+
+### Fields OneUptime keeps
+
+Some fields are OneUptime's to keep up to date, or to change too, and the provider leaves OneUptime's changes alone: it never copies these fields into `spec.forProvider` and never puts them back.
+
+- A field only OneUptime writes, such as when a telemetry monitor last ran (`telemetryMonitorLastMonitorAt`) or how many nodes a Kubernetes cluster has (`nodeCount`), is in `status.atProvider` alone.
+- A field a record starts with, such as a monitor's `currentMonitorStatusId` or an incident's `currentIncidentStateId`, may be given to create the record, in `spec.initProvider` or `spec.forProvider`. After that OneUptime moves it, as a monitor's checks move its status, and `status.atProvider` shows where it is now.
+- A field you and OneUptime both change, such as a record's `labels`, which label rules add to, an exception's `isResolved`, or a network device's `siteId`, which discovery moves, is yours to write in `spec.forProvider`. The provider sends it to create the record, and again whenever the manifest's value changes, and leaves alone a change OneUptime makes in between. A list such as `labels` keeps the entries OneUptime added, gets back an entry the manifest lists that someone took off, and loses an entry you take out of the manifest.
+
+`kubectl explain` says so in the description of each field a record starts with or OneUptime changes too. A resource whose `spec.forProvider` an earlier version of the provider filled with these fields stops fighting OneUptime by itself, with nothing to edit.
+
+The provider keeps what a manifest last applied of the fields OneUptime changes too in the resource's `crossplane.oneuptime.com/last-applied` annotation. In a list an earlier version of the provider filled, such as `labels`, an entry you take out stays on the record as OneUptime's; an entry the manifest lists after you first change the list is yours, and is taken off when you take it out.
 
 ## Delete a resource
 

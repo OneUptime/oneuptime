@@ -28,7 +28,7 @@ flowchart TB
 | Flik | Vad den visar |
 | --- | --- |
 | **Konversationer** | Varje konversation som din AI har haft, med de som behöver uppmärksamhet först. Ovanför listan: konversationer, AI-svar, hur många som behöver uppmärksamhet, kostnad och den typiska svarstiden. |
-| **Anrop** | Varje modell-, embedding-, agent- och verktygsanrop. Filtrera på tjänst, leverantör, modell, operation, person, team eller konversation; klicka på ett anrop för att öppna det i trace-visaren. |
+| **Anrop** | Varje modell-, embedding-, agent- och verktygsanrop. Filtrera på tjänst, leverantör, modell, operation, person, team, konversation eller status; ett anrop som misslyckades visar sitt fel under sin status. Klicka på ett anrop för att öppna det i trace-visaren. |
 | **Användning** | Anrop, tokens och kostnad för en tidsperiod, rangordnade efter anställd, team, modell, leverantör eller app; under **Leverantörskonton**, vad dina anslutna konton fakturerades. |
 | **Larm** | Färdiga larm för när AI:n svarar dåligt, och dina AI / LLM-monitorer. |
 | **Budgetar** | Dagliga kostnadsgränser, publicerade som mätvärden som du kan varna på. |
@@ -239,7 +239,7 @@ Ett färdigt larm skapar ett larm som löser sig själv, och visar monitorn som 
 
 ## Se vem som spenderar vad
 
-Fliken **Användning** visar anrop, tokens och kostnad för en tidsperiod (de senaste 7 dagarna om du inte väljer en annan) och en tabell över de 25 största i en av fem uppdelningar: **Anställd**, **Team**, **Modell**, **Leverantör** och **Applikation / Tjänst**. Anrop som inte nämner någon räknas under **Ej tilldelat** och slängs aldrig.
+Fliken **Användning** visar anrop, tokens och kostnad för en tidsperiod (de senaste 7 dagarna om du inte väljer en annan) och en tabell över de 25 största i en av fem uppdelningar: **Anställd**, **Team**, **Modell**, **Leverantör** och **Applikation / Tjänst**. Anrop som inte nämner någon räknas under **Ej tilldelat** och slängs aldrig. Felfrekvensen under **AI-anrop** öppnar **Anrop** med tidsperiodens anrop som misslyckades, med **Status** satt till **Fel**.
 
 Det här är **Dina AI-anrop**. Välj **Leverantörskonton** i stället för att se vad dina anslutna konton hos OpenAI, Anthropic, Azure, Bedrock, Vertex AI och Cursor fakturerades: se [Konton hos AI-leverantörer](/docs/telemetry/ai-provider-accounts#se-användningen). De två läggs aldrig ihop.
 

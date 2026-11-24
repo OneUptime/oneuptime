@@ -105,7 +105,13 @@ import {
   isEventSliType,
 } from "Common/Utils/Slo/SloRequestSli";
 import { getSloRequestFilterError } from "Common/Utils/Slo/SloRequestFilter";
-import { getSloMetricQueryError } from "Common/Utils/Slo/SloMetricSli";
+import {
+  SloMetricQueryConfig,
+  getSloMetricQueryError,
+  getSloMetricUncountedReason,
+  normalizeSloMetricQueryConfig,
+} from "Common/Utils/Slo/SloMetricSli";
+import SloMetricCounting from "Common/Server/Utils/Slo/SloMetricCounting";
 import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import SloMetricTypeUtil from "Common/Utils/Slo/SloMetricType";
 import SloUtil, {
@@ -1045,6 +1051,23 @@ async function measureRequestSlo(data: {
    * on the first evaluation that counts a request.
    */
   if (sli.totalEventCount === 0) {
+    /*
+     * A Metric SLO whose metric's points are of a kind it does not count -
+     * a gauge, which every cloud metric is - waits for ever: its feed says
+     * why (#10027). Read only on the way into Misconfigured, which is when
+     * the feed is told.
+     */
+    const uncountedReason: string | null =
+      isMetricSlo && slo.sloStatus !== SloStatus.Misconfigured
+        ? await getSloMetricUncountedReasonOf({
+            projectId: projectId,
+            serviceIds: serviceIds,
+            metricQueryConfig: slo.metricQueryConfig || null,
+            from: windowStart,
+            to: now,
+          })
+        : null;
+
     await setGuardStatusAndResolveOpenAlerts({
       slo: slo,
       sloId: sloId,
@@ -1053,7 +1076,8 @@ async function measureRequestSlo(data: {
       now: now,
       isSloStillEvaluated: data.isSloStillEvaluated,
       reason: isMetricSlo
-        ? "The services this SLO measures have not sent an event of its metric in its window yet. It is measured automatically once the metric reaches OneUptime."
+        ? uncountedReason ||
+          "The services this SLO measures have not sent an event of its metric in its window yet. It is measured automatically once the metric reaches OneUptime."
         : "The services this SLO measures have not served a request in its window yet. It is measured automatically once their traces reach OneUptime.",
     });
     return null;
@@ -1142,6 +1166,47 @@ function readLatencyThresholdInMilliseconds(value: unknown): number | null {
   }
 
   return Math.round(threshold);
+}
+
+/*
+ * Why a Metric SLO that counted nothing counted nothing, when its metric's
+ * newest point says so (getSloMetricUncountedReason): null when that point
+ * is of the kind it counts, there is none, or it cannot be read - the SLO
+ * then says it waits for its metric, as before.
+ */
+async function getSloMetricUncountedReasonOf(data: {
+  projectId: ObjectID;
+  serviceIds: Array<ObjectID>;
+  metricQueryConfig: unknown;
+  from: Date;
+  to: Date;
+}): Promise<string | null> {
+  const config: SloMetricQueryConfig | null = normalizeSloMetricQueryConfig(
+    data.metricQueryConfig,
+  );
+
+  if (!config?.metricName) {
+    return null;
+  }
+
+  try {
+    return getSloMetricUncountedReason({
+      metricPointType: await SloMetricCounting.getNewestPointType({
+        projectId: data.projectId,
+        serviceIds: data.serviceIds,
+        metricName: config.metricName,
+        from: data.from,
+        to: data.to,
+      }),
+      kind: config.kind,
+    });
+  } catch (err) {
+    logger.error(
+      `Slo:EvaluateSlos - Error reading the kind of a Metric SLO's metric: ${err}`,
+      { projectId: data.projectId.toString() } as LogAttributes,
+    );
+    return null;
+  }
 }
 
 /*

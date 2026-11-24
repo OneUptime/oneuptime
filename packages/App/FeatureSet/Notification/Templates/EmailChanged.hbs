@@ -1,15 +1,57 @@
 {{> Start this}}
 
-
-
 {{> Logo this}}
-{{> EmailTitle title="You have changed your email. Please verify your email." }}
-{{> InfoBlock info="Next step would be to verify your email account. Can you please click on 'Verify Email' button which will help us to get your email verified. "}}
 
-{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText="Verify Email"}}
+{{> EmailTitle title=(t "Verify Your New Email Address") }}
 
+{{!--
+  Sent to an account's new address when the address was written straight
+  away - by a master admin, the organization's identity provider through
+  SCIM, or another write OneUptime makes - so the new address is proven
+  before it signs in (UserService.onUpdateSuccess, sent by Common's
+  EmailChangeConfirmation.sendVerificationOfNewAddress). A person's own
+  change waits for its link instead (ConfirmEmailChange) and sends this
+  never.
 
-{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel="You can also copy and paste this link:"}}
+  It says who made the change, by role and never by name, as the email to
+  the address the account left does (#9907, #10157,
+  Types/Accounts/EmailAddressChangedEmail): a server admin, the
+  organization's identity provider, the person themselves (a master admin's
+  own change), or nobody named. Then when, in the reader's time zone, and
+  the button that verifies the address. In the language on the account.
+
+  The product's name goes into a sentence through ttHtml, which escapes the
+  whole sentence; the time is a value. Everything else is OneUptime's own
+  words, looked up in the reader's language (Utils/EmailLanguage.ts).
+--}}
+
+{{#if changedByServerAdmin}}
+{{> InfoBlock info=(ttHtml "A server admin made this the email address of your {{product}} account." product=(brandName))}}
+{{else if changedByIdentityProvider}}
+{{> InfoBlock info=(ttHtml "Your organization's identity provider made this the email address of your {{product}} account." product=(brandName))}}
+{{else if changedByAccountOwner}}
+{{> InfoBlock info=(ttHtml "You made this the email address of your {{product}} account." product=(brandName))}}
+{{else}}
+{{> InfoBlock info=(ttHtml "This is now the email address of your {{product}} account." product=(brandName))}}
+{{/if}}
+
+{{> InfoBlock info=(tHtml "Verify it with the button below. Until you do, signing in with this address asks you to verify it first.")}}
+
+{{#if changedAt}}
+{{> DetailBoxStart this }}
+{{> DetailBoxField title=(t "Changed at:") plainText=changedAt }}
+{{> DetailBoxEnd this }}
+{{/if}}
+
+{{> ButtonBlock buttonUrl=tokenVerifyUrl buttonText=(t "Verify Email")}}
+
+{{> VerticalSpace this}}
+
+{{> LinkBlock linkUrl=tokenVerifyUrl linkLabel=(t "You can also copy and paste this link:")}}
+
+{{#if changedByIdentityProvider}}
+{{> InfoBlock info=(tHtml "If you did not expect this, contact your organization's admin.")}}
+{{/if}}
 
 {{> SupportBlock this }}
 

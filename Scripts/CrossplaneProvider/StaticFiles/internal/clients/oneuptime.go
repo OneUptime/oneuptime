@@ -17,6 +17,7 @@ import (
 	"github.com/oneuptime/terraform-provider-oneuptime/xpprovider"
 
 	"github.com/oneuptime/crossplane-provider-oneuptime/apis/v1beta1"
+	"github.com/oneuptime/crossplane-provider-oneuptime/config"
 )
 
 const (
@@ -109,8 +110,11 @@ func TerraformSetupBuilder(version string) terraform.SetupFn {
 		}
 		ps.Configuration = Configuration(pc.url, creds)
 		// A provider of its own for each connection: two ProviderConfigs
-		// never share a configured client.
-		ps.FrameworkProvider = xpprovider.FrameworkProvider(version)
+		// never share a configured client. It plans with what the
+		// resource's manifest last applied of the fields people and
+		// OneUptime both change (config/lastapplied.go).
+		recorded, lastApplied := config.LastAppliedOf(mg)
+		ps.FrameworkProvider = xpprovider.FrameworkProviderFor(version, recorded, lastApplied)
 		return ps, nil
 	}
 }

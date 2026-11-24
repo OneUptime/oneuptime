@@ -107,6 +107,8 @@ Em **Usuários**, clique na pessoa e depois em **Equipes**.
 
 Clique em **Convidar**, escolha a **Equipe** e clique em **Convidar** na caixa de diálogo. Um membro entra na nova equipe na hora. Quem ainda não entrou recebe mais um convite, e aceitar qualquer um deles aceita os dois.
 
+Seu projeto envia por e-mail no máximo um convite por hora a uma pessoa. Um convite feito menos de uma hora depois do último e-mail, para outra equipe ou depois que você a removeu, é criado, mas nenhum segundo e-mail sai até que ela aceite ou recuse um deles. **Reenviar convite** no menu da linha da pessoa em **Usuários** ainda envia um.
+
 ### Tirar a pessoa de uma equipe
 
 Clique em **Remover** na linha da equipe. Se for a última equipe em que ela entrou, removê-la a tira do projeto, e a caixa de diálogo avisa antes que qualquer coisa mude.
@@ -139,7 +141,11 @@ No OneUptime Cloud, um projeto no plano Free tem espaço para uma pessoa. Mude o
 :::
 
 :::details "Too many invitations were sent to this email address in the last hour"
-Um endereço pode receber 10 convites por hora, para projetos e páginas de status privadas juntos, seja quem for que os envie. Aguarde uma hora e convide a pessoa de novo.
+Seu projeto pode enviar 10 convites por hora a um endereço, para as equipes e as páginas de status privadas dele juntas. Convites de outros projetos não contam. Aguarde uma hora e convide a pessoa de novo.
+:::
+
+:::details "This invitation cannot be sent right now"
+O OneUptime envia a um endereço no máximo 50 convites por hora de todos os projetos juntos, e este passaria desse limite. Nada foi criado. Tente de novo em uma hora.
 :::
 
 :::details "You can remove this person from only some of their teams, so you can't remove them from the project"

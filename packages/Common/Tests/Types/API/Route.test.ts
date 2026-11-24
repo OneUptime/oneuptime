@@ -115,4 +115,41 @@ describe("Route", () => {
       }).toThrowError(BadDataException);
     },
   );
+
+  describe("addQueryParams", () => {
+    test("starts a query on a route with none", () => {
+      expect(
+        new Route("/dashboard/p/dashboards/d")
+          .addQueryParams({ widget: "w1", range: "1d" })
+          .toString(),
+      ).toBe("/dashboard/p/dashboards/d?widget=w1&range=1d");
+    });
+
+    test("joins a route's own query with '&', never running its last value into the first new key", () => {
+      expect(
+        new Route("/a?x=1").addQueryParams({ y: "2", z: "3" }).toString(),
+      ).toBe("/a?x=1&y=2&z=3");
+      // Added twice, as a route built in steps is.
+      expect(
+        new Route("/a")
+          .addQueryParams({ x: "1" })
+          .addQueryParams({ y: "2" })
+          .toString(),
+      ).toBe("/a?x=1&y=2");
+    });
+
+    test("a route that ends its query ready for a parameter takes it as it is", () => {
+      expect(new Route("/a?").addQueryParams({ y: "2" }).toString()).toBe(
+        "/a?y=2",
+      );
+      expect(new Route("/a?x=1&").addQueryParams({ y: "2" }).toString()).toBe(
+        "/a?x=1&y=2",
+      );
+    });
+
+    test("no parameters leave the route as it was, its last character included", () => {
+      expect(new Route("/a").addQueryParams({}).toString()).toBe("/a");
+      expect(new Route("/a?x=1").addQueryParams({}).toString()).toBe("/a?x=1");
+    });
+  });
 });

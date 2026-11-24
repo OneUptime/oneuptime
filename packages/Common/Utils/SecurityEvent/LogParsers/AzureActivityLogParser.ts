@@ -12,11 +12,13 @@ import {
   readEntraSignIn,
   readSignInErrorCode,
 } from "../Connectors/EntraIdNormalizer";
+import Crypto from "../../Crypto";
 import {
   flattenPayload,
   parseEventTime,
   readValue,
 } from "../NormalizerHelpers";
+import { getAzureResourceIdKey } from "../../SecurityCase/SecurityConnectionMatch";
 import { SecurityRecordReading } from "../SecurityRecordReading";
 import { readAzureActivityResourceIds } from "./CloudAuditResources";
 import {
@@ -78,6 +80,22 @@ export const ENTRA_FAILURE_CATEGORIES: ReadonlyArray<string> = [
   "noninteractiveusersigninlogs",
   "serviceprincipalsigninlogs",
 ];
+
+/*
+ * Whether a diagnostic record's category is one this parser reads: the
+ * Activity Log's and Microsoft Entra ID's. A cloud stream keeps such a
+ * record whole, as its log line's body (#10032), so it is read here as a
+ * pipeline's would be; any other category's record stays a one-line log.
+ */
+export function isAzureSecurityRecordCategory(category: string): boolean {
+  const value: string = (category || "").trim().toLowerCase();
+
+  return (
+    AZURE_ACTIVITY_CATEGORIES.includes(value) ||
+    ENTRA_ALL_CATEGORIES.includes(value) ||
+    ENTRA_FAILURE_CATEGORIES.includes(value)
+  );
+}
 
 /*
  * How a record names its category in the line: as the export writes it
@@ -178,6 +196,82 @@ export function subscriptionOf(resourceId: string): string {
   return resourceId.slice(start, end === -1 ? undefined : end);
 }
 
+/*
+ * How an operation ended, as both shapes say it: the export's resultType
+ * ("Success", "Failure", "Start") and the REST API's status ("Succeeded",
+ * "Failed", "Started") are one word each.
+ */
+const OUTCOME_WORDS: ReadonlyMap<string, string> = lookupTable({
+  success: "succeeded",
+  succeeded: "succeeded",
+  failure: "failed",
+  failed: "failed",
+  start: "started",
+  started: "started",
+  accept: "accepted",
+  accepted: "accepted",
+});
+
+/*
+ * AN ACTIVITY LOG RECORD'S ID, THE SAME HOWEVER IT REACHED ONEUPTIME
+ * (#10032). The REST API - what Cloud audit logs reads - gives each record
+ * its eventDataId; a diagnostic setting's export to an Event Hub - what a
+ * cloud stream or a raw pipeline delivers - follows the resource logs
+ * schema, which has no eventDataId at all (Azure Activity Log event
+ * schema, "Schema from storage account and event hubs"). So one record
+ * read both ways would be two events.
+ *
+ * Both shapes do say the same five things of a record, in their own words
+ * and cases: its category, its operation's correlation id, the operation,
+ * the resource and how it ended, and the moment it was logged (the
+ * export's `time` is the REST API's `eventTimestamp`). The record's id is
+ * made of those - folded, the resource by its key - so either shape gives
+ * it, and the store finds a record that came the other way first
+ * (SecurityEventStoreOnce). "" when the record says too little to tell it
+ * from another: it is then stored as the line it came in.
+ */
+export function getAzureActivityRecordUid(record: JSONObject): string {
+  const category: string = valueOf(record["category"]).toLowerCase();
+  const correlationId: string = text(record["correlationId"]).toLowerCase();
+  const operation: string = valueOf(record["operationName"]).toLowerCase();
+  const resultWord: string = (
+    text(record["resultType"]) || valueOf(record["status"])
+  ).toLowerCase();
+  const time: Date | null = parseEventTime(
+    record["time"] ?? record["eventTimestamp"] ?? null,
+  );
+  const resourceId: string = text(record["resourceId"]);
+
+  if (!category || !correlationId || !operation || !time) {
+    return "";
+  }
+
+  const identity: string = JSON.stringify([
+    category,
+    correlationId,
+    operation,
+    getAzureResourceIdKey(resourceId) || resourceId.toLowerCase(),
+    OUTCOME_WORDS.get(resultWord) || resultWord,
+    time.toISOString(),
+  ]);
+
+  return `azure-activity:${Crypto.getSha256Hash(identity).slice(0, 40)}`;
+}
+
+/*
+ * The ids a record may have been stored under before its id was made of
+ * what it says (#10032): its eventDataId, which Cloud audit logs stored
+ * the REST API's records by. Looked up beside its id, so a record read
+ * again after the change is not stored twice.
+ */
+export function getAzureActivityRecordUidAliases(
+  record: JSONObject,
+): Array<string> {
+  const eventDataId: string = text(record["eventDataId"]);
+
+  return eventDataId ? [`azure-activity:${eventDataId}`] : [];
+}
+
 export function readAzureRecords(body: string): Array<JSONObject> {
   const text: string = (body || "").trim();
 
@@ -247,7 +341,15 @@ export function readAzureActivityRecord(
     record["time"] ?? record["eventTimestamp"] ?? null,
   );
   const subscription: string = subscriptionOf(resourceId);
-  const eventDataId: string = text(record["eventDataId"]);
+  /*
+   * Its id, the same in the export and the REST API (#10032), and the one
+   * it was stored under before: the REST API's eventDataId. A record that
+   * says too little to make one keeps its eventDataId, when it has one.
+   */
+  const madeUid: string = getAzureActivityRecordUid(record);
+  const storedUids: Array<string> = getAzureActivityRecordUidAliases(record);
+  const eventUid: string = madeUid || storedUids[0] || "";
+  const eventUidAliases: Array<string> = madeUid ? storedUids : [];
 
   if (!operation) {
     return null;
@@ -269,7 +371,8 @@ export function readAzureActivityRecord(
 
     return {
       time,
-      eventUid: eventDataId ? `azure-activity:${eventDataId}` : "",
+      eventUid,
+      eventUidAliases,
       classUid: DETECTION_FINDING,
       activityName: "Create",
       statusName: "Detected",
@@ -293,7 +396,8 @@ export function readAzureActivityRecord(
 
     return {
       time,
-      eventUid: eventDataId ? `azure-activity:${eventDataId}` : "",
+      eventUid,
+      eventUidAliases,
       classUid: API_ACTIVITY,
       activityName: operation,
       statusName: "Failure",
@@ -317,7 +421,8 @@ export function readAzureActivityRecord(
 
   return {
     time,
-    eventUid: eventDataId ? `azure-activity:${eventDataId}` : "",
+    eventUid,
+    eventUidAliases,
     classUid: API_ACTIVITY,
     activityName: operation,
     statusName: failed ? "Failure" : "Success",
@@ -427,6 +532,7 @@ export default class AzureActivityLogParser {
             ruleId: reading.ruleId,
             ruleName: reading.ruleName,
             eventUid: reading.eventUid || undefined,
+            eventUidAliases: reading.eventUidAliases,
             recordIndex: index,
             principalUser: reading.principalUser,
             principalHost: reading.principalHost,

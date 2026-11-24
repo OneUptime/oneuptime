@@ -5,7 +5,7 @@
 :::cards
 - [OneUptime 需要什么](#oneuptime-需要什么): 两个资源属性，用服务器密钥发送。
 - [设置你的平台](#设置你的平台): Android、iOS、React Native 及其他平台。
-- [iOS 崩溃和卡顿](#ios-崩溃和卡顿): MetricKit 的诊断，显示在异常中和概览上。
+- [iOS 崩溃和卡顿](#ios-崩溃和卡顿): MetricKit 和 KSCrash 的报告，显示在异常中，并由你的 dSYM 命名。
 - [确认数据到达](#确认数据到达): 先测试密钥，再找到应用。
 - [移动端的会话回放](#移动端的会话回放): React Native 应用的录制。
 :::
@@ -115,6 +115,7 @@ let resource = Resource(attributes: [
     "service.name": .string("storefront-ios"),
     "device.model.identifier": .string(UIDevice.current.model),
     "device.manufacturer": .string("Apple"),
+    "device.id": .string(UIDevice.current.identifierForVendor?.uuidString ?? ""),
     "telemetry.sdk.language": .string("swift"),
 ])
 
@@ -133,7 +134,7 @@ OpenTelemetry.registerTracerProvider(
 )
 ```
 
-`UIDevice.current.model` 给出 `iPhone` 这样的简短名称，使 **客户端** 页面每种设备只有一行。
+`UIDevice.current.model` 给出 `iPhone` 这样的简短名称，使 **客户端** 页面每种设备只有一行。 `identifierForVendor` 是 OneUptime 统计无崩溃安装时所依据的安装，详见 [记录会话](#记录会话) 。
 @tab React Native
 React Native 运行 OpenTelemetry JavaScript SDK，因此请按照 [浏览器端设置](/docs/rum/browser-setup) 构建提供程序、OTLP 导出器和批处理器，并做三处修改：使用 **服务器** 密钥发送，去掉 `browserDetector` 和 `DocumentLoadInstrumentation` ，并自行设置设备属性。
 
@@ -178,7 +179,9 @@ opentelemetry-swift 2.3 及更高版本通过其 MetricKit 插桩上报 iOS 应�
 | 崩溃 | `metrickit.diagnostic.crash` | 一个未处理异常，其类型取决于结束应用的原因：在 iOS 17 及更高版本上为 Objective-C 异常，否则为 Mach 异常（ `EXC_BAD_ACCESS` ），再否则为信号（ `SIGSEGV` ） |
 | 卡顿 | `metrickit.diagnostic.hang` | 一个类型为 **Hang** 的未处理异常，即 iOS 上与 ANR 相对应的情况，它会记下卡顿持续了多久 |
 
-概览的 **崩溃** 磁贴统计这些崩溃，其 **ANR** 磁贴把卡顿与 Android 的 ANR 一起统计。每条堆栈追踪都像崩溃报告那样按线程绘制，崩溃或卡顿的线程排在最前面。这些帧没有经过符号化：每一帧给出它所在的二进制文件以及代码在其中的偏移量， **Binary Images** 列出每个二进制文件的 UUID，据此可知要用哪个构建的 dSYM 对它进行符号化。
+概览的 **崩溃** 磁贴统计这些崩溃，其 **ANR** 磁贴把卡顿与 Android 的 ANR 一起统计。每条堆栈追踪都像崩溃报告那样按线程绘制，崩溃或卡顿的线程排在最前面。上传某个构建的 dSYM 之后，你的应用代码中的帧会以其函数命名，例如 `CartViewController.checkout()` ，见 [上传 dSYM](#上传-dsym) 。其余的帧给出它们所在的二进制文件以及代码在其中的偏移量， **Binary Images** 列出每个二进制文件的 UUID，据此可知是哪个构建的 dSYM 为它命名。
+
+崩溃和卡顿按崩溃或卡顿的线程上你的应用的帧分组：有 dSYM 命名的帧按函数分组，因此同一个崩溃从一个版本到下一个版本始终是同一个异常；没有 dSYM 命名的帧按其在二进制文件中的偏移量分组，而偏移量每次构建都会改变。报告在到达时命名，所以请在发布某个构建之前上传它的 dSYM：在 dSYM 之前到达的崩溃会保留其偏移量。
 
 :::steps
 ### 除了 span，也导出日志
@@ -218,13 +221,48 @@ MXMetricManager.shared.add(metricKitInstrumentation)
 
 ### 记录会话
 
-**会话** 和 **无崩溃会话** 磁贴统计你的 span 上的 `session.id` 。opentelemetry-swift 的 `Sessions` 产品会设置它：把 `SessionSpanProcessor` 添加到追踪器提供程序，并用 `SessionLogRecordProcessor` 包装日志处理器，让诊断也带上会话。它的各个版本目前还不设置 `app.installation.id` ，因此 iOS 应用的 **无崩溃会话** 磁贴显示的是有多少会话崩溃，而不是无崩溃安装的占比。
+**会话** 和 **无崩溃会话** 磁贴统计你的 span 上的 `session.id` 。opentelemetry-swift 的 `Sessions` 产品会设置它：把 `SessionSpanProcessor` 添加到追踪器提供程序，并用 `SessionLogRecordProcessor` 包装日志处理器，让诊断也带上会话。
+
+**无崩溃会话** 下方的那一行显示未崩溃的安装所占的比例， **Daily Crash Rate** 和 **Daily ANR Rate** 则根据崩溃的安装所占的比例发出警报。一次安装就是上面资源中的 `device.id` ，即应用的供应商标识符：每台设备上你的所有应用共用一个，只要其中任何一个仍然安装就会保留，因此重装你唯一的应用会产生新的安装，而重装两个应用中的一个则不会。设置了 `app.installation.id` 的 opentelemetry-swift 版本则改为按它统计。
+
+### 上传 dSYM
+
+Xcode 在归档应用时会为应用的每个二进制文件写出一个 dSYM，App Store Connect 也会在 **Download dSYMs** 下把它们还给你。每次归档后，从 CI 或 Xcode 构建阶段，用 [OneUptime CLI](/docs/cli/index) 和你的构建专用的服务器密钥上传它们：设置了 **固定的服务名称** 的密钥（例如随你的应用一起发布的密钥）会被拒绝，因为一个 dSYM 会为项目中每个发布其二进制文件的应用的帧命名。
+
+```bash
+oneuptime dsym upload "$ARCHIVE_PATH/dSYMs" --app storefront-ios --url https://oneuptime.com --ingestion-key YOUR_TELEMETRY_INGESTION_TOKEN
+```
+
+CLI 读取 `.dSYM` 包、包含它们的文件夹和 zip，以及所在位置的 DWARF 文件，只发送每个二进制文件的 UUID、架构和函数名：大型应用的 dSYM 有数百兆字节，而其中的名称只有几兆字节。不用 CLI 时，按原样发送 dSYM 的 DWARF 文件，或 `.dSYM` 包的 zip，每个文件最大 50 MB：
+
+```bash
+curl --fail -X POST "https://oneuptime.com/dsyms/v1/upload" \
+  -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -F "appName=storefront-ios" \
+  -F "dsym=@MyApp.app.dSYM/Contents/Resources/DWARF/MyApp"
+```
+
+每个二进制文件按其 UUID 保留 400 天，因此几个月后仍装在用户手机上的版本依然会被命名，而再次上传某个构建会替换为它保留的内容。dSYM 属于项目，而不属于某一个应用：你的两个应用都嵌入的框架在两个应用中都会被命名。
 :::
 
 > [!NOTE]
 > Apple 会在应用之后的某次启动时把 MetricKit 的诊断交给应用：在 iOS 15 及更高版本上立即交付，更早的版本则每天一次。因此崩溃或卡顿可能在发生几分钟或一天后才到达，并在到达时才被计数。iOS 应用概览上的“过去一小时 0 次崩溃”还不算好消息。诊断带有的是上报它的会话，而不是它所结束的会话。
 
 opentelemetry-swift 不会在应用启动时记录 span，因此在你的应用自己记录一个之前， **应用启动** 和 **冷启动（p95）** 磁贴会一直为空：这个 span 名为 `AppStart` ， `start.type` 设为 `cold` 、 `warm` 或 `hot` ，时间范围从进程启动到第一个屏幕准备就绪。
+
+### 当 KSCrash 也上报崩溃时
+
+opentelemetry-swift 也可以通过 KSCrash 上报崩溃，KSCrash 会在应用下次打开时，把报告作为一条 `device.crash` 日志记录发送，并带上应用崩溃的时间。同时注册了两者的应用会把每次崩溃上报两次：KSCrash 在下次启动时上报，MetricKit 在下次启动时或最多一天后上报。OneUptime 只把这样的崩溃计数一次：先到达的报告就是这次出现，第二份报告作为同一次崩溃的证据，保存在同一个异常中它的旁边，不计入任何磁贴、图表或监视器。在异常的 **发生次数** 中，这次出现会显示 **报告了两次** 。
+
+只有当以下条件全部满足时，两份报告才会被视为同一次崩溃：
+
+- 它们来自两个上报方：KSCrash 和 MetricKit。两者都不会把一次崩溃上报两次，所以来自同一方的两份报告就是两次崩溃。
+- 它们来自同一次安装：相同的 `app.installation.id` 或 `device.id` 。
+- 它们相隔不超过 26 小时：MetricKit 给崩溃标记的是它所报告那一天的结束时间，KSCrash 标记的是崩溃发生的时刻。
+- 在信号、Mach 异常和 Objective-C 异常上，凡是两者都给出的，都必须一致。
+- 崩溃的线程从线程开始处向内逐帧一致，按二进制文件和偏移量比较，覆盖任一报告给出的你的应用代码的每一帧。完全发生在 Apple 代码中的崩溃，必须至少有三帧一致，并且所有帧都一致。
+
+每份报告只配对一次，与时间上最接近的报告配对，因此同一次安装上同一个缺陷相隔几分钟的两次崩溃是两次出现，各自带有自己的第二份报告。当 OneUptime 无法把一份报告与同一安装的其他报告比较时，就会计入它，因此一次崩溃最坏会被计数两次，但绝不会丢失。
 
 ## 确认数据到达
 

@@ -72,6 +72,17 @@ const PageContextChip: FunctionComponent<ComponentProps> = (
             <InlineSeparator />
             <bdi>{context.entityTitle}</bdi>
           </>
+        ) : context.pageTitle ? (
+          /*
+           * Which page of the area it is (#7062): "Project Settings · API
+           * Keys", the page's own name in the reader's language.
+           */
+          <>
+            <InlineSeparator />
+            <span data-testid="ai-chat-context-page">
+              {translator.translateText(context.pageTitle)}
+            </span>
+          </>
         ) : (
           <></>
         )}

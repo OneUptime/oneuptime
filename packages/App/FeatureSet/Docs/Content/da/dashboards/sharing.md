@@ -1,10 +1,11 @@
 # Deling & offentlige dashboards
 
-Som standard er et dashboard privat for dit projekt: kun personer, der logger ind i dit projekt, kan se det. Du kan også dele det via et offentligt link, beskytte linket med en adgangskode, begrænse det til bestemte IP-adresser og hoste det på dit eget domæne. Denne side dækker alle fire.
+Som standard er et dashboard privat for dit projekt: kun personer, der logger ind i dit projekt, kan se det. Du kan også dele det via et offentligt link, beskytte linket med en adgangskode eller bede dets besøgende om at logge ind, begrænse det til bestemte IP-adresser og hoste det på dit eget domæne. Denne side dækker det hele.
 
 :::cards
-- [Hvem der kan se et dashboard](#hvem-der-kan-se-et-dashboard): Ét valg ud af tre, med det abonnement, hvert valg kræver.
+- [Hvem der kan se et dashboard](#hvem-der-kan-se-et-dashboard): Ét valg ud af fire, med det abonnement, hvert valg kræver.
 - [Deling med en adgangskode](#deling-med-en-adgangskode): Del linket, og derefter adgangskoden, med de personer, der skal se det.
+- [Kun personer, der logger ind](#kun-personer-der-logger-ind): Inviter de personer, der må åbne det, eller lad jeres single sign-on logge dem ind.
 - [IP-tilladelsesliste](#ip-tilladelsesliste): Åbn det offentlige link kun for dit kontor eller din VPN.
 - [Brugerdefinerede domæner](#brugerdefinerede-domæner): Server dashboardet på dit eget domæne, med et gratis certifikat.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["En besøgende åbner<br/>det offentlige link"] --> shared("Er dashboardet<br/>delt offentligt?")
     shared -->|"Nej"| missing["En side med<br/>'ikke fundet'"]
     shared -->|"Ja"| allowed("Er deres adresse på<br/>IP-tilladelseslisten?")
-    allowed -->|"Ja, eller<br/>ingen liste"| locked("Kræves der en<br/>adgangskode?")
+    allowed -->|"Ja, eller<br/>ingen liste"| signin("Skal besøgende<br/>logge ind?")
     allowed -->|"Nej"| denied["En side med<br/>Access Denied"]
+    signin -->|"Ja"| signinpage["Login-<br/>siden"]
+    signinpage --> board["Dashboardet"]
+    signin -->|"Nej"| locked("Kræves der en<br/>adgangskode?")
     locked -->|"Ja"| prompt["Spørgsmålet om<br/>adgangskoden"]
-    prompt --> board["Dashboardet"]
+    prompt --> board
     locked -->|"Nej"| board
 ```
 
@@ -32,14 +36,15 @@ flowchart TB
 - **Kun personer i dette projekt** (standard): medlemmer ser dashboardet, når de logger ind i OneUptime. Det har intet offentligt link: dets offentlige adresse viser den samme side med "ikke fundet" som en adresse uden dashboard, og intet om dashboardet, ikke engang dets navn.
 - **Alle med linket**: dashboardet er offentligt. Alle, der har linket, kan se det uden at logge ind.
 - **Alle med linket og en adgangskode**: besøgende åbner linket og indtaster derefter én adgangskode, som du deler med dem. Ingen behøver en konto.
+- **Kun personer, der logger ind**: dashboardet har et offentligt link, og kun de personer, du vælger, åbner det, når de har logget ind der: de private brugere, du inviterer, og de personer, jeres single sign-on lukker ind. Se [Kun personer, der logger ind](#kun-personer-der-logger-ind).
 
-Når du vælger en mulighed, bliver du bedt om at bekræfte med en forklaring af, hvad der ændrer sig for besøgende, og derefter træder den i kraft med det samme. Vælger du **Alle med linket og en adgangskode**, beder den samme dialog om adgangskoden, når dashboardet ikke har nogen; så længe det er valget, erstatter **Skift adgangskode** den. Så længe dashboardet er offentligt, står de adresser, besøgende åbner det på, under valget: først dets brugerdefinerede domæner, derefter dets offentlige link, hver med **Kopiér link**. Et brugerdefineret domæne, der ikke er live endnu, er markeret med **Ikke live endnu**, med årsagen.
+Når du vælger en mulighed, bliver du bedt om at bekræfte med en forklaring af, hvad der ændrer sig for besøgende, og derefter træder den i kraft med det samme. Vælger du **Alle med linket og en adgangskode**, beder den samme dialog om adgangskoden, når dashboardet ikke har nogen; så længe det er valget, erstatter **Skift adgangskode** den. Så længe dashboardet er offentligt, står de adresser, besøgende åbner det på, under valget: først dets brugerdefinerede domæner, derefter dets offentlige link, hver med **Kopiér link**. Et brugerdefineret domæne, der ikke er live endnu, er markeret med **Ikke live endnu**, med årsagen. Så længe **Kun personer, der logger ind** er valget, er **Private brugere** og **Single sign-on** ét klik væk under det.
 
 Inden for projektet styrer ejere og etiketter, hvem der ser hvad: se [Dashboard-konfiguration & tilladelser](/docs/dashboards/configuration). Den, der kan se dashboardet, men ikke redigere det, ser valget og kan kopiere det offentlige link, men kan ikke ændre det.
 
-På OneUptime Cloud kræver deling af et dashboard abonnementet **Growth**: på et lavere abonnement viser de to offentlige valg det abonnement, de kræver, og kan ikke vælges. At gøre et dashboard privat igen (**Kun personer i dette projekt**) virker på alle abonnementer, så et dashboard, der stod offentligt, da en prøveperiode sluttede, eller efter et skift til et lavere abonnement, altid kan holde op med at være delt; dialogen siger, at det kræver **Growth** at dele det igen. Skift mellem **Alle med linket** og **Alle med linket og en adgangskode**, og ændring af adgangskoden, virker på alle abonnementer. Et dashboard, der oprettes via API'et eller Terraform, er underlagt de samme abonnementer: oprettet offentligt kræver det **Growth**, og oprettet med en IP-tilladelsesliste **Scale**.
+På OneUptime Cloud kræver deling af et dashboard abonnementet **Growth**: på et lavere abonnement viser de offentlige valg det abonnement, de kræver, og kan ikke vælges. At gøre et dashboard privat igen (**Kun personer i dette projekt**) virker på alle abonnementer, så et dashboard, der stod offentligt, da en prøveperiode sluttede, eller efter et skift til et lavere abonnement, altid kan holde op med at være delt; dialogen siger, at det kræver **Growth** at dele det igen. Skift mellem **Alle med linket** og **Alle med linket og en adgangskode**, og ændring af adgangskoden, virker på alle abonnementer. **Kun personer, der logger ind** kræver også **Growth**, ligesom dets private brugere, og dets single sign-on kræver **Scale**; at skifte væk fra det virker på alle abonnementer, og dialogen siger, at det kræver **Growth** at vælge det igen. Et dashboard, der oprettes via API'et eller Terraform, er underlagt de samme abonnementer: oprettet offentligt kræver det **Growth**, og oprettet med en IP-tilladelsesliste **Scale**.
 
-Valget gemmes i tre kolonner, som API'et og Terraform læser og skriver som før: `isPublicDashboard`, `enableMasterPassword` og `masterPassword`. Kun et offentligt dashboard har et offentligt link, og dets besøgende bliver bedt om adgangskoden, når `enableMasterPassword` er slået til. Et offentligt dashboard med `enableMasterPassword` slået til, men uden en angivet adgangskode, lukker ingen ind via sit offentlige link: siden **Deling** viser det som **Alle med linket og en adgangskode**, siger, at ingen kan åbne linket endnu, og tilbyder **Angiv adgangskode**. Når du vælger **Kun personer i dette projekt**, slås `enableMasterPassword` også fra, og adgangskoden bevares, så en ny deling med adgangskode kan genbruge den.
+Valget gemmes i fire kolonner, som API'et og Terraform læser og skriver: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` og `requireSignIn`. Kun et offentligt dashboard har et offentligt link, og dets besøgende bliver bedt om adgangskoden, når `enableMasterPassword` er slået til. Et offentligt dashboard med `enableMasterPassword` slået til, men uden en angivet adgangskode, lukker ingen ind via sit offentlige link: siden **Deling** viser det som **Alle med linket og en adgangskode**, siger, at ingen kan åbne linket endnu, og tilbyder **Angiv adgangskode**. Når du vælger **Kun personer i dette projekt**, slås `enableMasterPassword` også fra, og adgangskoden bevares, så en ny deling med adgangskode kan genbruge den. Et offentligt dashboard med `requireSignIn` slået til beder sine besøgende om at logge ind og aldrig om adgangskoden: når du vælger **Kun personer, der logger ind**, slås `enableMasterPassword` fra, og adgangskoden bevares også.
 
 ## Offentlige dashboards
 
@@ -53,7 +58,7 @@ Et offentligt dashboard:
 
 Behandl deling af et dashboard som udgivelse af en webside. Alle widgets på det bliver læsbare for alle med linket. Se, hvad der er på lærredet, før du deler det.
 
-Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er peget mod. En SLO-widget offentliggør for eksempel det SLO's nøgletal, men aldrig dets definition: se [SLO](/docs/dashboards/widgets#slo). Widgets med en ekstern **Datakilde** er undtagelsen: de fjernes helt fra et offentligt dashboard i stedet for at blive gengivet, fordi deres konfiguration er selve forespørgslen. Nogle få andre widgets kan ikke vises uden en indlogget session og skriver det på deres plads: [På et offentligt dashboard](/docs/dashboards/widgets#på-et-offentligt-dashboard) viser hvilke. De offentliggør kun deres titel, aldrig de søgninger og filtre, de læser deres data med. Variabler offentliggør også kun det, deres vælgere viser: en ældre forespørgselsvariabels forespørgsel offentliggøres aldrig.
+Hver widget offentliggør kun det, den tegner, og kun for de ressourcer, den er peget mod. En SLO-widget offentliggør for eksempel det SLO's nøgletal, men aldrig dets definition: se [SLO](/docs/dashboards/widgets#slo). Widgets med en **Datakilde** offentliggør deres data, aldrig deres forespørgsler: en widget på **Dette projekts metrikker (PromQL)** tegner det, de gemte forespørgsler i den returnerer, kørt over alle projektets tjenester, og en widget med en ekstern datakilde fjernes helt fra et offentligt dashboard i stedet for at blive gengivet. Nogle få andre widgets kan ikke vises uden en indlogget session og skriver det på deres plads: [På et offentligt dashboard](/docs/dashboards/widgets#på-et-offentligt-dashboard) viser hvilke. De offentliggør kun deres titel, aldrig de søgninger og filtre, de læser deres data med. Variabler offentliggør også kun det, deres vælgere viser: en ældre forespørgselsvariabels forespørgsel offentliggøres aldrig.
 
 ## Deling med en adgangskode
 
@@ -64,7 +69,19 @@ Brug en adgangskode, når:
 - Du vil dele med en partner eller kunde, men ikke vil have, at URL'en er brugbar, hvis den slipper ud.
 - Dashboardet er "halvoffentligt": åbent nok til, at du ikke vil invitere hver seer som teammedlem, men ikke åbent nok til at lægge det på det åbne internet.
 
-For en stærkere adgangskontrol (separate konti pr. seer, et revisionsspor over, hvem der så hvad) holder du dashboardet på **Kun personer i dette projekt** og inviterer i stedet seerne som skrivebeskyttede teammedlemmer.
+For en stærkere adgangskontrol (separate konti pr. seer, et revisionsspor over, hvem der så hvad) holder du dashboardet på **Kun personer i dette projekt** og inviterer i stedet seerne som skrivebeskyttede teammedlemmer, eller du vælger **Kun personer, der logger ind**.
+
+## Kun personer, der logger ind
+
+Vælg **Kun personer, der logger ind** for at lade kun de personer, du vælger, åbne det offentlige link. Hver besøgende møder først en login-side, på det offentlige link og på hvert brugerdefineret domæne. Den viser dashboardets navn, sidetitel og favicon, i dets tema, og intet andet: hverken dets widgets eller hvem der må logge ind. Efter login viser dashboardet, hvem der er logget ind, med en knap til at logge ud.
+
+Åbn **Offentligt link → Private brugere** i dashboardets sidemenu for at tilføje de personer, der må logge ind, via e-mail. Hver får en invitation på e-mail, hvis link lader dem vælge en adgangskode. Linket virker i 24 timer, og login-sidens link til glemt adgangskode sender et nyt. Tabellen viser, hvem der er **Tilmeldt**, hvis invitation er **Invitation sendt**, og hvornår hver især var **Sidst logget ind**. At fjerne nogen, eller en ny adgangskode, logger dem ud overalt ved deres næste anmodning.
+
+Åbn **Offentligt link → Single sign-on** for at lade jeres identitetsudbyder logge personer ind, med SAML eller OpenID Connect. Hver udbyder viser de værdier, du skal indsætte i jeres identitetsudbyder. Alle, jeres identitetsudbyder lukker ind, bliver en privat bruger første gang, de logger ind. At slå en udbyder fra, eller slette den, logger alle ud, som den har logget ind. **Kræv SSO for at logge ind** slår login med adgangskode fra: alle logger så ind med single sign-on, og alle, der er logget ind med en adgangskode, logges ud ved deres næste anmodning.
+
+Et login varer, indtil det ikke har været brugt i 30 dage. Dets cookies sendes kun til dashboardets egen adresse, så intet andet websted kan læse dashboardet med dem eller logge nogen ud. Loginforsøg er begrænset for hver adresse og hver konto, og login-siden og siden til glemt adgangskode svarer det samme, uanset om en adresse må logge ind eller ej.
+
+Gennem API'et er private brugere og single sign-on-udbydere selvstændige poster: `/dashboard-private-user`, `/dashboard-sso` og `/dashboard-oidc`, hver med tilladelser opkaldt efter sig.
 
 ## IP-tilladelsesliste
 
@@ -199,7 +216,7 @@ For at give et indlejret dashboard dit websteds udseende tilføjer du `?theme=li
 
 ## Send et link
 
-Det offentlige link åbner dashboardet med dets gemte standardværdier. For at sende et link, der åbner på en bestemt værdi, føjer du variablen til det som `?var-<name>=<value>`, som adresselinjen gør, når en besøgende vælger en værdi; flere værdier adskilles af kommaer. For at åbne det med et eget tidsinterval eller en egen automatisk opdatering tilføjer du `range` og `refresh` på samme måde: `?range=1d&refresh=1m` åbner på det seneste døgn og opdaterer hvert minut, som en vægskærm måske skal. `range` tager `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, og `refresh` tager `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går forud for dashboardets standarder og den besøgendes egne valg, og besøgende kan stadig ændre dem. For at åbne dashboardet i et tema tilføjer du `theme=light`, `theme=dark` eller `theme=system`, som [Indlejring](#indlejring) beskriver.
+Det offentlige link åbner dashboardet med dets gemte standardværdier. For at sende et link, der åbner på en bestemt værdi, føjer du variablen til det som `?var-<name>=<value>`, som adresselinjen gør, når en besøgende vælger en værdi; flere værdier adskilles af kommaer. For at åbne det med et eget tidsinterval eller en egen automatisk opdatering tilføjer du `range` og `refresh` på samme måde: `?range=1d&refresh=1m` åbner på det seneste døgn og opdaterer hvert minut, som en vægskærm måske skal. `range` tager `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, og `refresh` tager `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går forud for dashboardets standarder og den besøgendes egne valg, og besøgende kan stadig ændre dem. For at åbne dashboardet i et tema tilføjer du `theme=light`, `theme=dark` eller `theme=system`, som [Indlejring](#indlejring) beskriver. For at åbne det ved én widget tilføjer du `widget=` med widgettens id, dens `componentId` i dashboardets JSON: dashboardet ruller til den widget og omkranser den et øjeblik, via det offentlige link såvel som i OneUptime. En widget, som dashboardet ikke længere har, åbner det øverst og siger det. De links, OneUptime laver til en widget, som i en advarsel, der nævner, hvad der læser en metrik, har det allerede.
 
 ## Næste trin
 

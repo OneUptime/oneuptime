@@ -17,12 +17,37 @@ import {
   DiscoveredHostNetbiosStatus,
   DiscoveredHostReverseDnsStatus,
 } from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
+import {
+  AmbiguousAddressReason,
+  SeenDeviceReason,
+} from "../../Utils/NetworkDevice/DeviceAddressScope";
 import IconProp from "../../Types/Icon/IconProp";
 import SnmpHardwareIdentity from "../../Types/Monitor/SnmpMonitor/SnmpHardwareIdentity";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { DiscoveryScanSnmpConfig } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+/*
+ * A host at an address more than one device in the project has (issue
+ * #9905): why it is the device it is, or why it is a device that cannot be
+ * named. Two sites can each have a 10.0.0.5, and the scan's probe decides
+ * which one it found (Utils/NetworkDevice/DeviceAddressScope).
+ */
+export interface DiscoveredHostSharedAddress {
+  // How many devices in the project have the address: two or more.
+  deviceCount: number;
+  /*
+   * How the probe told which device the host is (registeredDeviceId): it
+   * polls that device, or that device is the only one at the address in a
+   * site the probe looks into.
+   */
+  seenReason?: SeenDeviceReason | undefined;
+  // Why the probe cannot tell which of the devices the host is.
+  ambiguousReason?: AmbiguousAddressReason | undefined;
+  // The devices it cannot tell apart, by id.
+  ambiguousDeviceIds?: Array<string> | undefined;
+}
 
 /*
  * SnmpHardwareIdentity: what a host that answered the scan's SNMP query said
@@ -112,10 +137,16 @@ export interface DiscoveredNetworkDevice extends SnmpHardwareIdentity {
    */
   netbiosNameStatus?: DiscoveredHostNetbiosStatus | undefined;
   /*
-   * Whether a device in the project is this host, refreshed each time the
+   * Whether a device in the project is this host, worked out each time the
    * scan is read (NetworkDeviceDiscoveryScanService). Two sites can each
    * have a 10.0.0.5 (issue #9677): the device is the one the scan's probe
    * sees at the address, not any device there.
+   *
+   * NEVER STORED (issue #9906): it is the inventory's answer now, not a fact
+   * about the sweep, so the probe's report keeps none of these three fields
+   * (ProbeIngest/DiscoveryScan) and nothing writes them to the column. A
+   * read through the service is the only place they come from
+   * (Utils/NetworkDiscovery/DiscoveredHostRegistration).
    */
   isAlreadyRegistered?: boolean | undefined;
   /*
@@ -126,6 +157,14 @@ export interface DiscoveredNetworkDevice extends SnmpHardwareIdentity {
    * reads this device's monitors, never every monitor at the address.
    */
   registeredDeviceId?: string | undefined;
+  /*
+   * Why the host reads Already added when more than one device in the
+   * project has its address (issue #9905): which of them the scan's probe
+   * sees and why, or why it cannot tell them apart. Set with
+   * isAlreadyRegistered on a read, only for an address two or more devices
+   * share. Never stored.
+   */
+  sharedAddress?: DiscoveredHostSharedAddress | undefined;
   /*
    * False when the host answered ping but not SNMP — such hosts cannot be
    * imported as SNMP-credentialed Network Devices; they surface as
@@ -1285,7 +1324,7 @@ export default class NetworkDeviceDiscoveryScan extends BaseModel {
     required: false,
     title: "Discovered Devices",
     description:
-      "Devices found by this scan: array of {ipAddress, sysName, sysDescr, isAlreadyRegistered}. Managed by the scanning probe.",
+      "Devices found by this scan: array of {ipAddress, sysName, sysDescr, ...}, as the scanning probe reported them. On a read, each host also carries isAlreadyRegistered, registeredDeviceId and sharedAddress, worked out from the project's devices at that moment and never stored.",
   })
   @Column({
     type: ColumnType.JSON,

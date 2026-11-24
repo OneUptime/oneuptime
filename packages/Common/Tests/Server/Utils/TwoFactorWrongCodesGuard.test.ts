@@ -38,12 +38,21 @@ const CHECKS_AN_AUTHENTICATOR_CODE: Record<string, string> = {
     "signing in: the second step's code, counted for the account first; and the code of a first enrolment, read off the QR code this password holder was just shown",
   "packages/Common/Server/API/UserTotpAuthAPI.ts":
     "a signed-in user confirming an authenticator app they are adding, from the QR code they were just shown",
+  /*
+   * #10155. Never on the sign-in's count: that would let somebody holding
+   * the session make the owner wait at sign-in.
+   */
+  "packages/Common/Server/Utils/Reauthentication/Reauthentication.ts":
+    "a signed-in session confirming it's its person's before a change to how they sign in: only once the password is right, counted for the session first (five wrong attempts sign it out) and rate limited per person and client",
 };
 
 // Every product file that spends a backup code, and why.
 const SPENDS_A_BACKUP_CODE: Record<string, string> = {
   [SIGN_IN]:
     "signing in with a backup code, counted for the account first on a count of its own",
+  // #10155, counted as its authenticator codes are (above).
+  "packages/Common/Server/Utils/Reauthentication/Reauthentication.ts":
+    "a signed-in session confirming it's its person's with a backup code: only once the password is right, counted for the session first and rate limited per person and client",
 };
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;

@@ -18,6 +18,8 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../Types/Dictionary";
 import Permission from "../../../Types/Permission";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../../Types/Product/ProductLevels";
 
 /*
  * Saved funnels and retention tables (issue #6630): the Postgres side.
@@ -37,23 +39,37 @@ const TELEMETRY_API: string = path.resolve(
   "../../../Server/API/TelemetryAPI.ts",
 );
 
-/* The permissions the product analytics reads are guarded by, as the route file declares them. */
+/*
+ * The permissions the product analytics reads are guarded by, as the route
+ * file declares them and enforces them: the list it writes out, with RUM's
+ * levels as withProductLevelsOf gives them (#10289).
+ */
 function readSessionListPermissions(): Array<string> {
   const source: string = fs.readFileSync(TELEMETRY_API, "utf8");
-  const start: number = source.indexOf(
-    "const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> = [",
+  const declaration: RegExpMatchArray | null = source.match(
+    /const SESSION_REPLAY_LIST_PERMISSIONS: Array<Permission> =\s*withProductLevelsOf\(\{/,
   );
 
-  expect(start).toBeGreaterThanOrEqual(0);
+  expect(declaration).not.toBeNull();
 
-  const end: number = source.indexOf("];", start);
+  const start: number = declaration!.index!;
+  const end: number = source.indexOf("});", start);
   const list: string = source.slice(start, end);
 
-  return Array.from(list.matchAll(/Permission\.([A-Za-z]+)/g)).map(
-    (match: RegExpMatchArray): string => {
-      return match[1] as string;
-    },
-  );
+  expect(list).toContain("products: [ProductKey.Rum],");
+
+  const written: Array<Permission> = Array.from(
+    list.matchAll(/Permission\.([A-Za-z]+)/g),
+  ).map((match: RegExpMatchArray): Permission => {
+    return match[1] as Permission;
+  });
+
+  return withProductLevelsOf({
+    products: [ProductKey.Rum],
+    permissions: written,
+  }).map((permission: Permission): string => {
+    return permission.toString();
+  });
 }
 
 function sorted(permissions: Array<Permission>): Array<string> {

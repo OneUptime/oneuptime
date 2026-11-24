@@ -1,5 +1,10 @@
 import DataConfidence from "../../Types/DataSecurity/DataConfidence";
 import {
+  CUSTOM_DATA_TYPE_ID_PREFIX,
+  customDataTypeId,
+  isCustomDataTypeId,
+} from "../../Types/DataSecurity/CustomDataTypeId";
+import {
   checkScrubRuleCustomRegex,
   ScrubRuleCustomRegexCheck,
 } from "../../Types/Telemetry/ScrubRule";
@@ -48,15 +53,8 @@ export interface CustomDataTypeDefinition {
   validator?: CustomDataTypeValidator | undefined;
 }
 
-export const CUSTOM_DATA_TYPE_ID_PREFIX: string = "custom:";
-
-export function customDataTypeId(rowId: string): string {
-  return CUSTOM_DATA_TYPE_ID_PREFIX + rowId;
-}
-
-export function isCustomDataTypeId(dataTypeId: string): boolean {
-  return dataTypeId.startsWith(CUSTOM_DATA_TYPE_ID_PREFIX);
-}
+// How a custom type is keyed: kept beside the types, which name it too.
+export { CUSTOM_DATA_TYPE_ID_PREFIX, customDataTypeId, isCustomDataTypeId };
 
 function runValidator(
   validator: CustomDataTypeValidator | undefined,

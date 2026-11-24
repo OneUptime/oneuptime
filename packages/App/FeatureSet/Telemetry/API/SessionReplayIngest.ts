@@ -113,9 +113,11 @@ const router: ExpressRouter = Express.getRouter();
  */
 
 /*
- * Ingest metric for the replay signal. A local copy rather than a shared
- * helper because the one in OTelIngest.ts is keyed to a closed union of the
- * four OTel signals and is not exported.
+ * Ingest metric for the replay signal. A local copy rather than the shared
+ * ingestMetricsMiddleware (Middleware/IngestRequestMetrics) the OTLP routes
+ * and the compatible endpoints use: a replay's outcomes are its own - 202
+ * accepted, 204 refused with the gate's reason - which their reading of
+ * 2xx, 4xx and 5xx would lose.
  */
 type ReplayMetricsMiddleware = (
   req: ExpressRequest,

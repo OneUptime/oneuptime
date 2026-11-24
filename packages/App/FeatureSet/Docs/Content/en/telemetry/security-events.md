@@ -51,7 +51,8 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |
 | **Approvals** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
-| **Protected Entities** | Playbooks | The users and hosts no playbook contains |
+| **Blocklist** | Playbooks | The addresses your project blocks, until when, and where each block is enforced |
+| **Protected Entities** | Playbooks | The users, hosts and addresses no playbook contains and no block touches |
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
@@ -72,8 +73,8 @@ Security data is read only by the Project Owner and Project Admin roles and by t
 | Role | What it can do |
 | --- | --- |
 | Security Admin | Everything: events, cases, playbooks, detection rules, threat intel feeds and connections |
-| Security Member | Read events and threat intel, work cases, run playbooks and approve their steps, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data. |
-| Security Viewer | Read events, cases, playbooks, rules, feeds, indicators and connections |
+| Security Member | Read events and threat intel, work cases, run playbooks and approve their steps, block addresses, and create, change and delete detection rules and feeds. It can't set up playbooks or connections, or delete security data. |
+| Security Viewer | Read events, cases, playbooks, the blocklist, rules, feeds, indicators and connections |
 
 ## Send security events
 
@@ -191,8 +192,9 @@ Each kind reaches OneUptime as ordinary logs:
 | SSH sign-ins, sudo | A Linux machine's journal or auth log, with the [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows events | The collector's `windowseventlog` receiver on the machine, or a forwarder that writes each event as JSON, such as NXLog or Winlogbeat. A [host](/docs/telemetry/hosts) added to OneUptime also reads Sysmon, Microsoft Defender and PowerShell where it has them |
 | AWS CloudTrail | A trail delivered to CloudWatch Logs, read by the collector's `awscloudwatch` receiver, or, for an account connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
-| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
-| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Google Cloud audit logs | A log sink to Pub/Sub, read by the collector's `googlecloudpubsub` receiver with `encoding: raw_text`, or, for a project connected under **Cloud**, its [stream](/docs/telemetry/cloud-streaming-google-cloud) or [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Azure activity and Entra ID logs | A diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or to the event hub of a connected subscription's [stream](/docs/telemetry/cloud-streaming-azure), or, for a subscription's Activity Log, connected under **Cloud**, [Cloud audit logs](#read-your-cloud-accounts-audit-logs) |
+| Azure Key Vault, Storage and SQL logs | A resource's diagnostic setting that streams to an Event Hub, read by the collector's `azureeventhub` receiver with `format: raw`, or the diagnostic settings of a connected subscription's [stream](/docs/telemetry/cloud-streaming-azure), with its logs. See [Azure resources' own audit logs](#azure-resources-own-audit-logs) |
 | OpenStack audit trail | A cloud's notifications and audit filter sent to its logs with `driver = log`, read by the agent's [logs profile](/docs/telemetry/openstack#who-did-what) |
 | CEF, LEEF | The product's syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | The firewall's own syslog, relayed by [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ On **Your logs**, each kind says when it was last found, and **Check a log line*
 
 A threat a security product writes in your logs, such as a CEF or LEEF finding or a Palo Alto Networks, FortiGate or Cisco ASA threat, opens a [case](/docs/telemetry/security-cases) as a connected product's alert does, and adds to the risk of the user, host or address it names. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**. The product's sign-ins and blocked connections stay events, for your rules to read.
 
-A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, or a CloudTrail record in your logs and in a connected AWS account's audit log.
+A record that reaches OneUptime two ways is stored once: a Microsoft Entra ID sign-in its connection reads and Azure's export of it in your logs, a CloudTrail record in your logs and in a connected AWS account's audit log, or an audit record a cloud account's stream sends that **Cloud audit logs** reads too.
+
+#### Azure resources' own audit logs
+
+A key vault, a storage account and an Azure SQL database each keep an audit log of their own, which records every request. Only what a security team looks at becomes a security event:
+
+| Resource | What becomes a security event |
+| --- | --- |
+| Key vault (`AuditEvent`) | A request the vault refused; a secret handed out; a secret, key, certificate or the vault deleted, purged or backed up; its access policy changed; and a change to what it holds. Not the 401 every Azure SDK client gets on its first call, made without a token to learn the tenant: Key Vault logs it under its `Authentication` operation |
+| Storage account (`StorageRead`, `StorageWrite`, `StorageDelete`) | A request refused for want of a right; one served with no credential at all, but a static website's pages and a CORS preflight; a container's, share's, queue's or table's access list changed, or the whole of one deleted; and a write or delete a shared access signature (SAS) signed. Not a read that succeeded, a SAS read included |
+| Azure SQL (`SQLSecurityAuditEvents`) | A failed sign-in; a sign-in on a new connection, not a pooled connection's reuse; a permission granted, denied or revoked, a role's member or a password changed, an impersonation, and a login, user or role created, altered or dropped; and an action whose permission check failed. Not a batch, the bulk of an audit |
+
+A storage account's successful reads are most of what it logs: a SAS is how most apps hand files to browsers. They stay in Logs, whole, on the account's **Logs** tab: search there for `"type":"SAS"` to see what a shared access signature read. Each event names its resource by its ID, a storage service's its account too, so it shows on that resource's **Security Events** page, and a record that arrives twice is stored once.
 
 ### Read your cloud accounts' audit logs
 
@@ -471,9 +485,9 @@ detection:
 | **Run in Real Time** | Off on a new rule. On, the rule checks each event as it arrives instead of every interval; see [Real-time rules](#real-time-rules). |
 | **Group By Field** | Optional. Matches that share this field's value, such as `principalHost`, are counted, alerted and deduplicated together: one alert per host instead of hundreds. |
 | **Distinct Count Field** | Optional. Count the different values of this field instead of the matching events. Empty values are not counted. |
-| **Match Count Threshold** | A group fires only when its count reaches this number within one run, or one window in real time: 1 to 1000000, and 1 fires on any match. |
+| **Match Count Threshold** | A group fires only when its count reaches this number within one window of the rule's interval: 1 to 1000000, and 1 fires on any match. |
 
-Group By and Distinct Count take the same field names as the rule. With them, the threshold says "this many, from the same thing, in one run", with no monitor on top:
+Group By and Distinct Count take the same field names as the rule. With them, the threshold says "this many, from the same thing, in one window", with no monitor on top:
 
 | Goal | Group By Field | Distinct Count Field | Threshold |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Group By and Distinct Count take the same field names as the rule. With them, th
 
 ### When a rule runs
 
-OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events whose event time falls between the previous run and two minutes ago, then moves on. The two minutes leave room for events still on their way, such as a log line read a minute after it was written:
+OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events that reached OneUptime between the previous run and two minutes ago, whenever they happened, then moves on. The two minutes leave room for events still being written:
 
-- Windows are back to back, not rolling. With a 10-minute interval, failures at 09:58 and 10:01 can land in different runs and are counted apart, so leave headroom when you choose a threshold.
+- A rule that counts, and a correlation, count in windows as long as the interval, back to back on the clock: with a 10-minute interval, failures at 09:58 and 10:01 fall in different windows and are counted apart, so leave headroom when you choose a threshold.
 - After a gap, such as a worker outage or a rule turned back on, the next run covers the whole gap, up to the last 24 hours.
-- An event that arrives more than two minutes late, once a run has covered its time, is stored and searchable, but that rule never reads it.
+- An event that arrives late is still read, once, by the next run, and counted in the window it happened in: a group fires when its window reaches the count, and at most once a window. One that arrives more than a day after it happened is stored and searchable, but the rule's runs don't read it; **Run on Past Events** does.
 - Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.
 
 ### Real-time rules

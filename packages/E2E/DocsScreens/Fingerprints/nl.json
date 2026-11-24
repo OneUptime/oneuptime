@@ -232,8 +232,8 @@
       "button: Stuur mij een testoproep",
       "button: De test overslaan"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: Dit beleid testen",
       "button: De test overslaan"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "paging-summary": {
     "text": [
@@ -652,7 +652,7 @@
       "Incidentfeed",
       "Alles wat er met dit incident is gebeurd: statuswijzigingen, notities, eigenaren en elke verzonden melding.",
       "Acties",
-      "maandag 14 september 2026",
+      "Maandag 14 september 2026",
       "Vandaag",
       "BST",
       "19:12",
@@ -687,7 +687,7 @@
       "heading: Incidentfeed",
       "button: Acties",
       "button: Meer opties",
-      "heading: maandag 14 september 2026",
+      "heading: Maandag 14 september 2026",
       "link: Incident #1042",
       "link: Incident #1042",
       "link: Incident #1042",
@@ -697,7 +697,7 @@
       "link: Orders DB connection pool"
     ],
     "width": 576,
-    "height": 950
+    "height": 972
   },
   "incident-resolve": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: Oplossen",
+      "button: Incidentcommandant van Maya Chen opnieuw toewijzen",
       "button: Toevoegen Eigenaren toevoegen",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"

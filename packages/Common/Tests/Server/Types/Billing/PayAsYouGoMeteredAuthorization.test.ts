@@ -9,6 +9,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import ActiveMonitorLimit from "../../../../Server/Utils/Billing/ActiveMonitorLimit";
 import TelemetryUsageBillingService from "../../../../Server/Services/TelemetryUsageBillingService";
 import LogService from "../../../../Server/Services/LogService";
+import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TelemetryUsageBilling from "../../../../Models/DatabaseModels/TelemetryUsageBilling";
 import Decimal from "../../../../Types/Decimal";
@@ -70,8 +71,18 @@ jest.mock("../../../../Server/Services/SecurityEventService", () => {
 jest.mock("../../../../Server/Services/MetricService", () => {
   return { __esModule: true, default: {} };
 });
+/*
+ * The exceptions found in logs are billed with the logs they were found in
+ * (issue #6590), so a Logs report reads their days and usage too.
+ */
 jest.mock("../../../../Server/Services/ExceptionInstanceService", () => {
-  return { __esModule: true, default: {} };
+  return {
+    __esModule: true,
+    default: {
+      groupTelemetryUsageByService: jest.fn(),
+      getDaysWithRows: jest.fn(),
+    },
+  };
 });
 jest.mock("../../../../Server/Services/ProfileService", () => {
   return { __esModule: true, default: {} };
@@ -140,6 +151,14 @@ describe("metered billing payment protection", () => {
         paymentProviderMeteredSubscriptionId: "sub_metered",
         paymentProviderPlanId: "free",
       }),
+    );
+    // No exception was found in the logs, unless a test says otherwise.
+    getJestSpyOn(
+      ExceptionInstanceService,
+      "groupTelemetryUsageByService",
+    ).mockResolvedValue([]);
+    getJestSpyOn(ExceptionInstanceService, "getDaysWithRows").mockResolvedValue(
+      [],
     );
   });
 
@@ -437,12 +456,18 @@ describe("metered billing payment protection", () => {
 
   describe("daily staging", () => {
     let aggregation: jest.SpyInstance;
+    // The exceptions found in the logs, staged with them (issue #6590).
+    let exceptionAggregation: jest.SpyInstance;
 
     beforeEach(() => {
       aggregation = getJestSpyOn(
         LogService,
         "groupTelemetryUsageByService",
       ).mockResolvedValue([]);
+      exceptionAggregation = getJestSpyOn(
+        ExceptionInstanceService,
+        "groupTelemetryUsageByService",
+      );
     });
 
     it("blocks direct staging for no-card projects", async () => {
@@ -457,6 +482,7 @@ describe("metered billing payment protection", () => {
       });
       expect(waive).toHaveBeenCalled();
       expect(aggregation).not.toHaveBeenCalled();
+      expect(exceptionAggregation).not.toHaveBeenCalled();
     });
 
     it.each(["2026-09-07T12:00:00Z", "2026-09-08T23:59:59Z"])(
@@ -468,6 +494,7 @@ describe("metered billing payment protection", () => {
           usageDate: new Date(usageDate),
         });
         expect(aggregation).not.toHaveBeenCalled();
+        expect(exceptionAggregation).not.toHaveBeenCalled();
       },
     );
 
@@ -478,6 +505,9 @@ describe("metered billing payment protection", () => {
         usageDate: CUTOFF,
       });
       expect(aggregation).toHaveBeenCalledWith(
+        expect.objectContaining({ projectId: PROJECT_ID, startDate: CUTOFF }),
+      );
+      expect(exceptionAggregation).toHaveBeenCalledWith(
         expect.objectContaining({ projectId: PROJECT_ID, startDate: CUTOFF }),
       );
     });
@@ -535,6 +565,7 @@ describe("metered billing payment protection", () => {
         expect(canUse).toHaveBeenCalledWith(PROJECT_ID, { useCache: false });
         expect(waive).toHaveBeenCalled();
         expect(aggregation).not.toHaveBeenCalled();
+        expect(exceptionAggregation).not.toHaveBeenCalled();
       });
 
       it("checks live once the authorization has aged past the reuse window", async () => {

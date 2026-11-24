@@ -92,8 +92,10 @@ export type ReadinessCoverageCellWire = Omit<
  * team filter's options and an option nobody can read is an option nobody can
  * choose on purpose.
  */
-export type ReadinessTeamWire = Omit<ReadinessTeam, "_id"> & {
+export type ReadinessTeamWire = Omit<ReadinessTeam, "_id" | "createdAt"> & {
   _id: string;
+  // When the team was made (ISO): tells two of one name apart (#10314).
+  createdAt?: string | undefined;
 };
 
 /*
@@ -374,7 +376,13 @@ const parseTeams: (value: JSONValue | undefined) => Array<ReadinessTeamWire> = (
       continue;
     }
 
-    teams.push({ _id: id, name: name });
+    const createdAt: string = readString(json["createdAt"]);
+
+    teams.push({
+      _id: id,
+      name: name,
+      ...(createdAt ? { createdAt: createdAt } : {}),
+    });
   }
 
   return teams;

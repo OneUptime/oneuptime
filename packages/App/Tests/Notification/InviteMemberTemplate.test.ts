@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
@@ -272,7 +273,8 @@ describe("InviteMember.hbs - who invited them", () => {
       isNewUser: "true",
     });
 
-    expect(html).toContain(
+    // As read: the sentence is escaped, as every value of the email is (#9897).
+    expect(visibleText(html)).toContain(
       "You've been invited to join a project on OneUptime. Create your account to get started.",
     );
     expect(html).not.toContain("invited you to join");
@@ -436,7 +438,7 @@ describe("InviteMember.hbs - an invitation whose sign-in is single sign-on", () 
 
         expect(html).toContain(headline);
         expect(html).toContain("Sign In with SSO");
-        expect(html).toContain(
+        expect(visibleText(html)).toContain(
           "It signs you in with your organization's single sign-on (SSO), so there is no password to create.",
         );
         expect(html).toContain(`href="${SSO_SIGN_IN_LINK}"`);

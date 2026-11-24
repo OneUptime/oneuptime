@@ -129,7 +129,7 @@ Each status change, with the reason for it, is recorded on the monitor's **Statu
 
 ## Criteria
 
-An Exceptions monitor's criteria have six kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions**, **Exception Increase (in %)**, **Sessions With Exceptions (in %)** and **Sessions**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
+An Exceptions monitor's criteria have eight kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions**, **Exception Increase (in %)**, **Sessions With Exceptions (in %)**, **Sessions**, **Installs With Exceptions (in %)** and **Installs**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
 
 | Filter Condition | Matches when the exception count is… |
 | --- | --- |
@@ -184,6 +184,19 @@ An app on thousands of phones always has some crashes, so what its team wants to
 | **Sessions** | The window's sessions: the distinct `session.id` of the spans of the monitor's services. Pair it with the share, so that a share of a few sessions does not alert. |
 
 With **Only Unhandled Exceptions** on and the types `ANR` and `Hang` left out, the share is a mobile app's crash rate. A mobile app's **App Crash Rate** recommendation alerts when more than 1.09% of an hour's sessions crash, the rate Android vitals calls bad behaviour, once the hour has at least 250 sessions. **App ANR Rate** counts `ANR` and `Hang` alone, above 0.47%. To write such a rule yourself, pick **A share of sessions** under **Alert on** in **When to alert**.
+
+## A share of installs
+
+Over a day, the rate Android vitals judges and the Play Console shows is the share of an app's installs that crashed: someone whose app crashes five times is one install that crashed. For a mobile app whose telemetry names its install, an Exceptions monitor can alert on that share, beside or instead of the share of sessions.
+
+| Filter Type | What it reads in the window |
+| --- | --- |
+| **Installs With Exceptions (in %)** | The share of the window's installs on which a matching exception happened. With no install in the window there is no share, and no criteria on it matches. |
+| **Installs** | The window's installs: the distinct installs the spans of the monitor's services name. Pair it with the share, so that a share of a few installs does not alert. |
+
+An install is what the app's resource names: the `app.installation.id` OpenTelemetry Android 1.1 and later set, else an iOS app's `device.id`, its identifier for vendor. An Android install ends when the app is uninstalled, so a reinstall is a new install. An iOS one lasts while any of the vendor's apps stays on the device, so reinstalling the only one is a new install, and reinstalling one of two is not. An install is one of the window's when its app sent a span in it. A crash still counts when its install sent none, as an iOS crash MetricKit reports a day later does, and the share never passes 100%.
+
+**Daily Crash Rate** alerts when more than 1.09% of at least 250 installs in a day crash, and **Daily ANR Rate** when more than 0.47% of them have an ANR or a hang. To write such a rule yourself, pick **A share of installs** under **Alert on** in **When to alert**.
 
 ## Spikes against what is normal
 

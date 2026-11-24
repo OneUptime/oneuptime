@@ -44,7 +44,7 @@ Il menu laterale di un'applicazione raggruppa le sue pagine così; **Sviluppator
 | **Osservabilità** | **Metriche**, **Log**, **Tracce**, **Client** |
 | **Analisi del prodotto** | **Utenti**, **Sessioni**, **Eventi**, **Funnel**, **Fidelizzazione degli utenti**, **Flussi utente**, **Impostazioni di analisi** |
 | **Riproduzione delle sessioni** | **Riproduzione delle sessioni**, **Utenti delle riproduzioni**, **Integrità**, **Policy di riproduzione**, **Segnali di frustrazione**, **Log degli accessi alle riproduzioni**, **Documentazione** |
-| **Sviluppatori** | **Terraform**, **API**, **CLI**, **Assistenti IA** |
+| **Sviluppatori** | **Terraform**, **Crossplane**, **API**, **CLI**, **Assistenti IA** |
 | **Avanzato** | **Impostazioni**, **Log di audit**, **Elimina applicazione** |
 
 ## Come OneUptime riconosce il RUM

@@ -3,7 +3,7 @@
 Send OneUptimes e-mail gennem en e-mailudbyders HTTPS-API i stedet for en SMTP-server: Amazon SES, SendGrid, Mailgun, Postmark eller Resend. Et projekt vælger en af dem til en SMTP-konfiguration, og en selvhostet installation kan sende al sin egen e-mail gennem en af dem. API'et nås over HTTPS på port 443, så e-mail stadig kommer ud fra netværk, der blokerer SMTP-portene, og hver udbyders nøgle gemmes krypteret.
 
 :::cards
-- [Amazon SES](#amazon-ses): En IAM-adgangsnøgle eller serverens egen IAM-rolle og den region, din afsender er verificeret i.
+- [Amazon SES](#amazon-ses): En IAM-adgangsnøgle, en IAM-rolle i din AWS-konto eller serverens egen IAM-rolle og den region, din afsender er verificeret i.
 - [SendGrid](#sendgrid): En API-nøgle med adgang til Mail Send.
 - [Mailgun](#mailgun): En API-nøgle, afsenderdomænet og dets region.
 - [Postmark](#postmark): Serverens API-token.
@@ -55,16 +55,16 @@ Opret en IAM-bruger til OneUptime med en politik, der tillader `ses:SendEmail` p
 }
 ```
 
-En selvhostet installation på AWS kan springe nøglen over og i stedet [logge ind med serverens IAM-rolle](#log-ind-med-serverens-iam-rolle) med den samme politik.
+En selvhostet installation på AWS kan springe nøglen over og i stedet [logge ind med serverens IAM-rolle](#log-ind-med-serverens-iam-rolle) med den samme politik. Et projekts konfiguration kan også springe den over og [logge ind med en IAM-rolle i din AWS-konto](#log-ind-med-en-iam-rolle-i-din-aws-konto).
 
 ### Udfyld trinnet Amazon SES
 
-Angiv **Adgangsnøgle-id** og **Hemmelig adgangsnøgle**, og sæt **Region** til den region, din identitet er verificeret i, for eksempel `us-east-1`.
+Behold **Adgangsnøgle** som **Godkendelsestype**, angiv **Adgangsnøgle-id** og **Hemmelig adgangsnøgle**, og sæt **Region** til den region, din identitet er verificeret i, for eksempel `us-east-1`.
 :::
 
 ### Log ind med serverens IAM-rolle
 
-En selvhostet installation på AWS kan sende sine egne e-mails som den IAM-rolle, AWS giver serveren, uden at der gemmes en adgangsnøgle i OneUptime: de legitimationsoplysninger, AWS udleverer, udløber inden for timer, og OneUptime henter nye, før de gør. Det gælder kun serverens egne e-mails. Et projekts Amazon SES-konfiguration logger altid ind med en adgangsnøgle, fordi serverens rolle er serverens egen AWS-identitet, ikke et projekts.
+En selvhostet installation kan sende sine egne e-mails som en IAM-rolle, uden at der gemmes en adgangsnøgle i OneUptime: på AWS den rolle, AWS giver serveren, og alle andre steder en rolle, den logger ind som med IAM Roles Anywhere. Legitimationsoplysningerne udløber inden for timer, og OneUptime henter nye, før de gør. Det gælder kun serverens egne e-mails: Serverens rolle er serverens egen AWS-identitet, ikke et projekts. Et projekts Amazon SES-konfiguration logger ind med en adgangsnøgle eller med [en IAM-rolle i din AWS-konto](#log-ind-med-en-iam-rolle-i-din-aws-konto).
 
 Giv rollen politikken ovenfor, og kør derefter OneUptime som den:
 
@@ -88,11 +88,63 @@ Tilknyt rollen til instansen som dens instansprofil. Kører OneUptime i Docker p
 ```bash
 aws ec2 modify-instance-metadata-options --instance-id <instance-id> --http-put-response-hop-limit 2 --http-endpoint enabled
 ```
+@tab IAM Roles Anywhere
+Uden for AWS, på dine egne servere eller i en anden sky, logger serveren ind som en rolle gennem IAM Roles Anywhere, som bytter et X.509-certifikat for rollens legitimationsoplysninger. Opret i IAM Roles Anywhere et trust anchor for din certifikatudsteder og en profil for rollen. Læg derefter AWS' hjælpeprogram til legitimationsoplysninger, `aws_signing_helper`, i en mappe sammen med certifikatet, dets private nøgle og en AWS-konfigurationsfil, hvis profil kører hjælpeprogrammet som sin `credential_process`:
+
+```ini title="aws/config"
+[profile oneuptime]
+credential_process = /etc/oneuptime/aws/aws_signing_helper credential-process --certificate /etc/oneuptime/aws/certificate.pem --private-key /etc/oneuptime/aws/private-key.pem --trust-anchor-arn arn:aws:rolesanywhere:us-east-1:123456789012:trust-anchor/TRUST_ANCHOR_ID --profile-arn arn:aws:rolesanywhere:us-east-1:123456789012:profile/PROFILE_ID --role-arn arn:aws:iam::123456789012:role/oneuptime-ses
+```
+
+Med Docker Compose monterer du mappen skrivebeskyttet og angiver filen og profilen i `docker-compose.override.yml` ved siden af `docker-compose.yml`:
+
+```yaml title="docker-compose.override.yml"
+services:
+  app:
+    environment:
+      AWS_CONFIG_FILE: /etc/oneuptime/aws/config
+      AWS_PROFILE: oneuptime
+    volumes:
+      - ./aws:/etc/oneuptime/aws:ro
+```
+
+Med Helm-chartet monterer du konfigurationen, certifikatet og dets nøgle fra en Secret med `extraVolumes` og `extraVolumeMounts`, sætter `AWS_CONFIG_FILE` og `AWS_PROFILE` med `extraEnv` og lægger hjælpeprogrammet i et image bygget på OneUptimes: en Secret rummer højst 1 MB. OneUptime kører hjælpeprogrammet uden shell, ved dets fulde sti, i højst 30 sekunder og kun fra en konfigurationsfil, det ikke selv kan ændre: en fil, det kan skrive i, afvises.
 :::
 
 Klik derefter i Admin Dashboard på **Rediger Amazon SES**, vælg **Denne servers IAM-rolle** som **Godkendelsestype**, og angiv **Region**. Når du gemmer, fjernes en adgangsnøgle, der var gemt før.
 
-OneUptime leder efter serverens legitimationsoplysninger samme steder som AWS' SDK'er, i denne rækkefølge: `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` i dens miljø, et web identity-token (`AWS_ROLE_ARN` og `AWS_WEB_IDENTITY_TOKEN_FILE`), container-legitimationsendpointet for Amazon ECS og EKS Pod Identity og til sidst EC2's instansmetadatatjeneste (IMDSv2).
+OneUptime leder efter serverens legitimationsoplysninger samme steder som AWS' SDK'er, i denne rækkefølge: `AWS_ACCESS_KEY_ID` og `AWS_SECRET_ACCESS_KEY` i dens miljø, den AWS-profil, som `AWS_PROFILE`, `AWS_CONFIG_FILE` eller `AWS_SHARED_CREDENTIALS_FILE` angiver (dens nøgler eller dens `credential_process`), et web identity-token (`AWS_ROLE_ARN` og `AWS_WEB_IDENTITY_TOKEN_FILE`), container-legitimationsendpointet for Amazon ECS og EKS Pod Identity og til sidst EC2's instansmetadatatjeneste (IMDSv2). Er ingen af de tre sat, læser OneUptime ingen AWS-konfigurationsfil.
+
+### Log ind med en IAM-rolle i din AWS-konto
+
+Et projekts Amazon SES-konfiguration kan logge ind med en IAM-rolle i din egen AWS-konto, så der ikke gemmes nogen nøgle i OneUptime. OneUptime logger ind på rollen med sin egen AWS-identitet og et eksternt ID, som kun dit projekts e-mails bruger, og hver session varer en time. Giv rollen politikken ovenfor og en tillidspolitik, der lukker OneUptimes AWS-konto ind med det eksterne ID:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::123456789012:root" },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "oneuptime-0123456789abcdef0123456789abcdef"
+        }
+      }
+    }
+  ]
+}
+```
+
+Vælg **IAM-rolle i din AWS-konto** som **Godkendelsestype** på konfigurationens trin **Amazon SES**. Under **Rolle-ARN** viser **Opsæt rollen i AWS** dit projekts **Eksternt ID** og denne tillidspolitik med OneUptimes konto og dit ID i, klar til at kopiere. Opret rollen med den, angiv dens **Rolle-ARN** og **Region**, og klik derefter på **Send test-e-mail** i konfigurationens række. Når rollen gemmes, fjernes en tidligere gemt adgangsnøgle.
+
+OneUptime tjekker rollen, før det sender gennem den, og logger aldrig ind på:
+
+- En rolle, hvis tillidspolitik ikke kræver dit projekts eksterne ID: Ethvert projekt, der kender rollens ARN, kunne sende e-mails gennem din konto. Tilføj betingelsen `sts:ExternalId`, og send en test-e-mail, som tjekker rollen igen med det samme. Tjekket kører cirka én gang om dagen og ses i rollens CloudTrail som en `AccessDenied` for `sts:AssumeRole`.
+- En rolle i OneUptimes egen AWS-konto, uanset hvad dens tillidspolitik siger. Brug i stedet [serverens IAM-rolle](#log-ind-med-serverens-iam-rolle) til at sende serverens egne e-mails gennem den konto, den kører i.
+
+Det eksterne ID tilhører dit projekt og er ingen hemmelighed. Cloud Connects IAM-roller bruger et andet, så en rolle oprettet til det ene bliver aldrig brugt af det andet. En server uden egen AWS-identitet, hverken en adgangsnøgle til Cloud Connect eller AWS-legitimationsoplysninger, kan ikke logge ind på nogen rolle, og trinnet siger det.
 
 ## SendGrid
 
@@ -212,6 +264,10 @@ Serveren logger ind med sin IAM-rolle, men AWS giver den ingen legitimationsoply
 
 :::details "This server's IAM role may not send with Amazon SES" eller "did not let this server assume the role"
 Rollens politik tillader ikke `ses:SendEmail` på din identitet: tilføj politikken ovenfor. Eller, på Amazon EKS, tillader rollens tillidspolitik ikke `sts:AssumeRoleWithWebIdentity` for din klynges OIDC-udbyder og OneUptimes servicekonto.
+:::
+
+:::details "This role lets OneUptime sign in without this config's external ID" eller "This role is in this OneUptime's own AWS account"
+OneUptime sender ikke gennem rollen, som [Log ind med en IAM-rolle i din AWS-konto](#log-ind-med-en-iam-rolle-i-din-aws-konto) beskriver. Føj betingelsen `sts:ExternalId`, som konfigurationens **Opsæt rollen i AWS** viser, til rollens tillidspolitik, eller opret rollen i din egen AWS-konto, og send derefter en test-e-mail.
 :::
 
 :::details "Mailgun has no domain … in its US region"

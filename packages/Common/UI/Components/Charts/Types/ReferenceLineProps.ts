@@ -18,6 +18,18 @@ export default interface ChartReferenceLineProps {
    * (ReferenceLineShade). Left out, nothing is shaded.
    */
   shade?: "above" | "below" | undefined;
+  /*
+   * Drawn against the chart's second value axis (SecondYAxis), for a line of
+   * a series drawn there: its value is in that axis's unit. Left out, the
+   * line is drawn against the first axis.
+   */
+  isOnSecondYAxis?: boolean | undefined;
+  /*
+   * Drawn to the scale of its own with this id (OwnScaleYAxis, issue
+   * #10080), for a line of a series drawn there: its value is in that
+   * scale's unit, and its label says it, as no axis does.
+   */
+  ownScaleId?: string | undefined;
 }
 
 // The dash a reference line is drawn with when it names none of its own.

@@ -96,6 +96,14 @@ export interface ComponentProps {
    * its click goes on to the card as it always did.
    */
   isShownOnFirstTap?: boolean | undefined;
+  /*
+   * Put away, and not shown again while true: for a trigger whose own
+   * press opens something right beside it - the header's commander, whose
+   * "Click to reassign" would otherwise hang over the list it just opened
+   * for as long as the pointer stayed on the name. Shown again on the next
+   * hover or focus once false.
+   */
+  isHidden?: boolean | undefined;
 }
 
 interface PopupProps extends ComponentProps {
@@ -212,6 +220,8 @@ const TooltipPopup: FunctionComponent<PopupProps> = (
       {...(props.reference
         ? { reference: props.reference, showOnCreate: true }
         : { children: props.children })}
+      // Put away while what the trigger opened shows (isHidden).
+      {...(props.isHidden ? { disabled: true } : {})}
       interactive={props.interactive ?? isRich}
       /*
        * A press shows it and keeps it until the next press (see

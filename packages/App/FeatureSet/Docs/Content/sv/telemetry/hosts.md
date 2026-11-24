@@ -130,7 +130,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 
 ### Redigera dess config.yaml
 
-Välj **Redigera konfiguration** på konfigurationens sida, ändra YAML-koden och spara. OneUptime kontrollerar den först och avvisar en konfiguration som den inte kan skicka, med en förklaring: se [Vad en konfiguration får göra](#vad-en-konfiguration-får-göra).
+Välj **Redigera konfiguration** på konfigurationens sida, ändra YAML-koden och spara. OneUptime kontrollerar den först och avvisar en konfiguration som den inte kan skicka, med en förklaring: se [Vad en konfiguration får göra](#vad-en-konfiguration-får-göra). I en Linux-konfiguration behåller du `operators` i receivern `journald`: de arkiverar varje journalrad under sin systemd-enhet, och sidan för en enhet som misslyckades säger utifrån dem varför den misslyckades. En konfiguration skriven utan dem kan hämta dem från **Visa konfiguration** på Linux-standarden.
 
 ### Se den nå värdarna
 

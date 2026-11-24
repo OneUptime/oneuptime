@@ -1,0 +1,66 @@
+name: Crossplane Provider Pins
+
+# Are the Crossplane provider's pins at their newest compatible releases?
+#
+# The provider's Go module pins Upjet, the modules that move with it, Go and
+# Kubernetes' libraries (Scripts/CrossplaneProvider/Core/GoModule.ts), and its
+# end-to-end test pins Crossplane, the crossplane CLI and kind
+# (packages/E2E/Crossplane/e2e-tests/scripts/run-tests.sh,
+# .github/actions/setup-crossplane-tools). A security fix in any of them
+# reaches the provider only once someone moves the pin, and nothing said when
+# one fell behind (#6616).
+#
+# Every week, and by hand, `npm run check-crossplane-provider-pins`
+# (Scripts/CrossplaneProvider/CheckPins.ts) reads each one's newest
+# compatible release from the Go module proxy, Crossplane's chart repository
+# and GitHub's releases, and keeps the one issue "Crossplane provider: pinned
+# dependencies are behind": it opens it when a pin is behind, rewrites it
+# while one is, and closes it once none is. It fails only when it cannot read
+# the releases.
+#
+# No pull request runs this: it writes issues. The checker's logic has its
+# tests (Scripts/CrossplaneProvider/Tests/Pins.test.ts), which the Crossplane
+# Provider workflow runs on every pull request that changes it.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-pins:
+    name: Every pin against its newest compatible release
+    # A fork that runs schedules keeps no issue of OneUptime's.
+    if: ${{ github.repository == 'OneUptime/oneuptime' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: 'npm'
+
+      # ts-node, which runs the checker; it needs nothing else.
+      - name: Install root dependencies
+        uses: ./.github/actions/npm-install
+
+      # Only main's run keeps the issue; one dispatched on a branch says what
+      # is behind in its log, and writes nothing.
+      - name: Check the pins, and keep the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          KEEP_ISSUE: ${{ github.ref == 'refs/heads/main' && '--keep-issue' || '' }}
+        run: npm run check-crossplane-provider-pins -- ${KEEP_ISSUE}

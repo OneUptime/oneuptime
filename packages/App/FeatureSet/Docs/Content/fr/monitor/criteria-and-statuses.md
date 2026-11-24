@@ -30,7 +30,7 @@ L'ordre fait partie de la règle. Un nouveau moniteur liste ses critères du pir
 Un critère qui correspond sans changer de statut décide quand même de la vérification : le moniteur garde son statut, et les critères en dessous attendent la vérification suivante. L'**État du moniteur par défaut** ne s'applique que si aucun critère ne correspond. Pour un nouveau moniteur, c'est **Opérationnel** ; modifiez-le sous **Plus de champs**, sous les critères.
 
 > [!NOTE]
-> Un moniteur qui ouvre un incident ou une alerte par hôte, conteneur, disque ou interface juge tous les critères à chaque vérification, de sorte que deux hôtes peuvent correspondre à deux critères différents en même temps. C'est le cas d'un moniteur dont la requête a un **Regrouper par**, comme un moniteur de métriques ou de journaux, ou d'un critère qui indique `*` pour chaque disque ou interface. Un moniteur de requêtes entrantes qui regroupe les incidents par un champ de la charge utile s'arrête quand même à la première correspondance.
+> Un moniteur qui ouvre un incident ou une alerte par hôte, conteneur, disque ou interface juge tous les critères à chaque vérification, de sorte que deux hôtes peuvent correspondre à deux critères différents en même temps. C'est le cas d'un moniteur dont la requête a un **Regrouper par**, comme un moniteur de métriques ou de journaux, ou d'un critère qui indique `*` pour chaque disque ou interface. C'est aussi le cas d'un moniteur de métriques qui surveille une expression PromQL : chaque série que renvoie l'expression est jugée à part. Un moniteur de requêtes entrantes qui regroupe les incidents par un champ de la charge utile s'arrête quand même à la première correspondance.
 
 ## Ce que contient un critère
 

@@ -49,6 +49,21 @@ const api: Record<string, MockFunction> = {
   addToStatusPage: getJestMockFunction(),
 };
 
+/*
+ * The server's guided setup runs (#7253), in memory: the store reads and
+ * writes them as it would the server's (GuidedSetupRunServerMock).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupRunApi",
+  () => {
+    return (
+      jest.requireActual("./GuidedSetupRunServerMock") as {
+        guidedSetupRunApiModule: unknown;
+      }
+    ).guidedSetupRunApiModule;
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
   () => {
@@ -227,6 +242,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { guidedSetupRunServer } from "./GuidedSetupRunServerMock";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000007060";
 const USER_ID: string = "40000000-0000-4000-8000-000000007060";
@@ -375,6 +391,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  guidedSetupRunServer.reset();
   window.localStorage.clear();
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")

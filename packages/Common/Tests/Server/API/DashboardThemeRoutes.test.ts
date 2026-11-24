@@ -90,6 +90,8 @@ const STORED_VALUES: Array<[string, DashboardTheme, unknown]> = [
 const GRANTED: PublicDashboardAccessResult = {
   access: PublicDashboardAccess.Granted,
   isMasterPasswordRequired: false,
+  // A dashboard open to anyone with the link asks nobody to sign in (#10250).
+  isSignInRequired: false,
 };
 
 const PASSWORD_REQUIRED: PublicDashboardAccessResult = {

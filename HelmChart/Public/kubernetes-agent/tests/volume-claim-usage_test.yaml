@@ -33,11 +33,11 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metric_groups:\\n      - node\\n      - pod\\n      - container\\n      - volume\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    metric_groups:\\n      - node\\n      - pod\\n      - container\\n      - volume\\n"
       # container.id stays: OneUptime resolves a container's metrics by it.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n(?:      #[^\\n]*\\n)*      - k8s\\.volume\\.type\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n(?:      #[^\\n]*\\n)*      - k8s\\.volume\\.type\\n"
 
   - it: never asks the API server for a claim's PersistentVolume
     set:
@@ -61,7 +61,7 @@ tests:
       # The container's label is not the volume group's to take away.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n"
 
   - it: labels the claim on the OpenShift preset too, whose node collector still talks to the kubelet
     set:
@@ -70,4 +70,4 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n(?:      #[^\\n]*\\n)*      - k8s\\.volume\\.type\\n"
+          pattern: "\\n  kubelet_stats:\\n(?:    [^\\n]*\\n)*?    extra_metadata_labels:\\n      - container\\.id\\n(?:      #[^\\n]*\\n)*      - k8s\\.volume\\.type\\n"

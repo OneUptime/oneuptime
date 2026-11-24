@@ -1,5 +1,9 @@
 import ApiKeyPermissionService from "../../../Server/Services/ApiKeyPermissionService";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
+import { getErrorDetails } from "../../../Types/Exception/BadDataExceptionWithDetails";
+import ValueTakenException, {
+  VALUE_TAKEN_REFUSAL_CODE,
+} from "../../../Types/Exception/ValueTakenException";
 import DashboardDomainService from "../../../Server/Services/DashboardDomainService";
 import DomainService from "../../../Server/Services/DomainService";
 import GlobalOidcProjectService from "../../../Server/Services/GlobalOidcProjectService";
@@ -441,6 +445,12 @@ describe("an API key permission's duplicate check reads the key under either nam
     expect((outcome as Error).message).toBe(
       "This permission is already assigned to this API Key",
     );
+    // With the code of a taken value and the field (#10319).
+    expect(outcome).toBeInstanceOf(ValueTakenException);
+    expect(getErrorDetails(outcome)).toEqual({
+      refusalCode: VALUE_TAKEN_REFUSAL_CODE,
+      field: "permission",
+    });
 
     const query: Record<string, unknown> = firstCallArgument(findOneBy)[
       "query"

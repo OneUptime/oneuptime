@@ -53,6 +53,9 @@ describe("the words", () => {
       [TelemetryIngestionBudgetLimitSource.Instance]: "Instance default",
       [TelemetryIngestionBudgetLimitSource.Project]: "Set for this project",
       [TelemetryIngestionBudgetLimitSource.IngestionKey]: "This key's own",
+      // A team's or a label's own budget (#6386).
+      [TelemetryIngestionBudgetLimitSource.Team]: "This team's own",
+      [TelemetryIngestionBudgetLimitSource.Label]: "This label's own",
     });
   });
 

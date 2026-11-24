@@ -1,5 +1,6 @@
 import { TELEMETRY_SETUP_COPY } from "../../Components/GuidedSetup/Telemetry/TelemetrySetup";
 import TelemetryGuidedSetup from "../../Components/GuidedSetup/Telemetry/TelemetryGuidedSetup";
+import { GUIDED_SETUP_PAGE_CLASS_NAME } from "../../Components/GuidedSetup/GuidedSetupFrame";
 import { getServiceBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
@@ -21,6 +22,7 @@ const ServicesGuidedSetup: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <Page
+      className={GUIDED_SETUP_PAGE_CLASS_NAME}
       title={TELEMETRY_SETUP_COPY.pageTitle}
       description={TELEMETRY_SETUP_COPY.pageDescription}
       breadcrumbLinks={getServiceBreadcrumbs(

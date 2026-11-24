@@ -70,13 +70,13 @@ sequenceDiagram
     participant IdP as Fournisseur d'identité
     participant O as OneUptime
     IdP->>O: Créer l'utilisateur,<br/>quand vous l'attribuez
-    Note over O: Ajouté aux équipes par défaut.<br/>Sur OneUptime Cloud,<br/>un compte existant<br/>est invité à la place
+    Note over O: Ajouté aux équipes par défaut.<br/>Sur OneUptime Cloud,<br/>toute personne pas encore<br/>dans le projet est invitée<br/>à la place
     IdP->>O: Mettre à jour l'utilisateur,<br/>quand son profil change
     IdP->>O: Supprimer ou désactiver, quand<br/>vous retirez l'attribution
     Note over O: Retiré des équipes par défaut
 ```
 
-Une personne qui avait déjà un compte OneUptime rejoint le projet une fois qu'elle accepte l'invitation sur OneUptime Cloud (voir la [FAQ](#questions-fréquentes)). L'accès accordé par des équipes autres que les équipes par défaut de la connexion n'est pas touché.
+Sur OneUptime Cloud, une personne qui n'est pas encore dans votre projet le rejoint une fois qu'elle accepte l'invitation, que SCIM ait créé son compte OneUptime ou qu'elle en ait déjà eu un (voir la [FAQ](#questions-fréquentes)). L'accès accordé par des équipes autres que les équipes par défaut de la connexion n'est pas touché.
 
 ### Identifiants client OAuth 2.0
 
@@ -445,9 +445,9 @@ Nulle part : OneUptime n'en conserve qu'un hachage, donc ni le tableau de bord n
 Lorsque SCIM tente de créer un utilisateur qui existe déjà (correspondance par e-mail), OneUptime ne crée pas d'utilisateur en double. La suite dépend de l'endroit où OneUptime s'exécute :
 
 - **Auto-hébergé** : l'utilisateur existant est ajouté immédiatement aux équipes par défaut configurées (ou à l'équipe du groupe, avec les groupes Push).
-- **OneUptime Cloud** : Un compte OneUptime appartient à la personne, et non à un projet en particulier ; SCIM ne peut donc pas faire de quelqu'un un membre de votre projet de sa propre autorité. L'utilisateur existant est plutôt **invité** dans les équipes et reçoit l'e-mail d'invitation habituel. Il rejoint le projet lorsqu'il accepte les invitations depuis **Invitations au projet** dans OneUptime, ou lorsqu'il confirme l'authentification unique (SSO) de votre projet depuis l'e-mail que OneUptime envoie lors de sa première connexion SSO. D'ici là, il apparaît comme en attente. Il en va de même lorsqu'un groupe ajoute un utilisateur existant qui n'est pas encore membre de votre projet.
+- **OneUptime Cloud** : Un compte OneUptime appartient à la personne, et non à un projet en particulier ; SCIM ne peut donc pas faire de quelqu'un un membre de votre projet de sa propre autorité. L'utilisateur existant est plutôt **invité** dans les équipes et reçoit l'e-mail d'invitation habituel, comme un utilisateur que SCIM crée. Il rejoint le projet lorsqu'il accepte les invitations depuis **Invitations au projet** dans OneUptime, ou lorsqu'il confirme l'authentification unique (SSO) de votre projet depuis l'e-mail que OneUptime envoie lors de sa première connexion SSO. D'ici là, il apparaît comme en attente, sous le nom envoyé par votre fournisseur d'identité, si bien que la liste des utilisateurs de votre projet est la même, que la personne ait déjà eu un compte OneUptime ou non. Il en va de même lorsqu'un groupe ajoute une personne qui n'est pas encore membre de votre projet.
 
-Les utilisateurs que SCIM crée lui-même et les utilisateurs qui sont membres de votre projet sont ajoutés immédiatement dans les deux cas. Confirmer le SSO de votre projet fait de quelqu'un un membre ; il est donc lui aussi ajouté immédiatement. Une personne qui a quitté votre projet depuis est invitée de nouveau.
+Les utilisateurs qui sont membres de votre projet sont ajoutés immédiatement dans les deux cas, et, sur une installation auto-hébergée, les utilisateurs que SCIM crée lui-même le sont aussi. Confirmer le SSO de votre projet fait de quelqu'un un membre ; il est donc lui aussi ajouté immédiatement. Une personne qui a quitté votre projet depuis est invitée de nouveau.
 :::
 
 :::details SCIM peut-il modifier l'adresse e-mail ou le nom d'un utilisateur ?

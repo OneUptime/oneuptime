@@ -2383,6 +2383,28 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     return userId.toString().toLowerCase();
   }
 
+  /*
+   * A list of ids with each once, in the order they were first named:
+   * compared without case or spaces, as Postgres compares uuids by value.
+   * A list from a request's miscDataProps holds strings as often as ids.
+   */
+  private static eachIdOnce(ids: Array<ObjectID>): Array<ObjectID> {
+    const named: Set<string> = new Set<string>();
+
+    return ids.filter((id: ObjectID): boolean => {
+      const key: string = String(id?.toString() ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (named.has(key)) {
+        return false;
+      }
+
+      named.add(key);
+      return true;
+    });
+  }
+
   // What makes two lines of a level the same line: what they say, and about whom.
   private static getLineKey(
     line: OnCallDutyPolicyExecutionLogTimeline,
@@ -2455,6 +2477,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * The rule's responders, as join rows: the people, the teams, the
    * schedules whose on-call person it pages, and the schedules whose next
    * person in the rotation it pages (the backup after whoever is on call).
+   *
+   * Each once: a rule has one row per responder (EscalationRuleResponderOnce),
+   * and a second of a list would be refused, failing the rule's create after
+   * its row is written. An id named twice in one list - a create's
+   * miscDataProps, as the API takes them - is one responder, as the
+   * Dashboard's picker and the first responders of a new policy
+   * (readFirstResponderIds) count it.
    */
   @CaptureSpan()
   public async addUsersTeamsAndSchedules(
@@ -2467,6 +2496,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     props: DatabaseCommonInteractionProps,
     nextInRotationScheduleIds: Array<ObjectID> = [],
   ): Promise<void> {
+    usersIds = Service.eachIdOnce(usersIds);
+    teamIds = Service.eachIdOnce(teamIds);
+    onCallScheduleIds = Service.eachIdOnce(onCallScheduleIds);
+    nextInRotationScheduleIds = Service.eachIdOnce(nextInRotationScheduleIds);
+
     for (const userId of usersIds) {
       await this.addUser(
         projectId,

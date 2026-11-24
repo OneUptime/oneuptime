@@ -283,6 +283,33 @@ export default class LogExceptionExtractor {
     return { ...fromBody, escaped: true };
   }
 
+  /*
+   * An extracted exception with another stack trace - an iOS crash's,
+   * symbolicated from its dSYMs (AppleSymbolication, #9922) - clamped as
+   * every stored stack trace is, and its frames parsed again from it. The
+   * exception given is not changed. Never throws.
+   */
+  public static withStackTrace(
+    extracted: ExtractedLogException,
+    stackTrace: string,
+  ): ExtractedLogException {
+    const clampedStack: string = clamp(
+      stackTrace,
+      MAX_STORED_STACK_TRACE_LENGTH,
+    );
+    let parsedFrames: string = "[]";
+
+    try {
+      parsedFrames = JSON.stringify(
+        StackTraceParser.parse(clampedStack).frames,
+      );
+    } catch {
+      parsedFrames = "[]";
+    }
+
+    return { ...extracted, stackTrace: clampedStack, parsedFrames };
+  }
+
   /**
    * Whether a log body holds a stack trace as the body scan reads one: the
    * signature, then at least one parsed frame - the same test that makes a

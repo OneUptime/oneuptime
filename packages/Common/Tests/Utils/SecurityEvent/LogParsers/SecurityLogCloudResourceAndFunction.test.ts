@@ -92,13 +92,21 @@ describe("readLogCloudResource", () => {
     });
   });
 
-  test("its case is kept: an Azure ID is filtered on as the stream wrote it", () => {
+  /*
+   * #10034: Azure compares its resource IDs without case, and a collector
+   * or a pipeline stamps one in any case it likes - so the event keeps it
+   * by its key, in lower case, the one spelling the resource's page and
+   * Connected Signals read it by. An ARN keeps its case (above).
+   */
+  test("an Azure ID is kept by its key, in lower case, whatever case the stream stamped it in", () => {
     const id: string =
       "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod/providers/Microsoft.Web/sites/orders-func";
 
-    expect(
-      readLogCloudResource({ [STORED_CLOUD_RESOURCE_ID_ATTRIBUTE]: id }),
-    ).toEqual({ [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: id });
+    for (const stamped of [id, id.toUpperCase(), `${id}/`]) {
+      expect(
+        readLogCloudResource({ [STORED_CLOUD_RESOURCE_ID_ATTRIBUTE]: stamped }),
+      ).toEqual({ [SECURITY_LOG_CLOUD_RESOURCE_ATTRIBUTE]: id.toLowerCase() });
+    }
   });
 
   test.each<[string, JSONObject]>([

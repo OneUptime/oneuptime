@@ -20,6 +20,7 @@ import {
 } from "./DocsTranslationChecks";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
+  CloudConnectionAuthMethod,
   CloudConnectionDefinition,
   CloudConnectionField,
   DATA_SECURITY_FIELD_KEY,
@@ -50,6 +51,8 @@ import {
   getAwsDataSecurityPolicyDocument,
   getAwsRoleSetupCommand,
   getAzureSetupCommand,
+  getCloudConnectionCommandSettings,
+  getCloudConnectionSetupCommand,
   getGcpSetupCommand,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import ComplianceFramework, {
@@ -165,6 +168,7 @@ import {
   FINGERPRINT_SLOTS,
 } from "Common/Server/Utils/DataSecurity/Fingerprint";
 import { DATA_STORE_CONTENT_SCAN_OVERDUE_AFTER_IN_MS } from "Common/Utils/DataSecurity/DataStoreContentScanSchedule";
+import { MAX_OUTPUT_METRIC_DEPTH } from "Common/Types/Metrics/MetricOutputReaders";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -208,6 +212,8 @@ const TELEMETRY: string = "data-security/telemetry";
 const FLOWS: string = "data-security/flows-access-residency";
 const COMPLIANCE: string = "data-security/compliance";
 const INTEGRATIONS: string = "data-security/integrations";
+// OneUptime AI in Data Security (#10365): its own facts, DataSecurityAiDocsFacts.
+const AI: string = "data-security/ai";
 
 const PAGES: ReadonlyArray<string> = [
   INDEX,
@@ -218,6 +224,7 @@ const PAGES: ReadonlyArray<string> = [
   FLOWS,
   COMPLIANCE,
   INTEGRATIONS,
+  AI,
 ];
 
 const LINE_BREAK: RegExp = /\n/;
@@ -595,6 +602,76 @@ describe("Set Up Data Security", () => {
       "**Configuration and content samples**",
     ]);
     expect(page).toContain("Under **More fields**, set **Data security**");
+  });
+
+  /*
+   * "The command the form shows changes with the level", and with Data
+   * security response "then grants these narrow writes" - true since the
+   * form writes its command from the settings it saves and asks both with
+   * it (#10336); before, the command never took them.
+   */
+  it("says the command the form shows grants the level and the response's writes, as the form writes it from them", () => {
+    const response: string = section(
+      page,
+      "## Let Data Security close an exposure",
+    );
+
+    expect(page).toContain(
+      "The command the form shows changes with the level.",
+    );
+    expect(response).toContain(
+      "and the command the form shows then grants these narrow writes",
+    );
+
+    for (const provider of [
+      CloudProvider.AWS,
+      CloudProvider.Azure,
+      CloudProvider.GCP,
+    ]) {
+      for (const key of [
+        DATA_SECURITY_FIELD_KEY,
+        DATA_SECURITY_RESPONSE_FIELD_KEY,
+      ]) {
+        const field: CloudConnectionField | undefined = (
+          getCloudConnectionDefinition(provider) as CloudConnectionDefinition
+        ).configFields.find((candidate: CloudConnectionField): boolean => {
+          return candidate.key === key;
+        });
+
+        // Asked with the command, folded under More fields there.
+        expect({
+          provider,
+          key,
+          changesSetupCommand: field?.changesSetupCommand,
+          isAdvanced: field?.isAdvanced,
+        }).toEqual({
+          provider,
+          key,
+          changesSetupCommand: true,
+          isAdvanced: true,
+        });
+      }
+    }
+
+    // What a connection saves is what its command grants.
+    const command: string | undefined = getCloudConnectionSetupCommand(
+      CloudProvider.AWS,
+      CloudConnectionAuthMethod.AwsAccessKey,
+      getCloudConnectionCommandSettings({
+        [DATA_SECURITY_FIELD_KEY]: "configuration",
+        [DATA_SECURITY_RESPONSE_FIELD_KEY]: "block",
+      }),
+    );
+
+    expect(command).toBe(
+      getAwsAccessKeySetupCommand({
+        dataSecurity: "configuration",
+        dataSecurityResponse: "block",
+      }),
+    );
+    expect(command).toContain(
+      `--policy-name ${AWS_DATA_SECURITY_RESPONSE_POLICY_NAME} `,
+    );
   });
 
   it("lists every AWS action of the configuration level, by what it is for", () => {
@@ -984,6 +1061,10 @@ describe("Connect a Cloud Account's Data security section", () => {
     ]);
     expect(dataSecurity).toContain(
       "Under **More fields**, **Data security** is **Off** until you choose otherwise",
+    );
+    // True since the form asks it with the command and writes the command from it (#10336).
+    expect(dataSecurity).toContain(
+      "and the command the form shows changes with it",
     );
   });
 
@@ -1517,8 +1598,18 @@ describe("Sensitive Data in Telemetry", () => {
     // A metric's sample: its series, few metrics a scan (#9604).
     const metrics: string = section(page, "### Metrics");
 
+    // A service's share, and the reads others leave unused given out in turn (#9947).
+    const total: number = constant(
+      scanner,
+      "TELEMETRY_SCAN_MAX_METRICS_PER_READ",
+    );
+    const share: number = constant(
+      scanner,
+      "TELEMETRY_SCAN_METRIC_SHARE_PER_OWNER",
+    );
+
     expect(value("Metrics read in one scan")).toBe(
-      `${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_READ")} shared between the services, at least one of each; at most ${constant(scanner, "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER")} of one service, half its busiest and half its new and other metrics in turn`,
+      `${total} shared between the services, at least one of each; ${share} of each service, half its busiest and half its new and other metrics in turn, and the reads a service leaves unused go to the others, in turn`,
     );
     // New metrics first, the rest in turn within a stated time (#9755).
     expect(value("A new metric")).toBe(
@@ -1527,17 +1618,36 @@ describe("Sensitive Data in Telemetry", () => {
     expect(metrics).toContain(
       `Then come the metrics it started writing in the last ${constant(scanner, "TELEMETRY_SCAN_NEW_METRIC_WINDOW_IN_HOURS")} hours`,
     );
-    // The bound, worked out from the share as the planner splits it.
-    const share: number = constant(
-      scanner,
-      "TELEMETRY_SCAN_MAX_METRICS_PER_OWNER",
-    );
-    const inTurn: number = share - Math.floor(share / 2);
+    /*
+     * The bound, worked out from the share as the planner splits it: its
+     * busiest half, the rest in turn, and the reads others leave unused in
+     * turn too - three services of 300 metrics share what their three
+     * shares leave of the total, one read at a time.
+     */
+    const busiest: number = Math.floor(share / 2);
+    const inTurn: number = share - busiest;
+    const spare: number = total - 3 * share;
+    const sharedFewest: number = inTurn + Math.floor(spare / 3);
+    const sharedMost: number = inTurn + Math.ceil(spare / 3);
 
     expect(metrics).toContain(
-      `A service of M metrics, read ${share} a scan, has each of them read at least once every M ÷ ${inTurn} hours, rounded up: ${Math.ceil(300 / inTurn)} hours for a service of 300 metrics.`,
+      `A scan gives each service ${share} of its reads, fewer when the project has more than ${total / share} services.`,
+    );
+    expect(metrics).toContain(
+      "The reads a service leaves unused, because it has fewer metrics, go to the services that still have metrics waiting their turn, one at a time, so none is wasted and no service gets less than its share.",
+    );
+    expect(metrics).toContain(
+      `A service's busiest ${busiest} take ${busiest} of its reads, and the rest read its other metrics in turn: a service of M metrics that gets r reads in turn has each of them read at least once every M ÷ r hours, rounded up.`,
+    );
+    expect(metrics).toContain(
+      `That is ${Math.ceil(300 / inTurn)} hours for a service of 300 metrics that gets only its own ${inTurn}, and ${Math.ceil(300 / sharedFewest)} hours when two other services of 300 metrics share its project, as each then gets ${sharedFewest} or ${sharedMost}.`,
     );
     expect(metrics).toContain("it is at most twice that.");
+    // One read at a time, round the services still waiting (getMetricReadsByOwner).
+    expect(source(scanner)).toContain("reads.set(owner, read + 1);");
+    expect(source(scanner)).toContain(
+      "const inTurn: number = reads - busiest.length;",
+    );
     expect(source(scanner)).toContain(
       "return Math.floor(((hour + 1) * reads) / 2) - Math.floor((hour * reads) / 2);",
     );
@@ -1624,6 +1734,32 @@ describe("Sensitive Data in Telemetry", () => {
     expect(source(scanner)).toContain(
       'const ONEUPTIME_ATTRIBUTE_PREFIX: string = "oneuptime.";',
     );
+  });
+
+  // #10085 and #10084: the chain the dialog follows, and where a widget's link opens.
+  it("says how far down a chain of recording rules the dialog names what reads their output, as the lookup follows it", () => {
+    const drop: string = section(page, "## Drop This Metric");
+
+    expect(MAX_OUTPUT_METRIC_DEPTH).toBe(3);
+    expect(drop).toContain(
+      "Under each recording rule, it also names what reads the rule's output metric, and what reads theirs in turn, up to three output metrics down the chain.",
+    );
+    expect(drop).toContain(
+      "A widget's link opens its dashboard at that widget.",
+    );
+    // The dialog's own sentence for the step down, as the Dashboard draws it.
+    expect(
+      source(
+        "App/FeatureSet/Dashboard/src/Components/Metrics/Readers/MetricReadersList.tsx",
+      ),
+    ).toContain('"These read its output metric, {{metric}}:"');
+    // Both callers ask the lookup to follow the chain.
+    for (const caller of [
+      `${SERVER}/Telemetry/MetricNameUsers.ts`,
+      "Common/Server/Utils/CloudConnection/CloudAddedMetricReaders.ts",
+    ]) {
+      expect(source(caller)).toContain("followsOutputMetrics: true");
+    }
   });
 
   it("names the rules Scrub It makes as it names them", () => {
@@ -2487,8 +2623,12 @@ describe("Data Security Integrations", () => {
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
     );
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "message: buildDataSecurityFixRequest(",
+      "return buildDataSecurityFixRequest(",
     );
+    // The request is what the Code task it starts is asked (#10362, #10365).
+    expect(
+      source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
+    ).toContain("message: request.text,");
     expect(section(page, "## OneUptime AI")).toContain(
       "Terraform, CloudFormation, Bicep or the like",
     );
@@ -2497,7 +2637,7 @@ describe("Data Security Integrations", () => {
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
     expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await DataSecurityAPI.readFindingsForAi(projectId, issue)",
+      "await DataSecurityAiReads.readPlaces({ projectId, issue })",
     );
     expect(section(page, "## OneUptime AI")).toContain(
       "For a telemetry issue it asks for a change to the code of the service that writes the data instead",

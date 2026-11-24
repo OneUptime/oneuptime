@@ -33,6 +33,7 @@ import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionR
 import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import SecurityEventService, {
   DetectionMatchGroup,
+  FindDetectionArrivalWindowsData,
 } from "../../../../Server/Services/SecurityEventService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -140,9 +141,15 @@ const MATCH: DetectionMatchGroup = {
   summary: "Failed sign-in, then Successful sign-in, 2 minutes apart",
 };
 
+// The window of the rule's interval, on the clock, that the run's events fall in.
+const WINDOW_START: Date = new Date(
+  Math.floor(Date.now() / (5 * 60 * 1000)) * (5 * 60 * 1000) - 5 * 60 * 1000,
+);
+
 interface Spies {
   findMatches: Spy;
   findDetectionMatches: Spy;
+  findDetectionArrivalWindows: Spy;
   insertJsonRows: Spy;
   alertCreate: Spy;
   updateOneById: Spy;
@@ -167,6 +174,19 @@ function installSpies(groups: Array<DetectionMatchGroup>): Spies {
       SecurityEventService,
       "findDetectionMatches",
     ).mockResolvedValue([] as never),
+    /*
+     * A scheduled run reads the windows of its interval that hold what
+     * arrived (#10337): here, the one before the run's last arrival.
+     */
+    findDetectionArrivalWindows: getJestSpyOn(
+      SecurityEventService,
+      "findDetectionArrivalWindows",
+    ).mockResolvedValue([
+      {
+        windowStart: WINDOW_START,
+        firstArrivedAt: new Date(WINDOW_START.getTime() + 60 * 1000),
+      },
+    ] as never),
     insertJsonRows: getJestSpyOn(
       SecurityEventService,
       "insertJsonRows",
@@ -239,6 +259,49 @@ describe("DetectionRuleEvaluator: a correlation rule", () => {
     expect(result.matchedGroups).toBe(1);
     expect(result.casesOpened).toBe(1);
     expect(result.alertsCreated).toBe(1);
+  });
+
+  test("a scheduled run reads each window that holds an event any step may match, as it stood when the run's last event arrived", async () => {
+    const spies: Spies = installSpies([MATCH]);
+
+    await DetectionRuleEvaluator.evaluateRule(buildRule(SEQUENCE_YAML));
+
+    // The windows that hold what arrived: by either step's condition.
+    const windows: FindDetectionArrivalWindowsData = spies
+      .findDetectionArrivalWindows.mock
+      .calls[0]![0] as FindDetectionArrivalWindowsData;
+
+    expect(windows.windowInMinutes).toBe(5);
+    expect(Object.values(windows.whereFragment.query_params)).toEqual(
+      expect.arrayContaining(["authentication", "failure", "success"]),
+    );
+
+    // The window's read: the correlation's own, with the run's arrivals.
+    const input: CorrelationRuleMatchInput = spies.findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+
+    expect(input.startTime.getTime()).toBe(WINDOW_START.getTime());
+    expect(input.endTime.getTime()).toBe(
+      WINDOW_START.getTime() + 5 * 60 * 1000,
+    );
+    expect(input.arrival).toEqual({
+      kind: "run",
+      arrivedAfter: windows.arrivedAfter,
+      arrivedUntil: windows.arrivedUntil,
+      candidateStartTime: input.startTime,
+      candidateEndTime: input.endTime,
+    });
+  });
+
+  test("a scheduled run with no window holding what arrived reads no correlation", async () => {
+    const spies: Spies = installSpies([MATCH]);
+    spies.findDetectionArrivalWindows.mockResolvedValue([] as never);
+
+    const result: DetectionRuleEvaluationResult =
+      await DetectionRuleEvaluator.evaluateRule(buildRule(SEQUENCE_YAML));
+
+    expect(spies.findMatches).not.toHaveBeenCalled();
+    expect(result.matchedGroups).toBe(0);
   });
 
   test("the finding carries the correlation's type, sentence, level and tags, and no distinct count", async () => {

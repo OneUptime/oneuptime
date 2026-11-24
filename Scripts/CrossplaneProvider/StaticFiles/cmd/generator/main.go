@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/crossplane/upjet/v2/pkg/pipeline"
 	tjtypes "github.com/crossplane/upjet/v2/pkg/types"
 
 	"github.com/oneuptime/crossplane-provider-oneuptime/config"
+	"github.com/oneuptime/crossplane-provider-oneuptime/internal/kinds"
 )
 
 func main() {
@@ -22,6 +24,12 @@ func main() {
 		panic(fmt.Sprintf("cannot calculate the absolute path with %s", os.Args[1]))
 	}
 	pc := config.GetProvider()
+	// Two kinds of one plural would get one CRD, controller-gen writing the
+	// second over the first, and the package would have no CRD for the
+	// first (#10144).
+	if clashes := kinds.Clashes(config.CRDs(pc)); len(clashes) > 0 {
+		panic("kinds whose CRDs would have one name; give one of each a plural of its own in internal/kinds:\n" + strings.Join(clashes, "\n"))
+	}
 
 	// Namespaced managed resources only, Crossplane v2's kind: Upjet's
 	// pipeline.Run writes namespaced resources only beside cluster-scoped

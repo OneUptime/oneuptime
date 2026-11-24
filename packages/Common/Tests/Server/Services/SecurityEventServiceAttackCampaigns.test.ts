@@ -165,6 +165,76 @@ describe("SecurityEventService.findAttackCampaigns", () => {
       lastSeen: "2026-10-27T06:45:00.000Z",
     });
   });
+
+  /*
+   * #10397: the row of requests with no address says how many of them had
+   * their address hidden by a scrub rule, so it can say why it names none.
+   */
+  test("counts the requests with no address whose address a scrub rule hid, its key and value bound", async () => {
+    const spy: Spy = stubExecuteQuery([
+      {
+        sourceIp: "",
+        requestCount: "12",
+        rejectedCount: "12",
+        reachedAppCount: "0",
+        erroredCount: "0",
+        reachedDatabaseCount: "0",
+        worstOutcomeRank: 1,
+        maxSeverityId: 2,
+        attackKinds: ["path-traversal"],
+        userAgents: [],
+        targetCount: "3",
+        sampleTargets: ["/static/../../etc/passwd"],
+        firstSeen: "2026-10-27 05:25:00.000000000",
+        lastSeen: "2026-10-27 06:45:00.000000000",
+        hiddenAddressCount: "12",
+      },
+    ]);
+
+    const campaigns: Array<SecurityAttackCampaign> =
+      await SecurityEventService.findAttackCampaigns({
+        projectId: PROJECT_ID,
+        startTime: START,
+        endTime: END,
+        limit: 25,
+      });
+
+    const statement: Statement = statementOf(spy);
+    const query: string = statement.query.replace(/\s+/g, " ");
+
+    expect(query).toContain("countIf(principalIp = '' AND attributes[");
+    expect(query).toContain(") AS hiddenAddressCount FROM ");
+    expect(query).not.toContain("oneuptime.request.client_address_hidden");
+    expect(query).not.toContain("scrub-rule");
+
+    const values: Array<unknown> = Object.values(statement.query_params);
+
+    expect(values).toContain("oneuptime.request.client_address_hidden");
+    expect(values).toContain("scrub-rule");
+
+    expect(campaigns[0]!.sourceIp).toBe("");
+    expect(campaigns[0]!.hiddenAddressCount).toBe(12);
+  });
+
+  test("a row none of whose requests had its address hidden says nothing of it", async () => {
+    stubExecuteQuery([
+      {
+        sourceIp: "198.51.100.23",
+        requestCount: "4",
+        hiddenAddressCount: "0",
+      },
+    ]);
+
+    const campaigns: Array<SecurityAttackCampaign> =
+      await SecurityEventService.findAttackCampaigns({
+        projectId: PROJECT_ID,
+        startTime: START,
+        endTime: END,
+        limit: 25,
+      });
+
+    expect(campaigns[0]).not.toHaveProperty("hiddenAddressCount");
+  });
 });
 
 /*

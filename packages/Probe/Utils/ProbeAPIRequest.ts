@@ -3,9 +3,11 @@ import ProbeUtil from "./Probe";
 import ProbeApiDiagnostics from "./ProbeApiDiagnostics";
 import ProxyConfig from "./ProxyConfig";
 import URL from "Common/Types/API/URL";
+import Dictionary from "Common/Types/Dictionary";
 import { RequestOptions, RequestOutcome } from "Common/Utils/API";
 import { JSONObject } from "Common/Types/JSON";
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+import ProbeKeyHeaders from "Common/Types/Probe/ProbeKeyHeaders";
 import { AppVersion } from "Common/Server/EnvironmentConfig";
 
 /*
@@ -90,12 +92,31 @@ export function getProbeBuildDeclaration(): JSONObject {
 }
 
 export default class ProbeAPIRequest {
+  /*
+   * The key and the id come first, in this order: OneUptime reads them off
+   * the start of a collection's bytes, before it parses the rest, from a
+   * probe that does not send them in headers too (ProbeReportOpening).
+   */
   public static getDefaultRequestBody(): JSONObject {
     return {
       probeKey: PROBE_KEY,
       probeId: ProbeUtil.getProbeId().toString(),
       ...getProbeBuildDeclaration(),
     };
+  }
+
+  /*
+   * The probe's id and key as headers, for a request whose body is too large
+   * to be read before the key is checked - a vCenter's or an OpenStack
+   * cloud's collection (#10222). OneUptime checks them before it reads a
+   * byte of the body. The body keeps them too, for a OneUptime from before
+   * these headers.
+   */
+  public static getProbeKeyHeaders(): Dictionary<string> {
+    return ProbeKeyHeaders.build({
+      probeId: ProbeUtil.getProbeId().toString(),
+      probeKey: PROBE_KEY,
+    });
   }
 
   /*

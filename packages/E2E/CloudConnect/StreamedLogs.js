@@ -7,10 +7,12 @@ import {
 } from "Common/Types/Cloud/CloudLogGroups";
 import { CLOUD_CONNECTION_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudConnectionTelemetry";
 import { inferCloudWatchLogSeverity } from "Common/Types/Cloud/CloudWatchLogSeverity";
+import OneUptimeDate from "Common/Types/Date";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 
 /*
  * WHAT THE AWS CONNECTION'S STREAM DELIVERED FROM CLOUDWATCH LOGS, AS THE
@@ -522,7 +524,42 @@ const REQUEST_SHAPE_FIELDS = new Set([
   "facetKeys",
   "facetSearchText",
   "limit",
+  // The reader's zone, which a day's bar starts in (histogramBars).
+  "timezone",
 ]);
+
+/*
+ * Where the histogram's bars start (#7923, TelemetryHistogramBuckets). The
+ * Logs viewer names the reader's zone (`timezone`), read as the server
+ * reads it: a zone the Timezone list holds - any other the server refuses,
+ * and it lands on `unhandled` here. A bar of exactly a day starts at that
+ * zone's midnight, and the answer names the zone, in its current name
+ * (`bucketTimezone`); every other bar starts on the epoch's grid, whatever
+ * the zone.
+ */
+function histogramBars(body, bucketSizeInMinutes, path, unhandled) {
+  const bucketMs = bucketSizeInMinutes * MINUTE;
+  let zone = null;
+  if (body.timezone !== undefined && body.timezone !== null) {
+    if (!TimezoneAlias.isListedName(body.timezone)) {
+      unhandled.push({ kind: "api", path, timezone: body.timezone });
+    } else if (bucketMs === DAY) {
+      zone = TimezoneAlias.getCanonicalTimezone(body.timezone);
+    }
+  }
+  return {
+    startOf: (time) => {
+      return zone
+        ? OneUptimeDate.getStartOfCalendarUnit(
+            new Date(time),
+            "day",
+            zone,
+          ).getTime()
+        : Math.floor(time / bucketMs) * bucketMs;
+    },
+    answer: zone ? { bucketTimezone: zone } : {},
+  };
+}
 
 function bodyRows(rows, body, path, unhandled) {
   const start = toTime(body.startTime);
@@ -582,14 +619,20 @@ const SEVERITY_ORDER = Object.values(LogSeverity);
 
 /*
  * POST /telemetry/logs/histogram (LogAggregationService.getHistogram): a
- * count per bucket and severity that has rows, in time order.
+ * count per bucket and severity that has rows, in time order - a day's bar
+ * from the reader's midnight (histogramBars).
  */
 export function streamedLogsHistogram(rows, body, unhandled) {
   const start = toTime(body.startTime);
   const end = toTime(body.endTime);
   const bucketSizeInMinutes =
     Number(body.bucketSizeInMinutes) || defaultBucketSizeInMinutes(start, end);
-  const bucketMs = bucketSizeInMinutes * MINUTE;
+  const bars = histogramBars(
+    body,
+    bucketSizeInMinutes,
+    "/telemetry/logs/histogram",
+    unhandled,
+  );
   const counts = new Map();
   for (const item of bodyRows(
     rows,
@@ -597,7 +640,7 @@ export function streamedLogsHistogram(rows, body, unhandled) {
     "/telemetry/logs/histogram",
     unhandled,
   )) {
-    const bucket = Math.floor(toTime(item.time) / bucketMs) * bucketMs;
+    const bucket = bars.startOf(toTime(item.time));
     const severity = item.severityText || LogSeverity.Unspecified;
     const key = `${bucket}|${severity}`;
     if (!counts.has(key)) {
@@ -620,7 +663,7 @@ export function streamedLogsHistogram(rows, body, unhandled) {
         count: entry.count,
       };
     });
-  return { bucketSizeInMinutes, buckets };
+  return { bucketSizeInMinutes, buckets, ...bars.answer };
 }
 
 function countBy(items, valueOf) {

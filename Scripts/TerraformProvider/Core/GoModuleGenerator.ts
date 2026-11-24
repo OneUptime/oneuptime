@@ -59,6 +59,9 @@ import (
     "github.com/hashicorp/terraform-plugin-framework/providerserver"
 
     "${this.config.goModuleName}/internal/provider"
+    // Every package of generated resources and data sources, which hand
+    // what they hold to internal/provider (its shards.go).
+    _ "${this.config.goModuleName}/internal/provider/all"
 )
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website

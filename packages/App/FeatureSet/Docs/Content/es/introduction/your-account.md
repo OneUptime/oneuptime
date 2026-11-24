@@ -41,7 +41,7 @@ Haz clic en tu foto, arriba a la derecha, y elige **Perfil**. La página **Vista
 
 Haz clic en **Editar Usuario** y cambia lo que necesites:
 
-- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, OneUptime envía un enlace a la nueva dirección, y tu dirección cambia cuando lo abres. Hasta entonces inicias sesión con la actual, y **Cancelar cambio** detiene el cambio. La dirección propia de un administrador principal cambia de inmediato.
+- **Correo electrónico**: la dirección con la que inicias sesión. Si la cambias, OneUptime envía un enlace a la nueva dirección, y tu dirección cambia cuando lo abres. Hasta entonces inicias sesión con la actual, y **Cancelar cambio** detiene el cambio. La dirección propia de un administrador principal cambia de inmediato. Si el enlace caduca, **Volver a enviar el enlace** envía uno nuevo. Cada vez que cambia tu dirección, OneUptime envía un correo a la dirección que tenías.
 - **Nombre completo**: el nombre que tu equipo ve en todo OneUptime.
 - **Zona horaria**: la zona horaria en la que el panel muestra y lee las horas, y la de las horas de las notificaciones que se te envían.
 - **Idioma**: el idioma del panel en cada navegador en el que inicies sesión, y el de tus avisos de guardia. Sin definir, tus avisos están en inglés y el panel sigue a tu navegador.
@@ -146,6 +146,31 @@ Lo mismo ocurre cuando todos los proyectos a los que perteneces exigen el inicio
 - **Los administradores principales** conservan siempre sus propios ajustes de **Seguridad**.
 - **Lo que configuraste antes** sigue guardado. Un administrador del servidor puede borrarlo, y también un propietario de todos los proyectos a los que perteneces; recibes un correo cuando lo hacen.
 
+### Confirmar que eres tú
+
+Algunos cambios te piden primero confirmar que eres tú, aunque hayas iniciado sesión, para que nadie pueda hacerlos desde un navegador en el que dejaste la sesión iniciada. OneUptime te lo pide antes de que:
+
+- cambies tu dirección de correo o tu contraseña;
+- añadas o quites una llave de acceso, una llave de seguridad o una aplicación de autenticación;
+- obtengas códigos de respaldo nuevos mientras aún tengas algunos sin usar;
+- desactives la autenticación de dos factores;
+- elimines tu cuenta.
+
+El cuadro **Confirma que eres tú** te pide tu contraseña y, mientras la autenticación de dos factores esté activada, tu segundo paso: un código de tu aplicación de autenticación, tu llave de seguridad o uno de tus códigos de respaldo. Con una llave de acceso, haz clic en **Usar una llave de acceso** en su lugar. Si solo inicias sesión con el inicio de sesión único, Google o Microsoft, haz clic en **Volver a iniciar sesión**: OneUptime hace que tu proveedor de identidad te pida iniciar sesión de nuevo y luego te devuelve a la página. Después, el cambio se aplica.
+
+Una vez que lo confirmas, no se te vuelve a preguntar durante 10 minutos en ese navegador. Cinco intentos fallidos cierran la sesión de ese navegador, pero nunca bloquean tu cuenta: vuelve a iniciar sesión e inténtalo otra vez. OneUptime te envía un correo cuando esto ocurre, y cada vez que un código de respaldo confirma que eres tú.
+
+En un servidor autoalojado, los administradores principales confirman del mismo modo que son ellos antes de cambiar cómo inicia sesión otra persona, hacer a alguien administrador principal, cambiar los proveedores de inicio de sesión único o los ajustes de correo del servidor, o crear una clave API maestra. La clave API maestra no puede hacer estos cambios.
+
+Volver a iniciar sesión solo cuenta cuando tu proveedor de identidad indica que iniciaste sesión después de que OneUptime te enviara a él. Si el proveedor te inicia sesión con una sesión que ya tenía, sin pedirte la contraseña, eso no confirma nada: cierra primero la sesión en el proveedor y luego haz clic en **Volver a iniciar sesión**. Donde tu servidor permita iniciar sesión con un enlace enviado por correo, **Iniciar sesión de otra forma** hace eso en su lugar. Lo que OneUptime pide a cada proveedor, y lo que un administrador puede cambiar cuando volver a iniciar sesión no confirma nada:
+
+| Proveedor | Lo que OneUptime pide | Cuando no confirma nada |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` y el momento en que iniciaste sesión (`AuthnInstant`) | Haz que el proveedor respete la solicitud, por ejemplo con Honor Force Authentication en Okta. |
+| OpenID Connect | `prompt=login` y `max_age=0`, y el momento en que iniciaste sesión (`auth_time`) | Haz que el proveedor envíe `auth_time`. En Microsoft Entra ID, añádelo al token de ID como notificación opcional. |
+| Google | El momento en que iniciaste sesión (`auth_time`). A Google no se le puede pedir que te haga iniciar sesión de nuevo. | Activa Session age claims para la aplicación de inicio de sesión de Google del servidor, que debe estar publicada y verificada. |
+| Microsoft | `prompt=login` y `max_age=0`, y el momento en que iniciaste sesión (`auth_time`) | Añade `auth_time` al token de ID de la aplicación de inicio de sesión de Microsoft del servidor como notificación opcional. |
+
 ## Tus proyectos
 
 Puedes pertenecer a tantos proyectos como quieras. El selector de proyectos, arriba a la izquierda del panel, los lista: elige uno para cambiar a él.
@@ -178,7 +203,7 @@ Tu tema se guarda en tu navegador, así que vuelve a configurarlo en otro navega
 
 ## Eliminar tu cuenta
 
-Abre **Zona de peligro → Eliminar cuenta**. Solo puedes eliminar tu cuenta cuando ya no estás en ningún proyecto: la página lista los proyectos en los que sigues. Sal de ellos primero, luego haz clic en **Eliminar cuenta** y confirma. Eliminar tu cuenta es permanente y no se puede deshacer.
+Abre **Zona de peligro → Eliminar cuenta**. Solo puedes eliminar tu cuenta cuando ya no estás en ningún proyecto: la página lista los proyectos en los que sigues. Sal de ellos primero, luego haz clic en **Eliminar cuenta** y confirma. Eliminar tu cuenta es permanente y no se puede deshacer. Antes de eliminar tu cuenta, OneUptime te pide confirmar que eres tú.
 
 ## Solución de problemas
 
@@ -191,7 +216,11 @@ Esa dirección ya tiene una cuenta de OneUptime, así que el registro no creó n
 :::
 
 :::details Mi dirección de correo electrónico no ha cambiado
-Tu dirección cambia solo cuando abres el enlace que OneUptime envió a la nueva dirección. El enlace funciona durante 24 horas: si ha caducado, vuelve a cambiar tu correo para recibir uno nuevo. Si otra cuenta ya usa esa dirección, el correo enviado allí lo dice, y tu dirección se queda como está.
+Tu dirección cambia solo cuando abres el enlace que OneUptime envió a la nueva dirección. El enlace funciona durante 24 horas: cuando caduca, tu perfil lo indica, y **Volver a enviar el enlace** envía uno nuevo. Si otra cuenta ya usa esa dirección, el correo enviado allí lo dice, y tu dirección se queda como está.
+:::
+
+:::details Recibí un correo que dice que se cambió mi dirección de correo electrónico
+OneUptime envía un correo a la dirección que tenía tu cuenta cada vez que esa dirección cambia: cuando abres el enlace enviado a una dirección nueva, cuando un administrador del servidor la cambia o cuando la cambia el proveedor de identidad de tu organización. Si hiciste tú el cambio, no tienes que hacer nada. Si no, alguien que podía iniciar sesión en tu cuenta la cambió a una dirección propia: desde tu dirección anterior, ponte en contacto con el administrador de tu servidor o, en OneUptime Cloud, con support@oneuptime.com, que pueden devolverla. El correo muestra solo una parte de la nueva dirección y no trae ningún enlace para deshacer el cambio: un enlace así funcionaría para cualquiera que lea tu buzón anterior.
 :::
 
 :::details Perdí mi aplicación de autenticación

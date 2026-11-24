@@ -15,6 +15,10 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import Email from "Common/Types/Email";
+import {
+  EMAIL_ADDRESS_CHANGED_BY_KEY,
+  EmailAddressChangedBy,
+} from "Common/Types/Accounts/EmailAddressChangedEmail";
 import { JSONObject } from "Common/Types/JSON";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
@@ -462,6 +466,14 @@ router.post(
                   await StatusPagePrivateUserService.updateOneById({
                     id: userId,
                     data: { email: new Email(email) },
+                    /*
+                     * The identity provider's change: the address the user
+                     * leaves is told so, by role (#10156).
+                     */
+                    miscDataProps: {
+                      [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+                        EmailAddressChangedBy.IdentityProvider,
+                    },
                     props: { isRoot: true },
                   });
                   usersUpdated++;
@@ -1500,6 +1512,14 @@ const handleStatusPageUserUpdate: (
       await StatusPagePrivateUserService.updateOneById({
         id: new ObjectID(userId),
         data: updateData,
+        /*
+         * A new address is the identity provider's change: the address the
+         * user leaves is told so, by role (#10156).
+         */
+        miscDataProps: {
+          [EMAIL_ADDRESS_CHANGED_BY_KEY]:
+            EmailAddressChangedBy.IdentityProvider,
+        },
         props: { isRoot: true },
       });
 

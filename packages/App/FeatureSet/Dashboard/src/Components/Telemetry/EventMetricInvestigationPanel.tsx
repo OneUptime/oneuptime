@@ -12,6 +12,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import MetricTelemetrySnapshot from "Common/Utils/Monitor/MetricTelemetrySnapshot";
 import { ResolvedStateList } from "Common/Utils/ResolvedState";
 import MetricInvestigation from "../Metrics/Investigation/MetricInvestigation";
+import PromQLInvestigation from "../Metrics/Investigation/PromQLInvestigation";
+import { JSONObject } from "Common/Types/JSON";
+import { getPromQLSeriesSummary } from "Common/Utils/PromQL/PromQLMonitorSeries";
 import MetricInvestigationTime, {
   MetricInvestigationTimePreset,
 } from "../Metrics/Investigation/MetricInvestigationTime";
@@ -60,6 +63,13 @@ export interface ComponentProps {
    * MetricSeriesScope.getAppliedSeriesLabelSummary. "" when nothing was.
    */
   seriesSummary: string;
+  /*
+   * The labels of the one series the event opened for (Incident / Alert
+   * seriesLabels): a monitor written in PromQL charts that series alone
+   * (issue #10227). None, or an event of no one series: the whole
+   * expression.
+   */
+  seriesLabels?: JSONObject | null | undefined;
   subject: EventMetricSubject;
   /*
    * The incident's or alert's own id: the charts mark its moments
@@ -241,13 +251,31 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
   }
 
   /*
+   * A monitor written in PromQL (issue #10227): its expression, for the one
+   * series the event opened for, with the same moments, window and line.
+   */
+  const promQLQuery: string | null = MetricTelemetrySnapshot.getPromQLQuery(
+    props.telemetryQuery,
+  );
+
+  const promQLSeriesLabels: JSONObject | undefined =
+    props.seriesLabels && typeof props.seriesLabels === "object"
+      ? props.seriesLabels
+      : undefined;
+
+  /*
    * What it shows, in its subject's words: an incident's or an alert's
    * metrics, or an episode's first member's, narrowed to the series it is
-   * about when the charts are.
+   * about when the charts are - a PromQL monitor's by every label it named
+   * the series by.
    */
-  const description: string = props.seriesSummary
+  const seriesSummary: string = promQLQuery
+    ? getPromQLSeriesSummary(promQLSeriesLabels)
+    : props.seriesSummary;
+
+  const description: string = seriesSummary
     ? translator.translateTemplate(words.scopedDescription, {
-        seriesSummary: props.seriesSummary,
+        seriesSummary: seriesSummary,
       })
     : translator.translateText(words.description) || words.description;
 
@@ -283,7 +311,23 @@ const EventMetricInvestigationPanel: FunctionComponent<ComponentProps> = (
       </div>
     ) : undefined;
 
-  const metrics: ReactElement = (
+  const metrics: ReactElement = promQLQuery ? (
+    <PromQLInvestigation
+      time={investigation}
+      query={promQLQuery}
+      description={description}
+      serviceIds={MetricTelemetrySnapshot.getStoredServiceIds(
+        props.telemetryQuery,
+      )}
+      seriesLabels={promQLSeriesLabels}
+      thresholds={rule.thresholds}
+      moments={momentLines}
+      regions={regions}
+      presetsHeading={words.presetsHeading}
+      relativeRanges={EVENT_RELATIVE_TIME_RANGES}
+      beforeToolbar={scopeNote}
+    />
+  ) : (
     <MetricInvestigation
       investigation={investigation}
       description={description}

@@ -32,6 +32,7 @@ import TelemetryLoadErrorUtil, {
 import {
   ATTRIBUTE_FACET_PREFIX,
   applyTypedLogFilterToRequest,
+  buildLogsAggregateScope,
   buildLogsHistogramRequest,
   getLogsChosenFacetKeys,
   parseLogsHistogramResponse,
@@ -725,6 +726,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   });
 
   const [logs, setLogs] = useState<Array<Log>>([]);
+  /*
+   * The window the rows on screen were read in: the filters' own, or -
+   * while live - the window up to now the latest read took. A line's link
+   * pins it (getLogLink), so the list under the line is the one it was
+   * copied from.
+   */
+  const [rowsWindow, setRowsWindow] = useState<InBetween<Date> | null>(null);
   // Under the Logs page's explanation: data drawn means it gives way.
   useReportTelemetryDataShown(logs.length > 0);
   const [error, setError] = useState<string>("");
@@ -1422,6 +1430,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         }
 
         setLogs(listResult.data);
+        setRowsWindow(
+          (query as any).time instanceof InBetween
+            ? ((query as any).time as InBetween<Date>)
+            : null,
+        );
         setTotalCount(listResult.count);
         setListError(undefined);
 
@@ -1614,6 +1627,42 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     fetchHistogramBuckets,
     { isEnabled: !awaitsInitialSavedView && isListQueryOnScope },
   );
+
+  /*
+   * The rows the Analytics chart reads (#7716): every filter the histogram
+   * above it reads but the window, which the chart resolves with its own
+   * bucket size. It used to compile only some chips itself, so a typed
+   * search, an attribute or message chip, and a host's or a pod's own scope
+   * narrowed the list and the histogram while the chart under them averaged
+   * every log.
+   */
+  const analyticsScope: JSONObject = useMemo((): JSONObject => {
+    const scope: JSONObject = buildLogsAggregateScope({
+      serviceIds: serviceIdStrings,
+      traceIds: traceIdStrings,
+      spanIds: spanIdStrings,
+      attributes: logQueryAttributes,
+      entityKeys: logQueryEntityKeys,
+      appliedFacetFilters: appliedFacetFilters,
+      typedFilter: typedAggregateFilter,
+    });
+
+    // The page's own session scope, as the histogram's.
+    if (sessionIdStrings) {
+      scope["sessionIds"] = sessionIdStrings;
+    }
+
+    return scope;
+  }, [
+    serviceIdStrings,
+    traceIdStrings,
+    spanIdStrings,
+    sessionIdStrings,
+    appliedFacetFilters,
+    logQueryAttributes,
+    logQueryEntityKeys,
+    typedAggregateFilter,
+  ]);
 
   // --- Fetch facets ---
 
@@ -2562,10 +2611,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Copy Link on a line's details (#9794): the Logs page's address that
-   * opens this very line, with the list it was copied from under it - this
-   * list's chips over the window its rows were read in, pinned
-   * (LogLineLink). Built as the line's details draw.
+   * Copy Link on a line's details (#9794) and on its row (#9944): the Logs
+   * page's address that opens this very line, with the list it was copied
+   * from under it - this list's chips over the window its rows were read
+   * in, pinned (LogLineLink). A new one whenever that window moves: new
+   * filters, or a live list's read up to now (whose rows the filters'
+   * window, resolved once, no longer held) - so a row's link and its
+   * details' are always the same, over the rows on screen.
    */
   const getLogLink: (log: Log) => string | null = useCallback(
     (log: Log): string | null => {
@@ -2573,7 +2625,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         return null;
       }
 
-      const listTime: unknown = (filterOptionsRef.current as any)?.time;
+      const listTime: unknown = rowsWindow || (filterOptions as any)?.time;
       const listWindow: InBetween<Date> =
         listTime instanceof InBetween
           ? (listTime as InBetween<Date>)
@@ -2599,7 +2651,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         },
       });
     },
-    [appliedFacetFilters, timeRange, props.syncUrlState],
+    [
+      appliedFacetFilters,
+      rowsWindow,
+      filterOptions,
+      timeRange,
+      props.syncUrlState,
+    ],
   );
 
   /*
@@ -3252,6 +3310,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
           histogramBucketIntervalMs={histogram.bucketIntervalMs}
+          histogramBucketTimezone={histogram.bucketTimezone}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
           facetData={facetData}
           facetLoading={facetLoading || awaitsInitialSavedView}
@@ -3328,6 +3387,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           analyticsSessionIds={sessionIdStrings}
           projectId={ProjectUtil.getCurrentProjectId() || undefined}
           analyticsAppliedFacetFilters={appliedFacetFilters}
+          analyticsScope={analyticsScope}
           onUpdateCurrentSavedView={async () => {
             if (!selectedSavedView?.id) {
               return;

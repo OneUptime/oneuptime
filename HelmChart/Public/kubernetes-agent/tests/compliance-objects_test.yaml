@@ -27,7 +27,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  k8sobjects/compliance:\n    error_mode: ignore\n    objects:\n      - name: roles\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: rolebindings\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: clusterroles\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: clusterrolebindings\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: serviceaccounts\n        mode: pull\n        interval: 300s\n      - name: networkpolicies\n        mode: pull\n        interval: 300s\n        group: networking\.k8s\.io$'
+          pattern: '(?m)^  k8s_objects/compliance:\n    error_mode: ignore\n    objects:\n      - name: roles\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: rolebindings\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: clusterroles\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: clusterrolebindings\n        mode: pull\n        interval: 300s\n        group: rbac\.authorization\.k8s\.io\n      - name: serviceaccounts\n        mode: pull\n        interval: 300s\n      - name: networkpolicies\n        mode: pull\n        interval: 300s\n        group: networking\.k8s\.io$'
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '(?s)k8sobjects/compliance:.*?mode: watch.*?\n  [a-z]'
@@ -40,7 +40,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/compliance\n      processors:$'
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8s_objects\n        - k8s_objects/compliance\n      processors:$'
 
   - it: pulls them at the resource specs' interval
     template: templates/configmap-deployment.yaml
@@ -95,7 +95,7 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: 'k8sobjects/compliance'
+          pattern: 'k8s_?objects/compliance'
         template: templates/configmap-deployment.yaml
       - notContains:
           path: rules
@@ -119,10 +119,10 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: 'k8sobjects/compliance'
+          pattern: 'k8s_?objects/compliance'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n      processors:$'
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8s_objects\n      processors:$'
 
   - it: pulls none of them on a collector without the receiver's error_mode, before 0.125.0
     template: templates/configmap-deployment.yaml
@@ -131,7 +131,7 @@ tests:
     asserts:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: 'k8sobjects/compliance'
+          pattern: 'k8s_?objects/compliance'
 
   - it: pulls them from collector 0.125.0 on
     template: templates/configmap-deployment.yaml
@@ -149,7 +149,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift\n        - k8sobjects/compliance\n      processors:$'
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8s_objects\n        - k8s_objects/openshift\n        - k8s_objects/compliance\n      processors:$'
 
   - it: pulls them for a release upgraded with --reuse-values, whose values have no such key
     template: templates/configmap-deployment.yaml
@@ -160,4 +160,4 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  k8sobjects/compliance:$'
+          pattern: '(?m)^  k8s_objects/compliance:$'

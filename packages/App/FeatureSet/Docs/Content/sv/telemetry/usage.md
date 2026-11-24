@@ -5,6 +5,7 @@ Se hur mycket telemetri varje projekt, och varje tjänst eller resurs i det, ski
 :::cards
 - [Hur användningen räknas](#hur-användningen-räknas): En gång om dagen, för varje resurs och signal.
 - [Se ett projekts användning](#se-ett-projekts-användning): Projektinställningar → Telemetri och APM → Användning.
+- [Följ användningen medan den kommer in](#följ-användningen-medan-den-kommer-in): Var 5:e minut, som ett mätvärde.
 - [Se alla projekts användning](#se-alla-projekts-användning): Admin Dashboard, för instansadministratören.
 - [Hur länge användningen sparas](#hur-länge-användningen-sparas): 120 dagar om du inte ändrar det.
 :::
@@ -24,11 +25,11 @@ flowchart TB
 
 - **En dag räknas när den är slut.** Varje dag räknas senast omkring 08:00 UTC nästa dag, så dagens användning visas i morgon. En dag som inte gick att räkna försöker OneUptime räkna igen under en vecka.
 - **Storleken är den lagrade storleken.** Varje signal räknas som storleken på de rader den lagras i, före komprimering. Sessionsuppspelningar räknas som de byte som inspelarna laddade upp.
-- **Undantag visas separat.** Undantagen som registreras från spans och loggar har en egen summa, kolumn och del av diagrammet, och **Spår** räknar spans. De har ingen egen rad: varje rad för spår anger hur mycket av den som var undantag. En dag som räknades innan undantag visades separat har dem fortfarande i **Spår**, som tidigare.
+- **Undantag visas separat.** Undantagen som registreras från spans och loggar har en egen summa, kolumn och del av diagrammet, **Spår** räknar spans och **Loggar** räknar loggposter. De har ingen egen rad: varje rad för spår eller loggar anger hur mycket av den som var undantag. En dag som räknades innan undantag visades separat har dem fortfarande i **Spår**, som tidigare.
 - **Profiler inkluderar sina prov.**
 - **OneUptimes egen telemetri räknas inte.** Avläsningar från monitorer, larm, incidenter och SLO:er, avläsningar från Dataobserverbarhet och budgetmätvärdena för sessionsuppspelningar skrivs av OneUptime självt.
 - **På OneUptime Cloud är det de här raderna som telemetrin faktureras efter.** På en installation utan fakturering räknas användningen utan kostnad, och inget debiteras för den, inte ens om fakturering slås på senare.
-- **Undantag faktureras som en del av Spår.** På OneUptime Cloud faktureras spår för sina spans och sina undantag tillsammans, till priset för spår, precis som de alltid har fakturerats. Att undantagen visas separat ändrar inget av det du faktureras för, och de debiteras aldrig två gånger.
+- **Undantag faktureras med det de hittades i.** På OneUptime Cloud faktureras ett undantag som hittas i ett span med **Spår**, och ett som hittas i en loggpost med **Loggar**. Loggar och spår kostar lika mycket per GB, så varje undantag faktureras en gång, till samma pris, och ett projekt som bara skickar loggar faktureras aldrig för spår. En dag som räknades innan undantag som hittats i loggar flyttades till **Loggar** har dem kvar i **Spår**.
 - **En budget räknas separat från användningen.** En [intagningsbudget](/docs/telemetry/ingestion-budgets) räknar telemetri när den kommer in, dekomprimerad, så att den kan stoppa en dags telemetri samma dag. Medan en sådan är angiven öppnas den här sidan med dagens budgetar. Undantag har ingen egen budget: de räknas i budgeten för de spår eller loggar som de kommer in med.
 
 ## Innan du börjar
@@ -58,7 +59,7 @@ Sidan har tre kort:
 | --- | --- |
 | **Telemetrianvändning** | **Totalt** för intervallet, en summa för varje signal och ett diagram över varje dag, med signalerna staplade. |
 | **Användning per resurs** | Varje **Resurs** med sin typ, en kolumn för varje signal, **Totalt** och **Lagringstid**, hur länge dess telemetri sparas. |
-| **Användningshistorik för telemetri** | En rad per produkt, resurs och dag, med filter för **Produkt**, **Dag** och **Tjänst**. En rad för **Spår** innehåller sina spans och undantag tillsammans, så som spår faktureras, och anger under **Inmatad data (i GB)** hur mycket av den som var undantag. |
+| **Användningshistorik för telemetri** | En rad per produkt, resurs och dag, med filter för **Produkt**, **Dag** och **Tjänst**. En rad för **Spår** innehåller sina spans och undantagen som hittats i dem, och en rad för **Loggar** sina loggposter och undantagen som hittats i dem, så som de faktureras. Varje rad anger under **Inmatad data (i GB)** hur mycket av den som var undantag. |
 
 Telemetri som inte angav någon tjänst listas som **Okänd tjänst**. En resurs som har tagits bort sedan dess, eller vars typ din roll inte läser, listas med sin typ och början av sitt ID.
 
@@ -70,6 +71,36 @@ Telemetri som inte angav någon tjänst listas som **Okänd tjänst**. En resurs
 | Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem, Telemetritittare | Hur mycket varje resurs skickade och hur länge det sparas |
 
 Vad användningen kostade visas bara på OneUptime Cloud: en installation utan fakturering debiterar ingenting för den. Se [Fakturering och användning](/docs/configuration/billing#användningshistorik) för priserna.
+
+## Följ användningen medan den kommer in
+
+Användningsraderna kommer dagen efter. För att inom några minuter se i ett diagram vad varje tjänst skickar, och få ett larm när den skickar mer, kan en Projektägare eller Projektadministratör publicera projektets användning som ett mätvärde:
+
+:::steps
+### Slå på det
+
+Gå till **Projektinställningar → Telemetri och APM → Användning**, öppna **Fler inställningar** längst ned på sidan och slå på **Publicera användning som mätvärden** på kortet **Användning som mätvärden**. Det sparas så snart du slår på det.
+
+### Visa det i ett diagram
+
+Var 5:e minut skriver OneUptime det som varje tjänst och resurs har skickat av varje signal under de 5 minuterna som mätvärdet `oneuptime.telemetry.usage.bytes`, i byte (`By`). Visa summan i [Mätvärdesutforskare](/docs/telemetry/metrics-explorer), eller larma på den med en [metrikmonitor](/docs/monitor/metrics-monitor).
+:::
+
+Varje punkt har de här attributen:
+
+| Attribut | Värde |
+| --- | --- |
+| `projectId` | Projektets ID. |
+| `signal` | `logs`, `traces`, `metrics` eller `profiles`. |
+| `resourceType` | Typen av resurs: `OpenTelemetry` för en tjänst, `Host` för en värd och så vidare. |
+| `resourceId` | Tjänstens eller resursens ID. |
+| `resourceName` | Dess namn när punkten skrevs. |
+
+- **Räknas när den kommer in.** Varje punkt är resursens andel av det som kom in, dekomprimerat, som intagningsbudgetar räknar det, så den kan visa mer än användningsraderna, som räknar det som lagrades.
+- **Skickat över OpenTelemetry.** De loggar, spår, mätvärden och profiler som skickas över OTLP räknas. Säkerhetshändelser, sessionsuppspelningar och loggarna från Fluent Bit, Fluentd eller syslog gör det inte.
+- **Varje punkt hör till sin resurs.** Den som får läsa en tjänsts eller en resurs telemetri läser dess punkter: en roll som är begränsad till vissa etiketter ser bara deras.
+- **De kostar ingenting.** De här punkterna räknas inte mot någon budget eller som användning, och sparas lika länge som monitorernas mätvärden: 30 dagar om inte instansadministratören ändrar det. Namn på mätvärden som börjar med `oneuptime.telemetry.usage.` är reserverade för dem: mätvärden som dina applikationer skickar under ett sådant namn kasseras.
+- **Avstängt som standard.** Medan det är avstängt skrivs ingenting, och de punkter som redan har skrivits sparas tills de löper ut.
 
 ## Se alla projekts användning
 
@@ -114,7 +145,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` och `endDay` är dagar skrivna `YYYY-MM-DD`, båda inräknade, och ett intervall kan vara upp till 1095 dagar långt. Svaret innehåller summorna, varje dag per signal och varje resurs per signal, i GB, med kostnaden bara där fakturering är på och nyckeln läser fakturering. Undantag finns under `Exceptions`, skilt från `Traces`, och en dag som räknades innan undantag visades separat har dem i `Traces`.
+`startDay` och `endDay` är dagar skrivna `YYYY-MM-DD`, båda inräknade, och ett intervall kan vara upp till 1095 dagar långt. Svaret innehåller summorna, varje dag per signal och varje resurs per signal, i GB, med kostnaden bara där fakturering är på och nyckeln läser fakturering. Undantag finns under `Exceptions`, skilt från `Traces` och `Logs`, och en dag som räknades innan undantag visades separat har dem i `Traces`.
 
 ## Felsökning
 
@@ -132,6 +163,10 @@ Resursen har tagits bort sedan den skickade telemetrin, eller så läser din rol
 
 :::details Spår minskade samma dag som Undantag dök upp
 Undantag räknades tidigare in i **Spår**. Från och med den första dagen då undantagen räknades separat räknar **Spår** spans och **Undantag** undantagen. Tillsammans är de det som **Spår** var, och det som spår faktureras för.
+:::
+
+:::details Loggar kostar mer och Spår mindre från en viss dag
+Undantag som hittats i loggposter fakturerades tidigare med **Spår**. Från och med den första dagen som räknades efter ändringen faktureras de med **Loggar**, produkten som hittade dem. Loggar och spår kostar lika mycket per GB, så tillsammans kostar de två lika mycket som förut.
 :::
 
 ## Nästa steg

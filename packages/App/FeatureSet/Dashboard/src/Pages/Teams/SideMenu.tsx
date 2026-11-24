@@ -30,20 +30,14 @@ const TeamsSideMenu: FunctionComponent = (): ReactElement => {
     RouteMap[PageMap.TEAM_CUSTOM_FIELDS] as Route,
   );
 
-  // A role's own page keeps Roles marked: it is one of the roles listed there.
-  const roleViewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.TEAM_ROLE_VIEW] as Route,
-  );
-  const isOnRolePage: boolean = Navigation.isOnThisPage(roleViewRoute);
-
   /*
    * Settings starts folded on All Teams, and opens by itself on every page
-   * inside it - Roles, a role's own page and Custom Fields - so the marked
-   * entry is never hidden in a folded section.
+   * inside it - Roles and Custom Fields - so the marked entry is never
+   * hidden in a folded section. A role's own page draws its own menu
+   * (RoleViewSideMenu, #10139), as a team's does.
    */
   const isOnSettingsPage: boolean =
     Navigation.isOnThisPage(rolesRoute) ||
-    isOnRolePage ||
     Navigation.isOnThisPage(customFieldsRoute);
 
   const sections: SideMenuSectionProps[] = [
@@ -65,7 +59,7 @@ const TeamsSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         /*
          * The project's custom roles, and the built-in ones: named sets of
-         * permissions given to teams. A role's own page sits under it.
+         * permissions given to teams.
          *
          * First in Settings: it decides what teams can do, the setting most
          * people open this section for. Custom Fields, which only adds
@@ -76,7 +70,6 @@ const TeamsSideMenu: FunctionComponent = (): ReactElement => {
             title: "Roles",
             to: rolesRoute,
           },
-          activeRoute: isOnRolePage ? roleViewRoute : undefined,
           icon: IconProp.Identification,
         },
         {

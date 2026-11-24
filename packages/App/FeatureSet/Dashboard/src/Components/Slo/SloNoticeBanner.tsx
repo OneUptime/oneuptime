@@ -51,6 +51,9 @@ import {
   getSloNoticeActionLabelInLanguage,
   getSloNoticeBodyInLanguage,
 } from "./SloNoticeText";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import { normalizeSloMetricQueryConfig } from "Common/Utils/Slo/SloMetricSli";
+import { loadSloMetricPointType } from "../../Pages/Slo/SloMetricQueryFields";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -277,6 +280,65 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
+  return (
+    <SloNoticeBannerFor
+      slo={slo}
+      sloId={props.sloId}
+      translator={translator}
+      turnEvaluationOn={turnEvaluationOn}
+    />
+  );
+};
+
+interface SloNoticeBannerForProps {
+  slo: ServiceLevelObjective;
+  sloId: ObjectID;
+  translator: Translator;
+  turnEvaluationOn: SaveModelSwitch;
+}
+
+/*
+ * The banner of the SLO read. A Metric SLO's notice reads the kind of
+ * point its metric's newest one is: a gauge, which every cloud metric is,
+ * has no events to count, and its SLO would wait for them for ever without
+ * saying why (#10027).
+ */
+const SloNoticeBannerFor: FunctionComponent<SloNoticeBannerForProps> = (
+  props: SloNoticeBannerForProps,
+): ReactElement => {
+  const slo: ServiceLevelObjective = props.slo;
+  const translator: Translator = props.translator;
+  const turnEvaluationOn: SaveModelSwitch = props.turnEvaluationOn;
+  const metricName: string =
+    slo.sliType === SliType.Metric
+      ? normalizeSloMetricQueryConfig(slo.metricQueryConfig)?.metricName || ""
+      : "";
+  const [metricPointType, setMetricPointType] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled: boolean = false;
+
+    setMetricPointType(null);
+
+    if (!metricName) {
+      return;
+    }
+
+    loadSloMetricPointType(metricName)
+      .then((pointType: string | null): void => {
+        if (!cancelled) {
+          setMetricPointType(pointType);
+        }
+      })
+      .catch((): void => {
+        // Not known: the notice reads as it did.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [metricName]);
+
   const monitors: Array<Monitor> =
     (slo.monitors as Array<Monitor> | undefined) || [];
 
@@ -290,6 +352,7 @@ const SloNoticeBanner: FunctionComponent<ComponentProps> = (
     serviceCount: ((slo.services as Array<Service> | undefined) || []).length,
     latencyThresholdInMilliseconds: slo.latencyThresholdInMilliseconds,
     metricQueryConfig: slo.metricQueryConfig,
+    metricPointType: metricPointType,
     targetPercentage: slo.targetPercentage,
     lastEvaluatedAt: slo.lastEvaluatedAt,
   });

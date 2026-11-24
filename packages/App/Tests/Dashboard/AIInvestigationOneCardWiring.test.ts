@@ -312,8 +312,9 @@ describe("the conversation is a section of that card", () => {
     }
   });
 
-  test("the composer's menu opens inside the card", () => {
-    expect(COMPOSER).toMatch(/<PermissionModePicker [^>]*menuAlign="left"/);
+  // Hung from the picker's start, over the card, not back past its edge.
+  test("the composer's menu opens over the card", () => {
+    expect(COMPOSER).toMatch(/<PermissionModePicker [^>]*menuAlign="start"/);
   });
 
   test("the composer never takes focus when the page loads", () => {

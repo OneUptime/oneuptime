@@ -35,13 +35,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-// requireChangedTogether refuses a plan that changes attribute and does not
+// RequireChangedTogether refuses a plan that changes attribute and does not
 // give companion a new value. A new value is one the plan knows, that is set
 // and not empty, and that is not the value in state. A value known only at
 // apply - one another resource makes - may well be new, so it is left to
 // OneUptime to judge then; so is an attribute known only at apply. Creating
 // a resource and destroying one change nothing in place.
-func requireChangedTogether(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, attribute string, companion string) {
+func RequireChangedTogether(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, attribute string, companion string) {
 	_ = ctx
 
 	if req.State.Raw.IsNull() || resp.Plan.Raw.IsNull() {

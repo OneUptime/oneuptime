@@ -58,6 +58,7 @@ import ConnectedServices, {
   MAX_EPISODES_COMPARED,
   RecordServices,
 } from "../Utils/Topology/ConnectedServices";
+import { EPISODE_REOPENED_BY_NEW_ALERT } from "../../Utils/Monitor/StatusChangeNotes";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -680,7 +681,11 @@ class AlertGroupingEngineServiceClass {
 
           if (recentlyResolvedEpisode && recentlyResolvedEpisode.id) {
             // Reopen the episode
-            await AlertEpisodeService.reopenEpisode(recentlyResolvedEpisode.id);
+            await AlertEpisodeService.reopenEpisode(
+              recentlyResolvedEpisode.id,
+              undefined,
+              EPISODE_REOPENED_BY_NEW_ALERT,
+            );
 
             // Add alert to reopened episode
             await this.addAlertToEpisode(

@@ -41,8 +41,8 @@ const E2E_CLICKHOUSE_OVERLAY = "packages/E2E/docker-compose.e2e-clickhouse.yml";
 
 // The ingress is the one way into a production stack, on every interface.
 const INGRESS_PORTS = [
-  "${ONEUPTIME_HTTP_PORT}:7849",
-  "${STATUS_PAGE_HTTPS_PORT}:7850",
+  "${ONEUPTIME_HTTP_PORT:-80}:7849",
+  "${STATUS_PAGE_HTTPS_PORT:-443}:7850",
 ];
 
 const RESTORE_ADD_HOST = /--add-host=host\.docker\.internal:(\S+)/;

@@ -1,7 +1,7 @@
 package provider
 
 /*
- * numberFromAPI, the one way the provider reads a number the API answered.
+ * NumberFromAPI, the one way the provider reads a number the API answered.
  *
  * WHAT THIS FILE PINS
  *
@@ -260,7 +260,7 @@ func TestNumberFromAPIReadsBackTheConfiguredNumber(t *testing.T) {
 		for shape, answer := range answers {
 			t.Run(text+" "+shape, func(t *testing.T) {
 				planned := plannedNumber(t, text)
-				got := numberFromAPI(planned, answer)
+				got := NumberFromAPI(planned, answer)
 
 				if got.IsNull() || got.IsUnknown() {
 					t.Fatalf("%#v read as %s", answer, got)
@@ -287,7 +287,7 @@ func TestNumberFromAPIWithNothingPlannedReadsTheConfiguredNumber(t *testing.T) {
 				storedText(config),
 				jsonNumber(t, strconv.FormatFloat(mustFloat64(t, config), 'g', -1, 64)),
 			} {
-				got := numberFromAPI(previous, answer)
+				got := NumberFromAPI(previous, answer)
 				if got.IsNull() || got.IsUnknown() {
 					t.Fatalf("%#v read as %s", answer, got)
 				}
@@ -327,7 +327,7 @@ func TestNumberFromAPIKeepsTheDigitsTheAPICannotKeep(t *testing.T) {
 		jsonNumber(t, strconv.FormatFloat(nearestFloat, 'g', -1, 64)),
 		map[string]interface{}{"_type": "Decimal", "value": strconv.FormatFloat(nearestFloat, 'f', -1, 64)},
 	} {
-		got := numberFromAPI(previous, answer)
+		got := NumberFromAPI(previous, answer)
 		if !got.Equal(previous) {
 			t.Errorf("%#v replaced %s with %s", answer, oneMinuteADay.Text('f', -1), got.ValueBigFloat().Text('f', -1))
 		}
@@ -354,7 +354,7 @@ func TestNumberFromAPIReadsAChangedNumber(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		got := numberFromAPI(plannedNumber(t, tc.previous), tc.answer)
+		got := NumberFromAPI(plannedNumber(t, tc.previous), tc.answer)
 		if got.IsNull() || got.ValueBigFloat().Cmp(configNumber(t, tc.want)) != 0 {
 			t.Errorf("previous %s, answered %#v: read as %s, want %s", tc.previous, tc.answer, got, tc.want)
 		}
@@ -365,7 +365,7 @@ func TestNumberFromAPIReadsAChangedNumber(t *testing.T) {
 func TestNumberFromAPIReadsNothingAsNull(t *testing.T) {
 	for _, answer := range []interface{}{nil, "", "abc", "NaN", map[string]interface{}{"_type": "Decimal"}} {
 		for _, previous := range []types.Number{plannedNumber(t, "99.65"), types.NumberNull(), types.NumberUnknown()} {
-			got := numberFromAPI(previous, answer)
+			got := NumberFromAPI(previous, answer)
 			if !got.IsNull() {
 				t.Errorf("previous %s, answered %#v: read as %s, want null", previous, answer, got)
 			}

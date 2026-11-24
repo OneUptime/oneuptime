@@ -38,8 +38,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - flipping it on and off writes the widget's setting, and only that
  *     query's;
  *   - a widget saved with the switch on opens with it on;
- *   - a query whose unit cannot be read on the chart it joins says so under
- *     the switch, in the reader's language;
+ *   - a query in a unit of another kind than the chart it joins says, under
+ *     the switch, that it is drawn against the chart's right axis, and a
+ *     third kind of unit, which neither axis can read, says it is drawn to
+ *     a scale of its own, with no axis, in the reader's language (issues
+ *     #10042, #10080);
  *   - Add Query gives a new query a letter no query or formula has.
  */
 
@@ -71,6 +74,7 @@ import ArgumentsForm, {
   METRIC_QUERY_ROW_HEADER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ArgumentsForm";
 import {
+  METRIC_QUERY_OVERLAY_AXIS_NOTE_TEST_ID,
   METRIC_QUERY_OVERLAY_TOGGLE_TEST_ID,
   METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricQueryConfig";
@@ -90,8 +94,11 @@ import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 const OVERLAY_SWITCH: string = "Overlay with previous query";
 
-const UNIT_NOTE: string =
-  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so its values will not read right on that chart's axis.";
+// The sentences under the switch (MetricQueryConfig, issue #10042).
+const AXIS_NOTE: string =
+  "This query is in {{unit}} and the previous query's chart in {{chartUnit}}, so it is drawn against the chart's right axis.";
+const NEITHER_AXIS_NOTE: string =
+  "This query is in {{unit}}, and the previous query's chart has axes in {{chartUnit}} and {{secondUnit}}, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.";
 
 function metricType(name: string, unit: string): MetricType {
   const type: MetricType = new MetricType();
@@ -504,12 +511,16 @@ describe("reopening a saved widget", () => {
   });
 });
 
-describe("a unit that cannot be read on the chart it joins is said under the switch", () => {
-  function noteIn(card: HTMLElement): HTMLElement | null {
+describe("under the switch: which axis of the chart it joins the query is drawn against", () => {
+  function axisNoteIn(card: HTMLElement): HTMLElement | null {
+    return within(card).queryByTestId(METRIC_QUERY_OVERLAY_AXIS_NOTE_TEST_ID);
+  }
+
+  function warningIn(card: HTMLElement): HTMLElement | null {
     return within(card).queryByTestId(METRIC_QUERY_OVERLAY_UNIT_NOTE_TEST_ID);
   }
 
-  test("percent on a chart in bytes: said, with both units by name", () => {
+  test("percent on a chart in bytes: drawn against the chart's right axis, said with both units by name", () => {
     drawSettings(
       chartWith(query("a", "mem_used"), [
         query("b", "cpu_usage_percent", { overlayWithPreviousQuery: true }),
@@ -519,9 +530,11 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [second] = addedQueryCards();
     openDisplaySettings(second!, "Display Settings");
 
-    expect(noteIn(second!)).toHaveTextContent(
-      "This query is in Percent and the previous query's chart in Bytes, so its values will not read right on that chart's axis.",
+    expect(axisNoteIn(second!)).toHaveTextContent(
+      "This query is in Percent and the previous query's chart in Bytes, so it is drawn against the chart's right axis.",
     );
+    // A second axis reads it right: nothing to warn about.
+    expect(warningIn(second!)).toBeNull();
   });
 
   test("the same unit: nothing to say", () => {
@@ -530,10 +543,11 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [second] = addedQueryCards();
     openDisplaySettings(second!, "Display Settings");
 
-    expect(noteIn(second!)).toBeNull();
+    expect(axisNoteIn(second!)).toBeNull();
+    expect(warningIn(second!)).toBeNull();
   });
 
-  test("another unit of the same kind is converted, so nothing to say", () => {
+  test("another unit of the same kind is converted onto the left axis, so nothing to say", () => {
     drawSettings(
       chartWith(query("a", "mem_used"), [
         query("b", "mem_total", {
@@ -552,7 +566,8 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [second] = addedQueryCards();
     openDisplaySettings(second!, "Display Settings");
 
-    expect(noteIn(second!)).toBeNull();
+    expect(axisNoteIn(second!)).toBeNull();
+    expect(warningIn(second!)).toBeNull();
   });
 
   test("with the switch off there is nothing to say, whatever the units", () => {
@@ -563,14 +578,19 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [second] = addedQueryCards();
     openDisplaySettings(second!, "Display Settings");
 
-    expect(noteIn(second!)).toBeNull();
+    expect(axisNoteIn(second!)).toBeNull();
 
     // Turned on, it is said at once, before anything is saved.
     fireEvent.click(overlaySwitchIn(second!)!);
 
-    expect(noteIn(second!)).toHaveTextContent(
+    expect(axisNoteIn(second!)).toHaveTextContent(
       "This query is in Milliseconds and the previous query's chart in Bytes",
     );
+
+    // Off again, it goes.
+    fireEvent.click(overlaySwitchIn(second!)!);
+
+    expect(axisNoteIn(second!)).toBeNull();
   });
 
   test("the unit set in Display Settings is the one read, as the chart reads it", () => {
@@ -592,7 +612,7 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [second] = addedQueryCards();
     openDisplaySettings(second!, "Display Settings");
 
-    expect(noteIn(second!)).toHaveTextContent("This query is in Percent");
+    expect(axisNoteIn(second!)).toHaveTextContent("This query is in Percent");
   });
 
   test("a third query joins the chart its chain started: Query 1's, not Query 2's", () => {
@@ -607,10 +627,44 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     openDisplaySettings(second!, "Display Settings");
     openDisplaySettings(third!, "Display Settings");
 
-    // Query 2 is in percent on Query 1's bytes chart: said.
-    expect(noteIn(second!)).toBeInTheDocument();
-    // Query 3, in bytes, joins that same chart in bytes: nothing to say.
-    expect(noteIn(third!)).toBeNull();
+    // Query 2 is in percent on Query 1's bytes chart: the right axis.
+    expect(axisNoteIn(second!)).toBeInTheDocument();
+    // Query 3, in bytes, joins that same chart's bytes axis: nothing to say.
+    expect(axisNoteIn(third!)).toBeNull();
+    expect(warningIn(third!)).toBeNull();
+  });
+
+  test("a later query of the right axis's kind is drawn against the right axis too", () => {
+    drawSettings(
+      chartWith(query("a", "mem_used"), [
+        query("b", "cpu_usage_percent", { overlayWithPreviousQuery: true }),
+        query("c", "cpu_usage_percent", { overlayWithPreviousQuery: true }),
+      ]),
+    );
+
+    const [, third] = addedQueryCards();
+    openDisplaySettings(third!, "Display Settings");
+
+    expect(axisNoteIn(third!)).toHaveTextContent(
+      "This query is in Percent and the previous query's chart in Bytes, so it is drawn against the chart's right axis.",
+    );
+  });
+
+  test("a third kind of unit fits neither axis: said as a hint, naming both axes' units and its own scale", () => {
+    drawSettings(
+      chartWith(query("a", "mem_used"), [
+        query("b", "cpu_usage_percent", { overlayWithPreviousQuery: true }),
+        query("c", "http.server.duration", { overlayWithPreviousQuery: true }),
+      ]),
+    );
+
+    const [, third] = addedQueryCards();
+    openDisplaySettings(third!, "Display Settings");
+
+    expect(warningIn(third!)).toHaveTextContent(
+      "This query is in Milliseconds, and the previous query's chart has axes in Bytes and Percent, so it is drawn to a scale of its own, with no axis. Read its values in the chart's legend and tooltip.",
+    );
+    expect(axisNoteIn(third!)).toBeNull();
   });
 
   test("a query after one that does not overlay joins that one's chart", () => {
@@ -624,7 +678,7 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [, third] = addedQueryCards();
     openDisplaySettings(third!, "Display Settings");
 
-    expect(noteIn(third!)).toHaveTextContent(
+    expect(axisNoteIn(third!)).toHaveTextContent(
       "This query is in Bytes and the previous query's chart in Percent",
     );
   });
@@ -639,10 +693,11 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     const [second] = addedQueryCards();
     openDisplaySettings(second!, "Display Settings");
 
-    expect(noteIn(second!)).toBeNull();
+    expect(axisNoteIn(second!)).toBeNull();
+    expect(warningIn(second!)).toBeNull();
   });
 
-  test("in German, the sentence and the units are German", async () => {
+  test("in German, the sentences and the units are German", async () => {
     await act(async () => {
       await i18next.changeLanguage("de");
     });
@@ -650,17 +705,22 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
     drawSettings(
       chartWith(query("a", "mem_used"), [
         query("b", "cpu_usage_percent", { overlayWithPreviousQuery: true }),
+        query("c", "http.server.duration", { overlayWithPreviousQuery: true }),
       ]),
     );
 
-    const [second] = addedQueryCards();
-    openDisplaySettings(
-      second!,
-      readDashboardLocale("de")["Display Settings"] as string,
-    );
+    const [second, third] = addedQueryCards();
+    const displaySettings: string = readDashboardLocale("de")[
+      "Display Settings"
+    ] as string;
+    openDisplaySettings(second!, displaySettings);
+    openDisplaySettings(third!, displaySettings);
 
-    expect(noteIn(second!)).toHaveTextContent(
-      "Diese Abfrage ist in Prozent und das Diagramm der vorherigen Abfrage in Bytes, daher lassen sich ihre Werte auf der Achse dieses Diagramms nicht richtig ablesen.",
+    expect(axisNoteIn(second!)).toHaveTextContent(
+      "Diese Abfrage ist in Prozent und das Diagramm der vorherigen Abfrage in Bytes, daher wird sie an der rechten Achse des Diagramms gezeichnet.",
+    );
+    expect(warningIn(third!)).toHaveTextContent(
+      "Diese Abfrage ist in Millisekunden, und das Diagramm der vorherigen Abfrage hat Achsen in Bytes und Prozent, daher wird sie auf einer eigenen Skala ohne Achse gezeichnet.",
     );
     expect(
       within(second!).getByRole("switch", {
@@ -686,33 +746,39 @@ describe("a unit that cannot be read on the chart it joins is said under the swi
       readDashboardLocale("fa")["Display Settings"] as string,
     );
 
-    const note: string = noteIn(second!)?.textContent || "";
+    const note: string = axisNoteIn(second!)?.textContent || "";
 
     expect(note).toContain("درصد");
     expect(note).toContain("بایت");
-    expect(note).not.toMatch(/Percent|Bytes|query/);
+    expect(note).toContain("محور راست");
+    expect(note).not.toMatch(/Percent|Bytes|query|axis/);
   });
 });
 
-describe("the sentence under the switch, in every Dashboard language", () => {
-  test("is worded in every Dashboard language, with both its units", () => {
+describe("the sentences under the switch, in every Dashboard language", () => {
+  test("are worded in every Dashboard language, with every unit they name", () => {
     const unworded: Array<string> = [];
 
-    for (const language of DASHBOARD_LANGUAGES) {
-      if (!isWordedInDashboardLocale(UNIT_NOTE, language)) {
-        unworded.push(language);
-        continue;
+    for (const [template, slots] of [
+      [AXIS_NOTE, ["{{unit}}", "{{chartUnit}}"]],
+      [NEITHER_AXIS_NOTE, ["{{unit}}", "{{chartUnit}}", "{{secondUnit}}"]],
+    ] as Array<[string, Array<string>]>) {
+      for (const language of DASHBOARD_LANGUAGES) {
+        if (!isWordedInDashboardLocale(template, language)) {
+          unworded.push(`${language}: ${template}`);
+          continue;
+        }
+
+        const worded: string = readDashboardLocale(language)[template] || "";
+
+        for (const slot of slots) {
+          expect({ language, slot, has: worded.includes(slot) }).toEqual({
+            language,
+            slot,
+            has: true,
+          });
+        }
       }
-
-      const worded: string = readDashboardLocale(language)[UNIT_NOTE] || "";
-
-      expect({ language, unit: worded.includes("{{unit}}") }).toEqual({
-        language,
-        unit: true,
-      });
-      expect({ language, chartUnit: worded.includes("{{chartUnit}}") }).toEqual(
-        { language, chartUnit: true },
-      );
     }
 
     expect(unworded).toEqual([]);

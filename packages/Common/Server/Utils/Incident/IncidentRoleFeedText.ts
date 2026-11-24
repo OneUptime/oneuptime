@@ -90,9 +90,47 @@ export interface IncidentRoleRemovedFeedTextInput
   person: MarkdownText;
 }
 
-const getWorkflowName: (input: IncidentRoleFeedTextInput) => string = (
-  input: IncidentRoleFeedTextInput,
-): string => {
+/*
+ * A role handed from one person to another in one change (Reassign): the
+ * person who held it and the person who holds it now, each as a link to
+ * them. Who made the change may be either of them - somebody who takes the
+ * role over, or hands it on - or somebody else.
+ */
+export interface IncidentRoleReassignedFeedTextInput {
+  roleName: string;
+  incident: MarkdownText;
+  /*
+   * The person who held the role: empty for a person who is gone, whom
+   * nobody is named for.
+   */
+  from: MarkdownText;
+  // The person who holds it now.
+  to: MarkdownText;
+  // Who made the change, when it was one of the two.
+  madeBy?: "from" | "to" | undefined;
+  workflowName?: string | undefined;
+}
+
+/*
+ * A person moved from one role to another in one change (#10274): the row
+ * keeps its person and its incident, and names another role - through the
+ * API, Terraform or a workflow's Update step.
+ */
+export interface IncidentRoleMovedFeedTextInput {
+  // The person moved, as a link to them.
+  person: MarkdownText;
+  // The role they held, and the one they hold now, by the project's names.
+  fromRoleName: string;
+  toRoleName: string;
+  incident: MarkdownText;
+  // Whether the person moved is the one who moved themselves.
+  isSelf: boolean;
+  workflowName?: string | undefined;
+}
+
+const getWorkflowName: (input: {
+  workflowName?: string | undefined;
+}) => string = (input: { workflowName?: string | undefined }): string => {
   return (input.workflowName || "").trim();
 };
 
@@ -139,6 +177,64 @@ export default class IncidentRoleFeedText {
     }
 
     return mdText`👤 Removed **${input.person}** as **${input.roleName}** from ${input.incident}.`;
+  }
+
+  /*
+   * The entry for a role handed from one person to another in one change
+   * (Reassign): one entry, never a removal and an addition, since the role
+   * was never without someone. "Reassigned Incident Commander on Incident
+   * INC-18 from Maya Chen to Jordan Patel"; somebody taking it over reads
+   * "Took over ... from Maya Chen", and somebody handing it on "Handed ...
+   * to Jordan Patel".
+   */
+  public static getReassignedMarkdown(
+    input: IncidentRoleReassignedFeedTextInput,
+  ): MarkdownText {
+    const workflowName: string = getWorkflowName(input);
+    const hasFrom: boolean = !input.from.isEmpty();
+
+    if (workflowName) {
+      return hasFrom
+        ? mdText`👤 Workflow **${workflowName}** reassigned **${input.roleName}** on ${input.incident} from **${input.from}** to **${input.to}**.`
+        : mdText`👤 Workflow **${workflowName}** reassigned **${input.roleName}** on ${input.incident} to **${input.to}**.`;
+    }
+
+    if (input.madeBy === "to") {
+      return hasFrom
+        ? mdText`👤 Took over the **${input.roleName}** role on ${input.incident} from **${input.from}**.`
+        : mdText`👤 Took the **${input.roleName}** role on ${input.incident}.`;
+    }
+
+    if (input.madeBy === "from") {
+      return mdText`👤 Handed the **${input.roleName}** role on ${input.incident} to **${input.to}**.`;
+    }
+
+    return hasFrom
+      ? mdText`👤 Reassigned **${input.roleName}** on ${input.incident} from **${input.from}** to **${input.to}**.`
+      : mdText`👤 Reassigned **${input.roleName}** on ${input.incident} to **${input.to}**.`;
+  }
+
+  /*
+   * The entry for a person moved to another role in one change (#10274):
+   * one entry, never a removal and an addition, since they held a role all
+   * along. "Moved Maya Chen from Responder to Incident Commander on
+   * Incident INC-18"; somebody moving themselves reads "Moved from
+   * Responder to Incident Commander ...", after their name.
+   */
+  public static getMovedMarkdown(
+    input: IncidentRoleMovedFeedTextInput,
+  ): MarkdownText {
+    const workflowName: string = getWorkflowName(input);
+
+    if (workflowName) {
+      return mdText`👤 Workflow **${workflowName}** moved **${input.person}** from **${input.fromRoleName}** to **${input.toRoleName}** on ${input.incident}.`;
+    }
+
+    if (input.isSelf) {
+      return mdText`👤 Moved from **${input.fromRoleName}** to **${input.toRoleName}** on ${input.incident}.`;
+    }
+
+    return mdText`👤 Moved **${input.person}** from **${input.fromRoleName}** to **${input.toRoleName}** on ${input.incident}.`;
   }
 
   /*

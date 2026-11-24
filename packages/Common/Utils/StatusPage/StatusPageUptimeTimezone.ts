@@ -29,10 +29,11 @@ export default class StatusPageUptimeTimezone {
    * - missing, not a string, not one moment knows - is UTC, the history the
    * page always drew, never an error. A legacy name a browser reports
    * (Chromium says Asia/Calcutta for India, Europe/Kiev for Ukraine) is
-   * translated to its current one first (TimezoneAlias): the Postgres in
-   * the shipped images has no legacy tzdata links and rejects several of
-   * them in AT TIME ZONE. The name comes back in moment's own spelling, so
-   * "asia/shanghai" and "Asia/Shanghai" are one zone.
+   * translated to its current one first (TimezoneAlias), so the zones that
+   * keep one clock share one cached history. The days are cut with moment's
+   * data (UptimeDayGrid, issue #10039), as the zone keys below are worked
+   * out. The name comes back in moment's own spelling, so "asia/shanghai"
+   * and "Asia/Shanghai" are one zone.
    */
   public static resolve(raw: unknown): string {
     if (typeof raw !== "string") {

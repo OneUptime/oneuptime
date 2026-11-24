@@ -88,6 +88,7 @@
     <string name="log_session_title">トラブルシューティング用のログ</string>
     <string name="log_session_request_by">%1$s さんが OneUptime で、このデバイスのすべてのアプリの%3$sレベル以上のログを %2$s送信するよう求めています。</string>
     <string name="log_session_request">OneUptime が、このデバイスのすべてのアプリの%2$sレベル以上のログを %1$s送信するよう求めています。</string>
+    <string name="log_session_note">「%1$s」</string>
     <string name="log_session_android_prompt">続いて Android から、すべてのデバイスログへのアクセスを許可するかどうかを確認されます。そこでも許可してください。</string>
     <string name="log_session_allow">許可</string>
     <string name="log_session_decline">拒否</string>

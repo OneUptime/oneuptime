@@ -330,8 +330,10 @@ describe("the Warning Events recommendation", () => {
     const last: MonitorRecommendation =
       recommendations[recommendations.length - 1]!;
 
+    // Every metric template but the image disk's, offered only where a node has one (#10056).
     expect(recommendations).toHaveLength(
-      getAllKubernetesAlertTemplates().length +
+      getAllKubernetesAlertTemplates().length -
+        1 +
         getAllKubernetesEventAlertTemplates().length,
     );
     expect(last.templateId).toBe(KUBERNETES_WARNING_EVENTS_TEMPLATE_ID);

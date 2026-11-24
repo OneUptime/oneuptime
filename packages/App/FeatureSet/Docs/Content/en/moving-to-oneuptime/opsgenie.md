@@ -55,9 +55,9 @@ The report counts what was created, invited and not brought over, and lists ever
 | In Opsgenie | In OneUptime | How |
 | --- | --- | --- |
 | Users | Project members | Matched by email address. Anyone who is not in the project yet is invited to the team you pick. Blocked users are not brought over. |
-| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. |
-| Schedules | On-call schedules | Each rotation becomes a layer with the same people, start, turn length and time restriction, in the schedule's time zone, owned by the schedule's team. |
-| Escalations | On-call policies | Each rule becomes an escalation rule that pages the same schedule, user or team. Rules with the same delay page together, and the wait before the next escalation rule is the difference between the delays. The escalation's repeats come over as the policy's repeats. |
+| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. When two teams have the same name, the second comes over numbered, such as `Platform 2`, and the report says the name it was created with. |
+| Schedules | On-call schedules | Each rotation becomes a layer with the same people, start, turn length and time restriction, in the schedule's time zone, owned by the schedule's team. When two schedules have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
+| Escalations | On-call policies | Each rule becomes an escalation rule that pages the same schedule, user or team. Rules with the same delay page together, and the wait before the next escalation rule is the difference between the delays. The escalation's repeats come over as the policy's repeats. When two escalations have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
 | Services | Services | Created in the service catalog, owned by their team. |
 
 A schedule whose rotations put two people on call at the same time becomes one OneUptime schedule per rotation, because a OneUptime schedule has one person on call at a time. Every on-call policy that paged the schedule pages all of them.

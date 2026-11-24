@@ -50,7 +50,7 @@ Open a policy from the list. Its side menu holds everything about it:
 | --- | --- |
 | **Basic** | **Overview**, **Escalation Rules** and **Owners** |
 | **Logs** | **Execution Logs** and **Notification Logs** |
-| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants** |
+| **Developer** | **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants** |
 | **Advanced** | **User Overrides**, **Custom Fields**, **Settings**, **Audit Logs** and **Delete Policy** |
 
 **Basic** is open; the other sections start folded until you click them.

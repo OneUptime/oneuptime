@@ -10,6 +10,12 @@ import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import ProductKey from "Common/Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  ServerProductsOff,
+} from "Common/Types/Product/ServerProducts";
+import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import MarketplaceSubscriptionService from "Common/Server/Services/MarketplaceSubscriptionService";
@@ -22,6 +28,7 @@ import VercelMarketplaceAPI from "../../../../Server/CloudMarketplace/Vercel/Ver
 import VercelMarketplaceMonitors from "../../../../Server/CloudMarketplace/Vercel/VercelMarketplaceMonitors";
 import VercelMarketplaceResources from "../../../../Server/CloudMarketplace/Vercel/VercelMarketplaceResources";
 import logger from "Common/Server/Utils/Logger";
+import ServerProducts from "Common/Server/Utils/ServerProducts/ServerProducts";
 import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -29,7 +36,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * A Vercel project connected to a OneUptime resource is watched: a website
  * monitor for its production domain, on the resource's status page - made
  * when the project is connected, or at its first production deployment if
- * it had no domain yet - and deleted when it is disconnected.
+ * it had no domain yet - and deleted when it is disconnected. While the
+ * server has Monitors switched off, the connection is remembered and its
+ * monitor made once Monitors is on again; while Status Pages is, the
+ * monitor is put on no status page (#10251).
  */
 
 jest.mock(
@@ -96,6 +106,31 @@ const mocked: (fn: unknown) => jest.Mock = (fn: unknown): jest.Mock => {
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const STATUS_PAGE_ID: ObjectID = ObjectID.generate();
 const MONITOR_ID: ObjectID = ObjectID.generate();
+
+/*
+ * What is switched off on the server (Admin Dashboard > Settings >
+ * Products), as a server with its database reads it. The other tests run
+ * without a database, where nothing is off.
+ */
+const switchOff: (products: Array<ProductKey>) => void = (
+  products: Array<ProductKey>,
+): void => {
+  jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+  jest.spyOn(ServerProducts, "getOff").mockResolvedValue(
+    Object.fromEntries(
+      products.map(
+        (product: ProductKey): [ProductKey, ServerProductOffReason] => {
+          return [product, ServerProductOffReason.SwitchedOff];
+        },
+      ),
+    ) as ServerProductsOff,
+  );
+};
+
+// What the log says after what was not done, while a product is switched off.
+const switchedOff: (title: string) => string = (title: string): string => {
+  return `${title} is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products. Nothing was deleted.`;
+};
 
 const purchase: (
   metadata?: Record<string, unknown>,
@@ -497,5 +532,287 @@ describe("VercelMarketplaceMonitors.addMissingMonitors", () => {
     await VercelMarketplaceMonitors.addMissingMonitors(purchase());
 
     expect(MonitorService.create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("VercelMarketplaceMonitors while a product is switched off on the server", () => {
+  // The connection as the database keeps it: made once, then changed in place.
+  let stored: VercelMarketplaceConnection | null = null;
+
+  const read: () => VercelMarketplaceConnection | null =
+    (): VercelMarketplaceConnection | null => {
+      return stored
+        ? Object.assign(new VercelMarketplaceConnection(), stored)
+        : null;
+    };
+
+  const connect: (productionDomain?: string) => Promise<void> = async (
+    productionDomain?: string,
+  ): Promise<void> => {
+    await VercelMarketplaceMonitors.onProjectConnected({
+      installationId: "icfg_acme",
+      resourceId: "res_1",
+      vercelProjectId: "prj_1",
+      vercelProjectName: "storefront",
+      productionDomain: productionDomain,
+    });
+  };
+
+  const deployToProduction: () => Promise<void> = async (): Promise<void> => {
+    await VercelMarketplaceMonitors.onProductionDeployment({
+      vercelProjectId: "prj_1",
+      installationIds: ["icfg_acme"],
+      resourceIds: ["res_1"],
+    });
+  };
+
+  const destinationOfMonitor: (call: number) => string = (
+    call: number,
+  ): string => {
+    const monitor: Monitor = mocked(MonitorService.create).mock.calls[call]![0]
+      .data;
+
+    return monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.monitorDestination!.toString();
+  };
+
+  beforeEach(() => {
+    stored = null;
+
+    mocked(VercelMarketplaceConnectionService.create).mockImplementation(
+      async (data: unknown): Promise<VercelMarketplaceConnection> => {
+        stored = Object.assign(
+          new VercelMarketplaceConnection(),
+          (data as { data: VercelMarketplaceConnection }).data,
+          { _id: ObjectID.generate().toString() },
+        );
+        return read()!;
+      },
+    );
+    mocked(VercelMarketplaceConnectionService.findOneBy).mockImplementation(
+      async (): Promise<VercelMarketplaceConnection | null> => {
+        return read();
+      },
+    );
+    mocked(VercelMarketplaceConnectionService.findBy).mockImplementation(
+      async (): Promise<Array<VercelMarketplaceConnection>> => {
+        const kept: VercelMarketplaceConnection | null = read();
+        return kept ? [kept] : [];
+      },
+    );
+    mocked(VercelMarketplaceConnectionService.updateOneById).mockImplementation(
+      async (data: unknown): Promise<void> => {
+        Object.assign(
+          stored!,
+          (data as { data: Record<string, unknown> }).data,
+        );
+      },
+    );
+    mocked(MarketplaceSubscriptionService.findPurchaseById).mockResolvedValue(
+      purchase(),
+    );
+  });
+
+  afterEach(() => {
+    // Back to bare mocks, as the suites above found them.
+    mocked(VercelMarketplaceConnectionService.findBy).mockReset();
+    mocked(VercelMarketplaceConnectionService.updateOneById).mockReset();
+    mocked(MarketplaceSubscriptionService.findPurchaseById).mockReset();
+    mocked(
+      VercelMarketplaceInstallationService.findByInstallationId,
+    ).mockReset();
+  });
+
+  it("makes no monitor while Monitors is switched off, and remembers the connection", async () => {
+    switchOff([ProductKey.Monitors]);
+
+    await connect("storefront.vercel.app");
+
+    expect(VercelMarketplaceConnectionService.create).toHaveBeenCalledTimes(1);
+    expect(stored).toMatchObject({
+      projectId: PROJECT_ID,
+      vercelProjectId: "prj_1",
+      vercelProjectName: "storefront",
+      productionDomain: "storefront.vercel.app",
+    });
+    expect(stored!.monitorId).toBeUndefined();
+    expect(MonitorService.create).not.toHaveBeenCalled();
+    expect(StatusPageResourceService.create).not.toHaveBeenCalled();
+    expect(
+      VercelMarketplaceConnectionService.updateOneById,
+    ).not.toHaveBeenCalled();
+
+    // Logged as a monitor that could not be made is, with why.
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      `Could not make a monitor for storefront.vercel.app (Vercel project prj_1) in project ${PROJECT_ID.toString()}: ${switchedOff("Monitors")}`,
+    );
+  });
+
+  it("makes the monitor, but puts it on no status page, while Status Pages is switched off", async () => {
+    switchOff([ProductKey.StatusPages]);
+
+    await connect("storefront.vercel.app");
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(mocked(MonitorService.create).mock.calls[0]![0].data).toMatchObject({
+      projectId: PROJECT_ID,
+      name: "storefront",
+      monitorType: MonitorType.Website,
+    });
+    expect(destinationOfMonitor(0)).toBe("https://storefront.vercel.app/");
+    expect(stored!.monitorId).toEqual(MONITOR_ID);
+    expect(StatusPageResourceService.create).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      `Could not add monitor ${MONITOR_ID.toString()} to status page ${STATUS_PAGE_ID.toString()}: ${switchedOff("Status Pages")}`,
+    );
+  });
+
+  it("makes neither while both are switched off, and still remembers the connection", async () => {
+    switchOff([ProductKey.Monitors, ProductKey.StatusPages]);
+
+    await connect("storefront.vercel.app");
+
+    expect(VercelMarketplaceConnectionService.create).toHaveBeenCalledTimes(1);
+    expect(stored).toMatchObject({ productionDomain: "storefront.vercel.app" });
+    expect(MonitorService.create).not.toHaveBeenCalled();
+    expect(StatusPageResourceService.create).not.toHaveBeenCalled();
+  });
+
+  it("watches the domain on the status page as before while both are on, whatever else is off", async () => {
+    switchOff([ProductKey.Incidents, ProductKey.Logs, ProductKey.Traces]);
+
+    await connect("storefront.vercel.app");
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(stored!.monitorId).toEqual(MONITOR_ID);
+    expect(StatusPageResourceService.create).toHaveBeenCalledTimes(1);
+    expect(
+      mocked(StatusPageResourceService.create).mock.calls[0]![0].data,
+    ).toMatchObject({ statusPageId: STATUS_PAGE_ID, monitorId: MONITOR_ID });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it("asks only about Monitors and Status Pages, and only when there is something to make", async () => {
+    switchOff([]);
+    const asked: jest.SpyInstance = jest.spyOn(
+      ServerProducts,
+      "getOffReasonOfServerWork",
+    );
+
+    // No domain yet: no monitor to make, nothing to ask.
+    await connect();
+
+    expect(asked).not.toHaveBeenCalled();
+
+    await connect("storefront.vercel.app");
+
+    expect(asked.mock.calls).toEqual([
+      [ProductKey.Monitors],
+      [ProductKey.StatusPages],
+    ]);
+  });
+
+  it("makes the monitor once, at the first production deployment after Monitors is switched on again", async () => {
+    switchOff([ProductKey.Monitors]);
+
+    await connect("storefront.vercel.app");
+    await deployToProduction();
+
+    expect(MonitorService.create).not.toHaveBeenCalled();
+
+    switchOff([]);
+
+    await deployToProduction();
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(destinationOfMonitor(0)).toBe("https://storefront.vercel.app/");
+    expect(stored!.monitorId).toEqual(MONITOR_ID);
+    expect(StatusPageResourceService.create).toHaveBeenCalledTimes(1);
+    expect(
+      mocked(StatusPageResourceService.create).mock.calls[0]![0].data,
+    ).toMatchObject({ statusPageId: STATUS_PAGE_ID, monitorId: MONITOR_ID });
+
+    // Deployed again, and Vercel telling of the project again: still one.
+    await deployToProduction();
+    await connect("storefront.vercel.app");
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(StatusPageResourceService.create).toHaveBeenCalledTimes(1);
+    expect(VercelMarketplaceConnectionService.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("makes the monitor once when Monitor production domains is turned off and on after Monitors is switched on again", async () => {
+    switchOff([ProductKey.Monitors]);
+
+    await connect("storefront.vercel.app");
+    await VercelMarketplaceMonitors.addMissingMonitors(purchase());
+
+    expect(MonitorService.create).not.toHaveBeenCalled();
+
+    switchOff([]);
+
+    await VercelMarketplaceMonitors.addMissingMonitors(purchase());
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(stored!.monitorId).toEqual(MONITOR_ID);
+
+    await VercelMarketplaceMonitors.addMissingMonitors(purchase());
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(StatusPageResourceService.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the domain a production deployment finds while Monitors is off, so turning the setting off and on makes the monitor", async () => {
+    mocked(
+      VercelMarketplaceInstallationService.findByInstallationId,
+    ).mockResolvedValue(
+      Object.assign(new VercelMarketplaceInstallation(), {
+        installationId: "icfg_acme",
+        accessToken: "vercel-token",
+      }),
+    );
+    const lookUp: jest.SpyInstance = jest
+      .spyOn(VercelMarketplaceAPI.prototype, "getProductionDomain")
+      .mockResolvedValue("shop.acme.com");
+
+    switchOff([ProductKey.Monitors]);
+
+    // Connected before its first production deployment: no domain yet.
+    await connect();
+    await deployToProduction();
+
+    expect(lookUp).toHaveBeenCalledTimes(1);
+    expect(stored!.productionDomain).toBe("shop.acme.com");
+    expect(MonitorService.create).not.toHaveBeenCalled();
+
+    switchOff([]);
+
+    await VercelMarketplaceMonitors.addMissingMonitors(purchase());
+
+    expect(MonitorService.create).toHaveBeenCalledTimes(1);
+    expect(destinationOfMonitor(0)).toBe("https://shop.acme.com/");
+  });
+
+  it("still deletes a disconnected project's monitor while Monitors is switched off: it would keep checking, and be billed", async () => {
+    switchOff([ProductKey.Monitors]);
+    stored = connection({
+      productionDomain: "storefront.vercel.app",
+      monitorId: MONITOR_ID,
+    });
+
+    await VercelMarketplaceMonitors.onProjectDisconnected({
+      installationId: "icfg_acme",
+      resourceId: "res_1",
+      vercelProjectId: "prj_1",
+    });
+
+    expect(MonitorService.deleteOneById).toHaveBeenCalledWith({
+      id: MONITOR_ID,
+      props: { isRoot: true },
+    });
+    expect(
+      VercelMarketplaceConnectionService.deleteOneById,
+    ).toHaveBeenCalledWith(expect.objectContaining({ id: stored.id }));
   });
 });

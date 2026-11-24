@@ -65,7 +65,7 @@ A service's side menu has six sections:
 | **Telemetry** | Its **Logs**, **Security Events**, **Traces**, **Metrics**, **Profiles**, **Exceptions** and **Source Maps**, already filtered to this service. |
 | **Activity** | The **Incidents**, **Alerts** and **Scheduled Maintenance** events that affect it. |
 | **Security** | **Data Security**: the sensitive data its logs, traces and exceptions carry, and what to fix ([Sensitive Data in Telemetry](/docs/data-security/telemetry)). **Compliance**: how that data stands against each framework, with a switch that turns a framework or a requirement off for this service ([Data Security Compliance](/docs/data-security/compliance#on-a-resources-page)). It appears once Data Security has scanned the service's telemetry, and starts collapsed. |
-| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |
+| **Developer** | **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants**: the service managed from code. It starts collapsed. |
 | **Advanced** | **Settings**, **Audit Logs** and **Delete Service**. **Advanced** starts collapsed: expand it first. |
 
 Beside its name, a service's **Overview** says whether its telemetry is arriving: **Receiving data** while something has arrived in the last 30 minutes, **No recent data** once nothing has, and **Waiting for data** before its first telemetry. A service that sends spans only while it handles requests shows **No recent data** whenever nobody calls it, so that alone is not a fault.

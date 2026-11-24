@@ -869,7 +869,15 @@ else
       if [ -n "$COST_READ_SERVICE" ]; then
         info "The cost agent reads the cluster's own ${COST_READ_ENGINE:-cost engine} at $COST_READ_SERVICE."
         if [ "$COST_BUNDLED" = 1 ]; then
-          detail "The bundled OpenCost is not needed. To stop running it: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.engine.url=auto"
+          # With Kubecost 3, which reads no Prometheus, memory right-sizing
+          # reads its peaks from the bundled one (#9970): stopping the bundled
+          # engine stops them too, unless the upgrade names another.
+          COST_PROM_ORIGIN=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costPrometheus":{"origin":"\([^"]*\)".*/\1/p' | head -1)
+          if [ "$COST_PROM_ORIGIN" = "bundled" ]; then
+            detail "The bundled OpenCost is not needed, but memory right-sizing reads its peaks from the bundled Prometheus: the agent found none your ${COST_READ_ENGINE:-cost engine} reads. To stop running both, name a Prometheus that scrapes cAdvisor: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.engine.url=auto --set cost.engine.prometheusUrl=<url>. Without one, keep the bundled engine."
+          else
+            detail "The bundled OpenCost is not needed. To stop running it: helm upgrade <release> oneuptime/kubernetes-agent -n $NS --reset-then-reuse-values --set cost.engine.url=auto"
+          fi
         fi
       elif [ -z "$COST_ENGINE_URL" ]; then
         warn "The cost agent has not found an OpenCost or Kubecost in this cluster yet; its last poll error below says why."
@@ -908,6 +916,14 @@ else
         warn "The cost agent found no Prometheus to read memory peaks from, so the Right-Sizing card leaves memory requests unsized."
         detail "$COST_PROM_ERR"
         add_finding "The cost agent found no Prometheus to read per-container memory peaks from, so memory right-sizing is unavailable (CPU still works). It looked: $COST_PROM_ERR. Name one that scrapes this cluster's cAdvisor with --set cost.engine.prometheusUrl=<url>."
+      fi
+      # The hours a Kubecost reconciles with the cloud bill, read again about
+      # two days on (#9969). Older agents say nothing here.
+      COST_CORR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costCorrections":{"windowsToReadAgain":\([0-9]*\),"windowsCorrected":\([0-9]*\).*/\1 \2/p' | head -1)
+      if [ -n "$COST_CORR" ]; then
+        info "Hours your Kubecost reconciles with the cloud bill are read again: ${COST_CORR% *} waiting, ${COST_CORR#* } corrected so far."
+        COST_CORR_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"costCorrections":{[^}]*"lastCorrectionError":"\([^"]*\)".*/\1/p' | head -1)
+        [ -n "$COST_CORR_ERR" ] && detail "The last later reading could not be made: $COST_CORR_ERR"
       fi
       COST_POLL_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastPollError":"\([^"]*\)".*/\1/p' | head -1)
       COST_SHIP_ERR=$(printf '%s' "$RESP_BODY" | sed -n 's/.*"lastShipError":"\([^"]*\)".*/\1/p' | head -1)

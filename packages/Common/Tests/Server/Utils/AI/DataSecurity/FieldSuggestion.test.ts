@@ -9,6 +9,7 @@ import {
   FIELD_SUGGESTION_SYSTEM_PROMPT,
   MAX_FIELDS_PER_SUGGESTION_REQUEST,
 } from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestionPrompt";
+import { DATA_SECURITY_AI_DATA_RULE } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AILogRequest,
@@ -320,16 +321,20 @@ describe("asking OneUptime AI", () => {
       feature: AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
       storeContentPreviews: false,
       storeErrorDetails: false,
+      recordContentInTelemetry: false,
       temperature: 0,
       maxTokens: FIELD_SUGGESTION_MAX_COMPLETION_TOKENS,
       requestTimeoutInMs: FIELD_SUGGESTION_TIMEOUT_IN_MS,
       requestRetries: 0,
       protectRequestParameters: true,
     });
+    // No AI rule picks a provider yet: the project's own (#10365).
+    expect(sent.llmProviderId).toBeUndefined();
     expect(sent.messages).toHaveLength(2);
+    // Built by DataSecurityAiInput: the feature's words, then the data rule.
     expect(sent.messages[0]).toEqual({
       role: "system",
-      content: FIELD_SUGGESTION_SYSTEM_PROMPT,
+      content: `${FIELD_SUGGESTION_SYSTEM_PROMPT}\n\n${DATA_SECURITY_AI_DATA_RULE}`,
     });
     expect(sent.messages[1]!.role).toBe("user");
     // No person started it, and it is about no incident or alert.

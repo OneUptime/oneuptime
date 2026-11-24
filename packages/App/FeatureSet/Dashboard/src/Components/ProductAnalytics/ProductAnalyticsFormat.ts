@@ -1,5 +1,6 @@
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import { Moment } from "Common/Types/Date";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import { getPathText } from "Common/Utils/Rum/PathText";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
@@ -451,34 +452,22 @@ export function getProductAnalyticsTimeZone(zone: string | undefined): string {
   );
 }
 
+/*
+ * How far a zone's wall clock is ahead of UTC at an instant, from
+ * OneUptime's own zone data (moment-timezone), as every other date is
+ * worked out (#10038): read from Intl it was the browser's tz data, an
+ * hour off in Vancouver in a browser older than tzdata 2026b. Throws for a
+ * zone the data does not hold; the callers read UTC then.
+ */
 function readZoneOffsetMs(instant: number, timeZone: string): number {
-  const parts: Record<string, number> = {};
+  const zone: ReturnType<typeof Moment.tz.zone> = Moment.tz.zone(timeZone);
 
-  for (const part of new Intl.DateTimeFormat("en-US", {
-    timeZone: timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(new Date(instant))) {
-    if (part.type !== "literal") {
-      parts[part.type] = Number(part.value);
-    }
+  if (!zone) {
+    throw new Error(`Unknown time zone: ${timeZone}`);
   }
 
-  const wallClock: number = Date.UTC(
-    parts["year"] || 1970,
-    (parts["month"] || 1) - 1,
-    parts["day"] || 1,
-    parts["hour"] || 0,
-    parts["minute"] || 0,
-    parts["second"] || 0,
-  );
-
-  return wallClock - Math.floor(instant / 1000) * 1000;
+  // moment counts minutes west of UTC: New York's winter is 300.
+  return -zone.utcOffset(instant) * 60 * 1000;
 }
 
 /* The day ("2026-03-01") an instant falls on in a zone. */

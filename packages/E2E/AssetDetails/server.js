@@ -60,10 +60,17 @@ const overviewPlaceholders = {
           repository,
           "packages/App/FeatureSet/Dashboard/src",
         );
+        /*
+         * The lookup the page reads its monitors through, with each value
+         * the page imports from it: no monitors, and none on the device's
+         * address tied to no device (issue #9903).
+         */
         if (args.path === "DeviceMonitorLookupUtil") {
           return {
-            contents:
-              "export default class DeviceMonitorLookupUtil { static async getDeviceMonitorContext() { return { monitors: [], isMonitorBacked: true }; } }",
+            contents: [
+              "export const NO_UNTIED_MONITORS = { monitors: [], hasMore: false, deviceNames: new Map() };",
+              "export default class DeviceMonitorLookupUtil { static async getDeviceMonitorContext() { return { monitors: [], isMonitorBacked: true, removableMonitorIds: new Set(), untiedMonitors: NO_UNTIED_MONITORS }; } }",
+            ].join("\n"),
             loader: "js",
             resolveDir: resolveDir,
           };

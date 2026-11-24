@@ -89,7 +89,7 @@ Een lijst of een telling neemt een `query`. Een veld met een waarde komt overeen
 | `Includes` | Een van de waarden in `value` |
 | `IsNull`, `NotNull` | Geen waarde, of een willekeurige waarde |
 
-Een veld van een record dat de resource noemt, filter je onder de relatie ervan: `"user": { "name": { "_type": "Search", "value": "ada" } }` vindt de teamleden van wie de gebruiker een naam heeft die „ada” bevat. Filteren op een veld vereist toestemming om het te lezen, via een relatie net als op de resource zelf: een filter op een veld dat je niet mag lezen, wordt geweigerd met een `422` die het veld noemt.
+Een veld van een record dat de resource noemt, filter je onder de relatie ervan: `"user": { "name": { "_type": "Search", "value": "ada" } }` vindt de teamleden van wie de gebruiker een naam heeft die „ada” bevat. Filteren op een veld vereist toestemming om het te lezen, via een relatie net als op de resource zelf: een filter op een veld dat je niet mag lezen, wordt geweigerd met een `422` die het veld noemt. Via een relatie wordt een veld dat alleen de persoon zelf mag lezen, zoals de tijdzone van een gebruiker of diens meldingsmethoden en piketlogboeken, voor iedereen geweigerd, zowel in een filter als bij het sorteren, omdat de relatie ieders record kan noemen.
 
 Een resource met eigenaren - een monitor, een incident, een piketbeleid en elke andere met gebruikers- en teameigenaren - filter je ook op wie hem bezit, onder `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` vindt de records waarvan een of meer van die personen en teams eigenaar zijn. `match` is `AnyOf` tenzij je het instelt: `NoneOf` vindt de records waarvan geen van hen eigenaar is, records zonder eigenaren inbegrepen, en `AnyOwner` en `NoOwner` vinden de records met een eigenaar of zonder, zonder iemand te noemen. De leden van een team zijn geen eigenaar van wat het team bezit. Eén filter noemt samen hoogstens 1.000 personen en teams, een resource zonder eigenaren weigert het met een `400`, en filteren op eigenaren zonder toestemming om ze te lezen, wordt geweigerd met een `422`.
 
@@ -130,6 +130,7 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 | `400` | Het verzoek klopt niet: de API-sleutel is ongeldig, een waarde is niet toegestaan, een veld kan niet worden geschreven, een genoemd record is niet van jou, of het wijzigt meerdere projecten tegelijk. De melding zegt wat er mis is. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
 | `402` | Het abonnement van het project bevat niet wat het verzoek gebruikt. De melding noemt het abonnement. | [Functies die je abonnement niet bevat](#functies-die-je-abonnement-niet-bevat) |
 | `404` | Het record bestaat niet, staat in een ander project, of is er een die je niet mag lezen: hetzelfde antwoord in elk geval. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
+| `413` | De body is groter dan OneUptime in het verzoek aanneemt: 1 MB met hoogstens 100.000 JSON-waarden bij de meeste verzoeken, en 50 MB bij een verzoek dat een bestand, een dashboard of een statuspagina stuurt. De melding noemt de limiet. Op een server die je zelf beheert, verhogen `REQUEST_BODY_MAX_BYTES` en `REQUEST_BODY_MAX_JSON_VALUES` de limiet van de meeste verzoeken. | [Verzoeken en antwoorden](#verzoeken-en-antwoorden) |
 | `422` | Je mag dit niet: de API-sleutel heeft geen machtiging voor dit soort record, je mag het record lezen maar niet wijzigen, of de labels van een machtiging sluiten het uit. De melding zegt waarom. | [Een record wijzigen of verwijderen dat je niet mag lezen](#een-record-wijzigen-of-verwijderen-dat-je-niet-mag-lezen) |
 | `500` | Er ging iets mis op de server. Als de eigenaar van een nieuw record niet kan worden geschreven, wordt het record weer verwijderd, zodat je het aanmaken opnieuw kunt proberen. | [Records die een verzoek noemt](#records-die-een-verzoek-noemt) |
 
@@ -254,7 +255,33 @@ Teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's hebben in een pr
 There is already an on-call policy called Primary in this project. Pick another name.
 ```
 
-Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen. Voor teams, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden.
+Ook veel andere soorten hebben een eigen naam, zoals ernstniveaus van incidenten, monitorstatussen, statuspagina's en workflows, en weigeren een bezette naam op dezelfde manier, bij aanmaken en bij hernoemen:
+
+```text
+Incident Severity with the same name already exists.
+```
+
+Naast de melding bevat elke zulke weigering een `refusalCode` die zegt wat de naam heeft. Herken de weigering aan die code, niet aan de zin, die anders geformuleerd kan worden:
+
+- `"refusalCode": "name_taken"`: een record in dienst heeft hem. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra dat record de naam opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+- `"refusalCode": "name_taken_by_archived"`: alleen een gearchiveerd record heeft hem. Haal dat record uit het archief, of kies een andere naam: het verzoek opnieuw sturen helpt niet, en de Terraform-provider doet dat niet.
+
+Een update die de eigen naam van een record opnieuw stuurt, in welke hoofdletters ook, is geen hernoeming, dus records die eerder een naam deelden, kunnen nog steeds worden gewijzigd en elk een eigen naam krijgen, maar nooit de naam van een ander record. Voor teams, labels, bereikbaarheidsbeleid en bereikbaarheidsschema's antwoordt `GET /api/shared-names/team` (of `label`, `on-call-policy`, `on-call-schedule`) welke een naam delen: `{"groups": [["<id>", "<id>"]]}`, elke groep de ID's die je sleutel mag lezen van de records waarvan de namen hetzelfde luiden. Gearchiveerde labels en gearchiveerd bereikbaarheidsbeleid tellen niet mee.
+
+#### Waarden die een ander record al heeft
+
+Ook sommige waarden die geen naam zijn, horen bij één record elk: het domein van een statuspagina, een dashboard of een formulier, een projectdomein, de identificatie van een host of een Kubernetes-cluster, de aanmeld-URL van een SSO-provider en de machtiging van een API-sleutel, onder andere. Aanmaken, of een update die er een wijzigt, naar een waarde die een ander record al heeft, wordt geweigerd met een `400` die dat zegt:
+
+```text
+Status Page Domain with the same fullDomain already exists.
+```
+
+Naast de melding bevat de weigering een `refusalCode` die zegt wat de waarde heeft, en een `field` dat het veld noemt waarvan de waarde bezet is, zoals `"field": "fullDomain"`. Een waarde van meerdere velden samen komt zonder `field`. Herken de weigering aan de code, niet aan de zin, die anders geformuleerd kan worden:
+
+- `"refusalCode": "value_taken"`: een record in dienst heeft hem. Er is niets geschreven, dus hetzelfde verzoek kan opnieuw worden gestuurd zodra dat record de waarde opgeeft: de Terraform-provider vraagt het tot 30 seconden lang opnieuw.
+- `"refusalCode": "value_taken_by_archived"`: alleen een gearchiveerd record heeft hem. Haal dat record uit het archief, of kies een andere waarde: het verzoek opnieuw sturen helpt niet, en de Terraform-provider doet dat niet.
+
+Een update die de eigen waarde van een record opnieuw stuurt, in welke hoofdletters ook, is geen wijziging, dus records die eerder een waarde deelden, kunnen nog steeds worden gewijzigd en elk een eigen waarde krijgen.
 
 ### Schakelaars
 
@@ -279,6 +306,40 @@ User is not allowed to create on resellerId column of Project. No permission all
 OneUptime legt vast wie een record heeft aangemaakt — en wie het heeft gearchiveerd, opgelost, bevestigd of geactiveerd — op basis van het verzoek zelf: de ingelogde persoon, of niemand als het verzoek met een API-sleutel of vanuit een workflow komt. Deze velden (`createdByUserId` en de andere velden die op `ByUserId` eindigen, met hun relaties zoals `createdByUser`) zijn alleen-lezen, net als het moment waarop een record is gearchiveerd of opgelost (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`): `isArchived` of `isResolved` aanzetten legt vast wie het deed en wanneer, en uitzetten wist beide. Een schakelaar sturen zoals hij al staat, behoudt wie hem omzette, en wanneer.
 
 De API-referentie markeert deze velden als alleen-lezen. Een waarde die een verzoek voor een ervan meestuurt naast andere wijzigingen, wordt genegeerd, dus de rest van de wijziging gaat door; een update die verder niets stuurt, wordt geweigerd met een melding die de velden noemt. Records die OneUptime zelf namens iemand aanmaakt — een notitie die vanuit Slack of Microsoft Teams is geplaatst, een account dat via een uitnodiging is gemaakt — noemen die persoon.
+
+### Velden die alleen OneUptime schrijft
+
+Sommige velden schrijft alleen OneUptime: wanneer een telemetriemonitor voor het laatst draaide en wanneer hij de volgende keer draait, wat een agent het laatst meldde, de SLA-deadlines, wanneer een SCIM-client-secret niet meer werkt. De API-referentie markeert ze als alleen-lezen en laat ze weg uit de body van een aanmaak en een update. Een aanmaak die er een van stuurt, zoals een kopie van een gelezen record doet, gaat zonder dat veld door, en het nieuwe record krijgt de waarde van OneUptime. Een update die er een van stuurt, wordt geweigerd, en het antwoord noemt elk zulk veld dat hij stuurde:
+
+```text
+User is not allowed to update on telemetryMonitorLastMonitorAt column of Monitor. No permission allows it: the column is changed by the server, not by a request.
+```
+
+Laat deze velden weg uit een update. De paar velden die een persoon wijzigt, hebben een eigen verzoek: een SCIM-client-secret vervangen stelt in wanneer het niet meer werkt, en `POST /api/host/:id/try-collector-config-again` stuurt een host opnieuw de collectorconfiguratie die erop mislukte. Een veld dat jij en OneUptime allebei wijzigen, zoals de `labels` van een record, waar labelregels labels aan toevoegen, stel je zoals voorheen zelf in.
+
+Een aanmaak die een veld wegliet, noemt het in de header `X-OneUptime-Fields-Left-Out` van het antwoord, met de velden gescheiden door komma's; een antwoord waarin niets is weggelaten, heeft zo'n header niet. De CLI toont de velden in een notitie, het antwoord van de MCP-server somt ze op in `fieldsLeftOut`, en de Terraform-provider toont ze in een waarschuwing.
+
+### Items aan een lijst toevoegen en weer weghalen
+
+Een wijziging kan records aan een lijst toevoegen, of er enkele weghalen, zonder de hele lijst te sturen: `addToList` en `removeFromList` noemen de ID's die erbij moeten en eraf moeten, lijst voor lijst. Elk item dat de wijziging niet noemt, blijft, ook een item dat iemand anders of een labelregel op hetzelfde moment toevoegt:
+
+```json
+{
+  "data": { "name": "Checkout API" },
+  "addToList": { "labels": ["<label-id>"] },
+  "removeFromList": { "labels": ["<other-label-id>"] }
+}
+```
+
+Naar `PUT /api/monitor/<id>` gestuurd, geeft dit de monitor een nieuwe naam, voegt er één label aan toe en haalt er een ander af. Laat `data` weg als de wijziging alleen items toevoegt en weghaalt. Een item is de ID van het record, of een object met zijn `_id`, zoals in `data`, en een item toevoegen dat de lijst al bevat, of een weghalen dat ze niet bevat, verandert niets.
+
+De lijsten die een wijziging kan noemen, zijn de lijsten die de volledige API-referentie onder `addToList` opsomt voor het `PUT`-verzoek van de resource. Een wijziging die zo wordt gedaan, wordt gecontroleerd zoals de hele lijst die ze achterlaat dat zou worden, volgens de regels hierboven: je machtiging om de lijst te wijzigen, dat elk record dat ze toevoegt er een van je project is dat je mag lezen, en de labels die een machtiging beperkt tot labels behoudt. Een lijst die zowel in zijn geheel, in `data`, als in `addToList` of `removeFromList` wordt gestuurd, wordt geweigerd met een `400`:
+
+```text
+labels is both in data and in addToList or removeFromList. Send the whole list in data, or the entries to add and take off in addToList and removeFromList.
+```
+
+De Terraform- en Crossplane-providers wijzigen de labels van een record op deze manier, zodat een label dat een regel toevoegt terwijl ze lopen, blijft: zie [Labels en andere lijsten waar OneUptime ook aan toevoegt](/docs/terraform/complete-guide#labels-en-andere-lijsten-waar-oneuptime-ook-aan-toevoegt).
 
 ## Statussen en episodes
 

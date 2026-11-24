@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A log session requester's note, set apart from the agent's own words in the accent's tint (#9966). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/note_background" />
+    <corners android:radius="8dp" />
+</shape>

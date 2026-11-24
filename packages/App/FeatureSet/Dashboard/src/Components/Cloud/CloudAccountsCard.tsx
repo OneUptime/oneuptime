@@ -187,7 +187,18 @@ const CloudAccountsCard: FunctionComponent<ComponentProps> = (
                       </div>
                     </>
                   ) : summary ? (
-                    <span className="text-xs text-amber-700">
+                    /*
+                     * Queued waits its turn, as an account not read yet
+                     * does: grey. The others need someone: amber.
+                     */
+                    <span
+                      className={
+                        summary.state === CloudCostState.Queued
+                          ? "text-xs text-gray-500"
+                          : "text-xs text-amber-700"
+                      }
+                      data-state={summary.state}
+                    >
                       {translator.translateText(
                         COST_STATE_LABELS[summary.state],
                       )}

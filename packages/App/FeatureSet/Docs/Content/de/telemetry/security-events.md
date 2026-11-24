@@ -51,7 +51,8 @@ flowchart TB
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
 | **Genehmigungen** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
 | **Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
-| **Geschützte Entitäten** | Playbooks | Die Benutzer und Hosts, die kein Playbook eindämmt |
+| **Sperrliste** | Playbooks | Die Adressen, die Ihr Projekt sperrt, bis wann, und wo jede Sperre durchgesetzt wird |
+| **Geschützte Entitäten** | Playbooks | Die Benutzer, Hosts und Adressen, die kein Playbook eindämmt und keine Sperre berührt |
 | **Einstellungen** | KI | Ob OneUptime AI jeden neuen Fall triagiert |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
 | **Einrichtungsanleitung** | Verbindungen | Snippets zum Senden von Ereignissen, mit Ihrem Ingestion-Schlüssel ausgefüllt |
@@ -72,8 +73,8 @@ Sicherheitsdaten lesen nur die Rollen Projektinhaber und Projektadministrator so
 | Rolle | Was sie darf |
 | --- | --- |
 | Sicherheits-Administrator | Alles: Ereignisse, Fälle, Playbooks, Erkennungsregeln, Threat-Intel-Feeds und Verbindungen |
-| Sicherheits-Mitglied | Ereignisse und Threat Intel lesen, Fälle bearbeiten, Playbooks ausführen und ihre Schritte genehmigen sowie Erkennungsregeln und Feeds erstellen, ändern und löschen. Sie kann keine Playbooks oder Verbindungen einrichten und keine Sicherheitsdaten löschen. |
-| Sicherheits-Betrachter | Ereignisse, Fälle, Playbooks, Regeln, Feeds, Indikatoren und Verbindungen lesen |
+| Sicherheits-Mitglied | Ereignisse und Threat Intel lesen, Fälle bearbeiten, Playbooks ausführen und ihre Schritte genehmigen, Adressen sperren sowie Erkennungsregeln und Feeds erstellen, ändern und löschen. Sie kann keine Playbooks oder Verbindungen einrichten und keine Sicherheitsdaten löschen. |
+| Sicherheits-Betrachter | Ereignisse, Fälle, Playbooks, die Sperrliste, Regeln, Feeds, Indikatoren und Verbindungen lesen |
 
 ## Sicherheitsereignisse senden
 
@@ -191,8 +192,9 @@ Jede Art erreicht OneUptime als gewöhnliche Logs:
 | SSH-Anmeldungen, sudo | Dem Journal oder Auth-Log eines Linux-Rechners, mit dem [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-Ereignisse | Dem Empfänger `windowseventlog` des Collectors auf dem Rechner, oder einem Weiterleiter, der jedes Ereignis als JSON schreibt, etwa NXLog oder Winlogbeat. Ein zu OneUptime hinzugefügter [Host](/docs/telemetry/hosts) liest außerdem Sysmon, Microsoft Defender und PowerShell, wo er sie hat |
 | AWS CloudTrail | Einem Trail, der an CloudWatch Logs geliefert und vom Empfänger `awscloudwatch` des Collectors gelesen wird, oder, bei einem unter **Cloud** verbundenen Konto, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
-| Google Cloud-Audit-Logs | Einer Log-Senke nach Pub/Sub, gelesen vom Empfänger `googlecloudpubsub` des Collectors mit `encoding: raw_text`, oder, bei einem unter **Cloud** verbundenen Projekt, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
-| Azure-Aktivitäts- und Entra-ID-Logs | Einer Diagnoseeinstellung, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw`, oder, für das Aktivitätsprotokoll eines unter **Cloud** verbundenen Abonnements, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
+| Google Cloud-Audit-Logs | Einer Log-Senke nach Pub/Sub, gelesen vom Empfänger `googlecloudpubsub` des Collectors mit `encoding: raw_text`, oder, bei einem unter **Cloud** verbundenen Projekt, über seinen [Stream](/docs/telemetry/cloud-streaming-google-cloud) oder [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
+| Azure-Aktivitäts- und Entra-ID-Logs | Einer Diagnoseeinstellung, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw`, oder an den Event Hub des [Streams](/docs/telemetry/cloud-streaming-azure) eines verbundenen Abonnements, oder, für das Aktivitätsprotokoll eines unter **Cloud** verbundenen Abonnements, über [Cloud-Audit-Protokolle](#die-audit-logs-ihrer-cloud-konten-lesen) |
+| Azure Key Vault-, Storage- und SQL-Protokolle | Der Diagnoseeinstellung einer Ressource, die an einen Event Hub streamt, gelesen vom Empfänger `azureeventhub` des Collectors mit `format: raw`, oder den Diagnoseeinstellungen des [Streams](/docs/telemetry/cloud-streaming-azure) eines verbundenen Abonnements, wenn er Logs streamt. Siehe [Die eigenen Audit-Logs von Azure-Ressourcen](#die-eigenen-audit-logs-von-azure-ressourcen) |
 | OpenStack-Audit-Trail | Den Benachrichtigungen und dem Audit-Filter einer Cloud, die mit `driver = log` in deren Logs geschrieben und vom [Logs-Profil](/docs/telemetry/openstack#wer-was-getan-hat) des Agents gelesen werden |
 | CEF, LEEF | Dem Syslog des Produkts, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Dem eigenen Syslog der Firewall, weitergeleitet von [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ Auf **Ihre Protokolle** sagt jede Art, wann sie zuletzt gefunden wurde, und **Ei
 
 Eine Bedrohung, die ein Sicherheitsprodukt in Ihre Logs schreibt, etwa ein CEF- oder LEEF-Fund oder eine Bedrohung von Palo Alto Networks, FortiGate oder Cisco ASA, eröffnet einen [Fall](/docs/telemetry/security-cases), wie es die Warnung eines verbundenen Produkts tut, und erhöht das Risiko des Benutzers, Hosts oder der Adresse, die sie nennt. **Fälle eröffnen ab** auf **Ihre Protokolle** legt fest, ab welchem Schweregrad: **Hoch und höher**, sofern Sie keinen anderen wählen, oder **Nie**. Die Anmeldungen und blockierten Verbindungen des Produkts bleiben Ereignisse, die Ihre Regeln lesen.
 
-Ein Datensatz, der OneUptime auf zwei Wegen erreicht, wird einmal gespeichert: eine Anmeldung in Microsoft Entra ID, die ihre Verbindung liest und die Azure auch in Ihre Logs exportiert, oder ein CloudTrail-Datensatz in Ihren Logs und im Audit-Log eines verbundenen AWS-Kontos.
+Ein Datensatz, der OneUptime auf zwei Wegen erreicht, wird einmal gespeichert: eine Anmeldung in Microsoft Entra ID, die ihre Verbindung liest und die Azure auch in Ihre Logs exportiert, ein CloudTrail-Datensatz in Ihren Logs und im Audit-Log eines verbundenen AWS-Kontos, oder ein Audit-Eintrag, den der Stream eines Cloud-Kontos sendet und den auch **Cloud-Audit-Protokolle** liest.
+
+#### Die eigenen Audit-Logs von Azure-Ressourcen
+
+Ein Key Vault, ein Speicherkonto und eine Azure SQL-Datenbank führen jeweils ein eigenes Audit-Log, das jede Anfrage aufzeichnet. Nur was sich ein Sicherheitsteam ansieht, wird zum Sicherheitsereignis:
+
+| Ressource | Was zum Sicherheitsereignis wird |
+| --- | --- |
+| Key Vault (`AuditEvent`) | Eine Anfrage, die der Vault abgelehnt hat; ein herausgegebenes Secret; das Löschen, endgültige Löschen oder Sichern eines Secrets, Schlüssels, Zertifikats oder des Vaults selbst; eine Änderung seiner Zugriffsrichtlinie; und eine Änderung an dem, was er enthält. Nicht die Antwort 401, die jeder Client eines Azure SDK bei seinem ersten Aufruf erhält, den er ohne Token macht, um den Mandanten zu erfahren: Key Vault protokolliert sie unter seiner Operation `Authentication` |
+| Speicherkonto (`StorageRead`, `StorageWrite`, `StorageDelete`) | Eine Anfrage, die mangels Berechtigung abgelehnt wurde; eine, die ganz ohne Anmeldeinformationen bedient wurde, außer den Seiten einer statischen Website und einem CORS-Preflight; eine Änderung der Zugriffsliste eines Containers, einer Freigabe, einer Warteschlange oder einer Tabelle oder das Löschen eines solchen Objekts als Ganzes; und ein Schreiben oder Löschen, das eine Shared Access Signature (SAS) signiert hat. Kein erfolgreicher Lesezugriff, auch keiner per SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | Eine fehlgeschlagene Anmeldung; eine Anmeldung über eine neue Verbindung, nicht die Wiederverwendung einer Verbindung aus dem Pool; eine erteilte, verweigerte oder entzogene Berechtigung, eine geänderte Rollenmitgliedschaft oder ein geändertes Passwort, ein Identitätswechsel und das Erstellen, Ändern oder Löschen eines Logins, Benutzers oder einer Rolle; und eine Aktion, deren Berechtigungsprüfung fehlgeschlagen ist. Kein Batch, der Großteil eines Audits |
+
+Die erfolgreichen Lesezugriffe eines Speicherkontos sind das meiste, was es protokolliert: Über eine SAS geben die meisten Apps Dateien an Browser weiter. Sie bleiben ganz in den Logs, auf dem Tab **Protokolle** des Kontos: Suchen Sie dort nach `"type":"SAS"`, um zu sehen, was eine Shared Access Signature gelesen hat. Jedes Ereignis nennt seine Ressource mit ihrer ID, das eines Speicherdienstes auch dessen Konto, daher erscheint es auf der Seite **Sicherheitsereignisse** dieser Ressource, und ein Datensatz, der zweimal ankommt, wird einmal gespeichert.
 
 ### Die Audit-Logs Ihrer Cloud-Konten lesen
 
@@ -471,9 +485,9 @@ detection:
 | **In Echtzeit ausführen** | Bei einer neuen Regel aus. Ist es an, prüft die Regel jedes Ereignis beim Eintreffen statt in jedem Intervall; siehe [Echtzeitregeln](#echtzeitregeln). |
 | **Nach Feld gruppieren** | Optional. Treffer, die den Wert dieses Felds teilen, etwa `principalHost`, werden gemeinsam gezählt, gemeldet und dedupliziert: eine Warnung pro Host statt Hunderten. |
 | **Feld für eindeutige Zählung** | Optional. Die verschiedenen Werte dieses Felds zählen statt der passenden Ereignisse. Leere Werte zählen nicht. |
-| **Schwellenwert der Trefferanzahl** | Eine Gruppe löst nur aus, wenn ihre Zählung diese Zahl innerhalb eines Laufs erreicht, in Echtzeit innerhalb eines Zeitfensters: 1 bis 1000000, und 1 löst bei jedem Treffer aus. |
+| **Schwellenwert der Trefferanzahl** | Eine Gruppe löst nur aus, wenn ihre Zählung diese Zahl innerhalb eines Zeitfensters des Regelintervalls erreicht: 1 bis 1000000, und 1 löst bei jedem Treffer aus. |
 
-Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mit ihnen sagt der Schwellenwert „so viele, vom selben Ding, in einem Lauf“, ohne Monitor obendrauf:
+Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mit ihnen sagt der Schwellenwert „so viele, vom selben Ding, in einem Zeitfenster“, ohne Monitor obendrauf:
 
 | Ziel | Nach Feld gruppieren | Feld für eindeutige Zählung | Schwellenwert |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Gruppierung und eindeutige Zählung nehmen dieselben Feldnamen wie die Regel. Mi
 
 ### Wann eine Regel läuft
 
-OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem letzten Lauf hinter sich haben. Jeder Lauf liest die Ereignisse, deren Ereigniszeit zwischen dem vorigen Lauf und vor zwei Minuten liegt, und geht dann weiter. Die zwei Minuten lassen Ereignissen Zeit, die noch unterwegs sind, etwa einer Logzeile, die eine Minute nach dem Schreiben gelesen wird:
+OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem letzten Lauf hinter sich haben. Jeder Lauf liest die Ereignisse, die zwischen dem vorigen Lauf und vor zwei Minuten bei OneUptime angekommen sind, gleich wann sie geschehen sind, und geht dann weiter. Die zwei Minuten lassen Ereignissen Zeit, die noch geschrieben werden:
 
-- Die Fenster liegen lückenlos hintereinander, sie gleiten nicht. Bei einem Intervall von 10 Minuten können Fehlschläge um 09:58 und 10:01 in verschiedene Läufe fallen und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
+- Eine zählende Regel und eine Korrelation zählen in Zeitfenstern so lang wie das Intervall, lückenlos nach der Uhr: Bei einem Intervall von 10 Minuten fallen Fehlschläge um 09:58 und 10:01 in verschiedene Zeitfenster und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
-- Ein Ereignis, das mehr als zwei Minuten zu spät ankommt, nachdem ein Lauf seine Zeit schon abgedeckt hat, wird gespeichert und ist durchsuchbar, aber diese Regel liest es nie.
+- Ein Ereignis, das verspätet eintrifft, liest der nächste Lauf trotzdem, einmal, und zählt es in dem Zeitfenster, in dem es geschehen ist: Eine Gruppe löst aus, wenn ihr Zeitfenster die Zählung erreicht, und höchstens einmal pro Zeitfenster. Eines, das mehr als einen Tag nach seinem Geschehen eintrifft, wird gespeichert und ist durchsuchbar, aber die Läufe der Regel lesen es nicht; **Auf vergangene Ereignisse anwenden** tut es.
 - Jede Gruppe, die den Schwellenwert erreicht, wird zu einem Detection Finding, bis zu 10.000 pro Lauf. Warnungen, Vorfälle und Fälle öffnen sich für die 100 mit den höchsten Zählungen; die übrigen teilen sich einen Fall zur Regel, und **Letzter Fehler** der Regel nennt, wie viele Gruppen passten.
 
 ### Echtzeitregeln

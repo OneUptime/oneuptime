@@ -93,8 +93,11 @@ describe("which product's Setup Guide lists which way", () => {
         CompatibleIngestMethod.Datadog,
       ],
     ],
-    ["traces", [CompatibleIngestMethod.Sentry]],
-    ["exceptions", [CompatibleIngestMethod.Sentry]],
+    ["traces", [CompatibleIngestMethod.Datadog, CompatibleIngestMethod.Sentry]],
+    [
+      "exceptions",
+      [CompatibleIngestMethod.Datadog, CompatibleIngestMethod.Sentry],
+    ],
     ["profiles", []],
   ])("%s", (signal: string, expected: Array<CompatibleIngestMethod>) => {
     expect(
@@ -320,8 +323,19 @@ describe("each tool's own configuration", () => {
     expect(cloud).toContain("logs_dd_url: oneuptime.com:443");
     expect(cloud).toContain("DD_LOGS_CONFIG_LOGS_DD_URL=oneuptime.com:443");
     expect(cloud).not.toContain("logs_no_ssl");
+    // APM traces go to apm_dd_url, the same URL dd_url is.
+    expect(cloud).toContain(
+      "apm_config:\n  enabled: true\n  apm_dd_url: https://oneuptime.com/telemetry/datadog",
+    );
+    expect(cloud).toContain("DD_APM_ENABLED=true");
+    expect(cloud).toContain(
+      "DD_APM_DD_URL=https://oneuptime.com/telemetry/datadog",
+    );
+    expect(cloud).not.toContain("DD_APM_ENABLED=false");
     // What OneUptime does not read from the Agent yet is turned off.
-    expect(cloud).toContain("DD_APM_ENABLED=false");
+    expect(cloud).toContain(
+      "DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED=false",
+    );
 
     const local: string = codeOf(CompatibleIngestMethod.Datadog, LOCAL);
 

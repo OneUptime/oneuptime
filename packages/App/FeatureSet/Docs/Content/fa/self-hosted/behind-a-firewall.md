@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | GET | `/l/*` | پیوندهای کوتاه در پیامک‌ها و پیام‌های WhatsApp و Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | صفحه‌ای که نشان می‌دهد فراخوانی دربارهٔ چیست، با دکمهٔ **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | دکمهٔ **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | دکمهٔ **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | اختیاری: صفحه‌ای که فراخوانی را به نفر بعدی واگذار می‌کند |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | اختیاری: دکمهٔ آن |
 | GET | `/oneuptime-assets/*` | فونت‌ها، استایل‌ها و لوگوی آن صفحه‌ها |

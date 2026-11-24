@@ -296,7 +296,7 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     id: "node-filesystem-capacity",
     friendlyName: translationKey("Node Filesystem Capacity"),
     description: translationKey(
-      "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; the kubelet starts evicting pods when less than 10% of it is free.",
+      "The size of the node's root filesystem, in bytes, as the kubelet measures it. Used is this minus Node Filesystem Available; by default the kubelet starts evicting pods when less than 10% of it is free, or 15% when it also holds the node's container images.",
     ),
     metricName: "k8s.node.filesystem.capacity",
     category: "Node",
@@ -391,6 +391,38 @@ const kubernetesMetricCatalog: Array<KubernetesMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Min,
     defaultResourceScope: KubernetesResourceScope.Pod,
     unit: "count",
+  },
+  /*
+   * A container's root filesystem, as the kubelet reports it (#9843): the
+   * filesystem its writable layer lives on, which is the disk the node keeps
+   * its images on on most nodes. Node Image Disk Almost Full and the Nodes
+   * list's Image Disk read it, per node: every container of a node reports
+   * the same disk. The kubeletstats receiver exports no image filesystem of
+   * the node's own.
+   */
+  {
+    id: "container-filesystem-available",
+    friendlyName: translationKey("Container Filesystem Available"),
+    description: translationKey(
+      "Free bytes on the filesystem a container writes its own files to, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Every container on a node reports the same disk. Falling is bad, so alert with a 'less than' threshold.",
+    ),
+    metricName: "container.filesystem.available",
+    category: "Container",
+    defaultAggregation: MetricsAggregationType.Min,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "bytes",
+  },
+  {
+    id: "container-filesystem-capacity",
+    friendlyName: translationKey("Container Filesystem Capacity"),
+    description: translationKey(
+      "The size of the filesystem a container writes its own files to, in bytes, as the kubelet measures it: on most nodes, the disk the node keeps its container images on. Used is this minus Container Filesystem Available.",
+    ),
+    metricName: "container.filesystem.capacity",
+    category: "Container",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: KubernetesResourceScope.Node,
+    unit: "bytes",
   },
 
   /*

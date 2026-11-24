@@ -133,19 +133,33 @@ export default class Route extends DatabaseProperty {
     return null;
   }
 
+  /*
+   * The route with these parameters after its query: "?" before them when
+   * it has none, "&" when it has some already - joined straight on, a route
+   * that had a query ran its last value into the first new key
+   * ("?x=1y=2") - and the route as it was when there are none, where its
+   * last character used to be cut off.
+   */
   public addQueryParams(queryParams: Dictionary<string>): Route {
-    // make sure route ends with "?" if it doesn't have any query params
+    const pairs: Array<string> = Object.keys(queryParams).map(
+      (key: string): string => {
+        return `${key}=${queryParams[key]}`;
+      },
+    );
+
+    if (pairs.length === 0) {
+      return this;
+    }
+
+    let separator: string = "&";
 
     if (!this.route.includes("?")) {
-      this.route += "?";
+      separator = "?";
+    } else if (this.route.endsWith("?") || this.route.endsWith("&")) {
+      separator = "";
     }
 
-    for (const key in queryParams) {
-      this.route += `${key}=${queryParams[key]}&`;
-    }
-
-    //remove last "&" from route
-    this.route = this.route.substring(0, this.route.length - 1);
+    this.route += `${separator}${pairs.join("&")}`;
 
     return this;
   }

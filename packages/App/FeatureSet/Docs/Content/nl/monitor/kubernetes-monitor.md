@@ -5,7 +5,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 :::cards
 - [De agent installeren](/docs/monitor/kubernetes-agent): Eén Helm-opdracht brengt het cluster in OneUptime.
 - [De monitor maken](#een-kubernetes-monitor-maken): Het cluster kiezen, dan een sjabloon, een metriek of een query.
-- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Vijfentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
+- [Waarschuwingssjablonen](#kant-en-klare-waarschuwingssjablonen): Zesentwintig kant-en-klare waarschuwingen, van een stil cluster tot etcd.
 - [Criteria](#bewakingscriteria): Statische drempels en anomaliedetectie.
 :::
 
@@ -88,7 +88,7 @@ Het tabblad **Custom Metric** biedt deze metrieken aan, gegroepeerd per resource
 | --- | --- |
 | Pod | CPU-verbruik van de pod, Pod geheugengebruik, Fase van de pod (code), Bestandssysteemgebruik van de pod, Volumecapaciteit, Vrije ruimte op het volume, Gebruik van de geheugenlimiet van de pod, Gebruik van de CPU-limiet van de pod, Netwerk-I/O van de pod (cumulatief, beide richtingen) |
 | Node | CPU-verbruik van de node, Toewijsbare CPU van de node, Geheugengebruik van node, Werkset van het geheugen van de node, Bestandssysteemgebruik van node, Toewijsbaar geheugen van de node, Ready-conditie van de node, MemoryPressure-conditie van de node, DiskPressure-conditie van de node, PIDPressure-conditie van de node, Beschikbaar bestandssysteem van de node, Bestandssysteemcapaciteit van de node |
-| Container | Herstarts van de container, Herstarts van de container (toename), CPU-limiet van de container, CPU-aanvraag van de container, Geheugenlimiet van de container, Geheugenaanvraag van de container, Container gereed |
+| Container | Herstarts van de container, Herstarts van de container (toename), CPU-limiet van de container, CPU-aanvraag van de container, Geheugenlimiet van de container, Geheugenaanvraag van de container, Container gereed, Beschikbaar bestandssysteem van de container, Bestandssysteemcapaciteit van de container |
 | Werklast | Beschikbare replica's van de Deployment, Gewenste replica's van de Deployment, Gewenste nodes van de DaemonSet, Verkeerd ingeplande nodes van de DaemonSet, Gereede nodes van de DaemonSet, Gewenste replica's van de StatefulSet, Gereede replica's van de StatefulSet, Mislukte pods van de Job, Mislukte pods van de Job (toename), Geslaagde pods van de Job |
 | HPA | Huidige replica's van de HPA, Gewenste replica's van de HPA, Maximum aantal replica's van de HPA, Minimum aantal replica's van de HPA |
 | Controlevlak | etcd heeft een leider, Lopende aanvragen van de API-server, Wachtende pods van de scheduler |
@@ -149,7 +149,8 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 | etcd No Leader | Controlevlak | etcd geen gekozen leider heeft | Kritiek |
 | API Server Request Saturation | Controlevlak | De API-server het hele venster 200 of meer lopende verzoeken vasthoudt | Kritiek |
 | Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Waarschuwing |
-| High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Waarschuwing |
+| High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 85% vol is | Waarschuwing |
+| Node Image Disk Almost Full | Opslag | De schijf waarop een node zijn container-images bewaart meer dan 85% vol is | Waarschuwing |
 | PVC Almost Full | Opslag | Een persistent volume claim meer dan 90% vol is | Waarschuwing |
 | DaemonSet Pods Not Ready | Werklast | Een DaemonSet 15 minuten lang nodes zonder een gereedstaande pod ervan heeft | Waarschuwing |
 | DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Waarschuwing |
@@ -167,6 +168,8 @@ Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, Dae
 De kostensjablonen lezen de metrieken die OneUptime uit de kostenrijen per uur van de agent schrijft, één punt per uur, dus ze tellen de afgelopen dag op; hun budgetten staan in de valuta van het cluster, standaard USD.
 
 **High Node CPU Request Commitment** en **High Node Memory Request Commitment** tellen alleen de requests van pods die nog niet klaar zijn, zoals de scheduler dat doet. Het cluster blijft de requests melden van een pod die Succeeded of Failed is, zoals die van een afgeronde Job, tot de pod wordt verwijderd: die tellen niet mee.
+
+**Node Image Disk Almost Full** leest de schijf waarop volgens de kubelet elke draaiende container zijn eigen bestanden schrijft, omdat de agent de imageschijf van een node niet zelf meldt. Bij de gebruikelijke indelingen is dat de imageschijf, maar niet op elke node: waar een node zijn images op zijn rootbestandssysteem bewaart, zoals de meeste, is het het rootbestandssysteem, zodat het sjabloon samen met **High Node Disk Usage** afgaat; met het gesplitste imagebestandssysteem van de kubelet (`KubeletSeparateDiskGC`) is het de schijf waarnaar de containers schrijven en niet die van de images; en een node zonder draaiende container meldt niets. De aanbevelingen van een cluster bieden het aan zodra een node zijn images op een eigen schijf bewaart, wat de nodelijst dan in de kolom **Imageschijf** toont; de lijst onder **Waarover te waarschuwen** toont het voor elk cluster. Standaard verwijdert de kubelet ongebruikte images zodra een schijf met de images voor 85% vol is, en verdrijft hij pods als er minder dan 15% van vrij is, dus dit sjabloon en **High Node Disk Usage** gaan af bij 85% en zetten de monitor weer online bij 80%, het niveau waarnaar de opruiming van images de schijf terugbrengt. Op een node waarvan de images een eigen schijf hebben, verdrijft de kubelet pods op basis van het rootbestandssysteem vanaf 90%, dus daar gaat **High Node Disk Usage** af voordat het verdrijven begint.
 
 **Cluster Stopped Reporting** gaat af als er tien minuten lang niets van de agent van het cluster binnenkomt: de agent is verwijderd of crasht steeds, zijn API-sleutel is ingetrokken, hij is zijn route naar OneUptime kwijtgeraakt, of de API-server van het cluster antwoordt hem niet meer. Het wordt opgelost zodra er weer gegevens binnenkomen. Als er geen gegevens meer komen, hebben de andere sjablonen niets om te vergelijken en houden ze hun laatste status, dus dit is het sjabloon dat het u laat weten.
 

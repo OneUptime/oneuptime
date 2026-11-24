@@ -13,6 +13,7 @@ import Dictionary from "../../../Types/Dictionary";
 import logger from "../Logger";
 import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "./OneuptimeLabel";
 import { ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE } from "../../../Types/DeviceManagement/ManagedDeviceIdentity";
+import { ANDROID_AGENT_PERMISSIONS_ATTRIBUTE } from "../../../Types/Host/AndroidAgentPermissions";
 import crypto from "crypto";
 import { writeOwnValue } from "../../../Utils/LookupTable";
 
@@ -1200,6 +1201,11 @@ export default class InventoryItem {
      * level, which the OneUptime Android agent sends on every report and the
      * Esper import writes under the same key (#9800): the Security Patch
      * asset detail, and the column a fleet is audited by.
+     *
+     * `oneuptime.agent.permissions.missing` is what the Android agent still
+     * lacks on the device - READ_LOGS, READ_DROPBOX_DATA, usage access - or
+     * "none", on every report (#9967): Inventory's Agent Permissions filter
+     * lists the devices of a fleet that still need them granted with adb.
      */
     [EntityType.Host]: [
       "os.type",
@@ -1220,6 +1226,7 @@ export default class InventoryItem {
       "cloud.region",
       "cloud.availability_zone",
       ANDROID_SECURITY_PATCH_LEVEL_ATTRIBUTE,
+      ANDROID_AGENT_PERMISSIONS_ATTRIBUTE,
     ],
     [EntityType.Service]: [
       "telemetry.sdk.language",

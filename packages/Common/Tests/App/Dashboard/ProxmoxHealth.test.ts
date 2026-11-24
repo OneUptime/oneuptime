@@ -1,13 +1,17 @@
 import { describe, expect, test } from "@jest/globals";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import Route from "../../../Types/API/Route";
+import { Translator, createTranslator } from "../../../Types/Translator";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import {
   PROXMOX_ATTENTION_KIND_ORDER,
+  PROXMOX_POWER_TASK_STALE_MS,
   PROXMOX_STORAGE_FULL_PERCENT,
   PROXMOX_STORAGE_NEAR_FULL_PERCENT,
   ProxmoxAssessment,
   ProxmoxIssueTarget,
   ProxmoxPartKind,
+  ProxmoxProblem,
   assessProxmoxGuest,
   assessProxmoxNode,
   assessProxmoxResource,
@@ -15,6 +19,7 @@ import {
   getProxmoxAttentionItems,
   getProxmoxClusterHealth,
   getProxmoxDisplayName,
+  getProxmoxGuestStopFacts,
   getProxmoxIssueTarget,
   getProxmoxProblemItems,
   getProxmoxStoragePercent,
@@ -28,6 +33,7 @@ import {
   ResourceAttentionSeverity,
   ResourceAttentionText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
+import { getResourceAttentionSinceText } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttentionRow";
 
 /*
  * What on a Proxmox VE cluster needs someone, and how bad it is: the one
@@ -920,5 +926,402 @@ describe("what the Overview's counts open", () => {
         kind: "backupFailed",
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * #10017: who or what stopped a guest that should be running, and when -
+ * from its last power task in the cluster's task log, as the Proxmox AI
+ * agent reads it (agents/ResourceAIAgent, ProxmoxGuestTasks) and the ingest
+ * keeps it on the guest's row. Each row below holds what the ingest stores
+ * for a real task-log entry: GET /nodes/pve1/tasks?vmid=101 answering
+ * {"upid": "UPID:pve1:0001A2B3:0C4D5E6F:6733F0A1:qmstop:101:alice@pve:",
+ *  "type": "qmstop", "user": "alice@pve", "status": "OK", "endtime": ...}.
+ */
+describe("who or what stopped a guest that should be running", () => {
+  const NOW: Date = new Date("2026-11-20T12:00:00.000Z");
+  const STALE_MS: number = 15 * 60 * 1000;
+  const ENGLISH: Translator = createTranslator(undefined, "en");
+
+  function minutesBefore(minutes: number): Date {
+    return new Date(NOW.getTime() - minutes * 60 * 1000);
+  }
+
+  // A guest that starts on boot and is stopped, with what the agent read.
+  function stoppedGuest(
+    vmid: number,
+    name: string,
+    task: {
+      type: string;
+      user: string;
+      status: string;
+      endedMinutesAgo: number;
+      readMinutesAgo?: number;
+    } | null,
+    fields: RowFields = {},
+  ): ProxmoxResource {
+    return guest(vmid, name, {
+      isUp: false,
+      onboot: true,
+      parentNodeName: "pve1",
+      ...(task
+        ? {
+            lastPowerTaskType: task.type,
+            lastPowerTaskUser: task.user,
+            lastPowerTaskStatus: task.status,
+            lastPowerTaskAt: minutesBefore(task.endedMinutesAgo),
+            powerTaskReadAt: minutesBefore(task.readMinutesAgo ?? 2),
+          }
+        : {}),
+      ...fields,
+    });
+  }
+
+  // The dialog's rows, worded in English unless a test says otherwise.
+  function itemsOf(
+    rows: Array<ProxmoxResource>,
+    problem: ProxmoxProblem = { kind: "guestsStopped" },
+    options: { translator: Translator | undefined } = { translator: ENGLISH },
+  ): Array<ResourceAttentionItem> {
+    return getProxmoxProblemItems({
+      rows: rows,
+      problem: problem,
+      routeFor: routeFor,
+      now: NOW,
+      staleMs: STALE_MS,
+      translator: options.translator,
+    });
+  }
+
+  // The row's since line, as the dialog draws it.
+  function sinceText(item: ResourceAttentionItem): string {
+    return getResourceAttentionSinceText(ENGLISH, item.since!, NOW);
+  }
+
+  test("stopped by someone: who, and when, as the dialog says it", () => {
+    const [item] = itemsOf([
+      stoppedGuest(101, "web-1", {
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        endedMinutesAgo: 120,
+      }),
+    ]);
+
+    expect(item!.since).toEqual({
+      at: minutesBefore(120),
+      template: "Stopped by {{user}} {{time}}",
+      values: { user: "alice@pve" },
+    });
+    // The number held to its unit, as every English line holds it.
+    expect(sinceText(item!)).toBe(
+      `Stopped by alice@pve 2${NO_BREAK_SPACE}hours ago`,
+    );
+    // Nothing more to explain, and still why it is listed and where it is.
+    expect(item!.explanation).toBeUndefined();
+    expect(item!.message).toBeUndefined();
+    expect(item!.reasons[0]).toEqual({ text: "Stopped, but starts on boot" });
+    expect(item!.facts?.[0]?.value).toBe("pve1");
+  });
+
+  test.each<[string, string, string, string]>([
+    ["qmshutdown", "carol@pam", "Shut down by {{user}} {{time}}", "qemu"],
+    ["vzstop", "dave@pve", "Stopped by {{user}} {{time}}", "lxc"],
+    ["vzshutdown", "root@pam", "Shut down by {{user}} {{time}}", "lxc"],
+    // HA's stop on someone's request names who asked.
+    ["hastop", "bob@pve", "Stopped through HA by {{user}} {{time}}", "qemu"],
+    [
+      "hashutdown",
+      "bob@pve",
+      "Stopped through HA by {{user}} {{time}}",
+      "qemu",
+    ],
+    ["qmsuspend", "erin@pve", "Hibernated by {{user}} {{time}}", "qemu"],
+    [
+      "qmrestore",
+      "backup@pbs!restore",
+      "Restored from a backup by {{user}} {{time}}",
+      "qemu",
+    ],
+    [
+      "vzrestore",
+      "root@pam",
+      "Restored from a backup by {{user}} {{time}}",
+      "lxc",
+    ],
+  ])(
+    "%s by %s: %s",
+    (type: string, user: string, template: string, guestType: string) => {
+      const [item] = itemsOf([
+        stoppedGuest(
+          101,
+          "web-1",
+          { type, user, status: "OK", endedMinutesAgo: 30 },
+          { externalId: `${guestType}/101`, guestType: guestType },
+        ),
+      ]);
+      expect(item!.since).toEqual({
+        at: minutesBefore(30),
+        template: template,
+        values: { user: user },
+      });
+    },
+  );
+
+  test("a start that failed: when, and Proxmox's own reason as the row's message", () => {
+    const [item] = itemsOf([
+      stoppedGuest(103, "api-1", {
+        type: "qmstart",
+        user: "root@pam",
+        status: "start failed: QEMU exited with code 1",
+        endedMinutesAgo: 10,
+      }),
+    ]);
+
+    expect(item!.since).toEqual({
+      at: minutesBefore(10),
+      template: "Last start failed {{time}}",
+    });
+    expect(sinceText(item!)).toBe(
+      `Last start failed 10${NO_BREAK_SPACE}minutes ago`,
+    );
+    expect(item!.message).toBe("start failed: QEMU exited with code 1");
+  });
+
+  test("a last start that went well, and no task since: shut down from inside, or crashed", () => {
+    const [item] = itemsOf([
+      stoppedGuest(104, "cache-1", {
+        type: "qmstart",
+        user: "root@pam",
+        status: "OK",
+        endedMinutesAgo: 2 * 24 * 60,
+      }),
+    ]);
+
+    expect(item!.explanation).toBe(
+      "No Proxmox task stopped it since it last started: it was shut down from inside, or it crashed.",
+    );
+    expect(item!.since).toEqual({
+      at: minutesBefore(2 * 24 * 60),
+      template: "Last started {{time}}",
+    });
+    expect(sinceText(item!)).toBe(`Last started 2${NO_BREAK_SPACE}days ago`);
+  });
+
+  test("a start that finished with warnings went well too", () => {
+    const [item] = itemsOf([
+      stoppedGuest(104, "cache-1", {
+        type: "vzstart",
+        user: "root@pam",
+        status: "WARNINGS: 1",
+        endedMinutesAgo: 60,
+      }),
+    ]);
+    expect(item!.since?.template).toBe("Last started {{time}}");
+    expect(item!.message).toBeUndefined();
+  });
+
+  test("HA in error: what it means and what to do, with the start it failed", () => {
+    const [item] = itemsOf([
+      stoppedGuest(
+        103,
+        "api-1",
+        {
+          type: "qmstart",
+          user: "root@pam",
+          status: "start failed: QEMU exited with code 1",
+          endedMinutesAgo: 12,
+        },
+        { onboot: false, haState: "error" },
+      ),
+    ]);
+
+    expect(item!.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(item!.reasons[0]).toEqual({
+      text: "HA state: {{state}}",
+      values: { state: "error" },
+    });
+    expect(item!.explanation).toBe(
+      "HA could not start it and stopped trying. Set its HA state to disabled, fix what keeps it from starting, then set it to started.",
+    );
+    expect(item!.message).toBe("start failed: QEMU exited with code 1");
+    expect(sinceText(item!)).toBe(
+      `Last start failed 12${NO_BREAK_SPACE}minutes ago`,
+    );
+  });
+
+  test("HA fencing its node: what HA waits for, whether or not the task log was read", () => {
+    const [item] = itemsOf([
+      stoppedGuest(105, "db-1", null, { onboot: false, haState: "fence" }),
+    ]);
+    expect(item!.explanation).toBe(
+      "Its node is outside the quorate part of the cluster. Once that node is fenced, HA starts it on another node.",
+    );
+    expect(item!.since).toBeUndefined();
+  });
+
+  test("the HA resources in error a count opens say the same", () => {
+    const [item] = itemsOf(
+      [
+        stoppedGuest(
+          103,
+          "api-1",
+          {
+            type: "qmstart",
+            user: "root@pam",
+            status: "start failed: QEMU exited with code 1",
+            endedMinutesAgo: 12,
+          },
+          { onboot: false, haState: "error" },
+        ),
+      ],
+      { kind: "haState", state: "error" },
+    );
+    expect(item!.explanation).toContain("HA could not start it");
+    expect(item!.message).toBe("start failed: QEMU exited with code 1");
+    expect(item!.since?.template).toBe("Last start failed {{time}}");
+  });
+
+  test("the explanation is in the reader's words; without a translator a list draws none, and keeps the rest", () => {
+    const rows: Array<ProxmoxResource> = [
+      stoppedGuest(104, "cache-1", {
+        type: "qmstart",
+        user: "root@pam",
+        status: "OK",
+        endedMinutesAgo: 60,
+      }),
+    ];
+    const german: Translator = createTranslator((text: string) => {
+      return text ===
+        "No Proxmox task stopped it since it last started: it was shut down from inside, or it crashed."
+        ? "Seit dem letzten Start hat keine Proxmox-Aufgabe ihn gestoppt: Er wurde von innen heruntergefahren oder ist abgestürzt."
+        : undefined;
+    }, "de");
+    expect(
+      itemsOf(rows, { kind: "guestsStopped" }, { translator: german })[0]!
+        .explanation,
+    ).toBe(
+      "Seit dem letzten Start hat keine Proxmox-Aufgabe ihn gestoppt: Er wurde von innen heruntergefahren oder ist abgestürzt.",
+    );
+
+    const [untranslated] = itemsOf(
+      rows,
+      { kind: "guestsStopped" },
+      { translator: undefined },
+    );
+    expect(untranslated!.explanation).toBeUndefined();
+    expect(untranslated!.since?.template).toBe("Last started {{time}}");
+  });
+
+  test("a guest the agent has not read, or not for a day, says nothing of who stopped it", () => {
+    const items: Array<ResourceAttentionItem> = itemsOf([
+      stoppedGuest(101, "never-read", null),
+      stoppedGuest(102, "read-long-ago", {
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        endedMinutesAgo: 3 * 24 * 60,
+        readMinutesAgo: 24 * 60 + 1,
+      }),
+      stoppedGuest(103, "read-today", {
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        endedMinutesAgo: 3 * 24 * 60,
+        readMinutesAgo: 24 * 60 - 1,
+      }),
+    ]);
+    const byName: Record<string, ResourceAttentionItem> = {};
+    for (const item of items) {
+      byName[item.name] = item;
+    }
+    expect(byName["never-read"]!.since).toBeUndefined();
+    expect(byName["read-long-ago"]!.since).toBeUndefined();
+    expect(sinceText(byName["read-today"]!)).toBe(
+      `Stopped by alice@pve 3${NO_BREAK_SPACE}days ago`,
+    );
+  });
+
+  test("a task log with no start or stop of it, a task this does not word, or no user: nothing said", () => {
+    const items: Array<ResourceAttentionItem> = itemsOf([
+      // The agent read it and found no start or stop: the type is cleared.
+      stoppedGuest(101, "a", null, { powerTaskReadAt: minutesBefore(2) }),
+      stoppedGuest(102, "b", {
+        type: "qmigrate",
+        user: "alice@pve",
+        status: "OK",
+        endedMinutesAgo: 30,
+      }),
+      stoppedGuest(103, "c", {
+        type: "qmstop",
+        user: "",
+        status: "OK",
+        endedMinutesAgo: 30,
+      }),
+    ]);
+    expect(items).toHaveLength(3);
+    for (const item of items) {
+      expect(item.since).toBeUndefined();
+      expect(item.explanation).toBeUndefined();
+      expect(item.message).toBeUndefined();
+    }
+  });
+
+  test("only the guests that should be running and the ones HA gave up on: a failed backup keeps its own since", () => {
+    const failedBackup: ProxmoxResource = stoppedGuest(
+      101,
+      "web-1",
+      {
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        endedMinutesAgo: 120,
+      },
+      { lastBackupStatus: "failed", lastBackupAt: minutesBefore(300) },
+    );
+    const [backupItem] = itemsOf([failedBackup], { kind: "backupFailed" });
+    expect(backupItem!.since).toEqual({
+      at: minutesBefore(300),
+      template: "Failed {{time}}",
+    });
+  });
+
+  test("a guest that runs says nothing of a stop, whatever its row still holds", () => {
+    expect(
+      getProxmoxGuestStopFacts(
+        stoppedGuest(
+          101,
+          "web-1",
+          {
+            type: "qmstop",
+            user: "alice@pve",
+            status: "OK",
+            endedMinutesAgo: 120,
+          },
+          { isUp: true },
+        ),
+        NOW,
+      ),
+    ).toBeNull();
+    expect(getProxmoxGuestStopFacts(node("pve1", { isUp: false }), NOW)).toBe(
+      null,
+    );
+  });
+
+  test("the reading's dates as the API hands them - ISO strings - are read too", () => {
+    const row: ProxmoxResource = stoppedGuest(101, "web-1", null, {
+      lastPowerTaskType: "qmstop",
+      lastPowerTaskUser: "alice@pve",
+      lastPowerTaskStatus: "OK",
+      lastPowerTaskAt: minutesBefore(120).toISOString() as unknown as Date,
+      powerTaskReadAt: minutesBefore(1).toISOString() as unknown as Date,
+    });
+    expect(getProxmoxGuestStopFacts(row, NOW)?.since?.at).toEqual(
+      minutesBefore(120),
+    );
+  });
+
+  test("the window is a day, far longer than the agent takes to read every stopped guest", () => {
+    expect(PROXMOX_POWER_TASK_STALE_MS).toBe(24 * 60 * 60 * 1000);
   });
 });

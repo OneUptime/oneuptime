@@ -1,5 +1,9 @@
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
+import {
+  PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+  ProxmoxGuestPowerTaskAttribute,
+} from "../../../Utils/Proxmox/ProxmoxGuestPowerTask";
 import logger from "../Logger";
 
 /*
@@ -77,6 +81,14 @@ export const PVE_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
    */
   "pve_not_backed_up_total",
   "pve_not_backed_up_info",
+  /*
+   * A stopped guest's last power task, from the cluster's task log - not
+   * the exporter's: the Proxmox AI agent reads it (#10017,
+   * ProxmoxGuestPowerTask). Folded into the cluster snapshot, never into
+   * an inventory row's status, so it neither refreshes a guest's lastSeenAt
+   * nor reads as the cluster being read.
+   */
+  PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
 ]);
 
 /*
@@ -211,6 +223,30 @@ export interface ProxmoxClusterSnapshotBufferEntry {
    */
   isQuorate: boolean | null;
   isQuorateObservedAt: Date | null;
+  /*
+   * Each stopped guest's last power task, as the Proxmox AI agent read it
+   * from the task log (pve_guest_last_power_task), by its raw `id` label.
+   * Written by ProxmoxResourceService.recordGuestPowerTasks; the newest
+   * reading of a guest wins.
+   */
+  guestPowerTasks: Map<string, ProxmoxGuestPowerTaskReading>;
+}
+
+/*
+ * What the task log says about one stopped guest. type, user, status and
+ * node are null when the log holds no start or stop of it, and at is then
+ * null too. readAt is when the agent learned the guest was stopped: what
+ * the reading says holds from then (a guest seen running after it is not
+ * stopped by what it names).
+ */
+export interface ProxmoxGuestPowerTaskReading {
+  externalId: string; // qemu/104
+  type: string | null;
+  user: string | null;
+  status: string | null;
+  node: string | null;
+  at: Date | null;
+  readAt: Date;
 }
 
 /*
@@ -408,10 +444,62 @@ export function getOrCreateProxmoxClusterSnapshot(
       countsFromInventory: false,
       isQuorate: null,
       isQuorateObservedAt: null,
+      guestPowerTasks: new Map(),
     };
     buffer.set(clusterIdStr, entry);
   }
   return entry;
+}
+
+/*
+ * One pve_guest_last_power_task datapoint into the cluster snapshot. An
+ * empty type is a reading too: the task log holds no start or stop of the
+ * guest, so what OneUptime kept of an earlier one is cleared. Only a guest
+ * (qemu/<vmid>, lxc/<vmid>) has a task log of its own.
+ */
+// A guest's raw `id` label: qemu/104, lxc/200.
+const PROXMOX_GUEST_ID: RegExp = new RegExp("^(qemu|lxc)/\\d+$");
+
+function bufferProxmoxGuestPowerTask(data: {
+  cluster: ProxmoxClusterSnapshotBufferEntry;
+  externalId: string;
+  attributes: JSONArray;
+  value: number;
+  readAt: Date;
+}): void {
+  if (!PROXMOX_GUEST_ID.test(data.externalId)) {
+    return;
+  }
+  const existing: ProxmoxGuestPowerTaskReading | undefined =
+    data.cluster.guestPowerTasks.get(data.externalId);
+  if (existing && existing.readAt > data.readAt) {
+    return;
+  }
+  const type: string | null = getStringAttribute(
+    data.attributes,
+    ProxmoxGuestPowerTaskAttribute.Type,
+  );
+  const at: Date = new Date(data.value * 1000);
+  const isKnownTask: boolean =
+    Boolean(type) && data.value > 0 && !isNaN(at.getTime());
+  data.cluster.guestPowerTasks.set(data.externalId, {
+    externalId: data.externalId,
+    type: isKnownTask ? type : null,
+    user: isKnownTask
+      ? getStringAttribute(data.attributes, ProxmoxGuestPowerTaskAttribute.User)
+      : null,
+    status: isKnownTask
+      ? getStringAttribute(
+          data.attributes,
+          ProxmoxGuestPowerTaskAttribute.Status,
+        )
+      : null,
+    node: isKnownTask
+      ? getStringAttribute(data.attributes, ProxmoxGuestPowerTaskAttribute.Node)
+      : null,
+    at: isKnownTask ? at : null,
+    readAt: data.readAt,
+  });
 }
 
 /*
@@ -492,6 +580,23 @@ export function bufferProxmoxSnapshotMetric(data: {
 
   const id: string | null = getStringAttribute(dpAttributes, "id");
   if (!id) {
+    return;
+  }
+
+  /*
+   * A guest's last power task (ProxmoxGuestPowerTask): a fact about the
+   * guest from its task log, kept on the cluster snapshot until the flush.
+   * Not an inventory entry: the exporter's series alone say whether the
+   * guest runs and when the cluster was read.
+   */
+  if (data.metricName === PROXMOX_GUEST_POWER_TASK_METRIC_NAME) {
+    bufferProxmoxGuestPowerTask({
+      cluster: cluster,
+      externalId: id,
+      attributes: dpAttributes,
+      value: rawValue,
+      readAt: observedAt,
+    });
     return;
   }
 

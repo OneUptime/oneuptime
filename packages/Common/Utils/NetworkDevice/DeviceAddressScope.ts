@@ -40,6 +40,12 @@
  *     device is in no site: a monitor nothing places in a site is never
  *     counted as one site's device's monitor. A person can still tie it.
  *
+ * EACH ANSWER SAYS WHY (issues #9903, #9904, #9905): which step picked the
+ * device, why none is the host the probes see, or why the devices there
+ * cannot be told apart, with the devices that cannot. Review Results says
+ * so beside a host at a shared address, and a device's page beside a
+ * monitor that checks its address but is tied to no device.
+ *
  * Pure: the server reads the devices at an address and what the probes
  * reach (NetworkDeviceService), the backfill works the same facts out from
  * every device and site it holds (buildProbeReachIndex), and both decide
@@ -172,15 +178,69 @@ export enum WhenReachUnknown {
   OnlyDeviceInNoSite = "OnlyDeviceInNoSite",
 }
 
-export type DeviceSeenFrom<T> =
-  | { kind: "device"; device: T }
-  // No device at the address is the host the probes see there.
-  | { kind: "none" }
-  // Devices at the address that cannot be told apart from where they look.
-  | { kind: "ambiguous" };
+// Which step picked the device the probes see at the address.
+export enum SeenDeviceReason {
+  // Step 1: they poll it.
+  PolledByTheProbes = "PolledByTheProbes",
+  // Step 2: it is the only device at the address in a site they look into.
+  OnlyOneInTheirSites = "OnlyOneInTheirSites",
+  // Where they look cannot be known: it is the only device at the address.
+  OnlyOneAtTheAddress = "OnlyOneAtTheAddress",
+}
 
-const NONE: { kind: "none" } = { kind: "none" };
-const AMBIGUOUS: { kind: "ambiguous" } = { kind: "ambiguous" };
+// Why no device at the address is the host the probes see there.
+export enum NoDeviceReason {
+  // No device in the project has the address.
+  NoneAtTheAddress = "NoneAtTheAddress",
+  /*
+   * Devices have the address, but none they poll and none in a site they
+   * look into: the host they see is another network's.
+   */
+  NoneInTheirSites = "NoneInTheirSites",
+  /*
+   * Where they look cannot be known, and the one device at the address is in
+   * a site (WhenReachUnknown.OnlyDeviceInNoSite): a monitor is never counted
+   * as one site's device's on a guess.
+   */
+  ReachUnknownDeviceInASite = "ReachUnknownDeviceInASite",
+}
+
+// Why the devices at the address cannot be told apart from where they look.
+export enum AmbiguousAddressReason {
+  // They poll more than one device at the address.
+  PollSeveral = "PollSeveral",
+  // More than one device at the address is in sites they look into.
+  SeveralInTheirSites = "SeveralInTheirSites",
+  /*
+   * They poll no device and are no site's default probe, so where they look
+   * cannot be known, and more than one device has the address.
+   */
+  ReachUnknown = "ReachUnknown",
+}
+
+export type DeviceSeenFrom<T> =
+  | { kind: "device"; device: T; reason: SeenDeviceReason }
+  // No device at the address is the host the probes see there.
+  | { kind: "none"; reason: NoDeviceReason }
+  /*
+   * Devices at the address that cannot be told apart from where they look:
+   * `devices` are the ones that fit the deciding step alike.
+   */
+  | { kind: "ambiguous"; devices: Array<T>; reason: AmbiguousAddressReason };
+
+function none(reason: NoDeviceReason): {
+  kind: "none";
+  reason: NoDeviceReason;
+} {
+  return { kind: "none", reason: reason };
+}
+
+function ambiguous<T>(
+  devices: Array<T>,
+  reason: AmbiguousAddressReason,
+): { kind: "ambiguous"; devices: Array<T>; reason: AmbiguousAddressReason } {
+  return { kind: "ambiguous", devices: devices, reason: reason };
+}
 
 // The same device read twice (two spellings of one address) is one.
 function eachDeviceOnce<T extends DeviceAtAddressLike>(
@@ -218,7 +278,7 @@ export function pickDeviceSeenFrom<T extends DeviceAtAddressLike>(data: {
   const candidates: Array<T> = eachDeviceOnce(data.candidates);
 
   if (candidates.length === 0) {
-    return NONE;
+    return none(NoDeviceReason.NoneAtTheAddress);
   }
 
   // 1. A device the probes poll is the host they reach at its address.
@@ -229,11 +289,15 @@ export function pickDeviceSeenFrom<T extends DeviceAtAddressLike>(data: {
   });
 
   if (polled.length === 1) {
-    return { kind: "device", device: polled[0]! };
+    return {
+      kind: "device",
+      device: polled[0]!,
+      reason: SeenDeviceReason.PolledByTheProbes,
+    };
   }
 
   if (polled.length > 1) {
-    return AMBIGUOUS;
+    return ambiguous(polled, AmbiguousAddressReason.PollSeveral);
   }
 
   // 2. A device in a site the probes look into; 3. else none.
@@ -243,15 +307,21 @@ export function pickDeviceSeenFrom<T extends DeviceAtAddressLike>(data: {
     });
 
     if (inReach.length === 1) {
-      return { kind: "device", device: inReach[0]! };
+      return {
+        kind: "device",
+        device: inReach[0]!,
+        reason: SeenDeviceReason.OnlyOneInTheirSites,
+      };
     }
 
-    return inReach.length > 1 ? AMBIGUOUS : NONE;
+    return inReach.length > 1
+      ? ambiguous(inReach, AmbiguousAddressReason.SeveralInTheirSites)
+      : none(NoDeviceReason.NoneInTheirSites);
   }
 
   // Where the probes look cannot be known.
   if (candidates.length > 1) {
-    return AMBIGUOUS;
+    return ambiguous(candidates, AmbiguousAddressReason.ReachUnknown);
   }
 
   const only: T = candidates[0]!;
@@ -260,10 +330,42 @@ export function pickDeviceSeenFrom<T extends DeviceAtAddressLike>(data: {
     data.whenReachUnknown === WhenReachUnknown.OnlyDeviceInNoSite &&
     getSiteKey(only.siteId) !== NO_SITE_KEY
   ) {
-    return NONE;
+    return none(NoDeviceReason.ReachUnknownDeviceInASite);
   }
 
-  return { kind: "device", device: only };
+  return {
+    kind: "device",
+    device: only,
+    reason: SeenDeviceReason.OnlyOneAtTheAddress,
+  };
+}
+
+/*
+ * Whether `deviceId` is one of the devices the probes see at the address:
+ * the one they pick, or one of those they cannot tell apart. A monitor that
+ * sees another device there, or none, checks another network's host.
+ */
+export function isAmongDevicesSeen<T extends DeviceAtAddressLike>(data: {
+  seen: DeviceSeenFrom<T>;
+  deviceId: IdLike;
+}): boolean {
+  const deviceKey: string = toIdKey(data.deviceId);
+
+  if (!deviceKey) {
+    return false;
+  }
+
+  if (data.seen.kind === "device") {
+    return toIdKey(data.seen.device.id) === deviceKey;
+  }
+
+  if (data.seen.kind === "ambiguous") {
+    return data.seen.devices.some((device: T): boolean => {
+      return toIdKey(device.id) === deviceKey;
+    });
+  }
+
+  return false;
 }
 
 // The site keys of these devices, each once, for asking what probes reach.

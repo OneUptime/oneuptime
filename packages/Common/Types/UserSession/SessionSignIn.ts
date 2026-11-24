@@ -1,5 +1,6 @@
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
+import { SignInAgainRefusal } from "../Accounts/Reauthentication";
 
 /*
  * HOW A SESSION WAS SIGNED IN, AND FROM WHERE.
@@ -49,7 +50,24 @@ export interface SessionSignIn {
    */
   ssoProviderName?: string | undefined;
   ssoProjectId?: ObjectID | undefined;
+  /*
+   * The provider's own id, for a single sign-on: where Sign In Again sends
+   * the session back to sign in through the same provider (#10217).
+   */
+  ssoProviderId?: ObjectID | undefined;
+  /*
+   * What a sign-in Sign In Again started proved (#10217,
+   * Types/Accounts/Reauthentication): when the provider says it
+   * authenticated the person, at or after the moment it was asked to - the
+   * session's confirmation for the window from then - or why it did not.
+   */
+  signInAgain?: SessionSignInAgain | undefined;
 }
+
+// What a sign-in Sign In Again started proved, or why it proved nothing.
+export type SessionSignInAgain =
+  | { reauthenticatedAt: Date }
+  | { refusal: SignInAgainRefusal };
 
 // Where it signed in from, in words OneUptime spells out (RequestOrigin).
 export interface SessionSignInOrigin {
@@ -67,6 +85,8 @@ export const SSO_PROVIDER_NAME_KEY: string = "ssoProviderName";
 export const SSO_PROJECT_ID_KEY: string = "projectId";
 export const SIGN_IN_DEVICE_KEY: string = "signInDevice";
 export const SIGN_IN_LOCATION_KEY: string = "signInLocation";
+export const SSO_PROVIDER_ID_KEY: string = "ssoProviderId";
+export const SIGN_IN_AGAIN_KEY: string = "signInAgain";
 
 /*
  * The most of a name or a description a session keeps: a provider's name
@@ -124,6 +144,60 @@ export const readSessionSignInText: (value: unknown) => string | undefined = (
     : oneLine;
 };
 
+const SIGN_IN_AGAIN_REFUSALS: ReadonlyArray<string> =
+  Object.values(SignInAgainRefusal);
+
+// A Sign In Again's outcome as additionalInfo keeps it, or null for none.
+const toSignInAgainInfo: (
+  outcome: SessionSignInAgain | undefined,
+) => JSONObject | null = (
+  outcome: SessionSignInAgain | undefined,
+): JSONObject | null => {
+  if (!outcome) {
+    return null;
+  }
+
+  if ("reauthenticatedAt" in outcome) {
+    const at: Date = outcome.reauthenticatedAt;
+
+    return at instanceof Date && !isNaN(at.getTime())
+      ? { reauthenticatedAt: at.toISOString() }
+      : null;
+  }
+
+  return SIGN_IN_AGAIN_REFUSALS.includes(outcome.refusal)
+    ? { refusal: outcome.refusal }
+    : null;
+};
+
+// A Sign In Again's outcome as additionalInfo kept it, or undefined.
+const readSignInAgainInfo: (
+  value: unknown,
+) => SessionSignInAgain | undefined = (
+  value: unknown,
+): SessionSignInAgain | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const kept: JSONObject = value as JSONObject;
+
+  if (typeof kept["reauthenticatedAt"] === "string") {
+    const at: Date = new Date(kept["reauthenticatedAt"]);
+
+    return isNaN(at.getTime()) ? undefined : { reauthenticatedAt: at };
+  }
+
+  if (
+    typeof kept["refusal"] === "string" &&
+    SIGN_IN_AGAIN_REFUSALS.includes(kept["refusal"])
+  ) {
+    return { refusal: kept["refusal"] as SignInAgainRefusal };
+  }
+
+  return undefined;
+};
+
 /*
  * What a session's additionalInfo keeps of how it signed in and from where.
  * A provider is kept only for single sign-on, and a project only for a
@@ -154,9 +228,21 @@ export const toSessionSignInInfo: (data: {
         info[SSO_PROVIDER_NAME_KEY] = providerName;
       }
 
+      if (data.signIn.ssoProviderId) {
+        info[SSO_PROVIDER_ID_KEY] = data.signIn.ssoProviderId.toString();
+      }
+
       if (data.signIn.ssoProjectId) {
         info[SSO_PROJECT_ID_KEY] = data.signIn.ssoProjectId.toString();
       }
+    }
+
+    const signInAgain: JSONObject | null = toSignInAgainInfo(
+      data.signIn.signInAgain,
+    );
+
+    if (signInAgain) {
+      info[SIGN_IN_AGAIN_KEY] = signInAgain;
     }
   }
 
@@ -221,6 +307,20 @@ export const readSessionSignIn: (
     if (typeof projectId === "string" && ObjectID.isValidUUID(projectId)) {
       signIn.ssoProjectId = new ObjectID(projectId);
     }
+
+    const providerId: unknown = info[SSO_PROVIDER_ID_KEY];
+
+    if (typeof providerId === "string" && ObjectID.isValidUUID(providerId)) {
+      signIn.ssoProviderId = new ObjectID(providerId);
+    }
+  }
+
+  const signInAgain: SessionSignInAgain | undefined = readSignInAgainInfo(
+    info[SIGN_IN_AGAIN_KEY],
+  );
+
+  if (signInAgain) {
+    signIn.signInAgain = signInAgain;
   }
 
   return signIn;

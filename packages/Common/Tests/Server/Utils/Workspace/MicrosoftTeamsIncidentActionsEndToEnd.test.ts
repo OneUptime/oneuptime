@@ -333,6 +333,11 @@ let membersDeleted: Array<{
   id: ObjectID;
   props: DatabaseCommonInteractionProps;
 }>;
+let membersUpdated: Array<{
+  id: ObjectID;
+  data: JSONObject;
+  props: DatabaseCommonInteractionProps;
+}>;
 let pages: Array<{
   targets: OnCallPageTargets;
   about: unknown;
@@ -711,6 +716,7 @@ beforeEach(() => {
   updates = [];
   membersCreated = [];
   membersDeleted = [];
+  membersUpdated = [];
   pages = [];
   incidentReads = [];
 
@@ -867,6 +873,16 @@ beforeEach(() => {
       props: DatabaseCommonInteractionProps;
     }) => {
       membersDeleted.push(deleteOneById);
+      return 1;
+    }) as never);
+  jest
+    .spyOn(IncidentMemberService, "updateOneById")
+    .mockImplementation((async (updateOneById: {
+      id: ObjectID;
+      data: JSONObject;
+      props: DatabaseCommonInteractionProps;
+    }) => {
+      membersUpdated.push(updateOneById);
       return 1;
     }) as never);
   jest
@@ -1382,7 +1398,7 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
     expect(removals(delivery)).toEqual([]);
   });
 
-  test("Assign Role: Simon is Incident Commander now - added first, then Ana taken off", async () => {
+  test("Assign Role: Simon is Incident Commander now - Ana's row of the role names him, in one change", async () => {
     const delivery: Delivery = await deliver(
       press("SubmitAssignIncidentRole", {
         incidentRole: COMMANDER.toString(),
@@ -1390,13 +1406,12 @@ describe("a form card, submitted: the change as Simon, said in the conversation,
       }),
     );
 
-    expect(membersCreated).toHaveLength(1);
-    expect(membersCreated[0]!.member.userId).toEqual(SIMON);
-    expect(membersCreated[0]!.member.incidentRoleId).toEqual(COMMANDER);
-    expect(membersCreated[0]!.props).toBe(memberProps);
-    expect(membersDeleted).toEqual([
-      { id: ANA_AS_COMMANDER, props: memberProps },
+    // Handed on as the Dashboard's Reassign hands it on (#10270).
+    expect(membersUpdated).toEqual([
+      { id: ANA_AS_COMMANDER, data: { userId: SIMON }, props: memberProps },
     ]);
+    expect(membersCreated).toEqual([]);
+    expect(membersDeleted).toEqual([]);
     expect(answerOf(posted(delivery)[0])).toBe(
       `👤 **Simon Lee** is now **Incident Commander** on ${recordMarkdown()}, in place of **Ana Ruiz**.`,
     );

@@ -4,8 +4,14 @@ import ResellerAPI from "./API/Reseller";
 import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
 import GoogleSignInAPI from "./API/GoogleSignIn";
 import SignInMethodsAPI from "./API/SignInMethods";
+import SsoSignInLinksAPI from "./API/SsoSignInLinks";
+import MobileSsoExchangeAPI from "./API/MobileSsoExchange";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
+import DashboardPrivateUserAuthenticationAPI from "./API/DashboardPrivateUserAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
+import { DASHBOARD_PRIVATE_USER_API_ROUTE } from "Common/Types/Dashboard/DashboardPrivateUserSignIn";
+import FormPrivateUserAuthenticationAPI from "./API/FormPrivateUserAuthentication";
+import { FORM_PRIVATE_USER_API_ROUTE } from "Common/Types/Form/FormPrivateUserSignIn";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
@@ -40,6 +46,19 @@ const IdentityFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}`, "/"], SignInMethodsAPI);
 
     /*
+     * "Sign in with SSO"'s Email Me My Sign-in Links: the SSO sign-in links
+     * of an address's organizations, emailed to it, every address answered
+     * alike (./API/SsoSignInLinks, #9987).
+     */
+    app.use([`/${APP_NAME}`, "/"], SsoSignInLinksAPI);
+
+    /*
+     * Where the mobile app redeems the one-time code an SSO sign-in handed
+     * back to it, with its PKCE verifier (./API/MobileSsoExchange, #9989).
+     */
+    app.use([`/${APP_NAME}`, "/"], MobileSsoExchangeAPI);
+
+    /*
      * Single sign-on - SAML and OIDC for projects, the whole instance and
      * status pages (./SsoRouters.ts) - is served in every edition, at the
      * paths customers' identity providers are configured with.
@@ -70,6 +89,29 @@ const IdentityFeatureSet: FeatureSet = {
     app.use(
       [`/${APP_NAME}/status-page`, "/status-page"],
       StatusPageAuthenticationAPI,
+    );
+
+    /*
+     * A dashboard's public link signs its private users in on the host it
+     * is served from (#10250): every host passes /public-dashboard-api to
+     * the app as /api/dashboard (Nginx/default.conf.template), so the
+     * router answers under it, beside the link's other routes - and only
+     * there: no route of it is mounted at the root.
+     */
+    app.use(
+      `/api/dashboard${DASHBOARD_PRIVATE_USER_API_ROUTE}`,
+      DashboardPrivateUserAuthenticationAPI,
+    );
+
+    /*
+     * A form's public link signs its private users in on the host it is
+     * served from (#10249): its page calls /api/form on OneUptime's address
+     * and on every custom domain of the form, so the router answers under
+     * it, beside the form's own public routes - and only there.
+     */
+    app.use(
+      `/api/form${FORM_PRIVATE_USER_API_ROUTE}`,
+      FormPrivateUserAuthenticationAPI,
     );
   },
 };

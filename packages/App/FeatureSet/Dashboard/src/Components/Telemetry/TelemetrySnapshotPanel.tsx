@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
+import { JSONObject } from "Common/Types/JSON";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
@@ -64,6 +65,11 @@ export interface ComponentProps {
    * narrowed.
    */
   seriesSummary: string;
+  /*
+   * The series the event opened for, by its labels: a PromQL monitor's
+   * metric card charts it alone (issue #10227).
+   */
+  seriesLabels?: JSONObject | null | undefined;
   eventNoun: "incident" | "alert";
   /*
    * What the card is about, for the time ranges it offers around it ("Around
@@ -119,6 +125,7 @@ const TelemetrySnapshotPanel: FunctionComponent<ComponentProps> = (
         telemetryQuery={props.telemetryQuery}
         evaluationWindow={props.snapshotWindow}
         seriesSummary={props.seriesSummary}
+        seriesLabels={props.seriesLabels}
         subject={subject}
         startedAt={props.startedAt}
         endedAt={props.endedAt}

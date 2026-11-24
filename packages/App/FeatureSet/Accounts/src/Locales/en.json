@@ -244,7 +244,13 @@
     "signInWithProvider": "Sign in with {{name}}",
     "requiredSubtitle": "This server requires single sign-on (SSO).",
     "requiredNotSetUp": "Single sign-on is not set up on this server yet. Ask your server admin to set it up.",
-    "useDifferentEmail": "Use a different email"
+    "useDifferentEmail": "Use a different email",
+    "lastUsedTitle": "Last used on this device",
+    "forgetLastUsed": "Forget this provider",
+    "emailLinksPrompt": "We can email this address the SSO sign-in links of every organization it belongs to.",
+    "emailLinksButton": "Email me my sign-in links",
+    "emailLinksSent": "If this address belongs to an organization that uses single sign-on, we have emailed it the SSO sign-in links.",
+    "emailLinksCaptchaRequired": "Please complete the captcha challenge before asking for the links."
   },
   "adminLogin": {
     "title": "Master admin sign-in",
@@ -281,6 +287,29 @@
     "templateDescription": "Choose a template to fill in the form. You can change any answer before you submit.",
     "templateNone": "No template",
     "uploadingFiles": "Uploading your files…"
+  },
+  "formSignIn": {
+    "prompt": "Sign in to open this form.",
+    "ssoOnlyPrompt": "Sign in with your organization's single sign-on to open this form.",
+    "noWayIn": "No way to sign in is set up for this form yet. Ask the person who shared it with you.",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "signIn": "Sign In",
+    "or": "or",
+    "signInWithProvider": "Sign in with {{provider}}",
+    "forgotTitle": "Forgot your password?",
+    "forgotPrompt": "Enter your email address and we'll send you a link to choose a new password.",
+    "sendLink": "Send Link",
+    "forgotSent": "If this address can sign in to this form, a link to choose a new password is on its way. The link works for 24 hours.",
+    "backToSignIn": "Back to sign in",
+    "resetTitle": "Choose a new password",
+    "resetPrompt": "Enter the password you'll sign in to this form with.",
+    "newPassword": "New Password",
+    "savePassword": "Save Password",
+    "resetDone": "Your password is saved. Sign in with it to open the form.",
+    "signedInAs": "Signed in as {{email}}",
+    "signOut": "Sign Out"
   },
   "errors": {
     "forbidden": {

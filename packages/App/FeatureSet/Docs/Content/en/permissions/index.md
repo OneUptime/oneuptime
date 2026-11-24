@@ -129,6 +129,26 @@ Billing has three roles of its own. `BillingViewer` reads the project's billing 
 
 All {{PERMISSION_ROLE_COUNT}} roles are listed in the [Permission Reference](/docs/permissions/reference).
 
+### Product levels
+
+A product level gives a team one product, at one level, and nothing else of the project: `CloudAdmin`, `NetworkViewer`, `HostMember`. Each level does on the product's own records what a project-wide role does on every record:
+
+- **Viewer** reads what Viewer reads there, and changes nothing.
+- **Member** also creates, changes and deletes the product's records, as Project Member does.
+- **Admin** also does what Project Admin does there: the product's settings, its connections and credentials, and its label and owner rules.
+
+A level never reaches another product, nor the project's settings, teams, members, API keys, SSO or billing.
+
+:::steps
+1. Open the team's **Permissions** page.
+2. Under **Product Access**, pick a level for each product the team works with. Clear a product's level to take the product away.
+:::
+
+- **Monitors, Incidents and the other areas with roles of their own** are given with **Add Role**, under **One area**. So are the Telemetry roles, for Logs, Metrics, Traces, Profiles and Exceptions, and the Security roles.
+- **AI / LLM, Inventory and Forms** have a Viewer and an Admin level only, because Project Member changes nothing of them.
+- **A level is a permission like any other.** You can limit it to some labels or to owned records in the permissions table, block it, put it into a custom role, or give it to an API key. You can give a level only if you hold it yourself, as with every permission, unless you are a Project Owner.
+- **A level reads the product's records, not its telemetry.** A team with `HostViewer` sees the project's hosts, and needs `TelemetryViewer` too for their charts.
+
 ### Granular permissions
 
 Every individual capability is also assignable on its own — `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage`, and {{PERMISSION_TOTAL_COUNT}} others. Use these when a role is too broad and you need to hand out exactly one thing.
@@ -202,7 +222,7 @@ Every allow permission is granted with a scope: when you add it, **Scope** is un
 
 A role is offered all three answers. A single permission, added with **Add Permission**, is offered a scope wherever one narrows it, with only the answers that do: **Create Workflow** can be limited to the workflows a team owns, or to some labels, just as **Edit Workflow** can, while a permission on something everyone shares, such as **Create Label**, offers no scope, because none would narrow it. An API key's single permission takes labels wherever labels narrow it. A block is never limited to owned resources: it takes a permission away everywhere, or, with labels, from the resources carrying them.
 
-**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers. Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own. A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own. Project configuration (incident states, labels) has no owner, so an Owned-scoped role behaves normally there. Data Observability's own pages keep to your scope too: its **Overview**, **Issues** and the count beside **Overview** count and list only the tables, checks and pipelines you may read, and an action on one table or check, such as **Run Now**, reaches only one you may read or change.
+**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers. Probes, Runners, AI agents, on-call schedules, network sites and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own. A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own. Project configuration (incident states, labels) has no owner, so an Owned-scoped role behaves normally there. Data Observability's own pages keep to your scope too: its **Overview**, **Issues** and the count beside **Overview** count and list only the tables, checks and pipelines you may read, and an action on one table or check, such as **Run Now**, reaches only one you may read or change.
 
 Each team's Owned permission reaches what that team owns, not what the person's other teams own. Someone on two teams, one given `IncidentMember` scoped to Owned and one given `Viewer` scoped to Owned, changes the incidents the first team owns and the ones they own themselves, and only views the incidents the second team owns. An Owned permission also adds owners only to resources the person or the team it is given to owns, so the first team cannot be made an owner of the second team's incidents to get around this. A custom role's Owned permission reaches what each team given the role owns.
 

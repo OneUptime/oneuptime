@@ -51,7 +51,10 @@ export default interface ExceptionMonitorResponse {
    *   spans of the monitor's services;
    * - sessionsWithExceptionsCount: those a matching exception happened in;
    * - sessionsWithExceptionsPercent: their share, or null without a session
-   *   to take it of - which no criteria on it matches.
+   *   to take it of - which no criteria on it matches;
+   * - installCount, installsWithExceptionsCount,
+   *   installsWithExceptionsPercent: the same of the window's installs, the
+   *   distinct app.installation.id, else device.id, of the spans (#9924).
    */
   newExceptionCount?: number | undefined;
   regressedExceptionCount?: number | undefined;
@@ -61,4 +64,7 @@ export default interface ExceptionMonitorResponse {
   sessionCount?: number | undefined;
   sessionsWithExceptionsCount?: number | undefined;
   sessionsWithExceptionsPercent?: number | null | undefined;
+  installCount?: number | undefined;
+  installsWithExceptionsCount?: number | undefined;
+  installsWithExceptionsPercent?: number | null | undefined;
 }

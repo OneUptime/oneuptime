@@ -5,7 +5,7 @@ Un monitor Kubernetes avvisa sulle metriche che l'agente Kubernetes di OneUptime
 :::cards
 - [Installare l'agente](/docs/monitor/kubernetes-agent): Un solo comando Helm porta il cluster in OneUptime.
 - [Creare il monitor](#creare-un-monitor-kubernetes): Scegliere il cluster, poi un modello, una metrica o una query.
-- [Modelli di avviso](#modelli-di-avviso-pronti): Venticinque avvisi pronti, da un cluster silenzioso a etcd.
+- [Modelli di avviso](#modelli-di-avviso-pronti): Ventisei avvisi pronti, da un cluster silenzioso a etcd.
 - [Criteri](#criteri-di-monitoraggio): Soglie statiche e rilevamento delle anomalie.
 :::
 
@@ -88,7 +88,7 @@ La scheda **Custom Metric** offre queste metriche, raggruppate per tipo di risor
 | --- | --- |
 | Pod | Consumo CPU del Pod, Utilizzo memoria del Pod, Fase del Pod (codice), Utilizzo del file system del Pod, Capacità del volume, Spazio libero del volume, Utilizzo del limite di memoria del Pod, Utilizzo del limite CPU del Pod, I/O di rete del Pod (cumulativo, entrambe le direzioni) |
 | Nodo | Consumo CPU del nodo, CPU allocabile del nodo, Utilizzo della memoria del nodo, Working set della memoria del nodo, Utilizzo del filesystem del nodo, Memoria allocabile del nodo, Condizione Ready del nodo, Condizione MemoryPressure del nodo, Condizione DiskPressure del nodo, Condizione PIDPressure del nodo, File system disponibile del nodo, Capacità del file system del nodo |
-| Container | Riavvii del container, Riavvii del container (aumento), Limite CPU del container, Richiesta CPU del container, Limite di memoria del container, Richiesta di memoria del container, Container pronto |
+| Container | Riavvii del container, Riavvii del container (aumento), Limite CPU del container, Richiesta CPU del container, Limite di memoria del container, Richiesta di memoria del container, Container pronto, File system disponibile del container, Capacità del file system del container |
 | Carico di lavoro | Repliche disponibili del Deployment, Repliche desiderate del Deployment, Nodi desiderati del DaemonSet, Nodi pianificati in modo errato del DaemonSet, Nodi pronti del DaemonSet, Repliche desiderate dello StatefulSet, Repliche pronte dello StatefulSet, Pod non riusciti del Job, Pod non riusciti del Job (aumento), Pod riusciti del Job |
 | HPA | Repliche attuali dell'HPA, Repliche desiderate dell'HPA, Repliche massime dell'HPA, Repliche minime dell'HPA |
 | Piano di controllo | etcd ha un leader, Richieste in corso del server API, Pod in attesa dello scheduler |
@@ -149,7 +149,8 @@ L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per catego
 | etcd No Leader | Piano di controllo | etcd non ha un leader eletto | Critico |
 | API Server Request Saturation | Piano di controllo | Il server API mantiene 200 o più richieste in corso per tutta la finestra | Critico |
 | Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Avviso |
-| High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Avviso |
+| High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 85% | Avviso |
+| Node Image Disk Almost Full | Archiviazione | Il disco su cui un nodo tiene le immagini dei container è pieno oltre il 85% | Avviso |
 | PVC Almost Full | Archiviazione | Una richiesta di volume persistente è piena oltre il 90% | Avviso |
 | DaemonSet Pods Not Ready | Carico di lavoro | Un DaemonSet ha nodi senza un suo pod pronto per 15 minuti | Avviso |
 | DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Avviso |
@@ -167,6 +168,8 @@ I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, jo
 I modelli dei costi leggono le metriche che OneUptime scrive a partire dalle righe di costo orarie dell'agente, un punto all'ora, quindi sommano l'ultimo giorno; i loro budget sono nella valuta del cluster, USD per impostazione predefinita.
 
 **High Node CPU Request Commitment** e **High Node Memory Request Commitment** contano solo le request dei pod che non sono terminati, come fa lo scheduler. Il cluster continua a riportare le request di un pod Succeeded o Failed, come quello di un Job terminato, finché il pod non viene eliminato: queste non vengono contate.
+
+**Node Image Disk Almost Full** legge il disco su cui, secondo il kubelet, ogni container in esecuzione scrive i propri file, perché l'agente non riporta da sé il disco delle immagini di un nodo. Nelle configurazioni abituali è il disco delle immagini, ma non su ogni nodo: dove un nodo tiene le immagini sul suo filesystem root, come la maggior parte, è il filesystem root, quindi il modello scatta insieme a **High Node Disk Usage**; con il filesystem delle immagini separato del kubelet (`KubeletSeparateDiskGC`) è il disco su cui scrivono i container e non quello delle immagini; e un nodo senza container in esecuzione non riporta nulla. I consigli di un cluster lo propongono quando qualche nodo tiene le immagini su un disco proprio, cosa che l'elenco dei nodi mostra allora nella colonna **Disco delle immagini**; l'elenco di **Su cosa avvisare** lo contiene per qualsiasi cluster. Per impostazione predefinita il kubelet elimina le immagini inutilizzate quando un disco che contiene le immagini è pieno all'85% ed espelle i pod quando ne resta libero meno del 15%, quindi questo modello e **High Node Disk Usage** scattano all'85% e riportano il monitor online all'80%, il livello a cui la pulizia delle immagini riporta il disco. Su un nodo le cui immagini hanno un disco proprio, il kubelet espelle i pod in base al filesystem root dal 90%, quindi lì **High Node Disk Usage** scatta prima che inizi l'espulsione.
 
 **Cluster Stopped Reporting** scatta quando dall'agente del cluster non arriva nulla per dieci minuti: l'agente è stato disinstallato o va continuamente in crash, la sua chiave API è stata revocata, ha perso la connessione a OneUptime, oppure il server API del cluster ha smesso di rispondergli. Si risolve quando i dati tornano ad arrivare. Quando i dati smettono di arrivare, gli altri modelli non hanno nulla da confrontare e mantengono il loro ultimo stato, quindi è questo il modello che ve lo segnala.
 

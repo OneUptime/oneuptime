@@ -31,6 +31,20 @@ import SignInMethodsUtil, { SsoSignInProvider } from "../SSO/SignInMethods";
 export const SIGN_UP_INVITATION_ROUTE: string = "/sign-up-invitation";
 
 /*
+ * Where the page tells the server, as its person picks one of the project's
+ * providers, that they hold the invitation's link (#9898). On OneUptime
+ * Cloud a project's single sign-on signs someone in only once they have
+ * confirmed it from their mailbox, so an invitee who picked a provider here
+ * went through it, was asked to check their email, confirmed, and went
+ * through it again. The link's token already proves the mailbox - it went
+ * only to it - so the server takes it as that confirmation, once, and the
+ * provider's sign-in goes through the first time. Sent with the address,
+ * the token and the project the page showed; answered alike whatever it
+ * found, and the page goes on to the provider either way.
+ */
+export const SIGN_UP_INVITATION_SSO_ROUTE: string = `${SIGN_UP_INVITATION_ROUTE}/sso`;
+
+/*
  * Where the sign-up sends the project the page showed, in its
  * miscDataProps: the invitation creating the account accepts.
  */

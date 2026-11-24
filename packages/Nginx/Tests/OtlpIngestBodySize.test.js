@@ -103,11 +103,14 @@ const OTLP_LOCATIONS = [
 const OTLP_HTTP_SPECS = [OTLP_HTTP_LOCATION, TELEMETRY_LOCATION];
 
 /*
- * The one other location the status-page servers raise: a form's submission
+ * The other locations the status-page servers raise: a form's submission
  * on its own domain, with its files (FormCustomDomainBodySize.test.js holds
- * it to its own limit).
+ * it to its own limit), and what a probe that calls the ingress by its
+ * address sends, at the primary's limit for the same paths
+ * (ProbeIngestUnderAnyHost.test.js, #10024).
  */
 const FORM_CUSTOM_DOMAIN_SUBMIT_LOCATION = "/api/form/custom-domain/submit";
+const PROBE_SPECS = ["/probe-ingest", "/ingestor", "/incoming-request-ingest"];
 
 const INGRESS_PORT = "7849";
 const TLS_INGRESS_PORT = "7850";
@@ -1250,7 +1253,7 @@ test("the status-page servers raise only their two OTLP prefixes", () => {
    * domains. The raise is scoped to /otlp and /telemetry rather than put on
    * the server or its `location /`, so everything else there keeps nginx's
    * 1M default - but for a form's submission on its own domain, which
-   * carries its files and has a test of its own.
+   * carries its files, and a probe's reports, each with a test of its own.
    */
   for (const serverBlock of statusPageServers()) {
     assert.deepEqual(
@@ -1262,7 +1265,8 @@ test("the status-page servers raise only their two OTLP prefixes", () => {
     for (const location of getLocationBlocks(serverBlock.body)) {
       if (
         OTLP_HTTP_SPECS.includes(location.spec) ||
-        location.spec === FORM_CUSTOM_DOMAIN_SUBMIT_LOCATION
+        location.spec === FORM_CUSTOM_DOMAIN_SUBMIT_LOCATION ||
+        PROBE_SPECS.includes(location.spec)
       ) {
         continue;
       }

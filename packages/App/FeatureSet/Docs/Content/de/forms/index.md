@@ -93,8 +93,10 @@ Kopieren Sie unter **Teilen** den Link und senden Sie ihn an die Personen, die d
 | **Erstellen** | Name und Beschreibung des Formulars, sein **Branding** – Logo und Favicon, eingeklappt – und den Editor: seine Fragen, die Fragenpalette und **Vorschau**. |
 | **Vorlagen** | Benannte Sätze von Antworten, mit denen man das Formular beginnen kann, wie jede die Fragen stellt, die, mit der es sich öffnet, und der eigene Link jeder Vorlage. |
 | **Beim Absenden** | Was jede Einreichung anlegt und wie jedes ihrer Felder ausgefüllt wird. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt. |
-| **Teilen** | **Nimmt Einreichungen an**, der **Link zum Teilen**, die Meldung nach dem Absenden und, unter **Weitere Einstellungen**, die **IP-Zulassungsliste**. |
+| **Teilen** | **Nimmt Einreichungen an**, der **Link zum Teilen**, **Wer dieses Formular öffnen kann**, die Meldung nach dem Absenden und, unter **Weitere Einstellungen**, die **IP-Zulassungsliste**. |
 | **Benutzerdefinierte Domains** | Die eigenen Domains des Formulars, etwa `report.acme.com`, mit ihren DNS-Einträgen und Zertifikaten. Siehe [Eigene Domains](/docs/forms/sharing-and-security#eigene-domains). |
+| **Private Benutzer** | Die Personen, die sich anmelden dürfen, um das Formular zu öffnen, wenn nur angemeldete Personen es öffnen können. Siehe [Nur angemeldete Personen](/docs/forms/sharing-and-security#nur-angemeldete-personen). |
+| **Single Sign-On** | Die SAML- und OpenID-Connect-Identitätsanbieter, die Personen beim Formular anmelden, und **SSO für die Anmeldung erzwingen**. |
 | **Einreichungen** | Jede Einreichung über das Formular, die neueste zuerst, mit ihren Antworten und dem, was sie angelegt hat. |
 | **Formular duplizieren** | Unter **Erweitert**: eine Kopie des Formulars, für Sie benannt, mit seinen Fragen, Vorlagen, Einstellungen unter Beim Absenden, Branding, Dankesmeldung und IP-Zulassungsliste und einem eigenen Link. Die Kopie ist zunächst ausgeschaltet und öffnet sich in ihrem Editor. |
 | **Audit-Protokolle** | Unter **Erweitert**: jede Änderung am Formular, an seinen benutzerdefinierten Domains und seinen Einreichungen, wer sie vorgenommen hat und wann. |
@@ -262,6 +264,8 @@ Formulare haben die erzeugten Workflow-Komponenten – **Bei Erstellung: Formula
 ### Die eigenen Endpunkte der öffentlichen Seite
 
 Die öffentliche Seite spricht mit zwei Routen, die keinen API-Schlüssel brauchen: `GET /api/form/public/<shareKey>`, die Name, Beschreibung und Fragen des Formulars zurückgibt – und, wenn vorhanden, sein Logo, den Alternativtext des Logos und sein Favicon, die Bilder base64-kodiert, sowie seine Vorlagen mit ihren Antworten auf die Fragen, die die Seite stellt –, und `POST /api/form/public/<shareKey>/submit`, die es absendet und in `templateId` die Vorlage nennt, mit der die einreichende Person begonnen hat. Es sind die eigenen Endpunkte der Seite, keine API, auf der man aufbauen sollte: Jeder Aufruf durchläuft die Schutzmaßnahmen des Formulars – siehe [Teilen & Sicherheit](/docs/forms/sharing-and-security) –, und sie ändern sich mit der Seite. Um Vorfälle aus Ihrem eigenen Code anzulegen, verwenden Sie `POST /api/incident` mit einem API-Schlüssel – siehe [Einen Vorfall melden](/docs/incidents/declaring-incidents). Auf einer [eigenen Domain](/docs/forms/sharing-and-security#eigene-domains) eines Formulars verwendet die Seite stattdessen `GET /api/form/custom-domain` und `POST /api/form/custom-domain/submit` auf dieser Domain, die keinen Schlüssel nennen: Die Domain bestimmt das Formular.
+
+Bei einem Formular, das nur angemeldete Personen öffnen können, antworten diese Routen jedem mit `401`, der nicht als einer seiner privaten Benutzer angemeldet ist. Die Seite liest zuerst `GET /api/form/public/<shareKey>/sign-in-state`, auf einer eigenen Domain `GET /api/form/custom-domain/sign-in-state`, was nur sagt, ob das Formular seine Besucher zur Anmeldung auffordert, und wenn ja, seine ID, seinen Namen und wer angemeldet ist.
 
 ## Wo Ihre Vorfallsformulare geblieben sind
 

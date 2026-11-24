@@ -17,9 +17,13 @@ import useTranslator from "../../Utils/UseTranslator";
  * these, and none of them needs a Tippy instance until someone reaches for
  * it.
  *
- * A click is swallowed, and so are Enter and Space: the (i) can sit inside a
- * card that is itself a link or a button, and asking what a number means
- * should not navigate away from it.
+ * It is a control of its own, so it never sits inside another one - a link,
+ * a button, a row that is one link (NestedControlsGuard, #10015): a screen
+ * reader would hear the outer control's words and never reach it. A card
+ * that opens something and explains its figure lays a real button under
+ * the (i) instead (InfoCard, a ResourcePartRow with `hasControls`). A
+ * click is still swallowed, and so are Enter and Space, so asking what a
+ * number means never presses the card's own button beneath it.
  */
 
 export interface ComponentProps {
@@ -53,6 +57,8 @@ const InfoTooltip: FunctionComponent<ComponentProps> = (
           label: translatableTerm(props.label),
         })}
         data-testid={props.dataTestId}
+        // It explains, so a dialog never starts on it (DialogAside).
+        data-dialog-aside="true"
         className={`inline-flex flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:text-gray-600 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
           props.className || ""
         }`}

@@ -19,6 +19,7 @@ import {
   findBoundRole,
   getGrantedRequests,
   getNodesProxyReasons,
+  getOneUptimeAgentInstall,
   getWildcardFields,
   isBuiltInRbacObject,
   isOneUptimeAgentObject,
@@ -317,7 +318,8 @@ export const CIS_ACCESS_REQUESTS: Readonly<
   "5.1.13": requests(CORE, ["serviceaccounts"], ["create"], "token"),
 };
 
-function bindingFinding(
+// A binding a control fails on: the role it grants, and to whom.
+export function bindingFinding(
   binding: KubernetesComplianceBinding,
   extra: Array<KubernetesComplianceDetail> = [],
 ): KubernetesComplianceFinding {
@@ -339,7 +341,7 @@ function bindingFinding(
 }
 
 // The bindings the cluster's owner made, that grant something to someone.
-function ownBindings(
+export function ownBindings(
   snapshot: KubernetesComplianceSnapshot,
 ): Array<KubernetesComplianceBinding> {
   return snapshot.bindings.filter(
@@ -408,11 +410,13 @@ function accessFindings(
 
       /*
        * The OneUptime agent's own binding: the page says so, and why its
-       * role grants nodes/proxy, as the role's label says (#9878).
+       * role grants nodes/proxy, as the role's label says (#9878), with the
+       * value that drops it as the agent was installed (#9928).
        */
       if (isOneUptimeAgentObject(binding)) {
         finding.oneUptimeAgent = {
           nodesProxyReasons: getNodesProxyReasons(role),
+          installedAs: getOneUptimeAgentInstall(role),
         };
       }
 

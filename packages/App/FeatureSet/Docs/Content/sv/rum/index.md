@@ -44,7 +44,7 @@ En applikations egen sidomeny grupperar dess sidor så här; **Utvecklare** och 
 | **Observerbarhet** | **Mätvärden**, **Loggar**, **Spår**, **Klienter** |
 | **Produktanalys** | **Användare**, **Sessioner**, **Händelser**, **Trattar**, **Kvarhållning av användare**, **Användarflöden**, **Analysinställningar** |
 | **Sessionsuppspelning** | **Sessionsuppspelning**, **Användare i uppspelningar**, **Hälsa**, **Uppspelningspolicy**, **Frustrationssignaler**, **Åtkomstlogg för uppspelningar**, **Dokumentation** |
-| **Utvecklare** | **Terraform**, **API**, **CLI**, **AI-assistenter** |
+| **Utvecklare** | **Terraform**, **Crossplane**, **API**, **CLI**, **AI-assistenter** |
 | **Avancerad** | **Inställningar**, **Granskningsloggar**, **Radera applikation** |
 
 ## Så känner OneUptime igen RUM

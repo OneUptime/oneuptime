@@ -18,6 +18,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -426,6 +427,7 @@ export default class OpenStackCloud extends BaseModel {
     description:
       "Connection status of the OTel Collector agent (connected or disconnected)",
     example: "connected",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -461,6 +463,7 @@ export default class OpenStackCloud extends BaseModel {
     description:
       "Version of the OneUptime OpenStack agent reporting telemetry, as self-reported via the oneuptime.agent.version resource attribute",
     example: "1.0.0",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -493,6 +496,7 @@ export default class OpenStackCloud extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Seen At",
     description: "When metrics were last received from this cloud",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,
@@ -522,6 +526,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Regions",
     description: "How many regions this cloud reports.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -552,6 +557,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Availability Zones",
     description: "How many availability zones this cloud reports.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -582,6 +588,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Hypervisors",
     description: "How many hypervisors this cloud reports.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -612,6 +619,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Instances",
     description: "How many instances this cloud reports, in every project.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -642,6 +650,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Active Instances",
     description: "How many instances are ACTIVE.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -672,6 +681,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Volumes",
     description: "How many volumes this cloud reports, in every project.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -702,6 +712,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Networks",
     description: "How many networks this cloud reports, in every project.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -732,6 +743,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Routers",
     description: "How many routers this cloud reports, in every project.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -762,6 +774,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Floating IPs",
     description: "How many floating IPs this cloud reports.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -792,6 +805,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.Number,
     title: "Projects",
     description: "How many OpenStack projects this cloud reports.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -823,6 +837,7 @@ export default class OpenStackCloud extends BaseModel {
     title: "Services",
     description:
       "How many services and agents (nova-compute, neutron agents, cinder-volume and so on) this cloud reports.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -854,6 +869,7 @@ export default class OpenStackCloud extends BaseModel {
     title: "Services Down",
     description:
       "How many enabled services and agents are down. A service someone disabled is not counted.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -885,6 +901,7 @@ export default class OpenStackCloud extends BaseModel {
     title: "vCPU Capacity",
     description:
       "vCPUs the cloud can promise to instances, as Placement counts them: (total - reserved) * allocation ratio.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -916,6 +933,7 @@ export default class OpenStackCloud extends BaseModel {
     title: "vCPUs Allocated",
     description:
       "vCPUs promised to instances. This is what is promised, not what is busy.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -947,6 +965,7 @@ export default class OpenStackCloud extends BaseModel {
     title: "Memory Capacity",
     description:
       "Memory the cloud can promise to instances, as Placement counts it.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -992,6 +1011,7 @@ export default class OpenStackCloud extends BaseModel {
     title: "Memory Allocated",
     description:
       "Memory promised to instances. This is what is promised, not what is in use.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -1036,6 +1056,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.BigPositiveNumber,
     title: "Storage Capacity",
     description: "Total size of the cloud's Cinder storage pools.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -1080,6 +1101,7 @@ export default class OpenStackCloud extends BaseModel {
     type: TableColumnType.BigPositiveNumber,
     title: "Storage Used",
     description: "How much of the cloud's Cinder storage pools is used.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.BigPositiveNumber,
@@ -1410,6 +1432,7 @@ export default class OpenStackCloud extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -2216,6 +2239,7 @@ export default class OpenStackCloud extends BaseModel {
     description:
       "When on, OneUptime AI runs read-only commands (openstack server, hypervisor, service and agent reads, each one call to the cloud's API) on this OpenStack cloud, through its OpenStack AI agent, while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. On by default. Anyone who may edit the OpenStack cloud can turn it on or off.",
     defaultValue: true,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -2244,6 +2268,7 @@ export default class OpenStackCloud extends BaseModel {
       "OneUptime AI only reads an OpenStack cloud today: it has no command that changes one, so this stays Disabled and any other mode is refused. Disabled: AI never proposes or runs a change on this OpenStack cloud. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the OpenStack cloud's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the OpenStack cloud can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
     example: ResourceAiRemediationMode.RequireApproval,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ShortText,

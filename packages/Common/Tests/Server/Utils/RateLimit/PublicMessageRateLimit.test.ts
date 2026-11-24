@@ -221,6 +221,14 @@ describe("the limits in force", () => {
         perClientLimit: 30,
         perContactLimit: 10,
       },
+      /*
+       * A private dashboard's or form's user's password reset (#10250):
+       * counted apart from a status page's, with the same numbers.
+       */
+      [PublicMessageKind.PrivateUserPasswordReset]: {
+        perClientLimit: 30,
+        perContactLimit: 5,
+      },
       [PublicMessageKind.PasswordReset]: {
         perClientLimit: 30,
         perContactLimit: 5,
@@ -229,6 +237,14 @@ describe("the limits in force", () => {
       [PublicMessageKind.MagicLink]: {
         perClientLimit: 30,
         perContactLimit: 10,
+      },
+      /*
+       * An account's organizations' SSO sign-in links (#9987): they do not
+       * change, so one email is what a person needs.
+       */
+      [PublicMessageKind.SsoSignInLinks]: {
+        perClientLimit: 30,
+        perContactLimit: 5,
       },
       [PublicMessageKind.SignUpEmail]: {
         perClientLimit: 60,
@@ -315,6 +331,16 @@ describe("the limits in force", () => {
         config: PublicMessageRateLimitConfig,
       ): number => {
         return config.kinds[PublicMessageKind.MagicLink].perContactLimit;
+      },
+      SSO_SIGN_IN_LINKS_PER_IP: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.SsoSignInLinks].perClientLimit;
+      },
+      SSO_SIGN_IN_LINKS_PER_CONTACT: (
+        config: PublicMessageRateLimitConfig,
+      ): number => {
+        return config.kinds[PublicMessageKind.SsoSignInLinks].perContactLimit;
       },
       SIGN_UP_EMAILS_PER_IP: (config: PublicMessageRateLimitConfig): number => {
         return config.kinds[PublicMessageKind.SignUpEmail].perClientLimit;

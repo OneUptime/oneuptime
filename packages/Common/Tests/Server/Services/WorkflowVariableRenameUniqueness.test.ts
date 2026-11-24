@@ -5,6 +5,7 @@ import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import { NAME_TAKEN_REFUSAL_CODE } from "../../../Types/Exception/NameTakenException";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
 
@@ -300,6 +301,12 @@ describe("WorkflowVariableService rename uniqueness", () => {
       await expect(hook()(makeUpdateBy({ name: "Taken" }))).rejects.toThrow(
         /global variable named "Taken" already exists in this project/,
       );
+      // With the code a program tells a taken name by (#10065).
+      await expect(
+        hook()(makeUpdateBy({ name: "Taken" })),
+      ).rejects.toMatchObject({
+        details: { refusalCode: NAME_TAKEN_REFUSAL_CODE },
+      });
     });
   });
 

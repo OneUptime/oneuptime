@@ -2538,14 +2538,12 @@ export class Service extends ProjectReferencesService<StatusPage> {
      *
      * Days are cut in UTC, never in the report's timezone. The report reads
      * only whole-window totals, and those do not depend on where the cut
-     * falls, because every bucket is clipped to the window. The report
-     * timezone must not reach `AT TIME ZONE` either. Postgres reads the OS
-     * tzdata, and the images OneUptime ships (Debian trixie, no
-     * tzdata-legacy) reject legacy link names that moment still knows, such
-     * as US/Eastern, Asia/Calcutta and GB. The settings no longer offer them
-     * (Types/TimezoneAlias.ts), but rows saved before that and API callers
-     * still hold them. One of those would fail the query, and with it the
-     * whole report.
+     * falls, because every bucket is clipped to the window. The report's
+     * timezone (a legacy name such as US/Eastern or GB that rows saved
+     * before Types/TimezoneAlias.ts, or an API caller, still hold) is never
+     * a reason for the read to fail: the days are worked out with moment's
+     * data (UptimeDayGrid) and handed to Postgres as instants, so no zone
+     * reaches the database (issue #10039).
      */
     const singleMonitorIds: Dictionary<ObjectID> = {};
 

@@ -98,7 +98,7 @@ Sobald eine Statusseite geöffnet ist, ist ihr eigenes Seitenmenü links in acht
 | **Abonnenten** | **Abonnenten** (eine Seite mit einem Tab für jeden Kanal: E-Mail, SMS, Slack, Microsoft Teams und Webhook), **Abonnenten-Einstellungen**, **Benachrichtigungsprotokolle** – was an Abonnenten gesendet wurde. |
 | **Branding** | **Branding** (Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen, auf einer Seite), **Benutzerdefinierte Domains**, **HTML, CSS und JavaScript**. |
 | **Sicherheit** | **Zugriff** (wer die Seite sehen darf), **Private Benutzer**, **Single Sign-On** (je ein Tab für SAML und OIDC), **SCIM**. |
-| **Entwickler** | **Terraform**, **API**, **CLI**, **KI-Assistenten** – die Seite als Code. |
+| **Entwickler** | **Terraform**, **Crossplane**, **API**, **CLI**, **KI-Assistenten** – die Seite als Code. |
 | **Erweitert** | **MCP**, **Eingebetteter Status**, **Berichte**, **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Statusseite löschen**. |
 
 Nur **Übersicht** und **Ressourcen**, also das, was die Seite zeigt, sind anfangs geöffnet. Jeder andere Abschnitt ist anfangs eingeklappt, wie die selten genutzten Abschnitte jedes Menüs in OneUptime: Klicken Sie auf den Titel eines Abschnitts, um seine Seiten einzublenden. Ein Abschnitt öffnet sich von selbst, sobald Sie auf einer seiner Seiten sind, etwa auf **Einstellungen** oder **Abonnenten**.

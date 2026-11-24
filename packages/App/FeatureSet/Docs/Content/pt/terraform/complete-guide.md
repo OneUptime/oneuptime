@@ -11,7 +11,7 @@ Este guia trata do que vem depois do seu primeiro apply: como o provider encontr
 
 ## Configurar o provider
 
-O provider recebe duas configurações. Cada uma vem do bloco do provider ou, se não estiver nele, de uma variável de ambiente:
+O provider se conecta com duas configurações. Cada uma vem do bloco do provider ou, se não estiver nele, de uma variável de ambiente:
 
 | Configuração | Variável de ambiente | Quando nenhuma das duas está definida |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` é o endereço do seu OneUptime, sem `/api`: o provider adiciona `https://` quando o endereço não tem esquema, e `/api` no fim. `api_key` é sensível, então o Terraform nunca o imprime.
+
+Uma terceira configuração do provider, `exclusive_lists`, decide o que os rótulos de uma configuração contêm: veja [Rótulos e outras listas às quais o OneUptime também adiciona](#rótulos-e-outras-listas-às-quais-o-oneuptime-também-adiciona).
 
 A chave precisa ser uma chave de API do projeto que você gerencia, com permissão para criar, ler, alterar e excluir cada tipo de registro que a sua configuração tem: veja [Criar uma chave de API do projeto](/docs/terraform/quick-start#criar-uma-chave-de-api-do-projeto). A chave de API mestra de um OneUptime auto-hospedado não pertence a nenhum projeto, então uma criação feita com ela falha com `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Rótulos e outras listas às quais o OneUptime também adiciona
+
+O OneUptime adiciona por conta própria a algumas listas de um registro: uma regra de rótulos adiciona seus rótulos aos registros com que corresponde, uma regra de plantão adiciona suas políticas aos incidentes e alertas com que corresponde, e as regras de monitores de um SLO vinculam os monitores com que correspondem. A referência diz isso de cada um desses atributos: "OneUptime adds to it too, on its own". Uma configuração que define uma delas mantém as entradas que lista e deixa o resto:
+
+- **O que a configuração lista é adicionado**, e recolocado se alguém o tirar.
+- **O que você tira da configuração é removido.** `labels = []` remove todos os rótulos que a configuração listava.
+- **O que o OneUptime ou uma pessoa adiciona fica**, e nenhum plano o mostra como uma mudança.
+- **Se ficar fora da configuração**, a lista é do OneUptime: o Terraform não adiciona nada a ela nem remove nada.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+O estado guarda os rótulos que a configuração lista e que o registro tem, não todos os rótulos do registro: a fonte de dados de mesmo nome lê todos eles. Um apply adiciona e remove rótulos um a um, então um rótulo que uma regra adiciona enquanto ele roda também fica.
+
+Uma importação adota todos os rótulos que o registro tem: liste todos, como faz a página Terraform do registro no painel, ou o plano mostra os que ficaram de fora sendo removidos. Depois de atualizar de uma versão anterior do provider, o primeiro plano de uma configuração que define rótulos mostra que eles são definidos: o apply adiciona os que faltam ao registro e não remove nenhum.
+
+Para manter cada uma dessas listas exatamente no que a configuração lista, como as versões anteriores faziam, defina `exclusive_lists` no bloco do provider. O Terraform então remove, a cada apply, um rótulo que uma regra adiciona:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

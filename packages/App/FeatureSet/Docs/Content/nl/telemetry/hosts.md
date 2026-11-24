@@ -130,7 +130,7 @@ Open **Producten → Infrastructuur → Hosts → Configuratie → Collectorconf
 
 ### Bewerk haar config.yaml
 
-Kies op de pagina van de configuratie **Configuratie bewerken**, wijzig de YAML en sla op. OneUptime controleert hem eerst en weigert een configuratie die het niet kan versturen, met de reden: zie [Wat een configuratie mag](#wat-een-configuratie-mag).
+Kies op de pagina van de configuratie **Configuratie bewerken**, wijzig de YAML en sla op. OneUptime controleert hem eerst en weigert een configuratie die het niet kan versturen, met de reden: zie [Wat een configuratie mag](#wat-een-configuratie-mag). Houd in een Linux-configuratie de `operators` van de receiver `journald`: ze bergen elke journal-regel op onder zijn systemd-unit, en de pagina van een mislukte unit zegt daaruit waarom die mislukte. Een configuratie zonder ze kan ze overnemen uit **Configuratie bekijken** van de Linux-standaard.
 
 ### Zie haar de hosts bereiken
 

@@ -54,9 +54,9 @@ The report counts what was created, invited and not brought over, and lists ever
 | In incident.io | In OneUptime | How |
 | --- | --- | --- |
 | Users | Project members | Matched by email address. Anyone who is not in the project yet is invited to the team you pick. Deactivated users are not brought over. |
-| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. |
-| Schedules | On-call schedules | Each rotation becomes a layer with the same people, start, turn length and working hours, in the schedule's time zone. The version of a rotation in effect now is the one brought over. |
-| Escalation paths | On-call policies | Each level becomes an escalation rule that pages the same schedules, users and teams, after the same wait. A repeat comes over as the policy's repeats, and a branch brings over its first path. |
+| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. When two teams have the same name, the second comes over numbered, such as `Platform 2`, and the report says the name it was created with. |
+| Schedules | On-call schedules | Each rotation becomes a layer with the same people, start, turn length and working hours, in the schedule's time zone. The version of a rotation in effect now is the one brought over. When two schedules have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
+| Escalation paths | On-call policies | Each level becomes an escalation rule that pages the same schedules, users and teams, after the same wait. A repeat comes over as the policy's repeats, and a branch brings over its first path. When two escalation paths have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
 | Catalog services | Services | The entries of your catalog types in the service category, created in the service catalog. Archived entries are left out. |
 | Severities | Incident severities | Created in their incident.io order, most severe first. A severity whose name the project already has is used as it is. |
 | Statuses | Incident states | A triage status matches the state OneUptime starts incidents in, and a closed status the state incidents are resolved in. Live and paused statuses are created between Acknowledged and Resolved. |

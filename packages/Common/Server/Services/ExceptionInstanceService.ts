@@ -1,6 +1,14 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import AnalyticsDatabaseService, { Results } from "./AnalyticsDatabaseService";
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
+import AggregateBy from "../Types/AnalyticsDatabase/AggregateBy";
+import CountBy from "../Types/AnalyticsDatabase/CountBy";
+import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
+import FindBy from "../Types/AnalyticsDatabase/FindBy";
+import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
+import Query from "../Types/AnalyticsDatabase/Query";
+import AggregatedResult from "../../Types/BaseDatabase/AggregatedResult";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import {
   getQuerySettings,
@@ -17,9 +25,119 @@ import { ResponseJSON } from "@clickhouse/client";
 // The longest exception message a trace's reader takes.
 export const TRACE_EXCEPTION_MESSAGE_LENGTH: number = 500;
 
+/*
+ * ONE CRASH, COUNTED ONCE (#9923).
+ *
+ * An iOS crash KSCrash and MetricKit both report arrives twice. Ingest keeps
+ * the second report as an occurrence of its own - the evidence it is - under
+ * the first one's exception, with duplicateOf naming the first
+ * (AppleCrashRegister). Everything that lists or counts occurrences reads
+ * the ones that repeat none: the exceptions list and its charts, a
+ * session's or an install's crashes, monitors and their baselines, the
+ * Overview. A query reads repeats only by asking: by duplicateOf - the
+ * repeats of an occurrence - or by an occurrence's own _id.
+ *
+ * SQL written by hand reads this table around these hooks, so it says the
+ * same itself (EXCEPTION_ORIGINALS_SQL, held to by
+ * ExceptionRepeatsCountedOnce.test.ts).
+ */
+export const EXCEPTION_ORIGINALS_SQL: string = "duplicateOf = ''";
+
+export function readsOriginalOccurrences(
+  query: Query<ExceptionInstance>,
+): Query<ExceptionInstance> {
+  if (
+    Object.prototype.hasOwnProperty.call(query, "duplicateOf") ||
+    Object.prototype.hasOwnProperty.call(query, "_id")
+  ) {
+    return query;
+  }
+
+  return { ...query, duplicateOf: "" };
+}
+
 export class ExceptionInstanceService extends AnalyticsDatabaseService<ExceptionInstance> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: ExceptionInstance, database: clickhouseDatabase });
+  }
+
+  // A list reads the occurrences that repeat none (readsOriginalOccurrences).
+  protected override async onBeforeFind(
+    findBy: FindBy<ExceptionInstance>,
+  ): Promise<OnFind<ExceptionInstance>> {
+    return {
+      findBy: { ...findBy, query: readsOriginalOccurrences(findBy.query) },
+      carryForward: null,
+    };
+  }
+
+  // And so does its count, so the two describe the same rows.
+  protected override async onBeforeCount(
+    countBy: CountBy<ExceptionInstance>,
+  ): Promise<CountBy<ExceptionInstance>> {
+    return { ...countBy, query: readsOriginalOccurrences(countBy.query) };
+  }
+
+  /*
+   * The list's hook (onBeforeFind) narrows no one's read of an occurrence:
+   * a read of one by its _id is left as it was, so whoever may read an
+   * occurrence - repeat or not - still reads it, and hears that it was
+   * written (its live update is decided by the read check and the read
+   * scope, as it was before #9923).
+   */
+  public override getFindHookThatNarrowsNoRead(): (
+    findBy: FindBy<ExceptionInstance>,
+  ) => Promise<OnFind<ExceptionInstance>> {
+    return ExceptionInstanceService.prototype.onBeforeFind;
+  }
+
+  /*
+   * The reads below go around those hooks to the read permission, so each
+   * takes the same rule itself: a rule's preview and an anomaly's baseline
+   * count what the monitor counts, and a chart draws what the list shows.
+   */
+  public override async countPerWindow(data: {
+    query: Query<ExceptionInstance>;
+    timeColumnName: string;
+    windowInSeconds: number;
+    windowsStartAt?: Date | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<{ time: Date; count: number }>> {
+    return await super.countPerWindow({
+      ...data,
+      query: readsOriginalOccurrences(data.query),
+    });
+  }
+
+  public override async countPerValueInWindows(data: {
+    query: Query<ExceptionInstance>;
+    valueColumnName: string;
+    timeColumnName: string;
+    windows: Array<{ startsAt: Date; endsAt: Date }>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Array<number>>> {
+    return await super.countPerValueInWindows({
+      ...data,
+      query: readsOriginalOccurrences(data.query),
+    });
+  }
+
+  public override async existsBy(
+    existsBy: ExistsBy<ExceptionInstance>,
+  ): Promise<boolean> {
+    return await super.existsBy({
+      ...existsBy,
+      query: readsOriginalOccurrences(existsBy.query),
+    });
+  }
+
+  public override async aggregateBy(
+    aggregateBy: AggregateBy<ExceptionInstance>,
+  ): Promise<AggregatedResult> {
+    return await super.aggregateBy({
+      ...aggregateBy,
+      query: readsOriginalOccurrences(aggregateBy.query),
+    });
   }
 
   /*
@@ -81,7 +199,12 @@ export class ExceptionInstanceService extends AnalyticsDatabaseService<Exception
       }} AND traceId IN (${{
         type: TableColumnType.Text,
         value: new Includes(data.traceIds),
-      }}) AND retentionDate >= now() ORDER BY traceId ASC, time ASC LIMIT ${{
+      }}) AND retentionDate >= now() AND `,
+    );
+    // One crash, counted once (readsOriginalOccurrences).
+    statement.append(EXCEPTION_ORIGINALS_SQL);
+    statement.append(
+      SQL` ORDER BY traceId ASC, time ASC LIMIT ${{
         type: TableColumnType.Number,
         value: Math.max(1, Math.trunc(data.limitPerTrace)),
       }} BY traceId LIMIT ${{

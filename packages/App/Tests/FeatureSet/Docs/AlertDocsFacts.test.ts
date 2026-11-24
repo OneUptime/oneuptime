@@ -1176,16 +1176,30 @@ describe("where alerts come from", () => {
   });
 
   it("says a criteria keeps one open alert at a time, one per series, as the monitor's alerting dedupes", () => {
+    // Read with its whitespace collapsed: the rule, not how a line wraps.
     const monitorAlert: string = readCommonSource(
       "Server/Utils/Monitor/MonitorAlert.ts",
-    );
+    ).replace(/\s+/g, " ");
 
+    /*
+     * The criteria's open alerts are read once, each under its series
+     * (none: the whole monitor's), the first for each series kept (#10108,
+     * #10278); a series that has one open creates no other.
+     */
     expect(monitorAlert).toContain(
-      "(alert.createdCriteriaId || undefined) ===",
+      "const seriesKey: string | undefined = alert.seriesFingerprint || undefined;",
     );
     expect(monitorAlert).toContain(
-      "(alert.seriesFingerprint || undefined) === seriesFingerprint",
+      "(alert.createdCriteriaId || undefined) === criteriaId && !openAlertsBySeries.has(seriesKey)",
     );
+    expect(monitorAlert).toContain("openAlertsBySeries.set(seriesKey, alert);");
+    expect(monitorAlert).toContain(
+      "const alreadyOpenAlert: Alert | undefined = openAlertsBySeries.get(seriesFingerprint);",
+    );
+    expect(monitorAlert).toContain(
+      "const hasAlreadyOpenAlert: boolean = Boolean(alreadyOpenAlert);",
+    );
+    expect(monitorAlert).toContain("if (hasAlreadyOpenAlert) {");
     expect(sources).toContain(
       "A criteria keeps one open alert at a time, one per series on a monitor that groups by a field",
     );

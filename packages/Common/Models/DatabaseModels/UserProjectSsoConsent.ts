@@ -24,10 +24,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * So on the hosted service the first project-SSO sign-in to an account stops
  * and emails the address instead, and one of these rows is written only when
- * the link in that email is used. Nothing a project admin controls can write
- * one: not the IdP, not SCIM (which can add an existing user to a project's
- * teams), not an invitation. That is why this is its own table rather than an
- * inference from team membership.
+ * the link in that email is used - or the link of an invitation email, which
+ * went only to that address too, when its person picks the project's single
+ * sign-on on the page it opens (#9898). Nothing a project admin controls can
+ * write one: not the IdP, not SCIM (which can add an existing user to a
+ * project's teams), not sending an invitation. That is why this is its own
+ * table rather than an inference from team membership.
  *
  * The agreement is to be in the project, so it lasts while the person is: it
  * goes when they leave (ProjectLeaveAccessCleanup), and one with no accepted

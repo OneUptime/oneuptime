@@ -13,6 +13,13 @@ import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import logger from "Common/Server/Utils/Logger";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import { clearProxmoxNodeRosterCache } from "Common/Server/Utils/Telemetry/ProxmoxNativeNodeLiveness";
+import { ProxmoxGuestPowerTaskReading } from "Common/Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
+import {
+  PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+  PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE,
+  PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE,
+  PROXMOX_GUEST_POWER_TASK_SCOPE_NAME,
+} from "Common/Utils/Proxmox/ProxmoxGuestPowerTask";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -622,5 +629,243 @@ describe("the ingest heartbeat says the agent was heard, never that the cluster 
 
     expect(agentCalls).toEqual([]);
     expect(readCalls).toBe(0);
+  });
+
+  /*
+   * #10017: the Proxmox AI agent reads the task log next to the collector,
+   * and keeps reading it after the collector has stopped. Its report must
+   * never make a stopped collector look heard.
+   */
+  test("the Proxmox AI agent's report of the task log finds the cluster, and the agent is not heard by it", async () => {
+    const id: ObjectID | null = await baseService["autoDiscoverProxmoxCluster"](
+      {
+        projectId: PROJECT_ID,
+        attributes: attrs({
+          "proxmox.cluster.name": "homelab",
+          [PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE]:
+            PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE,
+        }),
+      },
+    );
+
+    expect(id?.toString()).toBe(RESOURCE_ID);
+    expect(agentCalls).toEqual([]);
+    expect(readCalls).toBe(0);
+  });
+});
+
+/*
+ * #10017: who or what stopped each stopped guest, as the Proxmox AI agent
+ * reads it from the task log and sends it (agents/ResourceAIAgent,
+ * ProxmoxGuestTasks): one gauge datapoint of pve_guest_last_power_task per
+ * guest, the task in its attributes, timed when the agent read which guests
+ * are stopped. Driven through the real ingest, with only the Postgres seams
+ * mocked.
+ */
+describe("the Proxmox AI agent's report of the task log", () => {
+  const READ_AT_MS: number = CTIME_S * 1000 + 30_000;
+  const STOPPED_AT_S: number = CTIME_S - 2 * 60 * 60;
+
+  function guestTask(
+    id: string,
+    task: { type: string; user: string; status: string; at: number } | null,
+  ): JSONObject {
+    const [guestType, vmid] = id.split("/") as [string, string];
+    return {
+      timeUnixNano: `${READ_AT_MS}000000`,
+      asDouble: task ? task.at : 0,
+      attributes: attrs({
+        id: id,
+        "pve.scope": "guest",
+        "pve.type": guestType,
+        "pve.id": vmid,
+        node: "pve2",
+        "pve.task.type": task?.type || "",
+        "pve.task.user": task?.user || "",
+        "pve.task.status": task?.status || "",
+        "pve.task.node": task ? "pve2" : "",
+      }),
+    };
+  }
+
+  // A request as the agent sends it (buildGuestTaskMetrics).
+  function taskLogReport(dataPoints: Array<JSONObject>): JSONObject {
+    return {
+      resource: {
+        attributes: attrs({
+          "proxmox.cluster.name": "homelab",
+          [PROXMOX_GUEST_POWER_TASK_RESOURCE_ATTRIBUTE]:
+            PROXMOX_GUEST_POWER_TASK_RESOURCE_VALUE,
+        }),
+      },
+      scopeMetrics: [
+        {
+          scope: {
+            name: PROXMOX_GUEST_POWER_TASK_SCOPE_NAME,
+            version: "17.1.0",
+          },
+          metrics: [
+            {
+              name: PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+              unit: "s",
+              gauge: { dataPoints: dataPoints },
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  function recordedReadings(
+    spy: SpyInstance<typeof ProxmoxResourceService.recordGuestPowerTasks>,
+  ): Array<ProxmoxGuestPowerTaskReading> {
+    return spy.mock.calls
+      .flatMap(
+        (
+          call: Parameters<typeof ProxmoxResourceService.recordGuestPowerTasks>,
+        ): Array<ProxmoxGuestPowerTaskReading> => {
+          expect(call[0].projectId.toString()).toBe(PROJECT_ID.toString());
+          expect(call[0].proxmoxClusterId.toString()).toBe(
+            CLUSTER_ID.toString(),
+          );
+          return call[0].readings;
+        },
+      )
+      .sort(
+        (a: ProxmoxGuestPowerTaskReading, b: ProxmoxGuestPowerTaskReading) => {
+          return a.externalId.localeCompare(b.externalId);
+        },
+      );
+  }
+
+  test("each guest's last power task reaches its inventory row - and nothing else: no row refreshed, no count, no Connected", async () => {
+    const spies: Spies = setupIngestMocks();
+    const record: SpyInstance<
+      typeof ProxmoxResourceService.recordGuestPowerTasks
+    > = jest
+      .spyOn(ProxmoxResourceService, "recordGuestPowerTasks")
+      .mockResolvedValue(3);
+
+    await ingest([
+      taskLogReport([
+        guestTask("qemu/100", {
+          type: "qmstop",
+          user: "alice@pve",
+          status: "OK",
+          at: STOPPED_AT_S,
+        }),
+        guestTask("qemu/102", {
+          type: "qmstart",
+          user: "root@pam",
+          status: "start failed: QEMU exited with code 1",
+          at: STOPPED_AT_S,
+        }),
+        guestTask("lxc/101", null),
+      ]),
+    ]);
+
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(recordedReadings(record)).toEqual([
+      {
+        externalId: "lxc/101",
+        type: null,
+        user: null,
+        status: null,
+        node: null,
+        at: null,
+        readAt: new Date(READ_AT_MS),
+      },
+      {
+        externalId: "qemu/100",
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        node: "pve2",
+        at: new Date(STOPPED_AT_S * 1000),
+        readAt: new Date(READ_AT_MS),
+      },
+      {
+        externalId: "qemu/102",
+        type: "qmstart",
+        user: "root@pam",
+        status: "start failed: QEMU exited with code 1",
+        node: "pve2",
+        at: new Date(STOPPED_AT_S * 1000),
+        readAt: new Date(READ_AT_MS),
+      },
+    ]);
+    expect(spies.updateLastSeen).not.toHaveBeenCalled();
+    expect(spies.bulkUpsert).not.toHaveBeenCalled();
+    expect(spies.bulkUpdateLatestMetrics).not.toHaveBeenCalled();
+    expect(spies.bulkUpdateStartOnBoot).not.toHaveBeenCalled();
+    // Stored like every series: Metrics Explorer can chart it.
+    expect(storedNames(spies.rows)).toEqual(
+      new Set([PROXMOX_GUEST_POWER_TASK_METRIC_NAME]),
+    );
+  });
+
+  test("beside the collector's read of the cluster, both land where they belong", async () => {
+    const spies: Spies = setupIngestMocks();
+    const record: SpyInstance<
+      typeof ProxmoxResourceService.recordGuestPowerTasks
+    > = jest
+      .spyOn(ProxmoxResourceService, "recordGuestPowerTasks")
+      .mockResolvedValue(1);
+
+    await ingest([
+      clusterRead(),
+      taskLogReport([
+        guestTask("lxc/101", {
+          type: "vzshutdown",
+          user: "bob@pve",
+          status: "OK",
+          at: STOPPED_AT_S,
+        }),
+      ]),
+    ]);
+
+    expect(spies.updateLastSeen).toHaveBeenCalledTimes(1);
+    expect(upsertedIds(spies)).toEqual([
+      "lxc/101",
+      "node/pve1",
+      "node/pve2",
+      "qemu/100",
+    ]);
+    expect(recordedReadings(record)).toMatchObject([
+      { externalId: "lxc/101", type: "vzshutdown", user: "bob@pve" },
+    ]);
+  });
+
+  test("a failed write is logged and never costs the rest of the flush", async () => {
+    const spies: Spies = setupIngestMocks();
+    jest
+      .spyOn(ProxmoxResourceService, "recordGuestPowerTasks")
+      .mockRejectedValue(new Error("connection reset"));
+    const warn: SpyInstance<typeof logger.warn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {
+        return undefined as never;
+      });
+
+    await ingest([
+      clusterRead(),
+      taskLogReport([
+        guestTask("lxc/101", {
+          type: "vzstop",
+          user: "bob@pve",
+          status: "OK",
+          at: STOPPED_AT_S,
+        }),
+      ]),
+    ]);
+
+    expect(spies.updateLastSeen).toHaveBeenCalledTimes(1);
+    expect(
+      warn.mock.calls.some((call: Array<unknown>): boolean => {
+        return String(call[0]).includes(
+          "Proxmox snapshot writeback (guest power tasks) failed",
+        );
+      }),
+    ).toBe(true);
   });
 });

@@ -16,12 +16,13 @@ import {
  * THE REPOSITORY ROOT COMPILES COMMON WITH COMMON'S NODE TYPES.
  *
  * The root package's ts-node compiles Common's server code: `npm run
- * generate-openapi-spec` and `npm run generate-terraform-provider` (the
- * OpenAPI Spec Generation, Terraform Provider Generation and Terraform
- * Provider E2E Tests workflows) run `node --require ts-node/register` from
- * the root, so the root's tsconfig.json and its node_modules/@types/node type
- * every file they reach. The lint job installs only the root's dependencies,
- * so its type-aware rules read the root's Node types for every package too.
+ * generate-openapi-spec` (the OpenAPI Spec Generation workflow) runs `node
+ * --require ts-node/register` from the root, so the root's tsconfig.json and
+ * its node_modules/@types/node type every file it reaches. (`npm run
+ * generate-terraform-provider` did too, until it ran transpile-only, #7592:
+ * Scripts/TerraformProvider's own type check covers it.) The lint job
+ * installs only the root's dependencies, so its type-aware rules read the
+ * root's Node types for every package too.
  *
  * Nothing at the root asked for @types/node - jest and ts-node ask for any
  * version ("*") - so the root's lock kept the 18.11.15 of 2022 while every

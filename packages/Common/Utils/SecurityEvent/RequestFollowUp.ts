@@ -18,6 +18,16 @@ import {
   getMoreSeriousOutcome,
   readStatusCode,
 } from "./RequestOutcome";
+import {
+  HiddenClientAddress,
+  ScrubbedAddress,
+  ScrubbedAddressPlace,
+  clearClientAddressScrubbed,
+  isAddressVaultToken,
+  markClientAddressScrubbed,
+  readHiddenClientAddress,
+  readScrubbedAddress,
+} from "./ScrubbedAddress";
 
 /*
  * What following a request adds to the security event it happened in.
@@ -169,6 +179,35 @@ export function applyRequestAssessment(
   // The typed columns the source left empty.
   if (!event.principalIp && clientAddress) {
     event.principalIp = clientAddress;
+    // A log rule hid the address the trace names: nothing is hidden now.
+    clearClientAddressScrubbed(attributes);
+  }
+
+  /*
+   * The trace's span holds what a trace scrub rule left of the client's
+   * address (#10397): an event that names no address, nor says why, says
+   * that. One that already says a log rule hid it keeps saying so - unless
+   * the log's rule left nothing to look up and the trace's Hash rule left
+   * a token Security Events' address vault can name (#10395): the token is
+   * what may still name the address, so it is the one the event keeps.
+   */
+  if (!event.principalIp) {
+    const hidden: HiddenClientAddress | null = readHiddenClientAddress(event);
+    const scrubbed: ScrubbedAddress | null = readScrubbedAddress(
+      assessment.clientAddress || "",
+    );
+
+    if (
+      scrubbed &&
+      (!hidden ||
+        (isAddressVaultToken(scrubbed) && !isAddressVaultToken(hidden)))
+    ) {
+      clearClientAddressScrubbed(attributes);
+      markClientAddressScrubbed(attributes, {
+        scrubbed,
+        place: ScrubbedAddressPlace.SpanAttributes,
+      });
+    }
   }
 
   addObservable(event, event.principalIp);

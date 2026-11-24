@@ -97,6 +97,7 @@ import {
   CephPgReasonStates,
   CephPoolPgStates,
   getCephAttentionItems,
+  getCephClusterPgStateItems,
   getCephDownOsdItems,
   getCephHealth,
   getCephOsdAttentionItems,
@@ -109,6 +110,7 @@ import {
   CephHealthCheckReadings,
   CephLatestPerLabel,
   CephPgStateReadings,
+  loadCephClusterPgReasonStates,
   loadCephHealthChecks,
   loadCephLatestPerLabel,
   loadCephPgReasonStates,
@@ -220,6 +222,29 @@ export const CEPH_NO_PG_STATE_POOL: Record<CephPgProblemState, string> = {
 export const CEPH_PG_POOLS_READ_FAILED: string = translationKey(
   "Couldn't read which pools hold them.",
 );
+
+/*
+ * The same segments on a Ceph that counts placement groups for the whole
+ * cluster only (#10016): they open the cluster's own row, with Ceph's
+ * reason for the cluster, and the OSDs that are down - and say plainly that
+ * which pools hold them is not known.
+ */
+export const CEPH_PG_CLUSTER_HINT: string = translationKey("Show why");
+export const CEPH_PG_STATE_CLUSTER_DESCRIPTIONS: Record<
+  CephPgProblemState,
+  string
+> = {
+  degraded: translationKey(
+    "A degraded placement group is missing a copy of some of its objects. This Ceph counts them for the whole cluster only, so which pools hold them is not known.",
+  ),
+  undersized: translationKey(
+    "An undersized placement group has fewer copies than its pool keeps. This Ceph counts them for the whole cluster only, so which pools hold them is not known.",
+  ),
+};
+export const CEPH_NO_PG_STATE_CLUSTER: Record<CephPgProblemState, string> = {
+  degraded: translationKey("No placement group is degraded now."),
+  undersized: translationKey("No placement group is undersized now."),
+};
 
 /*
  * The pill a count of OSDs or pools that are not well opens, or none while
@@ -982,6 +1007,56 @@ const CephClusterOverview: FunctionComponent<
     isAttentionCurrent && Boolean(pgStatesByPool && pgStatesByPool.size > 0);
 
   /*
+   * A Ceph that counts its placement groups for the whole cluster only
+   * (Luminous, the first Mimic releases) never says which pools hold them,
+   * but does say what it is doing about them for the cluster (#10016):
+   * there the segments open the cluster's own row and its OSDs that are
+   * down, and say which pools is not known.
+   */
+  const isPgCountClusterWide: boolean =
+    isAttentionCurrent &&
+    pgStats !== null &&
+    !(pgStatesByPool && pgStatesByPool.size > 0);
+
+  /*
+   * What a segment opens on such a Ceph, read when it is pressed: Ceph's
+   * other states for the cluster's placement groups say what it is doing
+   * about them. A failed read of those says so, and never hides the OSDs
+   * that are down.
+   */
+  const loadPgStateCluster: (
+    state: CephPgProblemState,
+  ) => Promise<ResourceAttentionDialogRead> = async (
+    state: CephPgProblemState,
+  ): Promise<ResourceAttentionDialogRead> => {
+    let reasonStates: CephPgReasonStates | null = null;
+    let isReasonUnread: boolean = false;
+    const clusterName: string = (cluster?.name as string | undefined) || "";
+    if (clusterName) {
+      try {
+        reasonStates = await loadCephClusterPgReasonStates(clusterName);
+      } catch {
+        isReasonUnread = true;
+      }
+    }
+    if (!pgStats) {
+      return { items: [] };
+    }
+    return {
+      items: getCephClusterPgStateItems({
+        state: state,
+        cluster: { name: clusterName },
+        totals: pgStats,
+        items: attentionItems,
+        rows: inventoryRows,
+        reasonStates: reasonStates,
+        isReasonUnread: isReasonUnread,
+        translator: translator,
+      }),
+    };
+  };
+
+  /*
    * The pools a segment counts, read when it is pressed: Ceph's other
    * states for their placement groups say what it is doing about them. A
    * failed read of those never hides the pools: they show without it.
@@ -1534,21 +1609,22 @@ const CephClusterOverview: FunctionComponent<
      * Degraded and Undersized open the pools that hold them, and Ceph's
      * reason (#9727): while the agent reports, on a Ceph that counts its
      * placement groups per pool. One that counts them for the whole
-     * cluster only never says which pools, so its legend stays words.
+     * cluster only never says which pools: there they open the cluster's
+     * own reason and its OSDs that are down (#10016).
      */
     const pressToOpenPools: (
       state: CephPgProblemState,
     ) => Pick<StackedProgressBarSegment, "onClick" | "clickHint"> = (
       state: CephPgProblemState,
     ): Pick<StackedProgressBarSegment, "onClick" | "clickHint"> => {
-      if (!canOpenPgPools) {
+      if (!canOpenPgPools && !isPgCountClusterWide) {
         return {};
       }
       return {
         onClick: (): void => {
           setOpenPgState(state);
         },
-        clickHint: tx(CEPH_POOL_HINT),
+        clickHint: tx(canOpenPgPools ? CEPH_POOL_HINT : CEPH_PG_CLUSTER_HINT),
       };
     };
 
@@ -1909,7 +1985,7 @@ const CephClusterOverview: FunctionComponent<
        * The pools the bar's Degraded or Undersized counts, and why, once
        * pressed: read when it opens.
        */}
-      {openPgState ? (
+      {openPgState && canOpenPgPools ? (
         <ResourceAttentionDialog
           testId={`ceph-pg-${openPgState}-dialog`}
           title={translator.translatePlural(
@@ -1923,6 +1999,29 @@ const CephClusterOverview: FunctionComponent<
           emptyMessage={CEPH_NO_PG_STATE_POOL[openPgState]}
           whatFailed={CEPH_PG_POOLS_READ_FAILED}
           showKind={false}
+          onClose={(): void => {
+            setOpenPgState(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+      {/*
+       * On a Ceph that counts them for the whole cluster only: the
+       * cluster's own reason, then its OSDs that are down (#10016).
+       */}
+      {openPgState && !canOpenPgPools && isPgCountClusterWide ? (
+        <ResourceAttentionDialog
+          testId={`ceph-pg-${openPgState}-dialog`}
+          title={translator.translatePlural(
+            CEPH_PG_STATE_TITLES[openPgState],
+            Math.round(pgStats?.[openPgState] || 0),
+          )}
+          description={CEPH_PG_STATE_CLUSTER_DESCRIPTIONS[openPgState]}
+          load={(): Promise<ResourceAttentionDialogRead> => {
+            return loadPgStateCluster(openPgState);
+          }}
+          emptyMessage={CEPH_NO_PG_STATE_CLUSTER[openPgState]}
           onClose={(): void => {
             setOpenPgState(null);
           }}

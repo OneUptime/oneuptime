@@ -21,6 +21,7 @@
 
 import * as WebBrowser from "expo-web-browser";
 import { SSO_CALLBACK_URL } from "./callbackUrl";
+import { beginSsoHandOff } from "./handOff";
 import {
   clearPendingSsoCallbackUrl,
   consumePendingSsoCallbackUrl,
@@ -66,6 +67,22 @@ export async function openSsoAuthSession(
    */
   clearPendingSsoCallbackUrl();
 
+  /*
+   * Every sign-in starts with a state and a PKCE challenge of its own
+   * (#9989, ./handOff): the server hands it back as a one-time code only
+   * this sign-in can redeem. One that cannot start opens no browser.
+   */
+  let handOffUrl: string;
+
+  try {
+    handOffUrl = await beginSsoHandOff(ssoUrl);
+  } catch {
+    return {
+      status: "error",
+      message: "Could not start single sign-on. Please try again.",
+    };
+  }
+
   try {
     await WebBrowser.warmUpAsync();
   } catch {
@@ -74,7 +91,7 @@ export async function openSsoAuthSession(
 
   try {
     const result: WebBrowser.WebBrowserAuthSessionResult =
-      await WebBrowser.openAuthSessionAsync(ssoUrl, SSO_CALLBACK_URL);
+      await WebBrowser.openAuthSessionAsync(handOffUrl, SSO_CALLBACK_URL);
 
     if (result.type === "success" && result.url) {
       // Nothing left pending - this same URL is very likely also in the slot.

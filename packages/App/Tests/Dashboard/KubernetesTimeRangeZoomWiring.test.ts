@@ -187,8 +187,14 @@ describe("cluster Overview: the page in the issue", () => {
       '<TimeRangeZoomHint revealOnHover={true} className="pointer-events-none absolute right-0 top-full leading-3" />',
     );
     expectCode(header, '<div className="relative flex items-center');
-    // The skeleton and the chart both reveal it on hover of the card.
-    expect(countOf(card, 'className="group/zoomhint rounded-xl')).toBe(2);
+    /*
+     * The skeleton and the chart both reveal it on hover of the card. The
+     * chart's card is a column, its chart at the foot (#7125).
+     */
+    expect(countOf(card, 'className="group/zoomhint rounded-xl')).toBe(1);
+    expect(
+      countOf(card, 'className="group/zoomhint flex flex-col rounded-xl'),
+    ).toBe(1);
   });
 
   test("a change of range - a zoom, a reset, a pick - reloads every golden chart and tile for it", () => {
@@ -471,10 +477,17 @@ describe("resource detail Metrics tabs: the tab's card keeps the zoom", () => {
       KUBERNETES_METRICS_TAB,
       'export { default } from "../Infrastructure/ResourceMetricsTab";',
     );
-    // A claim's formula charts (its used percent, #9539) ride in the same card.
+    /*
+     * The card draws the tab's queries, the charts worked out from them (a
+     * claim's used and free space, #9649) and the page's extra charts.
+     */
     expectCode(
       RESOURCE_METRICS_TAB,
       "<EmbeddedMetricCard hideCard={true} queryConfigs={props.queryConfigs} formulaConfigs={props.formulaConfigs} renderExtraCharts={props.renderExtraCharts} />",
+    );
+    expectCode(
+      RESOURCE_METRICS_TAB,
+      "formulaConfigs?: Array<MetricFormulaConfigData> | undefined;",
     );
     // No range from the page: the card is uncontrolled, and zooms its own.
     expectNoCode(RESOURCE_METRICS_TAB, "timeRange=");

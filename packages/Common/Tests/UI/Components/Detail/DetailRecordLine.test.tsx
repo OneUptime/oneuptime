@@ -96,7 +96,7 @@ describe("the record line", () => {
       "detail-updated-at",
     ]);
     expect(recordLine()).toHaveTextContent(
-      `ID${RECORD_ID}…CreatedSep 30 2026, 14:25 BSTUpdatedOct 01 2026, 09:12 BST`,
+      `ID${RECORD_ID}…CreatedSep 30, 2026, 14:25 BSTUpdatedOct 1, 2026, 09:12 BST`,
     );
   });
 
@@ -127,7 +127,7 @@ describe("the record line", () => {
       "Created",
     );
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Sep 30 2026, 14:25 BST",
+      "Sep 30, 2026, 14:25 BST",
     );
     // An icon of its own, as the ID has: each piece starts with one.
     expect(created.querySelectorAll("svg")).toHaveLength(1);
@@ -161,7 +161,7 @@ describe("the record line", () => {
     await hover(screen.getByTestId("detail-created-at-value"));
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "Sep 30 2026, 14:25:13 BST",
+      "Sep 30, 2026, 14:25:13 BST",
     );
   });
 
@@ -172,13 +172,13 @@ describe("the record line", () => {
       "Updated",
     );
     expect(screen.getByTestId("detail-updated-at-value")).toHaveTextContent(
-      "Oct 01 2026, 09:12 BST",
+      "Oct 1, 2026, 09:12 BST",
     );
 
     await hover(screen.getByTestId("detail-updated-at-value"));
 
     expect(await screen.findByRole("tooltip")).toHaveTextContent(
-      "Oct 01 2026, 09:12:47 BST",
+      "Oct 1, 2026, 09:12:47 BST",
     );
   });
 
@@ -217,7 +217,7 @@ describe("the reader's time", () => {
     render(<DetailRecordLine times={[CREATED_TIME]} />);
 
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Sep 30 2026, 09:25 EDT",
+      "Sep 30, 2026, 09:25 EDT",
     );
   });
 
@@ -236,7 +236,7 @@ describe("the reader's time", () => {
     );
 
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Oct 01 2026, 05:15 IST",
+      "Oct 1, 2026, 05:15 IST",
     );
   });
 
@@ -248,7 +248,7 @@ describe("the reader's time", () => {
     render(<DetailRecordLine times={[CREATED_TIME]} />);
 
     expect(screen.getByTestId("detail-created-at-value")).toHaveTextContent(
-      "Sep 30 2026, 02:25 PM BST",
+      "Sep 30, 2026, 2:25 PM BST",
     );
   });
 });

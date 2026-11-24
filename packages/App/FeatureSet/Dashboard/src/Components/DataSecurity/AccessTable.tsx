@@ -31,6 +31,7 @@ import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -87,6 +88,12 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // Whether the reader may read the store's sensitivity through the access.
+  const showsStoreSensitivity: boolean = PermissionGate.canReadThroughRelation(
+    new DataStore(),
+    "sensitivity",
+  );
 
   const query: Query<DataStoreAccess> = {
     ...(projectId ? { projectId: projectId } : {}),
@@ -294,20 +301,32 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
             );
           },
         },
-        {
-          field: { dataStore: { sensitivity: true } },
-          title: "Store Sensitivity",
-          type: FieldType.Element,
-          disableSort: true,
-          getExportValue: (access: DataStoreAccess): string => {
-            return access.dataStore?.sensitivity || "";
-          },
-          getElement: (access: DataStoreAccess): ReactElement => {
-            return (
-              <SensitivityPill sensitivity={access.dataStore?.sensitivity} />
-            );
-          },
-        },
+        /*
+         * Only for who may read the store's sensitivity: a relation reads it
+         * for the store's own readers alone (#10281), so a custom role that
+         * reads accesses and not stores is shown the list without it - one
+         * column the server would not read for them refused the whole list.
+         */
+        ...(showsStoreSensitivity
+          ? [
+              {
+                field: { dataStore: { sensitivity: true } },
+                title: "Store Sensitivity",
+                type: FieldType.Element,
+                disableSort: true,
+                getExportValue: (access: DataStoreAccess): string => {
+                  return access.dataStore?.sensitivity || "";
+                },
+                getElement: (access: DataStoreAccess): ReactElement => {
+                  return (
+                    <SensitivityPill
+                      sensitivity={access.dataStore?.sensitivity}
+                    />
+                  );
+                },
+              },
+            ]
+          : []),
         {
           field: { lastUsedAt: true },
           title: "Last Used",

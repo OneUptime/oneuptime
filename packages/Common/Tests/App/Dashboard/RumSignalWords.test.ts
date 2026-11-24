@@ -110,7 +110,7 @@ describe("the clock these tests read", () => {
 
 describe("formatSinceDate", () => {
   test("a recent date carries its time: right after an upgrade, the day alone says little", () => {
-    expect(formatSinceDate(ago(2 * HOUR), NOW)).toMatch(/^Nov 08 2026, 10:00/);
+    expect(formatSinceDate(ago(2 * HOUR), NOW)).toMatch(/^Nov 8, 2026, 10:00/);
   });
 
   test("an older date is the day alone", () => {

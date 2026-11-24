@@ -12,7 +12,12 @@ import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import LeaveWithoutSavingQuestion from "../UnsavedChanges/LeaveWithoutSavingQuestion";
 import { getDashboardViewConfigSignature } from "Common/Utils/Dashboard/DashboardViewConfigSignature";
-import DashboardCanvas from "./Canvas/Index";
+import DashboardCanvas, { getDashboardWidgetBoxId } from "./Canvas/Index";
+import { getDashboardLinkWidgetIdFromSearch } from "Common/Utils/Dashboard/DashboardWidgetLink";
+import {
+  DASHBOARD_LINKED_WIDGET_MISSING,
+  DASHBOARD_LINKED_WIDGET_MISSING_TEST_ID,
+} from "Common/UI/Utils/DashboardWidgetLanding";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
 import DashboardViewConfig, {
@@ -325,6 +330,28 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   const [pendingScrollComponentId, setPendingScrollComponentId] =
     useState<ObjectID | null>(null);
 
+  /*
+   * The widget the link that opened the dashboard names (?widget=<id>,
+   * #10084): a warning that names a widget, a chart just added. Read once,
+   * as the page opens; the board lands on it once it is drawn. A
+   * playlist's turn reads nothing from the address, which is the
+   * playlist's.
+   */
+  const [linkedWidgetId] = useState<string>((): string => {
+    return isPlayback
+      ? ""
+      : getDashboardLinkWidgetIdFromSearch(window.location.search);
+  });
+
+  // The board has no such widget: it opens at its top, and says why.
+  const onLinkedWidgetMissing: () => void = useCallback((): void => {
+    Toast.info(
+      translator.translateText(DASHBOARD_LINKED_WIDGET_MISSING) ||
+        DASHBOARD_LINKED_WIDGET_MISSING,
+      { dataTestId: DASHBOARD_LINKED_WIDGET_MISSING_TEST_ID },
+    );
+  }, [translator]);
+
   const [dashboardViewConfig, setDashboardViewConfig] =
     useState<DashboardViewConfig>({
       _type: ObjectType.DashboardViewConfig,
@@ -583,7 +610,9 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     if (!pendingScrollComponentId) {
       return undefined;
     }
-    const id: string = `dashboard-component-${pendingScrollComponentId.toString()}`;
+    const id: string = getDashboardWidgetBoxId(
+      pendingScrollComponentId.toString(),
+    );
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
       const el: HTMLElement | null = document.getElementById(id);
       if (el) {
@@ -737,6 +766,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
         onEditWidgetClick={canEditDashboard ? editWidget : undefined}
         isPlayback={isPlayback}
+        landingWidgetId={linkedWidgetId || undefined}
+        onLandingWidgetMissing={onLinkedWidgetMissing}
       />
     </div>
   );

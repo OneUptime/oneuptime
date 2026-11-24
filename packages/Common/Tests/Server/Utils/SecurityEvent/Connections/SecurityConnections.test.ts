@@ -145,6 +145,7 @@ let monitorSpy: jest.SpyInstance;
 let changeSpy: jest.SpyInstance;
 let inventorySpy: jest.SpyInstance;
 let logResourcesSpy: jest.SpyInstance;
+let logOwnersSpy: jest.SpyInstance;
 let layerUserSpy: jest.SpyInstance;
 let scheduleSpy: jest.SpyInstance;
 let teamSpy: jest.SpyInstance;
@@ -169,6 +170,9 @@ beforeEach(() => {
     .mockResolvedValue([]);
   logResourcesSpy = jest
     .spyOn(SecurityEventService, "findLogResourcesNaming")
+    .mockResolvedValue([]);
+  logOwnersSpy = jest
+    .spyOn(SecurityEventService, "findLogOwnersNaming")
     .mockResolvedValue([]);
   layerUserSpy = jest
     .spyOn(OnCallDutyPolicyScheduleLayerUserService, "findBy")
@@ -256,6 +260,76 @@ describe("SecurityConnections.forCase", () => {
     expect(json?.unmatched).toEqual(RESOLVED.unmatched);
     expect(json?.failedKinds).toEqual([SecurityConnectionKind.NetworkDevice]);
     expect(json?.hasMoreResources).toBe(false);
+  });
+
+  /*
+   * #10033: an event read from a cloud resource's or a function's own logs
+   * names it by the ID its stream stamped and the faas.name it carried -
+   * the line itself is filed under another service. A case is connected to
+   * them too, from the same events, in the same window.
+   */
+  test("and the cloud resources and functions whose own logs its events were read from", async () => {
+    caseRead();
+    logOwnersSpy.mockResolvedValue([
+      {
+        kind: SecurityConnectionKind.CloudResource,
+        value: "arn:aws:rds:us-east-1:111122223333:db:orders-primary",
+      },
+      {
+        kind: SecurityConnectionKind.ServerlessFunction,
+        value: "checkout-handler",
+      },
+    ]);
+
+    await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(logOwnersSpy.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      values: ["web-1", "203.0.113.7"],
+      startTime: new Date("2026-10-25T08:30:00.000Z"),
+      endTime: new Date("2026-10-25T10:30:00.000Z"),
+    });
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
+      props: CALLER,
+      logOwners: [
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          value: "arn:aws:rds:us-east-1:111122223333:db:orders-primary",
+        },
+        {
+          kind: SecurityConnectionKind.ServerlessFunction,
+          value: "checkout-handler",
+        },
+      ],
+    });
+  });
+
+  test("the cloud resources and functions behind its events that cannot be read are left out; the rest still answers", async () => {
+    caseRead();
+    logOwnersSpy.mockRejectedValue(new Error("clickhouse timed out"));
+    logResourcesSpy.mockResolvedValue([
+      { type: "OpenTelemetry", id: SERVICE_ID, eventCount: 4 },
+    ]);
+
+    const json: SecurityConnectionsJson | null =
+      await SecurityConnections.forCase({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        props: CALLER,
+        now: NOW,
+      });
+
+    expect(json?.resources.length).toBe(4);
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
+      logResources: [{ type: "OpenTelemetry", id: SERVICE_ID }],
+      logOwners: [],
+    });
+    expect(logger.error).toHaveBeenCalled();
   });
 
   test("the logs behind its events that cannot be read are left out; the rest still answers", async () => {
@@ -622,6 +696,38 @@ describe("SecurityConnections.forEntities", () => {
     });
     // An event says where its own line came from: nothing is read for it.
     expect(logResourcesSpy).not.toHaveBeenCalled();
+    expect(logOwnersSpy).not.toHaveBeenCalled();
+  });
+
+  test("an event read from a cloud resource's or a function's own logs: the two it names are passed on (#10033)", async () => {
+    const owners: Array<{ kind: SecurityConnectionKind; value: string }> = [
+      {
+        kind: SecurityConnectionKind.CloudResource,
+        value:
+          "/subscriptions/11111111-2222-3333-4444-555555555555/resourcegroups/rg-sec/providers/microsoft.keyvault/vaults/kv-payments",
+      },
+      {
+        kind: SecurityConnectionKind.ServerlessFunction,
+        value: "checkout-handler",
+      },
+    ];
+
+    await SecurityConnections.forEntities({
+      projectId: PROJECT_ID,
+      entities: [{ type: SecurityEntityType.IpAddress, value: "203.0.113.7" }],
+      time: new Date("2026-10-25T10:00:00.000Z"),
+      logResources: [{ type: "OpenTelemetry", id: SERVICE_ID }],
+      logOwners: owners,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
+      logResources: [{ type: "OpenTelemetry", id: SERVICE_ID }],
+      logOwners: owners,
+      props: CALLER,
+    });
+    expect(logOwnersSpy).not.toHaveBeenCalled();
   });
 
   test("an entity's page reads the logs behind its events too; a time ahead of now is now", async () => {
@@ -643,6 +749,39 @@ describe("SecurityConnections.forEntities", () => {
     expect(json.windowEnd).toBe(NOW.toISOString());
     expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
       logResources: [{ type: "Host", id: HOST_ID }],
+    });
+  });
+
+  test("an entity's page reads the cloud resources and functions behind its events too", async () => {
+    logOwnersSpy.mockResolvedValue([
+      { kind: SecurityConnectionKind.ServerlessFunction, value: "checkout" },
+    ]);
+
+    await SecurityConnections.forEntities({
+      projectId: PROJECT_ID,
+      entities: [{ type: SecurityEntityType.User, value: "k@acme.example" }],
+      readLogResources: true,
+      logOwners: [
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          value: "arn:aws:s3:::acme-invoices",
+        },
+      ],
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(logOwnersSpy.mock.calls[0]![0]).toMatchObject({
+      values: ["k@acme.example"],
+    });
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
+      logOwners: [
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          value: "arn:aws:s3:::acme-invoices",
+        },
+        { kind: SecurityConnectionKind.ServerlessFunction, value: "checkout" },
+      ],
     });
   });
 });
@@ -671,14 +810,19 @@ describe("the logs behind the events, of the sources the reader may read", () =>
       now: NOW,
     });
 
-    expect(scope).toHaveBeenCalledTimes(2);
+    // Each read keeps to them: the records the logs were sent under, and the resources and functions they were of.
+    expect(scope).toHaveBeenCalledTimes(4);
     expect(logResourcesSpy).toHaveBeenCalledTimes(2);
+    expect(logOwnersSpy).toHaveBeenCalledTimes(2);
 
     for (const call of scope.mock.calls) {
       expect(call[0]).toEqual({ modelType: SecurityEvent, props: CALLER });
     }
 
-    for (const call of logResourcesSpy.mock.calls) {
+    for (const call of [
+      ...logResourcesSpy.mock.calls,
+      ...logOwnersSpy.mock.calls,
+    ]) {
       expect(call[0]).toMatchObject({ serviceFilter: sources });
     }
   });
@@ -705,7 +849,11 @@ describe("the logs behind the events, of the sources the reader may read", () =>
       });
 
     expect(logResourcesSpy).not.toHaveBeenCalled();
-    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({ logResources: [] });
+    expect(logOwnersSpy).not.toHaveBeenCalled();
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
+      logResources: [],
+      logOwners: [],
+    });
     expect(json?.resources.length).toBe(4);
     expect(logger.error).not.toHaveBeenCalled();
   });
@@ -755,6 +903,7 @@ describe("the incident a case declares", () => {
     ]);
     expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
       props: { isRoot: true },
+      logOwners: [],
     });
 
     // The logs behind every source's events: OneUptime decides what the incident is about.

@@ -201,6 +201,20 @@ import {
   getActionItemMonitorName,
 } from "../../Components/Postmortem/ActionItems/PostmortemActionItemsModel";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
+import Host from "Common/Models/DatabaseModels/Host";
+import {
+  HOST_SERVICE_MONITOR_HOST_GONE_ERROR,
+  HOST_SERVICE_MONITOR_LINK_ERROR,
+  HostServiceMonitorLink,
+  buildHostServiceMonitorPrefill,
+  isHostServiceMonitorAddress,
+  readHostServiceMonitorLink,
+} from "../../Utils/HostServiceMonitorPrefill";
+import {
+  EMPTY_MONITOR_SEED_IDS,
+  MonitorSeedIds,
+  fetchMonitorSeedIds,
+} from "../../Utils/MonitorSeedIds";
 
 /*
  * Candidate rolling windows for "create monitor from this explorer view" —
@@ -1606,6 +1620,76 @@ const MonitorCreate: FunctionComponent<
     });
   };
 
+  /*
+   * "Create Monitor" on a host's Windows service or systemd unit page
+   * (#10296): open on a Host monitor of that host that watches the service,
+   * with criteria built from the project's own statuses and severities
+   * (HostServiceMonitorPrefill). The host is read here - its host name is
+   * what its metrics carry, its name what the monitor is called by - so the
+   * link stays its id and the service's name.
+   */
+  const preSeedFromHostServiceLink: (
+    link: HostServiceMonitorLink,
+  ) => Promise<void> = async (link: HostServiceMonitorLink): Promise<void> => {
+    const [hostResult, seedsResult]: [
+      PromiseSettledResult<Host | null>,
+      PromiseSettledResult<MonitorSeedIds>,
+    ] = await Promise.allSettled([
+      ModelAPI.getItem<Host>({
+        modelType: Host,
+        id: new ObjectID(link.hostId),
+        select: {
+          name: true,
+          hostIdentifier: true,
+        },
+      }),
+      fetchMonitorSeedIds(),
+    ]);
+
+    if (hostResult.status === "rejected") {
+      setError(API.getFriendlyMessage(hostResult.reason));
+      return;
+    }
+
+    const host: Host | null = hostResult.value;
+
+    /*
+     * Messages go to ErrorMessage untranslated: it translates a string
+     * message itself, and translationKey() is what lets the extractor
+     * find them.
+     */
+    if (!host?.hostIdentifier) {
+      setError(HOST_SERVICE_MONITOR_HOST_GONE_ERROR);
+      return;
+    }
+
+    const prefill: JSONObject | null = buildHostServiceMonitorPrefill({
+      link: link,
+      host: {
+        id: link.hostId,
+        hostIdentifier: host.hostIdentifier,
+        name: host.name,
+      },
+      /*
+       * Recoverable: without them the criteria come without the parts that
+       * need these ids, and the form asks for them.
+       */
+      seeds:
+        seedsResult.status === "fulfilled"
+          ? seedsResult.value
+          : EMPTY_MONITOR_SEED_IDS,
+      // Its criteria's words in the reader's language (#6542).
+      translator: translator,
+    });
+
+    if (!prefill) {
+      setError(HOST_SERVICE_MONITOR_LINK_ERROR);
+      return;
+    }
+
+    setInitialValues(prefill);
+  };
+
   useEffect(() => {
     if (monitorTemplateId) {
       fetchMonitorTemplate(new ObjectID(monitorTemplateId));
@@ -1753,6 +1837,29 @@ const MonitorCreate: FunctionComponent<
     if (actionItemId && actionItemId.trim()) {
       setIsLoading(true);
       preSeedFromActionItem(actionItemId.trim()).finally(() => {
+        setIsLoading(false);
+      });
+      return;
+    }
+
+    // "Create Monitor" on a host's Windows service or systemd unit page.
+    const readParam: (name: string) => string | null = (
+      name: string,
+    ): string | null => {
+      return Navigation.getQueryStringByName(name);
+    };
+
+    if (isHostServiceMonitorAddress(readParam)) {
+      const hostServiceLink: HostServiceMonitorLink | null =
+        readHostServiceMonitorLink(readParam);
+
+      if (!hostServiceLink) {
+        setError(HOST_SERVICE_MONITOR_LINK_ERROR);
+        return;
+      }
+
+      setIsLoading(true);
+      preSeedFromHostServiceLink(hostServiceLink).finally(() => {
         setIsLoading(false);
       });
       return;

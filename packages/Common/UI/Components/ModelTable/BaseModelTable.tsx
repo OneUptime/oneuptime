@@ -252,6 +252,19 @@ import UserPreferences, {
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import {
+  SharedNameFacts,
+  SharedNameMark,
+  getSharedNameFacts,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+  SharedNameValueDetail,
+} from "../Dropdown/SharedNameOptionLines";
 import InlineLoadingLine from "../Loader/InlineLoadingLine";
 import InlineSeparator from "../InlineSeparator/InlineSeparator";
 import { refreshSideMenuCounts } from "../SideMenu/SideMenuCountRefresh";
@@ -1912,6 +1925,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     id: string;
     name: string;
     color: string;
+    // What tells it from another label of its name (#10314).
+    sharedName?: SharedNameFacts | undefined;
   }
 
   const [availableLabels, setAvailableLabels] = useState<
@@ -2039,6 +2054,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             _id: true,
             [labelFilterConfig.labelField]: true,
             color: true,
+            // What tells two labels of one name apart (#10314).
+            ...getSharedNameSelect(labelFilterConfig.entityType),
           } as any,
           sort: { [labelFilterConfig.labelField]: SortOrder.Ascending } as any,
         });
@@ -2060,6 +2077,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               id: raw["_id"]?.toString() || "",
               name: (raw[labelFilterConfig.labelField] as string) || "",
               color: colorHex,
+              sharedName:
+                labelFilterConfig.labelField === "name"
+                  ? getSharedNameFacts(item as BaseModel)
+                  : undefined,
             } as SearchLabelOption;
           })
           .filter((l: SearchLabelOption) => {
@@ -2115,6 +2136,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setSelectedLabels(hydrated);
     }
   }, [availableLabels]);
+
+  /*
+   * Labels named alike before names were held to one label each (#10314):
+   * each suggestion wears its list's pill and what sets it apart, and a
+   * picked one says it after its name, so two picked twins read as two.
+   */
+  const searchLabelMarks: Map<string, SharedNameMark> = useMemo(() => {
+    return getSharedNameMarks(
+      availableLabels.map((label: SearchLabelOption) => {
+        return {
+          value: label.id,
+          label: label.name,
+          sharedName: label.sharedName,
+        };
+      }),
+      translator,
+    );
+  }, [availableLabels, translator]);
 
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -2643,6 +2682,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             (select as Dictionary<boolean>)["isArchived"] = true;
           }
 
+          /*
+           * A team's, a label's, an on-call policy's or a schedule's
+           * description and when it was made: the filter's dropdown tells
+           * records of one name apart by them (SharedNameOptions, #10064).
+           */
+          const isListedByName: boolean =
+            filter.filterDropdownField.label === "name" &&
+            Boolean(filter.filterEntityType.prototype instanceof BaseModel);
+
+          if (isListedByName) {
+            Object.assign(
+              select,
+              getSharedNameSelect(
+                filter.filterEntityType as DatabaseBaseModelType,
+              ),
+            );
+          }
+
           if (accessControlColumnName) {
             (select as Dictionary<JSONObject>)[accessControlColumnName] = {
               _id: true,
@@ -2682,6 +2739,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               item.getColumnValue("isArchived") === true
             ) {
               option.isArchived = true;
+            }
+
+            const sharedName: DropdownOption["sharedName"] = isListedByName
+              ? getSharedNameFacts(item as unknown as BaseModel)
+              : undefined;
+
+            if (sharedName) {
+              option.sharedName = sharedName;
             }
 
             if (colorColumnName) {
@@ -5673,6 +5738,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                       <span className="max-w-[8rem] truncate">
                         {label.name}
                       </span>
+                      {searchLabelMarks.get(
+                        getSharedNameOptionKey(label.id),
+                      ) ? (
+                        <SharedNameValueDetail
+                          mark={
+                            searchLabelMarks.get(
+                              getSharedNameOptionKey(label.id),
+                            )!
+                          }
+                          className="max-w-[8rem] truncate text-xs font-normal text-gray-500"
+                        />
+                      ) : null}
                       <button
                         type="button"
                         onMouseDown={(
@@ -5927,6 +6004,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 )}
                 {dropdownLabels.map((label: SearchLabelOption, idx: number) => {
                   const isActive: boolean = idx === labelDropdownIndex;
+                  const sharedNameMark: SharedNameMark | undefined =
+                    searchLabelMarks.get(getSharedNameOptionKey(label.id));
                   return (
                     <button
                       key={label.id}
@@ -5952,7 +6031,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         style={{ backgroundColor: label.color }}
                         aria-hidden="true"
                       />
-                      <span className="flex-1 truncate">{label.name}</span>
+                      {sharedNameMark ? (
+                        /*
+                         * One of labels that share a name: the pill its
+                         * list draws, and what sets it apart (#10314).
+                         */
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="truncate">{label.name}</span>
+                            <SharedNamePill mark={sharedNameMark} />
+                          </span>
+                          <SharedNameDetail
+                            mark={sharedNameMark}
+                            className="block truncate text-xs text-gray-500"
+                          />
+                        </span>
+                      ) : (
+                        <span className="flex-1 truncate">{label.name}</span>
+                      )}
                       {isActive && (
                         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
                           ↵

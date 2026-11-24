@@ -11,7 +11,7 @@ import React, {
 } from "react";
 import SeriesPoint from "../Types/SeriesPoints";
 import { XAxis } from "../Types/XAxis/XAxis";
-import YAxis from "../Types/YAxis/YAxis";
+import YAxis, { OwnScaleYAxis, SecondYAxis } from "../Types/YAxis/YAxis";
 import ChartDataPoint, {
   CHART_DATA_POINT_X_AXIS_KEY,
 } from "../ChartLibrary/Types/ChartDataPoint";
@@ -23,8 +23,12 @@ import ChartReferenceLineProps from "../Types/ReferenceLineProps";
 import ChartReferenceRegionProps from "../Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../Types/TimeReferenceLineProps";
 import XAxisType from "../Types/XAxis/XAxisType";
+import { getTimeAxisTickInterval } from "../Utils/TimeAxisTicks";
+import { LegendGrowth, useLegendGrowth } from "../Utils/UseLegendGrowth";
 import NoDataMessage from "../ChartGroup/NoDataMessage";
-import { getYAxisWidthInPx } from "../Utils/YAxisWidth";
+import { ChartValueAxes, getChartValueAxes } from "../Utils/ValueAxes";
+import { ChartOwnScale } from "../ChartLibrary/Utils/SecondYAxis";
+import Dictionary from "../../../../Types/Dictionary";
 import {
   ChartTimeRangeZoomContextValue,
   ChartTimeRangeZoomHandlers,
@@ -60,6 +64,16 @@ export interface ComponentProps {
   referenceRegions?: Array<ChartReferenceRegionProps> | undefined;
   showLegend?: boolean | undefined;
   /*
+   * A chart drawn at a fixed heightInPx keeps its plot that tall when its
+   * legend wraps onto more lines than one: it grows by those lines, instead
+   * of taking them from the plot (UseLegendGrowth, issues #6562, #7125).
+   * Three long series names on a phone took a 176px card chart's plot from
+   * 78px down to 30px (Product Analytics' Active users). false keeps the
+   * height heightInPx gives, the legend's lines coming out of it: for a
+   * chart that has to fit a box of its own size (a dashboard widget).
+   */
+  growsWhenLegendWraps?: boolean | undefined;
+  /*
    * Optional per-series color override. Each entry may be a named palette key
    * or a raw hex string. When provided (and non-empty), it replaces the
    * default BarChartPalette so callers can assign custom colors; the array is
@@ -91,6 +105,25 @@ export interface ComponentProps {
    * bar at its place.
    */
   stacked?: boolean | undefined;
+  /*
+   * A second value axis, on the right, for the series it names (issue
+   * #10042): bytes overlaid on a chart in percent. Each axis is as wide as
+   * its own ticks, and the tooltip writes a series' values as its axis does.
+   */
+  secondYAxis?: SecondYAxis | undefined;
+  /*
+   * Scales of their own, with no axis drawn, for the series each names
+   * (issue #10080): an overlaid query in a unit neither axis can say. Each
+   * series' line keeps its shape, the axes keep theirs, and the tooltip
+   * writes its values with its scale's formatter.
+   */
+  ownScaleYAxes?: Array<OwnScaleYAxis> | undefined;
+  /*
+   * How the tooltip writes a series' values, by its name, for a series whose
+   * unit is neither axis's. Left out, a series' values are written as the
+   * axis it is drawn against writes its ticks.
+   */
+  seriesValueFormatters?: Dictionary<(value: number) => string> | undefined;
 }
 
 export interface BarInternalProps extends ComponentProps {
@@ -101,6 +134,12 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
   props: BarInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+  // Taller by the legend's extra lines, unless it must fit its box.
+  const legendGrowth: LegendGrowth = useLegendGrowth({
+    heightInPx: props.heightInPx,
+    growsWhenLegendWraps: props.growsWhenLegendWraps,
+    showLegend: props.showLegend,
+  });
 
   /*
    * Drag-to-zoom: the host's own handlers, or else the enclosing page's
@@ -162,16 +201,18 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
   /*
    * The value axis is as wide as the widest tick it draws, and never under
    * the 64 pixels it always had: a tick too wide for it broke over two
-   * lines and was cut at the card's edge (YAxisWidth, #8049).
+   * lines and was cut at the card's edge (YAxisWidth, #8049). A second axis
+   * is measured over its own series, and the first over the rest.
    */
-  const yAxisWidthInPx: number = useMemo(() => {
-    return getYAxisWidthInPx({
+  const valueAxes: ChartValueAxes = useMemo(() => {
+    return getChartValueAxes({
       data: props.data,
-      formatter: props.yAxis.options.formatter,
-      min: props.yAxis.options.min,
-      max: props.yAxis.options.max,
+      yAxis: props.yAxis,
+      secondYAxis: props.secondYAxis,
+      ownScaleYAxes: props.ownScaleYAxes,
     });
-  }, [props.data, props.yAxis]);
+  }, [props.data, props.yAxis, props.secondYAxis, props.ownScaleYAxes]);
+  const yAxisWidthInPx: number = valueAxes.firstYAxisWidthInPx;
 
   const hasNoData: boolean =
     !props.data ||
@@ -190,11 +231,20 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
        * navbar on half-scrolled charts.
        */
       className="relative isolate flex flex-1"
-      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+      style={
+        legendGrowth.chartHeightInPx
+          ? { height: `${legendGrowth.chartHeightInPx}px` }
+          : undefined
+      }
     >
       <BarChart
         data={records}
         tickGap={30}
+        // A day axis labels its first and last day (TimeAxisTicks, #7126).
+        intervalType={getTimeAxisTickInterval(props.xAxis)}
+        onLegendExtraRowsHeightChange={
+          legendGrowth.onLegendExtraRowsHeightChange
+        }
         index={CHART_DATA_POINT_X_AXIS_KEY}
         categories={categories}
         type={props.stacked ? "stacked" : "default"}
@@ -204,6 +254,8 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
             : BarChartPalette
         }
         valueFormatter={props.yAxis.options.formatter || undefined}
+        // A duration axis steps in natural units of time (issue #10118).
+        valueDurationUnitInSeconds={props.yAxis.options.durationUnitInSeconds}
         showTooltip={true}
         showLegend={props.showLegend !== false}
         yAxisWidth={yAxisWidthInPx}
@@ -222,6 +274,32 @@ const BarChartElement: FunctionComponent<BarInternalProps> = (
         }
         onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
         onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
+        /*
+         * Bars stand on zero on both axes, as the first axis's always have:
+         * the axis's own lower and upper ends are not read here.
+         */
+        secondYAxis={
+          valueAxes.secondYAxis
+            ? {
+                ...valueAxes.secondYAxis,
+                autoMinValue: false,
+                minValue: undefined,
+                maxValue: undefined,
+              }
+            : undefined
+        }
+        // Bars stand on zero on their own scales too.
+        ownScales={valueAxes.ownScales.map(
+          (ownScale: ChartOwnScale): ChartOwnScale => {
+            return {
+              ...ownScale,
+              autoMinValue: false,
+              minValue: undefined,
+              maxValue: undefined,
+            };
+          },
+        )}
+        categoryValueFormatters={props.seriesValueFormatters}
       />
       {hasNoData && <NoDataMessage />}
     </div>

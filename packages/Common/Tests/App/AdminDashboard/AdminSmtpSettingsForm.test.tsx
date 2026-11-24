@@ -141,6 +141,10 @@ import GlobalConfig, {
 } from "../../../Models/DatabaseModels/GlobalConfig";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AmazonSesAuthenticationType from "../../../Types/Email/AmazonSesAuthenticationType";
+import {
+  SERVER_AWS_IDENTITY_ROUTE,
+  ServerAwsIdentityVia,
+} from "../../../Types/Email/ServerAwsIdentity";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
@@ -2320,6 +2324,216 @@ describe("Admin > Settings > Email > a provider's own card", () => {
     );
     expect(
       within(card).getByText(text(GERMAN, "Authentication Type")),
+    ).toBeVisible();
+  });
+
+  /*
+   * Which AWS identity the server signs in as (#7380): asked of the server
+   * when the card shows in role mode, never in access key mode.
+   */
+  const identityAsks: () => Array<string> = (): Array<string> => {
+    return (API.fetch as unknown as MockFunction).mock.calls
+      .map((call: Array<unknown>): string => {
+        return String((call[0] as { url: unknown }).url);
+      })
+      .filter((url: string): boolean => {
+        return url.includes(SERVER_AWS_IDENTITY_ROUTE);
+      });
+  };
+
+  // The server's answers, in order: the last one again once they run out.
+  const answerIdentityWith: (answers: Array<JSONObject | null>) => void = (
+    answers: Array<JSONObject | null>,
+  ): void => {
+    let asked: number = 0;
+
+    getJestSpyOn(API, "fetch").mockImplementation((async (
+      options: unknown,
+    ): Promise<unknown> => {
+      const url: string = String((options as { url: unknown }).url);
+
+      if (url.includes(SERVER_AWS_IDENTITY_ROUTE)) {
+        const answer: JSONObject | null =
+          answers[Math.min(asked, answers.length - 1)] || null;
+
+        asked++;
+
+        return answer
+          ? new HTTPResponse<JSONObject>(200, answer, {})
+          : new HTTPErrorResponse(
+              422,
+              {
+                message:
+                  "Unauthorized: Only master admins can perform this action.",
+              },
+              {},
+            );
+      }
+
+      return new HTTPErrorResponse(404, { message: "Not found." }, {});
+    }) as never);
+  };
+
+  const SIGNED_IN_AS_ROLE: JSONObject = {
+    isSignedIn: true,
+    arn: "arn:aws:sts::111122223333:assumed-role/oneuptime-ses/eks-oneuptime-app",
+    account: "111122223333",
+    via: ServerAwsIdentityVia.EksPodIdentity,
+  };
+
+  test("Amazon SES with this server's IAM role: the card names the identity it signs in as, asked in its Region", async () => {
+    answerIdentityWith([SIGNED_IN_AS_ROLE]);
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByTestId("server-aws-identity-arn"),
+        ).toHaveTextContent(
+          "arn:aws:sts::111122223333:assumed-role/oneuptime-ses/eks-oneuptime-app",
+        );
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).getByText("Signs In As")).toBeVisible();
+    expect(
+      within(card).getByText(
+        "From EKS Pod Identity. A test email shows whether it may send.",
+      ),
+    ).toBeVisible();
+
+    // GET, once, for the card's own Region.
+    expect(identityAsks()).toHaveLength(1);
+    expect(identityAsks()[0]).toContain("region=eu-west-1");
+
+    const asked: { method?: unknown } = (
+      API.fetch as unknown as MockFunction
+    ).mock.calls
+      .map((call: Array<unknown>): { url: unknown; method?: unknown } => {
+        return call[0] as { url: unknown; method?: unknown };
+      })
+      .find((options: { url: unknown }): boolean => {
+        return String(options.url).includes(SERVER_AWS_IDENTITY_ROUTE);
+      })!;
+
+    expect(String(asked.method).toLowerCase()).toBe("get");
+  });
+
+  test("Amazon SES with this server's IAM role and no AWS credentials: the card says why, and Check again asks again", async () => {
+    answerIdentityWith([
+      {
+        isSignedIn: false,
+        problem:
+          "This server has no AWS credentials. Give it an IAM role: IAM roles for service accounts or EKS Pod Identity on Amazon EKS, a task role on Amazon ECS, or an instance profile on Amazon EC2.",
+      },
+      SIGNED_IN_AS_ROLE,
+    ]);
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByTestId("server-aws-identity-not-signed-in"),
+        ).toHaveTextContent(
+          "This server cannot sign in to AWS. This server has no AWS credentials. Give it an IAM role:",
+        );
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(card).getByRole("button", { name: "Check again" }),
+      );
+    });
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByTestId("server-aws-identity-arn"),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(identityAsks()).toHaveLength(2);
+  });
+
+  test("Amazon SES with this server's IAM role: a refused request says so, and is not taken for the server's answer", async () => {
+    answerIdentityWith([null]);
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByTestId("server-aws-identity-error"),
+        ).toHaveTextContent(
+          "Couldn't ask the server which AWS identity it signs in as.",
+        );
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).queryByTestId("server-aws-identity-arn")).toBeNull();
+    expect(
+      within(card).getByRole("button", { name: "Check again" }),
+    ).toBeVisible();
+  });
+
+  test("Amazon SES with an access key: no identity row, and the server is never asked", async () => {
+    answerIdentityWith([SIGNED_IN_AS_ROLE]);
+    stored = { ...SES_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Access Key ID")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    await settle();
+
+    expect(within(card).queryByText("Signs In As")).toBeNull();
+    expect(identityAsks()).toHaveLength(0);
+  });
+
+  test("Amazon SES: the identity row reads in the Admin Dashboard's languages: German", async () => {
+    answerIdentityWith([SIGNED_IN_AS_ROLE]);
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage("de");
+
+    const card: HTMLElement = await cardTitled(
+      text(GERMAN, "pages.settings.email.amazonSesCardTitle"),
+    );
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByTestId("server-aws-identity-arn"),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).getByText(text(GERMAN, "Signs In As"))).toBeVisible();
+    expect(text(GERMAN, "Signs In As")).toBe("Meldet sich an als");
+    expect(
+      within(card).getByText(
+        `${text(GERMAN, "From EKS Pod Identity.")} ${text(GERMAN, "A test email shows whether it may send.")}`,
+      ),
     ).toBeVisible();
   });
 

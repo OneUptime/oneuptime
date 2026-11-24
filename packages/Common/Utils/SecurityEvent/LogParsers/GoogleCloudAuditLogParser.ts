@@ -183,6 +183,21 @@ function isReadMethod(methodName: string): boolean {
   });
 }
 
+/*
+ * Whether a LogEntry's protoPayload is an AuditLog - one of the four audit
+ * logs - by its type ("type.googleapis.com/google.cloud.audit.AuditLog").
+ * A cloud stream keeps such an entry whole, as its log line's body
+ * (#10032), so it is read here as a pipeline's would be.
+ */
+export function isGoogleAuditLogPayload(
+  payload: JSONObject | null | undefined,
+): boolean {
+  return Boolean(
+    payload &&
+      text(payload["@type"]).toLowerCase().endsWith(AUDIT_LOG_TYPE_MARKER),
+  );
+}
+
 interface AuditEntry {
   entry: JSONObject;
   payload: JSONObject;
@@ -218,7 +233,7 @@ function readAuditEntry(line: SecurityLogLine): AuditEntry | null {
   const protoPayload: JSONObject | null = asObject(document["protoPayload"]);
   const payload: JSONObject = protoPayload || document;
 
-  if (!text(payload["@type"]).toLowerCase().endsWith(AUDIT_LOG_TYPE_MARKER)) {
+  if (!isGoogleAuditLogPayload(payload)) {
     return null;
   }
 

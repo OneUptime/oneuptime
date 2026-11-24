@@ -18,8 +18,10 @@
  *     After create only the server writes them (the rename pass, as root):
  *     a user who could would be able to mark a name they typed as
  *     discovered, and a later scan would rename it.
- *   - LEFT OUT OF THE TERRAFORM CONFIGURATION the dashboard writes: it is the
- *     server's record, not a setting a configuration should pin.
+ *   - ONEUPTIME'S (serverOwned: Always): no create or update schema of the
+ *     API offers it, so the Terraform provider reads it and never writes it,
+ *     and the dashboard's configuration leaves it out - it is the server's
+ *     record, not a setting a configuration should pin (#9985).
  *   - THE MIGRATION adds exactly these two nullable columns, and drops them.
  */
 
@@ -30,8 +32,9 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import ColumnType from "../../Types/Database/ColumnType";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import {
-  SERVER_MANAGED_COLUMNS_BY_TABLE,
+  getTerraformAttribute,
   isServerManagedColumn,
 } from "../../Utils/DeveloperDocs/TerraformSchema";
 import SchemaMigrations from "../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -125,11 +128,12 @@ describe.each([NAME_COLUMN, SOURCE_COLUMN])(
       expect(metadata(column).canReadOnRelationQuery).toBe(true);
     });
 
-    test("is left out of the Terraform configuration as server-managed", () => {
-      expect(SERVER_MANAGED_COLUMNS_BY_TABLE["NetworkDevice"]).toContain(
-        column,
-      );
-      expect(isServerManagedColumn("NetworkDevice", column)).toBe(true);
+    test("is OneUptime's, so no Terraform configuration writes it", () => {
+      expect(metadata(column).serverOwned).toBe(ServerOwned.Always);
+      expect(
+        isServerManagedColumn("NetworkDevice", column, metadata(column)),
+      ).toBe(true);
+      expect(getTerraformAttribute(NetworkDevice, column)).toBeUndefined();
     });
   },
 );

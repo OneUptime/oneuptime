@@ -21,15 +21,27 @@ import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CloudConnectionAuthMethod,
+  CloudConnectionDataSecurityLevel,
+  CloudConnectionDataSecurityResponse,
   CloudConnectionDefinition,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
-import { CloudConnectionAwsRoleSetup } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  AWS_DATA_SECURITY_POLICY_NAME,
+  AWS_DATA_SECURITY_RESPONSE_POLICY_NAME,
+  AZURE_DATA_SECURITY_CONTENT_ROLE,
+  AZURE_DATA_SECURITY_RESPONSE_ROLE,
+  CloudConnectionAwsRoleSetup,
+  CloudConnectionSetupScope,
+  GCP_DATA_SECURITY_RESPONSE_ROLE_ID,
+  getCloudConnectionSetupCommand,
+} from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { getShownDropdownValue, pickDropdownOption } from "../../DropdownPicks";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
@@ -749,6 +761,448 @@ describe("editing a connection", () => {
     expect(onSaved).toHaveBeenCalledWith({
       name: "Contoso production",
       isNew: false,
+    });
+  });
+});
+
+/*
+ * Data Security's two settings change the command, so they are asked with
+ * it (#10336): folded under the command on the Access step, the command
+ * shown follows each pick - on every cloud and every way in - and what is
+ * picked is what the test sends and Connect saves. They used to sit on the
+ * Credentials step, after the command had been run, and the command never
+ * took them: a connection set to close exposures got a role that could
+ * not write. An edit starts from the connection's own settings, so the
+ * command it shows is the one they grant, and saving changes nothing.
+ */
+describe("Data Security's settings, under the command", () => {
+  const AWS: CloudConnectionDefinition = getCloudConnectionDefinition(
+    CloudProvider.AWS,
+  )!;
+
+  const LEVELS: Array<[CloudConnectionDataSecurityLevel, string]> = [
+    ["off", "Off"],
+    ["configuration", "Configuration only"],
+    ["content", "Configuration and content samples"],
+  ];
+  const RESPONSES: Array<[CloudConnectionDataSecurityResponse, string]> = [
+    ["off", "Off"],
+    ["block", "Close exposures and fix settings"],
+  ];
+
+  // The label each picker is named by: Data security's own, and its response's.
+  const DATA_SECURITY: RegExp = /^Data security(?! response)/;
+  const RESPONSE: RegExp = /^Data security response/;
+
+  // The command as drawn, whole: what a person copies and runs.
+  function shownCommand(): string {
+    return (
+      within(modal())
+        .getByTestId("cloud-setup-command-code")
+        .querySelector("code")?.textContent || ""
+    );
+  }
+
+  function foldOnStep(): HTMLElement {
+    return within(modal()).getByRole("button", { name: /^More fields/ });
+  }
+
+  function foldedItems(): Array<string> {
+    return within(modal())
+      .queryAllByTestId("folded-section-item")
+      .map((item: HTMLElement): string => {
+        return (item.textContent || "").trim();
+      });
+  }
+
+  async function openFold(): Promise<void> {
+    await act(async () => {
+      fireEvent.click(foldOnStep());
+    });
+  }
+
+  // Opens the picker and picks: each event is in act already, so the menu draws as it opens.
+  async function pick(picker: RegExp, option: string): Promise<void> {
+    await pickDropdownOption(
+      within(modal()).getByRole("combobox", { name: picker }),
+      option,
+    );
+  }
+
+  function commandOf(data: {
+    provider: CloudProvider;
+    method: CloudConnectionAuthMethod;
+    scope?: CloudConnectionSetupScope;
+    dataSecurity?: CloudConnectionDataSecurityLevel;
+    dataSecurityResponse?: CloudConnectionDataSecurityResponse;
+  }): string | undefined {
+    return getCloudConnectionSetupCommand(data.provider, data.method, {
+      trustedPrincipalArn: ROLE_SETUP.trustedPrincipalArn,
+      externalId: ROLE_SETUP.externalId,
+      scope: data.scope,
+      dataSecurity: data.dataSecurity,
+      dataSecurityResponse: data.dataSecurityResponse,
+    });
+  }
+
+  test("folded under the command on the Access step, off: the command each cloud has always shown", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+
+    const fold: HTMLElement = foldOnStep();
+
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+    // The command first, its settings under it.
+    expect(
+      within(modal())
+        .getByTestId("cloud-setup-command")
+        .compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(foldedItems()).toEqual(["Data security", "Data security response"]);
+    expect(shownCommand()).toBe(
+      commandOf({
+        provider: CloudProvider.Azure,
+        method: CloudConnectionAuthMethod.AzureClientSecret,
+      }),
+    );
+    expect(
+      within(modal()).getByTestId("cloud-setup-read-only"),
+    ).toHaveTextContent(AZURE.explanation);
+
+    await openFold();
+
+    expect(
+      getShownDropdownValue(
+        within(modal()).getByRole("combobox", { name: DATA_SECURITY }),
+      ),
+    ).toBe("Off");
+    expect(
+      getShownDropdownValue(
+        within(modal()).getByRole("combobox", { name: RESPONSE }),
+      ),
+    ).toBe("Off");
+  });
+
+  test("the Credentials step's More fields keeps the rest, not them", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+
+    const items: string = foldedItems().join(" | ");
+
+    expect(items).toContain("Name");
+    expect(items).toContain("Read metrics every");
+    expect(items).not.toContain("Data security");
+  });
+
+  test("each pick writes the command shown, on every cloud, and Off writes back the one before", async () => {
+    const clouds: Array<[CloudProvider, CloudConnectionAuthMethod]> = [
+      [CloudProvider.AWS, CloudConnectionAuthMethod.AwsRole],
+      [CloudProvider.Azure, CloudConnectionAuthMethod.AzureClientSecret],
+      [CloudProvider.GCP, CloudConnectionAuthMethod.GcpServiceAccountKey],
+    ];
+
+    for (const cloud of clouds) {
+      const provider: CloudProvider = cloud[0];
+      const method: CloudConnectionAuthMethod = cloud[1];
+
+      await openForm({ provider, awsRoleSetup: ROLE_SETUP });
+      await stepTitles();
+
+      const before: string = shownCommand();
+
+      expect(before).toBe(commandOf({ provider, method }));
+
+      await openFold();
+
+      for (const level of LEVELS) {
+        await pick(DATA_SECURITY, level[1]);
+
+        for (const response of RESPONSES) {
+          await pick(RESPONSE, response[1]);
+
+          expect({
+            provider,
+            level: level[0],
+            response: response[0],
+            command: shownCommand(),
+          }).toEqual({
+            provider,
+            level: level[0],
+            response: response[0],
+            command: commandOf({
+              provider,
+              method,
+              dataSecurity: level[0],
+              dataSecurityResponse: response[0],
+            }),
+          });
+        }
+      }
+
+      await pick(DATA_SECURITY, "Off");
+      await pick(RESPONSE, "Off");
+
+      expect(shownCommand()).toBe(before);
+      cleanup();
+    }
+  });
+
+  test("Close exposures and fix settings: OneUptimeDataSecurityResponse on AWS, the custom roles on Azure and Google Cloud", async () => {
+    const clouds: Array<[CloudProvider, string]> = [
+      [CloudProvider.AWS, AWS_DATA_SECURITY_RESPONSE_POLICY_NAME],
+      [CloudProvider.Azure, AZURE_DATA_SECURITY_RESPONSE_ROLE],
+      [CloudProvider.GCP, GCP_DATA_SECURITY_RESPONSE_ROLE_ID],
+    ];
+
+    for (const cloud of clouds) {
+      const provider: CloudProvider = cloud[0];
+      const grant: string = cloud[1];
+
+      await openForm({ provider, awsRoleSetup: ROLE_SETUP });
+      await stepTitles();
+
+      expect(shownCommand()).not.toContain(grant);
+
+      await openFold();
+      await pick(RESPONSE, "Close exposures and fix settings");
+
+      expect(shownCommand()).toContain(grant);
+      // Above it, what it creates - never "can only read"; under it, what it may do.
+      expect(within(modal()).getByTestId("cloud-setup-hint")).toHaveTextContent(
+        "with the access below",
+      );
+      expect(
+        within(modal()).getByTestId(
+          "cloud-setup-access-data-security-response",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(modal()).queryByTestId("cloud-setup-read-only"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(modal()).getByTestId("cloud-setup-command"),
+      ).not.toHaveTextContent("can only read");
+
+      // Folded again, its line says what is set.
+      await openFold();
+      expect(foldedItems().join(" | ")).toContain(
+        "Close exposures and fix settings",
+      );
+      cleanup();
+    }
+  });
+
+  test("they follow the way in and what to read: an access key's command and the organization's carry them too", async () => {
+    await openForm({ provider: CloudProvider.AWS, awsRoleSetup: ROLE_SETUP });
+    await stepTitles();
+    await openFold();
+    await pick(DATA_SECURITY, "Configuration and content samples");
+    await pick(RESPONSE, "Close exposures and fix settings");
+
+    const choices: {
+      dataSecurity: CloudConnectionDataSecurityLevel;
+      dataSecurityResponse: CloudConnectionDataSecurityResponse;
+    } = { dataSecurity: "content", dataSecurityResponse: "block" };
+
+    expect(shownCommand()).toBe(
+      commandOf({
+        provider: CloudProvider.AWS,
+        method: CloudConnectionAuthMethod.AwsRole,
+        ...choices,
+      }),
+    );
+
+    // Every account of the organization: the StackSet's template and the management account's role.
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByRole("radio", {
+          name: /^Every account in the organization/,
+        }),
+      );
+    });
+
+    expect(shownCommand()).toBe(
+      commandOf({
+        provider: CloudProvider.AWS,
+        method: CloudConnectionAuthMethod.AwsRole,
+        scope: CloudConnectionSetupScope.Organization,
+        ...choices,
+      }),
+    );
+    expect(within(modal()).getByTestId("cloud-setup-hint")).toHaveTextContent(
+      "It puts a role with the access below in every account",
+    );
+
+    // An access key reads its own account, with the same settings: its group carries them.
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByRole("radio", { name: /Access key/ }),
+      );
+    });
+
+    expect(shownCommand()).toBe(
+      commandOf({
+        provider: CloudProvider.AWS,
+        method: CloudConnectionAuthMethod.AwsAccessKey,
+        ...choices,
+      }),
+    );
+    expect(shownCommand()).toContain(
+      `--policy-name ${AWS_DATA_SECURITY_POLICY_NAME} `,
+    );
+    expect(shownCommand()).toContain(
+      `--policy-name ${AWS_DATA_SECURITY_RESPONSE_POLICY_NAME} `,
+    );
+  });
+
+  test("what is picked is what the test sends and Connect saves", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await openFold();
+    await pick(DATA_SECURITY, "Configuration and content samples");
+    await pick(RESPONSE, "Close exposures and fix settings");
+
+    expect(shownCommand()).toContain(AZURE_DATA_SECURITY_CONTENT_ROLE);
+    expect(shownCommand()).toContain(AZURE_DATA_SECURITY_RESPONSE_ROLE);
+
+    await next();
+    await paste(AZURE_OUTPUT);
+    await next();
+
+    await within(modal()).findByTestId("cloud-connection-test-pass");
+    expect(postSpy.mock.calls[0]![0].data.config).toMatchObject({
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const model: CloudConnection = createSpy.mock.calls[0]![0]
+      .model as CloudConnection;
+
+    expect(model.config).toMatchObject({
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+      readScope: "account",
+    });
+  });
+
+  test("editing: the command is the one the connection's settings grant, the fold says what they are, and saving unchanged keeps them", async () => {
+    const connection: CloudConnection = new CloudConnection();
+    connection._id = "20000000-0000-4000-8000-000000000002";
+    connection.name = "Acme data";
+    connection.provider = CloudProvider.GCP;
+    connection.config = {
+      authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
+      readScope: "organization",
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+      readIntervalInMinutes: "5",
+    };
+
+    await openForm({ provider: CloudProvider.GCP, connection });
+    await stepTitles();
+
+    expect(shownCommand()).toBe(
+      commandOf({
+        provider: CloudProvider.GCP,
+        method: CloudConnectionAuthMethod.GcpServiceAccountKey,
+        scope: CloudConnectionSetupScope.Organization,
+        dataSecurity: "content",
+        dataSecurityResponse: "block",
+      }),
+    );
+    expect(shownCommand()).toContain(
+      `organizations/$ORG_ID/roles/${GCP_DATA_SECURITY_RESPONSE_ROLE_ID}`,
+    );
+    // Folded on edit too, but saying what is set (a long choice in a few words).
+    expect(foldOnStep()).toHaveAttribute("aria-expanded", "false");
+    expect(foldedItems()[0]).toContain(
+      "Data security: Configuration and content",
+    );
+    expect(foldedItems()[1]).toBe(
+      "Data security response: Close exposures and fix settings",
+    );
+
+    await next();
+    await next();
+    await within(modal()).findByTestId("cloud-connection-test-pass");
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(updateSpy.mock.calls[0]![0].data["config"]).toEqual({
+      authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
+      readScope: "organization",
+      dataSecurity: "content",
+      dataSecurityResponse: "block",
+      readIntervalInMinutes: "5",
+    });
+  });
+
+  test("editing a connection saved before these settings: the command it always had, and they are saved off, as they always were", async () => {
+    const connection: CloudConnection = new CloudConnection();
+    connection._id = "20000000-0000-4000-8000-000000000003";
+    connection.name = "Legacy AWS";
+    connection.provider = CloudProvider.AWS;
+    connection.config = {
+      authMethod: CloudConnectionAuthMethod.AwsRole,
+      roleArn: ROLE_ARN,
+    };
+
+    await openForm({
+      provider: CloudProvider.AWS,
+      connection,
+      awsRoleSetup: ROLE_SETUP,
+    });
+    await stepTitles();
+
+    expect(shownCommand()).toBe(
+      commandOf({
+        provider: CloudProvider.AWS,
+        method: CloudConnectionAuthMethod.AwsRole,
+      }),
+    );
+    expect(foldedItems()).toEqual(["Data security", "Data security response"]);
+    expect(
+      within(modal()).getByTestId("cloud-setup-read-only"),
+    ).toHaveTextContent(AWS.explanation);
+
+    await next();
+    await next();
+    await within(modal()).findByTestId("cloud-connection-test-pass");
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(updateSpy.mock.calls[0]![0].data["config"]).toMatchObject({
+      authMethod: CloudConnectionAuthMethod.AwsRole,
+      roleArn: ROLE_ARN,
+      dataSecurity: "off",
+      dataSecurityResponse: "off",
     });
   });
 });

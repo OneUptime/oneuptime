@@ -286,6 +286,9 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   [ProviderLogo.Terraform]: () => {
     return import("../../../Types/ProviderLogo/Marks/terraform");
   },
+  [ProviderLogo.Crossplane]: () => {
+    return import("../../../Types/ProviderLogo/Marks/crossplane");
+  },
   [ProviderLogo.Proxmox]: () => {
     return import("../../../Types/ProviderLogo/Marks/proxmox");
   },

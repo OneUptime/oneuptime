@@ -208,9 +208,14 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     reason:
       "The evaluation summary's message, shown as plain text; the root cause beside it places each finding with mdText.",
   },
+  /*
+   * The one place a title's suffix is written: buildTitleSuffix's for a
+   * template's {{seriesResourceSuffix}}, and SeriesContextEnricher's for the
+   * labels a title does not name yet, both through formatTitleSuffix.
+   */
   {
     file: "packages/Common/Types/Monitor/SeriesContext/SeriesLabelDisplay.ts",
-    inFunction: "buildTitleSuffix",
+    inFunction: "formatTitleSuffix",
     reason:
       "A suffix of an alert's or incident's title, which is plain text: wherever a title is placed into Markdown, it is placed as text.",
   },

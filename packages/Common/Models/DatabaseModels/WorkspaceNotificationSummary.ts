@@ -9,6 +9,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -757,6 +758,7 @@ class WorkspaceNotificationSummary extends BaseModel {
     type: TableColumnType.Date,
     title: "Next Send At",
     description: "When the next summary should be sent",
+    serverOwned: ServerOwned.Always,
   })
   @Index()
   @Column({
@@ -797,6 +799,7 @@ class WorkspaceNotificationSummary extends BaseModel {
     type: TableColumnType.Date,
     title: "Last Sent At",
     description: "When the last summary was sent",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,

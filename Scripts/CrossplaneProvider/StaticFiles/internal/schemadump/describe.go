@@ -22,6 +22,8 @@ var phrases = []struct{ terraform, kubernetes string }{
 	{"A JSON value: read it with `jsondecode()`.", "A JSON value, as a string."},
 	{"Write it with `jsonencode()`.", "Write it as a JSON string."},
 	{"write it with `jsonencode()`", "write it as a JSON string"},
+	// A permission's key, which earlier versions asked for as JSON (#10502).
+	{"Written with `jsonencode()`", "Written as a JSON string"},
 	{"read it with `jsondecode()`", "read it as a JSON string"},
 }
 

@@ -87,6 +87,7 @@ import {
   TranslatableTerm,
   translateTemplate,
   translateText,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   CLI_NOTE_COLUMN,
@@ -117,7 +118,32 @@ import {
   getCliNpmInstallCommand,
   getCliUpdateExample,
 } from "Common/Utils/DeveloperDocs/CliExamples";
+import {
+  DeleteChoice,
+  DeleteChoiceWay,
+  getDeleteChoiceExampleValue,
+  getDeleteChoices,
+  getDeleteChoiceWayData,
+  getDeleteChoiceWays,
+} from "Common/Utils/DeveloperDocs/DeleteChoices";
+import { WorkflowRunAs } from "Common/Types/Workflow/WorkflowRunAs";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../SetupGuide/AgentInstallCommands";
+import {
+  CrossplaneConnectionSecret,
+  CrossplaneCreateExample,
+  CrossplaneManifestSecret,
+  CrossplaneRecordManifest,
+  getCrossplaneApiKeySecretCommands,
+  getCrossplaneConnectionSecretReadCommand,
+  getCrossplaneCreateExample,
+  getCrossplaneObserveManifests,
+  getCrossplaneProviderConfigYaml,
+  getCrossplaneProviderYaml,
+  getCrossplaneRecordManifest,
+  getCrossplaneSecretCommand,
+  getKindObjectName,
+} from "Common/Utils/DeveloperDocs/CrossplaneConfig";
+import { getCrossplaneKindOf } from "Common/Utils/DeveloperDocs/CrossplaneSchema";
 
 /*
  * What each Developer page says, as data: numbered steps (in the same layout
@@ -252,6 +278,18 @@ export const DEVELOPER_DOCS_GUIDE_COPY: Readonly<
         "Manage these resources as code with the OneUptime Terraform provider. The examples below are filled in from this project: create new ones, or bring in the ones you already have.",
     },
   },
+  [DeveloperDocsPageType.Crossplane]: {
+    [DeveloperDocsScope.View]: {
+      title: "Crossplane",
+      description:
+        "Manage this resource from Kubernetes with the OneUptime Crossplane provider. The manifest below is written from its current settings, so the provider takes it over without changing anything.",
+    },
+    [DeveloperDocsScope.List]: {
+      title: "Crossplane",
+      description:
+        "Manage these resources from Kubernetes with the OneUptime Crossplane provider. The examples below are filled in from this project: create new ones, or bring in the ones you already have.",
+    },
+  },
   [DeveloperDocsPageType.Api]: {
     [DeveloperDocsScope.View]: {
       title: "API",
@@ -295,6 +333,142 @@ function guideCopy(
   context: DeveloperDocsGuideContext,
 ): DeveloperDocsGuideCopy {
   return DEVELOPER_DOCS_GUIDE_COPY[page][context.scope];
+}
+
+/*
+ * A DELETE THAT SAYS MORE THAN THE RECORD, IN THE PAGE'S OWN WORDS (#10031).
+ *
+ * OneUptime deletes a custom role that workflows run as only when the
+ * delete says what they run as instead, and refuses one that doesn't,
+ * naming them (Common/Utils/DeveloperDocs/DeleteChoices.ts). The API and
+ * CLI pages' Delete it step showed a bare delete, so a reader who copied
+ * it met the refusal first. For a table whose delete takes choices, the
+ * step says when they are needed, and has a tab for the plain delete and
+ * one for each way of giving them: the request body the API takes
+ * (miscDataProps) on the API page, the flags the CLI takes on the CLI
+ * page, both written from the facts the API, the CLI, Terraform and the
+ * MCP server read.
+ *
+ * Each such table words its step here, so each sentence is one key in
+ * every locale. DeveloperDocsDeleteChoices.test.ts fails for a table whose
+ * delete takes choices but has no words, or a way without its tab.
+ */
+export interface DeveloperDocsDeleteChoiceWords {
+  /*
+   * The step's description: what the delete does, when it needs to say
+   * more, and {{placeholder}} where a record's ID goes (<custom-role-id>).
+   */
+  description: string;
+  // The tab of the delete that says nothing besides the record.
+  withoutChoices: string;
+  // The tab of each way, by the value it gives (getDeleteChoiceWays).
+  ways: Readonly<Record<string, string>>;
+}
+
+export const DEVELOPER_DOCS_DELETE_CHOICE_WORDS: Readonly<
+  Record<string, DeveloperDocsDeleteChoiceWords>
+> = {
+  CustomRole: {
+    description: translationKey(
+      "This deletes the custom role for good. If workflows run as it, say what they run as from now on, or OneUptime refuses the delete and names them. For another custom role, put its ID in place of {{placeholder}}.",
+    ),
+    withoutChoices: translationKey("No workflow runs as it"),
+    ways: {
+      // The Delete dialog's own words for the choice.
+      [WorkflowRunAs.Default]: translationKey("Default permissions"),
+      [WorkflowRunAs.CustomRole]: translationKey("Another custom role"),
+    },
+  },
+};
+
+// One tab of a delete step: its label, and what the delete sends besides the record.
+export interface DeveloperDocsDeleteTab {
+  label: string;
+  // The delete's miscDataProps; null for the delete that sends no body.
+  miscDataProps: JSONObject | null;
+}
+
+export interface DeveloperDocsDeleteChoiceStep {
+  description: string;
+  tabs: Array<DeveloperDocsDeleteTab>;
+}
+
+/*
+ * The Delete it step of a record whose delete takes choices: its
+ * description, in the reader's language, and its tabs - the plain delete
+ * first, as most records need it, then each way. Null for a table whose
+ * delete takes none, or that has no words for them yet.
+ */
+export function getDeveloperDocsDeleteChoiceStep(
+  modelType: DatabaseBaseModelType,
+): DeveloperDocsDeleteChoiceStep | null {
+  const tableName: string = getTableName(modelType);
+  const words: DeveloperDocsDeleteChoiceWords | undefined =
+    DEVELOPER_DOCS_DELETE_CHOICE_WORDS[tableName];
+
+  if (!getDeleteChoices(tableName) || !words) {
+    return null;
+  }
+
+  const ways: Array<DeleteChoiceWay> = getDeleteChoiceWays(tableName);
+  // Where a record's ID goes in a way: <custom-role-id>.
+  const placeholders: Array<string> = ways.flatMap(
+    (way: DeleteChoiceWay): Array<string> => {
+      return way.with.map((choice: DeleteChoice): string => {
+        return getDeleteChoiceExampleValue(choice);
+      });
+    },
+  );
+
+  return {
+    description: translateTemplate(words.description, {
+      placeholder: placeholders[0] || "",
+    }),
+    tabs: [
+      { label: words.withoutChoices, miscDataProps: null },
+      ...ways.map((way: DeleteChoiceWay): DeveloperDocsDeleteTab => {
+        return {
+          label: words.ways[way.value] || way.value,
+          miscDataProps: getDeleteChoiceWayData(way),
+        };
+      }),
+    ],
+  };
+}
+
+/*
+ * The Delete it step, as a page writes a delete (`deleteOf`): a curl
+ * command or a CLI command, given what the delete sends besides the record.
+ */
+function deleteStep(
+  context: DeveloperDocsGuideContext,
+  deleteOf: (miscDataProps: JSONObject | null) => string,
+): DeveloperDocsStep {
+  const choiceStep: DeveloperDocsDeleteChoiceStep | null =
+    getDeveloperDocsDeleteChoiceStep(getModelType(context));
+
+  if (!choiceStep) {
+    return {
+      title: "Delete it",
+      description: translateTemplate(
+        "This deletes the {{singular}} for good.",
+        {
+          singular: sentenceTerms(context).singular,
+        },
+      ),
+      markdown: deleteOf(null),
+    };
+  }
+
+  return {
+    title: "Delete it",
+    description: choiceStep.description,
+    variants: choiceStep.tabs.map(
+      (tab: DeveloperDocsDeleteTab): SetupGuideStepVariant => {
+        return { label: tab.label, markdown: deleteOf(tab.miscDataProps) };
+      },
+    ),
+  };
 }
 
 function docsUrl(context: DeveloperDocsGuideContext, path: string): string {
@@ -449,8 +623,6 @@ function connectTerraformStep(
 function secretsMarkdown(data: {
   variables: Array<TerraformSecretVariable>;
   omitted?: Array<TerraformOmittedAttribute> | undefined;
-  // Attributes Terraform cannot set, because their name is one of its own.
-  reserved?: Array<TerraformOmittedAttribute> | undefined;
 }): string {
   const lines: Array<string> = [];
 
@@ -482,24 +654,6 @@ function secretsMarkdown(data: {
           return `\`${item.attributeName}\``;
         })
         .join(", ")}. Terraform leaves them as they are in OneUptime.`,
-    );
-  }
-
-  const reserved: Array<TerraformOmittedAttribute> = data.reserved || [];
-
-  if (reserved.length > 0) {
-    if (lines.length > 0) {
-      lines.push("");
-    }
-
-    lines.push(
-      `Left out because Terraform reserves the name for its own use: ${reserved
-        .map((item: TerraformOmittedAttribute): string => {
-          return `\`${item.attributeName}\``;
-        })
-        .join(
-          ", ",
-        )}. Change it in OneUptime instead; Terraform leaves it as it is.`,
     );
   }
 
@@ -641,7 +795,6 @@ function getTerraformResourceGuide(
           secretsMarkdown({
             variables: config.variables,
             omitted: config.omittedSecrets,
-            reserved: config.omittedReserved,
           }),
         ]),
       },
@@ -874,6 +1027,337 @@ function getTerraformCollectionGuide(
 }
 
 /*
+ * Crossplane.
+ */
+
+const CROSSPLANE_DOCS_PATH: string = "crossplane/index";
+const CROSSPLANE_RESOURCES_DOCS_PATH: string = "crossplane/managing-resources";
+
+function crossplaneLinks(
+  context: DeveloperDocsGuideContext,
+): Array<SetupGuideLink> {
+  const links: Array<SetupGuideLink> = [
+    {
+      title: "Crossplane provider",
+      url: docsUrl(context, CROSSPLANE_DOCS_PATH),
+    },
+    {
+      title: "Managing resources",
+      url: docsUrl(context, CROSSPLANE_RESOURCES_DOCS_PATH),
+    },
+  ];
+
+  // A monitor's steps are the Terraform provider's, field for field.
+  if (getTerraformTypeName(getModelType(context)) === "oneuptime_monitor") {
+    links.push({
+      title: "Monitor steps",
+      url: docsUrl(context, "terraform/monitor-steps"),
+    });
+  }
+
+  return links;
+}
+
+/*
+ * The package, the API key and the ProviderConfig, once per cluster and
+ * namespace: what every manifest on the page names.
+ */
+function connectCrossplaneStep(
+  context: DeveloperDocsGuideContext,
+): DeveloperDocsStep {
+  const { plural } = nouns(context);
+
+  return {
+    title: "Connect Crossplane to OneUptime",
+    description:
+      "Install the provider's package, and give it a project API key in a Secret of the namespace your resources live in.",
+    markdown: joinParts([
+      "Install the package in a cluster that runs Crossplane 2:",
+      codeBlock("yaml", getCrossplaneProviderYaml(context.platformVersion)),
+      codeBlock("bash", "kubectl apply -f provider.yaml"),
+      "When `INSTALLED` and `HEALTHY` both say `True`, the provider is running.",
+      `Create a key in [Project Settings → Advanced → API Keys](${context.apiKeysUrl}) with permission to manage ${plural}, and put it in a Secret of the namespace:`,
+      codeBlock(
+        "bash",
+        `${getApiKeyExportCommand()}\n${getCrossplaneApiKeySecretCommands(ONEUPTIME_API_KEY_ENVIRONMENT_VARIABLE)}`,
+      ),
+      "Then give the namespace a `ProviderConfig` that reads it:",
+      codeBlock(
+        "yaml",
+        getCrossplaneProviderConfigYaml(
+          context.oneuptimeUrl.startsWith("http") ? context.oneuptimeUrl : null,
+        ),
+      ),
+      codeBlock("bash", "kubectl apply -f provider-config.yaml"),
+    ]),
+  };
+}
+
+/*
+ * What a manifest needs besides itself, and what it leaves out: the Secret
+ * it reads its secrets from (made first), the secrets it leaves to
+ * OneUptime, and where the values OneUptime makes arrive.
+ */
+function crossplaneSecretsMarkdown(data: {
+  secret: CrossplaneManifestSecret | null;
+  omittedSecrets?: Array<string> | undefined;
+  leftOutForSecrets: Array<string>;
+  connectionSecret: CrossplaneConnectionSecret | null;
+}): string {
+  const parts: Array<string> = [];
+
+  if (data.secret) {
+    parts.push(
+      "Secrets are never written into a manifest: the provider reads them from a Secret of the namespace. Make it before you apply, with each value in place of the dots:",
+      codeBlock("bash", getCrossplaneSecretCommand(data.secret)),
+    );
+  }
+
+  if (data.omittedSecrets && data.omittedSecrets.length > 0) {
+    parts.push(
+      `Left out because they are secret: ${data.omittedSecrets
+        .map((field: string): string => {
+          return `\`${field}\``;
+        })
+        .join(", ")}. The provider leaves them as they are in OneUptime.`,
+    );
+  }
+
+  if (data.leftOutForSecrets.length > 0) {
+    parts.push(
+      `Left out because a secret is in them, which a manifest could only carry as plain text: ${data.leftOutForSecrets
+        .map((field: string): string => {
+          return `\`${field}\``;
+        })
+        .join(
+          ", ",
+        )}. The provider leaves them as they are in OneUptime. A request header can read a monitor secret instead (\`{{monitorSecrets.<name>}}\`), which a manifest can carry.`,
+    );
+  }
+
+  if (data.connectionSecret) {
+    const key: string = data.connectionSecret.keys[0] as string;
+
+    parts.push(
+      `What OneUptime makes for it, such as \`${key.replace(/^attribute\./, "")}\`, is never in the resource: the provider writes it to the Secret \`writeConnectionSecretToRef\` names, under \`attribute.\` and its name. To read it:`,
+      codeBlock(
+        "bash",
+        getCrossplaneConnectionSecretReadCommand(
+          data.connectionSecret.name,
+          key,
+        ),
+      ),
+    );
+  }
+
+  return joinParts(parts);
+}
+
+// The file a manifest is saved as: checkout-api.yaml.
+function manifestFile(objectName: string): string {
+  return `${objectName}.yaml`;
+}
+
+function getCrossplaneResourceGuide(
+  context: DeveloperDocsGuideContext,
+  record: DeveloperDocsRecord,
+): DeveloperDocsGuide {
+  const { singular } = nouns(context);
+  const terms: ReturnType<typeof sentenceTerms> = sentenceTerms(context);
+  const copy: DeveloperDocsGuideCopy = guideCopy(
+    DeveloperDocsPageType.Crossplane,
+    context,
+  );
+  const manifest: CrossplaneRecordManifest | null = getCrossplaneRecordManifest(
+    {
+      modelType: getModelType(context),
+      json: record.json,
+      displayName: record.displayName,
+      describeId: describeIdFor(context),
+    },
+  );
+
+  if (!manifest) {
+    return getCrossplaneUnsupportedGuide(context);
+  }
+
+  const file: string = manifestFile(manifest.objectName);
+
+  return {
+    ...copy,
+    steps: [
+      connectCrossplaneStep(context),
+      {
+        title: terms.recordName
+          ? translateTemplate('Add the {{singular}} "{{name}}"', {
+              singular: terms.singular,
+              name: terms.recordName,
+            })
+          : translateTemplate("Add this {{singular}}", {
+              singular: terms.singular,
+            }),
+        description: translateTemplate(
+          "Its settings as they are now. The external-name annotation tells the provider the {{singular}} already exists, so it takes the {{singular}} over instead of creating a copy. Comments name the records its IDs point at.",
+          { singular: terms.singular },
+        ),
+        markdown: joinParts([
+          `Save it as \`${file}\`:`,
+          codeBlock("yaml", manifest.yaml),
+          crossplaneSecretsMarkdown(manifest),
+        ]),
+      },
+      {
+        title: "Apply it",
+        description: translateTemplate(
+          "The provider finds the {{singular}} by its ID and changes nothing. From then on it keeps the {{singular}} the way the manifest says.",
+          { singular: terms.singular },
+        ),
+        markdown: joinParts([
+          codeBlock("bash", `kubectl apply -f ${file}\n${manifest.getCommand}`),
+          `When \`SYNCED\` and \`READY\` say \`True\`, the resource stands for the ${singular}. Deleting the resource deletes the ${singular} in OneUptime too: to keep it, leave \`Delete\` out of \`spec.managementPolicies\` first.`,
+        ]),
+      },
+    ],
+    sections: [],
+    topics: [
+      {
+        title: "Read it without managing it",
+        summary: "The Observe management policy",
+        markdown: [
+          `To read this ${singular}'s settings into \`status.atProvider\` while it stays managed in OneUptime, observe it instead: the provider never changes or deletes it.`,
+          "",
+          codeBlock("yaml", manifest.observeYaml),
+        ].join("\n"),
+      },
+    ],
+    links: crossplaneLinks(context),
+  };
+}
+
+function getCrossplaneUnsupportedGuide(
+  context: DeveloperDocsGuideContext,
+): DeveloperDocsGuide {
+  const { plural } = sentenceTerms(context);
+
+  return {
+    ...guideCopy(DeveloperDocsPageType.Crossplane, context),
+    notice: translateTemplate(
+      "The Crossplane provider has no kind for {{plural}}.",
+      { plural },
+    ),
+    steps: [connectCrossplaneStep(context)],
+    sections: [],
+    topics: [],
+    links: crossplaneLinks(context),
+  };
+}
+
+function getCrossplaneCollectionGuide(
+  context: DeveloperDocsGuideContext,
+): DeveloperDocsGuide {
+  const { plural } = nouns(context);
+  const terms: ReturnType<typeof sentenceTerms> = sentenceTerms(context);
+  const modelType: DatabaseBaseModelType = getModelType(context);
+  const kind: string | null = getCrossplaneKindOf(modelType);
+  const profile: DeveloperDocsProfile = getDeveloperDocsProfile(modelType);
+
+  if (!kind) {
+    return getCrossplaneUnsupportedGuide(context);
+  }
+
+  const example: CrossplaneCreateExample | null = getCrossplaneCreateExample({
+    modelType,
+    context: exampleContext(context),
+  });
+  const targets: Array<TerraformImportTarget> = context.importTargets || [];
+  const totalCount: number = context.totalCount ?? targets.length;
+  const observe: string | null = getCrossplaneObserveManifests({
+    modelType,
+    targets,
+  });
+  const createTitle: string = getCreateTitle({
+    modelType,
+    singularName: getDeveloperDocsSingularName(context.resource),
+  });
+  const observeFile: string = `${getKindObjectName(kind)}-observed.yaml`;
+
+  const createStep: DeveloperDocsStep = example
+    ? {
+        title: createTitle,
+        description: example.usesProjectData
+          ? translateTemplate(
+              "The fields most {{plural}} set, filled in from this project.",
+              { plural: terms.plural },
+            )
+          : translateTemplate("The fields most {{plural}} set.", {
+              plural: terms.plural,
+            }),
+        markdown: joinParts([
+          profile.createNote,
+          example.isPlaceholder ? PLACEHOLDER_NOTE : null,
+          `Save it as \`${manifestFile(example.objectName)}\`:`,
+          codeBlock("yaml", example.yaml),
+          crossplaneSecretsMarkdown(example),
+          codeBlock(
+            "bash",
+            `kubectl apply -f ${manifestFile(example.objectName)}\n${example.getCommand}`,
+          ),
+          fieldsList(example.rows),
+        ]),
+      }
+    : {
+        title: createTitle,
+        markdown: profile.terraformCannotCreate,
+      };
+
+  const observeMarkdown: string = observe
+    ? joinParts([
+        totalCount > targets.length
+          ? `A resource that observes each of the first ${targets.length} of your ${totalCount} ${plural}, by its ID. Save them as \`${observeFile}\`:`
+          : `A resource that observes each of your ${plural}, by its ID. Save them as \`${observeFile}\`:`,
+        codeBlock("yaml", observe),
+        codeBlock("bash", `kubectl apply -f ${observeFile}`),
+        `Once each is \`READY\`, its \`status.atProvider\` shows its settings. To manage one from then on, write them in its \`spec.forProvider\` and set \`managementPolicies\` to \`["*"]\`, or take its manifest from its own **Developer → Crossplane** page, written from its settings.`,
+      ])
+    : `There are no ${plural} in this project yet.`;
+
+  const topics: Array<SetupGuideTopic> = [];
+
+  if (example?.referencesYaml) {
+    topics.push({
+      title: "Refer to other resources by name",
+      summary: "Names instead of IDs",
+      markdown: [
+        "A field that holds the ID of another record also takes a reference to the resource that stands for it in the same namespace, by its Kubernetes name. In place of the IDs above:",
+        "",
+        codeBlock("yaml", example.referencesYaml),
+        "",
+        "The provider waits until each resource it refers to exists in OneUptime, then fills in its ID.",
+      ].join("\n"),
+    });
+  }
+
+  return {
+    ...guideCopy(DeveloperDocsPageType.Crossplane, context),
+    steps: [
+      connectCrossplaneStep(context),
+      createStep,
+      {
+        title: translateTemplate("Bring in the {{plural}} you already have", {
+          plural: terms.plural,
+        }),
+        description:
+          "The provider observes each one by its ID, and never changes or deletes it.",
+        markdown: observeMarkdown,
+      },
+    ],
+    sections: [],
+    topics,
+    links: crossplaneLinks(context),
+  };
+}
+
+/*
  * API.
  */
 
@@ -1081,16 +1565,15 @@ function getApiResourceGuide(
   }
 
   if (operations.canDelete) {
-    steps.push({
-      title: "Delete it",
-      description: translateTemplate(
-        "This deletes the {{singular}} for good.",
-        {
-          singular: sentenceTerms(context).singular,
-        },
-      ),
-      markdown: curl({ method: "DELETE", url: itemUrl }),
-    });
+    steps.push(
+      deleteStep(context, (miscDataProps: JSONObject | null): string => {
+        return curl({
+          method: "DELETE",
+          url: itemUrl,
+          body: miscDataProps ? { miscDataProps } : undefined,
+        });
+      }),
+    );
   }
 
   const tasks: Array<DeveloperDocsApiTask> = getApiTasks({
@@ -1952,17 +2435,18 @@ function getCliResourceGuide(
   }
 
   if (operations.includes(CliOperation.Delete)) {
-    steps.push({
-      title: "Delete it",
-      description: translateTemplate(
-        "This deletes the {{singular}} for good.",
-        { singular: sentenceTerms(context).singular },
-      ),
-      markdown: codeBlock(
-        "bash",
-        getCliDeleteExample({ modelType, id: record.id }).command,
-      ),
-    });
+    steps.push(
+      deleteStep(context, (miscDataProps: JSONObject | null): string => {
+        return codeBlock(
+          "bash",
+          getCliDeleteExample({
+            modelType,
+            id: record.id,
+            choices: miscDataProps || undefined,
+          }).command,
+        );
+      }),
+    );
   }
 
   return {
@@ -2135,6 +2619,10 @@ export function getDeveloperDocsGuide(
       return isRecord
         ? getTerraformResourceGuide(context, context.record!)
         : getTerraformCollectionGuide(context);
+    case DeveloperDocsPageType.Crossplane:
+      return isRecord
+        ? getCrossplaneResourceGuide(context, context.record!)
+        : getCrossplaneCollectionGuide(context);
     case DeveloperDocsPageType.Api:
       return isRecord
         ? getApiResourceGuide(context, context.record!)

@@ -3,6 +3,7 @@ import GlobalConfigService from "../../Services/GlobalConfigService";
 import MetricService from "../../Services/MetricService";
 import ProjectService from "../../Services/ProjectService";
 import TelemetryIngestionKeyService from "../../Services/TelemetryIngestionKeyService";
+import TelemetryIngestionTeamLabelBudgetService from "../../Services/TelemetryIngestionTeamLabelBudgetService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "./CaptureSpan";
@@ -21,6 +22,7 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
 import Project from "../../../Models/DatabaseModels/Project";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionTeamLabelBudget from "../../../Models/DatabaseModels/TelemetryIngestionTeamLabelBudget";
 import URL from "../../../Types/API/URL";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
@@ -37,7 +39,10 @@ import {
   getTelemetryIngestionBudgetSignalWords,
   readTelemetryIngestionBudgetStoredSettings,
   resolveTelemetryIngestionBudget,
+  resolveTelemetryIngestionTeamLabelBudget,
   TELEMETRY_INGESTION_BUDGET_COLUMN_NAMES,
+  TELEMETRY_INGESTION_BUDGET_COLUMNS,
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS,
   TELEMETRY_INGESTION_BUDGET_PROJECT_LOCATION,
   TelemetryIngestionBudgetDay,
   TelemetryIngestionBudgetResolved,
@@ -49,9 +54,13 @@ import {
 import TelemetryIngestionBudgetMetricTypeUtil, {
   TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_ID_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_NAME_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_ID_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_NAME_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_PROJECT_ID_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_SCOPE_ATTRIBUTE,
   TELEMETRY_INGESTION_BUDGET_METRIC_SIGNAL_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_ID_ATTRIBUTE,
+  TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_NAME_ATTRIBUTE,
 } from "../../../Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 
 /*
@@ -133,6 +142,8 @@ export interface TelemetryIngestionBudgetSweepScope {
   signal: TelemetryIngestionBudgetSignal;
   limits: TelemetryIngestionBudgetResolvedScope;
   ingestionKeyName: string | null;
+  // A team's or a label's name (#6386); null for any other scope.
+  teamOrLabelName?: string | null | undefined;
 }
 
 interface PageResult {
@@ -171,6 +182,28 @@ export default class TelemetryIngestionBudgetMetrics {
         attributes[
           TELEMETRY_INGESTION_BUDGET_METRIC_INGESTION_KEY_NAME_ATTRIBUTE
         ] = data.scope.ingestionKeyName;
+      }
+    }
+
+    // A team's or a label's budget (#6386): the team or the label.
+    const isTeam: boolean =
+      data.scope.member.scope === TelemetryIngestionBudgetScope.Team;
+    const isLabel: boolean =
+      data.scope.member.scope === TelemetryIngestionBudgetScope.Label;
+
+    if (isTeam || isLabel) {
+      attributes[
+        isTeam
+          ? TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_ID_ATTRIBUTE
+          : TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_ID_ATTRIBUTE
+      ] = data.scope.member.scopeId;
+
+      if (data.scope.teamOrLabelName && data.scope.teamOrLabelName.trim()) {
+        attributes[
+          isTeam
+            ? TELEMETRY_INGESTION_BUDGET_METRIC_TEAM_NAME_ATTRIBUTE
+            : TELEMETRY_INGESTION_BUDGET_METRIC_LABEL_NAME_ATTRIBUTE
+        ] = data.scope.teamOrLabelName;
       }
     }
 
@@ -288,6 +321,19 @@ export default class TelemetryIngestionBudgetMetrics {
     );
     const capitalized: string = `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
     const projectName: string = data.projectName?.trim() || "your project";
+
+    // A team's or a label's budget says so, and what dropping means there.
+    if (
+      data.scope.member.scope === TelemetryIngestionBudgetScope.Team ||
+      data.scope.member.scope === TelemetryIngestionBudgetScope.Label
+    ) {
+      return this.getTeamLabelNotice({
+        ...data,
+        dailyBudgetBytes: dailyBudgetBytes,
+        projectName: projectName,
+      });
+    }
+
     const isKey: boolean =
       data.scope.member.scope === TelemetryIngestionBudgetScope.IngestionKey;
     const keyName: string =
@@ -321,6 +367,89 @@ export default class TelemetryIngestionBudgetMetrics {
         isKey
           ? "Anyone who can edit the ingestion key can change its budget, up to the project's own."
           : "Only the instance admin can change the project's budget. Find what is sending the most on the Usage page, and send less of it: drop filters do not help here, as they remove telemetry after it is counted.",
+      ),
+    ];
+
+    const link: URL | null = this.getUsagePageLink(data.projectId);
+
+    paragraphs.push(
+      link
+        ? `${SafeHtml.escape(
+            `See today's budgets under ${TELEMETRY_INGESTION_BUDGET_PROJECT_LOCATION}:`,
+          )} <br/> <a href="${SafeHtml.escape(link.toString())}">${SafeHtml.escape(link.toString())}</a>`
+        : SafeHtml.escape(
+            `See today's budgets under ${TELEMETRY_INGESTION_BUDGET_PROJECT_LOCATION}.`,
+          ),
+    );
+
+    paragraphs.push(
+      SafeHtml.escape(
+        "Project Owners get this email once a day for each budget: when it crosses the warning threshold, and when it is used up.",
+      ),
+    );
+
+    return { subject: subject, html: paragraphs.join(" <br/> <br/> ") };
+  }
+
+  /*
+   * The email a team's or a label's budget sends (#6386). Its telemetry is
+   * dropped once it is used up, not refused: the worker counts it after its
+   * senders were answered, so they are not told, and the rest of the
+   * project keeps sending.
+   */
+  private static getTeamLabelNotice(data: {
+    kind: TelemetryIngestionBudgetNoticeKind;
+    projectId: string;
+    projectName: string;
+    scope: TelemetryIngestionBudgetSweepScope;
+    counters: TelemetryIngestionBudgetDayCounters;
+    warningPercent: number;
+    resetsAt: Date;
+    dailyBudgetBytes: number;
+  }): { subject: string; html: string } {
+    const words: string = getTelemetryIngestionBudgetSignalWords(
+      data.scope.signal,
+    );
+    const capitalized: string = `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+    const isTeam: boolean =
+      data.scope.member.scope === TelemetryIngestionBudgetScope.Team;
+    const name: string =
+      data.scope.teamOrLabelName?.trim() || data.scope.member.scopeId;
+    const whose: string = isTeam
+      ? `The team "${name}" in ${data.projectName}`
+      : `The services with the label "${name}" in ${data.projectName}`;
+    const of: string = isTeam
+      ? `for the team "${name}"`
+      : `for the label "${name}"`;
+    const services: string = isTeam
+      ? "the services the team owns"
+      : "the services with the label";
+    const budget: string = formatTelemetryIngestionBudgetGB(
+      data.dailyBudgetBytes,
+    );
+    const resetsAt: string = formatTelemetryIngestionBudgetResetsAt(
+      data.resetsAt,
+    );
+    const isExhausted: boolean =
+      data.kind === TelemetryIngestionBudgetNoticeKind.Exhausted;
+    const percent: number =
+      computeTelemetryIngestionBudgetPercentUsed({
+        usedBytes: data.counters.usedBytes,
+        dailyBudgetBytes: data.dailyBudgetBytes,
+      }) || 0;
+
+    const subject: string = isExhausted
+      ? `${capitalized} ingestion budget used up ${of} in ${data.projectName}`
+      : `${capitalized} ingestion budget ${Math.floor(percent)}% used ${of} in ${data.projectName}`;
+
+    const paragraphs: Array<string> = [
+      SafeHtml.escape(
+        isExhausted
+          ? `${whose} used up ${isTeam ? "its" : "their"} daily ${words} ingestion budget of ${budget}. OneUptime is dropping ${words} from ${services} until the budget resets at ${resetsAt}. Their senders are not told, and the rest of the project keeps sending.`
+          : `${whose} used ${Math.floor(percent)}% of ${isTeam ? "its" : "their"} daily ${words} ingestion budget of ${budget} (the warning is at ${data.warningPercent}%). Once it is used up, ${words} from ${services} are dropped until the budget resets at ${resetsAt}.`,
+      ),
+      SafeHtml.escape(
+        "Project Owners and Project Admins can change the budget, up to the project's own.",
       ),
     ];
 
@@ -480,6 +609,11 @@ export default class TelemetryIngestionBudgetMetrics {
       { name: string; budgets: TelemetryIngestionBudgetStoredSettings }
     > = new Map();
 
+    const teamsAndLabels: Map<
+      string,
+      { name: string; budgets: TelemetryIngestionBudgetStoredSettings }
+    > = await this.readTeamAndLabelBudgets(data.members);
+
     if (keyIds.length > 0) {
       const rows: Array<TelemetryIngestionKey> =
         await TelemetryIngestionKeyService.findBy({
@@ -534,6 +668,48 @@ export default class TelemetryIngestionBudgetMetrics {
         continue;
       }
 
+      // A team's or a label's budget (#6386), held to the project's.
+      if (
+        member.scope === TelemetryIngestionBudgetScope.Team ||
+        member.scope === TelemetryIngestionBudgetScope.Label
+      ) {
+        const owner:
+          | { name: string; budgets: TelemetryIngestionBudgetStoredSettings }
+          | undefined = teamsAndLabels.get(
+          `${member.projectId}|${member.scope}|${member.scopeId}`,
+        );
+
+        // Its budget deleted since it counted: nothing to report it under.
+        if (!owner) {
+          continue;
+        }
+
+        const projectResolved: TelemetryIngestionBudgetResolved =
+          resolveTelemetryIngestionBudget({
+            signal: signal,
+            instance: data.instance.budgets,
+            project: project,
+            ingestionKey: null,
+          });
+
+        scopes.push({
+          member: member,
+          signal: signal,
+          limits: {
+            dailyBudget: resolveTelemetryIngestionTeamLabelBudget({
+              scope: member.scope,
+              ownDailyBudgetInGB: owner.budgets[signal].dailyBudgetInGB,
+              projectDailyBudget: projectResolved.project.dailyBudget,
+            }),
+            rateLimit: { bytes: null, source: null },
+          },
+          ingestionKeyName: null,
+          teamOrLabelName: owner.name,
+        });
+
+        continue;
+      }
+
       const resolved: TelemetryIngestionBudgetResolved =
         resolveTelemetryIngestionBudget({
           signal: signal,
@@ -558,6 +734,96 @@ export default class TelemetryIngestionBudgetMetrics {
     }
 
     return scopes;
+  }
+
+  /*
+   * The team and label budgets the members name (#6386), with the team's or
+   * label's name, by `${projectId}|${scope}|${id}`: one read for all of
+   * them. A budget deleted since it counted is not among them.
+   */
+  private static async readTeamAndLabelBudgets(
+    members: Array<TelemetryIngestionBudgetActiveMember>,
+  ): Promise<
+    Map<
+      string,
+      { name: string; budgets: TelemetryIngestionBudgetStoredSettings }
+    >
+  > {
+    const owners: Map<
+      string,
+      { name: string; budgets: TelemetryIngestionBudgetStoredSettings }
+    > = new Map();
+
+    const wanted: Array<TelemetryIngestionBudgetActiveMember> = members.filter(
+      (member: TelemetryIngestionBudgetActiveMember): boolean => {
+        return (
+          member.scope === TelemetryIngestionBudgetScope.Team ||
+          member.scope === TelemetryIngestionBudgetScope.Label
+        );
+      },
+    );
+
+    if (wanted.length === 0) {
+      return owners;
+    }
+
+    const projectIds: Array<string> = Array.from(
+      new Set<string>(
+        wanted.map((member: TelemetryIngestionBudgetActiveMember): string => {
+          return member.projectId;
+        }),
+      ),
+    );
+
+    const rows: Array<TelemetryIngestionTeamLabelBudget> =
+      await TelemetryIngestionTeamLabelBudgetService.findAllBy({
+        query: { projectId: QueryHelper.any(projectIds) },
+        select: Object.fromEntries([
+          ["projectId", true],
+          ["teamId", true],
+          ["labelId", true],
+          ["team", { name: true }],
+          ["label", { name: true }],
+          ...TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS.map(
+            (signal: TelemetryIngestionBudgetSignal): [string, boolean] => {
+              return [
+                TELEMETRY_INGESTION_BUDGET_COLUMNS[signal].dailyBudgetInGB,
+                true,
+              ];
+            },
+          ),
+        ]) as never,
+        props: { isRoot: true },
+      });
+
+    for (const row of rows) {
+      if (!row.projectId) {
+        continue;
+      }
+
+      const budgets: TelemetryIngestionBudgetStoredSettings =
+        readTelemetryIngestionBudgetStoredSettings(row);
+
+      if (row.teamId) {
+        owners.set(
+          `${row.projectId.toString()}|${TelemetryIngestionBudgetScope.Team}|${row.teamId.toString()}`,
+          {
+            name: typeof row.team?.name === "string" ? row.team.name : "",
+            budgets: budgets,
+          },
+        );
+      } else if (row.labelId) {
+        owners.set(
+          `${row.projectId.toString()}|${TelemetryIngestionBudgetScope.Label}|${row.labelId.toString()}`,
+          {
+            name: typeof row.label?.name === "string" ? row.label.name : "",
+            budgets: budgets,
+          },
+        );
+      }
+    }
+
+    return owners;
   }
 
   @CaptureSpan()

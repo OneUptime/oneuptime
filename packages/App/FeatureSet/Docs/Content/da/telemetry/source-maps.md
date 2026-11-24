@@ -136,7 +136,7 @@ Source maps gemmes i 90 dage efter upload og slettes derefter automatisk. En map
 ## Sikkerhed
 
 - Maps uploades via et godkendt endpoint og gemmes i dit OneUptime-projekt: de hentes aldrig fra dit websted, så skjulte source maps forbliver skjulte.
-- Det rå indhold af en map (som indeholder din oprindelige kildekode, når den er bygget med `sourcesContent`) kan kun læses tilbage af Projektejere og Projektadministratorer og af alle med tilladelsen **Read Telemetry Source Map**. Andre teammedlemmer ser kun de opløste frames og de få kodelinjer omkring hvert nedbrudssted i undtagelser, de allerede har adgang til.
+- Det rå indhold af en map (som indeholder din oprindelige kildekode, når den er bygget med `sourcesContent`) kan kun læses tilbage af Projektejere og Projektadministratorer, af alle, der har Tjenester på [niveauet Administrator](/docs/permissions/index#produktniveauer) (`ServiceAdmin`), og af alle med tilladelsen **Read Telemetry Source Map**. Andre teammedlemmer ser kun de opløste frames og de få kodelinjer omkring hvert nedbrudssted i undtagelser, de allerede har adgang til.
 - Når en tjeneste slettes, slettes dens source maps.
 
 ## Fejlfinding

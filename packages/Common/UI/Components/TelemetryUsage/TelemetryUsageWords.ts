@@ -51,10 +51,12 @@ export const TELEMETRY_USAGE_SIGNAL_TOOLTIPS: Record<string, string> = {
 
 /*
  * The exceptions' (i) where the reader sees what usage cost: it says what
- * billing reads, so the cost of Traces on an invoice adds up.
+ * billing reads, so the cost of Traces and of Logs on an invoice adds up.
+ * Each exception is billed with the product it was found in
+ * (ExceptionSource, issue #6590).
  */
 export const TELEMETRY_USAGE_EXCEPTIONS_BILLED_TOOLTIP: string = translationKey(
-  "Exceptions recorded from spans and logs. They are billed as part of Traces.",
+  "Exceptions recorded from spans and logs. Those found in spans are billed with Traces, and those found in logs with Logs.",
 );
 
 // What a signal's (i) says, in English: its words, or none.
@@ -148,8 +150,8 @@ export const formatTelemetryUsageCost: (
 const EXCEPTIONS_PART_TEMPLATE: string = translationKey("Exceptions: {{size}}");
 
 /*
- * How much of a Traces usage row was exceptions, under the GB it is billed
- * for (Telemetry Usage History): "Exceptions: 350 MB".
+ * How much of a Traces or Logs usage row was exceptions, under the GB it is
+ * billed for (Telemetry Usage History): "Exceptions: 350 MB".
  */
 export const formatTelemetryUsageExceptionsPart: (
   gigabytes: number,

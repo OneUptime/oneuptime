@@ -103,6 +103,7 @@ oneuptime resources
 | `oneuptime deploy` | グラフと OneUptime AI のために、デプロイやその他の変更を記録します | [デプロイと変更](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | プロジェクトのデータチェックを、リポジトリ内のファイルに一致させます | [コマンド リファレンス](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | ビルドの後に、dbt プロジェクトのアーティファクトをデータオブザーバビリティに送ります | [コマンド リファレンス](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | ビルドの後に iOS アプリの dSYM を送り、クラッシュとハングを関数名で読めるようにします | [モバイルのセットアップ](/docs/rum/mobile-setup#dsym-をアップロードする) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 一種類のレコードを扱います | [リソース操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | リソースのフィールドと、それを設定するフラグを一覧表示します | [リソース操作](/docs/cli/resource-operations#リソースのフィールドを見る) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | インシデント、アラート、定期メンテナンスに対してダッシュボードのボタンと同じことをします | [リソース操作](/docs/cli/resource-operations#確認解決メモの追加) |

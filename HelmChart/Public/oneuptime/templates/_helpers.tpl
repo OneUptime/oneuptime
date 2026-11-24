@@ -1499,7 +1499,8 @@ working.
 Cloud > Connect: the AWS identity that signs in to customers' read-only IAM
 roles. The app reads it for a test and for the role setup the form shows, and
 the worker for every read, so it is part of the runtime env. Unset, both are
-empty and AWS accounts connect with an access key instead.
+empty, and OneUptime signs in as the pods' own IAM role (serviceAccount) when
+they have one; without one either, AWS accounts connect with an access key.
 */}}
 - name: CLOUD_CONNECT_AWS_ACCESS_KEY_ID
   {{- if (($.Values.cloudConnect).aws).existingSecret }}

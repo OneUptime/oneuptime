@@ -219,11 +219,11 @@ const DESCRIPTIONS: Record<string, string> = {
   [Permission.TelemetryViewer]:
     "Reads logs, traces, metrics, profiles, exceptions and saved views, and changes nothing. Does not see session replays.",
   [Permission.SecurityAdmin]:
-    "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
+    "Full control over security operations: security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, response playbooks and their runs, the blocklist and its protected addresses, Sigma detection rules, threat intelligence feeds and their indicators, and security event connections (Google SecOps, Microsoft Sentinel, CrowdStrike Falcon and other sources). Outside the Security roles, only Project Owner and Project Admin read security data.",
   [Permission.SecurityMember]:
-    "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
+    "Reads security events and threat intelligence, sends security events, works security cases (opens, assigns, changes and closes them, fills in their custom fields, writes their notes, works their tasks and adds evidence), runs playbooks and approves their steps, blocks addresses on the blocklist and lifts their blocks, and creates, changes and deletes detection rules and threat intel feeds. Cannot configure playbooks, security event connections or the cases' settings, or delete security data.",
   [Permission.SecurityViewer]:
-    "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, detection rules, threat intelligence feeds and indicators, and security event connections.",
+    "Read-only access to security events, cases with their detections, notes, tasks and evidence, the cases' custom fields and note templates, playbooks and their runs, the blocklist, detection rules, threat intelligence feeds and indicators, and security event connections.",
   [Permission.SettingsAdmin]:
     "Does everything Settings Member does, and also connects video call providers and reads the audit log. API keys, teams and their permissions, labels, SSO, SMTP, call and SMS settings and domains take Project Admin.",
   [Permission.SettingsMember]:
@@ -561,6 +561,7 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
         "TracePipeline",
         "TelemetryIngestionKey",
         "TelemetrySourceMap",
+        "TelemetryDsym",
         "Service",
         "RumApplication",
       ),
@@ -595,6 +596,7 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
         "LogPipeline",
         "TelemetryIngestionKey",
         "TelemetrySourceMap",
+        "TelemetryDsym",
         "Service",
       ),
     ],
@@ -630,8 +632,13 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       ["delete", "SecurityDetection"],
       ["create", "SecurityPlaybookRun"],
       ["update", "SecurityPlaybookRun"],
+      // The blocklist: blocks made, lifted and extended, never deleted.
+      ["create", "SecurityBlock"],
+      ["update", "SecurityBlock"],
+      ...reads("SecurityBlockEnforcement"),
+      ...manages("SecurityProtectedEntity"),
     ],
-    mayNot: [],
+    mayNot: [["delete", "SecurityBlock"]],
   },
   [Permission.SecurityMember]: {
     may: [
@@ -658,8 +665,13 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       ["update", "SecurityCase"],
       ["create", "SecurityPlaybookRun"],
       ["update", "SecurityPlaybookRun"],
+      // Blocks addresses and lifts their blocks.
+      ["create", "SecurityBlock"],
+      ["update", "SecurityBlock"],
+      ...reads("SecurityBlockEnforcement"),
     ],
     mayNot: [
+      ["delete", "SecurityBlock"],
       ...manages(
         "SecurityEventConnection",
         "SecurityPlaybook",
@@ -686,6 +698,8 @@ const CLAIMS: Partial<Record<Permission, RoleClaims>> = {
       "SecurityCaseNoteTemplate",
       "SecurityPlaybook",
       "SecurityPlaybookRun",
+      "SecurityBlock",
+      "SecurityBlockEnforcement",
       "DetectionRule",
       "ThreatIntelFeed",
       "ThreatIntelIndicatorItemV1",

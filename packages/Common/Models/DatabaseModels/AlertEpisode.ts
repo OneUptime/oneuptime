@@ -18,6 +18,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import MultiTenentQueryAllowed from "../../Types/Database/MultiTenentQueryAllowed";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -214,6 +215,7 @@ export default class AlertEpisode extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Title",
     description: "Title of this alert episode",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: false,
@@ -256,6 +258,7 @@ export default class AlertEpisode extends BaseModel {
     title: "Description",
     description:
       "Description of this alert episode. This is in markdown format.",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     nullable: true,
@@ -291,6 +294,7 @@ export default class AlertEpisode extends BaseModel {
     type: TableColumnType.Number,
     title: "Episode Number",
     description: "Auto-incrementing episode number per project",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -411,6 +415,7 @@ export default class AlertEpisode extends BaseModel {
     isDefaultValueColumn: true,
     title: "Current Alert State ID",
     description: "Current Alert State ID",
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -502,6 +507,7 @@ export default class AlertEpisode extends BaseModel {
     required: false,
     title: "Alert Severity ID",
     description: "Alert Severity ID",
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -584,6 +590,7 @@ export default class AlertEpisode extends BaseModel {
     type: TableColumnType.Date,
     title: "Last Alert Added At",
     description: "When the last alert was added to this episode",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -625,6 +632,7 @@ export default class AlertEpisode extends BaseModel {
     type: TableColumnType.Date,
     title: "Resolved At",
     description: "When this episode was resolved",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -961,6 +969,7 @@ export default class AlertEpisode extends BaseModel {
     required: false,
     title: "Alert Grouping Rule ID",
     description: "Alert Grouping Rule ID that created this episode",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1003,6 +1012,7 @@ export default class AlertEpisode extends BaseModel {
     modelType: OnCallDutyPolicy,
     title: "On-Call Policies",
     description: "List of on-call policies to execute for this episode.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1112,6 +1122,7 @@ export default class AlertEpisode extends BaseModel {
     title: "Title Template",
     description:
       "Template used to generate the episode title. Stored for dynamic variable updates.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,
@@ -1146,6 +1157,7 @@ export default class AlertEpisode extends BaseModel {
     title: "Description Template",
     description:
       "Template used to generate the episode description. Stored for dynamic variable updates.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,
@@ -1225,6 +1237,7 @@ export default class AlertEpisode extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1426,6 +1439,7 @@ export default class AlertEpisode extends BaseModel {
     title: "Grouping Key",
     description:
       "Key used for grouping alerts into this episode. Generated from groupByFields of the matching rule. When a private alert opened the episode, its title is in the key only as a keyed hash.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.LongText,
@@ -1510,6 +1524,7 @@ export default class AlertEpisode extends BaseModel {
     title: "Post Updates to Workspace Channels",
     description:
       "Workspace channels to post episode updates to (e.g., Slack, Microsoft Teams)",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.JSON,
@@ -1554,6 +1569,7 @@ export default class AlertEpisode extends BaseModel {
     description:
       "If true, this alert episode is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     defaultValue: false,
+    serverOwned: ServerOwned.Shared,
   })
   @Column({
     type: ColumnType.Boolean,

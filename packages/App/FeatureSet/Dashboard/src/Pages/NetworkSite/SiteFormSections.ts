@@ -26,3 +26,12 @@ export const SITE_MORE_FIELDS: FormFieldCollapsibleSection<NetworkSite> =
 export const SITE_TYPE_FIELD_DESCRIPTION: string = translationKey(
   "What kind of place this is - a region, a store, a data center. The next step lists the sites it can sit under.",
 );
+
+/*
+ * A site's labels (#10188) group and filter sites. Unlike a monitor's they
+ * decide nothing about who sees the site, so the field says only what they
+ * do here.
+ */
+export const SITE_LABELS_FIELD_DESCRIPTION: string = translationKey(
+  "Labels group sites so you can filter and select them together.",
+);

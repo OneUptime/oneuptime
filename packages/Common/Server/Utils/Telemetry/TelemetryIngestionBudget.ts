@@ -94,6 +94,13 @@ export interface TelemetryIngestionBudgetJobCharge {
     scopeId: string;
     warningBytes: number | null;
   }>;
+  /*
+   * true when countedBytes is the size itself, so there is nothing to
+   * settle: such a charge rides on the job only so the worker can take back
+   * what a team or label budget drops (TelemetryIngestAttribution, #6386).
+   * Absent on a job queued before it existed, which was always an estimate.
+   */
+  isExact?: boolean | undefined;
 }
 
 export interface TelemetryIngestionBudgetAdmission {
@@ -278,6 +285,7 @@ export default class TelemetryIngestionBudget {
       dayId: charge.dayId,
       signalSlug: getTelemetryIngestionBudgetSignalSlug(charge.signal),
       countedBytes: charge.countedBytes,
+      isExact: charge.isExact,
       scopes: charge.scopes.map(
         (
           scope: TelemetryIngestionBudgetCounterScope,
@@ -302,6 +310,11 @@ export default class TelemetryIngestionBudget {
     now?: Date | undefined;
   }): Promise<void> {
     try {
+      // Counted at its size: nothing to settle.
+      if (data.charge.isExact === true) {
+        return;
+      }
+
       if (!Number.isFinite(data.decodedBytes) || data.decodedBytes < 0) {
         return;
       }

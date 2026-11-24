@@ -1,5 +1,7 @@
 package com.oneuptime.androidagent.otlp
 
+import com.oneuptime.androidagent.agent.AgentGrant
+import com.oneuptime.androidagent.agent.AgentPermissions
 import com.oneuptime.androidagent.config.DeviceIdentity
 import com.oneuptime.androidagent.device.DeviceFacts
 
@@ -18,6 +20,10 @@ import com.oneuptime.androidagent.device.DeviceFacts
  *   - `device.manufacturer`, `device.model.name`, `device.firmware.version`,
  *     `host.serial_number`, `host.ip`, `os.name`, `os.version`,
  *     `device.type` and `device.location` fill the host's asset details.
+ *   - `oneuptime.agent.permissions.missing` says which grants the agent
+ *     still lacks here ("READ_LOGS GET_USAGE_STATS", or "none"), so
+ *     Inventory lists the devices of a fleet that still need them
+ *     (AgentPermissions). Sent when the cycle knows them.
  *
  * And it deliberately leaves out three things:
  *
@@ -36,6 +42,7 @@ object DeviceResource {
         identity: DeviceIdentity,
         ipAddresses: List<String>,
         agentVersion: String,
+        missingPermissions: List<AgentGrant>? = null,
     ): List<Attribute> =
         attributes {
             text("host.name", identity.name)
@@ -56,6 +63,7 @@ object DeviceResource {
             text("device.type", identity.type)
             text("device.location", identity.location)
             text("oneuptime.agent.version", agentVersion)
+            missingPermissions?.let { text(AgentPermissions.ATTRIBUTE, AgentPermissions.attributeValue(it)) }
             identity.labels.forEach { (name, value) -> text("oneuptime.label.$name", value) }
         }.filter { it.key !in NEVER_SENT }
 }

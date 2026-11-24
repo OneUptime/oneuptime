@@ -6,6 +6,7 @@ En intagningsbudget begränsar hur mycket telemetri ett projekt skickar under en
 - [Så fungerar budgetar](#så-fungerar-budgetar): Tre nivåer, räknade när telemetrin kommer in.
 - [Ange standardbudgetar för alla projekt](#ange-standardbudgetar-för-alla-projekt): I inställningarna i Admin Dashboard.
 - [Ge en intagningsnyckel en egen budget](#ge-en-intagningsnyckel-en-egen-budget): En del av projektets budget.
+- [Ge ett team eller en etikett en egen budget](#ge-ett-team-eller-en-etikett-en-egen-budget): För de tjänster som teamet äger eller som har etiketten.
 - [Larma på en budget](#larma-på-en-budget): Innan den är förbrukad, och när den är det.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **För instansens och ett projekts budgetar, Admin Dashboard.** På en installation i egen drift är det bara instansadministratören som anger dem. Projektägare och Projektadministratörer ser ett projekts budgetar, men kan inte ändra dem.
 - **För en nyckels egen budget, en roll som redigerar intagningsnycklar.** Projektägare eller Projektadministratör, eller en anpassad roll med behörigheten Edit Ingestion Key.
+- **För ett teams eller en etiketts budget, Projektägare eller Projektadministratör.**
 - **För att se budgetarna, en roll som ser projektets användning.** De roller som ser sidan [Telemetrianvändning](/docs/telemetry/usage) ser projektets budgetar på den.
 
 ## Ange standardbudgetar för alla projekt
@@ -94,6 +96,30 @@ Klicka på **Spara ändringar**. En nyckels budget kan inte vara större än pro
 - **Båda budgetarna räknas.** Telemetri som skickas med nyckeln räknas mot både nyckelns och projektets budget, och den som förbrukas först avvisar den.
 - **En sänkt projektbudget gäller även nyckeln.** När projektets budget sänks under en nyckels budget begränsas nyckeln till projektets.
 
+## Ge ett team eller en etikett en egen budget
+
+Ett teams eller en etiketts budget är också en del av dess projekts, för de tjänster som teamet äger eller som har etiketten: ett teams skenande tjänst stoppas vid teamets budget, medan resten av projektet fortsätter att skicka, även genom samma collector och samma intagningsnyckel.
+
+:::steps
+### Öppna sidan Användning
+
+Gå till **Projektinställningar → Telemetri och APM → Användning**, och öppna **Fler inställningar** längst ned på sidan.
+
+### Lägg till budgeten
+
+På kortet **Team- och etikettbudgetar** klickar du på **Skapa Budget**. Välj teamet eller etiketten i **Team eller etikett**, och ange ett antal GB per dag i **Loggar (GB per dag)**. De andra signalerna finns under **Fler fält**. Lämna en signal tom om den inte ska ha någon egen budget.
+
+### Spara budgeten
+
+Klicka på **Skapa Budget**. Ett teams eller en etiketts budget kan inte vara större än dess projekts: OneUptime avvisar den och anger hur stor den högst kan vara.
+:::
+
+- **Vad den räknar.** De loggar, spår, mätvärden och profiler som teamets tjänster, eller tjänsterna med etiketten, skickar över OpenTelemetry (OTLP). Telemetri från värdar och andra resurser, säkerhetshändelser och loggar från Fluent Bit, Fluentd eller syslog räknas bara mot projektets och nyckelns budgetar.
+- **När den är förbrukad kasseras telemetrin.** Tjänsternas telemetri för den signalen kasseras till återställningen, och avsändaren får inget besked: den fick sitt svar när telemetrin kom in. Det som kasseras räknas inte längre mot projektets eller nyckelns budget.
+- **Vem som får besked.** Projektägare får ett e-postmeddelande när budgeten passerar varningströskeln, och när den är förbrukad.
+- **Bara en daglig budget.** Ett team eller en etikett har ingen hastighetsgräns.
+- **Varje budget räknas.** En tjänsts telemetri räknas mot budgetarna för dess team och dess etiketter, och för nyckeln och projektet, och den som först är förbrukad stoppar den. När projektets budget sänks under ett teams eller en etiketts begränsas den till projektets.
+
 ## Vad avsändare ser
 
 | När | Över HTTP | Över OTLP/gRPC | Vad avsändaren gör |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Andra HTTP-avsändare får JSON.** Fluent Bit, Fluentd, syslog och övriga HTTP-endpoints får `error`, `message` och `resetsAt`, och `retryAfterSeconds` vid en hastighetsgräns.
 - **MQTT och molnströmmar får inget besked.** Telemetri som kommer in över MQTT eller från en molnleverantörs ström kasseras när dess budget är förbrukad. Ingen hastighetsgräns gäller för den: den skulle inte kunna skickas igen.
+- **Det får inte heller ett teams eller en etiketts tjänster.** När ett teams eller en etiketts budget är förbrukad tas deras telemetri emot och kasseras sedan: se [Ge ett team eller en etikett en egen budget](#ge-ett-team-eller-en-etikett-en-egen-budget).
 - **Avvisningar räknas.** Det som en förbrukad budget avvisar eller kasserar räknas som kasserat, och varje begäran som en hastighetsgräns avvisar räknas som strypt: se [Se dagens användning och kasserad telemetri](#se-dagens-användning-och-kasserad-telemetri).
 
 ## Varningen och återställningen
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Se dagens användning och kasserad telemetri
 
-Gå till **Projektinställningar → Telemetri och APM → Användning**. Medan en budget eller en hastighetsgräns är angiven för projektet öppnas sidan med kortet **Intagningsbudgetar**, och nycklarna med egna budgetar finns på kortet **Budgetar för intagningsnycklar**:
+Gå till **Projektinställningar → Telemetri och APM → Användning**. Medan en budget eller en hastighetsgräns är angiven för projektet öppnas sidan med kortet **Intagningsbudgetar**, nycklarna med egna budgetar finns på kortet **Budgetar för intagningsnycklar**, och teamen och etiketterna med egna budgetar på kortet **Team- och etikettbudgetar i dag**:
 
 | Kolumn | Vad den visar |
 | --- | --- |
 | **Signal** | Signalen som raden gäller. |
 | **Använt i dag** | Det som har räknats sedan budgetdagen började, och dess andel av budgeten. |
-| **Daglig budget** | Budgeten som gäller, och var den angavs: **Instansens standard**, **Angiven för det här projektet** eller **Nyckelns egen**. |
+| **Daglig budget** | Budgeten som gäller, och var den angavs: **Instansens standard**, **Angiven för det här projektet**, **Nyckelns egen**, **Teamets egen** eller **Etikettens egen**. |
 | **Hastighetsgräns** | Hastighetsgränsen som gäller. |
 | **Kasserade** | Det som avvisades eller kasserades för att budgeten var förbrukad. |
 | **Strypt** | Hur många begäranden hastighetsgränsen avvisade. |
 | **Status** | **Inom budget**, **Över varningströskeln** eller **Förbrukad**, **Ingen daglig budget** för en signal med bara en hastighetsgräns, och **Okänd** medan siffrorna inte kan läsas. |
 
 - **På en nyckels sida** visar kortet **Dagens budgetanvändning** vad nyckeln har använt av sina egna budgetar.
-- **I utforskarna** säger en banner ovanför data för loggar, spår, mätvärden, profiler och säkerhetshändelser när den signalens budget har passerat sin varning eller är förbrukad, med **Se budgetar** för att öppna sidan Användning.
+- **I utforskarna** säger en banner ovanför data för loggar, spår, mätvärden, profiler och säkerhetshändelser när den signalens budget har passerat sin varning eller är förbrukad, eller när en nyckels, ett teams eller en etiketts är förbrukad, med **Se budgetar** för att öppna sidan Användning.
 - **I Admin Dashboard** visar ett projekts sida **Intagningsbudgetar** samma siffror.
 
 ## Larma på en budget
@@ -153,9 +180,13 @@ Varje punkt har de här attributen:
 | --- | --- |
 | `projectId` | Projektets ID. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` eller `security-events`. |
-| `scope` | `project`, eller `ingestion-key` för en nyckels egen budget. |
+| `scope` | `project`, `ingestion-key` för en nyckels egen budget, eller `team` eller `label` för ett teams eller en etiketts. |
 | `ingestionKeyId` | Nyckelns ID, för en nyckels egen budget. |
 | `ingestionKeyName` | Nyckelns namn när punkten skrevs, för en nyckels egen budget. |
+| `teamId` | Teamets ID, för ett teams budget. |
+| `teamName` | Teamets namn när punkten skrevs, för ett teams budget. |
+| `labelId` | Etikettens ID, för en etiketts budget. |
+| `labelName` | Etikettens namn när punkten skrevs, för en etiketts budget. |
 
 För att få veta när 90 % av projektets loggbudget har använts skapar du en metrikmonitor på `oneuptime.telemetry.budget.used.percent`, filtrerad på `signal` `logs` och `scope` `project`, som larmar när maximum är över 90:
 
@@ -168,6 +199,10 @@ För att få veta när 90 % av projektets loggbudget har använts skapar du en m
 
 :::details En collector loggar 403 för sina exporter
 Projektets eller nyckelns dagliga budget för den signalen är förbrukad, och collectorn kasserar det den inte kan skicka tills budgeten återställs. Se **Använt i dag** på sidan Användning. Be instansadministratören att höja projektets budget, eller skicka mindre: ett drop-filter hjälper inte här, eftersom det tar bort telemetri efter att den har räknats.
+:::
+
+:::details Ett teams telemetri slutade komma in, och ingen avsändare loggar något fel
+Den dagliga budgeten för teamet, eller för en etikett på dess tjänster, är förbrukad för den signalen, och deras telemetri kasseras tills budgeten återställs. Se **Använt i dag** på kortet **Team- och etikettbudgetar i dag** på sidan Användning, och höj budgeten under **Fler inställningar**.
 :::
 
 :::details En collector loggar 429 och försöker igen

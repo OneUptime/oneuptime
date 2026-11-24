@@ -6,10 +6,12 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -158,6 +160,11 @@ const CustomRoleWorkflowsTable: FunctionComponent<ComponentProps> = (
             wrapMaxWidthClassName: "max-w-xl",
             // The workflow's name says what each card is on a phone.
             hideTitleOnMobile: true,
+            /*
+             * A badge beside the name, in the page's own words (Archived,
+             * Disabled): the name reads its own way, the cell the page's.
+             */
+            getLineText: drawsItsOwnLines,
             getElement: (item: Workflow): ReactElement => {
               const workflowId: string = item.id?.toString() || "";
 
@@ -173,7 +180,7 @@ const CustomRoleWorkflowsTable: FunctionComponent<ComponentProps> = (
                     className="font-medium text-gray-900 hover:underline break-words"
                     to={getWorkflowRunAsRoute(workflowId)}
                   >
-                    <span>{item.name || ""}</span>
+                    <IsolatedText text={item.name || ""} />
                   </AppLink>
                   {stateText ? (
                     <Pill

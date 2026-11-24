@@ -190,6 +190,15 @@ export interface SamlResponseOptions {
   // The <AuthnStatement>'s SessionIndex (none by default).
   sessionIndex?: string | null | undefined;
   /*
+   * When the identity provider says it authenticated the person: the
+   * <AuthnStatement>'s AuthnInstant (default: `issuedAt`). An identity
+   * provider that signs someone in with a session it already has says when
+   * that session signed in (#10217).
+   */
+  authnInstant?: Date | undefined;
+  // Replaces the <AuthnStatement> ("" leaves it out).
+  rawAuthnStatement?: string | undefined;
+  /*
    * The <NameID>'s attributes, written as they are, in place of the email
    * address Format every response here has by default.
    */
@@ -294,6 +303,16 @@ export function buildSamlResponse(options: SamlResponseOptions): string {
       ? ""
       : `<saml:AttributeStatement><saml:Attribute Name="${MS_DISPLAY_NAME_CLAIM}"><saml:AttributeValue>${options.displayName}</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>`;
 
+  const authnStatement: string =
+    options.rawAuthnStatement !== undefined
+      ? options.rawAuthnStatement
+      : `<saml:AuthnStatement AuthnInstant="${samlTime(
+          options.authnInstant ?? issuedAt,
+        )}"${attribute(
+          "SessionIndex",
+          options.sessionIndex,
+        )}><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>`;
+
   return `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${
     options.responseId ?? `_response_${issuedAt.getTime()}`
   }" Version="2.0" IssueInstant="${samlTime(issuedAt)}"${attribute(
@@ -315,10 +334,5 @@ export function buildSamlResponse(options: SamlResponseOptions): string {
     .map(subjectConfirmationXml)
     .join(
       "",
-    )}</saml:Subject>${conditions}<saml:AuthnStatement AuthnInstant="${samlTime(
-    issuedAt,
-  )}"${attribute(
-    "SessionIndex",
-    options.sessionIndex,
-  )}><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement>${attributeStatement}</saml:Assertion></samlp:Response>`;
+    )}</saml:Subject>${conditions}${authnStatement}${attributeStatement}</saml:Assertion></samlp:Response>`;
 }

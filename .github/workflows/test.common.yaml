@@ -140,10 +140,11 @@ jobs:
       # (UniqueNamePostgres, #9674, #9742, #9746). A schema of its own,
       # dropped after.
       RUN_POSTGRES_UNIQUE_NAME_TESTS: "true"
-      # Postgres's own tz database keeps British Columbia on UTC-7 after
-      # 2026-11-01, so a status page's uptime days start at a Vancouver
-      # visitor's midnight (MonitorStatusTimelineBritishColumbiaPostgres,
-      # #9999). Creates nothing.
+      # A status page's uptime days are cut with OneUptime's own tz data
+      # and reach Postgres as instants, so a Vancouver visitor's day starts
+      # at 07:00 UTC after 2026-11-01 whatever zoneinfo Postgres has
+      # (MonitorStatusTimelineBritishColumbiaPostgres, #9999, #10039).
+      # Creates nothing.
       RUN_POSTGRES_TIME_ZONE_DATA_TESTS: "true"
     steps:
       - uses: actions/checkout@v4

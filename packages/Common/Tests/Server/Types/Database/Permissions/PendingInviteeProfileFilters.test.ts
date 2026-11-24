@@ -115,21 +115,37 @@ describe("a search of the project's people by name never matches someone only in
     },
   );
 
-  test("a search by address is answered as before: the project typed it", async () => {
+  /*
+   * A search by address reads the address each row shows (#10175): for
+   * someone only invited, the one they were invited at, never the one their
+   * account has moved to - written, then held to that address on the
+   * person's id, as every read takes it.
+   */
+  test("a search by address reads the address each row shows: for someone only invited, the one they were invited at", async () => {
     const result: CheckReadPermissionType<BaseModel> = await checkRead(
       TeamMember,
       { user: { email: new Search("ada@") } },
       caller([Permission.ProjectMember]),
     );
 
+    const user: Record<string, unknown> = (
+      result.query as Record<string, unknown>
+    )["user"] as Record<string, unknown>;
+
+    expect("email" in user).toBe(false);
+
+    const condition: string = describeIdCondition(user["_id"]);
+
+    expect(condition).toContain("CAST((CASE WHEN person IN (SELECT");
+    expect(condition).toContain(`"inviteeEmail"`);
+    expect(condition).toContain(
+      `, "email") ELSE "email" END) AS TEXT) ILIKE :`,
+    );
     expect(
-      (
-        (result.query as Record<string, unknown>)["user"] as Record<
-          string,
-          unknown
-        >
-      )["_id"],
-    ).toBeUndefined();
+      Object.values(
+        (user["_id"] as FindOperator<unknown>).objectLiteralParameters || {},
+      ),
+    ).toContain("%ada@%");
   });
 
   test("another record's people are narrowed alike: an incident by its creator's name", async () => {

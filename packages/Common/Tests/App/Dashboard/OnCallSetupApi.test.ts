@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -583,6 +584,69 @@ describe("people added to an existing policy", () => {
     expect(user.userId?.toString()).toBe("user-grace");
     expect(team.teamId?.toString()).toBe("team-platform");
     expect(callsFor(createSpy, OnCallDutyPolicyEscalationRule)).toEqual([]);
+  });
+
+  test("a person or team the rule pages already is not added again: the rule takes each once (#10411)", async () => {
+    const TEAM_THERE: string = "71000000-0000-4000-8000-000000000001";
+    const TEAM_NEW: string = "71000000-0000-4000-8000-000000000002";
+    const GRACE: string = "40000000-0000-4000-8000-000000000003";
+
+    // Who the first level pages by now: the person asking, and a team.
+    getListSpy.mockImplementation((async (args: {
+      modelType: { new (): unknown };
+      query: Record<string, unknown>;
+    }) => {
+      if (args.modelType === OnCallDutyPolicyEscalationRuleUser) {
+        expect(String(args.query["onCallDutyPolicyEscalationRuleId"])).toBe(
+          LEVEL_1,
+        );
+        return list([
+          model(OnCallDutyPolicyEscalationRuleUser, {
+            userId: new ObjectID(USER_ID),
+          }),
+        ]);
+      }
+
+      if (args.modelType === OnCallDutyPolicyEscalationRuleTeam) {
+        expect(String(args.query["onCallDutyPolicyEscalationRuleId"])).toBe(
+          LEVEL_1,
+        );
+        return list([
+          model(OnCallDutyPolicyEscalationRuleTeam, {
+            teamId: new ObjectID(TEAM_THERE),
+          }),
+        ]);
+      }
+
+      return list([]);
+    }) as unknown as (...args: Array<never>) => Promise<unknown>);
+
+    await OnCallSetupApi.addToFirstLevel({
+      policyId: POLICY_ID,
+      firstLevelId: LEVEL_1,
+      // Ids compared without case, as the server compares them.
+      userIds: [USER_ID.toUpperCase(), GRACE],
+      teamIds: [TEAM_THERE, TEAM_NEW],
+    });
+
+    expect(
+      callsFor(createSpy, OnCallDutyPolicyEscalationRuleUser).map(
+        (args: Record<string, unknown>): string | undefined => {
+          return (
+            args["model"] as OnCallDutyPolicyEscalationRuleUser
+          ).userId?.toString();
+        },
+      ),
+    ).toEqual([GRACE]);
+    expect(
+      callsFor(createSpy, OnCallDutyPolicyEscalationRuleTeam).map(
+        (args: Record<string, unknown>): string | undefined => {
+          return (
+            args["model"] as OnCallDutyPolicyEscalationRuleTeam
+          ).teamId?.toString();
+        },
+      ),
+    ).toEqual([TEAM_NEW]);
   });
 
   test("make its first escalation rule when it has none", async () => {
@@ -1341,8 +1405,62 @@ describe("the project's policies to set up (#8234)", () => {
 
     expect(await offeredIds()).toEqual([LIVE_ID]);
     expect((await OnCallSetupApi.loadPolicyChoices()).policies).toEqual([
-      { id: LIVE_ID, name: "Payments" },
+      {
+        id: LIVE_ID,
+        name: "Payments",
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
+      },
     ]);
+  });
+
+  /*
+   * Two policies of one name, named alike before names were held to one
+   * policy each, are told apart in the step's picker (#10314): each choice
+   * carries its description and when it was made, which the Dropdown marks
+   * the twins by.
+   */
+  test("each policy comes with what tells it from another of its name", async () => {
+    const MARCH: Date = new Date("2024-03-05T09:30:00.000Z");
+
+    serve([
+      {
+        _id: LIVE_ID,
+        name: "Payments",
+        isArchived: false,
+        description: "EU checkout",
+        createdAt: MARCH,
+      } as never,
+      { _id: POLICY_ID, name: "payments", isArchived: false } as never,
+    ]);
+
+    expect((await OnCallSetupApi.loadPolicyChoices()).policies).toEqual([
+      {
+        id: LIVE_ID,
+        name: "Payments",
+        sharedName: {
+          kind: SharedNameKind.OnCallPolicy,
+          description: "EU checkout",
+          createdAt: MARCH,
+        },
+      },
+      {
+        id: POLICY_ID,
+        name: "payments",
+        sharedName: { kind: SharedNameKind.OnCallPolicy },
+      },
+    ]);
+
+    const calls: Array<Record<string, unknown>> = callsFor(
+      getListSpy,
+      OnCallDutyPolicy,
+    );
+
+    expect(calls[0]!["select"]).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
   });
 
   test("policies in service are all offered, by name", async () => {

@@ -5,6 +5,9 @@ import {
   MaintenanceWindow,
   getDefaultMaintenanceWindow,
 } from "../../../Types/ScheduledMaintenance/MaintenanceWindow";
+import MaintenanceTemplateSchedule, {
+  MaintenanceTemplateScheduleColumns,
+} from "../../../Types/ScheduledMaintenance/MaintenanceTemplateSchedule";
 import Timezone from "../../../Types/Timezone";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import moment from "moment-timezone";
@@ -22,10 +25,11 @@ import moment from "moment-timezone";
  *   - A scheduled maintenance event typed in British Columbia is the
  *     instant its wall clock names there (OneUptimeDate's datetime-local
  *     bridge), and reads back as typed.
- *   - A recurring maintenance template steps whole days and weeks
- *     (Recurring.getNextDate, ScheduledMaintenanceTemplateService's next
- *     event): British Columbia keeps one offset now, so every occurrence of
- *     a 02:00 window is 02:00 there.
+ *   - A recurring maintenance template steps whole days and weeks of its
+ *     own time zone's calendar (MaintenanceTemplateSchedule, #10037):
+ *     British Columbia keeps one offset now, so every occurrence of a 02:00
+ *     window is 02:00 there, as it is in a zone that still changes its
+ *     clocks.
  *   - A schedule stepped in calendar units in a zone (status page reports,
  *     workspace summaries: Recurring.getNextDateAfter) keeps its wall clock:
  *     09:00 in Vancouver is 16:00 UTC on either side of 1 November, and
@@ -105,17 +109,28 @@ describe.each([VANCOUVER, CANADA_PACIFIC])(
 );
 
 describe("a recurring maintenance template's next event in British Columbia", () => {
+  // A template whose first event is created at `first`, in `zone`.
+  function template(
+    first: Date,
+    zone: Timezone,
+    interval: EventInterval,
+  ): MaintenanceTemplateScheduleColumns {
+    return {
+      firstEventScheduledAt: first,
+      firstEventStartsAt: new Date(first.getTime() + 60 * 60 * 1000),
+      firstEventEndsAt: new Date(first.getTime() + 2 * 60 * 60 * 1000),
+      recurringInterval: recurring(interval),
+      timezone: zone,
+    };
+  }
+
   test.each([VANCOUVER, CANADA_PACIFIC])(
     "a daily 02:00 window in %s, first on 2026-10-28, is next at 02:00 on 2026-11-20",
     (zone: Timezone) => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date("2026-11-19T12:00:00.000Z"));
-
-      const first: Date = at("2026-10-28 02:00", zone);
-      const next: Date = Recurring.getNextDate(
-        first,
-        recurring(EventInterval.Day),
-      );
+      const next: Date = MaintenanceTemplateSchedule.getNextEventAt(
+        template(at("2026-10-28 02:00", zone), zone, EventInterval.Day),
+        new Date("2026-11-19T12:00:00.000Z"),
+      )!;
 
       expect(next.toISOString()).toBe("2026-11-20T09:00:00.000Z");
       expect(wallClockOf(next, zone)).toBe("2026-11-20 02:00 MST");
@@ -125,19 +140,30 @@ describe("a recurring maintenance template's next event in British Columbia", ()
   test.each([VANCOUVER, CANADA_PACIFIC])(
     "a weekly Tuesday 22:00 window in %s, first on 2026-10-27, is next at 22:00 on Tuesday 2026-11-24",
     (zone: Timezone) => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date("2026-11-19T12:00:00.000Z"));
-
-      const first: Date = at("2026-10-27 22:00", zone);
-      const next: Date = Recurring.getNextDate(
-        first,
-        recurring(EventInterval.Week),
-      );
+      const next: Date = MaintenanceTemplateSchedule.getNextEventAt(
+        template(at("2026-10-27 22:00", zone), zone, EventInterval.Week),
+        new Date("2026-11-19T12:00:00.000Z"),
+      )!;
 
       expect(wallClockOf(next, zone)).toBe("2026-11-24 22:00 MST");
       expect(moment.tz(next, zone).day()).toBe(2);
     },
   );
+
+  // Los Angeles still falls back: the same window keeps 02:00 there, at 10:00 UTC.
+  test("a daily 02:00 window in Los Angeles, first on 2026-10-28, is next at 02:00 PST on 2026-11-20", () => {
+    const next: Date = MaintenanceTemplateSchedule.getNextEventAt(
+      template(
+        at("2026-10-28 02:00", LOS_ANGELES),
+        LOS_ANGELES,
+        EventInterval.Day,
+      ),
+      new Date("2026-11-19T12:00:00.000Z"),
+    )!;
+
+    expect(next.toISOString()).toBe("2026-11-20T10:00:00.000Z");
+    expect(wallClockOf(next, LOS_ANGELES)).toBe("2026-11-20 02:00 PST");
+  });
 
   test("every daily occurrence from October 2026 to March 2027 is at 02:00 in Vancouver", () => {
     const first: Date = at("2026-10-15 02:00", VANCOUVER);

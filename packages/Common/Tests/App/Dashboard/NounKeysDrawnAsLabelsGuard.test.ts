@@ -241,11 +241,6 @@ const SITES: Readonly<Record<string, NounSite>> = {
       'A tile\'s sublabel, the words under its figure: lower-case in English too, as "monitor daemons" and "of one CPU core" are.',
   },
   [`${DASHBOARD}/Components/Code/GitHubConnect.tsx`]: LINK_IN_A_SENTENCE,
-  [`${DASHBOARD}/Components/DeviceManagement/DeviceManagementConnectionsTable.tsx`]:
-    {
-      inSentence:
-        'The Esper connections list\'s pluralName, which its sentences take as a term: "Delete 2 Esper connections".',
-    },
   [`${DASHBOARD}/Components/LlmConversations/LlmConversationsView.tsx`]:
     LINK_IN_A_SENTENCE,
   [`${DASHBOARD}/Components/NetworkDevice/DeviceDiagnosticsCard.tsx`]:
@@ -353,6 +348,10 @@ const SITES: Readonly<Record<string, NounSite>> = {
   "packages/Common/Types/Rules/RuleRun.ts": {
     inSentence:
       "A rule's resourceSingular and resourcePlural, in Run Rule Now's sentences.",
+  },
+  "packages/Common/Types/Workflow/Templates.ts": {
+    inEnglish:
+      "What a Dynamics 365 case's description calls each kind of affected resource (RESOURCE_NOUNS in the create-case script a workflow template writes): English words the script puts into the case, never translated.",
   },
   "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts": {
     inEnglish: "A security case feed's English markdown.",

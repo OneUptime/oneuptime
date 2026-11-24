@@ -22,7 +22,9 @@ message TimeSeries {
   repeated Histogram histograms = 3;
   repeated Exemplar exemplars = 4;
   Metadata metadata = 5;
-  // When a counter, histogram or summary started, in milliseconds.
+  // When a counter, histogram or summary started, in milliseconds: what
+  // 2.0's release candidates before start_timestamp sent. The current spec
+  // reserves field 6 and carries the start on each sample and histogram.
   int64 created_timestamp = 6;
 }
 
@@ -35,6 +37,8 @@ message Exemplar {
 message Sample {
   double value = 1;
   int64 timestamp = 2;
+  // When the counter began counting, in milliseconds; 0 when not set.
+  int64 start_timestamp = 3;
 }
 
 message Metadata {
@@ -87,6 +91,8 @@ message Histogram {
   ResetHint reset_hint = 14;
   int64 timestamp = 15;
   repeated double custom_values = 16;
+  // When the histogram began counting, in milliseconds; 0 when not set.
+  int64 start_timestamp = 17;
 }
 
 message BucketSpan {

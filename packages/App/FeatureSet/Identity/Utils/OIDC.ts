@@ -148,12 +148,20 @@ export default class OIDCUtil {
     return client;
   }
 
+  /*
+   * Where a sign-in sends the browser. Sign In Again (#10217) asks the
+   * provider to authenticate the person again: prompt=login, and max_age=0,
+   * which also makes the ID token say when they authenticated (auth_time,
+   * OpenID Connect Core 3.1.2.1) - OneUptime checks that time itself
+   * (Utils/SignInAgain), so a provider that ignores both proves nothing.
+   */
   public static generateAuthorizationUrl(data: {
     client: Client;
     scopes: string;
     state: string;
     nonce: string;
     codeChallenge: string;
+    isSignInAgain?: boolean | undefined;
   }): URL {
     const url: string = data.client.authorizationUrl({
       scope: data.scopes,
@@ -161,6 +169,7 @@ export default class OIDCUtil {
       nonce: data.nonce,
       code_challenge: data.codeChallenge,
       code_challenge_method: "S256",
+      ...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),
     });
 
     return URL.fromString(url);

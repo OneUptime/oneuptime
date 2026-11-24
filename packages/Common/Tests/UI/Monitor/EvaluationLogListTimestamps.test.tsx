@@ -112,19 +112,19 @@ describe("monitor summary action timestamps", () => {
       renderEvents([activeEvent(entity)]);
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 10:00 GMT`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 10:00 GMT`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 11:32 BST"),
+        screen.getByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
       expect(
-        screen.getByText("Evaluated at Sep 18 2026, 11:32 BST"),
+        screen.getByText("Evaluated at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
       expect(
         screen.getByRole("button", { name: `View ${entity}` }),
       ).toBeVisible();
       expect(
-        screen.queryByText(`${entity} created at Sep 18 2026, 11:32 BST`),
+        screen.queryByText(`${entity} created at Sep 18, 2026, 11:32 BST`),
       ).not.toBeInTheDocument();
     });
 
@@ -148,19 +148,19 @@ describe("monitor summary action timestamps", () => {
 
       expect(
         within(firstAction).getByText(
-          `${entity} created at Jan 15 2026, 10:00 GMT`,
+          `${entity} created at Jan 15, 2026, 10:00 GMT`,
         ),
       ).toBeVisible();
       expect(
         within(secondAction).getByText(
-          `${entity} created at Sep 17 2026, 22:15 BST`,
+          `${entity} created at Sep 17, 2026, 22:15 BST`,
         ),
       ).toBeVisible();
       expect(
-        within(firstAction).getByText("Checked at Sep 18 2026, 11:32 BST"),
+        within(firstAction).getByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
       expect(
-        within(secondAction).getByText("Checked at Sep 18 2026, 11:32 BST"),
+        within(secondAction).getByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
     });
 
@@ -182,13 +182,13 @@ describe("monitor summary action timestamps", () => {
       );
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 10:00 GMT`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 10:00 GMT`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 12:45 BST"),
+        screen.getByText("Checked at Sep 18, 2026, 12:45 BST"),
       ).toBeVisible();
       expect(
-        screen.queryByText("Checked at Sep 18 2026, 11:32 BST"),
+        screen.queryByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).not.toBeInTheDocument();
     });
 
@@ -216,10 +216,10 @@ describe("monitor summary action timestamps", () => {
       render(<EvaluationLogList evaluationSummary={persistedSummary} />);
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 10:00 GMT`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 10:00 GMT`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 11:32 BST"),
+        screen.getByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
     });
 
@@ -251,10 +251,10 @@ describe("monitor summary action timestamps", () => {
       render(<EvaluationLogList evaluationSummary={persistedSummary} />);
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 10:00 GMT`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 10:00 GMT`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 11:32 BST"),
+        screen.getByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
     });
 
@@ -264,10 +264,10 @@ describe("monitor summary action timestamps", () => {
       renderEvents([activeEvent(entity)]);
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 05:00 EST`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 05:00 EST`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 06:32 EDT"),
+        screen.getByText("Checked at Sep 18, 2026, 06:32 EDT"),
       ).toBeVisible();
       expect(screen.queryByText(/BST|GMT/)).not.toBeInTheDocument();
     });
@@ -282,10 +282,10 @@ describe("monitor summary action timestamps", () => {
       ]);
 
       expect(
-        screen.getByText(`${entity} created at Sep 18 2026, 05:15 IST`),
+        screen.getByText(`${entity} created at Sep 18, 2026, 05:15 IST`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 16:02 IST"),
+        screen.getByText("Checked at Sep 18, 2026, 16:02 IST"),
       ).toBeVisible();
     });
 
@@ -301,10 +301,10 @@ describe("monitor summary action timestamps", () => {
       ]);
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 10:00 AM GMT`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 10:00 AM GMT`),
       ).toBeVisible();
       expect(
-        screen.getByText("Checked at Sep 18 2026, 02:32 PM BST"),
+        screen.getByText("Checked at Sep 18, 2026, 2:32 PM BST"),
       ).toBeVisible();
     });
 
@@ -316,7 +316,7 @@ describe("monitor summary action timestamps", () => {
       ]);
 
       expect(
-        screen.getByText("Checked at Sep 18 2026, 11:32 BST"),
+        screen.getByText("Checked at Sep 18, 2026, 11:32 BST"),
       ).toBeVisible();
       expect(screen.queryByText(/created at/i)).not.toBeInTheDocument();
     });
@@ -325,7 +325,7 @@ describe("monitor summary action timestamps", () => {
       renderEvents([activeEvent(entity, { at: undefined })]);
 
       expect(
-        screen.getByText(`${entity} created at Jan 15 2026, 10:00 GMT`),
+        screen.getByText(`${entity} created at Jan 15, 2026, 10:00 GMT`),
       ).toBeVisible();
       expect(screen.queryByText(/Checked at/)).not.toBeInTheDocument();
     });
@@ -358,7 +358,9 @@ describe("monitor summary action timestamps", () => {
         },
       ]);
 
-      expect(screen.getByText(`${label} Sep 18 2026, 11:32 BST`)).toBeVisible();
+      expect(
+        screen.getByText(`${label} Sep 18, 2026, 11:32 BST`),
+      ).toBeVisible();
       expect(
         screen.queryByText(/Alert created at|Incident created at/),
       ).not.toBeInTheDocument();

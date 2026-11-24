@@ -136,7 +136,7 @@ export function getYAxisWidthForValuesInPx(
       return String(value);
     });
 
-  let longest: number = 0;
+  const labels: Array<string> = [];
 
   for (const candidate of candidates) {
     let text: string = "";
@@ -147,7 +147,36 @@ export function getYAxisWidthForValuesInPx(
       text = String(candidate);
     }
 
-    longest = Math.max(longest, getTickTextLength(text || ""));
+    labels.push(text || "");
+  }
+
+  return getYAxisWidthForLabelsInPx({
+    labels: labels,
+    minWidthInPx: minimum,
+    tickFontSizeInPx: input.tickFontSizeInPx,
+  });
+}
+
+/*
+ * The value axis' width for ticks already written: as wide as the widest,
+ * never narrower than the chart's own width, and capped. A chart that steps
+ * an axis itself (ValueAxisTicks, issue #10079) knows exactly what each of
+ * its ticks reads, "17.205 GB" where the measure above guessed "17.2 GB".
+ */
+export function getYAxisWidthForLabelsInPx(input: {
+  labels: ReadonlyArray<string>;
+  minWidthInPx?: number | undefined;
+  tickFontSizeInPx?: number | undefined;
+}): number {
+  const minimum: number = input.minWidthInPx ?? Y_AXIS_WIDTH_IN_PX;
+  let longest: number = 0;
+
+  for (const label of input.labels) {
+    longest = Math.max(longest, getTickTextLength(label || ""));
+  }
+
+  if (longest === 0) {
+    return minimum;
   }
 
   const characterWidth: number =

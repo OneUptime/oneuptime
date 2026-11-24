@@ -121,6 +121,8 @@ interface OccurrenceFixture {
   // Milliseconds after the range's start.
   at: number;
   expired?: boolean;
+  // The occurrence it repeats: an iOS crash's second report (#9923).
+  duplicateOf?: string | undefined;
 }
 
 const occurrences: Array<OccurrenceFixture> = [
@@ -164,6 +166,18 @@ const occurrences: Array<OccurrenceFixture> = [
     fingerprint: "billing-fp",
     userId: "zed",
     at: 11 * HOUR_MS,
+  },
+  /*
+   * The second report of one of zed's crashes, from another reporter, kept
+   * beside it (#9923): no occurrence, no user, no bar. Its user is one no
+   * other occurrence names, so counting it would show.
+   */
+  {
+    serviceId: billingServiceId,
+    fingerprint: "billing-fp",
+    userId: "yan",
+    at: 12 * HOUR_MS,
+    duplicateOf: "8800000000000000000000f1",
   },
 
   // A fingerprint nobody asked about.
@@ -215,6 +229,10 @@ function occurrenceRow(fixture: OccurrenceFixture): JSONObject {
   // undefined leaves the column out, the way a row from before it reads.
   if (fixture.userId !== undefined) {
     row["userId"] = fixture.userId;
+  }
+
+  if (fixture.duplicateOf !== undefined) {
+    row["duplicateOf"] = fixture.duplicateOf;
   }
 
   return row;
@@ -387,6 +405,18 @@ integration("the exceptions list's stats against ClickHouse", () => {
     expect(billing[11]).toBe(1);
     expect(
       billing.reduce((a: number, b: number) => {
+        return a + b;
+      }),
+    ).toBe(3);
+  });
+
+  test("a crash's second report, kept as a repeat of its first, counts no occurrence, user or bar", async () => {
+    const stats: ExceptionListStats = await read([BILLING]);
+
+    expect(stats.items[0]!.affectedUsers).toBe(1);
+    expect(stats.items[0]!.trend[12]).toBe(0);
+    expect(
+      stats.items[0]!.trend.reduce((a: number, b: number) => {
         return a + b;
       }),
     ).toBe(3);

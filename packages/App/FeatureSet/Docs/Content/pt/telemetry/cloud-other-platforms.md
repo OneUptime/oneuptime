@@ -182,7 +182,9 @@ Os detectores dos SDKs escrevem a plataforma como `azure.app_service`, com um po
 
 **Rede:** o App Service alcança a internet diretamente, a menos que a **VNet integration** com **Route All** esteja ativada. Nesse caso a VNet precisa de um gateway NAT, ou de uma rota para um firewall que permita TCP 443 até o host do OneUptime.
 
-**O que a página do app mostra:** requisições, taxa de erros e latência vêm dos traços do app, então um app que envia só registros ou métricas mostra ali **Nenhum traço recebido**, e a sua **Verificação da configuração** diz o que adicionar. O App Service não dá a um app CPU nem memória próprias, e os blocos de CPU e memória dele dizem isso. Conecte a assinatura em **Nuvem → Conectar**, e a **Visão geral** do app ganha uma seção **Azure Monitor**: as requisições, os erros de servidor, o tempo de resposta, o tempo de CPU e a memória do site, como o Azure os mede, seja o que for que o app envie.
+**O que a página do app mostra:** requisições, taxa de erros e latência vêm dos traços do app, então um app que envia só registros ou métricas mostra ali **Nenhum traço recebido**, e a sua **Verificação da configuração** diz o que adicionar. O App Service não dá a um app CPU nem memória próprias, e os blocos de CPU e memória dele dizem isso. Conecte a assinatura em **Nuvem → Conectar**, e a **Visão geral** do app ganha uma seção **Azure Monitor**: as requisições, os erros de servidor e de cliente, o tempo de resposta, o tempo de CPU e a memória do site, como o Azure os mede, seja o que for que o app envie. A aba **Instâncias** dele lista então as instâncias em que o Azure o executa, e a aba **Revisões**, as implantações que o Azure guarda.
+
+A aba **Configuração** do app dá essas configurações como comandos do Azure Cloud Shell para .NET, Java, Node.js ou Python, com o nome, o grupo de recursos e a assinatura do próprio app em cada comando. Para os próprios registros de console, HTTP e de plataforma do site, escolha também **Transmitir métricas e logs** na linha da assinatura em **Nuvem → Conectar**: eles aparecem na aba **Registros** do app, em **Das configurações de diagnóstico do Azure**.
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ Os detectores do App Service de Node.js e .NET não definem `cloud.account.id`. 
 :::
 
 :::details Um app do App Service não mostra requisições nem instâncias
-Requisições, taxa de erros e latência vêm dos traços, então um app que envia só registros ou métricas não tem nenhuma: a sua **Verificação da configuração** diz o que adicionar. As instâncias vêm de `azure.app_service.instance.id` ou de `service.instance.id`, que os detectores do Azure definem: sem nenhum dos dois, o bloco **Instâncias** mostra **Não reportado**. Para ver as requisições do site, seja o que for que o app envie, conecte a assinatura: a página do app ganha uma seção **Azure Monitor**.
+Requisições, taxa de erros e latência vêm dos traços, então um app que envia só registros ou métricas não tem nenhuma: a sua **Verificação da configuração** diz o que adicionar, e a sua aba **Configuração**, como. As instâncias vêm de `azure.app_service.instance.id` ou de `service.instance.id`, que os detectores do Azure definem: sem nenhum dos dois, o bloco **Instâncias** mostra **Não reportado** até a assinatura ser conectada, e depois conta as instâncias que o Azure executa. Para ver as requisições do site, seja o que for que o app envie, conecte a assinatura: a página do app ganha uma seção **Azure Monitor**.
+:::
+
+:::details Um app do App Service não tem números do Azure Monitor
+A linha **Conexão do Azure Monitor** da sua **Verificação da configuração** diz por quê. O OneUptime liga o app ao site dele por `cloud.resource_id`, que os detectores do App Service definem, ou então pelo `service.name` dele na assinatura que `cloud.account.id` nomeia: dê ao app o nome do site, ou adicione `cloud.resource_id`. Uma conexão do Azure em **Nuvem → Conectar** precisa ler essa assinatura, com a função Monitoring Reader nela. Um slot de implantação é um recurso próprio, que o OneUptime ainda não lê.
 :::
 
 :::details Uma variável alterada do Container Instances não tem efeito

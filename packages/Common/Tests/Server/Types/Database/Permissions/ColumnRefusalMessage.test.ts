@@ -88,6 +88,12 @@ function refusal(run: () => void): Error {
 const START_TITLES: string =
   "Project Owner, Project Admin, Start Packet Capture";
 
+/*
+ * Who may set a capture's filter as it starts: the column's list, with
+ * Network's level that follows Project Admin there (#10289).
+ */
+const BPF_FILTER_CREATE_TITLES: string = `${START_TITLES}, Network Admin`;
+
 describe("ColumnRefusalMessage: the words", () => {
   test.each([
     [
@@ -237,7 +243,7 @@ describe("every gate refuses a column in those words", () => {
     });
 
     expect(error.message).toBe(
-      `User is not allowed to create on bpfFilter column of Packet Capture. You need one of these permissions: ${START_TITLES}.`,
+      `User is not allowed to create on bpfFilter column of Packet Capture. You need one of these permissions: ${BPF_FILTER_CREATE_TITLES}.`,
     );
   });
 

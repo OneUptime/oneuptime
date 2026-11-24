@@ -306,7 +306,7 @@ test.describe("Bulk Actions", () => {
     );
     expect(lines.slice(1)).toEqual([
       `Netlock.hu,,da74••••7c7a,Evaluation,Expired,0 / 50 users,"Sep 30, 2026",`,
-      `GovTech Singapore,,832c••••8915,Production,Active,13 / 150 users,"Oct 09, 2099",`,
+      `GovTech Singapore,,832c••••8915,Production,Active,13 / 150 users,"Oct 9, 2099",`,
     ]);
     // The fixture's keys are the masked ends around 56 zeros.
     expect(csv).not.toContain("0".repeat(56));

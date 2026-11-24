@@ -5,7 +5,10 @@ L'inventario è un unico elenco di tutto ciò che OneUptime sa della tua infrast
 :::cards
 - [Come gli elementi entrano nell'inventario](#come-gli-elementi-entrano-nellinventario): Scoperti, replicati o aggiunti da te.
 - [Orientarsi](#orientarsi): Le pagine dell'inventario e le pagine di ogni elemento.
-- [Importare dispositivi da Esper](#importare-dispositivi-da-esper): Ogni dispositivo Android registrato dal tuo tenant Esper, sempre aggiornato.
+- [Importare dispositivi da Esper](#importare-dispositivi-da-esper): Ogni dispositivo Android e Apple registrato dal tuo tenant Esper, sempre aggiornato.
+- [Importare dispositivi da Microsoft Intune](#importare-dispositivi-da-microsoft-intune): Ogni PC Windows, Mac, iPhone, iPad e dispositivo Android gestito da Intune, sempre aggiornato.
+- [Importare dispositivi da Workspace ONE UEM](#importare-dispositivi-da-workspace-one-uem): Ogni telefono, tablet e computer gestito da Workspace ONE, sempre aggiornato.
+- [Importare dispositivi da SOTI MobiControl](#importare-dispositivi-da-soti-mobicontrol): Ogni dispositivo rugged, telefono, tablet e computer gestito da MobiControl, sempre aggiornato.
 - [Aggiungere qualcosa a mano](#aggiungere-qualcosa-a-mano): Un'API di terze parti, un database esterno o un'appliance.
 - [Archiviare invece di eliminare](#archiviare-invece-di-eliminare): Il modo di riordinare l'elenco che dura nel tempo.
 :::
@@ -26,14 +29,14 @@ flowchart TB
 | Fonte | Nell'API | Da dove viene | Quanto resta |
 | --- | --- | --- | --- |
 | **Rilevato** | `discovered` | Gli attributi di risorsa OpenTelemetry, letti all'arrivo della telemetria: un servizio, un host, un oggetto Kubernetes o una macchina virtuale che invia telemetria. | Registrato di nuovo a ogni batch. Rimosso quando resta in silenzio più a lungo della finestra del suo tipo (vedi sotto). |
-| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker, host Podman e i dispositivi Android importati da una connessione Esper. Copiato ogni 15 minuti; un dispositivo Esper, ogni volta che viene letta la sua connessione. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
+| **Replicato** | `inventory` | Un record che un poller di OneUptime mantiene: dispositivi di rete, risorse cloud, dispositivi IoT, funzioni serverless, applicazioni RUM, host Docker, host Podman e i dispositivi importati dalla connessione a un gestore dei dispositivi. Copiato ogni 15 minuti; un dispositivo gestito, ogni volta che viene letta la sua connessione. | Finché esiste il suo record. Elimina il record e l'elemento se ne va con lui. |
 | **Aggiunto da te** | `manual` | Aggiunto da te, per qualcosa che OneUptime non può vedere: un'API di terze parti, un database gestito da un fornitore, un'appliance in un rack. | Finché non lo elimini. Niente lo fa scadere. |
 
 Un elemento scoperto o replicato non può essere rinominato né cambiare tipo: la sua fonte sovrascriverebbe la modifica al passaggio successivo. La pagina **Impostazioni** dell'elemento indica invece dove fare una modifica duratura. Quello che puoi sempre aggiungere a qualsiasi elemento, qualunque sia la sua fonte, sono i valori dei campi personalizzati: vedi [Campi personalizzati dell'inventario](/docs/inventory/custom-fields).
 
 ### Quanto resta un elemento silenzioso
 
-Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la sua ora dell'ultima osservazione avanza, e la colonna **Stato** dell'elenco dice quanto è recente. Lo stesso vale per un dispositivo Android di Esper: ogni volta che contatta Esper. Gli altri elementi replicati e quelli che hai aggiunto non hanno battito, quindi il loro stato resta vuoto invece di allarmare.
+Un elemento scoperto ha un battito. Ogni volta che arriva telemetria per lui, la sua ora dell'ultima osservazione avanza, e la colonna **Stato** dell'elenco dice quanto è recente. Lo stesso vale per un dispositivo gestito: ogni volta che contatta il suo gestore dei dispositivi. Gli altri elementi replicati e quelli che hai aggiunto non hanno battito, quindi il loro stato resta vuoto invece di allarmare.
 
 | Stato | Cosa significa |
 | --- | --- |
@@ -45,9 +48,9 @@ Ogni tre ore, OneUptime rimuove gli elementi scoperti rimasti in silenzio più a
 
 | Tipo di elemento | Rimosso dopo questo tempo senza telemetria |
 | --- | --- |
-| Pod, deployment, guest Proxmox e macchine virtuali VMware | 1 giorno |
-| Nodi e namespace Kubernetes, nodi Proxmox, host, cluster e datastore VMware, e i database e i servizi remoti chiamati dalle tue tracce | 7 giorni |
-| Servizi, host, cluster Kubernetes, Proxmox e Ceph, array di storage, vCenters e cluster Docker Swarm | 30 giorni |
+| Pod, deployment, guest Proxmox, istanze OpenStack e macchine virtuali VMware | 1 giorno |
+| Nodi e namespace Kubernetes, nodi Proxmox, hypervisor OpenStack, host, cluster e datastore VMware, e i database e i servizi remoti chiamati dalle tue tracce | 7 giorni |
+| Servizi, host, cluster Kubernetes, Proxmox e Ceph, cloud OpenStack, array di storage, vCenters e cluster Docker Swarm | 30 giorni |
 
 Una relazione che OneUptime ha scoperto viene rimossa quando non viene rivista per 30 giorni.
 
@@ -59,9 +62,9 @@ Apri **Prodotti → Risorse → Inventario**. Il suo menu laterale ha queste pag
 | --- | --- |
 | **Panoramica** | Quanti elementi hai, cosa sono, quanti sono diventati silenziosi e cosa è stato aggiunto più di recente. |
 | **Tutti gli elementi** | Ogni elemento. Cerca per nome, descrizione o chiave d'identità, filtra l'elenco per tipo, fonte, stato o campo personalizzato e aggiungi un elemento a mano. |
-| **Dispositivi gestiti** | Le tue connessioni Esper e ogni dispositivo Android che importano, con il suo stato, il gruppo, il modello e la versione di Android. |
+| **Dispositivi gestiti** | Le tue connessioni ai gestori dei dispositivi (Esper, Microsoft Intune, Workspace ONE UEM e SOTI MobiControl), e ogni dispositivo che importano, con il suo stato, il gruppo, il modello e il sistema operativo. |
 | **Mappa della topologia** | Come sono collegati gli elementi: i servizi, cosa chiamano e gli host, i pod e i dispositivi su cui girano. |
-| **In silenzio** | Gli elementi di cui non si hanno notizie da più di un giorno: elementi scoperti che non hanno inviato telemetria e dispositivi che hanno smesso di contattare Esper. |
+| **In silenzio** | Gli elementi di cui non si hanno notizie da più di un giorno: elementi scoperti che non hanno inviato telemetria e dispositivi che hanno smesso di contattare il loro gestore dei dispositivi. |
 | **Per origine** | Gli elementi di una fonte: **Rilevato**, **Replicato** o **Aggiunto da te**. |
 | **Impostazioni → Campi personalizzati** | I campi che il tuo progetto tiene su ogni elemento. |
 | **Aiuto → Documentazione** | Una breve guida all'inventario, con i tipi di elemento che riconosce. |
@@ -71,11 +74,13 @@ Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e 
 
 ### Dettagli dell'asset
 
-Un host o un dispositivo di rete ha una scheda **Dettagli dell'asset** che li descrive entrambi allo stesso modo: hostname, indirizzo IP, indirizzo MAC, numero di serie, produttore, modello, versione del firmware, sistema operativo, versione del sistema operativo, tipo di dispositivo e posizione. La scheda di un dispositivo Android ha anche il suo livello patch di sicurezza, dall'Agent Android o da Esper. Un dato che nulla ha segnalato si legge **Sconosciuto**, e la scheda spiega perché accade e come si compilano quelli sconosciuti: un dispositivo che non li segnala via SNMP, un dispositivo non ancora letto, o un dispositivo Meraki la cui dashboard li contiene.
+Un host o un dispositivo di rete ha una scheda **Dettagli dell'asset** che li descrive entrambi allo stesso modo: hostname, indirizzo IP, indirizzo MAC, numero di serie, produttore, modello, versione del firmware, sistema operativo, versione del sistema operativo, tipo di dispositivo e posizione. La scheda di un dispositivo Android ha anche il suo livello patch di sicurezza, dall'Agent Android o dal suo gestore dei dispositivi. Dice anche se la patch è **Da aggiornare**, come la colonna **Livello patch di sicurezza**, e a quanti giorni fa risale. Un dato che nulla ha segnalato si legge **Sconosciuto**, e la scheda spiega perché accade e come si compilano quelli sconosciuti: un dispositivo che non li segnala via SNMP, un dispositivo non ancora letto, o un dispositivo Meraki la cui dashboard li contiene.
 
 - I dati di un host vengono dagli attributi di risorsa della sua telemetria: i suoi indirizzi IP e MAC, l'architettura e il sistema operativo fin da subito, e il numero di serie, la marca, il modello e il firmware una volta che li apponi.
 - I dati di un dispositivo di rete vengono dal suo polling SNMP, dal suo ruolo e dal suo sito. Ciò che il suo polling non ha letto viene dal rilevamento: l'ultima scansione del suo indirizzo, la tabella ARP di un router o la risoluzione DNS della sua sonda. Un dispositivo senza ENTITY-MIB, come un Meraki MX, ricava comunque marca, modello e sistema operativo dalla sua descrizione di sistema, e il suo indirizzo MAC dalle sue porte. Il suo indirizzo IP non viene mai mostrato come hostname.
 - Un dispositivo Meraki prende anche dalla dashboard di Meraki ciò che il suo polling lascia vuoto, tra cui numero di serie, modello e firmware, quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione.
+
+In **Tutti gli elementi** trovi i dispositivi Android su cui intervenire. Il filtro **Livello patch di sicurezza** elenca come **Da aggiornare** i dispositivi il cui livello patch di sicurezza ha più di 90 giorni, la stessa regola che applica l'avviso Security Patch Out of Date del [monitor host](/docs/monitor/host-monitor). Il filtro **Autorizzazioni dell'agente** elenca i dispositivi su cui all'[Agent Android](/docs/telemetry/android-agent) mancano ancora READ_LOGS, READ_DROPBOX_DATA o l'accesso ai dati di utilizzo. Ciascuno ha una colonna con lo stesso nome, nascosta finché non la attivi, e l'esportazione CSV la include. Accanto, la colonna **ID nel gestore dei dispositivi** contiene l'ID con cui il gestore dei dispositivi conosce un dispositivo, come l'ID Esper che `espercli secureadb connect --device` richiede.
 
 La scheda indica da dove viene ogni dato e quando. La fonte condivisa dalla maggior parte dei dati, come il collector di un host, il polling SNMP proprio di un dispositivo di rete o la scansione di rilevamento che lo ha letto, viene nominata una sola volta, sotto i dati. Qualsiasi altra fonte, come la tabella ARP di un router o un valore salvato sul dispositivo, viene nominata sotto il suo dato. Un valore salvato su un dispositivo di rete non viene mai sostituito da ciò che legge il rilevamento, e quando i due differiscono, la scheda li mostra entrambi.
 
@@ -89,7 +94,7 @@ La pagina **Connessioni** di un elemento elenca i suoi vicini in entrambe le dir
 
 ## Importare dispositivi da Esper
 
-Collega un tenant Esper, e ogni dispositivo Android che registra è nell'inventario, compresi i dispositivi la cui app non è mai partita. Ogni dispositivo è un host, con ciò che solo Esper sa di lui: il suo gruppo, la sua versione di Android, la build e il livello patch di sicurezza, il numero di serie e l'IMEI, la batteria e l'archiviazione, e le app installate. Esper non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo ogni 6 ore.
+Collega un tenant Esper, e ogni dispositivo che registra è nell'inventario: i suoi dispositivi Android, compresi quelli la cui app non è mai partita, e i suoi iPhone, iPad e Apple TV. Ogni dispositivo è un host, con ciò che solo Esper sa di lui: il suo gruppo, il sistema operativo e la build, il numero di serie e l'IMEI, la batteria e l'archiviazione, e, per un dispositivo Android, il livello patch di sicurezza e le app installate. Esper non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo Android ogni 6 ore.
 
 :::steps
 ### Creare una chiave API in Esper
@@ -98,18 +103,19 @@ Nella console di Esper, crea una chiave in API Key Management. OneUptime si limi
 
 ### Collegare il tenant
 
-Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, e fai clic su **Collega Esper**. Inserisci il **Tenant**, cioè il nome che precede `.esper.cloud` nell'indirizzo della tua console Esper (`acme` per `acme.esper.cloud`), e la **Chiave API**. **Altri campi** contiene il nome della connessione e ogni quanto viene letta.
+Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, fai clic su **Collega un gestore dei dispositivi** e scegli **Esper**. Inserisci il **Tenant**, cioè il nome che precede `.esper.cloud` nell'indirizzo della tua console Esper (`acme` per `acme.esper.cloud`), e la **Chiave API**. **Altri campi** contiene il nome della connessione e ogni quanto viene letta.
 
 ### Controllare la prima lettura
 
-**Collega** verifica la chiave prima di salvare qualsiasi cosa: dice quanti dispositivi Android importerà una lettura, oppure cosa non va e come risolverlo. La prima lettura inizia entro un minuto, e la riga della connessione dice com'è andata.
+**Collega** verifica la chiave prima di salvare qualsiasi cosa: dice quanti dispositivi importerà una lettura, oppure cosa non va e come risolverlo. La prima lettura inizia entro un minuto, e la riga della connessione dice com'è andata.
 :::
 
 | Cosa segnala Esper | Dove compare |
 | --- | --- |
-| Modello, produttore, numero di serie, versione di Android, build, e indirizzi IP e MAC | La scheda **Dettagli dell'asset** del dispositivo e le colonne di **Tutti gli elementi** |
+| Modello, produttore, numero di serie, sistema operativo e la sua versione, build, e indirizzi IP e MAC | La scheda **Dettagli dell'asset** del dispositivo e le colonne di **Tutti gli elementi** |
 | Stato, ultimo contatto, gruppo, livello patch di sicurezza, IMEI, batteria, archiviazione e agente Esper | La scheda **Esper** del dispositivo e l'elenco **Dispositivi** di **Dispositivi gestiti** |
 | Le app e le loro versioni | L'elenco **App installate** del dispositivo |
+| Il suo ID dispositivo Esper | La colonna **ID nel gestore dei dispositivi** di **Tutti gli elementi** |
 
 ### Un dispositivo, non due
 
@@ -124,15 +130,103 @@ OneUptime trova l'elemento di un dispositivo per il suo nome in Esper, poi per i
 
 ### Quando un dispositivo tace o lascia Esper
 
-Un dispositivo che non contatta Esper da 30 minuti è **Offline**, e dice quanto tempo è passato dal suo ultimo contatto. Lo **Stato** del suo elemento segue il suo ultimo contatto, o la sua telemetria quando è più recente, quindi un dispositivo silenzioso da un giorno compare nella pagina **In silenzio**.
+Un dispositivo Android che non contatta Esper da 30 minuti è **Offline**, e dice quanto tempo è passato dal suo ultimo contatto; un iPhone, un iPad o un'Apple TV, che contatta Esper quando il servizio push di Apple lo risveglia, spesso a ore di distanza, è **Offline** dopo un giorno. Lo **Stato** del suo elemento segue il suo ultimo contatto, o la sua telemetria quando è più recente, quindi un dispositivo silenzioso da un giorno compare nella pagina **In silenzio**.
 
 Un dispositivo rimosso da Esper viene contrassegnato come **Rimosso**, e il suo elemento viene archiviato: esce dall'elenco e resta in attesa in **Avanzato → Archiviato**. Un dispositivo che torna in Esper torna nell'elenco. 30 giorni dopo la sua uscita, il dispositivo viene eliminato, e con lui il suo elemento, a meno che non gli sia stato aggiunto qualcosa, dalla telemetria o da te.
 
 ### Ricevere un avviso quando un dispositivo smette di comunicare
 
-In **Dispositivi gestiti**, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Esper Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non contatta Esper da più di un'ora, con il nome del dispositivo, e lo risolve appena il dispositivo torna a comunicare.
+In **Dispositivi gestiti**, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Esper Android Device Stopped Checking In** e **Esper Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android che non contatta Esper da più di un'ora, il secondo per ogni dispositivo Apple dopo più di un giorno, ciascuno con il nome del dispositivo e risolto appena il dispositivo torna a comunicare.
 
-Ogni lettura della connessione registra quanti minuti fa ogni dispositivo ha contattato Esper l'ultima volta, come metrica `oneuptime.managed_device.check_in.age`, e il monitor controlla l'ultimo valore di ogni dispositivo ogni 5 minuti. Un dispositivo su cui gira anche l'Agent Android è lasciato a **Host Stopped Reporting**, così non genera mai due avvisi, e un dispositivo rimosso da Esper risolve il suo avviso. Una lettura che non riesce non registra nulla, quindi nessun avviso si apre né si risolve fino alla successiva. Per una flotta che viene spenta di notte, alza la soglia del monitor.
+Ogni lettura della connessione registra quanti minuti fa ogni dispositivo ha contattato Esper l'ultima volta, come metrica `oneuptime.managed_device.check_in.age`, e il monitor controlla l'ultimo valore di ogni dispositivo ogni 5 minuti. Un dispositivo su cui gira anche l'Agent Android è lasciato a **Host Stopped Reporting**, così non genera mai due avvisi, e un dispositivo rimosso da Esper risolve il suo avviso. Una lettura che non riesce non registra nulla dei dispositivi, quindi nessuno dei loro avvisi si apre né si risolve finché una lettura non riesce di nuovo. Per una flotta che viene spenta di notte, alza la soglia del monitor.
+
+Crea anche **Esper Security Patch Out of Date**: ogni dispositivo Android il cui livello patch di sicurezza, secondo Esper, risale a più di 90 giorni fa apre un proprio avviso, risolto quando il dispositivo viene aggiornato. Ogni lettura registra a quanti giorni fa risale il livello patch di ogni dispositivo Android, come metrica `oneuptime.managed_device.security_patch.age`. Un dispositivo su cui gira l'Agent Android è lasciato al **Security Patch Out of Date** del suo host, così non genera mai due avvisi.
+
+Crea anche **Esper Low Battery** ed **Esper Storage Nearly Full**: ogni dispositivo la cui batteria, secondo l'ultima lettura di Esper, è sotto il 20% apre un proprio avviso, e così ogni dispositivo la cui archiviazione è piena oltre il 90%, ciascuno risolto quando il dispositivo viene ricaricato o torna ad avere spazio. Ogni lettura registra entrambi, come metriche `oneuptime.managed_device.battery.level` e `oneuptime.managed_device.storage.used`. Un dispositivo su cui gira l'Agent Android è lasciato a **Low Battery** e **Storage Nearly Full** del suo host, che avvisano agli stessi livelli, così non genera mai due avvisi.
+
+Gli avvisi di un dispositivo sono anche sul suo elemento: la sua scheda **Esper** elenca gli incidenti e gli avvisi aperti su di esso, ciascuno con un link alla sua pagina, e le pagine **Avvisi** e **Incidenti** di un dispositivo che l'Agent Android non segnala elencano tutti quelli che i monitor della sua connessione hanno generato su di esso.
+
+### Ricevere un avviso quando la connessione non viene più letta
+
+Crea **Esper Connection Stopped Reading**, e la connessione apre un proprio avviso non appena nessuna sua lettura riesce da tanto tempo quanto la sua riga attende prima che il suo **Stato** dica **Non aggiornato**: tre dei suoi intervalli di lettura più dieci minuti, e mai meno di mezz'ora, quindi 55 minuti con l'intervallo predefinito di 15. Il suo primo passaggio di debug elenca gli ultimi valori della connessione, ciascuno con l'errore con cui la sua lettura non è riuscita, e la prima lettura che riesce lo risolve. Ogni lettura, e ogni lettura per cui la connessione diventa dovuta, registra quanti minuti sono passati dall'ultima riuscita, come metrica `oneuptime.managed_device.connection.read.age`. Il monitor attende quanto dice l'intervallo di lettura della connessione al momento della sua creazione. Disattivare la connessione risolve l'avviso che aveva aperto, perché nulla è in ritardo per una connessione disattivata, e gli avvisi dei suoi dispositivi restano come sono finché non legge di nuovo. Eliminare la connessione risolve ciò che avevano aperto i monitor che leggono solo lei e ne disattiva il monitoraggio.
+
+## Importare dispositivi da Microsoft Intune
+
+Collega un tenant Microsoft Intune, e ogni dispositivo gestito da Intune è nell'inventario: i suoi PC Windows, Mac, iPhone, iPad, dispositivi Android e macchine Linux. Ogni dispositivo è un host, con ciò che Intune sa di lui: la sua categoria, il sistema operativo e la sua versione, il numero di serie e l'IMEI, la conformità, la proprietà e la registrazione, l'archiviazione e le app che Intune vi ha rilevato. Intune non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo ogni 6 ore.
+
+:::steps
+### Registra un'app in Microsoft Entra
+
+Nell'interfaccia di amministrazione di Microsoft Entra, apri `App registrations` e fai clic su `New registration`. Dalle un nome, lascia `Accounts in this organizational directory only` e registrala. La sua pagina `Overview` mostra i due ID che chiede OneUptime: l'`Application (client) ID` e il `Directory (tenant) ID`.
+
+### Consentile di leggere i dispositivi di Intune
+
+In `API permissions`, fai clic su `Add a permission`, poi su `Microsoft Graph`, poi su `Application permissions`, e aggiungi `DeviceManagementManagedDevices.Read.All`. Poi fai clic su `Grant admin consent`, cosa che può fare solo un amministratore del tenant. Quest'unica autorizzazione è tutto ciò che serve a OneUptime: elenca i dispositivi e le app che Intune vi ha rilevato, e non può cambiare nulla.
+
+### Crea un segreto client
+
+In `Certificates & secrets`, fai clic su `New client secret` e copia il suo `Value`, non il suo `Secret ID`: Microsoft mostra il valore una sola volta. Un segreto smette di funzionare quando scade, quindi prima che succeda creane uno nuovo e inseriscilo modificando la connessione.
+
+### Collega il tenant Intune
+
+Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, fai clic su **Collega un gestore dei dispositivi** e scegli **Microsoft Intune**. Inserisci l'**ID del tenant**, l'**ID applicazione (client)** e il **Client Secret**. Se il tenant è in un cloud del governo statunitense, sceglilo come **Cloud** in **Altri campi**. **Collega** prova la registrazione dell'app prima di salvare qualsiasi cosa: dice quanti dispositivi importerà una lettura, oppure cosa non va e come correggerlo.
+:::
+
+Un dispositivo contatta Intune circa ogni otto ore, e il suo ultimo contatto è l'ultima volta che l'ha fatto: un dispositivo che non lo fa da un giorno è **Offline**. Le sue app sono quelle che Intune vi ha rilevato, che Microsoft Graph elenca solo nella sua versione beta: per un dispositivo personale, le app gestite da Intune. I gruppi di Intune sono gruppi di Microsoft Entra, che questa autorizzazione non legge, quindi il gruppo di un dispositivo è la sua categoria di dispositivo. Non viene letto nulla sull'utente di un dispositivo.
+
+Intune dà a un dispositivo il nome che gli ha dato il suo proprietario, quindi due dispositivi possono avere lo stesso nome: ogni iPhone che nessuno ha rinominato si chiama `iPhone`. Un nome che hanno due dispositivi di una connessione non è di nessuno dei due nell'inventario: ciascuno prende invece il nome dal suo numero di serie, e riprende il suo nome appena nessun altro dispositivo lo ha.
+
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Intune Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non contatta Intune da più di un giorno, con il nome del dispositivo. Un portatile spento per un fine settimana appare allo stesso modo, quindi alza la soglia del monitor se un giorno è troppo poco per i tuoi. **Intune Security Patch Out of Date** genera un avviso per ogni dispositivo Android il cui livello patch di sicurezza risale a più di 90 giorni fa, come il modello di Esper. **Intune Low Battery**, **Intune Storage Nearly Full** e **Intune Connection Stopped Reading** generano avvisi come i modelli di Esper. Intune conosce solo la batteria di un iPhone o di un iPad, com'era al suo ultimo contatto, quindi **Intune Low Battery** avvisa su questi.
+
+## Importare dispositivi da Workspace ONE UEM
+
+Collega un server Workspace ONE UEM, e ogni dispositivo che gestisce è nell'inventario: i suoi iPhone, iPad, Mac, PC Windows, dispositivi Android e macchine Linux. Ogni dispositivo è un host, con ciò che Workspace ONE sa di lui: il suo gruppo organizzativo, il sistema operativo e la sua versione, il modello, il numero di serie e l'IMEI, la conformità, la registrazione e la proprietà, la batteria, l'archiviazione e la memoria, e le sue app. Workspace ONE non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo ogni 6 ore.
+
+:::steps
+### Crea un ruolo di sola lettura
+
+Nella console di Workspace ONE UEM, vai su `Accounts`, poi su `Administrators`, poi su `Roles`, e fai clic su `Add Role`. In `API`, poi in `REST`, seleziona `Read` per `Devices` e per `Apps`, e nient'altro. Quel ruolo è tutto ciò che serve a OneUptime: elenca i dispositivi e le loro app, e non può cambiare nulla.
+
+### Crea un client OAuth
+
+Vai su `Groups & Settings`, poi su `Configurations`, poi su `OAuth Client Management`, e fai clic su `Add`. Scegli il gruppo organizzativo di cui OneUptime legge i dispositivi, e assegna al client il ruolo che hai creato. Copia il suo `Client ID` e il suo `Client Secret`: Workspace ONE mostra il segreto una sola volta.
+
+### Collega il server
+
+Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, fai clic su **Collega un gestore dei dispositivi** e scegli **Workspace ONE UEM**. Inserisci l'**URL dell'API REST**, che mostra `Groups & Settings`, `All Settings`, `System`, `Advanced`, `API`, `REST API`, come `https://as1234.awmdm.com`. Lascia **Client OAuth** in **Accedi con**, inserisci il **Client ID** e il **Client Secret**, e scegli la **Regione** del servizio token del tuo data center. **Collega** prova il client prima di salvare qualsiasi cosa: dice quanti dispositivi importerà una lettura, oppure cosa non va e come correggerlo.
+:::
+
+Un server Workspace ONE on-premise non ha un servizio token: scegli **Account amministratore** in **Accedi con**, e inserisci il **Nome utente** e la **Password** di un amministratore con il ruolo di sola lettura e la **Chiave API REST** dalle stesse impostazioni REST API, dove deve essere consentita l'autenticazione di base. OneUptime Cloud legge solo server su internet pubblico, quindi un server su una rete privata viene letto da un OneUptime self-hosted.
+
+Un dispositivo comunica con Workspace ONE secondo una sua pianificazione, un iPhone a ore di distanza, quindi un dispositivo che non lo fa da un giorno è **Offline**. Un dispositivo non più registrato viene escluso. Un dispositivo prende il nome che comunica, non il suo nome descrittivo, che Workspace ONE compone con il nome del suo utente, e non viene letto nulla sull'utente di un dispositivo. Ogni richiesta conta nella quota API giornaliera del tenant, quindi una lettura legge le app di al massimo 25 dispositivi, e la lettura successiva quelle dei successivi.
+
+Un'app o l'Agent Android che invia telemetria da un dispositivo si unisce a esso in un unico elemento tramite il numero di serie del dispositivo: assegna all'impostazione `device_serial` dell'Agent Android il valore di ricerca `{DeviceSerialNumber}` nella sua configurazione gestita.
+
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **Workspace ONE Device Stopped Checking In**. Apre un avviso per ogni dispositivo che non comunica con Workspace ONE da più di un giorno, con il nome del dispositivo. **Workspace ONE Security Patch Out of Date** genera un avviso per ogni dispositivo Android il cui livello patch di sicurezza risale a più di 90 giorni fa, come il modello di Esper. **Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** e **Workspace ONE Connection Stopped Reading** generano avvisi come i modelli di Esper. Un dispositivo che secondo Workspace ONE è collegato alla corrente, sul caricatore o sulla base, resta fuori da **Workspace ONE Low Battery**, e un avviso che aveva aperto viene risolto.
+
+## Importare dispositivi da SOTI MobiControl
+
+Collega un server SOTI MobiControl, nel cloud di SOTI o on-premise, e ogni dispositivo che gestisce è nell'inventario: i suoi dispositivi Android rugged, telefoni, tablet e scanner, i suoi iPhone, iPad e Mac, e i suoi computer Windows e Linux. Ogni dispositivo è un host, con ciò che MobiControl sa di lui: il suo gruppo di dispositivi, il sistema operativo e la sua versione, il modello, il numero di serie e l'IMEI, la conformità, l'agent, la batteria, l'archiviazione e la memoria, e le sue applicazioni installate. MobiControl non invia nulla da solo, quindi OneUptime lo legge secondo una pianificazione: i dispositivi ogni 15 minuti, e le app di ogni dispositivo ogni 6 ore.
+
+:::steps
+### Crea un utente MobiControl di sola lettura
+
+Nella console web di MobiControl, aggiungi un utente proprio di MobiControl, non un utente SOTI Identity. Consenti `Web Console Access` e `View Installed Applications` nelle sue autorizzazioni generali e nient'altro, e assegnagli `View Groups` sui gruppi di dispositivi che OneUptime legge. Quell'utente è tutto ciò che serve a OneUptime: può vedere i dispositivi e le loro app, e non può cambiare nulla.
+
+### Crea un client API
+
+Nella console web, vai su `Global Settings`, poi su `Services`, poi su `API Client`, e aggiungine uno. Copia il suo `Client ID` e il suo `Client Secret`: MobiControl mostra il segreto una sola volta. Su un server precedente a MobiControl 2024.0, crealo sul server stesso con `MCAdmin.exe APIClientAdd -n:OneUptime`.
+
+### Collega il server MobiControl
+
+Vai su **Prodotti → Risorse → Inventario**, poi su **Dispositivi gestiti**, fai clic su **Collega un gestore dei dispositivi** e scegli **SOTI MobiControl**. Inserisci il **Server**, l'indirizzo della tua console web senza `/MobiControl`, come `https://acme.mobicontrolcloud.com`, e il **Client ID** e il **Client Secret** del client API, poi il **Nome utente** e la **Password** dell'utente. **Collega** prova l'accesso prima di salvare qualsiasi cosa: dice quanti dispositivi importerà una lettura, oppure cosa non va e come correggerlo.
+:::
+
+Un agent MobiControl mantiene una connessione permanente con il suo server, quindi un dispositivo il cui agent è connesso è online, e uno il cui agent non è connesso da 30 minuti è **Offline**. Un iPhone, un iPad o un Mac comunica tramite il servizio push di Apple, a ore di distanza, ed è **Offline** dopo un giorno. Un dispositivo che un amministratore ha disabilitato è **Disabilitato**, e uno in fase di annullamento della registrazione viene escluso. OneUptime Cloud legge solo server su internet pubblico, quindi un server su una rete privata viene letto da un OneUptime self-hosted. Non viene letto nulla sull'utente di un dispositivo.
+
+Un'app o l'Agent Android che invia telemetria da un dispositivo si unisce a esso in un unico elemento tramite il numero di serie del dispositivo: assegna all'impostazione `device_serial` dell'Agent Android la macro `%SERIALNUM%` nella sua configurazione gestita.
+
+Per ricevere un avviso quando un dispositivo smette di comunicare, fai clic su **Configura gli avvisi** nella riga della connessione e crea **SOTI Device Stopped Checking In** e **SOTI Apple Device Stopped Checking In**. Il primo apre un avviso per ogni dispositivo Android, Windows o Linux il cui agent non è connesso da più di un'ora, e il secondo per ogni dispositivo Apple che non comunica da più di un giorno, ciascuno con il nome del dispositivo. **SOTI Security Patch Out of Date** genera un avviso per ogni dispositivo Android il cui livello patch di sicurezza risale a più di 90 giorni fa, come il modello di Esper. **SOTI Low Battery**, **SOTI Storage Nearly Full** e **SOTI Connection Stopped Reading** generano avvisi come i modelli di Esper. Un dispositivo Android che secondo MobiControl è in carica resta fuori da **SOTI Low Battery**, e un avviso che aveva aperto viene risolto.
 
 ## Aggiungere qualcosa a mano
 

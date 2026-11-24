@@ -11,8 +11,51 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ObjectID from "../../Types/ObjectID";
+import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import { ReauthenticationPurpose } from "../../Types/Accounts/Reauthentication";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 
 export default class MasterAdminAuthorization {
+  /*
+   * A MASTER ADMIN'S CHANGE THAT WAITS UNTIL THEIR SESSION CONFIRMS IT'S
+   * THEM (#10216, Utils/Reauthentication): for a route behind
+   * isAuthorizedMasterAdminMiddleware that changes how someone signs in, or
+   * hands out a way in - Set Password, a link to set a password, resetting
+   * or no longer requiring two-factor authentication, clearing sign-in
+   * settings, a new master API key.
+   *
+   * Refused (ReauthenticationRequiredException, AdminChange) until the
+   * session the request's access token names has confirmed it's its
+   * person's, with their own password and second step or their passkey; the
+   * Admin Dashboard asks and sends the request again. A request with no
+   * session is refused with what to do (notFromASession), as the master
+   * API key would be. The session is read as the middleware read it
+   * (readRequestSession), which leaves the handler no userAuthorization:
+   * its person and its session, never anything the request's body names.
+   */
+  public static async assertSessionConfirmed(
+    req: ExpressRequest,
+  ): Promise<void> {
+    const requestSession: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    const token: JSONWebTokenData | null =
+      requestSession.kind === "user" ? requestSession.session : null;
+
+    await Reauthentication.assertConfirmed(
+      {
+        userId: token?.userId
+          ? new ObjectID(token.userId.toString())
+          : undefined,
+        sessionId: token?.sessionId
+          ? new ObjectID(token.sessionId.toString())
+          : undefined,
+        isMasterAdmin: token?.isMasterAdmin === true,
+      },
+      ReauthenticationPurpose.AdminChange,
+    );
+  }
+
   public static async isAuthorizedMasterAdminMiddleware(
     req: ExpressRequest,
     res: ExpressResponse,

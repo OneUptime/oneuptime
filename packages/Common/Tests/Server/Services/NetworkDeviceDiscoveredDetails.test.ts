@@ -18,7 +18,8 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import TableColumnType from "../../../Types/Database/TableColumnType";
-import { SERVER_MANAGED_COLUMNS_BY_TABLE } from "../../../Utils/DeveloperDocs/TerraformSchema";
+import ServerOwned from "../../../Types/Database/ServerOwned";
+import { getTerraformAttribute } from "../../../Utils/DeveloperDocs/TerraformSchema";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock, SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
@@ -623,9 +624,13 @@ describe("the column: created with the device, updated by nobody but the server"
 
     expect(column?.type).toBe(TableColumnType.JSON);
     expect(column?.required).toBe(false);
-    expect(SERVER_MANAGED_COLUMNS_BY_TABLE["NetworkDevice"]).toContain(
-      "discoveredDetails",
-    );
+    // OneUptime's: no Terraform configuration writes it (#9985).
+    expect(
+      (column as { serverOwned?: ServerOwned } | undefined)?.serverOwned,
+    ).toBe(ServerOwned.Always);
+    expect(
+      getTerraformAttribute(NetworkDevice, "discoveredDetails"),
+    ).toBeUndefined();
   });
 });
 

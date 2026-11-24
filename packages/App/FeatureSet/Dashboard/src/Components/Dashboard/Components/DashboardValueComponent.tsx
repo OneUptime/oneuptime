@@ -47,6 +47,9 @@ import {
   getDashboardWidgetSetupLine,
 } from "./DashboardWidgetSetupCopy";
 import { isMetricWidgetQuerySet } from "./MetricWidgetQuery";
+import { RetiredCloudMetricCorner } from "../../Metrics/RetiredCloudMetricNotice";
+import { getRetiredCloudMetricNoticesOfWidget } from "Common/Utils/Metrics/RetiredCloudMetricChartMoves";
+import { RetiredCloudMetricNotice as RetiredCloudMetricNoticeData } from "Common/Utils/Metrics/RetiredCloudMetricMoves";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -287,34 +290,47 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
     DashboardWidgetTimeRangeZoom.getHandlers(props);
 
+  /*
+   * A query of a metric its cloud deprecates, which the connection reads
+   * only for what still reads it, says so in the tile's corner (#10027), as
+   * a chart says it in a line: the hourly move could not move this one.
+   */
+  const retiredMetricNotices: Array<RetiredCloudMetricNoticeData> =
+    useMemo(() => {
+      return getRetiredCloudMetricNoticesOfWidget(props.component);
+    }, [props.component]);
+
   return (
-    <ValueWidgetView
-      widthInPx={props.dashboardComponentWidthInPx}
-      heightInPx={props.dashboardComponentHeightInPx}
-      isEditMode={props.isEditMode}
-      isLoading={isLoading}
-      hasEverLoaded={metricResults.length > 0}
-      error={error}
-      value={aggregatedValue}
-      points={sparklineData}
-      trend={trend}
-      noDataMessage={
-        getResultsErrorMessage(metricResults) ||
-        translationKey("No data for the selected time range")
-      }
-      isConfigured={isConfigured}
-      setupTitle={translationKey("Value Widget")}
-      setupMessage={setupMessage}
-      title={props.component.arguments.title}
-      rawUnit={rawUnit}
-      metricName={metricName}
-      hideUnit={props.component.arguments.hideUnit === true}
-      warningThreshold={props.component.arguments.warningThreshold}
-      criticalThreshold={props.component.arguments.criticalThreshold}
-      trendDirection={props.component.arguments.trendDirection}
-      onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
-      onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
-    />
+    <RetiredCloudMetricCorner notices={retiredMetricNotices}>
+      <ValueWidgetView
+        hasCornerMark={retiredMetricNotices.length > 0}
+        widthInPx={props.dashboardComponentWidthInPx}
+        heightInPx={props.dashboardComponentHeightInPx}
+        isEditMode={props.isEditMode}
+        isLoading={isLoading}
+        hasEverLoaded={metricResults.length > 0}
+        error={error}
+        value={aggregatedValue}
+        points={sparklineData}
+        trend={trend}
+        noDataMessage={
+          getResultsErrorMessage(metricResults) ||
+          translationKey("No data for the selected time range")
+        }
+        isConfigured={isConfigured}
+        setupTitle={translationKey("Value Widget")}
+        setupMessage={setupMessage}
+        title={props.component.arguments.title}
+        rawUnit={rawUnit}
+        metricName={metricName}
+        hideUnit={props.component.arguments.hideUnit === true}
+        warningThreshold={props.component.arguments.warningThreshold}
+        criticalThreshold={props.component.arguments.criticalThreshold}
+        trendDirection={props.component.arguments.trendDirection}
+        onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
+        onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
+      />
+    </RetiredCloudMetricCorner>
   );
 };
 

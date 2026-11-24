@@ -31,6 +31,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import OwnersCard from "../../../Components/Owners/OwnersCard";
 import StatusPagesElement from "../../../Components/StatusPage/StatusPagesElement";
 import {
+  TEMPLATE_TIMEZONE_DESCRIPTION,
   getFormSteps,
   getTemplateFormFields,
 } from "./ScheduledMaintenanceTemplates";
@@ -136,6 +137,22 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Is Recurring Event",
               fieldType: FieldType.Boolean,
+            },
+
+            /*
+             * The clock the schedule is read on (#10037): UTC on a template
+             * saved before templates had one, until its Edit changes it.
+             */
+            {
+              field: {
+                timezone: true,
+              },
+              showIf: (item: ScheduledMaintenanceTemplate): boolean => {
+                return Boolean(item.isRecurringEvent);
+              },
+              title: "Timezone",
+              description: TEMPLATE_TIMEZONE_DESCRIPTION,
+              fieldType: FieldType.Text,
             },
 
             {

@@ -115,8 +115,9 @@ describe("Setup Guide: Already using another tool?", () => {
   test.each<[TelemetryType, Array<string>]>([
     ["logs", ["Loki", "Splunk HEC", "Datadog Agent"]],
     ["metrics", ["Prometheus", "Splunk HEC", "Datadog Agent"]],
-    ["traces", ["Sentry SDK"]],
-    ["exceptions", ["Sentry SDK"]],
+    // The Datadog Agent's APM traces, and the errors in their spans.
+    ["traces", ["Datadog Agent", "Sentry SDK"]],
+    ["exceptions", ["Datadog Agent", "Sentry SDK"]],
   ])(
     "the %s guide lists the tools that fill it",
     (telemetryType: TelemetryType, expected: Array<string>) => {

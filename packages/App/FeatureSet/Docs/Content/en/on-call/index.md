@@ -92,7 +92,7 @@ Open **On-Call** from the **Products** menu in the top bar. It opens on **On-Cal
 | **Reports** | **User On-Call Time**: how long each person was on call |
 | **Workspace** | **Slack**, **Microsoft Teams** and **Mattermost**: rules that post on-call events to a channel |
 | **Settings** | **Custom Fields**, **Label Rules** and **Owner Rules** |
-| **Developer** | **Terraform**, **API**, **CLI** and **AI Assistants**: on-call set up from code |
+| **Developer** | **Terraform**, **Crossplane**, **API**, **CLI** and **AI Assistants**: on-call set up from code |
 
 **Policies** and **Schedules** are open; the other sections start folded, and a section opens by itself when you are on one of its pages. **Workspace** lists the chat tools the project has connected, or **Connect a workspace** when it has none.
 

@@ -61,6 +61,8 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management antwoordt per abonnement, met de resource waarvoor elke kostenpost is, en lezen kost niets. Als het voor een abonnement niet kan antwoorden, zegt de pagina **Kosten** van het account waarom.
 
+Cost Management beperkt hoe snel de kosten van een tenant worden gelezen, voor iedereen die ze leest even snel: elke query kost een queryverwerkingseenheid (QPU) per maand aan gegevens die hij leest, en een tenant heeft 12 QPU per 10 seconden, 60 per minuut en 600 per uur. OneUptime leest de abonnementen van een tenant na elkaar binnen twee derde van elk quotum, wacht zo lang als Cost Management vraagt wanneer het een query weigert, en gaat bij de volgende leesbeurt verder waar het stopte. Een abonnement dat nog niet is gelezen toont **In de wachtrij**, met wanneer het wordt gelezen; een abonnement met bedragen houdt die intussen.
+
 ## Google Cloud
 
 Google Cloud heeft geen API voor de kosten van een project: OneUptime leest ze uit de export van je factureringsaccount naar BigQuery.
@@ -151,6 +153,10 @@ De koppeling mag de kosten van het account nog niet lezen. Voer haar installatie
 
 :::details Een account toont Niet ingesteld
 De cloud heeft nog geen kosten te geven. Zet op AWS Cost Explorer aan; geef op Google Cloud de tabel van de export op onder **Tabel van de factuurexport**. De eerste bedragen komen met de volgende leesbeurt, binnen 12 uur.
+:::
+
+:::details Een account toont In de wachtrij
+De kosten wachten op hun beurt: Azure Cost Management beperkt hoe snel de kosten van een tenant worden gelezen. Het account toont wanneer ze worden gelezen, bij de eerste leesbeurt van de koppeling vanaf dan, en er hoeft niets te gebeuren. Een account dat al bedragen heeft, houdt die intussen.
 :::
 
 :::details Kosten per resource toont Niet ingesteld

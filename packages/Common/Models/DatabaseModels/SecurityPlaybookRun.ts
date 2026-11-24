@@ -14,6 +14,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -75,6 +76,14 @@ const engineColumnAccess: {
   read: readPermissions,
   update: [],
 };
+
+/*
+ * What a relation reads of a run - its case and playbook, its name, what
+ * started it, its status and times - follows the run's own read
+ * (RelationReaders.ColumnReaders). A block names the run that made it
+ * (#10338), and every reader of the block reads that relation, so a custom
+ * role that reads blocks is told which run it was and nothing of the run.
+ */
 
 @EnableDocumentation()
 @EnableAuditLog({
@@ -198,6 +207,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Security Case ID",
     description: "ID of the case the playbook runs on.",
   })
@@ -244,6 +254,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Security Playbook ID",
     description: "ID of the playbook being run.",
   })
@@ -259,6 +270,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     type: TableColumnType.ShortText,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Playbook Name",
     description:
       "The playbook's name when the run started, kept if the playbook is renamed or deleted.",
@@ -276,6 +288,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     allowedValues: Object.values(SecurityPlaybookTrigger),
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Trigger",
     description:
       "What started the run: Case Opened, Detection Added, or Manual for a person.",
@@ -334,6 +347,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     allowedValues: Object.values(SecurityPlaybookRunStatus),
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Status",
     description:
       "Queued, Running, Waiting for Approval, Succeeded, Failed or Cancelled. Set it to Cancelled to stop a run that has not finished.",
@@ -413,6 +427,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Started At",
     description: "When the run started its first step.",
   })
@@ -427,6 +442,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     type: TableColumnType.Date,
     computed: true,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Completed At",
     description: "When the run finished, failed or was cancelled.",
   })

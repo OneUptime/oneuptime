@@ -37,7 +37,7 @@ import ValueWidgetView, { SparklinePoint } from "./ValueWidgetView";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import IconProp from "Common/Types/Icon/IconProp";
-import { isDataSourceQueryConfigured } from "../Utils/DataSourceWidget";
+import { getRunnableDataSourceQueries } from "../Utils/DataSourceWidget";
 import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
 } from "../Utils/DashboardWidgetTimeRangeZoom";
@@ -53,8 +53,9 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  * source has no OneUptime "Aggregate by" to do it server-side.
  *
  * Presentation is shared with the metric Value widget via ValueWidgetView.
- * Public dashboards render a placeholder: the anonymous API has no
- * data-source surface, by design.
+ * On a public dashboard (issue #10226) it is drawn only when it reads this
+ * project's metrics: its stored query is run by the dashboard's public
+ * PromQL route, named by this widget, and drawn the same way.
  */
 const DashboardDataSourceValueComponentElement: FunctionComponent<
   ComponentProps
@@ -68,14 +69,12 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const rawQueryConfig: DataSourceQueryConfig | undefined =
-    props.component.arguments.query;
+  // The query it runs, signed in or on a public dashboard.
+  const queryConfig: DataSourceQueryConfig | undefined = useMemo(() => {
+    return getRunnableDataSourceQueries(props.component.arguments.query)[0];
+  }, [props.component.arguments.query]);
 
-  const isConfigured: boolean = isDataSourceQueryConfigured(rawQueryConfig);
-
-  const queryConfig: DataSourceQueryConfig | undefined = isConfigured
-    ? rawQueryConfig
-    : undefined;
+  const isConfigured: boolean = Boolean(queryConfig);
 
   /*
    * refreshTick is a dep so each auto-refresh re-resolves the relative
@@ -95,17 +94,20 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
    * (no deps) while still reading current values.
    */
   const fetchStateRef: React.MutableRefObject<{
+    componentId: string;
     queryConfig: DataSourceQueryConfig | undefined;
     variables: Array<DashboardVariable> | undefined;
     startDate: Date | undefined;
     endDate: Date | undefined;
   }> = useRef({
+    componentId: props.componentId.toString(),
     queryConfig: queryConfig,
     variables: props.variables,
     startDate: startAndEndDate?.startValue,
     endDate: startAndEndDate?.endValue,
   });
   fetchStateRef.current = {
+    componentId: props.componentId.toString(),
     queryConfig: queryConfig,
     variables: props.variables,
     startDate: startAndEndDate?.startValue,
@@ -131,16 +133,29 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
     }
 
     try {
-      const interpolatedQuery: string = DataSourceQueryText.applyVariables(
-        state.queryConfig.query,
-        state.variables,
-      );
-      const result: AggregatedResult =
-        await DataSourceQueryUtil.fetchTimeSeries({
-          queryConfig: { ...state.queryConfig, query: interpolatedQuery },
-          startDate: state.startDate,
-          endDate: state.endDate,
-        });
+      // A public dashboard's stored query, by this widget.
+      const result: AggregatedResult = isPublicDashboard()
+        ? await DataSourceQueryUtil.fetchPublicTimeSeries({
+            target: {
+              componentId: state.componentId,
+              queryIndex: 0,
+              variables: state.variables,
+            },
+            startDate: state.startDate,
+            endDate: state.endDate,
+          })
+        : await DataSourceQueryUtil.fetchTimeSeries({
+            queryConfig: {
+              ...state.queryConfig,
+              query: DataSourceQueryText.applyVariablesForSource({
+                dataSourceId: state.queryConfig.dataSourceId,
+                queryText: state.queryConfig.query,
+                variables: state.variables,
+              }),
+            },
+            startDate: state.startDate,
+            endDate: state.endDate,
+          });
       if (fetchId !== fetchSequenceRef.current) {
         return;
       }
@@ -158,10 +173,6 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
   }, []);
 
   useEffect(() => {
-    if (isPublicDashboard()) {
-      setIsLoading(false);
-      return;
-    }
     fetchResults();
   }, [
     startAndEndDate,
@@ -238,7 +249,8 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
     useDashboardWidgetPlace(props.isEditMode),
   );
 
-  if (isPublicDashboard()) {
+  // A public dashboard is served no query of it to run: nothing to draw.
+  if (isPublicDashboard() && !isConfigured) {
     return <DataSourceWidgetPlaceholder icon={IconProp.Hashtag} />;
   }
 

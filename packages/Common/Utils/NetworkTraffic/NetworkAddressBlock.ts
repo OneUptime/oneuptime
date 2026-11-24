@@ -362,6 +362,45 @@ export default class NetworkAddressBlockUtil {
   }
 
   /*
+   * Whether every address of `inner` is in `outer`: the same family, a
+   * subnet at least as long, and its first address in `outer`. A block
+   * holds itself.
+   */
+  public static containsBlock(
+    outer: NetworkAddressBlock,
+    inner: NetworkAddressBlock,
+  ): boolean {
+    if (
+      outer.family !== inner.family ||
+      inner.prefixLength < outer.prefixLength
+    ) {
+      return false;
+    }
+
+    const masked: Array<number> = maskGroups(inner.groups, outer.prefixLength);
+
+    return masked.every((group: number, index: number): boolean => {
+      return group === outer.groups[index];
+    });
+  }
+
+  /*
+   * Whether two blocks share any address. Two subnets are either nested or
+   * apart, so they overlap exactly when one holds the other: 10.0.0.0/8 and
+   * 10.18.167.0/24 do, 10.18.167.0/24 and 10.18.168.0/24 do not. Blocks of
+   * different families never do.
+   */
+  public static overlaps(
+    first: NetworkAddressBlock,
+    second: NetworkAddressBlock,
+  ): boolean {
+    return (
+      NetworkAddressBlockUtil.containsBlock(first, second) ||
+      NetworkAddressBlockUtil.containsBlock(second, first)
+    );
+  }
+
+  /*
    * Of these items, the one whose block holds the address most narrowly
    * (the longest subnet): a /24 named "Mumbai office" says more about
    * 10.18.167.35 than a /8 named "Corporate". The first such item on a tie.

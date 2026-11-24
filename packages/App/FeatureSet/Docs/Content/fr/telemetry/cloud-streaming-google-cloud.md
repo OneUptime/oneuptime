@@ -71,6 +71,8 @@ La fenêtre demande toutes les quelques secondes ce qui est arrivé. Pub/Sub env
 
 Chaque journal garde l'heure de son entrée à la nanoseconde, sa gravité, sa trace et son span, et sa requête HTTP sous les noms des conventions sémantiques d'OpenTelemetry. Il est classé sous une ressource quand sa ressource surveillée est d'un type dont OneUptime lit les métriques, comme une VM (`gce_instance`), un service Cloud Run (`cloud_run_revision`) ou une instance Cloud SQL (`cloudsql_database`), et porte l'ID de la ressource en `cloud.resource_id`. Les journaux de requêtes d'un équilibreur de charge externe, écrits sous `http_load_balancer`, sont classés sous son mappage d'URL, la `https_lb_rule` où arrivent ses métriques.
 
+L'entrée d'un journal d'audit arrive entière, comme corps de son journal : avec [Trouver des événements de sécurité dans vos journaux](/docs/telemetry/security-events#trouver-des-événements-de-sécurité-dans-vos-journaux) activé, chacune est lue comme un événement de sécurité, comme celle d'un pipeline de journaux, et stockée une seule fois, par quelque voie qu'elle parvienne à OneUptime.
+
 Les journaux d'un groupe d'instances sont ceux de ses VM : sa page n'a donc pas d'onglet **Journaux**. Une entrée d'un autre type est diffusée tout de même, sous son projet.
 
 ## Ce que crée la commande

@@ -14,6 +14,7 @@ import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import FindOneBy from "../Types/AnalyticsDatabase/FindOneBy";
 import FindOneByID from "../Types/AnalyticsDatabase/FindOneByID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { EventLoopBudget } from "../Utils/EventLoop";
 import {
   DatabaseTriggerType,
   OnCreate,
@@ -261,6 +262,17 @@ export interface SortKeyPageBound {
   withClause: Statement;
   whereCondition: Statement;
   offset: Statement;
+}
+
+/*
+ * One attribute a usage scan reads its rows by (groupTelemetryUsageByService,
+ * getDaysWithRows): the rows whose `attributes` map holds `value` under
+ * `key` (isEqual true), or every other row (isEqual false).
+ */
+export interface TelemetryUsageAttributeFilter {
+  key: string;
+  value: string;
+  isEqual: boolean;
 }
 
 export default class AnalyticsDatabaseService<
@@ -1085,6 +1097,14 @@ export default class AnalyticsDatabaseService<
      * statement exactly as it was.
      */
     excludeNames?: Array<string> | undefined;
+    /*
+     * Only the rows whose `attributes` hold - or, with isEqual false, do not
+     * hold - this value under this key: for a table that keeps rows two
+     * products bill apart, as the exceptions found in spans and in logs are
+     * (ExceptionSource). A row without the key reads it as '' and so is
+     * never equal to a value. Absent leaves the statement as it was.
+     */
+    attributeFilter?: TelemetryUsageAttributeFilter | undefined;
   }): Promise<
     Array<{
       primaryEntityId: string;
@@ -1119,6 +1139,8 @@ export default class AnalyticsDatabaseService<
       );
     }
 
+    this.assertTelemetryUsageAttributeFilter(data.attributeFilter);
+
     if (!this.database) {
       this.useDefaultDatabase();
     }
@@ -1149,6 +1171,8 @@ export default class AnalyticsDatabaseService<
         }}`,
       );
     }
+
+    this.appendTelemetryUsageAttributeFilter(statement, data.attributeFilter);
 
     statement.append(SQL` GROUP BY primaryEntityId, primaryEntityType`);
 
@@ -1209,6 +1233,8 @@ export default class AnalyticsDatabaseService<
     endDate: Date;
     // Rows never billed, left out as groupTelemetryUsageByService leaves them out.
     excludeNames?: Array<string> | undefined;
+    // The rows one product bills, as groupTelemetryUsageByService reads them.
+    attributeFilter?: TelemetryUsageAttributeFilter | undefined;
   }): Promise<Array<string>> {
     const timestampColumnName: string = data.timestampColumnName.toString();
 
@@ -1229,6 +1255,8 @@ export default class AnalyticsDatabaseService<
         `excludeNames needs a required name column, and ${this.model.tableName} has none`,
       );
     }
+
+    this.assertTelemetryUsageAttributeFilter(data.attributeFilter);
 
     if (!this.database) {
       this.useDefaultDatabase();
@@ -1256,6 +1284,8 @@ export default class AnalyticsDatabaseService<
       );
     }
 
+    this.appendTelemetryUsageAttributeFilter(statement, data.attributeFilter);
+
     statement.append(SQL` GROUP BY day ORDER BY day`);
 
     /*
@@ -1280,6 +1310,65 @@ export default class AnalyticsDatabaseService<
     }
 
     return days;
+  }
+
+  /*
+   * A usage scan's attribute filter can only read a table whose `attributes`
+   * is a required map of strings: on any other column ClickHouse fails
+   * mid-billing run, or a missing map compares as nothing and every row
+   * drops out of the bill. Refused before the scan, as excludeNames is.
+   */
+  private assertTelemetryUsageAttributeFilter(
+    filter: TelemetryUsageAttributeFilter | undefined,
+  ): void {
+    if (!filter) {
+      return;
+    }
+
+    const column: AnalyticsTableColumn | null =
+      this.model.getTableColumn("attributes");
+
+    if (
+      !column ||
+      !column.required ||
+      column.type !== TableColumnType.MapStringString
+    ) {
+      throw new BadDataException(
+        `An attribute filter needs a table with a required attributes map, and ${this.model.tableName} has none.`,
+      );
+    }
+
+    if (!filter.key) {
+      throw new BadDataException("An attribute filter needs a key.");
+    }
+  }
+
+  // The filter inside the WHERE, its key and value as parameters, never SQL.
+  private appendTelemetryUsageAttributeFilter(
+    statement: Statement,
+    filter: TelemetryUsageAttributeFilter | undefined,
+  ): void {
+    if (!filter) {
+      return;
+    }
+
+    statement.append(
+      filter.isEqual
+        ? SQL` AND attributes[${{
+            type: TableColumnType.Text,
+            value: filter.key,
+          }}] = ${{
+            type: TableColumnType.Text,
+            value: filter.value,
+          }}`
+        : SQL` AND attributes[${{
+            type: TableColumnType.Text,
+            value: filter.key,
+          }}] != ${{
+            type: TableColumnType.Text,
+            value: filter.value,
+          }}`,
+    );
   }
 
   @CaptureSpan()
@@ -1427,7 +1516,18 @@ export default class AnalyticsDatabaseService<
         groupByColumnNames.push("attributes");
       }
 
+      /*
+       * A grouped read is a row per series and bucket - 40,000 of them for
+       * a monitor over 16,000 series (#10108) - so the loop hands the event
+       * loop back as it goes.
+       */
+      const budget: EventLoopBudget = new EventLoopBudget();
+
       for (const item of items) {
+        if (budget.isSpent()) {
+          await budget.handBack();
+        }
+
         if (
           !(item as JSONObject)[
             aggregateBy.aggregationTimestampColumnName as string
@@ -1718,6 +1818,96 @@ export default class AnalyticsDatabaseService<
     countBy: CountBy<TBaseModel>,
   ): Promise<CountBy<TBaseModel>> {
     return Promise.resolve(countBy);
+  }
+
+  /*
+   * How many distinct values an expression takes over the rows a query
+   * matches, '' left out: the query read as countBy reads it - its count
+   * hooks, then the read permission - so it counts among exactly the rows
+   * a count of the same query would. The expression is SQL written in
+   * code, never a request's: a mobile app's install, the first of two
+   * attributes with a value (MobileAppTelemetry.STORED_APP_INSTALL_SQL,
+   * #9924). Exact, as countBy's exact count is, and stopped as that one is
+   * when the time limit passes: with an error, a QueryTimeoutException,
+   * never a number counted from part of the rows.
+   */
+  @CaptureSpan()
+  public async countDistinctNonEmpty(input: {
+    query: Query<TBaseModel>;
+    expression: string;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<number> {
+    let countBy: CountBy<TBaseModel> = {
+      query: input.query,
+      props: input.props,
+      skip: 0,
+      limit: 1,
+    };
+
+    if (!countBy.props?.ignoreHooks) {
+      countBy = await this.onBeforeCount(countBy);
+    }
+
+    const permission: CheckReadPermissionType<TBaseModel> =
+      await ModelPermission.checkReadPermission(
+        this.modelType,
+        countBy.query,
+        null,
+        countBy.props,
+      );
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(
+      this.toCountDistinctNonEmptyStatement({
+        query: permission.query,
+        expression: input.expression,
+      }),
+    );
+    const response: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+    const raw: unknown = response.data?.[0]?.["count"];
+    const count: number =
+      typeof raw === "number" || typeof raw === "string" ? Number(raw) : 0;
+
+    return Number.isFinite(count) && count > 0 ? count : 0;
+  }
+
+  public toCountDistinctNonEmptyStatement(input: {
+    query: Query<TBaseModel>;
+    expression: string;
+  }): Statement {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const statement: Statement = new Statement();
+
+    statement.append(
+      `SELECT uniqExactIf(${input.expression}, ${input.expression} != '') AS count`,
+    );
+    statement
+      .append(SQL` FROM ${databaseName}.${this.model.tableName} WHERE TRUE `)
+      .append(this.statementGenerator.toWhereStatement(input.query))
+      .append(this.getRetentionReadFilter());
+
+    /*
+     * 'throw', as an exact count stops (issue #4707). This count is one side
+     * of an Exceptions monitor's share of installs, which the monitor alerts
+     * on and shows ("6 of 400 installs"): one side counted from part of its
+     * rows makes the share wrong, and a denominator cut short reads more of
+     * the installs as crashed than were. 'break' never handed back part of
+     * the count anyway: ClickHouse answers a count it broke off with an
+     * empty body (see countBy), which executeQuery already reads as a stop.
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: COUNT_MAX_EXECUTION_TIME_IN_SECONDS,
+        timeoutOverflowMode: "throw",
+      }),
+    );
+
+    return statement;
   }
 
   /*
@@ -3584,7 +3774,8 @@ export default class AnalyticsDatabaseService<
    *
    * A service that narrows its reads further on its own (onBeforeFind, or a
    * findBy of its own) is not modelled here, so nobody hears about its rows
-   * rather than everybody.
+   * rather than everybody - unless its find hook is one that narrows no
+   * one's read (getFindHookThatNarrowsNoRead).
    */
   public getRealtimeReadAccess(): RealtimeReadAccess {
     if (this.realtimeReadAccess) {
@@ -3687,8 +3878,31 @@ export default class AnalyticsDatabaseService<
   }
 
   /*
+   * This service's find hook (onBeforeFind), when it narrows no one's read
+   * of a row: it keeps rows out of what a read lists, but leaves a read of
+   * rows by their _id as it was, so whoever may read a row - the read check
+   * and the read scope, which every read is held to after the hook - still
+   * reads it by asking. ExceptionInstanceService's keeps a crash's second
+   * report out of every list and count, and finds it by its _id or by the
+   * report it repeats (#9923). Such a hook changes what a list shows, not
+   * who may read a row, so the table's live updates are still decided by
+   * the read check and the read scope (getRealtimeReadAccess).
+   *
+   * Named as the hook itself, so a service that overrides it again narrows
+   * its reads on its own once more. Null for a service that keeps the base
+   * hook or narrows its reads in it. RealtimeEmitGuard holds every service
+   * whose model sends live updates to what its hook does.
+   */
+  public getFindHookThatNarrowsNoRead():
+    | ((findBy: FindBy<TBaseModel>) => Promise<OnFind<TBaseModel>>)
+    | null {
+    return null;
+  }
+
+  /*
    * Whether this service's reads are narrowed by the permission check
-   * alone: it adds nothing in onBeforeFind and replaces no read.
+   * alone: it adds nothing in onBeforeFind but a hook that narrows no one's
+   * read (getFindHookThatNarrowsNoRead), and replaces no read.
    */
   private readsThroughThePermissionCheck(): boolean {
     const service: Record<string, unknown> = this as unknown as Record<
@@ -3697,6 +3911,8 @@ export default class AnalyticsDatabaseService<
     >;
     const base: Record<string, unknown> =
       AnalyticsDatabaseService.prototype as unknown as Record<string, unknown>;
+    const findHookNarrowingNoRead: unknown =
+      this.getFindHookThatNarrowsNoRead();
 
     return [
       "findBy",
@@ -3705,7 +3921,12 @@ export default class AnalyticsDatabaseService<
       "onBeforeFind",
       "onFindSuccess",
     ].every((method: string): boolean => {
-      return service[method] === base[method];
+      return (
+        service[method] === base[method] ||
+        (method === "onBeforeFind" &&
+          findHookNarrowingNoRead !== null &&
+          service[method] === findHookNarrowingNoRead)
+      );
     });
   }
 }

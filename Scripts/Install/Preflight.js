@@ -30,14 +30,16 @@ const { HEADING, ok, warn, stop, listed } = require("./StartOutput");
  *   - Memory and disk: what Docker has, against what OneUptime needs.
  *   - Ports: every port the stack publishes, as Compose renders it (overrides
  *     and --services included), is free or held by this install's own
- *     containers.
+ *     containers, and the ingress's are not left to Docker to pick
+ *     (ONEUPTIME_HTTP_PORT=127.0.0.1: names no port).
  *   - HOST, HTTP_PROTOCOL and PROVISION_SSL: the shapes that break sign-in or
  *     certificates, an IPv6 HOST without brackets, a name with a character
  *     no domain name has, and HOST's DNS.
  *
  * Only what would certainly stop OneUptime stops `npm start` (marked ✗): no
  * Docker, a Docker this user cannot use, no Compose v2, a port another
- * program holds, a HOST no browser can open (such as 2001:db8::1, which a web
+ * program holds, an ingress port Docker would pick, so that nothing here
+ * could find it, a HOST no browser can open (such as 2001:db8::1, which a web
  * address writes as [2001:db8::1]) or the app stops at (such as
  * oneuptime,example.com). The rest is said and OneUptime starts. A check
  * that cannot tell says nothing. ONEUPTIME_SKIP_PREFLIGHT=true skips every
@@ -147,6 +149,16 @@ const isTruthy = (value) => {
         .toLowerCase(),
     ) !== -1
   );
+};
+
+/*
+ * Whether config.env's PROVISION_SSL is on, as OneUptime reads it: only
+ * "true", in lower case. The app orders HOST's certificate then
+ * (Common/Server/EnvironmentConfig's ProvisionSsl), and the ingress serves
+ * HOST over HTTPS (Nginx/run.sh); "yes", "1" or "TRUE" leave both off.
+ */
+const provisionsSsl = (settings) => {
+  return String(settings.get("PROVISION_SSL") || "").trim() === "true";
 };
 
 const GIGABYTE = 1000 * 1000 * 1000;
@@ -587,8 +599,7 @@ const hostFindings = (settings, interfaces) => {
   const findings = [];
   const host = String(settings.get("HOST") || "").trim();
   const protocol = String(settings.get("HTTP_PROTOCOL") || "").trim();
-  const provisionSsl =
-    String(settings.get("PROVISION_SSL") || "").trim() === "true";
+  const provisionSsl = provisionsSsl(settings);
   const example = exampleAddress(interfaces);
   const exampleHost = example || "oneuptime.example.com";
 
@@ -688,6 +699,70 @@ const hostFindings = (settings, interfaces) => {
     findings.push({
       level: "warn",
       message: `OneUptime's ingress is on port ${ingress.port} (ONEUPTIME_HTTP_PORT=${settings.get("ONEUPTIME_HTTP_PORT")}), but HOST has no port, so its pages call port 80 and signing in fails. If people open it at http://${hostname}:${ingress.port}, set HOST=${hostname}:${ingress.port}. If a proxy of yours on port 80 or 443 is in front of it, see ${DOCS_URL}#use-your-own-reverse-proxy.`,
+    });
+  }
+
+  return findings;
+};
+
+/*
+ * A PORT DOCKER PICKS
+ *
+ * ONEUPTIME_HTTP_PORT and STATUS_PAGE_HTTPS_PORT say where Compose publishes
+ * the ingress, and everything on this server looks for it there: npm
+ * start's status check, the doctor, backup.sh's report and the bundled
+ * probes (FollowIngressPort.js). Left empty, each is its default port, 80
+ * or 443 (docker-compose.base.yml's ${ONEUPTIME_HTTP_PORT:-80}). Before that
+ * default, an empty one had Docker publish the ingress on a port it picked
+ * as it started the container, and nothing here knew which: npm start waited
+ * five minutes at port 80, ended with "Maximum retries reached", and the
+ * probes showed Disconnected (#10170). An address with no port after it
+ * (127.0.0.1:) or port 0 still has Docker pick, and no default can fill
+ * those in, so they stop the start with the line to write.
+ */
+const PICKED_PORT_SETTINGS = [
+  {
+    setting: "ONEUPTIME_HTTP_PORT",
+    defaultPort: 80,
+    what: "OneUptime's ingress",
+  },
+  {
+    setting: "STATUS_PAGE_HTTPS_PORT",
+    defaultPort: 443,
+    what: "OneUptime's HTTPS",
+  },
+];
+
+/*
+ * Pure: config.env's settings in, a stop finding for each of those settings
+ * that leaves its port to Docker out. Read as Compose reads it: the port
+ * after the last ":", and an IP address before it, IPv6's with or without
+ * brackets. An address Compose cannot read ("::") is Compose's to say.
+ */
+const pickedPortFindings = (settings) => {
+  const findings = [];
+
+  for (const entry of PICKED_PORT_SETTINGS) {
+    const value = String(settings.get(entry.setting) || "").trim();
+    const colon = value.lastIndexOf(":");
+    const port = value.slice(colon + 1);
+    const bare = value.slice(0, Math.max(colon, 0)).replace(/^\[(.*)\]$/, "$1");
+    const namesNoPort = colon !== -1 && port === "";
+    const isPortZero = PORT_NUMBER.test(port) && Number(port) === 0;
+
+    if (
+      !value ||
+      !(namesNoPort || isPortZero) ||
+      (bare !== "" && !IPV4_ADDRESS.test(bare) && !isIpv6Address(bare))
+    ) {
+      continue;
+    }
+
+    const address = isIpv6Address(bare) ? `[${bare}]:` : bare ? `${bare}:` : "";
+
+    findings.push({
+      level: "stop",
+      message: `${entry.setting} in config.env is ${value}, which leaves the port to Docker: it would publish ${entry.what} on a port it picks as it starts, and nothing on this server would know which. Name the port, such as ${entry.setting}=${address}${entry.defaultPort}.`,
     });
   }
 
@@ -1265,8 +1340,7 @@ const dnsFindings = async (settings, lookup) => {
     return [];
   }
 
-  const provisionSsl =
-    String(settings.get("PROVISION_SSL") || "").trim() === "true";
+  const provisionSsl = provisionsSsl(settings);
 
   return [
     {
@@ -1416,6 +1490,7 @@ const run = async (options) => {
   }
 
   if (settings.size > 0) {
+    report(pickedPortFindings(settings));
     report(hostFindings(settings, interfaces));
     report(await dnsFindings(settings, given.lookupHost));
   }
@@ -1468,7 +1543,9 @@ module.exports = {
   MINIMUM_DOCKER_VERSION,
   PUBLISHED_PORTS,
   DOCKER_MESSAGES,
+  PICKED_PORT_SETTINGS,
   isTruthy,
+  provisionsSsl,
   gigabytes,
   versionNumbers,
   parsePortSetting,
@@ -1483,6 +1560,7 @@ module.exports = {
   hostShapeFinding,
   exampleAddress,
   hostFindings,
+  pickedPortFindings,
   dockerFailureOf,
   dockerFindings,
   freeDiskBytes,

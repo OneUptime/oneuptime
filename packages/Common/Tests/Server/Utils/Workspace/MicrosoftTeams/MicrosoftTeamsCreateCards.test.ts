@@ -396,6 +396,11 @@ function expectOneRead(data: {
   reads: Array<FindByArgs>;
   sort: JSONObject;
   limit: number;
+  /*
+   * A label's and a policy's description and when it was made: what tells
+   * two of one name apart on the card (#10314).
+   */
+  alsoSelectsWhatTellsTwinsApart?: boolean | undefined;
 }): void {
   expect(data.reads).toHaveLength(1);
   expect(data.reads[0]).toMatchObject({
@@ -405,7 +410,13 @@ function expectOneRead(data: {
     skip: 0,
     props: MEMBER_PROPS,
   });
-  expect(data.reads[0]!.select).toEqual({ _id: true, name: true });
+  expect(data.reads[0]!.select).toEqual({
+    _id: true,
+    name: true,
+    ...(data.alsoSelectsWhatTellsTwinsApart
+      ? { description: true, createdAt: true }
+      : {}),
+  });
 }
 
 function bodyOf(card: JSONObject): Array<JSONObject> {
@@ -906,7 +917,7 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
     expect(choices.monitorStatuses.choices).toHaveLength(5);
   });
 
-  test("reads each list once, capped, sorted as the card says, names and ids only", async () => {
+  test("reads each list once, capped, sorted as the card says, names and ids only - and what tells two labels or policies of one name apart", async () => {
     const reads: ProjectReads = serveHugeProject();
 
     await MicrosoftTeamsIncidentActions.getNewIncidentFormChoices(
@@ -924,11 +935,13 @@ describe("MicrosoftTeamsIncidentActions.getNewIncidentFormChoices", () => {
       reads: reads.labels,
       sort: { name: SortOrder.Ascending },
       limit: MICROSOFT_TEAMS_MAX_LABEL_CHOICES,
+      alsoSelectsWhatTellsTwinsApart: true,
     });
     expectOneRead({
       reads: reads.onCallDutyPolicies,
       sort: { name: SortOrder.Ascending },
       limit: MICROSOFT_TEAMS_MAX_ON_CALL_POLICY_CHOICES,
+      alsoSelectsWhatTellsTwinsApart: true,
     });
 
     // As the project orders them everywhere else.

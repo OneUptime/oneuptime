@@ -5,8 +5,10 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import GroupBy from "Common/Server/Types/Database/GroupBy";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
 import ObjectID from "Common/Types/ObjectID";
-import { KubernetesCostEngineInfo } from "Common/Types/Kubernetes/KubernetesCostPricing";
-import { fetchKubernetesCostEngine } from "./KubernetesCostEngine";
+import {
+  KubernetesCostEngineView,
+  fetchKubernetesCostEngine,
+} from "./KubernetesCostEngine";
 import {
   CostEfficiencyReads,
   FetchCostParams,
@@ -97,9 +99,10 @@ export interface KubernetesCostOverview {
   lastDayWorkloadSpend: number;
   /*
    * Which engine priced the newest hour and where its prices come from
-   * (KubernetesCostEngine), or null when the agent says nothing.
+   * (KubernetesCostEngine), and how far a Kubecost reconciled them with the
+   * cloud bill, or null when the agent says nothing.
    */
-  engine: KubernetesCostEngineInfo | null;
+  engine: KubernetesCostEngineView | null;
 }
 
 function finite(value: unknown): number {
@@ -134,7 +137,7 @@ export function buildKubernetesCostOverview(data: {
   // The last day's efficiency sums, for the whole cluster (no grouping).
   efficiency: CostEfficiencyReads;
   hourlySpend: AggregatedResult;
-  engine?: KubernetesCostEngineInfo | null | undefined;
+  engine?: KubernetesCostEngineView | null | undefined;
 }): KubernetesCostOverview {
   let lastDaySpend: number = 0;
   let lastDayIdleSpend: number = 0;

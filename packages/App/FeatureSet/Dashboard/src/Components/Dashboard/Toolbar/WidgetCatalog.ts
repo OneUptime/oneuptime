@@ -154,7 +154,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     group: WidgetCategoryGroup.General,
     icon: IconProp.Database,
     description:
-      "The same visualizations, driven by a system OneUptime does not own — Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch, or any REST API. Connect one under Dashboards → Settings → Data Sources, then write a query in that system's own language. Not available on public dashboards.",
+      "The same visualizations, driven by a query in its own language: PromQL over this project's metrics, or a system OneUptime does not own — Prometheus, PostgreSQL, MySQL, SQL Server, ClickHouse, Loki, Elasticsearch, or any REST API, connected under Dashboards → Settings → Data Sources. Not available on public dashboards.",
     items: [
       {
         type: DashboardComponentType.DataSourceChart,

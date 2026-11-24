@@ -77,6 +77,7 @@ import {
   CephPoolPgStates,
   formatCephPgReasonStates,
   getCephAttentionItems,
+  getCephClusterPgStateItems,
   getCephDownOsdItems,
   getCephOsdQuadrant,
   getCephPgReasonSentences,
@@ -115,10 +116,9 @@ import {
   getIoTAtRiskDevices,
   getIoTOfflineDeviceItems,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/IoTDeviceAttention";
-import {
-  getIoTOfflineDevicesPill,
-  isIoTFleetConnected,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Index";
+import { getIoTOfflineDevicesPill } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/View/Index";
+// One rule for the Overview, the Devices list, a device's page and the Fleets list (#10014).
+import { isIoTFleetConnected } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/IoTFleetConnection";
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
@@ -565,6 +565,164 @@ describe("a Ceph cluster's Placement Group States bar", () => {
         }),
       ).toEqual([]);
     }
+  });
+});
+
+/*
+ * On a Ceph that counts its placement groups for the whole cluster only
+ * (Luminous, the first Mimic releases), the bar's segments still say why
+ * (#10016): the cluster's own row - how many, how many it has, Ceph's reason
+ * for the cluster in our words and in Ceph's - then each OSD that is down.
+ */
+describe("Ceph's degraded and undersized placement groups, counted for the whole cluster", () => {
+  // osd.2 is down and in, osd.3 down and out; osd.1 and osd.4 are up.
+  const TOTALS: CephPoolPgStates = {
+    total: 224,
+    active: 224,
+    clean: 208,
+    degraded: 12,
+    undersized: 4,
+  };
+
+  function clusterItems(): Array<ResourceAttentionItem> {
+    // A cluster-wide Ceph has no state per pool: Needs attention sees none.
+    return getCephAttentionItems({
+      rows: CEPH_ROWS,
+      pgStatesByPool: new Map(),
+      routeFor: (kind: string, externalId: string): Route => {
+        return new Route(`/dashboard/ceph/${kind.toLowerCase()}/${externalId}`);
+      },
+      now: NOW,
+    });
+  }
+
+  function cluster(
+    state: CephPgProblemState,
+    reasonStates: CephPgReasonStates | null,
+    fields: { totals?: CephPoolPgStates; isReasonUnread?: boolean } = {},
+  ): Array<ResourceAttentionItem> {
+    return getCephClusterPgStateItems({
+      state: state,
+      cluster: { name: "ceph-prod" },
+      totals: fields.totals || TOTALS,
+      items: clusterItems(),
+      rows: CEPH_ROWS,
+      reasonStates: reasonStates,
+      isReasonUnread: fields.isReasonUnread,
+      translator: english(),
+    });
+  }
+
+  test("Degraded opens the cluster's own row first, then each OSD that is down", () => {
+    expect(
+      keysOf(cluster("degraded", { recovering: 4, backfill_wait: 8 })),
+    ).toEqual(["Cluster", "Osd:osd.2", "Osd:osd.3"]);
+  });
+
+  test("the cluster's row says how many, the segment's own state first, and how many it has", () => {
+    const row: ResourceAttentionItem = cluster("degraded", {})[0]!;
+    expect(row.name).toBe("ceph-prod");
+    expect(row.kind).toBe("Cluster");
+    expect(row.reasons).toEqual([
+      {
+        text: "{{count}} placement groups degraded",
+        plural: { one: "{{count}} placement group degraded", count: 12 },
+      },
+      {
+        text: "{{count}} placement groups undersized",
+        plural: { one: "{{count}} placement group undersized", count: 4 },
+      },
+    ]);
+    expect(row.facts).toEqual([
+      {
+        key: "placementGroups",
+        label: "Placement Groups",
+        value: "224",
+        isCount: true,
+      },
+    ]);
+    expect(row.severity).toBe(ResourceAttentionSeverity.Warning);
+    // The cluster's page is the one the reader is on: no step to it.
+    expect(row.route).toBeUndefined();
+
+    expect(cluster("undersized", {})[0]!.reasons[0]).toEqual({
+      text: "{{count}} placement groups undersized",
+      plural: { one: "{{count}} placement group undersized", count: 4 },
+    });
+  });
+
+  test("it says what Ceph is doing about them for the cluster, in our words and in Ceph's", () => {
+    const row: ResourceAttentionItem = cluster("degraded", {
+      recovering: 4,
+      backfill_wait: 8,
+      remapped: 0,
+    })[0]!;
+    expect(row.explanation).toBe("Ceph is copying the missing data back.");
+    expect(row.message).toBe("4 recovering, 8 backfill_wait");
+  });
+
+  test("objects Ceph cannot find make it critical: someone has to act", () => {
+    const row: ResourceAttentionItem = cluster("degraded", {
+      recovery_unfound: 2,
+      backfill_toofull: 1,
+    })[0]!;
+    expect(row.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(row.explanation).toBe(
+      "Ceph can't find every copy of some of their objects. Ceph can't copy them back: an OSD it would copy to is too full.",
+    );
+    expect(row.message).toBe("2 recovery_unfound, 1 backfill_toofull");
+  });
+
+  test("inactive placement groups are said, and critical", () => {
+    const row: ResourceAttentionItem = cluster(
+      "degraded",
+      {},
+      {
+        totals: { ...TOTALS, active: 220 },
+      },
+    )[0]!;
+    expect(row.severity).toBe(ResourceAttentionSeverity.Critical);
+    expect(row.reasons[2]).toEqual({
+      text: "{{count}} placement groups inactive",
+      plural: { one: "{{count}} placement group inactive", count: 4 },
+    });
+  });
+
+  test("Ceph's reason not read says so, and never hides the OSDs that are down", () => {
+    const rows: Array<ResourceAttentionItem> = cluster("degraded", null, {
+      isReasonUnread: true,
+    });
+    expect(rows[0]!.explanation).toBe(
+      "Couldn't read what Ceph is doing about them.",
+    );
+    expect(rows[0]!.message).toBeUndefined();
+    expect(keysOf(rows)).toEqual(["Cluster", "Osd:osd.2", "Osd:osd.3"]);
+  });
+
+  test("a Ceph that reported none of them is said to report nothing under way", () => {
+    const row: ResourceAttentionItem = cluster("degraded", null)[0]!;
+    expect(row.explanation).toBe(
+      "Ceph reports nothing under way to copy the missing data back.",
+    );
+    expect(row.message).toBeUndefined();
+  });
+
+  test("each OSD that is down says why it is listed, and is a step from its page", () => {
+    const osds: Array<ResourceAttentionItem> = cluster("degraded", {}).slice(1);
+    for (const item of osds) {
+      expect(item.explanation).toBe(
+        "Its placement groups are missing the copies it holds until it is back, or until Ceph copies them to other OSDs.",
+      );
+    }
+    expect(osds[0]!.route?.toString()).toBe("/dashboard/ceph/osd/osd.2");
+    // Its own reasons, as Needs attention says them.
+    expect(osds[0]!.reasons[0]!.text).toBe("Down, still in the cluster");
+  });
+
+  test("with none of them left, there is nothing to list", () => {
+    expect(
+      cluster("degraded", {}, { totals: { ...TOTALS, degraded: 0 } }),
+    ).toEqual([]);
   });
 });
 

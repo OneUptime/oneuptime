@@ -6,7 +6,49 @@ import ObjectID from "../ObjectID";
 import RollingTime from "../RollingTime/RollingTime";
 import MonitorStepRollingTime from "./MonitorStepRollingTime";
 
+/*
+ * How a Metrics monitor's step is written (issue #7712): with the query
+ * builder's queries and formulas, or as one PromQL expression, the way an
+ * alert rule is written for Prometheus. Stored; never rename one.
+ */
+export enum MetricMonitorQueryLanguage {
+  Builder = "Builder",
+  PromQL = "PromQL",
+}
+
+/*
+ * The name a PromQL step's expression goes by where a criteria names what
+ * it compares (CriteriaFilter.metricMonitorOptions.metricAlias): a PromQL
+ * step has one expression, and every criteria compares it.
+ */
+export const PROMQL_METRIC_ALIAS: string = "promql";
+
+/*
+ * The most series one PromQL step judges per check, and so the most it
+ * opens incidents and alerts for at once: the per-criteria cap every
+ * monitor that fans out per entity has (PerEntityCriteriaFanOut's
+ * MaxEntitiesPerCriteria, 100). An expression that returns more is judged
+ * on the series that already have an open incident or alert first, then on
+ * the rest in label order, up to this many; the others are left out of
+ * that check, open nothing and resolve nothing.
+ */
+export const PROMQL_MONITOR_MAX_SERIES: number = 100;
+
 export default interface MonitorStepMetricMonitor {
+  /*
+   * Builder (the default, and every step written before PromQL could be)
+   * reads metricViewConfig; PromQL evaluates promQLQuery instead. A step
+   * switched from one to the other keeps the other's settings, so
+   * switching back finds them as they were.
+   */
+  queryLanguage?: MetricMonitorQueryLanguage | undefined;
+  /*
+   * The PromQL expression a PromQL step evaluates over the project's
+   * metrics (PromQLEngine), at each step of its window. Every series it
+   * returns is judged on its own and opens its own incident or alert,
+   * named by the series' labels.
+   */
+  promQLQuery?: string | undefined;
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
   /*
@@ -57,6 +99,110 @@ export default interface MonitorStepMetricMonitor {
 }
 
 export class MonitorStepMetricMonitorUtil {
+  // Whether the step is written in PromQL (issue #7712).
+  public static isPromQL(
+    monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,
+  ): boolean {
+    return (
+      monitorStepMetricMonitor?.queryLanguage ===
+      MetricMonitorQueryLanguage.PromQL
+    );
+  }
+
+  // The PromQL expression the step evaluates, trimmed; empty when none.
+  public static getPromQLQuery(
+    monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,
+  ): string {
+    const query: unknown = monitorStepMetricMonitor?.promQLQuery;
+
+    return typeof query === "string" ? query.trim() : "";
+  }
+
+  /*
+   * The queries a PromQL step is judged as: one, its expression, under
+   * PROMQL_METRIC_ALIAS. What the criteria evaluator, the rule editor and
+   * the records the step opens read for it, so a criteria compares the
+   * expression's value and a root cause names the expression. Never
+   * stored: the step keeps the builder's queries as they were.
+   */
+  public static getPromQLViewConfig(query: string): MetricsViewConfig {
+    return {
+      queryConfigs: [
+        {
+          id: PROMQL_METRIC_ALIAS,
+          metricAliasData: {
+            metricVariable: PROMQL_METRIC_ALIAS,
+            title: query,
+            description: undefined,
+            legend: undefined,
+            legendUnit: undefined,
+          },
+          metricQueryData: {
+            filterData: {},
+          },
+        },
+      ],
+      formulaConfigs: [],
+    };
+  }
+
+  /*
+   * The expression a view config is a PromQL step's of
+   * (getPromQLViewConfig), or null for any other: what an incident or alert
+   * a PromQL step opened keeps of its check (issue #10227), so its card
+   * charts the expression instead of a query that names no metric.
+   */
+  public static getPromQLQueryOfViewConfig(
+    viewConfig: MetricsViewConfig | undefined | null,
+  ): string | null {
+    const queryConfigs: Array<MetricQueryConfigData> = Array.isArray(
+      viewConfig?.queryConfigs,
+    )
+      ? viewConfig!.queryConfigs
+      : [];
+
+    if (queryConfigs.length !== 1) {
+      return null;
+    }
+
+    const queryConfig: MetricQueryConfigData | undefined = queryConfigs[0];
+    const query: unknown = queryConfig?.metricAliasData?.title;
+
+    if (
+      !queryConfig ||
+      queryConfig.id !== PROMQL_METRIC_ALIAS ||
+      queryConfig.metricAliasData?.metricVariable !== PROMQL_METRIC_ALIAS ||
+      queryConfig.metricQueryData?.filterData?.metricName ||
+      typeof query !== "string" ||
+      !query.trim()
+    ) {
+      return null;
+    }
+
+    return query.trim();
+  }
+
+  /*
+   * The queries the step is judged with: a PromQL step's expression
+   * (getPromQLViewConfig), else the builder's (getMetricViewConfig). The
+   * builder's own editor, and anything that writes the step back, reads
+   * getMetricViewConfig, so a PromQL step never stores its expression as
+   * a query.
+   */
+  public static getEvaluatedViewConfig(
+    monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,
+  ): MetricsViewConfig {
+    if (MonitorStepMetricMonitorUtil.isPromQL(monitorStepMetricMonitor)) {
+      return MonitorStepMetricMonitorUtil.getPromQLViewConfig(
+        MonitorStepMetricMonitorUtil.getPromQLQuery(monitorStepMetricMonitor),
+      );
+    }
+
+    return MonitorStepMetricMonitorUtil.getMetricViewConfig(
+      monitorStepMetricMonitor,
+    );
+  }
+
   // Whether the step reads its window as one value per query (above).
   public static aggregatesWholeWindow(
     monitorStepMetricMonitor: MonitorStepMetricMonitor | undefined | null,

@@ -221,6 +221,30 @@ No agrupes una métrica que ya es un único escalar para todo el sistema (un ind
 
 Los valores del atributo de agrupación también están disponibles como [variables de plantilla](/docs/monitor/incident-alert-templating) en el título, la descripción y las notas de remediación de la alerta o el incidente: agrupar por `host.name` permite que el título diga `Disk almost full on {{host.name}}`.
 
+## Alertar sobre una expresión PromQL
+
+Un paso puede vigilar una expresión PromQL en lugar de consultas de métricas: el lenguaje de consulta de Prometheus, sobre las métricas de tu proyecto, como en la página [PromQL](/docs/telemetry/promql). Cada serie que devuelve la expresión se juzga por separado, como las de una consulta agrupada: abre su propia alerta o su propio incidente, que se resuelve cuando esa serie se recupera o deja de devolverse.
+
+:::steps
+### Cambiar a PromQL
+
+En **Métrica que vigilar**, haz clic en **PromQL**. **Generador de consultas** vuelve a las consultas de métricas.
+
+### Escribir la expresión
+
+Escríbela, por ejemplo `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, o empieza por **Añadir un nombre de métrica**. El gráfico de debajo dibuja cada serie en la ventana de tiempo y dice qué falla en una expresión que no se ejecuta.
+
+### Fijar la regla
+
+En **Cuándo alertar**, elige en **Medido como** cómo se mide cada serie, una **Ventana de tiempo**, una **Condición** y un **Valor**, como con las consultas de métricas. La expresión se evalúa en cada minuto de la ventana, así que **Cada valor (toda la ventana)** en **Últimos 5 minutos** pide que una serie supere el umbral durante cinco minutos, como `for: 5m` en una regla de alerta de Prometheus.
+:::
+
+- **Una comparación en la expresión** conserva solo las series para las que se cumple: `rate(errors_total[5m]) > 0.1` devuelve las series por encima de 0.1, y ninguna otra. Haz clic en **Mover a Cuándo alertar** para que sea la comparación de la regla: así el gráfico muestra cada serie y la regla juzga cada una.
+- **Como mucho 100 series por comprobación.** Cuando la expresión devuelve más, una comprobación juzga 100: primero las series con una alerta o un incidente abierto, luego las demás en el orden de sus etiquetas. El resto no se juzga en esa comprobación, por lo que nada se abre ni se resuelve para ellas, y el editor avisa de que la expresión devuelve demasiadas. Agrégala con `sum by (...)` o añade selectores de etiquetas.
+- **Se aplican los límites de toda consulta PromQL**, sobre las métricas de los servicios que nombra el monitor, o de todo el proyecto si no nombra ninguno.
+- **Sus gráficos dibujan la expresión.** La tarjeta de la parte superior de la página **Vista general** del monitor dibuja cada serie que devuelve la expresión, y un incidente o una alerta que abre dibuja la única serie que lo abrió, con el valor del criterio como una línea y el lado que alerta sombreado. La leen como tú puedes leerla, con los mismos límites que la página [PromQL](/docs/telemetry/promql).
+- **No se ofrecen las condiciones de anomalía**: una expresión no tiene un historial propio con el que compararse. Las condiciones de previsión sí.
+
 ## Solución de problemas
 
 :::details El gráfico muestra que se superó el umbral, pero el monitor no alertó

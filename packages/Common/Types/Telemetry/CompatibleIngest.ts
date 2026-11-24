@@ -20,11 +20,60 @@
 
 export const COMPATIBLE_INGEST_URL_PREFIX: string = "/telemetry";
 
+/*
+ * The most values a compatible endpoint's JSON body may parse into - every
+ * object, array, string (a key too), number, true, false and null -
+ * counted before it is parsed. These bodies are parsed on the App's request
+ * thread, and "[]," is three bytes but an array of forty on the heap: 32 MiB
+ * of empty arrays would take half a gigabyte and seconds of that thread.
+ * Every client's own batches are far below it: a 5 MB Datadog log payload,
+ * or a 2 MiB batch from the OpenTelemetry Collector's Splunk HEC exporter,
+ * is a few hundred thousand. A Datadog tracer's MessagePack body (where one
+ * byte can be an empty array) is held to the same number of values.
+ */
+export const COMPATIBLE_JSON_MAX_VALUES: number = 1000000;
+
 // Prometheus remote write (1.0 and 2.0): a Prometheus server, Grafana Alloy, an agent.
 export const PROMETHEUS_REMOTE_WRITE_PATH: string = "/prometheus/api/v1/write";
 
+/*
+ * The most a remote write request may be, as sent and once its snappy
+ * compression is undone. Prometheus and Alloy send 2,000 samples a request
+ * by default, well under a megabyte; VictoriaMetrics' own receiver holds a
+ * request to the same 32 MiB.
+ */
+export const PROMETHEUS_REMOTE_WRITE_MAX_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * The most series, labels, samples, exemplars, histograms and histogram
+ * buckets one remote write request may hold, counted before it is decoded:
+ * each one is an object in memory once it is, so a small body packed with
+ * empty series cannot take gigabytes. 2,000 samples of series with a dozen
+ * labels are about 28,000.
+ */
+export const PROMETHEUS_REMOTE_WRITE_MAX_ELEMENTS: number = 500000;
+
 // Loki's push API, at Loki's own path: Promtail, Grafana Alloy, Fluent Bit, Vector.
 export const LOKI_PUSH_PATH: string = "/loki/api/v1/push";
+
+/*
+ * The most a Loki push may be, as sent and once decompressed (its snappy
+ * or gzip undone). Promtail and Alloy send batches of 1 MiB by default
+ * (batch_size), and Loki itself refuses a push over its 6 MB ingestion
+ * burst; remote write is held to the same 32 MiB.
+ */
+export const LOKI_PUSH_MAX_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * The most streams, entries, labels and structured metadata one Loki push
+ * may hold, a stream's labels counted once for each of its entries: every
+ * entry becomes a log record that carries them all as attributes. Counted
+ * before a protobuf push is decoded, and again as the push is read, before
+ * anything is translated, so a small body cannot become millions of
+ * objects. A 1 MiB batch of 100-byte lines from streams of five labels is
+ * about 60,000.
+ */
+export const LOKI_PUSH_MAX_ELEMENTS: number = 500000;
 
 /*
  * Splunk's HTTP Event Collector, at Splunk's own paths. Some clients
@@ -65,6 +114,39 @@ export const DATADOG_METADATA_PATHS: ReadonlyArray<string> = [
   "/api/v1/metadata",
 ];
 
+/*
+ * APM traces. The trace-agent posts what the tracers sent it to
+ * apm_config.apm_dd_url + /api/v0.2/traces, as a protobuf AgentPayload, and
+ * the stats it computed from them to /api/v0.2/stats (MessagePack): an
+ * Agent's apm_dd_url is <host>/telemetry/datadog, as its dd_url is.
+ */
+export const DATADOG_TRACES_PATH: string = "/api/v0.2/traces";
+// The Agent's APM stats: accepted, so the Agent reports no error, and not kept.
+export const DATADOG_TRACE_STATS_PATH: string = "/api/v0.2/stats";
+
+/*
+ * A tracing library's own trace endpoints - the ones it posts to on the
+ * Agent - for a tracer sending with no Agent in between (dd-trace-go with
+ * DD_TRACE_AGENT_URL=https://<user>:<key>@<host>/telemetry/datadog): v0.3
+ * and v0.4 are an array of traces of spans, in MessagePack or JSON; v0.5
+ * the same with its strings in a dictionary, in MessagePack.
+ */
+export const DATADOG_TRACER_TRACES_PATHS: ReadonlyArray<string> = [
+  "/v0.3/traces",
+  "/v0.4/traces",
+  "/v0.5/traces",
+];
+
+/*
+ * The most series, points, resources, tags, sketches and sketch summaries
+ * one Datadog Agent protobuf payload (/api/v2/series, /api/beta/sketches)
+ * may hold - or spans, tags, links and events (/api/v0.2/traces) - counted
+ * before it is decoded: each is an object once it is. The Agent splits its
+ * metric payloads at 10,000 points and 5 MB decompressed, and its trace
+ * payloads at 3.2 MB, about 300,000 of them at most.
+ */
+export const DATADOG_PROTOBUF_MAX_ELEMENTS: number = 500000;
+
 // Every intake path, as served under /datadog.
 export const DATADOG_PATHS: ReadonlyArray<string> = [
   DATADOG_LOGS_PATH,
@@ -74,6 +156,9 @@ export const DATADOG_PATHS: ReadonlyArray<string> = [
   DATADOG_CHECK_RUN_PATH,
   DATADOG_VALIDATE_PATH,
   ...DATADOG_METADATA_PATHS,
+  DATADOG_TRACES_PATH,
+  DATADOG_TRACE_STATS_PATH,
+  ...DATADOG_TRACER_TRACES_PATHS,
 ];
 
 /*
@@ -81,7 +166,8 @@ export const DATADOG_PATHS: ReadonlyArray<string> = [
  * (logs_config.logs_dd_url is a host and port, never a path), so that one
  * route is served at the root too - only to a request that carries a
  * DD-API-KEY header, so nothing else under /api is ever answered by it.
- * Everything else the Agent sends goes to dd_url, which takes a path.
+ * Everything else the Agent sends goes to dd_url or apm_dd_url, which take
+ * a path.
  */
 export const DATADOG_ROOT_PATHS: ReadonlyArray<string> = [DATADOG_LOGS_PATH];
 

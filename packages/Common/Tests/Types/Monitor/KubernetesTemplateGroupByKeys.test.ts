@@ -143,6 +143,11 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
     why: "disk fills one node at a time; the fleet Avg would dilute it away",
   },
   {
+    id: "k8s-node-image-disk-almost-full",
+    groupByKeys: ["resource.k8s.node.name"],
+    why: "an image disk fills one node at a time, and every container of a node reads the same one",
+  },
+  {
     id: "k8s-pvc-almost-full",
     groupByKeys: [
       "resource.k8s.namespace.name",
@@ -347,7 +352,8 @@ describe("KubernetesAlertTemplates - per-series group-by keys", () => {
      * single-query template silently reverts to whole-cluster alerting
      * and this count falls back toward four.
      */
-    expect(grouped).toBe(20);
+    // 21 with Node Image Disk Almost Full (#9843), grouped per node.
+    expect(grouped).toBe(21);
     // The four cluster-scalar templates, and the whole-cluster heartbeat.
     expect(EXPECTED_GROUP_BY.length - grouped).toBe(5);
   });

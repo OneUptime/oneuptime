@@ -42,6 +42,11 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoTMetricDescriptions";
+import {
+  IoTFleetDeviceCount,
+  getIoTFleetDeviceCount,
+  isIoTFleetConnected,
+} from "./Utils/IoTFleetConnection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -214,8 +219,9 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Status",
             type: FieldType.Element,
             getElement: (item: IoTFleet): ReactElement => {
-              const isConnected: boolean =
-                item.otelCollectorStatus === "connected";
+              const isConnected: boolean = isIoTFleetConnected(
+                item.otelCollectorStatus as string | undefined,
+              );
               return (
                 <div className="flex items-center gap-2">
                   <span
@@ -255,17 +261,37 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 return <TableEmptyValue />;
               }
               const online: number = item.onlineDeviceCount || 0;
-              const allOnline: boolean = online >= total;
+              /*
+               * While the fleet is disconnected, how many devices it has,
+               * never how many are online: its devices' last states are
+               * from before it stopped (#10014), as its Overview's chip
+               * says.
+               */
+              const count: IoTFleetDeviceCount = getIoTFleetDeviceCount({
+                total: total,
+                online: online,
+                isFleetConnected: isIoTFleetConnected(
+                  item.otelCollectorStatus as string | undefined,
+                ),
+              });
               return (
                 <span
                   className={`text-sm font-medium ${
-                    allOnline ? "text-gray-900" : "text-red-700"
+                    count.isRed ? "text-red-700" : "text-gray-900"
                   }`}
                 >
-                  {translator.translateTemplate("{{online}}/{{total}} online", {
-                    online: translator.formatNumber(online),
-                    total: translator.formatNumber(total),
-                  })}
+                  {count.isOnlineCount
+                    ? translator.translateTemplate(
+                        "{{online}}/{{total}} online",
+                        {
+                          online: translator.formatNumber(online),
+                          total: translator.formatNumber(total),
+                        },
+                      )
+                    : translator.translatePlural(
+                        { one: "{{count}} device", other: "{{count}} devices" },
+                        total,
+                      )}
                 </span>
               );
             },

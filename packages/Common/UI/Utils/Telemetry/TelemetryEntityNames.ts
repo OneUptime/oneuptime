@@ -191,9 +191,9 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: DataBiConnection,
     nameFields: ["name"],
   },
-  // An Esper connection's readings: the connection whose devices' check-ins they are.
+  // A device management connection's readings: the connection whose devices' check-ins they are.
   [ServiceType.DeviceManagementConnection]: {
-    label: "Esper Connection",
+    label: "Device Management Connection",
     modelType: DeviceManagementConnection,
     nameFields: ["name"],
   },

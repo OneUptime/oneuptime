@@ -75,6 +75,10 @@ const NEVER_TOLD: ReadonlyArray<{ record: string; why: string }> = [
     why: "its owners hear of each incident declared from it, as that incident's owners (#9758)",
   },
   {
+    record: "NetworkSite",
+    why: "its owners hear of each alert it raises when its health rolls up unhealthy, as that alert's owners (#10188)",
+  },
+  {
     record: "ScheduledMaintenanceTemplate",
     why: "its owners hear of each event scheduled from it, as that event's owners",
   },

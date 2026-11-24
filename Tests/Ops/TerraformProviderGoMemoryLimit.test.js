@@ -4,13 +4,15 @@
  * Go compiles the Terraform provider with a soft memory limit, everywhere CI
  * compiles it.
  *
- * The generated provider's internal/provider is one Go package, some 985
+ * The generated provider's internal/provider was one Go package, some 985
  * files and 60 MB of Go. With Go's default garbage collection the compiler
  * peaked at about 15 GB, for `go build` and for the test binary `go test`
  * builds alike, while the Node.js generator held another 1.5 GB: more than
  * the 16 GB of a GitHub-hosted runner. Terraform Provider Generation and
  * Terraform Provider E2E Tests both lost their runner in "Generate Terraform
- * provider" on the 14.0.109 release gate (#7559).
+ * provider" on the 14.0.109 release gate (#7559). The generated resources
+ * are split into packages now (#7591), each compile far below the limit,
+ * which stays as a guard rail.
  *
  * GOMEMLIMIT makes Go collect garbage more often as its memory nears the
  * limit. Scripts/TerraformProvider/Core/GoCommand.ts sets it for every Go
@@ -24,26 +26,22 @@
 
 const fs = require("fs");
 const path = require("path");
-const yaml = require("js-yaml");
 
 const { stepCommandFromRoot } = require("./Utils/WorkflowStep");
+const {
+  jobsThatGenerateTheProvider,
+} = require("./Utils/TerraformProviderJobs");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const WORKFLOWS = path.join(REPO_ROOT, ".github", "workflows");
 const GO_COMMAND = "Scripts/TerraformProvider/Core/GoCommand.ts";
 const PUBLISH_SCRIPT =
   "Scripts/TerraformProvider/publish-terraform-provider.sh";
 
 /*
- * A job that runs one of these generates the provider, and compiles it. It
- * is gitignored, so a job cannot compile it without generating it first.
+ * A job that generates the provider compiles it (Utils/TerraformProviderJobs
+ * says how one is found). The jobs that did on 2026-11-13, so a reading that
+ * finds none fails.
  */
-const GENERATES_THE_PROVIDER = [
-  "npm run generate-terraform-provider",
-  "npm run publish-terraform-provider",
-];
-
-// The jobs that did on 2026-11-13, so a reading that finds none fails.
 const KNOWN_JOBS = [
   "crossplane-provider.yml crossplane-e2e",
   "release.yml publish-crossplane-provider",
@@ -68,37 +66,8 @@ function generatorLimit() {
   return match[1];
 }
 
-/**
- * Every job of every workflow that generates the provider.
- * @returns {Array<{name: string, job: object}>}
- */
-function jobsThatCompileTheProvider() {
-  return fs
-    .readdirSync(WORKFLOWS)
-    .filter((file) => {
-      return /\.ya?ml$/.test(file);
-    })
-    .sort()
-    .flatMap((file) => {
-      const workflow =
-        yaml.load(fs.readFileSync(path.join(WORKFLOWS, file), "utf8")) || {};
-      return Object.entries(workflow.jobs || {})
-        .filter(([, job]) => {
-          return (job.steps || []).some((step) => {
-            const command = stepCommandFromRoot(step);
-            return GENERATES_THE_PROVIDER.some((generate) => {
-              return command.includes(generate);
-            });
-          });
-        })
-        .map(([id, job]) => {
-          return { name: `${file} ${id}`, job };
-        });
-    });
-}
-
 const limit = generatorLimit();
-const jobs = jobsThatCompileTheProvider();
+const jobs = jobsThatGenerateTheProvider();
 
 describe("the generators' limit", () => {
   test("is a size Go reads: a whole number of bytes, KiB, MiB, GiB or TiB", () => {

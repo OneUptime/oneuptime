@@ -251,7 +251,8 @@ test.describe("Help at a tablet's width", () => {
 
       await button(page, words.help).click();
       await expect(helpMenu(page).locator("a, button")).toHaveText(words.learn);
-      const glossary: Locator = helpMenu(page).getByRole("link", {
+      // A menu item that keeps its link (#7237): a new tab, its address.
+      const glossary: Locator = helpMenu(page).getByRole("menuitem", {
         name: words.glossary,
       });
       await expect(glossary).toHaveAttribute("target", "_blank");
@@ -322,13 +323,17 @@ test.describe("Help at a tablet's width", () => {
       [button(page, words.help), words.help],
       [profile, words.profile],
     ] as Array<[Locator, string]>) {
-      // Opened with the keyboard: Enter on the button, Tab into the menu.
+      /*
+       * Opened with the keyboard: Enter on the button puts the focus on the
+       * menu's first row (#7237), and Down moves it on.
+       */
       await opener.focus();
       await page.keyboard.press("Enter");
       await expect(page.getByRole("menu", { name: name })).toBeVisible();
       await expect(page.getByRole("menu")).toHaveCount(1);
       await expect(opener).toHaveAttribute("aria-expanded", "true");
-      await page.keyboard.press("Tab");
+      await expect(page.getByRole("menu").locator(":focus")).toHaveCount(1);
+      await page.keyboard.press("ArrowDown");
       await expect(page.getByRole("menu").locator(":focus")).toHaveCount(1);
 
       await page.keyboard.press("Escape");
@@ -428,7 +433,7 @@ test.describe("Help at a tablet's width", () => {
       });
     expect(cut).toEqual([]);
     await expect(
-      helpMenu(page).getByRole("link", { name: words.glossary }),
+      helpMenu(page).getByRole("menuitem", { name: words.glossary }),
     ).toHaveAttribute("href", /\/docs\/de\/introduction\/glossary$/);
     await screenshot(page, "help-de-768");
   });

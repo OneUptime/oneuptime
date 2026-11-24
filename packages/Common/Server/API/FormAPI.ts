@@ -4,6 +4,7 @@ import FormRateLimit, {
 } from "../Middleware/FormRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import FormDomainService from "../Services/FormDomainService";
+import FormPrivateUserSessionService from "../Services/FormPrivateUserSessionService";
 import FormService, {
   Service as FormServiceType,
 } from "../Services/FormService";
@@ -34,6 +35,10 @@ import {
   FORM_CUSTOM_DOMAIN_ROUTE,
   FORM_CUSTOM_DOMAIN_SUBMIT_ROUTE,
 } from "../../Types/Form/FormCustomDomain";
+import {
+  FORM_SIGN_IN_STATE_ROUTE,
+  FormSignInState,
+} from "../../Types/Form/FormPrivateUserSignIn";
 
 /*
  * The form's CRUD routes (inherited from BaseAPI, all behind the signed-in
@@ -172,6 +177,39 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
       FormRateLimitBucket.Submit,
     );
 
+    /*
+     * What a form's page reads before anything else (#10249): whether the
+     * form asks its visitors to sign in, and only when it does, its id, its
+     * name and who is signed in on this host (FormService.getSignInState).
+     * Held to every check the form's own read is, but its sign-in.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/public/:shareKey${FORM_SIGN_IN_STATE_ROUTE}`,
+      FormAPI.refuseForeignPageRequests,
+      FormAPI.requireFormPageHeader,
+      readRateLimit,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const state: FormSignInState = await FormService.getSignInState({
+            shareKey: req.params["shareKey"],
+            clientIp: resolveClientIp(req),
+            formSession: FormPrivateUserSessionService.getSessionReader(req),
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            state as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     this.router.get(
       `${new this.entityType().getCrudApiPath()?.toString()}/public/:shareKey`,
       FormAPI.refuseForeignPageRequests,
@@ -189,6 +227,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
           const form: PublicForm = await FormService.getPublicForm({
             shareKey: req.params["shareKey"],
             clientIp: resolveClientIp(req),
+            formSession: FormPrivateUserSessionService.getSessionReader(req),
           });
 
           return Response.sendJsonObjectResponse(
@@ -229,6 +268,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
               request: request,
               clientIp: clientIp,
               captchaRemoteIp: clientIp,
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(
@@ -255,6 +295,38 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
     const crudApiPath: string =
       new this.entityType().getCrudApiPath()?.toString() || "";
 
+    // The sign-in state of the form this domain answers with (#10249).
+    this.router.get(
+      `${crudApiPath}${FORM_CUSTOM_DOMAIN_ROUTE}${FORM_SIGN_IN_STATE_ROUTE}`,
+      FormAPI.refuseForeignPageRequestsOnCustomDomain,
+      FormAPI.requireFormPageHeader,
+      FormRateLimit.getMiddleware(
+        FormRateLimitBucket.Read,
+        FormRateLimitFormSource.CustomDomain,
+      ),
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const state: FormSignInState =
+            await FormService.getSignInStateOnCustomDomain({
+              hostname: getRequestHost(req),
+              clientIp: resolveClientIp(req),
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            state as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
     this.router.get(
       `${crudApiPath}${FORM_CUSTOM_DOMAIN_ROUTE}`,
       FormAPI.refuseForeignPageRequestsOnCustomDomain,
@@ -272,6 +344,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
             await FormService.getPublicFormOnCustomDomain({
               hostname: getRequestHost(req),
               clientIp: resolveClientIp(req),
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(
@@ -309,6 +382,7 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
               request: request,
               clientIp: clientIp,
               captchaRemoteIp: clientIp,
+              formSession: FormPrivateUserSessionService.getSessionReader(req),
             });
 
           return Response.sendJsonObjectResponse(

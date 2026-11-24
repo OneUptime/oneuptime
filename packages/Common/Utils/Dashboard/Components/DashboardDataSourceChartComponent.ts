@@ -1,6 +1,7 @@
 import DashboardDataSourceChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardDataSourceChartComponent";
 import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import DashboardBaseComponentUtil from "./DashboardBaseComponent";
 import {
   ComponentArgument,
@@ -36,7 +37,8 @@ export default class DashboardDataSourceChartComponentUtil extends DashboardBase
         queries: [
           {
             id: ObjectID.generate().toString(),
-            dataSourceId: "",
+            // A new query reads the project's own metrics (issue #7713).
+            dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
             query: "",
           },
         ],
@@ -81,6 +83,16 @@ export default class DashboardDataSourceChartComponentUtil extends DashboardBase
         required: false,
         type: ComponentInputType.LongText,
         id: "chartDescription",
+        section: DisplaySection,
+      },
+      {
+        name: "Unit",
+        description:
+          'The values\' unit, on the value axis and in the tooltip. Known units also scale it — "Bytes" reads as 1.5 MB, "ms" as 2.4 sec, "%" as 99.9%.',
+        required: false,
+        type: ComponentInputType.Text,
+        id: "unit",
+        placeholder: "e.g. %, ms, Bytes, requests",
         section: DisplaySection,
       },
     ];

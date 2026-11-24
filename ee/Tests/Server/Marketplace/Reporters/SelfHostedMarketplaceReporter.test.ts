@@ -3,7 +3,7 @@ import GoogleCloudMarketplaceAPI from "../../../../Server/CloudMarketplace/Googl
 import MarketplaceApiError from "../../../../Server/CloudMarketplace/MarketplaceApiError";
 import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import AwsContainerMeteringAPI from "../../../../Server/Marketplace/Reporters/AwsContainerMeteringAPI";
-import AwsWorkloadCredentialsProvider from "../../../../Server/Marketplace/Reporters/AwsWorkloadCredentials";
+import MarketplaceAwsCredentials from "../../../../Server/Marketplace/Reporters/MarketplaceAwsCredentials";
 import AzureKubernetesAppMeteringAPI from "../../../../Server/Marketplace/Reporters/AzureKubernetesAppMeteringAPI";
 import {
   AwsSelfHostedReporter,
@@ -40,7 +40,7 @@ const awsReporter: (http: FakeHttpClient) => AwsSelfHostedReporter = (
 ): AwsSelfHostedReporter => {
   return new AwsSelfHostedReporter({
     api: new AwsContainerMeteringAPI({
-      credentials: new AwsWorkloadCredentialsProvider({
+      credentials: MarketplaceAwsCredentials.createChain({
         env: {
           AWS_ACCESS_KEY_ID: "ASIAEXAMPLESESSION",
           AWS_SECRET_ACCESS_KEY: "secret",

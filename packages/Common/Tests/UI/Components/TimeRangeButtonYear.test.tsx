@@ -183,7 +183,7 @@ describe("the year is the reader's", () => {
     OneUptimeDate.setUserTimezone(Timezone.PacificAuckland);
 
     expect(label(AUCKLAND_NEW_YEAR, new Date("2026-06-01T00:00:00.000Z"))).toBe(
-      "Jan 1, 00:30 – Jan 1, 02:00",
+      "Jan 1, 00:30 – 02:00",
     );
   });
 
@@ -192,7 +192,7 @@ describe("the year is the reader's", () => {
     OneUptimeDate.setUserTimezone(Timezone.UTC);
 
     expect(label(AUCKLAND_NEW_YEAR, new Date("2026-06-01T00:00:00.000Z"))).toBe(
-      "Dec 31, 2025, 11:30 – Dec 31, 2025, 13:00",
+      "Dec 31, 2025, 11:30 – 13:00",
     );
   });
 
@@ -208,7 +208,7 @@ describe("the year is the reader's", () => {
         custom("2025-12-31T11:00:00.000Z", "2025-12-31T11:45:00.000Z"),
         newYearInAuckland,
       ),
-    ).toBe("Jan 1, 00:00 – Jan 1, 00:45");
+    ).toBe("Jan 1, 00:00 – 00:45");
   });
 
   test("and in UTC, where it is still 2025, the same range is this year's too", () => {
@@ -220,7 +220,7 @@ describe("the year is the reader's", () => {
         custom("2025-12-31T11:00:00.000Z", "2025-12-31T11:45:00.000Z"),
         new Date("2025-12-31T12:00:00.000Z"),
       ),
-    ).toBe("Dec 31, 11:00 – Dec 31, 11:45");
+    ).toBe("Dec 31, 11:00 – 11:45");
   });
 });
 
@@ -267,6 +267,116 @@ describe("a custom range's label in the reader's language", () => {
 
     expect(persian).not.toContain("۲۰۲۶");
     expect(persian).not.toMatch(LATIN_DIGIT);
+  });
+});
+
+/*
+ * A RANGE WITHIN ONE DAY NAMES ITS DATE ONCE (#7281).
+ *
+ * "Nov 5, 2025, 5:14 AM – Nov 5, 2025, 6:14 AM": the windows an incident
+ * offers ("Around the start", "The hour before it started") lie within a
+ * day, and with their years took two lines each at phone width in Russian,
+ * Arabic and Korean. Within one day of the reader's zone, the end is its
+ * time alone, written as the start's time is; across midnight each end is
+ * whole. The process runs in UTC and the reader's zone is UTC.
+ */
+describe("a custom range within one day", () => {
+  // 05:14 to 06:14 on November 5, of this year and of last.
+  const THIS_MORNING: RangeStartAndEndDateTime = custom(
+    "2026-11-05T05:14:00.000Z",
+    "2026-11-05T06:14:00.000Z",
+  );
+  const LAST_YEARS_MORNING: RangeStartAndEndDateTime = custom(
+    "2025-11-05T05:14:00.000Z",
+    "2025-11-05T06:14:00.000Z",
+  );
+
+  test.each<[string, boolean, string, string]>([
+    ["en", true, "Nov 5, 5:14 AM – 6:14 AM", "Nov 5, 2025, 5:14 AM – 6:14 AM"],
+    ["en", false, "Nov 5, 05:14 – 06:14", "Nov 5, 2025, 05:14 – 06:14"],
+    ["de", false, "5. Nov., 05:14 – 06:14", "5. Nov. 2025, 05:14 – 06:14"],
+    [
+      "de",
+      true,
+      "5. Nov., 5:14 AM – 6:14 AM",
+      "5. Nov. 2025, 5:14 AM – 6:14 AM",
+    ],
+    ["ja", false, "11月5日 05:14 – 06:14", "2025年11月5日 05:14 – 06:14"],
+    [
+      "ja",
+      true,
+      "11月5日 午前5:14 – 午前6:14",
+      "2025年11月5日 午前5:14 – 午前6:14",
+    ],
+    [
+      "ko",
+      true,
+      "11월 5일 오전 5:14 – 오전 6:14",
+      "2025년 11월 5일 오전 5:14 – 오전 6:14",
+    ],
+    ["ko", false, "11월 5일 05:14 – 06:14", "2025년 11월 5일 05:14 – 06:14"],
+    ["fa", false, "۵ نوامبر، ۰۵:۱۴ – ۰۶:۱۴", "۵ نوامبر ۲۰۲۵، ۰۵:۱۴ – ۰۶:۱۴"],
+    ["da", false, "5. nov., 05.14 – 06.14", "5. nov. 2025, 05.14 – 06.14"],
+  ])(
+    "%s, 12-hour %p: %s, and with its year %s",
+    (
+      language: string,
+      twelveHour: boolean,
+      withoutYear: string,
+      withYear: string,
+    ) => {
+      OneUptimeDate.setUserTimezone(Timezone.UTC);
+      pin(twelveHour);
+      setDateDisplayLanguage(language);
+
+      expect(label(THIS_MORNING)).toBe(withoutYear);
+      expect(label(LAST_YEARS_MORNING)).toBe(withYear);
+    },
+  );
+
+  test.each(
+    DASHBOARD_LANGUAGES.map((language: string): [string] => {
+      return [language];
+    }),
+  )("%s: the date once, the end's time as the start's", (language: string) => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+    pin(true);
+    setDateDisplayLanguage(language);
+
+    const [start, end] = label(LAST_YEARS_MORNING).split(" – ");
+    const startTime: string = spaced(
+      OneUptimeDate.getLocalTimeString(new Date("2025-11-05T05:14:00.000Z"), {
+        use12HourFormat: true,
+      }),
+    );
+    const endTime: string = spaced(
+      OneUptimeDate.getLocalTimeString(new Date("2025-11-05T06:14:00.000Z"), {
+        use12HourFormat: true,
+      }),
+    );
+
+    expect(start).toContain(startTime);
+    expect(end).toBe(endTime);
+  });
+
+  test("across midnight in the reader's zone, each end names its date", () => {
+    // 23:00 on the 4th to 01:00 on the 5th in UTC.
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+    pin(false);
+
+    expect(
+      label(custom("2026-11-04T23:00:00.000Z", "2026-11-05T01:00:00.000Z")),
+    ).toBe("Nov 4, 23:00 – Nov 5, 01:00");
+  });
+
+  test("one day in UTC but two in the reader's zone keeps both dates", () => {
+    // 15:00 and 17:00 UTC on the 5th are the 5th and the 6th in Tokyo.
+    OneUptimeDate.setUserTimezone(Timezone.AsiaTokyo);
+    pin(false);
+
+    expect(
+      label(custom("2026-11-05T14:00:00.000Z", "2026-11-05T16:00:00.000Z")),
+    ).toBe("Nov 5, 23:00 – Nov 6, 01:00");
   });
 });
 
@@ -561,14 +671,14 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
   }
 
   test.each<[string, string]>([
-    ["ko", "2025년 11월 5일 오전 5:14 – 2025년 11월 5일 오전 6:14"],
-    ["zh-TW", "2025年11月5日 上午5:14 – 2025年11月5日 上午6:14"],
-    ["hi", "5 नव॰ 2025, 5:14 am – 5 नव॰ 2025, 6:14 am"],
-    ["ar", "5 نوفمبر 2025، 5:14 ص – 5 نوفمبر 2025، 6:14 ص"],
-    ["ja", "2025年11月5日 午前5:14 – 2025年11月5日 午前6:14"],
-    ["zh-CN", "2025年11月5日 上午5:14 – 2025年11月5日 上午6:14"],
-    ["de", "5. Nov. 2025, 5:14 AM – 5. Nov. 2025, 6:14 AM"],
-    ["fa", "۵ نوامبر ۲۰۲۵، ۵:۱۴ ق.ظ. – ۵ نوامبر ۲۰۲۵، ۶:۱۴ ق.ظ."],
+    ["ko", "2025년 11월 5일 오전 5:14 – 오전 6:14"],
+    ["zh-TW", "2025年11月5日 上午5:14 – 上午6:14"],
+    ["hi", "5 नव॰ 2025, 5:14 am – 6:14 am"],
+    ["ar", "5 نوفمبر 2025، 5:14 ص – 6:14 ص"],
+    ["ja", "2025年11月5日 午前5:14 – 午前6:14"],
+    ["zh-CN", "2025年11月5日 上午5:14 – 上午6:14"],
+    ["de", "5. Nov. 2025, 5:14 AM – 6:14 AM"],
+    ["fa", "۵ نوامبر ۲۰۲۵، ۵:۱۴ ق.ظ. – ۶:۱۴ ق.ظ."],
   ])("%s on a 12-hour clock: %s", (language: string, expected: string) => {
     pin(true);
     setDateDisplayLanguage(language);
@@ -577,12 +687,12 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
   });
 
   test.each<[string, string]>([
-    ["ko", "2025년 11월 5일 05:14 – 2025년 11월 5일 06:14"],
-    ["zh-TW", "2025年11月5日 05:14 – 2025年11月5日 06:14"],
-    ["hi", "5 नव॰ 2025, 05:14 – 5 नव॰ 2025, 06:14"],
-    ["ar", "5 نوفمبر 2025، 05:14 – 5 نوفمبر 2025، 06:14"],
-    ["de", "5. Nov. 2025, 05:14 – 5. Nov. 2025, 06:14"],
-    ["fa", "۵ نوامبر ۲۰۲۵، ۰۵:۱۴ – ۵ نوامبر ۲۰۲۵، ۰۶:۱۴"],
+    ["ko", "2025년 11월 5일 05:14 – 06:14"],
+    ["zh-TW", "2025年11月5日 05:14 – 06:14"],
+    ["hi", "5 नव॰ 2025, 05:14 – 06:14"],
+    ["ar", "5 نوفمبر 2025، 05:14 – 06:14"],
+    ["de", "5. Nov. 2025, 05:14 – 06:14"],
+    ["fa", "۵ نوامبر ۲۰۲۵، ۰۵:۱۴ – ۰۶:۱۴"],
   ])(
     "%s on a 24-hour clock keeps the zero: %s",
     (language: string, expected: string) => {
@@ -595,10 +705,10 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
 
   test("English is as it was: 5:14 AM, and 05:14 on a 24-hour clock", () => {
     pin(true);
-    expect(label(MORNING)).toBe("Nov 5, 2025, 5:14 AM – Nov 5, 2025, 6:14 AM");
+    expect(label(MORNING)).toBe("Nov 5, 2025, 5:14 AM – 6:14 AM");
 
     pin(false);
-    expect(label(MORNING)).toBe("Nov 5, 2025, 05:14 – Nov 5, 2025, 06:14");
+    expect(label(MORNING)).toBe("Nov 5, 2025, 05:14 – 06:14");
   });
 
   test("an hour of two digits is written whole on either clock: 10:05 AM, 10:05", () => {
@@ -609,14 +719,10 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
 
     pin(true);
     setDateDisplayLanguage("ko");
-    expect(label(LATE_MORNING)).toBe(
-      "2025년 11월 5일 오전 10:05 – 2025년 11월 5일 오전 11:30",
-    );
+    expect(label(LATE_MORNING)).toBe("2025년 11월 5일 오전 10:05 – 오전 11:30");
 
     pin(false);
-    expect(label(LATE_MORNING)).toBe(
-      "2025년 11월 5일 10:05 – 2025년 11월 5일 11:30",
-    );
+    expect(label(LATE_MORNING)).toBe("2025년 11월 5일 10:05 – 11:30");
   });
 
   test("the reader's own helper says so: numeric on a 12-hour clock, two digits on a 24-hour one", () => {
@@ -692,7 +798,7 @@ describe("a 12-hour time in the reader's language has no leading zero", () => {
     const moment: HTMLElement = screen.getByTestId(`${PREFIX}-moment-start`);
 
     expect(spaced(moment.textContent || "")).toBe(
-      "Around the start2025년 11월 5일 오전 5:14 – 2025년 11월 5일 오전 6:14",
+      "Around the start2025년 11월 5일 오전 5:14 – 오전 6:14",
     );
     expect(moment.textContent).not.toContain("05:14");
   });

@@ -16,6 +16,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import Email from "../../Types/Email";
@@ -762,6 +763,7 @@ export default class StatusPageSubscriber extends BaseModel {
     description:
       "Has subscriber confirmed their subscription? (for example, by clicking on a confirmation link in an email)",
     defaultValue: false,
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -788,6 +790,7 @@ export default class StatusPageSubscriber extends BaseModel {
     title: "Subscription Confirmation Token",
     description:
       "Token used to confirm subscription. This is a random token that is sent to the subscriber's email address to confirm their subscription.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ShortText,
@@ -830,6 +833,7 @@ export default class StatusPageSubscriber extends BaseModel {
     title: "Is Unsubscribed",
     description: "Is Subscriber Unsubscribed?",
     defaultValue: false,
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.Boolean,

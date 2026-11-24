@@ -50,7 +50,7 @@ flowchart TB
 sum by (job) (rate(http_requests_total[5m]))
 
 # The 95th percentile of a latency histogram
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_bucket[5m])))
+histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m])))
 
 # The five hosts using the most memory
 topk(5, system_memory_usage)
@@ -64,15 +64,17 @@ OneUptime은 메트릭을 OpenTelemetry 방식으로 저장합니다. PromQL은 
 
 | OneUptime에서 | PromQL에서 |
 | --- | --- |
-| 게이지 `system.cpu.utilization` | `system_cpu_utilization` |
-| 카운터 `http.requests` | `http_requests` 또는 `http_requests_total` |
-| 히스토그램 `http.server.request.duration` | `http_server_request_duration_bucket`(`le` 포함), `_count`, `_sum` |
+| `1` 단위의 게이지 `system.cpu.utilization` | `system_cpu_utilization_ratio` 또는 `system_cpu_utilization` |
+| `By` 단위의 게이지 `system.memory.usage` | `system_memory_usage_bytes` 또는 `system_memory_usage` |
+| 카운터 `http.requests` | `http_requests_total` 또는 `http_requests` |
+| `s` 단위의 히스토그램 `http.server.request.duration` | `http_server_request_duration_seconds_bucket`(`le` 포함), `_count`, `_sum`, 또는 `_seconds`가 없는 같은 이름 |
 | 서머리 `rpc.latency` | `rpc_latency`(`quantile` 포함), `_count`, `_sum` |
 | 속성 `http.route` | 레이블 `http_route` |
 | 리소스 속성 `service.name` | 레이블 `resource_service_name`, 그리고 `job` |
 | 리소스 속성 `service.instance.id` | 레이블 `resource_service_instance_id`, 그리고 `instance` |
 
 - **메트릭 이름과 레이블 이름의 점과 대시는 밑줄이 됩니다.** 저장된 이름 그대로 메트릭이나 레이블을 지정하려면 Prometheus 3처럼 따옴표로 묶으세요: `{"http.server.request.duration", "http.route"="/checkout"}`.
+- **단위는 이름의 일부입니다.** Prometheus 3와 OpenTelemetry Collector가 쓰는 대로 `s`는 `_seconds`, `By`는 `_bytes`, `By/s`는 `_bytes_per_second`, `%`는 `_percent`를 붙입니다. `1` 단위의 게이지는 `_ratio`로, 카운터는 `_total`로 끝나며, `{request}`처럼 중괄호로 묶은 단위는 아무것도 붙이지 않습니다. 단위가 없는 이름으로도 메트릭을 찾을 수 있고, **메트릭 이름 추가**는 각 메트릭을 단위와 함께 보여 줍니다.
 - **델타 카운터는 쿼리 시간 범위의 시작부터 합산됩니다.** 그래서 `rate()`와 `increase()`는 델타 카운터도 다른 카운터와 똑같이 읽습니다.
 - **지수 히스토그램**에는 `_count`와 `_sum`은 있지만 버킷은 없습니다.
 
@@ -144,6 +146,7 @@ API는 `/api/prometheus` 아래에서 Prometheus HTTP API의 경로에 `GET` 또
 | 평가에 걸릴 수 있는 시간 | 30초 |
 | 선택자가 시리즈의 최신 샘플을 찾아 거슬러 올라가는 시간 | 5분 |
 | 쿼리에서 생략했을 때 하위 쿼리의 스텝 | 1분 |
+| 프로젝트 하나가 1분에 보낼 수 있는 쿼리 | 1,200 |
 
 ## 문제 해결
 
@@ -159,10 +162,15 @@ PromQL 이름에는 저장된 이름의 점 자리에 밑줄이 들어가며, �
 쿼리가 한 번의 읽기로 담을 수 있는 것보다 많은 데이터를 요청합니다. 레이블 매처를 추가하거나, 시간 범위를 줄이거나, 더 큰 스텝을 쓰세요.
 :::
 
+:::details "This project sent more queries this minute than OneUptime answers."
+프로젝트의 대시보드, Grafana, 스크립트가 이번 1분 동안 합쳐서 1,200개가 넘는 쿼리를 API에 보냈습니다. 패널은 다음 1분에 다시 불러옵니다. 한도를 넘지 않도록 대시보드를 덜 자주 새로 고치세요.
+:::
+
 ## 다음 단계
 
 :::cards
 - [메트릭 탐색기](/docs/telemetry/metrics-explorer): 쿼리를 쓰지 않고 메트릭을 차트로 그립니다.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 알립니다.
-- [외부 데이터 소스](/docs/dashboards/data-sources): 외부 Prometheus를 대시보드에 차트로 그립니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이나 PromQL 식으로 경고하고, 시리즈마다 인시던트를 엽니다.
+- [외부 데이터 소스](/docs/dashboards/data-sources): 이 프로젝트의 메트릭이나 외부 Prometheus에 대한 PromQL을 대시보드에 차트로 그립니다.
+- [LogQL](/docs/telemetry/logql): LogQL로 로그를 조회합니다. Grafana의 Loki 데이터 소스에서도 쓸 수 있습니다.
 :::

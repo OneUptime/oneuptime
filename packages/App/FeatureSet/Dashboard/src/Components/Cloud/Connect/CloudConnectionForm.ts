@@ -9,7 +9,11 @@ import {
   getCloudConnectionAuthMethod,
   getCloudConnectionFieldsForMethod,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
-import { CloudConnectionSetupScope } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  CloudConnectionCommandSettings,
+  CloudConnectionSetupScope,
+  getCloudConnectionCommandSettings,
+} from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   CloudConnectionPasteResult,
   readCloudConnectionPaste,
@@ -89,6 +93,24 @@ export function getReadScopeField(
 }
 
 /*
+ * What the Access step's command is written from: the settings the form
+ * would save for the method picked (readCloudConnectionForm), read the way
+ * the server reads them (getCloudConnectionCommandSettings). So the command
+ * shown grants what the connection is saved to use - the organization only
+ * for a method that can read one, Data Security's access only as its two
+ * settings say - and follows them as they change (#10336).
+ */
+export function readFormCommandSettings(
+  definition: CloudConnectionDefinition,
+  values: JSONObject,
+  fallbackMethod?: CloudConnectionAuthMethod | undefined,
+): CloudConnectionCommandSettings {
+  return getCloudConnectionCommandSettings(
+    readCloudConnectionForm(definition, values, fallbackMethod).config,
+  );
+}
+
+/*
  * What the form says to read, which decides the command it shows: every
  * account of the organization only when that is picked and the method
  * can; otherwise the one account.
@@ -98,32 +120,47 @@ export function readFormScope(
   values: JSONObject,
   fallbackMethod?: CloudConnectionAuthMethod | undefined,
 ): CloudConnectionSetupScope {
-  const method: CloudConnectionAuthMethod = readFormAuthMethod(
-    definition,
-    values,
-    fallbackMethod,
-  );
-
-  if (!getReadScopeField(definition, method)) {
-    return CloudConnectionSetupScope.Account;
-  }
-
-  return readFormText(
-    values[configFieldName(READ_SCOPE_FIELD_KEY)] as JSONValue | undefined,
-  ) === CloudConnectionSetupScope.Organization
-    ? CloudConnectionSetupScope.Organization
-    : CloudConnectionSetupScope.Account;
+  return readFormCommandSettings(definition, values, fallbackMethod).scope;
 }
 
 /*
  * Whether a setting is one of the values the Credentials step asks for -
- * pasted, or typed in the fold under the paste. Not the scope (chosen on
- * the first step), not a value only a paste fills in (an Azure secret's
- * expiry, kept with the rest), not one of the settings under More fields.
+ * pasted, or typed in the fold under the paste. Not a setting the command
+ * is written from (asked on the first step, with the command), not a value
+ * only a paste fills in (an Azure secret's expiry, kept with the rest), not
+ * one of the settings under More fields.
  */
 export function isCredentialValueField(field: CloudConnectionField): boolean {
-  return (
-    field.key !== READ_SCOPE_FIELD_KEY && !field.isHidden && !field.isAdvanced
+  return !field.changesSetupCommand && !field.isHidden && !field.isAdvanced;
+}
+
+/*
+ * The settings the first step folds under its command, in the catalog's
+ * order: the ones the command is written from that most people leave
+ * alone (Data security, Data security response). What to read is the
+ * step's own question, above the command.
+ */
+export function getCommandSettingFields(
+  definition: CloudConnectionDefinition,
+): Array<CloudConnectionField> {
+  return definition.configFields.filter(
+    (field: CloudConnectionField): boolean => {
+      return Boolean(field.changesSetupCommand && field.isAdvanced);
+    },
+  );
+}
+
+/*
+ * The settings the Credentials step folds under More fields: the rest of
+ * the ones most people leave alone (the name is added by the form).
+ */
+export function getCredentialsMoreFields(
+  definition: CloudConnectionDefinition,
+): Array<CloudConnectionField> {
+  return definition.configFields.filter(
+    (field: CloudConnectionField): boolean => {
+      return Boolean(field.isAdvanced && !field.changesSetupCommand);
+    },
   );
 }
 

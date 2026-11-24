@@ -1,5 +1,6 @@
 package com.oneuptime.androidagent.ui
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.RestrictionsManager
@@ -17,6 +18,9 @@ import com.oneuptime.androidagent.agent.AgentRuntime
 import com.oneuptime.androidagent.agent.AgentService
 import com.oneuptime.androidagent.config.AesGcmSecretCipher
 import com.oneuptime.androidagent.config.LocalSettings
+import com.oneuptime.androidagent.config.LogcatLevel
+import com.oneuptime.androidagent.logsession.LogSessionRequest
+import com.oneuptime.androidagent.logsession.LogSessionStatus
 import javax.crypto.KeyGenerator
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -183,6 +187,60 @@ class SetupActivityTest {
         assertEquals(!usageAccess, commands.contains("adb shell appops set com.oneuptime.androidagent GET_USAGE_STATS allow"))
         assertEquals(if (usageAccess) View.GONE else View.VISIBLE, activity.findViewById<View>(R.id.usage_access).visibility)
         assertNull(activity.findViewById<EditText>(R.id.url).error)
+    }
+
+    private fun askForLogs(note: String?) {
+        // A session runs only where READ_LOGS is granted: else it reads Unavailable at once.
+        shadowOf(context as Application).grantPermissions(Manifest.permission.READ_LOGS)
+        AgentRuntime.get(context).logSessions.onServerSessions(
+            listOf(
+                LogSessionRequest(
+                    id = "s1",
+                    status = LogSessionStatus.REQUESTED,
+                    durationMinutes = 30,
+                    minimumLevel = LogcatLevel.INFO,
+                    requestedAtMillis = null,
+                    requestedBy = "Dana Reyes",
+                    expiresAtMillis = System.currentTimeMillis() + 3_600_000,
+                    note = note,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `a request shows the requester's note under it, quoted, while it waits to be allowed`() {
+        askForLogs("Checking why the payment app crashes after 6pm")
+
+        val activity: SetupActivity = launch()
+
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.log_session_card).visibility)
+        assertTrue(activity.text(R.id.log_session_text).startsWith("Dana Reyes asks, in OneUptime"))
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.log_session_note).visibility)
+        assertEquals("“Checking why the payment app crashes after 6pm”", activity.text(R.id.log_session_note))
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.log_session_answer).visibility)
+    }
+
+    @Test
+    fun `a request without a note shows none`() {
+        askForLogs(null)
+
+        val activity: SetupActivity = launch()
+
+        assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.log_session_card).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.log_session_note).visibility)
+    }
+
+    @Test
+    fun `once the request is declined, how it ended shows and the note goes`() {
+        askForLogs("Checking why the payment app crashes after 6pm")
+        val activity: SetupActivity = launch()
+
+        activity.findViewById<Button>(R.id.log_session_decline).performClick()
+
+        assertEquals("Declined. Nothing more is sent.", activity.text(R.id.log_session_text))
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.log_session_note).visibility)
+        assertEquals(View.GONE, activity.findViewById<View>(R.id.log_session_answer).visibility)
     }
 
     @Test

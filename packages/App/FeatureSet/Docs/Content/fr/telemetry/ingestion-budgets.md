@@ -6,6 +6,7 @@ Un budget d'ingestion plafonne la quantité de télémétrie qu'un projet envoie
 - [Comment fonctionnent les budgets](#comment-fonctionnent-les-budgets): Trois niveaux, comptés à l'arrivée de la télémétrie.
 - [Définir les budgets par défaut de tous les projets](#définir-les-budgets-par-défaut-de-tous-les-projets): Dans les paramètres de l'Admin Dashboard.
 - [Donner à une clé d'ingestion son propre budget](#donner-à-une-clé-dingestion-son-propre-budget): Une part du budget du projet.
+- [Donner à une équipe ou à une étiquette son propre budget](#donner-à-une-équipe-ou-à-une-étiquette-son-propre-budget): Pour les services de l'équipe ou ceux qui portent l'étiquette.
 - [Alerter sur un budget](#alerter-sur-un-budget): Avant qu'il soit épuisé, et quand il l'est.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Pour les budgets de l'instance et d'un projet, l'Admin Dashboard.** Sur une installation auto-hébergée, seul l'administrateur de l'instance les définit. Les Propriétaires du projet et les Administrateurs du projet voient les budgets d'un projet, mais ne peuvent pas les modifier.
 - **Pour le budget propre d'une clé, un rôle qui modifie les clés d'ingestion.** Propriétaire du projet ou Administrateur du projet, ou un rôle personnalisé avec la permission Edit Ingestion Key.
+- **Pour le budget d'une équipe ou d'une étiquette, Propriétaire du projet ou Administrateur du projet.**
 - **Pour voir les budgets, un rôle qui voit l'utilisation du projet.** Les rôles qui voient la page [Utilisation de la télémétrie](/docs/telemetry/usage) y voient les budgets du projet.
 
 ## Définir les budgets par défaut de tous les projets
@@ -94,6 +96,30 @@ Cliquez sur **Enregistrer les modifications**. Le budget d'une clé ne peut pas 
 - **Les deux budgets comptent.** La télémétrie envoyée avec la clé est comptée sur le budget de la clé et sur celui du projet, et celui qui est épuisé en premier la refuse.
 - **Un budget de projet abaissé s'impose aussi à la clé.** Quand le budget du projet est abaissé sous celui d'une clé, la clé est limitée à celui du projet.
 
+## Donner à une équipe ou à une étiquette son propre budget
+
+Le budget d'une équipe ou d'une étiquette est lui aussi une part de celui de son projet, pour les services dont l'équipe est propriétaire ou qui portent l'étiquette : le service emballé d'une équipe s'arrête au budget de son équipe, tandis que le reste du projet continue d'envoyer, même par le même collector et la même clé d'ingestion.
+
+:::steps
+### Ouvrir la page Utilisation
+
+Allez dans **Paramètres du projet → Télémétrie & APM → Utilisation**, et ouvrez **Plus de paramètres** en bas de la page.
+
+### Ajouter le budget
+
+Sur la carte **Budgets des équipes et des étiquettes**, cliquez sur **Créer : Budget**. Choisissez l'équipe ou l'étiquette dans **Équipe ou étiquette**, et saisissez un nombre de GB par jour dans **Journaux (GB par jour)**. Les autres signaux sont sous **Plus de champs**. Laissez un signal vide pour qu'il n'ait pas de budget propre.
+
+### Enregistrer le budget
+
+Cliquez sur **Créer : Budget**. Le budget d'une équipe ou d'une étiquette ne peut pas dépasser celui de son projet : OneUptime le refuse et indique le maximum possible.
+:::
+
+- **Ce qu'il compte.** Les journaux, traces, métriques et profils que les services de l'équipe, ou les services portant l'étiquette, envoient par OpenTelemetry (OTLP). La télémétrie des hôtes et des autres ressources, les événements de sécurité et les journaux de Fluent Bit, Fluentd ou syslog ne comptent que sur les budgets du projet et de la clé.
+- **Une fois épuisé, la télémétrie est supprimée.** La télémétrie de ce signal venant des services est supprimée jusqu'à la réinitialisation, et l'émetteur n'en est pas informé : il a reçu sa réponse à l'arrivée de la télémétrie. Ce qui est supprimé ne compte plus sur le budget du projet ni sur celui de la clé.
+- **Qui est prévenu.** Les Propriétaires du projet reçoivent un e-mail quand le budget dépasse le seuil d'avertissement, et quand il est épuisé.
+- **Un budget quotidien seulement.** Une équipe ou une étiquette n'a pas de limite de débit.
+- **Chaque budget compte.** La télémétrie d'un service compte sur les budgets de ses équipes et de ses étiquettes, ainsi que sur ceux de la clé et du projet, et le premier épuisé l'arrête. Quand le budget du projet est abaissé sous celui d'une équipe ou d'une étiquette, celle-ci est limitée à celui du projet.
+
 ## Ce que voient les émetteurs
 
 | Quand | Sur HTTP | Sur OTLP/gRPC | Ce que fait l'émetteur |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Les autres émetteurs HTTP reçoivent du JSON.** Fluent Bit, Fluentd, Syslog et les autres points de terminaison HTTP reçoivent `error`, `message` et `resetsAt`, ainsi que `retryAfterSeconds` en cas de limite de débit.
 - **MQTT et les flux cloud ne peuvent pas être prévenus.** La télémétrie qui arrive par MQTT ou depuis le flux d'un fournisseur cloud est abandonnée dès que son budget est épuisé. Aucune limite de débit ne s'y applique : elle ne pourrait pas être renvoyée.
+- **Les services d'une équipe ou d'une étiquette non plus.** Une fois le budget d'une équipe ou d'une étiquette épuisé, leur télémétrie est acceptée, puis supprimée : voir [Donner à une équipe ou à une étiquette son propre budget](#donner-à-une-équipe-ou-à-une-étiquette-son-propre-budget).
 - **Les refus sont comptés.** Ce qu'un budget épuisé refuse ou abandonne est compté comme abandonné, et chaque requête qu'une limite de débit refuse, comme limitée : voir [Voir l'utilisation et les abandons du jour](#voir-lutilisation-et-les-abandons-du-jour).
 
 ## L'avertissement et la réinitialisation
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Voir l'utilisation et les abandons du jour
 
-Allez dans **Paramètres du projet → Télémétrie & APM → Utilisation**. Tant qu'un budget ou une limite de débit est défini pour le projet, la page s'ouvre sur la carte **Budgets d'ingestion**, et les clés qui ont leur propre budget sont sur la carte **Budgets des clés d'ingestion** :
+Allez dans **Paramètres du projet → Télémétrie & APM → Utilisation**. Tant qu'un budget ou une limite de débit est défini pour le projet, la page s'ouvre sur la carte **Budgets d'ingestion**, les clés qui ont leur propre budget sont sur la carte **Budgets des clés d'ingestion**, et les équipes et étiquettes qui ont leur propre budget sur la carte **Budgets des équipes et des étiquettes aujourd'hui** :
 
 | Colonne | Ce qu'elle montre |
 | --- | --- |
 | **Signal** | Le signal auquel la ligne correspond. |
 | **Utilisé aujourd'hui** | Ce qui a été compté depuis le début de la journée de budget, et sa part du budget. |
-| **Budget quotidien** | Le budget en vigueur, et où il a été défini : **Valeur par défaut de l'instance**, **Défini pour ce projet** ou **Propre à cette clé**. |
+| **Budget quotidien** | Le budget en vigueur, et où il a été défini : **Valeur par défaut de l'instance**, **Défini pour ce projet**, **Propre à cette clé**, **Propre à cette équipe** ou **Propre à cette étiquette**. |
 | **Limite de débit** | La limite de débit en vigueur. |
 | **Abandonné** | Ce qui a été refusé ou abandonné parce que le budget était épuisé. |
 | **Limité** | Combien de requêtes la limite de débit a refusées. |
 | **Statut** | **Dans le budget**, **Seuil d'avertissement dépassé** ou **Épuisé**, **Aucun budget quotidien** pour un signal qui n'a qu'une limite de débit, et **Inconnu** tant que les décomptes ne peuvent pas être lus. |
 
 - **Sur la page d'une clé**, la carte **Utilisation du budget aujourd'hui** montre ce que la clé a utilisé de ses propres budgets.
-- **Dans les explorateurs**, une bannière au-dessus des données des journaux, des traces, des métriques, des profils et des événements de sécurité indique quand le budget de ce signal a dépassé son seuil d'avertissement ou est épuisé, avec **Voir les budgets** pour ouvrir la page Utilisation.
+- **Dans les explorateurs**, une bannière au-dessus des données des journaux, des traces, des métriques, des profils et des événements de sécurité indique quand le budget de ce signal a dépassé son seuil d'avertissement ou est épuisé, ou quand celui d'une clé, d'une équipe ou d'une étiquette est épuisé, avec **Voir les budgets** pour ouvrir la page Utilisation.
 - **Dans l'Admin Dashboard**, la page **Budgets d'ingestion** d'un projet montre les mêmes chiffres.
 
 ## Alerter sur un budget
@@ -153,9 +180,13 @@ Chaque point porte ces attributs :
 | --- | --- |
 | `projectId` | L'ID du projet. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` ou `security-events`. |
-| `scope` | `project`, ou `ingestion-key` pour le budget propre d'une clé. |
+| `scope` | `project`, `ingestion-key` pour le budget propre d'une clé, ou `team` ou `label` pour celui d'une équipe ou d'une étiquette. |
 | `ingestionKeyId` | L'ID de la clé, pour le budget propre d'une clé. |
 | `ingestionKeyName` | Le nom de la clé au moment où le point a été écrit, pour le budget propre d'une clé. |
+| `teamId` | L'ID de l'équipe, pour le budget d'une équipe. |
+| `teamName` | Le nom de l'équipe au moment où le point a été écrit, pour le budget d'une équipe. |
+| `labelId` | L'ID de l'étiquette, pour le budget d'une étiquette. |
+| `labelName` | Le nom de l'étiquette au moment où le point a été écrit, pour le budget d'une étiquette. |
 
 Pour être prévenu à 90 % du budget de journaux du projet, créez un moniteur de métriques sur `oneuptime.telemetry.budget.used.percent`, filtré sur `signal` `logs` et `scope` `project`, qui alerte quand le maximum dépasse 90 :
 
@@ -168,6 +199,10 @@ Pour être prévenu à 90 % du budget de journaux du projet, créez un moniteur 
 
 :::details Un collector journalise des 403 pour ses exports
 Le budget quotidien du projet ou de la clé pour ce signal est épuisé, et le collector abandonne ce qu'il ne peut pas envoyer jusqu'à la réinitialisation du budget. Consultez **Utilisé aujourd'hui** sur la page Utilisation. Demandez à l'administrateur de l'instance d'augmenter le budget du projet, ou envoyez moins : un filtre de suppression n'aide pas ici, car il retire la télémétrie après qu'elle a été comptée.
+:::
+
+:::details La télémétrie d'une équipe n'arrive plus, et aucun émetteur ne journalise d'erreur
+Le budget quotidien de l'équipe, ou d'une étiquette de ses services, est épuisé pour ce signal, et leur télémétrie est supprimée jusqu'à la réinitialisation du budget. Consultez **Utilisé aujourd'hui** sur la carte **Budgets des équipes et des étiquettes aujourd'hui** de la page Utilisation, et augmentez le budget sous **Plus de paramètres**.
 :::
 
 :::details Un collector journalise des 429 et réessaie

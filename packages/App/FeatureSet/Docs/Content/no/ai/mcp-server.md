@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den utsteder ingen økt-ID-er, og hver forespørsel s
 - **Planlagt vedlikehold**: opprett og administrer vedlikeholdshendelser.
 - **Telemetri**: spør etter logger, målinger, spor, unntak, monitorlogger, sikkerhetshendelser og mer, kun lesing.
 
-Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 55 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. En type post uten et felt du kan endre etter at den er opprettet, som en hendelses kobling til et varsel, har ikke noe verktøy for å oppdatere. Skrivebeskyttede verktøy har `readOnlyHint`, og alle verktøy som endrer noe, har `destructiveHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. `openWorldHint` markerer verktøyene som når utover prosjektet ditt: verktøyene for offentlige statussider, og endringene som vises på en statusside og sendes til abonnentene på den, som en ny hendelse, en endring av tilstanden dens eller et offentlig notat. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
+Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 55 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. En type post uten et felt du kan endre etter at den er opprettet, som en hendelses kobling til et varsel, har ikke noe verktøy for å oppdatere. Skrivebeskyttede verktøy har `readOnlyHint`, og alle verktøy som endrer noe, har `destructiveHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. `openWorldHint` markerer verktøyene som når utover prosjektet ditt: verktøyene for offentlige statussider; endringene som vises på en statusside og sendes til abonnentene på den, som en ny hendelse, en endring av tilstanden dens eller et offentlig notat; invitasjoner, som sendes på e-post til folk som ikke trenger å være med i prosjektet ditt ennå; og verktøyene som oppretter eller endrer en monitor, et datalager eller et BI-verktøy, siden OneUptime deretter kontakter adressen du oppgir. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
 
 ## Før du begynner
 
@@ -348,12 +348,16 @@ Verktøyet **`oneuptime_move_in_list`** flytter en rad i en ordnet liste, for ek
 Serveren har også oppsettshandlingene til Spør AI, ett kall hver: det du setter opp, i stedet for én post om gangen. Hver oppretter postene som Spør AI og de veiledede oppsettene oppretter for de samme svarene, med de samme kontrollene:
 
 - **`set_up_website_monitoring`**: en monitor for et nettsted eller et API på en adresse, som åpner en hendelse når adressen ikke svarer eller svarer med en feil. Den er din, og en adresse som en monitor allerede sjekker, får ikke en til
+- **`set_up_service_monitor`**: en av monitorene det veiledede oppsettet for telemetri anbefaler for en tjeneste som sender telemetri: for mislykkede forespørsler, trege forespørsler, ubehandlede unntak eller en økning i feillogger. Den åpner et varsel for teamet ditt, og en monitor tjenesten allerede har, får ikke en til
 - **`set_up_paging`**: i et prosjekt som ennå ikke tilkaller noen, den første vaktpolicyen, som tilkaller deg og personene og teamene du nevner ved hver ny hendelse og hvert nytt varsel
+- **`add_to_on_call_policy`**: medlemmer og team lagt til i en vaktpolicy prosjektet har, på et av nivåene eller som et nytt nivå som tilkaller dem når ingen kvitterer. Den et nivå allerede tilkaller, blir ikke lagt til to ganger
+- **`invite_people`**: personer invitert til prosjektet på e-post. Hver av dem får en invitasjon på e-post i ditt navn, og en adresse som allerede er i prosjektet, blir ikke invitert på nytt
+- **`set_how_to_reach_me`**: hvordan tilkallinger når deg, for eksempel en SMS med en gang og en samtale etter fem minutter. Den erstatter innstillingene dine i Slik når man meg og bruker bare metodene du har bekreftet
 - **`publish_status_page`**: en offentlig statusside som viser monitorene du nevner
 - **`add_monitors_to_status_page`**: monitorer satt på en statusside prosjektet har
 - **`who_is_told`**: hvem som får beskjed når en monitor er nede, og hva som ville hindret at noen blir nådd. Den endrer ingenting
 
-De handler som deg, pålogget med OAuth: en API-nøkkel for et prosjekt kan ikke bruke de fire som oppretter noe. Klienten din spør deg før hver av dem, og svaret sier hva som ble opprettet. Det som mangler, for eksempel en tillatelse, en adresse eller plass i abonnementet, sies før noe opprettes.
+De handler som deg, pålogget med OAuth: en API-nøkkel for et prosjekt kan ikke bruke de åtte som oppretter noe. Klienten din spør deg før hver av dem, og svaret sier hva som ble opprettet. Det som mangler, for eksempel en tillatelse, en adresse eller plass i abonnementet, sies før noe opprettes.
 
 ## Spørre etter telemetri
 

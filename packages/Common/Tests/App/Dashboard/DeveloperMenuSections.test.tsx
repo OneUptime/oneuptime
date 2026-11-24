@@ -442,6 +442,8 @@ describe("every resource's view menu has a Developer section", () => {
         "Pages/OnCallDuty/OnCallDutyPolicy/SideMenu.tsx",
         "Pages/ScheduledMaintenanceEvents/View/SideMenu.tsx",
         "Pages/Teams/View/SideMenu.tsx",
+        // A custom role's own menu (#10139).
+        "Pages/Teams/RoleViewSideMenu.tsx",
       ]),
     );
     expect(VIEW_MENUS_WITH_DEVELOPER_PAGES.length).toBeGreaterThanOrEqual(35);

@@ -1586,7 +1586,9 @@ describe("IdentityRateLimit", () => {
     ).filter((bucket: IdentityRateLimitBucket) => {
       return (
         bucket !== IdentityRateLimitBucket.VerificationEmailResend &&
-        bucket !== IdentityRateLimitBucket.SignUp
+        bucket !== IdentityRateLimitBucket.SignUp &&
+        // Somebody already signed in, confirming it's them (#10155).
+        bucket !== IdentityRateLimitBucket.Reauthentication
       );
     });
 
@@ -1639,6 +1641,36 @@ describe("IdentityRateLimit", () => {
       );
     });
 
+    /*
+     * #9989: the request names no account - a code, a verifier and a state -
+     * so both counters get the address budget, as the passkey bucket's do,
+     * on a counter of its own.
+     */
+    it("gives the mobile SSO code bucket a budget of its own, by address", () => {
+      const exchange: {
+        windowSeconds: number;
+        perAccountLimit: number;
+        perIpLimit: number;
+      } = IdentityRateLimit.getBucketConfig(
+        IdentityRateLimitBucket.MobileSsoExchange,
+      );
+
+      expect(IdentityRateLimitBucket.MobileSsoExchange).toBe(
+        "mobile-sso-exchange",
+      );
+      expect(exchange).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Login),
+      );
+      expect(exchange).not.toBe(
+        IdentityRateLimit.getBucketConfig(IdentityRateLimitBucket.Passkey),
+      );
+      expect(exchange).toEqual({
+        windowSeconds: 15 * 60,
+        perAccountLimit: 300,
+        perIpLimit: 300,
+      });
+    });
+
     it("knows every sign-in bucket there is", () => {
       /*
        * A floor, so the it.each below cannot pass by iterating nothing. Adding
@@ -1654,10 +1686,12 @@ describe("IdentityRateLimit", () => {
           IdentityRateLimitBucket.MagicLink,
           // Not a sign-in, but its one caller shows no refusal at all.
           IdentityRateLimitBucket.SignUpInvitation,
+          // The mobile app redeeming an SSO sign-in's one-time code (#9989).
+          IdentityRateLimitBucket.MobileSsoExchange,
         ]),
       );
       expect(SIGN_IN_BUCKETS).toHaveLength(
-        Object.values(IdentityRateLimitBucket).length - 2,
+        Object.values(IdentityRateLimitBucket).length - 3,
       );
     });
 
@@ -1682,6 +1716,25 @@ describe("IdentityRateLimit", () => {
           "Too many requests for a new verification email. Please try again later.",
         unavailable:
           "Unable to send a verification email right now. Please try again shortly.",
+      });
+    });
+
+    it("answers the reauthentication bucket with its own pair: its person is signed in already", () => {
+      /*
+       * "Too many sign-in attempts" would send somebody who is signed in
+       * looking for a problem they do not have (#10155). The words are the
+       * prompt's own (Types/Accounts/Reauthentication), so the Dashboard
+       * draws them in the reader's language.
+       */
+      expect(
+        IdentityRateLimit.getRefusalMessages(
+          IdentityRateLimitBucket.Reauthentication,
+        ),
+      ).toEqual({
+        rateLimited:
+          "Too many attempts to confirm it's you. Try again in a few minutes.",
+        unavailable:
+          "We could not confirm it's you right now. Try again in a minute.",
       });
     });
 

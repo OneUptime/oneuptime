@@ -171,6 +171,7 @@ Værter og netværksenheder beskrives med de samme oplysninger, gemt under de sa
 | Navn på operativsystem | `os.name` | Kun fra SDK'er, der rapporterer det: ellers nævner `os.description` operativsystemet |
 | Enhedstype | `device.type` | Valgfrit: stempl det på samme måde (`Hypervisor`, `Workstation`) |
 | Placering | `device.location` | Valgfrit: stempl det på samme måde (`Frankfurt DC, Rack B4`) |
+| Sikkerhedspatchniveau | `android.os.security_patch` | På en Android-enhed: fra Android-agenten eller dens MDM |
 
 Alt, der er markeret med Ja, kommer fra collectorens processor `resourcedetection` og står allerede i den konfiguration, OneUptime genererer for dig.
 

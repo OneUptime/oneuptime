@@ -136,7 +136,7 @@ Source Maps werden 90 Tage nach dem Upload aufbewahrt und dann automatisch gelö
 ## Sicherheit
 
 - Maps werden über einen authentifizierten Endpunkt hochgeladen und in Ihrem OneUptime-Projekt gespeichert – sie werden nie von Ihrer Website abgerufen, versteckte Source Maps bleiben also versteckt.
-- Den rohen Inhalt einer Map (der Ihren Originalcode enthält, wenn mit `sourcesContent` gebaut) können nur Projektinhaber und Projektadministratoren zurücklesen sowie alle mit der Berechtigung **Read Telemetry Source Map**. Andere Teammitglieder sehen nur die aufgelösten Frames und die wenigen Quellcodezeilen um jede Absturzstelle von Ausnahmen, auf die sie ohnehin Zugriff haben.
+- Den rohen Inhalt einer Map (der Ihren Originalcode enthält, wenn mit `sourcesContent` gebaut) können nur Projektinhaber und Projektadministratoren zurücklesen, alle, die Dienste auf der [Stufe Administrator](/docs/permissions/index#produktstufen) haben (`ServiceAdmin`), sowie alle mit der Berechtigung **Read Telemetry Source Map**. Andere Teammitglieder sehen nur die aufgelösten Frames und die wenigen Quellcodezeilen um jede Absturzstelle von Ausnahmen, auf die sie ohnehin Zugriff haben.
 - Wenn Sie einen Dienst löschen, werden seine Source Maps gelöscht.
 
 ## Fehlerbehebung

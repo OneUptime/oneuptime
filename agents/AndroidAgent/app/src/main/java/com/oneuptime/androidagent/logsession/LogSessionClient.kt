@@ -148,6 +148,8 @@ class LogSessionClient(
                 requestedAtMillis = item.time("requestedAt"),
                 requestedBy = item.text("requestedByName")?.trim()?.take(120)?.takeIf { it.isNotEmpty() },
                 expiresAtMillis = item.time("expiresAt"),
+                // Why they ask (#9966): read as anything from the network is, and shown only as one line.
+                note = LogSessionNote.clean(item.text("note")),
             )
         }
 

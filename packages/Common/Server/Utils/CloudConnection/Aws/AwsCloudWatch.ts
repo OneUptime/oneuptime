@@ -58,7 +58,54 @@ export interface AwsMetricQuery {
   dimensions: Array<AwsMetricDimension>;
   statistic: string;
   periodSeconds: number;
+  /*
+   * Only the data published with this unit (MetricStat.Unit): CloudWatch
+   * answers a query of another unit with no data, and converts nothing.
+   */
+  unit?: string | undefined;
 }
+
+/*
+ * CloudWatch's units, as its datapoints carry them (StandardUnit, the
+ * values GetMetricData's MetricStat.Unit takes).
+ */
+export const AWS_CLOUDWATCH_UNITS: ReadonlyArray<string> = [
+  "Seconds",
+  "Microseconds",
+  "Milliseconds",
+  "Bytes",
+  "Kilobytes",
+  "Megabytes",
+  "Gigabytes",
+  "Terabytes",
+  "Bits",
+  "Kilobits",
+  "Megabits",
+  "Gigabits",
+  "Terabits",
+  "Percent",
+  "Count",
+  "Bytes/Second",
+  "Kilobytes/Second",
+  "Megabytes/Second",
+  "Gigabytes/Second",
+  "Terabytes/Second",
+  "Bits/Second",
+  "Kilobits/Second",
+  "Megabits/Second",
+  "Gigabits/Second",
+  "Terabits/Second",
+  "Count/Second",
+  "None",
+];
+
+/*
+ * How far back a metric's unit is looked for, a point a day: as far as
+ * ListMetrics lists a metric that is quiet (two weeks), so a metric a
+ * listing found has data in it.
+ */
+export const AWS_UNIT_LOOK_BACK_DAYS: number = 14;
+const DAY_SECONDS: number = 24 * 60 * 60;
 
 export interface AwsMetricResult {
   id: string;
@@ -244,6 +291,7 @@ export async function getMetricData(
               },
               Period: query.periodSeconds,
               Stat: query.statistic,
+              ...(query.unit ? { Unit: query.unit } : {}),
             },
             ReturnData: true,
           };
@@ -308,4 +356,82 @@ export async function getMetricData(
       return result.timestamps.length > 0;
     },
   );
+}
+
+/*
+ * THE UNIT A METRIC'S DATAPOINTS CARRY (#9809).
+ *
+ * ListMetrics names no unit, and GetMetricData answers values without one.
+ * But GetMetricData answers a query that names a unit (MetricStat.Unit) only
+ * with the data published with that unit: so one call with a query per
+ * unit of CloudWatch's list (AWS_CLOUDWATCH_UNITS) - its sample count a day
+ * over the last AWS_UNIT_LOOK_BACK_DAYS - says which unit the metric's
+ * datapoints carry: the one whose query has data, the most samples where
+ * a metric was published with two. It is the one call the connection's
+ * role allows (GetMetricStatistics, whose datapoints name their unit, is
+ * not in it), and costs 27 metrics read, about $0.0003. "" when no query
+ * has data: nothing published in that time.
+ */
+export async function findAwsMetricUnit(
+  options: AwsCloudWatchOptions,
+  data: {
+    namespace: string;
+    metricName: string;
+    dimensions: Array<AwsMetricDimension>;
+    now: Date;
+  },
+): Promise<string> {
+  const end: Date = data.now;
+  const start: Date = new Date(
+    end.getTime() - AWS_UNIT_LOOK_BACK_DAYS * DAY_SECONDS * 1000,
+  );
+  const results: Array<AwsMetricResult> = await getMetricData(options, {
+    queries: AWS_CLOUDWATCH_UNITS.map(
+      (unit: string, index: number): AwsMetricQuery => {
+        return {
+          id: `u${index}`,
+          namespace: data.namespace,
+          metricName: data.metricName,
+          dimensions: data.dimensions,
+          statistic: "SampleCount",
+          periodSeconds: DAY_SECONDS,
+          unit,
+        };
+      },
+    ),
+    startTime: start,
+    endTime: end,
+  });
+
+  return pickAwsMetricUnit(results);
+}
+
+/*
+ * Of a unit probe's answers (findAwsMetricUnit), the unit with the most
+ * samples; "" when none has any. Each answer's id is "u" and the unit's
+ * place in AWS_CLOUDWATCH_UNITS.
+ */
+export function pickAwsMetricUnit(
+  results: ReadonlyArray<AwsMetricResult>,
+): string {
+  let best: string = "";
+  let most: number = 0;
+
+  for (const result of results) {
+    const unit: string | undefined =
+      AWS_CLOUDWATCH_UNITS[Number(result.id.slice(1))];
+    const samples: number = result.values.reduce(
+      (sum: number, value: number): number => {
+        return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+      },
+      0,
+    );
+
+    if (unit && result.id.startsWith("u") && samples > most) {
+      most = samples;
+      best = unit;
+    }
+  }
+
+  return best;
 }

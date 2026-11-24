@@ -4,6 +4,11 @@ import EventStatusPanel, {
   EventStateAction,
   EventStateItem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
+import {
+  EVENT_HEADER_EDITABLE_FACT_CLASS_NAME,
+  EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME,
+  EVENT_HEADER_FACT_EDITOR_ATTRIBUTE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import "@testing-library/jest-dom";
 import {
@@ -2714,5 +2719,97 @@ describe("EventStatusPanel state menu colours", () => {
     const choice: HTMLElement = getMenuChoice(openMenu(), "Triaged");
 
     expect(menuDotColor(choice)).toBeUndefined();
+  });
+});
+
+/*
+ * A FACT CHANGED RIGHT THERE (#10195): the commander's name hands the role
+ * on, and while it is pointed at, focused or open, a pencil fades in after
+ * the role's label - so the label and the name read as one thing to
+ * change. The pencil is decoration: the name's own label says what it does.
+ */
+describe("EventStatusPanel a fact changed right where it is shown", () => {
+  const editableFact: () => ComponentProps["facts"] =
+    (): ComponentProps["facts"] => {
+      return [
+        {
+          label: "Incident Commander",
+          isLabelTyped: true,
+          icon: IconProp.ShieldCheck,
+          isEditableInPlace: true,
+          value: (
+            <button
+              type="button"
+              {...{ [EVENT_HEADER_FACT_EDITOR_ATTRIBUTE]: "true" }}
+            >
+              Maya Chen
+            </button>
+          ),
+        },
+        { label: "Monitor", value: "checkout-api" },
+      ];
+    };
+
+  test("its label ends with a pencil that only its control lights up", () => {
+    renderPanel({ facts: editableFact() });
+
+    const facts: HTMLElement = screen.getByTestId("event-status-facts");
+    const hints: Array<HTMLElement> = within(facts).getAllByTestId(
+      "event-header-fact-edit-hint",
+    );
+
+    // One pencil, after the commander's label, and none after the monitor's.
+    expect(hints).toHaveLength(1);
+
+    const label: HTMLElement = hints[0]!.closest("dt") as HTMLElement;
+    expect(label).toHaveTextContent("Incident Commander");
+    expect(label.lastElementChild).toBe(hints[0]);
+
+    // Decoration: never read out.
+    expect(hints[0]).toHaveAttribute("aria-hidden", "true");
+
+    const pencil: SVGElement = hints[0]!.querySelector("svg") as SVGElement;
+    for (const className of EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME.split(" ")) {
+      expect(pencil).toHaveClass(className);
+    }
+
+    // The fact holds the group its pencil answers to.
+    const fact: HTMLElement = label.parentElement as HTMLElement;
+    expect(fact).toHaveClass(EVENT_HEADER_EDITABLE_FACT_CLASS_NAME);
+    expect(
+      within(fact).getByRole("button", { name: "Maya Chen" }),
+    ).toHaveAttribute(EVENT_HEADER_FACT_EDITOR_ATTRIBUTE, "true");
+  });
+
+  test("hidden at rest, it shows while the control is pointed at, focused from the keyboard, or open", () => {
+    expect(EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME).toContain("opacity-0");
+
+    for (const state of [":hover", ":focus-visible", "[aria-expanded=true]"]) {
+      expect(EVENT_HEADER_FACT_EDIT_HINT_CLASS_NAME).toContain(
+        `group-has-[[${EVENT_HEADER_FACT_EDITOR_ATTRIBUTE}]${state}]/fact:opacity-100`,
+      );
+    }
+
+    // The group the pencil answers to is the fact's, by name.
+    expect(EVENT_HEADER_EDITABLE_FACT_CLASS_NAME).toBe("group/fact");
+  });
+
+  test("a fact that is not changed there has no pencil and no group", () => {
+    renderPanel({
+      facts: [
+        {
+          label: "Incident Commander",
+          isLabelTyped: true,
+          value: "Maya Chen",
+        },
+      ],
+    });
+
+    const facts: HTMLElement = screen.getByTestId("event-status-facts");
+
+    expect(
+      within(facts).queryByTestId("event-header-fact-edit-hint"),
+    ).toBeNull();
+    expect(facts.querySelector(".group\\/fact")).toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import {
   proxmoxClusterCountsFromInventory,
 } from "../../../../Server/Utils/Telemetry/ProxmoxCephSnapshotScan";
 import { JSONObject } from "../../../../Types/JSON";
+import { PROXMOX_GUEST_POWER_TASK_METRIC_NAME } from "../../../../Utils/Proxmox/ProxmoxGuestPowerTask";
 
 /*
  * WI-21: the Proxmox/Ceph snapshot scan, fed with synthetic OTLP
@@ -1624,5 +1625,256 @@ describe("ProxmoxCephSnapshotScan - what only a node's own scrape reported (issu
         buffers.clusterBuffer.get(CLUSTER),
       );
     expect(extras).toEqual({});
+  });
+});
+
+/*
+ * #10017: what the Proxmox AI agent read of each stopped guest's task log
+ * (pve_guest_last_power_task, ProxmoxGuestPowerTask) - a datapoint per guest
+ * as the agent sends it: the guest's identity as the collector writes it,
+ * the task in pve.task.*, its end in Unix seconds as the value, timed when
+ * the agent read which guests are stopped.
+ */
+describe("ProxmoxCephSnapshotScan - who or what stopped a guest, from the task log", () => {
+  // What the agent read at readAtMs (BASE_MS): the task it found, if any.
+  function powerTask(data: {
+    id: string;
+    type?: string;
+    user?: string;
+    status?: string;
+    node?: string;
+    endedAtSeconds?: number;
+    readAtMs?: number;
+  }): JSONObject {
+    const [guestType, vmid] = data.id.split("/") as [string, string];
+    return datapoint({
+      value: data.endedAtSeconds ?? 0,
+      asDouble: true,
+      atMs: data.readAtMs ?? BASE_MS,
+      labels: {
+        id: data.id,
+        "pve.scope": "guest",
+        "pve.type": guestType,
+        "pve.id": vmid,
+        node: "pve1",
+        "pve.task.type": data.type ?? "",
+        "pve.task.user": data.user ?? "",
+        "pve.task.status": data.status ?? "",
+        "pve.task.node": data.node ?? "",
+      },
+    });
+  }
+
+  const STOPPED_AT_SECONDS: number = BASE_MS / 1000 - 2 * 60 * 60;
+
+  test("the metric is allow-listed under the name the agent sends", () => {
+    expect(PROXMOX_GUEST_POWER_TASK_METRIC_NAME).toBe(
+      "pve_guest_last_power_task",
+    );
+    expect(
+      PVE_SNAPSHOT_METRIC_NAMES.has(PROXMOX_GUEST_POWER_TASK_METRIC_NAME),
+    ).toBe(true);
+  });
+
+  test("a reading folds into the cluster snapshot with the task's facts - never an inventory entry", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/101",
+        type: "qmstop",
+        user: "alice@pve",
+        status: "OK",
+        node: "pve1",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+      }),
+    );
+
+    // A guest's status is the exporter's to say: no row is refreshed.
+    expect(proxmoxEntries(buffers)).toHaveLength(0);
+    const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
+      buffers.clusterBuffer.get(CLUSTER);
+    expect(snap?.guestPowerTasks.get("qemu/101")).toEqual({
+      externalId: "qemu/101",
+      type: "qmstop",
+      user: "alice@pve",
+      status: "OK",
+      node: "pve1",
+      at: new Date(STOPPED_AT_SECONDS * 1000),
+      readAt: new Date(BASE_MS),
+    });
+  });
+
+  test("a batch carrying only readings derives no cluster extras: what the task log says is not the cluster being read", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "lxc/200",
+        type: "vzshutdown",
+        user: "root@pam",
+        status: "OK",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+      }),
+    );
+    const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
+      buffers.clusterBuffer.get(CLUSTER);
+    const extras: ProxmoxClusterSnapshotExtras =
+      deriveProxmoxClusterSnapshotExtras(proxmoxEntries(buffers), snap);
+    expect(extras).toEqual({});
+    expect(snap?.sawGuestIdentity).toBe(false);
+    expect(snap?.countsFromInventory).toBe(false);
+  });
+
+  test("a failed start keeps Proxmox's own reason; a token's user is kept as written", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/103",
+        type: "qmstart",
+        user: "root@pam",
+        status: "start failed: QEMU exited with code 1",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+      }),
+    );
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/104",
+        type: "qmshutdown",
+        user: "automation@pve!nightly",
+        status: "OK",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+      }),
+    );
+    const snap: ProxmoxClusterSnapshotBufferEntry | undefined =
+      buffers.clusterBuffer.get(CLUSTER);
+    expect(snap?.guestPowerTasks.get("qemu/103")?.status).toBe(
+      "start failed: QEMU exited with code 1",
+    );
+    expect(snap?.guestPowerTasks.get("qemu/104")?.user).toBe(
+      "automation@pve!nightly",
+    );
+  });
+
+  test("a guest whose task log holds no start or stop is a reading with no task, so what was kept of it is cleared", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({ id: "lxc/200" }),
+    );
+    expect(
+      buffers.clusterBuffer.get(CLUSTER)?.guestPowerTasks.get("lxc/200"),
+    ).toEqual({
+      externalId: "lxc/200",
+      type: null,
+      user: null,
+      status: null,
+      node: null,
+      at: null,
+      readAt: new Date(BASE_MS),
+    });
+  });
+
+  test("a task type without a time, a time without a type, or a time no date can hold, is no task", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({ id: "qemu/101", type: "qmstop", user: "alice@pve" }),
+    );
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({ id: "qemu/102", endedAtSeconds: STOPPED_AT_SECONDS }),
+    );
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/103",
+        type: "qmstop",
+        endedAtSeconds: Number.MAX_SAFE_INTEGER,
+      }),
+    );
+    const tasks: Map<string, unknown> =
+      buffers.clusterBuffer.get(CLUSTER)!.guestPowerTasks;
+    for (const id of ["qemu/101", "qemu/102", "qemu/103"]) {
+      expect(tasks.get(id)).toMatchObject({ type: null, at: null });
+    }
+  });
+
+  test("the newest reading of a guest wins, in whatever order the batch carries them", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/101",
+        type: "qmstop",
+        user: "newer@pve",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+        readAtMs: BASE_MS + 5 * 60_000,
+      }),
+    );
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/101",
+        type: "qmstop",
+        user: "older@pve",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+      }),
+    );
+    expect(
+      buffers.clusterBuffer.get(CLUSTER)?.guestPowerTasks.get("qemu/101")?.user,
+    ).toBe("newer@pve");
+  });
+
+  test("only a guest has a task log of its own: a node, a storage or an id without a VMID is left out", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    for (const id of ["node/pve1", "storage/pve1/local", "qemu/", "qemu/abc"]) {
+      feedProxmox(
+        buffers,
+        PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+        datapoint({
+          value: STOPPED_AT_SECONDS,
+          asDouble: true,
+          labels: { id: id, "pve.task.type": "qmstop" },
+        }),
+      );
+    }
+    expect(buffers.clusterBuffer.get(CLUSTER)?.guestPowerTasks.size).toBe(0);
+    expect(proxmoxEntries(buffers)).toHaveLength(0);
+  });
+
+  test("a scrape and a reading in one batch keep to their own places", () => {
+    const buffers: ProxmoxBuffers = proxmoxBuffers();
+    feedProxmox(
+      buffers,
+      "pve_up",
+      datapoint({ value: 0, labels: { id: "qemu/101" } }),
+    );
+    feedProxmox(
+      buffers,
+      PROXMOX_GUEST_POWER_TASK_METRIC_NAME,
+      powerTask({
+        id: "qemu/101",
+        type: "qmstop",
+        user: "alice@pve",
+        endedAtSeconds: STOPPED_AT_SECONDS,
+      }),
+    );
+    expect(proxmoxEntry(buffers, "Guest", "qemu/101").isUp).toBe(false);
+    expect(
+      buffers.clusterBuffer.get(CLUSTER)?.guestPowerTasks.get("qemu/101")?.type,
+    ).toBe("qmstop");
   });
 });

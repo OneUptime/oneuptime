@@ -557,7 +557,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
   [
     "TwoFactorBackupCodeUsed",
     "twoFactorAuthUrl",
-    "Manage two factor authentication",
+    "Manage Two-Factor Authentication",
     null,
   ],
   [

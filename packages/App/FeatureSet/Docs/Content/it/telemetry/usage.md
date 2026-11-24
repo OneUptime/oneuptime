@@ -5,6 +5,7 @@ Vedete quanta telemetria invia ogni progetto, e ogni servizio o risorsa al suo i
 :::cards
 - [Come viene conteggiato l'utilizzo](#come-viene-conteggiato-lutilizzo): Una volta al giorno, per ogni risorsa e ogni segnale.
 - [Vedere l'utilizzo di un progetto](#vedere-lutilizzo-di-un-progetto): Impostazioni del progetto → Telemetria e APM → Utilizzo.
+- [Seguire l'utilizzo man mano che arriva](#seguire-lutilizzo-man-mano-che-arriva): Ogni 5 minuti, come metrica.
 - [Vedere l'utilizzo di tutti i progetti](#vedere-lutilizzo-di-tutti-i-progetti): L'Admin Dashboard, per l'amministratore dell'istanza.
 - [Per quanto tempo viene conservato l'utilizzo](#per-quanto-tempo-viene-conservato-lutilizzo): 120 giorni, a meno che non lo cambiate.
 :::
@@ -24,11 +25,11 @@ flowchart TB
 
 - **Un giorno viene conteggiato quando è finito.** Ogni giorno viene conteggiato entro le 08:00 UTC circa del giorno dopo, quindi l'utilizzo di oggi compare domani. Un giorno che non è stato possibile conteggiare viene ritentato per una settimana.
 - **La dimensione è quella salvata.** Ogni segnale viene conteggiato come la dimensione delle righe in cui è salvato, prima della compressione. Le riproduzioni delle sessioni vengono conteggiate come i byte caricati dai registratori.
-- **Le eccezioni vengono mostrate a parte.** Le eccezioni registrate negli span e nei log hanno un proprio totale, una propria colonna e una propria parte del grafico, e **Tracce** conteggia gli span. Non hanno una riga propria: ogni riga delle tracce indica quanta parte di essa era costituita da eccezioni. Un giorno conteggiato prima che le eccezioni venissero mostrate a parte le include ancora in **Tracce**, come prima.
+- **Le eccezioni vengono mostrate a parte.** Le eccezioni registrate negli span e nei log hanno un proprio totale, una propria colonna e una propria parte del grafico, **Tracce** conteggia gli span e **Log** conteggia i record di log. Non hanno una riga propria: ogni riga delle tracce o dei log indica quanta parte di essa era costituita da eccezioni. Un giorno conteggiato prima che le eccezioni venissero mostrate a parte le include ancora in **Tracce**, come prima.
 - **I profili includono i loro campioni.**
 - **La telemetria propria di OneUptime non viene conteggiata.** Le letture di monitor, avvisi, incidenti e SLO, le letture di Osservabilità dei dati e le metriche del budget delle riproduzioni delle sessioni sono scritte da OneUptime stesso.
 - **Su OneUptime Cloud, la telemetria si paga in base a queste righe.** Su un'installazione senza fatturazione, l'utilizzo viene conteggiato senza costi, e non viene addebitato nulla, nemmeno se la fatturazione viene attivata in seguito.
-- **Le eccezioni si pagano come parte delle tracce.** Su OneUptime Cloud, le tracce si pagano per i loro span e le loro eccezioni insieme, al prezzo delle tracce, come è sempre stato. Mostrare le eccezioni a parte non cambia nulla di ciò che vi viene addebitato, e non vengono mai addebitate due volte.
+- **Le eccezioni si pagano con ciò in cui sono state trovate.** Su OneUptime Cloud, un'eccezione trovata in uno span si paga con **Tracce**, e una trovata in un record di log con **Log**. I log e le tracce costano lo stesso per GB, quindi ogni eccezione si paga una volta sola, allo stesso prezzo, e a un progetto che invia solo log non vengono mai addebitate tracce. Un giorno conteggiato prima che le eccezioni trovate nei log passassero a **Log** le mantiene in **Tracce**.
 - **Un budget viene conteggiato a parte rispetto all'utilizzo.** Un [budget di acquisizione](/docs/telemetry/ingestion-budgets) conteggia la telemetria man mano che arriva, decompressa, quindi può fermare la telemetria di un giorno il giorno stesso. Finché ne è impostato uno, questa pagina si apre con i budget di oggi. Le eccezioni non hanno un budget proprio: contano nel budget delle tracce o dei log con cui arrivano.
 
 ## Prima di iniziare
@@ -58,7 +59,7 @@ La pagina ha tre schede:
 | --- | --- |
 | **Utilizzo della telemetria** | Il **Totale** dell'intervallo, un totale per ogni segnale e un grafico di ogni giorno, con i suoi segnali impilati. |
 | **Utilizzo per risorsa** | Ogni **Risorsa** con il suo tipo, una colonna per ogni segnale, il **Totale** e, in **Conservazione**, per quanto tempo viene conservata la sua telemetria. |
-| **Cronologia di utilizzo della telemetria** | Una riga per prodotto, risorsa e giorno, con filtri per **Prodotto**, **Giorno** e **Servizio**. Una riga di **Tracce** contiene insieme i suoi span e le sue eccezioni, così come si pagano le tracce, e indica in **Dati acquisiti (in GB)** quanta parte era costituita da eccezioni. |
+| **Cronologia di utilizzo della telemetria** | Una riga per prodotto, risorsa e giorno, con filtri per **Prodotto**, **Giorno** e **Servizio**. Una riga di **Tracce** contiene i suoi span e le eccezioni trovate in essi, e una riga di **Log** i suoi record di log e le eccezioni trovate in essi, così come si pagano. Ognuna indica in **Dati acquisiti (in GB)** quanta parte era costituita da eccezioni. |
 
 La telemetria che non indicava un servizio viene elencata come **Servizio sconosciuto**. Una risorsa eliminata nel frattempo, o il cui tipo il vostro ruolo non legge, viene elencata con il suo tipo e l'inizio del suo ID.
 
@@ -70,6 +71,36 @@ La telemetria che non indicava un servizio viene elencata come **Servizio sconos
 | Membro del progetto, Visualizzatore, Amministratore della telemetria, Membro della telemetria, Visualizzatore della telemetria | Quanto ha inviato ogni risorsa e per quanto tempo viene conservato |
 
 Il costo dell'utilizzo viene mostrato solo su OneUptime Cloud: un'installazione senza fatturazione non addebita nulla. Vedete [Fatturazione e utilizzo](/docs/configuration/billing#cronologia-utilizzo) per i prezzi.
+
+## Seguire l'utilizzo man mano che arriva
+
+Le righe di utilizzo arrivano il giorno dopo. Per vedere in un grafico ciò che ogni servizio invia nel giro di pochi minuti, e ricevere un avviso quando invia di più, un Proprietario del progetto o un Amministratore del progetto può pubblicare l'utilizzo del progetto come metrica:
+
+:::steps
+### Attivarlo
+
+Andate in **Impostazioni del progetto → Telemetria e APM → Utilizzo**, aprite **Altre impostazioni** in fondo alla pagina e attivate **Pubblica l'utilizzo come metriche** nella scheda **Utilizzo come metriche**. Viene salvato non appena lo attivate.
+
+### Seguirlo in un grafico
+
+Ogni 5 minuti, OneUptime scrive ciò che ogni servizio e risorsa ha inviato di ogni segnale in quei 5 minuti come metrica `oneuptime.telemetry.usage.bytes`, in byte (`By`). Seguitene la somma nell'[Esploratore metriche](/docs/telemetry/metrics-explorer), o ricevete avvisi con un [monitor metriche](/docs/monitor/metrics-monitor).
+:::
+
+Ogni punto porta questi attributi:
+
+| Attributo | Valore |
+| --- | --- |
+| `projectId` | L'ID del progetto. |
+| `signal` | `logs`, `traces`, `metrics` o `profiles`. |
+| `resourceType` | Il tipo di risorsa: `OpenTelemetry` per un servizio, `Host` per un host, e così via. |
+| `resourceId` | L'ID del servizio o della risorsa. |
+| `resourceName` | Il suo nome quando il punto è stato scritto. |
+
+- **Conteggiato man mano che arriva.** Ogni punto è la quota della risorsa in ciò che è arrivato, decompresso, come lo conteggiano i budget di acquisizione, quindi può indicare più delle righe di utilizzo, che conteggiano ciò che è stato salvato.
+- **Inviato tramite OpenTelemetry.** Vengono conteggiati i log, le tracce, le metriche e i profili inviati tramite OTLP. Gli eventi di sicurezza, le riproduzioni delle sessioni e i log di Fluent Bit, Fluentd o syslog no.
+- **Ogni punto appartiene alla sua risorsa.** Chi può leggere la telemetria di un servizio o di una risorsa ne legge i punti: un ruolo limitato ad alcune etichette vede solo i loro.
+- **Non costano nulla.** Questi punti non vengono conteggiati su alcun budget né come utilizzo, e vengono conservati quanto le metriche dei monitor: 30 giorni, a meno che l'amministratore dell'istanza non lo cambi. I nomi di metrica che iniziano con `oneuptime.telemetry.usage.` sono riservati a loro: le metriche che le vostre applicazioni inviano con un nome simile vengono scartate.
+- **Disattivato per impostazione predefinita.** Finché è disattivato non viene scritto nulla, e i punti già scritti vengono conservati finché non scadono.
 
 ## Vedere l'utilizzo di tutti i progetti
 
@@ -114,7 +145,7 @@ curl 'https://oneuptime.com/api/telemetry-usage/project?startDay=2026-10-01&endD
   -H "ApiKey: $ONEUPTIME_API_KEY"
 ```
 
-`startDay` ed `endDay` sono giorni scritti `YYYY-MM-DD`, entrambi inclusi, e un intervallo può durare fino a 1095 giorni. La risposta contiene i totali, ogni giorno per segnale e ogni risorsa per segnale, in GB, con il costo solo dove la fatturazione è attiva e la chiave legge la fatturazione. Le eccezioni si trovano in `Exceptions`, separate da `Traces`, e un giorno conteggiato prima che le eccezioni venissero mostrate a parte le include in `Traces`.
+`startDay` ed `endDay` sono giorni scritti `YYYY-MM-DD`, entrambi inclusi, e un intervallo può durare fino a 1095 giorni. La risposta contiene i totali, ogni giorno per segnale e ogni risorsa per segnale, in GB, con il costo solo dove la fatturazione è attiva e la chiave legge la fatturazione. Le eccezioni si trovano in `Exceptions`, separate da `Traces` e `Logs`, e un giorno conteggiato prima che le eccezioni venissero mostrate a parte le include in `Traces`.
 
 ## Risoluzione dei problemi
 
@@ -132,6 +163,10 @@ La risorsa è stata eliminata dopo aver inviato la telemetria, oppure il vostro 
 
 :::details Le Tracce sono scese il giorno in cui sono comparse le Eccezioni
 Prima le eccezioni venivano conteggiate dentro **Tracce**. Dal primo giorno conteggiato con le eccezioni a parte, **Tracce** conteggia gli span ed **Eccezioni** conteggia le eccezioni. Insieme corrispondono a ciò che era **Tracce**, e a ciò per cui si pagano le tracce.
+:::
+
+:::details I Log costano di più e le Tracce di meno da un certo giorno
+Le eccezioni trovate nei record di log prima si pagavano con **Tracce**. Dal primo giorno conteggiato dopo la modifica, si pagano con **Log**, il prodotto che le ha trovate. I log e le tracce costano lo stesso per GB, quindi insieme i due costano quanto prima.
 :::
 
 ## Passaggi successivi

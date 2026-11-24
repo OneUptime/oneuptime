@@ -6,6 +6,7 @@ import {
   STREAM_TOO_MANY_SUBSCRIPTIONS,
   getAzureCloudStreamCommand,
   getAzureCloudStreamDeleteCommand,
+  getAzureCloudStreamEntraCommand,
   getAzureCloudStreamNames,
   getAzureCloudStreamProblem,
   readAzureCloudStreamSubscriptions,
@@ -45,7 +46,39 @@ export interface AzureStreamChoices {
   what: CloudStreamWhat;
   // Subscription IDs, one a line or separated by commas.
   subscriptionsText: string;
+  /*
+   * For Security Events (#10111): each subscription's Activity Log, which
+   * the command sets up too, and Microsoft Entra ID's logs, a command of
+   * their own for a Security Administrator of the tenant.
+   */
+  activityLog: boolean;
+  entraId: boolean;
 }
+
+/*
+ * The audit logs the dialog offers beside what it streams, each a switch:
+ * what it sends, in a line.
+ */
+export const AZURE_STREAM_AUDIT_LOG_OPTIONS: ReadonlyArray<{
+  key: "activityLog" | "entraId";
+  title: string;
+  description: string;
+}> = [
+  {
+    key: "activityLog",
+    title: translationKey("Each subscription's Activity Log"),
+    description: translationKey(
+      "Changes made, Defender for Cloud alerts and what Azure Policy refused, which Security Events reads.",
+    ),
+  },
+  {
+    key: "entraId",
+    title: translationKey("Microsoft Entra ID's sign-in and audit logs"),
+    description: translationKey(
+      "Sign-ins, directory changes and risks, set up by a second command for a Security Administrator of your tenant.",
+    ),
+  },
+];
 
 export const AZURE_STREAM_WHAT_OPTIONS: ReadonlyArray<{
   key: CloudStreamWhat;
@@ -132,12 +165,18 @@ export function getAzureStreamStartSubscriptions(data: {
   ];
 }
 
+/*
+ * Metrics, and no audit log: what most people open the dialog for. The
+ * Activity Log and Entra ID's logs are a switch away, each said in a line.
+ */
 export function getDefaultAzureStreamChoices(
   subscriptions: Array<string>,
 ): AzureStreamChoices {
   return {
     what: CloudStreamWhat.Metrics,
     subscriptionsText: subscriptions.join(", "),
+    activityLog: false,
+    entraId: false,
   };
 }
 
@@ -147,6 +186,12 @@ export interface AzureStreamSetup {
   hostSubscriptionId: string;
   names: AzureCloudStreamNames;
   command: string;
+  /*
+   * Microsoft Entra ID's logs' own command, for a Security Administrator
+   * of the tenant - or "" while they are not chosen, or a command cannot
+   * be written.
+   */
+  entraCommand: string;
   // What stops a command being written, or null.
   problem: CloudStreamProblem | null;
 }
@@ -164,10 +209,11 @@ export function getAzureStreamSetup(data: {
     appId: data.appId,
     subscriptionIds: subscriptions,
   });
+  const hostSubscriptionId: string = problem ? "" : subscriptions[0] || "";
 
   return {
     subscriptions,
-    hostSubscriptionId: problem ? "" : subscriptions[0] || "",
+    hostSubscriptionId,
     names: getAzureCloudStreamNames(data.connectionId),
     command: problem
       ? ""
@@ -177,7 +223,15 @@ export function getAzureStreamSetup(data: {
           subscriptionIds: subscriptions,
           metrics: streamsMetrics(data.choices.what),
           logs: streamsLogs(data.choices.what),
+          activityLog: data.choices.activityLog,
         }),
+    entraCommand:
+      problem || !data.choices.entraId
+        ? ""
+        : getAzureCloudStreamEntraCommand({
+            connectionId: data.connectionId,
+            hostSubscriptionId,
+          }),
     problem,
   };
 }

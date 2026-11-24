@@ -3,6 +3,7 @@ import NetworkControllerConnection from "../../../Models/DatabaseModels/NetworkC
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -39,6 +40,7 @@ import NetworkTrafficUsageAggregationService, {
   NetworkTrafficUsageRefile,
 } from "../../Services/NetworkTrafficUsageAggregationService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import ServerSetColumns from "../Database/ServerSetColumns";
 import logger from "../Logger";
 import NetworkTrafficSummaryUtil from "../NetworkFlow/NetworkTrafficSummary";
 import TelemetryReadAccess from "../Telemetry/TelemetryReadAccess";
@@ -604,10 +606,14 @@ export default class NetworkControllerApplianceLink {
     }
 
     if (currentSerial !== serial) {
-      // As the person: whoever may not change a device's serial number may not link it.
+      /*
+       * As the person: whoever may not change a device's serial number may
+       * not link it. The serial is the appliance's, OneUptime's to write
+       * (ServerSetColumns): the API takes none from a person (#10053).
+       */
       await NetworkDeviceService.updateOneById({
         id: deviceId,
-        data: { serialNumber: serial },
+        data: NetworkControllerApplianceLink.serialNumberWrite(serial),
         props: data.props,
       });
     }
@@ -620,6 +626,22 @@ export default class NetworkControllerApplianceLink {
     });
 
     return { deviceSerial: serial, isRefiled };
+  }
+
+  /*
+   * The update that links a device to an appliance's serial number, or
+   * unlinks it (null): a value only OneUptime writes - the probe reads a
+   * device's serial - filled in by OneUptime for the person who links it,
+   * and marked so (ServerSetColumns, ColumnsOnlyOneUptimeWrites).
+   */
+  public static serialNumberWrite(
+    serial: string | null,
+  ): QueryDeepPartialEntity<NetworkDevice> {
+    const write: Record<string, unknown> = {};
+
+    ServerSetColumns.set(write, { serialNumber: serial });
+
+    return write as QueryDeepPartialEntity<NetworkDevice>;
   }
 
   public static async unlink(data: {
@@ -648,7 +670,7 @@ export default class NetworkControllerApplianceLink {
     // As the person, as the link was made.
     await NetworkDeviceService.updateOneById({
       id: deviceId,
-      data: { serialNumber: null },
+      data: NetworkControllerApplianceLink.serialNumberWrite(null),
       props: data.props,
     });
 

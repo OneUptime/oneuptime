@@ -8,6 +8,13 @@ import SecurityEventRequestOutcome, {
 import { readString } from "../NormalizerHelpers";
 import { requestOutcomeFromStatusCode } from "../RequestOutcome";
 import {
+  MAX_SCRUBBED_ADDRESS_LENGTH,
+  ScrubbedAddress,
+  ScrubbedAddressPlace,
+  markClientAddressScrubbed,
+  readScrubbedAddress,
+} from "../ScrubbedAddress";
+import {
   MAX_JSON_LINE_LENGTH,
   MAX_TEXT_LINE_LENGTH,
   SecurityLogLine,
@@ -225,10 +232,34 @@ export function readWebAttackKind(text: string): WebAttackKind | null {
 
 export interface AccessLogRequest {
   clientIp: string;
+  /*
+   * What a scrub rule left in the line's client field, when it hid the
+   * client's address there (#10397): the line's client is hidden, never
+   * read from elsewhere in it. Absent otherwise.
+   */
+  scrubbedClient?: ScrubbedAddress | undefined;
   method: string;
   target: string;
   status: number;
   userAgent: string;
+}
+
+type ClientField = Pick<AccessLogRequest, "clientIp" | "scrubbedClient">;
+
+/*
+ * A client field's value: the address it holds, or what a scrub rule left
+ * of one - the field's own, so the line's client is hidden.
+ */
+function readClientField(value: string): ClientField {
+  const clientIp: string = readIpAddress(value);
+
+  if (clientIp) {
+    return { clientIp };
+  }
+
+  const scrubbedClient: ScrubbedAddress | null = readScrubbedAddress(value);
+
+  return scrubbedClient ? { clientIp: "", scrubbedClient } : { clientIp: "" };
 }
 
 const HTTP_METHODS: ReadonlyArray<string> = [
@@ -293,16 +324,17 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
 
   /*
    * The address is the first word, or - behind a syslog prefix - the word
-   * right before the " - " that common log format puts after it.
+   * right before the " - " that common log format puts after it. Either
+   * may hold what a scrub rule left of the address instead.
    */
-  let clientIp: string = readIpAddress(readWord(text, 0));
+  let client: ClientField = readClientField(readWord(text, 0));
 
-  if (!clientIp) {
+  if (!client.clientIp && !client.scrubbedClient) {
     const identityIndex: number = text.indexOf(" - ");
 
     if (identityIndex !== -1 && identityIndex < openQuote) {
       const before: string = text.slice(0, identityIndex);
-      clientIp = readIpAddress(before.slice(before.lastIndexOf(" ") + 1));
+      client = readClientField(before.slice(before.lastIndexOf(" ") + 1));
     }
   }
 
@@ -320,7 +352,7 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
     }
   }
 
-  return { clientIp, method, target, status, userAgent };
+  return { ...client, method, target, status, userAgent };
 }
 
 const JSON_CLIENT_FIELDS: Array<string> = [
@@ -413,7 +445,7 @@ export function readJsonAccessLog(text: string): AccessLogRequest | null {
   }
 
   return {
-    clientIp: readIpAddress(readFirstField(record, JSON_CLIENT_FIELDS)),
+    ...readClientField(readFirstField(record, JSON_CLIENT_FIELDS)),
     method: HTTP_METHODS.includes(method) ? method : "",
     target,
     status: readStatus(readFirstField(record, JSON_STATUS_FIELDS)),
@@ -558,20 +590,102 @@ function readAddressAfterLabel(lower: string, labelEnd: number): string {
 }
 
 /*
+ * What ends a value a scrub rule left after a label: what ends an address,
+ * but a bracket - "[REDACTED]" and a Hash rule's token are bracketed.
+ */
+const SCRUBBED_ADDRESS_ENDS: string = " \t\r\n,;)\"'|&<>";
+
+/*
+ * What a scrub rule left after the label at `labelEnd`, read from the text
+ * as written - OneUptime's rules write "[REDACTED]" and a token's hex in
+ * one case - else null. A bracket that closes around it ("[client
+ * [REDACTED]:51234]", Apache's error log) is the line's, not the value's.
+ */
+function readScrubbedAfterLabel(
+  text: string,
+  lower: string,
+  labelEnd: number,
+): ScrubbedAddress | null {
+  let index: number = labelEnd;
+
+  while (
+    index < lower.length &&
+    index - labelEnd < 4 &&
+    LABEL_SEPARATORS.indexOf(lower[index]!) !== -1
+  ) {
+    if (lower.startsWith("::", index)) {
+      break;
+    }
+
+    index++;
+  }
+
+  if (index === labelEnd) {
+    return null;
+  }
+
+  let end: number = index;
+
+  while (
+    end < text.length &&
+    SCRUBBED_ADDRESS_ENDS.indexOf(text[end]!) === -1
+  ) {
+    end++;
+
+    if (end - index > MAX_SCRUBBED_ADDRESS_LENGTH) {
+      return null;
+    }
+  }
+
+  const token: string = text.slice(index, end);
+
+  if (!token) {
+    return null;
+  }
+
+  return (
+    readScrubbedAddress(token) ||
+    (token.endsWith("]") ? readScrubbedAddress(token.slice(0, -1)) : null)
+  );
+}
+
+/*
+ * What a line in no known format says of its client: its address, else
+ * what a scrub rule left where the address was (#10397), else nothing.
+ */
+export interface ClientAddressReading {
+  address: string;
+  scrubbed: ScrubbedAddress | null;
+}
+
+/*
  * The client's address of a line in no known format: its first word, when
  * that is an address, else the first address a line names after one of
  * CLIENT_ADDRESS_LABELS. Never just any word that reads as one - a version
  * ("ClickHouse 26.7.38.18", issue #6419), a server's own address or an
  * upstream's is no client.
+ *
+ * An address wins wherever it is: only a line that names none says what a
+ * scrub rule left in one of those places - its first word, else the first
+ * label (in the labels' order) followed by one - so the address a line
+ * names is the one it always was.
  */
-export function readClientAddress(text: string): string {
-  const firstWord: string = readAddressToken(readWord(text, 0));
+export function readClientAddressReading(text: string): ClientAddressReading {
+  const firstWord: string = readWord(text, 0);
+  const firstAddress: string = readAddressToken(firstWord);
 
-  if (firstWord) {
-    return firstWord;
+  if (firstAddress) {
+    return { address: firstAddress, scrubbed: null };
   }
 
+  let scrubbed: ScrubbedAddress | null = readScrubbedAddress(firstWord);
   const lower: string = text.toLowerCase();
+  /*
+   * A label's value is read again as written, at the places the lower-case
+   * copy found it - which are the same places while lowering kept the
+   * text's length.
+   */
+  const canReadAsWritten: boolean = lower.length === text.length;
 
   for (const label of CLIENT_ADDRESS_LABELS) {
     let index: number = lower.indexOf(label);
@@ -585,7 +699,11 @@ export function readClientAddress(text: string): string {
         );
 
         if (address) {
-          return address;
+          return { address, scrubbed: null };
+        }
+
+        if (!scrubbed && canReadAsWritten) {
+          scrubbed = readScrubbedAfterLabel(text, lower, index + label.length);
         }
       }
 
@@ -594,7 +712,81 @@ export function readClientAddress(text: string): string {
     }
   }
 
-  return "";
+  return { address: "", scrubbed };
+}
+
+export function readClientAddress(text: string): string {
+  return readClientAddressReading(text).address;
+}
+
+// The client of a line with an attack in it, and what a scrub rule left of it.
+interface LineClient {
+  ip: string;
+  scrubbed: { scrubbed: ScrubbedAddress; place: ScrubbedAddressPlace } | null;
+}
+
+/*
+ * The client of a line with an attack in it, the most telling first: the
+ * access log's own client field, the address the line's attributes name
+ * (OpenTelemetry's client.address), then the line's own words. An address
+ * wins wherever it is read. When none is, what a scrub rule left of one
+ * says the client was hidden (#10397): the access log's field first - it
+ * is the line's client - then the attributes', then the line's words.
+ *
+ * An access log's client is its client field. What a common log format
+ * line holds after its request line opens - the target, the referrer, the
+ * user agent - is what the sender wrote ("GET /?from=198.51.100.9"), so a
+ * label is looked for only before it; and a line whose client field a
+ * scrub rule hid is looked at for no other address at all.
+ */
+function readLineClient(data: {
+  text: string;
+  accessLog: AccessLogRequest | null;
+  fromAttributes: AccessLogRequest;
+}): LineClient {
+  const { text, accessLog, fromAttributes } = data;
+  const ip: string = accessLog?.clientIp || fromAttributes.clientIp;
+
+  if (ip) {
+    return { ip, scrubbed: null };
+  }
+
+  if (accessLog?.scrubbedClient) {
+    return {
+      ip: "",
+      scrubbed: {
+        scrubbed: accessLog.scrubbedClient,
+        place: ScrubbedAddressPlace.LogBody,
+      },
+    };
+  }
+
+  const requestLineStart: number =
+    accessLog && !text.startsWith("{") ? text.indexOf('"') : -1;
+  const labelled: ClientAddressReading = readClientAddressReading(
+    requestLineStart === -1 ? text : text.slice(0, requestLineStart),
+  );
+
+  if (labelled.address) {
+    return { ip: labelled.address, scrubbed: null };
+  }
+
+  if (fromAttributes.scrubbedClient) {
+    return {
+      ip: "",
+      scrubbed: {
+        scrubbed: fromAttributes.scrubbedClient,
+        place: ScrubbedAddressPlace.LogAttributes,
+      },
+    };
+  }
+
+  return {
+    ip: "",
+    scrubbed: labelled.scrubbed
+      ? { scrubbed: labelled.scrubbed, place: ScrubbedAddressPlace.LogBody }
+      : null,
+  };
 }
 
 /*
@@ -645,7 +837,7 @@ export function readRequestFromAttributes(
   const query: string = readAttribute(attributes, ["url.query"]);
 
   return {
-    clientIp: readIpAddress(
+    ...readClientField(
       readAttribute(attributes, [
         "client.address",
         "http.client_ip",
@@ -933,14 +1125,22 @@ export default class WebAttackLogParser {
     const method: string = accessLog?.method || fromAttributes.method;
     const statusCode: number = accessLog?.status || fromAttributes.status;
     const userAgent: string = accessLog?.userAgent || fromAttributes.userAgent;
-    const clientIp: string =
-      accessLog?.clientIp || fromAttributes.clientIp || readClientAddress(text);
+    const client: LineClient = readLineClient({
+      text,
+      accessLog,
+      fromAttributes,
+    });
     const outcome: SecurityEventRequestOutcome | undefined =
       requestOutcomeFromStatusCode(statusCode);
 
     const attributes: JSONObject = {
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
     };
+
+    // A scrub rule hid the client's address: the event says so, and names none.
+    if (client.scrubbed) {
+      markClientAddressScrubbed(attributes, client.scrubbed);
+    }
 
     // The attack, when what the message names as the request does not hold it.
     if (payload && !holdsAttackMarker(url || target)) {
@@ -986,7 +1186,7 @@ export default class WebAttackLogParser {
         statusCode,
         payload,
       }),
-      principalIp: clientIp,
+      principalIp: client.ip,
       targetResource: cutText(target, 2000),
       attributes,
     });

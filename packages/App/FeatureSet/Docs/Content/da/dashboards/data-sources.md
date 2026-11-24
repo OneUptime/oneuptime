@@ -75,6 +75,7 @@ For at ændre en datakilde senere åbner du den fra listen. **Rediger** på **Da
 
 Rediger et dashboard, klik på **Tilføj widget**, og vælg en widget fra gruppen Eksterne datakilder: et **Diagram**, en **Værdi**, en **Måler** eller en **Tabel**. I dens indstillinger:
 
+- **Dette projekts metrikker (PromQL)** er den første **Datakilde**, og den, en ny widget starter på: PromQL over de metrikker, dit projekt sender til OneUptime, læst for de tjenester, du må læse, som på siden [PromQL](/docs/telemetry/promql). Den kræver ingen datakilde af sin egen og virker derfor på alle abonnementer.
 - Vælg **Datakilde**, og skriv **Forespørgsel**. Editoren navngiver forespørgselssproget og viser et eksempel for typen.
 - På et diagram lægger **Tilføj forespørgsel** flere forespørgsler på de samme akser, og **Legend (optional)** navngiver hver serie ud fra dens etiketter: `{{instance}} — errors` skriver seriens etiket `instance` forrest.
 - På en værdi eller en måler gør **Saml** punkterne til ét tal: den seneste værdi (standard), den første, gennemsnittet, summen, minimum eller maksimum. **Enhed** tilføjer et suffiks og skalerer de kendte enheder: `Bytes` læses som 1.5 MB, `ms` som 2.4 s.
@@ -164,7 +165,7 @@ Intervalforespørgsler til Prometheus og Loki beder om omkring 250 punkter over 
 - **SQL forbliver skrivebeskyttet.** En forespørgsel skal være én sætning, der starter med `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` eller `DESC`. Ord, der skriver eller ændrer en session, for eksempel `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` eller `SET`, afvises overalt uden for strenge og citerede navne, så sæt en kolonne, der hedder som et af dem, i anførselstegn. Skriv et anførselstegn i en streng som to anførselstegn (`''`): en omvendt skråstreg før et anførselstegn afvises. Sessioner i PostgreSQL, MySQL og ClickHouse er også skrivebeskyttede. SQL Server har ingen skrivebeskyttet session, så forbind den med et skrivebeskyttet login.
 - **Loginoplysninger kan kun skrives.** **Adgangskode**, **API-token** og **Brugerdefinerede HTTP-headere** krypteres, når de er gemt, og API'et returnerer dem aldrig, heller ikke til dig.
 - **Adresser kontrolleres.** Loopback-, link-local- (hvor cloud-metadata ligger) og andre reserverede adresser afvises overalt. Private adresser afvises på OneUptime Cloud og tillades på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`: se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
-- **Offentlige dashboards kører dem aldrig.** Widgets fra Eksterne datakilder udelades fra et [offentligt dashboard](/docs/dashboards/sharing), forespørgsler og det hele.
+- **Offentlige dashboards kører kun det, du har gemt.** En widget på **Dette projekts metrikker (PromQL)** viser sine data på et [offentligt dashboard](/docs/dashboards/sharing), aldrig sine forespørgsler: OneUptime kører de forespørgsler, der er gemt i widgetten, aldrig en, som en besøgende sender, over alle projektets tjenester og inden for grænserne ovenfor. En variabel med en liste af værdier udfylder dem kun med en af de værdier; en, hvis værdier skrives ind eller læses fra telemetri, udfylder dem kun inde i en label-matcher som `job="{{job}}"` og beholder sin gemte værdi alle andre steder. Widgets på en ekstern datakilde udelades fra et offentligt dashboard, forespørgsler og det hele.
 
 ## Fejlfinding
 

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  IMPORT_ONLY_ATTRIBUTE_KEYS,
   ManagedDeviceHostCandidate,
   ManagedDeviceHostChoice,
   ManagedDeviceHostSubject,
@@ -13,7 +14,9 @@ import {
 import {
   MANAGED_DEVICE_RESOURCE_TYPE,
   ManagedDeviceHostMatch,
+  getManagedDeviceServiceAttributeKeys,
 } from "../../../../Types/DeviceManagement/ManagedDeviceIdentity";
+import { ManagedDevicePlatform } from "../../../../Types/DeviceManagement/ManagedDevicePlatform";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONObject } from "../../../../Types/JSON";
 
@@ -273,6 +276,56 @@ describe("what a host is described by", () => {
         isKioskMode: false,
       }),
     ).toEqual({ "os.name": "Android", "esper.device.id": "id" });
+  });
+
+  // #9837: what a device runs names its operating system.
+  test("an Apple device runs what its platform says, and has no Android patch level", () => {
+    expect(
+      getManagedDeviceHostAttributes({
+        providerDeviceId: "id",
+        provider: "esper",
+        platform: ManagedDevicePlatform.IPadOS,
+        osVersion: "17.4.1",
+        buildNumber: "21E236",
+        securityPatchLevel: "2024-09-01",
+      }),
+    ).toEqual({
+      "device.firmware.version": "21E236",
+      "os.name": "iPadOS",
+      "os.version": "17.4.1",
+      "esper.device.id": "id",
+    });
+  });
+
+  test("a device of a platform OneUptime does not name runs what its service calls it", () => {
+    expect(
+      getManagedDeviceHostAttributes({
+        providerDeviceId: "id",
+        platform: ManagedDevicePlatform.Other,
+        serviceOperatingSystem: "ChromeOS",
+      })["os.name"],
+    ).toBe("ChromeOS");
+    expect(
+      getManagedDeviceHostAttributes({
+        providerDeviceId: "id",
+        platform: ManagedDevicePlatform.Other,
+      })["os.name"],
+    ).toBeUndefined();
+  });
+
+  test("a service's own facts are under its own name; a device of no known service is Esper's", () => {
+    expect(getManagedDeviceServiceAttributeKeys("esper")).toEqual({
+      deviceId: "esper.device.id",
+      deviceName: "esper.device.name",
+      group: "esper.group",
+    });
+    expect(getManagedDeviceServiceAttributeKeys(undefined)).toEqual(
+      getManagedDeviceServiceAttributeKeys("esper"),
+    );
+    // Every service's keys are taken off a host that is let go.
+    for (const key of ["esper.device.id", "esper.device.name", "esper.group"]) {
+      expect(IMPORT_ONLY_ATTRIBUTE_KEYS).toContain(key);
+    }
   });
 
   test("its name: the device's alias, else its Esper name", () => {

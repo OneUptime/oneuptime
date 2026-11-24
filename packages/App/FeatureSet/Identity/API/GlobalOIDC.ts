@@ -1,12 +1,14 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
+import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
 import {
-  buildMobileSsoSuccessUrl,
   clearMobileSsoIntentCookie,
   isMobileSsoRequest,
+  readMobileSsoFlowId,
   respondToMobileSsoFailure,
-  setMobileSsoIntentCookie,
+  respondToMobileSsoSuccess,
+  startMobileSsoHandOff,
 } from "../Utils/MobileSso";
 import SsoTeamMembership, {
   SsoTeamMembershipOutcome,
@@ -25,7 +27,12 @@ import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
-import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  SessionSignInAgain,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
@@ -150,11 +157,16 @@ router.get(
       });
 
       if (!globalOidc) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("Global OIDC Config not found"),
-        );
+        if (!SignInAgain.isRequested(req)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("Global OIDC Config not found"),
+          );
+        }
+
+        // A Sign In Again through a provider since gone: the sign-in page.
+        return await SignInAgain.sendToSignInPage(req, res);
       }
 
       if (!globalOidc.discoveryURL) {
@@ -186,8 +198,27 @@ router.get(
        * read. A separate intent cookie survives independently and keeps the
        * failure routable back to the app.
        */
+      let mobileFlowId: string | null = null;
+
       if (isMobileRequest) {
-        setMobileSsoIntentCookie(res, globalOidc.id!);
+        /*
+         * The app's state and PKCE challenge, kept for the round trip
+         * (#9989): its flow rides in the signed state cookie below, and in
+         * the intent cookie.
+         */
+        const handOff: { flowId: string | null } | null =
+          await startMobileSsoHandOff({
+            req,
+            res,
+            providerId: globalOidc.id!,
+            rememberInCookie: true,
+          });
+
+        if (!handOff) {
+          return;
+        }
+
+        mobileFlowId = handOff.flowId;
       }
 
       const redirectUri: URL = URL.fromString(
@@ -208,12 +239,27 @@ router.get(
       const codeChallenge: string =
         OIDCUtil.generateCodeChallenge(codeVerifier);
 
+      /*
+       * Sign In Again (#10217): the provider is asked to authenticate the
+       * person again, and the signed state keeps when they were sent, for
+       * the callback to hold the ID token's auth_time to (Utils/SignInAgain).
+       * Never for the mobile app, which has no prompt.
+       */
+      const isSignInAgain: boolean =
+        SignInAgain.isRequested(req) && !isMobileRequest;
+
       const stateCookieToken: string = JSONWebToken.signJsonPayload(
         {
           state,
           nonce,
           codeVerifier,
           isMobile: isMobileRequest,
+          // The mobile app's hand-off (#9989): null for any other sign-in.
+          mobileFlowId: mobileFlowId,
+          // When Sign In Again sent the person (SIGN_IN_AGAIN_STATE_FIELD), or null.
+          signInAgainRequestedAt: isSignInAgain
+            ? OneUptimeDate.getCurrentDate().getTime()
+            : null,
         },
         OIDC_STATE_COOKIE_TTL_SECONDS,
       );
@@ -234,6 +280,7 @@ router.get(
         state,
         nonce,
         codeChallenge,
+        isSignInAgain: isSignInAgain,
       });
 
       return Response.redirect(req, res, authorizationUrl);
@@ -333,16 +380,32 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     let storedState: string;
     let storedNonce: string;
     let storedCodeVerifier: string;
+    // The mobile app's hand-off (#9989): the signed cookie's, or the intent's.
+    let mobileFlowId: string | null = null;
+    // When Sign In Again sent the person to the provider (#10217), or null.
+    let signInAgainRequestedAt: Date | null = null;
 
     try {
       const decoded: Record<string, unknown> = JSONWebToken.decodeJsonPayload(
         stateCookieValue,
       ) as unknown as Record<string, unknown>;
 
+      signInAgainRequestedAt = SignInAgain.readStateRequestedAt(
+        decoded as JSONObject,
+        OneUptimeDate.getCurrentDate(),
+      );
+
       storedState = decoded["state"] as string;
       storedNonce = decoded["nonce"] as string;
       storedCodeVerifier = decoded["codeVerifier"] as string;
       isMobileRequest = isMobileRequest || Boolean(decoded["isMobile"]);
+      mobileFlowId = isMobileRequest
+        ? readMobileSsoFlowId({
+            req,
+            providerId: globalOidcId,
+            carried: decoded["mobileFlowId"],
+          })
+        : null;
     } catch {
       if (
         respondToMobileSsoFailure({
@@ -790,6 +853,23 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       });
     }
 
+    /*
+     * A sign-in Sign In Again started (#10217): it confirms the session only
+     * when the ID token says the person authenticated at or after the moment
+     * they were sent to the provider (Utils/SignInAgain).
+     */
+    const signInAgain: SessionSignInAgain | undefined = SignInAgain.judge({
+      requestedAt: signInAgainRequestedAt,
+      authenticatedAt: SignInAgain.readAuthTime(result.rawClaims),
+      now: OneUptimeDate.getCurrentDate(),
+    });
+
+    SignInAgain.logOutcome({
+      outcome: signInAgain,
+      providerKind: "Global OpenID Connect provider",
+      providerId: globalOidcId,
+    });
+
     const sessionMetadata: SessionMetadata =
       await UserSessionService.createSession({
         userId: alreadySavedUser.id!,
@@ -803,6 +883,8 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         signIn: {
           method: SignInMethod.OpenIdConnect,
           ssoProviderName: globalOidc.name,
+          ssoProviderId: globalOidcId,
+          signInAgain: signInAgain,
         },
         /*
          * With "Sign out of the identity provider too" on, a browser's
@@ -850,29 +932,33 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         expiresInSeconds: sessionMetadata.accessTokenExpiresInSeconds,
       });
 
-      /*
-       * Built through the shared helper so the SAML and OIDC routers cannot
-       * drift apart on the param names the mobile app parses. The single
-       * global SSO token is sent back as `globalSsoToken`; the app replays it
-       * on every request as the `x-global-sso-token` header.
-       */
-      const deepLinkUrl: string = buildMobileSsoSuccessUrl({
-        accessToken,
-        refreshToken: sessionMetadata.refreshToken,
-        refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
-        userId: alreadySavedUser.id!.toString(),
-        email: alreadySavedUser.email!.toString(),
-        name: alreadySavedUser.name?.toString() || "",
-        isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
-        globalSsoToken,
-      });
-
       logger.info(
         "User logged in with Global OIDC (mobile): " + result.email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return res.redirect(deepLinkUrl);
+      /*
+       * Handed back through the shared helper so the SAML and OIDC routers
+       * cannot drift apart on what the mobile app reads: a one-time code it
+       * redeems with its PKCE verifier, or - for an app from before #9989 -
+       * the deep link that carries the session. The single global SSO token
+       * is handed back as `globalSsoToken`; the app replays it on every
+       * request as the `x-global-sso-token` header.
+       */
+      return respondToMobileSsoSuccess({
+        res,
+        flowId: mobileFlowId,
+        signIn: {
+          accessToken,
+          refreshToken: sessionMetadata.refreshToken,
+          refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+          userId: alreadySavedUser.id!.toString(),
+          email: alreadySavedUser.email!.toString(),
+          name: alreadySavedUser.name?.toString() || "",
+          isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+          globalSsoToken,
+        },
+      });
     }
 
     // Web: mint the standard user cookie + the single global SSO cookie.

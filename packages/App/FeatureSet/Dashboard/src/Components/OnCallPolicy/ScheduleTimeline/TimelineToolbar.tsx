@@ -29,6 +29,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 
 /*
  * The controls above the grid, in three rows that each answer one question:
@@ -456,8 +457,18 @@ export const FilterBar: FunctionComponent<FilterBarProps> = (
           ),
         ]
       : []),
+    /*
+     * Two owner teams of one name told apart (#10314): by when each was
+     * made, the most the timeline sends of a team.
+     */
     ...props.teams.map((team: TimelineTeam): DropdownOption => {
-      return getNamedDropdownOption(team.id, team.name);
+      return {
+        ...getNamedDropdownOption(team.id, team.name),
+        sharedName: {
+          kind: SharedNameKind.Team,
+          createdAt: team.createdAt,
+        },
+      };
     }),
   ];
 

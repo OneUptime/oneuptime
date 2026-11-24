@@ -1435,6 +1435,141 @@ test.describe("what do you want to do first?", () => {
     await expectNoSidewaysScroll(page);
 
     await screenshot(page, "home-welcome-question-de-dark");
+
+    // The steps beside the goals, in German, on the dark card (#10276).
+    await page
+      .getByTestId("welcome-goal-on_call")
+      .getByRole("checkbox")
+      .check();
+    const panel: Locator = page.getByTestId("welcome-question-steps");
+    await expect(panel).toContainText("Ihre ersten Schritte");
+    await expect(
+      panel.getByTestId("welcome-question-step-on_call"),
+    ).toBeVisible();
+    await expect(panel).not.toContainText("Your first steps");
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "home-welcome-picked-de-dark");
+  });
+
+  /*
+   * A WIDE SCREEN (#10276): the question, then the checklist, sat in the left
+   * half of a 2,560-pixel screen with nothing beside them. Home centres the
+   * page while its quickstart is all of it, its title over the card; beside
+   * the goals the steps they bring are listed as they are picked, and the
+   * checklist puts how far the person is and the goals beside its steps.
+   */
+  test("at 2560px: centred under its title, the steps beside the goals as they are picked, then beside the checklist", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 2560, height: 1200 });
+    await openQuickstart(page, "scenario=new&welcome=ask");
+
+    const question: Locator = page.getByTestId("welcome-question");
+    const panel: Locator = page.getByTestId("welcome-question-steps");
+
+    await expect(question).toBeVisible();
+    await expect(panel).toBeVisible();
+    await expect(
+      panel.getByTestId("welcome-question-steps-nothing-picked"),
+    ).toBeVisible();
+
+    const [card, title, cards, aside] = await boxesInOneFrame([
+      page.locator("section").filter({ has: question }).first(),
+      page.getByRole("heading", { level: 1 }),
+      page.getByTestId("welcome-goal-cards"),
+      panel,
+    ]);
+    const left: number = card!.x;
+    const right: number = 2560 - (card!.x + card!.width);
+
+    // Centred, within the scrollbar's width, its title over it.
+    expect(Math.abs(left - right)).toBeLessThan(24);
+    expect(Math.abs(title!.x - card!.x)).toBeLessThan(2);
+    // The panel beside the goals, from their top.
+    expect(aside!.x).toBeGreaterThan(cards!.x + cards!.width - 1);
+    expect(Math.abs(aside!.y - cards!.y)).toBeLessThan(2);
+
+    await page.getByTestId("welcome-goal-uptime").getByRole("checkbox").check();
+    await page
+      .getByTestId("welcome-goal-on_call")
+      .getByRole("checkbox")
+      .check();
+
+    await expect(
+      panel.getByTestId("welcome-question-steps-nothing-picked"),
+    ).toHaveCount(0);
+    await expect(
+      panel.locator('[data-testid^="welcome-question-step-"]'),
+    ).toHaveCount(3);
+    await expect(
+      panel.getByTestId("welcome-question-step-monitor"),
+    ).toContainText("Create your first monitor");
+    await expect(
+      panel.getByTestId("welcome-question-step-monitor"),
+    ).toContainText("About 3 minutes");
+    await expect(page.getByTestId("welcome-question-plan-steps")).toHaveText(
+      "3 steps to set up",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "home-welcome-picked-2560");
+
+    await page.getByTestId("welcome-question-continue").click();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+
+    const [checklist, steps, summary, howItWorks] = await boxesInOneFrame([
+      page.getByTestId("getting-started"),
+      page.getByTestId("getting-started-steps"),
+      page.getByTestId("getting-started-summary"),
+      page.getByTestId("getting-started-how-it-works"),
+    ]);
+
+    expect(
+      Math.abs(checklist!.x - (2560 - (checklist!.x + checklist!.width))),
+    ).toBeLessThan(24);
+    // How far and the goals beside the steps, from their top.
+    expect(summary!.x).toBeGreaterThan(steps!.x + steps!.width - 1);
+    expect(Math.abs(summary!.y - steps!.y)).toBeLessThan(2);
+    // How OneUptime works under both.
+    expect(howItWorks!.y).toBeGreaterThan(steps!.y + steps!.height - 1);
+    await expect(
+      page
+        .getByTestId("getting-started-summary")
+        .getByTestId("welcome-checklist-change-goals"),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "home-welcome-goals-2560");
+  });
+
+  test("at 390px: the goals, then the line beside Continue; the checklist's progress and goals over its steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openQuickstart(page, "scenario=new&welcome=ask&theme=dark");
+
+    // No room beside the goals on a phone: the line beside Continue says it.
+    await expect(page.getByTestId("welcome-question-steps")).toBeHidden();
+    await page.getByTestId("welcome-goal-uptime").getByRole("checkbox").check();
+    await expect(page.getByTestId("welcome-question-plan-steps")).toHaveText(
+      "2 steps to set up",
+    );
+    await page.getByTestId("welcome-question-continue").click();
+    await expect(page.getByTestId("getting-started")).toBeVisible();
+
+    const [summary, steps, howItWorks] = await boxesInOneFrame([
+      page.getByTestId("getting-started-summary"),
+      page.getByTestId("getting-started-steps"),
+      page.getByTestId("getting-started-how-it-works"),
+    ]);
+
+    expect(summary!.y + summary!.height).toBeLessThanOrEqual(steps!.y + 1);
+    expect(howItWorks!.y).toBeGreaterThan(steps!.y + steps!.height - 1);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "home-welcome-goals-390-dark");
   });
 });
 

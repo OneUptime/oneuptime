@@ -17,6 +17,7 @@ import {
 } from "./HandwrittenResources";
 import {
   API_KEY_ATTRIBUTE_DESCRIPTION,
+  EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION,
   PROVIDER_DESCRIPTION,
   PROVIDER_DISPLAY_NAME,
   URL_ATTRIBUTE_DESCRIPTION,
@@ -465,6 +466,7 @@ provider "${this.config.providerName}" {
 ### Optional
 
 - \`api_key\` (String, Sensitive) ${API_KEY_ATTRIBUTE_DESCRIPTION}
+- \`exclusive_lists\` (Boolean) ${EXCLUSIVE_LISTS_ATTRIBUTE_DESCRIPTION}
 - \`oneuptime_url\` (String) ${URL_ATTRIBUTE_DESCRIPTION}
 
 ## Start Here
@@ -1873,6 +1875,23 @@ resource "${provider}_on_call_schedule_layer" "around_the_clock" {
     }
 
     /*
+     * A team's, an API key's or a custom role's permission is made with its
+     * permission: optional in the schema, as it has always been
+     * (OpenAPIParser.generateResourceSchema), and OneUptime refuses a create
+     * without one. So the example writes it, as its key.
+     */
+    for (const [name, attr] of Object.entries(resource.schema)) {
+      const attributeName: string = StringUtils.toTerraformAttributeName(name);
+      const dumped: SchemaDumpAttribute | undefined =
+        block.attributes[attributeName];
+      if (attr.isPermission && dumped && !dumped.required && dumped.optional) {
+        fields.push(
+          `  ${attributeName} = ${this.getExampleValue(name, attr, resource)}`,
+        );
+      }
+    }
+
+    /*
      * A person the resource needs: named by email address, the way a
      * configuration names people (user_email beside user_id).
      */
@@ -2045,6 +2064,15 @@ resource "${provider}_monitor" "example" {
       ]
     }]
   }]`;
+    }
+
+    // A permission's key, the spec's example of one: "IncidentMember".
+    if (attrInfo.isPermission) {
+      return DocumentationGenerator.hclString(
+        typeof attrInfo.example === "string" && attrInfo.example
+          ? attrInfo.example
+          : "IncidentMember",
+      );
     }
 
     // Enum-constrained fields: an allowed value.

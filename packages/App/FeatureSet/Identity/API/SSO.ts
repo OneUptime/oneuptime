@@ -1,5 +1,6 @@
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import SamlSingleLogoutEndpoint from "../Utils/SamlSingleLogoutEndpoint";
+import SignInAgain from "../Utils/SignInAgain";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import SamlAssertionOneTimeUse, {
   SamlProviderKind,
@@ -13,7 +14,15 @@ import ProjectSsoSignInGate, {
   ProjectSsoGateDecision,
   ProjectSsoGateOutcome,
 } from "../Utils/ProjectSsoSignInGate";
-import { respondToMobileSsoFailure } from "../Utils/MobileSso";
+import {
+  clearMobileSsoIntentCookie,
+  getMobileSsoRelayState,
+  isMobileSsoRequest,
+  readMobileSsoFlowId,
+  respondToMobileSsoFailure,
+  respondToMobileSsoSuccess,
+  startMobileSsoHandOff,
+} from "../Utils/MobileSso";
 import ProjectSsoIdentityBinding, {
   PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
   PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
@@ -66,7 +75,11 @@ import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
-import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import {
+  SessionSignInAgain,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
+import OneUptimeDate from "Common/Types/Date";
 import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure";
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 
@@ -170,11 +183,16 @@ router.get(
       });
 
       if (!projectSSO) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException("SSO Config not found"),
-        );
+        if (!SignInAgain.isRequested(req)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadRequestException("SSO Config not found"),
+          );
+        }
+
+        // A Sign In Again through a provider since gone: the sign-in page.
+        return await SignInAgain.sendToSignInPage(req, res);
       }
 
       // redirect to Identity Provider.
@@ -197,6 +215,38 @@ router.get(
 
       const isMobileRequest: boolean = req.query["mobile"] === "true";
 
+      /*
+       * Sign In Again (#10217): the identity provider is asked to
+       * authenticate the person again (ForceAuthn), with a request whose ID
+       * keeps when they were sent, for the response to name back
+       * (Utils/SignInAgain). Never for the mobile app, which has no prompt.
+       */
+      const isSignInAgain: boolean =
+        SignInAgain.isRequested(req) && !isMobileRequest;
+
+      /*
+       * A sign-in the mobile app started keeps its state and PKCE challenge
+       * for the round trip (#9989): the flow rides in RelayState, and in
+       * the intent cookie for an identity provider that drops RelayState.
+       */
+      let mobileFlowId: string | null = null;
+
+      if (isMobileRequest) {
+        const handOff: { flowId: string | null } | null =
+          await startMobileSsoHandOff({
+            req,
+            res,
+            providerId: projectSSO.id!,
+            rememberInCookie: true,
+          });
+
+        if (!handOff) {
+          return;
+        }
+
+        mobileFlowId = handOff.flowId;
+      }
+
       // The same Entity ID and Reply URL the response is held to.
       const serviceProvider: SamlServiceProvider =
         SamlServiceProviders.forProjectSso({
@@ -208,10 +258,22 @@ router.get(
         acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: projectSSO.signOnURL!,
         issuerUrl: URL.fromString(serviceProvider.entityId),
+        ...(isSignInAgain
+          ? {
+              forceAuthn: true,
+              requestId: SignInAgain.createSamlRequestId({
+                providerId: projectSSO.id!,
+                requestedAt: OneUptimeDate.getCurrentDate(),
+              }),
+            }
+          : {}),
       });
 
       if (isMobileRequest) {
-        samlRequestUrl.addQueryParam("RelayState", "mobile");
+        samlRequestUrl.addQueryParam(
+          "RelayState",
+          getMobileSsoRelayState(mobileFlowId),
+        );
       }
 
       return Response.redirect(req, res, samlRequestUrl);
@@ -538,8 +600,23 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       return Response.sendErrorResponse(req, res, new ServerException());
     }
 
-    const isMobileRequest: boolean =
-      req.body.RelayState === "mobile" || req.query["RelayState"] === "mobile";
+    /*
+     * A mobile sign-in by RelayState, or by the intent cookie its start set
+     * for an identity provider that drops RelayState - with the hand-off
+     * flow it carries (#9989), read before the cookie is cleared so a later
+     * web sign-in through this provider is not sent to the app.
+     */
+    const isMobileRequest: boolean = isMobileSsoRequest({
+      req,
+      providerId: projectSSO.id!,
+    });
+    const mobileFlowId: string | null = isMobileRequest
+      ? readMobileSsoFlowId({ req, providerId: projectSSO.id! })
+      : null;
+
+    if (isMobileRequest) {
+      clearMobileSsoIntentCookie(res, projectSSO.id!);
+    }
 
     /*
      * Whom this project's provider may sign in, and what everyone else is
@@ -728,6 +805,28 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     // Refresh Permissions for this user here.
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
+    /*
+     * A sign-in Sign In Again started (#10217): it confirms the session only
+     * when the identity provider says it authenticated the person at or
+     * after the moment they were sent there (Utils/SignInAgain).
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const signInAgain: SessionSignInAgain | undefined = SignInAgain.judge({
+      requestedAt: SignInAgain.readSamlRequestId({
+        inResponseTo: verifiedSaml.inResponseTo,
+        providerId: projectSSO.id!,
+        now: now,
+      }),
+      authenticatedAt: verifiedSaml.authnInstant,
+      now: now,
+    });
+
+    SignInAgain.logOutcome({
+      outcome: signInAgain,
+      providerKind: "project SSO",
+      providerId: projectSSO.id!,
+    });
+
     const sessionMetadata: SessionMetadata =
       await UserSessionService.createSession({
         userId: alreadySavedUser.id!,
@@ -743,6 +842,8 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
           method: SignInMethod.Saml,
           ssoProviderName: projectSSO.name,
           ssoProjectId: projectId,
+          ssoProviderId: projectSSO.id!,
+          signInAgain: signInAgain,
         },
         /*
          * With the provider's "Sign out of the identity provider too" on, a
@@ -785,31 +886,31 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         expiresInSeconds: sessionMetadata.ssoSignInExpiresInSeconds,
       });
 
-      const params: URLSearchParams = new URLSearchParams();
-      params.set("accessToken", accessToken);
-      params.set("refreshToken", sessionMetadata.refreshToken);
-      params.set(
-        "refreshTokenExpiresAt",
-        sessionMetadata.refreshTokenExpiresAt.toISOString(),
-      );
-      params.set("userId", alreadySavedUser.id!.toString());
-      params.set("email", alreadySavedUser.email!.toString());
-      params.set("name", alreadySavedUser.name?.toString() || "");
-      params.set(
-        "isMasterAdmin",
-        String(alreadySavedUser.isMasterAdmin || false),
-      );
-      params.set("ssoToken", ssoToken);
-      params.set("projectId", projectId.toString());
-
-      const deepLinkUrl: string = `oneuptime://sso-callback?${params.toString()}`;
-
       logger.info(
         "User logged in with SSO (mobile): " + email.toString(),
         getLogAttributesFromRequest(req as RequestLike),
       );
 
-      return res.redirect(deepLinkUrl);
+      /*
+       * A one-time code the app redeems with its PKCE verifier, or - for an
+       * app from before #9989 - the deep link that carries the session
+       * (Utils/MobileSso).
+       */
+      return respondToMobileSsoSuccess({
+        res,
+        flowId: mobileFlowId,
+        signIn: {
+          accessToken,
+          refreshToken: sessionMetadata.refreshToken,
+          refreshTokenExpiresAt: sessionMetadata.refreshTokenExpiresAt,
+          userId: alreadySavedUser.id!.toString(),
+          email: alreadySavedUser.email!.toString(),
+          name: alreadySavedUser.name?.toString() || "",
+          isMasterAdmin: Boolean(alreadySavedUser.isMasterAdmin),
+          ssoToken,
+          projectId: projectId.toString(),
+        },
+      });
     }
 
     CookieUtil.setSSOCookie({

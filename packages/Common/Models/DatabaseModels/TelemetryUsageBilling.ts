@@ -199,16 +199,18 @@ export default class TelemetryUsageBilling extends BaseModel {
   public dataIngestedInGB?: Decimal = undefined;
 
   /*
-   * How much of a Traces row's data was exceptions (issue #6356). Traces are
-   * billed as one product that sums the span rows and the exception rows, so
+   * How much of a Traces or Logs row's data was exceptions (issues #6356,
+   * #6590). An exception is billed with the product it was found in
+   * (ExceptionSource): Traces sum the span rows and the exceptions found in
+   * spans, Logs the log rows and the exceptions found in logs. So
    * dataIngestedInGB keeps that sum - what the row is billed for, and the
    * only figure its cost is worked out from - and this says how much of it
    * the exceptions were, for the usage pages to show apart. It is never
    * billed and never adds to anything: the exceptions are inside
    * dataIngestedInGB already.
    *
-   * Empty on every other product's row, and on a Traces row counted before
-   * the exceptions were counted apart: its exceptions stay inside Traces.
+   * Empty on every other product's row, and on a row counted before the
+   * exceptions were counted apart: its exceptions stay inside Traces.
    */
   @ColumnAccessControl({
     create: [],
@@ -221,7 +223,7 @@ export default class TelemetryUsageBilling extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Exceptions Ingested (in GB)",
     description:
-      "How much of the data ingested was exceptions. Set on a Traces row, which is billed for its spans and exceptions together; empty on a row counted before exceptions were counted apart.",
+      "How much of the data ingested was exceptions. Set on a Traces row, which is billed for its spans and the exceptions found in them, and on a Logs row, which is billed for its log records and the exceptions found in them; empty on a row counted before exceptions were counted apart.",
     example: 2.5,
   })
   @Column({

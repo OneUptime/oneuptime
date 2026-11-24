@@ -71,6 +71,8 @@ Het venster vraagt om de paar seconden wat er binnenkwam. Pub/Sub pusht een rege
 
 Elke logboekregel houdt de tijd van zijn regel tot op de nanoseconde, zijn ernst, zijn trace en span, en zijn HTTP-verzoek onder de namen van de semantische conventies van OpenTelemetry. Hij wordt onder een resource gearchiveerd als zijn bewaakte resource een soort is waarvan OneUptime de metrieken leest, zoals een VM (`gce_instance`), een Cloud Run-service (`cloud_run_revision`) of een Cloud SQL-instantie (`cloudsql_database`), en draagt de ID van de resource als `cloud.resource_id`. De verzoeklogboeken van een externe load balancer, geschreven onder `http_load_balancer`, worden gearchiveerd onder zijn URL-map, de `https_lb_rule` waar zijn metrieken terechtkomen.
 
+Een regel van een auditlog komt in zijn geheel aan, als de tekst van zijn logboekregel: met [Beveiligingsgebeurtenissen in uw logboeken vinden](/docs/telemetry/security-events#beveiligingsgebeurtenissen-in-uw-logs-vinden) aan wordt elke regel gelezen als een beveiligingsgebeurtenis, net als een uit een logpijplijn, en één keer opgeslagen, langs hoeveel wegen hij OneUptime ook bereikt.
+
 De logboeken van een instantiegroep zijn die van haar VM's, dus haar pagina heeft geen tabblad **Logboeken**. Een regel van een andere soort wordt toch gestreamd, onder zijn project.
 
 ## Wat de opdracht aanmaakt

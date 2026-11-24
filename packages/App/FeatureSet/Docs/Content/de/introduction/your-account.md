@@ -41,7 +41,7 @@ Klicken Sie oben rechts auf Ihr Bild und wählen Sie **Profil**. Die Seite **Üb
 
 Klicken Sie auf **Benutzer bearbeiten** und ändern Sie, was Sie brauchen:
 
-- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, sendet OneUptime einen Link an die neue Adresse, und Ihre Adresse ändert sich, sobald Sie ihn öffnen. Bis dahin melden Sie sich mit der bisherigen an, und **Änderung abbrechen** beendet die Änderung. Die eigene Adresse eines Master-Admins ändert sich sofort.
+- **E-Mail**: die Adresse, mit der Sie sich anmelden. Wenn Sie sie ändern, sendet OneUptime einen Link an die neue Adresse, und Ihre Adresse ändert sich, sobald Sie ihn öffnen. Bis dahin melden Sie sich mit der bisherigen an, und **Änderung abbrechen** beendet die Änderung. Die eigene Adresse eines Master-Admins ändert sich sofort. Läuft der Link ab, sendet **Link erneut senden** einen neuen. Sobald sich Ihre Adresse ändert, sendet OneUptime eine E-Mail an die bisherige Adresse.
 - **Vollständiger Name**: der Name, den Ihr Team überall in OneUptime sieht.
 - **Zeitzone**: die Zeitzone, in der das Dashboard Zeiten anzeigt und liest, und die für die Zeiten in Benachrichtigungen an Sie verwendet wird.
 - **Sprache**: die Sprache des Dashboards in jedem Browser, in dem Sie sich anmelden, und Ihrer Bereitschaftsalarme. Ohne Auswahl sind Ihre Alarme auf Englisch, und das Dashboard folgt Ihrem Browser.
@@ -146,6 +146,31 @@ Dasselbe gilt, wenn jedes Projekt, zu dem Sie gehören, Single Sign-On verlangt 
 - **Master-Admins** behalten immer ihre eigenen Einstellungen unter **Sicherheit**.
 - **Was Sie vorher eingerichtet haben**, bleibt gespeichert. Ein Serveradministrator kann es löschen, ebenso ein Inhaber aller Projekte, zu denen Sie gehören; Sie erhalten eine E-Mail, wenn das geschieht.
 
+### Bestätigen, dass Sie es sind
+
+Manche Änderungen verlangen zuerst eine Bestätigung, dass Sie es sind, auch wenn Sie angemeldet sind, damit niemand sie in einem Browser vornehmen kann, in dem Sie angemeldet geblieben sind. OneUptime fragt, bevor Sie:
+
+- Ihre E-Mail-Adresse oder Ihr Passwort ändern;
+- einen Passkey, einen Sicherheitsschlüssel oder eine Authenticator-App hinzufügen oder entfernen;
+- neue Backup-Codes erhalten, während Sie noch unbenutzte haben;
+- die Zwei-Faktor-Authentifizierung ausschalten;
+- Ihr Konto löschen.
+
+Der Dialog **Bestätigen Sie, dass Sie es sind** fragt nach Ihrem Passwort und, solange die Zwei-Faktor-Authentifizierung eingeschaltet ist, nach Ihrem zweiten Schritt: einem Code aus Ihrer Authenticator-App, Ihrem Sicherheitsschlüssel oder einem Ihrer Backup-Codes. Mit einem Passkey klicken Sie stattdessen auf **Passkey verwenden**. Melden Sie sich nur über Single Sign-On, Google oder Microsoft an, klicken Sie auf **Erneut anmelden**: OneUptime lässt Ihren Identitätsanbieter Sie erneut anmelden und bringt Sie danach zur Seite zurück. Dann wird die Änderung ausgeführt.
+
+Nachdem Sie bestätigt haben, werden Sie in diesem Browser 10 Minuten lang nicht erneut gefragt. Fünf falsche Versuche melden diesen Browser ab, sperren Ihr Konto aber nie: Melden Sie sich erneut an, und versuchen Sie es noch einmal. OneUptime schickt Ihnen eine E-Mail, wenn das passiert, und jedes Mal, wenn ein Backup-Code bestätigt, dass Sie es sind.
+
+Auf einem selbst gehosteten Server bestätigen Master-Admins auf dieselbe Weise, dass sie es sind, bevor sie ändern, wie sich jemand anderes anmeldet, jemanden zum Master-Admin machen, die Single-Sign-On-Anbieter oder die E-Mail-Einstellungen des Servers ändern oder einen Master-API-Schlüssel erstellen. Der Master-API-Schlüssel kann diese Änderungen nicht vornehmen.
+
+Eine erneute Anmeldung zählt nur, wenn Ihr Identitätsanbieter angibt, dass Sie sich angemeldet haben, nachdem OneUptime Sie zu ihm geschickt hat. Meldet der Anbieter Sie mit einer Sitzung an, die er bereits hat, ohne nach Ihrem Passwort zu fragen, bestätigt das nichts: Melden Sie sich zuerst beim Anbieter ab, und klicken Sie dann auf **Erneut anmelden**. Wo Ihr Server die Anmeldung mit einem per E-Mail gesendeten Link erlaubt, tut **Anders anmelden** stattdessen genau das. Was OneUptime von jedem Anbieter verlangt und was ein Administrator ändern kann, wenn die erneute Anmeldung nichts bestätigt:
+
+| Anbieter | Was OneUptime verlangt | Wenn sie nichts bestätigt |
+| --- | --- | --- |
+| SAML | `ForceAuthn="true"` und den Zeitpunkt Ihrer Anmeldung (`AuthnInstant`) | Lassen Sie den Anbieter die Anfrage befolgen, etwa mit Honor Force Authentication in Okta. |
+| OpenID Connect | `prompt=login` und `max_age=0` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Lassen Sie den Anbieter `auth_time` senden. Fügen Sie es in Microsoft Entra ID dem ID-Token als optionalen Claim hinzu. |
+| Google | Den Zeitpunkt Ihrer Anmeldung (`auth_time`). Google lässt sich nicht bitten, Sie erneut anzumelden. | Schalten Sie Session age claims für die Google-Anmelde-App des Servers ein, die veröffentlicht und verifiziert sein muss. |
+| Microsoft | `prompt=login` und `max_age=0` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Fügen Sie `auth_time` dem ID-Token der Microsoft-Anmelde-App des Servers als optionalen Claim hinzu. |
+
 ## Ihre Projekte
 
 Sie können zu beliebig vielen Projekten gehören. Die Projektauswahl oben links im Dashboard listet sie auf: Wählen Sie eines, um zu wechseln.
@@ -178,7 +203,7 @@ Ihr Design wird in Ihrem Browser gespeichert; stellen Sie es also in einem ander
 
 ## Ihr Konto löschen
 
-Öffnen Sie **Gefahrenzone → Konto löschen**. Sie können Ihr Konto erst löschen, wenn Sie in keinem Projekt mehr sind: Die Seite listet die Projekte auf, in denen Sie noch sind. Verlassen Sie sie zuerst, klicken Sie dann auf **Konto löschen** und bestätigen Sie. Das Löschen Ihres Kontos ist endgültig und lässt sich nicht rückgängig machen.
+Öffnen Sie **Gefahrenzone → Konto löschen**. Sie können Ihr Konto erst löschen, wenn Sie in keinem Projekt mehr sind: Die Seite listet die Projekte auf, in denen Sie noch sind. Verlassen Sie sie zuerst, klicken Sie dann auf **Konto löschen** und bestätigen Sie. Das Löschen Ihres Kontos ist endgültig und lässt sich nicht rückgängig machen. Bevor OneUptime Ihr Konto löscht, bittet es Sie zu bestätigen, dass Sie es sind.
 
 ## Fehlerbehebung
 
@@ -191,7 +216,11 @@ Diese Adresse hat bereits ein OneUptime-Konto, daher hat die Registrierung nicht
 :::
 
 :::details Meine E-Mail-Adresse hat sich nicht geändert
-Ihre Adresse ändert sich erst, wenn Sie den Link öffnen, den OneUptime an die neue Adresse gesendet hat. Der Link funktioniert 24 Stunden lang: Ist er abgelaufen, ändern Sie Ihre E-Mail erneut, um einen neuen zu erhalten. Nutzt bereits ein anderes Konto diese Adresse, steht das in der E-Mail dorthin, und Ihre Adresse bleibt, wie sie ist.
+Ihre Adresse ändert sich erst, wenn Sie den Link öffnen, den OneUptime an die neue Adresse gesendet hat. Der Link funktioniert 24 Stunden lang: Ist er abgelaufen, zeigt Ihr Profil das an, und **Link erneut senden** sendet einen neuen. Nutzt bereits ein anderes Konto diese Adresse, steht das in der E-Mail dorthin, und Ihre Adresse bleibt, wie sie ist.
+:::
+
+:::details Ich habe eine E-Mail erhalten, dass meine E-Mail-Adresse geändert wurde
+OneUptime sendet eine E-Mail an die bisherige Adresse Ihres Kontos, sobald sich die Adresse ändert: wenn Sie den Link an eine neue Adresse öffnen, wenn ein Server-Administrator sie ändert oder wenn der Identitätsanbieter Ihrer Organisation sie ändert. Haben Sie die Änderung vorgenommen, ist nichts weiter zu tun. Wenn nicht, hat jemand, der sich in Ihrem Konto anmelden konnte, es auf eine eigene Adresse umgestellt: Wenden Sie sich von Ihrer bisherigen Adresse aus an Ihren Server-Administrator oder, bei OneUptime Cloud, an support@oneuptime.com, die es zurückstellen können. Die E-Mail zeigt die neue Adresse nur teilweise und enthält keinen Link zum Rückgängigmachen: Ein solcher Link würde für jeden funktionieren, der Ihr altes Postfach liest.
 :::
 
 :::details Ich habe meine Authenticator-App verloren

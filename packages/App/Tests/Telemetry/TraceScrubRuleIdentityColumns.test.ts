@@ -5,7 +5,14 @@ import { JSONObject } from "Common/Types/JSON";
 import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
+import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
+
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a50394",
+);
 
 /*
  * Scrubbing of the DENORMALIZED LLM identity columns.
@@ -47,6 +54,8 @@ function compile(data: {
 }): Array<CompiledRule> {
   const rule: TraceScrubRule = new TraceScrubRule();
   rule.name = "test-rule";
+  // A Hash rule hashes with its project's key, as the rules ingest loads do.
+  rule.projectId = PROJECT_ID;
   rule.patternType = data.patternType;
   rule.fieldsToScrub = data.fieldsToScrub;
   rule.scrubAction = data.scrubAction || TraceScrubAction.Redact;
@@ -251,7 +260,16 @@ describe("TraceScrubRuleService.scrubSpan — denormalized identity columns", ()
       }) as never,
     );
 
-    expect(row["llmUserEmail"]).toMatch(/^\[HASHED:[0-9a-f]{8}\]$/);
+    // The project's keyed token, the same as the attribute's (#10394).
+    expect(row["llmUserEmail"]).toBe(
+      ScrubHashToken.ofValue({
+        projectId: PROJECT_ID,
+        value: "ada@example.com",
+      }),
+    );
+    expect(row["llmUserEmail"]).toBe(
+      (row["attributes"] as JSONObject)["user.email"],
+    );
   });
 
   test("the Mask action preserves the email shape in the column", () => {

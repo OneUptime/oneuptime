@@ -517,13 +517,13 @@ describe("the chip over the list reads each value as the field does", () => {
   );
 
   test.each([
-    ["Is", IS, "Starts At is Nov 13 2026, 11:15 UTC"],
-    ["After", AFTER, "Starts At is after Nov 13 2026, 11:15 UTC"],
-    ["Before", BEFORE, "Starts At is before Nov 13 2026, 11:15 UTC"],
+    ["Is", IS, "Starts At is Nov 13, 2026, 11:15 UTC"],
+    ["After", AFTER, "Starts At is after Nov 13, 2026, 11:15 UTC"],
+    ["Before", BEFORE, "Starts At is before Nov 13, 2026, 11:15 UTC"],
     [
       "Between",
       BETWEEN,
-      "Starts At is between Nov 13 2026, 09:00 UTC and Nov 13 2026, 17:30 UTC",
+      "Starts At is between Nov 13, 2026, 09:00 and 17:30 UTC",
     ],
   ])("%s, in English", (_operator: string, value: unknown, text: string) => {
     expect(chipText("en", { startsAt: value } as FilterData<Row>)).toBe(text);

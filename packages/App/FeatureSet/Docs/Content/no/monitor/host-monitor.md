@@ -7,6 +7,7 @@ En vertsmonitor overvåker én maskin – CPU, minne, disker, belastning og pros
 - [Maler](#ferdige-varslingsmaler): Ti ferdige varsler for en taus eller omstartet vert, CPU, minne, swap, disk, inoder, belastning, prosesser og mislykkede systemd-enheter.
 - [Målinger](#innsamlede-målinger): Vertsmålingene du kan varsle på, og enhetene deres.
 - [Vert eller Server / VM?](#vertsmonitor-eller-server-vm-monitor): Hvilken av de to maskinmonitorene du skal bruke.
+- [Flere disker](#verter-med-flere-disker): Én monitor for alle disker, én hendelse per disk.
 :::
 
 ## Slik fungerer det
@@ -136,9 +137,10 @@ En vert der OS-et er Android, for eksempel en kiosk eller en POS-terminal som kj
 | Device Overheating | Advarsel | `android.thermal.status`, Max, siste 5 minutter | 3 (alvorlig) eller verre | Under 3 |
 | Restart Loop | Kritisk | `android.boot.recent_count`, Max, siste time | En verdi er 3 eller mer | Alle verdier er under 3 |
 | Storage Nearly Full | Kritisk | `system.filesystem.utilization`, Max per `mountpoint`, som prosent, siste 5 minutter | Over 90 % | På eller under 90 % |
+| Security Patch Out of Date | Advarsel | `android.os.security_patch.age`, antall dager siden sikkerhetspatchnivået til enheten, Min, siste time | Over 90 dager gammelt i hele vinduet | En avlesning på 90 dager eller færre, når enheten er oppdatert |
 | High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstanden `idle`, opptatt som 1 minus idle, som prosent, siste 5 minutter | Over 80 % | På eller under 80 % |
 
-High CPU Utilization tilbys når enheten rapporterer CPU-bruk, noe som på Android 8 og nyere krever at agenten er enhetseier. Varselet for en Android-enhet begynner med adb-kommandoer som skal kjøres først, for eksempel `adb shell dumpsys battery` eller `adb shell getprop sys.boot.reason`, i stedet for shell-kommandoene til en server.
+High CPU Utilization tilbys når enheten rapporterer CPU-bruk, noe som på Android 8 og nyere krever at agenten er enhetseier. Varselet for en Android-enhet begynner med adb-kommandoer som skal kjøres først, for eksempel `adb shell dumpsys battery`, `adb shell getprop sys.boot.reason` eller `adb shell getprop ro.build.version.security_patch`, i stedet for shell-kommandoene til en server.
 
 ## Innsamlede målinger
 
@@ -220,6 +222,26 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 > [!IMPORTANT]
 > En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren offline. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
+## Verter med flere disker
+
+Én vertsmonitor dekker alle diskene verten rapporterer. Malene High Filesystem Usage og Running Out of Inodes grupperer spørringen sin etter `mountpoint` og `device`, så monitoren kontrollerer hver disk for seg og åpner én hendelse per disk: en annen disk som holder på å fylles opp, skjules ikke bak den første diskens åpne hendelse.
+
+| Hvor | Hva det viser for hver disk |
+| --- | --- |
+| Monitorens side **Målinger** | Én linje per disk, oppkalt etter diskens `mountpoint` og `device`. |
+| **Overvåkingslogger** | Kolonnen **Observert** teller seriene hver sjekk leste: én per disk. |
+| **Hendelser** og **Varsler** | Én per disk, som nevner diskens montering og enhet. |
+| Vertens tabell **Filsystemer** | Alle disker collectoren rapporterer, uansett hva monitorene dine overvåker. |
+
+Hvert kriterium kontrolleres for hver disk:
+
+- Mens hendelsen til en disk er åpen, åpner kriteriet som åpnet den, ingen annen for den disken. En annen disk som oppfyller det, åpner sin egen.
+- En disk som oppfyller to kriterier, for eksempel ett over 98 % og ett over 90 %, får én hendelse, fra det første av dem i listen. Sett det strengeste først.
+- Hendelsen til en disk løses når den disken ikke lenger oppfyller kriteriet som åpnet den, uansett hva de andre diskene gjør.
+- Monitoren har én status, satt av det første kriteriet i listen som noen disk oppfyller. Når ingen disk oppfyller et kriterium som utløses, er én disk på eller under gjenopprettingsterskelen nok for kriteriet som gjenoppretter, så gjenopprettingsmarginen på 10 % gjelder ikke på en vert med en disk som aldri er nær full.
+
+For å overvåke bare noen av diskene åpner du **Avansert** og legger til et filter på `mountpoint` i **Filtrer etter attributter** for spørringen under **Velg målinger**: **er en av** diskene som skal overvåkes, eller **er ingen av** diskene som skal utelates. Behold **Grupper etter**, og skriv hver disk slik tabellen **Filsystemer** viser den, for eksempel `C:` eller `/var`. For å slutte å samle inn en disk helt, slik at den også forsvinner fra vertens sider, angir du `include_mount_points` eller `exclude_mount_points` i collectorens skraper `filesystem` ([Vertsmålinger](/docs/telemetry/host-otel-collector#vertsmålinger)).
+
 ## Feilsøking
 
 :::details Verten står ikke i listen Vert
@@ -236,6 +258,10 @@ Monitoren avgrenser hver spørring med `resource.host.name` lik verten du valgte
 
 :::details High Filesystem Usage utløses for en montering som alltid er full
 Skrivebeskyttede pseudofilsystemer, som snap-loop-monteringer av typen `squashfs` under `/snap` eller `devfs` på macOS, er 100 % fulle med vilje og kommer seg aldri. Konfigurasjonene OneUptime kjører og deler ut, utelater dem med `exclude_fs_types`; en konfigurasjon du skriver selv, eller en Innsamlerkonfigurasjon som ble laget før de gjorde det, trenger det samme: kopier det fra [Vertsmålinger](/docs/telemetry/host-otel-collector#vertsmålinger). Utelat en annen montering som alltid er full, for eksempel en montert `.dmg`, med `exclude_mount_points`.
+:::
+
+:::details High Filesystem Usage viser én serie på en vert med flere disker
+Spørringen har ingen **Grupper etter**. Hver sjekk leser da bare den fulleste disken, og én hendelse gjelder for alle diskene: monitorens side **Målinger** tegner én linje, oppkalt etter spørringen, og kolonnen **Observert** i **Overvåkingslogger** teller datapunkter i stedet for serier. Klikk på **Rediger kriterier** på monitorens side **Kriterier**, åpne **Avansert** under **Flere felt**, og sett **Grupper etter** for spørringen under **Velg målinger** til `mountpoint` og `device`. Velger du malen på nytt under **Hva det skal varsles om**, settes det også, men da erstattes kriteriene dine med malens. Ved neste sjekk åpner hver disk over terskelen sin egen hendelse, og den som var åpen for hele monitoren, løses hvis kriteriet dens løser hendelser automatisk.
 :::
 
 ## Neste trinn

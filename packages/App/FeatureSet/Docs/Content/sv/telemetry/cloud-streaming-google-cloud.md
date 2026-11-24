@@ -71,6 +71,8 @@ Dialogen frågar med några sekunders mellanrum vad som har kommit. Pub/Sub push
 
 Varje logg behåller sin posts tid på nanosekunden, sin allvarlighetsgrad, sin trace och span, och sin HTTP-begäran under namnen i OpenTelemetrys semantiska konventioner. Den arkiveras under en resurs när dess övervakade resurs är en typ vars mätvärden OneUptime läser, till exempel en VM (`gce_instance`), en Cloud Run-tjänst (`cloud_run_revision`) eller en Cloud SQL-instans (`cloudsql_database`), och bär resursens id som `cloud.resource_id`. En extern lastbalanserares begärandeloggar, skrivna under `http_load_balancer`, arkiveras under dess URL-mappning, den `https_lb_rule` som dess mätvärden hamnar på.
 
+En post i en granskningslogg kommer hel, som loggens brödtext: med [Hitta säkerhetshändelser i dina loggar](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar) påslaget läses varje post som en säkerhetshändelse, precis som en från en loggpipeline, och lagras en gång, hur många vägar den än når OneUptime.
+
 En instansgrupps loggar är dess virtuella datorers, så dess sida har ingen flik **Loggar**. En post av en annan typ strömmas ändå, under sitt projekt.
 
 ## Vad kommandot skapar

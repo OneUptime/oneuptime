@@ -27,7 +27,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "traces:\\s*\\n\\s*receivers:\\s*\\n\\s*- otlp\\s*\\n\\s*processors:\\s*\\n\\s*- memory_limiter\\s*\\n\\s*- transform/pod-level-mark\\s*\\n\\s*- k8sattributes\\s*\\n\\s*- transform/pod-level-unmark\\s*\\n\\s*- resource"
+          pattern: "traces:\\s*\\n\\s*receivers:\\s*\\n\\s*- otlp\\s*\\n\\s*processors:\\s*\\n\\s*- memory_limiter\\s*\\n\\s*- transform/pod-level-mark\\s*\\n\\s*- k8s_attributes\\s*\\n\\s*- transform/pod-level-unmark\\s*\\n\\s*- resource"
 
   - it: stamps the cluster name without overwriting a producer's own service name
     templates:
@@ -59,7 +59,7 @@ tests:
           # `filter/telemetry` is optional (metricFilters), so it is allowed
           # for explicitly rather than by a `[\s\S]*?` gap that would also
           # swallow the end of this pipeline and match the next one's.
-          pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)+\\s*processors:\\n\\s*- memory_limiter\\n(?:\\s*#[^\\n]*\\n)*\\s*- transform/job-failures-increase\\n\\s*- cumulative_to_delta/job-failures-increase\\n\\s*- transform/pod-level-mark\\n\\s*- k8sattributes\\n\\s*- transform/pod-level-unmark\\n(?:\\s*- filter/telemetry\\n)?\\s*- resource\\n"
+          pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)+\\s*processors:\\n\\s*- memory_limiter\\n(?:\\s*#[^\\n]*\\n)*\\s*- transform/job-failures-increase\\n\\s*- cumulative_to_delta/job-failures-increase\\n\\s*- transform/pod-level-mark\\n\\s*- k8s_attributes\\n\\s*- transform/pod-level-unmark\\n(?:\\s*- filter/telemetry\\n)?\\s*- resource\\n"
 
   - it: keeps the cluster name on the logs pipeline
     templates:
@@ -69,7 +69,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n\\s*logs:\\n\\s*receivers:\\n\\s*- k8sobjects\\n\\s*- k8sobjects/compliance\\n\\s*processors:\\n\\s*- memory_limiter\\n\\s*- k8sattributes\\n\\s*- resource\\n"
+          pattern: "\\n\\s*logs:\\n\\s*receivers:\\n\\s*- k8s_objects\\n\\s*- k8s_objects/compliance\\n\\s*processors:\\n\\s*- memory_limiter\\n\\s*- k8s_attributes\\n\\s*- resource\\n"
 
   - it: refuses to render at all without a cluster name
     set:

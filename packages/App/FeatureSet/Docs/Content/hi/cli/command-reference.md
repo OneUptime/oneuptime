@@ -6,7 +6,7 @@
 - [ग्लोबल विकल्प](#ग्लोबल-विकल्प): वे विकल्प जो हर कमांड लेती है।
 - [लॉगिन और कॉन्टेक्स्ट](#लॉगिन-और-कॉन्टेक्स्ट): login और context कमांड।
 - [संसाधन कमांड](#संसाधन-कमांड): हर संसाधन के संचालन, फ़ील्ड और कार्रवाइयाँ।
-- [अन्य कमांड](#अन्य-कमांड): deploy, dbt upload, data-checks apply, whoami, resources, version और help।
+- [अन्य कमांड](#अन्य-कमांड): deploy, dbt upload, dsym upload, data-checks apply, whoami, resources, version और help।
 :::
 
 ## कमांड
@@ -21,6 +21,8 @@ flowchart LR
     R --> R2["acknowledge<br/>resolve<br/>start<br/>end<br/>add-note"]
     O --> D["dbt"]
     D --> D1["upload"]
+    O --> S["dsym"]
+    S --> S1["upload"]
     O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
@@ -325,6 +327,19 @@ oneuptime dbt upload [--target-path <dir>] [--manifest <file>] [--run-results <f
 | `--project <name>` | नहीं | dbt प्रोजेक्ट का नाम, जिसकी ज़रूरत तभी है जब कोई मैनिफ़ेस्ट न भेजा जाए | मैनिफ़ेस्ट का प्रोजेक्ट |
 | `--ingestion-key <key>` | नहीं | प्रोजेक्ट की एक टेलीमेट्री इंजेशन कुंजी | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
 
+### `oneuptime dsym upload`
+
+किसी बिल्ड के बाद, CI या Xcode के किसी बिल्ड फ़ेज़ से, किसी iOS ऐप के dSYM भेजती है, ताकि **अपवाद** में उसके क्रैश और हैंग के फ़्रेम उनके फ़ंक्शन के नाम से दिखें और एक रिलीज़ से अगली रिलीज़ तक उन्हीं फ़ंक्शन के आधार पर समूहों में रखे जाएँ। यह हर dSYM को आपकी मशीन पर ही पढ़ती है: एक `.dSYM` बंडल, ऐसे बंडलों वाला कोई फ़ोल्डर, जैसे किसी आर्काइव का `dSYMs` फ़ोल्डर, उनकी कोई zip फ़ाइल, जैसी App Store Connect देता है, या किसी dSYM की DWARF फ़ाइल। यह हर बाइनरी का सिर्फ़ UUID, आर्किटेक्चर और फ़ंक्शन के नाम भेजती है, और API कुंजी से नहीं, बल्कि टेलीमेट्री इंजेशन कुंजी से लिखती है। जिस बाइनरी से उसके फ़ंक्शन हटा दिए गए हों, उसे एक चेतावनी के साथ छोड़ दिया जाता है। [अपने dSYM अपलोड करें](/docs/rum/mobile-setup#अपने-dsym-अपलोड-करें) देखें।
+
+```bash
+oneuptime dsym upload <paths...> [--app <name>] [--ingestion-key <key>]
+```
+
+| विकल्प | ज़रूरी | यह क्या है | डिफ़ॉल्ट |
+| --- | --- | --- | --- |
+| `--app <name>` | नहीं | वह ऐप जिसके ये dSYM हैं, उसके `service.name` के रूप में, जो इनके साथ रखा जाता है | |
+| `--ingestion-key <key>` | नहीं | प्रोजेक्ट की एक टेलीमेट्री इंजेशन कुंजी | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime data-checks apply`
 
 प्रोजेक्ट की डेटा जाँचों को एक YAML फ़ाइल से मिला देती है, ताकि वे किसी रिपॉज़िटरी में रखी जाएं और कोड की तरह समीक्षा की जाएं। फ़ाइल में कहीं भी गलती हो तो कुछ भी लागू नहीं होता और त्रुटि के साथ बाहर निकलती है। फ़ाइल का फ़ॉर्मैट [जांचें और मिलान](/docs/data-observability/checks) में है।
@@ -384,7 +399,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API कुंजी, जब कोई `--api-key` फ़्लैग कुंजी न दे |
 | `ONEUPTIME_URL` | आपके OneUptime का पता, जब कोई `--url` फ़्लैग पता न दे |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | वह टेलीमेट्री इंजेशन कुंजी जिससे `oneuptime deploy` लिखती है, जब कोई `--ingestion-key` फ़्लैग कुंजी न दे |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | वह टेलीमेट्री इंजेशन कुंजी जिससे `oneuptime deploy`, `oneuptime dbt upload` और `oneuptime dsym upload` लिखती हैं, जब कोई `--ingestion-key` फ़्लैग कुंजी न दे |
 | `NO_COLOR` | कोई भी मान देने पर रंग बंद करता है |
 
 ## फ़ाइलें

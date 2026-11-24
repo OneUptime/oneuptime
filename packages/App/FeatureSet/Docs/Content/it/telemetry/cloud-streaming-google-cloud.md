@@ -71,6 +71,8 @@ La finestra chiede ogni pochi secondi cosa è arrivato. Pub/Sub invia una voce e
 
 Ogni log conserva l'ora della sua voce al nanosecondo, la sua gravità, la sua traccia e il suo span, e la sua richiesta HTTP con i nomi delle convenzioni semantiche di OpenTelemetry. Viene archiviato sotto una risorsa quando la sua risorsa monitorata è di un tipo di cui OneUptime legge le metriche, come una VM (`gce_instance`), un servizio Cloud Run (`cloud_run_revision`) o un'istanza Cloud SQL (`cloudsql_database`), e porta l'ID della risorsa come `cloud.resource_id`. I log delle richieste di un bilanciatore del carico esterno, scritti sotto `http_load_balancer`, vengono archiviati sotto la sua mappa URL, la `https_lb_rule` su cui arrivano le sue metriche.
 
+La voce di un log di audit arriva intera, come corpo del suo log: con [Trova eventi di sicurezza nei tuoi log](/docs/telemetry/security-events#trovare-eventi-di-sicurezza-nei-tuoi-log) attivo, ognuna viene letta come un evento di sicurezza, come una che arriva da una pipeline di log, e salvata una sola volta, per quante vie raggiunga OneUptime.
+
 I log di un gruppo di istanze sono quelli delle sue VM, quindi la sua pagina non ha la scheda **Log**. Una voce di un altro tipo viene trasmessa comunque, sotto il suo progetto.
 
 ## Cosa crea il comando

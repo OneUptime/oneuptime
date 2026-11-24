@@ -63,7 +63,7 @@ The first costs appear after the first full hour closes, and OpenCost needs a fe
 
 The cost metrics (`node_total_hourly_cost`, `pv_hourly_cost` and the rest) are ordinary metrics: they are in the metric explorer, on custom dashboards and in metric monitors. For a ready-made dashboard, go to **Products → Dashboards**, select **Create Dashboard** and pick **Kubernetes Cost Dashboard**: node hourly cost trends, CPU and memory unit costs, and volume and load balancer spend.
 
-Under the figures, the overview and the **Costs** page say where their prices come from: a cloud's list prices, your rate card, or OpenCost's default rates, whichever engine prices the cluster, Kubecost 3 included. A Kubecost that reads your cloud bill reconciles its prices with that bill about a day and a half after each hour, so the line then says the figures are its list prices from before that. Efficiency is one figure everywhere, the efficiency metric included: how much of the requested CPU and memory was used, each container's hour weighted by what its CPU and memory cost, so a cheap job that uses nothing cannot pull a well-used cluster down, and idle capacity is not counted.
+Under the figures, the overview and the **Costs** page say where their prices come from: a cloud's list prices, your rate card, or OpenCost's default rates, whichever engine prices the cluster, Kubecost 3 included. A Kubecost that reads your cloud bill reconciles its prices with that bill about two days after each hour, and OneUptime brings each reconciled hour in, so the line says how far the figures are reconciled with your bill. Efficiency is one figure everywhere, the efficiency metric included: how much of the requested CPU and memory was used, each container's hour weighted by what its CPU and memory cost, so a cheap job that uses nothing cannot pull a well-used cluster down, and idle capacity is not counted.
 
 ## Already running Kubecost or OpenCost?
 
@@ -191,7 +191,7 @@ Read its logs: `kubectl logs -n oneuptime-agent deploy/kubernetes-agent-opencost
 :::
 
 :::details The overview says the bundled OpenCost is not needed
-The cluster runs its own Kubecost or OpenCost, and the cost agent reads that, so the OpenCost the chart bundled prices nothing. Upgrade with `--set cost.engine.url=auto` to stop running it and its Prometheus, or set `cost.engine.preferExisting=false` to read the bundled engine instead. With Kubecost 3, which reads no Prometheus, memory recommendations come from the bundled one: name another with `cost.engine.prometheusUrl` in the same upgrade.
+The cluster runs its own Kubecost or OpenCost, and the cost agent reads that, so the OpenCost the chart bundled prices nothing. Upgrade with `--set cost.engine.url=auto` to stop running it and its Prometheus, or set `cost.engine.preferExisting=false` to read the bundled engine instead. When memory recommendations come from the bundled Prometheus, as with Kubecost 3, which reads none, the note says so: name another with `cost.engine.prometheusUrl` in the same upgrade, or keep the bundled engine. The cost agent never stops it itself: it writes nothing to your cluster, and the bundled engine is its fallback while yours does not answer.
 :::
 
 :::details The cost agent does not read your engine
@@ -215,7 +215,7 @@ No memory peak reached OneUptime, so memory was left unsized rather than guessed
 :::
 
 :::details The numbers differ from the engine's own UI
-OneUptime sends whole closed hours, as the engine priced them once they closed, its reconciliation adjustments included: the current hour's spend appears after it closes. A Kubecost that reads your cloud bill reconciles each hour with it about a day and a half later, and OneUptime keeps the hour as it was first priced.
+OneUptime sends whole closed hours, as the engine priced them once they closed, its reconciliation adjustments included: the current hour's spend appears after it closes. A Kubecost that reads your cloud bill reconciles each hour with it about two days later: OneUptime reads the hour again 36 hours, 47 hours and 4 days after it, and brings in what changed. Kubecost keeps hourly figures for 49 hours by default, so an hour it reconciles after that keeps the figure OneUptime last read: to bring every reconciliation in, keep them for 4 days (`kubecostAggregator.etlHourlyStoreDurationHours: 96` on Kubecost 2, `aggregator.retention1h: 96` on Kubecost 3).
 :::
 
 :::details The bundled Prometheus restarted

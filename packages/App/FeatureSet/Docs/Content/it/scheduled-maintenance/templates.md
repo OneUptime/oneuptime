@@ -47,7 +47,7 @@ In **Risorse interessate**, scegliete i **Monitor**, il **Cambia lo stato del mo
 
 ### Decidere se si ripete
 
-In **Ricorrente**, lasciate **Evento ricorrente** disattivato per un modello che usate a mano, oppure attivatelo e compilate la sua pianificazione. Fate clic su **Avanti** per controllare il riepilogo, poi create il modello.
+In **Ricorrente**, lasciate **Evento ricorrente** disattivato per un modello che usate a mano, oppure attivatelo, scegliete ogni quanto si ripete e il suo **Fuso orario**, e fissate gli orari del primo evento in **Primo evento**. Fate clic su **Avanti** per controllare il riepilogo, poi create il modello.
 :::
 
 Un modello chiede **Cambia lo stato del monitor in** anche quando non nomina alcun monitor: lo stato vale anche per i monitor che aggiungete quando pianificate un evento da esso. In **Altre risorse interessate**, un modello accetta host, cluster Kubernetes, host Docker, host Podman e servizi.
@@ -83,15 +83,18 @@ Quando il progetto non ha ancora nessun modello, **Crea da modello** lo dice e r
 
 ## Eventi ricorrenti
 
-Un modello ricorrente crea l'evento secondo una pianificazione. Stabilite quando viene creato il primo evento, quando inizia e quando termina; ogni evento successivo mantiene le stesse distanze, un intervallo dopo.
+Un modello ricorrente crea l'evento secondo una pianificazione. Stabilite ogni quanto si ripete, il fuso orario che mantiene, e quando viene creato il primo evento, quando inizia e quando termina; ogni evento successivo è il primo spostato di intervalli interi nel calendario di quel fuso orario, alle stesse ore del giorno.
 
 | Campo                                    | Cosa significa                                                                                      |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **Evento ricorrente**                    | Attiva la pianificazione.                                                                           |
+| **Con quale frequenza desideri che questo evento si ripeta?** | Un numero e un'unità: ore, giorni, settimane, mesi o anni.                     |
+| **Fuso orario**                          | Il fuso orario in cui gli eventi mantengono la loro ora del giorno. Un nuovo modello parte dal vostro. |
 | **Primo evento pianificato alle**        | Quando OneUptime crea il primo evento, cioè quando i suoi iscritti vengono a sapere che è pianificato. |
 | **Il primo evento inizia alle**          | Quando inizia il primo evento.                                                                      |
 | **Il primo evento termina alle**         | Quando termina il primo evento.                                                                     |
-| **Con quale frequenza desideri che questo evento si ripeta?** | Un numero e un'unità: ore, giorni, settimane, mesi o anni.                     |
+
+I primi tre sono nel passo **Ricorrente**. Gli orari del primo evento sono nel passo **Primo evento**, che compare appena **Evento ricorrente** è attivo.
 
 Per esempio, una finestra settimanale il cui primo evento viene creato un lunedì per il sabato successivo:
 
@@ -100,15 +103,25 @@ Per esempio, una finestra settimanale il cui primo evento viene creato un luned�
 | Il primo     | `2030-06-03 09:00` | `2030-06-08 02:00` | `2030-06-08 04:00` |
 | Il secondo   | `2030-06-10 09:00` | `2030-06-15 02:00` | `2030-06-15 04:00` |
 
+Ogni evento mantiene le ore del giorno del primo evento nel fuso orario del modello, anche quando gli orologi cambiano per l'ora legale: una finestra dalle 02:00 alle 04:00 a Berlino resta lì dalle 02:00 alle 04:00 d'estate e d'inverno. Alcuni giorni vanno così:
+
+- **Un giorno che il mese non ha.** Un evento mensile il 29, il 30 o il 31 cade l'ultimo giorno di un mese più corto, come il 30 aprile o il 28 febbraio, e torna al suo giorno nei mesi che lo hanno. Un evento annuale il 29 febbraio cade il 28 febbraio negli altri anni.
+- **La notte in cui gli orologi vanno avanti.** Un'ora che quella notte non esiste, come le 02:30 quando le 02:00 saltano alle 03:00, avanza della durata del salto, alle 03:30. Un evento il cui inizio supera così la sua fine mantiene la durata del primo evento.
+- **La notte in cui gli orologi tornano indietro.** Un'ora che quella notte capita due volte, come le 01:30 a New York, è la prima delle due.
+- **Ogni poche ore.** Le ore si contano man mano che passano, quindi un modello che si ripete ogni poche ore si sposta di un'ora sull'orologio quando questo cambia.
+- **Un fuso orario senza ora legale.** Un fuso orario che non cambia più gli orologi, come quello della Columbia Britannica (America/Vancouver) da novembre 2026, mantiene lo stesso scostamento, quindi non si sposta nulla.
+
+Un modello creato prima che i modelli avessero un fuso orario mostra **UTC**, il fuso orario in cui i suoi eventi venivano calcolati fino ad allora. Scegliete il fuso orario in cui erano pensati i suoi orari e, dal suo prossimo evento, ogni evento vi mantiene l'ora del giorno del primo evento.
+
 Impostate **Primo evento pianificato alle** con tutto l'anticipo con cui volete che i vostri clienti vengano a sapere del lavoro. Tutte e tre le ore devono essere nel futuro quando create il modello, l'evento deve essere creato prima di iniziare e di terminare, e deve iniziare prima di terminare; il modulo dice quale regola viola un'ora.
 
-Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossima ora di un modello, sposta quell'ora avanti di un intervallo e crea l'evento. L'elenco dei modelli mostra quell'ora nella sua colonna **Evento ricorrente**, e **No** per un modello che non si ripete. Un evento creato dalla pianificazione è come qualsiasi altro: le sue regole vengono eseguite, i suoi proprietari vengono aggiunti e i suoi iscritti vengono a sapere che è pianificato.
+Un processo controlla i modelli ricorrenti ogni minuto. Quando arriva la prossima ora di un modello, crea l'evento e sposta quell'ora al prossimo evento della pianificazione. L'elenco dei modelli mostra quell'ora nella sua colonna **Evento ricorrente**, e **No** per un modello che non si ripete. Un evento creato dalla pianificazione è come qualsiasi altro: le sue regole vengono eseguite, i suoi proprietari vengono aggiunti e i suoi iscritti vengono a sapere che è pianificato.
 
 ## Modificare o fermare un modello
 
 Aprite un modello dall'elenco per vedere la sua pagina:
 
-- **Dettagli del modello di manutenzione programmata** mostra con cosa partono i nuovi eventi. Il suo **Modifica** percorre **Informazioni del modello**, **Dettagli della manutenzione**, **Pagine di stato** e **Ricorrente**.
+- **Dettagli del modello di manutenzione programmata** mostra con cosa partono i nuovi eventi. Il suo **Modifica** percorre **Informazioni del modello**, **Dettagli della manutenzione**, **Pagine di stato** e **Ricorrente**, poi **Primo evento** per un modello che si ripete.
 - **Risorse interessate** contiene i suoi **Monitor**, il loro **Cambia lo stato del monitor in** e le sue **Altre risorse interessate**, con un proprio **Modifica**.
 - **Proprietari** elenca le persone e i team a cui appartiene ogni evento pianificato da esso.
 
@@ -122,6 +135,10 @@ Tutte e tre le prime ore devono essere successive al momento attuale quando crea
 
 :::details Un modello ricorrente non ha creato nessun evento
 Controllate che **Evento ricorrente** sia ancora attivo, e guardate l'ora nella colonna **Evento ricorrente** dell'elenco: l'evento viene creato in quel momento, non al suo inizio. Il processo gira ogni minuto, quindi lasciate passare un minuto.
+:::
+
+:::details Gli eventi di un modello ricorrente sono in anticipo o in ritardo di un'ora dopo il cambio dell'ora
+Aprite il modello e controllate il suo **Fuso orario**: i suoi eventi mantengono l'ora del giorno del primo evento in quel fuso orario. Un modello creato prima che i modelli avessero un fuso orario mostra **UTC**: scegliete il fuso orario in cui erano pensati i suoi orari. Gli eventi già creati mantengono i loro orari.
 :::
 
 :::details A un evento creato da un modello manca una risorsa che avevo scelto

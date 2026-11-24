@@ -54,9 +54,9 @@ The report counts what was created, invited and not brought over, and lists ever
 | In Splunk On-Call | In OneUptime | How |
 | --- | --- | --- |
 | Users | Project members | Matched by email address. Anyone who is not in the project yet is invited to the team you pick. |
-| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. |
-| Rotations | On-call schedules | Each rotation becomes a schedule owned by its team, and each of its shifts a layer with the same people, start, hand-off and on-call days and hours. Whoever is on call in Splunk On-Call now is on call in OneUptime. |
-| Escalation policies | On-call policies | Owned by the policy's team. Each step becomes an escalation rule that pages the same rotations and users. A step's timeout becomes the wait before it, and steps with no timeout between them page together. |
+| Teams | Teams | Created with their members. A team whose name the project already has is used as it is, and its members are left alone. When two teams have the same name, the second comes over numbered, such as `Platform 2`, and the report says the name it was created with. |
+| Rotations | On-call schedules | Each rotation becomes a schedule owned by its team, and each of its shifts a layer with the same people, start, hand-off and on-call days and hours. Whoever is on call in Splunk On-Call now is on call in OneUptime. When two rotations have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
+| Escalation policies | On-call policies | Owned by the policy's team. Each step becomes an escalation rule that pages the same rotations and users. A step's timeout becomes the wait before it, and steps with no timeout between them page together. When two escalation policies have the same name, the second comes over numbered, such as `Primary 2`, and the report says the name it was created with. |
 
 Shifts of one rotation that are on call at the same time become one OneUptime schedule each, because a OneUptime schedule has one person on call at a time. Every on-call policy that paged the rotation pages all of them. The schedule keeps the time zone of the rotation's first shift, and a shift kept in another time zone has its hours moved into it.
 

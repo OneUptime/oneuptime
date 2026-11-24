@@ -42,6 +42,10 @@ Standorte bilden einen Baum. Jeder Standort hat einen **Standorttyp** und option
 
 Typ, Name, Beschreibung, übergeordneter Standort und Lage eines Standorts werden an einer Stelle bearbeitet: in der Karte **Standorteinstellungen** auf der **Einstellungen**-Seite des Standorts. Die Übersicht des Standorts zeigt sie mit einem Link **In den Einstellungen bearbeiten**, und die Liste **Standorte** fügt Standorte hinzu, bearbeitet sie aber nicht.
 
+Standorte, die nichts enthalten, gehen in einem Schritt: **Leere Standorte löschen** im Menü über der Liste **Standorte** listet jeden Standort ohne Geräte (auch archivierte), ohne Standorte darunter und ohne Endpunkt, Link, Regel oder Wartungsereignis, das ihn nutzt. Es nennt die ersten zehn und löscht nach Ihrer Bestätigung genau die aufgelisteten Standorte: Ein Standort, der inzwischen ein Gerät bekommt, bleibt erhalten. Es steht allen zu, die Standorte löschen dürfen.
+
+Die Karte **Hierarchie** oben auf der Seite **Standorte** zeichnet den Baum. Sie bleibt eingeklappt, bis Sie auf **Hierarchie anzeigen** klicken, und bleibt beim nächsten Mal angezeigt, wenn Sie sie angezeigt lassen. Sie listet zuerst die Standorte der obersten Ebene, jeweils fünfzig, und die untergeordneten Standorte eines Standorts, sobald Sie ihn öffnen. **Standorte nach Namen durchsuchen** findet einen Standort überall im Baum und öffnet die Standorte darüber, und **Standorte ohne Geräte ausblenden** lässt jeden Standort weg, in dem und unter dem kein Gerät ist.
+
 Jedes Gerät gehört zu einem Standort. Der Teilbaum eines Standorts ist der Standort selbst plus jeder Standort darunter, und aus den Geräten des Teilbaums ergibt sich seine Integrität, eine Region ohne eigene Geräte hat also trotzdem einen Status, weil die Einheiten unter ihr einen haben.
 
 > [!NOTE]
@@ -79,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` und `siteType` sind Pflicht. `siteType` muss einer der Standorttypen des Projekts sein.
 - `parentName` nennt den übergeordneten Standort, der in derselben Datei stehen kann: Zeilen ohne übergeordneten Standort oder mit einem, der bereits existiert, kommen zuerst, dann ihre untergeordneten. Lassen Sie es für einen Standort der obersten Ebene leer.
 - Eine Zeile, deren übergeordneter Standort nicht gefunden wird, wird übersprungen, und die Ergebnisse führen sie auf. **Importvorschau** zeigt, was die Datei anlegen wird, bevor etwas geschrieben wird.
+
+## Viele Standorte auf einmal ändern
+
+Ein Import einer Meraki-Organisation legt für jedes ihrer Netzwerke einen Standort an, alle auf der obersten Ebene. Sie öffnen nicht jeden einzeln: Wählen Sie sie in der Liste **Standorte** aus, indem Sie Zeilen ankreuzen oder alle Standorte wählen, die zu den Filtern passen, und öffnen Sie **Massenaktionen**.
+
+| Aktion | Was sie tut |
+| --- | --- |
+| **Übergeordneten Standort festlegen** / **Übergeordneten Standort entfernen** | Verschiebt jeden ausgewählten Standort mit allen Standorten darunter unter den Standort, den Sie wählen, wo er zur Integrität dieses Standorts zählt. **Übergeordneten Standort entfernen** verschiebt sie auf die oberste Ebene. Ein Standort braucht einen Typ, um unter einem anderen zu liegen, und ein Standort aus einem Meraki-Import hat keinen: Haben einige der ausgewählten Standorte keinen Typ, fragt der Dialog nach dem Typ, den sie erhalten, und die anderen behalten ihren. |
+| **Standardsonde festlegen** / **Standardsonde entfernen** | Legt die [Standardsonde](#überwachungsstandards) jedes ausgewählten Standorts fest, für die Geräte, die ihm später hinzugefügt werden. Die Geräte, die bereits dort sind, behalten ihre Sonden. |
+| **Beschriftungen hinzufügen** / **Beschriftungen entfernen** | Beschriftungen gruppieren Standorte, damit Sie sie gemeinsam filtern und auswählen können. Sie entscheiden nicht, wer einen Standort sehen kann. |
+| **Eigentümer hinzufügen** / **Eigentümer entfernen** | Den Eigentümern eines Standorts gehört die Warnung, die er auslöst, wenn er fehlerhaft ist. Die eigene Seite **Eigentümer** eines Standorts listet sie auf. |
+
+Jede Aktion ist ein Dialog und ein Speichern für die ganze Auswahl, und jeder Standort durchläuft dieselben Prüfungen wie eine Bearbeitung auf seiner eigenen Einstellungen-Seite. Wenn eine Aktion fertig ist, listet sie, wie viele Standorte sich geändert haben, welche fehlgeschlagen sind und warum (ein Standort kann weder unter sich selbst noch unter einen Standort darunter, noch unter einen Standort eines Typs, der nur Geräte enthält), und welche sie nicht geändert hat und warum: ein Standort, der schon unter diesem übergeordneten Standort liegt, oder der als übergeordnet gewählte Standort.
 
 ## Die Karte
 
@@ -211,7 +228,7 @@ Einen Monitor an dasselbe Ereignis zu hängen, tut weiterhin, was es immer tut: 
 
 ## Warnungen für einen Standort
 
-Die Karte **Alarmierung** auf der **Einstellungen**-Seite eines Standorts hat **Bei fehlerhaftem Zustand warnen**: Eine Warnung öffnet sich, wenn die Zusammenfassung des Standorts in einen nicht betriebsbereiten Status wechselt, und löst sich selbst auf, wenn sich der Standort erholt. **Warnungsschweregrad** legt ihren Schweregrad fest; leer gelassen ist es der schwerste des Projekts.
+Die Karte **Alarmierung** auf der **Einstellungen**-Seite eines Standorts hat **Bei fehlerhaftem Zustand warnen**: Eine Warnung öffnet sich, wenn die Zusammenfassung des Standorts in einen nicht betriebsbereiten Status wechselt, und löst sich selbst auf, wenn sich der Standort erholt. **Warnungsschweregrad** legt ihren Schweregrad fest; leer gelassen ist es der schwerste des Projekts. Den Eigentümern des Standorts auf seiner Seite **Eigentümer** gehört die Warnung.
 
 Sie warnt nur bei der Änderung: Wenn Sie sie für einen Standort einschalten, der schon fehlerhaft ist, wird die nächste Änderung scharfgeschaltet, statt über die Vergangenheit zu warnen. Degraded ist nicht betriebsbereit, ein Standort mit der Anteilsrichtlinie warnt also, sobald eines seiner berichtenden Geräte ausgefallen ist, genau wie ein Standort mit der Richtlinie des schlechtesten Status; die Warnung bleibt offen, ohne eine zweite, während der Standort zwischen Degraded und Offline wechselt, und ihr Titel nennt den Status, den der Standort zuerst erreicht hat.
 

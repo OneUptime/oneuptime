@@ -65,7 +65,7 @@ No se envía nada hasta que eliges una página de estado: un evento que no apare
 | **Monitores**                        | **Recursos afectados** | Ninguno                     | Los monitores que no se comprueban mientras el evento está en curso.             |
 | **Cambiar el estado del monitor a**  | **Recursos afectados** | Sin cambio                  | El estado que muestran esos monitores durante el evento. Se pide en cuanto se elige un monitor. |
 | **Otros recursos afectados**         | **Recursos afectados** | Ninguno                     | Hosts, clústeres, bases de datos, sitios de red, servicios y más.                |
-| **Mostrar evento en estas páginas de estado** | **Recursos afectados** | Ninguna            | Las páginas de estado que muestran el evento y avisan a sus suscriptores.        |
+| **Mostrar evento en estas páginas de estado** | **Recursos afectados** | Ninguna            | Las únicas páginas de estado que pueden mostrar el evento o avisar a sus suscriptores. |
 | **Notificaciones a suscriptores**    | **Recursos afectados** | Publicado de inmediato, los tres momentos activados, sin recordatorios | Cuándo se muestra el evento en esas páginas y cuándo se avisa a sus suscriptores. |
 
 Hay dos cosas que rellenan el formulario por ti sobre la marcha:
@@ -104,8 +104,9 @@ Planifica el trabajo con tanta antelación como quieras y mantenlo dentro de tu 
 | Su **Termina en**        | Termina                                                               | Pasado                   |
 
 - **Hasta entonces, los suscriptores no saben nada.** Mientras el evento espera, no se les envían los recordatorios antes del evento, los cambios de estado ni las notas públicas.
-- **Su página lo dice.** Su encabezado muestra **Aún no está en las páginas de estado**, con la hora desde la que se muestra, y **Publicar ahora** lo publica de inmediato, tras pedir confirmación. Sus **Ajustes** dicen lo mismo, y la lista de eventos muestra la hora bajo sus páginas de estado.
+- **Su página lo dice.** Su encabezado muestra **Aún no está en las páginas de estado**, con la hora desde la que se muestra, y **Publicar ahora** lo publica de inmediato, tras pedir confirmación. Cuando ninguna de sus páginas de estado muestra eventos de mantenimiento, el encabezado lo dice en lugar de la hora. Sus **Ajustes** dicen lo mismo, y la lista de eventos muestra la hora bajo sus páginas de estado.
 - **Cámbialo, o publícalo ya.** Mueve el **Publicar el** en el paso **Páginas de estado** de **Editar**, o elige **De inmediato**. Desactiva **Visible en la página de estado** en sus **Ajustes** para mantenerlo fuera de sus páginas de estado sea cual sea la hora.
+- **Lo que hacen sus páginas de estado.** En el mismo paso, una nota bajo las páginas de estado indica cuándo las páginas elegidas no mostrarán el evento a nadie o no avisarán a nadie, y por qué, y una nota bajo **Recordatorios antes del evento** indica qué recordatorios no se envían. La tarjeta **Detalles del mantenimiento** lo dice bajo **Mostrado en las páginas de estado** cuando ninguna de ellas muestra eventos de mantenimiento.
 
 ## Cambiar un evento después
 

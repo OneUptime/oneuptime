@@ -9,16 +9,20 @@ import {
   DEVICE_ADD_REQUEST_NO_KINDS,
   DEVICE_ADD_REQUEST_PROBE,
   DEVICE_ADD_REQUEST_UNKNOWN_KIND,
-  MAX_DEVICE_ADD_FAILURES_KEPT,
+  MAX_DEVICE_ADD_FAILURE_NAMES_KEPT,
+  MAX_DEVICE_ADD_FAILURE_REASONS_KEPT,
   MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
   NETWORK_CONTROLLER_DEVICE_ADD_QUEUED_STALE_MS,
   NETWORK_CONTROLLER_DEVICE_ADD_STALE_MS,
+  NetworkControllerDeviceAddFailureReason,
   NetworkControllerDeviceAddState,
   NetworkControllerDeviceAddStatus,
   NetworkControllerUnaddedDeviceCount,
+  addNetworkControllerDeviceAddFailure,
   buildQueuedNetworkControllerDeviceAddState,
   getAddableControllerDeviceCount,
   getControllerProductTypesToOffer,
+  getNetworkControllerDeviceAddFailureReasons,
   isAddableControllerProductType,
   isNetworkControllerDeviceAddUnderWay,
   readNetworkControllerDeviceAddRequest,
@@ -180,7 +184,7 @@ describe("the state an ask keeps on the connection", () => {
       takenCount: 0,
       archivedCount: 0,
       remainingCount: 0,
-      failures: [],
+      failureReasons: [],
     });
   });
 
@@ -199,8 +203,12 @@ describe("the state an ask keeps on the connection", () => {
       takenCount: 2,
       archivedCount: 1,
       remainingCount: 0,
-      failures: [
-        { name: "AP-1", reason: "Another network device has this name." },
+      failureReasons: [
+        {
+          reason: "Another network device has this name.",
+          count: 1,
+          names: ["AP-1"],
+        },
       ],
     };
 
@@ -248,15 +256,22 @@ describe("the state an ask keeps on the connection", () => {
     ).toBeUndefined();
   });
 
-  test("counts that are not counts read as none, and failures are kept short and few", () => {
+  test("counts that are not counts read as none, and reasons are kept short and few", () => {
     const json: JSONObject = {
       ...toNetworkControllerDeviceAddStateJson(queued()),
       addedCount: -4,
       takenCount: "many",
       remainingCount: 2.9,
-      failures: [
+      failedCount: 30,
+      failureReasons: [
         ...Array.from({ length: 30 }, (_: unknown, index: number) => {
-          return { name: `Device ${index}`, reason: "x".repeat(1000) };
+          return {
+            reason: `${index} ${"x".repeat(1000)}`,
+            count: 1,
+            names: Array.from({ length: 10 }, (__: unknown, n: number) => {
+              return `Device ${index}.${n} ${"y".repeat(1000)}`;
+            }),
+          };
         }),
       ],
     };
@@ -267,19 +282,145 @@ describe("the state an ask keeps on the connection", () => {
     expect(state?.addedCount).toBe(0);
     expect(state?.takenCount).toBe(0);
     expect(state?.remainingCount).toBe(2);
-    expect(state?.failures).toHaveLength(MAX_DEVICE_ADD_FAILURES_KEPT);
-    expect(state?.failures[0]?.reason).toHaveLength(
+    expect(state?.failureReasons).toHaveLength(
+      MAX_DEVICE_ADD_FAILURE_REASONS_KEPT,
+    );
+    expect(state?.failureReasons[0]?.reason).toHaveLength(
+      MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
+    );
+    expect(state?.failureReasons[0]?.names).toHaveLength(
+      MAX_DEVICE_ADD_FAILURE_NAMES_KEPT,
+    );
+    expect(state?.failureReasons[0]?.names[0]).toHaveLength(
       MAX_DEVICE_ADD_FAILURE_TEXT_LENGTH,
     );
   });
 
-  test("a failure with neither a name nor a reason is dropped", () => {
+  test("a reason with no words, no count, or kept already is dropped; names that are not names too", () => {
     expect(
       readNetworkControllerDeviceAddState({
         ...toNetworkControllerDeviceAddStateJson(queued()),
-        failures: [{}, { name: "AP-1" }, "broken"],
-      })?.failures,
-    ).toEqual([{ name: "AP-1", reason: "" }]);
+        failureReasons: [
+          {},
+          { reason: "   ", count: 3 },
+          { reason: "No count." },
+          { reason: "Kept.", count: 2, names: ["AP-1", 7, "", null, "AP-2"] },
+          { reason: "Kept.", count: 9 },
+          "broken",
+        ],
+      })?.failureReasons,
+    ).toEqual([{ reason: "Kept.", count: 2, names: ["AP-1", "AP-2"] }]);
+  });
+
+  test("an ask an earlier OneUptime recorded - one failure a device - is read as its reasons", () => {
+    const reasons: Array<NetworkControllerDeviceAddFailureReason> | undefined =
+      readNetworkControllerDeviceAddState({
+        ...toNetworkControllerDeviceAddStateJson(queued()),
+        failedCount: 5000,
+        failureReasons: undefined,
+        failures: [
+          { name: "Core", reason: "Refused for its serial number." },
+          { name: "Lobby", reason: "Refused for its serial number." },
+          { name: "Till", reason: "Another network device has this name." },
+          { name: "Back office", reason: "Refused for its serial number." },
+          { name: "AP-9", reason: "Refused for its serial number." },
+          {},
+          { name: "No reason" },
+          "broken",
+        ],
+      })?.failureReasons;
+
+    expect(reasons).toEqual([
+      {
+        reason: "Refused for its serial number.",
+        count: 4,
+        names: ["Core", "Lobby", "Back office"],
+      },
+      {
+        reason: "Another network device has this name.",
+        count: 1,
+        names: ["Till"],
+      },
+    ]);
+  });
+});
+
+describe("the reasons devices could not be added: one entry a reason, with how many and which", () => {
+  test("a device is counted under its reason, the first few by name", () => {
+    const reasons: Array<NetworkControllerDeviceAddFailureReason> = [];
+
+    for (let index: number = 1; index <= 5000; index++) {
+      addNetworkControllerDeviceAddFailure(reasons, {
+        name: `AP-${index}`,
+        reason:
+          "User is not allowed to create on serialNumber column of Network Device.",
+      });
+    }
+
+    expect(reasons).toEqual([
+      {
+        reason:
+          "User is not allowed to create on serialNumber column of Network Device.",
+        count: 5000,
+        names: ["AP-1", "AP-2", "AP-3"],
+      },
+    ]);
+  });
+
+  test("a reason past the few kept is counted in failedCount only, and said as other reasons", () => {
+    const reasons: Array<NetworkControllerDeviceAddFailureReason> = [];
+
+    for (
+      let index: number = 0;
+      index < MAX_DEVICE_ADD_FAILURE_REASONS_KEPT + 3;
+      index++
+    ) {
+      addNetworkControllerDeviceAddFailure(reasons, {
+        name: `Device ${index}`,
+        reason: `Reason ${index}.`,
+      });
+    }
+
+    expect(reasons).toHaveLength(MAX_DEVICE_ADD_FAILURE_REASONS_KEPT);
+    expect(
+      getNetworkControllerDeviceAddFailureReasons({
+        failureReasons: reasons,
+        failedCount: MAX_DEVICE_ADD_FAILURE_REASONS_KEPT + 3,
+      }).otherCount,
+    ).toBe(3);
+  });
+
+  test("a device with no name is counted, and named by nothing", () => {
+    const reasons: Array<NetworkControllerDeviceAddFailureReason> = [];
+
+    addNetworkControllerDeviceAddFailure(reasons, { name: "", reason: "Why." });
+    addNetworkControllerDeviceAddFailure(reasons, { name: "", reason: "Why." });
+
+    expect(reasons).toEqual([{ reason: "Why.", count: 2, names: [] }]);
+  });
+
+  test("the reason that kept out the most comes first; among equals, the one met first", () => {
+    const reasons: Array<NetworkControllerDeviceAddFailureReason> = [
+      { reason: "Rare.", count: 1, names: ["A"] },
+      { reason: "Common.", count: 40, names: ["B"] },
+      { reason: "Also rare.", count: 1, names: ["C"] },
+    ];
+
+    expect(
+      getNetworkControllerDeviceAddFailureReasons({
+        failureReasons: reasons,
+        failedCount: 42,
+      }),
+    ).toEqual({
+      reasons: [
+        { reason: "Common.", count: 40, names: ["B"] },
+        { reason: "Rare.", count: 1, names: ["A"] },
+        { reason: "Also rare.", count: 1, names: ["C"] },
+      ],
+      otherCount: 0,
+    });
+    // The state's own list is left as it was.
+    expect(reasons[0]!.reason).toBe("Rare.");
   });
 });
 

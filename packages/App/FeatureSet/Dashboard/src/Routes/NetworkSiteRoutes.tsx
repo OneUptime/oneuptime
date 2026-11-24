@@ -19,6 +19,7 @@ import NetworkSiteViewEndpoints from "../Pages/NetworkSite/View/Endpoints";
 import NetworkSiteViewTraffic from "../Pages/NetworkSite/View/Traffic";
 import NetworkSiteViewStatusTimeline from "../Pages/NetworkSite/View/StatusTimeline";
 import NetworkSiteViewScheduledMaintenance from "../Pages/NetworkSite/View/ScheduledMaintenance";
+import NetworkSiteViewOwners from "../Pages/NetworkSite/View/Owners";
 import NetworkSiteViewSettings from "../Pages/NetworkSite/View/Settings";
 import NetworkSiteViewDelete from "../Pages/NetworkSite/View/Delete";
 import NetworkSiteViewAuditLogs from "../Pages/NetworkSite/View/AuditLogs";
@@ -173,6 +174,16 @@ const NetworkSiteRoutes: FunctionComponent<ComponentProps> = (
                   PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE
                 ] as Route
               }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.NETWORK_SITE_VIEW_OWNERS)}
+          element={
+            <NetworkSiteViewOwners
+              {...props}
+              pageRoute={RouteMap[PageMap.NETWORK_SITE_VIEW_OWNERS] as Route}
             />
           }
         />

@@ -36,9 +36,15 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 import DashboardAPI from "../../../Server/API/DashboardAPI";
+import DashboardPrivateUserSessionService from "../../../Server/Services/DashboardPrivateUserSessionService";
 import DashboardService from "../../../Server/Services/DashboardService";
 import PublicDashboardRateLimit from "../../../Server/Middleware/PublicDashboardRateLimit";
 import CookieUtil from "../../../Server/Utils/Cookie";
+import { PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE } from "../../../Server/Utils/Dashboard/PublicDashboardAccess";
+import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import DashboardPrivateUser from "../../../Models/DatabaseModels/DashboardPrivateUser";
+import DashboardPrivateUserSession from "../../../Models/DatabaseModels/DashboardPrivateUserSession";
+import Email from "../../../Types/Email";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -56,6 +62,7 @@ import {
   getDashboardAccessChanges,
   isDashboardMasterPasswordRequired,
   isDashboardPasswordNeededFor,
+  isDashboardSignInRequired,
 } from "../../../Types/Dashboard/DashboardAccess";
 import {
   DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE,
@@ -115,6 +122,10 @@ if (
  *     the password prompt shows (the name, the page title, the favicon), the
  *     password unlocks it, and the unlocked visitor gets the rest. Never the
  *     locked state, where the server lets nobody in.
+ *   - Only people who sign in (#10250): the metadata carries only what the
+ *     sign-in page shows - the same as the prompt - no password opens it,
+ *     and one of its private users, signed in, gets the rest and is told
+ *     who they are signed in as.
  *
  * And a dashboard already locked (the switch on, no password - the API can
  * still store that) fails closed: the app is told to ask for a password, no
@@ -153,6 +164,8 @@ const PROMPT_METADATA: JSONObject = {
   name: "Checkout",
   isPublicDashboard: true,
   enableMasterPassword: true,
+  requireSignIn: false,
+  signedInAs: null,
   pageTitle: "Checkout status",
   faviconFile: { file: base64Of("favicon-bytes"), fileType: "image/png" },
   // The prompt is drawn in the dashboard's theme.
@@ -162,13 +175,32 @@ const PROMPT_METADATA: JSONObject = {
   logoFile: null,
 };
 
+/*
+ * What the sign-in page shows: the same, and that the link asks its
+ * visitors to sign in - nothing of who may.
+ */
+const SIGN_IN_PROMPT_METADATA: JSONObject = {
+  ...PROMPT_METADATA,
+  enableMasterPassword: false,
+  requireSignIn: true,
+};
+
+// The private user signed in, as their own row reads.
+const SIGNED_IN_EMAIL: string = "visitor@example.com";
+
 // The whole answer, for a visitor the link lets in.
-const fullMetadata: (enableMasterPassword: boolean) => JSONObject = (
+const fullMetadata: (
   enableMasterPassword: boolean,
+  signedInAs?: string | undefined,
+) => JSONObject = (
+  enableMasterPassword: boolean,
+  signedInAs?: string | undefined,
 ): JSONObject => {
   return {
     ...PROMPT_METADATA,
     enableMasterPassword,
+    requireSignIn: Boolean(signedInAs),
+    signedInAs: signedInAs || null,
     description: "Orders and payments",
     pageDescription: "How checkout is doing right now",
     logoFile: { file: base64Of("logo-bytes"), fileType: "image/png" },
@@ -176,6 +208,31 @@ const fullMetadata: (enableMasterPassword: boolean) => JSONObject = (
 };
 
 const PASSWORD: string = "open sesame";
+
+// A private user of the dashboard, and the session they signed in with.
+const PRIVATE_USER_ID: ObjectID = new ObjectID(
+  "da5a0000-0000-4000-8000-0000000000a1",
+);
+const SESSION_ID: ObjectID = new ObjectID(
+  "da5a0000-0000-4000-8000-0000000000a2",
+);
+
+/*
+ * The access-token cookie the sign-in route sets, as a browser sends it
+ * back: a token signed for this session of this dashboard.
+ */
+const signedInCookie: (dashboardId?: ObjectID | undefined) => string = (
+  dashboardId?: ObjectID | undefined,
+): string => {
+  const token: string = JSONWebToken.signDashboardPrivateUserSessionToken({
+    dashboardId: dashboardId || DASHBOARD_ID,
+    userId: PRIVATE_USER_ID,
+    sessionId: SESSION_ID,
+    expiresInSeconds: 900,
+  });
+
+  return `${CookieUtil.getDashboardPrivateUserTokenKey(DASHBOARD_ID)}=${token}`;
+};
 
 // The states a dashboard can start in (what the server stores).
 const START_STATES: Array<[string, DashboardAccessState]> = [
@@ -235,6 +292,24 @@ const START_STATES: Array<[string, DashboardAccessState]> = [
       hasMasterPassword: false,
     },
   ],
+  [
+    "a dashboard only people who sign in can view",
+    {
+      isPublicDashboard: true,
+      enableMasterPassword: false,
+      requireSignIn: true,
+      hasMasterPassword: false,
+    },
+  ],
+  [
+    "a dashboard that asks visitors to sign in, a password kept and its switch left on",
+    {
+      isPublicDashboard: true,
+      enableMasterPassword: true,
+      requireSignIn: true,
+      hasMasterPassword: true,
+    },
+  ],
 ];
 
 // The dashboard the fake data layer hands back.
@@ -256,6 +331,8 @@ const storedDashboard: (state: DashboardAccessState) => Dashboard = (
   dashboard.theme = DashboardTheme.Dark;
   dashboard.isPublicDashboard = state.isPublicDashboard === true;
   dashboard.enableMasterPassword = state.enableMasterPassword === true;
+  dashboard.requireSignIn = state.requireSignIn === true;
+  dashboard.requireSsoForLogin = false;
   dashboard.isArchived = false;
 
   if (state.hasMasterPassword) {
@@ -406,6 +483,39 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
         return data.id.toString() === DASHBOARD_ID.toString() ? stored : null;
       });
 
+    /*
+     * The session the signed-in cookie names is live; no other is. The
+     * lookup itself (ended, removed, Require SSO) has suites of its own.
+     */
+    jest
+      .spyOn(DashboardPrivateUserSessionService, "findSignedInSession")
+      .mockImplementation(
+        async (lookup: {
+          resourceId: ObjectID;
+          sessionId: ObjectID;
+          privateUserId: ObjectID;
+        }): Promise<DashboardPrivateUserSession | null> => {
+          if (
+            lookup.resourceId.toString() !== DASHBOARD_ID.toString() ||
+            lookup.sessionId.toString() !== SESSION_ID.toString() ||
+            lookup.privateUserId.toString() !== PRIVATE_USER_ID.toString()
+          ) {
+            return null;
+          }
+
+          const privateUser: DashboardPrivateUser = new DashboardPrivateUser();
+          privateUser.id = PRIVATE_USER_ID;
+          privateUser.email = new Email(SIGNED_IN_EMAIL);
+
+          const session: DashboardPrivateUserSession =
+            new DashboardPrivateUserSession();
+          session.id = SESSION_ID;
+          session.dashboardPrivateUser = privateUser;
+
+          return session;
+        },
+      );
+
     // The stored hash stands for PASSWORD: bcrypt has suites of its own.
     jest
       .spyOn(DashboardService, "verifyHashedColumnValue")
@@ -517,6 +627,7 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
           const state: DashboardAccessState = {
             isPublicDashboard: stored.isPublicDashboard,
             enableMasterPassword: stored.enableMasterPassword,
+            requireSignIn: stored.requireSignIn,
             hasMasterPassword: Boolean(stored.masterPassword),
           };
 
@@ -556,14 +667,24 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
             expect(unlocked).toEqual(
               await unlock(PASSWORD, MISSING_DASHBOARD_ID),
             );
+
+            // A private user's session opens nothing here either.
+            expect((await metadata(signedInCookie())).status).toBe(404);
+            expect((await overview(signedInCookie())).status).toBe(401);
             return;
           }
 
-          // ...says the link answers, and whether it asks for the password.
+          /*
+           * ...says the link answers, and whether it asks for the password
+           * or asks its visitors to sign in.
+           */
           expect(meta.status).toBe(200);
           expect(meta.body?.["isPublicDashboard"]).toBe(true);
           expect(meta.body?.["enableMasterPassword"]).toBe(
             isDashboardMasterPasswordRequired(state),
+          );
+          expect(meta.body?.["requireSignIn"]).toBe(
+            isDashboardSignInRequired(state),
           );
 
           if (to === DashboardAccess.AnyoneWithLink) {
@@ -577,11 +698,60 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
             expect(errorMessageOf(unlocked)).toBe(
               "Master password has not been configured for this dashboard.",
             );
+
+            // A leftover session names nobody where nobody signs in.
+            expect((await metadata(signedInCookie())).body).toEqual(
+              fullMetadata(false),
+            );
+            return;
+          }
+
+          if (to === DashboardAccess.SignIn) {
+            // The sign-in page shows the name, title, favicon and theme only...
+            expect(meta.body).toEqual(SIGN_IN_PROMPT_METADATA);
+            expect(JSON.stringify(meta.body)).not.toContain(
+              "Orders and payments",
+            );
+            expect(JSON.stringify(meta.body)).not.toContain(SIGNED_IN_EMAIL);
+
+            // ...the dashboard is refused until the visitor signs in...
+            expect(anonymous.status).toBe(401);
+            expect(errorMessageOf(anonymous)).toBe(
+              PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+            );
+
+            // ...no password opens it, a kept one included...
+            expect(unlocked.status).toBe(400);
+            expect(errorMessageOf(unlocked)).toBe(
+              "Master password has not been configured for this dashboard.",
+            );
+            expect(unlockCookieFrom(unlocked)).toBeUndefined();
+
+            // ...and one of its private users, signed in, gets it all.
+            const signedIn: HttpResult = await overview(signedInCookie());
+
+            expect(signedIn.status).toBe(200);
+            expect(signedIn.body?.["name"]).toBe("Checkout");
+            expect((await metadata(signedInCookie())).body).toEqual({
+              ...fullMetadata(false, SIGNED_IN_EMAIL),
+            });
+
+            // A token for another dashboard, in this one's cookie, is nobody.
+            const otherDashboardCookie: string =
+              signedInCookie(MISSING_DASHBOARD_ID);
+
+            expect((await overview(otherDashboardCookie)).status).toBe(401);
+            expect((await metadata(otherDashboardCookie)).body).toEqual(
+              SIGN_IN_PROMPT_METADATA,
+            );
             return;
           }
 
           // The password: the prompt shows the name, title, favicon and theme only...
           expect(meta.body).toEqual(PROMPT_METADATA);
+
+          // ...a private user's session is no password...
+          expect((await overview(signedInCookie())).status).toBe(401);
 
           // ...it is asked for, it unlocks, and the visitor gets in.
           expect(anonymous.status).toBe(401);
@@ -684,6 +854,45 @@ describe("a dashboard's public link answers whoever its Sharing choice says", ()
       expect(meta.status).toBe(404);
       expect(meta).toEqual(await metadata(cookie, MISSING_DASHBOARD_ID));
       expect((await overview(cookie)).status).toBe(401);
+    });
+
+    it("a dashboard that asked visitors to sign in, once back to the project only, hides everything from a private user still signed in", async () => {
+      const signInOnly: DashboardAccessState = {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        requireSignIn: true,
+        hasMasterPassword: false,
+      };
+
+      stored = storedDashboard(signInOnly);
+
+      expect((await overview(signedInCookie())).status).toBe(200);
+
+      stored = dashboardAfter(signInOnly, DashboardAccess.ProjectOnly);
+
+      const meta: HttpResult = await metadata(signedInCookie());
+
+      expect(meta.status).toBe(404);
+      expect(meta).toEqual(
+        await metadata(signedInCookie(), MISSING_DASHBOARD_ID),
+      );
+      expect((await overview(signedInCookie())).status).toBe(401);
+    });
+
+    it("a dashboard that stops asking visitors to sign in opens to everyone, and names nobody", async () => {
+      const signInOnly: DashboardAccessState = {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        requireSignIn: true,
+        hasMasterPassword: false,
+      };
+
+      stored = dashboardAfter(signInOnly, DashboardAccess.AnyoneWithLink);
+
+      expect((await overview()).status).toBe(200);
+      expect((await metadata(signedInCookie())).body).toEqual(
+        fullMetadata(false),
+      );
     });
   });
 });

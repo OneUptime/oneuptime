@@ -29,6 +29,11 @@ import SlackActionAuthorization, {
   SlackAuthorizedEvent,
 } from "./Authorization";
 import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import WorkspaceSharedNames, {
+  WorkspaceNamedOption,
+} from "../../WorkspaceSharedNames";
+import { getSharedNameSelect } from "../../../../../Types/Database/SharedNameMarks";
+import SlackUtil from "../Slack";
 import WorkspaceMemberActions, {
   WorkspaceEventStanding,
   WorkspaceEventStateOption,
@@ -390,16 +395,21 @@ export default class SlackAlertEpisodeActions {
         },
         select: {
           name: true,
+          // What tells two policies of one name apart (#10314).
+          ...getSharedNameSelect(OnCallDutyPolicy),
         },
         limit: LIMIT_PER_PROJECT,
       });
 
-    const dropdownOption: Array<DropdownOption> = onCallPolicies
-      .map((policy: OnCallDutyPolicy) => {
-        return {
-          label: policy.name || "",
-          value: policy._id?.toString() || "",
-        };
+    const dropdownOption: Array<DropdownOption> = (
+      await WorkspaceSharedNames.getOptions({
+        records: onCallPolicies,
+        readerUserId: props.userId,
+        maxLength: SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+      })
+    )
+      .map((option: WorkspaceNamedOption): DropdownOption => {
+        return { label: option.label, value: option.value };
       })
       .filter((option: DropdownOption) => {
         return option.label !== "" || option.value !== "";

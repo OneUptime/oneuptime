@@ -180,11 +180,15 @@ describe("with billing off the Enterprise Edition hands core its SCIM routers on
       expect(eeRouters).not.toContain(entry.router);
     }
 
+    /*
+     * Project, global and status page SAML and OIDC, a dashboard's and a
+     * form's (#10250, #10249), and the project SSO confirmation page.
+     */
     expect(
       SSO_ROUTERS.map((entry: SsoRouterEntry): string => {
         return entry.name;
       }),
-    ).toHaveLength(7);
+    ).toHaveLength(11);
   });
 });
 

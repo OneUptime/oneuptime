@@ -58,7 +58,7 @@ import { isCloudInstanceLive } from "../../Pages/AppPlatforms/Utils/CloudResourc
 import {
   CLOUD_APP_CHART_LOAD_FAILED,
   CLOUD_APP_LOAD_FAILED_SUBLABEL,
-  CloudAppPlatformResourceState,
+  CloudAppSetupRow,
   getCloudAppInstancesTileNote,
   getCloudAppSetupRows,
   getCloudAppTraceTileNote,
@@ -67,9 +67,10 @@ import {
   showsCloudAppUsageTiles,
 } from "../../Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import {
-  fetchCloudAppPlatformResource,
-  hasCloudAppPlatformResource,
-} from "../../Pages/AppPlatforms/Utils/CloudAppPlatformResource";
+  AppServiceSiteInstance,
+  getAppServiceRunningInstances,
+} from "Common/Types/Cloud/AppServiceSiteActivity";
+import { CloudAppAzure } from "./useCloudAppAzure";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { APP_INSTANCE_COUNT } from "./CloudAppCells";
@@ -119,6 +120,10 @@ export const RUNNING_NOW_EMPTY: string = translationKey(
 );
 export const RUNNING_NOW_SPLIT: string = translationKey(
   "More than one revision is running: a deploy in progress, or traffic split between them.",
+);
+// The Instances tile's line while it counts what Azure says runs.
+export const APP_INSTANCES_AS_AZURE_REPORTS: string = translationKey(
+  "running, as Azure reports",
 );
 export const APP_DETAILS_DESCRIPTION: string = translationKey(
   "The resource attributes this app's telemetry is matched on, and the revision it runs.",
@@ -184,6 +189,13 @@ export interface ComponentProps {
    * (#9593): the page builds it, as it knows its own address and window.
    */
   failedRequestsRoute?: Route | undefined;
+  /*
+   * An App Service app's site in Azure, as the page read it for every tab
+   * (useCloudAppAzure): its Azure Monitor section and Setup check rows.
+   */
+  azure?: CloudAppAzure | undefined;
+  // Opens the steps that send the app's traces, metrics and logs.
+  onSetUpTelemetry?: (() => void) | undefined;
 }
 
 const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
@@ -193,16 +205,8 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const ruledListClassName: string = useCardRuledListClassName();
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  /*
-   * The site Azure Monitor reports an App Service app as: undefined while
-   * it is looked up, null when there is none (or the look-up failed).
-   */
-  const [platformResource, setPlatformResource] = useState<
-    CloudResource | null | undefined
-  >(undefined);
-  // The look-up failed (no access to Cloud resources, or the read did).
-  const [platformResourceCheckFailed, setPlatformResourceCheckFailed] =
-    useState<boolean>(false);
+  // The site Azure Monitor reports an App Service app as, once found.
+  const platformResource: CloudResource | null = props.azure?.site || null;
 
   const filters: Record<string, string> = getCloudAppTelemetryFilters({
     environment: props.environment,
@@ -211,9 +215,6 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const scopeKey: string = JSON.stringify(filters);
   const isScoped: boolean =
     Object.keys(getCloudAppAttributes(props.app)).length > 0;
-  const looksUpPlatformResource: boolean = hasCloudAppPlatformResource(
-    props.app,
-  );
 
   useEffect(() => {
     if (!isScoped) {
@@ -263,44 +264,6 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     scopeKey,
     props.start.getTime(),
     props.end.getTime(),
-    props.refreshToken,
-  ]);
-
-  useEffect(() => {
-    if (!looksUpPlatformResource) {
-      setPlatformResource(null);
-      setPlatformResourceCheckFailed(false);
-      return;
-    }
-
-    let ignore: boolean = false;
-
-    fetchCloudAppPlatformResource(props.app)
-      .then((resource: CloudResource | null): void => {
-        if (!ignore) {
-          setPlatformResource(resource);
-          setPlatformResourceCheckFailed(false);
-        }
-      })
-      .catch((): void => {
-        /*
-         * No access to Cloud resources, or the read failed: no section, and
-         * no Setup check row - it cannot say whether one is connected.
-         */
-        if (!ignore) {
-          setPlatformResource(null);
-          setPlatformResourceCheckFailed(true);
-        }
-      });
-
-    return (): void => {
-      ignore = true;
-    };
-  }, [
-    props.app._id?.toString(),
-    props.app.name,
-    props.app.groupName,
-    props.app.providerResourceId,
     props.refreshToken,
   ]);
 
@@ -364,10 +327,26 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   };
   const cpuNote: string | undefined = usageNote(avgCpu !== null);
   const memoryNote: string | undefined = usageNote(hasMemory);
-  const instancesNote: string | undefined = getCloudAppInstancesTileNote({
-    isRunning,
-    hasReportedInstances,
-  });
+  /*
+   * The instances Azure says the site runs (#10294): what the Instances
+   * tile counts while the app's own telemetry names none.
+   */
+  const azureInstances: Array<AppServiceSiteInstance> | null = props.azure
+    ?.activity?.instances.items
+    ? getAppServiceRunningInstances(props.azure.activity.instances.items)
+    : null;
+  const countsAzureInstances: boolean = Boolean(
+    isRunning &&
+      !hasReportedInstances &&
+      azureInstances &&
+      azureInstances.length > 0,
+  );
+  const instancesNote: string | undefined = countsAzureInstances
+    ? undefined
+    : getCloudAppInstancesTileNote({
+        isRunning,
+        hasReportedInstances,
+      });
 
   const tiles: Array<ResourceOverviewTile> = [
     {
@@ -423,16 +402,23 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Instances",
-      value: formatCompact(liveInstances.length, translator),
+      value: formatCompact(
+        countsAzureInstances && azureInstances
+          ? azureInstances.length
+          : liveInstances.length,
+        translator,
+      ),
       valueNote: instancesNote,
       icon: IconProp.Cube,
       iconColor: "amber",
       // The note says it all: the line under it would only repeat it.
       sublabel: instancesNote
         ? undefined
-        : translator.translateTemplate("live in the last {{minutes}} min", {
-            minutes: CLOUD_APP_LIVE_WINDOW_MINUTES,
-          }),
+        : countsAzureInstances
+          ? APP_INSTANCES_AS_AZURE_REPORTS
+          : translator.translateTemplate("live in the last {{minutes}} min", {
+              minutes: CLOUD_APP_LIVE_WINDOW_MINUTES,
+            }),
       description: CLOUD_APP_METRIC_DESCRIPTIONS.instances,
     },
   ];
@@ -476,13 +462,20 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     : tiles;
 
   /*
-   * The Setup check leads the tab while a number on it waits for something
-   * the app does not send: traces, an instance, a version.
+   * The Setup check leads the tab while any signal is missing (#10294):
+   * every row the app has - for an App Service app its Azure Monitor
+   * connection and metrics too - and the card while one needs something
+   * done, never just because the app runs.
    */
-  const setupIncomplete: boolean = isCloudAppSetupIncomplete({
+  const setupRows: Array<CloudAppSetupRow> = getCloudAppSetupRows({
     app: props.app,
     isRunning,
     hasReportedInstances,
+    azureMonitor: props.azure?.lookup,
+    diagnosticLogsLastReceivedAt: props.azure?.diagnosticLogsLastReceivedAt,
+    azureActivity: props.azure?.activity,
+    now,
+    translator,
   });
   const environmentId: string = props.app.cloudResourceId?.toString() || "";
   const guideRoute: Route | null = environmentId
@@ -492,25 +485,13 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       )
     : null;
   const setupCheck: ReactElement =
-    setupIncomplete && guideRoute ? (
+    isCloudAppSetupIncomplete(setupRows) &&
+    (guideRoute || props.onSetUpTelemetry) ? (
       <CloudAppSetupCheckCard
-        rows={getCloudAppSetupRows({
-          app: props.app,
-          isRunning,
-          hasReportedInstances,
-          // A look-up that failed says nothing: it is not "not connected".
-          platformResource:
-            looksUpPlatformResource && !platformResourceCheckFailed
-              ? platformResource === undefined
-                ? CloudAppPlatformResourceState.Checking
-                : platformResource
-                  ? CloudAppPlatformResourceState.Found
-                  : CloudAppPlatformResourceState.NotFound
-              : undefined,
-          now,
-          translator,
-        })}
-        guideRoute={guideRoute}
+        rows={setupRows}
+        guideRoute={guideRoute || undefined}
+        onOpenGuide={props.onSetUpTelemetry}
+        onSetUpTelemetry={props.onSetUpTelemetry}
         connectRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.CLOUD_CONNECT] as Route,
         )}

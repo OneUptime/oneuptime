@@ -11,6 +11,7 @@ import Runner from "../../../Models/DatabaseModels/Runner";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import { NAME_TAKEN_REFUSAL_CODE } from "../../../Types/Exception/NameTakenException";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   stubGenericReferenceCheck,
@@ -375,6 +376,12 @@ describe("renaming a variable", () => {
     ).toBe(
       'A global variable named "DB_HOST" already exists in this project. Global variable names must be unique.',
     );
+    // With the code a program tells a taken name by (#10065).
+    await expect(
+      updateHook.onBeforeUpdate(update({ name: "DB_HOST" })),
+    ).rejects.toMatchObject({
+      details: { refusalCode: NAME_TAKEN_REFUSAL_CODE },
+    });
 
     const query: Record<string, unknown> = (
       count.mock.calls[0]![0] as { query: Record<string, unknown> }

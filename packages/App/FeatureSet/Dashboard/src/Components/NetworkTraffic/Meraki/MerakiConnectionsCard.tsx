@@ -9,12 +9,19 @@ import {
   ADD_FAILED_NOTE,
   ADD_STOPPED_NOTE,
   ADD_THE_REST_ACTION,
-  DEVICE_ADD_FAILURES_SHOWN,
+  ARCHIVED_NOTE,
   DeviceAddStanding,
   FAILED_DEVICES_NOTE,
+  FAILED_FOR_OTHER_REASONS_NOTE,
+  FAILED_REASON_ALL_NAMED,
+  FAILED_REASON_NONE_NAMED,
+  FAILED_REASON_SOME_NAMED,
+  NOTHING_ADDED_LEFT_OUT_NOTE,
   NOTHING_ADDED_NOTE,
   NOT_ADDED_DEVICES_NOTE,
   REMAINING_DEVICES_NOTE,
+  TAKEN_NOTE,
+  WITHOUT_ADDRESS_NOTE,
   getDeviceAddStanding,
   getOfferedDeviceCount,
 } from "./MerakiAddDevicesWords";
@@ -53,8 +60,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { DEFAULT_MERAKI_REGION } from "Common/Types/NetworkController/MerakiRegion";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import {
-  NetworkControllerDeviceAddFailure,
+  NetworkControllerDeviceAddFailureReason,
   NetworkControllerDeviceAddState,
+  getNetworkControllerDeviceAddFailureReasons,
   isNetworkControllerDeviceAddUnderWay,
   readNetworkControllerDeviceAddState,
   toNetworkControllerDeviceAddStateJson,
@@ -89,7 +97,12 @@ import {
   markPageAnchorLanded,
 } from "Common/UI/Utils/PageAnchor";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { SentenceOptions, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  SentenceOptions,
+  Translator,
+  formatList,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -122,8 +135,9 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
  * network device here (Add Meraki devices, MerakiAddDevicesModal): how many
  * of the kinds it would add there are, with Add devices beside them; while
  * an ask runs, how far it got - followed every few seconds, from any tab -
- * and for a day after, how it went: what it added, the sites it added, and
- * the devices it could not add, with why.
+ * and for a day after, how it went: what it added, the sites it added, the
+ * devices it left out and why, and the devices it could not add - one line
+ * a reason, with how many it kept out and the first few by name.
  *
  * What a reader may not do is not offered (PermissionGate): only project
  * owners and admins add, change or read connections. Anyone else sees the
@@ -179,37 +193,54 @@ interface DeviceAddLine {
   text: string;
   // Drawn after the text: Add devices (or Add the rest), for who may.
   after?: ReactElement | undefined;
-  // A line each under it: the devices that could not be added, with why.
-  details?: Array<NetworkControllerDeviceAddFailure> | undefined;
+  // A line each under it: why devices could not be added, and how many.
+  details?: Array<NetworkControllerDeviceAddFailureReason> | undefined;
 }
 
 /*
- * A device an ask could not add: its name, then why - the server's words,
- * in their own language. Read the way most of its letters are (an isolate),
- * so on a Persian page an English reason keeps its full stop at its end,
- * and the name stands out to scan the list by.
+ * Why devices could not be added: the server's words, in their own
+ * language, read the way most of their letters are (an isolate), so on a
+ * Persian page an English reason keeps its full stop at its end; then, in
+ * the reader's words, how many devices it kept out and the first few by
+ * name, to find them by.
  */
-const DeviceAddFailureLine: FunctionComponent<{
-  failure: NetworkControllerDeviceAddFailure;
-}> = (props: { failure: NetworkControllerDeviceAddFailure }): ReactElement => {
+const DeviceAddFailureReasonLine: FunctionComponent<{
+  reason: NetworkControllerDeviceAddFailureReason;
+  translator: Translator;
+}> = (props: {
+  reason: NetworkControllerDeviceAddFailureReason;
+  translator: Translator;
+}): ReactElement => {
   const direction: ReadingDirection | null =
-    getTextReadingDirectionByMostLetters(
-      props.failure.name
-        ? `${props.failure.name}: ${props.failure.reason}`
-        : props.failure.reason,
-    );
+    getTextReadingDirectionByMostLetters(props.reason.reason);
+  const names: string = formatList(props.reason.names, props.translator);
+  const template: PluralTemplate =
+    props.reason.names.length === 0
+      ? FAILED_REASON_NONE_NAMED
+      : props.reason.names.length >= props.reason.count
+        ? FAILED_REASON_ALL_NAMED
+        : FAILED_REASON_SOME_NAMED;
 
   return (
-    <bdi dir={direction || undefined}>
-      {props.failure.name ? (
-        <>
-          <span className="font-medium">{props.failure.name}</span>:{" "}
-        </>
-      ) : (
-        <></>
-      )}
-      {props.failure.reason}
-    </bdi>
+    <>
+      <bdi
+        dir={direction || undefined}
+        data-testid="meraki-connection-device-add-failure-reason"
+      >
+        {props.reason.reason}
+      </bdi>
+      <span
+        className="block text-gray-600"
+        data-testid="meraki-connection-device-add-failure-devices"
+      >
+        {props.translator.translatePlural(
+          template,
+          props.reason.count,
+          { names: names },
+          IN_SENTENCE,
+        )}
+      </span>
+    </>
   );
 };
 
@@ -778,12 +809,15 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
               >
                 {lineData.details.map(
                   (
-                    failure: NetworkControllerDeviceAddFailure,
+                    reason: NetworkControllerDeviceAddFailureReason,
                     index: number,
                   ): ReactElement => {
                     return (
                       <li key={index} className="break-words">
-                        <DeviceAddFailureLine failure={failure} />
+                        <DeviceAddFailureReasonLine
+                          reason={reason}
+                          translator={translator}
+                        />
                       </li>
                     );
                   },
@@ -843,15 +877,73 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
       });
     };
 
+    /*
+     * The sites it added for their networks, and why devices it tried
+     * could not be added - one line a reason, the most common first, and
+     * how many more for reasons it did not keep.
+     */
+    const addSitesAndFailureLines: (
+      ended: NetworkControllerDeviceAddState,
+    ) => void = (ended: NetworkControllerDeviceAddState): void => {
+      if (ended.createdSiteCount > 0) {
+        addLine({
+          key: "sites-added",
+          tone: "info",
+          text: translator.translatePlural(
+            ADDED_SITES_NOTE,
+            ended.createdSiteCount,
+            {},
+            IN_SENTENCE,
+          ),
+        });
+      }
+
+      if (ended.failedCount <= 0) {
+        return;
+      }
+
+      const failures: {
+        reasons: Array<NetworkControllerDeviceAddFailureReason>;
+        otherCount: number;
+      } = getNetworkControllerDeviceAddFailureReasons(ended);
+
+      addLine({
+        key: "failed-devices",
+        tone: "act",
+        text: translator.translatePlural(
+          FAILED_DEVICES_NOTE,
+          ended.failedCount,
+          {},
+          IN_SENTENCE,
+        ),
+        details: failures.reasons,
+      });
+
+      if (failures.otherCount > 0 && failures.reasons.length > 0) {
+        addLine({
+          key: "failed-other-reasons",
+          tone: "act",
+          text: translator.translatePlural(
+            FAILED_FOR_OTHER_REASONS_NOTE,
+            failures.otherCount,
+            {},
+            IN_SENTENCE,
+          ),
+        });
+      }
+    };
+
     if (standing === DeviceAddStanding.Done && state) {
       const when: string = getMerakiReadTime(state.finishedAt, {
         language: translator.language,
         now: data.now,
       });
+      const leftOut: number =
+        state.withoutAddressCount + state.takenCount + state.archivedCount;
 
       if (state.addedCount > 0) {
         addAddedLine(state);
-      } else if (state.failedCount === 0) {
+      } else if (state.failedCount === 0 && leftOut === 0) {
         addLine({
           key: "nothing-added",
           tone: "info",
@@ -861,32 +953,57 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
             IN_SENTENCE,
           ),
         });
-      }
-
-      if (state.createdSiteCount > 0) {
+      } else if (state.failedCount === 0) {
         addLine({
-          key: "sites-added",
+          key: "nothing-added",
           tone: "info",
-          text: translator.translatePlural(
-            ADDED_SITES_NOTE,
-            state.createdSiteCount,
-            {},
+          text: translator.translateTemplate(
+            NOTHING_ADDED_LEFT_OUT_NOTE,
+            { time: when },
             IN_SENTENCE,
           ),
         });
       }
 
-      if (state.failedCount > 0) {
+      // What it added beside the devices, and what went wrong: to act on.
+      addSitesAndFailureLines(state);
+
+      /*
+       * Then the devices of the kinds picked it did not try to add, and
+       * why - in the words the dialog said them in before the ask.
+       */
+      const leftOutLines: Array<{
+        key: string;
+        count: number;
+        template: PluralTemplate;
+      }> = [
+        {
+          key: "without-address",
+          count: state.withoutAddressCount,
+          template: WITHOUT_ADDRESS_NOTE,
+        },
+        { key: "taken", count: state.takenCount, template: TAKEN_NOTE },
+        {
+          key: "archived",
+          count: state.archivedCount,
+          template: ARCHIVED_NOTE,
+        },
+      ];
+
+      for (const leftOutLine of leftOutLines) {
+        if (leftOutLine.count <= 0) {
+          continue;
+        }
+
         addLine({
-          key: "failed-devices",
-          tone: "act",
+          key: leftOutLine.key,
+          tone: "info",
           text: translator.translatePlural(
-            FAILED_DEVICES_NOTE,
-            state.failedCount,
+            leftOutLine.template,
+            leftOutLine.count,
             {},
             IN_SENTENCE,
           ),
-          details: state.failures.slice(0, DEVICE_ADD_FAILURES_SHOWN),
         });
       }
 
@@ -919,6 +1036,9 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           IN_SENTENCE,
         ),
       });
+
+      // What it added before it failed, and what it could not add by then.
+      addSitesAndFailureLines(state);
     }
 
     if (standing === DeviceAddStanding.Stopped && state) {

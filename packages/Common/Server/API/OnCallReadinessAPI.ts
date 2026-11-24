@@ -503,6 +503,8 @@ function serializeUserReadiness(readiness: UserReadiness): JSONObject {
       return {
         _id: team._id.toString(),
         name: team.name,
+        // Tells two teams of one name apart in the team filter (#10314).
+        ...(team.createdAt ? { createdAt: team.createdAt.toISOString() } : {}),
       };
     }),
   };

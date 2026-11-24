@@ -102,9 +102,12 @@ describe("ServiceAINote", () => {
     expect(note.getColumnAccessControlFor("deletedByUserId")?.create).toEqual(
       [],
     );
-    expect(note.getColumnAccessControlFor("note")?.update).toEqual(
-      SERVICE_AI_NOTE_UPDATE_PERMISSIONS,
-    );
+    // With Services' levels (#10289), which follow the project-wide roles.
+    expect(note.getColumnAccessControlFor("note")?.update).toEqual([
+      ...SERVICE_AI_NOTE_UPDATE_PERMISSIONS,
+      Permission.ServiceAdmin,
+      Permission.ServiceMember,
+    ]);
     expect(note.getColumnAccessControlFor("serviceId")?.update).toEqual([]);
   });
 

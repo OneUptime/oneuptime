@@ -1,19 +1,19 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { StateListType } from "Common/Utils/StateOrder";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
-import { assignIncidentEpisodeRole } from "../../../Utils/EventRoleAssignment";
-import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
+import {
+  EventRoleGates,
+  useEpisodeRoleGates,
+} from "../../../Utils/EventRoleGates";
+import {
+  assignIncidentEpisodeRole,
+  reassignIncidentEpisodeRole,
+} from "../../../Utils/EventRoleAssignment";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
-import PermissionGate, {
-  ModelAction,
-  PermissionGateOptions,
-} from "Common/UI/Utils/PermissionGate";
-import { usePrivateRecordGate } from "Common/UI/Utils/PrivateRecordScope";
 import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -77,10 +77,12 @@ import {
   getOwnersFact,
 } from "../../../Components/EventView/EventPeopleFacts";
 import {
+  EventRoleMember,
   EventRolesSnapshot,
   PrimaryRoleHolding,
   getPrimaryRoleHolding,
   withRoleGiven,
+  withRoleReassigned,
 } from "../../../Utils/EventPeople";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
@@ -123,13 +125,12 @@ const IncidentEpisodeView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   /*
-   * On a private record's page, what the reader holds on it: a change of it
-   * or of a part of it - a link, a member, a role - is offered only when a
-   * team of theirs that owns it may make it (PrivateRecordScope).
+   * What the header offers of the commander's role - Assign and the name
+   * that hands it on - as the roles card asks it: with what the reader
+   * holds on a private episode, and what the server says they may do on
+   * this one (EventRoleGates, #10272).
    */
-  const privateRecordGate: (
-    model: BaseModel,
-  ) => PermissionGateOptions | undefined = usePrivateRecordGate();
+  const roleGates: EventRoleGates = useEpisodeRoleGates();
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
@@ -487,8 +488,9 @@ const IncidentEpisodeView: FunctionComponent<
   /*
    * Who runs the episode, first in its header: the commander (the
    * project's primary incident role) and the owners, teams first, each
-   * filled right there - Assign and Add - while the episode is open, by a
-   * reader who may give a role or add an owner.
+   * filled right there - Assign, the commander's name that hands the role
+   * on (#10195), and Add - while the episode is open, by a reader who may
+   * give a role, hand one on or add an owner.
    */
   const peopleFacts: Array<EventStatusFact> = [];
   const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(
@@ -496,11 +498,9 @@ const IncidentEpisodeView: FunctionComponent<
       ? rolesSnapshot.value
       : undefined,
   );
-  const mayAssignRoles: boolean = PermissionGate.check(
-    new IncidentEpisodeRoleMember(),
-    ModelAction.Create,
-    privateRecordGate(new IncidentEpisodeRoleMember()),
-  ).isAllowed;
+  // Handing it on is the role row's update, as the roles card's Reassign is.
+  const mayReassignRoles: boolean = roleGates.mayReassign;
+  const mayAssignRoles: boolean = roleGates.mayAssign;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
     onAssign:
@@ -536,6 +536,54 @@ const IncidentEpisodeView: FunctionComponent<
                     withRoleGiven({
                       snapshot: current.value,
                       roleId: primaryRole.role.id,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // Role changes are recorded on the episode feed.
+            setContentRefreshToken((token: number): number => {
+              return token + 1;
+            });
+          },
+    onReassign:
+      timing.isResolved || !primaryRole || !mayReassignRoles
+        ? undefined
+        : async (
+            member: EventRoleMember,
+            person: PeoplePickerOption,
+          ): Promise<void> => {
+            const episodeId: string = modelIdString;
+
+            await reassignIncidentEpisodeRole({
+              memberId: new ObjectID(member.memberId!),
+              userId: new ObjectID(person.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: {
+                  subjectId: string;
+                  value: EventRolesSnapshot;
+                } | null,
+              ): {
+                subjectId: string;
+                value: EventRolesSnapshot;
+              } | null => {
+                if (!current || current.subjectId !== episodeId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: episodeId,
+                  value:
+                    withRoleReassigned({
+                      snapshot: current.value,
+                      member: member,
                       person: person,
                     }) || current.value,
                 };
@@ -742,6 +790,7 @@ const IncidentEpisodeView: FunctionComponent<
                 telemetryQuery={telemetrySnapshot.telemetryQuery}
                 snapshotWindow={telemetrySnapshot.snapshotWindow}
                 seriesSummary={telemetrySnapshot.seriesSummary}
+                seriesLabels={telemetrySnapshot.seriesLabels}
                 eventNoun="incident"
                 metricRuleEventId={snapshotMemberId}
                 /*

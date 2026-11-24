@@ -22,8 +22,10 @@ export enum KubernetesCostPricingSource {
   ListPrices = "list-prices",
   /*
    * The same list prices, priced by a Kubecost that reads the cloud's bill
-   * (#9851): it reconciles them with what was paid about a day and a half
-   * after each hour, after the cost agent shipped it.
+   * (#9851): it reconciles them with what was paid about two days after
+   * each hour, after the cost agent shipped it, and the agent reads the hour
+   * again then (#9969, KubernetesCostCorrection): the change arrives as rows
+   * of its own (KubernetesCostAllocation.isCostAdjustment).
    */
   BillingIntegration = "billing-integration",
   // Rates someone set: a rate card, or a CSV price list.
@@ -48,6 +50,31 @@ export const KUBERNETES_COST_PRICING_SOURCES_WITH_PROVIDER: ReadonlyArray<Kubern
   [
     KubernetesCostPricingSource.ListPrices,
     KubernetesCostPricingSource.BillingIntegration,
+  ];
+
+/*
+ * Where the memory peaks right-sizing sizes memory requests from come from
+ * (#9970), as the cost agent says it with each shipment. The note that
+ * advises stopping the bundled engine reads it: with "bundled", stopping it
+ * stops the Prometheus the peaks come from too (Kubecost 3 reads none).
+ */
+export enum KubernetesCostMemoryPeaksSource {
+  // The Prometheus the cluster's own engine reads.
+  Engine = "engine",
+  // The Prometheus the chart bundled beside its OpenCost.
+  Bundled = "bundled",
+  // The Prometheus cost.engine.prometheusUrl names.
+  Configured = "configured",
+  // None: no Prometheus to read, or an agent older than #9970.
+  None = "",
+}
+
+export const KUBERNETES_COST_MEMORY_PEAKS_SOURCES: ReadonlyArray<KubernetesCostMemoryPeaksSource> =
+  [
+    KubernetesCostMemoryPeaksSource.Engine,
+    KubernetesCostMemoryPeaksSource.Bundled,
+    KubernetesCostMemoryPeaksSource.Configured,
+    KubernetesCostMemoryPeaksSource.None,
   ];
 
 export type KubernetesCostEngineName = "OpenCost" | "Kubecost";
@@ -76,6 +103,8 @@ export interface KubernetesCostEngineInfo {
    * list-prices and billing-integration; empty otherwise.
    */
   pricingProvider: string;
+  // Where the memory peaks come from (#9970); None from an older agent.
+  memoryPeaksFrom: KubernetesCostMemoryPeaksSource;
 }
 
 // A namespace and a Service's name, as Kubernetes allows each.
@@ -116,6 +145,16 @@ export function readKubernetesCostEngineInfo(
       },
     ) || KubernetesCostPricingSource.Unknown;
 
+  const peaks: string =
+    typeof raw["memoryPeaksFrom"] === "string" ? raw["memoryPeaksFrom"] : "";
+
+  const memoryPeaksFrom: KubernetesCostMemoryPeaksSource =
+    KUBERNETES_COST_MEMORY_PEAKS_SOURCES.find(
+      (candidate: KubernetesCostMemoryPeaksSource): boolean => {
+        return candidate === peaks;
+      },
+    ) || KubernetesCostMemoryPeaksSource.None;
+
   return {
     engine: KUBERNETES_COST_ENGINE_NAMES.includes(
       engine as KubernetesCostEngineName,
@@ -130,6 +169,7 @@ export function readKubernetesCostEngineInfo(
       PROVIDER_NAME.test(provider)
         ? provider
         : "",
+    memoryPeaksFrom: memoryPeaksFrom,
   };
 }
 

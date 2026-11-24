@@ -69,11 +69,35 @@ export const DETECTION_MAX_GROUPS_PER_EVALUATION: number = 100;
 export const DETECTION_MAX_FINDINGS_PER_EVALUATION: number = 10000;
 
 /*
- * How far behind the clock a rule reads. An event reaches the table a
- * little after it happened - through the ingest queue, a connection's poll
- * or the scan of "Your logs" a minute later - and a rule that read right up
- * to now would already have moved past it. Reading up to two minutes ago,
- * every event is in the table before a rule reads its moment, and is
- * counted once.
+ * How far behind the clock a scheduled rule judges what has arrived. A rule
+ * judges the events that ARRIVED since its last run - by createdAt, stamped
+ * as each row is built - whenever they happened (#10337), and a row reaches
+ * the table a few seconds after it is stamped: the ingest API's writer
+ * holds a batch for up to five seconds and retries an insert for up to
+ * about forty, and ClickHouse flushes its async-insert buffer after that. A
+ * run that judged right up to now could pass a row stamped a moment ago
+ * that is not in the table yet. Judging what arrived up to two minutes ago,
+ * every event stamped by then is there, and is judged once.
  */
 export const DETECTION_EVALUATION_DELAY_IN_SECONDS: number = 120;
+
+/*
+ * How long before it arrived an event may have happened and still be
+ * judged by a scheduled rule: a day, as long as a Security Event
+ * Destination sends one late (FORWARD_LATE_EVENT_WINDOW_IN_HOURS). That
+ * covers a span read an hour after it started, a flow read in whole
+ * windows, a cloud audit log that lags by minutes or hours, and a log
+ * shipper that was down for most of a day. An event older than that when
+ * it arrives is stored and searchable, but no scheduled rule judges it:
+ * Run on Past Events does.
+ */
+export const DETECTION_LATE_EVENT_WINDOW_IN_MINUTES: number = 24 * 60;
+
+/*
+ * The most windows of its interval one run of a rule that counts reads. A
+ * run whose events fall in more - catching up after a gap, or a source that
+ * sent a day of events at once - judges what arrived up to the point they
+ * fill this many, records where it got to, and the next run goes on from
+ * there, so no run reads without bound and none skips an event.
+ */
+export const DETECTION_MAX_WINDOWS_PER_RUN: number = 12;

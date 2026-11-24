@@ -45,6 +45,10 @@ func TestDescribe(t *testing.T) {
 			"Raw JSON escape hatch for the DNS monitor config (queryName, recordType, ...). Write it as a JSON string.",
 		},
 		{
+			"Permission. A permission's key, such as `\"IncidentMember\"`. Written with `jsonencode()`, as earlier versions of this provider asked, it is the same permission.",
+			"Permission. A permission's key, such as `\"IncidentMember\"`. Written as a JSON string, as earlier versions of this provider asked, it is the same permission.",
+		},
+		{
 			"The URL this step probes. Requires `monitor_destination_type`.",
 			"The URL this step probes. Requires `monitorDestinationType`.",
 		},

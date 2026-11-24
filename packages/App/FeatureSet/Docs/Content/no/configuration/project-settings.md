@@ -96,6 +96,8 @@ For å fase ut en etikett arkiverer du den fra radens meny **⋯** i stedet for 
 
 **Brukes av**, i menyen på raden til en etikett, teller postene av hver type som har etiketten, og åpner dem én side om gangen. Poster du ikke kan åpne, telles, men navngis ikke.
 
+En etikett som har samme navn som en annen etikett fra før navn måtte være forskjellige, merkes med **Samme navn som en annen etikett**, og listen viser hvor mange det er: sammenlign med **Brukes av** hvor hver av dem brukes, og gi så den ene nytt navn med **Gi nytt navn** på raden til etiketten.
+
 ## Varslinger
 
 **Prosjektinnstillinger → Varslinger** inneholder hvordan prosjektet sender varslinger:

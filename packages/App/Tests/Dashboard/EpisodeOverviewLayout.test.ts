@@ -566,12 +566,47 @@ describe("episode overview layout", () => {
      * episode's feed read again.
      */
     expect(incident).toContain(
-      "const mayAssignRoles: boolean = PermissionGate.check( new IncidentEpisodeRoleMember(), ModelAction.Create, privateRecordGate(new IncidentEpisodeRoleMember()), ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const episodeId: string = modelIdString; await assignIncidentEpisodeRole({ incidentEpisodeId: new ObjectID(episodeId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
+      "const mayAssignRoles: boolean = roleGates.mayAssign; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const episodeId: string = modelIdString; await assignIncidentEpisodeRole({ incidentEpisodeId: new ObjectID(episodeId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
     );
     expect(incident).toContain("withRoleGiven({");
     expect(incident).toContain(
       "setRolesRefreshToken((token: number): number => { return token + 1; });",
     );
+    /*
+     * The commander's name hands the role on (#10195) while the episode is
+     * open, to a reader who may change the role row's person: one update
+     * of the episode's row, which its incidents follow on the server.
+     */
+    expect(incident).toContain(
+      "const mayReassignRoles: boolean = roleGates.mayReassign;",
+    );
+    /*
+     * Assign and the name ask the roles card's own gates (#10272): the
+     * role row's create and its person's update, with what the reader
+     * holds on a private episode's role row and what the server says they
+     * may do on this episode (useEpisodeRoleGates). The page no longer
+     * builds role gates of its own: built there, they let the header offer
+     * the commander's hand-over where the roles card below it locked
+     * Reassign.
+     */
+    const roleGates: string = readSquashed("Utils/EventRoleGates.ts");
+
+    expect(incident).toContain(
+      "const roleGates: EventRoleGates = useEpisodeRoleGates();",
+    );
+    expect(roleGates).toContain(
+      "const EPISODE_ROLE_ROW: IncidentEpisodeRoleMember = new IncidentEpisodeRoleMember();",
+    );
+    expect(tight(roleGates)).toContain(
+      "export const useEpisodeRoleGates: () => EventRoleGates = (): EventRoleGates => { const options: PermissionGateOptions | undefined = usePrivateRecordGateOptions(EPISODE_ROLE_ROW); return { mayAssign: PermissionGate.check(EPISODE_ROLE_ROW, ModelAction.Create, options).isAllowed, mayReassign: getEpisodeRoleReassignGate(options).isAllowed, }; };",
+    );
+    expect(incident).not.toContain("getEpisodeRoleReassignGate(");
+    expect(incident).not.toContain("new IncidentEpisodeRoleMember()");
+    expect(incident).not.toContain("privateRecordGate(");
+    expect(incident).toContain(
+      "onReassign: timing.isResolved || !primaryRole || !mayReassignRoles ? undefined : async ( member: EventRoleMember, person: PeoplePickerOption, ): Promise<void> => { const episodeId: string = modelIdString; await reassignIncidentEpisodeRole({ memberId: new ObjectID(member.memberId!), userId: new ObjectID(person.id), });",
+    );
+    expect(incident).toContain("withRoleReassigned({");
     expect(incident).toContain(
       'headerLayout="stacked" onRolesLoaded={onRolesLoaded} refreshToken={rolesRefreshToken}',
     );

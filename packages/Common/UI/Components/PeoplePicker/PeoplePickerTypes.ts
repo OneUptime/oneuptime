@@ -3,6 +3,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { translationKey } from "../../../Types/Translator";
 import type { DropdownOption } from "../Dropdown/Dropdown";
 import type { DropdownChange } from "../Dropdown/DropdownChange";
+import type { SharedNameFacts } from "../../Utils/SharedNameOptions";
 
 /*
  * The people picker's plain data: what kinds of record it picks, how a pick
@@ -67,6 +68,12 @@ export interface PeoplePickerOption {
    * deleted team. Still shown, so it can be removed.
    */
   isUnknown?: boolean | undefined;
+  /*
+   * A team, a schedule or a policy: what tells it from another of its kind
+   * of the same name (SharedNameOptions, #10064). The search list marks
+   * the ones that share a name, and says what sets each apart.
+   */
+  sharedName?: SharedNameFacts | undefined;
 }
 
 /*

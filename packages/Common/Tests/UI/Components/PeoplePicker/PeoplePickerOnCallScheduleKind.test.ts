@@ -211,7 +211,13 @@ describe("searching on-call schedules", () => {
 
     expect(request.modelType).toBe(OnCallDutyPolicySchedule);
     expect(request.query).toEqual({ projectId: PROJECT_ID });
-    expect(request.select).toEqual({ _id: true, name: true });
+    // With what tells records of one name apart (SharedNameOptions, #10064).
+    expect(request.select).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
     expect(request.sort).toEqual({ name: SortOrder.Ascending });
     expect(request.limit).toBe(PEOPLE_PICKER_SEARCH_LIMIT);
   });

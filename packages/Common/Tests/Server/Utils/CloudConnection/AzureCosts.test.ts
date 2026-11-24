@@ -1,5 +1,9 @@
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import {
+  AzureCostPacer,
+  AzureCostReader,
+} from "../../../../Server/Utils/CloudConnection/Azure/AzureCostManagement";
+import {
   describeAzureCostFailure,
   getAzureSavingKind,
   readAzureAdvisor,
@@ -63,6 +67,15 @@ function armOf(api: FakeProviderApi): AzureArm {
   });
 }
 
+// The read's paced queries, with a tenant of its own that has asked nothing.
+function readerOf(api: FakeProviderApi): AzureCostReader {
+  return new AzureCostReader({
+    arm: armOf(api),
+    sleep: async (): Promise<void> => {},
+    pacer: new AzureCostPacer(),
+  });
+}
+
 const COLUMNS: Array<JSONObject> = [
   { name: "Cost", type: "Number" },
   { name: "UsageDate", type: "Number" },
@@ -113,7 +126,7 @@ describe("a subscription's daily costs from Cost Management", () => {
 
     const read: { records: Array<CloudCostRecord>; complete: boolean } =
       await readAzureCosts({
-        arm: armOf(api),
+        costs: readerOf(api),
         subscriptionId: SUBSCRIPTION,
         start: new Date("2026-11-13T00:00:00.000Z"),
         end: new Date("2026-11-21T00:00:00.000Z"),
@@ -178,6 +191,72 @@ describe("a subscription's daily costs from Cost Management", () => {
     expect((queries[0]!.headers || {})["Authorization"]).toBe(
       "Bearer azure-access-token",
     );
+    // Its own client type: never the pool every caller that names none shares.
+    expect((queries[0]!.headers || {})["ClientType"]).toBe("OneUptime");
+    // The answer's headers are read: every status is asked for.
+    expect(queries[0]!.acceptAnyStatus).toBe(true);
+  });
+
+  test("a next page on another host is not followed with the token", async () => {
+    const api: FakeProviderApi = createFakeProviderApi([
+      tokenRoute(),
+      {
+        host: "management.azure.com",
+        path: `/subscriptions/${SUBSCRIPTION}/providers/Microsoft.CostManagement/query`,
+        method: "POST",
+        respond: (): FakeResponse => {
+          return json({
+            properties: {
+              columns: COLUMNS,
+              rows: [[2, 20261119, VM, "Virtual Machines", "EUR"]],
+              nextLink: `https://evil.example.com/subscriptions/${SUBSCRIPTION}/providers/Microsoft.CostManagement/query?$skiptoken=page-2`,
+            },
+          });
+        },
+      },
+    ]);
+
+    const read: { records: Array<CloudCostRecord>; complete: boolean } =
+      await readAzureCosts({
+        costs: readerOf(api),
+        subscriptionId: SUBSCRIPTION,
+        start: new Date("2026-11-13T00:00:00.000Z"),
+        end: new Date("2026-11-21T00:00:00.000Z"),
+        regionsByResource: new Map(),
+      });
+
+    expect(read.records).toHaveLength(1);
+    expect(
+      api.requests.filter((request: DataSourceHttpRequest): boolean => {
+        return request.url.includes("evil.example.com");
+      }),
+    ).toHaveLength(0);
+    // Not all there is: never written as if it were, which would take back the rest.
+    expect(read.complete).toBe(false);
+  });
+
+  test("204 No Content is a subscription with no costs, not a failure", async () => {
+    const api: FakeProviderApi = createFakeProviderApi([
+      tokenRoute(),
+      {
+        host: "management.azure.com",
+        path: `/subscriptions/${SUBSCRIPTION}/providers/Microsoft.CostManagement/query`,
+        method: "POST",
+        respond: (): FakeResponse => {
+          return { status: 204, body: "" };
+        },
+      },
+    ]);
+
+    await expect(
+      readAzureCosts({
+        costs: readerOf(api),
+        subscriptionId: SUBSCRIPTION,
+        start: new Date("2026-11-13T00:00:00.000Z"),
+        end: new Date("2026-11-21T00:00:00.000Z"),
+        regionsByResource: new Map(),
+      }),
+    ).resolves.toEqual({ records: [], complete: true });
   });
 
   test("a usage day as Cost Management writes it, a number or text", () => {

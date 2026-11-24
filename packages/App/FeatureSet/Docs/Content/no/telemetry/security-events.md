@@ -51,7 +51,8 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som kjører på saker, av seg selv eller manuelt |
 | **Godkjenninger** | Playbooks | Playbook-stegene som venter på at noen godkjenner eller avviser dem |
 | **Playbook-kjøringer** | Playbooks | Hva hver playbook gjorde, steg for steg |
-| **Beskyttede entiteter** | Playbooks | Brukerne og vertene som ingen playbook demmer inn |
+| **Blokkeringsliste** | Playbooks | Adressene prosjektet ditt blokkerer, til når, og hvor hver blokkering håndheves |
+| **Beskyttede entiteter** | Playbooks | Brukerne, vertene og adressene som ingen playbook demmer inn og ingen blokkering rører |
 | **Innstillinger** | KI | Om OneUptime AI vurderer hver nye sak |
 | **Tilkoblinger** | Connections | Loggene dine, sikkerhetsproduktene OneUptime henter fra, og SIEM-ene det sender til |
 | **Oppsettveiledning** | Connections | Kodesnutter for å sende hendelser, fylt ut med inntaksnøkkelen din |
@@ -72,8 +73,8 @@ Sikkerhetsdata kan bare leses av rollene Prosjekteier og Prosjektadministrator o
 | Rolle | Hva den kan gjøre |
 | --- | --- |
 | Sikkerhetsadministrator | Alt: hendelser, saker, playbooks, deteksjonsregler, threat intel-feeder og tilkoblinger |
-| Sikkerhetsmedlem | Lese hendelser og threat intel, behandle saker, kjøre playbooks og godkjenne stegene deres, og opprette, endre og slette deteksjonsregler og feeder. Den kan ikke sette opp playbooks eller tilkoblinger, eller slette sikkerhetsdata. |
-| Sikkerhetsleser | Lese hendelser, saker, playbooks, regler, feeder, indikatorer og tilkoblinger |
+| Sikkerhetsmedlem | Lese hendelser og threat intel, behandle saker, kjøre playbooks og godkjenne stegene deres, blokkere adresser, og opprette, endre og slette deteksjonsregler og feeder. Den kan ikke sette opp playbooks eller tilkoblinger, eller slette sikkerhetsdata. |
+| Sikkerhetsleser | Lese hendelser, saker, playbooks, blokkeringslisten, regler, feeder, indikatorer og tilkoblinger |
 
 ## Send sikkerhetshendelser
 
@@ -191,8 +192,9 @@ Hver type når OneUptime som vanlige logger:
 | SSH-pålogginger, sudo | Journalen eller auth-loggen til en Linux-maskin, med [OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Windows-hendelser | Collectorens `windowseventlog`-receiver på maskinen, eller en videresender som skriver hver hendelse som JSON, for eksempel NXLog eller Winlogbeat. En [vert](/docs/telemetry/hosts) som er lagt til i OneUptime, leser også Sysmon, Microsoft Defender og PowerShell der den har dem |
 | AWS CloudTrail | Et trail levert til CloudWatch Logs, lest av collectorens `awscloudwatch`-receiver, eller, for en konto som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
-| Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
-| Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Google Cloud-revisjonslogger | En logg-sink til Pub/Sub, lest av collectorens `googlecloudpubsub`-receiver med `encoding: raw_text`, eller, for et prosjekt som er koblet til under **Sky**, prosjektets [strøm](/docs/telemetry/cloud-streaming-google-cloud) eller [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Azure-aktivitetslogger og Entra ID-logger | En diagnostikkinnstilling som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller til hendelseshuben i [strømmen](/docs/telemetry/cloud-streaming-azure) til et tilkoblet abonnement, eller, for aktivitetsloggen til et abonnement som er koblet til under **Sky**, [Skyrevisjonslogger](#les-revisjonsloggene-til-skykontoene-dine) |
+| Azure Key Vault-, Storage- og SQL-logger | Diagnoseinnstillingen til en ressurs, som strømmer til en Event Hub, lest av collectorens `azureeventhub`-receiver med `format: raw`, eller diagnoseinnstillingene i [strømmen](/docs/telemetry/cloud-streaming-azure) til et tilkoblet abonnement, med logger. Se [Azure-ressursenes egne revisjonslogger](#azure-ressursenes-egne-revisjonslogger) |
 | OpenStack-revisjonsspor | Notifikasjonene og revisjonsfilteret til en sky, sendt til loggene med `driver = log` og lest av agentens [loggprofil](/docs/telemetry/openstack#hvem-gjorde-hva) |
 | CEF, LEEF | Produktets syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
 | Palo Alto Networks, FortiGate, Cisco ASA | Brannmurens egen syslog, videresendt av [rsyslog](/docs/telemetry/syslog) |
@@ -203,7 +205,19 @@ På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en log
 
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åpner en [sak](/docs/telemetry/security-cases) slik et tilkoblet produkts varsel gjør, og øker risikoen for brukeren, verten eller adressen den nevner. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**. Produktets pålogginger og blokkerte tilkoblinger forblir hendelser som reglene dine kan lese.
 
-En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft Entra ID-pålogging som tilkoblingen leser, og som Azure også eksporterer til loggene dine, eller en CloudTrail-oppføring i loggene dine og i revisjonsloggen til en tilkoblet AWS-konto.
+En oppføring som når OneUptime på to måter, lagres én gang: en Microsoft Entra ID-pålogging som tilkoblingen leser, og som Azure også eksporterer til loggene dine, en CloudTrail-oppføring i loggene dine og i revisjonsloggen til en tilkoblet AWS-konto, eller en revisjonsoppføring som strømmen til en skykonto sender, og som **Skyrevisjonslogger** også leser.
+
+#### Azure-ressursenes egne revisjonslogger
+
+Et Key Vault, en lagringskonto og en Azure SQL-database fører hver sin egen revisjonslogg, som registrerer hver forespørsel. Bare det et sikkerhetsteam ser på, blir en sikkerhetshendelse:
+
+| Ressurs | Hva som blir en sikkerhetshendelse |
+| --- | --- |
+| Key Vault (`AuditEvent`) | En forespørsel hvelvet avviste; en hemmelighet som ble utlevert; en hemmelighet, en nøkkel, et sertifikat eller selve hvelvet som ble slettet, permanent fjernet eller sikkerhetskopiert; en endret tilgangspolicy; og en endring i det hvelvet inneholder. Ikke 401-svaret som hver Azure SDK-klient får ved sitt første kall, gjort uten token for å finne leieren: Key Vault logger det under operasjonen `Authentication` |
+| Lagringskonto (`StorageRead`, `StorageWrite`, `StorageDelete`) | En forespørsel som ble avvist fordi en rettighet manglet; en som ble besvart helt uten legitimasjon, unntatt sidene til et statisk nettsted og en CORS-preflight; en endret tilgangsliste for en container, en filressurs, en kø eller en tabell, eller en av dem slettet i sin helhet; og en skriving eller sletting som en signatur for delt tilgang (SAS) signerte. Ikke en lesing som lyktes, heller ikke en med SAS |
+| Azure SQL (`SQLSecurityAuditEvents`) | En mislykket pålogging; en pålogging på en ny tilkobling, ikke gjenbruk av en tilkobling fra en tilkoblingspool; en tillatelse som ble gitt, nektet eller tilbakekalt, et rollemedlem eller et passord som ble endret, en etterligning, og en påloggingskonto, en bruker eller en rolle som ble opprettet, endret eller fjernet; og en handling der tillatelseskontrollen mislyktes. Ikke en batch, hoveddelen av en revisjon |
+
+En lagringskontos vellykkede lesinger er det meste av det den logger: en SAS er måten de fleste apper gir filer til nettlesere på. De blir værende i Logger, hele, på kontoens fane **Logger**: søk der etter `"type":"SAS"` for å se hva en signatur for delt tilgang leste. Hver hendelse nevner ressursen sin ved ID-en, og hendelsen til en lagringstjeneste nevner også kontoen, så den vises på siden **Sikkerhetshendelser** til den ressursen, og en oppføring som kommer to ganger, lagres én gang.
 
 ### Les revisjonsloggene til skykontoene dine
 
@@ -471,9 +485,9 @@ detection:
 | **Kjør i sanntid** | Av på en ny regel. Når den er på, sjekker regelen hver hendelse når den kommer inn, i stedet for hvert intervall; se [Sanntidsregler](#sanntidsregler). |
 | **Grupperingsfelt** | Valgfritt. Treff som deler dette feltets verdi, for eksempel `principalHost`, telles, varsles og dedupliseres samlet: ett varsel per vert i stedet for hundrevis. |
 | **Felt for unik telling** | Valgfritt. Tell de ulike verdiene i dette feltet i stedet for hendelsene som treffer. Tomme verdier telles ikke. |
-| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor én kjøring, eller innenfor ett vindu i sanntid: 1 til 1000000, og 1 slår til på hvert treff. |
+| **Terskel for antall treff** | En gruppe slår bare til når tellingen når dette tallet innenfor ett vindu av regelens intervall: 1 til 1000000, og 1 slår til på hvert treff. |
 
-Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier terskelen «så mange, fra den samme tingen, i én kjøring», uten en monitor på toppen:
+Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier terskelen «så mange, fra den samme tingen, i ett vindu», uten en monitor på toppen:
 
 | Mål | Group By Field | Distinct Count Field | Terskel |
 | --- | --- | --- | --- |
@@ -485,11 +499,11 @@ Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier te
 
 ### Når en regel kjører
 
-OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene der hendelsestidspunktet ligger mellom forrige kjøring og for to minutter siden, og går deretter videre. De to minuttene gir rom for hendelser som fortsatt er på vei, for eksempel en logglinje som leses et minutt etter at den ble skrevet:
+OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått siden forrige kjøring. Hver kjøring leser hendelsene som kom frem til OneUptime mellom forrige kjøring og for to minutter siden, uansett når de skjedde, og går deretter videre. De to minuttene gir rom for hendelser som fortsatt skrives:
 
-- Vinduene ligger etter hverandre og glir ikke. Med et intervall på 10 minutter kan feil kl. 09:58 og 10:01 havne i ulike kjøringer og telles hver for seg, så legg inn margin når du velger en terskel.
+- En tellende regel og en korrelasjon teller i vinduer like lange som intervallet, etter hverandre etter klokken: med et intervall på 10 minutter havner feil kl. 09:58 og 10:01 i ulike vinduer og telles hver for seg, så legg inn margin når du velger en terskel.
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
-- En hendelse som kommer mer enn to minutter for sent, etter at en kjøring har dekket tidspunktet, lagres og er søkbar, men den regelen leser den aldri.
+- En hendelse som kommer for sent, leses likevel én gang av neste kjøring og telles i vinduet den skjedde i: en gruppe slår til når vinduet når tellingen, og høyst én gang per vindu. En hendelse som kommer mer enn et døgn etter at den skjedde, lagres og er søkbar, men regelens kjøringer leser den ikke; **Kjør på tidligere hendelser** gjør det.
 - Hver gruppe som når terskelen, blir et Detection Finding, opptil 10 000 per kjøring. Varsler, hendelser og saker åpnes for de 100 med høyest telling; resten deler én sak om regelen, og regelens **Siste feil** sier hvor mange grupper som traff.
 
 ### Sanntidsregler

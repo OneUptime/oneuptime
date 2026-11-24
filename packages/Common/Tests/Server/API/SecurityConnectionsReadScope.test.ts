@@ -298,17 +298,23 @@ async function read(route: Route): Promise<Array<Statement>> {
   });
 }
 
-// The read that counts or lists events: the card's figures, or the logs behind them.
-function eventRead(statements: Array<Statement>): Statement {
+/*
+ * The reads that count or list events: the card's figures, or the logs
+ * behind them - the records they were sent under, and the cloud resources
+ * and functions whose own lines or spans they were (#10033). Each keeps to
+ * the reader's sources.
+ */
+function eventReads(statements: Array<Statement>): Array<Statement> {
   const reads: Array<Statement> = statements.filter(
     (statement: Statement): boolean => {
       return statement.query.includes("count() AS eventCount");
     },
   );
 
-  expect(reads).toHaveLength(1);
+  expect(reads.length).toBeGreaterThan(0);
+  expect(reads.length).toBeLessThanOrEqual(2);
 
-  return reads[0]!;
+  return reads;
 }
 
 // Its conditions: before the rows are grouped, and before its settings.
@@ -393,20 +399,20 @@ describe.each(Object.keys(ROUTES) as Array<Route>)(
     test("a Security Viewer over the whole project reads every source's events", async () => {
       props = securityViewer([{ scope: PermissionScope.All }]);
 
-      const statement: Statement = eventRead(await read(route));
-
-      expect(statement.query).not.toContain("primaryEntityId");
+      for (const statement of eventReads(await read(route))) {
+        expect(statement.query).not.toContain("primaryEntityId");
+      }
     });
 
     test("a Security Viewer scoped to owned sources reads the source they own and the project's unattributed events, no other", async () => {
       props = securityViewer([{ scope: PermissionScope.Owned }]);
 
-      const statement: Statement = eventRead(await read(route));
-
-      expect(conditionsOf(statement)).toContain(" AND primaryEntityId IN (");
-      expect(boundSourceIds(statement)).toEqual(
-        sorted(OWNED_SOURCE, PROJECT_ID),
-      );
+      for (const statement of eventReads(await read(route))) {
+        expect(conditionsOf(statement)).toContain(" AND primaryEntityId IN (");
+        expect(boundSourceIds(statement)).toEqual(
+          sorted(OWNED_SOURCE, PROJECT_ID),
+        );
+      }
     });
 
     test("a Security Viewer limited to label A reads the source carrying it, no other", async () => {
@@ -414,10 +420,10 @@ describe.each(Object.keys(ROUTES) as Array<Route>)(
         { scope: PermissionScope.Labels, labelIds: [LABEL_A] },
       ]);
 
-      const statement: Statement = eventRead(await read(route));
-
-      expect(conditionsOf(statement)).toContain(" AND primaryEntityId IN (");
-      expect(boundSourceIds(statement)).toEqual(sorted(LABELLED_SOURCE));
+      for (const statement of eventReads(await read(route))) {
+        expect(conditionsOf(statement)).toContain(" AND primaryEntityId IN (");
+        expect(boundSourceIds(statement)).toEqual(sorted(LABELLED_SOURCE));
+      }
     });
 
     test("a Security Viewer over the whole project, blocked from label B, reads every source but the one carrying it", async () => {
@@ -426,15 +432,15 @@ describe.each(Object.keys(ROUTES) as Array<Route>)(
         { labelIds: [LABEL_B], isBlockPermission: true },
       ]);
 
-      const statement: Statement = eventRead(await read(route));
-
-      expect(conditionsOf(statement)).toContain(
-        " AND primaryEntityId NOT IN (",
-      );
-      expect(conditionsOf(statement)).not.toContain(
-        " AND primaryEntityId IN (",
-      );
-      expect(boundSourceIds(statement)).toEqual(sorted(BLOCKED_SOURCE));
+      for (const statement of eventReads(await read(route))) {
+        expect(conditionsOf(statement)).toContain(
+          " AND primaryEntityId NOT IN (",
+        );
+        expect(conditionsOf(statement)).not.toContain(
+          " AND primaryEntityId IN (",
+        );
+        expect(boundSourceIds(statement)).toEqual(sorted(BLOCKED_SOURCE));
+      }
     });
   },
 );
@@ -454,6 +460,9 @@ describe("a record's Security card", () => {
 
     expect(inUse).toHaveLength(1);
     expect(inUse[0]!.query).not.toContain("primaryEntityId");
-    expect(eventRead(statements).query).toContain(" AND primaryEntityId IN (");
+    expect(eventReads(statements)).toHaveLength(1);
+    expect(eventReads(statements)[0]!.query).toContain(
+      " AND primaryEntityId IN (",
+    );
   });
 });

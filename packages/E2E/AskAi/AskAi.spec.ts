@@ -58,6 +58,19 @@ const INCIDENT_SUGGESTIONS: Array<string> = [
   "What changed?",
   "Draft status update",
 ];
+/*
+ * Which of the incident's pages is open, sent as its route template (#10104):
+ * the server names the page, and no id of the address goes with it.
+ */
+const INCIDENT_PAGE_TEMPLATE: string = "/dashboard/:projectId/incidents/:id";
+// Home is a page Ask AI knows (#7062): the pill names it, and it asks its own.
+const HOME_CHIP: string = "Home";
+const HOME_SUGGESTIONS: Array<string> = [
+  "Where do I start?",
+  "What needs attention?",
+  "Get paged",
+  "Watch my website",
+];
 const GENERIC_SUGGESTIONS: Array<string> = [
   "Latency chart",
   "Error volume",
@@ -74,6 +87,7 @@ interface SentQuestion {
     type: string;
     entityId?: string;
     entityTitle?: string;
+    page?: string;
   } | null;
 }
 
@@ -129,7 +143,7 @@ const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
  * was, the number held to its unit (#8669).
  */
 const WHOLE_DATE_UNDER_THE_POINTER: RegExp = new RegExp(
-  `^Oct 27 2026, 02:57 PM \\S+ · ${withUnit(3, "minutes")} ago$`,
+  `^Oct 27, 2026, 2:57 PM \\S+ · ${withUnit(3, "minutes")} ago$`,
 );
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -567,7 +581,7 @@ test.describe("Ask AI beside the page", () => {
 
     await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
     await expect(asked).toBeVisible();
-    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(HOME_CHIP);
 
     await page.getByTestId("fixture-link-incident").click();
 
@@ -589,7 +603,7 @@ test.describe("Ask AI beside the page", () => {
     await page.getByTestId("fixture-link-home").click();
 
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
-      GENERIC_SUGGESTIONS,
+      HOME_SUGGESTIONS,
     );
 
     await page.getByTestId("fixture-link-incident").click();
@@ -607,6 +621,7 @@ test.describe("Ask AI beside the page", () => {
           type: "Incident",
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          page: INCIDENT_PAGE_TEMPLATE,
         },
       }),
     ]);
@@ -1100,6 +1115,7 @@ test.describe("the start", () => {
           type: "Incident",
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          page: INCIDENT_PAGE_TEMPLATE,
         },
       }),
     ]);
@@ -1131,7 +1147,7 @@ test.describe("the start", () => {
     );
   });
 
-  test("with no page behind it, one sentence says where answers come from", async ({
+  test("on Home, the pill names Home and the start asks Home's own questions; with no page behind it, one sentence says where answers come from", async ({
     page,
   }: {
     page: Page;
@@ -1139,10 +1155,14 @@ test.describe("the start", () => {
     await load(page, "page=home");
     await openAskAi(page);
 
-    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
-    await expect(askAi(page).getByText(HOME_SENTENCE)).toBeVisible();
-    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
-      GENERIC_SUGGESTIONS,
+    // What the pill says is not said again under the question.
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(HOME_CHIP);
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toHaveCount(0);
+    const chips: Locator = page.getByTestId("ai-chat-suggestion");
+    await expect(chips).toHaveText(HOME_SUGGESTIONS);
+    await expect(chips.first()).toHaveAttribute(
+      "title",
+      "Where do I start with OneUptime, and what should I set up first?",
     );
     await expect(composer(page)).toHaveAttribute(
       "placeholder",
@@ -1150,6 +1170,19 @@ test.describe("the start", () => {
     );
 
     await screenshot(page, "start-home-1280");
+
+    // The pill removed, no page is behind it.
+    await page.getByRole("button", { name: "Remove page context" }).click();
+
+    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toBeVisible();
+    await expect(chips).toHaveText(GENERIC_SUGGESTIONS);
+    await expect(composer(page)).toHaveAttribute(
+      "placeholder",
+      "Ask anything…",
+    );
+
+    await screenshot(page, "start-no-page-1280");
   });
 });
 
@@ -1618,16 +1651,23 @@ test.describe("what an answer carries fits where it is drawn", () => {
       for (const label of labels) {
         expect(label, label.text).toEqual({ text: label.text, lines: 1 });
       }
-      // Each value held to its unit, as read (#8717).
+      /*
+       * Each value held to its unit, as read (#8717), half a second a tick
+       * with the figures that step needs (#10117): recharts' own steps read
+       * "650 ms", "1.3 s", "1.95 s", "2.6 s".
+       */
       expect(
         labels.map((label: { text: string; lines: number }): string => {
           return label.text;
         }),
       ).toEqual(
         expect.arrayContaining([
-          withUnit(650, "ms"),
-          withUnit(1.3, "s"),
-          withUnit(2.6, "s"),
+          withUnit(0, "ms"),
+          withUnit(500, "ms"),
+          withUnit("1.0", "s"),
+          withUnit("1.5", "s"),
+          withUnit("2.0", "s"),
+          withUnit("2.5", "s"),
         ]),
       );
     });
@@ -1743,7 +1783,7 @@ test.describe("what an answer carries fits where it is drawn", () => {
   });
 
   /*
-   * A tool's table wrote each date whole - "Oct 27 2026, 02:57 PM UTC · 3
+   * A tool's table wrote each date whole - "Oct 27, 2026, 2:57 PM UTC · 3
    * minutes ago" - which took a third of the chat's column, its year and
    * zone the same on every row, and named its columns in English in every
    * language. A date is short now, as every table writes one, and whole
@@ -2821,6 +2861,10 @@ test.describe("in German", () => {
           title: "High memory usage on test01",
         }),
       );
+      // Skipped by a person, its row is as it was: only Auto-run's say why (issue #6982).
+      await expect(
+        page.getByTestId("tool-approval-history-reason"),
+      ).toHaveCount(0);
       await settle(page);
       const drawn: { isCut: boolean; lines: number } = await row.evaluate(
         (element: Element): { isCut: boolean; lines: number } => {
@@ -3244,6 +3288,7 @@ test.describe("on a resolved incident", () => {
           type: "Incident",
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          page: INCIDENT_PAGE_TEMPLATE,
         },
       }),
     ]);
@@ -3860,6 +3905,174 @@ test.describe("a code change's cautions", () => {
 
       await expectNothingScrollsSideways(page);
       await screenshot(page, "code-cautions-390-fa");
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A code change Auto-run held back (issue #6982)
+ * ---------------------------------------------------------------------------
+ *
+ * In Auto-run, Ask AI does not make a code change its card would have
+ * warned about. Its row said only "Skipped · Commit 1 file to fix/login",
+ * and the person learned why only if the answer said so. The row now says
+ * why under its title, in the reader's language (?thread=code-skipped).
+ */
+const CODE_SKIPPED_REASON_KEY: string =
+  "Not committed: a file changed on the branch after Ask AI read it.";
+
+// A Skipped row's chip, title and reason, and the row around them, read in one frame.
+interface SkippedRow {
+  row: Box;
+  chip: Box;
+  title: Box;
+  reason: Box;
+}
+
+async function skippedRowBoxes(page: Page): Promise<SkippedRow> {
+  const row: Locator = page.getByTestId("tool-approval-history");
+  const [box, chip, title, reason] = await boxesInOneFrame([
+    row,
+    row.locator("> span").first(),
+    row.getByTestId("tool-approval-history-title"),
+    row.getByTestId("tool-approval-history-reason"),
+  ]);
+  return { row: box!, chip: chip!, title: title!, reason: reason! };
+}
+
+/*
+ * The reason sits under the title, starting where the title starts, beside
+ * the chip and inside the row - a long one wraps there.
+ */
+function expectReasonUnderTitle(
+  drawn: SkippedRow,
+  direction: "ltr" | "rtl",
+): void {
+  expect(drawn.reason.y).toBeGreaterThanOrEqual(
+    drawn.title.y + drawn.title.height - 0.5,
+  );
+
+  if (direction === "ltr") {
+    expect(Math.abs(drawn.reason.x - drawn.title.x)).toBeLessThanOrEqual(0.5);
+    expect(drawn.chip.x + drawn.chip.width).toBeLessThanOrEqual(
+      drawn.title.x + 0.5,
+    );
+  } else {
+    expect(
+      Math.abs(
+        drawn.reason.x +
+          drawn.reason.width -
+          (drawn.title.x + drawn.title.width),
+      ),
+    ).toBeLessThanOrEqual(0.5);
+    expect(drawn.chip.x).toBeGreaterThanOrEqual(
+      drawn.title.x + drawn.title.width - 0.5,
+    );
+  }
+
+  for (const box of [drawn.chip, drawn.title, drawn.reason]) {
+    expect(box.x).toBeGreaterThanOrEqual(drawn.row.x - 0.5);
+    expect(box.x + box.width).toBeLessThanOrEqual(
+      drawn.row.x + drawn.row.width + 0.5,
+    );
+    expect(box.y + box.height).toBeLessThanOrEqual(
+      drawn.row.y + drawn.row.height + 0.5,
+    );
+  }
+}
+
+// How far apart two colours are to a reader, 1 to 21 (WCAG's contrast ratio).
+async function contrastOf(text: Locator, ground: Locator): Promise<number> {
+  const ink: number = await luminanceOf(text, "color");
+  const paper: number = await luminanceOf(ground, "background-color");
+  return (Math.max(ink, paper) + 0.05) / (Math.min(ink, paper) + 0.05);
+}
+
+test.describe("a code change Auto-run held back", () => {
+  test("its Skipped row says why under its title", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=code-skipped");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const row: Locator = page.getByTestId("tool-approval-history");
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText("Skipped");
+    await expect(row.getByTestId("tool-approval-history-title")).toHaveText(
+      "Commit 1 file to fix/login",
+    );
+    const reason: Locator = row.getByTestId("tool-approval-history-reason");
+    await expect(reason).toHaveCount(1);
+    expect((await wordsOf(reason)).trim()).toBe(CODE_SKIPPED_REASON_KEY);
+
+    expectReasonUnderTitle(await skippedRowBoxes(page), "ltr");
+
+    // Small print a person reads: 12px, at 4.5:1 or more on its row.
+    expect(
+      await reason.evaluate((element: Element): number => {
+        return parseFloat(window.getComputedStyle(element).fontSize);
+      }),
+    ).toBeGreaterThanOrEqual(12);
+    expect(await contrastOf(reason, row)).toBeGreaterThanOrEqual(4.5);
+
+    // Nothing is waiting: no approval card, and no caution drawn for it.
+    await expect(page.getByTestId("tool-approval-action")).toHaveCount(0);
+    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(0);
+
+    await screenshot(page, "code-skipped-1280");
+  });
+
+  test("in the dark, its reason is still read at 4.5:1", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "theme=dark&thread=code-skipped");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const row: Locator = page.getByTestId("tool-approval-history");
+    const reason: Locator = row.getByTestId("tool-approval-history-reason");
+    expect((await wordsOf(reason)).trim()).toBe(CODE_SKIPPED_REASON_KEY);
+    expect(await luminanceOf(row, "background-color")).toBeLessThan(0.1);
+    expect(await contrastOf(reason, row)).toBeGreaterThanOrEqual(4.5);
+
+    await screenshot(page, "code-skipped-1280-dark");
+  });
+
+  test.describe("on a phone, in Persian", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("the reason is said in Persian, under the title, read from the right, and nothing is wider than the screen", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords("fa");
+
+      await load(page, "lang=fa&thread=code-skipped");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const row: Locator = page.getByTestId("tool-approval-history");
+      await expect(row).toContainText(words["Skipped"]!);
+      await expect(
+        row.getByTestId("tool-approval-history-title"),
+      ).toContainText("fix/login");
+      const reason: Locator = row.getByTestId("tool-approval-history-reason");
+      expect((await wordsOf(reason)).trim()).toBe(
+        filled(words, CODE_SKIPPED_REASON_KEY),
+      );
+      expect(await wordsOf(reason)).not.toContain("Not committed");
+
+      expectReasonUnderTitle(await skippedRowBoxes(page), "rtl");
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "code-skipped-390-fa");
     });
   });
 });
@@ -4764,8 +4977,8 @@ test.describe("every card a read leaves", () => {
       "Pages no one",
       "On call now: Ana Souza",
       // In the browser's zone, UTC, as the export's header names it (#8475).
-      "Oct 26 2026, 13:00 UTC",
-      "Nov 02 2026, 13:00 UTC",
+      "Oct 26, 2026, 13:00 UTC",
+      "Nov 2, 2026, 13:00 UTC",
       "Jonas Müller",
       "3: Checkout (monitor: Checkout API), Payments (monitor group: Payments stack), Backups - not monitored",
       "IP Address: 203.0.113.7, User: ana@acme.example.com",

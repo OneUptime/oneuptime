@@ -439,3 +439,148 @@ describe("a generic ephemeral volume's claim at ingest", () => {
     expect(spies.volumeStats).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * What a collector that labels generic ephemeral volumes sends (#9842):
+ * the type `ephemeral` (opentelemetry-collector-contrib#52321), and the
+ * claim too (#52198). Each is filed under its claim from the series alone,
+ * so a new pod's usage is filed before the inventory holds its claim, and
+ * PVC Almost Full, which reads the volumes typed persistentVolumeClaim, sees
+ * it as any claim's.
+ */
+describe("a generic ephemeral volume a collector labels, at ingest", () => {
+  function labelledBlock(fields: {
+    volume?: string;
+    type?: string;
+    claim?: string;
+  }): JSONObject {
+    const attributes: Array<[string, string]> = [
+      ["k8s.namespace.name", "web"],
+      ["k8s.pod.name", "web3"],
+      ["k8s.pod.uid", "uid-web3"],
+      ["k8s.node.name", "node-1"],
+      ["k8s.volume.name", fields.volume ?? "scratch"],
+    ];
+    if (fields.type !== undefined) {
+      attributes.push(["k8s.volume.type", fields.type]);
+    }
+    if (fields.claim !== undefined) {
+      attributes.push(["k8s.persistentvolumeclaim.name", fields.claim]);
+    }
+    return block(attributes, {
+      "k8s.volume.capacity": 20 * GIB,
+      "k8s.volume.available": 5 * GIB,
+    });
+  }
+
+  function storedVolumeAttributes(spies: Spies): Array<JSONObject> {
+    return spies.stored
+      .filter((row: JSONObject): boolean => {
+        return String(row["name"]).startsWith("k8s.volume.");
+      })
+      .map((row: JSONObject): JSONObject => {
+        return row["attributes"] as JSONObject;
+      });
+  }
+
+  test("a claim the series names is the one its usage is filed under, read from nowhere else", async () => {
+    const spies: Spies = setupIngest();
+    // The inventory knows no claim of this pod's yet.
+    spies.podOwnedClaims.mockResolvedValue([]);
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request([labelledBlock({ type: "ephemeral", claim: "web3-scratch" })]),
+    );
+
+    expect(spies.podOwnedClaims).not.toHaveBeenCalled();
+    expect(spies.volumeStats).toHaveBeenCalledTimes(1);
+    expect(spies.volumeStats.mock.calls[0]![0].volumes).toEqual([
+      {
+        namespaceKey: "web",
+        name: "web3-scratch",
+        capacityBytes: 20 * GIB,
+        availableBytes: 5 * GIB,
+        inodes: null,
+        inodesFree: null,
+        observedAt: new Date("2026-11-18T10:00:00.000Z"),
+      },
+    ]);
+  });
+
+  test("and its stored series are typed a claim's, as PVC Almost Full reads them", async () => {
+    const spies: Spies = setupIngest();
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request([labelledBlock({ type: "ephemeral", claim: "web3-scratch" })]),
+    );
+
+    const stored: Array<JSONObject> = storedVolumeAttributes(spies);
+    expect(stored.length).toBeGreaterThan(0);
+    for (const attributes of stored) {
+      const text: string = JSON.stringify(attributes);
+      expect(text).toContain("web3-scratch");
+      expect(text).toContain("persistentVolumeClaim");
+      expect(text).not.toContain('"ephemeral"');
+    }
+  });
+
+  test("a volume typed ephemeral with no claim is filed under `<pod>-<volume>`, with no read", async () => {
+    const spies: Spies = setupIngest();
+    spies.podOwnedClaims.mockResolvedValue([]);
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request([labelledBlock({ type: "ephemeral" })]),
+    );
+
+    expect(spies.podOwnedClaims).not.toHaveBeenCalled();
+    expect(spies.volumeStats.mock.calls[0]![0].volumes[0].name).toBe(
+      "web3-scratch",
+    );
+    for (const attributes of storedVolumeAttributes(spies)) {
+      expect(JSON.stringify(attributes)).toContain("persistentVolumeClaim");
+    }
+  });
+
+  test("a volume typed projected is filed under nothing, and never looked up, whatever it is called", async () => {
+    const spies: Spies = setupIngest();
+    spies.podOwnedClaims.mockResolvedValue([
+      { namespace: "web", name: "web3-bundle", podName: "web3" },
+    ]);
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request([
+        labelledBlock({ volume: "bundle", type: "projected" }),
+        labelledBlock({ volume: "kube-api-access-x7k2p", type: "projected" }),
+      ]),
+    );
+
+    expect(spies.podOwnedClaims).not.toHaveBeenCalled();
+    expect(spies.volumeStats).not.toHaveBeenCalled();
+    for (const attributes of storedVolumeAttributes(spies)) {
+      expect(JSON.stringify(attributes)).not.toContain("persistentvolumeclaim");
+    }
+  });
+
+  test("beside an unlabelled one, which is still looked up, once", async () => {
+    const spies: Spies = setupIngest();
+    spies.podOwnedClaims.mockResolvedValue([
+      { namespace: "web", name: "web3-cache", podName: "web3" },
+    ]);
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request([
+        labelledBlock({ type: "ephemeral", claim: "web3-scratch" }),
+        labelledBlock({ volume: "cache" }),
+      ]),
+    );
+
+    expect(spies.podOwnedClaims).toHaveBeenCalledTimes(1);
+    expect(
+      spies.volumeStats.mock.calls[0]![0].volumes.map(
+        (volume: ResourceLatestVolumeStats): string => {
+          return volume.name;
+        },
+      ).sort(),
+    ).toEqual(["web3-cache", "web3-scratch"]);
+  });
+});

@@ -13,7 +13,8 @@ import {
   SCRUB_MAX_NESTED_VALUES_PER_RECORD,
   SCRUB_MAX_VALUE_DEPTH,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
-import crypto from "crypto";
+import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
+import ObjectID from "Common/Types/ObjectID";
 import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -54,12 +55,19 @@ interface CompiledRule {
   regex: ScrubRegExp;
 }
 
+// The project the rules are of: their Hash tokens are keyed with it.
+const PROJECT_ID: ObjectID = new ObjectID(
+  "0193b0a1-0000-7000-8000-000000a10393",
+);
+
 function compile(
   service: unknown,
   rule: LogScrubRule | TraceScrubRule,
   spec: RuleSpec,
 ): CompiledRule {
   rule.name = "test rule";
+  // A Hash rule hashes with its project's key, as the rules ingest loads do.
+  rule.projectId = PROJECT_ID;
   rule.patternType = spec.patternType;
   rule.scrubAction = spec.action || "redact";
 
@@ -135,8 +143,9 @@ const ENGINES: Array<Engine> = [
 const EMAIL_MASK: RuleSpec = { patternType: "email", action: "mask" };
 const SENSITIVE_KEYS: RuleSpec = { patternType: "sensitiveKeys" };
 
-function sha8(text: string): string {
-  return crypto.createHash("sha256").update(text).digest("hex").slice(0, 8);
+// What a Hash rule of PROJECT_ID leaves of a text (#10394).
+function token(text: string): string {
+  return ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: text });
 }
 
 // `inner` inside `lists` lists, one in the other.
@@ -257,14 +266,17 @@ describe.each(ENGINES)(
       ],
       ["ssn", "mask", "ssn 123-45-6789", "ssn ***-**-6789"],
       ["phoneNumber", "mask", "call 555-123-4567", "call ***-***-4567"],
-      ["ipAddress", "mask", "from 10.0.0.1", "from ***.***.***.***"],
-      ["email", "redact", "to ada@example.com", "to [REDACTED]"],
+      ["ipAddress", "mask", "from 203.0.113.1", "from ***.***.***.***"],
       [
-        "email",
-        "hash",
-        "to ada@example.com",
-        `to [HASHED:${sha8("ada@example.com")}]`,
+        "ipAddress",
+        "mask",
+        "from 2001:db8::1",
+        "from ****:****:****:****:****:****:****:****",
       ],
+      // A private address is no one's: an IP Address rule keeps it (#10393).
+      ["ipAddress", "mask", "from 10.0.0.1", "from 10.0.0.1"],
+      ["email", "redact", "to ada@example.com", "to [REDACTED]"],
+      ["email", "hash", "to ada@example.com", `to ${token("ada@example.com")}`],
     ])(
       "%s, %s: the rule reads inside a list",
       (patternType: string, action: string, text: string, scrubbed: string) => {
@@ -346,10 +358,7 @@ describe.each(ENGINES)(
           { patternType: "sensitiveKeys", action: "hash" },
         ]),
       ).toEqual({
-        "http.request.header.cookie": [
-          `[HASHED:${sha8("a=1")}]`,
-          `[HASHED:${sha8("b=2")}]`,
-        ],
+        "http.request.header.cookie": [token("a=1"), token("b=2")],
       });
     });
 
@@ -462,7 +471,7 @@ describe.each(ENGINES)(
            */
           for (let index: number = 0; index < 300; index++) {
             attributes[`list${index}`] = new Array<string>(100).fill(
-              "SECRET-X1 from 10.0.0.1",
+              "SECRET-X1 from 203.0.113.1",
             );
           }
 

@@ -5,7 +5,10 @@ Inventaret er én liste over alt, hvad OneUptime ved om dit miljø: tjenester, v
 :::cards
 - [Sådan kommer elementer ind i inventaret](#sådan-kommer-elementer-ind-i-inventaret): Fundet, spejlet eller tilføjet af dig.
 - [Find rundt](#find-rundt): Inventarets sider og hvert elements egne sider.
-- [Importer enheder fra Esper](#importer-enheder-fra-esper): Alle Android-enheder, som din Esper-lejer tilmelder, holdt ajour.
+- [Importer enheder fra Esper](#importer-enheder-fra-esper): Alle Android- og Apple-enheder, som din Esper-lejer tilmelder, holdt ajour.
+- [Importer enheder fra Microsoft Intune](#importer-enheder-fra-microsoft-intune): Alle Windows-pc'er, Mac'er, iPhones, iPads og Android-enheder, som Intune administrerer, holdt ajour.
+- [Importer enheder fra Workspace ONE UEM](#importer-enheder-fra-workspace-one-uem): Alle telefoner, tablets og computere, som Workspace ONE administrerer, holdt ajour.
+- [Importer enheder fra SOTI MobiControl](#importer-enheder-fra-soti-mobicontrol): Alle robuste enheder, telefoner, tablets og computere, som MobiControl administrerer, holdt ajour.
 - [Tilføj noget manuelt](#tilføj-noget-manuelt): En tredjeparts-API, en ekstern database eller en appliance.
 - [Arkiver i stedet for at slette](#arkiver-i-stedet-for-at-slette): Den måde at rydde op i listen på, der holder.
 :::
@@ -26,14 +29,14 @@ flowchart TB
 | Kilde | I API'et | Hvor det kommer fra | Hvor længe det bliver |
 | --- | --- | --- | --- |
 | **Opdaget** | `discovered` | OpenTelemetry-ressourceattributter, læst efterhånden som telemetri ankommer: en tjeneste, vært, et Kubernetes-objekt eller en virtuel maskine, der sender telemetri. | Registreres igen med hver batch. Fjernes, når det har været stille længere end vinduet for dets type (se nedenfor). |
-| **Spejlet** | `inventory` | En post, som en OneUptime-poller vedligeholder: netværksenheder, cloudressourcer, IoT-enheder, serverless-funktioner, RUM-applikationer, Docker-værter, Podman-værter og de Android-enheder, som en Esper-forbindelse importerer. Kopieres hvert 15. minut. En Esper-enhed, hver gang dens forbindelse læses. | Så længe dets post findes. Slet posten, og elementet forsvinder med den. |
+| **Spejlet** | `inventory` | En post, som en OneUptime-poller vedligeholder: netværksenheder, cloudressourcer, IoT-enheder, serverless-funktioner, RUM-applikationer, Docker-værter, Podman-værter og de enheder, som en MDM-forbindelse importerer. Kopieres hvert 15. minut. En administreret enhed, hver gang dens forbindelse læses. | Så længe dets post findes. Slet posten, og elementet forsvinder med den. |
 | **Tilføjet af dig** | `manual` | Tilføjet af dig, for noget OneUptime ikke kan se: en tredjeparts-API, en database, som en leverandør administrerer, en appliance i et rack. | Indtil du sletter det. Intet får det til at udløbe. |
 
 Et fundet eller spejlet element kan ikke omdøbes eller få en anden type: kilden ville overskrive ændringen ved næste gennemløb. Elementets side **Indstillinger** fortæller i stedet, hvor en varig ændring skal foretages. Det, du altid kan tilføje til ethvert element, uanset kilde, er værdier i brugerdefinerede felter: se [Brugerdefinerede inventarfelter](/docs/inventory/custom-fields).
 
 ### Hvor længe et stille element bliver
 
-Et fundet element har et hjerteslag. Hver gang der ankommer telemetri for det, rykker tidspunktet for, hvornår det sidst blev set, frem, og listens kolonne **Status** viser, hvor nyligt det er. Det samme gør en Android-enhed fra Esper: hver gang den tjekker ind hos Esper. Andre spejlede elementer og dem, du har tilføjet, har intet hjerteslag, så deres status forbliver tom i stedet for at slå alarm.
+Et fundet element har et hjerteslag. Hver gang der ankommer telemetri for det, rykker tidspunktet for, hvornår det sidst blev set, frem, og listens kolonne **Status** viser, hvor nyligt det er. Det samme gør en administreret enhed: hver gang den tjekker ind hos sin MDM. Andre spejlede elementer og dem, du har tilføjet, har intet hjerteslag, så deres status forbliver tom i stedet for at slå alarm.
 
 | Status | Hvad det betyder |
 | --- | --- |
@@ -45,9 +48,9 @@ Hver tredje time fjerner OneUptime de fundne elementer, der har været stille l�
 
 | Type element | Fjernes efter så lang tid uden telemetri |
 | --- | --- |
-| Pods, deployments, Proxmox-gæster og virtuelle VMware-maskiner | 1 dag |
-| Kubernetes-noder og -navnerum, Proxmox-noder, VMware-værter, -klynger og -datastores samt de databaser og fjerntjenester, dine traces kalder | 7 dage |
-| Tjenester, værter, Kubernetes-, Proxmox- og Ceph-klynger, lagerarrays, vCenters og Docker Swarm-klynger | 30 dage |
+| Pods, deployments, Proxmox-gæster, OpenStack-instanser og virtuelle VMware-maskiner | 1 dag |
+| Kubernetes-noder og -navnerum, Proxmox-noder, OpenStack-hypervisorer, VMware-værter, -klynger og -datastores samt de databaser og fjerntjenester, dine traces kalder | 7 dage |
+| Tjenester, værter, Kubernetes-, Proxmox- og Ceph-klynger, OpenStack-clouds, lagerarrays, vCenters og Docker Swarm-klynger | 30 dage |
 
 En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 dage.
 
@@ -59,9 +62,9 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 | --- | --- |
 | **Oversigt** | Hvor mange elementer du har, hvad de er, hvor mange der er blevet stille, og hvad der senest er tilføjet. |
 | **Alle elementer** | Alle elementer. Søg efter navn, beskrivelse eller identitetsnøgle, afgræns listen efter type, kilde, status eller brugerdefineret felt, og tilføj et element manuelt. |
-| **Administrerede enheder** | Dine Esper-forbindelser og alle de Android-enheder, de importerer, med deres status, gruppe, model og Android-version. |
+| **Administrerede enheder** | Dine MDM-forbindelser – Esper, Microsoft Intune, Workspace ONE UEM og SOTI MobiControl – og alle de enheder, de importerer, med deres status, gruppe, model og operativsystem. |
 | **Topologikort** | Hvordan elementerne hænger sammen: tjenester, hvad de kalder, og de værter, pods og enheder, de kører på. |
-| **Blevet stille** | De elementer, der ikke er hørt fra i mere end et døgn: fundne elementer, der ikke har sendt telemetri, og enheder, der er holdt op med at tjekke ind hos Esper. |
+| **Blevet stille** | De elementer, der ikke er hørt fra i mere end et døgn: fundne elementer, der ikke har sendt telemetri, og enheder, der er holdt op med at tjekke ind hos deres MDM. |
 | **Efter kilde** | Elementerne fra én kilde: **Opdaget**, **Spejlet** eller **Tilføjet af dig**. |
 | **Indstillinger → Brugerdefinerede felter** | De felter, dit projekt fører på hvert element. |
 | **Hjælp → Dokumentation** | En kort guide til inventaret med de typer elementer, det genkender. |
@@ -71,11 +74,13 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 
 ### Aktivdetaljer
 
-En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. Kortet for en Android-enhed har også dens sikkerhedspatchniveau, fra Android-agenten eller Esper. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvorfor det er sådan, og hvordan de ukendte bliver udfyldt: en enhed, der ikke rapporterer dem over SNMP, en enhed, der ikke er læst endnu, eller en Meraki-enhed, hvis dashboard har dem.
+En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. Kortet for en Android-enhed har også dens sikkerhedspatchniveau, fra Android-agenten eller dens MDM. Det siger også, om patchen er **Ikke opdateret**, som kolonnen **Sikkerhedspatchniveau** gør, og hvor mange dage gammel den er. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvorfor det er sådan, og hvordan de ukendte bliver udfyldt: en enhed, der ikke rapporterer dem over SNMP, en enhed, der ikke er læst endnu, eller en Meraki-enhed, hvis dashboard har dem.
 
 - En værts oplysninger kommer fra ressourceattributterne på dens telemetri: dens IP- og MAC-adresser, arkitektur og operativsystem fra start, og dens serienummer, mærke, model og firmware, når du stempler dem på.
 - En netværksenheds oplysninger kommer fra dens SNMP-polling, dens rolle og dens site. Det, dens polling ikke har læst, kommer fra discovery: den seneste scanning af dens adresse, en routers ARP-tabel eller dens sondes DNS-opslag. En enhed uden ENTITY-MIB, som en Meraki MX, får stadig sit mærke, sin model og sit operativsystem fra sin systembeskrivelse og sin MAC-adresse fra sine egne porte. Dens IP-adresse vises aldrig som dens værtsnavn.
 - En Meraki-enhed henter også det, dens polling lader stå tomt, fra Meraki-dashboardet, blandt andet dens serienummer, model og firmware, når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation.
+
+**Alle elementer** finder de Android-enheder, der kræver handling. Filteret **Sikkerhedspatchniveau** viser under **Ikke opdateret** de enheder, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, den samme regel, som advarslen Security Patch Out of Date i [Værts-monitor](/docs/monitor/host-monitor) bruger. Filteret **Agenttilladelser** viser de enheder, hvor [Android-agenten](/docs/telemetry/android-agent) stadig mangler READ_LOGS, READ_DROPBOX_DATA eller adgang til forbrugsdata. Hvert filter har en kolonne med samme navn, skjult indtil du slår den til, og den kommer med i CSV-eksporten. Ved siden af dem rummer kolonnen **MDM-ID** det id, som en enheds MDM kender den under, fx det Esper-id, som `espercli secureadb connect --device` tager.
 
 Kortet viser, hvor hver oplysning kom fra, og hvornår. Den kilde, de fleste oplysninger deler, som en værts collector, en netværksenheds egen SNMP-polling eller den discovery-scanning, der læste den, nævnes én gang, under oplysningerne. Enhver anden kilde, som en routers ARP-tabel eller en værdi gemt på enheden, nævnes under sin oplysning. En værdi, der er gemt på en netværksenhed, erstattes aldrig af det, discovery læser, og når de to er forskellige, viser kortet begge.
 
@@ -89,7 +94,7 @@ Et elements side **Forbindelser** viser dets naboer i begge retninger, grupperet
 
 ## Importer enheder fra Esper
 
-Forbind en Esper-lejer, og alle de Android-enheder, den tilmelder, er i inventaret, også de enheder, hvis app aldrig er startet. Hver enhed er én vært med det, kun Esper ved om den: dens gruppe, dens Android-version, build og sikkerhedspatchniveau, dens serienummer og IMEI, dens batteri og lagerplads og dens installerede apps. Esper sender intet af sig selv, så OneUptime læser lejeren efter en tidsplan: enhederne hvert 15. minut og hver enheds apps hver 6. time.
+Forbind en Esper-lejer, og alle de enheder, den tilmelder, er i inventaret: dens Android-enheder, også dem, hvis app aldrig er startet, og dens iPhones, iPads og Apple TV'er. Hver enhed er én vært med det, kun Esper ved om den: dens gruppe, dens operativsystem og build, dens serienummer og IMEI, dens batteri og lagerplads og, for en Android-enhed, dens sikkerhedspatchniveau og installerede apps. Esper sender intet af sig selv, så OneUptime læser lejeren efter en tidsplan: enhederne hvert 15. minut og hver Android-enheds apps hver 6. time.
 
 :::steps
 ### Opret en API-nøgle i Esper
@@ -98,18 +103,19 @@ Opret en nøgle i Esper-konsollen under API Key Management. OneUptime læser kun
 
 ### Forbind lejeren
 
-Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enheder**, og klik på **Forbind Esper**. Angiv **Lejer**, navnet før `.esper.cloud` i adressen på din Esper-konsol (`acme` for `acme.esper.cloud`), og **API-nøgle**. **Flere felter** rummer forbindelsens navn, og hvor ofte den læses.
+Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enheder**, klik på **Forbind MDM**, og vælg **Esper**. Angiv **Lejer**, navnet før `.esper.cloud` i adressen på din Esper-konsol (`acme` for `acme.esper.cloud`), og **API-nøgle**. **Flere felter** rummer forbindelsens navn, og hvor ofte den læses.
 
 ### Tjek den første læsning
 
-**Forbind** tester nøglen, før noget gemmes: den fortæller, hvor mange Android-enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes. Den første læsning starter inden for et minut, og forbindelsens række viser, hvordan det gik.
+**Forbind** tester nøglen, før noget gemmes: den fortæller, hvor mange enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes. Den første læsning starter inden for et minut, og forbindelsens række viser, hvordan det gik.
 :::
 
 | Hvad Esper rapporterer | Hvor det vises |
 | --- | --- |
-| Model, producent, serienummer, Android-version, build samt IP- og MAC-adresser | Enhedens kort **Aktivdetaljer** og kolonnerne i **Alle elementer** |
+| Model, producent, serienummer, operativsystem og dets version, build samt IP- og MAC-adresser | Enhedens kort **Aktivdetaljer** og kolonnerne i **Alle elementer** |
 | Status, seneste check-in, gruppe, sikkerhedspatchniveau, IMEI, batteri, lagerplads og Esper-agent | Enhedens kort **Esper** og listen **Enheder** under **Administrerede enheder** |
 | Apps og deres versioner | Enhedens liste **Installerede apps** |
+| Dens Esper-enheds-id | Kolonnen **MDM-ID** i **Alle elementer** |
 
 ### Én enhed, ikke to
 
@@ -124,15 +130,103 @@ OneUptime finder en enheds element ud fra dens navn i Esper og derefter ud fra d
 
 ### Når en enhed bliver stille eller forlader Esper
 
-En enhed, der ikke har tjekket ind i 30 minutter, er **Offline** og viser, hvor længe siden den sidst gjorde det. Dens elements **Status** følger dens seneste check-in, eller dens telemetri, når den er nyere, så en enhed, der har været stille i et døgn, står på siden **Blevet stille**.
+En Android-enhed, der ikke har tjekket ind i 30 minutter, er **Offline** og viser, hvor længe siden den sidst gjorde det; en iPhone, iPad eller Apple TV, der tjekker ind, når Apples push-tjeneste vækker den, ofte med timers mellemrum, er **Offline** efter et døgn. Dens elements **Status** følger dens seneste check-in, eller dens telemetri, når den er nyere, så en enhed, der har været stille i et døgn, står på siden **Blevet stille**.
 
 En enhed, der fjernes fra Esper, markeres som **Fjernet**, og dens element arkiveres: det forsvinder fra listen og venter under **Avanceret → Arkiveret**. En enhed, der kommer tilbage til Esper, kommer tilbage på listen. 30 dage efter at den forsvandt, slettes enheden, og det samme gør dens element, medmindre telemetri eller du har tilføjet noget til det.
 
 ### Få en advarsel, når en enhed holder op med at tjekke ind
 
-Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Esper i mere end en time, opkaldt efter enheden, og løser den, så snart enheden tjekker ind igen.
+Under **Administrerede enheder** klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Esper Android Device Stopped Checking In** og **Esper Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-enhed, der ikke har tjekket ind hos Esper i mere end en time, den anden for hver Apple-enhed efter mere end et døgn, hver opkaldt efter enheden og løst, så snart den tjekker ind igen.
 
-Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet, så ingen advarsel åbnes eller løses før den næste. Hæv monitorens tærskel for en flåde, der slukkes om natten.
+Hver læsning af forbindelsen registrerer som metrikken `oneuptime.managed_device.check_in.age`, hvor mange minutter siden hver enhed sidst tjekkede ind, og monitoren tjekker hver enheds seneste værdi hvert 5. minut. En enhed, der også kører Android Agent, overlades til **Host Stopped Reporting**, så den aldrig advarer to gange, og en enhed, der er fjernet fra Esper, løser sin advarsel. En læsning, der fejler, registrerer intet om enhederne, så ingen af deres advarsler åbnes eller løses, før en læsning lykkes igen. Hæv monitorens tærskel for en flåde, der slukkes om natten.
+
+Opret også **Esper Security Patch Out of Date**, så åbner hver Android-enhed, hvis sikkerhedspatchniveau ifølge Esper er mere end 90 dage gammelt, sin egen advarsel, som løses, når enheden er opdateret. Hver læsning registrerer som metrikken `oneuptime.managed_device.security_patch.age`, hvor mange dage gammelt hver Android-enheds patchniveau er. En enhed, der kører Android Agent, overlades til sin værts **Security Patch Out of Date**, så den aldrig advarer to gange.
+
+Opret også **Esper Low Battery** og **Esper Storage Nearly Full**: hver enhed, hvis batteri ifølge Espers seneste læsning er under 20 %, åbner sin egen advarsel, og det samme gør hver enhed, hvis lagerplads er mere end 90 % fuld, og hver advarsel løses, når enheden er opladet eller har plads igen. Hver læsning registrerer begge dele som metrikkerne `oneuptime.managed_device.battery.level` og `oneuptime.managed_device.storage.used`. En enhed, der kører Android Agent, overlades til sin værts **Low Battery** og **Storage Nearly Full**, som advarer ved de samme niveauer, så den aldrig advarer to gange.
+
+En enheds advarsler står også på dens element: enhedens kort **Esper** viser de hændelser og advarsler, der er åbne om den, hver med et link til sin side, og siderne **Advarsler** og **Hændelser** for en enhed, som Android Agent ikke rapporterer, viser hver eneste, som dens forbindelses monitorer har rejst om den.
+
+### Få en advarsel, når forbindelsen ikke længere læses
+
+Opret **Esper Connection Stopped Reading**, så åbner forbindelsen sin egen advarsel, så snart ingen læsning af den er lykkedes i så lang tid, som dens række venter, før dens **Status** viser **Forældet**: tre af dens læseintervaller og ti minutter mere, og aldrig under en halv time, altså 55 minutter ved standardintervallet på 15. Dens første fejlfindingstrin viser forbindelsens seneste værdier, hver med den fejl, dens læsning fejlede med, og den første læsning, der lykkes, løser den. Hver læsning, og hver læsning, forbindelsen bliver forfalden til, registrerer som metrikken `oneuptime.managed_device.connection.read.age`, hvor mange minutter der er gået, siden en lykkedes. Monitoren venter så længe, som forbindelsens læseinterval angiver, når du opretter den. Slår du forbindelsen fra, løses dens åbne advarsel, da intet er forsinket for en forbindelse, der er slået fra, og dens enheders advarsler forbliver, som de er, indtil den læser igen. Sletter du forbindelsen, løses det, som de monitorer, der kun læser den, havde åbent, og deres overvågning slås fra.
+
+## Importer enheder fra Microsoft Intune
+
+Forbind en Microsoft Intune-lejer, og alle de enheder, Intune administrerer, er i inventaret: dens Windows-pc'er, Mac'er, iPhones, iPads, Android-enheder og Linux-maskiner. Hver enhed er én vært med det, Intune ved om den: dens kategori, dens operativsystem og dets version, dens serienummer og IMEI, dens overholdelse, ejerskab og tilmelding, dens lagerplads og de apps, Intune har fundet på den. Intune sender intet af sig selv, så OneUptime læser lejeren efter en tidsplan: enhederne hvert 15. minut og hver enheds apps hver 6. time.
+
+:::steps
+### Registrer en app i Microsoft Entra
+
+Åbn `App registrations` i Microsoft Entra Administration, og klik på `New registration`. Giv den et navn, behold `Accounts in this organizational directory only`, og registrer den. Dens side `Overview` viser de to id'er, OneUptime beder om: `Application (client) ID` og `Directory (tenant) ID`.
+
+### Lad den læse Intunes enheder
+
+Under `API permissions` klikker du på `Add a permission`, derefter `Microsoft Graph`, derefter `Application permissions`, og tilføjer `DeviceManagementManagedDevices.Read.All`. Klik så på `Grant admin consent`, hvilket kun en administrator af lejeren kan. Den ene tilladelse er alt, hvad OneUptime har brug for: den viser enhederne og de apps, Intune har fundet på dem, og kan intet ændre.
+
+### Opret en klienthemmelighed
+
+Under `Certificates & secrets` klikker du på `New client secret` og kopierer dens `Value`, ikke dens `Secret ID`: Microsoft viser værdien én gang. En hemmelighed holder op med at virke, når den udløber, så opret en ny inden da, og angiv den, når du redigerer forbindelsen.
+
+### Forbind Intune-lejeren
+
+Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enheder**, klik på **Forbind MDM**, og vælg **Microsoft Intune**. Angiv **Lejer-id**, **Program-id (klient)** og **Klienthemmelighed**. Er lejeren i en sky for den amerikanske regering, så vælg den som **Cloud** under **Flere felter**. **Forbind** tester appregistreringen, før noget gemmes: den fortæller, hvor mange enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes.
+:::
+
+En enhed tjekker ind hos Intune cirka hver ottende time, og dens seneste check-in er, da den sidst gjorde det: en enhed, der ikke har gjort det i et døgn, er **Offline**. Dens apps er dem, Intune har fundet på den, som Microsoft Graph kun viser i sin betaversion: for en personlig enhed de apps, Intune administrerer. Intunes grupper er Microsoft Entra-grupper, som denne tilladelse ikke læser, så en enheds gruppe er dens enhedskategori. Intet om en enheds bruger læses.
+
+Intune navngiver en enhed det, dens ejer kaldte den, så to enheder kan have samme navn: alle iPhones, som ingen har omdøbt, hedder `iPhone`. Et navn, som to enheder i en forbindelse deler, tilhører ingen af dem i inventaret: hver navngives i stedet efter sit serienummer og får sit navn tilbage, så snart ingen anden enhed har det.
+
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Intune Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har tjekket ind hos Intune i mere end et døgn, opkaldt efter enheden. En bærbar, der er slukket en weekend, ser ens ud, så hæv monitorens tærskel, hvis et døgn er for kort tid for dine. **Intune Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon. **Intune Low Battery**, **Intune Storage Nearly Full** og **Intune Connection Stopped Reading** advarer ligesom Espers skabeloner. Intune kender kun batteriet på en iPhone eller en iPad, som det var, da den sidst tjekkede ind, så **Intune Low Battery** advarer om dem.
+
+## Importer enheder fra Workspace ONE UEM
+
+Forbind en Workspace ONE UEM-server, og alle de enheder, den administrerer, er i inventaret: dens iPhones, iPads, Mac'er, Windows-pc'er, Android-enheder og Linux-maskiner. Hver enhed er én vært med det, Workspace ONE ved om den: dens organisationsgruppe, dens operativsystem og dets version, dens model, serienummer og IMEI, dens overholdelse, tilmelding og ejerskab, dens batteri, lagerplads og hukommelse og dens apps. Workspace ONE sender intet af sig selv, så OneUptime læser serveren efter en tidsplan: enhederne hvert 15. minut og hver enheds apps hver 6. time.
+
+:::steps
+### Opret en skrivebeskyttet rolle
+
+Gå til `Accounts`, derefter `Administrators`, derefter `Roles` i Workspace ONE UEM-konsollen, og klik på `Add Role`. Under `API`, derefter `REST`, vælger du `Read` for `Devices` og for `Apps` og intet andet. Den rolle er alt, hvad OneUptime har brug for: den viser enhederne og deres apps og kan intet ændre.
+
+### Opret en OAuth-klient
+
+Gå til `Groups & Settings`, derefter `Configurations`, derefter `OAuth Client Management`, og klik på `Add`. Vælg den organisationsgruppe, hvis enheder OneUptime læser, og giv klienten den rolle, du oprettede. Kopiér dens `Client ID` og dens `Client Secret`: Workspace ONE viser hemmeligheden én gang.
+
+### Forbind serveren
+
+Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enheder**, klik på **Forbind MDM**, og vælg **Workspace ONE UEM**. Angiv **REST API-URL**, som `Groups & Settings`, `All Settings`, `System`, `Advanced`, `API`, `REST API` viser, f.eks. `https://as1234.awmdm.com`. Behold **OAuth-klient** under **Log ind med**, angiv **Klient-ID** og **Klienthemmelighed**, og vælg **Region** for dit datacenters tokentjeneste. **Forbind** tester klienten, før noget gemmes: den fortæller, hvor mange enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes.
+:::
+
+En Workspace ONE-server on-premises har ingen tokentjeneste: vælg **Administratorkonto** under **Log ind med**, og angiv **Brugernavn** og **Adgangskode** for en administrator med den skrivebeskyttede rolle samt **REST API-nøgle** fra de samme REST API-indstillinger, hvor basisgodkendelse skal være tilladt. OneUptime Cloud læser kun servere på det offentlige internet, så en server på et privat netværk læses af en selvhostet OneUptime.
+
+En enhed rapporterer til Workspace ONE efter sin egen tidsplan, en iPhone med timers mellemrum, så en enhed, der ikke har gjort det i et døgn, er **Offline**. En enhed, der ikke længere er tilmeldt, udelades. En enhed navngives efter det navn, den rapporterer, ikke efter sit visningsnavn, som Workspace ONE danner ud fra brugerens navn, og intet om en enheds bruger læses. Hver forespørgsel tæller med i lejerens daglige API-kvote, så en læsning læser apps for højst 25 enheder og den næste læsning for de følgende.
+
+En app eller Android Agent, der sender telemetri fra en enhed, bliver ét element sammen med enheden via dens serienummer: sæt Android Agents indstilling `device_serial` til opslagsværdien `{DeviceSerialNumber}` i dens administrerede konfiguration.
+
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **Workspace ONE Device Stopped Checking In**. Den åbner én advarsel for hver enhed, der ikke har rapporteret til Workspace ONE i mere end et døgn, opkaldt efter enheden. **Workspace ONE Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon. **Workspace ONE Low Battery**, **Workspace ONE Storage Nearly Full** og **Workspace ONE Connection Stopped Reading** advarer ligesom Espers skabeloner. En enhed, som Workspace ONE siger er på strøm, i sin oplader eller sin dock, holdes uden for **Workspace ONE Low Battery**, og en advarsel, den havde åben, løses.
+
+## Importer enheder fra SOTI MobiControl
+
+Forbind en SOTI MobiControl-server, i SOTI's sky eller on-premises, og alle de enheder, den administrerer, er i inventaret: dens robuste Android-enheder, telefoner, tablets og scannere, dens iPhones, iPads og Mac'er og dens Windows- og Linux-computere. Hver enhed er én vært med det, MobiControl ved om den: dens enhedsgruppe, dens operativsystem og dets version, dens model, serienummer og IMEI, dens overholdelse, dens agent, dens batteri, lagerplads og hukommelse og dens installerede programmer. MobiControl sender intet af sig selv, så OneUptime læser serveren efter en tidsplan: enhederne hvert 15. minut og hver enheds apps hver 6. time.
+
+:::steps
+### Opret en skrivebeskyttet MobiControl-bruger
+
+Tilføj en af MobiControls egne brugere i MobiControl-webkonsollen, ikke en SOTI Identity-bruger. Tillad `Web Console Access` og `View Installed Applications` i dens generelle tilladelser og intet andet, og giv den `View Groups` på de enhedsgrupper, OneUptime læser. Den bruger er alt, hvad OneUptime har brug for: den kan se enhederne og deres apps og intet ændre.
+
+### Opret en API-klient
+
+Gå til `Global Settings`, derefter `Services`, derefter `API Client` i webkonsollen, og tilføj en. Kopiér dens `Client ID` og dens `Client Secret`: MobiControl viser hemmeligheden én gang. En server, der er ældre end MobiControl 2024.0, opretter en på serveren med `MCAdmin.exe APIClientAdd -n:OneUptime`.
+
+### Forbind MobiControl-serveren
+
+Gå til **Produkter → Ressourcer → Inventar**, derefter **Administrerede enheder**, klik på **Forbind MDM**, og vælg **SOTI MobiControl**. Angiv **Server**, adressen på din webkonsol uden `/MobiControl`, f.eks. `https://acme.mobicontrolcloud.com`, og API-klientens **Klient-ID** og **Klienthemmelighed**, derefter brugerens **Brugernavn** og **Adgangskode**. **Forbind** tester loginoplysningerne, før noget gemmes: den fortæller, hvor mange enheder en læsning vil importere, eller hvad der er galt, og hvordan det rettes.
+:::
+
+En MobiControl-agent holder en aktiv forbindelse til sin server, så en enhed, hvis agent er forbundet, er online, og en, hvis agent ikke har været forbundet i 30 minutter, er **Offline**. En iPhone, iPad eller Mac tjekker ind via Apples push-tjeneste, med timers mellemrum, og er **Offline** efter et døgn. En enhed, som en administrator har deaktiveret, er **Deaktiveret**, og en, der er ved at blive afmeldt, udelades. OneUptime Cloud læser kun servere på det offentlige internet, så en server på et privat netværk læses af en selvhostet OneUptime. Intet om en enheds bruger læses.
+
+En app eller Android Agent, der sender telemetri fra en enhed, bliver ét element sammen med enheden via dens serienummer: sæt Android Agents indstilling `device_serial` til makroen `%SERIALNUM%` i dens administrerede konfiguration.
+
+For at få en advarsel, når en enhed holder op med at tjekke ind, klikker du på **Opsæt advarsler** i forbindelsens række og opretter **SOTI Device Stopped Checking In** og **SOTI Apple Device Stopped Checking In**. Den første åbner én advarsel for hver Android-, Windows- eller Linux-enhed, hvis agent ikke har været forbundet i mere end en time, og den anden for hver Apple-enhed, der ikke har tjekket ind i mere end et døgn, hver opkaldt efter enheden. **SOTI Security Patch Out of Date** advarer for hver Android-enhed, hvis sikkerhedspatchniveau er mere end 90 dage gammelt, ligesom Espers skabelon. **SOTI Low Battery**, **SOTI Storage Nearly Full** og **SOTI Connection Stopped Reading** advarer ligesom Espers skabeloner. En Android-enhed, som MobiControl siger oplades, holdes uden for **SOTI Low Battery**, og en advarsel, den havde åben, løses.
 
 ## Tilføj noget manuelt
 

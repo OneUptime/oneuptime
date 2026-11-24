@@ -1,3 +1,4 @@
+import ServerOwned from "../../Types/Database/ServerOwned";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -479,7 +480,7 @@ export default class Runbook extends BaseModel {
     type: TableColumnType.JSON,
     title: "Steps",
     description:
-      "Ordered list of steps to run for this runbook. Each step is one of Manual, JavaScript, HTTP request, Bash or AI.",
+      "Ordered list of steps to run for this runbook: Manual, JavaScript, HTTP request, Bash, SSH, kubectl or AI steps, each with its settings in its config.",
   })
   @Column({
     type: ColumnType.JSON,
@@ -518,6 +519,7 @@ export default class Runbook extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {

@@ -63,6 +63,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
+import SystemdUnitFailedPill, {
+  SystemdFailedUnitsPill,
+} from "../../../Components/Host/SystemdUnitFailedPill";
+import { SystemdFailedUnit } from "../Utils/SystemdUnitFailure";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
@@ -358,6 +362,9 @@ const HostSystemdUnits: FunctionComponent<
     stateFilter.length > 0 ||
     unitTypeFilter.length > 0;
 
+  // The host's name, as its journal lines carry it: what a failed unit reads why by.
+  const hostIdentifier: string = (host?.hostIdentifier as string) || "";
+
   const tableColumns: Array<Column<SystemdUnitRow>> = useMemo(() => {
     return [
       {
@@ -404,6 +411,23 @@ const HostSystemdUnits: FunctionComponent<
         headerTooltip: HOST_METRIC_DESCRIPTIONS.unitListState,
         getElement: (row: SystemdUnitRow): ReactElement => {
           const meta: SystemdStateMeta = activeStateMeta(row.activeState);
+          const route: Route | null = unitViewRouteFor(row);
+
+          /*
+           * A failed unit's Failed opens why it failed (#9960): the dialog
+           * its page opens, with View to that page.
+           */
+          if (row.activeState === "failed" && hostIdentifier) {
+            return (
+              <SystemdUnitFailedPill
+                hostIdentifier={hostIdentifier}
+                unitName={row.name}
+                unitRoute={route || undefined}
+                testId="systemd-units-unit-failed"
+              />
+            );
+          }
+
           return (
             <span
               className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${meta.pill}`}
@@ -421,7 +445,24 @@ const HostSystemdUnits: FunctionComponent<
         disableSort: true,
       },
     ];
-  }, [modelId]);
+  }, [modelId, hostIdentifier]);
+
+  /*
+   * The units the snapshot reads as failed, each with its page: what the
+   * count above the list opens (#9960), whatever the filters show.
+   */
+  const failedUnits: Array<SystemdFailedUnit> = useMemo(() => {
+    return rows
+      .filter((row: SystemdUnitRow): boolean => {
+        return row.activeState === "failed";
+      })
+      .map((row: SystemdUnitRow): SystemdFailedUnit => {
+        return {
+          name: row.name,
+          route: unitViewRouteFor(row) || undefined,
+        };
+      });
+  }, [rows, modelId]);
 
   const actionButtons: Array<ActionButtonSchema<SystemdUnitRow>> = [
     {
@@ -578,21 +619,36 @@ const HostSystemdUnits: FunctionComponent<
           {translator.translateText("Clear filters")}
         </button>
       )}
-      <span className="ml-auto text-xs text-gray-500">
-        {hasActiveFilters
-          ? translator.translatePlural(
-              {
-                one: "{{shown}} of {{count}} unit",
-                other: "{{shown}} of {{count}} units",
-              },
-              rows.length,
-              { shown: translator.formatNumber(processedData.length) },
-            )
-          : translator.translatePlural(
-              { one: "{{count}} unit", other: "{{count}} units" },
-              rows.length,
-            )}
-      </span>
+      <div className="ms-auto flex flex-wrap items-center gap-2">
+        {/*
+         * How many units failed, opening which and why (#9960): a unit on
+         * any page of the list, whatever the filters show.
+         */}
+        {failedUnits.length > 0 && hostIdentifier ? (
+          <SystemdFailedUnitsPill
+            hostIdentifier={hostIdentifier}
+            units={failedUnits}
+            testId="systemd-units-failed"
+          />
+        ) : (
+          <></>
+        )}
+        <span className="text-xs text-gray-500">
+          {hasActiveFilters
+            ? translator.translatePlural(
+                {
+                  one: "{{shown}} of {{count}} unit",
+                  other: "{{shown}} of {{count}} units",
+                },
+                rows.length,
+                { shown: translator.formatNumber(processedData.length) },
+              )
+            : translator.translatePlural(
+                { one: "{{count}} unit", other: "{{count}} units" },
+                rows.length,
+              )}
+        </span>
+      </div>
     </div>
   );
 

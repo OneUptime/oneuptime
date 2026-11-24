@@ -2,6 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -12,6 +14,9 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageOidc from "../../../Models/DatabaseModels/StatusPageOidc";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
+import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -24,10 +29,17 @@ import {
   getTerraformProviderHcl,
   getTerraformProviderUrl,
   getTerraformProviderVersionConstraint,
+  getTerraformRecordBody,
   getTerraformResourceConfig,
   TerraformOmissionReason,
+  TerraformRecordAttribute,
+  TerraformRecordBody,
   TerraformResourceConfig,
 } from "../../../Utils/DeveloperDocs/TerraformConfig";
+import {
+  getTerraformAttributes,
+  TerraformAttributeDescriptor,
+} from "../../../Utils/DeveloperDocs/TerraformSchema";
 
 /*
  * The configuration the Developer > Terraform pages show. It is generated so
@@ -262,13 +274,67 @@ describe("a workflow as Terraform", () => {
     expect(config.resourceHcl).not.toMatch(/^\s*webhook_signing_secret\s*=/m);
   });
 
-  test("labels are a set of ids", () => {
+  /*
+   * A label rule adds labels on its own (ServerOwned.Shared, #10052). The
+   * provider holds a configuration's labels to the entries it declares
+   * (#10134): written with the ones the workflow has now, a label a rule
+   * adds later stays, so the configuration names them, as a set of IDs.
+   */
+  test("its labels are a set of ids, the ones it has now: a rule's next label stays", () => {
     const config: TerraformResourceConfig = configFor(
       workflow({ labels: [label()] }),
       Workflow,
     );
 
     expect(config.resourceHcl).toContain(`labels      = ["${LABEL_ID}"]`);
+  });
+
+  /*
+   * The record body the Crossplane page writes its manifest from leaves
+   * the labels to OneUptime, as before: only the Terraform page asks for
+   * them (writesListsHeldEntryByEntry).
+   */
+  test("a record body that does not ask for lists held entry by entry leaves the labels out, named as OneUptime's", () => {
+    const json: JSONObject = BaseModel.toJSON(
+      workflow({ labels: [label()] }),
+      Workflow,
+    );
+    const body: TerraformRecordBody | null = getTerraformRecordBody({
+      modelType: Workflow,
+      json: json,
+    });
+    const written: TerraformRecordBody | null = getTerraformRecordBody({
+      modelType: Workflow,
+      json: json,
+      writesListsHeldEntryByEntry: true,
+    });
+
+    const names: (record: TerraformRecordBody | null) => Array<string> = (
+      record: TerraformRecordBody | null,
+    ): Array<string> => {
+      return (record?.attributes || []).map(
+        (attribute: TerraformRecordAttribute): string => {
+          return attribute.descriptor.attributeName;
+        },
+      );
+    };
+
+    expect(names(body)).not.toContain("labels");
+    expect(
+      body!.omittedShared.map(
+        (descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.attributeName;
+        },
+      ),
+    ).toContain("labels");
+    expect(names(written)).toContain("labels");
+    expect(
+      written!.omittedShared.map(
+        (descriptor: TerraformAttributeDescriptor): string => {
+          return descriptor.attributeName;
+        },
+      ),
+    ).not.toContain("labels");
   });
 
   test("its graph is written with jsonencode, and a secret in it comes from a variable", () => {
@@ -589,7 +655,14 @@ describe("a status page as Terraform", () => {
 });
 
 describe("which attributes are safe to write", () => {
-  test("an update-only setting that differs from its default is written, or plan would reset it", () => {
+  /*
+   * The AI agent's registration and reports set a cluster's AI settings, so
+   * they are OneUptime's too (ServerOwned.Shared, #10052): left out, even
+   * where one differs from its default, as the provider keeps OneUptime's
+   * value of an attribute a configuration leaves out instead of planning
+   * its default (StaticFiles/shared.go).
+   */
+  test("an update-only setting OneUptime changes too is left out, even off its default: the plan keeps it", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = ObjectID.generate().toString();
     cluster.name = "prod-eu";
@@ -599,8 +672,15 @@ describe("which attributes are safe to write", () => {
 
     const hcl: string = configFor(cluster, KubernetesCluster).resourceHcl;
 
-    expect(hcl).toContain("is_ai_investigation_enabled = false");
+    expect(hcl).not.toContain("is_ai_investigation_enabled");
     expect(hcl).not.toContain("agent_version");
+    expect(
+      getTerraformAttributes(KubernetesCluster).find(
+        (attribute: TerraformAttributeDescriptor): boolean => {
+          return attribute.columnName === "isAiInvestigationEnabled";
+        },
+      )?.isChangedByOneUptimeToo,
+    ).toBe(true);
   });
 
   test("a create-only setting is written when required, and left to the server otherwise", () => {
@@ -735,6 +815,7 @@ describe("the records a resource's ids point at", () => {
         `    "${MONITOR_IDS[0]}", # Checkout API`,
         `    "${MONITOR_IDS[1]}", # Website`,
         "  ]",
+        // Its labels: a rule's next one stays (#10134).
         `  labels                      = ["${LABEL_ID}"] # production`,
         `  change_monitor_status_to_id = "${STATUS_ID}"   # Degraded`,
         "}",
@@ -856,8 +937,28 @@ describe("the records a resource's ids point at", () => {
   });
 });
 
-describe("attributes Terraform cannot set", () => {
-  test("a Kubernetes cluster's provider is left out, and the configuration says why", () => {
+describe("attributes named like a Terraform meta-argument", () => {
+  /*
+   * `provider = "aws"` in a resource block is Terraform's own provider
+   * meta-argument. The provider exposes the attribute as provider_value,
+   * and a cloud account's is required: a configuration that left it out,
+   * as this one did, failed `terraform plan` before importing anything.
+   */
+  test("a cloud account's provider is set as provider_value, the provider's name for it", () => {
+    const account: CloudAccount = new CloudAccount();
+    account._id = "2a2b3c4d-1234-4b2c-9d8e-0123456789ab";
+    account.name = "Production";
+    account.provider = CloudProvider.AWS;
+    account.accountId = "123456789012";
+
+    const config: TerraformResourceConfig = configFor(account, CloudAccount);
+
+    expect(config.resourceHcl).toMatch(/^\s*provider_value\s*= "aws"$/m);
+    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
+    expect(config.resourceHcl).not.toContain("reserves");
+  });
+
+  test("a Kubernetes cluster's provider is OneUptime's once the cluster exists, so it is left out", () => {
     const cluster: KubernetesCluster = new KubernetesCluster();
     cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
     cluster.name = "production-us-east";
@@ -869,32 +970,7 @@ describe("attributes Terraform cannot set", () => {
       KubernetesCluster,
     );
 
-    // `provider = "EKS"` in a resource block is Terraform's own meta-argument.
-    expect(config.resourceHcl).not.toMatch(/^\s*provider\s*=/m);
-    expect(config.resourceHcl).toContain(
-      "# Not set here, because Terraform reserves the name: provider.",
-    );
-    expect(config.omittedReserved).toEqual([
-      {
-        attributeName: "provider",
-        title: expect.any(String),
-        reason: TerraformOmissionReason.ReservedName,
-      },
-    ]);
-  });
-
-  test("a cluster without a provider says nothing about it", () => {
-    const cluster: KubernetesCluster = new KubernetesCluster();
-    cluster._id = "7a8b9c0d-1234-4b2c-9d8e-0123456789ab";
-    cluster.name = "production-us-east";
-    cluster.clusterIdentifier = "production-us-east";
-
-    const config: TerraformResourceConfig = configFor(
-      cluster,
-      KubernetesCluster,
-    );
-
-    expect(config.omittedReserved).toEqual([]);
+    expect(config.resourceHcl).not.toMatch(/^\s*provider(_value)?\s*=/m);
     expect(config.resourceHcl).not.toContain("reserves");
   });
 });
@@ -958,4 +1034,53 @@ describe("looking a resource up by name", () => {
       }),
     ).toBeNull();
   });
+});
+
+/*
+ * A permission is its key (#10300). As a JSON value, which the spec made it,
+ * an existing row's configuration left it to the server: a key is no JSON
+ * object, so it could not be written back the way it was read. A row taken
+ * over that way kept the row's permission only because the provider keeps a
+ * permission it is not given.
+ */
+describe("a permission row's configuration", () => {
+  const PARENT_ID: string = "1a2b3c4d-1234-4b2c-9d8e-0123456789ab";
+
+  test.each([
+    ["TeamPermission", TeamPermission, "teamId", "team_id"],
+    ["ApiKeyPermission", ApiKeyPermission, "apiKeyId", "api_key_id"],
+    [
+      "CustomRolePermission",
+      CustomRolePermission,
+      "customRoleId",
+      "custom_role_id",
+    ],
+  ])(
+    "%s writes its permission as the key",
+    (
+      _name: string,
+      modelType: DatabaseBaseModelType,
+      parentColumn: string,
+      parentAttribute: string,
+    ) => {
+      const config: TerraformResourceConfig | null = getTerraformResourceConfig(
+        {
+          modelType,
+          json: {
+            _id: "2b3c4d5e-1234-4b2c-9d8e-0123456789ab",
+            [parentColumn]: PARENT_ID,
+            permission: "IncidentMember",
+          },
+        },
+      );
+
+      expect(config?.resourceHcl).toMatch(
+        new RegExp(`\\n {2}${parentAttribute}\\s+= "${PARENT_ID}"`),
+      );
+      expect(config?.resourceHcl).toMatch(
+        /\n {2}permission\s+= "IncidentMember"\n/,
+      );
+      expect(config?.resourceHcl).not.toContain("jsonencode");
+    },
+  );
 });

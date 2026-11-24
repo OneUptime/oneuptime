@@ -162,7 +162,10 @@ export async function fetchVMwareWork(): Promise<VMwareProbeWorkResponse> {
 
 /*
  * Posts a collection report, gzip-compressed: a large vCenter's metrics are
- * megabytes of JSON. Returns whether the server accepted it.
+ * megabytes of JSON. The probe's id and key travel in headers as well as in
+ * the body, so the server checks the key before it reads the report
+ * (ProbeAPIRequest.getProbeKeyHeaders). Returns whether the server accepted
+ * it.
  */
 export async function postCollectionReport(
   report: VMwareCollectionReport,
@@ -189,6 +192,7 @@ export async function postCollectionReport(
         headers: {
           "Content-Type": "application/json",
           "Content-Encoding": "gzip",
+          ...ProbeAPIRequest.getProbeKeyHeaders(),
         },
         options: {
           ...ProbeAPIRequest.getDefaultRequestOptions(url, {

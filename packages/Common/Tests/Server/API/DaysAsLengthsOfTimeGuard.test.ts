@@ -170,10 +170,24 @@ describe("the server steps 'the last N days' as a length of time", () => {
         /OneUptimeDate\.addRemoveDurationInDays\(/g,
       )?.length,
     ).toBe(1);
+    /*
+     * The findings OneUptime AI reads of a telemetry issue, read where every
+     * Data Security AI read is since #10365 (DataSecurityAiReads).
+     */
     expect(
-      read("DataSecurityAPI.ts").match(
-        /OneUptimeDate\.addRemoveDurationInDays\(/g,
-      )?.length,
+      fs
+        .readFileSync(
+          path.join(
+            API_DIRECTORY,
+            "..",
+            "Utils",
+            "AI",
+            "DataSecurity",
+            "DataSecurityAiReads.ts",
+          ),
+          "utf8",
+        )
+        .match(/OneUptimeDate\.addRemoveDurationInDays\(/g)?.length,
     ).toBe(1);
     // The issue trend's and the Security overview's days, the reader's (#8474).
     expect(read("DataSecurityAPI.ts")).toMatch(/getLastCalendarDays\(/);

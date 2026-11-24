@@ -35,7 +35,7 @@ import (
 // of a configuration with (cty.ParseNumberVal).
 const apiNumberPrecision = 512
 
-// numberFromAPI is the value a number attribute takes from what the API
+// NumberFromAPI is the value a number attribute takes from what the API
 // answered for it.
 //
 // previous is the value the attribute held before the answer: the planned
@@ -47,7 +47,7 @@ const apiNumberPrecision = 512
 //
 // Anything that spells no number - a missing field, null, text like "abc" -
 // reads as null: never unknown, so an apply can complete.
-func numberFromAPI(previous types.Number, value interface{}) types.Number {
+func NumberFromAPI(previous types.Number, value interface{}) types.Number {
 	number, ok := parseAPINumber(value)
 	if !ok {
 		return types.NumberNull()

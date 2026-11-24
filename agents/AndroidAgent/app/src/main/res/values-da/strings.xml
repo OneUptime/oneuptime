@@ -88,6 +88,7 @@
     <string name="log_session_title">Protokoller til fejlfinding</string>
     <string name="log_session_request_by">%1$s beder i OneUptime om protokoller fra alle apps på denne enhed i %2$s, på niveau %3$s og derover.</string>
     <string name="log_session_request">OneUptime beder om protokoller fra alle apps på denne enhed i %1$s, på niveau %2$s og derover.</string>
+    <string name="log_session_note">»%1$s«</string>
     <string name="log_session_android_prompt">Android spørger dig derefter, om du vil give adgang til alle enhedslogs. Vælg også Tillad der.</string>
     <string name="log_session_allow">Tillad</string>
     <string name="log_session_decline">Afvis</string>

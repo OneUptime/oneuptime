@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { ResourceGenerator } from "../Core/ResourceGenerator";
+import { providerGoFilePath } from "../Core/ProviderShards";
 import { buildFixtureSpec } from "./Fixtures";
 
 /*
@@ -28,11 +29,11 @@ beforeAll(async () => {
   );
   await generator.generateResources();
   monitorGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_monitor.go"),
+    path.join(outputDir, providerGoFilePath("resource_monitor.go")),
     "utf-8",
   );
   fileGo = fs.readFileSync(
-    path.join(outputDir, "internal/provider/resource_file.go"),
+    path.join(outputDir, providerGoFilePath("resource_file.go")),
     "utf-8",
   );
 });
@@ -383,13 +384,13 @@ describe("envelope validation", () => {
 
   test("the shared ObjectType registry is emitted once at package level", () => {
     const objectTypesGo: string = fs.readFileSync(
-      path.join(outputDir, "internal/provider/objecttypes.go"),
+      path.join(outputDir, providerGoFilePath("objecttypes.go")),
       "utf-8",
     );
-    expect(objectTypesGo).toContain("var validOneUptimeObjectTypes");
+    expect(objectTypesGo).toContain("var ValidOneUptimeObjectTypes");
     expect(objectTypesGo).toContain('"DateTime": true');
     // Resources delegate to the registry instead of duplicating the map.
-    expect(monitorGo).toContain("return validOneUptimeObjectTypes[typeStr]");
+    expect(monitorGo).toContain("return ValidOneUptimeObjectTypes[typeStr]");
   });
 });
 

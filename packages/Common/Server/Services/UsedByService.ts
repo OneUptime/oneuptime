@@ -48,6 +48,7 @@ import MonitorGroupOwnerTeam from "../../Models/DatabaseModels/MonitorGroupOwner
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
 import NetworkDeviceOwnerTeam from "../../Models/DatabaseModels/NetworkDeviceOwnerTeam";
+import NetworkSiteOwnerTeam from "../../Models/DatabaseModels/NetworkSiteOwnerTeam";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -174,6 +175,7 @@ import MonitorGroupResourceService from "./MonitorGroupResourceService";
 import MonitorGroupService from "./MonitorGroupService";
 import MonitorService from "./MonitorService";
 import NetworkDeviceService from "./NetworkDeviceService";
+import NetworkSiteService from "./NetworkSiteService";
 import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
@@ -1160,6 +1162,12 @@ export const TEAM_OWNED_OTHER_PLANS: Array<
     ownerTeamModel: NetworkDeviceOwnerTeam,
     ownerColumn: "networkDeviceId",
     rowKind: UsedByRowKind.NetworkDevice,
+  }),
+  ownedByTeam({
+    service: asService(NetworkSiteService),
+    ownerTeamModel: NetworkSiteOwnerTeam,
+    ownerColumn: "networkSiteId",
+    rowKind: UsedByRowKind.NetworkSite,
   }),
   ownedByTeam({
     service: asService(IoTFleetService),

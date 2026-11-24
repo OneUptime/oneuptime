@@ -1,5 +1,13 @@
+import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "Common/Types/JSON";
+import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEvent/SecurityEventSearch";
+import {
+  CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  HiddenClientAddress,
+  readHiddenClientAddress,
+} from "Common/Utils/SecurityEvent/ScrubbedAddress";
 
 /*
  * What one security event says, as data.
@@ -20,6 +28,18 @@ export interface SecurityEventDetailField {
    * on the exact value would return the one event already on screen.
    */
   facetKey?: string | undefined;
+  // The value that filter is for, when it is not the value shown.
+  facetValue?: string | undefined;
+  /*
+   * The value is a sentence of OneUptime's - an English key, looked up
+   * where it is drawn - not something the event's source wrote.
+   */
+  isValueTranslated?: boolean | undefined;
+  /*
+   * The client address a scrub rule hid (#10397): what Principal IP says in
+   * the address's place, with the rule that hid it.
+   */
+  hiddenAddress?: HiddenClientAddress | undefined;
 }
 
 /*
@@ -60,8 +80,36 @@ export type SecurityEventDetailSource = Partial<
     | "traceId"
     | "sessionId"
     | "eventUid"
+    // What it says of its request: a client address a scrub rule hid.
+    | "attributes"
   >
 >;
+
+/*
+ * Principal IP for an event whose address a scrub rule hid (#10397): the
+ * sentence that says so, which filters the list to every event whose
+ * address a scrub rule hid. Null for an event that names its address, or
+ * says nothing of one.
+ */
+export function buildHiddenPrincipalIpField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const hiddenAddress: HiddenClientAddress | null =
+    readHiddenClientAddress(event);
+
+  if (!hiddenAddress) {
+    return null;
+  }
+
+  return {
+    label: "Principal IP",
+    value: HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: true,
+    hiddenAddress,
+    facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden}`,
+    facetValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  };
+}
 
 function text(value: string | undefined): string {
   return (value || "").trim();
@@ -134,7 +182,8 @@ export function buildSecurityEventOverviewFields(
       value: text(event.principalHost),
       facetKey: "principalHost",
     },
-    {
+    // A scrub rule hid it: said where the address would be, never left out.
+    buildHiddenPrincipalIpField(event) || {
       label: "Principal IP",
       value: text(event.principalIp),
       facetKey: "principalIp",

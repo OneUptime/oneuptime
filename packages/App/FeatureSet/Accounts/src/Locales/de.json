@@ -244,7 +244,13 @@
     "signInWithProvider": "Mit {{name}} anmelden",
     "requiredSubtitle": "Dieser Server erfordert Single Sign-On (SSO).",
     "requiredNotSetUp": "Single Sign-On ist auf diesem Server noch nicht eingerichtet. Bitten Sie Ihren Server-Administrator, es einzurichten.",
-    "useDifferentEmail": "Andere E-Mail verwenden"
+    "useDifferentEmail": "Andere E-Mail verwenden",
+    "lastUsedTitle": "Zuletzt auf diesem Gerät verwendet",
+    "forgetLastUsed": "Diesen Anbieter vergessen",
+    "emailLinksPrompt": "Wir können dieser Adresse die SSO-Anmeldelinks aller Organisationen senden, zu denen sie gehört.",
+    "emailLinksButton": "Meine Anmeldelinks senden",
+    "emailLinksSent": "Wenn diese Adresse zu einer Organisation gehört, die Single Sign-On verwendet, haben wir ihr die SSO-Anmeldelinks gesendet.",
+    "emailLinksCaptchaRequired": "Bitte lösen Sie die Captcha-Aufgabe, bevor Sie die Links anfordern."
   },
   "adminLogin": {
     "title": "Anmeldung für Master-Admins",
@@ -281,6 +287,29 @@
     "templateDescription": "Wählen Sie eine Vorlage, um das Formular auszufüllen. Sie können jede Antwort vor dem Absenden ändern.",
     "templateNone": "Keine Vorlage",
     "uploadingFiles": "Ihre Dateien werden hochgeladen…"
+  },
+  "formSignIn": {
+    "prompt": "Melden Sie sich an, um dieses Formular zu öffnen.",
+    "ssoOnlyPrompt": "Melden Sie sich mit dem Single Sign-On Ihrer Organisation an, um dieses Formular zu öffnen.",
+    "noWayIn": "Für dieses Formular ist noch keine Anmeldung eingerichtet. Fragen Sie die Person, die es mit Ihnen geteilt hat.",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "signIn": "Anmelden",
+    "or": "oder",
+    "signInWithProvider": "Mit {{provider}} anmelden",
+    "forgotTitle": "Passwort vergessen?",
+    "forgotPrompt": "Geben Sie Ihre E-Mail-Adresse ein, und wir senden Ihnen einen Link, mit dem Sie ein neues Passwort wählen.",
+    "sendLink": "Link senden",
+    "forgotSent": "Wenn sich diese Adresse bei diesem Formular anmelden kann, ist ein Link zum Wählen eines neuen Passworts unterwegs. Der Link ist 24 Stunden gültig.",
+    "backToSignIn": "Zurück zur Anmeldung",
+    "resetTitle": "Neues Passwort wählen",
+    "resetPrompt": "Geben Sie das Passwort ein, mit dem Sie sich bei diesem Formular anmelden.",
+    "newPassword": "Neues Passwort",
+    "savePassword": "Passwort speichern",
+    "resetDone": "Ihr Passwort ist gespeichert. Melden Sie sich damit an, um das Formular zu öffnen.",
+    "signedInAs": "Angemeldet als {{email}}",
+    "signOut": "Abmelden"
   },
   "errors": {
     "forbidden": {

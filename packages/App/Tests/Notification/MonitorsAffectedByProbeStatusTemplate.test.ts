@@ -1009,7 +1009,7 @@ describe("ProbeConnectionStatusChange.hbs", () => {
       probeName: PROBE_NAME,
       probeDescription: "Primary probe",
       probeStatus: "Disconnected",
-      lastAlive: "Sep 22 2026, 09:00 AM UTC",
+      lastAlive: "Sep 22, 2026, 9:00 AM UTC",
       projectName: PROJECT_NAME,
       viewProbesLink: viewProbesLink,
       year: "2026",

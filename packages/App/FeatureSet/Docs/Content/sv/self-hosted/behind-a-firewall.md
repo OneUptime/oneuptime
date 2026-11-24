@@ -44,7 +44,7 @@ Om de jourhavandes telefoner inte kan använda ditt VPN publicerar du sidorna so
 | --- | --- | --- |
 | GET | `/l/*` | De korta länkarna i SMS och i meddelanden i WhatsApp och Telegram |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | Sidan som visar vad larmet gäller, med knappen **Acknowledge** |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | Knappen **Acknowledge** |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | Knappen **Acknowledge** |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Valfritt: sidan som skickar larmet vidare till nästa person |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Valfritt: dess knapp |
 | GET | `/oneuptime-assets/*` | Typsnitt, stilar och logotyp för de sidorna |

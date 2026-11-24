@@ -130,6 +130,7 @@ import {
   readSecurityWatchlistFilters,
 } from "../SecurityEvent/SecurityWatchlistFilter";
 import { TotpSecrets, readTotpSecrets } from "../../Utils/Totp/TotpParameters";
+import { getPromQLMonitorExpressionProblem } from "../../Utils/PromQL/PromQLMonitorExpression";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -507,6 +508,16 @@ export default class MonitorStep extends DatabaseProperty {
       return undefined;
     }
 
+    /*
+     * A PromQL step is judged as its one expression (issue #7712), whatever
+     * builder queries it keeps from before.
+     */
+    if (MonitorStepMetricMonitorUtil.isPromQL(data.metricMonitor)) {
+      return MonitorStepMetricMonitorUtil.getEvaluatedViewConfig(
+        data.metricMonitor,
+      );
+    }
+
     return (
       data.metricMonitor?.metricViewConfig ||
       data.iotMonitor?.metricViewConfig ||
@@ -542,6 +553,21 @@ export default class MonitorStep extends DatabaseProperty {
   ): Array<string> {
     return MonitorStep.getGroupByAttributeKeysFromQueryConfigs(
       MonitorStep.getMetricsViewConfig(monitorStep)?.queryConfigs || [],
+    );
+  }
+
+  /*
+   * Whether a metric-backed step is judged series by series, each opening
+   * its own incident or alert: a step grouped by attributes, or a PromQL
+   * step, every series of whose expression is its own (issue #7712).
+   * Answered from configuration only, as getGroupByAttributeKeys is.
+   */
+  public static isJudgedPerSeries(
+    monitorStep: MonitorStep | undefined,
+  ): boolean {
+    return (
+      MonitorStepMetricMonitorUtil.isPromQL(monitorStep?.data?.metricMonitor) ||
+      MonitorStep.getGroupByAttributeKeys(monitorStep).length > 0
     );
   }
 
@@ -968,6 +994,24 @@ export default class MonitorStep extends DatabaseProperty {
         value.data.screenSizeTypes.length === 0
       ) {
         return SYNTHETIC_MONITOR_SCREEN_SIZE_REQUIRED_MESSAGE;
+      }
+    }
+
+    /*
+     * A Metrics step written in PromQL needs an expression that runs at
+     * each step of its window (issue #7712): one that does not parse, or
+     * is a range vector, would never be judged.
+     */
+    if (
+      monitorType === MonitorType.Metrics &&
+      MonitorStepMetricMonitorUtil.isPromQL(value.data.metricMonitor)
+    ) {
+      const promQLProblem: string | null = getPromQLMonitorExpressionProblem(
+        MonitorStepMetricMonitorUtil.getPromQLQuery(value.data.metricMonitor),
+      );
+
+      if (promQLProblem) {
+        return promQLProblem;
       }
     }
 

@@ -575,6 +575,8 @@ export default class CloudConnectionPullRunner {
         clock,
         deadlineMs: startedAt + CLOUD_READ_DEADLINE_MS,
         sleep: dependencies.sleep,
+        // A queued account is read at the first read from when it may be.
+        readIntervalMs: interval * 60 * 1000,
       });
 
       warnings.push(...costs.warnings);

@@ -32,6 +32,16 @@ interface OverrideCardProps {
   // End now, for one under way: coming back early.
   onEndNow?: (override: OnCallOverrideItem) => void;
   isEnding?: boolean;
+
+  /*
+   * Why Edit and End now (edits of the override), or Cancel (its delete),
+   * would be refused for the reader - an override that names somebody
+   * outside the teams they manage the overrides of (issue #9883,
+   * oncall/overrideTeamAccess) - or null. A locked action is not offered:
+   * the card says why in its place.
+   */
+  editLockedReason?: string | null;
+  cancelLockedReason?: string | null;
 }
 
 /** A substitution names the direction: being covered is not covering someone. */
@@ -45,6 +55,8 @@ export default function OverrideCard({
   onEdit,
   onEndNow,
   isEnding = false,
+  editLockedReason = null,
+  cancelLockedReason = null,
 }: OverrideCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const { colors } = theme;
@@ -84,10 +96,23 @@ export default function OverrideCard({
   );
   const endsIn: string | null =
     state === "active" ? formatTimeUntil(override.endsAt, now) : null;
-  const canCancel: boolean = Boolean(onCancel) && state !== "past";
-  const canEdit: boolean = Boolean(onEdit) && state !== "past";
-  const canEndNow: boolean = Boolean(onEndNow) && state === "active";
+  const offersCancel: boolean = Boolean(onCancel) && state !== "past";
+  const offersEdit: boolean = Boolean(onEdit) && state !== "past";
+  const offersEndNow: boolean = Boolean(onEndNow) && state === "active";
+  const canCancel: boolean = offersCancel && !cancelLockedReason;
+  const canEdit: boolean = offersEdit && !editLockedReason;
+  const canEndNow: boolean = offersEndNow && !editLockedReason;
   const hasActions: boolean = canCancel || canEdit || canEndNow;
+
+  /*
+   * What the card says in place of an action it would offer but may not:
+   * the reason for Edit and End now first, else Cancel's - one line, as
+   * the two name the same thing about the override.
+   */
+  const lockedReason: string | null =
+    (offersEdit || offersEndNow ? editLockedReason : null) ||
+    (offersCancel ? cancelLockedReason : null) ||
+    null;
 
   return (
     <Card
@@ -119,64 +144,94 @@ export default function OverrideCard({
           {override.onCallDutyPolicy?.name || "All on-call policies"}
         </MetaLine>
       </View>
-      {hasActions ? (
+      {hasActions || lockedReason ? (
         <View
           style={{
             marginTop: spacing.md,
             paddingTop: spacing.xs,
             borderTopWidth: 1,
             borderTopColor: colors.borderSubtle,
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-            gap: spacing.xs,
           }}
         >
-          {canEdit && onEdit ? (
-            <CardAction
-              testID={`override-edit-${override._id}`}
-              label="Edit"
-              accessibilityLabel={`Edit override: ${sentence}`}
-              iconName="create-outline"
-              color={colors.actionPrimary}
-              pressedBackground={colors.backgroundTertiary}
-              onPress={(): void => {
-                onEdit(override);
+          {lockedReason ? (
+            <View
+              testID={`override-locked-${override._id}`}
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: spacing.xs + 2,
+                paddingTop: spacing.sm,
+                paddingBottom: hasActions ? spacing.xs : spacing.xxs,
               }}
-            />
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={15}
+                color={colors.textSecondary}
+                style={{ marginTop: 2 }}
+              />
+              <AppText variant="footnote" tone="secondary" style={{ flex: 1 }}>
+                {lockedReason}
+              </AppText>
+            </View>
           ) : null}
-          {/*
-           * End now on one under way (#7897): the override keeps its record
-           * and the policy's feed says it changed. Cancel - a delete - is
-           * for one that has not started, which has nothing to end.
-           */}
-          {canEndNow && onEndNow ? (
-            <CardAction
-              testID={`override-end-now-${override._id}`}
-              label="End now"
-              accessibilityLabel={`End override now: ${sentence}`}
-              iconName="stop-circle-outline"
-              color={colors.actionDestructive}
-              pressedBackground={colors.statusErrorBg}
-              isBusy={isEnding}
-              onPress={(): void => {
-                onEndNow(override);
+          {hasActions ? (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+                gap: spacing.xs,
               }}
-            />
-          ) : null}
-          {canCancel && onCancel ? (
-            <CardAction
-              testID={`override-cancel-${override._id}`}
-              label="Cancel override"
-              accessibilityLabel={`Cancel override: ${sentence}`}
-              iconName="close-circle-outline"
-              color={colors.actionDestructive}
-              pressedBackground={colors.statusErrorBg}
-              isBusy={isCancelling}
-              onPress={(): void => {
-                onCancel(override);
-              }}
-            />
+            >
+              {canEdit && onEdit ? (
+                <CardAction
+                  testID={`override-edit-${override._id}`}
+                  label="Edit"
+                  accessibilityLabel={`Edit override: ${sentence}`}
+                  iconName="create-outline"
+                  color={colors.actionPrimary}
+                  pressedBackground={colors.backgroundTertiary}
+                  onPress={(): void => {
+                    onEdit(override);
+                  }}
+                />
+              ) : null}
+              {/*
+               * End now on one under way (#7897): the override keeps its
+               * record and the policy's feed says it changed. Cancel - a
+               * delete - is for one that has not started, which has nothing
+               * to end.
+               */}
+              {canEndNow && onEndNow ? (
+                <CardAction
+                  testID={`override-end-now-${override._id}`}
+                  label="End now"
+                  accessibilityLabel={`End override now: ${sentence}`}
+                  iconName="stop-circle-outline"
+                  color={colors.actionDestructive}
+                  pressedBackground={colors.statusErrorBg}
+                  isBusy={isEnding}
+                  onPress={(): void => {
+                    onEndNow(override);
+                  }}
+                />
+              ) : null}
+              {canCancel && onCancel ? (
+                <CardAction
+                  testID={`override-cancel-${override._id}`}
+                  label="Cancel override"
+                  accessibilityLabel={`Cancel override: ${sentence}`}
+                  iconName="close-circle-outline"
+                  color={colors.actionDestructive}
+                  pressedBackground={colors.statusErrorBg}
+                  isBusy={isCancelling}
+                  onPress={(): void => {
+                    onCancel(override);
+                  }}
+                />
+              ) : null}
+            </View>
           ) : null}
         </View>
       ) : null}

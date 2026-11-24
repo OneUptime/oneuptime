@@ -164,6 +164,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "the person's light, dark or system theme, on every page and in every project",
   "oneuptime-sign-in-more-ways-open":
     "whether this browser left the sign-in page's More ways to sign in open - read with nobody signed in, so no project's (MoreWaysToSignIn)",
+  "oneuptime-sign-in-sso-last-used":
+    "the project SSO provider this browser last signed in with, which Sign in with SSO offers first - read with nobody signed in, so no project's tab's (RememberedSsoProvider, #9986)",
   "oneuptime-navbar-product-categories":
     "which categories of the products menu the person folded",
   "oneuptime-side-menu-folds":
@@ -179,6 +181,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
   "metric-explorer-compare-previous":
     "whether the person compares metric charts with the period before",
   "oneuptime-network-map-layers": "which layers the person shows on site maps",
+  "network-sites-hierarchy-open":
+    "whether the person keeps the Sites page's hierarchy shown (SiteHierarchyTree)",
   "oneuptime.scheduleTimeline.mode":
     "whether the person reads on-call schedules by week or by month",
   "oneuptime.scheduleTimeline.groupByTeam":

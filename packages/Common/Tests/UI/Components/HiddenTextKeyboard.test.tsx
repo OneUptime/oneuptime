@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 describe("HiddenText from the keyboard", () => {
-  test("the reveal control is a button named Click to reveal, inside the box tests find it by", () => {
+  test("the reveal control is a button named Click to reveal, found by its test id too", () => {
     render(<HiddenText text={SECRET} isCopyable={true} />);
 
     const reveal: HTMLElement = screen.getByRole("button", {
@@ -37,7 +37,7 @@ describe("HiddenText from the keyboard", () => {
 
     expect(reveal.tagName).toBe("BUTTON");
     expect(reveal).toHaveAttribute("type", "button");
-    expect(screen.getByRole("hidden-text")).toContainElement(reveal);
+    expect(screen.getByTestId("hidden-text-reveal")).toBe(reveal);
     // Nothing of the secret is on the page before it is revealed.
     expect(document.body.textContent).not.toContain(SECRET);
   });
@@ -54,7 +54,7 @@ describe("HiddenText from the keyboard", () => {
 
     await user.keyboard("{Enter}");
 
-    expect(screen.getByRole("revealed-text")).toHaveTextContent(SECRET);
+    expect(screen.getByTestId("hidden-text-value")).toHaveTextContent(SECRET);
     expect(screen.getByRole("button", { name: "Copy" })).toHaveFocus();
   });
 
@@ -66,7 +66,7 @@ describe("HiddenText from the keyboard", () => {
     await user.tab();
     await user.keyboard(" ");
 
-    expect(screen.getByRole("revealed-text")).toHaveTextContent(SECRET);
+    expect(screen.getByTestId("hidden-text-value")).toHaveTextContent(SECRET);
     expect(screen.queryByRole("button", { name: "Copy" })).toBeNull();
     expect(screen.getByRole("button", { name: "Hide" })).toHaveFocus();
   });
@@ -88,7 +88,7 @@ describe("HiddenText from the keyboard", () => {
 
     await user.keyboard("{Enter}");
 
-    expect(screen.queryByRole("revealed-text")).toBeNull();
+    expect(screen.queryByTestId("hidden-text-value")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Click to reveal" }),
     ).toHaveFocus();
@@ -119,30 +119,30 @@ describe("HiddenText from the keyboard", () => {
     const search: HTMLElement = screen.getByRole("textbox", { name: "Search" });
 
     search.focus();
-    fireEvent.click(screen.getByRole("hidden-text"));
+    fireEvent.click(screen.getByRole("button", { name: "Click to reveal" }));
 
-    expect(screen.getByRole("revealed-text")).toHaveTextContent(SECRET);
+    expect(screen.getByTestId("hidden-text-value")).toHaveTextContent(SECRET);
     expect(search).toHaveFocus();
 
     fireEvent.click(screen.getByTestId("hide-text-icon"));
 
-    expect(screen.queryByRole("revealed-text")).toBeNull();
+    expect(screen.queryByTestId("hidden-text-value")).toBeNull();
     expect(search).toHaveFocus();
   });
 
   test("neither box grows wider than its cell, so a long secret wraps beside Copy and Hide", () => {
     render(<HiddenText text={SECRET} isCopyable={true} />);
 
-    const box: HTMLElement = screen.getByRole("hidden-text");
+    const reveal: HTMLElement = screen.getByRole("button", {
+      name: "Click to reveal",
+    });
 
-    expect(box).toHaveClass("max-w-full");
-    expect(screen.getByRole("button", { name: "Click to reveal" })).toHaveClass(
-      "max-w-full",
-    );
+    expect(reveal.parentElement).toHaveClass("max-w-full");
+    expect(reveal).toHaveClass("max-w-full");
 
-    fireEvent.click(box);
+    fireEvent.click(reveal);
 
-    const revealed: HTMLElement = screen.getByRole("revealed-text");
+    const revealed: HTMLElement = screen.getByTestId("hidden-text-value");
 
     expect(revealed).toHaveClass("break-all");
     expect(revealed.parentElement).toHaveClass("max-w-full");

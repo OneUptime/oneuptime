@@ -16,6 +16,7 @@ import Label from "./Label";
 import MonitorStatus from "./MonitorStatus";
 import MonitorTemplate from "./MonitorTemplate";
 import NetworkDevice from "./NetworkDevice";
+import NetworkDeviceTieSource from "../../Types/NetworkDevice/NetworkDeviceTieSource";
 import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import Project from "./Project";
 import User from "./User";
@@ -28,6 +29,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableMCP from "../../Types/Database/EnableMCP";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
@@ -734,6 +736,7 @@ export default class Monitor extends BaseModel {
     modelType: Label,
     title: "Labels",
     description: "Labels to group and filter by.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -789,6 +792,7 @@ export default class Monitor extends BaseModel {
     title: "Depends On Monitors",
     description:
       "Parent monitors this monitor depends on. When a parent is offline (or in one of the configured suppression statuses), alerts and incidents from this monitor are suppressed at creation time — the monitor keeps evaluating and its status timeline still updates.",
+    serverOwned: ServerOwned.Shared,
   })
   @ManyToMany(
     () => {
@@ -1928,6 +1932,49 @@ export default class Monitor extends BaseModel {
   })
   public networkDeviceId?: ObjectID = undefined;
 
+  /*
+   * WHO SET NETWORK DEVICE (issue #9904): OneUptime, by the address the
+   * monitor checks seen from its probes, or a person. OneUptime works its
+   * own tie out again when the monitor's probes change - ties it to the
+   * device they see now, or unties it - and never changes what a person
+   * set, a tie or its removal (Types/NetworkDevice/NetworkDeviceTieSource).
+   * OneUptime's alone to write: MonitorService records it with every write
+   * of Network Device. Empty on a monitor tied before it was recorded,
+   * which is kept as it is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    // OneUptime fills it in: a value a create sends is not the caller's.
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Network Device Set By",
+    description:
+      "Who set Network Device: Automatic (OneUptime, by the address the monitor checks seen from its probes) or Person. OneUptime updates an automatic one when the monitor's probes change, and never one a person set. Empty on a monitor tied before this was recorded.",
+    example: "Automatic",
+    allowedValues: Object.values(NetworkDeviceTieSource),
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public networkDeviceTieSource?: NetworkDeviceTieSource | null = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -2124,6 +2171,13 @@ export default class Monitor extends BaseModel {
     description: "Whats the current status ID of this monitor?",
     canReadOnRelationQuery: true,
     example: "c3d4e5f6-a7b8-9012-cdef-345678901234",
+    /*
+     * The status a new monitor starts in may be picked; its checks move it
+     * from there (an update changes it by hand, through a status timeline
+     * row: MonitorService.onUpdateSuccess). The providers send it to create
+     * the monitor only (#9985).
+     */
+    serverOwned: ServerOwned.AfterCreate,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -2166,7 +2220,25 @@ export default class Monitor extends BaseModel {
     title: "Monitor Steps",
     description:
       "What the monitor checks, and the criteria that judge each result. The Dashboard shows a step's criteria on the monitor's Criteria page.",
-    canReadOnRelationQuery: true,
+    /*
+     * Never readable through a relation (#10309). A monitor's steps are the
+     * whole of what it checks: its URLs, request headers and bodies, the
+     * queries it runs and the criteria that judge them. As a label, every
+     * reader of a record that names a monitor read them through it - an
+     * incident's, an alert's, a maintenance event's, a log's, a rule's,
+     * a status page resource's: the Incident, Alert, Scheduled Maintenance,
+     * On-Call, Status Page and Telemetry tiers and every custom role that
+     * reads one of those, through 44 relations, while the monitor keeps its
+     * own read to its readers. Held to its own read through a relation, it
+     * would still be read whole by a team limited to some monitors' labels
+     * (a relation does not weigh the labels of the records it joins), so it
+     * is read on the monitor itself, by the monitor's own read: the Root
+     * Cause card and an Affected Resource's commands read the steps of the
+     * monitor they chart from there, only when they use them
+     * (Dashboard: Components/Monitor/ReadMonitorSteps.ts). OneUptime's own
+     * reads (the probe's, an investigation's) are root and read it as
+     * before.
+     */
   })
   @Column({
     type: ColumnType.JSON,
@@ -2430,6 +2502,7 @@ export default class Monitor extends BaseModel {
       "When was the last time we checked the heartbeat for incoming request?",
     description:
       "This field is for Incoming Request monitor only. When was the last time we checked the heartbeat?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2465,6 +2538,8 @@ export default class Monitor extends BaseModel {
     title: "Telemetry Monitor Next Monitor At",
     description:
       "This field is for Telemetry Monitor only. When is the next time we should monitor?",
+    // Every evaluation of the monitor moves it (#9985).
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2500,6 +2575,8 @@ export default class Monitor extends BaseModel {
     title: "Telemetry Monitor Last Monitor At",
     description:
       "This field is for Telemetry Monitor only. When was the last time we monitored?",
+    // Every evaluation of the monitor moves it (#9985).
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -2667,6 +2744,7 @@ export default class Monitor extends BaseModel {
     title: "Server Monitor Request Received At",
     description:
       "This field is for Server Monitor only. When was the last time we received a request?",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Date,
@@ -3256,6 +3334,7 @@ export default class Monitor extends BaseModel {
     required: false,
     title: "Server Monitor Response",
     description: "Server Monitor Response for Server Monitor",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.JSON,

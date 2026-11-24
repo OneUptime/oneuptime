@@ -182,7 +182,9 @@ SDK 检测器把平台写作带点号的 `azure.app_service`；OneUptime 收到�
 
 **网络：** 除非开启了 **VNet integration** 并启用 **Route All**，否则 App Service 可以直接访问互联网。开启后，VNet 需要 NAT 网关，或一条通往允许 TCP 443 访问 OneUptime 主机的防火墙的路由。
 
-**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误、响应时间、CPU 时间和内存。
+**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误和客户端错误、响应时间、CPU 时间和内存。之后，应用的 **实例** 选项卡会列出 Azure 运行该应用的实例，**修订版本** 选项卡会列出 Azure 保留的部署。
+
+应用的 **设置** 选项卡会把这些设置以适用于 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令给出，每条命令中都有应用自己的名称、资源组和订阅。若还要查看站点自身的控制台、HTTP 和平台日志，请在 **云 → 连接** 中，在订阅所在行选择 **流式传输指标和日志**：这些日志会显示在应用的 **日志** 选项卡中的 **来自 Azure 诊断设置** 下。
 
 ## Azure Container Instances
 
@@ -244,7 +246,11 @@ Node.js 和 .NET 的 App Service 检测器不会设置 `cloud.account.id`。请�
 :::
 
 :::details App Service 应用没有显示请求或实例
-请求、错误率和延迟来自追踪，因此只发送日志或指标的应用没有这些数据：它的 **设置检查** 会说明需要添加什么。实例来自 Azure 检测器设置的 `azure.app_service.instance.id` 或 `service.instance.id`：两者都没有时，**实例** 磁贴显示 **未报告**。要查看站点的请求（无论应用发送什么），请连接订阅：应用页面会增加一个 **Azure Monitor** 部分。
+请求、错误率和延迟来自追踪，因此只发送日志或指标的应用没有这些数据：它的 **设置检查** 会说明需要添加什么，**设置** 选项卡会说明如何添加。实例来自 Azure 检测器设置的 `azure.app_service.instance.id` 或 `service.instance.id`：两者都没有时，在连接订阅之前 **实例** 磁贴显示 **未报告**，连接之后则显示 Azure 运行的实例数。要查看站点的请求（无论应用发送什么），请连接订阅：应用页面会增加一个 **Azure Monitor** 部分。
+:::
+
+:::details App Service 应用没有 Azure Monitor 数据
+它的 **设置检查** 中的 **Azure Monitor 连接** 行会说明原因。OneUptime 通过 App Service 检测器设置的 `cloud.resource_id` 将应用关联到其站点，否则通过 `cloud.account.id` 指明的订阅中的 `service.name` 关联：请将应用命名为与站点相同的名称，或添加 `cloud.resource_id`。**云 → 连接** 下的某个 Azure 连接必须读取该订阅，并在该订阅上拥有 Monitoring Reader 角色。部署槽位是独立的资源，OneUptime 尚未读取它。
 :::
 
 :::details 修改 Container Instances 变量后没有效果

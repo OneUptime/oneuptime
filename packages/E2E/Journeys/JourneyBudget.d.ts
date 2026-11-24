@@ -36,7 +36,7 @@ export interface JourneyRun {
 
 export interface JourneyBudgetEntry {
   title: string;
-  path: "manual" | "guided";
+  path: "manual" | "guided" | "ask-ai";
   startsAt: string;
   endsWhen: string;
   budget: Counts;

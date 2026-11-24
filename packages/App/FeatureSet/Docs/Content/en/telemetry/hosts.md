@@ -130,7 +130,7 @@ Open **Products → Infrastructure → Hosts → Configuration → Collector Con
 
 ### Edit its config.yaml
 
-On the config's page, select **Edit config**, change the YAML and save. OneUptime checks it first and refuses a config it cannot send, saying why: see [What a config may do](#what-a-config-may-do).
+On the config's page, select **Edit config**, change the YAML and save. OneUptime checks it first and refuses a config it cannot send, saying why: see [What a config may do](#what-a-config-may-do). In a Linux config, keep the `journald` receiver's `operators`: they file each journal line under its systemd unit, and a failed unit's page says why it failed from them. A config written without them can take them from the Linux default's **View config**.
 
 ### Watch it reach the hosts
 

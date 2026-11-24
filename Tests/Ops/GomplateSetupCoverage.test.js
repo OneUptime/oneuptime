@@ -589,6 +589,23 @@ function checksOutThisRepository(step) {
   );
 }
 
+/*
+ * A matrix's include legs: as written, or every leg of the JSON lists a
+ * fromJSON expression picks between (crossplane-provider.yml adds an arm64
+ * leg to its nightly run that way).
+ */
+function matrixInclude(matrix) {
+  if (Array.isArray(matrix.include)) {
+    return matrix.include;
+  }
+  if (typeof matrix.include === "string") {
+    return (matrix.include.match(/'(\[[^']*\])'/g) || []).flatMap((quoted) => {
+      return JSON.parse(quoted.slice(1, -1));
+    });
+  }
+  return [];
+}
+
 function runnerLabels(job) {
   const runsOn = job["runs-on"];
   const labels = Array.isArray(runsOn) ? runsOn : [runsOn];
@@ -602,7 +619,7 @@ function runnerLabels(job) {
     const matrix = (job.strategy && job.strategy.matrix) || {};
     const values = [
       ...(Array.isArray(matrix[matrixKey[1]]) ? matrix[matrixKey[1]] : []),
-      ...(matrix.include || []).map((entry) => {
+      ...matrixInclude(matrix).map((entry) => {
         return entry[matrixKey[1]];
       }),
     ].filter((value) => {

@@ -29,6 +29,10 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Color from "Common/Types/Color";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import {
+  getSharedNameFacts,
+  getSharedNameSelect,
+} from "Common/UI/Utils/SharedNameOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
@@ -497,6 +501,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           skip: 0,
           select: {
             name: true,
+            // What tells policies of one name apart (#10064).
+            ...getSharedNameSelect(OnCallDutyPolicy),
           },
           sort: {},
         });
@@ -552,6 +558,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               label: i.name!,
               // A policy's name is its owner's, drawn as written.
               isUserContent: true,
+              sharedName: getSharedNameFacts(i),
             };
           }),
         );
@@ -567,6 +574,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           name: true,
           color: true,
           isArchived: true,
+          // What tells labels of one name apart (#10064).
+          ...getSharedNameSelect(Label),
         },
         sort: {
           name: SortOrder.Ascending,

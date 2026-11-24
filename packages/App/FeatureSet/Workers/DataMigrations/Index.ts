@@ -144,6 +144,8 @@ import EncryptUploadedCertificateKeys from "./EncryptUploadedCertificateKeys";
 import EncryptLetsEncryptKeys from "./EncryptLetsEncryptKeys";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
+import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
+import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
 import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
@@ -151,6 +153,9 @@ import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import AddAuditLogWorkflowRunAsColumns from "./AddAuditLogWorkflowRunAsColumns";
+import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGiverColumns";
+import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExplanationLogs";
+import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1511,6 +1516,62 @@ const DataMigrations: Array<DataMigrationBase> = [
    * before the last one AddAuditLogMcpClientColumns keeps.
    */
   new MoveChartsAndSlosOffRetiredCloudMetrics(),
+  /*
+   * Records when this server was upgraded to on-call links that carry the
+   * page's own token (#10025): it changes no data, and its row says when.
+   * A link without a token acknowledges a page sent before that, for a week
+   * after it was sent (OnCallAcknowledgeLink). Independent of the moves
+   * before it; before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new RequireTokenToAcknowledgeOnCallPages(),
+  /*
+   * Keeps every Metrics monitor over a device management connection's
+   * check-ins reading the Android devices it read when it was made
+   * (oneuptime.managed_device.platform = "android"), now that an Esper
+   * connection imports its Apple devices too (#9837): an iPad checks in
+   * hours apart, and would open an alert within the hour. Postgres only,
+   * idempotent, a page of monitors at a time by id; independent of the ones
+   * before it, before BackfillIncidentCallTranscriptSignInAccount, which
+   * keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new KeepManagedDeviceCheckInMonitorsOnAndroid(),
+  /*
+   * Copies whose permissions a workflow's step ran with, as an install
+   * recorded it under the audit log's first names for it
+   * (workflowRunAsGivenBy{UserId,ApiKeyId,Name}), into the columns that say
+   * it now (workflowRunAsGiver{UserId,ApiKeyId,Name}): no analytics model
+   * names a column "<act> by user" (UserAttributionColumns). A queued
+   * ClickHouse mutation that writes only a column that holds nothing, and
+   * none on an install that never had the first names; after
+   * AddAuditLogWorkflowRunAsColumns, before
+   * BackfillIncidentCallTranscriptSignInAccount, which keeps the slot just
+   * before the last one AddAuditLogMcpClientColumns keeps.
+   */
+  new CopyAuditLogWorkflowRunAsGiverColumns(),
+  /*
+   * Takes Data Security issues out of the AI Logs (#10361): Explain with AI
+   * kept its prompt - the issue's store, data types and evidence - and its
+   * answer as previews every Project Member and Viewer reads. Every row of
+   * that feature gets the words a call that keeps no preview writes now,
+   * and a failed one's error the words a call that keeps no error details
+   * writes. Postgres only, idempotent; before the two slots kept last.
+   */
+  new RedactDataSecurityIssueExplanationLogs(),
+  /*
+   * Builds idx_created_at, the set index of when each security event
+   * arrived (SecurityEvent.createdAt), for the parts already on disk:
+   * scheduled detection rules judge what arrived since their last run
+   * (#10337), and without it a run after the upgrade reads every row of the
+   * last day for the few that arrived. Adds the definition if boot did not,
+   * then queues the build in the background; idempotent. No ordering
+   * requirement of its own; before BackfillIncidentCallTranscriptSignInAccount,
+   * which keeps the slot just before the last one AddAuditLogMcpClientColumns
+   * keeps.
+   */
+  new MaterializeSecurityEventCreatedAtIndex(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

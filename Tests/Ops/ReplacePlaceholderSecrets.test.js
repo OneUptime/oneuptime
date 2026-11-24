@@ -341,6 +341,9 @@ describe("replacePlaceholderSecrets", () => {
       "a different setting with the same prefix",
       `ONEUPTIME_SECRET_X=${PLACEHOLDER}`,
     ],
+    // A name that merely starts with export is no export.
+    ["exportONEUPTIME_SECRET", `exportONEUPTIME_SECRET=${PLACEHOLDER}`],
+    ["a commented-out export", `# export ONEUPTIME_SECRET=${PLACEHOLDER}`],
   ])("leaves %s alone", (_label, line) => {
     const contents = `HOST=localhost\n${line}\nAPP_TAG=release\n`;
     const result = replacePlaceholderSecrets(contents, fakeSecret);
@@ -355,6 +358,13 @@ describe("replacePlaceholderSecrets", () => {
     ["a single-quoted placeholder", `ONEUPTIME_SECRET='${PLACEHOLDER}'`],
     ["a padded placeholder", `ONEUPTIME_SECRET=  ${PLACEHOLDER}  `],
     ["spaces around the name", ` ONEUPTIME_SECRET =${PLACEHOLDER}`],
+    // Compose gets these as ONEUPTIME_SECRET (WithConfig.sh), and the export stays.
+    ["an export before the name", `export ONEUPTIME_SECRET=${PLACEHOLDER}`],
+    ["an export and a tab", `export\tONEUPTIME_SECRET=${PLACEHOLDER}`],
+    [
+      "an export with spaces around it all",
+      `  export   ONEUPTIME_SECRET = ${PLACEHOLDER}`,
+    ],
   ])("replaces %s", (_label, line) => {
     const result = replacePlaceholderSecrets(`${line}\n`, () => {
       return "fresh";

@@ -12,8 +12,8 @@ import path from "path";
 /*
  * Audit entries gained five columns that say what the workflow whose step
  * made a change ran as, and with whose permissions (#9766): workflowRunAs,
- * workflowRunAsCustomRoleName, workflowRunAsGivenByUserId,
- * workflowRunAsGivenByApiKeyId and workflowRunAsGivenByName on AuditLogV2.
+ * workflowRunAsCustomRoleName, workflowRunAsGiverUserId,
+ * workflowRunAsGiverApiKeyId and workflowRunAsGiverName on AuditLogV2.
  * An insert that names a column the table does not have is refused, so
  * until the columns exist every change a workflow makes would record
  * nothing at all.
@@ -121,9 +121,9 @@ const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 const COLUMN_KEYS: Array<string> = [
   "workflowRunAs",
   "workflowRunAsCustomRoleName",
-  "workflowRunAsGivenByUserId",
-  "workflowRunAsGivenByApiKeyId",
-  "workflowRunAsGivenByName",
+  "workflowRunAsGiverUserId",
+  "workflowRunAsGiverApiKeyId",
+  "workflowRunAsGiverName",
 ];
 
 let savedClusterName: string | undefined;
@@ -298,7 +298,7 @@ describe("AddAuditLogWorkflowRunAsColumns", () => {
   });
 
   test("skips a column the model does not declare, with a warning, and still adds the ones it does", async () => {
-    hiddenColumnKeys.push("workflowRunAsGivenByName");
+    hiddenColumnKeys.push("workflowRunAsGiverName");
 
     await expect(
       new AddAuditLogWorkflowRunAsColumns().migrate(),
@@ -309,7 +309,7 @@ describe("AddAuditLogWorkflowRunAsColumns", () => {
       loggedWarnings.some((message: string): boolean => {
         return (
           message.includes("AddAuditLogWorkflowRunAsColumns") &&
-          message.includes("workflowRunAsGivenByName")
+          message.includes("workflowRunAsGiverName")
         );
       }),
     ).toBe(true);

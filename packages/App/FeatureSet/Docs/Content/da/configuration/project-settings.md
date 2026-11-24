@@ -96,6 +96,8 @@ For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet 
 
 **Bruges af**, i menuen på en mærkats række, tæller posterne af hver slags, der har mærkaten, og åbner dem en side ad gangen. Poster, du ikke må åbne, tælles, men nævnes ikke.
 
+En etiket, der har samme navn som en anden etiket fra dengang, navne ikke behøvede at være forskellige, markeres med **Samme navn som en anden etiket**, og listen viser, hvor mange der er: sammenlign med **Bruges af**, hvor hver af dem bruges, og omdøb så den ene med **Omdøb** i dens række.
+
 ## Notifikationer
 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:

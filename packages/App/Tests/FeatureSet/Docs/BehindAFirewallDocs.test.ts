@@ -23,8 +23,9 @@ import path from "path";
  * held to the code that serves it:
  *
  *   - an acknowledgement link opens a short link (/l/), the acknowledge page
- *     and its button, and the pass-on page and its button, all under
- *     /api/user-notification-log-timeline, styled from /oneuptime-assets/;
+ *     and its button - a form that posts - and the pass-on page and its
+ *     button, all under /api/user-notification-log-timeline, styled from
+ *     /oneuptime-assets/;
  *   - a key pressed on a call comes back from Twilio on call/gather-input;
  *   - Telegram's webhook and WhatsApp's are the Notification feature set's
  *     routes, under /api/notification;
@@ -107,7 +108,8 @@ describe("Behind a VPN or Firewall, in English", () => {
     expect(rows).toEqual([
       "GET /l/*",
       "GET /api/user-notification-log-timeline/acknowledge-page/*",
-      "GET /api/user-notification-log-timeline/acknowledge/*",
+      // The Acknowledge button posts its form (#10025).
+      "POST /api/user-notification-log-timeline/acknowledge/*",
       "GET /api/user-notification-log-timeline/pass-on-page/*",
       "POST /api/user-notification-log-timeline/pass-on/*",
       "GET /oneuptime-assets/*",
@@ -126,6 +128,8 @@ describe("Behind a VPN or Firewall, in English", () => {
 
     for (const [method, route] of [
       ["get", "/acknowledge-page/:itemId"],
+      ["post", "/acknowledge/:itemId"],
+      // Opened, it shows the page: an acknowledge page drawn before #10025 linked here.
       ["get", "/acknowledge/:itemId"],
       ["get", "/pass-on-page/:itemId"],
       ["post", "/pass-on/:itemId"],

@@ -129,6 +129,26 @@ La facturación tiene tres roles propios. `BillingViewer` lee la facturación de
 
 Los {{PERMISSION_ROLE_COUNT}} roles aparecen en la [Referencia de permisos](/docs/permissions/reference).
 
+### Niveles de producto
+
+Un nivel de producto da a un equipo un solo producto, en un solo nivel, y nada más del proyecto: `CloudAdmin`, `NetworkViewer`, `HostMember`. Cada nivel hace sobre los registros propios del producto lo que un rol de todo el proyecto hace sobre todos los registros:
+
+- **Visor** lee allí lo que lee el rol Visor y no cambia nada.
+- **Miembro** además crea, cambia y elimina los registros del producto, como hace un Miembro del proyecto.
+- **Administrador** además hace allí lo que hace un Administrador del proyecto: los ajustes del producto, sus conexiones y credenciales, y sus reglas de etiquetas y de propietarios.
+
+Un nivel nunca alcanza otro producto, ni los ajustes, los equipos, los miembros, las claves de API, el SSO o la facturación del proyecto.
+
+:::steps
+1. Abra la página **Permisos** del equipo.
+2. En **Acceso a productos**, elija un nivel para cada producto con el que trabaja el equipo. Vacíe el nivel de un producto para quitarle ese producto al equipo.
+:::
+
+- **Los Monitores, los Incidentes y las demás áreas con roles propios** se dan con **Añadir rol**, en **Un área**. Lo mismo ocurre con los roles de Telemetry, para Registros, Métricas, Trazas, Perfiles y Excepciones, y con los roles Security.
+- **IA / LLM, Inventario y Formularios** solo tienen un nivel Visor y un nivel Administrador, porque un Miembro del proyecto no cambia nada en ellos.
+- **Un nivel es un permiso como cualquier otro.** Puede limitarlo a algunas etiquetas o a los registros propios en la tabla de permisos, bloquearlo, ponerlo en un rol personalizado o darlo a una clave de API. Como con todo permiso, solo puede dar un nivel si usted mismo lo tiene, a menos que sea Propietario del proyecto.
+- **Un nivel lee los registros del producto, no su telemetría.** Un equipo con `HostViewer` ve los hosts del proyecto, y para sus gráficos necesita también `TelemetryViewer`.
+
 ### Permisos granulares
 
 Cada capacidad individual también se puede asignar por separado: `CreateProjectMonitor`, `ReadProjectIncident`, `DeleteProjectStatusPage` y {{PERMISSION_TOTAL_COUNT}} más. Úselos cuando un rol sea demasiado amplio y necesite conceder exactamente una cosa.
@@ -202,7 +222,7 @@ Todo permiso concedido lleva un alcance: al añadirlo, **Alcance** está en **M�
 
 A un rol se le ofrecen las tres respuestas. A un permiso individual, añadido con **Añadir permiso**, se le ofrece un alcance dondequiera que uno lo acote, con solo las respuestas que lo acotan: **Create Workflow** puede limitarse a los flujos de trabajo que pertenecen a un equipo, o a algunas etiquetas, igual que **Edit Workflow**, mientras que un permiso sobre algo que todos comparten, como **Create Label**, no ofrece alcance, porque ninguno lo acotaría. El permiso individual de una clave de API admite etiquetas dondequiera que las etiquetas lo acoten. Un bloqueo nunca se limita a los recursos propios: retira un permiso en todas partes o, con etiquetas, de los recursos que las llevan.
 
-**Propios** es la forma más sencilla de montar un modelo de «cada uno cuida de sus propios servicios»: dé a un equipo `MonitorAdmin` con alcance Propios y haga a ese equipo propietario de los monitores de los que se encarga. Acota todos los recursos que pueden tener propietarios —monitores, incidentes, paneles, servicios, grupos de monitores, programaciones de guardia y similares— y lo que les pertenece, como las capas de una programación. Las sondas, los Runners, los agentes de IA, las programaciones de guardia y las plantillas de incidentes y de mantenimiento son aquello con lo que se configuran otros recursos, así que un permiso con alcance Propios sigue leyéndolos todos y puede elegir cualquiera de ellos; solo cambia y elimina los que usted o sus equipos poseen. La clave de un Runner, que permite a quien la tenga actuar como ese Runner, solo se muestra en los Runners que usted o sus equipos poseen. La configuración del proyecto (estados de incidentes, etiquetas) no tiene propietario, así que un rol con alcance Propios se comporta ahí con normalidad. Las páginas propias de Data Observability también respetan su alcance: la **Vista general**, **Problemas** y el número junto a **Vista general** cuentan y listan solo las tablas, comprobaciones y canalizaciones que puede leer, y una acción sobre una tabla o comprobación, como **Ejecutar ahora**, llega solo a una que puede leer o cambiar.
+**Propios** es la forma más sencilla de montar un modelo de «cada uno cuida de sus propios servicios»: dé a un equipo `MonitorAdmin` con alcance Propios y haga a ese equipo propietario de los monitores de los que se encarga. Acota todos los recursos que pueden tener propietarios —monitores, incidentes, paneles, servicios, grupos de monitores, programaciones de guardia y similares— y lo que les pertenece, como las capas de una programación. Las sondas, los Runners, los agentes de IA, las programaciones de guardia, los sitios de red y las plantillas de incidentes y de mantenimiento son aquello con lo que se configuran otros recursos, así que un permiso con alcance Propios sigue leyéndolos todos y puede elegir cualquiera de ellos; solo cambia y elimina los que usted o sus equipos poseen. La clave de un Runner, que permite a quien la tenga actuar como ese Runner, solo se muestra en los Runners que usted o sus equipos poseen. La configuración del proyecto (estados de incidentes, etiquetas) no tiene propietario, así que un rol con alcance Propios se comporta ahí con normalidad. Las páginas propias de Data Observability también respetan su alcance: la **Vista general**, **Problemas** y el número junto a **Vista general** cuentan y listan solo las tablas, comprobaciones y canalizaciones que puede leer, y una acción sobre una tabla o comprobación, como **Ejecutar ahora**, llega solo a una que puede leer o cambiar.
 
 El permiso con alcance Propios de cada equipo alcanza lo que pertenece a ese equipo, no lo que pertenece a los demás equipos de la persona. Alguien que está en dos equipos, uno con `IncidentMember` con alcance Propios y otro con `Viewer` con alcance Propios, cambia los incidentes que pertenecen al primer equipo y los suyos propios, y solo ve los incidentes que pertenecen al segundo equipo. Un permiso con alcance Propios también añade propietarios solo a los recursos que pertenecen a la persona o al equipo al que se le da, así que no se puede hacer al primer equipo propietario de los incidentes del segundo para eludirlo. El permiso con alcance Propios de un rol personalizado alcanza lo que pertenece a cada equipo al que se da el rol.
 

@@ -221,6 +221,30 @@ Gruppér ikke en metrik, der allerede er én skalar for hele systemet (et leder-
 
 Grupperingsattributtens værdier er også tilgængelige som [skabelonvariabler](/docs/monitor/incident-alert-templating) i titlen, beskrivelsen og afhjælpningsnoterne for advarslen eller hændelsen: gruppering efter `host.name` lader titlen lyde `Disk almost full on {{host.name}}`.
 
+## Advar om et PromQL-udtryk
+
+Et trin kan holde øje med et PromQL-udtryk i stedet for metrikforespørgsler: Prometheus' forespørgselssprog, over dit projekts metrikker, som på siden [PromQL](/docs/telemetry/promql). Hver serie, udtrykket returnerer, bedømmes for sig, ligesom en grupperet forespørgsels: den åbner sin egen advarsel eller hændelse, som løses, når serien kommer sig eller ikke længere returneres.
+
+:::steps
+### Skift til PromQL
+
+I **Metrik at holde øje med** klikker du på **PromQL**. **Forespørgselsbygger** fører tilbage til metrikforespørgslerne.
+
+### Skriv udtrykket
+
+Skriv det, for eksempel `sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))`, eller start fra **Tilføj et metriknavn**. Diagrammet under det tegner hver serie over tidsvinduet og siger, hvad der er galt med et udtryk, der ikke kører.
+
+### Fastlæg reglen
+
+I **Hvornår der advares** vælger du under **Målt som**, hvordan hver serie måles, og derefter et **Tidsvindue**, en **Betingelse** og en **Værdi**, som for metrikforespørgsler. Udtrykket evalueres hvert minut i vinduet, så **Hver værdi (hele vinduet)** over **Seneste 5 minutter** kræver, at en serie overskrider i fem minutter, som `for: 5m` gør i en advarselsregel i Prometheus.
+:::
+
+- **En sammenligning i udtrykket** beholder kun de serier, den gælder for: `rate(errors_total[5m]) > 0.1` returnerer serierne over 0.1 og ingen andre. Klik på **Flyt til Hvornår der advares** for at gøre den til reglens sammenligning, så diagrammet viser hver serie, og reglen bedømmer hver enkelt.
+- **Højst 100 serier pr. kontrol.** Når udtrykket returnerer flere, bedømmer en kontrol 100: først serierne med en åben advarsel eller hændelse, derefter de andre i rækkefølgen af deres labels. Resten bedømmes ikke ved den kontrol, så intet åbnes eller løses for dem, og editoren siger, at udtrykket returnerer for mange. Aggreger det med `sum by (...)`, eller tilføj label-matchere.
+- **Grænserne for enhver PromQL-forespørgsel gælder**, over metrikkerne for de tjenester, monitoren nævner, eller for hele projektet, når den ikke nævner nogen.
+- **Dens diagrammer tegner udtrykket.** Kortet øverst på monitorens side **Oversigt** tegner hver serie, udtrykket returnerer, og en hændelse eller advarsel, den åbner, tegner den ene serie, der åbnede den, med kriteriets værdi som en linje og den side, der advarer, skraveret. De læser udtrykket, som du må læse det, med de samme grænser som siden [PromQL](/docs/telemetry/promql).
+- **Anomalibetingelserne tilbydes ikke**: et udtryk har ingen egen historik at sammenligne med. Det gør prognosebetingelserne.
+
 ## Fejlfinding
 
 :::details Diagrammet viser en overskridelse, men monitoren advarede ikke

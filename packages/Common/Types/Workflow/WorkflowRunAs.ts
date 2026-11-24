@@ -537,18 +537,18 @@ export const WORKFLOW_RUN_AS_AUDIT_COLUMNS: ReadonlyArray<
 > = [
   "workflowRunAs",
   "workflowRunAsCustomRoleName",
-  "workflowRunAsGivenByUserId",
-  "workflowRunAsGivenByApiKeyId",
-  "workflowRunAsGivenByName",
+  "workflowRunAsGiverUserId",
+  "workflowRunAsGiverApiKeyId",
+  "workflowRunAsGiverName",
 ];
 
 // What a workflow's audit entry stores of what it ran as.
 export interface WorkflowRunAsAuditColumns {
   workflowRunAs: WorkflowRunAs;
   workflowRunAsCustomRoleName?: string | undefined;
-  workflowRunAsGivenByUserId?: ObjectID | undefined;
-  workflowRunAsGivenByApiKeyId?: ObjectID | undefined;
-  workflowRunAsGivenByName?: string | undefined;
+  workflowRunAsGiverUserId?: ObjectID | undefined;
+  workflowRunAsGiverApiKeyId?: ObjectID | undefined;
+  workflowRunAsGiverName?: string | undefined;
 }
 
 /*
@@ -586,15 +586,15 @@ export const getWorkflowRunAsAuditColumns: (
   }
 
   if (audit.givenByApiKeyId) {
-    columns.workflowRunAsGivenByApiKeyId = audit.givenByApiKeyId;
+    columns.workflowRunAsGiverApiKeyId = audit.givenByApiKeyId;
   } else if (audit.givenByUserId) {
-    columns.workflowRunAsGivenByUserId = audit.givenByUserId;
+    columns.workflowRunAsGiverUserId = audit.givenByUserId;
   }
 
   const givenByName: string = (audit.givenByName || "").trim();
 
   if (givenByName) {
-    columns.workflowRunAsGivenByName = givenByName;
+    columns.workflowRunAsGiverName = givenByName;
   }
 
   return columns;

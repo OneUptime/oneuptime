@@ -7,12 +7,26 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import {
+  MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION,
+  MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_CHARGING_UNIT,
+  MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION,
+  MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+  MANAGED_DEVICE_BATTERY_LEVEL_UNIT,
   MANAGED_DEVICE_CHECK_IN_AGE_DESCRIPTION,
   MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
   MANAGED_DEVICE_CHECK_IN_AGE_UNIT,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_DESCRIPTION,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+  MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT,
+  MANAGED_DEVICE_STORAGE_USED_DESCRIPTION,
+  MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+  MANAGED_DEVICE_STORAGE_USED_UNIT,
   ManagedDeviceCheckInReading,
   getManagedDeviceCheckInAttributes,
   getManagedDeviceCheckInReadings,
+  getManagedDeviceSecurityPatchAttributes,
+  getManagedDeviceStorageAttributes,
 } from "../../../Types/DeviceManagement/ManagedDeviceCheckIn";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -45,6 +59,18 @@ import TelemetryUtil from "../Telemetry/Telemetry";
  * beside what the device sends. A device the Android agent reports - a host
  * in Hosts, not archived - is marked so, and the recommended monitor leaves
  * it to Host Stopped Reporting.
+ *
+ * Beside each Android device's check-in age, the same read writes how old
+ * its security patch level is, in whole UTC days (#10098), under a metric
+ * of its own with the level on its attributes: what a device manager's
+ * Security Patch Out of Date template reads, for the devices the Android
+ * agent does not report (ManagedDeviceCheckIn says why).
+ *
+ * And, for each device that reports them, its battery in percent and how
+ * much of its storage is in use (#10008), each under a metric of its own:
+ * what a device manager's Low Battery and Storage Nearly Full read. Beside
+ * a battery, whether the device is on its charger, where its service says
+ * so (#10288): what Low Battery reads to leave a charging device be.
  */
 
 // Devices read from the database per page, as the read runner reads them.
@@ -67,6 +93,14 @@ export interface ManagedDeviceCheckInOutcome {
   readingCount: number;
   // Of them, devices the Android agent reports (hosts in Hosts).
   hostCount: number;
+  // Security patch readings written beside them: Android devices with a level.
+  securityPatchReadingCount: number;
+  // Battery readings written beside them: devices that report a battery.
+  batteryReadingCount: number;
+  // Of those devices, the ones whose service says whether each is on its charger.
+  chargingReadingCount: number;
+  // Storage readings written beside them: devices that report their free space.
+  storageReadingCount: number;
 }
 
 export interface ManagedDeviceCheckInRecordInput {
@@ -78,27 +112,24 @@ export interface ManagedDeviceCheckInRecordInput {
 }
 
 /*
- * One reading's metric row. Its shape stays in lockstep with the other
- * writers' (SessionReplayBudgetMetrics.buildMetricRow), with the device's
- * host's entity key, as ingest stamps a host's telemetry. Pure.
+ * A reading's metric row, of either metric. Its shape stays in lockstep
+ * with the other writers' (SessionReplayBudgetMetrics.buildMetricRow), with
+ * the device's host's entity key, as ingest stamps a host's telemetry. Pure.
  */
-export function buildManagedDeviceCheckInRow(data: {
+function buildManagedDeviceReadingRow(data: {
   projectId: ObjectID;
   connectionId: ObjectID;
-  provider: string;
-  reading: ManagedDeviceCheckInReading;
+  hostName: string;
+  name: string;
+  value: number;
+  attributes: Dictionary<string>;
   asOf: Date;
   retentionDate: Date;
 }): JSONObject {
   const time: string = OneUptimeDate.toClickhouseDateTime(data.asOf);
-  const attributes: Dictionary<string> = getManagedDeviceCheckInAttributes({
-    reading: data.reading,
-    connectionId: data.connectionId.toString(),
-    provider: data.provider,
-  });
   const hostEntityKey: string = keyForHost(
     data.projectId.toString(),
-    canonicalizeEntityValue(data.reading.hostName),
+    canonicalizeEntityValue(data.hostName),
   );
 
   return {
@@ -107,7 +138,7 @@ export function buildManagedDeviceCheckInRow(data: {
     projectId: data.projectId.toString(),
     primaryEntityId: data.connectionId.toString(),
     primaryEntityType: ServiceType.DeviceManagementConnection,
-    name: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+    name: data.name,
     aggregationTemporality: null,
     // A reading of how long at one moment, i.e. a Gauge.
     metricPointType: MetricPointType.Gauge,
@@ -115,8 +146,10 @@ export function buildManagedDeviceCheckInRow(data: {
     startTime: null,
     timeUnixNano: OneUptimeDate.toUnixNano(data.asOf).toString(),
     startTimeUnixNano: null,
-    attributes: attributes as JSONObject,
-    attributeKeys: TelemetryUtil.getAttributeKeys(attributes as JSONObject),
+    attributes: data.attributes as JSONObject,
+    attributeKeys: TelemetryUtil.getAttributeKeys(
+      data.attributes as JSONObject,
+    ),
     entityKeys: [hostEntityKey],
     hostEntityKey: hostEntityKey,
     isMonotonic: null,
@@ -126,9 +159,161 @@ export function buildManagedDeviceCheckInRow(data: {
     max: null,
     bucketCounts: [],
     explicitBounds: [],
-    value: data.reading.ageInMinutes,
+    value: data.value,
     retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
   } as JSONObject;
+}
+
+// What a reading's rows are built from: one device, at one read.
+export interface ManagedDeviceReadingRowInput {
+  projectId: ObjectID;
+  connectionId: ObjectID;
+  provider: string;
+  reading: ManagedDeviceCheckInReading;
+  asOf: Date;
+  retentionDate: Date;
+}
+
+// One reading's check-in row: the minutes since the device checked in. Pure.
+export function buildManagedDeviceCheckInRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject {
+  return buildManagedDeviceReadingRow({
+    projectId: data.projectId,
+    connectionId: data.connectionId,
+    hostName: data.reading.hostName,
+    name: MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME,
+    value: data.reading.ageInMinutes,
+    attributes: getManagedDeviceCheckInAttributes({
+      reading: data.reading,
+      connectionId: data.connectionId.toString(),
+      provider: data.provider,
+    }),
+    asOf: data.asOf,
+    retentionDate: data.retentionDate,
+  });
+}
+
+/*
+ * One reading's security patch row (#10098): the days since the device's
+ * patch level, with the level on it. Undefined for a reading with no patch:
+ * a device that is not Android, or whose level is no date. Pure.
+ */
+export function buildManagedDeviceSecurityPatchRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject | undefined {
+  const attributes: Dictionary<string> | undefined =
+    getManagedDeviceSecurityPatchAttributes({
+      reading: data.reading,
+      connectionId: data.connectionId.toString(),
+      provider: data.provider,
+    });
+
+  if (!data.reading.securityPatch || !attributes) {
+    return undefined;
+  }
+
+  return buildManagedDeviceReadingRow({
+    projectId: data.projectId,
+    connectionId: data.connectionId,
+    hostName: data.reading.hostName,
+    name: MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME,
+    value: data.reading.securityPatch.ageInDays,
+    attributes,
+    asOf: data.asOf,
+    retentionDate: data.retentionDate,
+  });
+}
+
+/*
+ * One reading's battery row (#10008): the device's battery in percent, as
+ * its service last heard it. Undefined for a reading with no battery. Pure.
+ */
+export function buildManagedDeviceBatteryRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject | undefined {
+  if (data.reading.batteryLevel === undefined) {
+    return undefined;
+  }
+
+  return buildManagedDeviceReadingRow({
+    projectId: data.projectId,
+    connectionId: data.connectionId,
+    hostName: data.reading.hostName,
+    name: MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME,
+    value: data.reading.batteryLevel,
+    attributes: getManagedDeviceCheckInAttributes({
+      reading: data.reading,
+      connectionId: data.connectionId.toString(),
+      provider: data.provider,
+    }),
+    asOf: data.asOf,
+    retentionDate: data.retentionDate,
+  });
+}
+
+/*
+ * One reading's charging row (#10288): 1 while the device is on its
+ * charger, 0 on its battery, as its service last heard it - with the
+ * battery row's very attributes, so a monitor that reads both finds each
+ * device's two as one series. Undefined for a reading whose service says
+ * neither, or with no battery. Pure.
+ */
+export function buildManagedDeviceChargingRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject | undefined {
+  if (
+    data.reading.isCharging === undefined ||
+    data.reading.batteryLevel === undefined
+  ) {
+    return undefined;
+  }
+
+  return buildManagedDeviceReadingRow({
+    projectId: data.projectId,
+    connectionId: data.connectionId,
+    hostName: data.reading.hostName,
+    name: MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME,
+    value: data.reading.isCharging ? 1 : 0,
+    attributes: getManagedDeviceCheckInAttributes({
+      reading: data.reading,
+      connectionId: data.connectionId.toString(),
+      provider: data.provider,
+    }),
+    asOf: data.asOf,
+    retentionDate: data.retentionDate,
+  });
+}
+
+/*
+ * One reading's storage row (#10008): how much of the device's own storage
+ * is in use, in percent, with its free and whole bytes on it. Undefined for
+ * a reading with no storage. Pure.
+ */
+export function buildManagedDeviceStorageRow(
+  data: ManagedDeviceReadingRowInput,
+): JSONObject | undefined {
+  const attributes: Dictionary<string> | undefined =
+    getManagedDeviceStorageAttributes({
+      reading: data.reading,
+      connectionId: data.connectionId.toString(),
+      provider: data.provider,
+    });
+
+  if (!data.reading.storage || !attributes) {
+    return undefined;
+  }
+
+  return buildManagedDeviceReadingRow({
+    projectId: data.projectId,
+    connectionId: data.connectionId,
+    hostName: data.reading.hostName,
+    name: MANAGED_DEVICE_STORAGE_USED_METRIC_NAME,
+    value: data.reading.storage.usedPercent,
+    attributes,
+    asOf: data.asOf,
+    retentionDate: data.retentionDate,
+  });
 }
 
 export default class ManagedDeviceCheckInMetrics {
@@ -147,10 +332,18 @@ export default class ManagedDeviceCheckInMetrics {
         devices: devices,
         hostNames: new Set<string>(),
         asOf: data.asOf,
+        provider: data.provider,
       });
 
     if (unmarked.length === 0) {
-      return { readingCount: 0, hostCount: 0 };
+      return {
+        readingCount: 0,
+        hostCount: 0,
+        securityPatchReadingCount: 0,
+        batteryReadingCount: 0,
+        chargingReadingCount: 0,
+        storageReadingCount: 0,
+      };
     }
 
     // Which devices the Android agent reports, asked about once per read.
@@ -175,18 +368,59 @@ export default class ManagedDeviceCheckInMetrics {
       await ManagedDeviceCheckInMetrics.getRetentionDays(),
     );
 
-    const rows: Array<JSONObject> = readings.map(
-      (reading: ManagedDeviceCheckInReading): JSONObject => {
-        return buildManagedDeviceCheckInRow({
-          projectId: data.projectId,
-          connectionId: data.connectionId,
-          provider: data.provider,
-          reading: reading,
-          asOf: data.asOf,
-          retentionDate: retentionDate,
-        });
-      },
-    );
+    const rows: Array<JSONObject> = [];
+    let securityPatchReadingCount: number = 0;
+    let batteryReadingCount: number = 0;
+    let chargingReadingCount: number = 0;
+    let storageReadingCount: number = 0;
+
+    for (const reading of readings) {
+      const row: ManagedDeviceReadingRowInput = {
+        projectId: data.projectId,
+        connectionId: data.connectionId,
+        provider: data.provider,
+        reading: reading,
+        asOf: data.asOf,
+        retentionDate: retentionDate,
+      };
+
+      rows.push(buildManagedDeviceCheckInRow(row));
+
+      // An Android device's patch age, beside its check-in (#10098).
+      const securityPatchRow: JSONObject | undefined =
+        buildManagedDeviceSecurityPatchRow(row);
+
+      if (securityPatchRow) {
+        rows.push(securityPatchRow);
+        securityPatchReadingCount++;
+      }
+
+      // Its battery and its storage, where it reports them (#10008).
+      const batteryRow: JSONObject | undefined =
+        buildManagedDeviceBatteryRow(row);
+
+      if (batteryRow) {
+        rows.push(batteryRow);
+        batteryReadingCount++;
+      }
+
+      // Whether it is on its charger, beside its battery (#10288).
+      const chargingRow: JSONObject | undefined =
+        buildManagedDeviceChargingRow(row);
+
+      if (chargingRow) {
+        rows.push(chargingRow);
+        chargingReadingCount++;
+      }
+
+      const storageRow: JSONObject | undefined =
+        buildManagedDeviceStorageRow(row);
+
+      if (storageRow) {
+        rows.push(storageRow);
+        storageReadingCount++;
+      }
+    }
 
     for (
       let start: number = 0;
@@ -198,7 +432,13 @@ export default class ManagedDeviceCheckInMetrics {
       );
     }
 
-    await ManagedDeviceCheckInMetrics.registerMetricName(data.projectId);
+    await ManagedDeviceCheckInMetrics.registerMetricName({
+      projectId: data.projectId,
+      hasSecurityPatchReadings: securityPatchReadingCount > 0,
+      hasBatteryReadings: batteryReadingCount > 0,
+      hasChargingReadings: chargingReadingCount > 0,
+      hasStorageReadings: storageReadingCount > 0,
+    });
 
     return {
       readingCount: readings.length,
@@ -207,6 +447,10 @@ export default class ManagedDeviceCheckInMetrics {
           return reading.isHost;
         },
       ).length,
+      securityPatchReadingCount,
+      batteryReadingCount,
+      chargingReadingCount,
+      storageReadingCount,
     };
   }
 
@@ -227,6 +471,7 @@ export default class ManagedDeviceCheckInMetrics {
         select: {
           _id: true,
           providerDeviceId: true,
+          platform: true,
           deviceName: true,
           alias: true,
           serialNumber: true,
@@ -235,6 +480,9 @@ export default class ManagedDeviceCheckInMetrics {
           providerState: true,
           lastCheckInAt: true,
           removedAt: true,
+          securityPatchLevel: true,
+          batteryLevel: true,
+          details: true,
         },
         sort: { _id: SortOrder.Ascending },
         skip: skip,
@@ -301,26 +549,73 @@ export default class ManagedDeviceCheckInMetrics {
   }
 
   /*
-   * Puts the metric in the project's catalog, so the metric picker and a
-   * Metrics monitor's builder offer it with its unit. A failure only delays
-   * that until a later read: the rows are written.
+   * Puts the metrics in the project's catalog, so the metric picker and a
+   * Metrics monitor's builder offer them with their units: the check-ins,
+   * and the security patch ages, batteries and storage once a read wrote
+   * one of them. A failure only delays that until a later read: the rows
+   * are written.
    */
-  private static async registerMetricName(projectId: ObjectID): Promise<void> {
-    const metricType: MetricType = new MetricType();
-    metricType.name = MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME;
-    metricType.description = MANAGED_DEVICE_CHECK_IN_AGE_DESCRIPTION;
-    metricType.unit = MANAGED_DEVICE_CHECK_IN_AGE_UNIT;
+  private static async registerMetricName(data: {
+    projectId: ObjectID;
+    hasSecurityPatchReadings: boolean;
+    hasBatteryReadings: boolean;
+    hasChargingReadings: boolean;
+    hasStorageReadings: boolean;
+  }): Promise<void> {
+    const checkIns: MetricType = new MetricType();
+    checkIns.name = MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME;
+    checkIns.description = MANAGED_DEVICE_CHECK_IN_AGE_DESCRIPTION;
+    checkIns.unit = MANAGED_DEVICE_CHECK_IN_AGE_UNIT;
+
+    const metricNameServiceNameMap: Dictionary<MetricType> = {
+      [MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME]: checkIns,
+    };
+
+    if (data.hasSecurityPatchReadings) {
+      const securityPatches: MetricType = new MetricType();
+      securityPatches.name = MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME;
+      securityPatches.description =
+        MANAGED_DEVICE_SECURITY_PATCH_AGE_DESCRIPTION;
+      securityPatches.unit = MANAGED_DEVICE_SECURITY_PATCH_AGE_UNIT;
+      metricNameServiceNameMap[MANAGED_DEVICE_SECURITY_PATCH_AGE_METRIC_NAME] =
+        securityPatches;
+    }
+
+    if (data.hasBatteryReadings) {
+      const batteries: MetricType = new MetricType();
+      batteries.name = MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME;
+      batteries.description = MANAGED_DEVICE_BATTERY_LEVEL_DESCRIPTION;
+      batteries.unit = MANAGED_DEVICE_BATTERY_LEVEL_UNIT;
+      metricNameServiceNameMap[MANAGED_DEVICE_BATTERY_LEVEL_METRIC_NAME] =
+        batteries;
+    }
+
+    if (data.hasChargingReadings) {
+      const charging: MetricType = new MetricType();
+      charging.name = MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME;
+      charging.description = MANAGED_DEVICE_BATTERY_CHARGING_DESCRIPTION;
+      charging.unit = MANAGED_DEVICE_BATTERY_CHARGING_UNIT;
+      metricNameServiceNameMap[MANAGED_DEVICE_BATTERY_CHARGING_METRIC_NAME] =
+        charging;
+    }
+
+    if (data.hasStorageReadings) {
+      const storage: MetricType = new MetricType();
+      storage.name = MANAGED_DEVICE_STORAGE_USED_METRIC_NAME;
+      storage.description = MANAGED_DEVICE_STORAGE_USED_DESCRIPTION;
+      storage.unit = MANAGED_DEVICE_STORAGE_USED_UNIT;
+      metricNameServiceNameMap[MANAGED_DEVICE_STORAGE_USED_METRIC_NAME] =
+        storage;
+    }
 
     try {
       await TelemetryUtil.indexMetricNameServiceNameMap({
-        projectId: projectId,
-        metricNameServiceNameMap: {
-          [MANAGED_DEVICE_CHECK_IN_AGE_METRIC_NAME]: metricType,
-        },
+        projectId: data.projectId,
+        metricNameServiceNameMap,
       });
     } catch (error) {
       logger.error(
-        `Managed device check-ins of project ${projectId.toString()}: the metric could not be put in the catalog; a later read tries again: ${
+        `Managed device check-ins of project ${data.projectId.toString()}: the metrics could not be put in the catalog; a later read tries again: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

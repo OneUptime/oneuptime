@@ -71,7 +71,7 @@ func TestRecordIDValidatorRefusesANameAndSaysWhatToWrite(t *testing.T) {
 // no resource: the refusal points at the data source, never at a resource
 // a configuration cannot have.
 func TestRecordIDValidatorOfADataSourceOnlyTypePointsAtTheDataSource(t *testing.T) {
-	one := validateRecordID(dataSourceRecordIDValidators("oneuptime_ai_run")[0].(recordIDValidator), types.StringValue("last-night"))
+	one := validateRecordID(DataSourceRecordIDValidators("oneuptime_ai_run")[0].(recordIDValidator), types.StringValue("last-night"))
 	if !one.Diagnostics.HasError() {
 		t.Fatal("a name was taken for an ID")
 	}
@@ -82,7 +82,7 @@ func TestRecordIDValidatorOfADataSourceOnlyTypePointsAtTheDataSource(t *testing.
 	}
 
 	// A set and a list of them say the same, and take UUIDs.
-	for _, set := range dataSourceRecordIDSetValidators("oneuptime_ai_run") {
+	for _, set := range DataSourceRecordIDSetValidators("oneuptime_ai_run") {
 		resp := &validator.SetResponse{}
 		set.ValidateSet(context.Background(), validator.SetRequest{
 			Path:        path.Root("ai_run_ids"),
@@ -92,7 +92,7 @@ func TestRecordIDValidatorOfADataSourceOnlyTypePointsAtTheDataSource(t *testing.
 			t.Fatalf("set: %v", resp.Diagnostics)
 		}
 	}
-	for _, list := range dataSourceRecordIDListValidators("oneuptime_ai_run") {
+	for _, list := range DataSourceRecordIDListValidators("oneuptime_ai_run") {
 		resp := &validator.ListResponse{}
 		list.ValidateList(context.Background(), validator.ListRequest{
 			Path:        path.Root("ai_run_ids"),

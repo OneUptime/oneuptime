@@ -11,21 +11,38 @@ import {
   getPublicDashboardWidgetSettings,
 } from "../../../Types/Dashboard/PublicDashboardServedSettings";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
+import DataSourceQueryConfig from "../../../Types/DataSource/DataSourceQueryConfig";
+import DataSourceWidgetQueries from "../../../Utils/DataSource/DataSourceWidgetQueries";
 import StoredDashboardViewConfig, {
   StoredBoardSettings,
 } from "../../../Utils/Dashboard/StoredDashboardViewConfig";
 
 /*
+ * One Data Source widget the public page draws (issue #10226), as the
+ * public PromQL route reads it: the id the page draws it under, its type,
+ * its settings as stored (the query text in them, which is never served)
+ * and the queries it runs, in order - the place of each is what the page
+ * names it by.
+ */
+export interface DrawnDataSourceWidget {
+  componentId: string;
+  componentType: DashboardComponentType;
+  settings: JSONObject;
+  queries: Array<DataSourceQueryConfig>;
+}
+
+/*
  * The dashboard config served to ANONYMOUS public-dashboard visitors: what
  * /view-config sends the public page, and /overview sends agents.
  *
- * The external Data Source widgets never render on a public dashboard -
- * the anonymous API deliberately exposes no /data-source/query surface, so
- * the client never sees them. But a Data Source widget's stored config is
- * the query itself: raw SQL naming internal tables and columns, a PromQL
- * expression naming internal jobs and instances, plus the id of the
- * connected Data Source. None of that is something an unauthenticated
- * viewer should be able to read out of a page that cannot even display it.
+ * A Data Source widget's stored config is the query itself: raw SQL naming
+ * internal tables and columns, a PromQL expression naming internal jobs
+ * and instances, plus the id of the connected Data Source. One that reads
+ * an outside system never renders on a public dashboard - its credentials
+ * are not reached from an anonymous page - and nothing of it is served.
+ * One that reads only this project's metrics (issue #10226) is drawn: the
+ * public PromQL route runs its stored queries, and it is served without
+ * their text.
  *
  * So what is served is BUILT from what the public page draws, never
  * filtered out of what is stored (issue #6327). The stored config is read
@@ -34,7 +51,11 @@ import StoredDashboardViewConfig, {
  * text or in the DashboardComponent envelope - and each widget found is
  * judged by the type every board draws it as:
  *
- *   a Data Source widget         left out, whole
+ *   a Data Source widget that    left out, whole - and so is one with no
+ *   reads an outside system      query set up, which has nothing to draw
+ *   a Data Source widget that    served with its place, its type and its
+ *   reads only this project's    settings, each query as its source, its
+ *   metrics                      id and its legend: never its text
  *   a widget of a type the page  served with its place on the board, its
  *   draws                        type and the settings (`arguments`) the
  *                                page draws it with, as the board reads
@@ -89,15 +110,8 @@ export default class PublicDashboardViewConfig {
 
     const components: Array<JSONObject> = [];
 
-    for (const entry of entries) {
-      if (
-        StoredDashboardViewConfig.isWidgetEntry(entry) &&
-        !PublicDashboardViewConfig.isDataSourceComponent(
-          entry as unknown as DashboardBaseComponent,
-        )
-      ) {
-        components.push(PublicDashboardViewConfig.getServedComponent(entry));
-      }
+    for (const entry of PublicDashboardViewConfig.getServedEntries(entries)) {
+      components.push(PublicDashboardViewConfig.getServedComponent(entry));
     }
 
     const board: StoredBoardSettings =
@@ -117,6 +131,108 @@ export default class PublicDashboardViewConfig {
       _type: ObjectType.DashboardViewConfig,
       components: components as unknown as Array<DashboardBaseComponent>,
     };
+  }
+
+  /*
+   * The stored entries a public dashboard serves, in their stored order:
+   * every widget entry but a Data Source widget that does not read only
+   * this project's metrics (isLeftOut). The served config and the public
+   * PromQL route both read the widgets from here, so the ids the page
+   * draws them under, which depend on each one's place among the served
+   * widgets, are the ids the route finds them by.
+   */
+  public static getServedEntries(entries: Array<unknown>): Array<JSONObject> {
+    return entries.filter((entry: unknown): entry is JSONObject => {
+      return (
+        StoredDashboardViewConfig.isWidgetEntry(entry) &&
+        !PublicDashboardViewConfig.isLeftOut(entry)
+      );
+    });
+  }
+
+  /*
+   * Whether a stored widget entry is left out of a public dashboard whole:
+   * a Data Source widget, unless every query it has set up reads this
+   * project's metrics (issue #10226) - read from its settings as every
+   * board reads them, as an object or as JSON text. Every other widget is
+   * served, as its type decides.
+   */
+  public static isLeftOut(entry: JSONObject): boolean {
+    if (
+      !PublicDashboardViewConfig.isDataSourceComponent(
+        entry as unknown as DashboardBaseComponent,
+      )
+    ) {
+      return false;
+    }
+
+    return !DataSourceWidgetQueries.readsOnlyProjectMetrics(
+      StoredDashboardViewConfig.getComponentType(entry),
+      StoredDashboardViewConfig.withArgumentsRead(entry)["arguments"],
+    );
+  }
+
+  /*
+   * The Data Source widgets a public dashboard's page draws (issue
+   * #10226), for the public PromQL route: each under the id the page draws
+   * it under, with its settings and queries as stored - the text the route
+   * runs, which the page is never served. Exactly the widgets the served
+   * config holds, read from the same entries in the same order
+   * (getServedEntries), so a widget's id here is its id on the page.
+   */
+  public static getDrawnDataSourceWidgets(
+    dashboardViewConfig: unknown,
+  ): Array<DrawnDataSourceWidget> {
+    if (!dashboardViewConfig) {
+      return [];
+    }
+
+    const served: Array<JSONObject> =
+      PublicDashboardViewConfig.getServedEntries(
+        StoredDashboardViewConfig.getComponentEntries(
+          StoredDashboardViewConfig.unwrap(dashboardViewConfig),
+        ),
+      );
+
+    // The served config holds each entry's own id as text, as here.
+    const ids: Array<string | null> =
+      StoredDashboardViewConfig.getComponentIds(served);
+
+    const widgets: Array<DrawnDataSourceWidget> = [];
+
+    served.forEach((entry: JSONObject, index: number): void => {
+      const componentId: string | null = ids[index] || null;
+
+      if (
+        !componentId ||
+        !PublicDashboardViewConfig.isDataSourceComponent(
+          entry as unknown as DashboardBaseComponent,
+        )
+      ) {
+        return;
+      }
+
+      const componentType: DashboardComponentType =
+        StoredDashboardViewConfig.getComponentType(
+          entry,
+        ) as DashboardComponentType;
+      const settings: unknown =
+        StoredDashboardViewConfig.withArgumentsRead(entry)["arguments"];
+
+      widgets.push({
+        componentId: componentId,
+        componentType: componentType,
+        settings: PublicDashboardViewConfig.isSettingsObject(settings)
+          ? (settings as JSONObject)
+          : {},
+        queries: DataSourceWidgetQueries.getConfiguredOfWidget(
+          componentType,
+          settings,
+        ),
+      });
+    });
+
+    return widgets;
   }
 
   /*

@@ -14,6 +14,7 @@ import {
   DataSourceConnectionSettings,
   DataSourceQueryWindow,
 } from "../../../../Server/Utils/DataSource/Types";
+import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import {
   DATA_SOURCE_CONNECT_TIMEOUT_IN_MS,
@@ -235,6 +236,36 @@ describe("parseRangeQueryResult", () => {
       instance: "b:9090",
       job: "api",
     });
+  });
+
+  test("keeps __name__ on series that only their names tell apart, so they are not drawn as one", () => {
+    const body: unknown = successBody("matrix", [
+      {
+        metric: { __name__: "http_errors_total", job: "api" },
+        values: [[1767225600, "1"]],
+      },
+      {
+        metric: { __name__: "http_requests_total", job: "api" },
+        values: [[1767225600, "40"]],
+      },
+      {
+        metric: { __name__: "http_requests_total", job: "web" },
+        values: [[1767225600, "7"]],
+      },
+    ]);
+
+    const result: AggregatedResult = parseRangeQueryResult(body);
+
+    expect(
+      result.data.map((point: AggregatedModel): unknown => {
+        return point["attributes"];
+      }),
+    ).toEqual([
+      { job: "api", __name__: "http_errors_total" },
+      { job: "api", __name__: "http_requests_total" },
+      // Told apart by its job already: named as before.
+      { job: "web" },
+    ]);
   });
 
   test("falls back to __name__ as the label when it is the only metric key", () => {

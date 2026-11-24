@@ -1524,7 +1524,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   ): string {
     return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
       date: date,
-      format: "MMM DD, YYYY",
+      format: "MMM D, YYYY",
       timezone: timezone || WorkspaceSummaryScheduleUtil.DEFAULT_TIMEZONE,
     });
   }

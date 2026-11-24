@@ -51,6 +51,17 @@ interface WorkflowToolDefinition {
    * a public note, shown on the status page and sent to its subscribers.
    */
   published?: boolean;
+  /*
+   * It emails addresses outside the project, as invite_people's
+   * invitations do (#10041): open-world, as a published write is.
+   */
+  mailsOutsideProject?: boolean;
+  /*
+   * It points OneUptime at an address outside it, as create_monitor does:
+   * set_up_website_monitoring's monitor checks the address it is given.
+   * Open-world, as a published write is.
+   */
+  pointsOutside?: boolean;
 }
 
 const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
@@ -275,7 +286,12 @@ export function generateWorkflowTools(): McpToolInfo[] {
         inputSchema: definition.inputSchema,
         annotations: definition.readOnly
           ? readOnlyToolAnnotations()
-          : writeToolAnnotations({ openWorld: definition.published === true }),
+          : writeToolAnnotations({
+              openWorld:
+                definition.published === true ||
+                definition.mailsOutsideProject === true ||
+                definition.pointsOutside === true,
+            }),
         modelName: "Workflow",
         operation: definition.readOnly
           ? OneUptimeOperation.Read

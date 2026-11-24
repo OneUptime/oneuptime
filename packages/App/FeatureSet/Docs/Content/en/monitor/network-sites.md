@@ -42,6 +42,10 @@ Sites form a tree. Each site has a **Site Type** and an optional parent site. Si
 
 A site's type, name, description, parent and location are edited in one place: the **Site Settings** card on the site's **Settings** page. The site's Overview shows them with an **Edit in Settings** link, and the **Sites** list adds sites but does not edit them.
 
+Sites that hold nothing go in one step: **Delete Empty Sites**, in the menu at the top of the **Sites** list, lists every site with no devices (archived ones too), no sites under it, and no endpoint, link, rule or maintenance event that uses it. It names the first ten, and deletes exactly the sites it listed once you confirm: a site that gets a device in the meantime is kept. It is for whoever may delete sites.
+
+The **Hierarchy** card at the top of the **Sites** page draws the tree. It stays folded until you press **Show Hierarchy**, and stays shown the next time if you leave it shown. It lists the sites at the top level first, fifty at a time, and a site's children once you open it. **Search sites by name** finds a site anywhere in the tree and opens the sites above it, and **Hide sites with no devices** leaves out every site with no device in it or below it.
+
 Each device attaches to one site. A site's subtree is the site itself plus every site beneath it, and the subtree's devices are what its health rolls up from, so a Region with no devices of its own still has a status, because the units under it do.
 
 > [!NOTE]
@@ -79,6 +83,19 @@ Store 0660,Unit,Leeds,"1 High Street, Leeds",53.7997,-1.5492
 - `name` and `siteType` are required. `siteType` must be one of the project's site types.
 - `parentName` names the parent site, which can be in the same file: rows with no parent, or with a parent that already exists, go in first, then their children. Leave it empty for a top-level site.
 - A row whose parent cannot be found is skipped, and the results list it. **Preview Import** shows what the file will create before anything is written.
+
+## Changing Many Sites at Once
+
+An import of a Meraki organization adds a site for each of its networks, all at the top level. You do not open each of them: select them on the **Sites** list, by ticking rows or selecting every site the filters match, and open **Bulk Actions**.
+
+| Action | What it does |
+| --- | --- |
+| **Set Parent Site** / **Clear Parent Site** | Moves every selected site under the site you pick, with every site below it, where it counts towards that site's health. **Clear Parent Site** moves them to the top level. A site needs a type to sit under another, and a site a Meraki import adds has none: when some of the selected sites have no type, the dialog asks for the type they take, and the others keep theirs. |
+| **Set Default Probe** / **Clear Default Probe** | Sets the [default probe](#monitoring-defaults) of every selected site, for the devices added to it later. The devices already in it keep their probes. |
+| **Add Labels** / **Remove Labels** | Labels group sites so you can filter and select them together. They do not decide who can see a site. |
+| **Add Owner** / **Remove Owner** | A site's owners own the alert it raises when it is unhealthy. A site's own **Owners** page lists them. |
+
+Each action is one dialog and one save for the whole selection, and every site goes through the same checks as an edit on its own Settings page. When an action finishes, it lists how many sites changed, which failed and why (a site cannot go under itself or a site below it, nor under a site of a type that holds devices only), and which it did not change and why: a site already under that parent, or the site picked as the parent.
 
 ## The Map
 
@@ -211,7 +228,7 @@ Attaching a monitor to the same event still does what it always does: active mon
 
 ## Alerting on a Site
 
-The **Alerting** card on a site's **Settings** page has **Alert When Unhealthy**: an alert opens when the site's rollup moves to a status that is not operational, and resolves itself when the site recovers. **Alert Severity** sets its severity; left empty, it is the project's most severe.
+The **Alerting** card on a site's **Settings** page has **Alert When Unhealthy**: an alert opens when the site's rollup moves to a status that is not operational, and resolves itself when the site recovers. **Alert Severity** sets its severity; left empty, it is the project's most severe. The site's owners, on its **Owners** page, own the alert.
 
 It alerts on the change only: turning it on for a site that is already unhealthy arms the next change rather than alerting about the past. Degraded is not operational, so a site on the percentage policy alerts as soon as one of its reporting devices is down, as a site on the worst-status policy does; the alert stays open, with no second one, while the site moves between Degraded and Offline, and its title names the status the site reached first.
 

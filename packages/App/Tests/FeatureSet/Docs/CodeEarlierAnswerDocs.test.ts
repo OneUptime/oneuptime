@@ -1,5 +1,11 @@
-import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
-import { dashboardLocale, readAsTheDocsWriteIt } from "./DocsDashboardLabels";
+import { DOCS_LANGUAGES } from "./DocsContentSupport";
+import {
+  codeChangeCautionIndex,
+  codeChangeCautionQuoting,
+  codeChangesSectionOf,
+  codeDocsCautionLine,
+  codeDocsTranslatorFor,
+} from "./CodeChangesDocsSection";
 import { readRepoFile } from "./InventoryAndApiDocsSupport";
 import {
   AI_ACTION_CODE_FILE,
@@ -16,7 +22,7 @@ import {
   findCodeFilesUnseen,
   seeCodeFile,
 } from "Common/Types/CodeRepository/CodeFileSeen";
-import { createTranslator, Translator } from "Common/Types/Translator";
+import { Translator } from "Common/Types/Translator";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -28,7 +34,6 @@ import { describe, expect, it } from "@jest/globals";
  * to the code that makes it true.
  */
 
-const PAGE: string = "ai/ask-ai";
 const FILE: string = "src/billing/charge.ts";
 
 const lineFor: (
@@ -49,66 +54,39 @@ const EARLIER: AIActionSentence = lineFor(
   FILE,
 );
 
-// The card's line for a file read only in part (issue #6330), which comes before it.
-const READ_IN_PART: AIActionSentence = lineFor(
-  AI_ACTION_PLURAL_LINES.codeFilesReadInPart,
-  FILE,
+// The card's line for a file Ask AI never read (issue #6313), which comes before it.
+const NOT_READ: AIActionSentence = codeDocsCautionLine(
+  AI_ACTION_PLURAL_LINES.codeFilesNotRead,
 );
 
-// The card's line for values hidden (issue #6364), which comes after it.
-const VALUES_HIDDEN: AIActionSentence = lineFor(
-  AI_ACTION_PLURAL_LINES.codeFilesValuesHidden,
-  "config/servers.ts",
+// The card's line for a file read earlier in this answer and left out since (issue #6570), which comes after it.
+const LEFT_OUT: AIActionSentence = codeDocsCautionLine(
+  AI_ACTION_PLURAL_LINES.codeFilesReadEarlierInThisAnswer,
 );
 
-const translatorFor: (language: string) => Translator = (
-  language: string,
-): Translator => {
-  const words: Record<string, unknown> = dashboardLocale(language);
-
-  // What it draws, as the page writes it (asTheDocsWriteIt).
-  return readAsTheDocsWriteIt(
-    createTranslator((text: string): string | undefined => {
-      const value: unknown = words[text];
-      return typeof value === "string" ? value : undefined;
-    }, language),
-  );
-};
-
-// The bullet about proposing code changes, which says it all.
-const codeBulletOf: (language: string) => string = (
-  language: string,
-): string => {
-  return (
-    readPage(language, PAGE)
-      .split("\n")
-      .find((line: string): boolean => {
-        return line.startsWith("- ") && line.includes(FILE);
-      }) || ""
-  );
-};
+const translatorFor: (language: string) => Translator = codeDocsTranslatorFor;
 
 const flat: (text: string) => string = (text: string): string => {
   return text.replace(/\s+/g, " ");
 };
 
 describe("the Ask AI page on a file Ask AI read only in an earlier answer (issue #6365)", () => {
-  it("quotes the card line as the English card says it, on the code-change bullet", () => {
-    const bullet: string = codeBulletOf("en");
+  it("quotes the card line as the English card says it, as a caution of its own in the Code changes section", () => {
     const line: string = describeAIActionSentence(EARLIER);
 
     expect(line).toBe(
       "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: src/billing/charge.ts.",
     );
-    expect(bullet).toMatch(/^- Propose a code change:/);
-    expect(bullet).toContain(`"${line}"`);
+    expect(codeChangeCautionQuoting("en", line)).toBe(
+      `  - "${line}" A later answer has the words of the earlier ones, not the files they read.`,
+    );
   });
 
   it("says why, and that reading it again in the answer that changes it says nothing", () => {
-    const bullet: string = codeBulletOf("en");
+    const bullet: string = codeChangesSectionOf("en");
 
     for (const said of [
-      "A later answer has the words of the earlier ones, not the files they read, so the card also names a file Ask AI read only in an earlier answer, for example",
+      "A later answer has the words of the earlier ones, not the files they read.",
       "Once Ask AI reads the file again in the answer that changes it, the card says nothing of it.",
     ]) {
       expect({ said, inPage: bullet.includes(said) }).toEqual({
@@ -176,32 +154,32 @@ describe("the Ask AI page on a file Ask AI read only in an earlier answer (issue
         expect(line).not.toContain("earlier answer");
       }
       expect(line).toContain(FILE);
-      expect(codeBulletOf(language)).toContain(line);
+      expect(codeChangeCautionQuoting(language, line)).toBeDefined();
     });
 
-    it("says it after the line about a file read in part and before the one about hidden values, once", () => {
-      const bullet: string = codeBulletOf(language);
+    it("says it right after the caution about a file never read and before the one about a file left out of this answer, once", () => {
       const translator: Translator = translatorFor(language);
       const earlier: string = describeAIActionSentence(EARLIER, translator);
-      const part: string = describeAIActionSentence(READ_IN_PART, translator);
-      const hidden: string = describeAIActionSentence(
-        VALUES_HIDDEN,
-        translator,
-      );
+      const notRead: string = describeAIActionSentence(NOT_READ, translator);
+      const leftOut: string = describeAIActionSentence(LEFT_OUT, translator);
 
-      expect(bullet.indexOf(part)).toBeGreaterThan(-1);
-      expect(bullet.indexOf(earlier)).toBeGreaterThan(bullet.indexOf(part));
-      expect(bullet.indexOf(hidden)).toBeGreaterThan(bullet.indexOf(earlier));
-      expect(bullet.split(earlier)).toHaveLength(2);
+      expect(codeChangeCautionIndex(language, notRead)).toBeGreaterThan(-1);
+      expect(codeChangeCautionIndex(language, earlier)).toBe(
+        codeChangeCautionIndex(language, notRead) + 1,
+      );
+      expect(codeChangeCautionIndex(language, leftOut)).toBe(
+        codeChangeCautionIndex(language, earlier) + 1,
+      );
+      expect(codeChangesSectionOf(language).split(earlier)).toHaveLength(2);
     });
 
-    it("keeps the bullet one line, in its place", () => {
-      const lines: Array<string> = readPage(language, PAGE).split("\n");
-      const english: Array<string> = readPage("en", PAGE).split("\n");
-
-      expect(lines.indexOf(codeBulletOf(language))).toBe(
-        english.indexOf(codeBulletOf("en")),
-      );
+    it("keeps the caution in its place: where the English page has it", () => {
+      expect(
+        codeChangeCautionIndex(
+          language,
+          describeAIActionSentence(EARLIER, translatorFor(language)),
+        ),
+      ).toBe(codeChangeCautionIndex("en", describeAIActionSentence(EARLIER)));
     });
   });
 });

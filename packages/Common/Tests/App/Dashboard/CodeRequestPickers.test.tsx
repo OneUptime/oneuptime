@@ -61,10 +61,9 @@ jest.mock(
 
 import CodePicker, {
   CodePickerOption,
-  getPickerMenuShift,
   PICKER_MAX_WIDTH_CLASS_NAME,
-  PICKER_MENU_WIDTH_PX,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodePicker";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 import CodeBranchPicker, {
   BRANCH_SEARCH_DELAY_MS,
   filterBranches,
@@ -380,58 +379,149 @@ describe("a picker in the request box", () => {
     expect(labels()).toEqual(["apple", "banana", "cherry"]);
   });
 
-  test("on a phone, the list moves left as far as it must to stay on the screen", async () => {
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      writable: true,
-      value: 390,
+  test("on a phone, the list slides along as far as it must to stay on the screen", async () => {
+    const restore: Array<() => void> = [];
+    const stub: (
+      target: HTMLElement,
+      property: string,
+      getter: (this: HTMLElement) => number,
+    ) => void = (
+      target: HTMLElement,
+      property: string,
+      getter: (this: HTMLElement) => number,
+    ): void => {
+      const original: PropertyDescriptor | undefined =
+        Object.getOwnPropertyDescriptor(target, property);
+
+      Object.defineProperty(target, property, {
+        configurable: true,
+        get: getter,
+      });
+      restore.push(() => {
+        if (original) {
+          Object.defineProperty(target, property, original);
+        } else {
+          Reflect.deleteProperty(target, property);
+        }
+      });
+    };
+
+    // A 390px phone, and a list 288px wide (w-72).
+    stub(document.documentElement, "clientWidth", () => {
+      return 390;
     });
-    draw(<Fruit />);
-    jest.spyOn(button(), "getBoundingClientRect").mockReturnValue({
-      left: 200,
-      right: 280,
-      top: 0,
-      bottom: 32,
-      width: 80,
-      height: 32,
-      x: 200,
-      y: 0,
-      toJSON: () => {
-        return {};
-      },
-    } as DOMRect);
+    stub(document.documentElement, "clientHeight", () => {
+      return 844;
+    });
+    stub(HTMLElement.prototype, "offsetWidth", function () {
+      return this.classList.contains(LAYERED_POPOVER_CLASS_NAME) ||
+        this.getAttribute("data-testid") === "fruit-menu"
+        ? 288
+        : 0;
+    });
+
+    try {
+      draw(<Fruit />);
+      jest.spyOn(button(), "getBoundingClientRect").mockReturnValue({
+        left: 200,
+        right: 280,
+        top: 0,
+        bottom: 32,
+        width: 80,
+        height: 32,
+        x: 200,
+        y: 0,
+        toJSON: () => {
+          return {};
+        },
+      } as DOMRect);
+
+      await userEvent.click(button());
+
+      const layer: HTMLElement = screen
+        .getByTestId("fruit-menu")
+        .closest(`.${LAYERED_POPOVER_CLASS_NAME}`) as HTMLElement;
+      const corner: { x: number } | undefined = (
+        layer as HTMLElement & {
+          _tippy?: {
+            popperInstance?: {
+              state: { modifiersData: Record<string, { x: number }> };
+            };
+          };
+        }
+      )._tippy?.popperInstance?.state.modifiersData["popperOffsets"];
+
+      // Under its button, slid back from 200 to stay 8px inside the 390px screen.
+      expect(layer).toHaveAttribute("data-popper-placement", "bottom-start");
+      expect(corner?.x).toBe(390 - 8 - 288);
+    } finally {
+      for (const undo of restore.reverse()) {
+        undo();
+      }
+    }
+  });
+
+  test("the list is drawn on the tooltip layer, never inside the box that holds the request (#9910)", async () => {
+    render(
+      <I18nextProvider i18n={translation}>
+        <div data-testid="request-box" style={{ overflow: "hidden" }}>
+          <Fruit />
+        </div>
+      </I18nextProvider>,
+    );
 
     await userEvent.click(button());
 
-    // 200 + 288 runs 110 px past the window's 378 px of room.
-    expect(screen.getByTestId("fruit-menu").style.left).toBe("-110px");
+    const menu: HTMLElement = screen.getByTestId("fruit-menu");
+
+    expect(screen.getByTestId("request-box")).not.toContainElement(menu);
+    expect(menu.closest(`.${LAYERED_POPOVER_CLASS_NAME}`)?.parentElement).toBe(
+      document.body,
+    );
+    expect(menu).toHaveClass("w-72", "max-w-[calc(100vw-1rem)]");
+    expect(menu).not.toHaveClass("absolute", "top-full", "left-0");
   });
 
-  test("where the list opens, as a pure rule", () => {
-    // Fits: under its button.
-    expect(
-      getPickerMenuShift({
-        buttonLeft: 100,
-        windowWidth: 1280,
-        menuWidth: PICKER_MENU_WIDTH_PX,
-      }),
-    ).toBe(0);
-    // Runs past the right edge: moved left by the overflow.
-    expect(
-      getPickerMenuShift({
-        buttonLeft: 1100,
-        windowWidth: 1280,
-        menuWidth: PICKER_MENU_WIDTH_PX,
-      }),
-    ).toBe(1100 + 288 - 1268);
-    // A window narrower than the list: never past the left edge.
-    expect(
-      getPickerMenuShift({
-        buttonLeft: 40,
-        windowWidth: 300,
-        menuWidth: PICKER_MENU_WIDTH_PX,
-      }),
-    ).toBe(28);
+  test("Tab goes from the search to Try again, and on from the button past it", async () => {
+    draw(
+      <Fruit
+        error="The fruit could not be read."
+        onRetry={getJestMockFunction()}
+      />,
+    );
+    await userEvent.click(button());
+
+    expect(screen.getByTestId("fruit-search")).toHaveFocus();
+
+    await userEvent.keyboard("{Tab}");
+    // Still open: Try again is the list's own, reached as it sat after the search.
+    expect(screen.getByTestId("fruit-retry")).toHaveFocus();
+
+    await userEvent.keyboard("{Tab}");
+    // Past the list's last: it closes, and Tab went on from the picker's button.
+    expect(screen.queryByTestId("fruit-menu")).toBeNull();
+    expect(screen.queryByTestId("fruit-retry")).toBeNull();
+  });
+
+  test("Escape with nothing listed still closes it and gives the button its focus back", async () => {
+    draw(<Fruit options={[]} />);
+    await userEvent.click(button());
+
+    expect(screen.getByTestId("fruit-empty")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByTestId("fruit-menu")).toBeNull();
+    expect(button()).toHaveFocus();
+  });
+
+  test("a press inside the list keeps it open and the focus in the search", async () => {
+    draw(<Fruit />);
+    await userEvent.click(button());
+
+    fireEvent.mouseDown(screen.getByTestId("fruit-menu"));
+
+    expect(screen.getByTestId("fruit-menu")).toBeInTheDocument();
+    expect(screen.getByTestId("fruit-search")).toHaveFocus();
   });
 });
 

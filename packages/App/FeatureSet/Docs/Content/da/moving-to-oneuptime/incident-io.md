@@ -54,9 +54,9 @@ Rapporten tæller, hvad der blev oprettet, inviteret og ikke overført, og viser
 | I incident.io | I OneUptime | Hvordan |
 | --- | --- | --- |
 | Brugere | Projektmedlemmer | Matches på e-mailadresse. Alle, der ikke er i projektet endnu, inviteres til det team, du vælger. Deaktiverede brugere overføres ikke. |
-| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. |
-| Vagtplaner | Vagtplaner | Hver rotation bliver et lag med de samme personer, den samme start, den samme vagtlængde og den samme arbejdstid, i vagtplanens tidszone. Den version af rotationen, der gælder nu, er den, der overføres. |
-| Eskaleringsstier | Vagtpolitikker | Hvert niveau bliver en eskaleringsregel, der tilkalder de samme vagtplaner, brugere og teams efter den samme ventetid. En gentagelse bliver politikkens gentagelser, og fra en forgrening overføres den første sti. |
+| Teams | Teams | Oprettes med deres medlemmer. Et team, hvis navn projektet allerede har, bruges som det er, og dets medlemmer røres ikke. Har to teams samme navn, overføres det andet element med et nummer, fx `Platform 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Vagtplaner | Vagtplaner | Hver rotation bliver et lag med de samme personer, den samme start, den samme vagtlængde og den samme arbejdstid, i vagtplanens tidszone. Den version af rotationen, der gælder nu, er den, der overføres. Har to vagtplaner samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
+| Eskaleringsstier | Vagtpolitikker | Hvert niveau bliver en eskaleringsregel, der tilkalder de samme vagtplaner, brugere og teams efter den samme ventetid. En gentagelse bliver politikkens gentagelser, og fra en forgrening overføres den første sti. Har to eskaleringsstier samme navn, overføres det andet element med et nummer, fx `Primary 2`, og rapporten nævner det navn, det blev oprettet med. |
 | Katalogtjenester | Tjenester | Posterne i dine katalogtyper i tjenestekategorien, oprettet i tjenestekataloget. Arkiverede poster udelades. |
 | Alvorligheder | Hændelsesalvorligheder | Oprettes i incident.io's rækkefølge, den mest alvorlige først. En alvorlighed, hvis navn projektet allerede har, bruges som den er. |
 | Statusser | Hændelsestilstande | En triagestatus svarer til den tilstand, OneUptime starter hændelser i, og en lukket status til den tilstand, hvor hændelser er løst. Aktive og pausede statusser oprettes mellem Bekræftet og Løst. |

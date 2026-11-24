@@ -139,6 +139,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import { KUBERNETES_COST_PRICING_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/KubernetesCostPricingNote";
 import {
   KubernetesCostEngineInfo,
+  KubernetesCostMemoryPeaksSource,
   KubernetesCostPricingSource,
 } from "../../../Types/Kubernetes/KubernetesCostPricing";
 
@@ -150,6 +151,7 @@ const ENGINE: KubernetesCostEngineInfo = {
   bundledEngineUnused: false,
   pricingSource: KubernetesCostPricingSource.DefaultRates,
   pricingProvider: "",
+  memoryPeaksFrom: KubernetesCostMemoryPeaksSource.Bundled,
 };
 
 function textOf(element: HTMLElement): string {

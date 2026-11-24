@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import Label from "./Label";
 import MonitorStatus from "./MonitorStatus";
 import NetworkSiteType from "./NetworkSiteType";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
@@ -19,6 +20,7 @@ import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
@@ -30,6 +32,8 @@ import {
   Entity,
   Index,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   ValueTransformer,
 } from "typeorm";
@@ -370,6 +374,68 @@ export default class NetworkSite extends BaseModel {
     length: ColumnLength.LongText,
   })
   public description?: string = undefined;
+
+  /*
+   * Labels group and filter sites (#10188): a Meraki organization's 700
+   * stores, by brand, by country, by who looks after them. A site's labels
+   * do not decide who may see it - no @AccessControlColumn - so a team
+   * limited to some labels reads every site, as it did before sites had
+   * labels: a device of theirs is in one, and the hierarchy draws its
+   * parents. Only people set them: no rule labels a site.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkSite,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkSite,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkSite,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Labels",
+    description: "Labels to group and filter sites by.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "NetworkSiteLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "networkSiteId",
+      referencedColumnName: "_id",
+    },
+  })
+  public labels?: Array<Label> = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -833,6 +899,7 @@ export default class NetworkSite extends BaseModel {
     description:
       "Slash-separated ancestor IDs of this site (e.g. '/rootId/childId/'). Managed by the server on parent changes; used for subtree queries and rollups.",
     example: "/5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e/",
+    serverOwned: ServerOwned.Always,
   })
   /*
    * LongText, not ShortText: each ancestor segment is a 36-char uuid, so a
@@ -871,6 +938,7 @@ export default class NetworkSite extends BaseModel {
     description:
       "Number of ancestors above this site (0 for root sites). Managed by the server on parent changes.",
     example: "3",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Number,
@@ -1073,6 +1141,7 @@ export default class NetworkSite extends BaseModel {
     title: "Current Monitor Status ID",
     description:
       "Whats the current rolled-up status ID of this site? Computed from the devices and child sites below it.",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1105,6 +1174,7 @@ export default class NetworkSite extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Last Rollup At",
     description: "When the health rollup for this site was last computed",
+    serverOwned: ServerOwned.Always,
   })
   @Index()
   @Column({

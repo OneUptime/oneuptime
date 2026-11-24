@@ -9,6 +9,7 @@ import EmailChangeConfirmation, {
   EMAIL_CHANGE_CANNOT_BE_EMAILED_MESSAGE,
   EMAIL_CHANGE_TOO_MANY_MESSAGE,
 } from "../../../Server/Utils/EmailChange/EmailChangeConfirmation";
+import EmailAddressChangedNotice from "../../../Server/Utils/EmailChange/EmailAddressChangedNotice";
 import User from "../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Email from "../../../Types/Email";
@@ -17,6 +18,7 @@ import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsEx
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 
 /*
  * CHANGING YOUR OWN EMAIL ADDRESS SAYS NOTHING ABOUT THE NEW ONE (#9821).
@@ -105,6 +107,7 @@ type Stubs = {
   assertMayAsk: jest.SpyInstance;
   sendForPendingChange: jest.SpyInstance;
   canSendEmail: jest.SpyInstance;
+  tellPreviousAddress: jest.SpyInstance;
 };
 
 let stubs: Stubs;
@@ -130,6 +133,9 @@ async function flushBackgroundWork(): Promise<void> {
 }
 
 beforeEach(() => {
+  // Every session here has confirmed it's its person's (#10155).
+  confirmEverySession();
+
   const findBy: jest.SpyInstance = jest
     .spyOn(UserService, "findBy")
     .mockResolvedValue([ownRow()] as never);
@@ -157,6 +163,13 @@ beforeEach(() => {
       .mockResolvedValue(undefined),
     canSendEmail: jest
       .spyOn(EmailChangeConfirmation, "canSendEmail")
+      .mockResolvedValue(true),
+    /*
+     * The email to the address an account leaves (#9907), pinned in
+     * UserServiceEmailAddressChangedNotice.test.ts.
+     */
+    tellPreviousAddress: jest
+      .spyOn(EmailAddressChangedNotice, "send")
       .mockResolvedValue(true),
   };
 
@@ -503,6 +516,8 @@ describe("an address written at once, and the proof it is asked for", () => {
     expect(stubs.updateOneBy).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: { isEmailVerified: false } }),
     );
+    // And the address the account left is told, once (#9907).
+    expect(stubs.tellPreviousAddress).toHaveBeenCalledTimes(1);
   });
 
   test("on a server that cannot send email the address is not marked unverified, which locked its person out", async () => {
@@ -511,5 +526,19 @@ describe("an address written at once, and the proof it is asked for", () => {
     await writeAtOnce({ email: new Email(FREE_EMAIL) });
 
     expect(stubs.updateOneBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("asking for a change, and the address the account still has (#9907)", () => {
+  test("the old address is told nothing while the change waits for its link", async () => {
+    const onUpdate: OnUpdate<User> = await userService().onBeforeUpdate(
+      update({ email: new Email(FREE_EMAIL) }),
+    );
+
+    await userService().onUpdateSuccess(onUpdate, [USER_ID]);
+    await flushBackgroundWork();
+
+    expect(stubs.sendForPendingChange).toHaveBeenCalledTimes(1);
+    expect(stubs.tellPreviousAddress).not.toHaveBeenCalled();
   });
 });

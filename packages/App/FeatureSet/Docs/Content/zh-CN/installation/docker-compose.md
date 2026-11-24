@@ -253,7 +253,9 @@ TRUSTED_PROXY_HOPS=2
 npm start
 ```
 
-`npm start` 会在新端口 `localhost:8080` 上检查 OneUptime，最后输出 **OneUptime is up!**
+`npm start` 会在 ingress 现在监听的地址 `127.0.0.1:8080` 上检查 OneUptime，最后输出 **OneUptime is up!**
+
+现在只有这台服务器能访问 ingress。ingress 按主机名路由请求：只有 `HOST` 和 `localhost` 能访问整个应用，其他任何名称（包括地址 `127.0.0.1`）都会被当作状态页面的域名。所以你的代理会把浏览器请求的名称 `HOST` 原样传过去，探测器调用 `http://localhost:8080`，而 `npm start` 结尾的检查和 `npm run doctor` 一样，会用主机名 `localhost:8080` 连接到 `127.0.0.1:8080`。
 
 #### 配置代理
 
@@ -583,7 +585,7 @@ npm run ps
 npm run logs
 ```
 
-所有容器都运行后，用 `npm run status-check` 再次运行检查。它会在 `ONEUPTIME_HTTP_PORT` 设定的端口上检查 ingress。
+所有容器都运行后，用 `npm run status-check` 再次运行检查。它会在 `ONEUPTIME_HTTP_PORT` 发布 ingress 的地址和端口（例如 `127.0.0.1:8080`）上，像服务器上的浏览器那样用主机名 `localhost` 检查 ingress。如果 `PROVISION_SSL=true`，它还会在 `STATUS_PAGE_HTTPS_PORT` 发布 ingress 的地方，通过 HTTPS 检查 `HOST`。
 :::
 
 :::details 浏览器显示 "此地址未设置 OneUptime"

@@ -106,11 +106,70 @@ function sameValue(actual, expected) {
   return String(left) === String(right);
 }
 
+/*
+ * Where the journal is kept: the tab's sessionStorage, or - for a world
+ * (?world=, Fixture/server.js) - the fixture's server, which every tab and
+ * browser naming the world reads, as devices read one server. Read and
+ * written synchronously, as a write is made and a page loads.
+ */
+export function sessionJournal(key) {
+  return {
+    load() {
+      try {
+        return JSON.parse(window.sessionStorage.getItem(key) || "null");
+      } catch {
+        return null;
+      }
+    },
+    save(saved) {
+      try {
+        window.sessionStorage.setItem(key, JSON.stringify(saved));
+      } catch {
+        // A tab without storage keeps its writes until it reloads.
+      }
+    },
+  };
+}
+
+export function readWorld(world, key) {
+  const request = new window.XMLHttpRequest();
+  request.open("GET", `/__fixture/worlds/${world}/${key}`, false);
+  request.send(null);
+  try {
+    return JSON.parse(request.responseText || "null");
+  } catch {
+    return null;
+  }
+}
+
+export function writeWorld(world, key, value) {
+  const request = new window.XMLHttpRequest();
+  request.open(
+    value === null ? "DELETE" : "PUT",
+    `/__fixture/worlds/${world}/${key}`,
+    false,
+  );
+  request.send(value === null ? null : JSON.stringify(value));
+}
+
+export function worldJournal(world) {
+  return {
+    load() {
+      return readWorld(world, "journal");
+    },
+    save(saved) {
+      writeWorld(world, "journal", saved);
+    },
+  };
+}
+
 export function createStore(options) {
   const projectId = options.projectId;
   const tables = new Map();
   const log = options.log;
   const journalKey = options.journalKey || null;
+  const journalStore =
+    options.journalStore || (journalKey ? sessionJournal(journalKey) : null);
   let journal = [];
   let counter = 0;
 
@@ -133,31 +192,22 @@ export function createStore(options) {
 
   // Every write, kept for the next load of this tab (see above).
   function remember(entry) {
-    if (!journalKey) {
+    if (!journalStore) {
       return;
     }
     journal.push(entry);
-    try {
-      window.sessionStorage.setItem(
-        journalKey,
-        JSON.stringify({ counter, journal }),
-      );
-    } catch {
-      // A tab without storage keeps its writes until it reloads.
-    }
+    journalStore.save({ counter, journal });
   }
 
-  // Does again, in order, every write this tab made before it reloaded.
+  /*
+   * Does again, in order, every write this tab - or, in a world, any
+   * device - made before it loaded.
+   */
   function restore() {
-    if (!journalKey) {
+    if (!journalStore) {
       return;
     }
-    let saved = null;
-    try {
-      saved = JSON.parse(window.sessionStorage.getItem(journalKey) || "null");
-    } catch {
-      saved = null;
-    }
+    const saved = journalStore.load();
     if (!saved) {
       return;
     }
@@ -509,7 +559,28 @@ export function createStore(options) {
  * `hooks[tableName]` runs after a create, as a service's onCreateSuccess
  * does (a new monitor's status, an on-call policy's rules).
  */
-export function installModelApi(ModelAPI, store, hooks) {
+export function installModelApi(ModelAPI, store, hooks, options = {}) {
+  /*
+   * ?refuse=<Table>[,<Table>]: the first create of each table named fails,
+   * once per tab, as a server that could not save it - so a spec sees a
+   * step fail, say why, and work when tried again (#10276).
+   */
+  const refuseOnce = (name) => {
+    if (!(options.refuse || []).includes(name)) {
+      return false;
+    }
+    const key = `__journeyFixtureRefused:${name}`;
+    try {
+      if (window.sessionStorage.getItem(key)) {
+        return false;
+      }
+      window.sessionStorage.setItem(key, "true");
+    } catch {
+      // A tab without storage refuses once per load.
+    }
+    return true;
+  };
+
   ModelAPI.getList = async (options) => {
     const records = store.list(options.modelType, options.query, options.sort);
     const skip = Number(options.skip || 0);
@@ -552,6 +623,12 @@ export function installModelApi(ModelAPI, store, hooks) {
         table: name,
       });
     } else {
+      if (refuseOnce(name)) {
+        throw fail(
+          503,
+          "OneUptime is busy and could not save this. Try again in a moment.",
+        );
+      }
       record = store.create(modelType, columns, {
         kind: "create",
         table: name,

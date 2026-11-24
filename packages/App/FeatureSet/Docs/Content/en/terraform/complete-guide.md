@@ -11,7 +11,7 @@ This guide covers what comes after your first apply: how the provider finds its 
 
 ## Configure the provider
 
-The provider takes two settings. Each comes from the provider block, or else from an environment variable:
+The provider connects with two settings. Each comes from the provider block, or else from an environment variable:
 
 | Setting | Environment variable | When neither is set |
 | --- | --- | --- |
@@ -25,6 +25,8 @@ flowchart TB
 ```
 
 `oneuptime_url` is your OneUptime's address, without `/api`: the provider adds `https://` when the address has no scheme, and `/api` at the end. `api_key` is sensitive, so Terraform never prints it.
+
+A third setting, `exclusive_lists`, decides what a configuration's labels hold: see [Labels and other lists OneUptime adds to](#labels-and-other-lists-oneuptime-adds-to).
 
 The key must be an API key of the project you manage, allowed to create, read, change and delete each kind of record your configuration has: see [Create a project API key](/docs/terraform/quick-start#create-a-project-api-key). A self-hosted OneUptime's master API key belongs to no project, so a create made with it fails with `ProjectId required`.
 
@@ -303,6 +305,36 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
   description = "Planned PostgreSQL upgrade"
   starts_at   = "2030-06-01T02:00:00Z"
   ends_at     = "2030-06-01T04:00:00Z"
+}
+```
+
+## Labels and other lists OneUptime adds to
+
+OneUptime adds to some of a record's lists on its own: a label rule adds its labels to the records it matches, an on-call rule adds its policies to the incidents and alerts it matches, and an SLO's monitor rules attach the monitors they match. The reference says it of each such attribute: "OneUptime adds to it too, on its own". A configuration that sets one holds the entries it lists, and leaves the rest:
+
+- **What the configuration lists is added**, and put back if someone takes it off.
+- **What you take out of the configuration is taken off.** `labels = []` takes off every label the configuration listed.
+- **What OneUptime or a person adds stays**, and no plan shows it as a change.
+- **Left out of the configuration**, the list is OneUptime's: Terraform adds nothing to it and takes nothing off.
+
+```hcl
+# A label a label rule adds to this monitor stays beside this one.
+resource "oneuptime_monitor" "payments_api" {
+  name         = "Payments API"
+  monitor_type = "Manual"
+  labels       = [oneuptime_label.payments.id]
+}
+```
+
+The state holds the labels the configuration lists that the record has, not every label the record has: the data source of the same name reads them all. An apply adds and takes off single labels, so a label a rule adds while it runs stays too.
+
+An import adopts every label the record has: list them all, as the record's Terraform page in the dashboard does, or the plan shows the ones left out being taken off. After you upgrade from an earlier version of the provider, the first plan of a configuration that sets labels shows them being set: the apply adds any the record lacks, and takes none off.
+
+To hold each such list to exactly what the configuration lists, as earlier versions did, set `exclusive_lists` in the provider block. Terraform then takes off a label a rule adds, at every apply:
+
+```hcl
+provider "oneuptime" {
+  exclusive_lists = true
 }
 ```
 

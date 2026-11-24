@@ -95,6 +95,17 @@ import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import {
+  SharedNameMark,
+  getSharedNameFacts,
+  getSharedNameMarks,
+  getSharedNameOptionKey,
+  getSharedNameSelect,
+} from "../../Utils/SharedNameOptions";
+import {
+  SharedNameDetail,
+  SharedNamePill,
+} from "../Dropdown/SharedNameOptionLines";
 
 /*
  * Whether a dropdown's list request was refused because the person may not
@@ -1197,6 +1208,18 @@ const ModelForm: <TBaseModel extends BaseModel>(
           }
 
           /*
+           * A team's, a label's, an on-call policy's or a schedule's
+           * description and when it was made, so records of one name are
+           * told apart in the picker (SharedNameOptions, #10064).
+           */
+          const isListedByName: boolean =
+            field.dropdownModal.labelField === "name";
+
+          if (isListedByName) {
+            Object.assign(select, getSharedNameSelect(tempModel));
+          }
+
+          /*
            * A sorted column is selected too: with the labels relation below
            * the list goes down TypeORM's paginated path, which orders by a
            * column only if it was selected - leaving it out fails the request.
@@ -1216,6 +1239,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
               _id: true,
               name: true,
               color: true,
+              /*
+               * When each label was made, which tells two of one name apart
+               * as categories (#10314). A relation's read takes no
+               * description, so a twin is known by its day here.
+               */
+              createdAt: true,
             } as any;
           }
 
@@ -1271,6 +1300,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
                   if (color) {
                     option.color = color;
                   }
+                }
+
+                const sharedName: DropdownOption["sharedName"] = isListedByName
+                  ? getSharedNameFacts(item)
+                  : undefined;
+
+                if (sharedName) {
+                  option.sharedName = sharedName;
                 }
 
                 if (accessControlColumnName) {
@@ -1337,12 +1374,52 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 },
               );
 
+              /*
+               * Labels named alike before names were held to one label each
+               * (#10314): each such category wears its list's pill beside
+               * the label, and the day it was made under it.
+               */
+              const labelMarks: Map<string, SharedNameMark> =
+                getSharedNameMarks(
+                  localLabels.map((label: AccessControlModel) => {
+                    return {
+                      value: label._id?.toString() || "",
+                      label: (label.getColumnValue("name") as string) || "",
+                      sharedName: getSharedNameFacts(label),
+                    };
+                  }),
+                  translator,
+                );
+
               // for each of these labels add category.
 
               for (const label of localLabels) {
+                const labelMark: SharedNameMark | undefined = labelMarks.get(
+                  getSharedNameOptionKey(label._id?.toString() || ""),
+                );
+
                 categories.push({
                   id: label._id?.toString() || "",
-                  title: (
+                  title: labelMark ? (
+                    <span className="mb-1 inline-flex flex-col gap-1">
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        <Pill
+                          size={PillSize.Small}
+                          color={
+                            (label.getColumnValue("color") as Color) || Black
+                          }
+                          text={(label.getColumnValue("name") as string) || ""}
+                          // A label's name is its owner's, drawn as written.
+                          isUserContent={true}
+                        />
+                        <SharedNamePill mark={labelMark} />
+                      </span>
+                      <SharedNameDetail
+                        mark={labelMark}
+                        className="text-xs font-normal text-gray-500"
+                      />
+                    </span>
+                  ) : (
                     <span className="mb-1">
                       <Pill
                         size={PillSize.Small}

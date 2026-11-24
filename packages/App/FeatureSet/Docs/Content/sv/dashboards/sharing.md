@@ -1,10 +1,11 @@
 # Delning & offentliga instrumentpaneler
 
-Som standard är en instrumentpanel privat för ditt projekt: bara personer som loggar in i ditt projekt kan se den. Du kan också dela den via en offentlig länk, skydda länken med ett lösenord, begränsa den till vissa IP-adresser och lägga den på din egen domän. Den här sidan går igenom alla fyra.
+Som standard är en instrumentpanel privat för ditt projekt: bara personer som loggar in i ditt projekt kan se den. Du kan också dela den via en offentlig länk, skydda länken med ett lösenord eller be besökarna logga in, begränsa den till vissa IP-adresser och lägga den på din egen domän. Den här sidan går igenom allt detta.
 
 :::cards
-- [Vem som kan se en instrumentpanel](#vem-som-kan-se-en-instrumentpanel): Ett val av tre, med den plan som varje val kräver.
+- [Vem som kan se en instrumentpanel](#vem-som-kan-se-en-instrumentpanel): Ett val av fyra, med den plan som varje val kräver.
 - [Dela med ett lösenord](#dela-med-ett-lösenord): Dela länken, och sedan lösenordet, med dem som ska se den.
+- [Bara personer som loggar in](#bara-personer-som-loggar-in): Bjud in de personer som får öppna den, eller låt er enkla inloggning logga in dem.
 - [IP-tillåtelselista](#ip-tillåtelselista): Öppna den offentliga länken bara för ditt kontor eller ditt VPN.
 - [Anpassade domäner](#anpassade-domäner): Visa instrumentpanelen på din egen domän, med ett gratis certifikat.
 :::
@@ -18,10 +19,13 @@ flowchart TB
     visit["En besökare öppnar<br/>den offentliga länken"] --> shared("Är instrumentpanelen<br/>delad offentligt?")
     shared -->|"Nej"| missing["En sida med<br/>'hittades inte'"]
     shared -->|"Ja"| allowed("Finns deras adress på<br/>IP-tillåtelselistan?")
-    allowed -->|"Ja, eller<br/>ingen lista"| locked("Krävs ett<br/>lösenord?")
+    allowed -->|"Ja, eller<br/>ingen lista"| signin("Måste besökare<br/>logga in?")
     allowed -->|"Nej"| denied["En sida med<br/>Access Denied"]
+    signin -->|"Ja"| signinpage["Inloggnings-<br/>sidan"]
+    signinpage --> board["Instrumentpanelen"]
+    signin -->|"Nej"| locked("Krävs ett<br/>lösenord?")
     locked -->|"Ja"| prompt["Frågan om<br/>lösenordet"]
-    prompt --> board["Instrumentpanelen"]
+    prompt --> board
     locked -->|"Nej"| board
 ```
 
@@ -32,14 +36,15 @@ flowchart TB
 - **Bara personer i det här projektet** (standard): medlemmar ser instrumentpanelen när de loggar in i OneUptime. Den har ingen offentlig länk: dess offentliga adress visar samma sida med "hittades inte" som en adress utan instrumentpanel, och ingenting om instrumentpanelen, inte ens dess namn.
 - **Alla med länken**: instrumentpanelen är offentlig. Alla som har länken kan se den, utan att logga in.
 - **Alla med länken och ett lösenord**: besökare öppnar länken och anger sedan ett lösenord som du delar med dem. Ingen behöver ett konto.
+- **Bara personer som loggar in**: instrumentpanelen har en offentlig länk, och bara de personer du väljer öppnar den, när de har loggat in där: de privata användare du bjuder in och de personer som er enkla inloggning släpper in. Se [Bara personer som loggar in](#bara-personer-som-loggar-in).
 
-När du gör ett val ombeds du bekräfta, med en förklaring av vad som ändras för besökarna, och sedan gäller det direkt. Väljer du **Alla med länken och ett lösenord** frågar samma dialogruta efter lösenordet när instrumentpanelen inte har något; så länge det är valet ersätter **Ändra lösenord** det. Så länge instrumentpanelen är offentlig står adresserna som besökare öppnar den på under valet: först dess anpassade domäner, sedan dess offentliga länk, var och en med **Kopiera länk**. En anpassad domän som inte är live än är markerad med **Inte live än**, med orsaken.
+När du gör ett val ombeds du bekräfta, med en förklaring av vad som ändras för besökarna, och sedan gäller det direkt. Väljer du **Alla med länken och ett lösenord** frågar samma dialogruta efter lösenordet när instrumentpanelen inte har något; så länge det är valet ersätter **Ändra lösenord** det. Så länge instrumentpanelen är offentlig står adresserna som besökare öppnar den på under valet: först dess anpassade domäner, sedan dess offentliga länk, var och en med **Kopiera länk**. En anpassad domän som inte är live än är markerad med **Inte live än**, med orsaken. Så länge **Bara personer som loggar in** är valet finns **Privata användare** och **Enkel inloggning** ett klick bort under det.
 
 Inom projektet styr ägare och etiketter vem som ser vad: se [Instrumentpanelskonfiguration & behörigheter](/docs/dashboards/configuration). Den som kan se instrumentpanelen men inte redigera den ser valet och kan kopiera den offentliga länken, men kan inte ändra valet.
 
-På OneUptime Cloud kräver delning av en instrumentpanel planen **Growth**: på en lägre plan visar de två offentliga valen vilken plan de kräver och kan inte väljas. Att göra en instrumentpanel privat igen (**Bara personer i det här projektet**) fungerar på alla planer, så en instrumentpanel som låg kvar offentligt när en provperiod tog slut, eller efter ett byte till en lägre plan, alltid kan sluta delas; dialogrutan säger att det krävs **Growth** för att dela den igen. Att växla mellan **Alla med länken** och **Alla med länken och ett lösenord**, och att ändra lösenordet, fungerar på alla planer. En instrumentpanel som skapas via API:et eller Terraform omfattas av samma planer: skapad offentlig kräver den **Growth**, och skapad med en IP-tillåtelselista **Scale**.
+På OneUptime Cloud kräver delning av en instrumentpanel planen **Growth**: på en lägre plan visar de offentliga valen vilken plan de kräver och kan inte väljas. Att göra en instrumentpanel privat igen (**Bara personer i det här projektet**) fungerar på alla planer, så en instrumentpanel som låg kvar offentligt när en provperiod tog slut, eller efter ett byte till en lägre plan, alltid kan sluta delas; dialogrutan säger att det krävs **Growth** för att dela den igen. Att växla mellan **Alla med länken** och **Alla med länken och ett lösenord**, och att ändra lösenordet, fungerar på alla planer. **Bara personer som loggar in** kräver också **Growth**, liksom dess privata användare, och dess enkla inloggning kräver **Scale**; att byta bort från det fungerar på alla planer, och dialogrutan säger att det krävs **Growth** för att välja det igen. En instrumentpanel som skapas via API:et eller Terraform omfattas av samma planer: skapad offentlig kräver den **Growth**, och skapad med en IP-tillåtelselista **Scale**.
 
-Valet lagras i tre kolumner, som API:et och Terraform läser och skriver som tidigare: `isPublicDashboard`, `enableMasterPassword` och `masterPassword`. Bara en offentlig instrumentpanel har en offentlig länk, och dess besökare får ange lösenordet så länge `enableMasterPassword` är på. En offentlig instrumentpanel med `enableMasterPassword` på men utan angivet lösenord släpper inte in någon via sin offentliga länk: sidan **Delning** visar den som **Alla med länken och ett lösenord**, säger att ingen kan öppna länken ännu och erbjuder **Ange lösenord**. Att välja **Bara personer i det här projektet** stänger också av `enableMasterPassword` och behåller lösenordet, så att en ny delning med lösenord kan återanvända det.
+Valet lagras i fyra kolumner, som API:et och Terraform läser och skriver: `isPublicDashboard`, `enableMasterPassword`, `masterPassword` och `requireSignIn`. Bara en offentlig instrumentpanel har en offentlig länk, och dess besökare får ange lösenordet så länge `enableMasterPassword` är på. En offentlig instrumentpanel med `enableMasterPassword` på men utan angivet lösenord släpper inte in någon via sin offentliga länk: sidan **Delning** visar den som **Alla med länken och ett lösenord**, säger att ingen kan öppna länken ännu och erbjuder **Ange lösenord**. Att välja **Bara personer i det här projektet** stänger också av `enableMasterPassword` och behåller lösenordet, så att en ny delning med lösenord kan återanvända det. En offentlig instrumentpanel med `requireSignIn` på ber besökarna logga in, och aldrig om lösenordet: att välja **Bara personer som loggar in** stänger av `enableMasterPassword` och behåller också lösenordet.
 
 ## Offentliga instrumentpaneler
 
@@ -53,7 +58,7 @@ En offentlig instrumentpanel:
 
 Behandla delning av en instrumentpanel som publicering av en webbsida. Varje widget på den blir läsbar för alla med länken. Titta på vad som finns på arbetsytan innan du delar den.
 
-Varje widget publicerar bara det den ritar, och bara för resurserna den har riktats mot. En SLO-widget publicerar till exempel det SLO:ets nyckeltal men aldrig dess definition: se [SLO](/docs/dashboards/widgets#slo). Widgetar med en extern **Datakälla** är undantaget: de tas helt bort från en offentlig instrumentpanel i stället för att renderas, eftersom deras konfiguration är själva frågan. Några fler widgetar kan inte visas utan en inloggad session, och säger det på sin plats: [På en offentlig instrumentpanel](/docs/dashboards/widgets#på-en-offentlig-instrumentpanel) listar dem. De publicerar bara sin titel, aldrig de sökningar och filter de läser sina data med. Även variabler publicerar bara det deras väljare visar: frågan i en äldre frågevariabel publiceras aldrig.
+Varje widget publicerar bara det den ritar, och bara för resurserna den har riktats mot. En SLO-widget publicerar till exempel det SLO:ets nyckeltal men aldrig dess definition: se [SLO](/docs/dashboards/widgets#slo). Widgetar med en **Datakälla** publicerar sina data, aldrig sina frågor: en widget på **Det här projektets mätvärden (PromQL)** ritar det som de sparade frågorna i den returnerar, körda över alla tjänster i projektet, och en widget med en extern datakälla tas helt bort från en offentlig instrumentpanel i stället för att renderas. Några fler widgetar kan inte visas utan en inloggad session, och säger det på sin plats: [På en offentlig instrumentpanel](/docs/dashboards/widgets#på-en-offentlig-instrumentpanel) listar dem. De publicerar bara sin titel, aldrig de sökningar och filter de läser sina data med. Även variabler publicerar bara det deras väljare visar: frågan i en äldre frågevariabel publiceras aldrig.
 
 ## Dela med ett lösenord
 
@@ -64,7 +69,19 @@ Använd ett lösenord när:
 - Du vill dela med en partner eller kund men inte vill att URL:en ska vara användbar om den läcker.
 - Instrumentpanelen är "halvoffentlig": öppen nog att du inte vill bjuda in varje tittare som teammedlem, men inte så öppen att du vill lägga den på det öppna internet.
 
-För strängare åtkomstkontroll (separata konton per tittare, ett granskningsspår över vem som såg vad) behåller du instrumentpanelen på **Bara personer i det här projektet** och bjuder i stället in tittarna som skrivskyddade teammedlemmar.
+För strängare åtkomstkontroll (separata konton per tittare, ett granskningsspår över vem som såg vad) behåller du instrumentpanelen på **Bara personer i det här projektet** och bjuder i stället in tittarna som skrivskyddade teammedlemmar, eller väljer **Bara personer som loggar in**.
+
+## Bara personer som loggar in
+
+Välj **Bara personer som loggar in** för att bara de personer du väljer ska kunna öppna den offentliga länken. Varje besökare möter först en inloggningssida, på den offentliga länken och på varje anpassad domän. Den visar instrumentpanelens namn, sidtitel och favicon, i dess tema, och inget annat: varken dess widgetar eller vem som får logga in. Efter inloggningen visar instrumentpanelen vem som är inloggad, med en knapp för att logga ut.
+
+Öppna **Offentlig länk → Privata användare** i instrumentpanelens sidomeny för att lägga till de personer som får logga in, via e-post. Var och en får en inbjudan via e-post vars länk låter dem välja ett lösenord. Länken fungerar i 24 timmar, och inloggningssidans länk för glömt lösenord skickar en ny. Tabellen visar vem som är **Registrerad**, vems inbjudan är **Inbjudan skickad** och när var och en var **Senast inloggad**. Att ta bort någon, eller ett nytt lösenord, loggar ut dem överallt vid deras nästa begäran.
+
+Öppna **Offentlig länk → Enkel inloggning** för att låta er identitetsleverantör logga in personer, med SAML eller OpenID Connect. Varje leverantör visar de värden du klistrar in i er identitetsleverantör. Alla som er identitetsleverantör släpper in blir en privat användare första gången de loggar in. Att stänga av en leverantör, eller ta bort den, loggar ut alla som den har loggat in. **Kräv SSO för inloggning** stänger av inloggning med lösenord: alla loggar då in med enkel inloggning, och alla som är inloggade med ett lösenord loggas ut vid sin nästa begäran.
+
+En inloggning gäller tills den har varit oanvänd i 30 dagar. Dess cookies skickas bara till instrumentpanelens egen adress, så ingen annan webbplats kan läsa instrumentpanelen med dem eller logga ut någon. Inloggningsförsök är begränsade för varje adress och varje konto, och inloggningssidan och sidan för glömt lösenord svarar likadant, oavsett om en adress får logga in eller inte.
+
+Via API:et är privata användare och leverantörer av enkel inloggning egna poster: `/dashboard-private-user`, `/dashboard-sso` och `/dashboard-oidc`, var och en med behörigheter uppkallade efter sig.
 
 ## IP-tillåtelselista
 
@@ -199,7 +216,7 @@ För att ge en inbäddad instrumentpanel din webbplats utseende lägger du till 
 
 ## Skicka en länk
 
-Den offentliga länken öppnar instrumentpanelen med dess sparade standardvärden. För att skicka en länk som öppnas på ett visst värde lägger du till variabeln i den som `?var-<name>=<value>`, på samma sätt som adressfältet gör när en besökare väljer ett värde; flera värden åtskiljs med kommatecken. För att öppna den med ett eget tidsintervall eller en egen automatisk uppdatering lägger du till `range` och `refresh` på samma sätt: `?range=1d&refresh=1m` öppnas på det senaste dygnet och uppdateras varje minut, så som en väggskärm kan behöva. `range` tar `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, och `refresh` tar `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går före instrumentpanelens standarder och besökarens egna val, och besökare kan fortfarande ändra dem. För att öppna instrumentpanelen i ett tema lägger du till `theme=light`, `theme=dark` eller `theme=system`, som [Inbäddning](#inbäddning) beskriver.
+Den offentliga länken öppnar instrumentpanelen med dess sparade standardvärden. För att skicka en länk som öppnas på ett visst värde lägger du till variabeln i den som `?var-<name>=<value>`, på samma sätt som adressfältet gör när en besökare väljer ett värde; flera värden åtskiljs med kommatecken. För att öppna den med ett eget tidsintervall eller en egen automatisk uppdatering lägger du till `range` och `refresh` på samma sätt: `?range=1d&refresh=1m` öppnas på det senaste dygnet och uppdateras varje minut, så som en väggskärm kan behöva. `range` tar `5m`, `15m`, `30m`, `1h`, `2h`, `3h`, `1d`, `2d`, `7d`, `14d`, `1mo` eller `3mo`, och `refresh` tar `off`, `5s`, `10s`, `30s`, `1m`, `5m` eller `15m`. De går före instrumentpanelens standarder och besökarens egna val, och besökare kan fortfarande ändra dem. För att öppna instrumentpanelen i ett tema lägger du till `theme=light`, `theme=dark` eller `theme=system`, som [Inbäddning](#inbäddning) beskriver. För att öppna den vid en widget lägger du till `widget=` med widgetens id, dess `componentId` i instrumentpanelens JSON: instrumentpanelen rullar till den widgeten och ramar in den en stund, via den offentliga länken lika väl som i OneUptime. En widget som instrumentpanelen inte längre har öppnar den högst upp och säger det. Länkarna som OneUptime gör till en widget, som i en varning som nämner vad som läser ett mätvärde, har det redan.
 
 ## Nästa steg
 

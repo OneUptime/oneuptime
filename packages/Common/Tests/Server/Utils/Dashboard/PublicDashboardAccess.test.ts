@@ -3,6 +3,7 @@ import PublicDashboardAccessPolicy, {
   PUBLIC_DASHBOARD_ACCESS_SELECT,
   PUBLIC_DASHBOARD_ADDRESS_UNKNOWN_MESSAGE,
   PUBLIC_DASHBOARD_NOT_AVAILABLE_MESSAGE,
+  PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
   PublicDashboardAccess,
   PublicDashboardAccessResult,
   PublicDashboardVisitor,
@@ -16,6 +17,7 @@ import {
   DashboardAccessState,
   getDashboardAccess,
   isDashboardMasterPasswordRequired,
+  isDashboardSignInRequired,
 } from "../../../../Types/Dashboard/DashboardAccess";
 import { DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE } from "../../../../Types/Dashboard/MasterPassword";
 import ForbiddenException from "../../../../Types/Exception/ForbiddenException";
@@ -34,6 +36,7 @@ import { describe, expect, it, test } from "@jest/globals";
  *
  *   no such dashboard, archived, or only people in the project  NotFound
  *   the IP allowlist does not name the visitor's address          Forbidden
+ *   only people who sign in, and the visitor is not signed in     SignInRequired
  *   a password the visitor has not entered (or, locked, none set) PasswordRequired
  *   otherwise                                                     Granted
  */
@@ -45,11 +48,20 @@ const ALLOWLIST: string = `10.0.0.0/8\n${ALLOWED_IP}`;
 const ANONYMOUS: PublicDashboardVisitor = {
   clientIp: ALLOWED_IP,
   hasUnlockCookie: false,
+  hasSignedInSession: false,
 };
 
 const UNLOCKED: PublicDashboardVisitor = {
   clientIp: ALLOWED_IP,
   hasUnlockCookie: true,
+  hasSignedInSession: false,
+};
+
+// One of the dashboard's private users, signed in on it (#10250).
+const SIGNED_IN: PublicDashboardVisitor = {
+  clientIp: ALLOWED_IP,
+  hasUnlockCookie: false,
+  hasSignedInSession: true,
 };
 
 type StoredDashboardOptions = DashboardAccessState & {
@@ -64,6 +76,7 @@ const storedDashboard: (options: StoredDashboardOptions) => Dashboard = (
   dashboard.id = ObjectID.generate();
   dashboard.isPublicDashboard = options.isPublicDashboard === true;
   dashboard.enableMasterPassword = options.enableMasterPassword === true;
+  dashboard.requireSignIn = options.requireSignIn === true;
   dashboard.isArchived = options.isArchived === true;
 
   if (options.hasMasterPassword) {
@@ -96,16 +109,23 @@ const decide: (
   return PublicDashboardAccessPolicy.decide({ dashboard, visitor });
 };
 
-// Every state the three columns can hold, labelled for the test names.
+// Every state the four columns can hold, labelled for the test names.
 const STORED_STATES: Array<[string, DashboardAccessState]> = [];
 
 for (const isPublicDashboard of [false, true]) {
   for (const enableMasterPassword of [false, true]) {
     for (const hasMasterPassword of [false, true]) {
-      STORED_STATES.push([
-        `public ${isPublicDashboard}, switch ${enableMasterPassword}, password ${hasMasterPassword}`,
-        { isPublicDashboard, enableMasterPassword, hasMasterPassword },
-      ]);
+      for (const requireSignIn of [false, true]) {
+        STORED_STATES.push([
+          `public ${isPublicDashboard}, switch ${enableMasterPassword}, password ${hasMasterPassword}, sign-in ${requireSignIn}`,
+          {
+            isPublicDashboard,
+            enableMasterPassword,
+            hasMasterPassword,
+            requireSignIn,
+          },
+        ]);
+      }
     }
   }
 }
@@ -132,6 +152,7 @@ describe("the link answers nobody (NotFound) for a dashboard it does not serve",
       for (const visitor of [
         ANONYMOUS,
         UNLOCKED,
+        SIGNED_IN,
         UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
       ]) {
         expect(decide(storedDashboard(state), visitor)).toEqual(
@@ -144,7 +165,7 @@ describe("the link answers nobody (NotFound) for a dashboard it does not serve",
   test.each(STORED_STATES)(
     "an archived dashboard (%s), whatever its sharing setting",
     (_label: string, state: DashboardAccessState) => {
-      for (const visitor of [ANONYMOUS, UNLOCKED]) {
+      for (const visitor of [ANONYMOUS, UNLOCKED, SIGNED_IN]) {
         expect(
           decide(storedDashboard({ ...state, isArchived: true }), visitor),
         ).toEqual(decide(null, visitor));
@@ -160,7 +181,7 @@ describe("the link answers nobody (NotFound) for a dashboard it does not serve",
         hasMasterPassword: false,
         ipWhitelist: ALLOWLIST,
       }),
-      { clientIp: OTHER_IP, hasUnlockCookie: false },
+      { clientIp: OTHER_IP, hasUnlockCookie: false, hasSignedInSession: false },
     );
 
     expect(result.access).toBe(PublicDashboardAccess.NotFound);
@@ -190,10 +211,15 @@ describe("for every Sharing choice, the link answers what the choice says", () =
       storedDashboard(state),
       UNLOCKED,
     );
+    const signedIn: PublicDashboardAccessResult = decide(
+      storedDashboard(state),
+      SIGNED_IN,
+    );
 
     if (choice === DashboardAccess.ProjectOnly) {
       expect(anonymous.access).toBe(PublicDashboardAccess.NotFound);
       expect(unlocked.access).toBe(PublicDashboardAccess.NotFound);
+      expect(signedIn.access).toBe(PublicDashboardAccess.NotFound);
       return;
     }
 
@@ -201,8 +227,32 @@ describe("for every Sharing choice, the link answers what the choice says", () =
       expect(anonymous).toEqual({
         access: PublicDashboardAccess.Granted,
         isMasterPasswordRequired: false,
+        isSignInRequired: false,
       });
       expect(unlocked).toEqual(anonymous);
+      expect(signedIn).toEqual(anonymous);
+      return;
+    }
+
+    if (choice === DashboardAccess.SignIn) {
+      expect(anonymous.access).toBe(PublicDashboardAccess.SignInRequired);
+      expect(anonymous.isSignInRequired).toBe(true);
+      // The password the dashboard may still hold is never asked for.
+      expect(anonymous.isMasterPasswordRequired).toBe(false);
+      expect(errorOf(anonymous)).toBeInstanceOf(NotAuthenticatedException);
+      expect(errorOf(anonymous)?.message).toBe(
+        PUBLIC_DASHBOARD_SIGN_IN_REQUIRED_MESSAGE,
+      );
+
+      // A password's unlock cookie lets nobody past the sign-in page.
+      expect(unlocked).toEqual(anonymous);
+
+      // Signed in, the visitor is let in, and the link still asks.
+      expect(signedIn).toEqual({
+        access: PublicDashboardAccess.Granted,
+        isMasterPasswordRequired: false,
+        isSignInRequired: true,
+      });
       return;
     }
 
@@ -213,10 +263,14 @@ describe("for every Sharing choice, the link answers what the choice says", () =
       DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
     );
 
+    // A private user's session is no password: it lets nobody in here.
+    expect(signedIn).toEqual(anonymous);
+
     // The password lets the visitor in, and the link still asks for it.
     expect(unlocked).toEqual({
       access: PublicDashboardAccess.Granted,
       isMasterPasswordRequired: true,
+      isSignInRequired: false,
     });
   });
 
@@ -230,6 +284,43 @@ describe("for every Sharing choice, the link answers what the choice says", () =
 
       expect(result.isMasterPasswordRequired).toBe(
         isDashboardMasterPasswordRequired(state),
+      );
+    },
+  );
+
+  test.each(STORED_STATES)(
+    "isSignInRequired follows the Sharing rule, signed in or not (%s)",
+    (_label: string, state: DashboardAccessState) => {
+      for (const visitor of [ANONYMOUS, SIGNED_IN]) {
+        const result: PublicDashboardAccessResult = decide(
+          storedDashboard(state),
+          visitor,
+        );
+
+        expect(result.isSignInRequired).toBe(isDashboardSignInRequired(state));
+      }
+    },
+  );
+
+  test.each(
+    STORED_STATES.filter(([, state]: [string, DashboardAccessState]) => {
+      return isDashboardSignInRequired(state);
+    }),
+  )(
+    "a dashboard that asks its visitors to sign in (%s) lets in only a signed-in visitor, password switch or not",
+    (_label: string, state: DashboardAccessState) => {
+      for (const visitor of [
+        ANONYMOUS,
+        UNLOCKED,
+        UNKNOWN_PUBLIC_DASHBOARD_VISITOR,
+      ]) {
+        expect(decide(storedDashboard(state), visitor).access).toBe(
+          PublicDashboardAccess.SignInRequired,
+        );
+      }
+
+      expect(decide(storedDashboard(state), SIGNED_IN).access).toBe(
+        PublicDashboardAccess.Granted,
       );
     },
   );
@@ -273,10 +364,20 @@ describe("the IP allowlist", () => {
     ipWhitelist: ALLOWLIST,
   });
 
+  const signInOnly: Dashboard = storedDashboard({
+    ...DASHBOARD_ACCESS_COLUMNS[DashboardAccess.SignIn],
+    hasMasterPassword: false,
+    ipWhitelist: ALLOWLIST,
+  });
+
   it("lets in an address it names, or one inside a range it names", () => {
     expect(decide(open, ANONYMOUS).access).toBe(PublicDashboardAccess.Granted);
     expect(
-      decide(open, { clientIp: "10.20.30.40", hasUnlockCookie: false }).access,
+      decide(open, {
+        clientIp: "10.20.30.40",
+        hasUnlockCookie: false,
+        hasSignedInSession: false,
+      }).access,
     ).toBe(PublicDashboardAccess.Granted);
   });
 
@@ -284,6 +385,7 @@ describe("the IP allowlist", () => {
     const result: PublicDashboardAccessResult = decide(open, {
       clientIp: OTHER_IP,
       hasUnlockCookie: false,
+      hasSignedInSession: false,
     });
 
     expect(result.access).toBe(PublicDashboardAccess.Forbidden);
@@ -313,6 +415,7 @@ describe("the IP allowlist", () => {
       const result: PublicDashboardAccessResult = decide(protectedDashboard, {
         clientIp: OTHER_IP,
         hasUnlockCookie,
+        hasSignedInSession: false,
       });
 
       expect(result.access).toBe(PublicDashboardAccess.Forbidden);
@@ -326,6 +429,29 @@ describe("the IP allowlist", () => {
       PublicDashboardAccess.PasswordRequired,
     );
     expect(decide(protectedDashboard, UNLOCKED).access).toBe(
+      PublicDashboardAccess.Granted,
+    );
+  });
+
+  it("is asked before sign-in: an address it refuses stays refused, signed in or not", () => {
+    for (const hasSignedInSession of [false, true]) {
+      const result: PublicDashboardAccessResult = decide(signInOnly, {
+        clientIp: OTHER_IP,
+        hasUnlockCookie: false,
+        hasSignedInSession,
+      });
+
+      expect(result.access).toBe(PublicDashboardAccess.Forbidden);
+      expect(result.isSignInRequired).toBe(true);
+      expect(result.isMasterPasswordRequired).toBe(false);
+    }
+  });
+
+  it("still asks an address it names to sign in", () => {
+    expect(decide(signInOnly, ANONYMOUS).access).toBe(
+      PublicDashboardAccess.SignInRequired,
+    );
+    expect(decide(signInOnly, SIGNED_IN).access).toBe(
       PublicDashboardAccess.Granted,
     );
   });
@@ -345,10 +471,11 @@ describe("the IP allowlist", () => {
 });
 
 describe("what every visitor sees: a visitor nothing is known about", () => {
-  it("knows no address and holds no unlock cookie", () => {
+  it("knows no address and holds no unlock cookie and no session", () => {
     expect(UNKNOWN_PUBLIC_DASHBOARD_VISITOR).toEqual({
       clientIp: undefined,
       hasUnlockCookie: false,
+      hasSignedInSession: false,
     });
   });
 
@@ -366,6 +493,16 @@ describe("what every visitor sees: a visitor nothing is known about", () => {
       PublicDashboardAccess.PasswordRequired,
     ],
     [
+      "only people who sign in",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        requireSignIn: true,
+      },
+      undefined,
+      PublicDashboardAccess.SignInRequired,
+    ],
+    [
       "anyone with the link, from some addresses",
       { isPublicDashboard: true, enableMasterPassword: false },
       ALLOWLIST,
@@ -381,7 +518,11 @@ describe("what every visitor sees: a visitor nothing is known about", () => {
     "%s",
     (
       _label: string,
-      switches: { isPublicDashboard: boolean; enableMasterPassword: boolean },
+      switches: {
+        isPublicDashboard: boolean;
+        enableMasterPassword: boolean;
+        requireSignIn?: boolean;
+      },
       ipWhitelist: string | undefined,
       expected: PublicDashboardAccess,
     ) => {
@@ -412,9 +553,11 @@ describe("a visitor's facts are read only when the decision needs them", () => {
   const recordingVisitor: (facts: {
     clientIp: string | undefined;
     hasUnlockCookie: boolean;
+    hasSignedInSession?: boolean;
   }) => RecordingVisitor = (facts: {
     clientIp: string | undefined;
     hasUnlockCookie: boolean;
+    hasSignedInSession?: boolean;
   }): RecordingVisitor => {
     const reads: Array<string> = [];
 
@@ -428,6 +571,10 @@ describe("a visitor's facts are read only when the decision needs them", () => {
         get hasUnlockCookie(): boolean {
           reads.push("hasUnlockCookie");
           return facts.hasUnlockCookie;
+        },
+        get hasSignedInSession(): boolean {
+          reads.push("hasSignedInSession");
+          return facts.hasSignedInSession === true;
         },
       },
     };
@@ -502,6 +649,47 @@ describe("a visitor's facts are read only when the decision needs them", () => {
       },
       ["clientIp", "hasUnlockCookie"],
     ],
+    [
+      "only people who sign in",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+        requireSignIn: true,
+      },
+      ["hasSignedInSession"],
+    ],
+    [
+      "only people who sign in, the password switch still on",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+        requireSignIn: true,
+      },
+      ["hasSignedInSession"],
+    ],
+    [
+      "only people who sign in, from some addresses",
+      {
+        isPublicDashboard: true,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+        requireSignIn: true,
+        ipWhitelist: ALLOWLIST,
+      },
+      ["clientIp", "hasSignedInSession"],
+    ],
+    [
+      "a dashboard only its project sees, sign-in switch on",
+      {
+        isPublicDashboard: false,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+        requireSignIn: true,
+      },
+      [],
+    ],
   ])(
     "%s",
     (
@@ -512,6 +700,7 @@ describe("a visitor's facts are read only when the decision needs them", () => {
       const recording: RecordingVisitor = recordingVisitor({
         clientIp: ALLOWED_IP,
         hasUnlockCookie: true,
+        hasSignedInSession: true,
       });
 
       decide(storedDashboard(options), recording.visitor);
@@ -539,6 +728,26 @@ describe("a visitor's facts are read only when the decision needs them", () => {
     expect(result.access).toBe(PublicDashboardAccess.Forbidden);
     expect(recording.reads).toEqual(["clientIp"]);
   });
+
+  it("a refused address is never asked for its session", () => {
+    const recording: RecordingVisitor = recordingVisitor({
+      clientIp: OTHER_IP,
+      hasUnlockCookie: false,
+      hasSignedInSession: true,
+    });
+
+    const result: PublicDashboardAccessResult = decide(
+      storedDashboard({
+        ...DASHBOARD_ACCESS_COLUMNS[DashboardAccess.SignIn],
+        hasMasterPassword: false,
+        ipWhitelist: ALLOWLIST,
+      }),
+      recording.visitor,
+    );
+
+    expect(result.access).toBe(PublicDashboardAccess.Forbidden);
+    expect(recording.reads).toEqual(["clientIp"]);
+  });
 });
 
 describe("what the decision reads", () => {
@@ -553,6 +762,10 @@ describe("what the decision reads", () => {
         "masterPassword",
         // Whether a master admin blocked it (DashboardService.withoutBlockedProject).
         "projectId",
+        // Whether only people who sign in may view it (#10250).
+        "requireSignIn",
+        // Whether a session a password signed in still counts.
+        "requireSsoForLogin",
       ].sort(),
     );
   });

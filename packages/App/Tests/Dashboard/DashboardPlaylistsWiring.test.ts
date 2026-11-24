@@ -301,8 +301,14 @@ describe("the player", () => {
       `${DASHBOARD_SRC}/Components/Dashboard/Components/DashboardChartComponent.tsx`,
     );
 
-    // The board hands it to the canvas, and the canvas to every widget.
-    expect(view).toContain("isPlayback={isPlayback} />");
+    // The board hands it to the canvas, among the canvas's props, and the canvas to every widget.
+    const boardCanvas: string = view.slice(
+      indexOfOnce(view, "<DashboardCanvas "),
+    );
+
+    expect(boardCanvas.slice(0, boardCanvas.indexOf(" />"))).toContain(
+      "isPlayback={isPlayback}",
+    );
     expect(canvas).toContain("isPlayback?: boolean | undefined;");
     expect(canvas).toContain("isPlayback={props.isPlayback}");
     expect(base).toContain("isPlayback?: boolean | undefined;");

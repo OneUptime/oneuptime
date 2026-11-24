@@ -1,4 +1,5 @@
 import IncomingRequestCriteria from "Common/Server/Utils/Monitor/Criteria/IncomingRequestCriteria";
+import getRequestBodyLimit from "Common/Server/Utils/RequestBodyLimit";
 import { JSONObject } from "Common/Types/JSON";
 import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
@@ -283,21 +284,23 @@ describe("any other body", () => {
 });
 
 describe("the largest text read", () => {
-  test("is the JSON parser's own limit, and nginx's for /heartbeat", () => {
+  test("is what the JSON parser takes on this route, and nginx for /heartbeat", () => {
     const repository: string = path.resolve(__dirname, "..", "..", "..", "..");
-    const startServer: string = fs.readFileSync(
-      path.join(repository, "packages/Common/Server/Utils/StartServer.ts"),
-      "utf8",
-    );
     const nginx: string = fs.readFileSync(
       path.join(repository, "packages/Nginx/default.conf.template"),
       "utf8",
     );
 
     expect(textBodyLimit).toBe("50mb");
-    expect(startServer).toMatch(
-      /export const jsonBodyParserOptions: BodyParserOptions = \{\s*limit: "50mb",/,
-    );
+
+    // StartServer holds the route, under each prefix, to 50 MiB (#10183).
+    for (const path of [
+      `/incoming-request/${SECRET_KEY}`,
+      `/incoming-request-ingest/incoming-request/${SECRET_KEY}`,
+    ]) {
+      expect(getRequestBodyLimit(path).bytes).toBe(50 * 1024 * 1024);
+    }
+
     expect(nginx).toMatch(
       /location \/heartbeat \{[\s\S]*?client_max_body_size 50M;/,
     );

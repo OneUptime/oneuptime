@@ -22,8 +22,10 @@ import {
 import {
   KubernetesComplianceBinding,
   KubernetesComplianceRole,
+  OneUptimeAgentInstall,
   OneUptimeAgentNodesProxyReason,
   getNodesProxyReasons,
+  getOneUptimeAgentInstall,
   isBuiltInRbacObject,
   isOneUptimeAgentObject,
   ruleGrants,
@@ -703,6 +705,7 @@ describe("the OneUptime agent's own binding", () => {
         ],
         oneUptimeAgent: {
           nodesProxyReasons: [OneUptimeAgentNodesProxyReason.KubeletPods],
+          installedAs: OneUptimeAgentInstall.Helm,
         },
       },
     ]);
@@ -724,6 +727,53 @@ describe("the OneUptime agent's own binding", () => {
         OneUptimeAgentNodesProxyReason.KubeletPods,
         OneUptimeAgentNodesProxyReason.CostPrometheus,
       ],
+      installedAs: OneUptimeAgentInstall.Helm,
+    });
+  });
+
+  /*
+   * The Amazon EKS add-on is the same chart, which labels its ClusterRole
+   * with how it was installed (#9928): its buyer drops nodes/proxy with the
+   * add-on's configuration values, so the page names those.
+   */
+  test("reads how the agent was installed: the Amazon EKS add-on as its label says, Helm otherwise", () => {
+    const install: (
+      labels?: Record<string, string>,
+    ) => OneUptimeAgentInstall = (
+      labels?: Record<string, string>,
+    ): OneUptimeAgentInstall => {
+      return getOneUptimeAgentInstall({ name: "agent", labels });
+    };
+
+    expect(install({ "oneuptime.com/installed-as": "aws-eks-addon" })).toBe(
+      OneUptimeAgentInstall.AwsEksAddon,
+    );
+    // A chart before the label, an empty one, and a word the page does not know.
+    expect(install()).toBe(OneUptimeAgentInstall.Helm);
+    expect(install({ "oneuptime.com/installed-as": "" })).toBe(
+      OneUptimeAgentInstall.Helm,
+    );
+    expect(install({ "oneuptime.com/installed-as": "gke-marketplace" })).toBe(
+      OneUptimeAgentInstall.Helm,
+    );
+    expect(getOneUptimeAgentInstall(null)).toBe(OneUptimeAgentInstall.Helm);
+  });
+
+  test("the Amazon EKS add-on's binding says it is the add-on's", () => {
+    expect(
+      evaluateCisClusterControl(
+        "5.1.10",
+        agentCluster({
+          roleLabels: {
+            ...AGENT_LABELS,
+            "oneuptime.com/nodes-proxy": "kubelet-pods",
+            "oneuptime.com/installed-as": "aws-eks-addon",
+          },
+        }),
+      )[0]!.oneUptimeAgent,
+    ).toEqual({
+      nodesProxyReasons: [OneUptimeAgentNodesProxyReason.KubeletPods],
+      installedAs: OneUptimeAgentInstall.AwsEksAddon,
     });
   });
 
@@ -743,7 +793,10 @@ describe("the OneUptime agent's own binding", () => {
         }),
       );
 
-    expect(findings[0]!.oneUptimeAgent).toEqual({ nodesProxyReasons: [] });
+    expect(findings[0]!.oneUptimeAgent).toEqual({
+      nodesProxyReasons: [],
+      installedAs: OneUptimeAgentInstall.Helm,
+    });
   });
 
   test("passes 5.1.10 once its role grants no nodes/proxy, only the kubelet's own subresources", () => {

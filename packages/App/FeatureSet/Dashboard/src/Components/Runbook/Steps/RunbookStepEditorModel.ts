@@ -30,6 +30,11 @@ import {
   FoldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  CaCertificateProblem,
+  HttpStepCertificateSettings,
+  getHttpStepCertificateSettings,
+} from "Common/Types/Runbook/HttpStepCertificates";
 
 /*
  * WHAT A RUNBOOK STEP'S EDITOR SHOWS, AND WHAT IT FOLDS AWAY.
@@ -49,7 +54,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *     folded;
  *   - JavaScript and Bash: the script;
  *   - HTTP request: the method, the URL and - for a method that sends one -
- *     the body; its headers folded;
+ *     the body; its headers and how it checks the server's certificate
+ *     (Allow self-signed certificates, CA certificate) folded;
  *   - SSH: the machine (user@host), the secret it signs in with, and the
  *     bash script - its port and key passphrase folded;
  *   - kubectl: the cluster's kubeconfig and the script;
@@ -291,6 +297,47 @@ export const INCLUDE_TRIGGER_CONTEXT_TITLE: string = translationKey(
   "Include trigger context",
 );
 export const HTTP_HEADERS_TITLE: string = translationKey("Headers (JSON)");
+
+/*
+ * An HTTP request step's certificate settings, under More fields
+ * (Common/Types/Runbook/HttpStepCertificates): the switch named as a
+ * monitor's is, and the CA certificate as an audit log export's syslog
+ * destination names its own. The switch's line says what "on" does and
+ * what it risks.
+ */
+export const HTTP_ALLOW_SELF_SIGNED_TITLE: string = translationKey(
+  "Allow self-signed certificates",
+);
+export const HTTP_ALLOW_SELF_SIGNED_DESCRIPTION: string = translationKey(
+  "Skips certificate checks for this step's request, so self-signed certificates work, but anyone on the network path could read or change the request.",
+);
+export const HTTP_CA_CERTIFICATE_TITLE: string =
+  translationKey("CA certificate");
+export const HTTP_CA_CERTIFICATE_HELP: string = translationKey(
+  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.",
+);
+export const HTTP_CA_CERTIFICATE_PLACEHOLDER: string =
+  "-----BEGIN CERTIFICATE-----";
+
+/*
+ * Under the CA certificate, while it is not one a save takes: the server
+ * refuses the save, and says the same.
+ */
+export const HTTP_CA_CERTIFICATE_PROBLEMS: Record<
+  CaCertificateProblem,
+  string
+> = {
+  [CaCertificateProblem.NotACertificate]: translationKey(
+    "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
+  ),
+  [CaCertificateProblem.PrivateKey]: translationKey(
+    "This holds a private key. Paste only the certificate: everyone who may read this runbook can read its steps.",
+  ),
+  [CaCertificateProblem.TooLong]: translationKey(
+    "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.",
+  ),
+};
+
 // A Manual step's description is what the responder reads and does.
 export const MANUAL_INSTRUCTIONS_TITLE: string = translationKey("Instructions");
 
@@ -383,6 +430,31 @@ export function getStepMoreFieldsItems(
       isSet: hasText((step.config as HttpRequestStepConfig).headersJson),
       ...(headerCount ? { value: String(headerCount) } : {}),
     });
+
+    /*
+     * How the server's certificate is checked: said "On" while the checks
+     * are off, so the folded line never hides that. The CA certificate is
+     * shown, and named, only while the step checks: the switch turns it off.
+     */
+    const certificates: HttpStepCertificateSettings =
+      getHttpStepCertificateSettings(step.config as HttpRequestStepConfig);
+
+    items.push({
+      key: "allowSelfSignedCertificates",
+      title: HTTP_ALLOW_SELF_SIGNED_TITLE,
+      isSet: certificates.skipsCertificateChecks,
+      ...(certificates.skipsCertificateChecks
+        ? { value: FOLDED_SECTION_ON, translateValue: true }
+        : {}),
+    });
+
+    if (!certificates.skipsCertificateChecks) {
+      items.push({
+        key: "caCertificate",
+        title: HTTP_CA_CERTIFICATE_TITLE,
+        isSet: Boolean(certificates.caCertificate),
+      });
+    }
   }
 
   /*
@@ -483,6 +555,23 @@ export const HTTP_METHODS_WITH_BODY: Array<HttpRequestMethod> = [
   "PATCH",
   "DELETE",
 ];
+
+/*
+ * What the certificate switch writes: true while on, and nothing while off,
+ * so a step that never turned it on keeps no key, and the switch turned on
+ * and off again leaves nothing to save (RunbookStepsSignature). The server
+ * reads only true as on.
+ */
+export function getAllowSelfSignedCertificatesPatch(
+  on: boolean,
+): Record<string, unknown> {
+  return { allowSelfSignedCertificates: on ? true : undefined };
+}
+
+// What the CA certificate writes: the text as pasted, or nothing.
+export function getCaCertificatePatch(text: string): Record<string, unknown> {
+  return { caCertificate: hasText(text) ? text : undefined };
+}
 
 /*
  * Whether an HTTP request step shows its Body: for a method that sends one,

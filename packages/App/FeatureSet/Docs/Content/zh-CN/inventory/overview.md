@@ -5,7 +5,10 @@
 :::cards
 - [条目如何进入资产清单](#条目如何进入资产清单): 发现、镜像，或由你添加。
 - [熟悉各个页面](#熟悉各个页面): 资产清单的页面，以及每个条目自己的页面。
-- [从 Esper 导入设备](#从-esper-导入设备): 你的 Esper 租户注册的每台 Android 设备，并保持最新。
+- [从 Esper 导入设备](#从-esper-导入设备): 你的 Esper 租户注册的每台 Android 设备和 Apple 设备，并保持最新。
+- [从 Microsoft Intune 导入设备](#从-microsoft-intune-导入设备): Intune 管理的每台 Windows 电脑、Mac、iPhone、iPad 和 Android 设备，并保持最新。
+- [从 Workspace ONE UEM 导入设备](#从-workspace-one-uem-导入设备): Workspace ONE 管理的每台手机、平板电脑和计算机，并保持最新。
+- [从 SOTI MobiControl 导入设备](#从-soti-mobicontrol-导入设备): MobiControl 管理的每台加固型设备、手机、平板电脑和计算机，并保持最新。
 - [手动添加](#手动添加): 第三方 API、外部数据库或设备。
 - [归档而不是删除](#归档而不是删除): 整理列表并让它保持整洁的方法。
 :::
@@ -26,14 +29,14 @@ flowchart TB
 | 来源 | API 中的值 | 来自哪里 | 保留多久 |
 | --- | --- | --- | --- |
 | **已发现** | `discovered` | 遥测到达时读取的 OpenTelemetry 资源属性：发送遥测的服务、主机、Kubernetes 对象或虚拟机。 | 每批遥测都会重新登记。静默时间超过其类别的时间窗口后被移除（见下文）。 |
-| **已镜像** | `inventory` | OneUptime 轮询器维护的记录：网络设备、云资源、IoT 设备、无服务器函数、RUM 应用、Docker 主机、Podman 主机，以及 Esper 连接导入的 Android 设备。每 15 分钟复制一次；Esper 设备则在其连接每次被读取时复制。 | 与其记录共存亡。删除记录，条目也随之消失。 |
+| **已镜像** | `inventory` | OneUptime 轮询器维护的记录：网络设备、云资源、IoT 设备、无服务器函数、RUM 应用、Docker 主机、Podman 主机，以及设备管理服务连接导入的设备。每 15 分钟复制一次；托管设备则在其连接每次被读取时复制。 | 与其记录共存亡。删除记录，条目也随之消失。 |
 | **由您添加** | `manual` | 由你为 OneUptime 看不到的东西添加：第三方 API、由供应商托管的数据库、机架里的设备。 | 直到你删除它。不会自动过期。 |
 
 发现或镜像的条目无法重命名，也无法改为其他类型：来源会在下一轮处理时覆盖这些更改。条目的 **设置** 页面会告诉你应在何处做持久的更改。无论来源如何，你随时都可以为任何条目添加的是自定义字段值：请参阅 [资产清单自定义字段](/docs/inventory/custom-fields)。
 
 ### 静默的条目保留多久
 
-发现的条目有心跳。每当它的遥测到达，最后出现时间就会向前推进，列表的 **状态** 列显示这个时间有多近。来自 Esper 的 Android 设备也是如此：它每次向 Esper 签入时都会更新。其他镜像的条目和你添加的条目没有心跳，因此它们的状态保持空白，而不是显示告警。
+发现的条目有心跳。每当它的遥测到达，最后出现时间就会向前推进，列表的 **状态** 列显示这个时间有多近。托管设备也是如此：它每次向其设备管理服务签入时都会更新。其他镜像的条目和你添加的条目没有心跳，因此它们的状态保持空白，而不是显示告警。
 
 | 状态 | 含义 |
 | --- | --- |
@@ -45,9 +48,9 @@ OneUptime 每 3 小时移除一次静默时间超过其类别时间窗口的发�
 
 | 条目类别 | 没有遥测多久后被移除 |
 | --- | --- |
-| Pod、Deployment、Proxmox 客户机和 VMware 虚拟机 | 1 天 |
-| Kubernetes 节点和命名空间、Proxmox 节点、VMware 主机、集群和数据存储，以及你的链路所调用的数据库和远程服务 | 7 天 |
-| 服务、主机、Kubernetes、Proxmox 和 Ceph 集群、存储阵列、vCenter 和 Docker Swarm 集群 | 30 天 |
+| Pod、Deployment、Proxmox 客户机、OpenStack 实例和 VMware 虚拟机 | 1 天 |
+| Kubernetes 节点和命名空间、Proxmox 节点、OpenStack Hypervisor、VMware 主机、集群和数据存储，以及你的链路所调用的数据库和远程服务 | 7 天 |
+| 服务、主机、Kubernetes、Proxmox 和 Ceph 集群、OpenStack 云、存储阵列、vCenter 和 Docker Swarm 集群 | 30 天 |
 
 OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 
@@ -59,9 +62,9 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 | --- | --- |
 | **概览** | 你有多少条目、它们是什么、有多少已静默，以及最近添加了什么。 |
 | **所有项目** | 所有条目。按名称、描述或身份键搜索，按类型、来源、状态或自定义字段缩小列表，并手动添加条目。 |
-| **托管设备** | 你的 Esper 连接，以及它们导入的每台 Android 设备，附带其状态、组、型号和 Android 版本。 |
+| **托管设备** | 你的设备管理服务连接（Esper、Microsoft Intune、Workspace ONE UEM 和 SOTI MobiControl），以及它们导入的每台设备，附带其状态、组、型号和操作系统。 |
 | **拓扑地图** | 条目之间如何连接：服务、它们调用的对象，以及它们运行所在的主机、Pod 和设备。 |
-| **已沉寂** | 超过一天没有动静的条目：没有发送遥测的发现条目，以及不再向 Esper 签入的设备。 |
+| **已沉寂** | 超过一天没有动静的条目：没有发送遥测的发现条目，以及不再向其设备管理服务签入的设备。 |
 | **按来源** | 某一个来源的条目：**已发现**、**已镜像** 或 **由您添加**。 |
 | **设置 → 自定义字段** | 你的项目在每个条目上记录的字段。 |
 | **帮助 → 文档** | 资产清单的简短指南，以及它能识别的条目类别。 |
@@ -71,11 +74,13 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 
 ### 资产详情
 
-主机或网络设备有一个 **资产详情** 卡片，以相同的方式描述两者：主机名、IP 地址、MAC 地址、序列号、制造商、型号、固件版本、操作系统、操作系统版本、设备类型和位置。Android 设备的卡片还有其安全补丁级别，来自 Android 代理或 Esper。没有任何来源报告过的信息显示为 **未知**，卡片会说明原因以及如何补全这些未知信息：设备未通过 SNMP 报告这些信息、设备尚未被读取，或 Meraki 设备的这些信息保存在其控制台中。
+主机或网络设备有一个 **资产详情** 卡片，以相同的方式描述两者：主机名、IP 地址、MAC 地址、序列号、制造商、型号、固件版本、操作系统、操作系统版本、设备类型和位置。Android 设备的卡片还有其安全补丁级别，来自 Android 代理或其设备管理服务。它还会标出补丁是否 **需要更新**（与 **安全补丁级别** 列一致），并显示已过多少天。没有任何来源报告过的信息显示为 **未知**，卡片会说明原因以及如何补全这些未知信息：设备未通过 SNMP 报告这些信息、设备尚未被读取，或 Meraki 设备的这些信息保存在其控制台中。
 
 - 主机的信息来自其遥测中的资源属性：IP 和 MAC 地址、架构和操作系统开箱即有，序列号、制造商、型号和固件在你标注后才有。
 - 网络设备的信息来自其 SNMP 轮询、角色和站点。其轮询尚未读取的信息来自发现：对其地址的最近一次扫描、路由器的 ARP 表，或其探测器的 DNS 查询。没有 ENTITY-MIB 的设备（例如 Meraki MX）仍会从系统描述中获得制造商、型号和操作系统，并从自身端口获得 MAC 地址。它的 IP 地址永远不会显示为主机名。
 - 当 [Meraki 连接](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 读取其组织时，Meraki 设备还会从 Meraki 控制台获取其轮询留空的信息，其中包括序列号、型号和固件。
+
+**所有项目** 可以找出需要处理的 Android 设备。它的 **安全补丁级别** 筛选条件会列出 **需要更新** 的设备，即安全补丁级别距今超过 90 天的设备，这与 [主机监控](/docs/monitor/host-monitor) 的 Security Patch Out of Date 警报所依据的规则相同。它的 **代理权限** 筛选条件会列出 [Android 代理](/docs/telemetry/android-agent) 仍缺少 READ_LOGS、READ_DROPBOX_DATA 或使用情况访问权限的设备。每个筛选条件都有一个同名的列，在你开启之前处于隐藏状态，CSV 导出中也包含该列。旁边的 **设备管理服务 ID** 列显示设备管理服务识别该设备所用的 ID，例如 `espercli secureadb connect --device` 所需的 Esper ID。
 
 卡片会说明每项信息的来源和时间。大多数信息共有的来源，例如主机的采集器、网络设备自身的 SNMP 轮询或读取它的发现扫描，只在信息下方提及一次。其他来源，例如路由器的 ARP 表或保存在设备上的值，会在对应信息下方说明。保存在网络设备上的值绝不会被发现读取的内容替换，两者不同时，卡片会同时显示两者。
 
@@ -89,7 +94,7 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 
 ## 从 Esper 导入设备
 
-连接一个 Esper 租户后，它注册的每台 Android 设备都会出现在资产清单中，包括应用从未启动过的设备。每台设备是一台主机，带有只有 Esper 才知道的信息：它的组，它的 Android 版本、构建号和安全补丁级别，它的序列号和 IMEI，它的电池和存储，以及它已安装的应用。Esper 不会主动发送任何内容，因此 OneUptime 按计划读取：每 15 分钟读取一次设备，每 6 小时读取一次每台设备的应用。
+连接一个 Esper 租户后，它注册的每台设备都会出现在资产清单中：它的 Android 设备，包括应用从未启动过的设备，以及它的 iPhone、iPad 和 Apple TV。每台设备是一台主机，带有只有 Esper 才知道的信息：它的组，它的操作系统和构建号，它的序列号和 IMEI，它的电池和存储，以及 Android 设备的安全补丁级别和已安装的应用。Esper 不会主动发送任何内容，因此 OneUptime 按计划读取：每 15 分钟读取一次设备，每 6 小时读取一次每台 Android 设备的应用。
 
 :::steps
 ### 在 Esper 中创建 API 密钥
@@ -98,18 +103,19 @@ OneUptime 发现的关系如果 30 天内没有再次出现，就会被移除。
 
 ### 连接租户
 
-转到 **产品 → 资源 → 资产清单**，然后打开 **托管设备**，点击 **连接 Esper**。输入 **租户**，也就是你的 Esper 控制台地址中 `.esper.cloud` 之前的名称（`acme.esper.cloud` 对应 `acme`），以及 **API 密钥**。**更多字段** 中包含连接的名称和读取频率。
+转到 **产品 → 资源 → 资产清单**，然后打开 **托管设备**，点击 **连接设备管理服务**，然后选择 **Esper**。输入 **租户**，也就是你的 Esper 控制台地址中 `.esper.cloud` 之前的名称（`acme.esper.cloud` 对应 `acme`），以及 **API 密钥**。**更多字段** 中包含连接的名称和读取频率。
 
 ### 检查首次读取
 
-**连接** 会在保存任何内容之前测试密钥：它会告诉你一次读取将导入多少台 Android 设备，或者告诉你哪里出错以及如何修复。首次读取会在一分钟内开始，连接所在的行会显示读取结果。
+**连接** 会在保存任何内容之前测试密钥：它会告诉你一次读取将导入多少台设备，或者告诉你哪里出错以及如何修复。首次读取会在一分钟内开始，连接所在的行会显示读取结果。
 :::
 
 | Esper 报告的内容 | 显示位置 |
 | --- | --- |
-| 型号、制造商、序列号、Android 版本、构建号，以及 IP 和 MAC 地址 | 设备的 **资产详情** 卡片，以及 **所有项目** 的列 |
+| 型号、制造商、序列号、操作系统及其版本、构建号，以及 IP 和 MAC 地址 | 设备的 **资产详情** 卡片，以及 **所有项目** 的列 |
 | 状态、上次签入、组、安全补丁级别、IMEI、电池、存储和 Esper 代理 | 设备的 **Esper** 卡片，以及 **托管设备** 的 **设备** 列表 |
 | 应用及其版本 | 设备的 **已安装的应用** 列表 |
+| 其 Esper 设备 ID | **所有项目** 中的 **设备管理服务 ID** 列 |
 
 ### 一台设备，而不是两台
 
@@ -124,15 +130,103 @@ OneUptime 先按设备在 Esper 中的名称查找其条目，再按其序列号
 
 ### 设备沉寂或离开 Esper 时
 
-超过 30 分钟未签入的设备会显示为 **离线**，并说明它上次签入是多久以前。其条目的 **状态** 取决于它的上次签入，如果它的遥测更近，则取决于遥测，因此静默一天的设备会出现在 **已沉寂** 页面上。
+超过 30 分钟未签入的 Android 设备会显示为 **离线**，并说明它上次签入是多久以前；iPhone、iPad 和 Apple TV 在 Apple 推送服务唤醒它们时才签入，间隔可能长达数小时，因此超过一天未签入才显示为 **离线**。其条目的 **状态** 取决于它的上次签入，如果它的遥测更近，则取决于遥测，因此静默一天的设备会出现在 **已沉寂** 页面上。
 
 从 Esper 中移除的设备会被标记为 **已移除**，其条目会被归档：它会离开列表，并在 **高级 → 已归档** 下等待。回到 Esper 的设备也会回到列表中。设备离开 30 天后，它会被删除，其条目也会被删除，除非遥测或你为该条目添加了内容。
 
 ### 设备停止签入时收到警报
 
-在 **托管设备** 中，点击连接所在行的 **设置警报**，然后创建 **Esper Device Stopped Checking In**。它会为每台超过 1 小时未向 Esper 签入的设备各打开一条以该设备命名的警报，并在设备再次签入后将其解决。
+在 **托管设备** 中，点击连接所在行的 **设置警报**，然后创建 **Esper Android Device Stopped Checking In** 和 **Esper Apple Device Stopped Checking In**。前者会为每台超过 1 小时未向 Esper 签入的 Android 设备各打开一条以该设备命名的警报，后者则为每台超过一天未签入的 Apple 设备打开，设备再次签入后警报即被解决。
 
-每次读取该连接时，都会以指标 `oneuptime.managed_device.check_in.age` 记录每台设备上次签入距今多少分钟，监视器每 5 分钟检查一次每台设备的最新值。同时运行 Android Agent 的设备交由 **Host Stopped Reporting** 监视，因此不会重复发出警报；从 Esper 移除的设备，其警报会被解决。读取失败时不会记录任何内容，因此在下一次读取之前，警报既不会打开也不会解决。对于夜间关机的设备群，请调高监视器的阈值。
+每次读取该连接时，都会以指标 `oneuptime.managed_device.check_in.age` 记录每台设备上次签入距今多少分钟，监视器每 5 分钟检查一次每台设备的最新值。同时运行 Android Agent 的设备交由 **Host Stopped Reporting** 监视，因此不会重复发出警报；从 Esper 移除的设备，其警报会被解决。读取失败时不会记录任何设备的内容，因此在读取再次成功之前，这些设备的警报既不会打开也不会解决。对于夜间关机的设备群，请调高监视器的阈值。
+
+再创建 **Esper Security Patch Out of Date**，Esper 报告的安全补丁级别超过 90 天的每台 Android 设备都会打开一条自己的警报，设备更新后即被解决。每次读取都会以指标 `oneuptime.managed_device.security_patch.age` 记录每台 Android 设备的补丁级别已过多少天。运行 Android Agent 的设备交由其主机的 **Security Patch Out of Date** 监视，因此不会重复发出警报。
+
+再创建 **Esper Low Battery** 和 **Esper Storage Nearly Full**，Esper 最近一次读取的电量低于 20% 的每台设备都会打开一条自己的警报，存储空间已用超过 90% 的每台设备也是如此，设备充电或重新有了空间后即被解决。每次读取都会以指标 `oneuptime.managed_device.battery.level` 和 `oneuptime.managed_device.storage.used` 记录这两项。运行 Android Agent 的设备交由其主机的 **Low Battery** 和 **Storage Nearly Full** 监视，它们在相同的水平发出警报，因此不会重复发出警报。
+
+设备的警报也会显示在它的条目上：设备的 **Esper** 卡片列出与它相关的未解决事件和警报，每条都链接到其页面；对于 Android Agent 不报告的设备，其 **警报** 和 **事件** 页面会列出其连接的监视器针对它发出的每一条。
+
+### 连接停止读取时收到警报
+
+创建 **Esper Connection Stopped Reading** 后，只要在连接的行将 **状态** 显示为 **已过时** 之前所等待的时长内，连接的读取一次都没有成功，连接就会打开一条自己的警报：即三个读取间隔再加十分钟，且不少于半小时，默认 15 分钟间隔下为 55 分钟。它的第一个调试步骤会列出连接最近的值，每个值附带其读取失败时的错误，第一次成功的读取即会解决该警报。每次读取，以及连接每次到期需要读取时，都会以指标 `oneuptime.managed_device.connection.read.age` 记录距上次成功读取已过多少分钟。监视器按创建时连接的读取间隔等待。关闭连接会解决它已打开的警报，因为已关闭的连接没有逾期的读取；它的设备的警报保持原样，直到它再次读取。删除连接会解决只读取该连接的监视器已打开的内容，并关闭它们的监控。
+
+## 从 Microsoft Intune 导入设备
+
+连接一个 Microsoft Intune 租户后，Intune 管理的每台设备都会出现在资产清单中：它的 Windows 电脑、Mac、iPhone、iPad、Android 设备和 Linux 计算机。每台设备是一台主机，带有 Intune 掌握的信息：它的类别，它的操作系统及其版本，它的序列号和 IMEI，它的合规性、所有权和注册方式，它的存储，以及 Intune 在它上面发现的应用。Intune 不会主动发送任何内容，因此 OneUptime 按计划读取：每 15 分钟读取一次设备，每 6 小时读取一次每台设备的应用。
+
+:::steps
+### 在 Microsoft Entra 中注册应用
+
+在 Microsoft Entra 管理中心打开 `App registrations`，点击 `New registration`。为它命名，保留 `Accounts in this organizational directory only`，然后注册。它的 `Overview` 页面显示 OneUptime 需要的两个 ID：`Application (client) ID` 和 `Directory (tenant) ID`。
+
+### 让它读取 Intune 的设备
+
+在 `API permissions` 下，依次点击 `Add a permission`、`Microsoft Graph`、`Application permissions`，然后添加 `DeviceManagementManagedDevices.Read.All`。接着点击 `Grant admin consent`，只有租户的管理员才能这样做。OneUptime 只需要这一个权限：它能列出设备以及 Intune 在设备上发现的应用，并且什么也改不了。
+
+### 创建客户端密码
+
+在 `Certificates & secrets` 下，点击 `New client secret`，复制它的 `Value`，而不是它的 `Secret ID`：Microsoft 只显示一次这个值。密码过期后就无法使用，所以请在过期前新建一个，并在编辑连接时填入。
+
+### 连接 Intune 租户
+
+转到 **产品 → 资源 → 资产清单**，然后打开 **托管设备**，点击 **连接设备管理服务**，然后选择 **Microsoft Intune**。输入 **租户 ID**、**应用程序(客户端) ID** 和 **客户端密钥**。如果租户位于美国政府云中，请在 **更多字段** 下的 **云** 中选择它。**连接** 会在保存任何内容之前测试应用注册：它会告诉你一次读取将导入多少台设备，或者哪里出了问题以及如何修复。
+:::
+
+设备大约每 8 小时向 Intune 签入一次，它的上次签入就是它最后一次签入的时间：一天没有签入的设备显示为 **离线**。它的应用是 Intune 在它上面发现的应用，Microsoft Graph 只在其 beta 版本中列出它们：对于个人设备，是 Intune 管理的应用。Intune 的组是 Microsoft Entra 的组，此权限不会读取，因此设备的组就是它的设备类别。不会读取任何关于设备用户的信息。
+
+Intune 用设备所有者起的名字来命名设备，因此两台设备可能同名：所有没人改过名的 iPhone 都叫 `iPhone`。一个连接中两台设备共用的名字，在资产清单中不属于其中任何一台：每台设备改用其序列号命名，一旦没有其他设备使用这个名字，就会取回自己的名字。
+
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Intune Device Stopped Checking In**。它会为每台超过一天未向 Intune 签入的设备各打开一条以该设备命名的警报。周末关机的笔记本电脑看起来也一样，所以如果一天对你的设备来说太短，请调高监视器的阈值。与 Esper 的模板一样， **Intune Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**Intune Low Battery**、**Intune Storage Nearly Full** 和 **Intune Connection Stopped Reading** 与 Esper 的模板一样发出警报。Intune 只知道 iPhone 或 iPad 的电量，且是其上次签入时的电量，因此 **Intune Low Battery** 针对这些设备发出警报。
+
+## 从 Workspace ONE UEM 导入设备
+
+连接一台 Workspace ONE UEM 服务器后，它管理的每台设备都会出现在资产清单中：它的 iPhone、iPad、Mac、Windows 电脑、Android 设备和 Linux 计算机。每台设备是一台主机，带有 Workspace ONE 掌握的信息：它的组织组，它的操作系统及其版本，它的型号、序列号和 IMEI，它的合规性、注册方式和所有权，它的电池、存储和内存，以及它的应用。Workspace ONE 不会主动发送任何内容，因此 OneUptime 按计划读取：每 15 分钟读取一次设备，每 6 小时读取一次每台设备的应用。
+
+:::steps
+### 创建只读角色
+
+在 Workspace ONE UEM 控制台中，依次转到 `Accounts`、`Administrators`、`Roles`，然后点击 `Add Role`。在 `API` 下的 `REST` 中，为 `Devices` 和 `Apps` 选择 `Read`，其他都不选。OneUptime 只需要这个角色：它能列出设备及其应用，并且什么也改不了。
+
+### 创建 OAuth 客户端
+
+依次转到 `Groups & Settings`、`Configurations`、`OAuth Client Management`，然后点击 `Add`。选择 OneUptime 要读取其设备的组织组，并为客户端分配你创建的角色。复制它的 `Client ID` 和 `Client Secret`：Workspace ONE 只显示一次密钥。
+
+### 连接服务器
+
+转到 **产品 → 资源 → 资产清单**，然后打开 **托管设备**，点击 **连接设备管理服务**，然后选择 **Workspace ONE UEM**。输入 **REST API URL**，它显示在 `Groups & Settings`、`All Settings`、`System`、`Advanced`、`API`、`REST API` 中，例如 `https://as1234.awmdm.com`。在 **登录方式** 下保留 **OAuth 客户端**，输入 **客户端 ID** 和 **客户端密钥**，然后选择你的数据中心的令牌服务所在的 **区域**。**连接** 会在保存任何内容之前测试客户端：它会告诉你一次读取将导入多少台设备，或者哪里出了问题以及如何修复。
+:::
+
+本地部署的 Workspace ONE 服务器没有令牌服务：在 **登录方式** 下选择 **管理员账户**，然后输入具有只读角色的管理员的 **用户名** 和 **密码**，以及同一 REST API 设置中的 **REST API 密钥**，该设置必须允许基本身份验证。OneUptime Cloud 只读取公共互联网上的服务器，因此私有网络中的服务器要由自托管的 OneUptime 读取。
+
+设备按自己的计划向 Workspace ONE 报告，iPhone 的报告间隔长达数小时，因此一天没有报告的设备显示为 **离线**。不再注册的设备会被排除。设备以它报告的名称命名，而不是以 Workspace ONE 根据其用户姓名生成的友好名称命名，并且不会读取任何关于设备用户的信息。每个请求都计入租户的每日 API 配额，因此一次读取最多读取 25 台设备的应用，下一次读取再读取接下来的设备。
+
+从设备发送遥测的应用或 Android Agent 会按设备的序列号与该设备合并为一个条目：在其托管配置中，将 Android Agent 的 `device_serial` 设置设为查找值 `{DeviceSerialNumber}`。
+
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **Workspace ONE Device Stopped Checking In**。它会为每台超过一天未向 Workspace ONE 报告的设备各打开一条以该设备命名的警报。与 Esper 的模板一样， **Workspace ONE Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**Workspace ONE Low Battery**、**Workspace ONE Storage Nearly Full** 和 **Workspace ONE Connection Stopped Reading** 与 Esper 的模板一样发出警报。Workspace ONE 报告已接通电源、即在充电器或底座上的设备不计入 **Workspace ONE Low Battery**，它已打开的警报也会被解决。
+
+## 从 SOTI MobiControl 导入设备
+
+连接一台 SOTI MobiControl 服务器（无论位于 SOTI 的云中还是本地部署）后，它管理的每台设备都会出现在资产清单中：它的加固型 Android 设备、手机、平板电脑和扫描器，它的 iPhone、iPad 和 Mac，以及它的 Windows 和 Linux 计算机。每台设备是一台主机，带有 MobiControl 掌握的信息：它的设备组，它的操作系统及其版本，它的型号、序列号和 IMEI，它的合规性，它的代理，它的电池、存储和内存，以及它已安装的应用程序。MobiControl 不会主动发送任何内容，因此 OneUptime 按计划读取：每 15 分钟读取一次设备，每 6 小时读取一次每台设备的应用。
+
+:::steps
+### 创建只读的 MobiControl 用户
+
+在 MobiControl Web 控制台中，添加一个 MobiControl 自己的用户，而不是 SOTI Identity 用户。在其常规权限中只允许 `Web Console Access` 和 `View Installed Applications`，其他都不允许，并在 OneUptime 读取的设备组上授予它 `View Groups`。OneUptime 只需要这个用户：它能看到设备及其应用，并且什么也改不了。
+
+### 创建 API 客户端
+
+在 Web 控制台中，依次转到 `Global Settings`、`Services`、`API Client`，然后添加一个。复制它的 `Client ID` 和 `Client Secret`：MobiControl 只显示一次密钥。早于 MobiControl 2024.0 的服务器则在服务器上用 `MCAdmin.exe APIClientAdd -n:OneUptime` 创建一个。
+
+### 连接 MobiControl 服务器
+
+转到 **产品 → 资源 → 资产清单**，然后打开 **托管设备**，点击 **连接设备管理服务**，然后选择 **SOTI MobiControl**。输入 **服务器**，也就是不含 `/MobiControl` 的 Web 控制台地址，例如 `https://acme.mobicontrolcloud.com`，以及 API 客户端的 **客户端 ID** 和 **客户端密钥**，然后输入用户的 **用户名** 和 **密码**。**连接** 会在保存任何内容之前测试登录：它会告诉你一次读取将导入多少台设备，或者哪里出了问题以及如何修复。
+:::
+
+MobiControl 代理与其服务器保持实时连接，因此代理已连接的设备处于在线状态，代理 30 分钟未连接的设备显示为 **离线**。iPhone、iPad 或 Mac 通过 Apple 推送服务签入，间隔长达数小时，超过一天未签入才显示为 **离线**。被管理员禁用的设备显示为 **已禁用**，正在取消注册的设备会被排除。OneUptime Cloud 只读取公共互联网上的服务器，因此私有网络中的服务器要由自托管的 OneUptime 读取。不会读取任何关于设备用户的信息。
+
+从设备发送遥测的应用或 Android Agent 会按设备的序列号与该设备合并为一个条目：在其托管配置中，将 Android Agent 的 `device_serial` 设置设为宏 `%SERIALNUM%`。
+
+要在设备停止签入时收到警报，请点击连接所在行的 **设置警报**，然后创建 **SOTI Device Stopped Checking In** 和 **SOTI Apple Device Stopped Checking In**。前者为每台代理超过 1 小时未连接的 Android、Windows 或 Linux 设备打开一条警报，后者为每台超过一天未签入的 Apple 设备打开一条警报，每条都以该设备命名。与 Esper 的模板一样， **SOTI Security Patch Out of Date** 会为安全补丁级别超过 90 天的每台 Android 设备发出警报。**SOTI Low Battery**、**SOTI Storage Nearly Full** 和 **SOTI Connection Stopped Reading** 与 Esper 的模板一样发出警报。MobiControl 报告正在充电的 Android 设备不计入 **SOTI Low Battery**，它已打开的警报也会被解决。
 
 ## 手动添加
 

@@ -6,6 +6,7 @@ Ein Ingestion-Budget begrenzt, wie viel Telemetrie ein Projekt an einem Tag send
 - [Wie Budgets funktionieren](#wie-budgets-funktionieren): Drei Ebenen, gezählt, während Telemetrie eintrifft.
 - [Die Standardbudgets aller Projekte festlegen](#die-standardbudgets-aller-projekte-festlegen): In den Einstellungen des Admin Dashboards.
 - [Einem Ingestion-Schlüssel ein eigenes Budget geben](#einem-ingestion-schlüssel-ein-eigenes-budget-geben): Ein Anteil am Budget des Projekts.
+- [Einem Team oder einer Beschriftung ein eigenes Budget geben](#einem-team-oder-einer-beschriftung-ein-eigenes-budget-geben): Für die Dienste, die dem Team gehören oder die Beschriftung tragen.
 - [Warnungen für ein Budget einrichten](#warnungen-für-ein-budget-einrichten): Bevor es aufgebraucht ist, und wenn es so weit ist.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Für die Budgets der Instanz und eines Projekts das Admin Dashboard.** Auf einer selbst gehosteten Installation legt nur der Instanzadministrator sie fest. Die Projektinhaber und Projektadministratoren eines Projekts sehen seine Budgets, können sie aber nicht ändern.
 - **Für das eigene Budget eines Schlüssels eine Rolle, die Ingestion-Schlüssel bearbeiten darf.** Projektinhaber oder Projektadministrator, oder eine eigene Rolle mit der Berechtigung Edit Ingestion Key.
+- **Für das Budget eines Teams oder einer Beschriftung: Projektinhaber oder Projektadministrator.**
 - **Um die Budgets zu sehen, eine Rolle, die die Nutzung des Projekts sieht.** Die Rollen, die die Seite [Telemetrie-Nutzung](/docs/telemetry/usage) sehen, sehen dort auch die Budgets des Projekts.
 
 ## Die Standardbudgets aller Projekte festlegen
@@ -94,6 +96,30 @@ Klicken Sie auf **Änderungen speichern**. Das Budget eines Schlüssels kann nic
 - **Beide Budgets zählen.** Mit dem Schlüssel gesendete Telemetrie wird auf das Budget des Schlüssels und auf das des Projekts angerechnet, und das zuerst aufgebrauchte lehnt sie ab.
 - **Ein gesenktes Projektbudget gilt auch für den Schlüssel.** Wird das Budget des Projekts unter das eines Schlüssels gesenkt, gilt für den Schlüssel das des Projekts.
 
+## Einem Team oder einer Beschriftung ein eigenes Budget geben
+
+Auch das Budget eines Teams oder einer Beschriftung ist ein Anteil am Budget seines Projekts, für die Dienste, die dem Team gehören oder die Beschriftung tragen: Der außer Kontrolle geratene Dienst eines Teams stoppt am Budget seines Teams, während der Rest des Projekts weiter sendet, selbst über denselben Collector und denselben Ingestion-Schlüssel.
+
+:::steps
+### Die Seite Nutzung öffnen
+
+Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Nutzung**, und öffnen Sie **Weitere Einstellungen** am Ende der Seite.
+
+### Das Budget hinzufügen
+
+Klicken Sie auf der Karte **Team- und Beschriftungsbudgets** auf **Budget erstellen**. Wählen Sie unter **Team oder Beschriftung** das Team oder die Beschriftung, und geben Sie unter **Protokolle (GB pro Tag)** eine Anzahl GB pro Tag ein. Die anderen Signale stehen unter **Weitere Felder**. Lassen Sie ein Signal leer, damit es kein eigenes Budget hat.
+
+### Das Budget speichern
+
+Klicken Sie auf **Budget erstellen**. Das Budget eines Teams oder einer Beschriftung kann nicht höher sein als das seines Projekts: OneUptime lehnt es ab und nennt den höchstmöglichen Wert.
+:::
+
+- **Was es zählt.** Die Protokolle, Traces, Metriken und Profile, die die Dienste des Teams oder die Dienste mit der Beschriftung über OpenTelemetry (OTLP) senden. Telemetrie von Hosts und anderen Ressourcen, Sicherheitsereignisse sowie Protokolle von Fluent Bit, Fluentd oder Syslog zählen nur gegen die Budgets des Projekts und des Schlüssels.
+- **Ist es aufgebraucht, wird die Telemetrie verworfen.** Die Telemetrie dieses Signals von den Diensten wird bis zum Zurücksetzen verworfen, und der Sender erfährt nichts davon: Er hat seine Antwort schon beim Eintreffen der Telemetrie erhalten. Was verworfen wird, zählt nicht mehr gegen das Budget des Projekts oder des Schlüssels.
+- **Wer benachrichtigt wird.** Die Projektinhaber erhalten eine E-Mail, wenn das Budget die Warnschwelle überschreitet und wenn es aufgebraucht ist.
+- **Nur ein Tagesbudget.** Ein Team oder eine Beschriftung hat kein Ratenlimit.
+- **Jedes Budget zählt.** Die Telemetrie eines Dienstes zählt gegen die Budgets seiner Teams und seiner Beschriftungen sowie des Schlüssels und des Projekts, und was zuerst aufgebraucht ist, stoppt sie. Wird das Budget des Projekts unter das eines Teams oder einer Beschriftung gesenkt, gilt das des Projekts.
+
 ## Was Sender sehen
 
 | Wann | Über HTTP | Über OTLP/gRPC | Was der Sender tut |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Andere HTTP-Sender erhalten JSON.** Fluent Bit, Fluentd, Syslog und die anderen HTTP-Endpunkte erhalten `error`, `message` und `resetsAt`, bei einem Ratenlimit zusätzlich `retryAfterSeconds`.
 - **Bei MQTT und Cloud-Streams erfährt der Sender nichts.** Telemetrie, die über MQTT oder aus dem Stream eines Cloud-Anbieters eintrifft, wird verworfen, sobald ihr Budget aufgebraucht ist. Für sie gilt kein Ratenlimit: Sie könnte nicht erneut gesendet werden.
+- **Die Dienste eines Teams oder einer Beschriftung ebenso wenig.** Sobald das Budget eines Teams oder einer Beschriftung aufgebraucht ist, wird ihre Telemetrie angenommen und dann verworfen: siehe [Einem Team oder einer Beschriftung ein eigenes Budget geben](#einem-team-oder-einer-beschriftung-ein-eigenes-budget-geben).
 - **Ablehnungen werden gezählt.** Was ein aufgebrauchtes Budget ablehnt oder verwirft, wird als verworfen gezählt, und jede Anfrage, die ein Ratenlimit ablehnt, als gedrosselt: siehe [Die heutige Nutzung und Verwerfungen ansehen](#die-heutige-nutzung-und-verwerfungen-ansehen).
 
 ## Die Warnung und das Zurücksetzen
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Die heutige Nutzung und Verwerfungen ansehen
 
-Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Nutzung**. Solange für das Projekt ein Budget oder ein Ratenlimit festgelegt ist, öffnet die Seite mit der Karte **Ingestion-Budgets**, und die Schlüssel mit eigenen Budgets stehen auf der Karte **Budgets der Ingestion-Schlüssel**:
+Gehen Sie zu **Projekteinstellungen → Telemetrie & APM → Nutzung**. Solange für das Projekt ein Budget oder ein Ratenlimit festgelegt ist, öffnet die Seite mit der Karte **Ingestion-Budgets**, die Schlüssel mit eigenen Budgets stehen auf der Karte **Budgets der Ingestion-Schlüssel**, und die Teams und Beschriftungen mit eigenen Budgets auf der Karte **Team- und Beschriftungsbudgets heute**:
 
 | Spalte | Was sie zeigt |
 | --- | --- |
 | **Signal** | Das Signal, für das die Zeile gilt. |
 | **Heute verbraucht** | Was seit Beginn des Budgettags gezählt wurde, und sein Anteil am Budget. |
-| **Tagesbudget** | Das geltende Budget und wo es festgelegt wurde: **Standard der Instanz**, **Für dieses Projekt festgelegt** oder **Für diesen Schlüssel festgelegt**. |
+| **Tagesbudget** | Das geltende Budget und wo es festgelegt wurde: **Standard der Instanz**, **Für dieses Projekt festgelegt**, **Für diesen Schlüssel festgelegt**, **Für dieses Team festgelegt** oder **Für diese Beschriftung festgelegt**. |
 | **Ratenlimit** | Das geltende Ratenlimit. |
 | **Verworfen** | Was abgelehnt oder verworfen wurde, weil das Budget aufgebraucht war. |
 | **Gedrosselt** | Wie viele Anfragen das Ratenlimit abgelehnt hat. |
 | **Status** | **Im Budget**, **Warnschwelle überschritten** oder **Aufgebraucht**, **Kein Tagesbudget** für ein Signal mit nur einem Ratenlimit und **Unbekannt**, solange die Zählungen nicht lesbar sind. |
 
 - **Auf der Seite eines Schlüssels** zeigt die Karte **Heutige Budgetnutzung**, was der Schlüssel von seinen eigenen Budgets verbraucht hat.
-- **In den Explorern** zeigt ein Banner über den Daten von Protokollen, Traces, Metriken, Profilen und Sicherheitsereignissen an, wenn das Budget dieses Signals seine Warnschwelle überschritten hat oder aufgebraucht ist, mit **Budgets ansehen**, um die Seite Nutzung zu öffnen.
+- **In den Explorern** zeigt ein Banner über den Daten von Protokollen, Traces, Metriken, Profilen und Sicherheitsereignissen an, wenn das Budget dieses Signals seine Warnschwelle überschritten hat oder aufgebraucht ist oder das eines Schlüssels, eines Teams oder einer Beschriftung aufgebraucht ist, mit **Budgets ansehen**, um die Seite Nutzung zu öffnen.
 - **Im Admin Dashboard** zeigt die Seite **Ingestion-Budgets** eines Projekts dieselben Zahlen.
 
 ## Warnungen für ein Budget einrichten
@@ -153,9 +180,13 @@ Jeder Punkt trägt diese Attribute:
 | --- | --- |
 | `projectId` | Die ID des Projekts. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` oder `security-events`. |
-| `scope` | `project`, oder `ingestion-key` beim eigenen Budget eines Schlüssels. |
+| `scope` | `project`, `ingestion-key` beim eigenen Budget eines Schlüssels, oder `team` oder `label` beim Budget eines Teams oder einer Beschriftung. |
 | `ingestionKeyId` | Die ID des Schlüssels, beim eigenen Budget eines Schlüssels. |
 | `ingestionKeyName` | Der Name des Schlüssels, als der Punkt geschrieben wurde, beim eigenen Budget eines Schlüssels. |
+| `teamId` | Die ID des Teams, beim Budget eines Teams. |
+| `teamName` | Der Name des Teams, als der Punkt geschrieben wurde, beim Budget eines Teams. |
+| `labelId` | Die ID der Beschriftung, beim Budget einer Beschriftung. |
+| `labelName` | Der Name der Beschriftung, als der Punkt geschrieben wurde, beim Budget einer Beschriftung. |
 
 Um bei 90% des Protokollbudgets des Projekts benachrichtigt zu werden, erstellen Sie einen Metriken-Monitor auf `oneuptime.telemetry.budget.used.percent`, gefiltert nach `signal` `logs` und `scope` `project`, der alarmiert, wenn das Maximum über 90 liegt:
 
@@ -168,6 +199,10 @@ Um bei 90% des Protokollbudgets des Projekts benachrichtigt zu werden, erstellen
 
 :::details Ein Collector protokolliert 403 für seine Exporte
 Das Tagesbudget des Projekts oder des Schlüssels für dieses Signal ist aufgebraucht, und der Collector verwirft, was er bis zum Zurücksetzen des Budgets nicht senden kann. Sehen Sie sich **Heute verbraucht** auf der Seite Nutzung an. Bitten Sie den Instanzadministrator, das Budget des Projekts zu erhöhen, oder senden Sie weniger: Ein Drop-Filter hilft hier nicht, da er Telemetrie erst entfernt, nachdem sie gezählt wurde.
+:::
+
+:::details Die Telemetrie eines Teams kommt nicht mehr an, und kein Sender protokolliert einen Fehler
+Das Tagesbudget des Teams oder einer Beschriftung seiner Dienste ist für dieses Signal aufgebraucht, und ihre Telemetrie wird verworfen, bis das Budget zurückgesetzt wird. Sehen Sie sich **Heute verbraucht** auf der Karte **Team- und Beschriftungsbudgets heute** auf der Seite Nutzung an, und erhöhen Sie das Budget unter **Weitere Einstellungen**.
 :::
 
 :::details Ein Collector protokolliert 429 und versucht es erneut

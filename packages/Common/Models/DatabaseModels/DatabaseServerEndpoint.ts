@@ -13,6 +13,7 @@ import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
+import ServerOwned from "../../Types/Database/ServerOwned";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
@@ -327,6 +328,7 @@ export default class DatabaseServerEndpoint extends BaseModel {
     description:
       "Is this the endpoint the database was created from? The primary endpoint cannot be removed.",
     defaultValue: false,
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     type: ColumnType.Boolean,
@@ -363,6 +365,7 @@ export default class DatabaseServerEndpoint extends BaseModel {
     description:
       "Who added this endpoint: auto (found in telemetry), workload (a Service name of the Kubernetes workload the database runs as) or user (added as an alias by a person).",
     example: "user",
+    serverOwned: ServerOwned.Always,
   })
   @Column({
     nullable: true,

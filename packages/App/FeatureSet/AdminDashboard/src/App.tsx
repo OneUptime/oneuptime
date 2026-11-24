@@ -1,4 +1,5 @@
 import MasterPage from "./Components/MasterPage/MasterPage";
+import ReauthenticationPrompt from "Common/UI/Components/Reauthentication/ReauthenticationPrompt";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Init from "./Pages/Init/Init";
 import ServerSetup from "./Pages/Setup/Index";
@@ -112,6 +113,13 @@ const App: () => JSX.Element = () => {
 
   return (
     <MasterPage>
+      {/*
+       * Confirm It's You (#10216): a master admin's change to how someone
+       * signs in, or to the server's, that the server refused until their
+       * session confirms it's theirs is asked here, from any page, and sent
+       * again once they have - as the Dashboard asks.
+       */}
+      <ReauthenticationPrompt />
       <Routes>
         <PageRoute
           path={RouteMap[PageMap.INIT]?.toString() || ""}

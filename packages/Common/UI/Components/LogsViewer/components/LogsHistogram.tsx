@@ -18,7 +18,8 @@ import {
   SeverityColor,
 } from "./severityColors";
 import HistogramTooltip from "./HistogramTooltip";
-import OneUptimeDate from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
+import { formatHistogramTick } from "../../Charts/Utils/HistogramDayBars";
 import useHistogramRangeSelection, {
   HistogramRangeSelectionState,
 } from "../../Charts/Utils/useHistogramRangeSelection";
@@ -51,6 +52,12 @@ export interface LogsHistogramProps {
    */
   bucketIntervalMs?: number | undefined;
   /*
+   * The zone the bars were cut in when each is a day of it (the answer's
+   * bucketTimezone, #7923): a day bar is labelled by its date and a click
+   * on it zooms to that zone's next midnight.
+   */
+  bucketTimezone?: Timezone | undefined;
+  /*
    * Why the chart's read did not come back. The card stays, with the reason
    * where the bars go and a way to try again, instead of vanishing as if the
    * window held no logs (issue #4707).
@@ -82,18 +89,6 @@ function pivotBuckets(buckets: Array<HistogramBucket>): Array<PivotedRow> {
   return Array.from(map.values());
 }
 
-function formatTickTime(time: string): string {
-  const date: Date = OneUptimeDate.fromString(time);
-
-  if (isNaN(date.getTime())) {
-    return time;
-  }
-
-  return OneUptimeDate.getLocalTimeString(date, {
-    use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
-  });
-}
-
 const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
   props: LogsHistogramProps,
 ): ReactElement => {
@@ -102,6 +97,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
     onTimeRangeSelect: props.onTimeRangeSelect,
     onZoomOut: props.onZoomOut,
     bucketIntervalMs: props.bucketIntervalMs,
+    bucketTimezone: props.bucketTimezone,
   });
 
   /*
@@ -128,6 +124,19 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
       return present.has(key);
     });
   }, [props.buckets]);
+
+  /*
+   * One function while the bars' width stays: the axis keeps its bars, as a
+   * press waiting to become a click needs (#7923). A day bar names its day,
+   * a shorter one its time.
+   */
+  const formatXAxisTick: (time: string) => string = useMemo(() => {
+    return (time: string): string => {
+      return formatHistogramTick(time, {
+        bucketIntervalMs: props.bucketIntervalMs,
+      });
+    };
+  }, [props.bucketIntervalMs]);
 
   /*
    * The value axis writes a count as the tooltip beside it does, in the
@@ -304,7 +313,7 @@ const LogsHistogram: FunctionComponent<LogsHistogramProps> = (
             >
               <XAxis
                 dataKey="time"
-                tickFormatter={formatTickTime}
+                tickFormatter={formatXAxisTick}
                 tick={{
                   fontSize: 10,
                   fill: "var(--ou-chart-tick, #9ca3af)",

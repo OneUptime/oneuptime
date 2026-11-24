@@ -65,7 +65,7 @@ O menu lateral de um serviço tem seis seções:
 | **Telemetria** | Os **Registros**, **Eventos de segurança**, **Traços**, **Métricas**, **Perfis**, **Exceções** e **Source maps** dele, já filtrados para este serviço. |
 | **Atividade** | Os **Incidentes**, os **Alertas** e os eventos de **Manutenção programada** que o afetam. |
 | **Segurança** | **Segurança de dados**: os dados sensíveis que os logs, traces e exceções do serviço carregam, e o que corrigir ([Dados sensíveis na telemetria](/docs/data-security/telemetry)). **Conformidade**: como esses dados estão diante de cada estrutura, com um interruptor que desativa uma estrutura ou um requisito para este serviço ([Conformidade da Segurança de dados](/docs/data-security/compliance#na-página-de-um-recurso)). Aparece quando a Segurança de dados tiver varrido a telemetria do serviço, e começa recolhida. |
-| **Desenvolvedores** | **Terraform**, **API**, **CLI** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
+| **Desenvolvedores** | **Terraform**, **Crossplane**, **API**, **CLI** e **Assistentes de IA**: o serviço gerenciado por código. Começa recolhida. |
 | **Avançado** | **Configurações**, **Registros de auditoria** e **Excluir serviço**. **Avançado** começa recolhido: expanda-o primeiro. |
 
 Ao lado do nome, a **Visão geral** de um serviço mostra se a telemetria dele está chegando: **Recebendo dados** enquanto algo chegou nos últimos 30 minutos, **Sem dados recentes** quando nada mais chega e **Aguardando dados** antes da primeira telemetria. Um serviço que só envia spans enquanto atende requisições mostra **Sem dados recentes** sempre que ninguém o chama, então isso sozinho não é uma falha.

@@ -126,7 +126,14 @@ interface ProductRouteFile {
 // A refusal the file may hold whatever its product: a rule's table names it.
 const ANY_PRODUCT: ReadonlyArray<ProductKey> = SWITCHABLE_PRODUCTS;
 
-// The products of every setup action the API runs outside Ask AI's chat (#7241).
+/*
+ * The products of every setup action the API runs outside Ask AI's chat
+ * (#7241): since #10041, Monitors (a website's and a service's monitors,
+ * who is told), Services (a service's recommended monitors), On-Call
+ * (paging, people added to a policy) and Status Pages. Inviting people and
+ * How to Reach Me are of no one product, so they name none and run while
+ * any product is off ("what the decisions stand on" holds the list).
+ */
 const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
   new Set<ProductKey>(
     SETUP_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
@@ -183,7 +190,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
     },
   },
-  // Its own routes only read today: a write added here names Monitors.
+  /*
+   * Its own routes read, but for Import Alerts' Convert with OneUptime AI
+   * (#7697), which writes nothing and is refused while Monitors is off: an
+   * import's monitors are created through the CRUD API, refused with it.
+   */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
     leftAlone: {},
@@ -272,6 +283,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/call/gather-input/:itemId`":
         PAGE_LINK,
       "`${new this.entityType().getCrudApiPath()?.toString()}/pass-on/:itemId`":
+        PAGE_LINK,
+      // The acknowledge page's button: a form, which posts the page's token (#10025).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/acknowledge/:itemId`":
         PAGE_LINK,
     },
   },
@@ -365,8 +379,13 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataObservability],
     leftAlone: {},
   },
+  /*
+   * And Code, for Fix with AI on an issue: it starts a task in Code, refused
+   * while Code is off as every route that asks OneUptime AI for a code
+   * change is (#10362).
+   */
   "packages/Common/Server/API/DataSecurityAPI.ts": {
-    products: [ProductKey.DataSecurity],
+    products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
@@ -404,10 +423,22 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  "packages/Common/Server/API/NetworkEmptySitesAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      EMPTY_SITES_PATH: READ,
+    },
+  },
   "packages/Common/Server/API/NetworkDeviceWatchingMonitorsAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {
       WATCHING_MONITORS_PATH: READ,
+    },
+  },
+  "packages/Common/Server/API/NetworkDeviceUntiedMonitorsAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {
+      UNTIED_MONITORS_PATH: READ,
     },
   },
   "packages/Common/Server/API/PacketCaptureAPI.ts": {
@@ -656,6 +687,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // The blocklist (#10338): checking a block, and where blocks are enforced.
+  "packages/Common/Server/API/SecurityBlockAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  // The addresses and entities a block may never cover (#10338).
+  "packages/Common/Server/API/SecurityProtectedEntityAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
@@ -820,6 +861,9 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/slo-history-aggregate/:dashboardId`":
         PUBLIC_PAGE,
+      // A public dashboard's PromQL widgets: their stored queries only (#10226).
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}${PUBLIC_DASHBOARD_PROMQL_QUERY_PATH}/:dashboardId`":
+        PUBLIC_PAGE,
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/master-password/:dashboardId`":
         PUBLIC_PAGE,
     },
@@ -862,6 +906,49 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.StatusPages],
     leftAlone: {
       '"/status-page-idp-login/:statusPageId/:statusPageSsoId"': PUBLIC_PAGE,
+    },
+  },
+  // A dashboard's sign-in page on its public link (#10250), as a status page's.
+  "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts":
+    {
+      products: [ProductKey.Dashboards],
+      leftAlone: {
+        "`${DashboardPrivateUserApiRoutes.login}/:dashboardId`": PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.logout}/:dashboardId`": PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.refreshToken}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.forgotPassword}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.resetPassword}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.exchangeLoginCode}/:dashboardId`":
+          PUBLIC_PAGE,
+        "`${DashboardPrivateUserApiRoutes.signInMethods}/:dashboardId`": READ,
+      },
+    },
+  "packages/App/FeatureSet/Identity/API/DashboardSSO.ts": {
+    products: [ProductKey.Dashboards],
+    leftAlone: {
+      '"/dashboard-idp-login/:dashboardId/:dashboardSsoId"': PUBLIC_PAGE,
+    },
+  },
+  // A form's sign-in on its public link (#10249), as a dashboard's.
+  "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts": {
+    products: [ProductKey.Forms],
+    leftAlone: {
+      "`${FormPrivateUserApiRoutes.login}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.logout}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.refreshToken}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.forgotPassword}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.resetPassword}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.exchangeLoginCode}/:formId`": PUBLIC_PAGE,
+      "`${FormPrivateUserApiRoutes.signInMethods}/:formId`": READ,
+    },
+  },
+  "packages/App/FeatureSet/Identity/API/FormSSO.ts": {
+    products: [ProductKey.Forms],
+    leftAlone: {
+      '"/form-idp-login/:formId/:formSsoId"': PUBLIC_PAGE,
     },
   },
   "packages/Common/Server/API/WorkflowVariableAPI.ts": {
@@ -1026,15 +1113,23 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * key's answer. #9822: a security key's sign-in options, asked for
          * with the password again rather than by an address alone. #9817:
          * the phone's browser reads a mobile app's passkey options once,
-         * by the one-time hand-off the app was given at sign-in.
+         * by the one-time hand-off the app was given at sign-in. #9898: the
+         * sign-up page an invitation opens says its link is the person's,
+         * as they pick the project's single sign-on. #10178: so does the
+         * project's SSO page an invitation opens for someone who has
+         * signed up.
          */
-        "packages/App/FeatureSet/Identity/API/Authentication.ts": 22,
+        "packages/App/FeatureSet/Identity/API/Authentication.ts": 24,
         "packages/App/FeatureSet/Identity/API/FirstAccount.ts": 1,
         // #9603: a SAML provider's Single Logout URL takes a posted sign-out.
         "packages/App/FeatureSet/Identity/API/GlobalSSO.ts": 2,
+        // #9989: the mobile app redeems an SSO sign-in's one-time code with its PKCE verifier.
+        "packages/App/FeatureSet/Identity/API/MobileSsoExchange.ts": 1,
         "packages/App/FeatureSet/Identity/API/ProjectSsoSignInConfirmation.ts": 1,
         "packages/App/FeatureSet/Identity/API/Reseller.ts": 1,
         "packages/App/FeatureSet/Identity/API/SSO.ts": 2,
+        // #9987: "Sign in with SSO" emails an address its organizations' SSO sign-in links.
+        "packages/App/FeatureSet/Identity/API/SsoSignInLinks.ts": 1,
         "packages/App/FeatureSet/MCP/OAuth/OAuthRoutes.ts": 7,
         "packages/Common/Server/API/UserTotpAuthAPI.ts": 1,
         "packages/Common/Server/API/UserTwoFactorBackupCodeAPI.ts": 1,
@@ -1087,9 +1182,19 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
          * is-user-registered is gone (#9745).
          */
         "packages/Common/Server/API/TeamMemberAPI.ts": 11,
-        // #9762: a master admin clearing one person's sign-in settings.
-        "packages/Common/Server/API/UserAPI.ts": 8,
+        /*
+         * #9762: a master admin clearing one person's sign-in settings.
+         * #10155: a person confirming it's them before they change how
+         * they sign in, and the security key or passkey options for it.
+         */
+        "packages/Common/Server/API/UserAPI.ts": 10,
         "packages/Common/Server/API/WelcomeChecklistAPI.ts": 4,
+      },
+    ),
+    ...decided(
+      "A person's own progress through a guided setup (#7253), which spans products: it keeps only where they are, and every record a step makes goes through its own product's routes.",
+      {
+        "packages/Common/Server/API/GuidedSetupRunAPI.ts": 2,
       },
     ),
     ...decided(
@@ -1125,6 +1230,11 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,
         "packages/App/API/AdminHealth.ts": 3,
         "packages/App/FeatureSet/Notification/API/BroadcastEmail.ts": 2,
+        /*
+         * #7380: Notification/API/ServerAwsIdentity.ts, beside it, registers
+         * one GET - which AWS identity the server's own Amazon SES signs in
+         * as, for a master admin - so it reads, and is no decision here.
+         */
         "packages/App/FeatureSet/Notification/API/ServerTestSend.ts": 4,
         "packages/App/FeatureSet/Notification/API/CallAndSmsGateway.ts": 1,
       },
@@ -1153,6 +1263,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Notification/API/WhatsApp.ts": 3,
         "packages/App/FeatureSet/Notification/API/Telegram.ts": 3,
         "packages/App/FeatureSet/Notification/API/PushRelay.ts": 2,
+        /*
+         * #7378: SMTPConfig.ts also registers GET /aws-role-setup - what a
+         * project's Amazon SES config makes its IAM role with (the
+         * principal to trust, the project's email external id, a trust
+         * policy) - so it reads, and is no decision here. Its POST /test
+         * checks a role config's role afresh before it sends, as every
+         * test send of how OneUptime reaches people does.
+         */
         "packages/App/FeatureSet/Notification/API/SMTPConfig.ts": 1,
       },
     ),
@@ -1224,8 +1342,10 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/AndroidAgentLogSessions.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/AwsFirehose.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ChangeEventsIngest.ts": 1,
-        "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 8,
+        "packages/App/FeatureSet/Telemetry/API/Datadog.ts": 16,
         "packages/App/FeatureSet/Telemetry/API/DbtArtifactsIngest.ts": 1,
+        // #9922: an iOS app's dSYMs, uploaded as its source maps are.
+        "packages/App/FeatureSet/Telemetry/API/DsymIngest.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/Fluent.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/GcpPubSub.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/HostCollectorOpAmp.ts": 1,
@@ -1251,6 +1371,13 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
       {
         "packages/Common/Server/API/TelemetryAPI.ts": 72,
+      },
+    ),
+    ...decided(
+      "The Prometheus- and Loki-compatible query APIs (#6796, #7700) Grafana reads OneUptime through, each query also as a POST for a long one, as Prometheus and Loki serve them: they only read a project's metrics and logs.",
+      {
+        "packages/Common/Server/API/LokiAPI.ts": 4,
+        "packages/Common/Server/API/PrometheusAPI.ts": 5,
       },
     ),
     ...decided(
@@ -1346,26 +1473,39 @@ const squash: (text: string) => string = (text: string): string => {
 const REFUSAL: RegExp =
   /ServerProductRoutes\s*\.\s*(refuseWhileOff|refuseWhileOffFor|refuseWhileRecordTableIsOff)\s*\(([^)]*)\)/g;
 
+// A file of the repository's, by its path from the repository's root.
+const readText: (file: string) => string = (file: string): string => {
+  return fs.readFileSync(path.join(REPOSITORY, file), "utf8");
+};
+
+// A file's text, parsed: the file's own, or a fixture's.
+const parseText: (file: string, text: string) => ts.SourceFile = (
+  file: string,
+  text: string,
+): ts.SourceFile => {
+  return ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+};
+
 const parse: (file: string) => ts.SourceFile = (
   file: string,
 ): ts.SourceFile => {
-  return ts.createSourceFile(
-    file,
-    fs.readFileSync(path.join(REPOSITORY, file), "utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  return parseText(file, readText(file));
 };
 
 /*
  * Every route a file registers that is not a GET - router.post(...),
  * this.router.put(...), app.delete(...), router.all(...) - with the
  * refusals among its middlewares. A handler's body is never read for one.
+ * The file's own text, or a fixture's.
  */
-const readRegistrations: (file: string) => Array<Registration> = (
+const readRegistrations: (
   file: string,
+  text?: string,
+) => Array<Registration> = (
+  file: string,
+  text: string = readText(file),
 ): Array<Registration> => {
-  const source: ts.SourceFile = parse(file);
+  const source: ts.SourceFile = parseText(file, text);
   const registrations: Array<Registration> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -1470,6 +1610,52 @@ const listServerFiles: () => Array<string> = (): Array<string> => {
   return files.sort();
 };
 
+/*
+ * A route registered through a computed method - router[method](...) - is
+ * one the walk cannot read the verb of, so a POST could hide in it, as the
+ * Prometheus API's did before #7700 and Vercel Marketplace's provider API's
+ * did before #10230. Each such call among the files given, read with
+ * readFile, as "file: call(...)": none may be, in ee/'s files as in core's.
+ * ee/ decides its own route files (ProductRouteDecisions.ts), but a route
+ * the walk cannot read is one nobody decided.
+ */
+const MAY_REGISTER_COMPUTED: RegExp = /(?:router|\bapp)\s*\??\.?\s*\[/i;
+
+const findComputedRegistrations: (
+  files: ReadonlyArray<string>,
+  readFile: (file: string) => string,
+) => Array<string> = (
+  files: ReadonlyArray<string>,
+  readFile: (file: string) => string,
+): Array<string> => {
+  return files.flatMap((file: string): Array<string> => {
+    const text: string = readFile(file);
+
+    if (!MAY_REGISTER_COMPUTED.test(text)) {
+      return [];
+    }
+
+    const source: ts.SourceFile = parseText(file, text);
+    const calls: Array<string> = [];
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isElementAccessExpression(node.expression) &&
+        ROUTER.test(node.expression.expression.getText(source))
+      ) {
+        calls.push(`${file}: ${squash(node.expression.getText(source))}(...)`);
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    return calls;
+  });
+};
+
 const FILES_WITH_ROUTES: Array<string> = listServerFiles().filter(
   (file: string): boolean => {
     return (
@@ -1566,6 +1752,11 @@ describe("every route file of the server is held to a decision", () => {
     expect(FILES_WITH_ROUTES).not.toContain(
       "packages/Common/Server/Utils/ServerProducts/ServerProductRoutes.ts",
     );
+  });
+
+  // Every file of the server's: ee/'s too, where it is checked out (#10230).
+  test("no route is registered through a computed method, which the walk cannot read", () => {
+    expect(findComputedRegistrations(listServerFiles(), readText)).toEqual([]);
   });
 
   test("every file that registers a route is decided, once", () => {
@@ -1728,6 +1919,28 @@ describe("every route file of the server is held to a decision", () => {
 });
 
 describe("what the decisions stand on", () => {
+  /*
+   * POST /api/setup-actions/run names the products of the action its body
+   * names (#7241, #10041): a new action, or one that changes its products,
+   * changes what the route refuses while a product is off, so it is a
+   * decision written here.
+   */
+  test("the setup actions' route names Monitors, Services, On-Call and Status Pages, and its people and How to Reach Me no product", () => {
+    expect([...SETUP_ACTION_PRODUCTS].sort()).toEqual(
+      [
+        ProductKey.Monitors,
+        ProductKey.Services,
+        ProductKey.OnCall,
+        ProductKey.StatusPages,
+      ].sort(),
+    );
+
+    for (const action of ["invite_people", "set_how_to_reach_me"]) {
+      expect(SETUP_ACTIONS_RUN_OUTSIDE_CHAT).toContain(action);
+      expect([action, getToolProducts(action)]).toEqual([action, []]);
+    }
+  });
+
   test.each([
     ["packages/Common/Server/API/DataObservabilityAPI.ts", "DataObservability"],
     ["packages/Common/Server/API/DataSecurityAPI.ts", "DataSecurity"],
@@ -1955,4 +2168,117 @@ describe("what the decisions stand on", () => {
       ).toBe(times);
     },
   );
+});
+
+describe("the walk reads the shapes it is meant to", () => {
+  // Vercel Marketplace's provider API registered its routes so before #10230.
+  const THROUGH_A_HELPER: string = `
+    export default class FixtureAPI {
+      public constructor() {
+        this.route("put", installation, async (req, caller) => {
+          return { status: 204 };
+        });
+        this.route("post", resources, async (req, caller) => {
+          return { status: 200 };
+        });
+      }
+
+      private route(method: "put" | "post", path: string, handler: ProviderHandler): void {
+        this.router[method](path, async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+          await handler(req, res);
+        });
+      }
+    }
+  `;
+
+  // And registers them so since: one by one, by their verb.
+  const ONE_BY_ONE: string = `
+    export default class FixtureAPI {
+      public constructor() {
+        // Never this.router[method](...): the walk cannot read its verb.
+        this.router.put(installation, this.providerCall(async (req, caller) => {
+          return { status: 204 };
+        }));
+        this.router.get(installation, this.providerCall(async (req, caller) => {
+          return { status: 200 };
+        }));
+        this.router.post(webhook, async (req: ExpressRequest, res: ExpressResponse) => {
+          await handleWebhook(req, res);
+        });
+      }
+
+      private providerCall(handler: ProviderHandler): ProviderRoute {
+        return async (req: ExpressRequest, res: ExpressResponse): Promise<void> => {
+          await answers[req.method](req, res);
+        };
+      }
+    }
+  `;
+
+  const fixture: (text: string) => (file: string) => string = (
+    text: string,
+  ): ((file: string) => string) => {
+    return (): string => {
+      return text;
+    };
+  };
+
+  test("the walk reads each route registered by its verb, and none registered through a helper's router[method]", () => {
+    expect(
+      readRegistrations(
+        "ee/Server/Fixture/API/FixtureAPI.ts",
+        THROUGH_A_HELPER,
+      ),
+    ).toEqual([]);
+    expect(
+      readRegistrations("ee/Server/Fixture/API/FixtureAPI.ts", ONE_BY_ONE).map(
+        (registration: Registration): string => {
+          return `${registration.method} ${registration.path}`;
+        },
+      ),
+    ).toEqual(["PUT installation", "POST webhook"]);
+  });
+
+  // #10230: ee/ decides its own route files, but not a route nobody can read.
+  test.each([
+    ["ee/Server/Fixture/API/FixtureAPI.ts"],
+    ["packages/Common/Server/API/FixtureAPI.ts"],
+  ])(
+    "%s: a route registered through a computed method is refused",
+    (file: string) => {
+      expect(
+        findComputedRegistrations([file], fixture(THROUGH_A_HELPER)),
+      ).toEqual([`${file}: this.router[method](...)`]);
+    },
+  );
+
+  test("every computed shape is refused: a loop over the verbs, a verb in quotes, an optional call", () => {
+    const file: string = "ee/Server/Fixture/API/FixtureAPI.ts";
+
+    expect(
+      findComputedRegistrations(
+        [file],
+        fixture(`
+          for (const method of ["get", "post"] as const) {
+            router[method]("/prometheus/api/v1/query", ...requireMetricReadAccess, instantQuery);
+          }
+          this.router["delete"]("/items/:id", handler);
+          app?.[verb]("/status", handler);
+        `),
+      ),
+    ).toEqual([
+      `${file}: router[method](...)`,
+      `${file}: this.router["delete"](...)`,
+      `${file}: app?.[verb](...)`,
+    ]);
+  });
+
+  test("a route registered by its verb, a computed call of something else and a comment are not refused", () => {
+    expect(
+      findComputedRegistrations(
+        ["ee/Server/Fixture/API/FixtureAPI.ts"],
+        fixture(ONE_BY_ONE),
+      ),
+    ).toEqual([]);
+  });
 });

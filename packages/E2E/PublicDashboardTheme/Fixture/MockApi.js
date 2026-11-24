@@ -16,6 +16,10 @@ import API from "../../../App/FeatureSet/PublicDashboard/src/Utils/API";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import {
+  DASHBOARD_PRIVATE_USER_CREDENTIALS_MESSAGE,
+  DASHBOARD_SSO_ONLY_MESSAGE,
+} from "Common/Types/Dashboard/DashboardPrivateUserSignIn";
+import {
   aggregateAnswer,
   attributeValuesAnswer,
   metadataAnswer,
@@ -25,7 +29,7 @@ import {
   sloHistoryAnswer,
   viewConfigAnswer,
 } from "./Data";
-import { getScenario } from "./Scenarios";
+import { PRIVATE_USER, SIGN_IN_PROVIDERS, getScenario } from "./Scenarios";
 
 const SETTINGS_KEY = "public-dashboard-theme-fixture";
 
@@ -84,9 +88,47 @@ const unlock = (dashboardId) => {
   );
 };
 
+/*
+ * Who is signed in to each dashboard that asks its visitors to (#10250):
+ * the server's HttpOnly session cookie, kept for the tab here, as the
+ * password's unlock is.
+ */
+const SIGNED_IN_KEY = "public-dashboard-theme-fixture-signed-in";
+
+const signedInEmails = () => {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(SIGNED_IN_KEY) || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const signedInAs = (dashboardId) => {
+  return signedInEmails()[dashboardId] || null;
+};
+
+const setSignedInAs = (dashboardId, email) => {
+  const emails = signedInEmails();
+
+  if (email) {
+    emails[dashboardId] = email;
+  } else {
+    delete emails[dashboardId];
+  }
+
+  window.sessionStorage.setItem(SIGNED_IN_KEY, JSON.stringify(emails));
+};
+
+const SIGN_IN_REQUIRED = {
+  status: 401,
+  body: { message: "Sign in to view this dashboard." },
+};
+
 const record = {
   requests: [],
   unexpected: [],
+  // The addresses Forgot password was asked to send a link to.
+  passwordResets: [],
   settings,
 };
 
@@ -110,14 +152,80 @@ const scaleOf = (body) => {
 };
 
 /*
+ * A dashboard's sign-in routes (/private-user/<route>/<dashboardId>,
+ * DashboardPrivateUserAuthentication): its ways in, a password's sign-in -
+ * one answer for a wrong password and an address that is no private user's
+ * - sign-out, renewal and Forgot password, which answers the same for any
+ * address.
+ */
+const privateUserAnswer = (action, dashboardId, body) => {
+  const scenario = getScenario(dashboardId);
+
+  if (!scenario || !scenario.answers || !scenario.requiresSignIn) {
+    return { status: 404, body: { message: "Dashboard not found" } };
+  }
+
+  const data = (body && body["data"]) || {};
+
+  switch (action) {
+    case "sign-in-methods":
+      return {
+        status: 200,
+        body: {
+          isPasswordSignInAllowed: scenario.isPasswordSignInAllowed,
+          ...SIGN_IN_PROVIDERS,
+        },
+      };
+    case "login":
+      if (!scenario.isPasswordSignInAllowed) {
+        return { status: 400, body: { message: DASHBOARD_SSO_ONLY_MESSAGE } };
+      }
+
+      if (
+        data["email"] === PRIVATE_USER.email &&
+        data["password"] === PRIVATE_USER.password
+      ) {
+        setSignedInAs(dashboardId, PRIVATE_USER.email);
+        return { status: 200, body: { email: PRIVATE_USER.email } };
+      }
+
+      return {
+        status: 400,
+        body: { message: DASHBOARD_PRIVATE_USER_CREDENTIALS_MESSAGE },
+      };
+    case "logout":
+      setSignedInAs(dashboardId, null);
+      return { status: 200, body: {} };
+    case "refresh-token":
+      return signedInAs(dashboardId)
+        ? { status: 200, body: { email: signedInAs(dashboardId) } }
+        : SIGN_IN_REQUIRED;
+    case "forgot-password":
+      record.passwordResets.push(String(data["email"] || ""));
+      return { status: 200, body: {} };
+    default:
+      return null;
+  }
+};
+
+/*
  * What the API answers a request for one dashboard: its access first, as
  * every public route decides it (PublicDashboardAccess), then the route.
  */
 const answer = (route, dashboardId, rest, body) => {
+  if (route === "private-user") {
+    // /private-user/<route>/<dashboardId>
+    return privateUserAnswer(dashboardId, rest[0], body);
+  }
+
   const scenario = getScenario(dashboardId);
 
   if (route === "metadata") {
-    return metadataAnswer(dashboardId, isUnlocked(dashboardId));
+    return metadataAnswer(
+      dashboardId,
+      isUnlocked(dashboardId),
+      signedInAs(dashboardId),
+    );
   }
 
   if (!scenario || !scenario.answers) {
@@ -143,6 +251,11 @@ const answer = (route, dashboardId, rest, body) => {
       status: 401,
       body: { message: "Please enter the dashboard password." },
     };
+  }
+
+  // Nothing of the dashboard before one of its private users signs in.
+  if (scenario.requiresSignIn && !signedInAs(dashboardId)) {
+    return SIGN_IN_REQUIRED;
   }
 
   switch (route) {

@@ -4,6 +4,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { writeStandAloneDayName } from "Common/Types/DateLanguage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -242,6 +243,21 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-7 gap-1">
           {RUNBOOK_SCHEDULE_DAY_ORDER.map((day: number) => {
             const isPicked: boolean = choice.days.includes(day);
+            /*
+             * A day's name on a button stands alone: "Lunes" in Spanish,
+             * "mandag" in Danish, as CLDR has each language write it
+             * (#7660) - the button, its aria-label and its title alike.
+             */
+            const dayName: string = writeStandAloneDayName({
+              name: translator.translateText(DAY_NAMES[day]!)!,
+              language: translator.language,
+              context: "standAlone",
+            });
+            const shortDayName: string = writeStandAloneDayName({
+              name: translator.translateText(DAY_SHORT_NAMES[day]!)!,
+              language: translator.language,
+              context: "standAlone",
+            });
 
             return (
               <button
@@ -249,8 +265,8 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
                 type="button"
                 aria-pressed={isPicked}
                 // The whole name, so a screen reader says "Monday", not "Mon".
-                aria-label={translator.translateText(DAY_NAMES[day]!)}
-                title={translator.translateText(DAY_NAMES[day]!)}
+                aria-label={dayName}
+                title={dayName}
                 data-testid={`${RunbookTriggersTestIds.scheduleField}-day-${day}`}
                 className={`rounded-md border px-0 py-1.5 text-xs font-medium transition-colors ${
                   isPicked
@@ -261,7 +277,7 @@ const RunbookScheduleField: FunctionComponent<ComponentProps> = (
                   toggleDay(day);
                 }}
               >
-                {translator.translateText(DAY_SHORT_NAMES[day]!)}
+                {shortDayName}
               </button>
             );
           })}

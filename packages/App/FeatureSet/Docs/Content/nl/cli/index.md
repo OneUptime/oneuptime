@@ -103,6 +103,7 @@ De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zo
 | `oneuptime deploy` | Legt een deploy, of een andere wijziging, vast voor grafieken en OneUptime AI | [Deploys en wijzigingen](/docs/telemetry/change-events) |
 | `oneuptime data-checks apply` | Laat de gegevenscontroles van het project overeenkomen met een bestand in je repository | [Opdrachtreferentie](/docs/cli/command-reference) |
 | `oneuptime dbt upload` | Stuurt de artefacten van een dbt-project na een build naar Data Observability | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-dbt-upload) |
+| `oneuptime dsym upload <paths...>` | Stuurt de dSYM's van een iOS-app na een build, zodat de crashes en vastlopers ervan per functie te lezen zijn | [Mobiele configuratie](/docs/rum/mobile-setup#je-dsyms-uploaden) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Werkt met één soort record | [Bewerkingen op bronnen](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Toont de velden van een bron en de vlaggen die ze instellen | [Bewerkingen op bronnen](/docs/cli/resource-operations#de-velden-van-een-bron-bekijken) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Doet wat de knoppen van het dashboard doen bij incidenten, waarschuwingen en gepland onderhoud | [Bewerkingen op bronnen](/docs/cli/resource-operations#bevestigen-oplossen-en-notities-toevoegen) |

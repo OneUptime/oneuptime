@@ -273,6 +273,7 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
+      "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
       "../../Types/DataObservability/DataCheckRefusals",
       "../../Types/Database/UniqueName",
       "../../Types/Exception/RefusalWithValues",
@@ -281,6 +282,17 @@ describe("the pure view-model", () => {
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
       "./SentenceSeparator",
     ]);
+    // An AWS role that lets OneUptime in without the project's external ID (#10405, #10425).
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Types",
+          "CloudConnection",
+          "AwsRoleExternalIdRefusal.ts",
+        ),
+      ),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
     // A data check's refusals (#7530), said in the reader's words the same way.
     expect(
       importsOf(

@@ -493,11 +493,18 @@ describe("the Security Events page on rule exceptions", () => {
     );
     // A correlation's reads and a single rule's both AND the filter in.
     expect(evaluator).toContain(
-      "restrictTo: andRestrictions(setupTest?.restrictTo, exceptionsFilter),",
+      "restrictTo: andRestrictions(read.restrictTo, exceptionsFilter),",
     );
-    // A real-time run's handed events too, and a window of a rule that counts, with the same filter.
+    /*
+     * A real-time run's handed events too, what a scheduled run judges, and
+     * a window of a rule that counts, with the same filter.
+     */
     expect(evaluator).toContain(
-      "matchedGroups = await this.findSingleRuleMatches({ rule, parsedRule, startTime, endTime, restrictTo: setupTest?.restrictTo || realTime?.restrictTo, exceptionsFilter, arrival: countWindow?.arrival, });",
+      "matchedGroups = await this.findSingleRuleMatches({ rule, parsedRule, startTime, endTime, restrictTo: read.restrictTo, exceptionsFilter, arrival: countWindow?.arrival, readFirstSeen: read.readFirstSeen, });",
+    );
+    // ...and the windows a scheduled run of a rule that counts reads, by what arrived.
+    expect(evaluator).toContain(
+      "whereFragment: andRestrictions( this.arrivalCondition(definition, parsedRule), exceptionsFilter, ) || this.arrivalCondition(definition, parsedRule),",
     );
     // Run on Past Events: a saved rule's exceptions, a rule not saved yet none.
     expect(retrohunt).toContain(

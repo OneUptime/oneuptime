@@ -54,7 +54,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * episode:
  *
  *   call       "If you can't take it, press 2 to escalate.", and the
- *              address the key press goes to carries the page's token;
+ *              address the key press goes to - which the Notification
+ *              service makes the call's <Gather> action from, leaving the
+ *              page's token out and adding the call's own (#10025);
  *   text       "Ack or escalate:", then the one link, which opens a page
  *              that offers both;
  *   WhatsApp   the approved template as it is: its acknowledge link opens
@@ -63,11 +65,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *   Slack and
  *   Teams DMs
  *   email      an Escalate button under Acknowledge (its template draws it
- *              from passOnLink); its Acknowledge link has no token, so the
- *              link it prints to copy stays one line.
+ *              from passOnLink); its Acknowledge link carries the token
+ *              too, which the page's Acknowledge needs (#10025).
  *
- * Every link that can escalate the page carries a token signed for this one
- * notification (OnCallPageLinkToken) - checked here by verifying it.
+ * Every link that can escalate or acknowledge the page carries a token
+ * signed for this one notification (OnCallPageLinkToken) - checked here by
+ * verifying it.
  */
 
 const NOTIFICATION: ObjectID = new ObjectID(
@@ -436,12 +439,17 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     expect(gather.numDigits).toBe(1);
   });
 
-  test("a call's key press goes to an address with the page's token", async () => {
+  test("a call's key press goes to the page's keypad address, handed to the Notification service with the page's token for one release", async () => {
     const request: CallRequest = await kind.call();
     const gather: GatherInput = request.data.find((item: unknown) => {
       return Boolean((item as GatherInput).introMessage);
     }) as GatherInput;
 
+    /*
+     * For a Notification service of the release before, placing calls
+     * while an upgrade rolls out. This release's leaves it out of the call
+     * itself (CallService.getKeypadAction).
+     */
     expect(readLink(gather.responseUrl.toString())).toEqual({
       path: `/api/user-notification-log-timeline/call/gather-input/${NOTIFICATION.toString()}`,
       hasToken: true,
@@ -530,21 +538,25 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     ]);
   });
 
-  test("an email gets an Escalate button with the token, beside an Acknowledge link as short as it always was", async () => {
+  test("an email gets an Escalate button with the token, beside an Acknowledge link with the token too", async () => {
     const email: EmailMessage = await kind.email();
 
     /*
-     * The email prints its Acknowledge link in full, to copy and paste: a
-     * token would stretch it from one line to five. The email's own
-     * Escalate button is the way to escalate it.
+     * Acknowledging from a link needs the page's token (#10025), so the
+     * email's Acknowledge carries it - the address itself, which needs no
+     * short link written to send and lasts as long as the token.
      */
-    expect(String(email.vars[kind.acknowledgeVar])).toBe(
-      `https://oneuptime.example.com${ACKNOWLEDGE_PAGE}`,
-    );
     expect(readLink(String(email.vars[kind.acknowledgeVar]))).toEqual({
       path: ACKNOWLEDGE_PAGE,
-      hasToken: false,
+      hasToken: true,
     });
+    expect(
+      String(email.vars[kind.acknowledgeVar]).startsWith(
+        `https://oneuptime.example.com${ACKNOWLEDGE_PAGE}?pageToken=`,
+      ),
+    ).toBe(true);
+    // No short link is written for an email.
+    expect(shortened).toEqual([]);
     expect(readLink(String(email.vars["passOnLink"]))).toEqual({
       path: PASS_ON_PAGE,
       hasToken: true,

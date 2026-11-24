@@ -6,6 +6,7 @@ Un budget di acquisizione limita quanta telemetria un progetto invia in un giorn
 - [Come funzionano i budget](#come-funzionano-i-budget): Tre livelli, conteggiati man mano che la telemetria arriva.
 - [Impostare i budget predefiniti di tutti i progetti](#impostare-i-budget-predefiniti-di-tutti-i-progetti): Nelle impostazioni dell'Admin Dashboard.
 - [Dare a una chiave di acquisizione un budget proprio](#dare-a-una-chiave-di-acquisizione-un-budget-proprio): Una quota del budget del progetto.
+- [Dare a un team o a un'etichetta un budget proprio](#dare-a-un-team-o-a-unetichetta-un-budget-proprio): Per i servizi del team o con l'etichetta.
 - [Ricevere avvisi su un budget](#ricevere-avvisi-su-un-budget): Prima che sia esaurito, e quando lo è.
 :::
 
@@ -35,6 +36,7 @@ flowchart TB
 
 - **Per i budget dell'istanza e di un progetto, l'Admin Dashboard.** Su un'installazione self-hosted, solo l'amministratore dell'istanza li imposta. I Proprietari del progetto e gli Amministratori del progetto vedono i budget di un progetto, ma non possono modificarli.
 - **Per il budget proprio di una chiave, un ruolo che modifica le chiavi di acquisizione.** Proprietario del progetto o Amministratore del progetto, oppure un ruolo personalizzato con il permesso Edit Ingestion Key.
+- **Per il budget di un team o di un'etichetta, Proprietario del progetto o Amministratore del progetto.**
 - **Per vedere i budget, un ruolo che vede l'utilizzo del progetto.** I ruoli che vedono la pagina [Utilizzo della telemetria](/docs/telemetry/usage) vi vedono i budget del progetto.
 
 ## Impostare i budget predefiniti di tutti i progetti
@@ -94,6 +96,30 @@ Fate clic su **Salva modifiche**. Il budget di una chiave non può superare quel
 - **Contano entrambi i budget.** La telemetria inviata con la chiave viene conteggiata sul budget della chiave e su quello del progetto, e quello che si esaurisce per primo la rifiuta.
 - **Un budget di progetto abbassato vale anche per la chiave.** Quando il budget del progetto viene abbassato sotto quello di una chiave, la chiave è limitata a quello del progetto.
 
+## Dare a un team o a un'etichetta un budget proprio
+
+Anche il budget di un team o di un'etichetta è una quota di quello del suo progetto, per i servizi di proprietà del team o con l'etichetta: il servizio fuori controllo di un team si ferma al budget del suo team, mentre il resto del progetto continua a inviare, anche attraverso lo stesso collector e la stessa chiave di acquisizione.
+
+:::steps
+### Aprire la pagina Utilizzo
+
+Andate in **Impostazioni del progetto → Telemetria e APM → Utilizzo**, e aprite **Altre impostazioni** in fondo alla pagina.
+
+### Aggiungere il budget
+
+Nella scheda **Budget di team ed etichette**, fate clic su **Crea: Budget**. Scegliete il team o l'etichetta in **Team o etichetta**, e inserite un numero di GB al giorno in **Log (GB al giorno)**. Gli altri segnali sono in **Altri campi**. Lasciate vuoto un segnale perché non abbia un budget proprio.
+
+### Salvare il budget
+
+Fate clic su **Crea: Budget**. Il budget di un team o di un'etichetta non può superare quello del suo progetto: OneUptime lo rifiuta e indica il massimo possibile.
+:::
+
+- **Cosa conteggia.** I log, le tracce, le metriche e i profili che i servizi del team, o i servizi con l'etichetta, inviano tramite OpenTelemetry (OTLP). La telemetria di host e altre risorse, gli eventi di sicurezza e i log di Fluent Bit, Fluentd o syslog contano solo sui budget del progetto e della chiave.
+- **Una volta esaurito, la telemetria viene scartata.** La telemetria di quel segnale dei servizi viene scartata fino all'azzeramento, e il mittente non lo sa: ha ricevuto la risposta quando la telemetria è arrivata. Ciò che viene scartato non conta più sul budget del progetto o della chiave.
+- **Chi viene avvisato.** I Proprietari del progetto ricevono un'e-mail quando il budget supera la soglia di avviso, e quando è esaurito.
+- **Solo un budget giornaliero.** Un team o un'etichetta non ha un limite di frequenza.
+- **Ogni budget conta.** La telemetria di un servizio conta sui budget dei suoi team e delle sue etichette, e su quelli della chiave e del progetto, e il primo che si esaurisce la ferma. Quando il budget del progetto viene abbassato sotto quello di un team o di un'etichetta, questo è limitato a quello del progetto.
+
 ## Che cosa vedono i mittenti
 
 | Quando | Su HTTP | Su OTLP/gRPC | Che cosa fa il mittente |
@@ -109,6 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 - **Gli altri mittenti HTTP ricevono JSON.** Fluent Bit, Fluentd, Syslog e gli altri endpoint HTTP ricevono `error`, `message` e `resetsAt`, più `retryAfterSeconds` in caso di limite di frequenza.
 - **MQTT e gli stream cloud non possono essere avvisati.** La telemetria che arriva su MQTT o dallo stream di un provider cloud viene scartata non appena il suo budget è esaurito. Non le si applica alcun limite di frequenza: non potrebbe essere inviata di nuovo.
+- **Nemmeno i servizi di un team o di un'etichetta.** Una volta esaurito il budget di un team o di un'etichetta, la loro telemetria viene accettata e poi scartata: vedete [Dare a un team o a un'etichetta un budget proprio](#dare-a-un-team-o-a-unetichetta-un-budget-proprio).
 - **I rifiuti vengono conteggiati.** Ciò che un budget esaurito rifiuta o scarta viene conteggiato come scartato, e ogni richiesta rifiutata da un limite di frequenza come limitata: vedete [Vedere l'utilizzo e gli scarti di oggi](#vedere-lutilizzo-e-gli-scarti-di-oggi).
 
 ## L'avviso e l'azzeramento
@@ -120,20 +147,20 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Vedere l'utilizzo e gli scarti di oggi
 
-Andate in **Impostazioni del progetto → Telemetria e APM → Utilizzo**. Finché per il progetto è impostato un budget o un limite di frequenza, la pagina si apre con la scheda **Budget di acquisizione**, e le chiavi con un budget proprio si trovano nella scheda **Budget delle chiavi di acquisizione**:
+Andate in **Impostazioni del progetto → Telemetria e APM → Utilizzo**. Finché per il progetto è impostato un budget o un limite di frequenza, la pagina si apre con la scheda **Budget di acquisizione**, le chiavi con un budget proprio si trovano nella scheda **Budget delle chiavi di acquisizione**, e i team e le etichette con un budget proprio nella scheda **Budget di team ed etichette di oggi**:
 
 | Colonna | Che cosa mostra |
 | --- | --- |
 | **Segnale** | Il segnale a cui si riferisce la riga. |
 | **Usato oggi** | Ciò che è stato conteggiato dall'inizio del giorno di budget, e la sua quota del budget. |
-| **Budget giornaliero** | Il budget in vigore, e dove è stato impostato: **Predefinito dell'istanza**, **Impostato per questo progetto** o **Proprio di questa chiave**. |
+| **Budget giornaliero** | Il budget in vigore, e dove è stato impostato: **Predefinito dell'istanza**, **Impostato per questo progetto**, **Proprio di questa chiave**, **Proprio di questo team** o **Proprio di questa etichetta**. |
 | **Limite di frequenza** | Il limite di frequenza in vigore. |
 | **Scartati** | Ciò che è stato rifiutato o scartato perché il budget era esaurito. |
 | **Limitata** | Quante richieste ha rifiutato il limite di frequenza. |
 | **Stato** | **Entro il budget**, **Soglia di avviso superata** o **Esaurito**, **Nessun budget giornaliero** per un segnale con solo un limite di frequenza, e **Sconosciuto** finché i conteggi non si possono leggere. |
 
 - **Nella pagina di una chiave**, la scheda **Utilizzo del budget di oggi** mostra ciò che la chiave ha usato dei propri budget.
-- **Negli explorer**, un banner sopra i dati di log, tracce, metriche, profili ed eventi di sicurezza indica quando il budget di quel segnale ha superato la soglia di avviso o è esaurito, con **Vedi i budget** per aprire la pagina Utilizzo.
+- **Negli explorer**, un banner sopra i dati di log, tracce, metriche, profili ed eventi di sicurezza indica quando il budget di quel segnale ha superato la soglia di avviso o è esaurito, o quando è esaurito quello di una chiave, di un team o di un'etichetta, con **Vedi i budget** per aprire la pagina Utilizzo.
 - **Nell'Admin Dashboard**, la pagina **Budget di acquisizione** di un progetto mostra gli stessi valori.
 
 ## Ricevere avvisi su un budget
@@ -153,9 +180,13 @@ Ogni punto porta questi attributi:
 | --- | --- |
 | `projectId` | L'ID del progetto. |
 | `signal` | `logs`, `traces`, `metrics`, `profiles` o `security-events`. |
-| `scope` | `project`, oppure `ingestion-key` per il budget proprio di una chiave. |
+| `scope` | `project`, `ingestion-key` per il budget proprio di una chiave, oppure `team` o `label` per quello di un team o di un'etichetta. |
 | `ingestionKeyId` | L'ID della chiave, per il budget proprio di una chiave. |
 | `ingestionKeyName` | Il nome della chiave quando il punto è stato scritto, per il budget proprio di una chiave. |
+| `teamId` | L'ID del team, per il budget di un team. |
+| `teamName` | Il nome del team quando il punto è stato scritto, per il budget di un team. |
+| `labelId` | L'ID dell'etichetta, per il budget di un'etichetta. |
+| `labelName` | Il nome dell'etichetta quando il punto è stato scritto, per il budget di un'etichetta. |
 
 Per essere avvisati al 90% del budget dei log del progetto, create un monitor metriche su `oneuptime.telemetry.budget.used.percent`, filtrato su `signal` `logs` e `scope` `project`, che invii un avviso quando il massimo supera 90:
 
@@ -168,6 +199,10 @@ Per essere avvisati al 90% del budget dei log del progetto, create un monitor me
 
 :::details Un collector registra 403 per le sue esportazioni
 Il budget giornaliero del progetto o della chiave per quel segnale è esaurito, e il collector scarta ciò che non può inviare finché il budget non si azzera. Guardate **Usato oggi** nella pagina Utilizzo. Chiedete all'amministratore dell'istanza di aumentare il budget del progetto, oppure inviate meno dati: un filtro di scarto qui non aiuta, perché rimuove la telemetria dopo che è stata conteggiata.
+:::
+
+:::details La telemetria di un team non arriva più, e nessun mittente registra un errore
+Il budget giornaliero del team, o di un'etichetta dei suoi servizi, è esaurito per quel segnale, e la loro telemetria viene scartata finché il budget non si azzera. Guardate **Usato oggi** nella scheda **Budget di team ed etichette di oggi** della pagina Utilizzo, e aumentate il budget in **Altre impostazioni**.
 :::
 
 :::details Un collector registra 429 e riprova

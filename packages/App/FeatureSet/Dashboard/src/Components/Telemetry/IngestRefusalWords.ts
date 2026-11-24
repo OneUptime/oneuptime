@@ -171,6 +171,7 @@ export const INGEST_SURFACE_LABELS: Readonly<Record<string, string>> = {
   [TelemetryIngestSurface.OtelProfiles]: translationKey("Profiles"),
   [TelemetryIngestSurface.SessionReplay]: translationKey("Session Replay"),
   [TelemetryIngestSurface.SourceMap]: translationKey("Source Maps"),
+  [TelemetryIngestSurface.Dsym]: translationKey("dSYMs"),
   [TelemetryIngestSurface.Syslog]: translationKey("Syslog"),
   [TelemetryIngestSurface.Fluent]: translationKey("Fluentd / Fluent Bit"),
   [TelemetryIngestSurface.VercelLogDrain]: translationKey("Vercel log drain"),

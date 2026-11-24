@@ -215,6 +215,15 @@ export const fetchRightSizingRecommendations: (
           aggregationType: measure.aggregationType,
           groupBy,
           aggregationInterval: AggregationInterval.Total,
+          /*
+           * A correction row (#9969) carries only the change a Kubecost's
+           * reconciliation made to an hour's costs, and no usage: the costs
+           * add it in, so the savings are at what was paid, and every count,
+           * average, percentile and peak leaves it out.
+           */
+          ...(measure.aggregationType === AggregationType.Sum
+            ? {}
+            : { extraQuery: { isCostAdjustment: false } }),
         }),
       );
     }),

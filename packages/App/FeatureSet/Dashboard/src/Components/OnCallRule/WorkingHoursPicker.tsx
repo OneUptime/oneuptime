@@ -9,6 +9,7 @@ import WorkingHours, {
   SimpleWorkingHours,
 } from "Common/Types/OnCallDutyPolicy/WorkingHours";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import { writeStandAloneDayName } from "Common/Types/DateLanguage";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -359,9 +360,23 @@ const WorkingHoursPicker: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-7 gap-1">
           {EVERY_DAY.map((day: number) => {
             const isPicked: boolean = draft.days.includes(day);
-            const dayName: string = translator.translateText(
-              WORKING_HOURS_DAY_NAMES[day]!,
-            )!;
+            /*
+             * A day's name on a button stands alone: "Lunes" in Spanish,
+             * "mandag" in Danish, as CLDR has each language write it
+             * (#7660) - the button, its aria-label and its title alike.
+             */
+            const dayName: string = writeStandAloneDayName({
+              name: translator.translateText(WORKING_HOURS_DAY_NAMES[day]!)!,
+              language: translator.language,
+              context: "standAlone",
+            });
+            const shortDayName: string = writeStandAloneDayName({
+              name: translator.translateText(
+                WORKING_HOURS_DAY_SHORT_NAMES[day]!,
+              )!,
+              language: translator.language,
+              context: "standAlone",
+            });
 
             return (
               <button
@@ -381,7 +396,7 @@ const WorkingHoursPicker: FunctionComponent<ComponentProps> = (
                   toggleDay(day);
                 }}
               >
-                {translator.translateText(WORKING_HOURS_DAY_SHORT_NAMES[day]!)}
+                {shortDayName}
               </button>
             );
           })}

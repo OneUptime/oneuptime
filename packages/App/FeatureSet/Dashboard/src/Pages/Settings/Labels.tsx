@@ -17,7 +17,6 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import UsedByDialog from "../../Components/UsedBy/UsedByDialog";
 import { USED_BY_ACTION } from "../../Components/UsedBy/UsedByWords";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -26,6 +25,10 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import { isNameTakenRefusal } from "Common/Types/Database/UniqueName";
+import useSharedNames, {
+  SharedNamesOfList,
+} from "../../Components/SharedName/UseSharedNames";
+import { SharedNameKind } from "Common/Types/Database/SharedNames";
 
 const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Archive and Unarchive, and the folded Archived section. See the hook.
@@ -45,11 +48,34 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const [usedByLabelId, setUsedByLabelId] = useState<ObjectID | null>(null);
 
+  /*
+   * Labels that share a name with another label (#9856): a label cannot
+   * take another label's name, on a create or a rename (#9723), but labels
+   * named alike before that keep their names, and every label picker lists
+   * the name twice. Marked beside their chip, counted above the list with
+   * how to tell them apart - what each one is on, under Used by - and each
+   * given Rename as its row's button. Archived labels are in no picker, so
+   * a label named as one is not marked.
+   */
+  const sharedNames: SharedNamesOfList<Label> = useSharedNames<Label>({
+    kind: SharedNameKind.Label,
+    modelType: Label,
+    getNameElement: (item: Label): ReactElement => {
+      return <LabelElement label={item} />;
+    },
+  });
+
   return (
     <Fragment>
+      {/*
+       * Above the list while labels share a name: how many, and how to tell
+       * them apart. Nothing otherwise.
+       */}
+      {sharedNames.note}
       <ModelTable<Label>
         modelType={Label}
         actionButtons={[
+          sharedNames.renameAction,
           {
             title: USED_BY_ACTION,
             icon: IconProp.Link,
@@ -70,7 +96,10 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
         getDeleteConfirmation={archive.getDeleteConfirmation}
         bulkActions={archive.bulkActions}
-        refreshToggle={archive.refreshToggle}
+        refreshToggle={`${archive.refreshToggle}-${sharedNames.refreshToken}`}
+        onFetchSuccess={(): void => {
+          sharedNames.onListFetched();
+        }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           ...archive.query,
@@ -152,19 +181,12 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-
-            // A badge: its words read their own way (Pill), its dot the page's.
-            getLineText: drawsItsOwnLines,
-            getElement: (item: Label): ReactElement => {
-              return <LabelElement label={item} />;
-            },
-          },
+          /*
+           * The label as its chip, with the pill beside it when another
+           * label shares its name (#9856). A badge: its words read their own
+           * way (Pill), its dot the page's.
+           */
+          sharedNames.nameColumn,
           {
             field: {
               description: true,
@@ -175,6 +197,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
       />
       {archive.element}
+      {sharedNames.renameModal}
       {usedByLabelId ? (
         <UsedByDialog
           recordKind={UsedByRecordKind.Label}

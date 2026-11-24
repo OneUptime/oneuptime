@@ -19,11 +19,16 @@ import {
 } from "Common/Types/Email/EmailRecipients";
 import EmailSendFailure from "Common/Types/Email/EmailSendFailure";
 import EmailServer from "Common/Types/Email/EmailServer";
+import { AMAZON_SES_ROLE_CONFIG_INCOMPLETE } from "Common/Types/Email/AmazonSesRoleWords";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import AwsDefaultCredentialChain, {
   AwsChainCredentials,
   AwsCredentialChainError,
 } from "Common/Server/Utils/Aws/AwsDefaultCredentialChain";
+import AmazonSesProjectRole, {
+  AmazonSesRoleSession,
+  AmazonSesRoleSignInError,
+} from "Common/Server/Utils/Mail/AmazonSesProjectRole";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import logger from "Common/Server/Utils/Logger";
@@ -54,6 +59,17 @@ import AwsSecurityHubClient, {
  * before they expire, and again at once when SES says they expired or does
  * not know them. The role is the server's, so a project's config - which
  * has an id - is refused if it asks for it, however it came to.
+ *
+ * A PROJECT'S OWN IAM ROLE (#7378). A project's config may instead sign in
+ * to an IAM role in the project's own AWS account (awsRoleArn): OneUptime
+ * signs in to it with its own AWS identity and the project's email
+ * external id, after checking that the role requires that id, and never to
+ * a role in OneUptime's own AWS account (AmazonSesProjectRole, through
+ * AwsSts.assumeRole). Each try signs with the role's session in hand,
+ * which lasts an hour and is kept for the config's next emails; one SES
+ * says expired, or does not know, is dropped, and the next try signs in
+ * again. What fails is said in OneUptime's words: never AWS's answer to
+ * OneUptime's identity, nor a key or a token.
  *
  * What the customer sets up in SES: a verified identity for the From Email
  * (the address, or its domain) in the Region they pick, and - while the
@@ -202,6 +218,9 @@ export default class AmazonSesMailProvider implements MailProvider {
     const secretAccessKey: string =
       emailServer.awsSecretAccessKey?.trim() || "";
     const region: string = emailServer.awsRegion?.trim().toLowerCase() || "";
+    const roleArn: string = emailServer.awsRoleArn?.trim() || "";
+    // A project's own IAM role: never when the config asked for the server's.
+    const usesProjectRole: boolean = !usesServerIamRole && Boolean(roleArn);
 
     if (usesServerIamRole) {
       /*
@@ -217,6 +236,17 @@ export default class AmazonSesMailProvider implements MailProvider {
       if (!region) {
         throw new BadDataException(
           "Amazon SES needs a Region to sign in with this server's IAM role.",
+        ).asUserError();
+      }
+    } else if (usesProjectRole) {
+      /*
+       * A role is a project's config's own: signed in to for the config
+       * (its id) and the project it belongs to, whose external id it
+       * trusts. The server's own settings have neither.
+       */
+      if (!emailServer.id || !emailServer.awsRoleProjectId?.trim() || !region) {
+        throw new BadDataException(
+          AMAZON_SES_ROLE_CONFIG_INCOMPLETE,
         ).asUserError();
       }
     } else if (!accessKeyId || !secretAccessKey || !region) {
@@ -241,24 +271,44 @@ export default class AmazonSesMailProvider implements MailProvider {
         configId: emailServer.id?.toString(),
         credential: usesServerIamRole
           ? `server-iam-role:${region}`
-          : `${accessKeyId}:${secretAccessKey}:${region}`,
+          : usesProjectRole
+            ? `project-iam-role:${roleArn}:${region}`
+            : `${accessKeyId}:${secretAccessKey}:${region}`,
       }),
       async (): Promise<void> => {
+        // The project's role's session, kept from one try to the next of this email.
+        let roleSession: AmazonSesRoleSession | null = null;
+
         await HttpMailApi.sendWithRetry({
           providerName: PROVIDER_NAME,
           timeoutMs: options?.timeoutMs,
           attempt: async (requestTimeoutMs: number): Promise<void> => {
+            if (usesProjectRole && !roleSession) {
+              roleSession = await AmazonSesMailProvider.getProjectRoleSession({
+                projectId: emailServer.awsRoleProjectId!.trim(),
+                configId: emailServer.id!.toString(),
+                roleArn: roleArn,
+                region: region,
+              });
+            }
+
             /*
              * Each try signs with the credentials in hand: the role's are
              * fetched again before they expire, or after SES refused them.
              */
             const credentials: AmazonSesSigningCredentials = usesServerIamRole
               ? await this.getServerIamRoleCredentials(region)
-              : {
-                  accessKeyId: accessKeyId,
-                  secretAccessKey: secretAccessKey,
-                  sessionToken: undefined,
-                };
+              : roleSession
+                ? {
+                    accessKeyId: roleSession.credentials.accessKeyId,
+                    secretAccessKey: roleSession.credentials.secretAccessKey,
+                    sessionToken: roleSession.credentials.sessionToken,
+                  }
+                : {
+                    accessKeyId: accessKeyId,
+                    secretAccessKey: secretAccessKey,
+                    sessionToken: undefined,
+                  };
 
             /*
              * Signed afresh on every try: a signature is good for five
@@ -297,13 +347,19 @@ export default class AmazonSesMailProvider implements MailProvider {
               return;
             }
 
-            if (
-              usesServerIamRole &&
+            const refusesCredentials: boolean =
               AMAZON_SES_CREDENTIAL_REFUSAL_CODES.includes(
                 AmazonSesMailProvider.readError(answer).code,
-              )
-            ) {
+              );
+
+            if (usesServerIamRole && refusesCredentials) {
               this.getCredentialChain().invalidate();
+            }
+
+            // The role's session SES no longer takes: the next try signs in again.
+            if (roleSession && refusesCredentials) {
+              AmazonSesProjectRole.forgetSession(roleSession);
+              roleSession = null;
             }
 
             throw AmazonSesMailProvider.explainError(answer, {
@@ -311,6 +367,7 @@ export default class AmazonSesMailProvider implements MailProvider {
               fromEmail: emailServer.fromEmail.toString(),
               hadInlineImages: inlineImages.length > 0,
               signsInWith: signsInWith,
+              signsInWithProjectRole: usesProjectRole,
               secrets: [
                 credentials.secretAccessKey,
                 credentials.sessionToken,
@@ -325,6 +382,30 @@ export default class AmazonSesMailProvider implements MailProvider {
 
   private getCredentialChain(): AwsDefaultCredentialChain {
     return this.credentialChain || AwsDefaultCredentialChain.getShared();
+  }
+
+  /*
+   * The session of a project's IAM role (AmazonSesProjectRole): a failure to
+   * sign in is a MailApiSendException in OneUptime's words, tried again
+   * only when another try could work (AWS slowed down, or did not answer).
+   */
+  private static async getProjectRoleSession(data: {
+    projectId: string;
+    configId: string;
+    roleArn: string;
+    region: string;
+  }): Promise<AmazonSesRoleSession> {
+    try {
+      return await AmazonSesProjectRole.getSession(data);
+    } catch (error) {
+      if (error instanceof AmazonSesRoleSignInError) {
+        throw new MailApiSendException(error.message, {
+          isRetryable: error.isRetryable,
+        });
+      }
+
+      throw error;
+    }
   }
 
   /*
@@ -434,6 +515,8 @@ export default class AmazonSesMailProvider implements MailProvider {
       fromEmail: string;
       hadInlineImages: boolean;
       signsInWith?: AmazonSesAuthenticationType | undefined;
+      // A project's config signed in to an IAM role in its own AWS account (#7378).
+      signsInWithProjectRole?: boolean | undefined;
       secrets: Array<string | undefined>;
     },
   ): MailApiSendException {
@@ -446,6 +529,10 @@ export default class AmazonSesMailProvider implements MailProvider {
     const words: string = error.message.toLowerCase();
     const usesServerIamRole: boolean =
       options.signsInWith === AmazonSesAuthenticationType.ServerIamRole;
+    const usesProjectRole: boolean =
+      !usesServerIamRole && options.signsInWithProjectRole === true;
+    // Either role's credentials are short-lived, and fetched again when SES refuses them.
+    const usesRole: boolean = usesServerIamRole || usesProjectRole;
 
     const isQuota: boolean = words.includes("daily message quota exceeded");
     const isThrottled: boolean =
@@ -466,13 +553,15 @@ export default class AmazonSesMailProvider implements MailProvider {
     ) {
       meaning = usesServerIamRole
         ? `Amazon SES does not recognize this server's IAM role credentials (${status}). New ones are fetched for the next email; if this goes on, check the IAM role this server runs as.`
-        : `Amazon SES does not recognize the access key (${status}). Check the Access Key ID, and that the key is active in IAM.`;
+        : usesProjectRole
+          ? `Amazon SES does not recognize the credentials of this config's IAM role (${status}). OneUptime signs in to the role again for the next email.`
+          : `Amazon SES does not recognize the access key (${status}). Check the Access Key ID, and that the key is active in IAM.`;
     } else if (
       error.code === "SignatureDoesNotMatch" ||
       error.code === "InvalidSignatureException" ||
       error.code === "IncompleteSignature"
     ) {
-      meaning = usesServerIamRole
+      meaning = usesRole
         ? `Amazon SES did not accept the request's signature (${status}). Check that this server's clock is right.`
         : `Amazon SES did not accept the request's signature (${status}). Check that the Secret Access Key belongs to the Access Key ID, and that this server's clock is right.`;
     } else if (
@@ -481,11 +570,15 @@ export default class AmazonSesMailProvider implements MailProvider {
     ) {
       meaning = usesServerIamRole
         ? `This server's IAM role may not send with Amazon SES (${status}). Allow ses:SendEmail on the sender's identity in the role's policy.`
-        : `The access key may not send with Amazon SES (${status}). Allow ses:SendEmail on the sender's identity in the IAM user's or role's policy.`;
+        : usesProjectRole
+          ? `This config's IAM role may not send with Amazon SES (${status}). Allow ses:SendEmail on the sender's identity in the role's policy.`
+          : `The access key may not send with Amazon SES (${status}). Allow ses:SendEmail on the sender's identity in the IAM user's or role's policy.`;
     } else if (isExpired) {
       meaning = usesServerIamRole
         ? `This server's IAM role credentials expired before Amazon SES read them (${status}). New ones are fetched for the next try.`
-        : `The access key has expired (${status}). Use a long-lived IAM access key.`;
+        : usesProjectRole
+          ? `The session of this config's IAM role expired before Amazon SES read it (${status}). OneUptime signs in to the role again for the next try.`
+          : `The access key has expired (${status}). Use a long-lived IAM access key.`;
     } else if (
       words.includes("not verified") &&
       AmazonSesMailProvider.isOnlyRecipientsUnverified(
@@ -526,7 +619,7 @@ export default class AmazonSesMailProvider implements MailProvider {
         isRetryable:
           !isQuota &&
           (isThrottled ||
-            (usesServerIamRole && isExpired) ||
+            (usesRole && isExpired) ||
             HttpMailApi.isRetryableStatus(answer.status)),
         retryAfterSeconds: HttpMailApi.parseRetryAfter(
           answer.headers.get("retry-after"),

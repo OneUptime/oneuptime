@@ -49,6 +49,7 @@ import {
 } from "../../Components/HostCollector/HostCollectorConfigVersions";
 import { HostCollectorTranslatableText } from "../../Components/HostCollector/HostCollectorStatus";
 import HostCollectorStatePill from "../../Components/HostCollector/HostCollectorStatePill";
+import HostCollectorJournaldOperatorsNotice from "../../Components/HostCollector/HostCollectorJournaldOperatorsNotice";
 import HostCollectorHostCount from "../../Components/HostCollector/HostCollectorHostCount";
 import {
   HostCollectorHostCount as HostCount,
@@ -127,6 +128,8 @@ const CollectorConfigView: FunctionComponent<
       select: {
         configHash: true,
         currentVersionNumber: true,
+        // What its journald receiver sends (HostCollectorJournaldOperatorsNotice).
+        configYaml: true,
       },
     })
       .then((item: HostCollectorConfig | null) => {
@@ -213,7 +216,7 @@ const CollectorConfigView: FunctionComponent<
    * config.yaml: the config its hosts run, with Edit config. The version is
    * on the card at the top, beside the hosts that run it.
    */
-  const configYamlTab: ReactElement = (
+  const configYamlCard: ReactElement = (
     <CardModelDetail<HostCollectorConfig>
       name="Collector Config > config.yaml"
       cardProps={{
@@ -263,6 +266,28 @@ const CollectorConfigView: FunctionComponent<
         ],
       }}
     />
+  );
+
+  /*
+   * Above the YAML, what a journald receiver with no operators costs - a
+   * failed systemd unit on these hosts cannot say why - and the way to add
+   * OneUptime's (#10127).
+   */
+  const configYamlTab: ReactElement = (
+    <Fragment>
+      <HostCollectorJournaldOperatorsNotice
+        modelId={modelId}
+        configYaml={current?.configYaml}
+        canEdit={updateGate.isAllowed}
+        onSaved={() => {
+          setYamlRefresher((value: boolean): boolean => {
+            return !value;
+          });
+          onSaved();
+        }}
+      />
+      {configYamlCard}
+    </Fragment>
   );
 
   // Hosts: who runs it now, and the version each one runs.

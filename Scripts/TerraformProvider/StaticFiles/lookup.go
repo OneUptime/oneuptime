@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// lookupNumber turns a number argument into the value a list query matches.
-func lookupNumber(value types.Number) interface{} {
+// LookupNumber turns a number argument into the value a list query matches.
+func LookupNumber(value types.Number) interface{} {
 	if value.IsNull() || value.IsUnknown() || value.ValueBigFloat() == nil {
 		return nil
 	}
@@ -20,9 +20,9 @@ func lookupNumber(value types.Number) interface{} {
 	return f
 }
 
-// describeLookup renders the arguments a lookup used, for its error
+// DescribeLookup renders the arguments a lookup used, for its error
 // messages: {name = "Offline", priority = 3}.
-func describeLookup(parts []string) string {
+func DescribeLookup(parts []string) string {
 	sorted := append([]string(nil), parts...)
 	sort.Strings(sorted)
 

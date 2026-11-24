@@ -65,7 +65,8 @@ export function hasMonitorMetrics(
 
 /*
  * The monitor's steps that have metrics to chart: a query with its metric
- * picked. A step still being set up is skipped.
+ * picked, or an expression written in PromQL (issue #10227). A step still
+ * being set up is skipped.
  */
 export function getMonitorMetricSteps(input: {
   monitorType: MonitorType | undefined;
@@ -88,11 +89,12 @@ export function getMonitorMetricSteps(input: {
       });
 
     const hasMetric: boolean = Boolean(
-      reads?.queryConfigs.some((queryConfig: MetricQueryConfigData) => {
-        return Boolean(
-          queryConfig.metricQueryData?.filterData?.metricName?.toString(),
-        );
-      }),
+      reads?.promQLQuery ||
+        reads?.queryConfigs.some((queryConfig: MetricQueryConfigData) => {
+          return Boolean(
+            queryConfig.metricQueryData?.filterData?.metricName?.toString(),
+          );
+        }),
     );
 
     if (reads && hasMetric) {

@@ -20,6 +20,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { LAYERED_POPOVER_CLASS_NAME } from "../../../UI/Components/Tooltip/LayeredPopover";
 
 /*
  * The conversation that closes the AI Investigation card, rendered for real
@@ -2762,7 +2763,7 @@ describe("InvestigationConversation — the composer in the card", () => {
     expect(section().lastElementChild).toBe(frame);
   });
 
-  test("the mode's menu opens from the picker's own left edge", async () => {
+  test("the mode's menu opens from the picker's own start edge", async () => {
     routeResponses({});
 
     renderConversation();
@@ -2779,11 +2780,15 @@ describe("InvestigationConversation — the composer in the card", () => {
       name: "AI permissions",
     });
     /*
-     * The picker is at the composer's left end: lined up on its right edge
-     * the menu (wider than the button) would open out of the card.
+     * The picker is at the composer's start: lined up on its end the menu
+     * (wider than the button) would open back out of the card. It is drawn
+     * on the tooltip layer, hung from the picker's start (#9910).
      */
-    expect(menu).toHaveClass("left-2");
-    expect(menu).not.toHaveClass("right-2");
+    expect(
+      menu
+        .closest(`.${LAYERED_POPOVER_CLASS_NAME}`)
+        ?.getAttribute("data-popper-placement"),
+    ).toMatch(/-start$/);
     expect(picker).toHaveAttribute("aria-expanded", "true");
   });
 

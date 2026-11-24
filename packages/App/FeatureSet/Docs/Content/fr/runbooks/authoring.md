@@ -64,7 +64,7 @@ Chaque étape comporte ces champs. Une étape automatisée affiche son **Titre**
 | [kubectl](#kubectl) | Un agent Runbook | Un agent Runbook, et une variable kubeconfig ou l'accès propre de l'agent Runbook |
 | [AI](#ai) | Le Worker OneUptime | Un fournisseur LLM |
 
-Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord son **Agent Runbook**, pour une étape qui s'exécute sur un agent, puis **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes d'un appel HTTP, le port, la phrase secrète de la clé et la clé d'hôte d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais. Replié, il nomme l'agent de l'étape, pour que vous voyiez où une étape s'exécute sans l'ouvrir.
+Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord son **Agent Runbook**, pour une étape qui s'exécute sur un agent, puis **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes et les réglages de certificat d'un appel HTTP, le port, la phrase secrète de la clé et la clé d'hôte d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais. Replié, il nomme l'agent de l'étape, pour que vous voyiez où une étape s'exécute sans l'ouvrir.
 
 ### Manual
 
@@ -101,6 +101,8 @@ Un appel HTTP sortant, fait par le Worker OneUptime. Aucun agent Runbook n'est n
 | **Méthode** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ou `HEAD`. | `GET` |
 | **URL** | Le point de terminaison à appeler. | Vide |
 | **En-têtes (JSON)** | Sous **Plus de champs**. Un objet JSON, par exemple `{ "Authorization": "Bearer ..." }`. Des en-têtes qui ne sont pas du JSON valide font échouer l'étape. | Aucun |
+| **Autoriser les certificats auto-signés** | Sous **Plus de champs**. Activé, l'étape accepte tout certificat que le serveur présente, donc un certificat auto-signé fonctionne, mais elle ne vérifie alors ni le nom d'hôte ni les dates de validité, et toute personne sur le chemin réseau pourrait lire la requête, secrets compris, et modifier la réponse. | Désactivé |
+| **Certificat de l'AC** | Sous **Plus de champs**, tant que **Autoriser les certificats auto-signés** est désactivé. Le certificat, au format PEM, de l'AC qui a signé le certificat du serveur, ou celui du serveur lui-même s'il est auto-signé. L'étape ne fait alors confiance qu'à ce certificat, et vérifie toujours le nom d'hôte et les dates de validité. | Aucun |
 | **Corps** | Affiché pour `POST`, `PUT`, `PATCH` et `DELETE`. Envoyé en JSON s'il s'analyse comme du JSON, sinon en texte. | Aucun |
 | **Délai d'expiration de la requête** | Combien de temps attendre la réponse du point de terminaison avant de faire échouer l'étape. | 30 secondes |
 
@@ -113,6 +115,21 @@ Utile pour : ouvrir un incident PagerDuty, publier sur un webhook Slack, appeler
 
 > [!TIP]
 > Gardez les jetons hors de l'étape. Stockez-les comme [variables de runbook](/docs/runbooks/variables) secrètes et écrivez `{{global.variables.NAME}}` là où va la valeur, dans l'URL, les en-têtes ou le corps. OneUptime envoie la requête lui-même, il insère donc aussi les secrets, et la réponse que l'étape enregistre affiche `[REDACTED]` à leur place. Dans des en-têtes ou un corps JSON, une valeur va dans sa chaîne, si bien qu'un guillemet ou un saut de ligne qu'elle contient ne casse pas le JSON.
+
+Un serveur dont le certificat est auto-signé, ou signé par votre propre AC, est refusé tant que l'étape ne lui fait pas confiance, et rien n'est envoyé. L'erreur de l'étape dit quoi changer : "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Collez le certificat qui l'a signé dans **Certificat de l'AC** : celui de l'AC, ou celui du serveur lui-même s'il est auto-signé. L'étape vérifie alors le certificat du serveur par rapport à lui, nom d'hôte et dates de validité compris, si bien qu'un serveur qui se fait seulement passer pour le vôtre est toujours refusé. N'activez **Autoriser les certificats auto-signés** que si vous ne pouvez pas en coller un. L'un comme l'autre ne s'applique qu'à la requête de cette étape, jamais à une autre étape, à une autre requête de OneUptime ni à la connexion à un proxy sortant.
+
+> [!TIP]
+> Pour faire plutôt confiance à votre propre AC pour toutes les requêtes à la fois, moniteurs compris, une installation auto-hébergée définit `NODE_EXTRA_CA_CERTS` sur ses conteneurs.
+
+Par l'API et Terraform, l'interrupteur est le `allowSelfSignedCertificates` de la configuration de l'étape, `true` ou `false`, et le certificat de l'AC son `caCertificate`, le PEM en texte. Un enregistrement est refusé quand `caCertificate` n'est pas un certificat ou contient une clé privée.
+
+```hcl
+config = {
+  method        = "GET"
+  url           = "https://billing.internal.example/health"
+  caCertificate = file("internal-ca.pem")
+}
+```
 
 ### Bash
 

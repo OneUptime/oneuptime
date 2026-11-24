@@ -4,7 +4,10 @@ import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import TelemetryRuleEditor from "./TelemetryRule/TelemetryRuleEditor";
 import TelemetryRuleRecipePicker from "./TelemetryRule/TelemetryRuleRecipePicker";
-import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
+import TelemetryAlertRuleUtil, {
+  TelemetryAlertRule,
+} from "Common/Types/Monitor/TelemetryAlertRule";
+import { PromQLMonitorComparison } from "Common/Utils/PromQL/PromQLMonitorExpression";
 import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
@@ -892,6 +895,16 @@ return {
   }
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
+
+  // A Metrics monitor's rule, when its criteria are one (TelemetryAlertRule).
+  const metricRule: TelemetryAlertRule | null =
+    props.monitorType === MonitorType.Metrics
+      ? TelemetryAlertRuleUtil.read({
+          monitorType: props.monitorType,
+          monitorStep,
+          defaultMonitorStatusId: props.defaultMonitorStatusId,
+        }).rule
+      : null;
 
   // The full criteria editor: every type's, and a telemetry rule's fallback.
   const criteriaElement: ReactElement = (
@@ -1879,13 +1892,7 @@ return {
           description="The metric this monitor reads, picked and narrowed down as in the Metrics explorer. The red line on its chart is the value the rule compares with."
         >
           <MetricMonitorStepForm
-            previewRule={
-              TelemetryAlertRuleUtil.read({
-                monitorType: props.monitorType,
-                monitorStep,
-                defaultMonitorStatusId: props.defaultMonitorStatusId,
-              }).rule
-            }
+            previewRule={metricRule}
             monitorStepMetricMonitor={
               monitorStep.data?.metricMonitor ||
               MonitorStepMetricMonitorUtil.getDefault()
@@ -1894,6 +1901,36 @@ return {
               monitorStep.setMetricMonitor(value);
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
+            /*
+             * A PromQL expression that ends in a comparison hands it to the
+             * rule (issue #7712): the expression keeps what it compares,
+             * and When to alert compares every series' value with it.
+             */
+            onMoveComparisonToRule={
+              metricRule
+                ? (comparison: PromQLMonitorComparison) => {
+                    monitorStep.setMetricMonitor({
+                      ...(monitorStep.data?.metricMonitor ||
+                        MonitorStepMetricMonitorUtil.getDefault()),
+                      promQLQuery: comparison.expression,
+                    });
+
+                    props.onChange?.(
+                      TelemetryAlertRuleUtil.write({
+                        monitorType: props.monitorType,
+                        monitorStep: monitorStep,
+                        rule: {
+                          ...metricRule,
+                          filterType: comparison.filterType,
+                          threshold: comparison.threshold,
+                          // The expression's number is in its own unit.
+                          thresholdUnit: undefined,
+                        },
+                      }),
+                    );
+                  }
+                : undefined
+            }
           />
         </Card>
       )}

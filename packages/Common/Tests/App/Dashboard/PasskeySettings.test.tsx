@@ -28,6 +28,11 @@ import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import UiAnalytics from "../../../UI/Utils/Analytics";
+import Reauthentication from "../../../UI/Utils/Reauthentication";
+import {
+  isReauthenticationStatusRequest,
+  reauthenticationStatusAnswer,
+} from "../../Helpers/ReauthenticationStatus";
 import WebAuthnTestUtil, {
   registrationOptions,
 } from "../../Utils/WebAuthnTestUtil";
@@ -155,6 +160,8 @@ type PostedRequest = {
 };
 let posted: Array<PostedRequest> = [];
 let backupCodes: Array<string> = [];
+// Whether the session has confirmed it's its person's (#10155).
+let isSessionConfirmed: boolean = true;
 
 const renderPage: (isPasskey?: boolean) => void = (
   isPasskey: boolean = true,
@@ -318,6 +325,7 @@ describe("Passkey settings registration", () => {
      * the Passkeys page reads to lock the last second step: off, with
      * nothing set up, so every passkey can be removed.
      */
+    isSessionConfirmed = true;
     jest
       .spyOn(API, "get")
       .mockImplementation(
@@ -325,6 +333,17 @@ describe("Passkey settings registration", () => {
           options: Parameters<typeof API.get>[0],
         ): Promise<HTTPResponse<JSONObject>> => {
           const url: string = options.url?.toString() || "";
+          /*
+           * Add confirms the session first (#10155): here it has, unless a
+           * test says otherwise, so the browser's prompt opens at once.
+           */
+          if (isReauthenticationStatusRequest(url)) {
+            return new HTTPResponse<JSONObject>(
+              200,
+              reauthenticationStatusAnswer(isSessionConfirmed),
+              {},
+            );
+          }
           if (!url.endsWith("/user/two-factor-auth-status")) {
             throw new Error(`Unexpected request: ${url}`);
           }
@@ -361,6 +380,52 @@ describe("Passkey settings registration", () => {
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+    Reauthentication.setAsker(null);
+  });
+
+  test("a session that has not confirmed it's you is asked first, and the key's registration opens only once it has (#10155)", async () => {
+    isSessionConfirmed = false;
+    let answer: boolean = false;
+    let asked: number = 0;
+    Reauthentication.setAsker(async (): Promise<boolean> => {
+      asked++;
+      return answer;
+    });
+    jest.spyOn(navigator.credentials, "create");
+    renderPage();
+
+    // Cancelled: nothing opens, nothing is asked of the browser or server.
+    await click(screen.getByRole("button", { name: "Add Passkey" }));
+    expect(asked).toBe(1);
+    expect(
+      screen.queryByRole("button", { name: "Create Passkey" }),
+    ).not.toBeInTheDocument();
+    expect(posted).toHaveLength(0);
+    expect(navigator.credentials.create).not.toHaveBeenCalled();
+
+    // Confirmed: the registration opens, as it does for a confirmed session.
+    answer = true;
+    await click(screen.getByRole("button", { name: "Add Passkey" }));
+    expect(asked).toBe(2);
+    expect(
+      await screen.findByRole("button", { name: "Create Passkey" }),
+    ).toBeVisible();
+  });
+
+  test("a session that has confirmed is not asked again", async () => {
+    let asked: number = 0;
+    Reauthentication.setAsker(async (): Promise<boolean> => {
+      asked++;
+      return true;
+    });
+    renderPage();
+
+    await click(screen.getByRole("button", { name: "Add Passkey" }));
+
+    expect(
+      await screen.findByRole("button", { name: "Create Passkey" }),
+    ).toBeVisible();
+    expect(asked).toBe(0);
   });
 
   test("keeps passwordless sign-in on a dedicated passkeys page", () => {

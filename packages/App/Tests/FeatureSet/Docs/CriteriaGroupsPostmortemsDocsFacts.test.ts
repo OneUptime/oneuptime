@@ -935,8 +935,26 @@ describe("how criteria decide", () => {
       "\n  }\n",
     );
 
+    /*
+     * A metric-backed step is judged series by series when it is grouped
+     * by attributes or written in PromQL, every series of whose expression
+     * is its own (#7712): MonitorStepPromQL.test.ts holds both answers.
+     */
     expect(perSeries).toContain(
-      "MonitorStep.getGroupByAttributeKeys(input.monitorStep).length > 0",
+      "return MonitorStep.isJudgedPerSeries(input.monitorStep);",
+    );
+
+    const judgedPerSeries: string = between(
+      readCommonSource("Types/Monitor/MonitorStep.ts"),
+      "public static isJudgedPerSeries(",
+      "\n  }\n",
+    );
+
+    expect(judgedPerSeries).toContain(
+      "MonitorStepMetricMonitorUtil.isPromQL(monitorStep?.data?.metricMonitor)",
+    );
+    expect(judgedPerSeries).toContain(
+      "MonitorStep.getGroupByAttributeKeys(monitorStep).length > 0",
     );
     expect(perSeries).toContain(
       "MonitorStepLogMonitorUtil.getGroupByAttributes(",
@@ -962,7 +980,7 @@ describe("how criteria decide", () => {
       "> A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once.",
     );
     expect(criteriaPage).toContain(
-      "That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.",
+      "That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. So is a Metrics monitor that watches a PromQL expression: each series the expression returns is judged on its own. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.",
     );
   });
 });
@@ -1318,17 +1336,28 @@ describe("when a criteria's incidents and alerts open and close", () => {
   );
 
   it("opens one at a time per criteria, per host or value when grouped", () => {
+    /*
+     * A criteria's open incidents, kept by their series and looked up for
+     * each series the criteria matched (#10108): another criteria's, or
+     * another series', never stops one opening.
+     */
     expect(MONITOR_INCIDENT).toContain(
-      "(incident.createdCriteriaId || undefined) ===\n                  (input.criteriaInstance.data?.id?.toString() || undefined) &&",
+      "if ((incident.createdCriteriaId || undefined) !== criteriaId) {",
     );
     expect(MONITOR_INCIDENT).toContain(
-      "(incident.seriesFingerprint || undefined) === seriesFingerprint",
+      "const seriesKey: string | undefined =\n        incident.seriesFingerprint || undefined;",
+    );
+    expect(MONITOR_INCIDENT).toContain(
+      "openIncidentsBySeries.get(seriesFingerprint)",
     );
     expect(MONITOR_INCIDENT).toContain(
       '"Skipped creating a new incident because an active incident exists for this criteria."',
     );
     expect(MONITOR_ALERT).toContain(
       "(alert.createdCriteriaId || undefined) ===",
+    );
+    expect(MONITOR_ALERT).toContain(
+      "openAlertsBySeries.get(seriesFingerprint)",
     );
     expect(MONITOR_ALERT).toContain(
       '"Skipped creating a new alert because an active alert exists for this criteria."',

@@ -118,7 +118,8 @@ export function getPinnedWindows(): Array<PinnedWindow> {
 /* "Sep 23, 2026" - the UTC calendar date of an instant, in the label format. */
 export function formatUtcDayLabel(date: Date): string {
   const month: string = MONTH_ABBREVIATIONS[date.getUTCMonth()] || "";
-  const day: string = date.getUTCDate().toString().padStart(2, "0");
+  // "Sep 3, 2026": the day without a zero, as every English date (#7652).
+  const day: string = date.getUTCDate().toString();
 
   return `${month} ${day}, ${date.getUTCFullYear()}`;
 }

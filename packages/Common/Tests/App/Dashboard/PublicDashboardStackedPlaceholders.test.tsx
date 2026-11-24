@@ -276,7 +276,7 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
     });
   });
 
-  test("the log, trace, security and Data Source widgets, which say they are not available there, take two rows - not a chart's 400px, not their own five", () => {
+  test("the log, trace and security widgets, which say they are not available there, take two rows - not a chart's 400px, not their own five", () => {
     renderBoard();
 
     expect(screen.getByTestId(DASHBOARD_BOARD_TEST_ID)).toHaveAttribute(
@@ -284,13 +284,7 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
       DashboardBoardArrangement.Stacked,
     );
 
-    for (const key of [
-      "logs",
-      "traces",
-      "dataSource",
-      "traceTable",
-      "securityEvents",
-    ]) {
+    for (const key of ["logs", "traces", "traceTable", "securityEvents"]) {
       expect([key, heightOf(key)]).toEqual([key, TWO_ROWS]);
       expect([key, wrapperHeight(key)]).toEqual([key, `${TWO_ROWS}px`]);
     }
@@ -311,11 +305,14 @@ describe("a phone's public dashboard: a widget it cannot draw takes the room of 
     }
   });
 
-  test("a metric chart, which a public dashboard draws, keeps a chart's 400px", () => {
+  test("a metric chart and a PromQL chart, which a public dashboard draws, keep a chart's 400px", () => {
     renderBoard();
 
     expect(heightOf("metrics")).toBe(400);
     expect(wrapperHeight("metrics")).toBe("400px");
+    // A Data Source chart of this project's metrics is drawn (issue #10226).
+    expect(heightOf("dataSource")).toBe(400);
+    expect(wrapperHeight("dataSource")).toBe("400px");
     // A widget that is no chart is as tall as its rows, as ever.
     expect(heightOf("title")).toBe(70);
   });
@@ -338,16 +335,16 @@ describe("inside OneUptime, where every widget is drawn", () => {
 /*
  * The widgets the board lays out as the words they are: those a public
  * dashboard cannot draw - the list the page shares with the server, which
- * serves them their title only (issue #6338) - and the Data Source
- * widgets, which the server leaves out altogether.
+ * serves them their title only (issue #6338). The Data Source widgets are
+ * drawn: the server serves only those of this project's metrics, whose
+ * data its PromQL route reads (issue #10226), and leaves the rest out.
  */
 const PUBLIC_PLACEHOLDER_TYPES: ReadonlyArray<DashboardComponentType> = [
   ...PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES,
-  ...DataSourceComponentTypes,
 ];
 
 describe("which widgets the board lays out as a placeholder", () => {
-  test("on a public dashboard: those it cannot draw and the Data Source widgets, and no other", () => {
+  test("on a public dashboard: those it cannot draw, and no other - not the Data Source widgets", () => {
     setPublicDashboardContext({
       dashboardId: new ObjectID("66666666-6666-4666-8666-666666666660"),
       apiUrl: URL.fromString("https://oneuptime.example/public-dashboard-api"),
@@ -530,6 +527,9 @@ ${fs.readFileSync(
       if (
         PUBLIC_PLACEHOLDER_TYPES.includes(
           componentType as DashboardComponentType,
+        ) ||
+        DataSourceComponentTypes.includes(
+          componentType as DashboardComponentType,
         )
       ) {
         continue;
@@ -539,6 +539,33 @@ ${fs.readFileSync(
         componentType,
         declines: declinesOnPublicDashboards(source),
       }).toEqual({ componentType, declines: false });
+    }
+  });
+
+  /*
+   * A Data Source widget is drawn there from what it is served (issue
+   * #10226), through the public PromQL route; it keeps the placeholder
+   * only for a widget it is served no query of, which the server never
+   * sends.
+   */
+  test("a Data Source widget reads its served queries through the public route, and declines only with none", () => {
+    const sources: Map<string, string> = widgetSourcesByType();
+    const READS_THE_PUBLIC_ROUTE: RegExp = /fetchPublic(TimeSeries|Table)\(/;
+    const DECLINES_WITH_NOTHING_TO_RUN: RegExp =
+      /isPublicDashboard\(\) && (!isConfigured|queryConfigs\.length === 0)\)/;
+
+    for (const componentType of DataSourceComponentTypes) {
+      const source: string = sources.get(componentType)!;
+
+      expect({
+        componentType,
+        readsThePublicRoute: READS_THE_PUBLIC_ROUTE.test(source),
+        declinesOnlyWithNothingToRun: DECLINES_WITH_NOTHING_TO_RUN.test(source),
+      }).toEqual({
+        componentType,
+        readsThePublicRoute: true,
+        declinesOnlyWithNothingToRun: true,
+      });
     }
   });
 });

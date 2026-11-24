@@ -3,6 +3,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import { JSONObject } from "../../../Types/JSON";
+import { ListEntryWrites } from "../../Utils/Database/ListEntries";
 
 export default interface UpdateOneBy<TBaseModel extends BaseModel> {
   query: Query<TBaseModel>;
@@ -23,5 +24,13 @@ export default interface UpdateOneBy<TBaseModel extends BaseModel> {
    * includeColumns).
    */
   auditLogIncludeColumns?: Array<string> | undefined;
+  /*
+   * What updateOneById made of an update's list changes (UpdateByID
+   * .listChanges, #10135): each list it changes is in `data` whole, for
+   * every check and hook, and the row's write adds and takes off only these
+   * entries (Server/Utils/Database/ListEntries). Set by updateOneById, for
+   * the one row it updates.
+   */
+  listEntryWrites?: ListEntryWrites | undefined;
   props: DatabaseCommonInteractionProps;
 }

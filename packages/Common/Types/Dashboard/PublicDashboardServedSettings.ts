@@ -1,6 +1,9 @@
 import DashboardComponentType from "./DashboardComponentType";
 import DashboardVariable, { DashboardVariableType } from "./DashboardVariable";
 import { DASHBOARD_WIDGET_SORT_ARGUMENT } from "./DashboardWidgetSort";
+import DataSourceWidgetQueries, {
+  DataSourceWidgetQueriesSetting,
+} from "../../Utils/DataSource/DataSourceWidgetQueries";
 
 /*
  * What a public dashboard serves its visitors of each widget and of each
@@ -34,11 +37,13 @@ import { DASHBOARD_WIDGET_SORT_ARGUMENT } from "./DashboardWidgetSort";
  * The widgets a public dashboard cannot draw: its API reads no logs, no
  * traces, no security events and no product analytics. Each says so in its
  * place, under its title ("Log charts are not available on public
- * dashboards."), and its title is all it is served. The external Data
- * Source widgets are not among them: a public dashboard leaves them out
- * altogether, because their settings are the query itself
- * (PublicDashboardViewConfig.sanitize). The page lays out both kinds as
- * the words they are (PublicDashboardContext.isWidgetDrawnHere).
+ * dashboards."), and its title is all it is served. The Data Source
+ * widgets are not among them: one that reads an outside system is left
+ * out of a public dashboard altogether, and one that reads only this
+ * project's metrics is drawn, its queries run by the public PromQL route
+ * (PublicDashboardViewConfig.sanitize, issue #10226). The page lays out
+ * the widgets it cannot draw as the words they are
+ * (PublicDashboardContext.isWidgetDrawnHere).
  */
 export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardComponentType> =
   [
@@ -85,6 +90,15 @@ export interface PublicDashboardWidgetSettings {
    */
   servedWhileOn?: Readonly<Record<string, string>> | undefined;
   /*
+   * The settings that hold a Data Source widget's queries (issue #10226):
+   * served without their text, each set-up query as its source, its id and
+   * its legend (DataSourceWidgetQueries.toServedSetting). The page runs
+   * them through the public PromQL route by their place, and the route
+   * reads the text it runs from what is stored - a visitor never sends
+   * one, and never reads one.
+   */
+  servedWithoutQueryText?: ReadonlyArray<DataSourceWidgetQueriesSetting>;
+  /*
    * The settings never served: the page does not draw the widget with
    * them on a public dashboard, and no public route reads them.
    */
@@ -92,16 +106,12 @@ export interface PublicDashboardWidgetSettings {
 }
 
 /*
- * Every widget type a public dashboard serves: all but the external Data
- * Source widgets, which it leaves out whole.
+ * Every widget type a public dashboard serves: every type. A Data Source
+ * widget that reads an outside system is left out whole before its type
+ * is asked (PublicDashboardViewConfig.sanitize); one that reads only this
+ * project's metrics is served as decided here.
  */
-export type PublicDashboardServedWidgetType = Exclude<
-  DashboardComponentType,
-  | DashboardComponentType.DataSourceChart
-  | DashboardComponentType.DataSourceValue
-  | DashboardComponentType.DataSourceGauge
-  | DashboardComponentType.DataSourceTable
->;
+export type PublicDashboardServedWidgetType = DashboardComponentType;
 
 // A widget's own sort, which its list's headers start on (issue #5082).
 const SORT: string = DASHBOARD_WIDGET_SORT_ARGUMENT;
@@ -440,12 +450,54 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     servedWhileOn: { javascript: "allowScripts" },
     withheld: [],
   },
+  /*
+   * The Data Source widgets that read only this project's metrics (issue
+   * #10226): everything the page draws them with, and their queries
+   * without their text - the public PromQL route reads what it runs from
+   * what is stored, by the widget and the query's place.
+   */
+  [DashboardComponentType.DataSourceChart]: {
+    served: ["chartTitle", "chartDescription", "chartType", "unit"],
+    servedWithoutQueryText: [DataSourceWidgetQueriesSetting.Queries],
+    withheld: [],
+  },
+  [DashboardComponentType.DataSourceValue]: {
+    served: [
+      "title",
+      "reduce",
+      "unit",
+      "warningThreshold",
+      "criticalThreshold",
+      "trendDirection",
+    ],
+    servedWithoutQueryText: [DataSourceWidgetQueriesSetting.Query],
+    withheld: [],
+  },
+  [DashboardComponentType.DataSourceGauge]: {
+    served: [
+      "gaugeTitle",
+      "reduce",
+      "unit",
+      "minValue",
+      "maxValue",
+      "warningThreshold",
+      "criticalThreshold",
+    ],
+    servedWithoutQueryText: [DataSourceWidgetQueriesSetting.Query],
+    withheld: [],
+  },
+  // Its Max Rows and its own sort are what the public route keeps rows by.
+  [DashboardComponentType.DataSourceTable]: {
+    served: ["tableTitle", "tableDescription", "maxRows", SORT],
+    servedWithoutQueryText: [DataSourceWidgetQueriesSetting.Query],
+    withheld: [],
+  },
 };
 
 /*
  * What a public dashboard serves of one widget type's settings, or
- * nothing for a type it serves none of: a Data Source widget, a type no
- * board draws, no type at all.
+ * nothing for a type it serves none of: a type no board draws, no type at
+ * all.
  */
 export function getPublicDashboardWidgetSettingsDecision(
   componentType: unknown,
@@ -467,9 +519,10 @@ export function getPublicDashboardWidgetSettingsDecision(
 
 /*
  * A widget's settings as a public dashboard serves them: the settings its
- * type is served, each exactly as stored, and nothing else - a new object;
- * the settings handed in are not changed. A type that is served none
- * comes back with none.
+ * type is served, each exactly as stored, a Data Source widget's queries
+ * without their text, and nothing else - a new object; the settings
+ * handed in are not changed. A type that is served none comes back with
+ * none.
  */
 export function getPublicDashboardWidgetSettings(
   componentType: unknown,
@@ -500,6 +553,21 @@ export function getPublicDashboardWidgetSettings(
   for (const [key, condition] of Object.entries(decision.servedWhileOn || {})) {
     if (settings[condition]) {
       serve(key);
+    }
+  }
+
+  for (const key of decision.servedWithoutQueryText || []) {
+    if (!Object.prototype.hasOwnProperty.call(settings, key)) {
+      continue;
+    }
+
+    const withoutText: unknown = DataSourceWidgetQueries.toServedSetting(
+      key,
+      settings[key],
+    );
+
+    if (withoutText !== undefined) {
+      served[key] = withoutText;
     }
   }
 

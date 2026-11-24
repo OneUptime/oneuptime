@@ -164,11 +164,15 @@ const choice: (preference: ThemePreference) => HTMLElement = (
   return screen.getByTestId(getThemeChoiceTestId(preference));
 };
 
+/*
+ * The choice in use, as a screen reader hears it: a menu item radio that is
+ * checked (#7237), one of a group in the profile menu.
+ */
 const pressed: () => Array<string> = (): Array<string> => {
   return screen
-    .getAllByRole("button")
+    .getAllByRole("menuitemradio")
     .filter((button: HTMLElement): boolean => {
-      return button.getAttribute("aria-pressed") === "true";
+      return button.getAttribute("aria-checked") === "true";
     })
     .map((button: HTMLElement): string => {
       return button.getAttribute("aria-label") || "";
@@ -193,17 +197,24 @@ describe("the row", () => {
     render(<ThemeChoiceRow />);
 
     const row: HTMLElement = screen.getByTestId(THEME_CHOICE_ROW_TEST_ID);
-    const group: HTMLElement = within(row).getByRole("group", {
+    const group: HTMLElement = screen.getByRole("group", {
       name: "Theme",
     });
 
+    // The row is the group: a group of the menu, named by its title.
+    expect(group).toBe(row);
     expect(
       within(group)
-        .getAllByRole("button")
+        .getAllByRole("menuitemradio")
         .map((button: HTMLElement): string => {
           return button.getAttribute("aria-label") || "";
         }),
     ).toEqual(["Light", "Dark", "System"]);
+    // Menu items: the menu's arrow keys reach them, Tab does not stop on each.
+    for (const button of within(group).getAllByRole("menuitemradio")) {
+      expect(button).toHaveAttribute("tabindex", "-1");
+      expect(button).not.toHaveAttribute("aria-pressed");
+    }
     expect(THEME_CHOICE_ROW_TITLE).toBe("Theme");
   });
 
@@ -229,9 +240,14 @@ describe("the row", () => {
     ThemeUtil.initialize();
     render(<ThemeChoiceRow />);
 
-    const group: HTMLElement = screen.getByRole("group", { name: "Theme" });
+    const track: HTMLElement = choice(ThemePreference.Dark).parentElement!;
 
-    expect(group).toHaveClass(...VIEW_SWITCH_CLASS_NAME.split(" "));
+    // The track is the choices' box, inside the group, and no part of it.
+    expect(screen.getByRole("group", { name: "Theme" })).toContainElement(
+      track,
+    );
+    expect(track).toHaveAttribute("role", "none");
+    expect(track).toHaveClass(...VIEW_SWITCH_CLASS_NAME.split(" "));
     expect(choice(ThemePreference.Dark)).toHaveClass(
       ...VIEW_SWITCH_ACTIVE_CLASS_NAME.split(" "),
     );
@@ -410,9 +426,11 @@ describe("its words", () => {
 
     expect(screen.getByRole("group", { name: "Design" })).toBeInTheDocument();
     expect(
-      screen.getAllByRole("button").map((button: HTMLElement): string => {
-        return button.getAttribute("aria-label") || "";
-      }),
+      screen
+        .getAllByRole("menuitemradio")
+        .map((button: HTMLElement): string => {
+          return button.getAttribute("aria-label") || "";
+        }),
     ).toEqual(["Hell", "Dunkel", "System"]);
     expect(choice(ThemePreference.Dark)).toHaveAttribute("title", "Dunkel");
   });

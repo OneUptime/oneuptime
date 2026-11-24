@@ -49,6 +49,8 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import crypto from "crypto";
 import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { countOtlpProfiles } from "Common/Utils/Telemetry/OtlpRecordCount";
 
 type ParsedUnixNano = {
   /*
@@ -303,6 +305,10 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
        */
       const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
+      // Whose telemetry the batch is: null for most projects (#6355, #6386).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
       for (const resourceProfile of resourceProfiles) {
         try {
           if (eventLoopBudget.isSpent()) {
@@ -397,6 +403,23 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           const serviceName: string = resolvedServiceMetadata.serviceName;
 
           serviceDictionary[serviceName] = resolvedServiceMetadata;
+
+          /*
+           * Whose telemetry this resource is (TelemetryIngestAttribution,
+           * #6355, #6386): its share of the batch's usage, and its team's or
+           * label's budget. A used-up budget drops its records here.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: resolvedServiceMetadata.primaryEntityId!,
+              primaryEntityType: resolvedServiceMetadata.primaryEntityType,
+              name: serviceName,
+              records: countOtlpProfiles(resourceProfile),
+            }))
+          ) {
+            continue;
+          }
 
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
@@ -925,6 +948,9 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
           logger.error(resourceError);
         }
       }
+
+      // The batch's attribution, counted in one round trip (#6355, #6386).
+      await attribution?.settle();
 
       await this.submitProfilesBuffer(dbProfiles, pendingAcks, true);
       await this.submitSamplesBuffer(dbSamples, pendingAcks, true);

@@ -266,8 +266,9 @@ describe("KubernetesResourceService.bulkUpdateLatestNodeFilesystems", () => {
   });
 
   test("reads the rows whether the driver hands them as rows or as [rows, count]", async () => {
+    // 82% of a disk that holds the node's images: nearly full (#10057).
     query.mockResolvedValueOnce([
-      [returnedRow({ latestVolumeAvailableBytes: String(15 * GIB) })],
+      [returnedRow({ latestVolumeAvailableBytes: String(18 * GIB) })],
       1,
     ]);
 
@@ -279,6 +280,55 @@ describe("KubernetesResourceService.bulkUpdateLatestNodeFilesystems", () => {
 
     expect(query.mock.calls[1]![1]).toEqual([
       "30000000-0000-4000-8000-000000000003",
+      KubernetesHealthSeverity.Warning,
+      null,
+    ]);
+  });
+
+  /*
+   * The verdict reads the image disk the UPDATE returns to judge a node's
+   * root disk at its own line (#10057): 85% used is almost full on a node
+   * that keeps its images there, where the kubelet starts evicting pods, and
+   * nearly full on one whose images have a disk of their own (90%).
+   */
+  test("judges each node's root disk at its own line: 85% is almost full where it holds the images", async () => {
+    query.mockResolvedValueOnce([
+      returnedRow({ latestVolumeAvailableBytes: String(15 * GIB) }),
+      returnedRow({
+        _id: "30000000-0000-4000-8000-000000000004",
+        name: "node-2",
+        latestVolumeAvailableBytes: String(15 * GIB),
+        latestImageFsCapacityBytes: String(400 * GIB),
+        latestImageFsAvailableBytes: String(300 * GIB),
+      }),
+    ]);
+
+    await KubernetesResourceService.bulkUpdateLatestNodeFilesystems({
+      projectId: PROJECT,
+      kubernetesClusterId: CLUSTER,
+      nodes: [
+        nodeFilesystem({
+          availableBytes: 15 * GIB,
+          imageFs: { state: "same" },
+        }),
+        nodeFilesystem({
+          name: "node-2",
+          availableBytes: 15 * GIB,
+          imageFs: {
+            state: "separate",
+            capacityBytes: 400 * GIB,
+            availableBytes: 300 * GIB,
+          },
+        }),
+      ],
+    });
+
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(query.mock.calls[1]![1]).toEqual([
+      "30000000-0000-4000-8000-000000000003",
+      KubernetesHealthSeverity.Critical,
+      null,
+      "30000000-0000-4000-8000-000000000004",
       KubernetesHealthSeverity.Warning,
       null,
     ]);

@@ -96,6 +96,8 @@ Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in
 
 **Gebruikt door**, in het menu van de rij van een label, telt de records van elk soort die het label dragen, en opent ze een pagina tegelijk. Records die u niet mag openen, worden geteld maar niet genoemd.
 
+Een label met dezelfde naam als een ander label, uit de tijd dat namen nog niet hoefden te verschillen, wordt gemarkeerd met **Zelfde naam als een ander label**, en de lijst zegt hoeveel het er zijn: vergelijk met **Gebruikt door** waar elk label wordt gebruikt, en hernoem er dan één met **Hernoemen** in de rij ervan.
+
 ## Meldingen
 
 **Projectinstellingen → Meldingen** bevat hoe het project meldingen verstuurt:

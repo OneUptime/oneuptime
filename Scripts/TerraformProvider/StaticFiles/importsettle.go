@@ -27,7 +27,7 @@ package provider
 // The framework marks every attribute OneUptime sets "(known after apply)"
 // as soon as the configuration differs from the state at all, before any
 // plan modifier runs. So the last step of every resource's ModifyPlan,
-// keepStateWhenNothingChanges, gives those back their state values when the
+// KeepStateWhenNothingChanges, gives those back their state values when the
 // plan modifiers have kept everything a configuration sets: no update runs,
 // so nothing OneUptime sets changes either, and the plan says "No changes".
 //
@@ -37,7 +37,7 @@ package provider
 // (isImportedFromServer): only then can the state hold keys the
 // configuration never wrote. The import names those attributes in the
 // private state, and an update that writes one from the configuration takes
-// it off (keepImportedFromServer): its state is then what the configuration
+// it off (KeepImportedFromServer): its state is then what the configuration
 // says, and taking a key out of the configuration is a change again.
 
 import (
@@ -58,16 +58,16 @@ import (
 // included - a JSON array of their names.
 const importedFromServerKey = "imported_from_server"
 
-// privateState is what a resource's private state offers: the framework's
+// PrivateState is what a resource's private state offers: the framework's
 // privatestate.ProviderData, which is internal to it.
-type privateState interface {
+type PrivateState interface {
 	GetKey(ctx context.Context, key string) ([]byte, diag.Diagnostics)
 	SetKey(ctx context.Context, key string, value []byte) diag.Diagnostics
 }
 
 // noPrivateState: no private state to read or write - none given, or a nil
 // *privatestate.ProviderData inside the interface.
-func noPrivateState(private privateState) bool {
+func noPrivateState(private PrivateState) bool {
 	if private == nil {
 		return true
 	}
@@ -77,7 +77,7 @@ func noPrivateState(private privateState) bool {
 
 // importedFromServer is the attributes the private state says still hold
 // what an import read.
-func importedFromServer(ctx context.Context, private privateState) []string {
+func importedFromServer(ctx context.Context, private PrivateState) []string {
 	if noPrivateState(private) {
 		return nil
 	}
@@ -92,7 +92,7 @@ func importedFromServer(ctx context.Context, private privateState) []string {
 	return attributes
 }
 
-func setImportedFromServer(ctx context.Context, private privateState, attributes []string) diag.Diagnostics {
+func setImportedFromServer(ctx context.Context, private PrivateState, attributes []string) diag.Diagnostics {
 	if noPrivateState(private) {
 		return nil
 	}
@@ -108,16 +108,16 @@ func setImportedFromServer(ctx context.Context, private privateState, attributes
 	return private.SetKey(ctx, importedFromServerKey, value)
 }
 
-// markImportedFromServer is what an import leaves in the private state: the
+// MarkImportedFromServer is what an import leaves in the private state: the
 // resource's attributes that may hold keys a configuration never writes.
-func markImportedFromServer(ctx context.Context, private privateState, attributes []string) diag.Diagnostics {
+func MarkImportedFromServer(ctx context.Context, private PrivateState, attributes []string) diag.Diagnostics {
 	return setImportedFromServer(ctx, private, attributes)
 }
 
-// keepImportedFromServer is what an update leaves: the attributes it wrote
+// KeepImportedFromServer is what an update leaves: the attributes it wrote
 // from the configuration - written[name] true - no longer hold what the
 // import read.
-func keepImportedFromServer(ctx context.Context, private privateState, written map[string]bool) diag.Diagnostics {
+func KeepImportedFromServer(ctx context.Context, private PrivateState, written map[string]bool) diag.Diagnostics {
 	kept := []string{}
 	for _, attribute := range importedFromServer(ctx, private) {
 		if !written[attribute] {
@@ -127,15 +127,15 @@ func keepImportedFromServer(ctx context.Context, private privateState, written m
 	return setImportedFromServer(ctx, private, kept)
 }
 
-// forgetImportedFromServer is what a create leaves: nothing it holds was
+// ForgetImportedFromServer is what a create leaves: nothing it holds was
 // imported.
-func forgetImportedFromServer(ctx context.Context, private privateState) diag.Diagnostics {
+func ForgetImportedFromServer(ctx context.Context, private PrivateState) diag.Diagnostics {
 	return setImportedFromServer(ctx, private, nil)
 }
 
 // isImportedFromServer says whether an attribute still holds what an import
 // read, with nothing written over it since.
-func isImportedFromServer(ctx context.Context, private privateState, attribute path.Path) bool {
+func isImportedFromServer(ctx context.Context, private PrivateState, attribute path.Path) bool {
 	name := attribute.String()
 	for _, imported := range importedFromServer(ctx, private) {
 		if imported == name {
@@ -275,7 +275,7 @@ func jsonSameAfterImport(planned string, imported string) bool {
 // ---------------------------------------------------------------------------
 // The whole resource: no update, no change.
 
-// keepStateWhenNothingChanges ends every resource's ModifyPlan. When each
+// KeepStateWhenNothingChanges ends every resource's ModifyPlan. When each
 // attribute a configuration sets plans as its value in state - the same
 // thing written another way included, which the plan modifiers above have
 // kept - nothing will be sent, so nothing OneUptime sets will change either:
@@ -283,7 +283,7 @@ func jsonSameAfterImport(planned string, imported string) bool {
 // apply)" because the configuration's text differed, keep their state
 // values, and the plan is the state. Any real change - another value, a
 // value known only at apply, a replacement - leaves the plan as it is.
-func keepStateWhenNothingChanges(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+func KeepStateWhenNothingChanges(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.State.Raw.IsNull() || resp.Plan.Raw.IsNull() || len(resp.RequiresReplace) > 0 {
 		return
 	}

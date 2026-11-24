@@ -108,7 +108,7 @@ Dataverse 中沒有類似 Jira 標籤的東西，因此案例和 OneUptime 記�
 
 ### 範本需要的設定
 
-建立精靈的 **設定** 步驟最多詢問七個值：每個範本都會詢問前五個，也就是 Dynamics 365 設定，兩個建立案例的範本還會詢問最後兩個。它會在建立任何內容之前檢查每項 Dynamics 365 設定的格式，並告訴你應改為輸入什麼，因為格式錯誤的值在執行之前在任何地方都不會報錯。
+建立精靈的 **設定** 步驟最多詢問八個值：每個範本都會詢問前五個，也就是 Dynamics 365 設定，兩個建立案例的範本還會詢問最後三個，其中最後一個是選填的。它會在建立任何內容之前檢查每項 Dynamics 365 設定的格式，並告訴你應改為輸入什麼，因為格式錯誤的值在執行之前在任何地方都不會報錯。
 
 - **Dynamics 365 Environment URL** — 你的環境位址，例如 `https://yourorg.crm.dynamics.com`，可在 [Power Platform 管理中心](https://admin.powerplatform.microsoft.com/) 的 **Environments** 下選擇你的環境後，在 **Environment URL** 中找到。只填位址：不是以 `/api/data/v9.2` 結尾的 Web API 端點，末尾也不要帶斜線。
 - **Directory (Tenant) ID** — 來自應用程式註冊的 **Overview** 頁面。
@@ -117,6 +117,7 @@ Dataverse 中沒有類似 Jira 標籤的東西，因此案例和 OneUptime 記�
 - **Case Link Column** — 關聯欄的邏輯名稱，例如 `new_oneuptimelink`。
 - **Customer for New Cases** — 只有兩個建立案例的範本會詢問。每個案例都需要一個客戶，而 OneUptime 事件沒有客戶，因此所有新案例都針對同一個客戶提交：貼上一個客戶（account）的 ID，如果是連絡人則貼上 `contacts(<id>)`。在 Dynamics 365 中開啟該記錄：位址中 `id=` 之後的部分就是它的 ID。
 - **OneUptime URL** — 只有兩個建立案例的範本會詢問：你開啟 OneUptime 的位址，例如 `https://oneuptime.com`。案例的描述用它連結回事件或警示。
+- **Configuration Item Column** — 選填，只有兩個建立案例的範本會詢問：Case 表中一個文字欄的邏輯名稱，例如 `new_configurationitem`，用於 Dynamics 365 要求每個案例有一個組態項目的情況。每個新案例都會把其事件或警示的一個受影響的資源的名稱寫入該欄，由 `CONFIGURATION_ITEM_PRECEDENCE` 選出。留空則不寫入該欄。
 
 **範本如何登入。** 精靈會把租用戶、用戶端 ID 和金鑰儲存到工作流程 **工作流程變數** 下的一個 [OAuth 2.0 變數](/docs/workflows/variables#oauth-20-變數會自動重新整理的權杖) `dynamicsAccessToken` 中：Client Credentials、權杖 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、範圍 `<environment URL>/.default`，以及在請求內文中傳送並加密儲存的用戶端密鑰。對 Dynamics 365 的每次呼叫都會發送 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`。OneUptime 在某個步驟第一次需要權杖時取得它，在過期之前取得新權杖，並在執行日誌和步驟追蹤中把它替換為 `[REDACTED]`。
 
@@ -229,6 +230,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 | `SEVERITY_TO_PRIORITY`, `DEFAULT_PRIORITY` | Create a Dynamics 365 case — `prepare-case-1` | 專案的嚴重程度按順序分配到案例優先順序上：最高的嚴重程度建立 High 案例（`1`），最低的建立 Low 案例（`3`），介於兩者之間的建立 Normal 案例（`2`）。要自己選擇優先順序，請用小寫名稱列出嚴重程度，例如 `{ 'major incident': 1 }`。`DEFAULT_PRIORITY`（`2`）用於專案清單中沒有的嚴重程度，或只有一種嚴重程度的專案。 |
 | `CASE_ORIGIN`, `CASE_TYPE` | Create a Dynamics 365 case — `prepare-case-1` | 新案例的 `caseorigincode`（`3`，Web）和 `casetypecode`（`2`，Problem）。要設定其他任何欄，請按邏輯名稱把它新增到同一指令碼的 `CASE` 中。 |
 | `MAX_TITLE_LENGTH`, `MAX_DESCRIPTION_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | Case 表自身的限制，200 和 2000 個字元。無論截掉多少，描述都會保留連結回 OneUptime 的關聯。如果你的 Case 表允許更多，可以調高它們。 |
+| `CONFIGURATION_ITEM_PRECEDENCE`, `MAX_CONFIGURATION_ITEM_LENGTH` | Create a Dynamics 365 case — `prepare-case-1` | 決定組態項目欄寫入哪個受影響的資源：清單中記錄所關聯的第一種類型裡，按名稱排在第一的那個。清單沿用儀表板的順序，主機在前，監測器被移到末尾，因此監測某個 Kubernetes 叢集的監測器的案例會寫入該叢集。它在案例開啟時選定一次，最多 100 個字元。無論如何，案例的描述都會列出所有受影響的資源。 |
 | `RESOLVED_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 已解決的記錄關閉其案例時使用的狀態：`5` 是 Problem Solved，`1000` 是 Information Provided。 |
 | `STATE_TO_CASE_STATUS` | Resolve the Dynamics 365 case — `plan-case-1` | 在你自己的已解決狀態下，按狀態名稱以另一個已解決狀態關閉案例：`{ Closed: 1000 }` 會以 Information Provided 關閉它。只有記錄被解決時才會變更它的案例：不會設定 Researching 之類的活動狀態。 |
 | `PRIORITY_RANK` | Create from a Dynamics 365 case — `prepare-incident-1`、`prepare-alert-1` | 把案例優先順序（`1` High、`2` Normal、`3` Low）對應到 `0`（最高的嚴重程度）、`1` 或 `2`（最低的嚴重程度）。未列出的優先順序落在中間。對於新專案的兩種警示嚴重程度，除非你把 `2: 1` 改為 `2: 0`，否則 Normal 會變成 Low。 |

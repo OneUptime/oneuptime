@@ -324,7 +324,7 @@ describe("the summary's report, for the days it covers", () => {
     const shown: { title: string; period: string; fromDate: Date } =
       await report(7);
 
-    expect(shown.title).toBe("Incident Summary — Sep 28, 2026 to Oct 05, 2026");
+    expect(shown.title).toBe("Incident Summary — Sep 28, 2026 to Oct 5, 2026");
     expect(shown.period).toBe("_Reporting period: **7** days_");
     expect(shown.fromDate).toEqual(OneUptimeDate.addRemoveDays(NOW, -7));
   });
@@ -333,7 +333,7 @@ describe("the summary's report, for the days it covers", () => {
     const shown: { title: string; period: string; fromDate: Date } =
       await report(1);
 
-    expect(shown.title).toBe("Incident Summary — Oct 04, 2026 to Oct 05, 2026");
+    expect(shown.title).toBe("Incident Summary — Oct 4, 2026 to Oct 5, 2026");
     expect(shown.period).toBe("_Reporting period: **1** day_");
   });
 
@@ -343,7 +343,7 @@ describe("the summary's report, for the days it covers", () => {
 
     expect(shown.fromDate.getTime()).toBeLessThan(NOW.getTime());
     expect(shown.fromDate).toEqual(OneUptimeDate.addRemoveDays(NOW, -7));
-    expect(shown.title).toBe("Incident Summary — Sep 28, 2026 to Oct 05, 2026");
+    expect(shown.title).toBe("Incident Summary — Sep 28, 2026 to Oct 5, 2026");
     expect(shown.period).toBe("_Reporting period: **7** days_");
   });
 

@@ -44,7 +44,7 @@ If the responders' phones can't use your VPN, publish the pages an acknowledgeme
 | --- | --- | --- |
 | GET | `/l/*` | The short links in SMS, WhatsApp and Telegram messages |
 | GET | `/api/user-notification-log-timeline/acknowledge-page/*` | The page with what was paged and its **Acknowledge** button |
-| GET | `/api/user-notification-log-timeline/acknowledge/*` | The **Acknowledge** button |
+| POST | `/api/user-notification-log-timeline/acknowledge/*` | The **Acknowledge** button |
 | GET | `/api/user-notification-log-timeline/pass-on-page/*` | Optional: the page that passes the page on to the next person |
 | POST | `/api/user-notification-log-timeline/pass-on/*` | Optional: its button |
 | GET | `/oneuptime-assets/*` | The fonts, styles and logo of those pages |

@@ -18,6 +18,7 @@ import OwnedBy, {
   OwnedByMatch,
 } from "../../../../Types/BaseDatabase/OwnedBy";
 import Columns from "../../../../Types/Database/Columns";
+import RelationReadersUtil from "../../../../Types/Database/RelationReadersUtil";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -43,6 +44,17 @@ export default class QueryPermission {
    * whichever ones the join drags in. An owner-only column needs both answers,
    * so the outer query is threaded down here rather than left behind in
    * BasePermission.
+   *
+   * Each column a relation reads is one of two kinds (RelationReaders,
+   * #10281): a label every reader of the relation reads - the related
+   * record's own read is not asked - or a column held to its own read, which
+   * only those who may read it on the related record read through the
+   * relation. A data store's name is the first kind on the data assets in the
+   * store; its sensitivity, exposure and risk score are the second, which the
+   * Security tiers read through a data security issue and a Viewer of the
+   * assets does not. Which kind a column is, is the related model's to say,
+   * and a label read by more roles than its own read lets in is so for a
+   * reason written down (RelationReadsNoWiderThanTheColumn).
    */
   @CaptureSpan()
   public static checkRelationQueryPermission<TBaseModel extends BaseModel>(
@@ -64,6 +76,13 @@ export default class QueryPermission {
 
     const excludedColumnNames: Array<string> =
       ColumnPermissions.getExcludedColumnNames();
+
+    /*
+     * Whether the read's own query is pinned to the caller's own records
+     * (canFilterOrOrderByRelatedColumn), asked once a column held to its
+     * own read is selected through a relation.
+     */
+    let isReadPinnedToCaller: boolean | null = null;
 
     for (const key in select) {
       if (typeof (select as JSONObject)[key] === Typeof.Object) {
@@ -135,7 +154,62 @@ export default class QueryPermission {
               );
             }
 
-            if (getRelatedTableColumnMetadata.canReadOnRelationQuery) {
+            // A label on the joined row: every reader of the relation reads it.
+            if (
+              RelationReadersUtil.isReadByEveryReaderOfTheRelation(
+                getRelatedTableColumnMetadata,
+              )
+            ) {
+              continue;
+            }
+
+            /*
+             * A column held to its own read through a relation
+             * (RelationReaders.ColumnReaders): only by who may read it on
+             * the related record itself - as a filter or an order by it
+             * through the relation is held (#10281). A data store's
+             * sensitivity, exposure and risk score are read through the data
+             * security issue that names the store by the Security tiers,
+             * and are no Viewer's who reads the data assets in it.
+             */
+            if (
+              RelationReadersUtil.isHeldToItsOwnRead(
+                getRelatedTableColumnMetadata,
+              )
+            ) {
+              if (isReadPinnedToCaller === null) {
+                isReadPinnedToCaller =
+                  OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+                    modelType,
+                    query,
+                    props,
+                  );
+              }
+
+              if (
+                !QueryPermission.mayReadRelatedColumnByItsOwnRead({
+                  relatedModelType: tableColumnMetadata.modelType,
+                  relatedModel: relatedModel,
+                  column: innerKey,
+                  held: held,
+                  props: props,
+                  isReadPinnedToCaller: isReadPinnedToCaller,
+                })
+              ) {
+                throw new NotAuthorizedException(
+                  ColumnRefusalMessage.getRelationSelectRefusal({
+                    column: innerKey,
+                    relatedModelName: relatedModel.singularName || "",
+                    relationColumn: key,
+                    modelName: model.singularName || "",
+                    permissions: QueryPermission.getRelatedFilterPermissions(
+                      relatedModel,
+                      innerKey,
+                    ),
+                  }),
+                );
+              }
+
               continue;
             }
 
@@ -177,36 +251,149 @@ export default class QueryPermission {
 
   /*
    * Whether `held` may read one column of a record reached by a relation -
-   * for a filter through the relation here, and for a sort through it
-   * (SortValidator.checkSortPermission).
+   * for a select through the relation here. `notCounted` are permissions
+   * that let nobody read it this way (canFilterOrOrderByRelatedColumn). The
+   * rule is the dashboard's too (RelationReadersUtil.canReadRelatedColumn).
    */
   public static canReadRelatedColumn(data: {
     relatedModel: BaseModel;
     column: string;
     held: HeldPermissions;
+    notCounted?: ReadonlyArray<Permission> | undefined;
   }): boolean {
-    const tablePermissions: Array<Permission> =
-      data.relatedModel.getReadPermissions() || [];
+    return RelationReadersUtil.canReadRelatedColumn(data);
+  }
 
-    if (!data.relatedModel.getColumnAccessControlFor(data.column)) {
-      return HeldPermissionsUtil.holdsAnyOf(data.held, tablePermissions, {
-        wildcard: HeldPermissionsUtil.getModelWildcard({
-          isOperationalResource: data.relatedModel.isOperationalResource,
-          operation: "read",
-        }),
-      });
+  /*
+   * A select as `props` may send it: every column of a related record held
+   * to its own read through a relation (RelationReaders.ColumnReaders) that
+   * the caller may not read on the related record left out, so a read on
+   * the caller's behalf - an AI tool's, with the caller's own permissions -
+   * is answered with the rest instead of refused whole (#10281). OneUptime
+   * itself and a server admin read everything. The select handed in is
+   * never changed.
+   */
+  public static getSelectReadableThroughRelations<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    select: Select<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
+  }): Select<TBaseModel> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return data.select;
     }
 
-    const columnPermissions: Array<Permission> =
-      data.relatedModel.getColumnAccessControlFor(data.column)!.read || [];
+    const held: HeldPermissions = HeldPermissionsUtil.fromRows({
+      rows: ColumnPermissions.getColumnCheckRows(data.props),
+    });
 
-    return HeldPermissionsUtil.holdsAnyOf(data.held, columnPermissions, {
-      wildcard: HeldPermissionsUtil.getColumnWildcard({
-        isOperationalResource: data.relatedModel.isOperationalResource,
-        operation: "read",
-        tablePermissions: tablePermissions,
-        columnPermissions: columnPermissions,
-      }),
+    // The same keys, as the select a find takes (Server/Types/Database/Select).
+    return RelationReadersUtil.getSelectReadableThroughRelations<TBaseModel>({
+      model: new data.modelType(),
+      select: data.select,
+      mayRead: (relatedModel: BaseModel, column: string): boolean => {
+        return QueryPermission.mayReadRelatedColumnByItsOwnRead({
+          relatedModelType: relatedModel.constructor as DatabaseBaseModelType,
+          relatedModel: relatedModel,
+          column: column,
+          held: held,
+          props: data.props,
+        });
+      },
+    }) as Select<TBaseModel>;
+  }
+
+  /*
+   * READING A RELATED COLUMN BY ITS OWN READ: whether the caller may select,
+   * filter or order by one column of a record a relation reaches that is
+   * not a label every reader of the relation reads - a column held to its
+   * own read (RelationReaders.ColumnReaders, #10281) in a select, any such
+   * column in a filter or an order. One of its read permissions held
+   * (canFilterOrOrderByRelatedColumn: never CurrentUser on a person's own
+   * records, #9895, #10176), and never by a workflow's step when the
+   * related model is a setting that holds credentials, whose read a step
+   * acting as a Project Admin is not lent
+   * (RelationListPermission.isReadWithheldFromWorkflow).
+   */
+  public static mayReadRelatedColumnByItsOwnRead(data: {
+    relatedModelType: DatabaseBaseModelType;
+    relatedModel: BaseModel;
+    column: string;
+    held: HeldPermissions;
+    props: DatabaseCommonInteractionProps;
+    isReadPinnedToCaller?: boolean | undefined;
+  }): boolean {
+    return (
+      QueryPermission.canFilterOrOrderByRelatedColumn({
+        relatedModel: data.relatedModel,
+        column: data.column,
+        held: data.held,
+        isReadPinnedToCaller: data.isReadPinnedToCaller,
+      }) &&
+      !RelationListPermission.isReadWithheldFromWorkflow(
+        data.relatedModelType,
+        data.props,
+      )
+    );
+  }
+
+  /*
+   * Whether `held` may filter or order a list by one column of a record a
+   * relation reaches - checkRelationFilterPermission here, and
+   * SortValidator.checkSortPermission - the way canReadRelatedColumn reads
+   * it, but for the permissions that let nobody read through a relation
+   * (PendingInviteeProfiles.getPermissionsNotCountedThroughRelation): on a
+   * person's own records, CurrentUser, which every signed-in person holds
+   * and which means the record's own person - whom a relation never shows
+   * the reader to be. Without it, a project member filtered its people by
+   * `user.isEmailVerified` (whether an address it invited had an account
+   * before), and by their language, time zone, company or phone (#9895);
+   * and its SMS, call and WhatsApp logs by the on-call timeline entry,
+   * notification rule and method of the person each was sent to (#10176).
+   */
+  public static canFilterOrOrderByRelatedColumn(data: {
+    relatedModel: BaseModel;
+    column: string;
+    held: HeldPermissions;
+    /*
+     * Whether the read's own query is pinned to the caller's own records
+     * (OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser): then the
+     * person's own records its relations reach are the caller's.
+     */
+    isReadPinnedToCaller?: boolean | undefined;
+  }): boolean {
+    return QueryPermission.canReadRelatedColumn({
+      relatedModel: data.relatedModel,
+      column: data.column,
+      held: data.held,
+      notCounted:
+        PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(
+          data.relatedModel,
+          { isReadPinnedToCaller: data.isReadPinnedToCaller },
+        ),
+    });
+  }
+
+  /*
+   * Who may filter or order by one column of a related model, as a refusal
+   * names them: its readers but those canFilterOrOrderByRelatedColumn does
+   * not count.
+   */
+  public static getRelatedFilterPermissions(
+    relatedModel: BaseModel,
+    column: string,
+  ): Array<Permission> {
+    const notCounted: ReadonlyArray<Permission> =
+      PendingInviteeProfiles.getPermissionsNotCountedThroughRelation(
+        relatedModel,
+      );
+
+    return QueryPermission.getRelatedReadPermissions(
+      relatedModel,
+      column,
+    ).filter((permission: Permission): boolean => {
+      return !notCounted.includes(permission);
     });
   }
 
@@ -248,6 +435,17 @@ export default class QueryPermission {
     const held: HeldPermissions = HeldPermissionsUtil.fromRows({
       rows: ColumnPermissions.getColumnCheckRows(props),
     });
+
+    /*
+     * A read pinned to the caller's own records reaches their own records
+     * through its relations too (canFilterOrOrderByRelatedColumn, #10176).
+     */
+    const isReadPinnedToCaller: boolean =
+      OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+        modelType,
+        query,
+        props,
+      );
 
     // Now we need to check all columns.
 
@@ -327,6 +525,7 @@ export default class QueryPermission {
         filter: (query as Record<string, unknown>)[key],
         held: held,
         props: props,
+        isReadPinnedToCaller: isReadPinnedToCaller,
       });
     }
   }
@@ -430,10 +629,15 @@ export default class QueryPermission {
    * compares, so a WHERE reads a value as surely as a SELECT does.
    *
    * So each column a relation filter names is held to the related column's
-   * read: a column marked canReadOnRelationQuery, which any reader of the
-   * relation may select, or one of the id and timestamp columns every
-   * select may name, is filtered on freely; any other only by a caller who
-   * may read that column of the related model (canReadRelatedColumn) - and
+   * read: a label every reader of the relation may select
+   * (canReadOnRelationQuery, RelationReadersUtil
+   * .isReadByEveryReaderOfTheRelation), or one of the id and timestamp
+   * columns every select may name, is filtered on freely; any other - a
+   * column a relation reads only for those who may read it itself
+   * (RelationReaders.ColumnReaders: a data store's sensitivity through the
+   * data assets in it, #10281) among them - only by a caller who may read
+   * that column of the related model (mayReadRelatedColumnByItsOwnRead:
+   * never through CurrentUser on a person's own records, #9895, #10176) - and
    * never by a workflow's step when the related model is a setting that
    * holds credentials, whose read a step acting as a Project Admin is not
    * lent (RelationListPermission.isReadWithheldFromWorkflow): whoever may
@@ -447,6 +651,8 @@ export default class QueryPermission {
     filter: unknown;
     held: HeldPermissions;
     props: DatabaseCommonInteractionProps;
+    // The read's own query pinned to the caller's own records.
+    isReadPinnedToCaller: boolean;
   }): void {
     const filters: Array<unknown> = Array.isArray(data.filter)
       ? data.filter
@@ -523,23 +729,24 @@ export default class QueryPermission {
 
         if (
           !excludedColumnNames.includes(relatedColumn) &&
-          !relatedColumnMetadata.canReadOnRelationQuery &&
-          (!QueryPermission.canReadRelatedColumn({
+          !RelationReadersUtil.isReadByEveryReaderOfTheRelation(
+            relatedColumnMetadata,
+          ) &&
+          !QueryPermission.mayReadRelatedColumnByItsOwnRead({
+            relatedModelType: tableColumnMetadata.modelType,
             relatedModel: relatedModel,
             column: relatedColumn,
             held: data.held,
-          }) ||
-            RelationListPermission.isReadWithheldFromWorkflow(
-              tableColumnMetadata.modelType,
-              data.props,
-            ))
+            props: data.props,
+            isReadPinnedToCaller: data.isReadPinnedToCaller,
+          })
         ) {
           throw new NotAuthorizedException(
             ColumnRefusalMessage.getRelationQueryRefusal({
               column: relatedColumn,
               relatedModelName: relatedModel.singularName || "",
               relationColumn: data.relationColumn,
-              permissions: QueryPermission.getRelatedReadPermissions(
+              permissions: QueryPermission.getRelatedFilterPermissions(
                 relatedModel,
                 relatedColumn,
               ),
@@ -553,6 +760,7 @@ export default class QueryPermission {
           filter: relationFilter[relatedColumn],
           held: data.held,
           props: data.props,
+          isReadPinnedToCaller: data.isReadPinnedToCaller,
         });
       }
     }

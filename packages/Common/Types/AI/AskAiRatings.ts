@@ -1,6 +1,7 @@
 import { PRODUCT_TITLES } from "../Product/ProductCatalog";
 import ProductKey, { PRODUCT_KEYS } from "../Product/ProductKey";
 import { translationKey } from "../Translator";
+import { ASK_AI_DOCS_TOOL_NAMES } from "./AskAiDocsTools";
 
 /*
  * HOW ASK AI'S ANSWERS WERE RATED, WITHOUT ANYONE'S WORDS (#7365).
@@ -67,11 +68,7 @@ export interface AskAiProjectRatings {
 }
 
 // The tools whose answers drew on the docs (Server/Utils/AI/Toolbox/DocsTools).
-export const ASK_AI_DOCS_TOOLS: ReadonlyArray<string> = [
-  "search_docs",
-  "read_docs",
-  "find_dashboard_page",
-];
+export const ASK_AI_DOCS_TOOLS: ReadonlyArray<string> = ASK_AI_DOCS_TOOL_NAMES;
 
 const NO_PRODUCT_SOURCES: ReadonlyArray<string> = Object.values(
   AskAiSourceOfNoProduct,
