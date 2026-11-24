@@ -68,6 +68,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Squares}
         />
+        {/*
+         * Where the server sends its people for help (#10864-#10866): Help's
+         * support address, chat and demo, the footer's link, Give feedback,
+         * the mobile app prompts and the sign-in screen's message.
+         */}
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsHelpAndSupport"),
+            isTitleTranslated: true,
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_HELP_AND_SUPPORT] as Route,
+            ),
+          }}
+          icon={IconProp.Lifebuoy}
+        />
         {EnterpriseSettingsItems ? <EnterpriseSettingsItems /> : <></>}
       </SideMenuSection>
 

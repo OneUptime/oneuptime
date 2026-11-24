@@ -59,13 +59,13 @@ Nel passaggio **Criteri**, apri il primo criterio, quello che segna il monitor c
 
 ### Aprire un incidente per avviso
 
-Nello stesso criterio, apri **Impostazioni** e attiva **Group incidents and alerts by a payload field**. Compilalo come sotto, così ogni avviso ha il proprio incidente e il suo rientro lo risolve:
+Nello stesso criterio, apri **Impostazioni** e attiva **Raggruppa incidenti e avvisi per un campo del payload**. Compilalo come sotto, così ogni avviso ha il proprio incidente e il suo rientro lo risolve:
 
 | Campo | Valore |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Apri un incidente separato per ogni…** | `requestBody.alerts[*].fingerprint` |
+| **Campo che segnala il ripristino** | `requestBody.alerts[*].status` |
+| **Valore che indica il ripristino** | `resolved` |
 
 ### Riportare il monitor online
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Un'installazione self-hosted ha il proprio host al posto di `oneuptime.com`.
 :::
 
-Ogni avviso di una notifica apre il proprio incidente, fino a **Max incidents per request** (`100` se non lo cambi), e lo `status` di ciascun avviso decide quando il suo incidente si risolve. Il `fingerprint` di Grafana identifica un avviso dalle sue etichette, quindi è il valore per cui raggruppare. Vedi [Ricevere avvisi da un altro sistema](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema) per cosa fa ogni impostazione.
+Ogni avviso di una notifica apre il proprio incidente, fino a **Numero massimo di incidenti per richiesta** (`100` se non lo cambi), e lo `status` di ciascun avviso decide quando il suo incidente si risolve. Il `fingerprint` di Grafana identifica un avviso dalle sue etichette, quindi è il valore per cui raggruppare. Vedi [Ricevere avvisi da un altro sistema](/docs/monitor/incoming-request-monitor#ricevere-avvisi-da-un-altro-sistema) per cosa fa ogni impostazione.
 
 > [!WARNING]
 > Non raggruppare per un'etichetta che tutti gli avvisi di una notifica condividono. La policy di notifica predefinita di Grafana raggruppa gli avvisi per `grafana_folder` e `alertname`, quindi tutti gli avvisi di una notifica hanno lo stesso `alertname`: raggruppare per `requestBody.alerts[*].labels.alertname` riunisce l'intera notifica in un solo incidente.
@@ -103,7 +103,7 @@ Chiama il punto di contatto `OneUptime`, scegli **Webhook** in **Integration** e
 Vai su **Alerting → Notification policies**. Imposta `OneUptime` come punto di contatto della policy predefinita, oppure aggiungi una policy figlia che corrisponda agli avvisi che OneUptime deve ricevere, con `OneUptime` come punto di contatto.
 :::
 
-Grafana invia `Content-Type: application/json`, che serve al monitor per leggere i campi di una notifica. L'impostazione **Max Alerts** del punto di contatto limita gli avvisi di una notifica: lasciala a `0`, nessun limite, o al massimo al **Max incidents per request** del monitor.
+Grafana invia `Content-Type: application/json`, che serve al monitor per leggere i campi di una notifica. L'impostazione **Max Alerts** del punto di contatto limita gli avvisi di una notifica: lasciala a `0`, nessun limite, o al massimo al **Numero massimo di incidenti per richiesta** del monitor.
 
 ## Provarlo
 
@@ -157,7 +157,7 @@ Un'esecuzione gestisce una notifica, quindi dichiara un solo incidente, qualunqu
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
 - L'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**.
-- **Field that signals recovery** deve essere `requestBody.alerts[*].status`, e **Value that means recovered** esattamente `resolved`. Il confronto distingue maiuscole e minuscole.
+- **Campo che segnala il ripristino** deve essere `requestBody.alerts[*].status`, e **Valore che indica il ripristino** esattamente `resolved`. Il confronto distingue maiuscole e minuscole.
 - I percorsi di raggruppamento devono iniziare con `requestBody.`, e solo il primo `[*]` di un percorso legge un elenco. Un percorso che viola una delle due regole non corrisponde a nulla, senza alcun errore.
 :::
 

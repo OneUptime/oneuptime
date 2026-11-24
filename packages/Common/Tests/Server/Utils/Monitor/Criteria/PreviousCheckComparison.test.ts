@@ -7,6 +7,7 @@ import CriteriaFilterMatchHistory, {
   CriteriaFilterMatchHistoryReads,
 } from "../../../../../Server/Utils/Monitor/Criteria/CriteriaFilterMatchHistory";
 import MetricService, {
+  MonitorCheckAttributeFilter,
   MonitorPreviousCheckRow,
 } from "../../../../../Server/Services/MetricService";
 import logger from "../../../../../Server/Utils/Logger";
@@ -107,7 +108,7 @@ interface ReadAsked {
   metricName: string;
   windowStart: Date;
   before: Date;
-  attributes: Record<string, string> | undefined;
+  attributes: MonitorCheckAttributeFilter | undefined;
   groupByAttributeKeys: Array<string>;
 }
 
@@ -121,7 +122,7 @@ function stubPreviousChecks(rows: Array<MonitorPreviousCheckRow>): void {
         metricName: string;
         windowStart: Date;
         before: Date;
-        attributes?: Record<string, string> | undefined;
+        attributes?: MonitorCheckAttributeFilter | undefined;
         groupByAttributeKeys: Array<string>;
       }): Promise<Array<MonitorPreviousCheckRow>> => {
         readsAsked.push({
@@ -563,7 +564,7 @@ describe("PreviousCheckComparison: where the previous check is read from", () =>
     expect(
       PreviousCheckComparison.getSource({
         criteriaFilter: previousCheck({
-          checkOn: CheckOn.ExpiresInDays,
+          checkOn: CheckOn.ExpiresInHours,
           filterType: FilterType.LessThan,
           value: undefined,
         }),
@@ -571,6 +572,26 @@ describe("PreviousCheckComparison: where the previous check is read from", () =>
         monitorStepId: STEP_ID,
       }),
     ).toBeNull();
+  });
+
+  test("a certificate's days left are read from the series each check writes (#10905)", () => {
+    expect(
+      PreviousCheckComparison.getSource({
+        criteriaFilter: previousCheck({
+          checkOn: CheckOn.ExpiresInDays,
+          filterType: FilterType.LessThan,
+          value: undefined,
+        }),
+        monitorType: MonitorType.SSLCertificate,
+        monitorStepId: STEP_ID,
+      }),
+    ).toMatchObject({
+      metricName: MonitorMetricType.SslCertificateExpiresInDays,
+      groupByAttributeKeys: ["probeId"],
+      isMatchHistory: false,
+      // A measured value: its previous value makes the threshold.
+      condition: null,
+    });
   });
 });
 

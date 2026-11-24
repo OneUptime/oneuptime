@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+A setting someone adds in OneUptime to a monitor's steps, which your configuration does not write, is a difference, though: the next plan shows `monitor_steps` changing, and the apply that follows removes the setting, as the plan says. To keep it, write it in your configuration too.
+
 ## Labels and other lists OneUptime adds to
 
 OneUptime adds to some of a record's lists on its own: a label rule adds its labels to the records it matches, an on-call rule adds its policies to the incidents and alerts it matches, and an SLO's monitor rules attach the monitors they match. The reference says it of each such attribute: "OneUptime adds to it too, on its own". A configuration that sets one holds the entries it lists, and leaves the rest:

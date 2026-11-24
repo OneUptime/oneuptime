@@ -131,9 +131,9 @@ SMS, phone calls, WhatsApp and Telegram messages are paid from the project's bal
 | OneUptime AI | **Project Settings → AI → AI Credits** |
 
 :::steps
-### Recharge it now
+### Add to it now
 
-On the page's **Current Balance** card, click **Recharge Balance**. Enter an amount from $20 to $1,000 and click **Recharge**. The amount is charged to the project's card.
+On the page's **Current Balance** card, click **Add to Balance**. Enter an amount from $20 to $1,000 and click **Add to Balance**. The amount is charged to the project's card.
 
 ### Or let it recharge itself
 
@@ -152,7 +152,7 @@ When a balance cannot pay, the message is not sent, or OneUptime AI stops, and t
 | Turn SMS, calls, WhatsApp or Telegram on or off | Project Owner, **Manage Billing** or **Billing Admin** |
 | Add a payment method | Project Owner, **Manage Billing** or **Create Payment Method** |
 | Pay an invoice | Project Owner, **Manage Billing** or **Edit Invoices** |
-| Change the plan, recharge a balance or change Auto Recharge | Project Owner or **Manage Billing** |
+| Change the plan, add to a balance or change Auto Recharge | Project Owner or **Manage Billing** |
 
 A button you may not use is shown locked, and says who may. See [Users, Teams & Permissions](/docs/permissions/index#teams) for the billing roles.
 

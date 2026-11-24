@@ -20,8 +20,18 @@ import CodeTaskAccess, {
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
-import { InfrastructureFixTaskContext } from "../../../../Types/AI/CodeFixTaskContext";
+import {
+  InfrastructureFixTaskContext,
+  TelemetryLeakFixTaskContext,
+} from "../../../../Types/AI/CodeFixTaskContext";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
+import DataSecurityIssueService from "../../../Services/DataSecurityIssueService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
+import logger from "../../Logger";
 import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
 import {
   DataSecurityAiCodeRequest,
@@ -87,6 +97,40 @@ export const DATA_SECURITY_GROUP_FIX_NO_REPOSITORY_MESSAGE: string =
 
 export const DATA_SECURITY_FIX_SIGN_IN_MESSAGE: string =
   "Sign in to ask OneUptime AI for a fix.";
+
+// A service's telemetry leaks, fixed in its code in one pull request (#10367).
+export const DATA_SECURITY_TELEMETRY_FIX_STARTED_MESSAGE: string =
+  "OneUptime AI is working on one pull request for the service's leaks. It will appear under Code, and on each issue it fixes.";
+
+// OneUptime asked for a service's telemetry fix with no repository to work in.
+export const DATA_SECURITY_TELEMETRY_FIX_NO_REPOSITORY_MESSAGE: string =
+  "No repository was found for this service's code. Ask for the fix with Fix with AI on one of its issues, and pick the repository.";
+
+/*
+ * What each issue a service's telemetry fix is for says on its timeline
+ * (#10367): one pull request for all of the service's leaks - and, for a
+ * secret, that the fix stops new copies only.
+ */
+export function getTelemetryFixFeedMessage(data: {
+  serviceName: string;
+  issueCount: number;
+  hasSecrets: boolean;
+}): string {
+  const fix: MarkdownText =
+    data.issueCount > 1
+      ? mdText`OneUptime AI was asked for one pull request that stops ${data.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and ${String(data.issueCount - 1)} more of the service's.`
+      : mdText`OneUptime AI was asked for a pull request that stops ${data.serviceName || "the service"} writing this data to its telemetry.`;
+
+  return data.hasSecrets
+    ? FeedMarkdown.join(
+        [
+          fix,
+          mdText`**Rotate the secret too:** the code fix stops new copies only. Copies already written stay where they went.`,
+        ],
+        " ",
+      ).toString()
+    : fix.toString();
+}
 
 // Readable repositories, several, none the person may ask in.
 export const DATA_SECURITY_FIX_NO_ASKABLE_REPOSITORY_MESSAGE: string =
@@ -207,10 +251,204 @@ export default class DataSecurityCodeTask {
       });
     }
 
+    // The issue keeps its fix (#10367): its page shows the task and its pull request.
+    if (run.id) {
+      await DataSecurityCodeTask.keepFixOnIssues({
+        projectId: data.projectId,
+        issueIds: data.issueIds,
+        taskId: run.id,
+      });
+    }
+
     return {
       message: DATA_SECURITY_FIX_STARTED_MESSAGE,
       aiRunId: run.id?.toString(),
     };
+  }
+
+  /*
+   * ONE PULL REQUEST THAT STOPS A SERVICE WRITING ITS TELEMETRY LEAKS
+   * (#10367), in the repository its leaks are written in: a task of its own
+   * recipe (CodeFixTaskType.FixSensitiveDataInTelemetry), whose context
+   * carries the request the builder made and every leak - its places,
+   * keys, data types and templates - and the issues its pull request lists.
+   *
+   * A person asks as for any fix: the gate, then a repository they may read
+   * and ask in - the one the plan found or they picked, or the only one -
+   * then the gate for that repository. OneUptime asks with no person (an
+   * approved proposal made without asking): it works only in the repository
+   * it was given, which must be the project's, and the gate still decides.
+   * Each issue the fix is for says so, and keeps the task.
+   */
+  @CaptureSpan()
+  public static async requestTelemetryLeakFix(data: {
+    // The person who asked, with their own permissions; OneUptime's props for none.
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    issueIds: Array<ObjectID>;
+    requestedRepositoryId?: unknown;
+    // The context the task carries, but its request: built below.
+    fix: Omit<TelemetryLeakFixTaskContext, "request">;
+    // The provider the deciding AI rule picks, for a fix made without asking.
+    llmProviderId?: ObjectID | undefined;
+    buildMessage: () => Promise<DataSecurityAiCodeRequest>;
+  }): Promise<DataSecurityFixResult> {
+    const userId: ObjectID | undefined = data.props.userId || undefined;
+
+    if (!userId && !data.props.isRoot) {
+      throw new BadDataException(DATA_SECURITY_FIX_SIGN_IN_MESSAGE);
+    }
+
+    const blockerBeforeRepository: CodeTaskBlocker | null =
+      await CodeTaskGate.getBlocker({
+        props: data.props,
+        projectId: data.projectId,
+        repository: null,
+        canAsk: true,
+      });
+
+    if (blockerBeforeRepository) {
+      return { message: blockerBeforeRepository.message };
+    }
+
+    let repository: CodeRepository | null = null;
+
+    if (userId) {
+      const choice: RepositoryChoice =
+        await DataSecurityCodeTask.chooseRepository({
+          props: data.props,
+          projectId: data.projectId,
+          code: DataSecurityFixCode.Service,
+          requestedRepositoryId: data.requestedRepositoryId,
+        });
+
+      if (!choice.repository) {
+        return choice.answer;
+      }
+
+      repository = choice.repository;
+    } else {
+      const requested: string =
+        typeof data.requestedRepositoryId === "string"
+          ? data.requestedRepositoryId.trim()
+          : "";
+
+      repository = ObjectID.isValidUUID(requested)
+        ? await CodeRepositoryService.findOneBy({
+            query: { _id: requested, projectId: data.projectId },
+            select: {
+              _id: true,
+              name: true,
+              organizationName: true,
+              repositoryName: true,
+              repositoryHostedAt: true,
+              gitHubAppInstallationId: true,
+              codeRepositoryConnectionId: true,
+            },
+            props: { isRoot: true },
+          })
+        : null;
+
+      if (!repository?.id) {
+        return { message: DATA_SECURITY_TELEMETRY_FIX_NO_REPOSITORY_MESSAGE };
+      }
+    }
+
+    const blocker: CodeTaskBlocker | null = await CodeTaskGate.getBlocker({
+      props: data.props,
+      projectId: data.projectId,
+      repository,
+      canAsk: true,
+    });
+
+    if (blocker) {
+      return { message: blocker.message };
+    }
+
+    const request: DataSecurityAiCodeRequest = await data.buildMessage();
+
+    if (!isDataSecurityAiCodeRequest(request)) {
+      throw new BadDataException(
+        "A Data Security fix takes a request built by DataSecurityAiInput.",
+      );
+    }
+
+    const run: AIRun = await SubjectCodeFixRun.enqueueSubjectCodeFixRun({
+      projectId: data.projectId,
+      taskType: CodeFixTaskType.FixSensitiveDataInTelemetry,
+      userId,
+      codeRepositoryId: repository.id!,
+      taskContext: {
+        telemetryLeakFix: { ...data.fix, request: request.text },
+      },
+      ...(data.llmProviderId ? { llmProviderId: data.llmProviderId } : {}),
+    });
+
+    for (const issueId of data.issueIds) {
+      await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
+        projectId: data.projectId,
+        dataSecurityIssueId: issueId,
+        eventType: DataSecurityIssueFeedEventType.AiFixRequested,
+        displayColor: Purple500,
+        feedInfoInMarkdown: getTelemetryFixFeedMessage({
+          serviceName: data.fix.serviceName,
+          issueCount: data.issueIds.length,
+          hasSecrets: data.fix.hasSecrets,
+        }),
+        userId,
+      });
+    }
+
+    if (run.id) {
+      await DataSecurityCodeTask.keepFixOnIssues({
+        projectId: data.projectId,
+        issueIds: data.issueIds,
+        taskId: run.id,
+      });
+    }
+
+    return {
+      message: DATA_SECURITY_TELEMETRY_FIX_STARTED_MESSAGE,
+      aiRunId: run.id?.toString(),
+    };
+  }
+
+  /*
+   * Each issue a fix is for keeps its task (DataSecurityIssue.codeFixTaskId,
+   * #10367): what its page reads its pull request and its state by, and
+   * what #10368 follows to production. The newest asked for wins. Never
+   * fails the fix: it is asked already.
+   */
+  public static async keepFixOnIssues(data: {
+    projectId: ObjectID;
+    issueIds: ReadonlyArray<ObjectID>;
+    taskId: ObjectID;
+  }): Promise<void> {
+    if (data.issueIds.length === 0) {
+      return;
+    }
+
+    try {
+      await DataSecurityIssueService.updateBy({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(
+            data.issueIds.map((issueId: ObjectID): string => {
+              return issueId.toString();
+            }),
+          ),
+        },
+        data: { codeFixTaskId: data.taskId },
+        skip: 0,
+        limit: data.issueIds.length,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not keep task ${data.taskId.toString()} on the issues it fixes:`,
+      );
+      logger.error(error);
+    }
   }
 
   /*

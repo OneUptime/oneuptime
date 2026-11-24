@@ -125,6 +125,8 @@ Clique em **Adicionar monitor**. Abaixo da lista suspensa de monitores, clique e
 Escolha o grupo. **Nome de exibição**, o nome que os visitantes leem, assume o nome do grupo até você digitar um próprio. Clique em **Adicionar monitor**: a linha aparece na página com o status do grupo.
 :::
 
+Uma linha que mostra um monitor pode mostrar um grupo no lugar: abra o **Editar recurso** dela, o lápis da linha, e clique em **Mostre um grupo de monitores em vez disso.** abaixo da lista suspensa. Na linha de um grupo, **Editar recurso** abre com o grupo escolhido, e **Mostre um monitor em vez disso.** aponta a linha para um monitor. Salvar esvazia o que a linha mostrava antes: uma linha mostra um monitor ou um grupo de monitores, nunca os dois.
+
 Na página de status, a linha representa cada monitor do grupo:
 
 - **O status dela.** É o do grupo: o pior dos seus monitores com o monitoramento ligado. Quando o monitoramento está desligado para todos eles, a linha mostra **Não monitorado** e não conta nem para o cabeçalho acima dela nem para o status geral da página.

@@ -162,13 +162,35 @@
       "project name",
       "rename project",
       "project id",
-      "data residency"
+      "data residency",
+      "duplicate names",
+      "same name"
     ],
     "path": "/dashboard/:projectId/settings/",
     "kind": "page"
   },
   {
     "title": "Project Details",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Unique Names",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Require Unique Names",
     "where": [
       "Project Settings",
       "Basic",
@@ -5276,7 +5298,8 @@
     "keywords": [
       "scan schedule",
       "scanning",
-      "sampling"
+      "sampling",
+      "names and street addresses"
     ],
     "path": "/dashboard/:projectId/data-security/settings/scanning",
     "kind": "page"
@@ -5785,11 +5808,12 @@
     "kind": "page"
   },
   {
-    "title": "Topology Map",
+    "title": "Topology",
     "where": [
       "Inventory"
     ],
     "keywords": [
+      "topology map",
       "dependency map",
       "service map"
     ],

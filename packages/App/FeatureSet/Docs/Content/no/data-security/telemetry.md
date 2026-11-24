@@ -9,6 +9,7 @@ Det er ingenting å sette opp: telemetrien til hver tjeneste skannes hver time, 
 - [Slik tar en skanning stikkprøver](#slik-tar-en-skanning-stikkprøver): De nyeste postene fra hver tjeneste, hver time.
 - [Rens](#rens): Skjul et funn ved inntak, i tjenesten det ble funnet i.
 - [Begrenset på egen hånd](#begrenset-på-egen-hånd): En hemmelighet skjult uten at noen trykker på noe, der det er bevist trygt.
+- [Fiks det i koden](#fiks-det-i-koden): Én pull-forespørsel som får en tjeneste til å slutte å skrive alle lekkasjene sine.
 - [Forkast denne målingen](#forkast-denne-målingen): Slutt å lagre målingene der navnet inneholder sensitive data.
 - [Hva som regnes som renset](#hva-som-regnes-som-renset): Når en rensingsregel allerede dekker et funn.
 :::
@@ -99,7 +100,7 @@ Klikk på **Rens**. En dialog sier hva regelen ville gjøre før noe opprettes: 
 
 ### Rett koden også
 
-Regelen skjuler nye data før de lagres. Data som allerede er lagret, blir liggende til oppbevaringstiden er ute, så rett koden som skriver dem: funnet nevner tjenesten og attributtet.
+Regelen skjuler nye data før de lagres. Data som allerede er lagret, blir liggende til oppbevaringstiden er ute, så rett koden som skriver dem: funnet nevner tjenesten og attributtet. **Fiks med AI** på problemet åpner én pull-forespørsel for hver av tjenestens lekkasjer: se [Fiks det i koden](#fiks-det-i-koden).
 :::
 
 Regelen får navn etter det den skjuler, for eksempel «Data Security: Email address in log attributes of checkout», eller «Data Security: Password or secret in db.password of checkout» for en regel som navngir attributtet sitt, og står sammen med de andre rensingsreglene dine (se [Forkastingsfiltre og rensingsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Den er den smaleste regelen som skjuler dataene i funnet, den første av disse som passer:
@@ -112,13 +113,13 @@ Regelen får navn etter det den skjuler, for eksempel «Data Security: Email add
 | En datatype som skilles ut av ordene rundt den, for eksempel et routingnummer | Formen dens, bare i attributtet den ble funnet i |
 | En datatype som finnes ut fra feltets navn, for eksempel en persons navn under `customer_name`, eller en verdi under en nøkkel som nevner en hemmelighet | En regel av typen **Navngitte attributter**, som skjuler hele verdien av det attributtet |
 | En verdi under en nøkkel som ser sensitiv ut, der ingenting smalere skjuler den | En regel av typen **Sensitive attributtnøkler**, som sladder hele verdien til hvert slikt attributt |
-| Enhver datatype i attributtet til en måling | En pipelineregel for målinger av typen **Sladd attributt** for tjenesten, som erstatter verdiene i attributtet som har datatypens form, med `[REDACTED]`, eller hver verdi i attributtet der ingen mønstre finner datatypen |
+| Enhver datatype i attributtet til en måling | En pipelineregel for målinger av typen **Sladd attributt** for tjenesten, som erstatter verdiene i attributtet som inneholder datatypen, med `[REDACTED]`. For en IP-adresse, en e-postadresse eller et kortnummer er filteret **Samsvarer med mønstertype** med den typen, som finner det en regel for logger eller traces med den **Mønstertype** finner, blant annet IPv6-adresser og verdier som er prosentkodet eller i en annen skrift. For en annen datatype er det typens eget mønster, og der ingen mønstre finner datatypen, erstatter regelen hver verdi i attributtet |
 
 ### Bevist på postene det ble sett i
 
 Før dialogen sier hva regelen ville gjøre, kjører OneUptime hver regel den kunne laget på postene funnet ble sett i, og på de nyeste postene fra tjenesten med en verdi på det stedet, med den samme koden som inntaket kjører, og spør skanneren hva som er igjen. Den første regelen som skjuler dataene i hver verdi som inneholdt dem, og endrer høyst 5 av 100 av de andre verdiene der, er den som velges. Dialogen sier hvor mange poster den ble kjørt på, hvor mange verdier som inneholdt dataene, og hvor mange andre den endret. Et mønster som ville endret mer, tilbys aldri: Det gjør regelen som navngir attributtet, og den sier hva mer den endrer.
 
-Beviset lagres sammen med regelen, og listen over rensingsregler viser **Bevist** på raden til regelen endres. Der det ikke er noen post igjen å kjøre en regel på, for eksempel et unntaks eller en øktavspillings, eller poster som har passert oppbevaringstiden, lages regelen slik den er planlagt, og dialogen sier det.
+Beviset lagres sammen med regelen, og listen over rensingsregler viser **Bevist** på raden til regelen endres. Regelen til et unntak kjøres på unntakene dataene ble sett i, slik inntaket renser unntaket et span registrerer. Der det ikke er noen post igjen å kjøre en regel på, for eksempel en øktavspillings, eller poster som har passert oppbevaringstiden, lages regelen slik den er planlagt, og dialogen sier det.
 
 En regel for logger eller traces gjelder for tjenesten funnet ble funnet i: den renser loggene eller spans fra den tjenesten, og andre tjenesters forblir som de er, så ingenting som leser deres, endres. Kolonnen **Omfang** i listen over rensingsregler sier hvilken tjeneste en regel gjelder for. Et funn i en RUM-applikasjons øktopptak oppretter en regel for alle tjenester og apper i prosjektet, siden regler for logger også renser opptak, og dialogen sier det. Finnes ikke tjenesten lenger, sier **Rens** det og oppretter ingen regel.
 
@@ -144,9 +145,11 @@ Mens OneUptime AI jobber med problemer i Datasikkerhet (se [OneUptime AI i Datas
 - **Ingenting leser det den skjuler**: ingen monitor, dashbord, lagret visning, opptaksregel eller SLO, og ingenting Sikkerhetshendelser trenger.
 - **Den gjelder for tjenesten** dataene ble sett i.
 
-Alt annet foreslås i stedet, på **Datasikkerhet → KI** og på problemets side, med hvordan regelen ble bevist og hva som leser det den ville skjule: personopplysninger, en regel noe leser, en som endrer andre verdier, en uten noen post å kjøre på, en for alle tjenester, pipelineregelen til en måling, og alle steder der en person angret eller avviste en tidligere regel. En AI-regel for Datasikkerhet som setter **Begrens** til **Automatisk** for et problem, lar også beviste personopplysninger skjules på egen hånd. Ingen regel lar en endring som ikke er bevist trygg, kjøre på egen hånd.
+Alt annet foreslås i stedet, på **Datasikkerhet → KI** og på problemets side, med hvordan regelen ble bevist og hva som leser det den ville skjule: personopplysninger, en regel noe leser, en som endrer andre verdier, en uten noen post å kjøre på, en for alle tjenester, og alle steder der en person angret eller avviste en tidligere regel. En AI-regel for Datasikkerhet som setter **Begrens** til **Automatisk** for et problem, lar også beviste personopplysninger skjules på egen hånd. Ingen regel lar en endring som ikke er bevist trygg, kjøre på egen hånd.
 
-Der ingen av reglene til **Rens** kan skjule dataene, for eksempel en av dine egne datatyper uten mønster, skriver OneUptime AI en: et mønster for dataene, eller attributtet som skal skjules helt. Den får datatypen, hvor den står, navnene på attributtene ved siden av og formene på verdiene, for eksempel `AA-9999` for `AB-1234`, aldri en verdi, og det den skriver, bevises på postene som enhver annen regel før det foreslås eller lages.
+Et attributt i en måling holdes til de samme betingelsene. Regelen kjøres på datapunktene funnet ble sett i, og på de nyeste fra tjenesten med en verdi i det attributtet, gjennom målingspipelinen inntaket kjører, og det som leser den, er hver monitor, hvert dashbord, hver opptaksregel og hvert SLO som leser en av tjenestens målinger som hadde attributtet det siste døgnet.
+
+Der ingen av reglene til **Rens** kan skjule dataene, for eksempel en av dine egne datatyper uten mønster, skriver OneUptime AI en: et mønster for dataene, eller attributtet som skal skjules helt. Den får datatypen, hvor den står, navnene på attributtene ved siden av og formene på verdiene, for eksempel `AA-9999` for `AB-1234`, aldri en verdi, og det den skriver, bevises på postene som enhver annen regel før det foreslås eller lages. Den spørres én gang for hvert sted: det den skrev, eller at den ikke kunne skrive noe, lagres sammen med funnet, så når problemet arbeides med igjen, bevises det den skrev, på nytt på de nyeste postene, og ingen AI-kreditter brukes. Den spørres igjen når det den ville fått vite, endrer seg: datatypen, hvor dataene står, navnene ved siden av eller formene på verdiene. Et kall som mislykkes, lagrer ingenting, så stedet spørres neste gang.
 
 En endring OneUptime AI gjorde på egen hånd:
 
@@ -156,11 +159,53 @@ En endring OneUptime AI gjorde på egen hånd:
 
 Nye funn i en tjeneste der problemet allerede er åpent, begrenses på samme måte så snart den timelige skanningen finner dem.
 
+## Fiks det i koden
+
+En scrub-regel skjuler nye data ved inntak, men koden skriver dem fortsatt. **Fiks med AI** på et telemetriproblem ber OneUptime AI om én pull-forespørsel som får tjenesten til å slutte å skrive hver lekkasje OneUptime fortsatt ser i telemetrien: dette problemets og tjenestens andre, også de som er begrenset ved inntak. En dialog viser hva pull-forespørselen vil gjøre før noe starter, og **Åpne pull-forespørsel** ber om akkurat det.
+
+:::steps
+### Finn hvor hver lekkasje skrives
+
+Før OneUptime AI starter, leser Datasikkerhet postene hver lekkasje ble sett i på nytt, inne i OneUptime, og beholder bare hvor koden skrev dem:
+
+- **Et span eller et AI-kall**: filen, linjen og funksjonen som attributtene `code.*` nevner, og navnet på spannet.
+- **Et unntak**: dets egne øverste rammer, de i tjenestens kode.
+- **En logglinje**: filen, linjen og funksjonen som attributtene nevner, når den har dem, loggeren, og linjen som mal, der hver verdi er erstattet av navnet på typen, for eksempel `User <Email address> signed up`.
+- **En måling**: navnet på målingen.
+- **Enhver lekkasje**: attributtnøkkelen, for eksempel `user.email`, som koden vanligvis skriver som den er.
+
+### Velg kodelageret
+
+Pull-forespørselen går til kodelageret som inneholder filene postene nevner, funnet slik filene i en stakksporing finnes. En lekkasje der postene ikke nevner noen fil, går dit tjenestens andre lekkasjer er, ellers til kodelageret som heter det samme som tjenesten, eller til prosjektets eneste. I et kodelager med flere tjenester jobber OneUptime AI i tjenestens mappe: den filene deler, ellers den tjenestens produksjonsgjennomganger bruker. Når ingenting avgjør, velger du selv blant kodelagrene du kan be OneUptime AI jobbe i.
+
+### Åpne pull-forespørselen
+
+Dialogen sier hvordan koden vil endres, viser hver lekkasje med hvor den skrives, og nevner kodelageret, hvorfor det er det, og filene OneUptime AI starter fra. **Åpne pull-forespørsel** ber om akkurat den planen: Hvis en lekkasje er funnet eller fikset siden du åpnet den, starter ingenting, og planen vises på nytt.
+:::
+
+Hvordan koden endres, avhenger av hvor mange steder dataene skrives:
+
+| Hvor dataene skrives | Hva pull-forespørselen gjør |
+| --- | --- |
+| Tre steder eller færre | Endrer koden på hvert sted: utelater verdien, eller maskerer eller hasher den før den sendes |
+| Mer enn tre steder | Legger til ett sladdetrinn med en test der tjenesten setter opp telemetrien, i stedet for å endre hvert sted |
+| Der scrub-reglene dine allerede skjuler dem ved inntak | Legger også til sladdetrinnet for de nøklene, så koden gjør det samme som inntaket |
+
+Én pull-forespørsel fikser én tjeneste i ett kodelager: En tjeneste der lekkasjene skrives i to kodelagre, får én i hvert. Mens den skrives, peker **Fiks med AI** på et hvilket som helst av tjenestens problemer til den, og ingen ny startes.
+
+OneUptime AI får stedene, nøklene, datatypene og malene, aldri en verdi fra dataene dine, et maskert eksempel eller en post, og kodeagenten leser ingenting av telemetrien din mens den jobber. Beskrivelsen av pull-forespørselen viser lekkasjene og lenker til problemene den fikser, og siterer aldri en post.
+
+Hvert problem pull-forespørselen fikser, beholder den: Kortet **Slik fikser du det** viser om den skrives, er åpen, slått sammen eller lukket, med lenker til pull-forespørselen og oppgaven, og når den er slått sammen, hva produksjonen viste. Problemets tidslinje viser når den ble åpnet. Problemet løses som **Rettet i koden** så snart tjenestens nye versjon ikke lenger skriver dataene (se [Hva som skjer med et problem](/docs/data-security/checks-and-issues#hva-som-skjer-med-et-problem)).
+
+En hemmelighet trenger mer enn en kodeendring: Koden stopper bare nye kopier, og hemmeligheten virker fortsatt. Pull-forespørselen, problemets tidslinje og kortet **Slik fikser du det** sier at den må roteres, og kortet viser hvor den ble sett.
+
+Med **Jobb med nye problemer** slått på foreslår OneUptime AI også på egen hånd hver tjenestes fiks, den mest risikable tjenesten først, under **Datasikkerhet → KI** og på tjenestens mest risikable problem. Som standard venter den på deg. En AI-regel i Datasikkerhet som setter **Rettelse** til **Automatisk** for tjenestens mest risikable problem, åpner pull-forespørselen uten å spørre, i et kodelager noe har avgjort. Kodelagerets **Maks. åpne pull-forespørsler med rettelser** begrenser begge: Ved grensen venter en pull-forespørsel en regel ville åpnet, på deg, og ingen ny pull-forespørsel med rettelser åpnes før én er slått sammen eller lukket.
+
 ## Forkast denne målingen
 
 Ingen regel fjerner dataene fra navnet til en måling, så til koden som navngir målingen er rettet, fortsetter dataene å komme. **Forkast denne målingen** på et funn i navnet til en måling slutter å lagre målingene der navnet inneholder dem, på bekostning av dataene deres, og skjer derfor bare når du ber om det:
 
-- **Målingene til én tjeneste.** Den lager en pipelineregel for målinger av typen **Forkast** for tjenesten til funnet: hvert nye datapunkt fra en måling der navnet inneholder den datatypen, forkastes før det lagres. Filteret er mønsteret **Rens** bruker for typen, så en type som ikke noe mønster kan finne, som en persons navn, kan ikke forkastes, og dialogen sier hvorfor.
+- **Målingene til én tjeneste.** Den lager en pipelineregel for målinger av typen **Forkast** for tjenesten til funnet: hvert nye datapunkt fra en måling der navnet inneholder den datatypen, forkastes før det lagres. Filteret er datatypens eget mønster, brukt på navnet til målingen, så en type som ikke noe mønster kan finne, som en persons navn, kan ikke forkastes, og dialogen sier hvorfor.
 - **Sagt før det skjer.** Dialogen sier at disse datapunktene går tapt for godt, hvor mange av tjenestens målinger skrevet det siste døgnet som har et slikt navn, hva som leser dem og dermed ikke får nye data, at det som allerede er lagret, blir værende til oppbevaringstiden er ute, og hvordan det angres. Ingenting forkastes før du har krysset av for at du forstår det.
 - **Hva som leser dem, og hva som skjer med det.** Dialogen nevner, hver som en lenke, hver monitor, hvert dashbord med widgetene på det som leser disse målingene, hver målingsbasert SLO for tjenesten og hver opptaksregel for målinger som leser dem. Monitorer kan ikke lenger varsle på verdiene deres, widgeter viser ingen nye data, SLO-er teller ingen nye hendelser fra dem, og utdata-målingene til opptaksreglene tar dem ikke lenger med. Under hver opptaksregel nevner den også hva som leser utdata-målingen til regelen, og hva som i sin tur leser deres, opptil tre utdata-målinger lenger ned i kjeden. Lenken til en widget åpner dashbordet dens ved den widgeten. Det du ikke kan se, blir telt, men aldri nevnt ved navn.
 - **Som deg, og registrert.** Regelen opprettes med din egen tillatelse til å opprette pipelineregler for målinger: Prosjekteiere og Prosjektadministratorer kan opprette den, og det kan også et team som har lov til å opprette pipelineregler for målinger. Revisjonsloggene registrerer hvem som opprettet den.
@@ -179,7 +224,7 @@ Et funn merkes som renset bare når inntaket ville kjørt en aktivert regel over
 - **En regel som er bevist på funnets poster.** En regel som OneUptime laget og beviste på postene et funn ble sett i, dekker det funnet, uansett mønster, så lenge den er regelen som ble bevist: Endre mønsteret, attributtene, handlingen, feltene eller tjenesten, så dekker den det ikke lenger.
 - **En regel av typen Navngitte attributter** dekker et funn i et attributt den navngir, eller i et som ligger under det.
 - **Ellers teller dine egne mønstre aldri.** En **Egendefinert regex** du selv skrev, dekker et funn bare når den er nøyaktig det mønsteret **Rens** lager for typen. Et funn beholder bare maskerte prøver, som ingen mønstre kan prøves på, så OneUptime kunne ikke bevise at mønsteret ditt skjuler dataene, og et funn som feilaktig kalles renset, er en lekkasje ingen ser på.
-- **Attributtet til en måling.** En pipelineregel for målinger av typen **Sladd attributt** eller **Fjern attributt** for nøkkelen til det attributtet, for tjenesten til funnet eller hele prosjektet, dekker funnet når den ikke har noe filter, eller nøyaktig filteret **Rens** lager. Et filter du har skrevet selv, teller aldri, av samme grunn.
+- **Attributtet til en måling.** En pipelineregel for målinger av typen **Sladd attributt** eller **Fjern attributt** for nøkkelen til det attributtet, for tjenesten til funnet eller hele prosjektet, dekker funnet når den ikke har noe filter, eller nøyaktig filteret **Rens** lager. Et filter du har skrevet selv, teller aldri, av samme grunn. En regel **Rens** laget for en IP-adresse, en e-postadresse eller et kortnummer før filteret var **Samsvarer med mønstertype**, flyttes til det filteret når du oppgraderer, slik at den også skjuler IPv6-adresser og dekker funnet sitt.
 - **Navnet til en måling.** En pipelineregel for målinger av typen **Forkast** for tjenesten til funnet eller hele prosjektet dekker funnet når den har nøyaktig filteret **Forkast denne målingen** lager, eller ikke noe filter i det hele tatt, slik at den ikke lagrer noen av tjenestens målinger. En slik regel uten filter dekker hvert funn i disse målingene.
 
 En regel som er slått av, eller som ikke renser noe, teller aldri. Dekningen beregnes på nytt etter hver skanning, så en regel du legger til eller fjerner manuelt, endrer hva som er merket som renset, innen en time.

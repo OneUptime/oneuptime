@@ -167,7 +167,7 @@ return {
 
 有些屬性名稱屬於 OneUptime 本身，指令碼無法寫入。如果你的指令碼設定了其中之一，該屬性會被捨棄（指標本身仍會記錄），並且會在 OneUptime 伺服器日誌中寫入一則指出該鍵名稱的警告。它們是：
 
-- 監測器的識別資訊：`monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`isCustomMetric`。
+- 監測器的識別資訊：`monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`monitorStepId`、`isCustomMetric`。
 - `oneuptime.` 或 `resource.` 命名空間中的所有內容，它們承載 OneUptime 在擷取資料時加上的識別碼。
 - 資源識別屬性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
 

@@ -166,9 +166,11 @@ export type {
  * a metric attribute makes a Redact Attribute rule for its service: it
  * replaces the attribute's value with [REDACTED] - only the values of the
  * data type's shape, where a pattern can find it (a "Matches Regex"
- * filter of the pattern above, so the label keeps its other values), and
- * every value under the key otherwise, since the key's name is what says
- * it is sensitive. Such a rule covers the finding, as does a Redact or
+ * filter of the pattern above, so the label keeps its other values; for an
+ * IP address, an email address or a card number a "Matches Pattern Type"
+ * filter of the built-in pattern a log or trace rule of the type runs,
+ * METRIC_PATTERN_TYPE_OF_DATA_TYPE, #10934), and every value under the key
+ * otherwise, since the key's name is what says it is sensitive. Such a rule covers the finding, as does a Redact or
  * Remove Attribute rule of that key for the service or the whole project
  * with no filter. A rule with filters a person wrote never counts, for the
  * reason a person's pattern never does. A metric's name cannot be
@@ -361,16 +363,68 @@ function ruleScrubsField(
 }
 
 /*
+ * THE TYPES WHOSE METRIC RULE MATCHES A BUILT-IN PATTERN TYPE (#10934).
+ *
+ * A metric rule's filter told the values it hides by the type's own
+ * pattern (buildScrubPatternForDataType), frozen into the rule when it was
+ * made. For three types no such pattern can say what Data Security finds,
+ * so a rule made so left data at its place while its finding said it was
+ * hidden:
+ *
+ *  - an IP address: IPv6's detector does not fit the 500 characters beside
+ *    IPv4's, so the pattern held IPv4 alone and every IPv6 address stayed;
+ *  - an IP address or an email address in a percent-encoded URL
+ *    (2001%3Adb8%3A%3A1, jane.doe%40acmecorp.io), which the detectors read
+ *    decoded (#10467, #10935) and a pattern reads as written;
+ *  - an email address in another script, and a card number in another
+ *    script's digits (#10960), which the detectors read with Unicode's
+ *    classes and every script's digits; and a card written in groups,
+ *    which the card pattern's back-reference kept out of it.
+ *
+ * Their rule matches the built-in Pattern Type of a log or trace rule of
+ * the type instead (Matches Pattern Type): the very pattern those rules
+ * run, which hides what the detectors find in every reading
+ * (Utils/Telemetry/ScrubBuiltInPatterns), and follows them as they change -
+ * the type is read when a value is, not frozen into the rule. Rules made
+ * before with the frozen pattern were moved to it (App/FeatureSet/Workers/
+ * DataMigrations/MetricScrubRulesMatchTheirPatternType). Every other type
+ * keeps its own pattern: the Phone Number and SSN patterns find less than
+ * theirs does.
+ */
+export const METRIC_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> =
+  new Map<string, string>([
+    ["ip-address", LogScrubPatternType.IPAddress],
+    ["email-address", LogScrubPatternType.Email],
+    ["credit-card-number", LogScrubPatternType.CreditCard],
+  ]);
+
+/*
  * The filters "Scrub it" gives a metric rule for a data type under a key:
- * the value has the type's shape (buildScrubPatternForDataType), so the
- * label keeps its other values - or none, where no pattern can find the
- * type: then every value under the key is redacted, since the key's name,
- * or the words around the values, are what say it holds the type.
+ * the value holds what the type's built-in Pattern Type finds
+ * (METRIC_PATTERN_TYPE_OF_DATA_TYPE), or has the type's shape
+ * (buildScrubPatternForDataType), so the label keeps its other values - or
+ * none, where no pattern can find the type: then every value under the key
+ * is redacted, since the key's name, or the words around the values, are
+ * what say it holds the type.
  */
 export function buildMetricScrubFilters(
   dataTypeId: string,
   attributeKey: string,
 ): Array<MetricPipelineRuleFilterCondition> {
+  const patternType: string | undefined =
+    METRIC_PATTERN_TYPE_OF_DATA_TYPE.get(dataTypeId);
+
+  if (patternType) {
+    return [
+      {
+        checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+        attributeKey,
+        conditionType: MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        value: patternType,
+      },
+    ];
+  }
+
   const pattern: string | null = isCustomDataTypeId(dataTypeId)
     ? null
     : buildScrubPatternForDataType(dataTypeId);
@@ -444,6 +498,14 @@ function metricRuleCovers(
  * The filters a Drop rule for a metric's name holding a data type has: the
  * name has the type's shape (buildScrubPatternForDataType) - or null when no
  * pattern can find the type, so no rule can tell those metrics apart.
+ *
+ * A name keeps the type's own pattern where an attribute matches a Pattern
+ * Type (METRIC_PATTERN_TYPE_OF_DATA_TYPE, #10934): OpenTelemetry writes an
+ * instrument's name in ASCII letters, digits and "_", ".", "-" and "/"
+ * alone, so no IPv6 address, email address or escape can be in one, and an
+ * IPv4 address in a name is what the pattern finds. And a Drop rule loses
+ * what it drops for good: what it drops is what the person read before
+ * making it (TelemetryMetricDrop), and stays so.
  */
 export function buildMetricDropFilters(
   dataTypeId: string,
@@ -1874,6 +1936,12 @@ export interface ScrubRulePreview {
   signal: ScrubRuleSignal;
   name: string;
   description: string;
+  /*
+   * A metric attribute's rule as it would be made: what its proof runs on
+   * the finding's data points (TelemetryScrubProof.proveMetricScrubRule,
+   * #10753).
+   */
+  metricRule?: MetricPipelineRule | undefined;
 }
 
 /*
@@ -1920,6 +1988,7 @@ export async function previewScrubRuleForFinding(data: {
       signal: "metric",
       name: rule.name || "",
       description: rule.description || "",
+      metricRule: rule,
     };
   }
 

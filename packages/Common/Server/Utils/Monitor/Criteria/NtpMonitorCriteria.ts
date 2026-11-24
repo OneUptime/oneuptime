@@ -1,6 +1,7 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import {
   CheckOn,
   CriteriaFilter,
@@ -41,6 +42,11 @@ export default class NtpMonitorCriteria {
      * work out how many samples a fully covered window should hold.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     const criteriaFilter: CriteriaFilter = input.criteriaFilter;
 
@@ -59,6 +65,7 @@ export default class NtpMonitorCriteria {
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*

@@ -211,6 +211,10 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   ),
   [DataSecurityAiProposalKind.AddScanExclusion]:
     translationKey("Scan exclusions"),
+  // The one pull request that stops a service writing its telemetry leaks (#10367).
+  [DataSecurityAiProposalKind.FixTelemetryLeaksInCode]: translationKey(
+    "One pull request for the service's telemetry leaks",
+  ),
   // A data type of the project's own, found in its stores (#10371).
   [DataSecurityAiProposalKind.AddDataType]: translationKey("Data types added"),
 };

@@ -9,8 +9,9 @@ import { makeUnsignedJwt } from "./WorkspaceOAuthTestHelpers";
 
 /*
  * A fake Microsoft identity platform (login.microsoftonline.com) and the part
- * of Microsoft Graph a Microsoft Teams sign-in reads (/v1.0/me, /v1.0/teams), to drive
- * OneUptime's sign-ins end to end without Microsoft.
+ * of Microsoft Graph a Microsoft Teams sign-in reads (/v1.0/me, /v1.0/teams,
+ * /v1.0/organization), to drive OneUptime's sign-ins end to end without
+ * Microsoft.
  *
  * It holds app registrations and directories, and answers the way Microsoft
  * does where OneUptime depends on it:
@@ -49,6 +50,10 @@ import { makeUnsignedJwt } from "./WorkspaceOAuthTestHelpers";
  *  - Admin consent (adminConsent) sends the admin back with the tenant they
  *    consented for, and a client credentials grant gives the app a token
  *    that reads the tenant's teams (/v1.0/teams).
+ *  - /v1.0/organization answers a person's token with the organization of
+ *    the tenant it was issued in (addOrganization): its id, display name
+ *    and verified domains, as User.Read lets Graph do. An app token is
+ *    refused (403): OneUptime's app has no Organization.Read.All.
  *
  * Codes and tokens are counters, not random: nothing here is a secret.
  */
@@ -60,6 +65,16 @@ export const FAKE_GRAPH_ME_URL: string = "https://graph.microsoft.com/v1.0/me";
 export interface FakeTeam {
   id: string;
   displayName: string;
+}
+
+// An organization, as Graph's /organization describes it.
+export interface FakeOrganization {
+  displayName: string;
+  verifiedDomains: Array<{
+    name: string;
+    isDefault: boolean;
+    isInitial: boolean;
+  }>;
 }
 
 // The endpoints for every organization, which name no tenant.
@@ -142,6 +157,8 @@ export default class FakeMicrosoftIdentityPlatform {
   public readonly tokenRequests: Array<FakeTokenRequest> = [];
   // Graph reads, by the account they answered as.
   public readonly profileReads: Array<FakeAccount> = [];
+  // Reads of /organization, by the account whose token read it.
+  public readonly organizationReads: Array<FakeAccount> = [];
   // Every address OneUptime called, sign-in and Graph alike, in order.
   public readonly calledUrls: Array<string> = [];
 
@@ -153,6 +170,11 @@ export default class FakeMicrosoftIdentityPlatform {
   private teams: Map<string, Array<FakeTeam>> = new Map<
     string,
     Array<FakeTeam>
+  >();
+  // Organizations, by tenant id in lower case.
+  private organizations: Map<string, FakeOrganization> = new Map<
+    string,
+    FakeOrganization
   >();
   private codes: Map<string, IssuedCode> = new Map<string, IssuedCode>();
   private accessTokens: Map<string, FakeAccount> = new Map<
@@ -179,6 +201,14 @@ export default class FakeMicrosoftIdentityPlatform {
     const key: string = tenantId.toLowerCase();
 
     this.teams.set(key, [...(this.teams.get(key) || []), team]);
+  }
+
+  // The organization a tenant is, as Graph's /organization names it.
+  public addOrganization(
+    tenantId: string,
+    organization: FakeOrganization,
+  ): void {
+    this.organizations.set(tenantId.toLowerCase(), organization);
   }
 
   public registerApp(app: FakeAppRegistration): void {
@@ -570,6 +600,10 @@ export default class FakeMicrosoftIdentityPlatform {
       return this.readProfile(url, headers);
     }
 
+    if (parsed.pathname === "/v1.0/organization") {
+      return this.readOrganization(headers);
+    }
+
     if (parsed.pathname !== "/v1.0/teams") {
       throw new Error(`Not a Graph read this fake answers: ${url}`);
     }
@@ -632,6 +666,63 @@ export default class FakeMicrosoftIdentityPlatform {
         displayName: account.displayName,
         mail: account.mail,
         userPrincipalName: account.userPrincipalName,
+      },
+      {},
+    );
+  }
+
+  /*
+   * Microsoft Graph's /organization: the organization of the tenant a
+   * person's token was issued in. An app token is refused, as Graph refuses
+   * an app without Organization.Read.All.
+   */
+  private readOrganization(
+    headers: Record<string, string> | undefined,
+  ): HTTPResponse<JSONObject> | HTTPErrorResponse {
+    const authorization: string = (headers || {})["Authorization"] || "";
+    const bearer: string = "Bearer ";
+    const token: string = authorization.startsWith(bearer)
+      ? authorization.substring(bearer.length)
+      : "";
+
+    if (this.appTokens.has(token)) {
+      return new HTTPErrorResponse(
+        403,
+        { error: { code: "Authorization_RequestDenied" } },
+        {},
+      );
+    }
+
+    const account: FakeAccount | undefined = this.accessTokens.get(token);
+
+    if (!account) {
+      return new HTTPErrorResponse(
+        401,
+        { error: { code: "InvalidAuthenticationToken" } },
+        {},
+      );
+    }
+
+    this.organizationReads.push(account);
+
+    const organization: FakeOrganization | undefined = this.organizations.get(
+      account.tenantId.toLowerCase(),
+    );
+
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        value: [
+          {
+            id: account.tenantId,
+            ...(organization
+              ? {
+                  displayName: organization.displayName,
+                  verifiedDomains: organization.verifiedDomains,
+                }
+              : { verifiedDomains: [] }),
+          },
+        ],
       },
       {},
     );

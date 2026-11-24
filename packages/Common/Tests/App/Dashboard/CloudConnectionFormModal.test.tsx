@@ -29,6 +29,8 @@ import {
 import {
   AWS_DATA_SECURITY_POLICY_NAME,
   AWS_DATA_SECURITY_RESPONSE_POLICY_NAME,
+  AWS_SECURITY_CASE_CHECKS_GROUP_NAME,
+  AWS_SECURITY_CASE_CHECKS_POLICY_NAME,
   AZURE_DATA_SECURITY_CONTENT_ROLE,
   AZURE_DATA_SECURITY_RESPONSE_ROLE,
   CloudConnectionAwsRoleSetup,
@@ -481,6 +483,8 @@ describe("every cloud, one paste", () => {
         resourceCosts: "off",
         // AWS alone: blocking addresses in AWS WAF, off until turned on (#10344).
         wafBlocklist: "off",
+        // AWS alone: reading IAM users back for security cases, off until turned on (#10900).
+        securityCaseChecks: "off",
       },
       secrets: {},
     });
@@ -1192,6 +1196,7 @@ describe("Data Security's settings, under the command", () => {
       "Data security",
       "Data security response",
       "Block addresses in AWS WAF",
+      "Security case checks",
     ]);
     expect(
       within(modal()).getByTestId("cloud-setup-read-only"),
@@ -1217,6 +1222,172 @@ describe("Data Security's settings, under the command", () => {
       dataSecurity: "off",
       dataSecurityResponse: "off",
       wafBlocklist: "off",
+      securityCaseChecks: "off",
     });
+  });
+
+  // Security case checks (#10900): AWS's, folded with the others, off until turned on.
+  const CHECKS: RegExp = /^Security case checks/;
+
+  // The command for an AWS way, with Security case checks as given.
+  function awsCommandOf(data: {
+    method: CloudConnectionAuthMethod;
+    scope?: CloudConnectionSetupScope;
+    securityCaseChecks?: "off" | "on";
+  }): string | undefined {
+    return getCloudConnectionSetupCommand(CloudProvider.AWS, data.method, {
+      trustedPrincipalArn: ROLE_SETUP.trustedPrincipalArn,
+      externalId: ROLE_SETUP.externalId,
+      scope: data.scope,
+      securityCaseChecks: data.securityCaseChecks,
+    });
+  }
+
+  test("Security case checks: AWS's alone, folded with the command, Off - On adds the policy to every way in, Off writes back the one before", async () => {
+    await openForm({ provider: CloudProvider.AWS, awsRoleSetup: ROLE_SETUP });
+    await stepTitles();
+
+    expect(foldedItems()).toEqual([
+      "Data security",
+      "Data security response",
+      "Block addresses in AWS WAF",
+      "Security case checks",
+    ]);
+
+    const before: string = shownCommand();
+
+    expect(before).not.toContain(AWS_SECURITY_CASE_CHECKS_POLICY_NAME);
+
+    await openFold();
+
+    expect(
+      getShownDropdownValue(
+        within(modal()).getByRole("combobox", { name: CHECKS }),
+      ),
+    ).toBe("Off");
+
+    await pick(CHECKS, "On");
+
+    // A role: its fifth policy, the reads and nothing else.
+    expect(shownCommand()).toBe(
+      awsCommandOf({
+        method: CloudConnectionAuthMethod.AwsRole,
+        securityCaseChecks: "on",
+      }),
+    );
+    expect(shownCommand()).toContain(
+      `--policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} `,
+    );
+    expect(shownCommand()).toContain("iam:ListMFADevices");
+
+    // Every account of the organization: the StackSet's role and the management account's.
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByRole("radio", {
+          name: /^Every account in the organization/,
+        }),
+      );
+    });
+
+    expect(shownCommand()).toBe(
+      awsCommandOf({
+        method: CloudConnectionAuthMethod.AwsRole,
+        scope: CloudConnectionSetupScope.Organization,
+        securityCaseChecks: "on",
+      }),
+    );
+
+    // An access key: its user joins the policy's group.
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByRole("radio", { name: /Access key/ }),
+      );
+    });
+
+    expect(shownCommand()).toBe(
+      awsCommandOf({
+        method: CloudConnectionAuthMethod.AwsAccessKey,
+        securityCaseChecks: "on",
+      }),
+    );
+    expect(shownCommand()).toContain(
+      `--group-name ${AWS_SECURITY_CASE_CHECKS_GROUP_NAME}`,
+    );
+
+    await pick(CHECKS, "Off");
+
+    expect(shownCommand()).toBe(
+      awsCommandOf({ method: CloudConnectionAuthMethod.AwsAccessKey }),
+    );
+  });
+
+  test("Security case checks: Azure and Google Cloud do not ask it", async () => {
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      await openForm({ provider });
+      await stepTitles();
+
+      expect(foldedItems()).not.toContain("Security case checks");
+      cleanup();
+    }
+  });
+
+  test("Security case checks: what is picked is what the test sends and Connect saves", async () => {
+    await openForm({ provider: CloudProvider.AWS, awsRoleSetup: ROLE_SETUP });
+    await stepTitles();
+    await openFold();
+    await pick(CHECKS, "On");
+    await next();
+    await paste(`${ROLE_ARN}\n`);
+    await next();
+
+    // The Test step tests by itself as it opens.
+    await within(modal()).findByTestId("cloud-connection-test-pass");
+    expect(postSpy.mock.calls[0]![0].data.config).toMatchObject({
+      securityCaseChecks: "on",
+      dataSecurity: "off",
+      wafBlocklist: "off",
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    const model: CloudConnection = createSpy.mock.calls[0]![0]
+      .model as CloudConnection;
+
+    expect(model.config).toMatchObject({ securityCaseChecks: "on" });
+  });
+
+  test("Security case checks: editing a connection that has them on shows the command that grants them, and the fold says so", async () => {
+    const connection: CloudConnection = new CloudConnection();
+    connection._id = "20000000-0000-4000-8000-000000000004";
+    connection.name = "Acme AWS";
+    connection.provider = CloudProvider.AWS;
+    connection.config = {
+      authMethod: CloudConnectionAuthMethod.AwsRole,
+      roleArn: ROLE_ARN,
+      securityCaseChecks: "on",
+    };
+
+    await openForm({
+      provider: CloudProvider.AWS,
+      connection,
+      awsRoleSetup: ROLE_SETUP,
+    });
+    await stepTitles();
+
+    expect(shownCommand()).toBe(
+      awsCommandOf({
+        method: CloudConnectionAuthMethod.AwsRole,
+        securityCaseChecks: "on",
+      }),
+    );
+    expect(foldedItems()).toContain("Security case checks: On");
   });
 });

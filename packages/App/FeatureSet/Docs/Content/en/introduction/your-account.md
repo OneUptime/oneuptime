@@ -23,8 +23,8 @@ Click your picture at the top right of the dashboard.
 
 | Item | What it does |
 | --- | --- |
-| **Profile** | Opens **User Profile**: your name, email, time zone, language, picture and sign-in security. |
-| **Admin Settings** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
+| **User Profile** | Opens **User Profile**: your name, email, time zone, language, picture and sign-in security. |
+| **Admin Dashboard** | Opens the Admin Dashboard. Only master admins of a self-hosted installation see it. |
 | **Theme** | Sets the dashboard's theme: **Light**, **Dark** or **System**, which is light or dark as your device is set. |
 | **Sign Out** | Signs you out, at once on every OneUptime server. Where your administrator has set it up, it signs you out of your identity provider too. |
 
@@ -35,7 +35,7 @@ Click your picture at the top right of the dashboard.
 :::steps
 ### Open your profile
 
-Click your picture at the top right and choose **Profile**. The **Overview** page opens on the **Basic Info** card: your name, email, time zone and language.
+Click your picture at the top right and choose **User Profile**. The **Overview** page opens on the **Basic Info** card: your name, email, time zone and language.
 
 ### Edit your details
 

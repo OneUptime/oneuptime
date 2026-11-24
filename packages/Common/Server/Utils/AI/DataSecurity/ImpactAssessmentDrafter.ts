@@ -36,7 +36,10 @@ import {
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
-import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import DataStoreFeedService from "../../../Services/DataStoreFeedService";
 import DataStoreService from "../../../Services/DataStoreService";
@@ -323,13 +326,13 @@ export default class ImpactAssessmentDrafter {
       dataStoreFeedEventType: DataStoreFeedEventType.AiProposed,
       displayColor: Purple500,
       feedInfoInMarkdown:
-        mdText`OneUptime AI drafted this store's data protection impact assessment, for you to review and edit: **${(
-          Object.keys(drafted) as Array<ImpactAssessmentPart>
-        )
-          .map((part: ImpactAssessmentPart): string => {
-            return IMPACT_ASSESSMENT_PART_TITLES[part];
-          })
-          .join(", ")}**.`.toString(),
+        mdText`OneUptime AI drafted this store's data protection impact assessment, for you to review and edit: **${FeedMarkdown.join(
+          (Object.keys(drafted) as Array<ImpactAssessmentPart>).map(
+            (part: ImpactAssessmentPart): string => {
+              return IMPACT_ASSESSMENT_PART_TITLES[part];
+            },
+          ),
+        )}**.`.toString(),
       userId: data.props.userId || undefined,
     });
 

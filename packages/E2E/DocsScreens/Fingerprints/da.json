@@ -275,7 +275,7 @@
       "SMS er slået fra i dette projekt, så tilkald, der bruger det, sendes ikke.",
       "Telefonopkald er slået fra i dette projekt, så tilkald, der bruger det, sendes ikke.",
       "Sms og opkald betales af projektets saldo, som er 0.00 USD. Når du tilføjer et nummer, sendes en sms, så saldoen skal være over 1.00 USD.",
-      "Tilføj saldo",
+      "Tilføj til saldo",
       "Slå sms og opkald til",
       "Mobilapp eller browser",
       "Ikke sat op.",
@@ -286,15 +286,15 @@
       "Kontrollér igen"
     ],
     "outline": [
-      "button: Tilføj saldo",
+      "button: Tilføj til saldo",
       "button: Slå sms og opkald til",
       "button: Brug denne browser",
       "button: Hent appen",
       "button: Fortsæt",
       "button: Kontrollér igen"
     ],
-    "width": 768,
-    "height": 658
+    "width": 784,
+    "height": 687
   },
   "paging-phone": {
     "text": [

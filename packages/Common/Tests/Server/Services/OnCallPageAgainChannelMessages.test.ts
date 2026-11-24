@@ -531,14 +531,22 @@ describe("the words a page again says", () => {
   });
 });
 
+// The severity each kind's record has here, as its call says it (#10762).
+const CALL_SEVERITY: Record<string, string> = {
+  incident: "Critical",
+  alert: "High",
+  "incident episode": "Critical",
+  "alert episode": "High",
+};
+
 describe.each(KINDS)("a page again about $name", (kind: Kind) => {
   const Noun: string = `${kind.noun.charAt(0).toUpperCase()}${kind.noun.slice(1)}`;
 
-  test("the call says it is still not resolved, then which one, then asks for 1 or 2 as ever", async () => {
+  test("the call says it is still not resolved, then which one, how bad - and asks for 1 or 2 as ever", async () => {
     const said: Array<string> = sayMessages(await kind.call(NOTICE));
 
     expect(said[1]).toBe(
-      `An ${kind.noun} is still not resolved 30 minutes after it was acknowledged`,
+      `An ${kind.noun} is still not resolved 30 minutes after it was acknowledged: ${CALL_SEVERITY[kind.noun]} ${kind.noun} ${kind.number}.`,
     );
     expect(said.join(" ")).not.toContain("has been created");
 
@@ -548,15 +556,14 @@ describe.each(KINDS)("a page again about $name", (kind: Kind) => {
       return Boolean((step as { introMessage?: string }).introMessage);
     }) as { introMessage?: string };
 
-    expect(gather.introMessage).toContain(
-      `To acknowledge this ${kind.noun}, press 1.`,
+    expect(gather.introMessage).toBe(
+      "Press 1 to acknowledge, or 2 to escalate.",
     );
-    expect(gather.introMessage).toContain("press 2 to escalate");
   });
 
-  test("a first page's call reads as it always did", async () => {
+  test("a first page's call says it is new, how bad and which one", async () => {
     expect(sayMessages(await kind.call())[1]).toBe(
-      `A new ${kind.noun} has been created`,
+      `A new ${CALL_SEVERITY[kind.noun]} ${kind.noun} has been created: ${kind.number}.`,
     );
   });
 
@@ -871,7 +878,7 @@ describe("a delivery hands the page again to every channel's message", () => {
       .value) as CallRequest;
 
     expect(sayMessages(callRequest)[1]).toBe(
-      "An incident is still not resolved 30 minutes after it was acknowledged",
+      "An incident is still not resolved 30 minutes after it was acknowledged: Critical incident INC-42.",
     );
 
     const email: EmailMessage = (await spies.email.mock.results[0]!
@@ -909,7 +916,9 @@ describe("a delivery hands the page again to every channel's message", () => {
     const callRequest: CallRequest = (await spies.call.mock.results[0]!
       .value) as CallRequest;
 
-    expect(sayMessages(callRequest)[1]).toBe("A new incident has been created");
+    expect(sayMessages(callRequest)[1]).toBe(
+      "A new Critical incident has been created: INC-42.",
+    );
 
     const sms: { message: string } = (await spies.sms.mock.results[0]!
       .value) as { message: string };

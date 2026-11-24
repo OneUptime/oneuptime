@@ -64,7 +64,7 @@ Dans le même critère, ouvrez **Paramètres** et activez **Regrouper les incide
 | --- | --- |
 | **Ouvrir un incident distinct pour chaque…** | `requestBody.alerts[*].fingerprint` |
 | **Champ qui signale le rétablissement** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Valeur qui signifie rétabli** | `resolved` |
 
 ### Remettre le moniteur en ligne
 
@@ -264,7 +264,7 @@ Quand l'alerte de surveillance n'est pas arrivée depuis dix minutes, le moniteu
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - Vérifiez qu'aucun récepteur ne règle `send_resolved: false` : Alertmanager n'envoie alors jamais de rétablissement.
 - L'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
-- **Champ qui signale le rétablissement** doit valoir `requestBody.alerts[*].status`, et **Value that means recovered** exactement `resolved`. La comparaison respecte la casse.
+- **Champ qui signale le rétablissement** doit valoir `requestBody.alerts[*].status`, et **Valeur qui signifie rétabli** exactement `resolved`. La comparaison respecte la casse.
 - Les alertes d'une notification au-delà de **Incidents max par requête** ne sont pas lues du tout, leurs rétablissements sont donc perdus aussi.
 - Un rétablissement sauté parce que trop de notifications attendaient (voir ci-dessous) laisse son incident ouvert pour de bon : Alertmanager répète les alertes déclenchées, mais jamais un rétablissement. Résolvez un tel incident à la main.
 :::

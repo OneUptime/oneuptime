@@ -92,7 +92,7 @@ const ANSWER: JSONObject = {
       level: "fix",
       title: "Email",
       sentence: "Not set up yet: OneUptime cannot send invitations.",
-      fixSentence: "Finish it on the Server setup page.",
+      fixSentence: "Finish it on the Server Setup page.",
     },
   ],
   version: { current: "14.0.109" },
@@ -236,7 +236,7 @@ const TOOL_RUNS: Record<string, ToolRun> = {
       });
     },
     printed:
-      "fix|Email|Not set up yet: OneUptime cannot send invitations.|Finish it on the Server setup page.",
+      "fix|Email|Not set up yet: OneUptime cannot send invitations.|Finish it on the Server Setup page.",
   },
   [DOCTOR_TOOL]: {
     run: async (

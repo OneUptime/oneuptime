@@ -134,7 +134,13 @@ Lo zoom funziona solo in modalità di lettura; in modalità di modifica, trascin
 
 ## Schermo intero
 
-**⋯ → Schermo intero** mostra i widget della dashboard su tutto lo schermo, per un display a parete o una riunione. Premi Esc per uscire.
+Lo schermo intero mostra solo la dashboard, su tutto lo schermo: la sua barra degli strumenti e i suoi widget, senza la barra superiore, il menu laterale o il percorso di navigazione intorno. Tutto funziona come nella pagina della dashboard, e per le stesse persone: la modifica, l'aggiunta e la rimozione dei widget, l'intervallo di tempo, l'aggiornamento automatico e le variabili.
+
+- **Schermo intero**, il pulsante quadrato alla fine della barra degli strumenti della dashboard, o **⋯ → Schermo intero** mostra la dashboard a schermo intero. Anche il tuo browser passa a schermo intero, dove lo consente.
+- **Apri in una nuova scheda**, nel menu **⋯** della dashboard o nel menu **⋯** di una riga dell'elenco **Dashboard**, apre la dashboard a schermo intero in una scheda tutta sua. In quella scheda, **Riempi lo schermo** porta a schermo intero anche il tuo browser.
+- **Esci da schermo intero**, o Esc, torna alla pagina della dashboard e fa uscire anche il tuo browser dallo schermo intero. Dopo **Riempi lo schermo**, il primo Esc fa uscire solo il tuo browser dallo schermo intero.
+
+Una dashboard a schermo intero ha un proprio indirizzo, che termina con `?view=full-screen`: aggiungilo ai preferiti o aprilo su uno schermo a parete, e la dashboard si apre a schermo intero. Per mostrare più dashboard una dopo l'altra su uno schermo, usa una [playlist](/docs/dashboards/playlists).
 
 ## Consigli per dashboard che invecchiano bene
 

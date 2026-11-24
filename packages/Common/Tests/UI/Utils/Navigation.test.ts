@@ -317,6 +317,39 @@ describe("Navigation internal route safety", () => {
     expect(window.location.pathname).toBe("/dashboard/monitors");
     expect(window.location.hash).toBe("#forced");
   });
+
+  /*
+   * A page that only passes the browser on to a page of another project
+   * (#9180) loads it in full in place of itself, so Back skips it rather
+   * than landing on it to be passed on again.
+   */
+  test("forced navigation in place of the current page replaces its history entry", () => {
+    Navigation.navigate(new Route("/dashboard/monitors#before"), {
+      forceNavigate: true,
+    });
+    const entries: number = window.history.length;
+
+    Navigation.navigate(new Route("/dashboard/monitors#replaced"), {
+      forceNavigate: true,
+      replace: true,
+    });
+
+    expect(window.location.pathname).toBe("/dashboard/monitors");
+    expect(window.location.hash).toBe("#replaced");
+    expect(window.history.length).toBe(entries);
+  });
+
+  test("forced navigation in place of the current page still refuses a target outside OneUptime", () => {
+    const currentUrl: string = window.location.href;
+    const route: Route = new Route("/safe");
+
+    jest.spyOn(route, "toString").mockReturnValue("//evil.example/path");
+
+    expect(() => {
+      Navigation.navigate(route, { forceNavigate: true, replace: true });
+    }).toThrowError(BadDataException);
+    expect(window.location.href).toBe(currentUrl);
+  });
 });
 
 /*

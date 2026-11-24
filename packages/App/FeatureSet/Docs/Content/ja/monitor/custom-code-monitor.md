@@ -167,7 +167,7 @@ return {
 
 一部の属性名は OneUptime 自身のもので、スクリプトからは書き込めません。スクリプトがそれを設定すると、その属性は破棄され (メトリクス自体は記録されます)、キー名を示す警告が OneUptime のサーバーログに書き込まれます。対象は次のとおりです。
 
-- モニターの識別情報: `monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`isCustomMetric`。
+- モニターの識別情報: `monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`monitorStepId`、`isCustomMetric`。
 - `oneuptime.` と `resource.` の名前空間にあるすべて。これらには、OneUptime が取り込み時に付ける識別子が入ります。
 - リソースの識別属性: `service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name`、`docker.swarm.cluster.name`。
 

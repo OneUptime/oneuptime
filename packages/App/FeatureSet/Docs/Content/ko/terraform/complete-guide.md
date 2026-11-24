@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+다만 누군가 OneUptime에서 모니터의 단계에 추가한 설정 중 구성에 쓰여 있지 않은 것은 차이입니다. 다음 plan에 `monitor_steps`의 변경으로 표시되고, 그 뒤의 apply는 plan대로 그 설정을 제거합니다. 남기려면 구성에도 쓰세요.
+
 ## 레이블과 OneUptime도 추가하는 다른 목록
 
 OneUptime은 레코드의 일부 목록에 스스로 항목을 추가합니다. 레이블 규칙은 일치하는 레코드에 레이블을 추가하고, 온콜 규칙은 일치하는 인시던트와 경고에 정책을 추가하며, SLO의 모니터 규칙은 일치하는 모니터를 연결합니다. 레퍼런스는 그런 속성마다 "OneUptime adds to it too, on its own"라고 적습니다. 그런 목록을 설정하는 구성은 자신이 나열한 항목을 유지하고 나머지는 그대로 둡니다.

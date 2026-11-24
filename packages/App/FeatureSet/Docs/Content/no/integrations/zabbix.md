@@ -148,13 +148,13 @@ I trinnet **Kriterier** åpner du det første kriteriet, det som markerer monito
 
 ### Opprett én hendelse per problem
 
-I samme kriterium åpner du **Innstillinger** og slår på **Group incidents and alerts by a payload field**. Fyll det ut som nedenfor, slik at hvert problem får sin egen hendelse, og gjenopprettingen av det løser den:
+I samme kriterium åpner du **Innstillinger** og slår på **Grupper hendelser og varsler etter et felt i payloaden**. Fyll det ut som nedenfor, slik at hvert problem får sin egen hendelse, og gjenopprettingen av det løser den:
 
 | Felt | Verdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Åpne en egen hendelse for hver…** | `requestBody.event_id` |
+| **Felt som signaliserer gjenoppretting** | `requestBody.status` |
+| **Verdi som betyr gjenopprettet** | `0` |
 
 ### Ta monitoren tilbake på nett
 
@@ -321,7 +321,7 @@ Zabbix sender alvorlighetsgraden som tekst: `Not classified`, `Information`, `Wa
 :::details Hendelser opprettes, men løses aldri
 - Handlingen trenger **Recovery operations**, ellers sender Zabbix aldri gjenopprettingen.
 - Med malen åpner du arbeidsflytens **Kjøringer** og kjøringen for gjenopprettingen: det siste steget sier hvorfor. En gjenoppretting for et problem som ikke opprettet noen hendelse, endrer ingenting.
-- Med monitoren trenger kriteriets hendelse **Løs hendelse automatisk**, under **Flere felt**. **Field that signals recovery** må være `requestBody.status`, og **Value that means recovered** nøyaktig `0`.
+- Med monitoren trenger kriteriets hendelse **Løs hendelse automatisk**, under **Flere felt**. **Felt som signaliserer gjenoppretting** må være `requestBody.status`, og **Verdi som betyr gjenopprettet** nøyaktig `0`.
 :::
 
 :::details Zabbix-problemet blir ikke bekreftet eller lukket

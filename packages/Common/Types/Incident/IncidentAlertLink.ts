@@ -34,6 +34,27 @@ export const INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY: string =
   "acknowledgeAlertsToLink";
 
 /*
+ * An incident declared from alerts is owned by the people who own those
+ * alerts (#10867): once it exists, every user and team that owns one of
+ * them becomes one of its owners - a user who is still a member of the
+ * project, a team that is one of its teams - added as owners at creation
+ * are, before its "Incident Created" notification goes out, so they hear
+ * of it once, as every owner it starts with does. It is the default for
+ * every way an incident is declared from alerts: the API, an alert
+ * incident rule, `/oneuptime incident` in an alert's Slack or Microsoft
+ * Teams channel.
+ *
+ * Sending `miscDataProps[INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY] = false`
+ * along with INCIDENT_ALERT_IDS_TO_LINK_KEY leaves them out. The
+ * dashboard's Declare Incident sends it whenever it has put the alerts'
+ * owners in its Owners field, where the declarer can take any of them out
+ * or add others: the owners it then sends are the declaration's, private
+ * incident or not. Must be true or false, and true only with alerts.
+ */
+export const INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY: string =
+  "carryOverAlertOwners";
+
+/*
  * An incident an alert incident rule declares from an alert
  * (AlertIncidentRuleEngineService) names the rule in its one "Declared from
  * 1 alert" feed entry, and so in the post to its Slack / Microsoft Teams

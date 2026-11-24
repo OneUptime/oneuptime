@@ -95,7 +95,7 @@ A sentence under the window's settings reads the filter back as it is set: "Chec
 - **A window that is not full yet.** Until the checks reach back to the start of the window, a monitor that only just started has fewer checks than it will. **Count** and **Status Changes** match early when they are already past **Greater Than** or **Greater Than Or Equal To**, since more checks only add to them; anything else waits for a full window.
 - **A window with no checks.** While the window has no checks, or is not full yet, **If No Data** decides: **Ignore** waits, **Trigger** matches, and **Treat As Zero** judges it as if the missing checks had not met the condition.
 
-The averages and percentiles read the values of every probe's checks, as **Average** always has. **Count**, **Percentage** and **Status Changes** are offered for every filter that is offered a window: on Website, API, Ping, IP and Port monitors, a server's CPU, memory, disks and load, a network device's **SNMP Device Is Online** and response time, and DNS, NTP, Database, External Status Page and Probe Status monitors. A Server monitor's **Is Online** is not counted: it is judged on the time since the server last reported. Metrics and other telemetry monitors judge the time range of their query instead, with the query's own aggregation, which reads percentiles too.
+The averages and percentiles read the values of every probe's checks, as **Average** always has. **Count**, **Percentage** and **Status Changes** are offered for every filter that is offered a window: on Website, API, Ping, IP and Port monitors, a server's CPU, memory, disks and load, a network device's **SNMP Device Is Online** and response time, an SSL Certificate monitor's **Expires In Days**, and DNS, NTP, Database, External Status Page and Probe Status monitors. A Server monitor's **Is Online** is not counted: it is judged on the time since the server last reported. Metrics and other telemetry monitors judge the time range of their query instead, with the query's own aggregation, which reads percentiles too.
 
 ### Example: an access point that is down, and one that is unstable
 
@@ -218,6 +218,8 @@ Secrets and personal data are masked before anything is kept: headers such as `A
 ## How long each check takes
 
 Each check's evaluation summary, under **View Summary** in the monitor's **Monitoring Logs** and for the latest check on its **Overview**, says when the check was evaluated, how long its evaluation took and, on a monitor that judges each host, container or group on its own, how many series it judged. The time runs from when OneUptime began reading the data the check judges until it wrote the check's log: reading the data, judging the criteria, and opening incidents and alerts.
+
+In **Monitoring Logs**, the **Check Duration** column shows how long each check took and marks slow checks. A dash means the check's duration was not recorded.
 
 When an evaluation takes too long for its monitor, its summary warns you. Too long is more than a tenth of the time between the monitor's checks, never less than 5 seconds and never more than a minute:
 

@@ -58,8 +58,12 @@ export const SERVER_TEST_EMAIL_TIMEOUT_IN_MS: number = 15000;
 export const SERVER_TEST_SMS_TEXT: string =
   "This is a test SMS from OneUptime. SMS from this server work.";
 
+/*
+ * "OneUptime", which an installation that goes by its own name says instead
+ * (ProductBrandingText), and which the call says as two words (CallSpeech).
+ */
 export const SERVER_TEST_CALL_TEXT: string =
-  "This is a test call from One Uptime. Calls from this server work.";
+  "This is a test call from OneUptime. Calls from this server work.";
 
 export const SERVER_TEST_PUSH_TITLE: string = "Test push from OneUptime";
 

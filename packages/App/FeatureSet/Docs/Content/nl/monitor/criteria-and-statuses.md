@@ -44,7 +44,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 | **Criterianaam** | De naam in de lijst met criteria, en in de oorzaak van elk incident en elke waarschuwing die het criterium opent. **Criteria toevoegen** noemt een nieuw criterium naar zijn filters, en de naam volgt ze tot u er zelf een typt. |
 | **Filters** | Wat de controle moet laten zien, als een of meer filters. Kubernetes- en metriekmonitoren noemen ze **Waarschuwingsregels**. |
 | **Acties** | Wat er gebeurt als de filters overeenkomen: de status wijzigen, een waarschuwing maken, een incident melden, of een combinatie daarvan. |
-| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Group incidents and alerts by a payload field**. |
+| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Incidenten en waarschuwingen groeperen op een veld uit de payload**. |
 
 ### Filters
 
@@ -70,7 +70,7 @@ Een incident of waarschuwing vraagt om een titel, een **Ernst** en, ingeklapt, e
 
 **Schakel dit criterium in** staat aan bij elk nieuw criterium. Zet het uit om een criterium te bewaren zonder het te gebruiken: het wordt bij elke controle overgeslagen, wijzigt geen status, opent niets, en zijn kop toont **Uitgeschakeld**.
 
-**Group incidents and alerts by a payload field** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
+**Incidenten en waarschuwingen groeperen op een veld uit de payload** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
 
 **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** en **Dit criterium alleen op bepaalde dagen en tijden beoordelen** staan uit voor een nieuw criterium. Zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt) en [Alleen op bepaalde dagen en tijden](#alleen-op-bepaalde-dagen-en-tijden).
 
@@ -95,7 +95,7 @@ Een zin onder de instellingen van het venster leest het filter terug zoals het i
 - **Een venster dat nog niet vol is.** Tot de controles terugreiken tot het begin van het venster, heeft een monitor die net is gestart minder controles dan hij zal hebben. **Aantal** en **Statuswijzigingen** komen vroeg overeen als ze **Groter dan** of **Groter dan of gelijk aan** al voorbij zijn, omdat meer controles ze alleen verhogen; al het andere wacht op een vol venster.
 - **Een venster zonder controles.** Zolang het venster geen controles heeft, of nog niet vol is, beslist **Als geen gegevens**: **Ignore** wacht, **Trigger** komt overeen, en **Treat As Zero** beoordeelt het alsof de ontbrekende controles niet aan de voorwaarde voldeden.
 
-De gemiddelden en percentielen lezen de waarden van de controles van alle sondes, zoals **Gemiddelde** altijd al deed. **Aantal**, **Percentage** en **Statuswijzigingen** worden aangeboden voor elk filter waarvoor een venster wordt aangeboden: bij Website-, API-, Ping-, IP- en Port-monitors, voor de CPU, het geheugen, de schijven en de belasting van een server, voor **SNMP-apparaat is online** en de reactietijd van een netwerkapparaat, en bij DNS-, NTP-, database-, externe-statuspagina- en sondestatusmonitors. **Is online** van een servermonitor wordt niet geteld: dat wordt beoordeeld op de tijd sinds de server voor het laatst rapporteerde. Metrics- en andere telemetriemonitors beoordelen in plaats daarvan het tijdsbereik van hun query, met de eigen aggregatie van de query, die ook percentielen leest.
+De gemiddelden en percentielen lezen de waarden van de controles van alle sondes, zoals **Gemiddelde** altijd al deed. **Aantal**, **Percentage** en **Statuswijzigingen** worden aangeboden voor elk filter waarvoor een venster wordt aangeboden: bij Website-, API-, Ping-, IP- en Port-monitors, voor de CPU, het geheugen, de schijven en de belasting van een server, voor **SNMP-apparaat is online** en de reactietijd van een netwerkapparaat, voor **Dagen tot verloop** van een SSL-certificaat-monitor, en bij DNS-, NTP-, database-, externe-statuspagina- en sondestatusmonitors. **Is online** van een servermonitor wordt niet geteld: dat wordt beoordeeld op de tijd sinds de server voor het laatst rapporteerde. Metrics- en andere telemetriemonitors beoordelen in plaats daarvan het tijdsbereik van hun query, met de eigen aggregatie van de query, die ook percentielen leest.
 
 ### Voorbeeld: een access point dat uitvalt, en een dat instabiel is
 
@@ -218,6 +218,8 @@ Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: he
 ## Hoe lang elke controle duurt
 
 De evaluatiesamenvatting van elke controle, onder **Samenvatting bekijken** in de **Monitoringlogboeken** van de monitor en voor de laatste controle op zijn **Overzicht**, zegt wanneer de controle is geëvalueerd, hoe lang de evaluatie duurde en, bij een monitor die elke host, container of groep afzonderlijk beoordeelt, hoeveel reeksen er zijn beoordeeld. De tijd loopt vanaf het moment dat OneUptime de gegevens van de controle begon te lezen tot het het logboek van de controle schreef: het lezen van de gegevens, het beoordelen van de criteria en het openen van incidenten en waarschuwingen.
+
+In **Monitoringlogboeken** toont de kolom **Duur van de controle** hoe lang elke controle duurde en markeert ze trage controles. Een streepje betekent dat de duur niet is vastgelegd.
 
 Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u. Te lang is meer dan een tiende van de tijd tussen de controles van de monitor, nooit minder dan 5 seconden en nooit meer dan een minuut:
 

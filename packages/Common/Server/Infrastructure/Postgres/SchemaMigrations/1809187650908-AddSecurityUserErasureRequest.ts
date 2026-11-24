@@ -6,10 +6,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * table, exactly as `npm run generate-postgres-migration` wrote it: it is
  * empty, so its indexes and keys need nothing of OnlineDdl.
  */
-export class AddSecurityUserErasureRequest1809187580908
+export class AddSecurityUserErasureRequest1809187650908
   implements MigrationInterface
 {
-  public name: string = "AddSecurityUserErasureRequest1809187580908";
+  public name: string = "AddSecurityUserErasureRequest1809187650908";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

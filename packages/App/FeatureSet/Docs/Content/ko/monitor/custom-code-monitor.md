@@ -167,7 +167,7 @@ return {
 
 일부 속성 이름은 OneUptime 자체의 것이므로 스크립트가 쓸 수 없습니다. 스크립트가 이런 속성을 설정하면 그 속성은 버려지고(메트릭 자체는 그대로 기록됩니다), 키 이름을 담은 경고가 OneUptime 서버 로그에 기록됩니다. 해당하는 것은 다음과 같습니다.
 
-- 모니터의 식별 정보: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- 모니터의 식별 정보: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - `oneuptime.` 또는 `resource.` 네임스페이스의 모든 것. 여기에는 OneUptime이 수집 시점에 붙이는 식별자가 들어 있습니다.
 - 리소스 식별 속성: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name`, `docker.swarm.cluster.name`.
 

@@ -720,6 +720,9 @@ import SecurityCaseTaskService, {
 import SecurityCaseStepCheckService, {
   Service as SecurityCaseStepCheckServiceType,
 } from "Common/Server/Services/SecurityCaseStepCheckService";
+import SecurityCaseAiActionService, {
+  Service as SecurityCaseAiActionServiceType,
+} from "Common/Server/Services/SecurityCaseAiActionService";
 import SecurityCasePullRequestService, {
   Service as SecurityCasePullRequestServiceType,
 } from "Common/Server/Services/SecurityCasePullRequestService";
@@ -1995,6 +1998,7 @@ import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
@@ -2179,6 +2183,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
+import UniqueNamesAPI from "Common/Server/API/UniqueNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
@@ -4849,6 +4854,21 @@ const BaseAPIFeatureSet: FeatureSet = {
     );
 
     /*
+     * What OneUptime AI did, asked a person about or left to a person on a
+     * case it works (#10352), and why: read by the case's own readers, as
+     * the API Reference offers it. Its lists let nobody create, change or
+     * delete one: only OneUptime AI writes them, and a person approves,
+     * declines or undoes an action through the case's own routes.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseAiAction, SecurityCaseAiActionServiceType>(
+        SecurityCaseAiAction,
+        SecurityCaseAiActionService,
+      ).getRouter(),
+    );
+
+    /*
      * A person's own pull request, linked to a case's Fix step (#10604):
      * linked and taken off by whoever works the case, read by the case's
      * readers. What it says of the pull request is OneUptime's to write.
@@ -6940,6 +6960,15 @@ const BaseAPIFeatureSet: FeatureSet = {
      * for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
+
+    /*
+     * Names that repeat in a project (UniqueNamesAPI, #10761): whether a
+     * name a form takes is another record's, for the form to warn, and the
+     * names a project holds twice, for Project Settings to list beside
+     * Require Unique Names. A bare router for the same reason as
+     * OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UniqueNamesAPI);
 
     /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member

@@ -41,8 +41,26 @@ import { DataSecurityProbeStoreWork } from "Common/Server/Utils/DataSecurity/Dat
 import {
   ContentScanOptions,
   ContentScanResult,
+  DataStoreLocationKind,
   emptyContentScanResult,
+  LocationFindings,
 } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
+import {
+  classifyCollectedFields,
+  FieldsClassification,
+} from "Common/Server/Utils/DataSecurity/Content/ContentClassifier";
+import { FingerprintAccumulator } from "Common/Server/Utils/DataSecurity/Fingerprint";
+import { ModelBudget } from "Common/Server/Utils/DataSecurity/Model/ModelBudget";
+import {
+  CONTENT_STORE_KEY,
+  ModelScanContext,
+  recognizeFields,
+} from "Common/Server/Utils/DataSecurity/Model/ModelScan";
+import { FieldClassification } from "Common/Utils/DataSecurity/FieldClassifier";
+import { CollectedField } from "Common/Utils/DataSecurity/FieldCollector";
+import FakeEntityRecognizer, {
+  ISSUE_SENTENCE,
+} from "Common/Tests/Server/Utils/DataSecurity/Model/FakeEntityRecognizer";
 import InitScanDatabases, {
   isDataSecurityScanAllowedOnThisProbe,
   resetDataSecurityScanState,
@@ -97,6 +115,7 @@ function work(
     disabledDataTypeIds: ["phone-number"],
     allowedValues: ["4111 1111 1111 1111"],
     fingerprintKey: "project-fingerprint-key",
+    findNamesAndAddresses: false,
     ...overrides,
   };
 }
@@ -268,6 +287,176 @@ describe("scanStore", () => {
 
     expect(String(report["error"])).toContain("ECONNREFUSED");
     expect(String(report["error"])).not.toContain("Probe0nly-Secret");
+  });
+});
+
+/*
+ * The names-and-addresses model on a probe (#10373): the project's setting
+ * comes in the work as findNamesAndAddresses, the probe makes the model's
+ * context with it, a table's free text is read by the model where the probe
+ * runs, and what is reported holds the findings masked - the sentence never
+ * leaves the probe. The model is a recogniser behind its interface; the
+ * table is classified by the sampler's own classifier.
+ */
+describe("the names-and-addresses model on a probe", () => {
+  const NOTES: Array<string> = [
+    "The customer asked about the delivery window for their order and was told it would arrive tomorrow morning.",
+    ISSUE_SENTENCE,
+    "Called back about the damaged parcel; a replacement was sent by express and the original need not be returned.",
+  ];
+
+  // A database of one table, read as the sampler reads one.
+  function modelDependencies(
+    made: Array<boolean>,
+    budget: ModelBudget = ModelBudget.forScope("content"),
+  ): ScanDatabasesDependencies {
+    return {
+      ...DEPENDENCIES(),
+      createModelContext: async (
+        isEnabled: boolean,
+      ): Promise<ModelScanContext | undefined> => {
+        made.push(isEnabled);
+
+        return isEnabled
+          ? { recognizer: new FakeEntityRecognizer(), budget }
+          : undefined;
+      },
+      sample: async (
+        connection: DatabaseConnection,
+        options: ContentScanOptions,
+      ): Promise<ContentScanResult> => {
+        sampled.push({ connection, options });
+
+        const fields: Array<CollectedField> = [
+          { path: "public.tickets.notes", values: NOTES },
+        ];
+        const classified: FieldsClassification = classifyCollectedFields({
+          fields,
+          options,
+          fingerprints: new FingerprintAccumulator(options.fingerprintKey),
+          locationKind: DataStoreLocationKind.Column,
+          recognitions: await recognizeFields(
+            options.model,
+            CONTENT_STORE_KEY,
+            fields,
+          ),
+        });
+
+        return {
+          ...emptyContentScanResult(),
+          objectsRead: 1,
+          rowsRead: NOTES.length,
+          locations: classified.locations,
+          readLog: ["public.tickets"],
+        };
+      },
+    };
+  }
+
+  function typesReported(report: JSONObject): Array<string> {
+    const result: ContentScanResult = report[
+      "result"
+    ] as unknown as ContentScanResult;
+
+    return result.locations.flatMap((location: LocationFindings) => {
+      return location.classifications.map(
+        (classification: FieldClassification): string => {
+          return classification.dataTypeId;
+        },
+      );
+    });
+  }
+
+  test("the issue's sentence in a column is reported as a person's name and a street address, masked, and the sentence never leaves the probe", async () => {
+    workAnswers.push({
+      stores: [work({ findNamesAndAddresses: true })],
+    } as unknown as JSONObject);
+    const made: Array<boolean> = [];
+
+    await runDataSecurityScanTick(modelDependencies(made));
+
+    expect(made).toEqual([true]);
+
+    const reports: Array<JSONObject> = bodiesSentTo(RESULT_URL);
+
+    expect(reports).toHaveLength(1);
+    expect(typesReported(reports[0]!)).toEqual(
+      expect.arrayContaining(["person-name", "postal-address"]),
+    );
+
+    const result: ContentScanResult = reports[0]![
+      "result"
+    ] as unknown as ContentScanResult;
+    const name: FieldClassification | undefined = result.locations
+      .flatMap((location: LocationFindings) => {
+        return location.classifications;
+      })
+      .find((classification: FieldClassification) => {
+        return classification.dataTypeId === "person-name";
+      });
+
+    expect(name).toEqual(
+      expect.objectContaining({
+        maskedSamples: ["M****"],
+        foundByModel: true,
+      }),
+    );
+
+    // Nothing the probe sent holds the sentence, the name or the street.
+    const sent: string = JSON.stringify(fetchSpy.mock.calls);
+
+    expect(sent).not.toContain("Maria Gonzalez");
+    expect(sent).not.toContain("Calle Mayor");
+  });
+
+  test("a project that turned it off reads no column with the model", async () => {
+    workAnswers.push({
+      stores: [work({ findNamesAndAddresses: false })],
+    } as unknown as JSONObject);
+    const made: Array<boolean> = [];
+
+    await runDataSecurityScanTick(modelDependencies(made));
+
+    expect(made).toEqual([false]);
+    expect(sampled[0]!.options.model).toBeUndefined();
+    expect(typesReported(bodiesSentTo(RESULT_URL)[0]!)).not.toContain(
+      "person-name",
+    );
+  });
+
+  test("work from a server that does not send the setting reads no column with the model", async () => {
+    const withoutSetting: JSONObject = {
+      ...(work() as unknown as JSONObject),
+    };
+
+    delete withoutSetting["findNamesAndAddresses"];
+    workAnswers.push({ stores: [withoutSetting] } as unknown as JSONObject);
+    const made: Array<boolean> = [];
+
+    await runDataSecurityScanTick(modelDependencies(made));
+
+    expect(made).toEqual([false]);
+    expect(bodiesSentTo(RESULT_URL)).toHaveLength(1);
+  });
+
+  test("the model's time running out is reported in the warnings, once, and the store is still reported", async () => {
+    const budget: ModelBudget = new ModelBudget({
+      scanLimitInMs: 10,
+      storeLimitInMs: 10,
+    });
+    const report: JSONObject = (await scanStore(
+      work({ findNamesAndAddresses: true }),
+      modelDependencies([], budget),
+    )) as unknown as JSONObject;
+    const result: ContentScanResult = report[
+      "result"
+    ] as unknown as ContentScanResult;
+
+    expect(report["error"]).toBeUndefined();
+    expect(result.objectsRead).toBe(1);
+    expect(result.warnings).toEqual([
+      "Names and street addresses were looked for in 1 of 3 free-text values: the scan's 1 second of model time ran out.",
+    ]);
   });
 });
 

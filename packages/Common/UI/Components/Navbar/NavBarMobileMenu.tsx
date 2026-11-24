@@ -55,12 +55,11 @@ export interface ComponentProps {
   // In the reader's words already: drawn as given, never looked up again (#7790).
   isRecentLabelTranslated?: boolean | undefined;
   /*
-   * Drawn first, above Home, and last, below User Settings: the
-   * Dashboard's Search and Help, which the header leaves out on a phone
-   * (#6816).
+   * Drawn first, above Home: the Dashboard's Search and then its Help,
+   * which the header leaves out on a phone (#6816), in view the moment the
+   * menu opens, never under every product (#7473).
    */
   topElement?: ReactElement | undefined;
-  bottomElement?: ReactElement | undefined;
   /*
    * The products the project hides (#6814), as one more folded row at the
    * end of the categories (hiddenTitle, "More products"), as the desktop
@@ -83,11 +82,11 @@ const slug: (title: string) => string = (title: string): string => {
 };
 
 /*
- * The rows of the phone menu: Search, Home, the products visited last, the
- * products, User Settings, then Help.
+ * The rows of the phone menu: Search and Help, Home, the products visited
+ * last, the products, then User Settings.
  *
- * Search and Help are the Dashboard's (topElement, bottomElement): the
- * header has no room for them on a phone. The products visited last are
+ * Search and Help are the Dashboard's (topElement): the header has no room
+ * for them on a phone. The products visited last are
  * the products menu's own Recently visited row, one product a row, so a
  * product used a moment ago is one tap away rather than a category away.
  *
@@ -338,8 +337,6 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
           `right-${slug(props.rightElement.title)}`,
           props.rightElement.exact ?? false,
         )}
-
-      {props.bottomElement}
     </>
   );
 };

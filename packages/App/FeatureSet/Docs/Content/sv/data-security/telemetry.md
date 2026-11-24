@@ -9,6 +9,7 @@ Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, o
 - [Hur en skanning tar prov](#hur-en-skanning-tar-prov): De nyaste posterna för varje tjänst, varje timme.
 - [Rensa](#rensa): Dölj ett fynd vid intaget, i tjänsten där det hittades.
 - [Begränsat på egen hand](#begränsat-på-egen-hand): En hemlighet dold utan att någon trycker på något, där det är bevisat säkert.
+- [Åtgärda det i koden](#åtgärda-det-i-koden): En pull request som får en tjänst att sluta skriva alla sina läckor.
 - [Kassera det här mätvärdet](#kassera-det-här-mätvärdet): Sluta lagra de mätvärden vars namn innehåller känsliga data.
 - [Vad som räknas som rensat](#vad-som-räknas-som-rensat): När en rensningsregel redan täcker ett fynd.
 :::
@@ -99,7 +100,7 @@ Klicka på **Rensa**. En dialogruta säger vad regeln skulle göra innan något 
 
 ### Åtgärda koden också
 
-Regeln döljer nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet.
+Regeln döljer nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet. **Åtgärda med AI** på problemet öppnar en pull request för varje läcka i tjänsten: se [Åtgärda det i koden](#åtgärda-det-i-koden).
 :::
 
 Regeln namnges efter det den döljer, till exempel ”Data Security: Email address in log attributes of checkout”, eller ”Data Security: Password or secret in db.password of checkout” för en regel som namnger sitt attribut, och listas bland dina andra rensningsregler (se [Kasseringsfilter och rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). Den är den smalaste regel som döljer fyndets data, den första av dessa som passar:
@@ -112,13 +113,13 @@ Regeln namnges efter det den döljer, till exempel ”Data Security: Email addre
 | En datatyp som skiljs ut genom orden runt den, till exempel ett routingnummer | Dess form, bara i attributet där den hittades |
 | En datatyp som hittas utifrån fältets namn, till exempel en persons namn under `customer_name`, eller ett värde under en nyckel som nämner en hemlighet | En regel av typen **Namngivna attribut**, som döljer hela värdet i det attributet |
 | Ett värde under en nyckel som ser känslig ut, där inget smalare döljer det | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
-| Varje datatyp i ett mätvärdes attribut | En pipelineregel för mätvärden av typen **Maskera attribut** för tjänsten, som ersätter de av attributets värden som har datatypens form med `[REDACTED]`, eller varje värde i attributet där inget mönster hittar datatypen |
+| Varje datatyp i ett mätvärdes attribut | En pipelineregel för mätvärden av typen **Maskera attribut** för tjänsten, som ersätter de av attributets värden som innehåller datatypen med `[REDACTED]`. För en IP-adress, en e-postadress eller ett kortnummer är dess filter **Matchar mönstertyp** med den typen, som hittar det som en regel för loggar eller spår med den **Mönstertyp** hittar, däribland IPv6-adresser och värden som är procentkodade eller i ett annat skriftsystem. För en annan datatyp är det typens eget mönster, och där inget mönster hittar datatypen ersätter regeln varje värde i attributet |
 
 ### Bevisad på posterna där det sågs
 
 Innan dialogen säger vad regeln skulle göra kör OneUptime varje regel som den kunde skapa på posterna där fyndet sågs, och på de nyaste posterna från dess tjänst med ett värde på den platsen, med samma kod som intaget kör, och frågar skannern vad som är kvar. Den första regel som döljer dessa data i varje värde som innehöll dem, och ändrar högst 5 av 100 av de andra värdena där, är den som väljs. Dialogen säger hur många poster den kördes på, hur många värden som innehöll dessa data och hur många andra den ändrade. Ett mönster som skulle ändra mer erbjuds aldrig: Det gör regeln som namnger attributet, och den säger vad mer den ändrar.
 
-Beviset sparas med regeln, och listan över rensningsregler visar **Bevisad** på dess rad tills regeln ändras. Där ingen post finns kvar att köra en regel på, till exempel ett undantags eller en sessionsuppspelnings, eller poster som har passerat sin lagringstid, skapas regeln som den är planerad, och dialogen säger det.
+Beviset sparas med regeln, och listan över rensningsregler visar **Bevisad** på dess rad tills regeln ändras. Ett undantags regel körs på de undantag där dessa data sågs, så som inmatningen rensar undantaget som ett span registrerar. Där ingen post finns kvar att köra en regel på, till exempel en sessionsuppspelnings, eller poster som har passerat sin lagringstid, skapas regeln som den är planerad, och dialogen säger det.
 
 En regel för loggar eller spår gäller för tjänsten där fyndet hittades: den rensar den tjänstens loggar eller spans, och andra tjänsters förblir som de är, så inget som läser deras ändras. Kolumnen **Omfattning** i listan över rensningsregler säger vilken tjänst en regel gäller för. Ett fynd i en RUM-applikations sessionsinspelningar skapar en regel för alla tjänster och appar i projektet, eftersom regler för loggar också rensar inspelningar, och dialogrutan säger det. Om tjänsten inte längre finns säger **Rensa** det och skapar ingen regel.
 
@@ -144,9 +145,11 @@ Medan OneUptime AI arbetar med problem i Datasäkerhet (se [OneUptime AI i Datas
 - **Inget läser det den döljer**: ingen monitor, instrumentpanel, sparad vy, inspelningsregel eller SLO, och inget som Säkerhetshändelser behöver.
 - **Den gäller för tjänsten** där dessa data sågs.
 
-Allt annat föreslås i stället, på **Datasäkerhet → AI** och på problemets sida, med hur regeln bevisades och vad som läser det den skulle dölja: personuppgifter, en regel som något läser, en som ändrar andra värden, en utan någon post att köras på, en för alla tjänster, ett mätvärdes pipelineregel, och varje plats där en person ångrade eller avfärdade en tidigare regel. En AI-regel för Datasäkerhet som sätter **Begränsa** till **Automatiskt** för ett problem låter också bevisade personuppgifter döljas på egen hand. Ingen regel låter en ändring som inte är bevisat säker köras på egen hand.
+Allt annat föreslås i stället, på **Datasäkerhet → AI** och på problemets sida, med hur regeln bevisades och vad som läser det den skulle dölja: personuppgifter, en regel som något läser, en som ändrar andra värden, en utan någon post att köras på, en för alla tjänster, och varje plats där en person ångrade eller avfärdade en tidigare regel. En AI-regel för Datasäkerhet som sätter **Begränsa** till **Automatiskt** för ett problem låter också bevisade personuppgifter döljas på egen hand. Ingen regel låter en ändring som inte är bevisat säker köras på egen hand.
 
-Där ingen av reglerna från **Rensa** kan dölja dessa data, till exempel en av dina egna datatyper utan mönster, skriver OneUptime AI en: ett mönster för dessa data, eller attributet som ska döljas helt. Den får datatypen, var den finns, namnen på attributen bredvid och formerna på värdena, till exempel `AA-9999` för `AB-1234`, aldrig ett värde, och det den skriver bevisas på posterna som vilken annan regel som helst innan det föreslås eller skapas.
+Ett mätvärdes attribut hålls till samma villkor. Dess regel körs på de datapunkter där fyndet sågs, och på de senaste från dess tjänst med ett värde i det attributet, genom den mätvärdespipeline som inmatningen kör, och det som läser den är varje monitor, instrumentpanel, inspelningsregel och SLO som läser något av tjänstens mätvärden som hade attributet det senaste dygnet.
+
+Där ingen av reglerna från **Rensa** kan dölja dessa data, till exempel en av dina egna datatyper utan mönster, skriver OneUptime AI en: ett mönster för dessa data, eller attributet som ska döljas helt. Den får datatypen, var den finns, namnen på attributen bredvid och formerna på värdena, till exempel `AA-9999` för `AB-1234`, aldrig ett värde, och det den skriver bevisas på posterna som vilken annan regel som helst innan det föreslås eller skapas. Den tillfrågas en gång för varje plats: det den skrev, eller att den inte kunde skriva något, sparas med fyndet, så när problemet bearbetas igen bevisas det den skrev på nytt på de senaste posterna och inga AI-krediter går åt. Den tillfrågas igen när det den skulle få veta ändras: datatypen, var dessa data finns, namnen bredvid eller värdenas former. Ett anrop som misslyckas sparar ingenting, så platsen tillfrågas nästa gång.
 
 En ändring som OneUptime AI gjorde på egen hand:
 
@@ -156,11 +159,53 @@ En ändring som OneUptime AI gjorde på egen hand:
 
 Nya fynd i en tjänst vars problem redan är öppet begränsas på samma sätt så snart skanningen varje timme hittar dem.
 
+## Åtgärda det i koden
+
+En scrub-regel döljer ny data vid inmatning, men koden skriver den fortfarande. **Åtgärda med AI** på ett telemetriproblem ber OneUptime AI om en pull request som får tjänsten att sluta skriva varje läcka som OneUptime fortfarande ser i dess telemetri: det här problemets och tjänstens andra, även de som begränsats vid inmatning. En dialog visar vad pull requesten kommer att göra innan något startar, och **Öppna pull request** ber om exakt det.
+
+:::steps
+### Hitta var varje läcka skrivs
+
+Innan OneUptime AI börjar läser Datasäkerhet om posterna som varje läcka setts i, inne i OneUptime, och behåller bara var koden skrev dem:
+
+- **Ett span eller ett AI-anrop**: filen, raden och funktionen som dess attribut `code.*` nämner, och spannets namn.
+- **Ett undantag**: dess egna översta ramar, de i tjänstens kod.
+- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`.
+- **Ett mätvärde**: mätvärdets namn.
+- **Varje läcka**: dess attributnyckel, till exempel `user.email`, som koden oftast skriver som den är.
+
+### Välj arkivet
+
+Pull requesten går till det arkiv som innehåller filerna som posterna nämner, matchade som filerna i en stackspårning. En läcka vars poster inte nämner någon fil går dit där tjänstens andra läckor finns, annars till det arkiv som heter som tjänsten, eller till projektets enda. I ett arkiv med flera tjänster arbetar OneUptime AI i tjänstens mapp: den som filerna delar, annars den som tjänstens produktionsgranskningar använder. När inget avgör väljer du själv, bland de arkiv där du får be OneUptime AI arbeta.
+
+### Öppna pull requesten
+
+Dialogen säger hur koden kommer att ändras, listar varje läcka med var den skrivs och namnger arkivet, varför det är det, och filerna som OneUptime AI börjar från. **Öppna pull request** ber om exakt den planen: om en läcka har hittats eller åtgärdats sedan du öppnade den startar inget, och planen visas igen.
+:::
+
+Hur koden ändras beror på hur många ställen som skriver datan:
+
+| Var datan skrivs | Vad pull requesten gör |
+| --- | --- |
+| På tre ställen eller färre | Ändrar koden på varje ställe: utelämnar värdet, eller maskerar eller hashar det innan det skickas |
+| På fler än tre ställen | Lägger till ett redigeringssteg med ett test där tjänsten konfigurerar sin telemetri, i stället för att ändra varje ställe |
+| Där dina scrub-regler redan döljer den vid inmatning | Lägger till redigeringssteget även för de nycklarna, så att koden gör det som inmatningen gör |
+
+En pull request åtgärdar en tjänst i ett arkiv: en tjänst vars läckor skrivs i två arkiv får en i vart och ett. Medan den skrivs pekar **Åtgärda med AI** på vilket som helst av tjänstens problem på den, och ingen ny startas.
+
+OneUptime AI får ställena, nycklarna, datatyperna och mallarna, aldrig ett värde ur din data, ett maskerat exempel eller en post, och kodagenten läser ingenting av din telemetri medan den arbetar. Pull requestens beskrivning listar läckorna och länkar till problemen den åtgärdar, och citerar aldrig en post.
+
+Varje problem som pull requesten åtgärdar behåller den: kortet **Så åtgärdar du det** visar om den skrivs, är öppen, sammanfogad eller stängd, med länkar till pull requesten och uppgiften, och när den sammanfogats, vad produktionen visade. Problemets tidslinje visar när den öppnades. Problemet löses som **Åtgärdat i koden** så snart tjänstens nya version inte längre skriver datan (se [Vad som händer med ett problem](/docs/data-security/checks-and-issues#vad-som-händer-med-ett-problem)).
+
+En hemlighet behöver mer än en kodändring: koden stoppar bara nya kopior, och hemligheten fungerar fortfarande. Pull requesten, problemets tidslinje och kortet **Så åtgärdar du det** säger att den ska roteras, och kortet listar var den setts.
+
+Med **Arbeta med nya problem** påslaget föreslår OneUptime AI också på egen hand varje tjänsts åtgärd, den mest riskfyllda tjänsten först, under **Datasäkerhet → AI** och på tjänstens mest riskfyllda problem. Som standard väntar den på dig. En AI-regel i Datasäkerhet som sätter **Åtgärd** till **Automatiskt** för tjänstens mest riskfyllda problem öppnar pull requesten utan att fråga, i ett arkiv som något har avgjort. Arkivets **Max antal öppna pull requests med korrigeringar** begränsar båda: vid gränsen väntar en pull request som en regel skulle öppna på dig, och ingen ny pull request med korrigeringar öppnas förrän en har sammanfogats eller stängts.
+
 ## Kassera det här mätvärdet
 
 Ingen regel tar bort data ur ett mätvärdes namn, så tills koden som namnger mätvärdet är rättad fortsätter data att komma in. **Kassera det här mätvärdet** på ett fynd i ett mätvärdes namn slutar lagra de mätvärden vars namn innehåller dem, på bekostnad av deras data, och sker därför bara när du ber om det:
 
-- **En tjänsts mätvärden.** Den skapar en pipelineregel för mätvärden av typen **Kassera** för fyndets tjänst: varje ny datapunkt från ett mätvärde vars namn innehåller den datatypen kasseras innan den lagras. Dess filter är det mönster som **Rensa** använder för typen, så en typ som inget mönster kan hitta, som en persons namn, kan inte kasseras, och dialogen säger varför.
+- **En tjänsts mätvärden.** Den skapar en pipelineregel för mätvärden av typen **Kassera** för fyndets tjänst: varje ny datapunkt från ett mätvärde vars namn innehåller den datatypen kasseras innan den lagras. Dess filter är datatypens eget mönster, tillämpat på mätvärdets namn, så en typ som inget mönster kan hitta, som en persons namn, kan inte kasseras, och dialogen säger varför.
 - **Sagt innan det görs.** Dialogen säger att de datapunkterna går förlorade för gott, hur många av tjänstens mätvärden som skrevs det senaste dygnet som har ett sådant namn, vad som läser dem och därför inte får några nya data, att det som redan är lagrat finns kvar tills lagringstiden löper ut, och hur det ångras. Inget kasseras förrän du har kryssat i att du förstår det.
 - **Vad som läser dem, och vad som händer med det.** Dialogen nämner, var och en som en länk, varje monitor, varje instrumentpanel med de widgetar på den som läser de mätvärdena, varje mätvärdesbaserat SLO för tjänsten och varje inspelningsregel för mätvärden som läser dem. Monitorer kan inte längre larma på deras värden, widgetar visar inga nya data, SLO:er räknar inga nya händelser från dem, och inspelningsreglernas utdatamätvärden tar inte längre med dem. Under varje inspelningsregel nämner den också vad som läser regelns utdatamätvärde, och vad som i sin tur läser deras, upp till tre utdatamätvärden längre ner i kedjan. En widgets länk öppnar dess instrumentpanel vid den widgeten. Det du inte kan se räknas, men nämns aldrig vid namn.
 - **I ditt namn, och loggat.** Regeln skapas med din egen behörighet att skapa pipelineregler för mätvärden: rollerna Projektägare och Projektadministratör kan skapa den, och det kan även ett team som får skapa pipelineregler för mätvärden. Granskningsloggarna registrerar vem som skapade den.
@@ -179,7 +224,7 @@ Ett fynd markeras som rensat bara när intaget skulle köra en aktiverad regel �
 - **En regel som är bevisad på fyndets poster.** En regel som OneUptime skapade och bevisade på posterna där ett fynd sågs täcker det fyndet, oavsett mönster, så länge den är regeln som bevisades: Ändra dess mönster, dess attribut, dess åtgärd, dess fält eller dess tjänst, så täcker den det inte längre.
 - **En regel av typen Namngivna attribut** täcker ett fynd i ett attribut som den namnger, eller i ett som ligger under det.
 - **Annars räknas dina egna anpassade mönster aldrig.** En **Anpassad regex** som du själv skrev täcker ett fynd bara när den är exakt det mönster som **Rensa** skapar för dess typ. Ett fynd sparar bara maskerade prov, som inget mönster kan provas mot, så OneUptime kan inte bevisa att ditt mönster döljer dessa data, och ett fynd som felaktigt kallas rensat är en läcka som ingen tittar på.
-- **Ett mätvärdes attribut.** En pipelineregel för mätvärden av typen **Maskera attribut** eller **Ta bort attribut** för attributets nyckel, för fyndets tjänst eller hela projektet, täcker fyndet när den inte har något filter, eller exakt det filter som **Rensa** skapar. Ett filter som du har skrivit själv räknas aldrig, av samma skäl.
+- **Ett mätvärdes attribut.** En pipelineregel för mätvärden av typen **Maskera attribut** eller **Ta bort attribut** för attributets nyckel, för fyndets tjänst eller hela projektet, täcker fyndet när den inte har något filter, eller exakt det filter som **Rensa** skapar. Ett filter som du har skrivit själv räknas aldrig, av samma skäl. En regel som **Rensa** skapade för en IP-adress, en e-postadress eller ett kortnummer innan dess filter var **Matchar mönstertyp** flyttas till det filtret när du uppgraderar, så att den även döljer IPv6-adresser och täcker sitt fynd.
 - **Ett mätvärdes namn.** En pipelineregel för mätvärden av typen **Kassera** för fyndets tjänst eller hela projektet täcker fyndet när den har exakt det filter som **Kassera det här mätvärdet** skapar, eller inget filter alls, och då lagrar den inga av tjänstens mätvärden. En sådan regel utan filter täcker alla fynd i de mätvärdena.
 
 En regel som är avstängd, eller som inte rensar något, räknas aldrig. Täckningen räknas ut på nytt efter varje skanning, så en regel som du lägger till eller tar bort för hand ändrar vad som markeras som rensat inom en timme.

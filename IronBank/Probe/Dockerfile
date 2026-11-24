@@ -39,10 +39,12 @@ FROM oneuptime/probe:16.0.0 AS release
 # The release without its tests, which no image runs: one of Common's test
 # fixtures (an SVG data URI with a script in it) is what ClamAV calls
 # phishing, and Iron Bank's pipeline fails an image on any ClamAV detection.
-# Removed in a stage of its own, so that no layer of this image carries them.
+# And without Data Security's names-and-addresses model, which comes from the
+# manifest's resources instead (below), so no layer carries it twice. Removed
+# in a stage of its own, so that no layer of this image carries them.
 FROM release AS shipped
 USER root
-RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests
+RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests /usr/src/DataSecurityModel
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG}
 
@@ -53,6 +55,17 @@ USER root
 # A resource of hardening_manifest.yaml, which Iron Bank's pipeline downloads
 # and checks against its sha256 before it builds.
 COPY msodbcsql18.deb /tmp/msodbcsql18.deb
+
+# Data Security's names-and-addresses model, which the probe runs inside its
+# scanner: resources of hardening_manifest.yaml too, downloaded from the
+# revision they pin and checked against their sha256 - the same files, from
+# the same URLs, as the release's build fetches and checks
+# (Scripts/Docker/FetchDataSecurityModel.js) - put where the scanner reads
+# them.
+COPY data-security-model_quantized.onnx /usr/src/DataSecurityModel/model_quantized.onnx
+COPY data-security-vocab.txt /usr/src/DataSecurityModel/vocab.txt
+COPY data-security-config.json /usr/src/DataSecurityModel/config.json
+COPY data-security-README.md /usr/src/DataSecurityModel/README.md
 
 COPY --from=release /usr/local/bin/node /usr/local/bin/node
 COPY --from=release /usr/local/lib/node_modules /usr/local/lib/node_modules

@@ -99,7 +99,7 @@ Una regola può appartenere a dei team. **Team responsabili**, sotto **Altri cam
 
 ## Regole degli incidenti
 
-**Avvisi → Regole → Regole degli incidenti** trasforma da sole gli avvisi in incidenti. La prima regola che corrisponde a un nuovo avviso, dall'alto verso il basso dell'elenco, ne dichiara un incidente, come farebbe **Dichiara incidente** sulla pagina dell'avviso, e vi collega l'avviso.
+**Avvisi → Regole → Regole degli incidenti** trasforma da sole gli avvisi in incidenti. La prima regola che corrisponde a un nuovo avviso, dall'alto verso il basso dell'elenco, ne dichiara un incidente, come farebbe **Dichiara incidente** sulla pagina dell'avviso, e vi collega l'avviso. L'incidente parte con i proprietari dell'avviso come suoi proprietari, che ne vengono informati una volta sola, dalla sua notifica **Incidente creato**.
 
 :::steps
 ### Scegliere gli avvisi interessati

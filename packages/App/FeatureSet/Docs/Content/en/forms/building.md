@@ -66,7 +66,7 @@ The logo keeps the height of the OneUptime logo it replaces, and a wide one is f
 
 ## What you can add
 
-**Add a Question** lists four groups: **Questions** of the form's own, **Incident Fields** or **Scheduled Maintenance Fields** of what the form creates, **Custom Fields**, and **Submitter**.
+**Add a Question** lists four groups: **Questions** of the form's own, **Incident Fields**, **Alert Fields** or **Scheduled Maintenance Fields** of what the form creates, **Custom Fields**, and **Submitter**.
 
 ### Questions of the form's own
 
@@ -92,7 +92,7 @@ A **File** or **Multiple Files** question takes files from the submitter's compu
 
 ### Fields of what the form creates
 
-The fields of an incident, or of a maintenance event, that a submitter can answer. The answer becomes the field's value.
+The fields of an incident, an alert or a maintenance event that a submitter can answer. The answer becomes the field's value.
 
 | Incident field | Answered with |
 | --- | --- |
@@ -100,6 +100,15 @@ The fields of an incident, or of a maintenance event, that a submitter can answe
 | **Description** | Rich text, up to 20,000 characters. |
 | **Severity** | One of your incident severities. |
 | **Monitors** | Any of the monitors you offer — the incident's affected monitors. |
+| **Labels** | Any of the labels you offer. |
+| **Impact Started At** | A date and time: when the problem started, as the submitter remembers it. |
+
+| Alert field | Answered with |
+| --- | --- |
+| **Title** | One line, up to 500 characters. |
+| **Description** | Rich text, up to 20,000 characters. |
+| **Severity** | One of your alert severities. |
+| **Monitor** | One of the monitors you offer — the alert's monitor. An alert is about one monitor. |
 | **Labels** | Any of the labels you offer. |
 | **Impact Started At** | A date and time: when the problem started, as the submitter remembers it. |
 
@@ -115,11 +124,11 @@ The fields of an incident, or of a maintenance event, that a submitter can answe
 
 Each field can be asked once; the list marks the ones already on the form **Added**. A field the form does not ask — or that is left empty — is filled in from the form's [On Submit settings](/docs/forms/on-submit).
 
-**Choices Offered.** A public page must not list your whole project to strangers, so a field answered by choosing records offers only the ones you pick. **Monitors**, **Labels** and **Status Pages** list exactly the choices you offer, and are not asked until you offer at least one. **Severity** offers every incident severity unless you narrow it, since severities are not secret. Answers outside the offered choices are refused.
+**Choices Offered.** A public page must not list your whole project to strangers, so a field answered by choosing records offers only the ones you pick. **Monitors**, **Monitor**, **Labels** and **Status Pages** list exactly the choices you offer, and are not asked until you offer at least one. **Severity** offers every incident severity, or every alert severity on an alert form, unless you narrow it, since severities are not secret. Answers outside the offered choices are refused.
 
 ### Custom fields
 
-Your incident custom fields — or scheduled maintenance custom fields, for a maintenance form — each one a question whose answer becomes the field's value. The question takes its type and options from the custom field, and starts with its name as the question and its description as the help text, which you can change. A **File** or **Multiple files** custom field is asked as a file question, and its files go into the field.
+Your incident custom fields — or alert custom fields for an alert form, and scheduled maintenance custom fields for a maintenance form — each one a question whose answer becomes the field's value. The question takes its type and options from the custom field, and starts with its name as the question and its description as the help text, which you can change. A **File** or **Multiple files** custom field is asked as a file question, and its files go into the field.
 
 A form asks only the custom fields you add to it, whatever **Show on Create** says: every field a form asks shows its name, description and options to anyone with the link. When a custom field is deleted, its question stays on the form but is no longer asked, and its card says so — delete the question. A field created again with the same name is a new field: add it again.
 
@@ -231,6 +240,7 @@ After submitting, the page says "Thank you — your response was submitted." and
 | Answer | Limit |
 | --- | --- |
 | An incident's **Title** | 500 characters, not counting spaces at either end. |
+| An alert's **Title** | 500 characters, not counting spaces at either end. |
 | A maintenance event's **Title** | 100 characters. |
 | **Description** | 20,000 characters. |
 | Any other text answer | 10,000 characters. |

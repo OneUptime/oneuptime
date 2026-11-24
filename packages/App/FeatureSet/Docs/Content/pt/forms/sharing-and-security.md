@@ -140,7 +140,7 @@ Cada solicitação passa por estas verificações, nesta ordem:
 5. Ela precisa vir de um dos usuários privados do formulário, com a sessão iniciada, quando o formulário está definido como **Apenas quem entra** — veja [Apenas quem entra](#apenas-quem-entra).
 6. Um envio precisa passar pelo captcha, quando a instância tiver o captcha ativado.
 7. Cada resposta precisa estar dentro dos limites de tamanho e se encaixar na pergunta — consulte [Criar um formulário](/docs/forms/building#limites-de-tamanho).
-8. O que as respostas e as configurações formam precisa poder ser criado: um incidente precisa de uma gravidade, um evento de um fim depois do início.
+8. O que as respostas e as configurações formam precisa poder ser criado: um incidente ou um alerta precisa de uma gravidade, um evento de um fim depois do início.
 9. Um envio precisa caber na cota por hora do formulário — consulte [Limites de taxa](#limites-de-taxa).
 10. Os arquivos precisam caber na cota por hora de arquivos do formulário, logo antes de serem guardados.
 
@@ -244,6 +244,10 @@ Abra a página **Domínios personalizados** do formulário e leia a coluna **Sta
 O formulário não pede uma gravidade, as configurações dele não indicam nenhuma — ou a que indicavam foi excluída — e o modelo de incidente dele também não define nenhuma. Escolha uma gravidade na página **Ao enviar** do formulário. Consulte [Sem gravidade, sem incidente](/docs/forms/on-submit#como-um-envio-se-torna-um-incidente).
 :::
 
+:::details Este formulário não pode criar um alerta porque não tem gravidade
+O formulário de alertas não pede uma gravidade, e as configurações dele não indicam nenhuma — ou a que indicavam foi excluída. Escolha uma gravidade na página **Ao enviar** do formulário. Consulte [Como um envio se torna um alerta](/docs/forms/on-submit#como-um-envio-se-torna-um-alerta).
+:::
+
 :::details Um envio é recusado
 A mensagem diz o que está errado: falta uma resposta obrigatória ou ela só tem espaços, uma resposta é longa demais ou não se encaixa na pergunta, o endereço de e-mail não é um único endereço comum, ou uma janela de manutenção termina antes de começar. "A verificação do captcha falhou. Tente novamente." significa que o captcha não foi resolvido, ou expirou: resolva-o de novo. Em uma instalação auto-hospedada em que todo envio falha no captcha, verifique se `CAPTCHA_SITE_KEY` e `CAPTCHA_SECRET_KEY` estão ambos definidos.
 :::
@@ -261,7 +265,7 @@ A resposta de um modelo só é usada enquanto ainda se encaixa na pergunta: uma 
 :::
 
 :::details Ninguém foi acionado
-O incidente de um formulário executa as políticas de plantão que as configurações e o modelo dele indicam, e o que as suas regras de plantão adicionam, como qualquer outro incidente. Sem nenhuma delas, ninguém é acionado. Adicione uma política de plantão na página **Ao enviar** do formulário, ou escreva uma regra de plantão que corresponda aos incidentes dele — por um rótulo que o formulário sempre adiciona, por exemplo.
+O incidente de um formulário executa as políticas de plantão que as configurações e o modelo dele indicam, e o que as suas regras de plantão adicionam, como qualquer outro incidente; o alerta de um formulário, as políticas que as configurações dele indicam e o que as suas regras de plantão de alertas adicionam. Sem nenhuma delas, ninguém é acionado. Um alerta que começa em um estado posterior, como **Confirmado**, não aciona ninguém, de propósito. Adicione uma política de plantão na página **Ao enviar** do formulário, ou escreva uma regra de plantão que corresponda aos incidentes ou alertas dele — por um rótulo que o formulário sempre adiciona, por exemplo.
 :::
 
 ## Próximos passos

@@ -16,7 +16,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import BUILT_IN_DETECTORS from "../../../../../Utils/DataSecurity/Detectors/Index";
 import {
   getDataTypePrefilter,
-  toRe2Prefilter,
+  getDetectorPrefilter,
 } from "../../../../../Utils/DataSecurity/DetectorPrefilter";
 import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
 import { positivesOf } from "../../../../Utils/DataSecurity/DetectorPositives";
@@ -68,8 +68,7 @@ function pairsOfEveryDetector(): Array<Pair> {
     for (const text of positivesOf(detector, 20, random)) {
       pairs.push({
         dataTypeId: detector.dataTypeId,
-        expression:
-          toRe2Prefilter(detector.pattern.source, detector.pattern.flags) || "",
+        expression: getDetectorPrefilter(detector) || "",
         typeExpression:
           getDataTypePrefilter({ dataTypeId: detector.dataTypeId }) || "",
         text,

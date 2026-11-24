@@ -329,6 +329,30 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Whether a section's switch is on right now, as it was last pressed or
+   * as the page holds it. A section without a switch is always shown.
+   */
+  const isSectionShown: (
+    stored: StoredValues,
+    sectionId: DisplaySectionId,
+  ) => boolean = (
+    stored: StoredValues,
+    sectionId: DisplaySectionId,
+  ): boolean => {
+    const section: DisplaySectionDefinition | undefined = DISPLAY_SECTIONS.find(
+      (candidate: DisplaySectionDefinition): boolean => {
+        return candidate.id === sectionId;
+      },
+    );
+
+    if (!section?.show) {
+      return true;
+    }
+
+    return shownSections[section.id] ?? isSwitchOn(stored, section.show);
+  };
+
   const renderSection: (
     stored: StoredValues,
     section: DisplaySectionDefinition,
@@ -338,14 +362,24 @@ const StatusPageDisplaySettingsCard: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const show: DisplaySwitchDefinition | undefined = section.show;
 
-    // A section without a switch is always shown.
-    const isShown: boolean = show
-      ? shownSections[section.id] ?? isSwitchOn(stored, show)
-      : true;
+    const isShown: boolean = isSectionShown(stored, section.id);
 
+    /*
+     * An option that only matters while its list is shown is offered only
+     * then - and one that needs other lists shown too (grouping incidents
+     * by episode needs the incidents' too) only while they are.
+     */
     const options: Array<DisplayOptionDefinition> = section.options.filter(
       (option: DisplayOptionDefinition): boolean => {
-        return isShown || !option.isOnlyWhileShown;
+        if (!isShown && option.isOnlyWhileShown) {
+          return false;
+        }
+
+        return (option.isOnlyWhileShownWith || []).every(
+          (sectionId: DisplaySectionId): boolean => {
+            return isSectionShown(stored, sectionId);
+          },
+        );
       },
     );
 

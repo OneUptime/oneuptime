@@ -20,6 +20,11 @@ import TelemetryIngestionKeyRefusal from "../../Models/DatabaseModels/TelemetryI
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceInternalNote from "../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import ScheduledMaintenancePublicNote from "../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
+import DockerSwarmClusterOwnerUser from "../../Models/DatabaseModels/DockerSwarmClusterOwnerUser";
+import DockerSwarmClusterOwnerTeam from "../../Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
+import DockerSwarmClusterLabelRule from "../../Models/DatabaseModels/DockerSwarmClusterLabelRule";
+import DockerSwarmClusterOwnerRule from "../../Models/DatabaseModels/DockerSwarmClusterOwnerRule";
 import {
   getApiPluralName,
   getApiSingularName,
@@ -206,6 +211,55 @@ const RENAMED: Array<KeptNames> = [
     pluralName: "Maintenance Event Public Notes",
     terraform: "oneuptime_scheduled_event_public_note",
     cli: "scheduled-event-public-note",
+    mcpList: null,
+    mcpGet: null,
+  },
+  /*
+   * #7474: "DockerSwarm" is "Docker Swarm" on screen, as its products menu
+   * says it: "No DockerSwarm clusters yet" was its first page.
+   */
+  {
+    model: DockerSwarmCluster,
+    singularName: "Docker Swarm Cluster",
+    pluralName: "Docker Swarm Clusters",
+    terraform: "oneuptime_docker_swarm_cluster",
+    cli: "docker-swarm-cluster",
+    mcpList: null,
+    mcpGet: null,
+  },
+  {
+    model: DockerSwarmClusterOwnerUser,
+    singularName: "Docker Swarm Cluster User Owner",
+    pluralName: "Docker Swarm Cluster User Owners",
+    terraform: "oneuptime_docker_swarm_cluster_user_owner",
+    cli: "docker-swarm-cluster-user-owner",
+    mcpList: null,
+    mcpGet: null,
+  },
+  {
+    model: DockerSwarmClusterOwnerTeam,
+    singularName: "Docker Swarm Cluster Team Owner",
+    pluralName: "Docker Swarm Cluster Team Owners",
+    terraform: "oneuptime_docker_swarm_cluster_team_owner",
+    cli: "docker-swarm-cluster-team-owner",
+    mcpList: null,
+    mcpGet: null,
+  },
+  {
+    model: DockerSwarmClusterLabelRule,
+    singularName: "Docker Swarm Cluster Label Rule",
+    pluralName: "Docker Swarm Cluster Label Rules",
+    terraform: "oneuptime_docker_swarm_cluster_label_rule",
+    cli: "docker-swarm-cluster-label-rule",
+    mcpList: null,
+    mcpGet: null,
+  },
+  {
+    model: DockerSwarmClusterOwnerRule,
+    singularName: "Docker Swarm Cluster Owner Rule",
+    pluralName: "Docker Swarm Cluster Owner Rules",
+    terraform: "oneuptime_docker_swarm_cluster_owner_rule",
+    cli: "docker-swarm-cluster-owner-rule",
     mcpList: null,
     mcpGet: null,
   },

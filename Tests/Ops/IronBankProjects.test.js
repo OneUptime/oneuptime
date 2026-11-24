@@ -386,9 +386,13 @@ describe.each(NAMES)("IronBank/%s follows Iron Bank's rules", (name) => {
       return stage.name === "shipped";
     });
 
+    // The App's and the probe's leave out Data Security's model too: it comes
+    // from the manifest's resources (IronBankDataSecurityModel.test.js).
     expect(instructions(shipped.body)).toEqual([
       "USER root",
-      "RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests",
+      name === "App" || name === "Probe"
+        ? "RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests /usr/src/DataSecurityModel"
+        : "RUN rm -rf /usr/src/Common/Tests /usr/src/app/Tests",
     ]);
     expect(
       copies(project.finalInstructions).filter((copy) => {

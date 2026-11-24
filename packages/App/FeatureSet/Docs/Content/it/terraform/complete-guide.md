@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+Un'impostazione che qualcuno aggiunge in OneUptime ai passaggi di un monitor, e che la tua configurazione non scrive, è invece una differenza: il plan successivo mostra che `monitor_steps` cambia, e l'apply che segue rimuove l'impostazione, come dice il plan. Per mantenerla, scrivila anche nella tua configurazione.
+
 ## Le etichette e le altre liste a cui aggiunge anche OneUptime
 
 OneUptime aggiunge da sé ad alcune liste di un record: una regola per etichette aggiunge le sue etichette ai record che corrispondono, una regola di reperibilità aggiunge le sue policy agli incidenti e agli avvisi che corrispondono, e le regole dei monitor di uno SLO collegano i monitor che corrispondono. Il riferimento lo dice di ognuno di questi attributi: "OneUptime adds to it too, on its own". Una configurazione che ne imposta uno tiene le voci che elenca e lascia il resto:

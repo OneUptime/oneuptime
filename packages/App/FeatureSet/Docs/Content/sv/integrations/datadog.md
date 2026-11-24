@@ -105,13 +105,13 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **Inkommande beg�
 
 ### Öppna en incident per larm
 
-Öppna **Inställningar** i samma kriterium och slå på **Group incidents and alerts by a payload field**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
+Öppna **Inställningar** i samma kriterium och slå på **Gruppera incidenter och larm efter ett fält i nyttolasten**. Fyll i den som nedan, så att varje larm får sin egen incident och dess återhämtning löser den:
 
 | Fält | Värde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Öppna en separat incident för varje…** | `requestBody.alert_key` |
+| **Fält som signalerar återhämtning** | `requestBody.transition` |
+| **Värde som betyder återhämtad** | `Recovered` |
 
 ### Få monitorn online igen
 
@@ -227,7 +227,7 @@ Testa sedan från Datadog: öppna en monitor som nämner webhooken, klicka på *
 - Datadog-monitorn måste också avisera webhooken om sina återhämtningar. Ett meddelande som nämner webhooken bara för larm, inuti ett villkor, skickar ingen återhämtning.
 - Med mallen: öppna återhämtningens körning i **Körningar**: dess sista steg säger varför. Återhämtningens `alert_cycle_key` måste vara larmets, så behåll `$ALERT_CYCLE_KEY` som den är i nyttolasten.
 - Med monitorn behöver kriteriets incident **Lös incident automatiskt**, under **Fler fält**.
-- **Value that means recovered** måste vara exakt `Recovered`. Jämförelsen är skiftlägeskänslig.
+- **Värde som betyder återhämtad** måste vara exakt `Recovered`. Jämförelsen är skiftlägeskänslig.
 - Återhämtningens `alert_key` måste vara larmets: behåll `$ALERT_ID $ALERT_SCOPE` som det står i nyttolasten.
 :::
 

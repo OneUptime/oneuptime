@@ -140,7 +140,7 @@ Hver forespørsel passerer disse sjekkene, i denne rekkefølgen:
 5. Den må komme fra en av skjemaets private brukere, logget på, når skjemaet er satt til **Bare personer som logger inn** — se [Bare personer som logger inn](#bare-personer-som-logger-inn).
 6. En innsending må bestå captchaen, når instansen har captcha slått på.
 7. Hvert svar må være innenfor størrelsesgrensene og passe til spørsmålet — se [Bygg et skjema](/docs/forms/building#størrelsesgrenser).
-8. Det svarene og innstillingene danner, må kunne opprettes: en hendelse trenger en alvorlighetsgrad, en begivenhet en slutt etter starten.
+8. Det svarene og innstillingene danner, må kunne opprettes: en hendelse eller et varsel trenger en alvorlighetsgrad, en begivenhet en slutt etter starten.
 9. En innsending må passe innenfor skjemaets timekvote — se [Frekvensgrenser](#frekvensgrenser).
 10. Filene må passe innenfor skjemaets timekvote for filer, rett før de lagres.
 
@@ -244,6 +244,10 @@ ClamAV-en som følger med OneUptime, henter signaturene sine fra `database.clama
 Skjemaet spør ikke om en alvorlighetsgrad, innstillingene nevner ingen — eller den de nevnte, ble slettet — og hendelsesmalen angir heller ingen. Velg en alvorlighetsgrad på skjemaets side **Ved innsending**. Se [Ingen alvorlighetsgrad, ingen hendelse](/docs/forms/on-submit#slik-blir-en-innsending-til-en-hendelse).
 :::
 
+:::details Dette skjemaet kan ikke opprette et varsel fordi det ikke har noen alvorlighetsgrad
+Varselskjemaet spør ikke om en alvorlighetsgrad, og innstillingene nevner ingen — eller den de nevnte, ble slettet. Velg en alvorlighetsgrad på skjemaets side **Ved innsending**. Se [Slik blir en innsending til et varsel](/docs/forms/on-submit#slik-blir-en-innsending-til-et-varsel).
+:::
+
 :::details En innsending avvises
 Meldingen sier hva som er galt: et påkrevd svar mangler eller er bare mellomrom, et svar er for langt eller passer ikke til spørsmålet, e-postadressen er ikke én vanlig adresse, eller et vedlikeholdsvindu slutter før det starter. "Captcha-verifiseringen mislyktes. Prøv igjen." betyr at captchaen ikke ble bestått, eller har utløpt: løs den igjen. På en selvdriftet installasjon der hver innsending feiler på captchaen, sjekker du at `CAPTCHA_SITE_KEY` og `CAPTCHA_SECRET_KEY` begge er angitt.
 :::
@@ -261,7 +265,7 @@ Det er med vilje: hendelser fra et skjema opprettes skjult, og vedlikeholdshende
 :::
 
 :::details Ingen ble tilkalt
-Et skjemas hendelse kjører vaktpolicyene innstillingene og malen nevner, og det vaktreglene dine legger til, som alle andre hendelser. Uten noen av dem tilkalles ingen. Legg til en vaktpolicy på skjemaets side **Ved innsending**, eller skriv en vaktregel som matcher hendelsene — på en etikett skjemaet alltid legger til, for eksempel.
+Et skjemas hendelse kjører vaktpolicyene innstillingene og malen nevner, og det vaktreglene dine legger til, som alle andre hendelser; et skjemas varsel kjører policyene innstillingene nevner, og det vaktreglene dine for varsler legger til. Uten noen av dem tilkalles ingen. Et varsel som starter i en senere tilstand, som **Bekreftet**, tilkaller med vilje ingen. Legg til en vaktpolicy på skjemaets side **Ved innsending**, eller skriv en vaktregel som matcher hendelsene eller varslene — på en etikett skjemaet alltid legger til, for eksempel.
 :::
 
 ## Neste steg

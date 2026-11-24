@@ -18,8 +18,17 @@ import MetricService from "../../../Services/MetricService";
 import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import logger from "../../Logger";
+import { TelemetryFieldReaderKind } from "../../../../Types/Telemetry/TelemetryFieldReaders";
 import { findMetricUsers, MetricUsers } from "./MetricNameUsers";
-import { readText, tableOf } from "./TelemetryDataScanner";
+import {
+  appendOwnersIn,
+  appendWhere,
+  getTelemetrySource,
+  readText,
+  SourceDefinition,
+  tableOf,
+} from "./TelemetryDataScanner";
+import { TelemetrySampleSource } from "./TelemetrySampleSource";
 import {
   buildMetricDropFilters,
   buildMetricDropRule,
@@ -266,4 +275,160 @@ export async function getDropMetricImpact(data: {
   impact.metricsCounted = counted.isCounted;
 
   return { ...impact, ...users };
+}
+
+/*
+ * WHAT READS WHAT A METRIC ATTRIBUTE'S RULE WOULD HIDE (#10753).
+ *
+ * A Redact Attribute rule for a finding in a metric's attribute changes the
+ * values of that attribute in every metric of the service that carries it,
+ * so what reads those metrics - monitors, dashboards, SLOs and recording
+ * rules, as Drop This Metric lists them (findMetricUsers) - would read what
+ * the rule leaves instead. The metrics are the service's that carried the
+ * attribute in the last day, read from its data points by the attribute's
+ * key; when more carried it than are read, every metric of the service is
+ * taken as one, so nothing that reads one is missed. What reads them is
+ * counted by kind, as OneUptime AI's plan keeps readers: none named.
+ */
+
+// The names of the metrics of one service that carried an attribute in the window.
+export function buildMetricNamesWithAttributeStatement(data: {
+  projectId: ObjectID;
+  serviceId: string;
+  attributeKey: string;
+  since: Date;
+  until: Date;
+  limit: number;
+}): Statement {
+  const source: SourceDefinition = getTelemetrySource(
+    TelemetrySampleSource.Metrics,
+  );
+  const statement: Statement = SQL`SELECT DISTINCT name AS metricName FROM `;
+
+  statement.append(tableOf(source.table));
+  appendWhere(statement, source, {
+    projectId: data.projectId,
+    since: data.since,
+    until: data.until,
+  });
+  appendOwnersIn(statement, source, [data.serviceId]);
+  statement.append(
+    SQL` AND has(attributeKeys, ${{
+      type: TableColumnType.Text,
+      value: data.attributeKey,
+    }}) LIMIT ${{
+      type: TableColumnType.Number,
+      value: Math.max(1, Math.trunc(data.limit)),
+    }}`,
+  );
+  statement.append(
+    getQuerySettings({
+      maxExecutionTimeInSeconds: READ_TIME_LIMIT_IN_SECONDS,
+      timeoutOverflowMode: "throw",
+      boundScanMemory: true,
+    }),
+  );
+
+  return statement;
+}
+
+/*
+ * How many of each kind read the metrics a metric attribute's rule would
+ * change, as OneUptime AI's plan counts readers (ScrubReaderCounts) - or
+ * none when that could not be read just now: the rule then waits.
+ */
+export async function findMetricScrubRuleReaders(data: {
+  projectId: ObjectID;
+  serviceId: string;
+  attributeKey: string;
+  props: DatabaseCommonInteractionProps;
+  now?: Date | undefined;
+  // Stands in for the read of the metric names, in a test.
+  readMetricNames?:
+    | ((statement: Statement) => Promise<Array<string>>)
+    | undefined;
+}): Promise<Partial<Record<TelemetryFieldReaderKind, number>> | undefined> {
+  const now: Date = data.now || OneUptimeDate.getCurrentDate();
+  const statement: Statement = buildMetricNamesWithAttributeStatement({
+    projectId: data.projectId,
+    serviceId: data.serviceId,
+    attributeKey: data.attributeKey,
+    since: new Date(
+      now.getTime() - METRIC_DROP_LOOKBACK_IN_HOURS * 60 * 60 * 1000,
+    ),
+    until: now,
+    limit: MAX_METRIC_NAMES_COUNTED + 1,
+  });
+  let names: Array<string>;
+
+  try {
+    names = data.readMetricNames
+      ? await data.readMetricNames(statement)
+      : await readMetricNames(statement);
+  } catch (error) {
+    logger.warn(
+      `DataSecurity: could not read which metrics of service ${data.serviceId} carry ${data.attributeKey}:`,
+    );
+    logger.warn(error);
+
+    return undefined;
+  }
+
+  // More than are read: every metric of the service is taken as one.
+  const isEveryMetric: boolean = names.length > MAX_METRIC_NAMES_COUNTED;
+  const carrying: Set<string> = new Set<string>(names);
+  let users: MetricUsers;
+
+  try {
+    users = await findMetricUsers({
+      projectId: data.projectId,
+      serviceId: data.serviceId,
+      isNameDropped: (metricName: string): boolean => {
+        return isEveryMetric || carrying.has(metricName);
+      },
+      props: data.props,
+    });
+  } catch (error) {
+    logger.warn(
+      `DataSecurity: could not read what reads the metrics of service ${data.serviceId}:`,
+    );
+    logger.warn(error);
+
+    return undefined;
+  }
+
+  if (
+    !users.monitorsChecked ||
+    !users.dashboardsChecked ||
+    !users.slosChecked ||
+    !users.recordingRulesChecked
+  ) {
+    return undefined;
+  }
+
+  return {
+    [TelemetryFieldReaderKind.Monitor]:
+      users.monitors.length + users.monitorsHidden,
+    [TelemetryFieldReaderKind.Dashboard]:
+      users.dashboards.length + users.dashboardsHidden,
+    [TelemetryFieldReaderKind.SavedView]: 0,
+    [TelemetryFieldReaderKind.RecordingRule]:
+      users.recordingRules.length + users.recordingRulesHidden,
+    [TelemetryFieldReaderKind.ServiceLevelObjective]:
+      users.slos.length + users.slosHidden,
+  };
+}
+
+// The names a statement of metric names answers.
+async function readMetricNames(statement: Statement): Promise<Array<string>> {
+  const result: Results = await MetricService.executeQuery(statement);
+  const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+
+  return ((response.data || []) as Array<JSONObject>)
+    .map((row: JSONObject): string => {
+      return readText(row["metricName"]);
+    })
+    .filter((name: string): boolean => {
+      return name.length > 0;
+    });
 }

@@ -87,6 +87,8 @@ Kriterier avgjør når sertifikatet regnes som i orden, redusert eller feil, og 
 
 **Dager til utløp** teller hele dager: et sertifikat som utløper om 14 dager og 20 timer, har 14 dager igjen. **Timer til utløp** teller hele timer på samme måte.
 
+**Dager til utløp** tilbyr også **Evaluer disse kriteriene over en tidsperiode**, og med **Forrige sjekk** sammenligner den hver sjekk med den samme sondens forrige. **Mindre enn** med en **Verdi i sjekkens egen enhet** på `1` slår til når de gjenværende dagene har falt med mer enn én siden forrige sjekk, som når sertifikatet er erstattet av et som utløper før. **Større enn** slår til når de har steget, som når sertifikatet er fornyet. Se [Sammenligne en sjekk med den forrige](/docs/monitor/criteria-and-statuses#sammenligne-en-sjekk-med-den-forrige).
+
 Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvare, eller om **Hvilken som helst** av dem holder. Et kriteriums **Handlinger** avgjør hva det gjør: endrer monitorstatusen, oppretter et varsel, erklærer en hendelse, eller flere av disse.
 
 ### Standardkriterier

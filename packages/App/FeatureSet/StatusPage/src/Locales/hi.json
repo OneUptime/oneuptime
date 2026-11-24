@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} समूह",
     "noResourcesTitle": "अभी दिखाने के लिए कुछ नहीं है",
     "noResourcesDescription": "यह पृष्ठ अभी कोई सेवा नहीं दिखा रहा है।",
-    "noResourcesPreviewDescription": "जब तक आप संसाधन नहीं जोड़ते, आगंतुकों को यही दिखता है। डैशबोर्ड में संसाधन के अंतर्गत इस स्थिति पृष्ठ में मॉनिटर या समूह जोड़ें।"
+    "noResourcesPreviewDescription": "जब तक आप संसाधन नहीं जोड़ते, आगंतुकों को यही दिखता है।",
+    "noResourcesPreviewLink": "डैशबोर्ड में संसाधन जोड़ें"
   },
   "eventItem": {
     "affectedResources": "प्रभावित संसाधन",
@@ -485,6 +486,9 @@
   "No options available": "कोई विकल्प उपलब्ध नहीं",
   "No matches found": "कोई मिलान नहीं मिला",
   "{{eventType}} state changed to {{state}}": "{{eventType}} की स्थिति बदलकर {{state}} हुई",
+  "{{count}} related incidents": "{{count}} संबंधित घटनाएँ",
+  "{{count}} related incidents_one": "{{count}} संबंधित घटना",
+  "Part of {{incident}}": "{{incident}} का हिस्सा",
   "Use at least {{minimum}} characters.": "कम से कम {{minimum}} अक्षरों का उपयोग करें।",
   "Try a few unrelated words.": "कुछ ऐसे शब्द आज़माएँ जिनका आपस में संबंध न हो।",
   "Password meets requirements": "पासवर्ड आवश्यकताओं को पूरा करता है",

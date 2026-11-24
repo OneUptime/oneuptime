@@ -234,6 +234,61 @@ describe("OnCallDutyPolicyTimeLogService context-column scoping", () => {
     // No team context supplied => team column stays IS NULL.
     expect(isIsNull(query["teamId"])).toBe(true);
   });
+
+  /*
+   * ----------------------------------------------------------------------- *
+   * endTimeForPolicies: a deleted policy's logs, every path (#10970).
+   * ----------------------------------------------------------------------- *
+   */
+
+  test("endTimeForPolicies closes the still-open logs of the policies given, of every path and person", async () => {
+    const policyIds: Array<ObjectID> = [
+      new ObjectID("22222222-2222-4222-8222-222222222222"),
+      new ObjectID("22222222-2222-4222-8222-222222222223"),
+    ];
+    const endsAt: Date = new Date("2026-11-24T09:00:00.000Z");
+    const updateBy: jest.SpyInstance = spyUpdateBy();
+
+    await OnCallDutyPolicyTimeLogService.endTimeForPolicies({
+      onCallDutyPolicyIds: policyIds,
+      endsAt: endsAt,
+    });
+
+    expect(updateBy).toHaveBeenCalledTimes(1);
+    const query: Record<string, unknown> = queryOf(updateBy);
+
+    // Those policies' logs, and only the open ones: a closed stint is history.
+    const policyCondition: {
+      getSql: (alias: string) => string;
+      objectLiteralParameters: Record<string, unknown>;
+    } = query["onCallDutyPolicyId"] as {
+      getSql: (alias: string) => string;
+      objectLiteralParameters: Record<string, unknown>;
+    };
+    expect(policyCondition.getSql("c")).toMatch(/^\(c IN \(:\.\.\.\w+\)\)$/);
+    expect(Object.values(policyCondition.objectLiteralParameters)).toEqual([
+      policyIds.map((policyId: ObjectID): string => {
+        return policyId.toString();
+      }),
+    ]);
+    expect(isIsNull(query["endsAt"])).toBe(true);
+    // Every path's - named, a team's, a schedule's - and everyone's.
+    expect(Object.keys(query).sort()).toEqual(["endsAt", "onCallDutyPolicyId"]);
+    expect(
+      (updateBy.mock.calls[0]![0] as { data: { endsAt: Date } }).data,
+    ).toEqual({ endsAt: endsAt });
+  });
+
+  test("endTimeForPolicies with no policy writes nothing", async () => {
+    const updateBy: jest.SpyInstance = spyUpdateBy();
+
+    await OnCallDutyPolicyTimeLogService.endTimeForPolicies({
+      onCallDutyPolicyIds: [],
+      endsAt: new Date("2026-11-24T09:00:00.000Z"),
+    });
+
+    expect(updateBy).not.toHaveBeenCalled();
+  });
 });
 
 // Silence any incidental logger.error noise from the service under test.

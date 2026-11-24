@@ -1,6 +1,7 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import {
+  getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
   getMarketplaceBalanceCardDescription,
   getProjectBalanceAccess,
@@ -12,9 +13,9 @@ import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
 import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
 import {
+  ADD_TO_BALANCE_AMOUNT_TITLE,
+  ADD_TO_BALANCE_TITLE,
   CURRENT_BALANCE_ROW_TITLE,
-  RECHARGE_AMOUNT_DESCRIPTION,
-  RECHARGE_AMOUNT_TITLE,
 } from "../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   getProjectColumnsEditGate,
@@ -52,7 +53,7 @@ import React, {
  *
  * Only a project owner or someone with Manage Billing may add AI credits or
  * change Auto Recharge (Common/Utils/Project/ProjectBalance). So the balance
- * card asks them to recharge it and offers the button; everyone else is
+ * card asks them to add to it and offers the button; everyone else is
  * told who can, and the button stays locked, saying why - it used to open a
  * form whose save the server then refused. Auto Recharge's Edit is gated on
  * its own columns rather than the Project table's wider update list, for
@@ -161,12 +162,13 @@ const AIBillingSettings: FunctionComponent<
 
       {showRechargeBalanceModal ? (
         <BasicFormModal
-          title={"Recharge AI Balance"}
+          // One verb from the card's button to the dialog's (#7475).
+          title={ADD_TO_BALANCE_TITLE}
           onClose={() => {
             setShowRechargeBalanceModal(false);
           }}
           isLoading={isRechargeBalanceLoading}
-          submitButtonText={"Recharge"}
+          submitButtonText={ADD_TO_BALANCE_TITLE}
           onSubmit={async (item: JSONObject) => {
             setIsRechargeBalanceLoading(true);
             try {
@@ -195,12 +197,25 @@ const AIBillingSettings: FunctionComponent<
             }
           }}
           formProps={{
-            name: "Recharge AI Balance",
+            name: ADD_TO_BALANCE_TITLE,
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: RECHARGE_AMOUNT_TITLE,
-                description: RECHARGE_AMOUNT_DESCRIPTION,
+                title: ADD_TO_BALANCE_AMOUNT_TITLE,
+                /*
+                 * What the money is for - the AI credits - and where it is
+                 * charged, in the reader's words already: an element, which
+                 * the form's label draws as given.
+                 */
+                description: (
+                  <>
+                    {getAddToBalanceAmountDescription({
+                      balance: ProjectBalanceType.AI,
+                      marketplace: billingMarketplace,
+                      translator: translator,
+                    })}
+                  </>
+                ),
                 field: {
                   amount: true,
                 },

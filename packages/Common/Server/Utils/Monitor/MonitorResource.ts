@@ -51,6 +51,7 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
 import {
+  EvaluationSentence,
   EvaluationSentenceValue,
   translatablePluralSentence,
   translatableSentence,
@@ -210,10 +211,23 @@ export interface MonitorResourceOptions {
 export interface SkippedIncomingRequestsNote {
   // More were waiting than a monitor keeps, so the oldest were skipped.
   overLimit: number;
+  /*
+   * Of those, the ones skipped because more than `requestLimit` requests
+   * were waiting, and the ones skipped because the waiting requests took
+   * more than `byteLimit` bytes - each limit as it was when it skipped them
+   * (#10652). The rest of overLimit was skipped by a release that did not
+   * say which.
+   */
+  overRequestLimit?: number | undefined;
+  requestLimit?: number | undefined;
+  overByteLimit?: number | undefined;
+  byteLimit?: number | undefined;
   // Evaluating each failed `attempts` times, so it was skipped.
   afterFailures: number;
   attempts: number;
 }
+
+const BYTES_PER_MEGABYTE: number = 1024 * 1024;
 
 export default class MonitorResourceUtil {
   /*
@@ -322,6 +336,12 @@ export default class MonitorResourceUtil {
    * What an Incoming Request monitor's log says of requests skipped before
    * the one it evaluates: never nothing. An incident or alert one of them
    * would have opened or resolved was not, so the reader knows to look.
+   *
+   * Those skipped over a limit say which limit, and what it was (#10652):
+   * the requests a monitor keeps waiting, or the megabytes of them. A
+   * self-hosted install sets its own, so the reader - or the operator they
+   * ask - knows which to raise. Those an earlier release skipped, which did
+   * not say which, say only that more were waiting than the monitor keeps.
    */
   public static describeSkippedIncomingRequests(
     skipped: SkippedIncomingRequestsNote,
@@ -329,35 +349,89 @@ export default class MonitorResourceUtil {
     const events: Array<MonitorEvaluationEvent> = [];
     const at: Date = OneUptimeDate.getCurrentDate();
 
-    if (skipped.overLimit > 0) {
-      events.push({
+    const skippedRequestsEvent: (
+      count: number,
+      message: EvaluationSentence,
+    ) => MonitorEvaluationEvent = (
+      count: number,
+      message: EvaluationSentence,
+    ): MonitorEvaluationEvent => {
+      return {
         type: "requests-skipped",
         ...EvaluationEventText.from({
           title: translatableSentence("Requests not evaluated: {{skipped}}", {
-            skipped: skipped.overLimit,
+            skipped: count,
           }),
-          message: translatableSentence(
-            "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
-          ),
+          message: message,
         }),
         at: at,
-      });
+      };
+    };
+
+    const overLimit: number = Math.max(0, skipped.overLimit);
+    const overRequestLimit: number =
+      skipped.requestLimit && skipped.requestLimit > 0
+        ? Math.min(overLimit, Math.max(0, skipped.overRequestLimit || 0))
+        : 0;
+    const overByteLimit: number =
+      skipped.byteLimit && skipped.byteLimit > 0
+        ? Math.min(
+            overLimit - overRequestLimit,
+            Math.max(0, skipped.overByteLimit || 0),
+          )
+        : 0;
+    const overAnUnnamedLimit: number =
+      overLimit - overRequestLimit - overByteLimit;
+
+    if (overRequestLimit > 0) {
+      events.push(
+        skippedRequestsEvent(
+          overRequestLimit,
+          translatableSentence(
+            "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+            { limit: skipped.requestLimit! },
+          ),
+        ),
+      );
+    }
+
+    if (overByteLimit > 0) {
+      events.push(
+        skippedRequestsEvent(
+          overByteLimit,
+          translatableSentence(
+            "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+            {
+              // A whole number of megabytes as set, else to a tenth.
+              size:
+                Math.round((skipped.byteLimit! / BYTES_PER_MEGABYTE) * 10) / 10,
+            },
+          ),
+        ),
+      );
+    }
+
+    if (overAnUnnamedLimit > 0) {
+      events.push(
+        skippedRequestsEvent(
+          overAnUnnamedLimit,
+          translatableSentence(
+            "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+          ),
+        ),
+      );
     }
 
     if (skipped.afterFailures > 0) {
-      events.push({
-        type: "requests-skipped",
-        ...EvaluationEventText.from({
-          title: translatableSentence("Requests not evaluated: {{skipped}}", {
-            skipped: skipped.afterFailures,
-          }),
-          message: translatableSentence(
+      events.push(
+        skippedRequestsEvent(
+          skipped.afterFailures,
+          translatableSentence(
             "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
             { attempts: skipped.attempts },
           ),
-        }),
-        at: at,
-      });
+        ),
+      );
     }
 
     return events;
@@ -1268,6 +1342,25 @@ export default class MonitorResourceUtil {
        */
       const checkWrittenAt: Date = OneUptimeDate.getCurrentDate();
 
+      /*
+       * The step this result was actually produced for. A probe result carries
+       * the monitorStepId it ran, and a monitor can have several steps whose
+       * criteria differ - so the step must be looked up, not assumed to be the
+       * first one. The lookup used to be performed and its result thrown away,
+       * which silently evaluated every result against step 0's criteria and fed
+       * step 0's id into checkProbeAgreement (so agreement compared this
+       * result against other probes' logs for the wrong step).
+       *
+       * Decided before the check's rows are written: each row names the step
+       * it is judged as, so a window of one step reads that step's checks
+       * alone (#10906).
+       */
+      const monitorStep: MonitorStep | undefined =
+        MonitorResourceUtil.findStepToJudge({
+          monitorSteps: monitor.monitorSteps,
+          dataToProcess: dataToProcess,
+        });
+
       try {
         await MonitorMetricUtil.saveMonitorMetrics({
           monitorId: monitor.id!,
@@ -1277,6 +1370,7 @@ export default class MonitorResourceUtil {
           monitorName: monitorName || undefined,
           monitorLabels: monitor.labels || undefined,
           monitorCustomFields: monitor.customFields || undefined,
+          monitorStepId: monitorStep?.id,
           /*
            * A monitor that counts a window's checks of a series counts this
            * one too, read from the series right after (#10355).
@@ -1371,21 +1465,6 @@ export default class MonitorResourceUtil {
         criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
           criteriaInstance;
       }
-
-      /*
-       * The step this result was actually produced for. A probe result carries
-       * the monitorStepId it ran, and a monitor can have several steps whose
-       * criteria differ - so the step must be looked up, not assumed to be the
-       * first one. The lookup used to be performed and its result thrown away,
-       * which silently evaluated every result against step 0's criteria and fed
-       * step 0's id into checkProbeAgreement (so agreement compared this
-       * result against other probes' logs for the wrong step).
-       */
-      const monitorStep: MonitorStep | undefined =
-        MonitorResourceUtil.findStepToJudge({
-          monitorSteps: monitorSteps,
-          dataToProcess: dataToProcess,
-        });
 
       logger.debug(
         `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"} (reported: ${(dataToProcess as ProbeMonitorResponse).monitorStepId})`,
