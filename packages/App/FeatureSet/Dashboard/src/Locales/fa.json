@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "برای این نمای ذخیره‌شده لاگ یک نام انتخاب کنید.",
   "Choose a postmortem template to populate the note.": "یک قالب گزارش پس از حادثه انتخاب کنید تا یادداشت پر شود.",
   "Choose a repository...": "یک مخزن انتخاب کنید...",
+  "Type a repository's name to find one that is not listed.": "برای یافتن مخزنی که در فهرست نیست، نام آن را بنویسید.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "انتخاب کنید داده این فیلد چگونه وارد شود. نوع‌های کشویی به فهرست گزینه‌ها در پایین هم نیاز دارند.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "انتخاب کنید این خلاصه هر چند وقت یک بار منتشر شود (برای نمونه هر ۱ روز، هر ۱ هفته).",
   "Choose what this processor does": "انتخاب کنید این پردازشگر چه کاری انجام دهد",
@@ -63485,6 +63486,5 @@
   "{{count}} field": "{{count}} فیلد",
   "{{count}} store": "{{count}} مخزن",
   "{{name}} will not be proposed again.": "{{name}} دیگر پیشنهاد نمی‌شود.",
-  "{{share}} of its values": "{{share}} از مقدارهایش",
-  "Type a repository's name to find one that is not listed.": "برای یافتن مخزنی که در فهرست نیست، نام آن را بنویسید."
+  "{{share}} of its values": "{{share}} از مقدارهایش"
 }

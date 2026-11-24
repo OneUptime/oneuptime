@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Vælg et navn til denne gemte logvisning.",
   "Choose a postmortem template to populate the note.": "Vælg en postmortem-skabelon til at udfylde noten.",
   "Choose a repository...": "Vælg et repository...",
+  "Type a repository's name to find one that is not listed.": "Skriv navnet på et repositorium for at finde et, der ikke står på listen.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Vælg, hvordan data indtastes for dette felt. Dropdown-typer kræver også en liste over muligheder nedenfor.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Vælg, hvor ofte denne oversigt skal sendes (f.eks. hver 1 dag, hver 1 uge).",
   "Choose what this processor does": "Vælg, hvad denne processor gør",
@@ -63485,6 +63486,5 @@
   "{{count}} field": "{{count}} felt",
   "{{count}} store": "{{count}} datalager",
   "{{name}} will not be proposed again.": "{{name}} bliver ikke foreslået igen.",
-  "{{share}} of its values": "{{share}} af dets værdier",
-  "Type a repository's name to find one that is not listed.": "Skriv navnet på et repositorium for at finde et, der ikke står på listen."
+  "{{share}} of its values": "{{share}} af dets værdier"
 }

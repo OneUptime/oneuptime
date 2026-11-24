@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "이 저장된 로그 보기의 이름을 선택하세요.",
   "Choose a postmortem template to populate the note.": "노트를 채울 사후 분석 템플릿을 선택하세요.",
   "Choose a repository...": "리포지토리를 선택하세요...",
+  "Type a repository's name to find one that is not listed.": "목록에 없는 저장소를 찾으려면 저장소 이름을 입력하세요.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "이 필드에 데이터가 입력되는 방식을 선택하세요. 드롭다운 유형에는 아래의 옵션 목록도 필요합니다.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "이 요약이 게시되는 빈도를 선택하세요(예: 1일마다, 1주마다).",
   "Choose what this processor does": "이 프로세서가 수행하는 작업을 선택하세요",
@@ -63485,6 +63486,5 @@
   "{{count}} field": "필드 {{count}}개",
   "{{count}} store": "저장소 {{count}}개",
   "{{name}} will not be proposed again.": "{{name}}은(는) 다시 제안되지 않습니다.",
-  "{{share}} of its values": "값의 {{share}}",
-  "Type a repository's name to find one that is not listed.": "목록에 없는 저장소를 찾으려면 저장소 이름을 입력하세요."
+  "{{share}} of its values": "값의 {{share}}"
 }

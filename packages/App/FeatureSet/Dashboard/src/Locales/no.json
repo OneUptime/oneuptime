@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Velg et navn for denne lagrede loggvisningen.",
   "Choose a postmortem template to populate the note.": "Velg en postmortem-mal for å fylle ut notatet.",
   "Choose a repository...": "Velg et repository ...",
+  "Type a repository's name to find one that is not listed.": "Skriv navnet på et repository for å finne et som ikke står i listen.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Velg hvordan data skrives inn for dette feltet. Nedtrekkstyper trenger også en liste over alternativer nedenfor.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Velg hvor ofte dette sammendraget skal publiseres (f.eks. hver 1. dag, hver 1. uke).",
   "Choose what this processor does": "Velg hva denne prosessoren gjør",
@@ -63485,6 +63486,5 @@
   "{{count}} field": "{{count}} felt",
   "{{count}} store": "{{count}} datalager",
   "{{name}} will not be proposed again.": "{{name}} blir ikke foreslått igjen.",
-  "{{share}} of its values": "{{share}} av verdiene",
-  "Type a repository's name to find one that is not listed.": "Skriv navnet på et repository for å finne et som ikke står i listen."
+  "{{share}} of its values": "{{share}} av verdiene"
 }

@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Escolha um nome para esta visualização de log salva.",
   "Choose a postmortem template to populate the note.": "Escolha um modelo de retrospectiva para preencher a nota.",
   "Choose a repository...": "Escolha um repositório...",
+  "Type a repository's name to find one that is not listed.": "Digite o nome de um repositório para encontrar um que não está na lista.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Escolha como os dados são inseridos para este campo. Os tipos de menu suspenso também precisam de uma lista de opções abaixo.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Escolha com que frequência este resumo deve ser publicado (por exemplo, a cada 1 dia, a cada 1 semana).",
   "Choose what this processor does": "Escolha o que este processador faz",
@@ -63485,6 +63486,5 @@
   "{{count}} field": "{{count}} campo",
   "{{count}} store": "{{count}} repositório",
   "{{name}} will not be proposed again.": "{{name}} não será proposto de novo.",
-  "{{share}} of its values": "{{share}} dos valores",
-  "Type a repository's name to find one that is not listed.": "Digite o nome de um repositório para encontrar um que não está na lista."
+  "{{share}} of its values": "{{share}} dos valores"
 }

@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "इस सहेजे गए लॉग व्यू के लिए एक नाम चुनें।",
   "Choose a postmortem template to populate the note.": "नोट भरने के लिए एक पोस्टमॉर्टम टेम्पलेट चुनें।",
   "Choose a repository...": "एक रिपॉजिटरी चुनें...",
+  "Type a repository's name to find one that is not listed.": "जो रिपॉजिटरी सूची में नहीं है, उसे खोजने के लिए उसका नाम लिखें।",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "चुनें कि इस फ़ील्ड के लिए डेटा कैसे दर्ज किया जाता है। ड्रॉपडाउन प्रकारों को नीचे विकल्पों की सूची की भी आवश्यकता होती है।",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "चुनें कि यह सारांश कितनी बार पोस्ट किया जाना चाहिए (जैसे, हर 1 दिन, हर 1 सप्ताह)।",
   "Choose what this processor does": "चुनें कि यह प्रोसेसर क्या करता है",
@@ -63485,6 +63486,5 @@
   "{{count}} field": "{{count}} फ़ील्ड",
   "{{count}} store": "{{count}} स्टोर",
   "{{name}} will not be proposed again.": "{{name}} का फिर से सुझाव नहीं दिया जाएगा।",
-  "{{share}} of its values": "इसके {{share}} मान",
-  "Type a repository's name to find one that is not listed.": "जो रिपॉजिटरी सूची में नहीं है, उसे खोजने के लिए उसका नाम लिखें।"
+  "{{share}} of its values": "इसके {{share}} मान"
 }
