@@ -1296,7 +1296,7 @@ export interface AzureKeyMetric {
    * its monitors and its readings add them (CloudResourceMetricAggregation,
    * CloudResourceReadings). Asked in a call of its own, since a call's
    * filter splits every metric in it that has the dimension: the type's
-   * resources share it in batches, as their other metrics' call
+   * resources share it in batches, as they share their other metrics' call
    * (AzureMetricReads). A stream never writes it: a diagnostic setting
    * exports the metric whole (isAzureStreamedKeyMetric).
    */
@@ -1362,9 +1362,9 @@ export const AZURE_ENTITY_NAME_ATTRIBUTE: string = `${AZURE_DIMENSION_ATTRIBUTE_
 
 /*
  * The Azure Monitor dimension a Container App's Requests are split by: the
- * class of the status each was answered with ("2xx", "5xx"), as Microsoft's
- * supported metrics of Microsoft.App/containerapps list it - and the
- * attribute its series carry it in.
+ * category of the status code each was answered with ("2xx", "5xx"), as
+ * Microsoft's supported metrics of Microsoft.App/containerapps list it -
+ * and the attribute its series carry it in.
  */
 export const AZURE_STATUS_CODE_CATEGORY_DIMENSION: string =
   "statusCodeCategory";
@@ -1913,7 +1913,7 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
   {
     type: "Microsoft.App/containerApps",
     metrics: [
-      // By the class of its status: its 5xx are its app's server errors.
+      // By status code category: its 5xx are its app's server errors.
       azureSplit("Requests", G.Traffic, AZURE_STATUS_CODE_CATEGORY_DIMENSION),
       azure("UsageNanoCores", G.Compute),
       azure("WorkingSetBytes", G.Memory),
@@ -2522,8 +2522,8 @@ export function isAzureKeyMetricExportedByDiagnosticSettings(
  * beside its own series. So the read writes every metric of such a type,
  * streamed or not, and a stream none. Nor a metric the read splits alone
  * (AzureKeyMetric.splitBy), for the same reason: a Container App's Requests,
- * whose status classes the read writes, and a stream would add their whole
- * a second time.
+ * whose status code categories the read writes, and a stream would add
+ * their whole a second time.
  *
  * Whether the metric is read a minute at a time - the only grain a stream
  * delivers - is the caller's to check.

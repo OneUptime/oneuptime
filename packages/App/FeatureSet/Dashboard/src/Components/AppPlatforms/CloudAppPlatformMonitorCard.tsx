@@ -60,10 +60,10 @@ import {
  * (Amazon CloudWatch) - over the range picked above, whatever the app
  * itself sends. A Container App's, a Cloud Run and an App Engine service's
  * server errors are read from their request count by its response code
- * (#10837 for a Container App's). Each platform's figures, and how each is read and added up,
- * are its profile's (CloudAppPlatformMetrics); the section reads them with
- * the resource row's own filter, as the resource's own page does, under
- * the names its cloud connection stores them by.
+ * (a Container App's since #10837). Each platform's figures, and how each
+ * is read and added up, are its profile's (CloudAppPlatformMetrics); the
+ * section reads them with the resource row's own filter, as the resource's
+ * own page does, under the names its cloud connection stores them by.
  *
  * Laid out as an App Service app's Azure Monitor section is
  * (CloudAppAzureMonitorCard): the provider's logo and its service's name,

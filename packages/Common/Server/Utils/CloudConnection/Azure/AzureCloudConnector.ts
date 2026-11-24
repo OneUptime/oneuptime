@@ -716,7 +716,7 @@ export function buildAzureMetricRequest(data: {
         metrics: [],
         /*
          * An added metric's split stops at its cap by design, and a key
-         * metric's values are a few classes; a namespace's says so.
+         * metric's values are a few categories; a namespace's says so.
          */
         reportsCapped: !metric.splitBy && !keySplit,
         /*
