@@ -32,10 +32,7 @@ import {
   SecurityCaseAiResponseState,
   SecurityCaseHandOffReason,
 } from "../../Types/SecurityCase/SecurityCaseAi";
-import {
-  SECURITY_CASE_AI_HOLD_OUTCOMES,
-  SecurityCaseAiHoldOutcome,
-} from "../../Types/SecurityCase/SecurityCaseAiHold";
+import { SecurityCaseAiHoldOutcome } from "../../Types/SecurityCase/SecurityCaseAiHold";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -701,6 +698,44 @@ export default class SecurityCase extends BaseModel {
   })
   public containedAt?: Date = undefined;
 
+  /*
+   * TIME TO BLOCK (#10350): when an automatic response policy's block of
+   * one of the case's addresses first took hold at an edge, and how long
+   * that was after the address's first malicious request. Written once, by
+   * OneUptime, as the block takes hold.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Blocked At",
+    description:
+      "When an automatic response policy's block of one of the case's addresses first took hold at an edge.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public blockedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Time to Block (Seconds)",
+    description:
+      "Seconds from the address's first malicious request to an automatic response policy's block of it taking hold.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public timeToBlockInSeconds?: number = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @Index()
   @TableColumn({
@@ -1225,7 +1260,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: SECURITY_CASE_AI_HOLD_OUTCOMES,
+    allowedValues: Object.values(SecurityCaseAiHoldOutcome),
     title: "AI Hold Outcome",
     description:
       "Whether OneUptime AI is responding first to the case before anyone is alerted (Holding), and how that ended: Resolved with nobody alerted, handed to people (NeedsApproval, HandedOff, TimeRanOut and the rest), or stopped by a person (PageNow, TakenByPerson) or a priority rise (RoseInPriority). Empty for a case never held.",

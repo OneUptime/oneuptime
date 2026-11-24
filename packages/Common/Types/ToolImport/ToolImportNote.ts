@@ -136,6 +136,12 @@ export enum ToolImportNoteCode {
   // {header}: the header's name.
   MonitorHeaderLeftOut = "MonitorHeaderLeftOut",
   MonitorSignInLeftOut = "MonitorSignInLeftOut",
+  /*
+   * Form fields a tool holds as names and values that are not plain text -
+   * a value that is a list or an object, which no form field is - so the
+   * body is left out. Any other body comes over: JSON as JSON, and
+   * anything else as text, byte for byte (#10787).
+   */
   MonitorBodyLeftOut = "MonitorBodyLeftOut",
   MonitorPaused = "MonitorPaused",
   MonitorNewHeartbeatAddress = "MonitorNewHeartbeatAddress",

@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Os logs novos são mascarados<br/>antes de serem armazenados"]
 ```
 
-Uma descoberta coberta por uma regra de limpeza é marcada como limpa: o que resta desses dados são dados antigos aguardando o fim da retenção, não um vazamento que continua. As duas verificações de telemetria contam só o que nenhuma regra cobre, então o problema delas se resolve assim que toda descoberta estiver limpa (veja [Verificações de telemetria](/docs/data-security/checks-and-issues#telemetria)).
+Uma descoberta coberta por uma regra de limpeza é marcada como limpa: o que o OneUptime armazena desses dados são dados antigos aguardando o fim da retenção. Mas o código ainda os grava, então as duas verificações de telemetria a contam como contida, não corrigida: o problema delas se resolve como **Contido na ingestão** assim que toda descoberta estiver limpa, e como **Corrigido no código** só quando a nova versão de uma correção de código parar de gravar os dados (veja [O que acontece com um problema](/docs/data-security/checks-and-issues#o-que-acontece-com-um-problema)).
 
 ## O que é lido
 

@@ -9,11 +9,11 @@
  * An API monitor posts a JSON array, a monitor secret holding a quote in
  * it. A probe that declares anyRequestBody is handed the monitor, the
  * secret filled in escaped for its string (#10735). A custom probe that
- * does not - every probe before 17.2.0 - is handed nothing for it, and the
- * check's result is written for it instead: offline, with a sentence that
- * says the probe is too old to send such a body and to update it, where
- * the old probe would have failed with "Expected JSONObject, but got
- * JSONArray".
+ * does not - every probe of 17.2.0 or before - is handed nothing for it,
+ * and the check's result is written for it instead: offline, with a
+ * sentence that says the probe is too old to send such a body and to
+ * update it to the latest release, where the old probe would have failed
+ * with "Expected JSONObject, but got JSONArray".
  */
 import {
   ExpressApplication,
@@ -456,7 +456,7 @@ describe("an API monitor that posts a JSON array, over HTTP", () => {
     expect(probeService.findOneById).not.toHaveBeenCalled();
   });
 
-  test("a custom probe from before 17.2.0 is handed nothing for it, and the check fails offline, saying why", async () => {
+  test("a custom probe of 17.2.0 or before is handed nothing for it, and the check fails offline, saying why", async () => {
     const list: JSONArray = await fetchList(
       running!.origin,
       "/probe-ingest/monitor/list",
@@ -481,7 +481,7 @@ describe("an API monitor that posts a JSON array, over HTTP", () => {
     expect(result.isOnline).toBe(false);
     expect(result.failureCause).toBe(REQUEST_BODY_STEP_NOT_RUN_MESSAGE);
     expect(result.failureCause).toBe(
-      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime 17.2.0 or later.",
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.",
     );
     // The secret is not in what is written.
     expect(JSON.stringify(result)).not.toContain("word");

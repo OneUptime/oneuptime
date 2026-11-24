@@ -22,6 +22,7 @@ import MonitorRequestBodyFormat, {
   TEXT_REQUEST_BODY_CONTENT_TYPE,
 } from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -254,7 +255,10 @@ export default class ApiMonitor {
    * field that holds it - a token in an "X-Tenant" header, or a password
    * in a body's "pass", went into the log as it was (#10735, #10782).
    */
-  private static writeForLog(response: APIResponse): string {
+  private static writeForLog(
+    response: APIResponse,
+    sentUrls: ReadonlyArray<string>,
+  ): string {
     return MonitorLogUrl.scrub(
       JSON.stringify({
         ...response,
@@ -262,6 +266,7 @@ export default class ApiMonitor {
         requestHeaders: undefined,
         requestBody: undefined,
       }),
+      sentUrls,
     );
   }
 
@@ -327,6 +332,15 @@ export default class ApiMonitor {
     };
 
     const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
+
+    /*
+     * The URLs this attempt sends - the monitor's own, its one-time codes
+     * filled in, and each hop's as it goes out - which what it reports and
+     * logs names by their scheme, host and port alone: the server filled
+     * the monitor's secrets into them (#10785). Each is found exactly, so
+     * none is cut in two where no pattern can tell where it ends.
+     */
+    const sentUrls: Array<string> = [url.toString(), request.url];
 
     const body: ApiMonitorBody = ApiMonitor.getBody(
       request,
@@ -426,11 +440,17 @@ export default class ApiMonitor {
         let includeTlsClientIdentity: boolean = true;
 
         while (true) {
+          // A refusal of the address quotes it whole.
+          sentUrls.push(currentUrl);
+
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
             includeTlsClientIdentity,
           );
+
+          // "Request failed to <the URL dispatched>" names this one.
+          sentUrls.push(prepared.dispatchUrl, prepared.url.toString());
 
           const fetchOptions: any = {
             method: currentMethod,
@@ -670,16 +690,27 @@ export default class ApiMonitor {
        * A request that failed on the probe itself (no usable IPv6, say) is
        * worded as such. A bare "connect EADDRNOTAVAIL ..." reads as the API
        * being down, and it goes on to be the incident's root cause.
+       *
+       * It names the URL the request went to by its scheme, host and port
+       * alone, as everything the check reports does (#10785): the server
+       * filled the monitor's secrets into it, and the cause is shown to
+       * everyone who can read the monitor. A code the request carried is
+       * taken out too.
        */
       const failureCause: string = redact(
-        RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
-          API.getFriendlyErrorMessage(err as Error),
+        MonitorUrlInText.writeUrls(
+          RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
+            API.getFriendlyErrorMessage(err as Error),
+          sentUrls,
+        ),
       );
       /*
        * Said in the logs below: a code the request carried is taken out,
        * and the URL it was sent to written by its scheme and host (#10782).
        */
-      const errorText: string = MonitorLogUrl.scrub(redact(String(err)));
+      const errorText: string = redact(
+        MonitorLogUrl.scrub(String(err), sentUrls),
+      );
 
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
@@ -737,9 +768,12 @@ export default class ApiMonitor {
         }
       }
 
-      // Get detailed error information
+      // Get detailed error information, its URLs written as the cause's.
       const requestFailedDetails: RequestFailedDetails = redact(
-        RequestFailedDetailsUtil.getRequestFailedDetails(err),
+        MonitorUrlInText.writeRequestFailedDetails(
+          RequestFailedDetailsUtil.getRequestFailedDetails(err),
+          sentUrls,
+        ),
       );
 
       const apiResponse: APIResponse = {
@@ -798,6 +832,7 @@ export default class ApiMonitor {
       logger.error(
         `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText} Response: ${ApiMonitor.writeForLog(
           apiResponse,
+          sentUrls,
         )}`,
         EXTERNAL_FAULT,
       );

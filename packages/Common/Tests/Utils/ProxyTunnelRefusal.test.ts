@@ -165,6 +165,38 @@ describe("a refusal known by its status code alone", () => {
 });
 
 /*
+ * The status code alone, for a client that words the refusal itself with
+ * where it knows the request was going (OutboundProxyRefusal.fromTunnelError,
+ * the Teams bot's token requests and replies, #10763).
+ */
+describe("ProxyTunnelRefusal.getStatusCode", () => {
+  test.each([
+    ["HTTP/1.1 403 Forbidden", 403],
+    ["HTTP/1.1 407 Proxy Authentication Required", 407],
+    ["HTTP/1.0 502 Bad Gateway", 502],
+    ["HTTP/2 403", 403],
+  ])(
+    "reads the code of what the proxy answered: %s",
+    (answer: string, code: number) => {
+      expect(
+        ProxyTunnelRefusal.getStatusCode(
+          nodeTunnelError("hooks.example.com:443", answer).message,
+        ),
+      ).toBe(code);
+    },
+  );
+
+  test.each([
+    "Connection to establish proxy tunnel ended unexpectedly",
+    "Connection to establish proxy tunnel timed out after 5000ms",
+    "Proxy response headers exceeded 16384 bytes",
+    "",
+  ])("is null for a refusal that holds no answer: %s", (message: string) => {
+    expect(ProxyTunnelRefusal.getStatusCode(message)).toBeNull();
+  });
+});
+
+/*
  * A log line is redacted before it is written, and so is a meeting's error:
  * "password: <word>" reads as a password there, and the word after it is
  * taken out. The 407 refusal said "user name and password: it answered",

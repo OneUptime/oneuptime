@@ -2163,6 +2163,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           ? { fingerprintCandidates: repeats.fingerprintCandidates }
           : {}
         : { fingerprintCandidates: fingerprints.fingerprintCandidates }),
+      // The first report of a crash moves its exception, never a repeat.
+      ...(!repeats && fingerprints.fingerprintRekeys
+        ? { fingerprintRekeys: fingerprints.fingerprintRekeys }
+        : {}),
       duplicateOf: repeats ? repeats.occurrenceId : "",
       spanName: "",
       release: release,
@@ -2182,6 +2186,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       fingerprint: fingerprints.fingerprint,
       fingerprintV2: fingerprints.fingerprintV2,
       fingerprintCandidates: fingerprints.fingerprintCandidates,
+      ...(fingerprints.fingerprintRekeys
+        ? { fingerprintRekeys: fingerprints.fingerprintRekeys }
+        : {}),
+      // A pair a rule split before #10434 is recorded from it (#10618).
+      ...(fingerprints.fingerprintsOfStoredText
+        ? { fingerprintsOfStoredText: fingerprints.fingerprintsOfStoredText }
+        : {}),
       projectId: data.projectId,
       primaryEntityId: data.primaryEntityId,
       primaryEntityType: data.serviceMetadata.primaryEntityType,

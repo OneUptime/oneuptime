@@ -143,7 +143,7 @@ Les macros SQL sont écrites en UTC : faites tourner vos sessions de base de don
 
 ### Variables du tableau de bord
 
-Écrivez `{{name}}` n'importe où dans une requête, et le widget y place la valeur de la variable avant d'envoyer la requête. Plusieurs valeurs d'une variable à choix multiple sont jointes par `|`, ce dont a besoin un comparateur d'expression régulière PromQL ou LogQL : `job=~"{{job}}"`. Une variable sans choix laisse l'espace réservé tel qu'écrit, pour que l'erreur le nomme. [Variables et filtres de tableau de bord](/docs/dashboards/variables) explique comment en ajouter une.
+Écrivez `{{name}}` n'importe où dans une requête, et le widget y place la valeur de la variable avant d'envoyer la requête. Une requête sur les métriques de ce projet ou sur un Prometheus est remplie comme la remplit la source de données Prometheus de Grafana : dans `job=~"{{job}}"`, plusieurs valeurs d'une variable à choix multiple correspondent à n'importe laquelle d'entre elles, chacune telle qu'écrite, et une variable sans choix correspond à toutes les valeurs. Dans toute autre requête, plusieurs valeurs sont jointes par `|`, ce dont a besoin un comparateur d'expression régulière LogQL, et une variable sans choix laisse l'espace réservé tel qu'écrit, pour que l'erreur le nomme. [Variables et filtres de tableau de bord](/docs/dashboards/variables) explique comment en ajouter une.
 
 ## Limites
 

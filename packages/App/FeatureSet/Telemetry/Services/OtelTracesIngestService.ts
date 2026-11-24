@@ -173,6 +173,8 @@ type ExceptionEventPayload = {
    */
   fingerprintV2: string;
   fingerprintCandidates: Array<string>;
+  // The private fingerprints an exception found under one moves to (#10619).
+  fingerprintRekeys?: Record<string, string> | undefined;
   release: string;
   environment: string;
   parsedFrames: string;
@@ -1639,6 +1641,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           fingerprint: fingerprints.fingerprint,
           fingerprintV2: fingerprints.fingerprintV2,
           fingerprintCandidates: fingerprints.fingerprintCandidates,
+          ...(fingerprints.fingerprintRekeys
+            ? { fingerprintRekeys: fingerprints.fingerprintRekeys }
+            : {}),
           release: release,
           environment: environment,
           parsedFrames: parsedFramesJson,
@@ -1651,6 +1656,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           fingerprint: fingerprints.fingerprint,
           fingerprintV2: fingerprints.fingerprintV2,
           fingerprintCandidates: fingerprints.fingerprintCandidates,
+          ...(fingerprints.fingerprintRekeys
+            ? { fingerprintRekeys: fingerprints.fingerprintRekeys }
+            : {}),
           projectId: spanContext.projectId,
           primaryEntityId: spanContext.primaryEntityId,
           primaryEntityType: spanContext.serviceMetadata.primaryEntityType,
@@ -1914,6 +1922,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       fingerprint: data.fingerprint,
       fingerprintV2: data.fingerprintV2,
       fingerprintCandidates: data.fingerprintCandidates,
+      ...(data.fingerprintRekeys
+        ? { fingerprintRekeys: data.fingerprintRekeys }
+        : {}),
       spanName: data.spanName || "",
       release: data.release || "",
       environment: data.environment || "",

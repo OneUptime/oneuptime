@@ -232,7 +232,7 @@ Kriterier avgjør når monitoren er tilkoblet, redusert eller offline, og når d
 
 ### Evaluer over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en egen avmerkingsboks i kriterieskjemaet og ikke et filtervilkår. Den finnes for **Er tilkoblet** og for hver numerisk filtertype. Slå den på for å sammenligne en aggregert verdi – valgt under **Evaluer** (Gjennomsnitt, Sum, Maksimumsverdi, Minimumsverdi, Alle verdier, Minst én verdi) over vinduet som **For de siste (i minutter)** angir – i stedet for verdien fra den siste kontrollen. På et **Er tilkoblet**-filter er vinduet hvor lenge agenten kan være stille før serveren regnes som offline.
+**Evaluer disse kriteriene over en tidsperiode** er en egen avmerkingsboks i kriterieskjemaet og ikke et filtervilkår. Den finnes for **Er tilkoblet** og for hver numerisk filtertype. Slå den på for å sammenligne en aggregert verdi – valgt under **Evaluer** (Gjennomsnitt, Sum, Maksimumsverdi, Minimumsverdi, Persentil, Alle verdier, Minst én verdi, Antall, Prosentandel, Statusskifter) over vinduet som **For de siste** angir – i stedet for verdien fra den siste kontrollen. På et **Er tilkoblet**-filter er vinduet hvor lenge agenten kan være stille før serveren regnes som offline.
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der kontrollene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for «si fra så snart én enkelt kontroll overskrider grensen», og den utløses fortsatt umiddelbart.
 

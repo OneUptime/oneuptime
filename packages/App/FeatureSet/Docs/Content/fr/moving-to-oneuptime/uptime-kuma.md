@@ -56,7 +56,7 @@ Le rapport compte ce qui a été créé et non importé, et liste chaque éléme
 | --- | --- | --- |
 | Monitors | Moniteurs | Depuis une sauvegarde, chaque moniteur devient un moniteur du même type, avec la même adresse, le même intervalle, le même délai d'attente et les mêmes codes de statut considérés comme disponibles. Depuis la page de métriques, chacun est importé avec une vérification toutes les cinq minutes : vérifiez-les un par un après l'import. |
 
-- **Les moniteurs HTTP(S) et à mot-clé** deviennent des moniteurs de site web, ou des moniteurs d'API quand ils envoient une autre méthode, des en-têtes ou un corps JSON, avec le mot-clé là où il doit être.
+- **Les moniteurs HTTP(S) et à mot-clé** deviennent des moniteurs de site web, ou des moniteurs d'API quand ils envoient une autre méthode, des en-têtes ou un corps de requête, avec le mot-clé là où il doit être.
 - **Les moniteurs de requête JSON** deviennent des moniteurs d'API, sans la requête : ajoutez-la comme critère dans OneUptime.
 - **Les moniteurs ping, de port et DNS** deviennent des moniteurs ping, de port et DNS.
 - **Les moniteurs push** deviennent des moniteurs de requêtes entrantes, qui tombent quand aucune requête n'est arrivée pendant l'intervalle et ses nouvelles tentatives. Chacun a une nouvelle adresse dans OneUptime.

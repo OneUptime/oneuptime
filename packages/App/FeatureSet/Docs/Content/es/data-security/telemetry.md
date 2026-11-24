@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Los registros nuevos se enmascaran<br/>antes de guardarse"]
 ```
 
-Un hallazgo que cubre una regla de depuración se marca como depurado: lo que queda de esos datos son datos antiguos que esperan a que termine su retención, no una fuga que sigue activa. Las dos comprobaciones de telemetría solo cuentan lo que ninguna regla cubre, así que su problema se resuelve en cuanto cada hallazgo está depurado (consulta [Comprobaciones de telemetría](/docs/data-security/checks-and-issues#telemetría)).
+Un hallazgo que cubre una regla de depuración se marca como depurado: lo que OneUptime guarda de esos datos son datos antiguos que esperan a que termine su retención. Pero el código sigue escribiéndolos, así que las dos comprobaciones de telemetría lo cuentan como contenido, no corregido: su problema se resuelve como **Contenido en la ingesta** en cuanto cada hallazgo está depurado, y como **Corregido en el código** solo cuando la nueva versión de una corrección de código deja de escribir los datos (consulta [Qué le pasa a un problema](/docs/data-security/checks-and-issues#qué-le-pasa-a-un-problema)).
 
 ## Qué se lee
 

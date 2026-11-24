@@ -5243,6 +5243,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
    */
   @CaptureSpan()
   public async getOwners(projectId: ObjectID): Promise<Array<User>> {
+    return await this.getUsersHolding(projectId, Permission.ProjectOwner);
+  }
+
+  /*
+   * The people who hold `permission` in the project, as getOwners reads
+   * Project Owner for it: every team row of the project for the permission
+   * (allows and blocks), the accepted members of those teams, and each
+   * person once. An automatic response policy pages the project's Security
+   * Admins at its hourly limit (#10350) through it.
+   */
+  @CaptureSpan()
+  public async getUsersHolding(
+    projectId: ObjectID,
+    permission: Permission,
+  ): Promise<Array<User>> {
     if (!projectId) {
       throw new BadDataException("Project ID is required");
     }
@@ -5252,7 +5267,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       await TeamPermissionService.findBy({
         query: {
           projectId: projectId,
-          permission: Permission.ProjectOwner,
+          permission: permission,
         },
         props: {
           isRoot: true,
@@ -5328,7 +5343,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     const holderIds: Array<string> = TeamPermissionHolders.getHolderIds({
-      permission: Permission.ProjectOwner,
+      permission: permission,
       rows: teamPermissions
         .filter((row: TeamPermission): boolean => {
           return Boolean(row.teamId);
@@ -5336,7 +5351,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         .map((row: TeamPermission): TeamPermissionRow => {
           return {
             teamId: row.teamId!,
-            permission: row.permission || Permission.ProjectOwner,
+            permission: row.permission || permission,
             isBlockPermission: row.isBlockPermission,
             labelIds: (row.labels || []).map((label: Label): ObjectID => {
               return label.id!;

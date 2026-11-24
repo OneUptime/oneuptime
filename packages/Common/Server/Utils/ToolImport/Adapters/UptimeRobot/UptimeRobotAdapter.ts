@@ -7,7 +7,11 @@ import {
   toHttpMonitor,
   toUnsupportedMonitor,
 } from "../../../../../Types/ToolImport/ToolImportMonitorMapping";
-import { readStatusCodeRanges } from "../../../../../Types/ToolImport/ToolImportMonitorRules";
+import {
+  FORM_BODY_CONTENT_TYPE,
+  readStatusCodeRanges,
+  writeFormFields,
+} from "../../../../../Types/ToolImport/ToolImportMonitorRules";
 import {
   makeToolImportNote,
   ToolImportNote,
@@ -414,17 +418,31 @@ export default class UptimeRobotAdapter implements ToolImportAdapter {
       return { name: name, value: asString(value) };
     });
 
-    // A request body: raw JSON is one; key-value form data is not.
+    /*
+     * A request body: raw JSON is sent as JSON; key-value data as the form
+     * UptimeRobot posts it (#10787), a=1&b=2 under a form's Content-Type,
+     * so it stays a form. Form fields that are not names and plain values
+     * are left out, and said.
+     */
     let body: string | undefined = undefined;
+    let isForm: boolean = false;
     const postValue: unknown = raw["postValueData"];
 
     if (postValue !== null && postValue !== undefined && postValue !== "") {
-      body =
-        asString(raw["postValueType"]).toUpperCase() === "RAW_JSON"
-          ? typeof postValue === "string"
+      if (asString(raw["postValueType"]).toUpperCase() === "RAW_JSON") {
+        body =
+          typeof postValue === "string" ? postValue : JSON.stringify(postValue);
+      } else {
+        body =
+          (typeof postValue === "string"
             ? postValue
-            : JSON.stringify(postValue)
-          : "form";
+            : writeFormFields(postValue)) || undefined;
+        isForm = true;
+
+        if (!body) {
+          notes.push(makeToolImportNote(ToolImportNoteCode.MonitorBodyLeftOut));
+        }
+      }
     }
 
     const authType: string = asString(raw["authType"]).toUpperCase();
@@ -462,6 +480,8 @@ export default class UptimeRobotAdapter implements ToolImportAdapter {
       method: asString(raw["httpMethodType"]) || "GET",
       headers: headers,
       body: body,
+      isBodySentAsWritten: isForm,
+      bodyContentType: isForm ? FORM_BODY_CONTENT_TYPE : undefined,
       followRedirects: asBoolean(raw["followRedirections"], true),
       timeoutSeconds: asNumber(raw["timeout"]) || undefined,
       intervalSeconds: data.intervalSeconds,

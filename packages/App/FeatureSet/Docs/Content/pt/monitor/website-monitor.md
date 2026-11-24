@@ -71,7 +71,7 @@ Mantenha ou altere as **Sondas** e o **Intervalo de monitoramento** (começa em 
 
 ### URL do site
 
-A página a verificar, como URL completa com o esquema: `https://example.com`, `https://example.com/pricing` ou `http://example.com:8080/health`. Você pode colocar um [segredo de monitor](/docs/monitor/monitor-secrets) na URL como `{{monitorSecrets.NAME}}`, por exemplo um token na string de consulta.
+A página a verificar, como URL completa com o esquema: `https://example.com`, `https://example.com/pricing` ou `http://example.com:8080/health`. Você pode colocar um [segredo de monitor](/docs/monitor/monitor-secrets) na URL como `{{monitorSecrets.NAME}}`, por exemplo um token na string de consulta. O erro de uma verificação que falhou cita a URL apenas pelo esquema, host e porta, como `https://example.com`, então o segredo nunca aparece.
 
 ### Marcadores dinâmicos na URL
 
@@ -179,17 +179,18 @@ Os monitores criados antes de o OneUptime mudar esses padrões mantêm os crité
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Cabeçalho da resposta**, **Valor do cabeçalho da resposta**, **Expressão JavaScript** e **Tempo limite da requisição esgotado**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Cabeçalho da resposta**, **Valor do cabeçalho da resposta**, **Expressão JavaScript** e **Tempo limite da requisição esgotado**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 minutos a 24 horas, em **No último período de**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
-| **Média**, **Soma**, **Valor máximo**, **Valor mínimo** | Esse valor, na janela, atende à condição. Somente filtros numéricos. |
+| **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Percentil** | Esse valor, na janela, atende à condição, como o tempo de resposta p95. Somente filtros numéricos. |
 | **Todos os valores** | Cada verificação na janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação na janela atende à condição. |
+| **Contagem**, **Porcentagem**, **Mudanças de status** | Quantas verificações atenderam à condição, a proporção delas ou quantas vezes passaram de atendê-la para não atendê-la é comparado com o número definido abaixo. |
 
 A opção **Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
 
-Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Tempo limite da requisição esgotado**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **Todos os valores**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
+Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Tempo limite da requisição esgotado**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. Também pode contá-lo com **Contagem**, **Porcentagem** ou **Mudanças de status**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **Todos os valores**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
 
 Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 

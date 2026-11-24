@@ -8,6 +8,7 @@ import AIService from "../../Services/AIService";
 import {
   queueDataSecurityEvaluation,
   queueDataSecurityFieldSuggestions,
+  queueDataSecurityFindingVerdicts,
   queueDataTypeDiscovery,
 } from "./DataSecurityJobs";
 import DataTypeProving from "./DataTypeProving";
@@ -51,7 +52,8 @@ import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier
  * The fields a scan could not place are kept on the store for OneUptime AI
  * (DataStore.fieldSuggestionState) when the project's Enable AI is on, and
  * the suggestion job is queued; its suggestions come back through
- * recordFieldSuggestions. A suggestion never takes the place of a
+ * recordFieldSuggestions. With Enable AI on, OneUptime AI's verdicts on
+ * the findings that wait for a person are queued too (#10372). A suggestion never takes the place of a
  * detector's finding, and a finding a person confirmed keeps its High
  * confidence whatever a later scan is sure of.
  */
@@ -143,9 +145,12 @@ export default class DataSecurityFindingWriter {
       findingsFound: findingsWritten,
     });
 
+    const isAiEnabled: boolean =
+      findingsWritten > 0 || (result.unplacedFields || []).length > 0
+        ? await AIService.isProjectAIEnabled(input.projectId)
+        : false;
     const hasUnplacedFields: boolean =
-      (result.unplacedFields || []).length > 0 &&
-      (await AIService.isProjectAIEnabled(input.projectId));
+      (result.unplacedFields || []).length > 0 && isAiEnabled;
 
     await this.updateStore({
       dataStoreId: input.dataStoreId,
@@ -192,6 +197,17 @@ export default class DataSecurityFindingWriter {
       });
       // The same unknown shape in many stores is a data type of its own (#10371).
       await queueDataTypeDiscovery(input.projectId);
+    }
+
+    /*
+     * OneUptime AI's verdicts on what this scan found that waits for a
+     * person (#10372): a little after it, once with its field suggestions.
+     */
+    if (findingsWritten > 0 && isAiEnabled) {
+      await queueDataSecurityFindingVerdicts({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+      });
     }
 
     return { scanId, findingsWritten };

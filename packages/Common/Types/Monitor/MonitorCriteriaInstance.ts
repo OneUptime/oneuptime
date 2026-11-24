@@ -21,7 +21,16 @@ import {
   FilterType,
   EvaluateOverTimeType,
   CriteriaFilterUtil,
+  MAX_COUNTED_WINDOW_IN_MINUTES,
 } from "./CriteriaFilter";
+import RestrictionTimes from "../OnCallDutyPolicy/RestrictionTimes";
+import WorkingHours, {
+  WORKING_HOURS_DAILY_WINDOW_EMPTY_MESSAGE,
+  WORKING_HOURS_NO_WEEKLY_WINDOWS_MESSAGE,
+  WORKING_HOURS_NOT_SET_MESSAGE,
+  WORKING_HOURS_TIMEZONE_NOT_SET_MESSAGE,
+  WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE,
+} from "../OnCallDutyPolicy/WorkingHours";
 import { CriteriaIncident } from "./CriteriaIncident";
 import CriteriaFilterValues from "./CriteriaFilterValues";
 import IncidentGroupingConfig from "./IncomingMonitor/IncidentGroupingConfig";
@@ -56,6 +65,31 @@ export interface MonitorCriteriaInstanceType {
    * replies open none (IncomingEmailOpenForEveryEmail).
    */
   openForEveryEmail?: boolean | undefined;
+  /**
+   * When this criteria recovers, when that is not simply "its filters stop
+   * matching" (#10355): "the response time is below 300 ms for 10 minutes".
+   * Once the criteria has acted - it set the monitor's status, or an incident
+   * or alert it opened is still open - it keeps acting on every check, even
+   * one its filters no longer match, until these filters match. Its records
+   * then resolve, and the monitor moves on, as when an ordinary criteria
+   * stops matching. Without them, or with none, it recovers as it always
+   * has. On a monitor that judges each series on its own, each series
+   * recovers on its own (CriteriaRecovery on the server).
+   */
+  recoveryFilters?: Array<CriteriaFilter> | undefined;
+  // All or Any of the recovery filters; All when unset.
+  recoveryFilterCondition?: FilterCondition | undefined;
+  /**
+   * When this criteria is judged at all: inside these hours - the days of the
+   * week, and from when until when on each, as an on-call rule's working
+   * hours are kept (RestrictionTimes, read by WorkingHours) - on the clock of
+   * activeHoursTimezone. Outside them it is skipped, as a criteria that is
+   * off is: it matches nothing, so what it opened resolves as when it stops
+   * matching. Unset: always.
+   */
+  activeHours?: RestrictionTimes | JSONObject | undefined;
+  // The IANA time zone the active hours are read in: "Europe/Oslo".
+  activeHoursTimezone?: string | undefined;
   id: string;
 }
 
@@ -3021,48 +3055,254 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     for (const filter of value.data.filters) {
-      if (!filter.checkOn) {
-        return `Filter Type is required for criteria "${value.data.name}"`;
+      const filterError: string | null =
+        MonitorCriteriaInstance.getFilterValidationError({
+          filter: filter,
+          criteriaName: value.data.name,
+          monitorType: monitorType,
+        });
+
+      if (filterError) {
+        return filterError;
+      }
+    }
+
+    /*
+     * The recovery condition is filters like any other, read and checked as
+     * the criteria's own are, with words that say which list they are in.
+     */
+    if (MonitorCriteriaInstance.hasRecoveryCondition(value.data)) {
+      const unreadableRecovery: Array<string> =
+        CriteriaFilterValues.getUnreadableErrors({
+          criteriaName: value.data.name,
+          filterCondition: value.data.recoveryFilterCondition,
+          filters: value.data.recoveryFilters,
+          filtersPath: "recoveryFilters",
+          filterConditionPath: "recoveryFilterCondition",
+        });
+
+      if (unreadableRecovery.length > 0) {
+        return unreadableRecovery[0]!;
       }
 
-      /*
-       * A filter with no condition is silently dead: every comparator in
-       * CompareCriteria switches on the filter type and returns "no
-       * match" for one it does not recognise, so the criteria never
-       * fires. The empty dropdown is easy to walk past when every field
-       * around it is filled in, so refuse the save instead of accepting
-       * a rule that can never be true.
-       */
-      if (!filter.filterType) {
-        return `Filter Condition is required for criteria "${value.data.name}" on filter type: ${filter.checkOn}`;
-      }
+      for (const filter of value.data.recoveryFilters || []) {
+        const filterError: string | null =
+          MonitorCriteriaInstance.getFilterValidationError({
+            filter: filter,
+            criteriaName: value.data.name,
+            monitorType: monitorType,
+            isRecovery: true,
+          });
 
-      if (
-        monitorType === MonitorType.Ping &&
-        filter.checkOn !== CheckOn.IsOnline &&
-        filter.checkOn !== CheckOn.ResponseTime &&
-        filter.checkOn !== CheckOn.IsRequestTimeout
-      ) {
-        return "Ping Monitor cannot have filter type: " + filter.checkOn;
-      }
-
-      if (
-        filter.checkOn === CheckOn.DiskUsagePercent &&
-        !filter.serverMonitorOptions?.diskPath
-      ) {
-        return "Disk Path is required for Disk Usage Percent";
-      }
-
-      if (
-        CriteriaFilterUtil.hasValueField({
-          checkOn: filter.checkOn,
-          filterType: filter.filterType,
-        })
-      ) {
-        if (!filter.value && filter.value !== 0) {
-          return `Value is required for criteria "${value.data.name}" on filter type: ${filter.checkOn}`;
+        if (filterError) {
+          return filterError;
         }
       }
+    }
+
+    return MonitorCriteriaInstance.getActiveHoursError(value.data);
+  }
+
+  /*
+   * What is wrong with a criteria's active hours - none picked, a time zone
+   * OneUptime does not know, hours that end when they start - or null,
+   * also when it has none.
+   */
+  public static getActiveHoursError(
+    criteria: MonitorCriteriaInstanceType | undefined,
+  ): string | null {
+    if (!criteria || !MonitorCriteriaInstance.hasActiveHours(criteria)) {
+      return null;
+    }
+
+    const problem: string | null = WorkingHours.getProblem({
+      hours: criteria.activeHours,
+      timezone: criteria.activeHoursTimezone,
+    });
+
+    if (!problem) {
+      return null;
+    }
+
+    return `Active hours of criteria "${criteria.name}": ${MonitorCriteriaInstance.describeActiveHoursProblem(problem)}`;
+  }
+
+  /*
+   * What WorkingHours says is wrong with the hours, in a criteria's words:
+   * its messages speak of an on-call rule's paging.
+   */
+  private static describeActiveHoursProblem(problem: string): string {
+    switch (problem) {
+      case WORKING_HOURS_NOT_SET_MESSAGE:
+        return "pick the days and the times the criteria is judged in.";
+      case WORKING_HOURS_TIMEZONE_NOT_SET_MESSAGE:
+        return "choose the time zone the hours are in.";
+      case WORKING_HOURS_DAILY_WINDOW_EMPTY_MESSAGE:
+      case WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE:
+        return "the hours must end at a different time than they start.";
+      case WORKING_HOURS_NO_WEEKLY_WINDOWS_MESSAGE:
+        return "pick at least one day.";
+      default:
+        return problem;
+    }
+  }
+
+  /*
+   * What is wrong with one filter of a criteria - its own, or one of its
+   * recovery condition - or null.
+   */
+  private static getFilterValidationError(input: {
+    filter: CriteriaFilter;
+    criteriaName: string;
+    monitorType: MonitorType;
+    isRecovery?: boolean | undefined;
+  }): string | null {
+    const filter: CriteriaFilter = input.filter;
+    const where: string = input.isRecovery
+      ? `the recovery condition of criteria "${input.criteriaName}"`
+      : `criteria "${input.criteriaName}"`;
+
+    if (!filter.checkOn) {
+      return `Filter Type is required for ${where}`;
+    }
+
+    /*
+     * A filter with no condition is silently dead: every comparator in
+     * CompareCriteria switches on the filter type and returns "no
+     * match" for one it does not recognise, so the criteria never
+     * fires. The empty dropdown is easy to walk past when every field
+     * around it is filled in, so refuse the save instead of accepting
+     * a rule that can never be true.
+     */
+    if (!filter.filterType) {
+      return `Filter Condition is required for ${where} on filter type: ${filter.checkOn}`;
+    }
+
+    if (
+      input.monitorType === MonitorType.Ping &&
+      filter.checkOn !== CheckOn.IsOnline &&
+      filter.checkOn !== CheckOn.ResponseTime &&
+      filter.checkOn !== CheckOn.IsRequestTimeout
+    ) {
+      return "Ping Monitor cannot have filter type: " + filter.checkOn;
+    }
+
+    if (
+      filter.checkOn === CheckOn.DiskUsagePercent &&
+      !filter.serverMonitorOptions?.diskPath
+    ) {
+      return "Disk Path is required for Disk Usage Percent";
+    }
+
+    if (
+      CriteriaFilterUtil.hasValueField({
+        checkOn: filter.checkOn,
+        filterType: filter.filterType,
+      })
+    ) {
+      if (!filter.value && filter.value !== 0) {
+        return `Value is required for ${where} on filter type: ${filter.checkOn}`;
+      }
+    }
+
+    return MonitorCriteriaInstance.getWindowValidationError({
+      filter: filter,
+      where: where,
+      monitorType: input.monitorType,
+    });
+  }
+
+  /*
+   * What is wrong with a filter's window (#10355), or null: a count needs a
+   * number to compare with and a window of at most a week, a percentage is
+   * at most 100, and a percentile is above 0 and below 100.
+   */
+  public static getWindowValidationError(input: {
+    filter: CriteriaFilter;
+    where: string;
+    monitorType: MonitorType | undefined;
+  }): string | null {
+    const filter: CriteriaFilter = input.filter;
+
+    if (!filter.evaluateOverTime || !filter.evaluateOverTimeOptions) {
+      return null;
+    }
+
+    const type: EvaluateOverTimeType | undefined =
+      filter.evaluateOverTimeOptions.evaluateOverTimeType;
+
+    if (type === EvaluateOverTimeType.Percentile) {
+      const percentile: unknown = filter.evaluateOverTimeOptions.percentile;
+
+      if (
+        percentile !== undefined &&
+        percentile !== null &&
+        !(
+          typeof percentile === "number" &&
+          Number.isFinite(percentile) &&
+          percentile > 0 &&
+          percentile < 100
+        )
+      ) {
+        return `The percentile of ${input.where} on filter type ${filter.checkOn} must be a number above 0 and below 100.`;
+      }
+
+      return null;
+    }
+
+    if (!CriteriaFilterUtil.isCountedWindowType(type)) {
+      return null;
+    }
+
+    /*
+     * Not refused when the monitor's checks cannot be counted: such a filter
+     * is judged as All Values (getEffectiveEvaluateOverTimeType), as an
+     * aggregate saved on a yes or no check is.
+     */
+    const minutes: number =
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(filter);
+
+    if (minutes <= 0) {
+      return `${type} of ${input.where} on filter type ${filter.checkOn} needs a window: how many minutes of checks to count.`;
+    }
+
+    if (minutes > MAX_COUNTED_WINDOW_IN_MINUTES) {
+      return `${type} of ${input.where} on filter type ${filter.checkOn} counts at most ${MAX_COUNTED_WINDOW_IN_MINUTES}\u00A0minutes (7\u00A0days) of checks.`;
+    }
+
+    const countFilterType: FilterType | undefined =
+      filter.evaluateOverTimeOptions.countFilterType;
+
+    if (
+      countFilterType &&
+      !CriteriaFilterUtil.isCountComparison(countFilterType)
+    ) {
+      return `${type} of ${input.where} on filter type ${filter.checkOn} is compared with Greater Than, Greater Than Or Equal To, Less Than, Less Than Or Equal To, Equal To or Not Equal To, not ${countFilterType}.`;
+    }
+
+    /*
+     * A number, or a number written as text, as a form may save it. None at
+     * all is read as 0: more than 0 checks matched, or changed.
+     */
+    const writtenCount: unknown = filter.evaluateOverTimeOptions.countValue;
+
+    if (writtenCount === undefined || writtenCount === null) {
+      return null;
+    }
+
+    const countValue: number =
+      typeof writtenCount === "number"
+        ? writtenCount
+        : typeof writtenCount === "string" && writtenCount.trim() !== ""
+          ? Number(writtenCount)
+          : NaN;
+
+    if (!Number.isFinite(countValue) || countValue < 0) {
+      return `${type} of ${input.where} on filter type ${filter.checkOn} needs a number to compare with, 0 or more.`;
+    }
+
+    if (type === EvaluateOverTimeType.Percentage && countValue > 100) {
+      return `Percentage of ${input.where} on filter type ${filter.checkOn} is a share of the checks, from 0 to 100.`;
     }
 
     return null;
@@ -3238,10 +3478,49 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         ...(typeof this.data.openForEveryEmail === "boolean"
           ? { openForEveryEmail: this.data.openForEveryEmail }
           : {}),
+        /*
+         * Written only when set, like openForEveryEmail: a criteria saved
+         * without a recovery condition or active hours reads and writes as
+         * it did before they existed.
+         */
+        ...(this.data.recoveryFilters && this.data.recoveryFilters.length > 0
+          ? {
+              recoveryFilters: this.data.recoveryFilters,
+              recoveryFilterCondition:
+                this.data.recoveryFilterCondition || FilterCondition.All,
+            }
+          : {}),
+        ...(this.data.activeHours
+          ? {
+              activeHours:
+                this.data.activeHours instanceof RestrictionTimes
+                  ? this.data.activeHours.toJSON()
+                  : this.data.activeHours,
+              activeHoursTimezone: this.data.activeHoursTimezone,
+            }
+          : {}),
         name: this.data.name,
         description: this.data.description,
       } as any,
     });
+  }
+
+  /*
+   * Whether this criteria has a recovery condition of its own: filters that
+   * say when it stops acting, other than its own filters no longer matching
+   * (recoveryFilters).
+   */
+  public static hasRecoveryCondition(
+    criteria: MonitorCriteriaInstanceType | undefined,
+  ): boolean {
+    return (criteria?.recoveryFilters || []).length > 0;
+  }
+
+  // Whether this criteria is judged only inside its active hours.
+  public static hasActiveHours(
+    criteria: MonitorCriteriaInstanceType | undefined,
+  ): boolean {
+    return Boolean(criteria?.activeHours);
   }
 
   public static override fromJSON(json: JSONObject): MonitorCriteriaInstance {
@@ -3344,6 +3623,37 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       alerts.push({ ...(alert as any) });
     }
 
+    /*
+     * The recovery condition, read as the filters are: a list, each filter
+     * with its values written another way read as the ones they mean. One
+     * that is not a list is no recovery condition.
+     */
+    const recoveryFilters: Array<CriteriaFilter> = Array.isArray(
+      json["recoveryFilters"],
+    )
+      ? (json["recoveryFilters"] as Array<JSONObject>).map(
+          (filter: JSONObject): CriteriaFilter => {
+            return CriteriaFilterValues.readFilter({
+              ...filter,
+            }) as unknown as CriteriaFilter;
+          },
+        )
+      : [];
+
+    const recoveryFilterCondition: FilterCondition | undefined =
+      recoveryFilters.length > 0
+        ? ((CriteriaFilterValues.readFilterCondition(
+            json["recoveryFilterCondition"],
+          ) ||
+            json["recoveryFilterCondition"] ||
+            FilterCondition.All) as FilterCondition)
+        : undefined;
+
+    const activeHours: JSONObject | undefined =
+      json["activeHours"] && typeof json["activeHours"] === "object"
+        ? (json["activeHours"] as JSONObject)
+        : undefined;
+
     const monitorCriteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
 
@@ -3369,6 +3679,21 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
        */
       ...(typeof json["openForEveryEmail"] === "boolean"
         ? { openForEveryEmail: json["openForEveryEmail"] as boolean }
+        : {}),
+      ...(recoveryFilters.length > 0
+        ? {
+            recoveryFilters: recoveryFilters as any,
+            recoveryFilterCondition: recoveryFilterCondition,
+          }
+        : {}),
+      ...(activeHours
+        ? {
+            activeHours: activeHours,
+            activeHoursTimezone:
+              typeof json["activeHoursTimezone"] === "string"
+                ? (json["activeHoursTimezone"] as string)
+                : undefined,
+          }
         : {}),
       filters: filters as any,
       incidents: incidents as any,

@@ -58,7 +58,7 @@ Il report conta ciò che è stato creato e non importato, ed elenca ogni element
 | Status pages | Pagine di stato | Ogni pagina viene importata con le sue sezioni come gruppi e i monitor e gli heartbeat che mostra. Un elemento che segui a mano diventa un monitor manuale. Una pagina con password o con una lista di IP consentiti viene importata come privata. |
 | Email subscribers | Iscritti alla pagina di stato | Gli iscritti via email confermati vengono importati quando confermi di poterli trasferire, e seguono le stesse risorse. Nessuno riceve email, e ogni aggiornamento che ricevono da OneUptime contiene un link per annullare l'iscrizione. |
 
-- **I monitor status, expected status code, keyword e keyword absence** diventano monitor sito web, o monitor API quando inviano un altro metodo, intestazioni o un corpo JSON. Un monitor status è attivo con qualsiasi risposta 2xx, e un monitor expected status code con i codici che elenca.
+- **I monitor status, expected status code, keyword e keyword absence** diventano monitor sito web, o monitor API quando inviano un altro metodo, intestazioni o un corpo. Un monitor status è attivo con qualsiasi risposta 2xx, e un monitor expected status code con i codici che elenca.
 - **I monitor ping e TCP** diventano monitor ping e porta. **I monitor SMTP, POP e IMAP** diventano monitor porta sulla loro porta: OneUptime controlla che la porta risponda, non la conversazione di posta.
 - **I monitor DNS** diventano monitor DNS del nome che interrogano, rivolgendosi allo stesso server.
 - **Gli heartbeat** diventano monitor richieste in arrivo, che vanno giù quando non arriva nessuna richiesta per il periodo e la tolleranza. Ognuno ha un nuovo indirizzo in OneUptime.

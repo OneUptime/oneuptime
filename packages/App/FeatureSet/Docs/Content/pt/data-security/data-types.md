@@ -8,6 +8,7 @@ A Segurança de dados conhece 143 tipos de dados sensíveis: números de cartão
 - [Cada tipo de dados](#tipos-de-dados-integrados): Todos os 143, por categoria.
 - [Seus próprios tipos de dados](#seus-próprios-tipos-de-dados): IDs de funcionário, números de apólice e a caixa Testar.
 - [Tipos de dados que o OneUptime AI encontra](#tipos-de-dados-que-o-oneuptime-ai-encontra): Seus próprios tipos de dados, encontrados nos campos que nenhum detector conseguiu classificar.
+- [Os vereditos do OneUptime AI](#os-vereditos-do-oneuptime-ai): Um veredito sobre cada descoberta que aguarda você, com as decisões da sua equipe como precedentes.
 :::
 
 ## Como um valor é encontrado
@@ -66,7 +67,7 @@ Uma coluna ou um campo cujo nome não aponta para nenhum tipo de dado, e cujos v
 
 Uma varredura de telemetria guarda da mesma forma os atributos que nenhum detector classificou, dos logs, spans, métricas e do resto da telemetria de um serviço, no máximo 50 por serviço a cada varredura. Ela nunca guarda os atributos próprios do OneUptime, nem os que as convenções do OpenTelemetry escrevem em cada registro para dizer de onde ele veio, como o serviço, o host ou o pod, nem texto livre, como o corpo de um log.
 
-Cada tipo que o OneUptime AI nomeia é uma descoberta com confiança Baixo, marcada como **Sugerido pela OneUptime AI** com o motivo. Como qualquer descoberta com confiança Baixo, ela não conta para nada até uma pessoa escolher **Confirmar** na página **Conteúdo** do repositório; **Marcar como não sensível** a recusa. Um campo que já teve resposta não é perguntado de novo por 30 dias, e um campo que uma pessoa avaliou nunca mais é perguntado.
+Cada tipo que o OneUptime AI nomeia é uma descoberta com confiança Baixo, marcada como **Sugerido pela OneUptime AI** com o motivo, escrito no idioma do seu projeto e mostrado ao longo de toda a linha da descoberta. Como qualquer descoberta com confiança Baixo, ela não conta para nada até uma pessoa escolher **Confirmar** na página **Conteúdo** do repositório; **Marcar como não sensível** a recusa. Um campo que já teve resposta não é perguntado de novo por 30 dias, e um campo que uma pessoa avaliou nunca mais é perguntado.
 
 ## Sensibilidade
 
@@ -332,6 +333,42 @@ Uma varredura pode encontrar algo que não é o que parece: uma coluna de númer
 - **Marque a descoberta como não sensível.** Na página **Conteúdo** do repositório, escolha **Marcar como não sensível** na descoberta e diga por quê. Ela deixa de contar para a sensibilidade do repositório e para as verificações dele, e o repositório é verificado de novo na hora. A descoberta continua no repositório, marcada, com o seu motivo, para que a próxima pessoa veja o que foi decidido.
 - **Adicione o valor a Nunca sensível**, nas configurações da Segurança de dados, para um valor que nunca é uma descoberta em lugar nenhum, como `support@yourcompany.com`. Os valores são comparados depois que o scanner os normaliza, ignorando maiúsculas e minúsculas.
 - **Desative um tipo de dados integrado.** Em **Tipos de dados integrados**, em **Segurança de dados → Configurações → Tipos de dados**, cada tipo de dados tem um interruptor, que salva no momento em que é acionado. Nenhuma varredura do projeto procura um tipo que está desativado.
+
+## Os vereditos do OneUptime AI
+
+Com **Habilitar IA** ativado no projeto e **Trabalhar em problemas novos** ligado em **Segurança de dados → IA**, o OneUptime AI dá o seu veredito sobre cada descoberta que aguarda uma pessoa, depois de cada varredura do repositório dela. Uma descoberta aguarda quando a varredura não teve certeza dela - uma descoberta com confiança Baixo, ou uma das sugestões do OneUptime AI - ou quando uma descoberta com confiança Médio ou Alto mostra sinais de uma correspondência errada:
+
+- a maior parte do que correspondeu eram valores de teste conhecidos;
+- o nome do campo aponta para outro tipo de dados, e não para este;
+- um campo de ID, como `order_number`, `invoice_no` ou `ref_id`, contém um tipo verificado pelo algoritmo de Luhn, no qual passa uma em cada dez sequências quaisquer de dígitos, e o nome dele não aponta para esse tipo.
+
+O veredito é **Confirmar**, **Não sensível** ou **Não é possível dizer**, com um motivo no idioma do seu projeto. Ele aparece ao longo de toda a linha da descoberta, na página **Conteúdo** do repositório e na página **Na sua telemetria**, com as decisões da sua equipe em que se baseia, como "Sua equipe marcou `order_number` como não sensível em 4 repositórios". **Mostrar as decisões** lista cada uma delas: o repositório, o campo e o motivo que a sua equipe deu.
+
+### As decisões da sua equipe como precedentes
+
+O OneUptime AI recebe as decisões anteriores da sua equipe sobre descobertas do mesmo tipo de dados, no máximo dez. Primeiro vêm as de um campo com o mesmo nome, em qualquer repositório: `order_number`, `orderNumber` e `public.orders.order_number` são todos "order number". Entre elas, o mesmo local vem primeiro, depois a decisão mais recente. Depois vêm os campos cujos nomes, ou os motivos dados para eles, dizem a mesma coisa, como `order_ref` com o motivo "Shopify order numbers". De cada decisão, ele recebe onde a descoberta estava, o que foi decidido e o motivo dado, sem nenhum valor que esteja em um motivo. Ele nunca recebe um valor, uma amostra mascarada ou uma entrada.
+
+Uma descoberta em texto livre, como o corpo de um log ou uma mensagem, não tem nome de campo para comparar. O precedente dela é o mesmo local em outro repositório, como o corpo do log de outro serviço.
+
+### O que o OneUptime AI decide por conta própria
+
+- **Ele nunca marca uma descoberta como não sensível**, diga o que disser uma regra. Quem faz isso é uma pessoa, com o próprio motivo. Quando o veredito é **Não sensível**, **Marcar como não sensível** começa pelo motivo que o OneUptime AI redigiu, e que você pode alterar.
+- **Ele só confirma uma descoberta por conta própria onde uma regra de IA manda**: uma regra de IA da Segurança de dados com **Julgar** definido como **Automaticamente**, para o repositório e o tipo de dados. Também é preciso que a sua equipe já tenha confirmado uma descoberta parecida, ou que o campo tenha o nome do tipo. A confirmação fica na **Linha do tempo** do repositório e em **Feito pela IA**, em **Segurança de dados → IA**, e **Desfazer** a reverte.
+
+Caso contrário, o veredito aguarda na linha da descoberta. Onde o projeto tem regras de IA, uma descoberta só recebe um veredito quando uma regra para o repositório e o tipo de dados dela tem **Julgar** ligado; uma regra limitada a algumas verificações ou gravidades trata de problemas, e não julga nenhuma descoberta. O OneUptime AI julga no máximo 40 descobertas de um repositório depois de uma varredura, primeiro as que nunca julgou, e o resto depois da próxima varredura. Depois de uma varredura posterior, ele só julga uma descoberta de novo quando muda aquilo em que o veredito dela se baseia, como uma nova decisão sobre uma descoberta parecida.
+
+## Descobertas semelhantes
+
+Depois que você confirma uma descoberta ou a marca como não sensível, **Aplicar às descobertas semelhantes** lista as descobertas parecidas sobre as quais ninguém decidiu ainda: o mesmo tipo de dados, em um campo com o mesmo nome, neste repositório e em todos os outros repositórios que você pode ler. Cada uma vem marcada. Desmarque as que quiser avaliar separadamente, e as demais recebem a mesma decisão, com o seu motivo, como uma alteração sua; uma descoberta que você não pode alterar fica como estava. **Agora não** deixa todas como estão. Uma descoberta em texto livre nunca tem descobertas semelhantes: o que um texto contém não diz nada sobre outro.
+
+## O que as suas decisões dizem das varreduras
+
+Quando a sua equipe marca descobertas como não sensíveis, o OneUptime AI propõe mudanças nas varreduras em **Aguardando você**, em **Segurança de dados → IA**:
+
+- **Desativar um tipo de dados integrado** quando todas as descobertas dele foram marcadas como não sensíveis: pelo menos 3 descobertas, em pelo menos 2 repositórios. Uma descoberta que o OneUptime AI apenas sugeriu não conta.
+- **Deixar um local fora das varreduras de um repositório** quando todas as descobertas ali foram marcadas como não sensíveis, pelo menos 2 delas. Isso é proposto para uma coluna de banco de dados ou um atributo de telemetria, que uma varredura consegue deixar de fora individualmente.
+
+Cada proposta sempre aguarda que uma pessoa a aprove: uma varredura que deixa de procurar perde os dados reais que chegam depois. **Nunca sensível** nunca é proposto, porque contém valores, e o OneUptime AI nunca vê nenhum.
 
 ## Próximos passos
 

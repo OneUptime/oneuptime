@@ -8,6 +8,7 @@ Sicurezza dei dati conosce 143 tipi di dati sensibili: numeri di carta, conti ba
 - [Ogni tipo di dati](#tipi-di-dati-integrati): Tutti i 143, per categoria.
 - [I tuoi tipi di dati](#i-tuoi-tipi-di-dati): ID dei dipendenti, numeri di polizza e la casella Testalo.
 - [I tipi di dati che trova OneUptime AI](#i-tipi-di-dati-che-trova-oneuptime-ai): I tuoi tipi di dati, trovati nei campi che nessun rilevatore ha saputo classificare.
+- [I verdetti di OneUptime AI](#i-verdetti-di-oneuptime-ai): Un verdetto su ogni risultato che ti aspetta, con le decisioni del tuo team come precedenti.
 :::
 
 ## Come viene trovato un valore
@@ -66,7 +67,7 @@ Una colonna o un campo il cui nome non rimanda a nessun tipo di dati, e i cui va
 
 Una scansione della telemetria conserva allo stesso modo gli attributi che nessun rilevatore ha classificato, dai log, dagli span, dalle metriche e dal resto della telemetria di un servizio, al massimo 50 per servizio a ogni scansione. Non conserva mai gli attributi propri di OneUptime, né quelli che le convenzioni di OpenTelemetry scrivono su ogni record per dire da dove viene, come il servizio, l'host o il pod, né il testo libero, come il corpo di un log.
 
-Ogni tipo che OneUptime AI nomina è un risultato di livello Basso, contrassegnato **Suggerito da OneUptime AI** con il suo motivo. Come ogni risultato di livello Basso non conta nulla finché una persona non sceglie **Conferma** nella pagina **Contenuto** dell'archivio; **Contrassegna come non sensibile** lo rifiuta. Di un campo a cui è stata data una risposta non si chiede di nuovo per 30 giorni, e di un campo che una persona ha valutato non si chiede mai più.
+Ogni tipo che OneUptime AI nomina è un risultato di livello Basso, contrassegnato **Suggerito da OneUptime AI** con il suo motivo, scritto nella lingua del tuo progetto e mostrato lungo tutta la riga del risultato. Come ogni risultato di livello Basso non conta nulla finché una persona non sceglie **Conferma** nella pagina **Contenuto** dell'archivio; **Contrassegna come non sensibile** lo rifiuta. Di un campo a cui è stata data una risposta non si chiede di nuovo per 30 giorni, e di un campo che una persona ha valutato non si chiede mai più.
 
 ## Sensibilità
 
@@ -332,6 +333,42 @@ Una scansione può trovare qualcosa che non è ciò che sembra: una colonna di n
 - **Contrassegna il risultato come non sensibile.** Nella pagina **Contenuto** dell'archivio, scegli **Contrassegna come non sensibile** sul risultato e indica il motivo. Non conta più per la sensibilità dell'archivio né per i suoi controlli, e l'archivio viene subito controllato di nuovo. Il risultato resta sull'archivio, contrassegnato, con il tuo motivo, così la persona successiva vede cosa è stato deciso.
 - **Aggiungi il valore a Mai sensibile**, nelle impostazioni di Sicurezza dei dati, per un valore che non è mai un risultato da nessuna parte, come `support@yourcompany.com`. I valori vengono confrontati dopo che lo scanner li ha normalizzati, senza distinguere maiuscole e minuscole.
 - **Disattiva un tipo di dati integrato.** In **Tipi di dati integrati**, su **Sicurezza dei dati → Impostazioni → Tipi di dati**, ogni tipo di dati ha un interruttore, che si salva nel momento in cui lo sposti. Nessuna scansione del progetto cerca un tipo disattivato.
+
+## I verdetti di OneUptime AI
+
+Con **Abilita IA** attivo nel progetto e **Lavora sui nuovi problemi** attivo in **Sicurezza dei dati → IA**, OneUptime AI dà il suo verdetto su ogni risultato che aspetta una persona, dopo ogni scansione del suo archivio. Un risultato aspetta quando la scansione non ne era sicura - un risultato di livello Basso, o uno dei suggerimenti di OneUptime AI - oppure quando un risultato di livello Medio o Alto mostra segni di una corrispondenza errata:
+
+- la maggior parte di ciò che corrispondeva erano valori di test noti;
+- il nome del campo indica un altro tipo di dati, e non questo;
+- un campo ID, come `order_number`, `invoice_no` o `ref_id`, contiene un tipo verificato con l'algoritmo di Luhn, il cui controllo viene superato da una sequenza di cifre qualsiasi su dieci, e il suo nome non indica quel tipo.
+
+Il verdetto è **Confermalo**, **Non sensibile** o **Impossibile stabilirlo**, con un motivo nella lingua del tuo progetto. Viene mostrato lungo tutta la riga del risultato, nella pagina **Contenuto** dell'archivio e nella pagina **Nella tua telemetria**, con le decisioni del tuo team su cui si basa, come «Il tuo team ha contrassegnato `order_number` come non sensibile in 4 archivi». **Mostra le decisioni** le elenca una per una: il loro archivio, il loro campo e il motivo che ha dato il tuo team.
+
+### Le decisioni del tuo team come precedenti
+
+OneUptime AI riceve le decisioni precedenti del tuo team su risultati dello stesso tipo di dati, al massimo dieci. Prima vengono quelle in un campo con lo stesso nome, in qualsiasi archivio: `order_number`, `orderNumber` e `public.orders.order_number` sono tutti «order number». Tra queste viene prima la stessa posizione, poi la decisione più recente. Poi vengono i campi i cui nomi, o i motivi dati per essi, dicono la stessa cosa, come `order_ref` con il motivo «Shopify order numbers». Di ogni decisione riceve dove si trovava il risultato, cosa è stato deciso e il motivo dato, senza i valori presenti in un motivo. Non riceve mai un valore, un campione mascherato o un record.
+
+Un risultato in testo libero, come il corpo di un log o un messaggio, non ha un nome di campo con cui confrontarlo. I suoi precedenti vengono dalla stessa posizione in un altro archivio, come il corpo del log di un altro servizio.
+
+### Cosa decide OneUptime AI da sola
+
+- **Non contrassegna mai un risultato come non sensibile**, qualunque cosa dica una regola. Lo fa una persona, con il proprio motivo. Dove il verdetto è **Non sensibile**, **Contrassegna come non sensibile** parte dal motivo che OneUptime AI ha scritto in bozza, e che puoi modificare.
+- **Conferma da sola un risultato solo dove lo prevede una regola IA**: una regola IA di Sicurezza dei dati con **Giudica** impostato su **Automaticamente**, per l'archivio e il tipo di dati. Serve anche che il tuo team abbia confermato un risultato simile, o un campo che porta il nome del tipo. La conferma compare nella **Cronologia** dell'archivio e sotto **Fatto dall'IA** in **Sicurezza dei dati → IA**, e **Annulla** la ritira.
+
+Altrimenti il verdetto aspetta sulla riga del risultato. Dove il progetto ha regole IA, un risultato riceve un verdetto solo quando una regola per il suo archivio e il suo tipo di dati ha **Giudica** attivo; una regola limitata ad alcuni controlli o gravità riguarda i problemi, e non giudica nessun risultato. OneUptime AI giudica al massimo 40 risultati di un archivio dopo una scansione, prima quelli che non ha mai giudicato, e il resto dopo la scansione successiva. Dopo una scansione successiva, torna a giudicare un risultato solo quando è cambiato ciò su cui si basa il suo verdetto, come una nuova decisione su un risultato simile.
+
+## Risultati simili
+
+Dopo che hai confermato un risultato o l'hai contrassegnato come non sensibile, **Applica ai risultati simili** elenca i risultati simili su cui nessuno ha ancora deciso: lo stesso tipo di dati, in un campo con lo stesso nome, in questo archivio e in ogni altro archivio che puoi leggere. Ognuno è selezionato. Deseleziona quelli che vuoi valutare singolarmente, e gli altri ricevono la stessa decisione, con il tuo motivo, come una tua modifica; un risultato che non puoi modificare resta com'era. **Non ora** li lascia tutti come sono. Un risultato in testo libero non ha mai risultati simili: ciò che contiene un testo non dice nulla di un altro.
+
+## Cosa dicono delle scansioni le tue decisioni
+
+Quando il tuo team contrassegna dei risultati come non sensibili, OneUptime AI propone modifiche alle scansioni sotto **In attesa di te** in **Sicurezza dei dati → IA**:
+
+- **Disattivare un tipo di dati integrato** quando ogni suo risultato è stato contrassegnato come non sensibile: almeno 3 risultati, in almeno 2 archivi. Un risultato che OneUptime AI ha solo suggerito non conta.
+- **Escludere una posizione dalle scansioni di un archivio** quando ogni risultato che vi si trova è stato contrassegnato come non sensibile, almeno 2. Viene proposto per una colonna di database o un attributo di telemetria, che una scansione può escludere singolarmente.
+
+Ogni proposta aspetta sempre che una persona la approvi: una scansione che smette di cercare non vede i dati reali che arrivano dopo. **Mai sensibile** non viene mai proposto, perché contiene valori, e OneUptime AI non ne vede mai nessuno.
 
 ## Passaggi successivi
 

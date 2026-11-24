@@ -8,6 +8,7 @@ Gegevensbeveiliging kent 143 soorten gevoelige gegevens: kaartnummers, bankreken
 - [Elk gegevenstype](#ingebouwde-gegevenstypen): Alle 143, per categorie.
 - [Je eigen gegevenstypen](#je-eigen-gegevenstypen): Personeelsnummers, polisnummers en het vak Testen.
 - [Gegevenstypen die OneUptime AI vindt](#gegevenstypen-die-oneuptime-ai-vindt): Uw eigen gegevenstypen, gevonden in de velden die geen detector kon plaatsen.
+- [De oordelen van OneUptime AI](#de-oordelen-van-oneuptime-ai): Een oordeel over elke bevinding die op je wacht, met de beslissingen van je team als precedent.
 :::
 
 ## Hoe een waarde wordt gevonden
@@ -66,7 +67,7 @@ Een kolom of veld waarvan de naam naar geen enkel gegevenstype wijst en waarvan 
 
 Een telemetriescan bewaart op dezelfde manier de attributen die geen detector plaatste, uit de logs, spans, metrics en de rest van de telemetrie van een service, hoogstens 50 per service per scan. Hij bewaart nooit de eigen attributen van OneUptime, niet de attributen die de conventies van OpenTelemetry op elk record schrijven om te zeggen waar het vandaan komt, zoals de service, de host of de pod, en geen vrije tekst, zoals de body van een log.
 
-Elk type dat OneUptime AI noemt, is een bevinding met Laag, gemarkeerd als **Voorgesteld door OneUptime AI** met de reden. Zoals elke bevinding met Laag telt ze nergens voor mee tot een mens **Bevestigen** kiest op de pagina **Inhoud** van de opslag; **Markeren als niet gevoelig** wijst haar af. Naar een veld dat een antwoord kreeg, wordt 30 dagen niet opnieuw gevraagd, en naar een veld dat een mens beoordeelde nooit meer.
+Elk type dat OneUptime AI noemt, is een bevinding met Laag, gemarkeerd als **Voorgesteld door OneUptime AI** met de reden, geschreven in de taal van je project en getoond over de hele rij van de bevinding. Zoals elke bevinding met Laag telt ze nergens voor mee tot een mens **Bevestigen** kiest op de pagina **Inhoud** van de opslag; **Markeren als niet gevoelig** wijst haar af. Naar een veld dat een antwoord kreeg, wordt 30 dagen niet opnieuw gevraagd, en naar een veld dat een mens beoordeelde nooit meer.
 
 ## Gevoeligheid
 
@@ -332,6 +333,42 @@ Een scan kan iets vinden dat niet is wat het lijkt: een kolom met ordernummers d
 - **Markeer de bevinding als niet gevoelig.** Kies op de pagina **Inhoud** van de opslag **Markeren als niet gevoelig** op de bevinding en zeg waarom. Ze telt niet meer mee voor de gevoeligheid of de controles van de opslag, en de opslag wordt meteen opnieuw gecontroleerd. De bevinding blijft op de opslag staan, gemarkeerd, met je reden, zodat de volgende persoon ziet wat er is besloten.
 - **Voeg de waarde toe aan Nooit gevoelig**, in de instellingen van Gegevensbeveiliging, voor een waarde die nergens ooit een bevinding is, zoals `support@yourcompany.com`. Waarden worden vergeleken nadat de scanner ze heeft genormaliseerd, ongeacht hoofdletters.
 - **Zet een ingebouwd gegevenstype uit.** Onder **Ingebouwde gegevenstypen**, op **Gegevensbeveiliging → Instellingen → Gegevenstypen**, heeft elk gegevenstype een schakelaar, die wordt opgeslagen zodra je hem omzet. Geen enkele scan van het project zoekt naar een type dat uit staat.
+
+## De oordelen van OneUptime AI
+
+Met **AI inschakelen** aan voor het project en **Aan nieuwe problemen werken** aan onder **Gegevensbeveiliging → AI** geeft OneUptime AI na elke scan van een opslag zijn oordeel over elke bevinding daarin die op een mens wacht. Een bevinding wacht als de scan er niet zeker van was - een bevinding met Laag, of een van de suggesties van OneUptime AI - of als een bevinding met Gemiddeld of Hoog tekenen van een onjuiste match vertoont:
+
+- het grootste deel van de matches bestond uit bekende testwaarden;
+- de naam van het veld wijst op een ander gegevenstype, en niet op dit type;
+- een ID-veld, zoals `order_number`, `invoice_no` of `ref_id`, bevat een type dat met het Luhn-algoritme wordt gecontroleerd, waaraan een op de tien willekeurige cijferreeksen voldoet, en de naam ervan wijst niet op dat type.
+
+Het oordeel is **Bevestigen**, **Niet gevoelig** of **Niet te zeggen**, met een reden in de taal van je project. Het wordt over de hele rij van de bevinding getoond, op de pagina **Inhoud** van de opslag en op **In uw telemetrie**, met de beslissingen van je team waarop het berust, zoals "Uw team heeft `order_number` in 4 opslagen als niet gevoelig gemarkeerd". **Beslissingen tonen** somt ze een voor een op: de opslag, het veld en de reden die je team gaf.
+
+### De beslissingen van je team als precedent
+
+OneUptime AI krijgt de eerdere beslissingen van je team over bevindingen van hetzelfde gegevenstype, hoogstens tien. Eerst komen die in een veld met dezelfde naam, in welke opslag ook: `order_number`, `orderNumber` en `public.orders.order_number` zijn allemaal "order number". Daarbij komt dezelfde plek eerst, dan de nieuwste beslissing. Daarna komen velden waarvan de namen, of de redenen die ervoor zijn gegeven, hetzelfde zeggen, zoals `order_ref` met de reden "Shopify order numbers". Het krijgt te horen waar elke bevinding stond, wat er is besloten en welke reden is gegeven, zonder de waarden die in een reden staan. Het krijgt nooit een waarde, een gemaskeerd voorbeeld of een record.
+
+Een bevinding in vrije tekst, zoals een logtekst of een bericht, heeft geen veldnaam om op te matchen. Haar precedent is dezelfde plek in een andere opslag, zoals de logtekst van een andere service.
+
+### Wat OneUptime AI zelf beslist
+
+- **Het markeert een bevinding nooit als niet gevoelig**, onder welke regel ook. Dat doet een mens, met een eigen reden. Waar het oordeel **Niet gevoelig** is, begint **Markeren als niet gevoelig** met de reden die OneUptime AI heeft opgesteld, en die je kunt wijzigen.
+- **Het bevestigt een bevinding alleen zelf waar een AI-regel dat zegt**: een AI-regel van Gegevensbeveiliging waarin **Beoordelen** op **Automatisch** staat, voor de opslag en het gegevenstype. Daarnaast moet je team zelf al een vergelijkbare bevinding hebben bevestigd, of moet het veld naar het type zijn genoemd. De bevestiging staat op de **Tijdlijn** van de opslag en onder **Gedaan door AI** op **Gegevensbeveiliging → AI**, en **Ongedaan maken** neemt haar terug.
+
+Anders wacht het oordeel op de rij van de bevinding. Heeft het project AI-regels, dan krijgt een bevinding alleen een oordeel als een regel voor haar opslag en gegevenstype **Beoordelen** aan heeft staan; een regel die beperkt is tot bepaalde controles of ernstniveaus gaat over problemen, en beoordeelt geen enkele bevinding. OneUptime AI beoordeelt na een scan hoogstens 40 bevindingen van een opslag, eerst die het nog nooit beoordeelde, en de rest na de volgende scan. Na een latere scan wordt een bevinding alleen opnieuw beoordeeld als veranderd is waarop haar oordeel berust, zoals door een nieuwe beslissing over een vergelijkbare bevinding.
+
+## Vergelijkbare bevindingen
+
+Nadat je een bevinding hebt bevestigd of als niet gevoelig hebt gemarkeerd, toont **Toepassen op vergelijkbare bevindingen** de vergelijkbare bevindingen waarover nog niemand heeft beslist: hetzelfde gegevenstype, in een veld met dezelfde naam, in deze opslag en in elke andere opslag die je mag lezen. Elke bevinding is geselecteerd. Deselecteer de bevindingen die je apart wilt beoordelen, en de rest krijgt dezelfde beslissing, met je reden, als je eigen wijziging; een bevinding die je niet mag wijzigen, blijft zoals ze was. **Niet nu** laat ze allemaal zoals ze zijn. Een bevinding in vrije tekst heeft nooit vergelijkbare bevindingen: wat de ene tekst bevat, zegt niets over een andere.
+
+## Wat je beslissingen over de scans zeggen
+
+Als je team bevindingen als niet gevoelig markeert, stelt OneUptime AI wijzigingen aan de scans voor onder **Wacht op u** op **Gegevensbeveiliging → AI**:
+
+- **Een ingebouwd gegevenstype uitzetten** als elke bevinding ervan als niet gevoelig is gemarkeerd: minstens 3 bevindingen, in minstens 2 opslagen. Een bevinding die OneUptime AI alleen voorstelde, telt niet mee.
+- **Een plek uit de scans van een opslag weglaten** als elke bevinding daar als niet gevoelig is gemarkeerd, minstens 2. Dit wordt voorgesteld voor een databasekolom of een telemetrieattribuut, die een scan afzonderlijk kan weglaten.
+
+Elk voorstel wacht altijd tot een mens het goedkeurt: een scan die niet meer zoekt, mist de echte gegevens die later komen. **Nooit gevoelig** wordt nooit voorgesteld, omdat het waarden bevat, en OneUptime AI ziet er nooit een.
 
 ## Volgende stappen
 

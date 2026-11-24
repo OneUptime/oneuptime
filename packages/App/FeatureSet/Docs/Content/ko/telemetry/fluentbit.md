@@ -184,7 +184,7 @@ pipeline:
 
 ## HTTP 출력으로 보내기
 
-Fluent Bit의 [HTTP 출력](https://docs.fluentbit.io/manual/pipeline/outputs/http)으로 OneUptime의 Fluentd 엔드포인트에 보낼 수도 있습니다. 각 레코드는 [Fluentd 페이지](/docs/telemetry/fluentd)에서 설명하는 대로 읽힙니다. `format`을 아래처럼 `json_lines`로, 또는 `json`으로 설정하세요. OneUptime은 둘 다 읽으며, `compress: gzip`으로 압축했든 안 했든 같습니다. Fluent Bit의 기본 형식인 `msgpack`은 거부됩니다.
+Fluent Bit의 [HTTP 출력](https://docs.fluentbit.io/manual/pipeline/outputs/http)으로 OneUptime의 Fluentd 엔드포인트에 보낼 수도 있습니다. 각 레코드는 [Fluentd 페이지](/docs/telemetry/fluentd)에서 설명하는 대로 읽힙니다. `format`을 아래처럼 `json_lines`로, 또는 `json`이나 `json_stream`으로 설정하세요. OneUptime은 셋 다 읽으며, `compress: gzip`으로 압축했든 안 했든 같습니다. Fluent Bit의 기본 형식인 `msgpack`은 거부됩니다.
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

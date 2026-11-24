@@ -438,6 +438,64 @@ describe("SecurityBlockService", () => {
       );
     });
 
+    test("an automatic response policy's block is the policy's: its source, its id, a challenge that falls back to a block, and its name on the case (#10350)", async () => {
+      const runId: ObjectID = ObjectID.generate();
+      const policyId: ObjectID = ObjectID.generate();
+
+      const outcome: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "35.205.11.131",
+        action: SecurityBlockAction.Challenge,
+        duration: SecurityBlockDuration.OneHour,
+        source: SecurityBlockSource.AutomaticResponse,
+        securityPlaybookRunId: runId,
+        securityAutomaticResponsePolicyId: policyId,
+        securityAutomaticResponsePolicyName: "Scanners",
+        challengeFallsBackToBlock: true,
+        securityCaseId: CASE_ID,
+        props: ROOT,
+      });
+
+      expect(outcome.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+      expect(rows()[0]!["source"]).toBe(SecurityBlockSource.AutomaticResponse);
+      expect(String(rows()[0]!["securityAutomaticResponsePolicyId"])).toBe(
+        policyId.toString(),
+      );
+      expect(String(rows()[0]!["securityPlaybookRunId"])).toBe(
+        runId.toString(),
+      );
+      expect(rows()[0]!["challengeFallsBackToBlock"]).toBe(true);
+      expect(rows()[0]!["createdByUserId"]).toBeFalsy();
+      expect(feedLines()[0]).toContain(
+        "The Scanners policy challenged `35.205.11.131` for 1 hour.",
+      );
+    });
+
+    test("only a challenge falls back to a block, and only OneUptime's own write says so", async () => {
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "35.205.11.131",
+        action: SecurityBlockAction.Block,
+        source: SecurityBlockSource.AutomaticResponse,
+        challengeFallsBackToBlock: true,
+        props: ROOT,
+      });
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "35.205.11.132",
+        action: SecurityBlockAction.Challenge,
+        challengeFallsBackToBlock: true,
+        securityAutomaticResponsePolicyId: ObjectID.generate(),
+        props: member(SECURITY_MEMBER),
+      });
+
+      expect(rows()[0]!["challengeFallsBackToBlock"]).toBeFalsy();
+      // A person's challenge never becomes a block behind their back.
+      expect(rows()[1]!["challengeFallsBackToBlock"]).toBeFalsy();
+      expect(rows()[1]!["securityAutomaticResponsePolicyId"]).toBeFalsy();
+      expect(rows()[1]!["source"]).toBe(SecurityBlockSource.Person);
+    });
+
     test("an API key's block is the API's, with no person on it", async () => {
       const props: DatabaseCommonInteractionProps = {
         ...customDomainCaller({

@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Neue Logs werden maskiert,<br/>bevor sie gespeichert werden"]
 ```
 
-Ein Fund, den eine Bereinigungsregel abdeckt, wird als bereinigt markiert: Was von diesen Daten übrig ist, sind alte Daten, die auf das Ende ihrer Aufbewahrung warten, kein Leck, das noch fließt. Die beiden Telemetrieprüfungen zählen nur, was keine Regel abdeckt, sodass ihr Problem behoben wird, sobald jeder Fund bereinigt ist (siehe [Telemetrieprüfungen](/docs/data-security/checks-and-issues#telemetrie)).
+Ein Fund, den eine Bereinigungsregel abdeckt, wird als bereinigt markiert: Was OneUptime von diesen Daten speichert, sind alte Daten, die auf das Ende ihrer Aufbewahrung warten. Der Code schreibt sie aber weiterhin, deshalb zählen die beiden Telemetrieprüfungen den Fund als eingedämmt, nicht als behoben: Ihr Problem wird als **Bei der Aufnahme eingedämmt** abgeschlossen, sobald jeder Fund bereinigt ist, und als **Im Code korrigiert** erst, wenn die neue Version einer Code-Korrektur die Daten nicht mehr schreibt (siehe [Was mit einem Problem geschieht](/docs/data-security/checks-and-issues#was-mit-einem-problem-geschieht)).
 
 ## Was gelesen wird
 

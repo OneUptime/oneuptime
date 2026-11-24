@@ -101,22 +101,44 @@ enum ProbeCapability {
 export const FIRST_PROBE_VERSION_WITH_SNMP_TABLES: string = "14.0.18";
 
 /*
- * The first probe release that makes one-time codes (ProbeCapability.TotpCodes)
- * and reports its own version on every request (probeVersion in the body). The
- * codes arrived after 17.0.0 was cut from main, so they ship in the release
- * after it: 17.0.1, or whatever later number it is given, which compares as
- * at least this.
+ * HOW A FEATURE'S FIRST RELEASE IS KNOWN, AND WHY NO SENTENCE NAMES IT
+ * BEFORE IT SHIPS.
+ *
+ * A release is cut from main as a branch (release-<version>, RELEASING.md)
+ * and ships what main held at the cut: whatever main merges after it - a
+ * new capability among it - waits for the next release, whose number is
+ * decided only when it is cut. So the first release of a feature merged
+ * after a cut is "the release after that one", at least its next patch
+ * number, which every later number compares as at least - the number is
+ * right for comparing a probe's release (ProbeReportedVersionUtil) - but
+ * may never be a release at all: 17.0.1, the number one-time codes were
+ * first given, was never released, and they shipped in 17.1.0. So the
+ * sentences that tell someone to update a probe (the failure causes, the
+ * monitor forms) name no release, and say to update to the latest one,
+ * which always has every feature a release has shipped. A number is
+ * written down here once its release is out, as one-time codes' is.
  */
-export const FIRST_PROBE_VERSION_WITH_TOTP_CODES: string = "17.0.1";
+
+/*
+ * The first probe release that makes one-time codes (ProbeCapability.TotpCodes)
+ * and reports its own version on every request (probeVersion in the body):
+ * 17.1.0. The codes (#9721, #9778) were merged after 17.0.0 was cut from
+ * main, and no 17.0.1 was ever released.
+ */
+export const FIRST_PROBE_VERSION_WITH_TOTP_CODES: string = "17.1.0";
 
 /*
  * The first probe release that sends any request body
  * (ProbeCapability.AnyRequestBody): an array or a single value (#9737) and
- * a body sent as text (#10736) came after 17.1.0 was released, so they
- * ship in the release after it: 17.2.0, or whatever later number it is
- * given, which compares as at least this.
+ * a body sent as text (#10736). #10754, which brought the capability, was
+ * merged into main on 2026-11-23, after release-17.2.0 was cut from it,
+ * and a release branch never takes main's later commits (RELEASING.md):
+ * so it ships in the release after 17.2.0, 17.2.1 or whatever later
+ * number it is given, which compares as at least this. A 17.2.0 probe
+ * never declares the capability, and is too old. Write the release here
+ * once it is out.
  */
-export const FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY: string = "17.2.0";
+export const FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY: string = "17.2.1";
 
 // How many capabilities, of how many characters, a request is read for.
 export const MAX_PROBE_CAPABILITIES: number = 32;

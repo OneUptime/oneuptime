@@ -80,9 +80,10 @@ describe("the count's query", () => {
       "sum(greatest(toUInt64(1), toUInt64OrZero(attributes[",
     );
     expect(statement.query).toContain("AS maxSampleInterval");
-    expect(statement.query).toContain("principalIp = ");
+    expect(statement.query).toContain("principalIp IN ");
     expect(statement.query).toContain("vendorName = ");
-    expect(params).toContain(ADDRESS);
+    // The address and the same address as a dual-stack server maps it (#10744).
+    expect(params).toContainEqual([ADDRESS, `::ffff:${ADDRESS}`]);
     expect(params).toContain(getCloudflareVendorName());
     expect(asText).toContain("oneuptime.edge.sample_interval");
     expect(asText).toContain("oneuptime.edge.action");
@@ -128,6 +129,38 @@ describe("the count's query", () => {
     expect(statement.query).not.toContain("DROP TABLE");
     expect(statement.query).not.toContain("1=1");
   });
+
+  /*
+   * Cloudflare writes an IPv6 client compressed (2001:db8::7), and a case
+   * keeps the address its block step is about written out
+   * (2001:db8:0:0:0:0:0:7): the count read only the case's spelling, so
+   * it found nothing Cloudflare stopped of an IPv6 address (#10744).
+   */
+  test.each([
+    "2001:db8:0:0:0:0:0:7",
+    "2001:db8::7",
+    "2001:0DB8:0000:0000:0000:0000:0000:0007",
+  ])(
+    "an IPv6 address the case writes %s is read in every spelling an event may hold it in",
+    (address: string) => {
+      const statement: Statement = statementFor({ address });
+      const spellings: Array<string> | undefined = paramsOf(statement).find(
+        (value: unknown): boolean => {
+          return Array.isArray(value) && value.includes("2001:db8::7");
+        },
+      ) as Array<string> | undefined;
+
+      expect(statement.query).toContain("principalIp IN ");
+      expect(statement.query).not.toContain("2001:");
+      expect(spellings).toEqual(
+        expect.arrayContaining([
+          "2001:db8::7",
+          "2001:db8:0:0:0:0:0:7",
+          "2001:DB8::7",
+        ]),
+      );
+    },
+  );
 });
 
 describe("the count's row", () => {

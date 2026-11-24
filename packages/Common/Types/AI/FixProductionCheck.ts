@@ -15,10 +15,24 @@ import CodeFixTaskType from "./CodeFixTaskType";
  *   - Telemetry: a telemetry improvement (ImproveInstrumentation,
  *     ImproveLogging, ImproveTracing). The spans, attributes and log fields
  *     it adds arrive from the deployed fix.
+ *   - TelemetryLeak: a code fix of a Data Security telemetry issue (#10368)
+ *     - a task in Code asked from the issue (Fix with AI, #10362), or a
+ *     service's leaks fixed in one pull request (#10367). The service's
+ *     new version writes no more of the data, over enough of its traffic:
+ *     the scrub rules that contain it change no value in that version, or,
+ *     with no rule, its records hold none of it.
+ *   - StoreConfiguration: a fix of a cloud store's Data Security issue in
+ *     the infrastructure code that declares it - a group's one pull request
+ *     (FixInfrastructureCode, #10370), or a task asked from the issue. The
+ *     store's configuration, read again, passes the issue's check; a day of
+ *     failing is "merged, not applied".
  *
- * Every other recipe changes nothing production can show - a regression
- * test, better exception handling, a review, a request in Code - and is not
- * watched.
+ * Which Data Security check a merged pull request is watched with is read
+ * from its task, not its recipe alone: a request in Code is watched only
+ * when it names a Data Security issue (Server/Utils/AI/CodeFix/
+ * FixProductionCheckPicker). Every other recipe changes nothing production
+ * can show - a regression test, better exception handling, a review, a
+ * request in Code - and is not watched.
  *
  * Stored on AIAgentTaskPullRequest.productionCheck; a wire contract - do not
  * rename. A watched row without one is an exception fix: the only kind
@@ -29,10 +43,17 @@ enum FixProductionCheck {
   Performance = "Performance",
   Recurrence = "Recurrence",
   Telemetry = "Telemetry",
+  TelemetryLeak = "TelemetryLeak",
+  StoreConfiguration = "StoreConfiguration",
 }
 
 export class FixProductionCheckHelper {
-  // The check a merged fix of this recipe is watched with, or null for none.
+  /*
+   * The check a merged fix of this recipe is watched with, or null for
+   * none. A Data Security fix is told apart by what its task names
+   * (FixProductionCheckPicker): its recipe alone picks the infrastructure
+   * fix of a group (#10370), whose task is always a store's.
+   */
   public static forTaskType(
     taskType: CodeFixTaskType,
   ): FixProductionCheck | null {
@@ -47,6 +68,8 @@ export class FixProductionCheckHelper {
       case CodeFixTaskType.ImproveLogging:
       case CodeFixTaskType.ImproveTracing:
         return FixProductionCheck.Telemetry;
+      case CodeFixTaskType.FixInfrastructureCode:
+        return FixProductionCheck.StoreConfiguration;
       default:
         return null;
     }
@@ -68,6 +91,16 @@ export class FixProductionCheckHelper {
     )
       ? (value as FixProductionCheck)
       : undefined;
+  }
+
+  // A check of a Data Security fix (#10368): its issue is resolved by it.
+  public static isDataSecurityCheck(
+    check: FixProductionCheck | undefined,
+  ): boolean {
+    return (
+      check === FixProductionCheck.TelemetryLeak ||
+      check === FixProductionCheck.StoreConfiguration
+    );
   }
 }
 

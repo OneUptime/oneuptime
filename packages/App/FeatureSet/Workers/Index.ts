@@ -32,6 +32,9 @@ import "./Jobs/SloOwners/SendOwnerAddedNotification";
 // Exceptions assigned to a person or a team: told to them.
 import "./Jobs/TelemetryException/SendAssignedNotification";
 
+// An exception's former fingerprint, once no occurrence carries it: deleted.
+import "./Jobs/TelemetryException/RetireFormerFingerprints";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 import "./Jobs/Monitor/ClearStoredLogScreenshots";
@@ -345,6 +348,8 @@ import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
 import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";
 import "./Jobs/SecurityBlocklist/CheckFeedsAreRead";
 import "./Jobs/SecurityBlocklist/PurgeFeedFetches";
+import "./Jobs/SecurityAutomaticResponse/DecideAutomaticResponse";
+import "./Jobs/SecurityAutomaticResponse/AutomaticResponseSweeps";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

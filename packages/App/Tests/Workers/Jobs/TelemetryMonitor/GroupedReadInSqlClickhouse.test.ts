@@ -820,9 +820,35 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
       aggregationType: MetricsAggregationType.Avg,
     });
 
+    const settingsSeen: Array<unknown> = [];
+
+    // The run's own settings, the older analyzer's switched off.
+    const withOlderAnalyzer: (
+      runOptions?: ClickhouseExecuteOptions,
+    ) => ClickhouseExecuteOptions = (
+      runOptions?: ClickhouseExecuteOptions,
+    ): ClickhouseExecuteOptions => {
+      const clickhouseSettings: ClickHouseSettings = {
+        ...(runOptions?.clickhouseSettings || {}),
+        [setting.name]: 0,
+      } as ClickHouseSettings;
+      settingsSeen.push(
+        (clickhouseSettings as Record<string, unknown>)[setting.name],
+      );
+      return {
+        ...(runOptions || {}),
+        clickhouseSettings: clickhouseSettings,
+      };
+    };
+
+    /*
+     * Every read of the run, whichever way it is read: a grouped aggregate's
+     * rows as they arrive (#10316), any other read as one document.
+     */
     const executeQuery: typeof MetricService.executeQuery =
       MetricService.executeQuery.bind(MetricService);
-    const settingsSeen: Array<unknown> = [];
+    const readRowsAsTheyArrive: typeof MetricService.readRowsAsTheyArrive =
+      MetricService.readRowsAsTheyArrive.bind(MetricService);
 
     jest
       .spyOn(MetricService, "executeQuery")
@@ -831,17 +857,22 @@ integration("Grouped infrastructure reads, grouped in SQL", () => {
           statement: Statement | string,
           runOptions?: ClickhouseExecuteOptions,
         ): Promise<never> => {
-          const clickhouseSettings: ClickHouseSettings = {
-            ...(runOptions?.clickhouseSettings || {}),
-            [setting.name]: 0,
-          } as ClickHouseSettings;
-          settingsSeen.push(
-            (clickhouseSettings as Record<string, unknown>)[setting.name],
-          );
-          return executeQuery(statement, {
-            ...(runOptions || {}),
-            clickhouseSettings: clickhouseSettings,
-          }) as Promise<never>;
+          return executeQuery(
+            statement,
+            withOlderAnalyzer(runOptions),
+          ) as Promise<never>;
+        },
+      );
+    jest
+      .spyOn(MetricService, "readRowsAsTheyArrive")
+      .mockImplementation(
+        (
+          read: Parameters<typeof MetricService.readRowsAsTheyArrive>[0],
+        ): ReturnType<typeof MetricService.readRowsAsTheyArrive> => {
+          return readRowsAsTheyArrive({
+            ...read,
+            options: withOlderAnalyzer(read.options),
+          });
         },
       );
 

@@ -65,6 +65,7 @@ import {
 import { readOneStepRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
 import { isOneUptimeAiRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import ProductBrandingText from "../ProductBrandingText";
+import SecurityCaseResponseAfterClose from "../AI/Security/Response/SecurityCaseResponseAfterClose";
 import SecurityCaseResponseNudge from "../AI/Security/Response/SecurityCaseResponseNudge";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
@@ -204,6 +205,7 @@ export default class SecurityPlaybookEngine {
         threatIntelMatched: true,
         startedAt: true,
         triggeredByUserId: true,
+        securityAutomaticResponsePolicyId: true,
         trigger: true,
         createdAt: true,
       },
@@ -645,6 +647,8 @@ export default class SecurityPlaybookEngine {
           triggeredByUserId: run.triggeredByUserId,
           targets: results[index]!.targets,
           isOneStepRun,
+          automaticResponsePolicyId:
+            run.securityAutomaticResponsePolicyId || undefined,
           isOneUptimeAi,
         });
       } catch (error) {
@@ -988,10 +992,15 @@ export default class SecurityPlaybookEngine {
 
     /*
      * One of OneUptime AI's own steps finished (#10352): it looks at the
-     * case again, and reads how the step went.
+     * case again, and reads how the step went. A close of its own ended its
+     * work on the case, so what follows that close - its closing report, and
+     * for a false positive or a benign case the case's blocks lifted and its
+     * rule offered an exception - is carried out here, at once, with no look
+     * (#10847, SecurityCaseResponseAfterClose). Neither throws.
      */
     if (finished && data.aiCase) {
       await SecurityCaseResponseNudge.lookNow(data.aiCase);
+      await SecurityCaseResponseAfterClose.followUp(data.aiCase);
     }
 
     if (!finished || !data.feed) {

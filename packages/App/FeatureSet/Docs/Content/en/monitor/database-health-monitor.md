@@ -377,7 +377,7 @@ Counters ending in `total` are cumulative since the server started. Compare two 
 
 Thresholds are whole numbers. Write `90`, not `90.5` — percentages and seconds are compared as integers.
 
-**Database Is Online** and **Database Metric** can be checked over time: tick **Evaluate this criteria over a period of time**, then pick how to **Evaluate** the values (for example **All Values**) and **For the last (in minutes)**. Over time, the filter's **If No Data** setting decides what a missing value means; keep it on **Ignore** so a missing grant still cannot page anyone.
+**Database Is Online** and **Database Metric** can be checked over time: tick **Evaluate this criteria over a period of time**, then pick how to **Evaluate** the values (for example **All Values**) and **For the last**. Over time, the filter's **If No Data** setting decides what a missing value means; keep it on **Ignore** so a missing grant still cannot page anyone.
 
 ### JavaScript expression variables
 

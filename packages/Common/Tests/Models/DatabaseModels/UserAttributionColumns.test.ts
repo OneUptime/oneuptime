@@ -283,6 +283,13 @@ describe("which columns record a person doing something", () => {
       "accepted",
       "acknowledged",
       "added",
+      /*
+       * SecurityCase.aiHoldEndedByUserId: who ended OneUptime AI's hold of a
+       * case's alerts, by pressing Page now or taking the case (#10353).
+       * SecurityCaseAiHold stamps it from the person who ended it, and leaves
+       * it empty when OneUptime ended it; no request chooses it.
+       */
+      "aiHoldEnded",
       "answered",
       "approved",
       "archived",
@@ -293,6 +300,13 @@ describe("which columns record a person doing something", () => {
        */
       "closed",
       "created",
+      /*
+       * SecurityCaseAiAction.decidedByUserId: who approved or declined what
+       * OneUptime AI asked on a case it works (#10352). The decisions on the
+       * case's card (SecurityCaseResponseDecisions, SecurityCaseHandOff)
+       * stamp it from the caller; no request chooses it.
+       */
+      "decided",
       "dismissed",
       /*
        * SecurityCaseTask.doneByUserId: who ticked a task on a security case
@@ -314,6 +328,13 @@ describe("which columns record a person doing something", () => {
        * once the approval has passed its checks; no request chooses it.
        */
       "firstApproved",
+      /*
+       * DataSecurityIssueGroup.fixRequestedByUserId: who last asked for a
+       * group of Data Security issues to be fixed in Code (#10370).
+       * DataSecurityIssueGroupFix stamps it from the caller, and leaves it
+       * empty for OneUptime AI; no request chooses it.
+       */
+      "fixRequested",
       "humanVerdict",
       /*
        * <every model>.lastModifiedByUserId: the person who last modified a
@@ -353,6 +374,13 @@ describe("which columns record a person doing something", () => {
        * never writable through the API, so no request chooses it.
        */
       "merged",
+      /*
+       * SecurityAutomaticResponsePolicy.modeChangedByUserId: who last turned
+       * an automatic response policy off, into its trial run or on (#10350).
+       * The policy service stamps it from the caller as the mode changes;
+       * no request chooses it.
+       */
+      "modeChanged",
       "overrided",
       "pinned",
       "previewSeen",
@@ -404,6 +432,13 @@ describe("which columns record a person doing something", () => {
        * transcript routes stamp it from the caller; no request chooses it.
        */
       "transcriptAdded",
+      /*
+       * SecurityAutomaticResponsePolicy.trialSkippedByUserId: who turned a
+       * policy on before its week of trial run was over (#10350). The policy
+       * service stamps it from the caller as the policy is turned on, and
+       * clears it when a trial run starts again; no request chooses it.
+       */
+      "trialSkipped",
       "triggered",
       /*
        * DataSecurityComplianceSetting.turnedOffByUserId: who last turned a
@@ -414,6 +449,13 @@ describe("which columns record a person doing something", () => {
        * again; no request chooses it.
        */
       "turnedOff",
+      /*
+       * SecurityAutomaticResponsePolicy.turnedOnByUserId: who turned an
+       * automatic response policy on (#10350) - the approval its blocks run
+       * without. The policy service stamps it from the caller as the policy
+       * is turned on; no request chooses it.
+       */
+      "turnedOn",
       /*
        * DataSecurityAiProposal.undoneByUserId: who undid a change OneUptime
        * AI made for a Data Security issue (#10364). DataSecurityAiProposals

@@ -219,6 +219,91 @@ export class JsonElementTally {
     return true;
   }
 
+  /*
+   * Counts bytes from `start` as add does, up to the end of the JSON object
+   * or array that opens there: the bracket that brings it back to the
+   * depth it opened at. One value of a stream of them, one after another
+   * with nothing between them, or only whitespace (#10796: Fluent Bit's
+   * json_stream, RequestBodyJson.parseStream). A value ends where its
+   * outermost bracket closes, which only this walk knows: a bracket inside
+   * a string, escaped quotes and all, is no bracket.
+   *
+   * Answers the index just past that bracket, or -1 when the value cannot
+   * be read here: bytes[start] opens no object or array, the bytes end
+   * before it closes, or the count passes a limit (getCount().passed says
+   * which; nothing after the value that passed it is read). The counts
+   * add up over the values of one tally, as add's do over its pieces, so
+   * a stream is held to the limits a whole body is.
+   *
+   * Only where the brackets close is read: whether the value is JSON is
+   * JSON.parse's to say, after it.
+   */
+  public addValue(
+    bytes: Uint8Array,
+    start: number,
+    end?: number | undefined,
+  ): number {
+    if (this.passed || this.inString || this.inLiteral) {
+      return -1;
+    }
+
+    const stop: number = Math.min(end ?? bytes.length, bytes.length);
+    const first: number | undefined = bytes[start];
+
+    if (
+      start < 0 ||
+      start >= stop ||
+      (first !== OPEN_BRACE && first !== OPEN_BRACKET)
+    ) {
+      return -1;
+    }
+
+    let depth: number = 0;
+    let index: number = start;
+
+    while (index < stop) {
+      if (this.inString) {
+        index = this.skipStringBytes(bytes, index, stop);
+        continue;
+      }
+
+      const code: number = bytes[index]!;
+
+      if (this.inLiteral) {
+        if (!endsLiteral(code)) {
+          index++;
+          continue;
+        }
+
+        this.inLiteral = false;
+      }
+
+      // A closing bracket counts as no value (countCharacter's separator).
+      if (code === CLOSE_BRACE || code === CLOSE_BRACKET) {
+        index++;
+        depth--;
+
+        if (depth === 0) {
+          return index;
+        }
+
+        continue;
+      }
+
+      if (code === OPEN_BRACE || code === OPEN_BRACKET) {
+        depth++;
+      }
+
+      if (!this.countCharacter(code)) {
+        return -1;
+      }
+
+      index++;
+    }
+
+    return -1;
+  }
+
   public getCount(): JsonElementTallyCount {
     return {
       values: this.values,

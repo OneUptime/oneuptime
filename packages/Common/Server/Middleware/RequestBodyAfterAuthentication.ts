@@ -110,7 +110,24 @@ export interface ReadBodyOptions {
    * body as its bytes: for a route that takes records a line at a time.
    */
   readLines?: boolean | undefined;
+  /*
+   * A JSON body that is no one JSON document read as JSON objects one
+   * after another (RequestBodyJson.parseStream): for a route that takes
+   * records sent so, as Fluent Bit's json_stream sends them (#10796).
+   */
+  readJsonStream?: boolean | undefined;
 }
+
+// JSON that did not parse: body-parser's refusal, or createJsonParseFailedError.
+const isJsonParseFailure: (error: unknown) => boolean = (
+  error: unknown,
+): boolean => {
+  return (
+    Boolean(error) &&
+    typeof error === "object" &&
+    (error as { type?: unknown }).type === "entity.parse.failed"
+  );
+};
 
 // Whether a Content-Type is a text type (text/plain, text/csv...), in any case.
 export const isTextContentType: (contentType: string | undefined) => boolean = (
@@ -308,6 +325,18 @@ export default class RequestBodyAfterAuthentication {
    *
    * Either way the same, sent as it is or gzip-compressed (or deflate).
    *
+   * `readJsonStream`, for a route that takes records as JSON objects one
+   * after another (#10796: Fluent Bit's json_stream, sent as
+   * application/json). A JSON body is read as one document first, exactly
+   * as without it: only one that is refused as no JSON - body-parser's
+   * entity.parse.failed, or a gzip one's with parseGzipJson - is read again,
+   * from the text already read, as a stream of JSON objects
+   * (RequestBodyJson.parseStream): its records in req.body, its text kept as
+   * rawBody. A body that is no such stream either keeps its refusal (400, in
+   * the words JSON that does not parse gets), and one past the limit's
+   * values is refused 413 before the record that passes it is parsed. The
+   * same sent as it is, gzip-compressed or deflate.
+   *
    * For a route whose key is in its headers or its path, checked before
    * this runs (TelemetryIngest.forSurface takes it, to read the body between
    * the key and the ingestion budget). A request refused before it - no
@@ -321,6 +350,7 @@ export default class RequestBodyAfterAuthentication {
   ): RequestHandler {
     const parseGzipJson: boolean = Boolean(options?.parseGzipJson);
     const readLines: boolean = Boolean(options?.readLines);
+    const readJsonStream: boolean = Boolean(options?.readJsonStream);
 
     return (
       req: ExpressRequest,
@@ -335,8 +365,17 @@ export default class RequestBodyAfterAuthentication {
         req,
         res,
         ((err?: unknown): void => {
-          if (err) {
-            return next(err);
+          const refusal: unknown =
+            err && readJsonStream
+              ? RequestBodyAfterAuthentication.readRefusedJsonAsStream(
+                  req,
+                  err,
+                  limit,
+                )
+              : err;
+
+          if (refusal) {
+            return next(refusal);
           }
 
           AppBodyParsers.readForm(
@@ -369,7 +408,11 @@ export default class RequestBodyAfterAuthentication {
               }
 
               return next(
-                RequestBodyAfterAuthentication.parseInflatedJson(req, limit),
+                RequestBodyAfterAuthentication.parseInflatedJson(
+                  req,
+                  limit,
+                  readJsonStream,
+                ),
               );
             }) as NextFunction,
             limit,
@@ -427,14 +470,79 @@ export default class RequestBodyAfterAuthentication {
   }
 
   /*
+   * A JSON body body-parser refused as no JSON (readBody's readJsonStream,
+   * #10796), read as JSON objects one after another, from the text its JSON
+   * parser kept as rawBody: what body-parser read (inflated, when it came
+   * deflate), each value counted before it is parsed. Answers what the
+   * body is refused with: nothing once its records are in req.body, the
+   * refusal it had when it is no such stream either, or the 413 of a
+   * stream past the limit. Any other refusal is answered as it is.
+   */
+  private static readRefusedJsonAsStream(
+    req: ExpressRequest,
+    err: unknown,
+    limit: RequestBodyLimit,
+  ): unknown {
+    if (
+      !isJsonParseFailure(err) ||
+      !isJsonContentType(headerValueToString(req.headers["content-type"]))
+    ) {
+      return err;
+    }
+
+    const text: unknown = (req as OneUptimeRequest).rawBody;
+
+    if (typeof text !== "string" || !text) {
+      return err;
+    }
+
+    const records: Array<unknown> | null | Error =
+      RequestBodyAfterAuthentication.parseStreamOrRefusal(
+        Buffer.from(text, "utf8"),
+        limit,
+      );
+
+    if (records instanceof Error) {
+      return records;
+    }
+
+    if (!records) {
+      return err;
+    }
+
+    (req as { body?: unknown }).body = records;
+
+    return undefined;
+  }
+
+  /*
+   * RequestBodyJson.parseStream's records, null when the bytes are no
+   * stream, or the 413 it refuses a stream past the limit with.
+   */
+  private static parseStreamOrRefusal(
+    bytes: Buffer,
+    limit: RequestBodyLimit,
+  ): Array<unknown> | null | Error {
+    try {
+      return RequestBodyJson.parseStream(bytes, limit);
+    } catch (streamErr) {
+      return streamErr as Error;
+    }
+  }
+
+  /*
    * A gzip JSON body readBody left as its inflated bytes, parsed in place
    * (parseJson) and its text kept as rawBody, as StartServer's JSON parser
-   * keeps it. Answers the error it is refused with, or nothing. Any other
-   * body - parsed already, protobuf, of no JSON type - is left as it is.
+   * keeps it. With `readJsonStream`, bytes that are no one JSON document
+   * are read as JSON objects one after another, as the same body sent
+   * uncompressed is (readRefusedJsonAsStream). Answers the error it is
+   * refused with, or nothing. Any other body - parsed already, protobuf, of
+   * no JSON type - is left as it is.
    */
   private static parseInflatedJson(
     req: ExpressRequest,
     limit: RequestBodyLimit,
+    readJsonStream: boolean,
   ): Error | undefined {
     const body: unknown = (req as { body?: unknown }).body;
 
@@ -445,23 +553,38 @@ export default class RequestBodyAfterAuthentication {
       return undefined;
     }
 
+    const bytes: Buffer = Buffer.isBuffer(body)
+      ? body
+      : Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+
     const parsed: ParsedRequestBody = RequestBodyAfterAuthentication.parseJson(
       req,
       limit,
     );
 
-    if ("error" in parsed) {
+    let value: unknown;
+
+    if (!("error" in parsed)) {
+      value = parsed.body;
+    } else if (readJsonStream && isJsonParseFailure(parsed.error)) {
+      const records: Array<unknown> | null | Error =
+        RequestBodyAfterAuthentication.parseStreamOrRefusal(bytes, limit);
+
+      if (records instanceof Error) {
+        return records;
+      }
+
+      if (!records) {
+        return parsed.error;
+      }
+
+      value = records;
+    } else {
       return parsed.error;
     }
 
-    keepRawBody(
-      req as OneUptimeRequest,
-      Buffer.isBuffer(body)
-        ? body
-        : Buffer.from(body.buffer, body.byteOffset, body.byteLength),
-      ["rawBody"],
-    );
-    (req as { body?: unknown }).body = parsed.body;
+    keepRawBody(req as OneUptimeRequest, bytes, ["rawBody"]);
+    (req as { body?: unknown }).body = value;
 
     return undefined;
   }

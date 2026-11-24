@@ -26,10 +26,10 @@ import DataTypesToReview, {
   DataTypeToReview,
 } from "../../Components/DataSecurity/DataTypesToReview";
 import { ADD_DATA_TYPE_PARAM } from "./Settings/DataTypes";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Navigation from "Common/UI/Utils/Navigation";
 import { getDataSecurityIssueRoute } from "../../Components/DataSecurity/StoreIssuesTable";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import Route from "Common/Types/API/Route";
@@ -84,14 +84,51 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * shows.
  */
 
+/*
+ * What a row opens: its issue; a proposal for no issue opens what it
+ * changes - a store's own findings or scans (#10372, #10374), or the data
+ * types the project's scans look for.
+ */
+export function getDataSecurityAiProposalRoute(item: {
+  dataSecurityIssueId?: ObjectID | undefined;
+  dataStoreId?: ObjectID | undefined;
+  kind?: string | undefined;
+}): Route {
+  if (item.dataSecurityIssueId) {
+    return getDataSecurityIssueRoute(item.dataSecurityIssueId.toString());
+  }
+
+  if (item.dataStoreId) {
+    return item.kind === DataSecurityAiProposalKind.AddScanExclusion
+      ? RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS] as Route,
+          { modelId: new ObjectID(item.dataStoreId.toString()) },
+        )
+      : RouteUtil.populateRouteParams(
+          RouteMap[PageMap.DATA_SECURITY_STORE_VIEW_INSIDE] as Route,
+          { modelId: new ObjectID(item.dataStoreId.toString()) },
+        );
+  }
+
+  return item.kind === DataSecurityAiProposalKind.TurnOffDataType
+    ? RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES] as Route,
+      )
+    : RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATA_SECURITY_AI] as Route,
+      );
+}
+
 const openIssue: (item: {
   dataSecurityIssueId?: ObjectID | undefined;
+  dataStoreId?: ObjectID | undefined;
+  kind?: string | undefined;
 }) => Promise<Route> = (item: {
   dataSecurityIssueId?: ObjectID | undefined;
+  dataStoreId?: ObjectID | undefined;
+  kind?: string | undefined;
 }): Promise<Route> => {
-  return Promise.resolve(
-    getDataSecurityIssueRoute(item.dataSecurityIssueId!.toString()),
-  );
+  return Promise.resolve(getDataSecurityAiProposalRoute(item));
 };
 
 const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
@@ -271,7 +308,11 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
           description: DataSecurityAiPageCopy.doneDescription,
         }}
         noItemsMessage={DataSecurityAiPageCopy.doneEmpty}
-        selectMoreFields={{ dataSecurityIssueId: true }}
+        selectMoreFields={{
+          dataSecurityIssueId: true,
+          dataStoreId: true,
+          kind: true,
+        }}
         actionButtons={[
           {
             title: DataSecurityAiPageCopy.undo,

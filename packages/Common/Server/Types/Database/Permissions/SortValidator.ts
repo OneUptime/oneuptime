@@ -26,6 +26,7 @@ import UserAttribution from "../../../../Types/Database/UserAttribution";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import Permission from "../../../../Types/Permission";
 import PendingInviteeProfiles from "../../../Utils/TeamMember/PendingInviteeProfiles";
 import HeldPermissionsUtil, {
   HeldPermissions,
@@ -744,7 +745,9 @@ export default class SortValidator {
    * reader of the relation may read (canReadOnRelationQuery, and the ids and
    * times every select may name), never a secret, one read only by its own
    * user, or a person's account dates, which no relation is ordered by
-   * (#9823).
+   * (#9823). The fields the API reference publishes for a relation's sort
+   * (ModelSchema.getRelationSortFields), so a client generated from it can
+   * send the one a refusal suggests.
    */
   private static getRelatedFieldsToSortBy(
     relatedModel: BaseModel,
@@ -768,10 +771,23 @@ export default class SortValidator {
         return false;
       }
 
+      /*
+       * A time is read through a relation with the record's own read
+       * permissions, as a select names it (QueryPermission
+       * .checkRelationQueryPermission) and the API reference publishes it.
+       * A record read only through other records - a Data Security issue
+       * group, which only Data Security's own routes answer (#10370) - has
+       * none, so offers its id and its labels, and no time.
+       */
+      const readers: Array<Permission> =
+        relatedModel.getColumnAccessControlFor(key)?.read ||
+        relatedModel.getReadPermissions() ||
+        [];
+
       // Not a column a relation reads for some of its readers alone (#10281).
       return (
-        alwaysReadable.includes(key) ||
-        RelationReadersUtil.isReadByEveryReaderOfTheRelation(column)
+        RelationReadersUtil.isReadByEveryReaderOfTheRelation(column) ||
+        (alwaysReadable.includes(key) && readers.length > 0)
       );
     });
   }
@@ -779,7 +795,9 @@ export default class SortValidator {
   /*
    * The field of a related record a refusal suggests: its place in its
    * list, for a record of a list people put in order (a severity, a state,
-   * a status); else the field it is called by; else when it was created.
+   * a status); else the field it is called by; else when it was created;
+   * else, for a record that offers no time (getRelatedFieldsToSortBy), its
+   * id.
    */
   private static getSuggestedField(relatedModel: BaseModel): SuggestedField {
     const fields: Array<string> =
@@ -809,10 +827,18 @@ export default class SortValidator {
       }
     }
 
+    if (fields.includes("createdAt")) {
+      return {
+        field: "createdAt",
+        order: SortOrder.Ascending,
+        sortsBy: "when it was created, oldest first",
+      };
+    }
+
     return {
-      field: "createdAt",
+      field: "_id",
       order: SortOrder.Ascending,
-      sortsBy: "when it was created, oldest first",
+      sortsBy: "its id, which keeps the records of each one together",
     };
   }
 

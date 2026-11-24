@@ -189,6 +189,42 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372):
+   * Confirm it, Not sensitive or Cannot tell, and the signs of a wrong
+   * match, as a finding's row, the findings' filter and Apply to Similar
+   * Findings draw them. The server keeps the same file's English. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+    kind: "keys",
+  },
+  /*
+   * The compliance paperwork (#10375): the record of processing's fields,
+   * legal bases, people, statuses and refusals; the kinds of fact a draft
+   * rests on; an impact assessment's parts and why a store needs one; and
+   * why an audit evidence paragraph is refused. Compliance, Review Drafts,
+   * a store's Settings and Impact Assessment draw them; the server keeps the
+   * same files' English for OneUptime AI and the exports. Only the words
+   * the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -491,6 +527,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * blocklist's rules.
    */
   { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
+  /*
+   * The ready automatic response policies' names and descriptions, and
+   * what is wrong with a project's own (#10350): the Automatic Response
+   * page says them in the reader's language, and the server answers an API
+   * client with the same words in English. Only the sentences the files
+   * mark are read: the rest is the policies' rules.
+   */
+  {
+    directory: "packages/Common/Types/SecurityAutomaticResponse",
+    kind: "keys",
+  },
   /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the

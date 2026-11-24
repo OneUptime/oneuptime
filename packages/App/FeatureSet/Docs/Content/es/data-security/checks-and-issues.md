@@ -6,7 +6,7 @@ Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. 
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
 - [Cada comprobación](#cada-comprobación): Las 34, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
-- [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema.
+- [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema, cómo se resolvió cada uno y las correcciones seguidas hasta producción.
 - [El análisis de OneUptime AI](#el-análisis-de-oneuptime-ai): Si un problema es real, lo que pone en riesgo, lo que rompería la corrección y el camino más corto hacia la corrección.
 - [Corrígelo desde aquí](#corrígelo-desde-aquí): Cierra una exposición, o activa una protección que falta, con un clic.
 - [Problemas con una sola causa](#problemas-con-una-sola-causa): Los problemas que causó un mismo error, agrupados, y su causa corregida una sola vez.
@@ -154,13 +154,41 @@ OneUptime abre, actualiza y resuelve problemas a medida que se ejecutan las comp
 | Estado | Cómo llega ahí | Qué sigue |
 | --- | --- | --- |
 | **Abierto** | Su comprobación falla ahora en el almacén. | Cuenta en la Vista general, en el resumen del almacén y en el cumplimiento, hasta que la comprobación se supera. |
-| **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó, o se archivó su almacén. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
+| **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó, o se archivó su almacén. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Indica cómo se resolvió (más abajo). Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
 | **Aceptado** | Una persona eligió **Aceptar el riesgo**, con un **Motivo** y una fecha en **Aceptado hasta**, como máximo a un año. | Sigue cerrado hasta esa fecha, y después se vuelve a abrir si la comprobación sigue fallando. Acéptalo de nuevo entonces si el motivo sigue siendo válido. |
 | **No es un problema** | Una persona eligió **No es un problema** y dijo por qué en **Motivo**: el hallazgo era erróneo. | Sigue cerrado, aunque la comprobación falle, y conserva el motivo. **Reabrir** lo devuelve a Abierto. |
 
 Los Miembros de seguridad, los Administradores de seguridad, los Administradores del proyecto y los Propietarios del proyecto pueden cambiar el estado de un problema y usar **Asignar** para dárselo a una persona o a un equipo. Cada cambio se escribe en la **Cronología** del problema: cuándo se abrió, cada cambio de gravedad, cada cambio de estado y quién lo hizo, las nuevas comprobaciones solicitadas y lo que hicieron las integraciones.
 
 Un problema que se vuelve a abrir conserva su historial. Los riesgos aceptados se revisan cada día, así que uno caduca a tiempo aunque no se haya escaneado nada.
+
+### Cómo se resolvió
+
+Un problema resuelto indica cómo se resolvió, arriba en su página y en la lista de problemas, que puede filtrarse por ello en **Resolución**:
+
+| Resolución | Qué significa |
+| --- | --- |
+| **Corregido en el código** | Se entregó la pull request de una corrección de código, y la nueva versión del servicio ya no escribe los datos. El problema indica cuál y cuándo: «Corregido en la pull request #482, desplegado en la versión 2.4.1, verificado». |
+| **Corregido en el código de infraestructura** | Se fusionó una pull request al Terraform, CloudFormation o Bicep que declara el almacén, y el almacén superó su comprobación una vez aplicado el cambio. |
+| **Corregido desde aquí** | Una acción de respuesta ([Corrígelo desde aquí](#corrígelo-desde-aquí)) cambió el almacén, y su comprobación se superó después. |
+| **Contenido en la ingesta** | Una regla de depuración oculta cada hallazgo de un problema de telemetría antes de que se guarde. Esto no es una corrección: el código sigue escribiendo los datos, en stdout y en cualquier otro lugar al que el servicio envía su telemetría. El problema lo indica en ámbar, con lo que la regla cambió en la última semana, y ofrece **Corregir el código**. |
+| **Comprobación superada** | Su comprobación se supera sin que OneUptime haya hecho ningún cambio. |
+| **Resuelto por una persona** | Alguien eligió **Marcar como resuelto**. El almacén se vuelve a comprobar al momento, y el problema se vuelve a abrir si su comprobación sigue fallando. |
+| **Ya no se comprueba** | Su comprobación se desactivó o ya no se aplica al almacén. |
+| **Almacén archivado** | Su almacén ya no está en su origen. |
+
+La Vista general cuenta por separado los problemas corregidos donde se originan y las fugas que solo se contuvieron en la ingesta, y **En tu telemetría** mantiene a la vista un hallazgo contenido, marcado como **Depurado**, hasta que el código deja de escribirlo.
+
+### Correcciones seguidas hasta producción
+
+Una pull request que OneUptime AI abrió para un problema (**Corregir con IA**, o una sola pull request para un [grupo de problemas](#problemas-con-una-sola-causa)) todavía no ha corregido nada cuando se fusiona. OneUptime la sigue hasta que producción lo demuestra:
+
+- **Una fuga en el código.** OneUptime espera un despliegue registrado del servicio que contenga la fusión y luego vigila su nueva versión. Donde una regla de depuración oculta los datos, la regla no debe cambiar ningún valor en esa versión; donde ninguna regla lo hace, ninguna entrada de esa versión puede contener los datos en los lugares donde se encontraron. Además, la nueva versión debe ejecutarse un día y enviar al menos tantos registros o spans como envió la anterior en la hora en que se vio la fuga por última vez. Entonces el problema queda **Corregido en el código**. Un solo valor cambiado, o una sola entrada que todavía contiene los datos, significa que la corrección no detuvo la fuga, y de una versión que envía demasiado poco en una semana no se puede saber nada. Los despliegues se relacionan por su commit: regístralos con `oneuptime deploy` o envía `vcs.ref.head.revision` (consulta [Despliegues y cambios](/docs/telemetry/change-events)).
+- **La configuración de un almacén.** Cuando la pull request se fusiona, sus almacenes se vuelven a leer al momento. Cada problema cuya comprobación se supera después queda **Corregido en el código de infraestructura**. Si un almacén sigue sin superar su comprobación al volver a leerse un día después de la fusión, la corrección quedó **fusionada, sin aplicar**: los propietarios del almacén y la persona que pidió la pull request reciben un correo, una sola vez, y las cronologías del problema y del almacén lo indican. Lo que suele faltar es un apply.
+- **La regla de depuración se conserva.** Tras una corrección de código verificada, la regla de depuración que contuvo la fuga se queda, así que una regresión se oculta en cuanto llega. El problema indica que la regla no ha cambiado nada desde la corrección y ofrece **Eliminar regla**.
+- **Una regresión.** Una corrección verificada se sigue vigilando después: cuando una regla conservada vuelve a cambiar valores, o el escaneo vuelve a encontrar los datos, el problema se vuelve a abrir e indica qué versión los trajo de vuelta. Sigue abierto hasta que se corrige de nuevo, incluso mientras una regla oculta los datos.
+
+Cada paso aparece en la **Cronología** del problema y en la del almacén, y Resultados de IA cuenta las correcciones verificadas por tipo (consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai)).
 
 ## El análisis de OneUptime AI
 

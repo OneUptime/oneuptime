@@ -5,7 +5,15 @@ import {
 } from "../../../Components/DataSecurity/DataSecurityPills";
 import { STORE_SENSITIVITY_OPTIONS } from "../../../Components/DataSecurity/StoreFieldOptions";
 import { getDataTypeName } from "../../../Components/DataSecurity/StoreDataTypeList";
-import StoreNotSensitiveModal from "../../../Components/DataSecurity/StoreNotSensitiveModal";
+import {
+  FindingDecisions,
+  useFindingDecisions,
+} from "../../../Components/DataSecurity/FindingDecisions";
+import {
+  FINDING_ROW_NOTE_SELECT,
+  getFindingRowNote,
+} from "../../../Components/DataSecurity/FindingRowNote";
+import { FindingVerdictCopy } from "../../../Components/DataSecurity/FindingVerdictCopy";
 import ScrubItModal from "../../../Components/DataSecurity/ScrubItModal";
 import { SCRUB_NOTICES } from "../../../Components/DataSecurity/TelemetryScrubIt";
 import {
@@ -18,18 +26,21 @@ import { Gray500, Green500 } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
 import { DataSecurityScrubResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DATA_STORE_FINDING_VERDICT_TITLES,
+  DATA_STORE_FINDING_VERDICTS,
+  DataStoreFindingVerdict,
+} from "Common/Types/DataSecurity/DataStoreFindingVerdict";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -47,6 +58,11 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+
+export {
+  FINDING_AI_REASON_TEST_ID,
+  FINDING_AI_SUGGESTION_TEST_ID,
+} from "../../../Components/DataSecurity/FindingRowNote";
 
 /*
  * WHAT IS INSIDE A STORE: every kind of sensitive data a scan found in it,
@@ -66,11 +82,17 @@ import React, {
  * field's name, the names beside it and the shapes of its values - never a
  * value (Server/Utils/AI/DataSecurity/FieldSuggestion). It reads as
  * OneUptime AI's, with its reason, matched no value, and counts toward
- * nothing until a person confirms it. Its own line says so, with the AI
- * mark the product's AI wears elsewhere, rather than a pill: a line breaks
- * at a space in a laptop's column ("Von OneUptime AI / vorgeschlagen"),
- * where a pill broke inside its words. Being OneUptime AI's says it is not
+ * nothing until a person confirms it. Being OneUptime AI's says it is not
  * sure, so it carries no Low confidence pill beside it.
+ *
+ * What OneUptime AI says of a finding reads across its row, under its
+ * cells (FindingRowNote, #10372 and #6105): a suggestion's reason, which a
+ * 120px column held to a word a line; its verdict on a finding that waits
+ * for a person - Confirm it, Not sensitive or Cannot tell - with why and
+ * the team's decisions it rests on; and that it confirmed one on its own,
+ * where an AI rule allows. Mark as Not Sensitive starts from its draft when
+ * its verdict was Not sensitive, and after Confirm or Not Sensitive, Apply
+ * to similar offers the findings like it (FindingDecisions).
  */
 
 const CONFIDENCE_OPTIONS: Array<DropdownOption> = [
@@ -95,10 +117,15 @@ export const SUGGESTED_BY_AI: string = translationKey(
 );
 export const CONFIRMED: string = translationKey("Confirmed");
 
-// The test ids of a suggestion's parts, for the offline walks.
-export const FINDING_AI_SUGGESTION_TEST_ID: string =
-  "data-store-finding-ai-suggestion";
-export const FINDING_AI_REASON_TEST_ID: string = "data-store-finding-ai-reason";
+// OneUptime AI's verdicts, as the list filters by them.
+const VERDICT_OPTIONS: Array<DropdownOption> = DATA_STORE_FINDING_VERDICTS.map(
+  (verdict: DataStoreFindingVerdict): DropdownOption => {
+    return {
+      label: DATA_STORE_FINDING_VERDICT_TITLES[verdict],
+      value: verdict,
+    };
+  },
+);
 
 // Whether a person can confirm a finding: one the scan, or OneUptime AI, was not sure of.
 export function canConfirmFinding(item: DataStoreFinding): boolean {
@@ -118,8 +145,6 @@ const DataStoreInside: FunctionComponent<
     dataStore?.kind,
   ).isTelemetry;
 
-  const [notSensitiveFindingId, setNotSensitiveFindingId] =
-    useState<ObjectID | null>(null);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -129,6 +154,9 @@ const DataStoreInside: FunctionComponent<
   const refresh: () => void = (): void => {
     setRefreshToggle(Date.now().toString());
   };
+
+  // Not Sensitive and Confirm, then Apply to similar (#10372).
+  const decisions: FindingDecisions = useFindingDecisions(refresh);
 
   // Marking a finding needs the right to edit findings; scrubbing, to add scrub rules.
   const editGate: PermissionGateResult = PermissionGate.check(
@@ -187,17 +215,14 @@ const DataStoreInside: FunctionComponent<
         noItemsMessage="No findings in this store yet. Findings appear once its content is scanned."
         searchableFields={["dataTypeName", "location"]}
         selectMoreFields={{
-          dataTypeId: true,
+          ...FINDING_ROW_NOTE_SELECT,
           dataCategory: true,
-          locationKind: true,
           valueCount: true,
           matchPercent: true,
           isScrubbed: true,
           suppressedReason: true,
-          isAiSuggested: true,
-          aiReason: true,
-          isConfirmed: true,
         }}
+        getRowNote={getFindingRowNote}
         actionButtons={[
           {
             title: "Confirm",
@@ -231,6 +256,8 @@ const DataStoreInside: FunctionComponent<
                 });
                 onCompleteAction();
                 refresh();
+                // The findings like it, one decision for all (#10372).
+                decisions.afterConfirm(item);
               } catch (err) {
                 onCompleteAction();
                 onError(err as Error);
@@ -251,7 +278,7 @@ const DataStoreInside: FunctionComponent<
               item: DataStoreFinding,
               onCompleteAction: VoidFunction,
             ): void => {
-              setNotSensitiveFindingId(new ObjectID(item._id!.toString()));
+              decisions.markNotSensitive(item);
               onCompleteAction();
             },
           },
@@ -357,6 +384,12 @@ const DataStoreInside: FunctionComponent<
             title: "Confirmed",
             type: FieldType.Boolean,
           },
+          {
+            field: { aiVerdict: true },
+            title: FindingVerdictCopy.verdictFilter,
+            type: FieldType.Dropdown,
+            filterDropdownOptions: VERDICT_OPTIONS,
+          },
         ]}
         columns={[
           {
@@ -426,38 +459,9 @@ const DataStoreInside: FunctionComponent<
                     )}
                   </div>
                   {/*
-                   * Whose suggestion it is, and OneUptime AI's own words,
-                   * in the language it wrote them: why it suggests this
-                   * type.
+                   * Whose suggestion it is, and why, read across the row
+                   * under its cells (FindingRowNote, #6105).
                    */}
-                  {item.isAiSuggested ? (
-                    <div
-                      className="max-w-xs space-y-0.5"
-                      data-testid={FINDING_AI_SUGGESTION_TEST_ID}
-                    >
-                      <div className="flex items-start gap-1 text-xs font-medium text-purple-700">
-                        <Icon
-                          icon={IconProp.Sparkles}
-                          className="mt-px h-3.5 w-3.5 shrink-0"
-                        />
-                        <span className="whitespace-normal">
-                          {translator.translateText(SUGGESTED_BY_AI)}
-                        </span>
-                      </div>
-                      {item.aiReason ? (
-                        <p
-                          className="whitespace-normal text-xs text-gray-500 [overflow-wrap:anywhere]"
-                          data-testid={FINDING_AI_REASON_TEST_ID}
-                        >
-                          <IsolatedText text={item.aiReason} />
-                        </p>
-                      ) : (
-                        <></>
-                      )}
-                    </div>
-                  ) : (
-                    <></>
-                  )}
                 </div>
               );
             },
@@ -625,20 +629,7 @@ const DataStoreInside: FunctionComponent<
         ]}
       />
 
-      {notSensitiveFindingId ? (
-        <StoreNotSensitiveModal
-          findingId={notSensitiveFindingId}
-          onClose={() => {
-            setNotSensitiveFindingId(null);
-          }}
-          onDone={() => {
-            setNotSensitiveFindingId(null);
-            refresh();
-          }}
-        />
-      ) : (
-        <></>
-      )}
+      {decisions.dialogs}
 
       {scrubbing?._id ? (
         <ScrubItModal

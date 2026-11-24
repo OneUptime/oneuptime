@@ -63,6 +63,7 @@ import DataAlertCause, {
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import EvaluationEventText from "./EvaluationEventText";
+import EvaluationEventSeries from "./EvaluationEventSeries";
 import { translatableSentence } from "../../../Types/Monitor/EvaluationSentence";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -74,6 +75,7 @@ import CreatedNotificationHold, {
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
 import MonitorOpenRecords from "./MonitorOpenRecords";
+import { EventLoopBudget } from "../EventLoop";
 
 export default class MonitorAlert {
   @CaptureSpan()
@@ -217,6 +219,7 @@ export default class MonitorAlert {
 
         input.evaluationSummary?.events.push({
           type: "alert-resolved",
+          ...EvaluationEventSeries.of(openAlert.seriesFingerprint),
           ...EvaluationEventText.from({
             title: translatableSentence("Alert resolved: {{title}}", {
               title: String(openAlert.title || openAlert.id?.toString()),
@@ -366,6 +369,7 @@ export default class MonitorAlert {
         if (input.noteLeftOpen) {
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
+            ...EvaluationEventSeries.of(fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Alert left open: {{title}}", {
                 title: String(openAlert.title || openAlert.id?.toString()),
@@ -404,6 +408,7 @@ export default class MonitorAlert {
 
       input.evaluationSummary?.events.push({
         type: "alert-resolved",
+        ...EvaluationEventSeries.of(fingerprint),
         ...EvaluationEventText.from({
           title: translatableSentence("Alert resolved: {{title}}", {
             title: String(openAlert.title || openAlert.id?.toString()),
@@ -703,6 +708,24 @@ export default class MonitorAlert {
       }
     }
 
+    /*
+     * The resources of every series this pass will open an alert for, read
+     * together before it: one read per resource kind, where each series
+     * used to read its own (#10315). A series the pass skips after all
+     * costs nothing more, and one it opens that this did not foresee reads
+     * its own, as before.
+     */
+    if ((input.criteriaInstance.data?.alerts || []).length > 0) {
+      await recordResources.seriesResources.resolve(
+        await this.getLabelsOfSeriesToOpen({
+          seriesToProcess: seriesToProcess,
+          openAlertsBySeries: openAlertsBySeries,
+          suppressedSeriesFingerprints: input.suppressedSeriesFingerprints,
+          dependencySuppression: input.dependencySuppression,
+        }),
+      );
+    }
+
     for (const criteriaAlert of input.criteriaInstance.data?.alerts || []) {
       for (const seriesMatch of seriesToProcess) {
         // Outside the catch below: a lost lock stops every series.
@@ -735,6 +758,7 @@ export default class MonitorAlert {
 
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Alert suppressed by scheduled maintenance",
@@ -761,6 +785,7 @@ export default class MonitorAlert {
           ) {
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence(
                   "Alert suppressed by monitor dependency",
@@ -819,6 +844,7 @@ export default class MonitorAlert {
 
             input.evaluationSummary?.events.push({
               type: "alert-skipped",
+              ...EvaluationEventSeries.of(seriesFingerprint),
               ...EvaluationEventText.from({
                 title: translatableSentence("Alert already active: {{title}}", {
                   title: String(renderedAlertTitle),
@@ -955,6 +981,7 @@ export default class MonitorAlert {
 
               input.evaluationSummary?.events.push({
                 type: "alert-skipped",
+                ...EvaluationEventSeries.of(seriesFingerprint),
                 ...EvaluationEventText.from({
                   title: translatableSentence("Alert creation skipped"),
                   message: translatableSentence(
@@ -1054,13 +1081,11 @@ export default class MonitorAlert {
              * the Proxmox / VMware vCenter / Ceph / Swarm / IoT clusters —
              * resolved from the shared label
              * key map. Same call the incident path makes, so the two can't
-             * drift apart again.
+             * drift apart again. Read with the pass's other series, above.
              */
-            await SeriesResourceLinker.linkSeriesResourcesToModel({
+            await recordResources.seriesResources.linkSeriesResourcesToModel({
               model: alert,
               seriesLabels,
-              projectId: input.monitor.projectId!,
-              monitorType: input.monitor.monitorType,
             });
           }
 
@@ -1327,6 +1352,7 @@ export default class MonitorAlert {
 
           input.evaluationSummary?.events.push({
             type: "alert-created",
+            ...EvaluationEventSeries.of(seriesFingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Alert created: {{title}}", {
                 title: String(createdAlert.title || criteriaAlert.title),
@@ -1370,6 +1396,7 @@ export default class MonitorAlert {
 
           input.evaluationSummary?.events.push({
             type: "alert-skipped",
+            ...EvaluationEventSeries.of(seriesMatch?.fingerprint),
             ...EvaluationEventText.from({
               title: translatableSentence("Alert creation failed"),
               message: seriesMatch?.fingerprint
@@ -1389,6 +1416,50 @@ export default class MonitorAlert {
         }
       }
     }
+  }
+
+  /*
+   * The labels of each series the create pass will open an alert for: one
+   * with labels, not under a maintenance window or a parent's suppression,
+   * and with no alert of this criteria open. The pass decides again, series
+   * by series; this only says whose resources to read before it (#10315).
+   * Hands the event loop back between series, as the pass does.
+   */
+  private static async getLabelsOfSeriesToOpen(input: {
+    seriesToProcess: Array<PerSeriesCriteriaMatch | undefined>;
+    openAlertsBySeries: Map<string | undefined, Alert>;
+    suppressedSeriesFingerprints?: Set<string> | undefined;
+    dependencySuppression?: DependencySuppressionResult | undefined;
+  }): Promise<Array<JSONObject>> {
+    const budget: EventLoopBudget = new EventLoopBudget();
+    const labelsToOpen: Array<JSONObject> = [];
+
+    for (const seriesMatch of input.seriesToProcess) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+
+      if (
+        !seriesMatch ||
+        !seriesLabels ||
+        Object.keys(seriesLabels).length === 0 ||
+        (seriesMatch.fingerprint &&
+          input.suppressedSeriesFingerprints?.has(seriesMatch.fingerprint)) ||
+        MonitorDependencyRule.isSeriesSuppressed({
+          suppression: input.dependencySuppression,
+          labels: seriesLabels,
+        }) ||
+        input.openAlertsBySeries.has(seriesMatch.fingerprint)
+      ) {
+        continue;
+      }
+
+      labelsToOpen.push(seriesLabels);
+    }
+
+    return labelsToOpen;
   }
 
   /*

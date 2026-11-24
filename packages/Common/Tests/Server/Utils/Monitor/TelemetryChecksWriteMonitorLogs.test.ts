@@ -65,6 +65,7 @@ import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResourc
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorAlert from "../../../../Server/Utils/Monitor/MonitorAlert";
 import MonitorLogUtil from "../../../../Server/Utils/Monitor/MonitorLogUtil";
+import MonitorEvaluationClock from "../../../../Server/Utils/Monitor/MonitorEvaluationClock";
 import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MonitorStatusTimelineUtil from "../../../../Server/Utils/Monitor/MonitorStatusTimeline";
 import MonitorSummaryCapture from "../../../../Server/Utils/Monitor/MonitorSummaryCapture";
@@ -604,5 +605,84 @@ describe("a Host monitor's check whose criteria compare a formula", () => {
         logBody: logBody,
       }),
     ).toEqual({ kind: TelemetryObservationKind.MetricDataPoints, count: 5 });
+  });
+});
+
+/*
+ * HOW LONG IT TOOK (#10317): the row's evaluation summary says how long the
+ * evaluation took - from a telemetry check's reads, which the worker began
+ * before monitorResource, until the row was written - and how often the
+ * monitor is evaluated, which the summary weighs it against.
+ */
+describe("a check's row says how long its evaluation took", () => {
+  let clock: number = 0;
+
+  beforeEach(() => {
+    clock = 10_000;
+    jest.spyOn(MonitorEvaluationClock, "now").mockImplementation((): number => {
+      // Each look at the clock: 250 ms on.
+      clock += 250;
+      return clock;
+    });
+  });
+
+  test("from its beginning to its row, in milliseconds", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    // One look as it began, one as its row was written.
+    expect(evaluation.durationInMs).toBe(250);
+  });
+
+  test("a telemetry check's counts its reads, begun by the worker before it", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]), {
+      evaluationStartedAtMs: 1_000,
+    });
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    // Read at 1,000, written once the clock was looked at once: 10,250.
+    expect(evaluation.durationInMs).toBe(9_250);
+  });
+
+  test("and how often its monitor is evaluated: its schedule, or every minute for a telemetry monitor with none", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+    monitor.monitoringInterval = "*/5 * * * *";
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    expect(evaluationOf(readBack((await loggedRows())[0]!)).intervalInMs).toBe(
+      5 * 60 * 1000,
+    );
+
+    insertJsonRows.mockClear();
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([40, 41]));
+
+    expect(evaluationOf(readBack((await loggedRows())[0]!)).intervalInMs).toBe(
+      60 * 1000,
+    );
+  });
+
+  test("an ungrouped check judged no series, and says none", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    expect(evaluation.seriesJudged).toBeUndefined();
   });
 });

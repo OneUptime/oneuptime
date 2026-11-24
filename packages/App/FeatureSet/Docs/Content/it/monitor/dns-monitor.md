@@ -118,13 +118,14 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **DNS online** e **Tempo di risposta DNS (in ms)**. Attivatela per giudicare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **DNS online** e **Tempo di risposta DNS (in ms)**. Attivatela per giudicare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 minuti a 24 ore, in **Nell'ultimo periodo di**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
-| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, sulla finestra, soddisfa la condizione. Solo **Tempo di risposta DNS (in ms)**. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Percentile** | Quel valore, sulla finestra, soddisfa la condizione, come il tempo di risposta p95. Solo **Tempo di risposta DNS (in ms)**. |
 | **Tutti i valori** | Ogni controllo della finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo della finestra soddisfa la condizione. |
+| **Conteggio**, **Percentuale**, **Cambi di stato** | Quanti controlli hanno soddisfatto la condizione, la loro quota o quante volte sono passati dal soddisfarla al non soddisfarla viene confrontato con il numero impostato sotto. |
 
 L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
 

@@ -2758,6 +2758,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["run history", "soar runs"],
           },
           {
+            page: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+            title: "Automatic Response",
+            icon: IconProp.HandRaised,
+            keywords: [
+              "auto block",
+              "block scanners",
+              "block brute force",
+              "fail2ban",
+              "challenge bots",
+            ],
+          },
+          {
             page: PageMap.SECURITY_BLOCKLIST,
             title: "Blocklist",
             icon: IconProp.NoSymbol,
@@ -3055,6 +3067,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "soc 2",
               "record of processing",
             ],
+          },
+          /*
+           * Under Compliance, not in the menu (#10375): the record of
+           * processing's drafts, a store at a time, and a framework's audit
+           * evidence.
+           */
+          {
+            page: PageMap.DATA_SECURITY_REVIEW_DRAFTS,
+            title: "Review Drafts",
+            icon: IconProp.Sparkles,
+            keywords: [
+              "record of processing",
+              "legal basis",
+              "retention",
+              "ropa",
+            ],
+          },
+          {
+            page: PageMap.DATA_SECURITY_AUDIT_EVIDENCE,
+            title: "Audit Evidence",
+            icon: IconProp.DocumentText,
+            keywords: ["auditor", "soc 2 evidence", "gdpr evidence"],
           },
         ],
       },

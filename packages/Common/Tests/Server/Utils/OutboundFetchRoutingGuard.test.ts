@@ -68,6 +68,8 @@ const ROUTED_FETCHERS: Record<string, string> = {
     "IndexNow's notices of the blog, sent from oneuptime.com alone",
   "packages/Home/Utils/Books/BookStore.ts":
     "a book's EPUB, for the marketing site's in-page reader",
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/BotFrameworkOpenIdMetadata.ts":
+    "the Bot Framework's OpenID metadata and signing keys, which the Teams bot checks every message from Teams with",
 };
 
 // Clients that send HTTP requests of their own, past OutboundFetch.
@@ -98,14 +100,23 @@ const FETCH_LIBRARIES: Record<string, string> = {
   airtable:
     "node-fetch, for Utils/Airtable, which no server code imports: route it before anything does",
   "botframework-connector":
-    "node-fetch and cross-fetch, for the Bot Framework's OpenID metadata, read to check Microsoft Teams' messages: not routed yet, see #10763",
-  "cross-fetch": "node-fetch, for botframework-connector: see #10763",
+    "node-fetch, for the Bot Framework's OpenID metadata, read to check Microsoft Teams' messages: the SDK's token checks read metadata OneUptime fetched with OutboundFetch instead (BotFrameworkOpenIdMetadata, put in the SDK's cache by BotFrameworkRouting, #10763), so its node-fetch is never asked; and cross-fetch, for the Emulator's OAuth cards, which OneUptime never sends",
+  "cross-fetch":
+    "node-fetch, for botframework-connector's Emulator client (EmulatorApiClient), which OneUptime never calls",
   "expo-server-sdk":
     "node-fetch, on the agent it is handed: each request's route (PushNotificationService.expoAgentFor)",
 };
 
 // How a hook that routes a library's requests reads in its file.
 const FETCH_LIBRARY_HOOKS: Record<string, Array<string>> = {
+  // The Bot Framework SDK's token checks: the metadata in its cache is ours.
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/BotFrameworkOpenIdMetadata.ts":
+    [
+      "cache.set(url, new BotFrameworkOpenIdMetadata(url));",
+      "await OutboundFetch.fetch(url);",
+    ],
+  "packages/Common/Server/Utils/Workspace/MicrosoftTeams/BotFrameworkRouting.ts":
+    ["BotFrameworkOpenIdMetadata.routeEveryDocument();"],
   "packages/Common/Server/Services/PushNotificationService.ts": [
     // Expo's push to the mobile app.
     "httpAgent: PushNotificationService.expoAgentFor as unknown as http.Agent,",

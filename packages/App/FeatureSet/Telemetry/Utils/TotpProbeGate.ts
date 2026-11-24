@@ -1,9 +1,7 @@
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import ProbeCapability, {
-  FIRST_PROBE_VERSION_WITH_TOTP_CODES,
-} from "Common/Types/Probe/ProbeCapability";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import {
   ProbeFailureCause,
@@ -30,10 +28,11 @@ export type { ItemForProbe };
  * {{monitorSecrets.NAME}} as written, so the site refuses the sign-in, and
  * the check failed with a login error that said nothing of why.
  *
- * None before 17.0.1 declares ProbeCapability.TotpCodes, so such a probe
- * is not handed a step that carries code parameters: its result is written
- * for it, a failed check whose error says the probe is too old to make
- * one-time codes and to update it
+ * None from before FIRST_PROBE_VERSION_WITH_TOTP_CODES (17.1.0) declares
+ * ProbeCapability.TotpCodes, so such a probe is not handed a step that
+ * carries code parameters: its result is written for it, a failed check
+ * whose error says the probe is too old to make one-time codes and to
+ * update it to the latest release
  * (ProbeFailureCause.ProbeTooOldForOneTimeCodes). How a step is kept and
  * its result written is ProbeStepGate's, shared with the request bodies
  * only a newer probe sends (RequestBodyProbeGate, #10737).
@@ -41,9 +40,7 @@ export type { ItemForProbe };
 
 // The error a step kept from a probe too old to make one-time codes says.
 export const ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE: string =
-  writeProbeFailureCause(ProbeFailureCause.ProbeTooOldForOneTimeCodes, {
-    version: FIRST_PROBE_VERSION_WITH_TOTP_CODES,
-  });
+  writeProbeFailureCause(ProbeFailureCause.ProbeTooOldForOneTimeCodes);
 
 /*
  * A step needs a probe that makes one-time codes when the server handed it

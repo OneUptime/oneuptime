@@ -10,6 +10,9 @@ import SecurityCaseService, {
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import logger from "../Logger";
 import SecurityPlaybookLauncher from "../SecurityPlaybook/SecurityPlaybookLauncher";
+import SecurityAutomaticResponse, {
+  SecurityAutomaticResponseRecordedDetection,
+} from "../SecurityAutomaticResponse/SecurityAutomaticResponse";
 import SecurityCaseTriage from "../AI/Security/SecurityCaseTriage";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityCaseValues, {
@@ -202,6 +205,26 @@ export function securityCaseGroupingKey(signal: {
   return cutShortDetectionText(`detection:${signal.fingerprint}`);
 }
 
+// A signal as the automatic response policies screen it, once recorded as a detection of a case (#10350).
+export function toRecordedDetection(data: {
+  signal: SecurityDetectionSignal;
+  securityCaseId: ObjectID;
+  securityDetectionId: ObjectID;
+}): SecurityAutomaticResponseRecordedDetection {
+  return {
+    securityCaseId: data.securityCaseId,
+    securityDetectionId: data.securityDetectionId,
+    source: data.signal.source,
+    detectionRuleId: data.signal.detectionRuleId,
+    mitreTechniques: normalizeMitreIds(
+      data.signal.mitreTechniques,
+      "technique",
+    ),
+    groupValue: data.signal.groupValue,
+    isSetupTest: data.signal.isSetupTest === true,
+  };
+}
+
 // The worse of two OCSF severities.
 export function worseSeverity(
   a: OcsfSeverity | string | undefined,
@@ -241,6 +264,12 @@ export function worseSeverity(
  * A closed case takes nothing new: the next signal opens a fresh case. One
  * project's signals are recorded under one lock, so two workers recording
  * signals about the same host at the same moment cannot open two cases.
+ *
+ * Once the lock is given back, every detection recorded - opened, joined
+ * or repeated - is screened by the project's automatic response policies
+ * first (#10350), before its playbooks start and before any triage: a
+ * policy acts as the detection is made, so an address is challenged or
+ * blocked as soon as detection allows.
  */
 export default class SecurityCaseIngest {
   @CaptureSpan()
@@ -291,17 +320,25 @@ export default class SecurityCaseIngest {
     });
 
     const launches: Array<() => Promise<unknown>> = [];
+    const recorded: Array<SecurityAutomaticResponseRecordedDetection> = [];
 
     try {
       const result: SecurityCaseIngestResult = await this.recordUnderLock(
         projectId,
         signals,
         launches,
+        recorded,
       );
 
       return result;
     } finally {
       await Semaphore.release(mutex);
+
+      // Automatic response first: a policy acts as the detection is made (never throws).
+      await SecurityAutomaticResponse.screen({
+        projectId,
+        detections: recorded,
+      });
 
       /*
        * Playbooks start once the lock is given back: starting one reads the
@@ -323,6 +360,8 @@ export default class SecurityCaseIngest {
     projectId: ObjectID,
     signals: Array<SecurityDetectionSignal>,
     launches: Array<() => Promise<unknown>>,
+    // What each signal was recorded as, for the automatic response policies.
+    recorded: Array<SecurityAutomaticResponseRecordedDetection> = [],
   ): Promise<SecurityCaseIngestResult> {
     const result: SecurityCaseIngestResult = {
       casesOpened: 0,
@@ -487,6 +526,13 @@ export default class SecurityCaseIngest {
             keptEvents,
           });
           result.detectionsRepeated++;
+          recorded.push(
+            toRecordedDetection({
+              signal,
+              securityCaseId: repeated.securityCaseId!,
+              securityDetectionId: repeated.id!,
+            }),
+          );
           continue;
         }
 
@@ -507,6 +553,13 @@ export default class SecurityCaseIngest {
           });
           existingDetections.push(detection);
           result.detectionsAdded++;
+          recorded.push(
+            toRecordedDetection({
+              signal,
+              securityCaseId: joined.id!,
+              securityDetectionId: detection.id!,
+            }),
+          );
 
           launches.push((): Promise<number> => {
             return SecurityPlaybookLauncher.launchForCase({
@@ -540,6 +593,13 @@ export default class SecurityCaseIngest {
         existingDetections.push(detection);
         result.casesOpened++;
         result.detectionsAdded++;
+        recorded.push(
+          toRecordedDetection({
+            signal,
+            securityCaseId: opened.id!,
+            securityDetectionId: detection.id!,
+          }),
+        );
 
         launches.push((): Promise<number> => {
           return SecurityPlaybookLauncher.launchForCase({

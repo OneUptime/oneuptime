@@ -4,6 +4,11 @@ import {
   DataSecurityAiFeatureInfo,
 } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
+import {
+  DataStoreFindingPrecedent,
+  DataStoreFindingVerdict,
+  DataStoreFindingVerdictRecord,
+} from "../../../../../Types/DataSecurity/DataStoreFindingVerdict";
 import { JSONObject } from "../../../../../Types/JSON";
 import { getLinearRegExp } from "../../../../../Utils/LinearRegExp/PatternCache";
 import { LLMMessage } from "../../../LLM/LLMService";
@@ -19,6 +24,16 @@ import {
   readDataSecurityAnalysisAnswer,
 } from "../../DataSecurity/DataSecurityIssuePrompt";
 import { FIELD_SUGGESTION_MAX_COMPLETION_TOKENS } from "../../DataSecurity/FieldSuggestion";
+import {
+  buildFindingVerdictPrompt,
+  FINDING_VERDICT_MAX_TOKENS,
+  FINDING_VERDICT_TEMPERATURE,
+  FindingVerdictAnswer,
+  getFindingReference,
+  getPrecedentReference,
+  holdFindingVerdictToFacts,
+  parseFindingVerdictResponse,
+} from "../../DataSecurity/FindingVerdictPrompt";
 import {
   buildFieldSuggestionPrompt,
   FieldSuggestionAnswer,
@@ -52,6 +67,8 @@ import {
   DataSecurityEvalCase,
   DataSecurityEvalWords,
   FieldSuggestionEvalCase,
+  FindingVerdictEvalCase,
+  FindingVerdictEvalFinding,
   FixEvalCase,
   FixEvalFileCheck,
   IssueGroupFixEvalCase,
@@ -118,6 +135,14 @@ import {
   HeldDataStoreOwnerAnswer,
   holdDataStoreOwnerAnswerToEvidence,
 } from "../../../../../Utils/DataSecurity/DataStoreOwnerAnswer";
+import {
+  auditEvidenceCall,
+  impactAssessmentCall,
+  recordDraftCall,
+  scoreAuditEvidence,
+  scoreImpactAssessment,
+  scoreRecordDraft,
+} from "./DataSecurityPaperworkEval";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -157,6 +182,12 @@ import {
  *     a rule that changes every made-up value holding the data and none of
  *     the others - as the verifier proves a rule - of the kind the case
  *     expects, and leaves out a place no rule is right for;
+ *   - the verdicts on findings that wait for a person (#10372): the answer,
+ *     held to each finding's precedent as the product holds it
+ *     (holdFindingVerdictToFacts), gives every finding a verdict the case
+ *     allows, citing the team's decision the case names - a Low finding
+ *     the team dismissed four times elsewhere is Not sensitive, and a
+ *     secret no decision speaks for never is;
  *   - a pull request's sensitive data (#10376): the points the rules find
  *     in a made-up diff, read as the review reads the answer
  *     (PullRequestLeakReview.readAnswer), each kept or left out as the
@@ -180,6 +211,12 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
   [DataSecurityAiFeature.AnalyzeIssue]: 0.75,
   [DataSecurityAiFeature.FixIssue]: 0.5,
   [DataSecurityAiFeature.SuggestFieldTypes]: 0.5,
+  /*
+   * A verdict is a fact a check reads exactly, held to its precedent as
+   * the product holds it, and the team's own decisions decide most cases:
+   * three in four must get every finding's verdict.
+   */
+  [DataSecurityAiFeature.JudgeFindings]: 0.75,
   [DataSecurityAiFeature.AskAi]: 0.5,
   /*
    * A structured answer held to its evidence: a right owner is a fact a
@@ -203,6 +240,16 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    * exactly, as an owner is.
    */
   [DataSecurityAiFeature.ReviewPullRequests]: 0.75,
+  /*
+   * The paperwork (#10375): every draft is held to its facts before it is
+   * read, and a field the facts do not support must be left empty. Three
+   * in four of a record's cases must pass; an assessment and the evidence
+   * are written prose, read by their words, so one in two.
+   */
+  [DataSecurityAiFeature.DraftRecord]: 0.75,
+  [DataSecurityAiFeature.DraftRecordOnRequest]: 0.75,
+  [DataSecurityAiFeature.DraftImpactAssessment]: 0.5,
+  [DataSecurityAiFeature.DraftAuditEvidence]: 0.5,
   /*
    * A data type held to made-up values it must find and leave alone, and
    * to none where a group holds none (#10371): the product proves every
@@ -979,6 +1026,150 @@ function issueGroupFixCall(
 }
 
 // The scrub rules are asked as the product asks them (ScrubRuleWriter).
+/*
+ * A verdict case's findings, as the run hands them to the builder: each by
+ * its reference, its precedent by theirs.
+ */
+function findingVerdictInputs(
+  testCase: FindingVerdictEvalCase,
+): Parameters<typeof buildFindingVerdictPrompt>[0]["findings"] {
+  return testCase.findings.map(
+    (entry: FindingVerdictEvalFinding, index: number) => {
+      return {
+        ref: getFindingReference(index),
+        finding: entry.finding,
+        signs: entry.signs,
+        nameSaysInstead: entry.nameSaysInstead || [],
+        precedent: entry.precedent.map(
+          (
+            precedent: FindingVerdictEvalFinding["precedent"][number],
+            precedentIndex: number,
+          ) => {
+            return {
+              ref: getPrecedentReference(precedentIndex),
+              decision: precedent.decision,
+              location: precedent.location,
+              isSameName: precedent.isSameName,
+              reason: precedent.reason,
+              storeKind: precedent.storeKind,
+              storeEnvironment: precedent.storeEnvironment,
+            };
+          },
+        ),
+      };
+    },
+  );
+}
+
+function findingVerdictCall(
+  testCase: FindingVerdictEvalCase,
+): DataSecurityEvalCall {
+  return {
+    messages: buildFindingVerdictPrompt({
+      store: testCase.store,
+      findings: findingVerdictInputs(testCase),
+      language: testCase.language || "en",
+      dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+    }).messages,
+    maxTokens: FINDING_VERDICT_MAX_TOKENS,
+    temperature: FINDING_VERDICT_TEMPERATURE,
+  };
+}
+
+/*
+ * The verdicts, finding by finding, held to their facts as the product
+ * holds them: each one a verdict the case allows, citing what it names.
+ */
+export function scoreFindingVerdicts(
+  testCase: FindingVerdictEvalCase,
+  answer: string,
+): DataSecurityEvalScore {
+  const answers: Map<string, FindingVerdictAnswer> | null =
+    parseFindingVerdictResponse({
+      content: answer,
+      references: new Set(
+        testCase.findings.map(
+          (_entry: FindingVerdictEvalFinding, index: number): string => {
+            return getFindingReference(index);
+          },
+        ),
+      ),
+    });
+
+  if (!answers) {
+    return { passed: false, notes: ["not the JSON asked for"] };
+  }
+
+  const notes: Array<string> = [];
+  let right: number = 0;
+
+  testCase.findings.forEach(
+    (entry: FindingVerdictEvalFinding, index: number): void => {
+      const ref: string = getFindingReference(index);
+      const given: FindingVerdictAnswer | undefined = answers.get(ref);
+
+      if (!given) {
+        notes.push(`${ref}: no verdict`);
+        return;
+      }
+
+      const record: DataStoreFindingVerdictRecord = holdFindingVerdictToFacts({
+        answer: given,
+        precedent: entry.precedent,
+        signs: entry.signs,
+        language: testCase.language || "en",
+        now: new Date(0),
+      });
+
+      if (!entry.expect.includes(record.verdict)) {
+        notes.push(
+          `${ref}: ${record.verdict}, where ${entry.expect.join(" or ")} is right`,
+        );
+        return;
+      }
+
+      const cites: Array<string> = entry.cites || [];
+
+      if (
+        record.verdict !== DataStoreFindingVerdict.CannotTell &&
+        cites.length > 0
+      ) {
+        const citedIds: Set<string> = new Set(
+          record.precedent.map((cited: DataStoreFindingPrecedent): string => {
+            return cited.findingId;
+          }),
+        );
+        const named: boolean = cites.some((citeRef: string): boolean => {
+          const precedentIndex: number = Number(citeRef.replace("P", "")) - 1;
+          const precedent: DataStoreFindingPrecedent | undefined =
+            entry.precedent[precedentIndex];
+
+          return Boolean(precedent && citedIds.has(precedent.findingId));
+        });
+
+        if (!named) {
+          notes.push(`${ref}: cites none of ${cites.join(", ")}`);
+          return;
+        }
+      }
+
+      if (!record.reason) {
+        notes.push(`${ref}: gave no reason`);
+        return;
+      }
+
+      right++;
+    },
+  );
+
+  return {
+    passed: notes.length === 0,
+    notes,
+    right,
+    of: testCase.findings.length,
+  };
+}
+
 function scrubRulesCall(testCase: ScrubRulesEvalCase): DataSecurityEvalCall {
   return {
     messages: buildScrubRuleWriterPrompt(testCase.places).messages,
@@ -1125,6 +1316,8 @@ export function buildEvalCall(
       return analysisCall(testCase);
     case DataSecurityAiFeature.SuggestFieldTypes:
       return fieldSuggestionCall(testCase);
+    case DataSecurityAiFeature.JudgeFindings:
+      return findingVerdictCall(testCase);
     case DataSecurityAiFeature.FixIssue:
       return fixCall(testCase);
     case DataSecurityAiFeature.AskAi:
@@ -1139,6 +1332,13 @@ export function buildEvalCall(
       return scrubRulesCall(testCase);
     case DataSecurityAiFeature.ReviewPullRequests:
       return pullRequestReviewCall(testCase);
+    case DataSecurityAiFeature.DraftRecord:
+    case DataSecurityAiFeature.DraftRecordOnRequest:
+      return recordDraftCall(testCase);
+    case DataSecurityAiFeature.DraftImpactAssessment:
+      return impactAssessmentCall(testCase);
+    case DataSecurityAiFeature.DraftAuditEvidence:
+      return auditEvidenceCall(testCase);
     case DataSecurityAiFeature.DraftDataTypes:
     case DataSecurityAiFeature.DescribeDataType:
       return dataTypeDraftCall(testCase);
@@ -1169,6 +1369,8 @@ export function scoreAnswer(
       return scoreAnalysis(testCase, answer);
     case DataSecurityAiFeature.SuggestFieldTypes:
       return scoreFieldSuggestions(testCase, answer);
+    case DataSecurityAiFeature.JudgeFindings:
+      return scoreFindingVerdicts(testCase, answer);
     case DataSecurityAiFeature.FixIssue:
       return scoreFix(testCase, answer);
     case DataSecurityAiFeature.AskAi:
@@ -1190,6 +1392,13 @@ export function scoreAnswer(
       return scoreScrubRules(testCase, answer);
     case DataSecurityAiFeature.ReviewPullRequests:
       return scorePullRequestReview(testCase, answer);
+    case DataSecurityAiFeature.DraftRecord:
+    case DataSecurityAiFeature.DraftRecordOnRequest:
+      return scoreRecordDraft(testCase, answer);
+    case DataSecurityAiFeature.DraftImpactAssessment:
+      return scoreImpactAssessment(testCase, answer);
+    case DataSecurityAiFeature.DraftAuditEvidence:
+      return scoreAuditEvidence(testCase, answer);
     case DataSecurityAiFeature.DraftDataTypes:
     case DataSecurityAiFeature.DescribeDataType:
       return scoreDataTypeDraft(testCase, answer);

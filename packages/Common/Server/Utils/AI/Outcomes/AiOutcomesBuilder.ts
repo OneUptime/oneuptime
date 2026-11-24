@@ -16,12 +16,14 @@ import {
   AiOutcomesModels,
   AiOutcomesPages,
   AiOutcomesPullRequestFixes,
+  AiOutcomesPullRequestFixKind,
   AiOutcomesRemediationFixes,
   AiOutcomesRootCauseOutcome,
   AiOutcomesRootCauses,
   AiOutcomesWeek,
   getDataSecurityChangesMadeCount,
 } from "../../../../Types/AI/AiOutcomes";
+import { FixProductionCheckHelper } from "../../../../Types/AI/FixProductionCheck";
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import {
@@ -78,6 +80,8 @@ export interface AiOutcomesRemediationRow {
 export interface AiOutcomesPullRequestRow {
   createdAt: Date;
   productionStatus: FixProductionStatus | string | undefined;
+  // What production watched it for; none is an exception's fix (#10368).
+  productionCheck?: string | null | undefined;
   // The incident or alert its fix task was for, when it was for one.
   subjectKey?: AiOutcomesSubjectKey | undefined;
   /*
@@ -601,6 +605,9 @@ export default class AiOutcomesBuilder {
       pullRequestFixes: input.pullRequestRows
         ? this.countPullRequestFixes(input.pullRequestRows, weekOf)
         : null,
+      pullRequestFixKinds: input.pullRequestRows
+        ? this.countPullRequestFixKinds(input.pullRequestRows, weekOf)
+        : null,
       rootCauses: input.investigationRows
         ? this.countRootCauses(input.investigationRows, weekOf)
         : null,
@@ -782,6 +789,54 @@ export default class AiOutcomesBuilder {
     }
 
     return fixes;
+  }
+
+  /*
+   * The fix pull requests by what production watched each for (#10368):
+   * every kind with one counted, the most checked first. A row with no
+   * check is an exception's fix, watched before the column existed.
+   */
+  public static countPullRequestFixKinds(
+    rows: Array<AiOutcomesPullRequestRow>,
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null,
+  ): Array<AiOutcomesPullRequestFixKind> {
+    const kinds: Map<string, AiOutcomesPullRequestFixKind> = new Map();
+
+    for (const row of rows) {
+      const outcome: keyof AiOutcomesPullRequestFixes | null =
+        this.getPullRequestOutcome(row);
+
+      if (!weekOf(row.createdAt) || !outcome) {
+        continue;
+      }
+
+      const check: string =
+        FixProductionCheckHelper.fromDatabaseValue(row.productionCheck) ||
+        String(row.productionCheck);
+      const kind: AiOutcomesPullRequestFixKind = kinds.get(check) || {
+        check,
+        verified: 0,
+        regressed: 0,
+        watching: 0,
+        awaitingDeploy: 0,
+        unverifiable: 0,
+      };
+
+      kind[outcome]++;
+      kinds.set(check, kind);
+    }
+
+    return Array.from(kinds.values()).sort(
+      (
+        a: AiOutcomesPullRequestFixKind,
+        b: AiOutcomesPullRequestFixKind,
+      ): number => {
+        return (
+          b.verified + b.regressed - (a.verified + a.regressed) ||
+          a.check.localeCompare(b.check)
+        );
+      },
+    );
   }
 
   private static countRootCauses(

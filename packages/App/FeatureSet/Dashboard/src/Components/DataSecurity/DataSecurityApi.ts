@@ -12,17 +12,26 @@ import Timezone from "Common/Types/Timezone";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityAiInputResponse,
+  DataSecurityApplyToSimilarResult,
+  DataSecuritySimilarFinding,
+  DataSecuritySimilarFindings,
   DataSecurityComplianceResponse,
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
   DataSecurityIssueAnalysisResult,
+  DataSecurityIssueContainment,
+  DataSecurityIssueContainmentRule,
   DataSecurityMetricUser,
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
   DataSecurityDeclaredStoreResponse,
+  DataSecurityAuditEvidenceResponse,
+  DataSecurityImpactAssessmentResponse,
+  DataSecurityRecordDraftResult,
+  DataSecurityRecordFieldResult,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
@@ -53,6 +62,13 @@ import {
   DataSecurityIssueGroupFixResultJSON,
 } from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
+import { ImpactAssessmentPart } from "Common/Types/DataSecurity/ImpactAssessment";
+import {
+  RecordField,
+  RecordFieldAction,
+  RecordFieldValue,
+} from "Common/Types/DataSecurity/RecordOfProcessing";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -72,6 +88,80 @@ export class DataSecurityApiError extends Error {
     super(message);
     this.statusCode = statusCode;
   }
+}
+
+function readCount(value: JSONValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.trunc(value)
+    : null;
+}
+
+function readOptionalText(value: JSONValue | undefined): string | undefined {
+  return typeof value === "string" && value ? value : undefined;
+}
+
+/*
+ * An issue's containment as the server sent it (#10368): each rule read on
+ * its own, and one of the wrong shape left out. None for an answer of no
+ * containment.
+ */
+export function readIssueContainment(
+  value: JSONValue | undefined,
+): DataSecurityIssueContainment | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const rules: Array<DataSecurityIssueContainmentRule> = [];
+
+  for (const item of Array.isArray(json["rules"]) ? json["rules"] : []) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const rule: JSONObject = item as JSONObject;
+    const id: string | undefined = readOptionalText(rule["id"]);
+    const signal: string | undefined = readOptionalText(rule["signal"]);
+
+    if (!id || !signal) {
+      continue;
+    }
+
+    const read: DataSecurityIssueContainmentRule = {
+      id,
+      signal,
+      name: readOptionalText(rule["name"]) || "",
+      valuesChanged: readCount(rule["valuesChanged"]),
+      isKept: rule["isKept"] === true,
+    };
+    const lastChangedAt: string | undefined = readOptionalText(
+      rule["lastChangedAt"],
+    );
+    const lastChangedVersion: string | undefined = readOptionalText(
+      rule["lastChangedVersion"],
+    );
+
+    if (lastChangedAt) {
+      read.lastChangedAt = lastChangedAt;
+    }
+
+    if (lastChangedVersion) {
+      read.lastChangedVersion = lastChangedVersion;
+    }
+
+    if (rule["valuesChangedSinceFix"] !== undefined) {
+      read.valuesChangedSinceFix = readCount(rule["valuesChangedSinceFix"]);
+    }
+
+    rules.push(read);
+  }
+
+  return {
+    days: readCount(json["days"]) || 0,
+    containedFindingCount: readCount(json["containedFindingCount"]) || 0,
+    rules,
+  };
 }
 
 async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
@@ -216,10 +306,116 @@ export default class DataSecurityApi {
     })) as unknown as DataSecurityResourceComplianceResponse;
   }
 
-  public static async getRecordOfProcessing(): Promise<DataSecurityRecordOfProcessingResponse> {
+  /*
+   * The record of processing (#10398, #10375): every store with personal
+   * data the reader may read - or one of them, with the facts its drafts
+   * rest on.
+   */
+  public static async getRecordOfProcessing(
+    options: { dataStoreId?: ObjectID | undefined } = {},
+  ): Promise<DataSecurityRecordOfProcessingResponse> {
     return (await post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
+      options.dataStoreId
+        ? { dataStoreId: options.dataStoreId.toString() }
+        : {},
     )) as unknown as DataSecurityRecordOfProcessingResponse;
+  }
+
+  /*
+   * One press on a field of a store's record (#10375): confirm OneUptime
+   * AI's draft - the one the reader was shown - write their own words, or
+   * take or keep a proposed change.
+   */
+  public static async applyRecordField(data: {
+    dataStoreId: string;
+    field: RecordField;
+    action: RecordFieldAction;
+    value?: RecordFieldValue | null | undefined;
+    shownDraftedAt?: string | undefined;
+  }): Promise<DataSecurityRecordFieldResult> {
+    return (await post(DATA_SECURITY_API_ROUTES.recordField(data.dataStoreId), {
+      field: data.field,
+      action: data.action,
+      ...(data.value !== undefined ? { value: data.value as JSONValue } : {}),
+      ...(data.shownDraftedAt ? { shownDraftedAt: data.shownDraftedAt } : {}),
+    })) as unknown as DataSecurityRecordFieldResult;
+  }
+
+  // OneUptime AI's drafts of one store's record, now (#10375).
+  public static async draftRecord(data: {
+    dataStoreId: string;
+    force?: boolean | undefined;
+  }): Promise<DataSecurityRecordDraftResult> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftRecord(data.dataStoreId),
+      data.force ? { force: true } : {},
+    )) as unknown as DataSecurityRecordDraftResult;
+  }
+
+  // A store's impact assessment, as the reader may read it (#10375).
+  public static async getImpactAssessment(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityImpactAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.impactAssessment(dataStoreId.toString()),
+    )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  public static async draftImpactAssessment(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityImpactAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftImpactAssessment(dataStoreId.toString()),
+    )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  public static async editImpactAssessment(data: {
+    dataStoreId: ObjectID;
+    part: ImpactAssessmentPart;
+    markdown: string;
+  }): Promise<DataSecurityImpactAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.editImpactAssessment(
+        data.dataStoreId.toString(),
+      ),
+      { part: data.part, markdown: data.markdown },
+    )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  // A framework's audit evidence over a period (#10375).
+  public static async getAuditEvidence(data: {
+    framework: ComplianceFramework;
+    periodInDays: number;
+  }): Promise<DataSecurityAuditEvidenceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.auditEvidence, {
+      framework: data.framework,
+      periodInDays: data.periodInDays,
+    })) as unknown as DataSecurityAuditEvidenceResponse;
+  }
+
+  public static async draftAuditEvidence(data: {
+    framework: ComplianceFramework;
+    periodInDays: number;
+  }): Promise<DataSecurityAuditEvidenceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.draftAuditEvidence, {
+      framework: data.framework,
+      periodInDays: data.periodInDays,
+    })) as unknown as DataSecurityAuditEvidenceResponse;
+  }
+
+  public static async editAuditEvidence(data: {
+    framework: ComplianceFramework;
+    periodInDays: number;
+    requirement: string;
+    text: string;
+  }): Promise<DataSecurityAuditEvidenceResponse> {
+    return (await post(DATA_SECURITY_API_ROUTES.editAuditEvidence, {
+      framework: data.framework,
+      periodInDays: data.periodInDays,
+      requirement: data.requirement,
+      text: data.text,
+    })) as unknown as DataSecurityAuditEvidenceResponse;
   }
 
   /*
@@ -517,6 +713,78 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityDropMetricResult;
   }
 
+  /*
+   * The findings like one a person decided (#10372): the same data type in
+   * a field of the same name, undecided, on the stores they may read. Read
+   * defensively: a row that is not one is left out.
+   */
+  public static async getSimilarFindings(
+    findingId: ObjectID,
+  ): Promise<DataSecuritySimilarFindings> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.similarFindings(findingId.toString()),
+    );
+    const text: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const findings: Array<DataSecuritySimilarFinding> = Array.isArray(
+      answer["findings"],
+    )
+      ? (answer["findings"] as Array<JSONValue>)
+          .filter((entry: JSONValue): entry is JSONObject => {
+            return (
+              Boolean(entry) &&
+              typeof entry === "object" &&
+              !Array.isArray(entry) &&
+              ObjectID.isValidUUID(text((entry as JSONObject)["findingId"]))
+            );
+          })
+          .map((entry: JSONObject): DataSecuritySimilarFinding => {
+            return {
+              findingId: text(entry["findingId"]),
+              dataStoreId: text(entry["dataStoreId"]),
+              storeName: text(entry["storeName"]),
+              storeKind: text(entry["storeKind"]),
+              location: text(entry["location"]),
+              locationKind: text(entry["locationKind"]),
+              dataTypeId: text(entry["dataTypeId"]),
+              dataTypeName: text(entry["dataTypeName"]),
+              confidence: text(entry["confidence"]),
+              aiVerdict: text(entry["aiVerdict"]),
+              isSameStore: entry["isSameStore"] === true,
+            };
+          })
+      : [];
+
+    return {
+      findingId: text(answer["findingId"]),
+      decision: text(answer["decision"]),
+      reason: text(answer["reason"]),
+      hasName: answer["hasName"] === true,
+      findings,
+    };
+  }
+
+  // The same decision, with the person's reason, on the findings they keep ticked.
+  public static async applyToSimilarFindings(data: {
+    findingId: ObjectID;
+    findingIds: Array<string>;
+  }): Promise<DataSecurityApplyToSimilarResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.applyToSimilarFindings(
+        data.findingId.toString(),
+      ),
+      { findingIds: data.findingIds },
+    );
+
+    return {
+      decision:
+        typeof answer["decision"] === "string" ? answer["decision"] : "",
+      applied: typeof answer["applied"] === "number" ? answer["applied"] : 0,
+      skipped: typeof answer["skipped"] === "number" ? answer["skipped"] : 0,
+    };
+  }
+
   // The newest records a telemetry finding's data was seen in, read now.
   public static async getFindingOccurrences(
     findingId: ObjectID,
@@ -571,6 +839,20 @@ export default class DataSecurityApi {
       analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
       group: readIssueGroup(answer["group"]),
     };
+  }
+
+  /*
+   * What hides a telemetry issue's data at ingest, and what each rule
+   * changed lately and since a verified code fix (#10368).
+   */
+  public static async getIssueContainment(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueContainment | null> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueContainment(issueId.toString()),
+    );
+
+    return readIssueContainment(answer["containment"]);
   }
 
   // Which response actions a store can take now, and why not.
