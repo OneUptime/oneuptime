@@ -950,7 +950,8 @@ export const ReceivesIngressTraffic: boolean =
  *     running at once. Default: a fifth of DATABASE_MAX_OPEN_CONNECTIONS.
  *   - PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS: the Test Monitor
  *     runs handed to probes at once, in a lane of their own, so they never
- *     wait behind the monitors (#10819). Default: 2.
+ *     wait behind the monitors (#10819). Default: 2, or 1 on a pool of
+ *     fewer than 30.
  *   - DATABASE_MAX_QUEUE_JOB_CONNECTIONS: Postgres connections the queue jobs
  *     of this process hold at once. Default: the pool less a fifth kept for
  *     requests and less probe scheduling's two lanes - 28 of 50 - or the

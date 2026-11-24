@@ -1,5 +1,6 @@
 import Redis from "../../Infrastructure/Redis";
 import logger from "../Logger";
+import { readClock } from "../RollingHistogram";
 import ProbeSchedulingLane from "./ProbeSchedulingLane";
 import ProbeSchedulingMetricsInstance, {
   ProbeSchedulingLaneMetrics,
@@ -244,7 +245,7 @@ export class ProbeSchedulingFleetMetrics {
     private readonly client: () => ProbeSchedulingFleetClient | null = (): ProbeSchedulingFleetClient | null => {
       return Redis.getClient() as unknown as ProbeSchedulingFleetClient | null;
     },
-    private readonly now: () => number = Date.now,
+    private readonly now: () => number = readClock,
   ) {}
 
   /*

@@ -2,6 +2,7 @@ import { KeyedConcurrencyRefusal } from "../KeyedConcurrencyLimiter";
 import RollingHistogram, {
   RollingCount,
   RollingSummary,
+  readClock,
 } from "../RollingHistogram";
 import AppMetrics from "../Telemetry/AppMetrics";
 import ProbeSchedulingLane, {
@@ -123,7 +124,7 @@ export class ProbeSchedulingMetrics {
   private stateReader: ProbeSchedulingStateReader | null = null;
 
   public constructor(options: ProbeSchedulingMetricsOptions = {}) {
-    this.now = options.now || Date.now;
+    this.now = options.now || readClock;
     this.replica = options.replica || `${os.hostname()}:${process.pid}`;
     this.exportTelemetry = Boolean(options.exportTelemetry);
 

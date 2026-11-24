@@ -23,7 +23,8 @@
  *     one connection each), a fifth of the pool by default, and the Test
  *     Monitor runs it hands out at most
  *     PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS more, in a lane
- *     of their own (2 by default: Probe/ProbeSchedulingLimiter, #10819).
+ *     of their own (2 by default, 1 on a pool of fewer than 30:
+ *     Probe/ProbeSchedulingLimiter, #10819).
  *   - Queue jobs hold at most DATABASE_MAX_QUEUE_JOB_CONNECTIONS connections
  *     at once (Infrastructure/Postgres/QueueJobConnections). By default the
  *     pool less a fifth kept for requests and less probe scheduling's two
@@ -47,9 +48,18 @@ export const PROBE_SCHEDULING_SHARE_OF_POOL: number = 0.2;
 /*
  * Test Monitor runs handed out at once, in their own lane: a probe replica
  * asks for them every ten seconds, one request at a time, and each is a
- * statement or two.
+ * statement or two. Two, or one on a pool of fewer than 30, so a small pool
+ * still keeps connections for requests.
  */
 export const DEFAULT_PROBE_SCHEDULING_MONITOR_TEST_REQUESTS: number = 2;
+export const MONITOR_TEST_SHARE_OF_POOL: number = 0.05;
+
+export function defaultMonitorTestRequests(poolSize: number): number {
+  return Math.min(
+    DEFAULT_PROBE_SCHEDULING_MONITOR_TEST_REQUESTS,
+    Math.max(1, Math.round(poolSize * MONITOR_TEST_SHARE_OF_POOL)),
+  );
+}
 
 export interface ConnectionSharesInput {
   // DATABASE_MAX_OPEN_CONNECTIONS.
@@ -108,7 +118,7 @@ export function computeConnectionShares(
   const probeSchedulingMaxConcurrentMonitorTestRequests: number = Math.min(
     poolSize,
     positiveWholeNumber(input.probeSchedulingMaxConcurrentMonitorTestRequests) ??
-      DEFAULT_PROBE_SCHEDULING_MONITOR_TEST_REQUESTS,
+      defaultMonitorTestRequests(poolSize),
   );
 
   // Both lanes of probe scheduling together.

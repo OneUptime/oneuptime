@@ -547,6 +547,9 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       monitoringInterval: string;
     }> = [];
 
+    // One cron read per distinct schedule, however many monitors share it.
+    const runs: Map<string, ScheduledRun> = new Map<string, ScheduledRun>();
+
     for (const row of data.claimed) {
       const monitoringInterval: string | null | undefined =
         row.monitoringInterval;
@@ -560,10 +563,12 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
         continue;
       }
 
-      const run: ScheduledRun = this.schedules.nextRun(
-        monitoringInterval,
-        data.fallbackNextPing,
-      );
+      let run: ScheduledRun | undefined = runs.get(monitoringInterval);
+
+      if (!run) {
+        run = this.schedules.nextRun(monitoringInterval, data.fallbackNextPing);
+        runs.set(monitoringInterval, run);
+      }
 
       if (!run.readable) {
         unreadableIntervals.push({

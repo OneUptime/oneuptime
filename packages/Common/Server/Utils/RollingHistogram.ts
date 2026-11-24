@@ -39,6 +39,14 @@ export interface RollingHistogramOptions {
   now?: (() => number) | undefined;
 }
 
+/*
+ * The clock, read when it is called: a test's fake clock is the clock from
+ * the moment it is installed, whenever the window was made.
+ */
+export function readClock(): number {
+  return Date.now();
+}
+
 export const EMPTY_ROLLING_SUMMARY: RollingSummary = {
   count: 0,
   mean: 0,
@@ -63,7 +71,7 @@ export default class RollingHistogram {
       return a - b;
     });
     this.windowSeconds = Math.max(1, Math.floor(options.windowSeconds));
-    this.now = options.now || Date.now;
+    this.now = options.now || readClock;
     this.slots = [];
 
     for (let index: number = 0; index < this.windowSeconds; index++) {
@@ -188,7 +196,7 @@ export class RollingCount {
     now?: (() => number) | undefined;
   }) {
     this.windowSeconds = Math.max(1, Math.floor(options.windowSeconds));
-    this.now = options.now || Date.now;
+    this.now = options.now || readClock;
     this.seconds = new Array<number>(this.windowSeconds).fill(-1);
     this.counts = new Array<number>(this.windowSeconds).fill(0);
   }
