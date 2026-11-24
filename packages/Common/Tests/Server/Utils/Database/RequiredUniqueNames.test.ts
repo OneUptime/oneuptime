@@ -40,7 +40,14 @@ import NameTakenException, {
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import { getJestSpyOn } from "../../../Spy";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * NAMES ONE OF THEIR KIND IN A PROJECT THAT REQUIRES IT (#10761).
@@ -114,7 +121,9 @@ function monitor(data: {
 let isRequired: boolean = true;
 let lockTaken: Array<{ key: string; namespace: string }> = [];
 let released: Array<SemaphoreMutex> = [];
-const MUTEX: SemaphoreMutex = { identifier: "held" } as unknown as SemaphoreMutex;
+const MUTEX: SemaphoreMutex = {
+  identifier: "held",
+} as unknown as SemaphoreMutex;
 
 beforeEach(() => {
   isRequired = true;
@@ -128,7 +137,10 @@ beforeEach(() => {
   );
 
   getJestSpyOn(Semaphore, "lock").mockImplementation(
-    async (data: { key: string; namespace: string }): Promise<SemaphoreMutex> => {
+    async (data: {
+      key: string;
+      namespace: string;
+    }): Promise<SemaphoreMutex> => {
       lockTaken.push({ key: data.key, namespace: data.namespace });
       return MUTEX;
     },
@@ -172,10 +184,9 @@ function stubHolder(
 }
 
 function stubRowsWritten(rows: Array<Monitor>): void {
-  getJestSpyOn(
-    MonitorService,
-    "findRowsAndHoldUpdateToThem",
-  ).mockResolvedValue(rows);
+  getJestSpyOn(MonitorService, "findRowsAndHoldUpdateToThem").mockResolvedValue(
+    rows,
+  );
 }
 
 function createMonitor(
@@ -421,9 +432,7 @@ describe("a new record of a kind the setting holds", () => {
     await expect(
       createMonitor({ name: "   ", projectId: PROJECT_ID }),
     ).resolves.toBeNull();
-    await expect(
-      createMonitor({ projectId: PROJECT_ID }),
-    ).resolves.toBeNull();
+    await expect(createMonitor({ projectId: PROJECT_ID })).resolves.toBeNull();
     await expect(
       createMonitor({ name: "API Health Check" }, {
         userId: USER_ID,
@@ -440,10 +449,9 @@ describe("a new record of a kind the setting holds", () => {
     );
 
     await expect(
-      createMonitor(
-        { name: "API Health Check", projectId: PROJECT_ID },
-        { isRoot: true } as DatabaseCommonInteractionProps,
-      ),
+      createMonitor({ name: "API Health Check", projectId: PROJECT_ID }, {
+        isRoot: true,
+      } as DatabaseCommonInteractionProps),
     ).resolves.toBeNull();
 
     expect(finds).toHaveLength(0);
@@ -489,9 +497,7 @@ describe("a name OneUptime picked for the person", () => {
    * The records that hold names, by the name as it reads: the clash read
    * answers the one whose name it asks for.
    */
-  function stubHoldersByName(
-    holders: Record<string, Monitor>,
-  ): Array<string> {
+  function stubHoldersByName(holders: Record<string, Monitor>): Array<string> {
     const asked: Array<string> = [];
 
     getJestSpyOn(MonitorService, "findOneBy").mockImplementation(
@@ -558,7 +564,11 @@ describe("a name OneUptime picked for the person", () => {
     ]);
 
     // Each name was held while it was looked for; the taken ones given back.
-    expect(lockTaken.map((lock: { key: string }) => lock.key)).toEqual(
+    expect(
+      lockTaken.map((lock: { key: string }) => {
+        return lock.key;
+      }),
+    ).toEqual(
       ["web - High CPU", "web - High CPU 2", "web - High CPU 3"].map(
         (name: string): string => {
           return RequiredUniqueNames.getLockKey({
@@ -841,7 +851,9 @@ describe("renaming a record of a kind the setting holds", () => {
     );
 
     expect(refusal).not.toBeInstanceOf(NameTakenException);
-    expect(refusal.message).toBe(REQUIRED_UNIQUE_NAMES_RENAMED_TOGETHER_REFUSAL);
+    expect(refusal.message).toBe(
+      REQUIRED_UNIQUE_NAMES_RENAMED_TOGETHER_REFUSAL,
+    );
     expect(lockTaken).toHaveLength(0);
   });
 
@@ -952,9 +964,9 @@ describe("the lock's key", () => {
   test("names the kind and the project as Postgres writes its id, and no long name", () => {
     const written: string = key("x".repeat(500));
 
-    expect(written.startsWith("Monitor:11111111-1111-4111-8111-111111111111:")).toBe(
-      true,
-    );
+    expect(
+      written.startsWith("Monitor:11111111-1111-4111-8111-111111111111:"),
+    ).toBe(true);
     expect(written.length).toBeLessThan(120);
     expect(
       key(
@@ -1021,9 +1033,9 @@ describe("a form's check of a name", () => {
       monitor({ id: HOLDER_ID, name: "API Health Check", isArchived: true }),
     );
 
-    expect((await check({ name: "API Health Check" })).takenBy?.isArchived).toBe(
-      true,
-    );
+    expect(
+      (await check({ name: "API Health Check" })).takenBy?.isArchived,
+    ).toBe(true);
   });
 
   test("of a record the reader may not read says only that saving would be refused, and only where it would", async () => {
@@ -1087,7 +1099,9 @@ describe("the names a project holds more than once, of one kind", () => {
     return `00000000-0000-4000-8000-${n.toString().padStart(12, "0")}`;
   };
 
-  function stubNames(rows: Array<Row>): Array<{ sql: string; values: unknown }> {
+  function stubNames(
+    rows: Array<Row>,
+  ): Array<{ sql: string; values: unknown }> {
     const queries: Array<{ sql: string; values: unknown }> = [];
 
     getJestSpyOn(MonitorService, "getRepository").mockReturnValue({
@@ -1148,6 +1162,7 @@ describe("the names a project holds more than once, of one kind", () => {
 
     expect(await find()).toEqual({
       tableName: "Monitor",
+      pluralName: "Monitors",
       groupCount: 2,
       groups: [
         {
@@ -1221,7 +1236,11 @@ describe("the names a project holds more than once, of one kind", () => {
     const rows: Array<Row> = [];
     let n: number = 0;
 
-    for (let group: number = 0; group < MAX_DUPLICATE_GROUPS_PER_KIND + 5; group++) {
+    for (
+      let group: number = 0;
+      group < MAX_DUPLICATE_GROUPS_PER_KIND + 5;
+      group++
+    ) {
       for (
         let record: number = 0;
         record < MAX_DUPLICATE_RECORDS_PER_GROUP + 2;

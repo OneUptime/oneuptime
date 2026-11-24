@@ -705,6 +705,7 @@ export default class RequiredUniqueNames {
 
     return {
       tableName: tableName,
+      pluralName: data.service.getModel().pluralName || tableName,
       groupCount: keys.length,
       groups: groups,
     };
@@ -722,7 +723,9 @@ export default class RequiredUniqueNames {
    * as any taken name is. Numbered, a name keeps to its column's length and
    * gives up the end of its words, never its number.
    */
-  private static async holdAndRefuseIfTaken<TBaseModel extends BaseModel>(data: {
+  private static async holdAndRefuseIfTaken<
+    TBaseModel extends BaseModel,
+  >(data: {
     service: DatabaseService<TBaseModel>;
     column: string;
     projectId: ObjectID;
@@ -791,9 +794,8 @@ export default class RequiredUniqueNames {
     exceptId: ObjectID | null;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    const holder: TBaseModel | null = await RequiredUniqueNames.findHolder(
-      data,
-    );
+    const holder: TBaseModel | null =
+      await RequiredUniqueNames.findHolder(data);
 
     if (!holder) {
       return;

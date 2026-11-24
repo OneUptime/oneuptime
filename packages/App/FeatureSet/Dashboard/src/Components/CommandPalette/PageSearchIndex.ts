@@ -554,9 +554,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "rename project",
               "project id",
               "data residency",
+              // Require Unique Names (#10761), by what people ask for.
+              "duplicate names",
+              "same name",
             ],
             settings: [
               "Project Details",
+              "Unique Names",
+              "Require Unique Names",
               {
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,

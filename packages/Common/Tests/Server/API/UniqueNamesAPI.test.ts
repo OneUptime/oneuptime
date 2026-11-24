@@ -99,9 +99,6 @@ jest.mock("../../../Server/Services/Index", () => {
   };
 });
 
-// eslint-disable-next-line import/first
-import "../../../Server/API/UniqueNamesAPI";
-
 function buildProps(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
@@ -184,15 +181,13 @@ beforeEach(() => {
   projectId = ObjectID.generate();
   userId = ObjectID.generate();
 
-  jest
-    .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-    .mockResolvedValue(
-      buildProps({
-        projectId,
-        userId,
-        permissions: [Permission.ProjectMember],
-      }),
-    );
+  jest.spyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockResolvedValue(
+    buildProps({
+      projectId,
+      userId,
+      permissions: [Permission.ProjectMember],
+    }),
+  );
 });
 
 afterEach(() => {
@@ -219,9 +214,9 @@ describe("GET /unique-names/check", () => {
   });
 
   test("is a read, mounted behind getUserMiddleware", () => {
-    expect(mockRouter.match("GET", UNIQUE_NAME_CHECK_ROUTE).middlewares).toEqual(
-      [UserMiddleware.getUserMiddleware],
-    );
+    expect(
+      mockRouter.match("GET", UNIQUE_NAME_CHECK_ROUTE).middlewares,
+    ).toEqual([UserMiddleware.getUserMiddleware]);
   });
 
   test("checks a kind the setting holds with the caller's own props, uncached", async () => {
@@ -313,10 +308,10 @@ describe("GET /unique-names/check", () => {
   test.each(["TableView", "Incident", "Monitor", "", "monitorgroup"])(
     "a kind whose names repeat, or one it does not know (%j), is nothing to check, and nothing is read",
     async (tableName: string) => {
-      const result: RouteCallResult = await callRoute(
-        UNIQUE_NAME_CHECK_ROUTE,
-        { tableName: tableName, name: "Production" },
-      );
+      const result: RouteCallResult = await callRoute(UNIQUE_NAME_CHECK_ROUTE, {
+        tableName: tableName,
+        name: "Production",
+      });
 
       expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
       expect(checkSpy).not.toHaveBeenCalled();
@@ -392,6 +387,7 @@ describe("GET /unique-names/check", () => {
 describe("GET /unique-names/duplicates", () => {
   const GROUPS: DuplicateNamesOfKind = {
     tableName: "MonitorGroup",
+    pluralName: "Monitor Groups",
     groupCount: 1,
     groups: [
       {
@@ -469,6 +465,7 @@ describe("GET /unique-names/duplicates", () => {
       kinds: [
         {
           tableName: "MonitorGroup",
+          pluralName: "Monitor Groups",
           groupCount: 1,
           groups: [
             {

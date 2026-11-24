@@ -91,6 +91,8 @@ export interface DuplicateNameGroup {
 export interface DuplicateNamesOfKind {
   // The kind, by its table: "Monitor".
   tableName: string;
+  // Its name in the plural, as its model gives it, in English: "Monitors".
+  pluralName: string;
   // How many names the kind holds more than once.
   groupCount: number;
   // The first of them, by name (MAX_DUPLICATE_GROUPS_PER_KIND at most).
@@ -212,6 +214,7 @@ export const toDuplicateNamesAnswerJSON: (
     kinds: answer.kinds.map((kind: DuplicateNamesOfKind): JSONObject => {
       return {
         tableName: kind.tableName,
+        pluralName: kind.pluralName,
         groupCount: kind.groupCount,
         groups: kind.groups.map((group: DuplicateNameGroup): JSONObject => {
           return {
@@ -313,6 +316,7 @@ export const readDuplicateNamesAnswer: (
 
         return {
           tableName: tableName,
+          pluralName: readText(kind["pluralName"]) || tableName,
           groupCount: Math.max(readCount(kind["groupCount"]), groups.length),
           groups: groups,
         };
