@@ -532,7 +532,7 @@ export default class DataSecurityAiProposal extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Why It Asks",
     description:
-      "Why a change OneUptime AI could have made on its own waits for a person: the work asks first, the change always asks, a rule must name it, it could not prove it is safe, two people approve it, or the hour's circuit breaker.",
+      "Why a change OneUptime AI could have made on its own waits for a person: the work asks first, the change always asks, a rule must name it, it could not prove it is safe, two people approve it, the hour's circuit breaker, or the repository's cap on open AI pull requests.",
   })
   @Column({
     type: ColumnType.ShortText,

@@ -134,7 +134,13 @@ O zoom só funciona no modo de leitura; no modo de edição, arrastar move e red
 
 ## Tela cheia
 
-**⋯ → Tela cheia** mostra os widgets do painel na tela inteira, para um monitor na parede ou uma reunião. Pressione Esc para sair.
+A tela cheia mostra só o painel, na tela inteira: a barra de ferramentas e os widgets dele, sem a barra superior, o menu lateral ou a trilha de navegação em volta. Tudo funciona como na página do painel, e para as mesmas pessoas: editar, adicionar e remover widgets, o intervalo de tempo, a atualização automática e as variáveis.
+
+- **Tela cheia**, o botão quadrado no fim da barra de ferramentas do painel, ou **⋯ → Tela cheia** mostra o painel em tela cheia. Seu navegador também entra em tela cheia, onde permitir.
+- **Abrir em uma nova aba**, no menu **⋯** do painel ou no menu **⋯** de uma linha da lista **Painéis**, abre o painel em tela cheia em uma aba só dele. Nessa aba, **Preencher a tela** coloca também seu navegador em tela cheia.
+- **Sair da tela cheia**, ou Esc, volta para a página do painel e tira também seu navegador da tela cheia. Depois de **Preencher a tela**, o primeiro Esc tira só seu navegador da tela cheia.
+
+Um painel em tela cheia tem seu próprio endereço, que termina em `?view=full-screen`: salve-o nos favoritos ou abra-o em uma tela na parede, e o painel abre em tela cheia. Para mostrar vários painéis um após o outro em uma tela, use uma [playlist](/docs/dashboards/playlists).
 
 ## Dicas para painéis que envelhecem bem
 

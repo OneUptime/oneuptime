@@ -70,6 +70,8 @@ flowchart TB
 
 **ページが返すインシデント。** インシデントのエンドポイントは、ページのモニターのインシデントから、ほかのステータスページに限定されたものを除き、さらにページがそのページに限定されたインシデントだけを表示する設定なら、このページに限定されていないインシデントもすべて除いたものを返します ([対象者ごとのステータス ページ](/docs/status-pages/one-status-page-per-audience) を参照)。インシデントがどのページに限定されているかは、応答には一切含まれません。
 
+**ページによるインシデントの並べ方。** 概要と、インシデントおよびエピソードの一覧は、ページのモードを `incidentListMode` で示します: `GroupedByEpisode`、`Separate`、`IncidentsOnly`、`EpisodesOnly`、またはどちらも表示しないページの概要では `None` です。ページがインシデントとエピソードの両方を表示している間は、`episodes` と `activeEpisodes` の各エピソードに `incidents` が付きます。そのエピソードのインシデントのうちページが表示するものが新しい順に並び、それぞれに `_id`、`title`、`declaredAt`、`incidentSeverity`、`currentIncidentState`、`monitors` が付きます。このとき、ID で読み取ったインシデントには `partOfEpisodes` が付きます。そのインシデントが含まれる各エピソードで、それぞれ `_id` と `title` を持ちます。エピソードごとにまとめる場合、つまり **インシデントをエピソードごとにまとめて表示** がオンの場合は、ページはエピソードを 1 枚のカードとして描いてそのインシデントをインシデントのカードから外し、該当するインシデントが 1 つもないエピソードは一覧から除かれます。それでも `incidents` と `activeIncidents` にはページが表示するすべてのインシデントが含まれるので、エピソードを無視するクライアントも取りこぼしません。インシデントやエピソードが `monitors` を示すときは、どこでもページ自身のモニターだけです。
+
 ## 概要を読む
 
 概要は、ページ全体を 1 回で取得するリクエストです。ステータスページが描画するのと同じデータで、古くても 15 秒前のものです。
@@ -140,7 +142,9 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 稼働率バーを描く元データと、ページのバーの色ルール。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | ページが表示する未解決のインシデント、その公開メモと状態の変化、そしてプロジェクトのインシデントの状態。 |
 | `timelineIncidents` | 稼働率バーの期間内のインシデント (解決済みを含む)。バーのツールチップ用です。 |
-| `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | インシデントのエピソードについての同じもの。 |
+| `timelineEpisodes` | エピソードは表示するがインシデントは表示しないページで、稼働率バーのツールチップと各日のダイアログが代わりに一覧するもの: バーの期間内のインシデントが属する各エピソードで、そのインシデントのうちページが単独でも表示するものそれぞれについて、`declaredAt` とページの `monitors` だけが付きます。ほかのページではすべて空です。 |
+| `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | インシデントのエピソードについての同じもの。各エピソードには `monitors` (表示されるインシデントがあるページのモニター) が付き、ページがインシデントも表示している間は `incidents` も付きます。 |
+| `incidentListMode` | ページがインシデントとエピソードをどう並べるか: `GroupedByEpisode`、`Separate`、`IncidentsOnly`、`EpisodesOnly`、`None` のいずれか。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | これから始まる、または進行中のメンテナンスイベントと、その公開メモと状態の変化。 |
 | `timelineScheduledMaintenanceEvents` | 稼働率バーの期間内の、開始済みのメンテナンスイベント (進行中または終了済み)。バーのツールチップと各日のダイアログ用です。ページが表示し、そのモニターのいずれかを含むイベントだけで、それぞれページのモニターだけが付きます。 |
 | `activeAnnouncements` | いま表示中のお知らせ: 開始済みで、まだ終了していないもの。 |
@@ -195,7 +199,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | --- | -------------- |
 | `overallStatus` | バナーが示すとおりのページ全体のステータス: `name`、`color`、`isOperational`。ページのすべてのリソースが **未監視** の場合は `null`。 |
 | `resources` | ページが表示する各リソース (ページの順): ページ上の `name`、上位のグループを含む `groupName`、`currentStatus`、`isMonitored`、`isUnderMaintenance`。 |
-| `activeIncidents` | ページが表示する未解決のインシデント。それぞれ、影響するリソースの `affectedResourceIds` が付きます。 |
+| `activeIncidents` | ページが表示する未解決のインシデント。それぞれ、影響するリソースの `affectedResourceIds` が付きます。エピソードは表示するがインシデントは表示しないページでは、そのページの進行中のエピソードで、概要ではこれが進行中のインシデントとして一覧されます。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中のメンテナンスイベントと、これから始まるイベント。それぞれに `affectedResourceIds` が付きます。 |
 
 ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。`isMonitored` が `false` の場合も同じです。そのリソースは、モニターの監視がオフか、モニターグループのすべてのモニターで監視がオフのため何にもチェックされず、ページには **未監視** と表示されます。まだ何にもチェックされていないリソースも同じで、ページには **まだ監視されていません** と表示されます。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | エンドポイント | 応答のキー |
 | -------- | -------------------- |
-| インシデント | `incidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
-| エピソード | `episodes`、`episodePublicNotes`、`episodeStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
+| インシデント | `incidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup`、`incidentListMode` |
+| エピソード | `episodes`、`episodePublicNotes`、`episodeStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup`、`incidentListMode` |
 | メンテナンスイベント | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates`、`statusPageResources`、`monitorsInGroup` |
 | お知らせ | `announcements`、`statusPageResources`、`monitorsInGroup` |
 
@@ -407,7 +411,7 @@ for incident in incidents:
 
 ## ステータスページを読むほかの方法
 
-- **RSS。** すべてのステータスページは `/rss` を提供します。インシデント、お知らせ、メンテナンスイベントのフィードで、どの項目もページと同じ日付が付きます。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
+- **RSS。** すべてのステータスページは `/rss` を提供します。インシデントとエピソード、お知らせ、メンテナンスイベントのフィードで、どの項目もページと同じ日付が付き、インシデントはページと同じように並びます。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
 - **llms.txt。** `/rss` と並んで、すべてのステータスページが `/llms.txt` を提供します。AI エージェントに RSS フィードと概要の JSON の場所を示すものです。
 - **MCP。** AI エージェントは、OneUptime の MCP サーバー (`https://oneuptime.com/mcp`) を通じて、API キーなしでページを読めます。ページの ID またはドメインを `statusPageIdOrDomain` として渡します。既定でオンになっており、ページのサイドメニューの **詳細 → MCP** にある **MCP サーバーを有効化** でオフにできます。[MCP サーバー](/docs/ai/mcp-server) を参照してください。
 - **REST API。** ステータスページ、リソース、購読者、お知らせを作成または変更するには、API キーを使って [OneUptime API](/docs/api-reference/api-reference) を使用します。

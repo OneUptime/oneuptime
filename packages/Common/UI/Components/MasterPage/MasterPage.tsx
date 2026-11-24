@@ -10,6 +10,14 @@ import useOfflinePlace from "../../Utils/UseOfflinePlace";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
+/*
+ * The id of the page's <main> (written out where it is drawn, below): what
+ * the skip link jumps to, and what holds an app's own layers beside its page
+ * - the command palette, Ask AI, the dialogs any page opens - which a
+ * dashboard shown full screen leaves working (#10409).
+ */
+export const MASTER_PAGE_MAIN_CONTENT_ID: string = "main-content";
+
 export interface ComponentProps {
   header?: undefined | ReactElement;
   footer?: undefined | ReactElement;

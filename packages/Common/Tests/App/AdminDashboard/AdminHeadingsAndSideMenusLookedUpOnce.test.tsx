@@ -115,6 +115,8 @@ const SETTINGS_ENTRIES: Array<string> = [
   "settingsAuthentication",
   "settingsSso",
   "settingsProducts",
+  // Where the server sends its people for help (#10864-#10866).
+  "settingsHelpAndSupport",
   "settingsEmails",
   "settingsCallSms",
   "settingsWhatsapp",

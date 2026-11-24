@@ -102,6 +102,7 @@ let teamMembersSpy: jest.SpyInstance;
 let usersSpy: jest.SpyInstance;
 let projectMembersSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
+let exposureSpy: jest.SpyInstance;
 
 function userOf(name: string, email?: string): User {
   const user: User = new User(ObjectID.generate());
@@ -216,6 +217,9 @@ beforeEach(() => {
   notifiedSpy = jest
     .spyOn(DataSecurityIssueService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  exposureSpy = jest
+    .spyOn(DataSecurityJobs, "queueDataSecurityExposureAssessment")
+    .mockResolvedValue(true);
 
   ownerUsersSpy = jest
     .spyOn(DataStoreOwnerUserService, "findBy")
@@ -920,6 +924,216 @@ describe("onIssuesOpened: the issue links to its security case", () => {
     await opened([issueOf({ severity: SecuritySeverity.Critical })]);
 
     expect(detectionsSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A Critical exposure of a store with Restricted or Confidential data has
+ * its case assessed on its own (#10377): one queued job per case, once the
+ * issue is linked to it. Any other case about a store is assessed when a
+ * person asks, so nothing is queued for it.
+ */
+describe("onIssuesOpened: an exposure's case is assessed", () => {
+  function inCase(
+    issues: Array<OpenedIssueForIntegrations>,
+    caseId: ObjectID,
+  ): void {
+    for (const issue of issues) {
+      const detection: SecurityDetection = new SecurityDetection();
+      detection.fingerprint = `data-security-issue:${issue.issueId.toString()}`;
+      detection.securityCaseId = caseId;
+      detectionRows.push(detection);
+    }
+  }
+
+  function queued(): Array<{
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    dataSecurityIssueId: ObjectID;
+  }> {
+    return exposureSpy.mock.calls.map((call: Array<unknown>) => {
+      return call[0] as {
+        projectId: ObjectID;
+        securityCaseId: ObjectID;
+        dataSecurityIssueId: ObjectID;
+      };
+    });
+  }
+
+  test("a Critical public bucket of Restricted data has its case assessed: one job, with the case and the issue", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      sensitivity: DataSensitivity.Restricted,
+    });
+    const caseId: ObjectID = ObjectID.generate();
+
+    inCase([issue], caseId);
+    await opened([issue]);
+
+    expect(queued()).toEqual([
+      {
+        projectId: PROJECT_ID,
+        securityCaseId: caseId,
+        dataSecurityIssueId: issue.issueId,
+      },
+    ]);
+  });
+
+  test("Confidential data is assessed on its own too", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      sensitivity: DataSensitivity.Confidential,
+      checkId: "shared-with-external-accounts",
+      title: "Shared with accounts outside your organization",
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(1);
+  });
+
+  test.each([
+    "public-read",
+    "public-write",
+    "snapshot-public",
+    "snapshot-shared-externally",
+    "shared-with-external-accounts",
+  ])(
+    "the exposure check %s is assessed on its own",
+    async (checkId: string) => {
+      const issue: OpenedIssueForIntegrations = issueOf({
+        severity: SecuritySeverity.Critical,
+        checkId,
+      });
+
+      inCase([issue], ObjectID.generate());
+      await opened([issue]);
+
+      expect(queued()).toHaveLength(1);
+    },
+  );
+
+  test("the website images bucket - Public data, open to anyone - gets no assessment of its own", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeName: "website-images",
+      sensitivity: DataSensitivity.Public,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+    // Its case still opens and the issue still links to it.
+    expect(casesSpy).toHaveBeenCalledTimes(1);
+    expect(notifiedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("Internal data gets no assessment of its own", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      sensitivity: DataSensitivity.Internal,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("a Critical issue that is not an exposure gets no assessment of its own", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      checkId: "encryption-at-rest",
+      title: "Not encrypted at rest",
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("a High exposure opens no case, so nothing is assessed", async () => {
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(casesSpy).not.toHaveBeenCalled();
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("two exposures in one case queue one job; another case gets its own", async () => {
+    const publicRead: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const publicWrite: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      checkId: "public-write",
+      title: "Anyone on the internet can write to it",
+    });
+    const elsewhere: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeId: STORE_B,
+      storeName: "payments-db",
+    });
+    const caseA: ObjectID = ObjectID.generate();
+    const caseB: ObjectID = ObjectID.generate();
+
+    inCase([publicRead, publicWrite], caseA);
+    inCase([elsewhere], caseB);
+    await opened([publicRead, publicWrite, elsewhere]);
+
+    expect(
+      queued().map(
+        (job: { securityCaseId: ObjectID; dataSecurityIssueId: ObjectID }) => {
+          return [
+            job.securityCaseId.toString(),
+            job.dataSecurityIssueId.toString(),
+          ];
+        },
+      ),
+    ).toEqual([
+      [caseA.toString(), publicRead.issueId.toString()],
+      [caseB.toString(), elsewhere.issueId.toString()],
+    ]);
+  });
+
+  test("an exposure whose case is not found is not assessed", async () => {
+    await opened([issueOf({ severity: SecuritySeverity.Critical })]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("with cases off, nothing is assessed", async () => {
+    setting.openCasesForCriticalIssues = false;
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(0);
+  });
+
+  test("a job that cannot be queued leaves the rest as it was: the case note still goes", async () => {
+    exposureSpy.mockResolvedValue(false);
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+
+    inCase([issue], ObjectID.generate());
+    await opened([issue]);
+
+    expect(queued()).toHaveLength(1);
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.SecurityCaseOpened),
+    ).toHaveLength(1);
   });
 });
 

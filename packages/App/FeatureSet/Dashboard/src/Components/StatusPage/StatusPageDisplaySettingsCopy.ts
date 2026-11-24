@@ -42,6 +42,14 @@ import IncidentStatusPageScopeCopy from "../Incident/IncidentStatusPageScopeCopy
  * precision of that percentage and nothing else (each resource and group
  * has its own).
  *
+ * Show Incidents Grouped by Episode (#10767, Common/Utils/StatusPage/
+ * IncidentGrouping) lays out the two lists together: on, an episode is one
+ * card listing its incidents, and they get no card of their own. It does
+ * something only while the page shows both, so it is offered only then
+ * (isOnlyWhileShownWith), under Show Episodes. Its line says what visitors
+ * see, whichever way it is set. A new page has it on; a page made before it
+ * existed has it off, and keeps showing what it always did.
+ *
  * Kept free of React so the card and App/Tests read these exact strings.
  * Every string is a whole sentence or a whole name wrapped in
  * translationKey() (or a PluralTemplate), so npm run i18n:extract finds it,
@@ -55,6 +63,7 @@ export type DisplaySwitchColumn =
   | "showIncidentLabelsOnStatusPage"
   | "onlyShowScopedIncidents"
   | "showEpisodesOnStatusPage"
+  | "groupIncidentsByEpisode"
   | "showEpisodeLabelsOnStatusPage"
   | "showAnnouncementsOnStatusPage"
   | "showScheduledMaintenanceEventsOnStatusPage"
@@ -124,6 +133,11 @@ export interface DisplayChoiceDefinition {
 export interface DisplayOptionDefinition extends DisplaySwitchDefinition {
   // Offered only while the section's own switch is on.
   isOnlyWhileShown: boolean;
+  /*
+   * And only while these other sections are shown too: grouping incidents
+   * by episode does something only while the page shows both lists.
+   */
+  isOnlyWhileShownWith?: ReadonlyArray<DisplaySectionId> | undefined;
   // A pick offered under this switch, only while this switch is on.
   choiceWhileOn?: DisplayChoiceDefinition | undefined;
 }
@@ -167,6 +181,8 @@ export const StatusPageDisplaySettingsCopy: {
   cardTitle: string;
   cardDescription: string;
   hiddenListDescription: string;
+  groupedByEpisodeDescription: string;
+  notGroupedByEpisodeDescription: string;
   uptimeTitle: string;
   uptimeDescription: string;
   overallUptimeDescription: string;
@@ -188,6 +204,17 @@ export const StatusPageDisplaySettingsCopy: {
   ),
   hiddenListDescription: translationKey(
     "Hidden from visitors, and subscribers aren't notified about them.",
+  ),
+  /*
+   * What visitors see, either way: on, one card per episode that lists its
+   * incidents (folded until opened) and the resources they affect; off, a
+   * card for each incident beside one for each episode.
+   */
+  groupedByEpisodeDescription: translationKey(
+    "Visitors see each episode as one card that lists its incidents and what they affect.",
+  ),
+  notGroupedByEpisodeDescription: translationKey(
+    "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.",
   ),
   uptimeTitle: translationKey("Uptime History"),
   uptimeDescription: translationKey(
@@ -301,6 +328,15 @@ export const DISPLAY_SECTIONS: ReadonlyArray<DisplaySectionDefinition> = [
       label: translationKey("Show Episode History (in days)"),
     },
     options: [
+      {
+        column: "groupIncidentsByEpisode",
+        title: translationKey("Show Incidents Grouped by Episode"),
+        description: StatusPageDisplaySettingsCopy.groupedByEpisodeDescription,
+        offDescription:
+          StatusPageDisplaySettingsCopy.notGroupedByEpisodeDescription,
+        isOnlyWhileShown: true,
+        isOnlyWhileShownWith: ["incidents"],
+      },
       {
         column: "showEpisodeLabelsOnStatusPage",
         title: translationKey("Show Episode Labels"),

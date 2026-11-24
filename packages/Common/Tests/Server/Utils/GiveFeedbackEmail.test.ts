@@ -40,6 +40,7 @@ import {
   ProductFeedbackKind,
   ProductFeedbackSubmission,
 } from "../../../Types/ProductFeedback/ProductFeedback";
+import { HelpChoice } from "../../../Types/HelpAndSupport/HelpAndSupport";
 
 /*
  * GIVE FEEDBACK, EMAILED TO THE TEAM THAT READS IT (issue #8893).
@@ -107,7 +108,13 @@ const makeUser: (data?: {
 };
 
 beforeEach(() => {
-  serverSettings = { isOn: true, adminNotificationEmail: null };
+  serverSettings = {
+    isOn: true,
+    adminNotificationEmail: null,
+    // Give feedback where it always went (Help and Support's default, #10865).
+    giveFeedback: { choice: HelpChoice.Default, value: null },
+    canSendEmail: true,
+  };
   user = makeUser();
   project = new Project();
   project.name = "Acme Production";
@@ -542,5 +549,90 @@ describe("the email", () => {
     ).toBe(
       "&lt;script&gt;alert(1)&lt;/script&gt;<br/>&lt;a href=&quot;https://evil.test&quot;&gt;Reset&lt;/a&gt; &amp; more<br/>last",
     );
+  });
+});
+
+describe("where a server's admins send Give feedback (Help and Support, #10865)", () => {
+  test("to an address of the server's own, in place of the Admin Notification Email", async () => {
+    serverSettings.adminNotificationEmail = "ops@acme.test";
+    serverSettings.giveFeedback = {
+      choice: HelpChoice.Email,
+      value: "support-team@acme.test",
+    };
+
+    const delivery: GiveFeedbackDelivery | null = await prepare(selfHosted());
+
+    expect(delivery?.to).toBe("support-team@acme.test");
+    expect(delivery?.destination).toBe(
+      GiveFeedbackDestination.SupportTeamByEmail,
+    );
+
+    await selfHosted().send(delivery!);
+
+    const sent: EmailMessage = sendMail.mock.calls[0]![0] as EmailMessage;
+
+    expect(sent.toEmail.toString()).toBe("support-team@acme.test");
+    // The person is still copied and replied to.
+    expect(sent.replyToEmail?.toString()).toBe("ada@acme.test");
+  });
+
+  test("to an address of the server's own on OneUptime Cloud too, where its admins chose one", async () => {
+    serverSettings.giveFeedback = {
+      choice: HelpChoice.Email,
+      value: "support-team@acme.test",
+    };
+
+    expect((await prepare(cloud()))?.to).toBe("support-team@acme.test");
+  });
+
+  test("to an address the server cannot send email to: nothing is prepared, so nothing is promised", async () => {
+    serverSettings.canSendEmail = false;
+    serverSettings.giveFeedback = {
+      choice: HelpChoice.Email,
+      value: "support-team@acme.test",
+    };
+
+    expect(await prepare(selfHosted())).toBeNull();
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  test("to a page of the server's own: nothing is emailed from OneUptime", async () => {
+    serverSettings.adminNotificationEmail = "ops@acme.test";
+    serverSettings.giveFeedback = {
+      choice: HelpChoice.Link,
+      value: "https://desk.acme.test/feedback",
+    };
+
+    expect(await prepare(selfHosted())).toBeNull();
+    expect(await prepare(cloud())).toBeNull();
+  });
+
+  test("hidden: nothing is emailed, even with an Admin Notification Email", async () => {
+    serverSettings.adminNotificationEmail = "ops@acme.test";
+    serverSettings.giveFeedback = { choice: HelpChoice.Hidden, value: null };
+
+    expect(await prepare(selfHosted())).toBeNull();
+  });
+
+  test("by default, exactly as before, whether or not the server can send email", async () => {
+    serverSettings.canSendEmail = false;
+    serverSettings.adminNotificationEmail = "ops@acme.test";
+
+    expect((await prepare(selfHosted()))?.to).toBe("ops@acme.test");
+    expect((await prepare(cloud()))?.to).toBe(ONEUPTIME_SUPPORT_EMAIL);
+  });
+
+  test("the receipt says it is emailed, and where the copy goes", async () => {
+    serverSettings.giveFeedback = {
+      choice: HelpChoice.Email,
+      value: "support-team@acme.test",
+    };
+
+    const email: GiveFeedbackEmail = selfHosted();
+
+    expect(email.getReceipt(await prepare(email))).toEqual({
+      isEmailed: true,
+      copyTo: "ada@acme.test",
+    });
   });
 });

@@ -156,6 +156,18 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
   "StatusPagePrivateUserSession",
 
   /*
+   * The groups of Data Security issues one mistake made (#10370). Nobody
+   * reads this table through the API either: its access lists are empty, and
+   * Data Security's own route (Server/Utils/DataSecurity/DataSecurityIssueGroups)
+   * reads it as root and answers it to whoever reads Data Security issues -
+   * the Security tiers among them - across the whole project. A group's name
+   * and facts come from many stores' tags and names, so a reader held to some
+   * labels gets none: a generic read would tell them of stores they may not
+   * read.
+   */
+  "DataSecurityIssueGroup",
+
+  /*
    * The inbound call policy, its attached phone numbers, and its escalation
    * rules are configured under Settings -> Calls rather than alongside on-call
    * schedules, so they follow the Settings tiers. So do its owners, which are

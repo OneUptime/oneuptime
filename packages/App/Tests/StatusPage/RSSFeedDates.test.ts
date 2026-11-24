@@ -310,7 +310,8 @@ describe.each(RSS_HANDLERS)(
         }),
       );
 
-      expect(readOptions).toHaveLength(3);
+      // Incidents, episodes (#10767), announcements and scheduled maintenance.
+      expect(readOptions).toHaveLength(4);
 
       for (const options of readOptions) {
         expect(options.headers).toEqual({
