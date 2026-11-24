@@ -37,57 +37,59 @@ export const BLOCK_ASKED_TOAST: string = translationKey(
 
 /*
  * The block that holds the step's address: where it is enforced, since
- * when, by whom, and until when - "Blocked at Cloudflare 10:42 by Jane
- * Doe, until 22 Nov 10:42."
+ * when, by whom, and until when - "Blocked at Cloudflare since 10:42 by
+ * Jane Doe, until 22 Nov at 10:42." Each moment brings its own words,
+ * "since 10:42" today and "since 21 Nov at 10:42" on another day (#10622,
+ * Utils/MomentPhrases), so the sentence writes no preposition before one.
  */
 export const BLOCK_LINE_BLOCKED_BY: string = translationKey(
-  "Blocked at {{destinations}} {{time}} by {{name}}, until {{until}}.",
+  "Blocked at {{destinations}} {{since}} by {{name}}, {{until}}.",
 );
 export const BLOCK_LINE_BLOCKED: string = translationKey(
-  "Blocked at {{destinations}} {{time}}, until {{until}}.",
+  "Blocked at {{destinations}} {{since}}, {{until}}.",
 );
 export const BLOCK_LINE_BLOCKED_BY_UNTIL_LIFTED: string = translationKey(
-  "Blocked at {{destinations}} {{time}} by {{name}}, until someone lifts it.",
+  "Blocked at {{destinations}} {{since}} by {{name}}, until someone lifts it.",
 );
 export const BLOCK_LINE_BLOCKED_UNTIL_LIFTED: string = translationKey(
-  "Blocked at {{destinations}} {{time}}, until someone lifts it.",
+  "Blocked at {{destinations}} {{since}}, until someone lifts it.",
 );
 export const BLOCK_LINE_CHALLENGED_BY: string = translationKey(
-  "Challenged at {{destinations}} {{time}} by {{name}}, until {{until}}.",
+  "Challenged at {{destinations}} {{since}} by {{name}}, {{until}}.",
 );
 export const BLOCK_LINE_CHALLENGED: string = translationKey(
-  "Challenged at {{destinations}} {{time}}, until {{until}}.",
+  "Challenged at {{destinations}} {{since}}, {{until}}.",
 );
 export const BLOCK_LINE_CHALLENGED_BY_UNTIL_LIFTED: string = translationKey(
-  "Challenged at {{destinations}} {{time}} by {{name}}, until someone lifts it.",
+  "Challenged at {{destinations}} {{since}} by {{name}}, until someone lifts it.",
 );
 export const BLOCK_LINE_CHALLENGED_UNTIL_LIFTED: string = translationKey(
-  "Challenged at {{destinations}} {{time}}, until someone lifts it.",
+  "Challenged at {{destinations}} {{since}}, until someone lifts it.",
 );
 /*
  * A block an automatic response policy made (#10350): "Challenged at
- * Cloudflare 10:42 by the Scanners policy, 41s after its first request,
- * until 11:42."
+ * Cloudflare since 10:42 by the Scanners policy, 41s after its first
+ * request, until 11:42."
  */
 export const BLOCK_LINE_CHALLENGED_BY_POLICY_AFTER: string = translationKey(
-  "Challenged at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.",
+  "Challenged at {{destinations}} {{since}} by the {{policy}} policy, {{after}} after its first request, {{until}}.",
 );
 export const BLOCK_LINE_BLOCKED_BY_POLICY_AFTER: string = translationKey(
-  "Blocked at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.",
+  "Blocked at {{destinations}} {{since}} by the {{policy}} policy, {{after}} after its first request, {{until}}.",
 );
 export const BLOCK_LINE_CHALLENGED_BY_POLICY: string = translationKey(
-  "Challenged at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.",
+  "Challenged at {{destinations}} {{since}} by the {{policy}} policy, {{until}}.",
 );
 export const BLOCK_LINE_BLOCKED_BY_POLICY: string = translationKey(
-  "Blocked at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.",
+  "Blocked at {{destinations}} {{since}} by the {{policy}} policy, {{until}}.",
 );
 // A block a destination is still applying: not done yet.
 export const BLOCK_LINE_PENDING: string = translationKey(
-  "Asked {{time}}: waiting for {{destinations}} to apply the block.",
+  "Asked {{askedAt}}: waiting for {{destinations}} to apply the block.",
 );
 // A block nothing holds: never read as the address blocked.
 export const BLOCK_LINE_NOT_ENFORCED: string = translationKey(
-  "On your Blocklist since {{time}}, but no destination enforces it, so the address is not blocked anywhere.",
+  "On your Blocklist {{since}}, but no destination enforces it, so the address is not blocked anywhere.",
 );
 export const LIFT_BLOCK_LABEL: string = translationKey(
   "Lift the block on {{value}}",
@@ -157,6 +159,10 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   blockHelp: string;
   blockHelpToggle: string;
   blockHelpPanel: string;
+  linkPullRequest: string;
+  pullRequests: string;
+  pullRequest: string;
+  unlinkPullRequest: string;
 } = {
   card: "security-case-response-plan",
   progress: "security-case-response-progress",
@@ -189,4 +195,48 @@ export const SECURITY_CASE_RESPONSE_TEST_IDS: {
   blockHelp: "security-case-response-step-block-help",
   blockHelpToggle: "security-case-response-step-block-help-toggle",
   blockHelpPanel: "security-case-response-step-block-help-panel",
+  linkPullRequest: "security-case-response-step-link-pull-request",
+  pullRequests: "security-case-response-step-pull-requests",
+  pullRequest: "security-case-response-step-pull-request",
+  unlinkPullRequest: "security-case-response-step-unlink-pull-request",
 };
+
+/*
+ * A person's own pull request, linked to the case's Fix step (#10604):
+ * OneUptime follows it to its deploy as it follows Fix With AI's, and the
+ * step's check proves it by the attack being turned away after it.
+ * {{pullRequest}} is the pull request as its host names it,
+ * "acme/search#482".
+ */
+export const LINK_PULL_REQUEST: string = translationKey("Link Pull Request");
+export const LINK_PULL_REQUEST_DESCRIPTION: string = translationKey(
+  "Your own fix for this case. OneUptime follows it to its deploy, then checks the attack is turned away after it.",
+);
+export const LINK_PULL_REQUEST_FIELD_TITLE: string =
+  translationKey("Pull Request URL");
+export const LINK_PULL_REQUEST_FIELD_DESCRIPTION: string = translationKey(
+  "Its page on a repository connected under Code: GitHub, GitLab, Forgejo or Gitea.",
+);
+export const LINKED_PULL_REQUEST_TOAST: string = translationKey(
+  "Linked {{pullRequest}}. OneUptime follows it to its deploy.",
+);
+export const UNLINKED_PULL_REQUEST_TOAST: string = translationKey(
+  "Took {{pullRequest}} off this case.",
+);
+export const UNLINK_PULL_REQUEST_LABEL: string = translationKey(
+  "Take {{pullRequest}} off this case",
+);
+// Where a linked pull request stands, beside its name.
+export const PULL_REQUEST_OPEN: string = translationKey("Not Merged Yet");
+export const PULL_REQUEST_MERGED: string = translationKey("Merged");
+export const PULL_REQUEST_SHIPPED: string = translationKey("Shipped");
+export const PULL_REQUEST_CLOSED: string = translationKey("Closed");
+export const PULL_REQUEST_MERGED_TOOLTIP: string = translationKey(
+  "Merged. OneUptime is looking for the deploy that ships it.",
+);
+export const PULL_REQUEST_SHIPPED_IN_TOOLTIP: string = translationKey(
+  "Shipped in {{version}}.",
+);
+export const PULL_REQUEST_LINKED_BY_TOOLTIP: string = translationKey(
+  "Linked by {{name}}.",
+);

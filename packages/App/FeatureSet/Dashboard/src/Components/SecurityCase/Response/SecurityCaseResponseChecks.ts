@@ -62,13 +62,26 @@ export function getStepCheckLineClassName(
 
 /*
  * A step OneUptime cannot tell about says why at once - what it does know,
- * and how to let it check - since that is what the person acts on; every
- * other state folds what else it saw under How We Know.
+ * and how to let it check - since that is what the person acts on, and so
+ * does one that looks done but leaves something for the person to confirm,
+ * named one by one: the account changes OneUptime cannot read back
+ * (#10603). Every other check folds what else it saw under How We Know.
  */
-export function isCheckExplainedInline(
-  state: SecurityCaseStepCheckState,
-): boolean {
-  return state === SecurityCaseStepCheckState.CannotTell;
+export function isCheckExplainedInline(check: {
+  state: SecurityCaseStepCheckState;
+  evidence: { data: Record<string, unknown> };
+}): boolean {
+  if (check.state === SecurityCaseStepCheckState.CannotTell) {
+    return true;
+  }
+
+  const toConfirm: unknown = check.evidence.data["toConfirm"];
+
+  return (
+    check.state === SecurityCaseStepCheckState.LooksDone &&
+    typeof toConfirm === "number" &&
+    toConfirm > 0
+  );
 }
 
 // A step that looks done is a person's to confirm: it becomes their tick.
