@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪客會看到每個事件一張卡片，每個片段另一張卡片，因此片段中的事件會顯示兩次。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪客會將每個片段看作一張卡片，其中列出該片段的事件及其影響範圍。",
   "Page when the script timed out": "指令碼逾時時的頁面",
-  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}"
+  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "掃描器的模型在自由文字中找到了它，但它現在無法在此伺服器上執行，所以無法顯示找到它的記錄。",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "掃描器的模型沒有時間讀取此處已讀取值中的 {{count}} 個，所以其中包含它的記錄不會列出。"
 }

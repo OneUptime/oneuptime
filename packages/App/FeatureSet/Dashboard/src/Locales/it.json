@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "I visitatori vedono una scheda per ogni incidente e un'altra per ogni episodio, quindi un incidente di un episodio compare due volte.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "I visitatori vedono ogni episodio come un'unica scheda che elenca i suoi incidenti e ciò che interessano.",
   "Page when the script timed out": "Pagina quando lo script è andato in timeout",
-  "Page {{number}} when the script timed out": "Pagina {{number}} quando lo script è andato in timeout"
+  "Page {{number}} when the script timed out": "Pagina {{number}} quando lo script è andato in timeout",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "Il modello dello scanner ha trovato questo nel testo libero e al momento non può girare su questo server, quindi i record in cui l'ha trovato non possono essere mostrati.",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "Il modello dello scanner non ha avuto tempo per {{count}} dei valori letti qui, quindi un record tra questi che li contiene non è elencato."
 }

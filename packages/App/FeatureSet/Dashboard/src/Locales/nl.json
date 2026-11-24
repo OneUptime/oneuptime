@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Bezoekers zien een kaart voor elk incident en nog een voor elke episode, dus een incident in een episode staat er twee keer.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Bezoekers zien elke episode als één kaart met de incidenten erin en wat ze treffen.",
   "Page when the script timed out": "Pagina toen het script een time-out kreeg",
-  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg"
+  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "Het model van de scanner heeft dit in vrije tekst gevonden en kan nu niet op deze server draaien, dus de records waarin het dit vond, kunnen niet worden getoond.",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "Het model van de scanner had geen tijd voor {{count}} van de hier gelezen waarden, dus een record daartussen dat ze bevat, staat niet in de lijst."
 }

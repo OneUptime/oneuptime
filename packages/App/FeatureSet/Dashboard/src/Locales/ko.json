@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "방문자에게 인시던트마다 카드가 하나씩, 에피소드마다 카드가 하나씩 더 표시되므로 에피소드에 속한 인시던트는 두 번 표시됩니다.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "방문자에게 각 에피소드가 해당 인시던트와 영향받는 항목을 나열한 하나의 카드로 표시됩니다.",
   "Page when the script timed out": "스크립트 시간 초과 시점의 페이지",
-  "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}"
+  "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "스캐너의 모델이 자유 텍스트에서 이것을 찾았지만 지금은 이 서버에서 모델을 실행할 수 없어, 찾은 레코드를 표시할 수 없습니다.",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "스캐너의 모델이 여기에서 읽은 값 중 {{count}}개를 읽을 시간이 없었으므로, 그중 이 데이터를 담은 레코드가 있어도 목록에 표시되지 않습니다."
 }

@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besökare ser ett kort för varje incident och ett till för varje episod, så en incident i en episod visas två gånger.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besökare ser varje episod som ett kort som listar dess incidenter och vad de påverkar.",
   "Page when the script timed out": "Sida när skriptet fick timeout",
-  "Page {{number}} when the script timed out": "Sida {{number}} när skriptet fick timeout"
+  "Page {{number}} when the script timed out": "Sida {{number}} när skriptet fick timeout",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "Skannerns modell hittade detta i fritext och kan inte köras på den här servern just nu, så posterna det hittades i kan inte visas.",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "Skannerns modell hann inte med {{count}} av de värden som lästes här, så en post bland dem som innehåller dem visas inte."
 }

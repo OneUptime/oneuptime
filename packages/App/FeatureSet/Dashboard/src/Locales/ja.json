@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。",
   "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
-  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}"
+  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "スキャナーのモデルがこれを自由テキストで検出しましたが、現在このサーバーではモデルを実行できないため、検出されたレコードを表示できません。",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "スキャナーのモデルは、ここで読み込んだ値のうち {{count}} 件を読む時間がなかったため、その中にこのデータを含むレコードがあっても一覧に表示されません。"
 }

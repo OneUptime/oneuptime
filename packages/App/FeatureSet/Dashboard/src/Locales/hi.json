@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।",
   "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
-  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}"
+  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "स्कैनर के मॉडल ने इसे मुक्त टेक्स्ट में पाया, और यह अभी इस सर्वर पर नहीं चल सकता, इसलिए जिन रिकॉर्ड में यह मिला वे नहीं दिखाए जा सकते।",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "स्कैनर के मॉडल को यहां पढ़े गए मानों में से {{count}} के लिए समय नहीं मिला, इसलिए उनमें से इस डेटा वाला कोई रिकॉर्ड सूची में नहीं है।"
 }

@@ -127,6 +127,8 @@ export interface TelemetryLeakFindingToLocate {
   // The records the last scan found it in.
   sampleRecords: ReadonlyArray<FindingSampleRecord>;
   lastSeenAt?: Date | null | undefined;
+  // The names-and-addresses model made it: only the model tells its records (#10926).
+  isFoundByModel?: boolean | undefined;
 }
 
 export interface TelemetryLeakLocation {
@@ -363,6 +365,7 @@ export default class TelemetryLeakLocator {
         dataTypeId: data.finding.dataTypeId,
         options: data.options,
         lastSeenAt: data.finding.lastSeenAt || undefined,
+        isFoundByModel: data.finding.isFoundByModel,
       });
 
     return found.occurrences

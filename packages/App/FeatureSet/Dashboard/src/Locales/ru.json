@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли.",
   "Page when the script timed out": "Страница в момент тайм-аута скрипта",
-  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта"
+  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "Модель сканера нашла эти данные в свободном тексте, но сейчас не может работать на этом сервере, поэтому записи, в которых они найдены, показать нельзя.",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "Модели сканера не хватило времени на часть прочитанных здесь значений (не прочитано: {{count}}), поэтому запись среди них, где есть эти данные, не показана."
 }

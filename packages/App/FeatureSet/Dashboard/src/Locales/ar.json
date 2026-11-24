@@ -64057,5 +64057,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
   "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
-  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي"
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
+  "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.": "عثر نموذج الماسح على هذا في نص حر، ولا يمكنه العمل على هذا الخادم الآن، لذا لا يمكن عرض السجلات التي عُثر عليه فيها.",
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.": "لم يتسع وقت نموذج الماسح لبعض القيم المقروءة هنا (لم يُقرأ منها: {{count}})، لذا لا يظهر في القائمة سجل بينها يحمل هذه البيانات."
 }

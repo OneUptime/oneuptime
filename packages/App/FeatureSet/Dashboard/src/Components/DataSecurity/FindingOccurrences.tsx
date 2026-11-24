@@ -57,6 +57,9 @@ import React, {
 export const FINDING_OCCURRENCES_TEST_ID: string =
   "data-security-finding-occurrences";
 
+export const FINDING_OCCURRENCES_MODEL_LINE_TEST_ID: string =
+  "data-security-finding-occurrences-model-line";
+
 // How many records show before "Show more".
 export const RECORDS_SHOWN_FIRST: number = 3;
 
@@ -110,7 +113,18 @@ export const UNAVAILABLE_SENTENCES: Readonly<
   [DataSecurityOccurrencesUnavailableReason.NoOwner]: translationKey(
     "The service this telemetry was sent under no longer exists, so its records cannot be looked up.",
   ),
+  [DataSecurityOccurrencesUnavailableReason.ModelUnavailable]: translationKey(
+    "The scanner's model found this in free text, and it cannot run on this server just now, so the records it was found in cannot be shown.",
+  ),
 };
+
+/*
+ * A finding the names-and-addresses model made: the values its time for
+ * this read did not reach (#10926). Worded to read right for any count.
+ */
+export const MODEL_VALUES_NOT_READ: string = translationKey(
+  "The scanner's model had no time for {{count}} of the values read here, so a record among them that carries it is not listed.",
+);
 
 // The newest records of the last days: a finding no scan has seen.
 export const NONE_IN_WINDOW: string = translationKey(
@@ -483,6 +497,21 @@ const FindingOccurrences: FunctionComponent<ComponentProps> = (
     );
   }
 
+  // The values the scanner's model had no time for, when it had none for some.
+  const modelLine: ReactElement =
+    !result.unavailableReason && (result.modelValuesNotRead || 0) > 0 ? (
+      <p
+        className="mt-2 text-xs text-gray-500"
+        data-testid={FINDING_OCCURRENCES_MODEL_LINE_TEST_ID}
+      >
+        {translator.translateTemplate(MODEL_VALUES_NOT_READ, {
+          count: translator.formatNumber(result.modelValuesNotRead || 0),
+        })}
+      </p>
+    ) : (
+      <></>
+    );
+
   if (result.unavailableReason || result.occurrences.length === 0) {
     return (
       <div className="space-y-3" data-testid={FINDING_OCCURRENCES_TEST_ID}>
@@ -492,6 +521,7 @@ const FindingOccurrences: FunctionComponent<ComponentProps> = (
         >
           {getNoRecordSentence(translator, result)}
         </p>
+        {modelLine}
         {props.fallback || <></>}
       </div>
     );
@@ -545,6 +575,7 @@ const FindingOccurrences: FunctionComponent<ComponentProps> = (
           FOOTNOTES[result.source || DataSecurityOccurrencesSource.Recent],
         )}
       </p>
+      {modelLine}
     </div>
   );
 };

@@ -1858,6 +1858,7 @@ export default class DataSecurityAPI extends BaseAPI<
           dataStoreId: true,
           sampleRecords: true,
           lastSeenAt: true,
+          isFoundByModel: true,
           dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
@@ -1930,6 +1931,8 @@ export default class DataSecurityAPI extends BaseAPI<
         ? OneUptimeDate.fromString(finding.lastSeenAt)
         : null,
       now,
+      // Only the model tells what it found: it reads the records again (#10926).
+      isFoundByModel: finding.isFoundByModel === true,
     });
   }
 
