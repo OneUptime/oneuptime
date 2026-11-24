@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Luego aplíquela con `kubectl apply -f oneuptime-probe.yaml`.
 :::
 
 La red del host (`--network host`, `network_mode: host`) permite a la sonda usar la propia red del host, IPv6 incluido. Lea [Supervisar destinos IPv6](#supervisar-destinos-ipv6) antes de ejecutarla sin la red del host.
+
+Sin red del host, como en el Deployment de Kubernetes de arriba o con Docker en una red bridge, las comprobaciones de la sonda salen de la máquina desde la dirección propia del host, que la sonda no puede ver desde su contenedor. `PROBE_HOST_IP_ADDRESSES` le indica esa dirección, para que [Eventos de seguridad](/docs/telemetry/security-events) reconozca los sondeos, las detecciones y las comprobaciones de monitores de la sonda como su propio trabajo. El Deployment de Kubernetes la toma de `status.hostIPs`, que contiene las dos direcciones de un nodo de doble pila; en Kubernetes anterior a 1.29, use `status.hostIP`. En una red bridge de Docker, indique usted mismo la dirección del host, por ejemplo `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Comprobar que se conecta
 
@@ -150,6 +156,22 @@ Sustituya `<version>` por la versión que quiera ejecutar, como `17.1.0`, y escr
 :::
 
 La página de la sonda muestra la versión que ejecuta, en **Estado de la sonda**. Una sonda anterior a 17.1.0 no puede generar los códigos de un [secreto de código de un solo uso](/docs/monitor/monitor-secrets#iniciar-sesión-con-un-código-de-un-solo-uso): su página lo indica, y también el formulario de un monitor que comprueba. Lo mismo vale para una sonda demasiado antigua para enviar el cuerpo de solicitud de un monitor de API que sea un array JSON, un único valor o texto.
+
+Cuando una sonda se queda una versión principal o más por detrás de OneUptime, sus propietarios reciben un aviso una vez, con lo que le falta y un enlace a esta sección; una sonda sin propietarios avisa a los propietarios del proyecto. Solo se les vuelve a avisar cuando se queda por detrás de una versión principal posterior, o cuando vuelve a quedarse atrás después de actualizarse. Cada persona elige cómo se entera con **Sonda una versión principal atrás**, en **Ajustes de usuario → Ajustes de notificaciones**: al principio, por correo electrónico. Una sonda que solo va por detrás en versiones secundarias lo indica en su página, y no se avisa a nadie.
+
+## Qué envía una sonda cuando se comunica
+
+Cada solicitud de la sonda lleva su ID y su clave, la versión que ejecuta y lo que sabe hacer, y una vez por minuto se comunica con las direcciones por las que se conoce. No se envía nada más sobre su red, aparte de los resultados de sus comprobaciones.
+
+| Campo | Se envía | Qué hace OneUptime con él |
+| --- | --- | --- |
+| `probeVersion` | Con cada solicitud | Guarda la versión que ejecuta la sonda. Su página y **Sondas personalizadas** indican cuándo es más antigua que OneUptime, y sus propietarios reciben un aviso una vez cuando se queda una versión principal atrás. |
+| `probeCapabilities` | Con cada solicitud | Da a la sonda solo el trabajo que sabe hacer. Una comprobación que necesita una sonda más reciente falla, con una frase que dice que hay que actualizarla. |
+| `probeInterfaceAddresses` | Una vez por minuto | Guarda las direcciones de las interfaces de red de la sonda, y las que le da `PROBE_HOST_IP_ADDRESSES`. [Eventos de seguridad](/docs/telemetry/security-events) reconoce por ellas los sondeos, las detecciones y las comprobaciones de monitores propios de la sonda en sus flujos de red, y la lista de bloqueo nunca las bloquea. Se dejan fuera las direcciones de loopback, link-local y multicast. |
+
+OneUptime guarda también la dirección desde la que se comunica la sonda, tal como la ve: el NAT de su red, si lo tiene. La página de la sonda muestra ambas en **Estado de la sonda**, como **Dirección de comunicación** y **Direcciones de las interfaces**, a quien pueda leer la sonda, y ninguna de las dos para una sonda que aún no se ha comunicado.
+
+Lo que una sonda dice de sus propias direcciones es su palabra, y cualquiera que tenga su clave podría decir cualquier dirección. Por eso Eventos de seguridad nunca aparta tráfico solo por su dirección: cada host y cada puerto alcanzados deben ser también de los que la sonda debe alcanzar, y todo lo que va más allá se notifica, nombrando la sonda.
 
 ## Conectarse a través de un proxy
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Los límites dentro de los que se ejecuta un monitor sintético (cuántos a la v
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | ninguno | Los ajustes del proxy: vea [Conectarse a través de un proxy](#conectarse-a-través-de-un-proxy). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Plazo de cada solicitud que la sonda envía a OneUptime. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Registrar una advertencia para las solicitudes a OneUptime más lentas que esto. |
+| `PROBE_HOST_IP_ADDRESSES` | ninguno | Las direcciones IP del host, separadas por comas, para una sonda sin red del host: se enumeran junto a las de la sonda cada vez que se comunica. Vea [Ejecutar la sonda](#ejecutar-la-sonda). |
 
 ### Descubrimiento de red
 
