@@ -94,7 +94,21 @@ export interface TimelinePoint {
   busyAnswers: number;
 }
 
+/*
+ * One minute of a scheduled run: its monitors come due at once on the
+ * minute, and this is how long it took to hand them all out.
+ */
+export interface MinuteDispatch {
+  // Seconds into the run the minute started.
+  atSecond: number;
+  // The most due at once after it started.
+  peakDue: number;
+  // Seconds until no more than 1% of that was still due; null: not by the end.
+  handedOutWithinSeconds: number | null;
+}
+
 export interface ProbeDispatchRun {
+  minutes: Array<MinuteDispatch>;
   assignments: number;
   // How long the App replicas took to start (ts-node loads their code).
   replicasStartedInMs: number;
@@ -124,6 +138,12 @@ export interface ProbeDispatchRun {
      * monitors were due: a worker that stops until the next minute.
      */
     shortWhileDue: number;
+    /*
+     * Of those, the ones answered while more than a tenth of the backlog
+     * the run started with was still due - a second short of the sample
+     * that said it was not: a worker sent away for nothing (#10819).
+     */
+    shortBeforeDrained: number;
   };
   tests: {
     created: number;
@@ -151,6 +171,12 @@ const REPLICA_ENTRY: string = path.join(
 );
 // ts-node loads the App's code at start: minutes on a busy machine.
 const REPLICA_STARTUP_TIMEOUT_MS: number = 10 * 60 * 1000;
+
+/*
+ * A probe asks for tests every ten seconds: one asked for this close to the
+ * run's end may simply not have met a tick.
+ */
+const TEST_GRACE_MS: number = 12 * 1000;
 
 export function distribution(values: Array<number>): Distribution {
   if (values.length === 0) {
@@ -621,6 +647,24 @@ export async function runProbeDispatchBenchmark(
       },
     ).length;
 
+    const mostlyDrained: BacklogSample | undefined = backlog.find(
+      (backlogSample: BacklogSample): boolean => {
+        return backlogSample.initialRemaining <= initialBacklog * 0.1;
+      },
+    );
+    const backlogUntilMs: number = mostlyDrained
+      ? mostlyDrained.atMs - 1000
+      : Date.now() - startedAt;
+
+    const shortBeforeDrained: number = okFetches.filter(
+      (fetchRecord: FetchRecord): boolean => {
+        return (
+          fetchRecord.handed < fetchRecord.asked &&
+          fetchRecord.at + fetchRecord.ms - startedAt < backlogUntilMs
+        );
+      },
+    ).length;
+
     const testOutcomes: Record<string, number> = {};
 
     for (const fetchRecord of fleet.testFetches) {
@@ -642,10 +686,17 @@ export async function runProbeDispatchBenchmark(
     for (const [id, createdAt] of testsCreated.entries()) {
       const handedAt: number | undefined = firstHandOut.get(id);
 
-      if (handedAt === undefined) {
-        neverHandedOut++;
-      } else {
+      if (handedAt !== undefined) {
         testWaits.push(handedAt - createdAt);
+        continue;
+      }
+
+      /*
+       * A test asked for in the run's last seconds may not have met a probe
+       * tick yet: it is not counted against the run.
+       */
+      if (startedAt + durationMs - createdAt > TEST_GRACE_MS) {
+        neverHandedOut++;
       }
     }
 
@@ -671,6 +722,46 @@ export async function runProbeDispatchBenchmark(
         return backlogSample.initialRemaining <= initialBacklog * 0.05;
       },
     );
+
+    const minutes: Array<MinuteDispatch> = [];
+
+    for (
+      let minuteAt: number = Math.ceil(startedAt / 60_000) * 60_000;
+      minuteAt < startedAt + durationMs;
+      minuteAt += 60_000
+    ) {
+      const atMs: number = minuteAt - startedAt;
+      const nextMs: number = atMs + 60_000;
+      const within: Array<BacklogSample> = backlog.filter(
+        (backlogSample: BacklogSample): boolean => {
+          return backlogSample.atMs >= atMs && backlogSample.atMs < nextMs;
+        },
+      );
+      const peakDue: number = within.reduce(
+        (peak: number, backlogSample: BacklogSample): number => {
+          return Math.max(peak, backlogSample.due);
+        },
+        0,
+      );
+      const peakAt: number = within.findIndex(
+        (backlogSample: BacklogSample): boolean => {
+          return backlogSample.due === peakDue;
+        },
+      );
+      const cleared: BacklogSample | undefined = within
+        .slice(Math.max(0, peakAt))
+        .find((backlogSample: BacklogSample): boolean => {
+          return backlogSample.due <= peakDue * 0.01;
+        });
+
+      minutes.push({
+        atSecond: Math.round(atMs / 1000),
+        peakDue: peakDue,
+        handedOutWithinSeconds: cleared
+          ? Math.round((cleared.atMs - atMs) / 1000)
+          : null,
+      });
+    }
 
     const timeline: Array<TimelinePoint> = [];
 
@@ -703,6 +794,7 @@ export async function runProbeDispatchBenchmark(
       assignments: seeded.assignments,
       replicasStartedInMs: replicasStartedInMs,
       timeline: timeline,
+      minutes: minutes,
       checksPerMinute: seeded.checksPerMinute,
       durationMs: durationMs,
       monitorsHandedOut: fleet.monitorsHandedOut,
@@ -739,6 +831,7 @@ export async function runProbeDispatchBenchmark(
           }),
         ),
         shortWhileDue: shortWhileDue,
+        shortBeforeDrained: shortBeforeDrained,
       },
       tests: {
         created: testsCreated.size,

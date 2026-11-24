@@ -198,8 +198,17 @@ function describe(run: ProbeDispatchRun): Array<string> {
       })
       .join(" ")}`,
   );
+  if (run.minutes.length > 0) {
+    lines.push(
+      `  each minute's monitors (due at once / handed out within): ${run.minutes
+        .map((minute: ProbeDispatchRun["minutes"][number]): string => {
+          return `${minute.peakDue}/${minute.handedOutWithinSeconds === null ? "not by the end" : `${minute.handedOutWithinSeconds} s`}`;
+        })
+        .join(", ")}`,
+    );
+  }
   lines.push(
-    `  monitor fetches ${fetches.total}: ${JSON.stringify(fetches.outcomes)}, full ${fetches.full}, short ${fetches.short}, empty ${fetches.empty} (short while due: ${fetches.shortWhileDue}) | latency p50 ${fetches.latencyMs.p50} ms p95 ${fetches.latencyMs.p95} ms max ${fetches.latencyMs.max} ms`,
+    `  monitor fetches ${fetches.total}: ${JSON.stringify(fetches.outcomes)}, full ${fetches.full}, short ${fetches.short}, empty ${fetches.empty} (short while due: ${fetches.shortWhileDue}, before the backlog drained: ${fetches.shortBeforeDrained}) | latency p50 ${fetches.latencyMs.p50} ms p95 ${fetches.latencyMs.p95} ms max ${fetches.latencyMs.max} ms`,
   );
   lines.push(
     `  tests: ${run.tests.created} created, ${run.tests.handedOut} handed out, ${run.tests.neverHandedOut} never | wait p50 ${Math.round(run.tests.waitMs.p50 / 1000)} s p95 ${Math.round(run.tests.waitMs.p95 / 1000)} s max ${Math.round(run.tests.waitMs.max / 1000)} s | test fetches ${JSON.stringify(run.tests.fetchOutcomes)}`,

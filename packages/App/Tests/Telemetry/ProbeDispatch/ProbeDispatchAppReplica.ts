@@ -430,8 +430,9 @@ function reset(): void {
 function readSchedulingMetrics(): JSONObject | null {
   try {
     /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-    const metricsModule: { default?: { snapshot?: () => unknown } } =
-      require("Common/Server/Utils/Probe/ProbeSchedulingMetrics");
+    const metricsModule: {
+      default?: { snapshot?: () => unknown };
+    } = require("Common/Server/Utils/Probe/ProbeSchedulingMetrics");
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
     const snapshot: unknown = metricsModule.default?.snapshot?.();
     return snapshot ? (snapshot as JSONObject) : null;

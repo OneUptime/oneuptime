@@ -1,4 +1,6 @@
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+// One seeded stream, so two runs ask alike.
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
 /*
  * THE PROBES OF THE PROBE DISPATCH BENCHMARK (issue #10819).
@@ -77,19 +79,6 @@ const DEFAULT_BUSY_BACK_OFF_MS: number = 10_000;
 const MAX_BUSY_BACK_OFF_MS: number = 60_000;
 const MONITOR_TEST_FETCH_LIMIT: number = 100;
 const MINUTE_MS: number = 60_000;
-
-// mulberry32: a small seeded generator, so two runs ask alike.
-export function seededRandom(seed: number): () => number {
-  let state: number = seed >>> 0;
-
-  return (): number => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t: number = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 // MonitorCheckSlots, as the probe has it.
 class CheckSlots {
