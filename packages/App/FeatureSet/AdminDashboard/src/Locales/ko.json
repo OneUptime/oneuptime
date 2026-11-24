@@ -86,13 +86,13 @@
   "footer": {
     "copyright": "HackerBay, Inc.",
     "helpSupport": "도움말 및 지원",
-    "legal": "법적 고지",
+    "legal": "법적 정보",
     "version": "버전",
     "versionModalTitle": "OneUptime 버전",
     "versionLabel": "버전",
     "commitLabel": "커밋",
-    "versionUnavailable": "버전 데이터를 사용할 수 없습니다",
-    "versionUnavailableWithError": "버전 데이터를 사용할 수 없습니다: {{error}}"
+    "versionUnavailable": "버전 정보를 사용할 수 없습니다",
+    "versionUnavailableWithError": "버전 정보를 사용할 수 없습니다: {{error}}"
   },
   "navbar": {
     "users": "사용자",

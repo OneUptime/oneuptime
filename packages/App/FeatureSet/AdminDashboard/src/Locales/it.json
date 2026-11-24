@@ -75,9 +75,9 @@
     "userProfile": "Profilo utente"
   },
   "help": {
-    "supportEmail": "E-mail di supporto",
+    "supportEmail": "Email di supporto",
     "chatSlack": "Chatta su Slack",
-    "requestDemo": "Richiedi demo"
+    "requestDemo": "Richiedi una demo"
   },
   "userProfile": {
     "exitAdmin": "Esci dall'admin",
@@ -86,13 +86,13 @@
   "footer": {
     "copyright": "HackerBay, Inc.",
     "helpSupport": "Aiuto e supporto",
-    "legal": "Legale",
+    "legal": "Note legali",
     "version": "Versione",
     "versionModalTitle": "Versione di OneUptime",
     "versionLabel": "Versione",
     "commitLabel": "Commit",
-    "versionUnavailable": "Dati di versione non disponibili",
-    "versionUnavailableWithError": "Dati di versione non disponibili: {{error}}"
+    "versionUnavailable": "I dati della versione non sono disponibili",
+    "versionUnavailableWithError": "I dati della versione non sono disponibili: {{error}}"
   },
   "navbar": {
     "users": "Utenti",
@@ -4543,11 +4543,11 @@
   "Chat on Microsoft Teams": "Chatta su Microsoft Teams",
   "Chat with Support": "Chatta con l'assistenza",
   "Show it": "Mostralo",
-  "Support Email": "E-mail di supporto",
+  "Support Email": "Email di supporto",
   "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Aiuto › E-mail di supporto, «Contatta l'assistenza» nella pagina «Pagina non trovata», e l'indirizzo a cui una schermata di errore chiede di inviare un pacchetto di supporto.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Aiuto › Chatta su Slack. Un tuo link prende il nome della chat che apre: Slack, Microsoft Teams o «Chatta con l'assistenza».",
-  "Request Demo": "Richiedi demo",
+  "Request Demo": "Richiedi una demo",
   "Help › Request Demo, which opens OneUptime's page to book a demo.": "Aiuto › Richiedi demo, che apre la pagina di OneUptime per prenotare una demo.",
   "Give Feedback": "Invia un feedback",
   "Help › Give feedback and Give feedback in Search: where what people write goes.": "Aiuto › Invia un feedback e «Invia un feedback» nella ricerca: dove va ciò che le persone scrivono.",

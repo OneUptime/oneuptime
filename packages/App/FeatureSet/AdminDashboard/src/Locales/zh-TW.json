@@ -75,9 +75,9 @@
     "userProfile": "使用者個人資料"
   },
   "help": {
-    "supportEmail": "支援電子郵件",
+    "supportEmail": "支援信箱",
     "chatSlack": "在 Slack 上聊天",
-    "requestDemo": "申請示範"
+    "requestDemo": "請求示範"
   },
   "userProfile": {
     "exitAdmin": "退出管理員",
@@ -91,8 +91,8 @@
     "versionModalTitle": "OneUptime 版本",
     "versionLabel": "版本",
     "commitLabel": "提交",
-    "versionUnavailable": "版本資料無法使用",
-    "versionUnavailableWithError": "版本資料無法使用：{{error}}"
+    "versionUnavailable": "版本資料無法取得",
+    "versionUnavailableWithError": "版本資料無法取得：{{error}}"
   },
   "navbar": {
     "users": "使用者",

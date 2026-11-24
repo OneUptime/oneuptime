@@ -76,7 +76,7 @@
   },
   "help": {
     "supportEmail": "サポートメール",
-    "chatSlack": "Slackでチャット",
+    "chatSlack": "Slack でチャット",
     "requestDemo": "デモをリクエスト"
   },
   "userProfile": {
@@ -88,11 +88,11 @@
     "helpSupport": "ヘルプとサポート",
     "legal": "法的情報",
     "version": "バージョン",
-    "versionModalTitle": "OneUptimeバージョン",
+    "versionModalTitle": "OneUptime バージョン",
     "versionLabel": "バージョン",
     "commitLabel": "コミット",
-    "versionUnavailable": "バージョンデータは利用できません",
-    "versionUnavailableWithError": "バージョンデータは利用できません: {{error}}"
+    "versionUnavailable": "バージョン情報が利用できません",
+    "versionUnavailableWithError": "バージョン情報が利用できません: {{error}}"
   },
   "navbar": {
     "users": "ユーザー",

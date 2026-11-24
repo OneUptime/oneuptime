@@ -75,7 +75,7 @@
     "userProfile": "用户资料"
   },
   "help": {
-    "supportEmail": "支持电子邮件",
+    "supportEmail": "支持邮箱",
     "chatSlack": "在 Slack 上聊天",
     "requestDemo": "请求演示"
   },
@@ -85,7 +85,7 @@
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
-    "helpSupport": "帮助与支持",
+    "helpSupport": "帮助和支持",
     "legal": "法律",
     "version": "版本",
     "versionModalTitle": "OneUptime 版本",

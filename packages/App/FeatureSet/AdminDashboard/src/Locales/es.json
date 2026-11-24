@@ -91,8 +91,8 @@
     "versionModalTitle": "Versión de OneUptime",
     "versionLabel": "Versión",
     "commitLabel": "Commit",
-    "versionUnavailable": "Los datos de versión no están disponibles",
-    "versionUnavailableWithError": "Los datos de versión no están disponibles: {{error}}"
+    "versionUnavailable": "Los datos de la versión no están disponibles",
+    "versionUnavailableWithError": "Los datos de la versión no están disponibles: {{error}}"
   },
   "navbar": {
     "users": "Usuarios",

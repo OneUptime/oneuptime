@@ -76,7 +76,7 @@
   },
   "help": {
     "supportEmail": "Support-e-mail",
-    "chatSlack": "Chatten op Slack",
+    "chatSlack": "Chat op Slack",
     "requestDemo": "Demo aanvragen"
   },
   "userProfile": {
@@ -85,7 +85,7 @@
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
-    "helpSupport": "Help en ondersteuning",
+    "helpSupport": "Hulp en ondersteuning",
     "legal": "Juridisch",
     "version": "Versie",
     "versionModalTitle": "OneUptime-versie",
