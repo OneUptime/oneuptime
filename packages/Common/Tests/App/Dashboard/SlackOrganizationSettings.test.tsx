@@ -95,6 +95,7 @@ interface RecordedRequest {
 
 const requests: Array<RecordedRequest> = [];
 let mockAlertThreading: boolean = false;
+let mockRejectThreadingLoad: boolean = false;
 let mockRejectThreadingSave: boolean = false;
 let mockIsAdmin: boolean = false;
 type NavigateMock = ReturnType<
@@ -177,6 +178,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
         requests.push({ method: "GET", url: url });
 
         if (url.endsWith("/slack/alert-threading")) {
+          if (mockRejectThreadingLoad) {
+            return new HTTPErrorResponse(502, { message: "Bad Gateway" }, {});
+          }
           return { data: { enabled: mockAlertThreading } };
         }
 
@@ -230,6 +234,13 @@ jest.mock("../../../UI/Utils/API/API", () => {
         return typeof message === "string" && message
           ? message
           : "Something went wrong.";
+      },
+      getFriendlyMessage: (error: unknown): string => {
+        return (
+          jest.requireActual(
+            "../../../UI/Utils/API/API",
+          ) as typeof import("../../../UI/Utils/API/API")
+        ).default.getFriendlyMessage(error);
       },
     },
   };
@@ -300,6 +311,7 @@ beforeEach(() => {
   };
   requests.length = 0;
   mockAlertThreading = false;
+  mockRejectThreadingLoad = false;
   mockRejectThreadingSave = false;
   mockIsAdmin = false;
   navigateMock.mockReset();
@@ -329,6 +341,32 @@ async function renderUserSettings(): Promise<void> {
     );
   });
 }
+
+test("a failed Slack threading load can be retried without leaving settings", async () => {
+  mockIsAdmin = true;
+  mockRejectThreadingLoad = true;
+  await act(async () => {
+    render(
+      <SlackIntegration
+        showAlertThreading
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+      />,
+    );
+  });
+
+  expect(
+    screen.queryByRole("switch", { name: "Slack Alert Threads" }),
+  ).toBeNull();
+  expect(screen.queryByText("Bad Gateway")).toBeNull();
+  const retry: HTMLElement = screen.getByRole("button", { name: "Try again" });
+  mockRejectThreadingLoad = false;
+  await click(retry);
+  expect(
+    screen.getByRole("switch", { name: "Slack Alert Threads" }),
+  ).not.toBeChecked();
+  expect(retry).not.toBeInTheDocument();
+});
 
 test("project Slack threading saves immediately, survives a reload, and reverts on failure", async () => {
   mockIsAdmin = true;

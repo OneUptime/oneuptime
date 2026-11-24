@@ -7,9 +7,12 @@ import React, {
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
-import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Loader from "Common/UI/Components/Loader/Loader";
@@ -34,6 +37,7 @@ const SlackAlertThreadingCard: FunctionComponent = (): ReactElement => {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
+  const [loadAttempt, setLoadAttempt] = useState<number>(0);
   const translator: Translator = useTranslator();
   const canEdit: boolean = PermissionGate.checkPermissions(
     [Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -57,7 +61,7 @@ const SlackAlertThreadingCard: FunctionComponent = (): ReactElement => {
         }
       } catch (err) {
         if (active) {
-          setError(API.getFriendlyErrorMessage(err as Exception));
+          setError(API.getFriendlyMessage(err));
         }
       }
     };
@@ -65,7 +69,7 @@ const SlackAlertThreadingCard: FunctionComponent = (): ReactElement => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadAttempt]);
 
   const save: (value: boolean) => Promise<void> = async (value: boolean) => {
     setSaving(true);
@@ -84,7 +88,7 @@ const SlackAlertThreadingCard: FunctionComponent = (): ReactElement => {
       Toast.success(translator.translateText(CHANGES_SAVED) || CHANGES_SAVED);
     } catch (err) {
       setEnabled(enabled);
-      setError(API.getFriendlyErrorMessage(err as Exception));
+      setError(API.getFriendlyMessage(err));
     } finally {
       setSaving(false);
     }
@@ -105,7 +109,26 @@ const SlackAlertThreadingCard: FunctionComponent = (): ReactElement => {
             }}
           />
         )}
-        {error && <ErrorMessage message={error} />}
+        {error && (
+          <ErrorMessage
+            message={error}
+            action={
+              enabled === null ? (
+                <Button
+                  title={translationKey("Try again")}
+                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.OUTLINE}
+                  onClick={() => {
+                    setError("");
+                    setLoadAttempt((attempt: number) => {
+                      return attempt + 1;
+                    });
+                  }}
+                />
+              ) : undefined
+            }
+          />
+        )}
       </>
     </Card>
   );
