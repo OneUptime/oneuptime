@@ -176,11 +176,9 @@ import StatusPageEpisodeIncidents, {
 } from "../Utils/StatusPage/StatusPageEpisodeIncidents";
 import StatusPageIncidentGrouping, {
   EPISODE_INCIDENTS_KEY,
-  INCIDENT_LIST_MODE_RESPONSE_KEY,
   PART_OF_EPISODES_RESPONSE_KEY,
   StatusPageIncidentListMode,
 } from "../../Utils/StatusPage/IncidentGrouping";
-import { TIMELINE_EPISODES_RESPONSE_KEY } from "../../Utils/StatusPage/TimelineEpisodes";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache, {
   STATUS_PAGE_OVERVIEW_BASE_FORM,
@@ -5045,18 +5043,13 @@ export default class StatusPageAPI extends BaseAPI<
         });
     }
 
+    /*
+     * Named as written (incidentListMode, INCIDENT_LIST_MODE_RESPONSE_KEY),
+     * so the public API's docs are held to list it.
+     */
     const response: JSONObject = {
       [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
-      [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
-      ...(incidentId
-        ? {
-            [PART_OF_EPISODES_RESPONSE_KEY]: partOfEpisodes.map(
-              (episode: ShownEpisodeOfIncident): JSONObject => {
-                return { _id: episode._id, title: episode.title };
-              },
-            ),
-          }
-        : {}),
+      incidentListMode: incidentListMode,
       incidentPublicNotes: BaseModel.toJSONArray(
         incidentPublicNotes,
         IncidentPublicNote,
@@ -5076,6 +5069,15 @@ export default class StatusPageAPI extends BaseAPI<
       ),
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };
+
+    // An incident read by its id: the episodes it is part of, grouped.
+    if (incidentId) {
+      response[PART_OF_EPISODES_RESPONSE_KEY] = partOfEpisodes.map(
+        (episode: ShownEpisodeOfIncident): JSONObject => {
+          return { _id: episode._id, title: episode.title };
+        },
+      );
+    }
 
     return response;
   }
@@ -5545,7 +5547,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     const response: JSONObject = {
       [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
-      [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
+      incidentListMode: incidentListMode,
       episodePublicNotes: BaseModel.toJSONArray(
         episodePublicNotes,
         IncidentEpisodePublicNote,
@@ -7158,8 +7160,8 @@ export default class StatusPageAPI extends BaseAPI<
         timelineIncidents,
         monitorsOnStatusPage,
       ),
-      [TIMELINE_EPISODES_RESPONSE_KEY]: timelineEpisodes,
-      [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
+      timelineEpisodes: timelineEpisodes,
+      incidentListMode: incidentListMode,
       timelineScheduledMaintenanceEvents: BaseModel.toJSONArray(
         timelineScheduledMaintenanceEvents,
         ScheduledMaintenance,

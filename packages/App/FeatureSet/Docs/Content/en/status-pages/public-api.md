@@ -70,6 +70,8 @@ The endpoints follow the page's own settings, in the **What your status page sho
 
 **Which incidents a page returns.** The incidents endpoint returns the incidents on the page's monitors, less the ones limited to other status pages, and less every incident not limited to this page if the page only shows incidents scoped to it (see [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience)). Which pages an incident is limited to is never part of the response.
 
+**How a page lays its incidents out.** The overview and the incident and episode lists name the page's mode in `incidentListMode`: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly`, or `None` on the overview of a page that shows neither. Grouped by episode, with **Show Incidents Grouped by Episode** on and both lists shown, each episode in `episodes` and `activeEpisodes` carries `incidents`: the incidents of it the page shows, newest first, each with its `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` and `monitors`, and an episode with none of them is left out of the lists. The page draws such an episode as one card and leaves its incidents out of the incident cards, but `incidents` and `activeIncidents` still hold every incident the page shows, so a reader that ignores episodes misses none. An incident read by its ID then carries `partOfEpisodes`: each episode it is part of, with its `_id` and `title`. Wherever an incident or an episode names its `monitors`, they are only the page's own.
+
 ## Read the overview
 
 The overview is one request for the whole page. It is the same data the status page draws, and it is at most 15 seconds old.
@@ -140,7 +142,9 @@ The overall status is the worst current status of the monitors and monitor group
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | What the uptime bars are drawn from, and the page's bar color rules. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | The unresolved incidents the page shows, their public notes and state changes, and the project's incident states. |
 | `timelineIncidents` | The incidents in the uptime bars' window, resolved ones included, for the bars' tooltips. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | The same for incident episodes. |
+| `timelineEpisodes` | On a page that shows episodes but not incidents, what the uptime bars' tooltips and day dialogs list instead: each episode behind an incident in the bars' window, with only the `declaredAt` and the page's `monitors` of each of its incidents the page would show on its own. Empty on every other page. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | The same for incident episodes. Each episode carries `monitors`, the page's monitors that its shown incidents are on, and while the page groups incidents by episode, `incidents`. |
+| `incidentListMode` | How the page lays its incidents and episodes out: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` or `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | The maintenance events that are still to come or in progress, their public notes and state changes. |
 | `timelineScheduledMaintenanceEvents` | The maintenance events in the uptime bars' window that have started, in progress or over, for the bars' tooltips and day dialogs: the ones the page shows that hold one of its monitors, each listing only the page's monitors. |
 | `activeAnnouncements` | The announcements showing now: started, and not ended. |
@@ -195,7 +199,7 @@ The response:
 | --- | -------------- |
 | `overallStatus` | The page's overall status, as its banner shows it: `name`, `color` and `isOperational`. `null` when every resource on the page is **Not monitored**. |
 | `resources` | Each resource the page shows, in its order: its `name` on the page, its `groupName` with the groups above it, its `currentStatus`, `isMonitored`, and `isUnderMaintenance`. |
-| `activeIncidents` | The unresolved incidents the page shows, each with the `affectedResourceIds` of the resources it affects. |
+| `activeIncidents` | The unresolved incidents the page shows, each with the `affectedResourceIds` of the resources it affects. On a page that shows episodes but not incidents, its active episodes, which its overview lists as its active incidents. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | The maintenance events in progress and still to come, each with its `affectedResourceIds`. |
 
 A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**, or nothing has checked it yet, so the page shows it as **Not monitored yet**. `isUnderMaintenance` is `true` while an event in progress names one of the resource's monitors, or a monitor in its monitor group, whatever status those monitors are in.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | Endpoint | Keys in the response |
 | -------- | -------------------- |
-| Incidents | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Episodes | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Incidents | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| Episodes | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | Maintenance events | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Announcements | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ An error answers with a status code and a JSON body that says why:
 
 ## Other ways to read a status page
 
-- **RSS.** Every status page serves `/rss`, a feed of its incidents, announcements and maintenance events, each dated as the page dates it. See [The embeddable badge and the RSS feed](/docs/status-pages/index#the-embeddable-badge-and-the-rss-feed).
+- **RSS.** Every status page serves `/rss`, a feed of its incidents and episodes, announcements and maintenance events, each dated as the page dates it, its incidents laid out as the page lays them out. See [The embeddable badge and the RSS feed](/docs/status-pages/index#the-embeddable-badge-and-the-rss-feed).
 - **llms.txt.** Next to `/rss`, every status page serves `/llms.txt`, which points AI agents at the RSS feed and the overview JSON.
 - **MCP.** AI agents can read the page through OneUptime's MCP server at `https://oneuptime.com/mcp`, with no API key, by passing the page's ID or domain as `statusPageIdOrDomain`. It is on by default; turn it off with **Enable MCP Server** under **Advanced → MCP** in the page's side menu. See [MCP Server](/docs/ai/mcp-server).
 - **The REST API.** To create or change status pages, resources, subscribers and announcements, use the [OneUptime API](/docs/api-reference/api-reference) with an API key.

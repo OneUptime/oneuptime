@@ -962,6 +962,8 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
       "overallUptimePercentPrecision",
       "downtimeMonitorStatuses",
       "onlyShowScopedIncidents",
+      // It only lays out what the page shows (#10767).
+      "groupIncidentsByEpisode",
     ];
 
     // Every setting of the card is in one of the three lists.
@@ -992,7 +994,7 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
     }
 
     expect(card).toContain(
-      "The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent needs **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan",
+      "The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent needs **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime**, **Only Show Incidents Scoped to This Page** and **Show Incidents Grouped by Episode** can be changed on every plan",
     );
   });
 
