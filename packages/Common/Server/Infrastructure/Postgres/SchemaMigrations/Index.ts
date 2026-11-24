@@ -1194,6 +1194,8 @@ import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddPr
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
 import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-AddDataSecurityIssuePullRequest";
+import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
+import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2392,4 +2394,6 @@ export default [
   AddUniqueNameIndexes1809187640010,
   AddSecurityUserErasureRequest1809187650908,
   AddDataSecurityIssuePullRequest1809187660831,
+  AddOnCallPolicyIncidentRole1809187670000,
+  AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
 ];

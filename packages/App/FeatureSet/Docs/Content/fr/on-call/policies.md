@@ -87,6 +87,16 @@ Les minutes sont comptées à partir de chaque prise en compte, et une politique
 
 La personne alertée de nouveau la prend en compte depuis son message, ou avec **Prendre en compte de nouveau** sur la page de l'incident ou de l'alerte, et les minutes recommencent ; **Escalader** la passe au niveau suivant. Résoudre ou supprimer l'incident ou l'alerte, archiver ou supprimer la politique, ou choisir **Ne pas alerter de nouveau** l'arrête. La ligne **Après une prise en compte** de la carte dit ce que fait la politique, et **Plus de paramètres** affiche les minutes tant qu'il est replié. **La politique en un coup d'œil** sur la **Vue d'ensemble** et le **Résumé de l'escalade** disent la même chose en toutes lettres.
 
+## Donner un rôle d'incident aux personnes alertées
+
+Les **Rôles d'incident** d'un incident disent qui y travaille. Une politique peut y inscrire les personnes qu'elle alerte : ouvrez sa page **Règles d'escalade**, ouvrez **Plus de paramètres** en bas, puis cliquez sur **Modifier** sur la carte **Rôle d'incident**. **Modifier le rôle d'incident** demande un **Rôle** : l'un des rôles d'incident de votre projet, ou **Aucun rôle**, par lequel commence toute politique.
+
+Toute personne que la politique alerte ensuite au sujet d'un incident ou d'un épisode d'incidents reçoit ce rôle sur celui-ci, à chaque niveau et chaque fois qu'elle alerte de nouveau, à condition d'être membre du projet. Une personne qu'elle alerte comme observateur ne le reçoit pas. Une personne qui a déjà le rôle le garde tel quel, et un rôle qui ne prend qu'une personne, comme **Responsable d'incident**, va à la première personne alertée tant que personne ne l'a. Le fil de l'incident nomme la politique qui l'a ajoutée, et elle ne reçoit aucun message à part pour le rôle : son alerte l'a déjà informée de l'incident.
+
+C'est ainsi que la personne d'astreinte de l'équipe propriétaire d'un service apparaît sur ses incidents. Créez un rôle comme « Responsable du service » sous **Incidents → Paramètres → Rôles d'incident**, choisissez-le sur la politique qui alerte l'équipe Paiements, et faites exécuter cette politique par les moniteurs des paiements, depuis leurs critères ou une règle d'astreinte. La personne d'astreinte pour les paiements figure alors comme « Responsable du service » de l'incident, et la première personne qui change son état, en le prenant en compte, devient quand même son **Responsable d'incident**, même si une politique lui a donné un autre rôle en l'alertant.
+
+La ligne **Rôle des personnes alertées** de la carte indique le rôle que donne la politique, et **Plus de paramètres** le nomme tant que la section est repliée. Archiver le rôle n'empêche pas la politique de le donner, et la boîte de dialogue d'archivage du rôle compte la politique parmi ce qui l'utilise : choisissez **Aucun rôle** pour arrêter. Supprimer le rôle remet la politique sur **Aucun rôle**.
+
 ## Quand plusieurs politiques alertent
 
 Un incident, une alerte ou un épisode exécute chacune de ses politiques séparément, en même temps.
@@ -176,11 +186,14 @@ Les politiques d'astreinte sont la ressource `/api/on-call-duty-policy`, et la r
 | **Si personne ne prend en compte après le dernier niveau** | `repeatPolicyIfNoOneAcknowledges` |
 | **Combien de fois de plus ?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Après combien de minutes ?** | `acknowledgementTimeoutInMinutes` |
+| **Rôle** | `incidentRoleId` |
 | Archivée | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` vaut `false` pour **Arrêter les alertes** et `true` pour **Recommencer depuis Level 1**. À `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` doit être un nombre entier d'au moins 1 : OneUptime refuse `0`. Une politique plus ancienne enregistrée avec `0` ne se répète jamais, et le tableau de bord l'affiche comme **Arrêter les alertes**.
 
 `acknowledgementTimeoutInMinutes` vaut `null` pour **Ne pas alerter de nouveau**, et un nombre entier de minutes de 5 à 1440 pour **Alerter de nouveau**. OneUptime refuse toute autre valeur.
+
+`incidentRoleId` est l'ID de l'un des rôles d'incident du projet, ou `null` pour **Aucun rôle**.
 
 Pour créer une politique avec son premier niveau en une seule requête, voir [Créer des règles avec l'API ou Terraform](/docs/on-call/escalation-rules#créer-des-règles-avec-lapi-ou-terraform).
 
