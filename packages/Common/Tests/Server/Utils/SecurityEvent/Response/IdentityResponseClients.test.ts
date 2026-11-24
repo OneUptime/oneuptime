@@ -490,12 +490,18 @@ describe("GoogleWorkspaceResponseClient", () => {
     const user: GoogleWorkspaceUser | null =
       await workspaceClient(api).findUser(" bob@example.com ");
 
-    // With whether 2-Step Verification is on: the Fix step's MFA check reads it (#10347).
+    /*
+     * With whether 2-Step Verification is on - the Fix step's MFA check
+     * reads it (#10347) - and whether the account is an admin, which the
+     * account-changes check reads back (#10603).
+     */
     expect(user).toEqual({
       id: BOB["id"],
       primaryEmail: "bob@example.com",
       suspended: false,
       isEnrolledIn2Sv: true,
+      isAdmin: false,
+      isDelegatedAdmin: false,
     });
 
     // A user the Directory API does not say is enrolled is not.

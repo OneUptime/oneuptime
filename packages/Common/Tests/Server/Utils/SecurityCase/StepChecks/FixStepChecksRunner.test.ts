@@ -312,8 +312,11 @@ describe("the plan's Fix step goes to the route's check", () => {
     expect(getStepCheck(KEY)?.kind).toBe("fix:public-app");
     expect(getStepCheck("fix:credentials")?.kind).toBe("fix:credentials");
     expect(getStepCheck("fix:brute-force")?.kind).toBe("fix:brute-force");
+    // The account changes an attack made are read back too (#10603).
+    expect(getStepCheck("fix:account-changes")?.kind).toBe(
+      "fix:account-changes",
+    );
     // A Fix step OneUptime cannot read back stays a person's.
-    expect(getStepCheck("fix:account-changes")).toBeNull();
     expect(getStepCheck("fix:persistence")).toBeNull();
     expect(ROUTE_FIX_STEP_KEY).toBe(KEY);
   });
