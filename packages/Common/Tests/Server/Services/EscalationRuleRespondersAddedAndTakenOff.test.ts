@@ -4,6 +4,7 @@ import EscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPo
 import EscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
 import EscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
+import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -32,6 +33,7 @@ import {
   seededRandom,
   shuffled,
 } from "../../Helpers/SeededRandom";
+import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
   beforeEach,
@@ -543,6 +545,57 @@ describe("in any order", () => {
       expect(world.errors).toEqual([]);
     },
   );
+});
+
+/*
+ * The policy deleted takes its rules, and the rows naming their people,
+ * teams and schedules, with it by the database's own cascade (a table in
+ * memory keeps them; nothing here reads them after): none of their hooks
+ * ends the time logs they kept, so the policy's own delete ends them.
+ */
+describe("the policy deleted", () => {
+  const OTHER_POLICY_ID: string = "10970000-0000-4000-8000-0000000000a2";
+  const OTHER_RULE_ID: string = "10970000-0000-4000-8000-0000000000b2";
+
+  test("every time log still open on it ends; another policy's stays open", async () => {
+    getJestSpyOn(
+      WorkspaceNotificationRuleService,
+      "archiveWorkspaceChannels",
+    ).mockResolvedValue(undefined);
+
+    await addTeam(PLATFORM);
+    await addUser(CY);
+    world.onCall = BO;
+    await addSchedule(PRIMARY);
+
+    // Ana's log on another policy, which this delete leaves alone.
+    world.timeLogs.rows.push({
+      _id: ObjectID.generate().toString(),
+      projectId: PROJECT_ID.toString(),
+      onCallDutyPolicyId: OTHER_POLICY_ID,
+      onCallDutyPolicyEscalationRuleId: OTHER_RULE_ID,
+      userId: ANA,
+      startsAt: new Date(Date.UTC(2026, 10, 1)),
+    });
+
+    await OnCallDutyPolicyService.deleteOneById({
+      id: new ObjectID(POLICY_ID),
+      props: caller,
+    });
+    await world.settle();
+
+    expect(world.policies.rows).toHaveLength(0);
+    expect(world.endedLogs()).toEqual([
+      "Ana: team Platform",
+      "Bo: on call in Primary",
+      "Bo: team Platform",
+      "Cy: named",
+    ]);
+    expect(
+      world.openLogs({ policyId: OTHER_POLICY_ID, ruleId: OTHER_RULE_ID }),
+    ).toEqual(["Ana: named"]);
+    expect(world.errors).toEqual([]);
+  });
 });
 
 describe("a new policy's first level", () => {
